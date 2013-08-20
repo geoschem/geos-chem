@@ -39,7 +39,6 @@
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       !
       ! New biogenic VOC emissions (mpb,2009) 
-      ! SOaupdate: Added sesquiterpenes (#11-14) (hotp, mpayer, 6/28/11)
       !
       !     ---------------------------
       !     Species            | Order 
@@ -54,6 +53,8 @@
       !     Mycrene            = 8
       !     3-Carene           = 9
       !     Ocimene            = 10
+      !     ---------------------------	
+      !     SOAupdate: Sesquiterpenes (hotp 3/1/10):
       !     Farnesene          = 11
       !     b-Caryophyllene    = 12
       !     Other sesquiterp   = 13
@@ -71,7 +72,6 @@
       !       it below...but it is emitted in EMEP.  It will be saved
       !       into the EMISRR array for SMVGEAR. (bdf, bmy, 11/1/05)
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      ! SOAupdate: Added naphthalene emissions (hotp, mpayer, 6/28/11)
       REAL*4, ALLOCATABLE  :: EMISTNOX (:,:,:,:)
       REAL*4, ALLOCATABLE  :: EMISTETHE(:,:)
       REAL*4, ALLOCATABLE  :: EMISTCO  (:,:)
@@ -87,6 +87,7 @@
       REAL*4, ALLOCATABLE  :: EMISTXYLE(:,:)
       REAL*4, ALLOCATABLE  :: EMISTC2H4(:,:)
       REAL*4, ALLOCATABLE  :: EMISTC2H2(:,:)
+      ! SOAupdate: Add EMISTNAP (hotp 7/21/10)
       REAL*4, ALLOCATABLE  :: EMISTNAP (:,:)
 
 
@@ -124,10 +125,12 @@
 !
 ! !REVISION HISTORY:
 !  23 Aug 2011 - M. Long   - Converted to Module from Header file
-!  28 Jun 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
 !                              and SAVENO3. They are no longer needed because
 !                              O3, NO, NO2, and NO3 are now tracers.
+!  13 Aug 2013 - M. Sulprizio- Increase last dimension of EMISS_BVOC to include
+!                              sesquiterpenes and add EMISTNAP for SOA +
+!                              semivolatile POA simulation (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -160,12 +163,13 @@
       INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
-!  28 Jun 2011 - M. Payer    - Increase last dimension of EMISS_BVOC from 10 to
-!                              14 for SOA + semivol POA (H. Pye)
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
 !                              and SAVENO3. They are no longer needed because
 !                              O3, NO, NO2, and NO3 are now tracers.
+!  13 Aug 2013 - M. Sulprizio- Increase last dimension of EMISS_BVOC to include
+!                              sesquiterpenes and add EMISTNAP for SOA +
+!                              semivolatile POA simulation (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -179,6 +183,7 @@
       ALLOCATE( EMISTN    ( IIPAR, JJPAR, NOXLEVELS       ), STAT=RC )
       ALLOCATE( EMISRR    ( IIPAR, JJPAR, NEMPARA+NEMPARB ), STAT=RC )
       ALLOCATE( EMISRRN   ( IIPAR, JJPAR, NOXEXTENT       ), STAT=RC )
+      ! SOAupdate: Now 14 (hotp 3/5/10)
       ALLOCATE( EMISS_BVOC( IIPAR, JJPAR, 14              ), STAT=RC )
       ALLOCATE( EMISTNOX  ( IIPAR, JJPAR, 4, 2            ), STAT=RC )
       ALLOCATE( EMISTETHE ( IIPAR, JJPAR                  ), STAT=RC )
@@ -195,6 +200,7 @@
       ALLOCATE( EMISTXYLE ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( EMISTC2H4 ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( EMISTC2H2 ( IIPAR, JJPAR                  ), STAT=RC )
+      ! SOAupdate: Add EMISTNAP (hotp 7/21/10)
       ALLOCATE( EMISTNAP  ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( FTOTCO2   ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( FLIQCO2   ( IIPAR, JJPAR                  ), STAT=RC )

@@ -134,7 +134,6 @@
 !  20 Sep 2010 - H. Amos, R. Yantosca - Implement new algorithms for MERRA
 !  08 Oct 2010 - H. Amos     - WASHFRAC_LIQ_GAS is now a subroutine
 !  08 Oct 2010 - H. Amos     - Various other modifications in WETDEP_MERRA
-!  05 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  01 Aug 2011 - H. Amos     - Bug fix for function WASHFRAC_LIQ_GAS
 !  01 Aug 2011 - H. Amos     - Updated comments
 !  09 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
@@ -142,6 +141,8 @@
 !  23 Apr 2013 - R. Yantosca - Bug fix, eliminate white space from #if block
 !  23 Apr 2013 - R. Yantosca - Remove LTOMAS logical, since we now invoke TOMAS
 !                              with either TOMAS=yes or TOMAS40=yes
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -830,34 +831,44 @@
       USE TRACERID_MOD,       ONLY : IDTLET,    IDTBCPI,   IDTOCPI
       USE TRACERID_MOD,       ONLY : IDTBCPO,   IDTOCPO,   IDTDST1 
       USE TRACERID_MOD,       ONLY : IDTDST2,   IDTDST3,   IDTDST4 
-      USE TRACERID_MOD,       ONLY : IDTSALA,   IDTSALC,   IDTALPH
-      USE TRACERID_MOD,       ONLY : IDTLIMO,   IDTALCO,   IDTSOG1
-      USE TRACERID_MOD,       ONLY : IDTSOG2,   IDTSOG3,   IDTSOG4
-      USE TRACERID_MOD,       ONLY : IDTSOA1,   IDTSOA2,   IDTSOA3
-      USE TRACERID_MOD,       ONLY : IDTSOA4,   IS_Hg2,    IS_HgP
+      USE TRACERID_MOD,       ONLY : IDTSALA,   IDTSALC
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate: update biogenics (new mtp) (hotp 5/24/10)
+!      USE TRACERID_MOD,       ONLY : IDTSALA,   IDTSALC,   IDTALPH
+!      USE TRACERID_MOD,       ONLY : IDTLIMO,   IDTALCO,   IDTSOG1
+!      USE TRACERID_MOD,       ONLY : IDTSOG2,   IDTSOG3,   IDTSOG4
+!      USE TRACERID_MOD,       ONLY : IDTSOA1,   IDTSOA2,   IDTSOA3
+!      USE TRACERID_MOD,       ONLY : IDTSOA4,   IS_Hg2,    IS_HgP
+!      USE TRACERID_MOD,       ONLY : IDTSOA5,   IDTSOG5
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IS_Hg2,    IS_HgP
       USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC      
       USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
-      USE TRACERID_MOD,       ONLY : IDTSOA5,   IDTSOG5
       USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
       USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN
       USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP
       USE TRACERID_MOD,       ONLY : IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG 
-      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
-      USE TRACERID_MOD,       ONLY : IDTMTPA,  IDTMTPO
-      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      ! SOAupdate: update biogenics (new mtp) (hotp 5/24/10)
+      USE TRACERID_MOD,       ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
       USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
       USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
       USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
       USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
       USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      ! SOAupdate
+      ! MERGE2 (hotp 6/15/09)
       USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
       USE TRACERID_MOD,       ONLY : IDTPOG1,  IDTPOG2
+      ! semivolpoa4opoa: add OPOA,OPOG (hotp 3/18/09)
       USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
       USE TRACERID_MOD,       ONLY : IDTOPOG1, IDTOPOG2
+      ! lumped aromatic and IVOC tracer (hotp 5/12/10)
+      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
+      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
+      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
 
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
@@ -935,11 +946,12 @@
 !                              Rhode, 1985). Henry's law constant in
 !                              wetscav_mod.f is now consistent with what's used
 !                              in mercury_mod.f
-!  05 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  31 May 2013 - R. Yantosca - Now accept State_Chm, and pass it to TOMAS code
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1687,10 +1699,10 @@
 
       !-------------------------------
       !
-      ! OC HYDROPHOBIC (aerosol) or
-      ! POA (treated as hydrophobic)
+      ! OC HYDROPHOBIC (aerosol)
       !-------------------------------
-      ! SOAupdate: Add POA1 and 2 for SOA + semivol POA (hotp, mpayer, 7/5/11)
+      ! SOAupdate (hotp 6/15/09)
+      ! treat POA as hydrophobic
       ELSE IF ( N == IDTOCPO .or. 
      &          N == IDTPOA1 .or. N == IDTPOA2  ) THEN
 
@@ -1714,10 +1726,175 @@
          CALL F_AEROSOL( KC, N, F, State_Met ) 
          ISOL = GET_ISOL( N )
 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      !-------------------------------
+!      ! ALPH (liquid phase only)
+!      !-------------------------------
+!      ELSE IF ( N == IDTALPH ) THEN
+!
+!         ! No scavenging at the surface
+!         F(:,:,1) = 0d0
+!
+!         ! Start scavenging at level 2
+!         DO L = 2, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! Compute liquid to gas ratio for ALPH, using
+!            ! the appropriate parameters for Henry's law
+!            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+!            CALL COMPUTE_L2G( 0.023d0, 0.d0, State_Met%T(I,J,L), 
+!     &                        CLDLIQ(I,J,L), L2G )
+!
+!            ! Fraction of ALPH in liquid phase
+!            ! (Eq. 4, 5, 6, Jacob et al, 2000)
+!            C_TOT = 1d0 + L2G
+!            F_L   = L2G / C_TOT
+!
+!            ! Compute the rate constant K.  Assume retention factor  
+!            ! for liquid ALPH is 0.0 for T <= 248 K and 0.02 for 
+!            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+!            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+!               K = KC * F_L  
+!
+!            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
+!     &                State_Met%T(I,J,L) < 268d0 ) THEN
+!               K = KC * ( 2d-2 * F_L ) 
+!                  
+!            ELSE
+!               K = 0d0
+!
+!            ENDIF
+!               
+!            ! Distance between grid box centers [m]
+!            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+!     &                      State_Met%BXHEIGHT(I,J,L) ) 
+!
+!            ! F is the fraction of ALPH scavenged out of the updraft
+!            ! (Eq. 2, Jacob et al, 2000)
+!            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+!
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!
+!         ISOL = GET_ISOL( N )
+!
+!      !-------------------------------
+!      ! LIMO (liquid phase only)
+!      !-------------------------------
+!      ELSE IF ( N == IDTLIMO ) THEN
+!
+!         ! No scavenging at the surface
+!         F(:,:,1) = 0d0
+!
+!         ! Start scavenging at level 2
+!         DO L = 2, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! Compute liquid to gas ratio for LIMO, using
+!            ! the appropriate parameters for Henry's law
+!            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+!            CALL COMPUTE_L2G( 0.07d0,  0.d0, State_Met%T(I,J,L),
+!     &                        CLDLIQ(I,J,L), L2G )
+!
+!            ! Fraction of LIMO in liquid phase
+!            ! (Eq. 4, 5, 6, Jacob et al, 2000)
+!            C_TOT = 1d0 + L2G
+!            F_L   = L2G / C_TOT
+!
+!            ! Compute the rate constant K.  Assume retention factor  
+!            ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
+!            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+!            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+!               K = KC * F_L  
+!
+!            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
+!     &                State_Met%T(I,J,L) < 268d0 ) THEN
+!               K = KC * ( 2d-2 * F_L ) 
+!                  
+!            ELSE
+!               K = 0d0
+!
+!            ENDIF
+!               
+!            ! Distance between grid box centers [m]
+!            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+!     &                      State_Met%BXHEIGHT(I,J,L) ) 
+!
+!            ! F is the fraction of LIMO scavenged out of the updraft
+!            ! (Eq. 2, Jacob et al, 2000)
+!            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+!
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!
+!         ! ND38 index
+!         ISOL = GET_ISOL( N )
+!
+!      !-------------------------------
+!      ! ALCO (liquid phase only)
+!      !-------------------------------
+!      ELSE IF ( N == IDTALCO ) THEN
+!
+!         ! No scavenging at the surface
+!         F(:,:,1) = 0d0
+!
+!         ! Start scavenging at level 2
+!         DO L = 2, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! Compute liquid to gas ratio for ALCO, using
+!            ! the appropriate parameters for Henry's law
+!            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+!            CALL COMPUTE_L2G( 54.d0,  0.d0,  State_Met%T(I,J,L), 
+!     &                        CLDLIQ(I,J,L), L2G )
+!
+!            ! Fraction of ALCO in liquid phase
+!            ! (Eq. 4, 5, 6, Jacob et al, 2000)
+!            C_TOT = 1d0 + L2G
+!            F_L   = L2G / C_TOT
+!
+!            ! Compute the rate constant K.  Assume retention factor  
+!            ! for liquid ALCO is 0.0 for T <= 248 K and 0.02 for 
+!            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+!            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+!               K = KC * F_L  
+!
+!            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
+!     &                State_Met%T(I,J,L) < 268d0 ) THEN
+!               K = KC * ( 2d-2 * F_L ) 
+!                  
+!            ELSE
+!               K = 0d0
+!
+!            ENDIF
+!               
+!            ! Distance between grid box centers [m]
+!            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+!     &                      State_Met%BXHEIGHT(I,J,L) ) 
+!
+!            ! F is the fraction of ALCO scavenged out of the updraft
+!            ! (Eq. 2, Jacob et al, 2000)
+!            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+!
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!
+!         ! ND38 index
+!         ISOL = GET_ISOL( N )
+!------------------------------------------------------------------------------
+
       !-------------------------------
-      ! ALPH (liquid phase only)
+      ! MTPA (liquid phase only)
       !-------------------------------
-      ELSE IF ( N == IDTALPH ) THEN
+      ! SOAudpate new mtp (hotp 5/24/10) 
+      ELSE IF ( N == IDTMTPA ) THEN
 
          ! No scavenging at the surface
          F(:,:,1) = 0d0
@@ -1727,24 +1904,26 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! Compute liquid to gas ratio for ALPH, using
+            ! Compute liquid to gas ratio for MTPA, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 0.023d0, 0.d0, State_Met%T(I,J,L), 
+            ! Use H-law of 0.049 for all pinene (Sander, 1999)
+            ! updated for new mtp (hotp 5/24/10), SOAupdate
+            CALL COMPUTE_L2G( 0.049d0, 0.d0, State_Met%T(I,J,L), 
      &                        CLDLIQ(I,J,L), L2G )
 
-            ! Fraction of ALPH in liquid phase
+            ! Fraction of MTPA in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
             C_TOT = 1d0 + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid ALPH is 0.0 for T <= 248 K and 0.02 for 
+            ! for liquid MTPA is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
             IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
+            ELSE IF ( State_Met%T(I,J,L) > 248d0 .and.
      &                State_Met%T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
@@ -1757,7 +1936,7 @@
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
 
-            ! F is the fraction of ALPH scavenged out of the updraft
+            ! F is the fraction of MTPA scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
             F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
 
@@ -1822,117 +2001,9 @@
          ISOL = GET_ISOL( N )
 
       !-------------------------------
-      ! ALCO (liquid phase only)
-      !-------------------------------
-      ELSE IF ( N == IDTALCO ) THEN
-
-         ! No scavenging at the surface
-         F(:,:,1) = 0d0
-
-         ! Start scavenging at level 2
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Compute liquid to gas ratio for ALCO, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 54.d0,  0.d0,  State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of ALCO in liquid phase
-            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid ALCO is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
-
-            ! F is the fraction of ALCO scavenged out of the updraft
-            ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
-
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! ND38 index
-         ISOL = GET_ISOL( N )
-
-      !-------------------------------
-      ! MTPA (liquid phase only)
-      ! SOAupdate (hotp, mpayer, 7/5/11)
-      !-------------------------------
-      ELSE IF ( N == IDTMTPA ) THEN
-
-         ! No scavenging at the surface
-         F(:,:,1) = 0d0
-
-         ! Start scavenging at level 2
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Compute liquid to gas ratio for MTPA, using
-            ! Henry's law of 0.049 for all pinene (Sander, 1999)
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 0.049d0, 0.d0, State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of MTPA in liquid phase
-            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid MTPA is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( State_Met%T(I,J,L) > 248d0 .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
-
-            ! F is the fraction of MTPA scavenged out of the updraft
-            ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
-
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ISOL = GET_ISOL( N )
-
-      !-------------------------------
       ! MTPO (liquid phase only)
-      ! SOAupdate (hotp, mpayer, 7/5/11)
       !-------------------------------
+      ! new mtp SOAupdate (hotp 5/24/10)
       ELSE IF ( N == IDTMTPO ) THEN
 
          ! No scavenging at the surface
@@ -1946,6 +2017,7 @@
             ! Compute liquid to gas ratio for MTPO, using
             ! the appropriate parameters for Henry's law.
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+            ! SOAupdate
             ! Terpenoid alcohol emission expected to be much lower
             ! than previously estimated. Use pinene H-law (hotp 5/24/10)
             CALL COMPUTE_L2G( 0.049d0, 0.d0, State_Met%T(I,J,L),
@@ -1987,9 +2059,9 @@
          ISOL = GET_ISOL( N )
 
       !------------------------------------
-      ! POG (treated  as relatively hydrophobic)
-      ! SOAupdate (hotp, mpayer, 7/5/11)
+      ! POG
       !------------------------------------
+      ! Treat POG as relatively hydrophobic (hotp 9/22/09)
       ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
 
          ! No scavenging at the surface
@@ -2046,13 +2118,18 @@
       !-----------------------------------
       ! SOG (liquid phase only)
       !-----------------------------------
-      ! Add SOG5 (dkh, 03/26/07)  
-      ! add PMNN assuming it behaves like SOG4 FP_ISOP 10/09
-      ! SOAupdate: Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
-      ELSE IF ( N == IDTSOG1  .or. N == IDTSOG2  .or. 
-     &          N == IDTSOG3  .or. N == IDTSOG4  .or. 
-     &          N == IDTSOG5  .or.
-     &          N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      ! Add SOG5 (dkh, 03/26/07)  
+!      ! add PMNN assuming it behaves like SOG4 FP_ISOP 10/09
+!      !ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
+!      !&          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
+!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
+!     &          N == IDTSOG3 .or. N == IDTSOG4  .or. 
+!     &          N == IDTSOG5                     ) THEN
+!------------------------------------------------------------------------------
+      ! update for new mtp (hotp 5/24/10), SOAudpate
+      ELSE IF ( N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
      &          N == IDTTSOG3 .or. N == IDTTSOG0 .or. 
      &          N == IDTISOG1 .or. N == IDTISOG2 .or. 
      &          N == IDTISOG3 .or.  
@@ -2113,18 +2190,24 @@
       ! SOA (aerosol)
       ! Scavenging efficiency for SOA is 0.8
       !------------------------------------------
-      ! Add SOA5 (dkh, 03/26/07)  
-      ! SOAupdate: Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
-      ELSE IF ( N == IDTSOA1  .or. N == IDTSOA2  .or. 
-     &          N == IDTSOA3  .or. N == IDTSOA4  .or. 
-     &          N == IDTSOA5  .or.
-     &          N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      ! Add SOA5 (dkh, 03/26/07)  
+!      !ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
+!      !&          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
+!      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
+!     &          N == IDTSOA3 .or. N == IDTSOA4  .or. 
+!     &          N == IDTSOA5                    ) THEN
+!------------------------------------------------------------------------------
+      ! update for new mtp (hotp 5/24/10), SOAupdate
+      ELSE IF ( N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
      &          N == IDTTSOA3 .or. N == IDTTSOA0 .or. 
      &          N == IDTISOA1 .or. N == IDTISOA2 .or. 
      &          N == IDTISOA3 .or. 
      &          N == IDTOPOA1 .or. N == IDTOPOA2 .or. 
      &          N == IDTASOAN .or. N == IDTASOA1 .or.
      &          N == IDTASOA2 .or. N == IDTASOA3      ) THEN
+
          CALL F_AEROSOL( KC,N, F, State_Met )
 
          DO L = 2, LLPAR
@@ -3053,10 +3136,15 @@
       USE TRACERID_MOD,       ONLY : IDTAS,   IDTAHS,   IDTLET,  IDTBCPI 
       USE TRACERID_MOD,       ONLY : IDTOCPI, IDTBCPO,  IDTOCPO, IDTDST1 
       USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3,  IDTDST4, IDTSALA 
-      USE TRACERID_MOD,       ONLY : IDTSALC, IDTALPH,  IDTLIMO, IDTALCO 
-      USE TRACERID_MOD,       ONLY : IDTSOG1, IDTSOG2,  IDTSOG3, IDTSOG4
-      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2,  IDTSOA3, IDTSOA4
-      USE TRACERID_MOD,       ONLY : IDTSOA5, IDTSOG5
+      USE TRACERID_MOD,       ONLY : IDTSALC
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate:  update biogenics (new mtp) (hotp 5/24/10)
+!      USE TRACERID_MOD,       ONLY : IDTSALC, IDTALPH,  IDTLIMO, IDTALCO 
+!      USE TRACERID_MOD,       ONLY : IDTSOG1, IDTSOG2,  IDTSOG3, IDTSOG4
+!      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2,  IDTSOA3, IDTSOA4
+!      USE TRACERID_MOD,       ONLY : IDTSOA5, IDTSOG5
+!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IS_Hg2,  IS_HgP
       USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
       USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
@@ -3065,20 +3153,23 @@
       USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
-      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
-      USE TRACERID_MOD,       ONLY : IDTMTPA,  IDTMTPO
-      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      ! SOAupdate:  update biogenics (new mtp) (hotp 5/24/10)
+      USE TRACERID_MOD,       ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
       USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
       USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
       USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
       USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
       USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      ! SOAupdate: semivolpoa2: add POG (hotp 3/2/09)
       USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
       USE TRACERID_MOD,       ONLY : IDTPOG1,  IDTPOG2
+      ! SOAupdate: semivolpoa4opoa: add OPOA, OPOG (hotp 3/18/09)
       USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
       USE TRACERID_MOD,       ONLY : IDTOPOG1, IDTOPOG2
+      ! SOAupdate: lumped aromatic/IVOC aerosol (hotp 5/12/10)
+      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
+      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
+      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
 
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4,IDTNK1,   IDTSF1,  IDTSS1
@@ -3138,11 +3229,12 @@
 !        overlooked this. (havala, bmy, 7/20/09)
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  05 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
 !  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3758,23 +3850,128 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
-      !------------------------------
-      ! ALPH (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTALPH ) THEN
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! new mtp (hotp 5/24/10), SOAupdate
+!      !------------------------------
+!      ! ALPH (liquid phase only)
+!      !------------------------------
+!      ELSE IF ( N == IDTALPH ) THEN
+!
+!         ! Compute liquid to gas ratio for ALPH, using
+!         ! the appropriate parameters for Henry's law
+!         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+!         CALL COMPUTE_L2G( 0.023d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
+!
+!         ! Fraction of ALPH in liquid phase
+!         ! (Eqs. 4, 5, Jacob et al, 2000)
+!         C_TOT = 1d0 + L2G
+!         F_L   = L2G / C_TOT
+!
+!         ! Compute the rate constant K.  Assume that the retention factor
+!         ! for liquid ALPH is 0.02 for 248 K < T < 268 K, and
+!         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+!         IF ( TK >= 268d0 ) THEN
+!            K = K_RAIN * F_L
+!
+!         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+!            K = K_RAIN * ( 2d-2 * F_L )
+!
+!         ELSE
+!            K = 0d0
+!
+!         ENDIF
+! 
+!         ! Compute RAINFRAC, the fraction of rained-out ALPH
+!         ! (Eq. 10, Jacob et al, 2000)
+!         RAINFRAC = GET_RAINFRAC( K, F, DT )
+!
+!      !------------------------------
+!      ! LIMO (liquid phase only)
+!      !------------------------------
+!      ELSE IF ( N == IDTLIMO ) THEN
+!
+!         ! Compute liquid to gas ratio for LIMO, using
+!         ! the appropriate parameters for Henry's law
+!         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+!         CALL COMPUTE_L2G( 0.07d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
+!
+!         ! Fraction of LIMO in liquid phase
+!         ! (Eqs. 4, 5, Jacob et al, 2000)
+!         C_TOT = 1d0 + L2G
+!         F_L   = L2G / C_TOT
+!
+!         ! Compute the rate constant K.  Assume that the retention factor
+!         ! for liquid LIMO is 0.02 for 248 K < T < 268 K, and
+!         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+!         IF ( TK >= 268d0 ) THEN
+!            K = K_RAIN * F_L
+!
+!         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+!            K = K_RAIN * ( 2d-2 * F_L )
+!
+!         ELSE
+!            K = 0d0
+!
+!         ENDIF
+!
+!         ! Compute RAINFRAC, the fraction of rained-out LIMO
+!         ! (Eq. 10, Jacob et al, 2000)
+!         RAINFRAC = GET_RAINFRAC( K, F, DT )
+!
+!      !------------------------------
+!      ! ALCO (liquid phase only)
+!      !------------------------------
+!      ELSE IF ( N == IDTALCO ) THEN
+!
+!         ! Compute liquid to gas ratio for ALCO, using
+!         ! the appropriate parameters for Henry's law
+!         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+!         CALL COMPUTE_L2G( 54.d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
+!
+!         ! Fraction of ALCO in liquid phase
+!         ! (Eqs. 4, 5, Jacob et al, 2000)
+!         C_TOT = 1d0 + L2G
+!         F_L   = L2G / C_TOT
+!
+!         ! Compute the rate constant K.  Assume that the retention factor
+!         ! for liquid ALCO is 0.02 for 248 K < T < 268 K, and
+!         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+!         IF ( TK >= 268d0 ) THEN
+!            K = K_RAIN * F_L
+!
+!         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+!            K = K_RAIN * ( 2d-2 * F_L )
+!
+!         ELSE
+!            K = 0d0
+!
+!         ENDIF
+!
+!         ! Compute RAINFRAC, the fraction of rained-out ALCO
+!         ! (Eq. 10, Jacob et al, 2000)   
+!         RAINFRAC = GET_RAINFRAC( K, F, DT )
+!------------------------------------------------------------------------------
 
-         ! Compute liquid to gas ratio for ALPH, using
+      !------------------------------
+      ! MTPA (liquid phase only)
+      !------------------------------
+      ! new mtp (hotp 5/24/10), SOAupdate
+      ELSE IF ( N == IDTMTPA ) THEN
+
+         ! Compute liquid to gas ratio for MTPA, using
          ! the appropriate parameters for Henry's law
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( 0.023d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
+         ! use H-law of 0.049 (hotp 5/24/10), SOAupdate
+         CALL COMPUTE_L2G( 0.049d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
 
-         ! Fraction of ALPH in liquid phase
+         ! Fraction of MTPA in liquid phase
          ! (Eqs. 4, 5, Jacob et al, 2000)
          C_TOT = 1d0 + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  Assume that the retention factor
-         ! for liquid ALPH is 0.02 for 248 K < T < 268 K, and
+         ! for liquid MTPA is 0.02 for 248 K < T < 268 K, and
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
          IF ( TK >= 268d0 ) THEN
             K = K_RAIN * F_L
@@ -3787,7 +3984,7 @@
 
          ENDIF
  
-         ! Compute RAINFRAC, the fraction of rained-out ALPH
+         ! Compute RAINFRAC, the fraction of rained-out MTPA
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
@@ -3825,91 +4022,24 @@
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !------------------------------
-      ! ALCO (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTALCO ) THEN
-
-         ! Compute liquid to gas ratio for ALCO, using
-         ! the appropriate parameters for Henry's law
-         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( 54.d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
-
-         ! Fraction of ALCO in liquid phase
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  Assume that the retention factor
-         ! for liquid ALCO is 0.02 for 248 K < T < 268 K, and
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
-            K = K_RAIN * F_L
-
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
-
-         ELSE
-            K = 0d0
-
-         ENDIF
-
-         ! Compute RAINFRAC, the fraction of rained-out ALCO
-         ! (Eq. 10, Jacob et al, 2000)   
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !------------------------------
-      ! MTPA (liquid phase only)
-      ! SOAupdate (hotp, mpayer, 7/5/11)
-      !------------------------------
-      ELSE IF ( N == IDTMTPA ) THEN
-
-         ! Compute liquid to gas ratio for MTPA, using
-         ! Henry's law of 0.049 (hotp 5/24/10)
-         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( 0.049d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
-
-         ! Fraction of MTPA in liquid phase
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  Assume that the retention factor
-         ! for liquid MTPA is 0.02 for 248 K < T < 268 K, and
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
-            K = K_RAIN * F_L
-
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
-
-         ELSE
-            K = 0d0
-
-         ENDIF
- 
-         ! Compute RAINFRAC, the fraction of rained-out MTPA
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !------------------------------
       ! MTPO (liquid phase only)
-      ! SOAupdate (hotp, mpayer, 7/5/11)
       !------------------------------
+      ! new mtp (hotp 5/24/10), SOAupdate
       ELSE IF ( N == IDTMTPO ) THEN
 
          ! Compute liquid to gas ratio for MTPO, using
          ! the appropriate parameters for Henry's law.
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         ! H-law is 0.049 (hotp 5/24/10)
+         ! H-law is 0.049 (hotp 5/24/10), SOAupdate
          CALL COMPUTE_L2G( 0.049d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
 
-         ! Fraction of ALCO in liquid phase
+         ! Fraction of MTPO in liquid phase
          ! (Eqs. 4, 5, Jacob et al, 2000)
          C_TOT = 1d0 + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  Assume that the retention factor
-         ! for liquid ALCO is 0.02 for 248 K < T < 268 K, and
+         ! for liquid MTPO is 0.02 for 248 K < T < 268 K, and
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
          IF ( TK >= 268d0 ) THEN
             K = K_RAIN * F_L
@@ -3922,14 +4052,14 @@
 
          ENDIF
 
-         ! Compute RAINFRAC, the fraction of rained-out ALCO
+         ! Compute RAINFRAC, the fraction of rained-out MTPO
          ! (Eq. 10, Jacob et al, 2000)   
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !------------------------------------
-      ! POG (treated  as relatively hydrophobic)
-      ! SOAupdate (hotp, mpayer, 7/5/11)
+      ! POG
       !------------------------------------
+      ! Treat POG as relatively hydrophobic (hotp 9/22/09)
       ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
 
          ! Compute liquid to gas ratio for POG, using
@@ -3964,11 +4094,14 @@
       !----------------------------------
       ! SOG (liquid phase only)
       !----------------------------------
-      ! SOAupdate: Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
-      ELSE IF ( N == IDTSOG1  .or. N == IDTSOG2  .or. 
-     &          N == IDTSOG3  .or. N == IDTSOG4  .or. 
-     &          N == IDTSOG5  .or. 
-     &          N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
+!     &          N == IDTSOG3 .or. N == IDTSOG4  .or. 
+!     &          N == IDTSOG5                    ) THEN  
+!------------------------------------------------------------------------------
+      ! update for new mtp (hotp 5/24/10), SOAudpate
+      ELSE IF ( N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
      &          N == IDTTSOG3 .or. N == IDTTSOG0 .or.
      &          N == IDTISOG1 .or. N == IDTISOG2 .or. 
      &          N == IDTISOG3 .or. 
@@ -4116,10 +4249,10 @@
   
          !-------------------------------
          ! BC HYDROPHOBIC (aerosol) or
-         ! OC HYDROPHOBIC (aerosol) or
-         ! POA (treated as hydrophobic)
+         ! OC HYDROPHOBIC (aerosol)
          !-------------------------------
-         ! SOAupdate: Add POA1 and 2 for SOA + semivol POA (hotp,mpayer,7/5/11)
+         ! SOAupdate (hotp 6/15/09)
+         ! treat POA and hydrophobic
          ELSE IF ( N == IDTBCPO .or. N == IDTOCPO .or.
      &             N == IDTPOA1 .or. N == IDTPOA2 ) THEN
   
@@ -4145,11 +4278,14 @@
          ! SOA (aerosol)
          ! Scavenging efficiency for SOA is 0.8
          !--------------------------------------
-         ! SOAupdate: Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
-         ELSE IF ( N == IDTSOA1  .or. N == IDTSOA2  .or. 
-     &             N == IDTSOA3  .or. N == IDTSOA4  .or. 
-     &             N == IDTSOA5  .or.                   
-     &             N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!         ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
+!     &             N == IDTSOA3 .or. N == IDTSOA4  .or. 
+!     &             N == IDTSOA5                    ) THEN
+!------------------------------------------------------------------------------
+         ! update new mtp (hotp 5/24/10), SOAudpate
+         ELSE IF ( N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
      &             N == IDTTSOA3 .or. N == IDTTSOA0 .or. 
      &             N == IDTISOA1 .or. N == IDTISOA2 .or. 
      &             N == IDTISOA3 .or. 
@@ -4414,10 +4550,14 @@
       USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTBCPI 
       USE TRACERID_MOD, ONLY : IDTOCPI,  IDTBCPO,  IDTOCPO, IDTDST1 
       USE TRACERID_MOD, ONLY : IDTDST2,  IDTDST3,  IDTDST4, IDTSALA 
-      USE TRACERID_MOD, ONLY : IDTSALC,  IDTALPH,  IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
-      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSOA5,  IDTSOG5
+      USE TRACERID_MOD, ONLY : IDTSALC
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      USE TRACERID_MOD, ONLY : IDTSALC,  IDTALPH,  IDTLIMO, IDTALCO 
+!      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
+!      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
+!      USE TRACERID_MOD, ONLY : IDTSOA5,  IDTSOG5
+!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
@@ -4427,17 +4567,21 @@
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
-      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
-      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
-      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      ! SOAupdate: update biogenics (new mtp) (hotp 5/24/10)
+      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
       USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
       USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
       USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
       USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
       USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      ! SOAudpate: semivolpoa2: add POG (hotp 3/2/09)
       USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
+      ! SOAupdate: semivolpoa4opoa: add OPOA, OPOG (hotp 3/18/09)
       USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
+      ! SOAupdate: lumped aromatic/IVOC aerosol (hotp 5/12/10)
+      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
+      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState !(sfarina 2/20/13)
       USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
@@ -4520,7 +4664,6 @@
 !  14 Oct 2010 - H. Amos     - Remove dependence on I, J. That means removing
 !                              I, J as input arguments and adding T, BXHEIGHT,
 !                              H2O2s, and SO4s and input arguments.
-!  05 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  16 Aug 2011 - H. Amos     - move K_WASH to WASHFRAC_AEROSOL, WASHFRAC_HNO3,
 !                              and WASHFRAC_LIQ_GAS 
 !  16 Aug 2011 - H. Amos     - Replace logical AER with KIN. Serves the same 
@@ -4533,6 +4676,8 @@
 !  20 Jan 2012 - H. Amos     - WASHFRAC for aerosol is now either computed by
 !                              WASHFRAC_FINE_AEROSOL or WASHFRAC_COARSE_AEROSOL
 !  31 May 2013 - R. Yantosca - Now accept State_Chm, and pass it to TOMAS code
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4796,9 +4941,10 @@
       ! BC HYDROPHILIC (aerosol) or
       ! OC HYDROPHILIC (aerosol) or
       ! BC HYDROPHOBIC (aerosol) or
-      ! OC HYDROPHOBIC (aerosol) or
-      ! POA (treated like OCPO)
+      ! OC HYDROPHOBIC (aerosol)
       !------------------------------
+      ! SOAupdate (hotp 6/15/09)
+      ! treat POA like OCPO
       ELSE IF ( N == IDTBCPI .or. N == IDTOCPI  .or.
      &          N == IDTBCPO .or. N == IDTOCPO  .or.
      &          N == IDTPOA1 .or. N == IDTPOA2 ) THEN
@@ -4829,12 +4975,40 @@
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
  
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      !------------------------------
+!      ! ALPH (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTALPH ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP,       DT,  F,  
+!     &                          DZ,      TK,   WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! LIMO (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTLIMO ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP,       DT,  F,  
+!     &                          DZ,     TK,   WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! ALCO (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTALCO ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 54.d0,  0.d0, PP,       DT,  F,  
+!     &                          DZ,     TK,   WASHFRAC, KIN  )
+!------------------------------------------------------------------------------
+
       !------------------------------
-      ! ALPH (liquid & gas phases)
+      ! MTPA (liquid & gas)
       !------------------------------
-      ELSE IF ( N == IDTALPH ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP,       DT,  F,  
+      ! new mtp (hotp 5/24/10), SOAupdate
+      ELSE IF ( N == IDTMTPA ) THEN
+         KIN      = .FALSE. 
+         CALL WASHFRAC_LIQ_GAS( 0.049d0, 0.d0, PP,       DT,  F,
      &                          DZ,      TK,   WASHFRAC, KIN  )
 
       !------------------------------
@@ -4845,36 +5019,19 @@
          CALL WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP,       DT,  F,  
      &                          DZ,     TK,   WASHFRAC, KIN  )
 
-      !------------------------------
-      ! ALCO (liquid & gas phases)
-      !------------------------------
-      ELSE IF ( N == IDTALCO ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 54.d0,  0.d0, PP,       DT,  F,  
-     &                          DZ,     TK,   WASHFRAC, KIN  )
-
-      !------------------------------
-      ! MTPA (liquid & gas)
-      ! SOAupdate (hotp, mpayer, 7/5/11)
-      !------------------------------
-      ELSE IF ( N == IDTMTPA ) THEN
-         KIN      = .FALSE. 
-         CALL WASHFRAC_LIQ_GAS( 0.049d0, 0.d0, PP,       DT,  F,
-     &                          DZ,      TK,   WASHFRAC, KIN  )
-
       !-------------------------------
       ! MTPO (liquid & gas)
-      ! SOAupdate (hotp, mpayer, 7/5/11)
       !-------------------------------
+      ! new mtp (hotp 5/24/10), SOAupdate
       ELSE IF ( N == IDTMTPO ) THEN
          KIN      = .FALSE.
          CALL WASHFRAC_LIQ_GAS( 0.049d0, 0.d0, PP,       DT,  F, 
      &                          DZ,      TK,   WASHFRAC, KIN  )
 
       !------------------------------------
-      ! POG (treated as relatively hydrophobic)
-      ! SOAupdate (hotp, mpayer, 7/5/11)
+      ! POG
       !------------------------------------
+      ! Treat POG as relatively hydrophobic (hotp 9/22/09)
       ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
          KIN      = .FALSE.
          CALL WASHFRAC_LIQ_GAS( 9.5d0, -4.70d3, PP,       DT,  F,
@@ -4883,11 +5040,14 @@
       !---------------------------------
       ! SOG (liq & gas phases)
       !---------------------------------
-      ! SOAupdate: Add SOA + semivol POA tracers (hotp, mpayer, 7/5/11)
-      ELSE IF ( N == IDTSOG1  .or. N == IDTSOG2  .or. 
-     &          N == IDTSOG3  .or. N == IDTSOG4  .or.  
-     &          N == IDTSOG5  .or.
-     &          N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
+!     &          N == IDTSOG3 .or. N == IDTSOG4  .or.  
+!     &          N == IDTSOG5                    ) THEN   
+!------------------------------------------------------------------------------
+      ! update for new mtp (hotp 5/24/10), SOAupdate
+      ELSE IF ( N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
      &          N == IDTTSOG3 .or. N == IDTTSOG0 .or. 
      &          N == IDTISOG1 .or. N == IDTISOG2 .or. 
      &          N == IDTISOG3 .or.  
@@ -4901,11 +5061,14 @@
       !------------------------------
       ! SOA (aerosol)
       !------------------------------
-      ! SOAupdate: Add SOA + semivol POA tracers (hotp, mpayer, 7/5/11)
-      ELSE IF ( N == IDTSOA1  .or. N == IDTSOA2  .or. 
-     &          N == IDTSOA3  .or. N == IDTSOA4  .or.  
-     &          N == IDTSOA5  .or.
-     &          N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
+!     &          N == IDTSOA3 .or. N == IDTSOA4  .or.  
+!     &          N == IDTSOA5                    ) THEN
+!------------------------------------------------------------------------------
+      ! update for new mtp (hotp 5/24/10), SOAupdate
+      ELSE IF ( N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
      &          N == IDTTSOA3 .or. N == IDTTSOA0 .or. 
      &          N == IDTISOA1 .or. N == IDTISOA2 .or. 
      &          N == IDTISOA3 .or. 
@@ -7884,10 +8047,14 @@
       USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,    IDTLET,  IDTBCPI 
       USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
-      USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOG4
-      USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,   IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSOA5,   IDTSOG5
+      USE TRACERID_MOD, ONLY : IDTSALC
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
+!      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOG4
+!      USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,   IDTSOA3, IDTSOA4
+!      USE TRACERID_MOD, ONLY : IDTSOA5,   IDTSOG5
+!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IS_Hg2,    IS_HgP
       USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
       USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
@@ -7896,17 +8063,21 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
-      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
-      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
-      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      ! SOAudpate: update biogenics (new mtp) (hotp 5/24/10)
+      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
       USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
       USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
       USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
       USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
       USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      ! SOAupdate: semivolpoa2: add POG (hotp 3/2/09)
       USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
+      ! semivolpoa4opoa: add OPOA, OPOG (hotp 3/18/09)
       USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
+      ! lumped aromatic/IVOC aerosol (hotp 5/12/10)
+      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
+      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4,  IDTNK1,    IDTSF1,  IDTSS1
       USE TRACERID_MOD, ONLY : IDTECIL1,  IDTOCIL1,  IDTOCOB1,IDTDUST1
@@ -7940,10 +8111,11 @@
 !        or HgP tracer (bmy, 1/6/06)
 !  (11) Now added SOG4 and SOA4 (dkh, bmy, 5/18/06)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  05 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8127,76 +8299,101 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTOCPO
 
-         ELSE IF ( N == IDTALPH ) THEN
+         ! SOAudpate: semivolpoa: POA (hotp 8/24/09)
+         ELSE IF ( N == IDTPOA1 ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTALPH
+            IDWETD(NSOL) = IDTPOA1
+         ELSE IF ( N == IDTPOA2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTPOA2
+
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!         ELSE IF ( N == IDTALPH ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTALPH
+!
+!         ELSE IF ( N == IDTLIMO ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTLIMO
+!
+!         ELSE IF ( N == IDTALCO ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTALCO
+!
+!         ELSE IF ( N == IDTSOG1 ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTSOG1
+!
+!         ELSE IF ( N == IDTSOG2 ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTSOG2
+!
+!         ELSE IF ( N == IDTSOG3 ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTSOG3
+!
+!         ELSE IF ( N == IDTSOG4 ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTSOG4
+!
+!         ! Added SOG5 (dkh, 03/26/07)  
+!         ELSE IF ( N == IDTSOG5 ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTSOG5
+!       
+!         ELSE IF ( N == IDTSOA1 ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTSOA1
+!
+!         ELSE IF ( N == IDTSOA2 ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTSOA2
+!
+!         ELSE IF ( N == IDTSOA3 ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTSOA3
+!
+!         ELSE IF ( N == IDTSOA4 ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTSOA4
+!
+!         ! added SOA5 (dkh, 03/26/07)  
+!         ELSE IF ( N == IDTSOA5 ) THEN
+!            NSOL         = NSOL + 1
+!            IDWETD(NSOL) = IDTSOA5
+!------------------------------------------------------------------------------
+
+         ! new mtp (hotp 5/24/10), SOAupdate
+         ELSE IF ( N == IDTMTPA ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTMTPA
 
          ELSE IF ( N == IDTLIMO ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTLIMO
 
-         ELSE IF ( N == IDTALCO ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTALCO
-
-         ELSE IF ( N == IDTSOG1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOG1
-
-         ELSE IF ( N == IDTSOG2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOG2
-
-         ELSE IF ( N == IDTSOG3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOG3
-
-         ELSE IF ( N == IDTSOG4 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOG4
-
-         ! Added SOG5 (dkh, 03/26/07)  
-         ELSE IF ( N == IDTSOG5 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOG5
-       
-         ELSE IF ( N == IDTSOA1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOA1
-
-         ELSE IF ( N == IDTSOA2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOA2
-
-         ELSE IF ( N == IDTSOA3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOA3
-
-         ELSE IF ( N == IDTSOA4 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOA4
-
-         ! added SOA5 (dkh, 03/26/07)  
-         ELSE IF ( N == IDTSOA5 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOA5
-
-         ELSE IF ( N == IDTSOAG ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOAG
-
-         ELSE IF ( N == IDTSOAM ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOAM
-
-         ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
-         ELSE IF ( N == IDTMTPA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMTPA
-
+         ! new mtp (hotp 5/24/10), SOAupdate
          ELSE IF ( N == IDTMTPO ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTMTPO
+
+         ! new mtp (hotp 7/25/10), SOAupdate
+         ELSE IF ( N == IDTTSOG1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTTSOG1
+
+         ELSE IF ( N == IDTTSOG2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTTSOG2
+
+         ELSE IF ( N == IDTTSOG3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTTSOG3
+
+         ELSE IF ( N == IDTTSOG0 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTTSOG0
 
          ELSE IF ( N == IDTTSOA1 ) THEN
             NSOL         = NSOL + 1
@@ -8214,21 +8411,17 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTTSOA0
 
-         ELSE IF ( N == IDTTSOG1 ) THEN
+         ELSE IF ( N == IDTISOG1 ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOG1
+            IDWETD(NSOL) = IDTISOG1
 
-         ELSE IF ( N == IDTTSOG2 ) THEN
+         ELSE IF ( N == IDTISOG2 ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOG2
+            IDWETD(NSOL) = IDTISOG2
 
-         ELSE IF ( N == IDTTSOG3 ) THEN
+         ELSE IF ( N == IDTISOG3 ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOG3
-
-         ELSE IF ( N == IDTTSOG0 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOG0
+            IDWETD(NSOL) = IDTISOG3
 
          ELSE IF ( N == IDTISOA1 ) THEN
             NSOL         = NSOL + 1
@@ -8242,17 +8435,19 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTISOA3
 
-         ELSE IF ( N == IDTISOG1 ) THEN
+         ! lumped aromatic/IVOC aerosol (hotp 5/12/10)
+         ! LUMPAROMIVOC
+         ELSE IF ( N == IDTASOG1 ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTISOG1
+            IDWETD(NSOL) = IDTASOG1
 
-         ELSE IF ( N == IDTISOG2 ) THEN
+         ELSE IF ( N == IDTASOG2 ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTISOG2
+            IDWETD(NSOL) = IDTASOG2
 
-         ELSE IF ( N == IDTISOG3 ) THEN
+         ELSE IF ( N == IDTASOG3 ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTISOG3
+            IDWETD(NSOL) = IDTASOG3
 
          ELSE IF ( N == IDTASOAN ) THEN
             NSOL         = NSOL + 1
@@ -8270,26 +8465,7 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTASOA3
 
-         ELSE IF ( N == IDTASOG1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOG1
-
-         ELSE IF ( N == IDTASOG2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOG2
-
-         ELSE IF ( N == IDTASOG3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOG3
-
-         ELSE IF ( N == IDTPOA1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOA1
-
-         ELSE IF ( N == IDTPOA2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOA2
-
+         ! semivolpoa2: add POG (hotp 3/2/09)  
          ELSE IF ( N == IDTPOG1 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTPOG1
@@ -8298,14 +8474,7 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTPOG2
 
-         ELSE IF ( N == IDTOPOA1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTOPOA1
-
-         ELSE IF ( N == IDTOPOA2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTOPOA2
-
+         ! semivolpoa4opoa: add OPOG (hotp 3/18/09) 
          ELSE IF ( N == IDTOPOG1 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTOPOG1
@@ -8313,7 +8482,24 @@
          ELSE IF ( N == IDTOPOG2 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTOPOG2
-         ! End SOAupdate
+
+         ! semivolpoa4opoa: add OPOA (hotp 3/18/09) 
+         ELSE IF ( N == IDTOPOA1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTOPOA1
+
+         ELSE IF ( N == IDTOPOA2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTOPOA2
+         ! end hotp SOAupdate
+
+         ELSE IF ( N == IDTSOAG ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOAG
+
+         ELSE IF ( N == IDTSOAM ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOAM
 
          !-----------------------------
          ! Dust aerosol tracers
@@ -8537,10 +8723,11 @@
 !  (9 ) Added 9 new tracers for ISOPRENE species (fp, 6/2009)
 !  (10) Added SOA5 and SOG5 (hotp, 6/15/09)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  05 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  23 Apr 2013 - S. Farina   - Inlined code for TOMAS, separated w/ #ifdefs
 !  23 Apr 2013 - R. Yantosca - Updated comments
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8587,8 +8774,11 @@
          IF ( LSSALT )   NMAX = NMAX + 2             ! plus 2 seasalts
 
          IF ( LSOA ) THEN                            !%% SOA SIMULATION %%
-            ! SOAupdate: Increase NMAX from 17 to 32  SOA + semivol POA
-            !  (hotp, mpayer, 7/5/11)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            IF ( LCARB ) NMAX = NMAX + 17            ! carbon + SOA aerosols
+!------------------------------------------------------------------------------
+            ! SOAudpate (hotp 7/25/10)
             IF ( LCARB ) NMAX = NMAX + 32            ! carbon + SOA aerosols
             IF ( IDTSOAG /= 0 ) NMAX = NMAX + 1      ! plus SOAG deposition
             IF ( IDTSOAM /= 0 ) NMAX = NMAX + 1      ! plus SOAM deposition
@@ -8616,8 +8806,11 @@
          IF ( LSSALT )   NMAX = NMAX + 2             ! add 2 seasalts
 
          IF ( LSOA ) THEN                            !%% SOA SIMULATION %%
-            ! SOAupdate: Increase NMAX from 17 to 32  SOA + semivol POA
-            !  (hotp, mpayer, 7/5/11)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            IF ( LCARB ) NMAX = NMAX + 15            ! carbon + SOA aerosols
+!------------------------------------------------------------------------------
+            ! SOAudpate (hotp 7/25/10)
             IF ( LCARB ) NMAX = NMAX + 32            ! carbon + SOA aerosols
          ELSE                                        !%% non-SOA simulation %%
             IF ( LCARB ) NMAX = NMAX + 4             ! BCPI, BCPO, OCPI, OCPO

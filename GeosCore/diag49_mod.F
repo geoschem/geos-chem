@@ -82,7 +82,8 @@
 !  112           : Myrcene emissions                        [atomC/cm2/s]
 !  113           : 3-Carene emissions                       [atomC/cm2/s]
 !  114           : Ocimene emissions                        [atomC/cm2/s]
-!  115-121       : size resolved dust optical depth         [unitless   ]
+!  115           : Farnesene emissions                      [atomC/cm2/s]
+!  116-122       : size resolved dust optical depth         [unitless   ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -108,6 +109,7 @@
 !  12 Nov 2010 - R. Yantosca - Changed tracer 99 to be PEDGE-$ (pressure at
 !                              level edges) instead of Psurface-PTOP.
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -249,8 +251,6 @@
 !  (14) Add outputs for EMISS_BVOC (10 tracers), TS, PARDR, PARDF and ISOLAI
 !        (mpb, 11/19/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  12 Jul 2011 - M. Payer    - Add farnesene emissions for SOA + semivolatile
-!                              POA (H. Pye) 
 !  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
@@ -258,6 +258,7 @@
 !                              derived type object
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
 !                              of removal of NOx-Ox partitioning
+!  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,7 +284,6 @@
 
       ! For fields from Input_Opt
       LOGICAL                  :: LSOILNOX
-      LOGICAL                  :: LSVPOA
       LOGICAL                  :: DO_DIAG_WRITE
       INTEGER                  :: N_TRACERS
       REAL*8                   :: TCVV(Input_Opt%N_TRACERS)
@@ -302,7 +302,6 @@
 
       ! Copy values from Input_Opt
       LSOILNOX      = Input_Opt%LSOILNOX
-      LSVPOA        = Input_Opt%LSVPOA
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
       N_TRACERS     = Input_Opt%N_TRACERS
       TCVV          = Input_Opt%TCVV(1:N_TRACERS)
@@ -964,42 +963,13 @@
 !$OMP END PARALLEL DO
             ENDDO
 
-         ELSE IF (N > 114 .AND. ( .NOT. LSVPOA ) ) THEN
-
-            !--------------------------------------
-            ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
-            ! NOTE: Only archive at chem timestep
-            !--------------------------------------
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND49_NL
-            GMTRC     = 21+(N-115)
-
-            R = N - 114
-
-            ! Scaling factor for AOD wavelength (clh, 05/09)
-            ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
-            ! We no longer need to scale by wavelength (skim, 02/03/11)
-            SCALEAODnm = 1.0
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-               DO K = 1, ND49_NL
-                  L = LOFF + K
-               DO Y = 1, ND49_NJ
-                  J = JOFF + Y
-               DO X = 1, ND49_NI
-                  I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALEAODnm
-               ENDDO
-               ENDDO
-               ENDDO
-!$OMP END PARALLEL DO
-
-         ! SOAupdate: For SOA + semivol POA change DUST OPTD to 116-122
-         ! since farnesene emiss is 115 (mpayer, 7/29/11)
-         ELSE IF (N > 115 .AND. LSVPOA ) THEN
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate: Change DUST OPTD to 116-122 since farnesene emiss is now 115
+! (mpayer, 7/29/11)
+!         ELSE IF (N > 114 ) THEN
+!------------------------------------------------------------------------------
+         ELSE IF (N > 115 ) THEN
 
             !--------------------------------------
             ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
@@ -1013,7 +983,9 @@
             R = N - 115
 
             ! Scaling factor for AOD wavelength (clh, 05/09)
-            SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+            ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+            ! We no longer need to scale by wavelength (skim, 02/03/11)
+            SCALEAODnm = 1.0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1696,11 +1668,10 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ! SOAupdate: Add FARN emissions (hotp, mpayer, 7/12/11)
-         ELSE IF ( N == 115 .AND. LSVPOA ) THEN
+         ELSE IF ( N == 115 ) THEN ! SOAupdate
             
             !-----------------------------------
-            ! Farnesene EMISSIONS
+            ! Farnesene EMISSIONS  (hotp 3/5/10)
             ! [atom C/cm2/s]
             !-----------------------------------
             CATEGORY = 'BIOGSRCE'
@@ -1720,8 +1691,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ! SOAupdate: Can add 12-14: BCARYO, OSQT, OMTP if desired
-         ! (hotp 7/25/10); Would need to adjust DUST OPTD #s accordingly.
+         ! SOAupdate: Can add BCARYO, OSQT, OMTP if desired (hotp 7/25/10)
 
          ELSE
 

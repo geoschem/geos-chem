@@ -250,12 +250,12 @@
 !  (77) NBIOMAX is now in CMN_SIZE. (fp, 2/26/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  27 Jul 2011 - M. Payer    - Modify AD07_HC for SOA + semivol POA (H. Pye)
 !  09 Nov 2012 - R. Yantosca - Added GIGC-specific modifications
 !  29 Mar 2013 - R. Yantosca - Pass objects to GET_WETDEP_NMAX
 !  02 Apr 2013 - M. Payer    - Remove allocation of *NO, *NO2, and *NO3 arrays
 !                              for ND43. These are no longer needed because NO,
 !                              NO2, and NO3 are now tracers.
+!  13 Aug 2013 - M. Sulprizio- Modify AD07_HC for updated SOA (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -275,7 +275,6 @@
       LOGICAL :: LCRYST
       LOGICAL :: LDRYD
       LOGICAL :: LGTMM
-      LOGICAL :: LSVPOA
 
       !=================================================================
       ! NDXX_SETUP begins here! 
@@ -293,7 +292,6 @@
       IT_IS_A_MERCURY_SIM  = Input_Opt%ITS_A_MERCURY_SIM  
       IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM 
       IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
-      LSVPOA               = Input_Opt%LSVPOA
 
       ! Assume success
       RC                   = GIGC_SUCCESS
@@ -395,13 +393,17 @@
          ALLOCATE( AD07_OC( IIPAR, JJPAR, LD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OC' )
 
-         ! SOAupdate: Increase dimension for SOA + semivol POA (add POA OPOA
-         ! OPOG NAP) (hotp, mpayer, 7/27/11)
-         IF ( LSVPOA ) THEN
-            ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 9 ), STAT=AS )
-         ELSE
-            ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 5 ), STAT=AS )
-         ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!         ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 5 ), STAT=AS )
+!------------------------------------------------------------------------------
+         ! SOAupdate (hotp 6/15/09)
+         ! semivolpoa2: increase dimension for POA (hotp 3/3/09)
+         ! semivolpoa4: increase dimension for OPOA(hotp 3/27/09)
+         ! semivolpoa4: add dimension for POG ox to OPOG (hotp 3/28/09)
+         ! NAPSOA: increase AD07_HC dimension by one to 9 for production
+         ! of SOA from IVOCs (hotp 7/22/09)
+         ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 9 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
 
          ALLOCATE( AD07_SOAGM( IIPAR, JJPAR, LD07, 4 ), STAT=AS )

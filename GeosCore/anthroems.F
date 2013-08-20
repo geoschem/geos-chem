@@ -47,7 +47,8 @@
       USE EDGAR_MOD,           ONLY : READ_AROMATICS_05x0666
       USE EDGAR_MOD,           ONLY : READ_C2H4_05x0666
       USE EDGAR_MOD,           ONLY : READ_C2H2_05x0666
-      ! SOAupdate: For gas phase NAP chemistry (hotp, mpayer, 7/27/11)
+      ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
+      ! get location of NAP emissions in array
       USE TRACERID_MOD,        ONLY : IDENAP
 
       USE CMN_SIZE_MOD              ! Size parameters
@@ -150,11 +151,11 @@
 !  (32) GET_ANNUAL_SCALAR_05x0666_NESTED_CH renamed to 
 !        GET_ANNUAL_SCALAR_05x0666_NESTED (amv, bmy, 12/18/09)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
-!  27 Jul 2011 - M. Payer    - Add gas-phase naphthalene chemistry for SOA +
-!                              semivolatile POA (H. Pye)
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add NAP emissions for SOA + semivolatile POA
+!                              simulation (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,15 +175,17 @@
       REAL*8 :: GEOS1x1(I1x1,J1x1,1)
       REAL*8 :: TEMP(IIPAR,JJPAR)
 
-      ! SOAupdate: For gas phase NAP chemistry (hotp, mpayer, 7/27/11)
+      ! SOAupdate hotp
+      ! for gas phase NAP chemistry (hotp 6/24/09)
       ! Get anthropogenic (FF) NAP emissions by scaling BENZ emissions with the
       ! following factor. Factor is ratio of TgC NAP to TgC BENZ emissions
       ! or equivalently, molec C NAP to molec C BENZ. Scaling should produce
       ! about 0.09 TgC NAP/year, consistent with non-BB,BF emissions predicted
-      ! by Zhang and Tao, 2009. Values based on year 2000 1x1 inventory.
+      ! by Zhang and Tao 2009 Atm Env
+      ! Based on year 2000 1x1 inv  (hotp 11/14/09)
       REAL*8, PARAMETER    :: NAPTOBENZSCALE = 0.06861d0
 
-      ! SOAupdate: Scale total NAP emissions to POA (hotp, mpayer, 7/27/11)
+      ! NAPSOA: factor to scale total NAP emissions to POA (hotp 7/24/09)
       REAL*8, PARAMETER    :: NAPTOTALSCALE = 66.09027d0
 
       ! For values from Input_Opt
@@ -275,7 +278,9 @@
          EMISTXYLE = 0e0
          EMISTC2H4 = 0e0
          EMISTC2H2 = 0e0
-         EMISTNAP  = 0e0 ! (hotp, mpayer, 7/27/11)
+         ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
+         ! zero the NAP emission array
+         EMISTNAP  = 0e0
 
          ! Zero arrays for holding CO & Hydrocarbons
          EMIST = 0d0
@@ -311,17 +316,12 @@
             EMISTXYLE = E_XYLE
          ENDIF
 
-         !-----------------------------------------------------------------
-         ! SOAupdate: For gas-phase NAP chemistry (hotp, mpayer, 7/27/11)
-         !-----------------------------------------------------------------
-
+         ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
          ! Get NAP FF emissions by scaling BENZ
          EMISTNAP  = E_BENZ * NAPTOBENZSCALE
-
-         ! Scale up global total
+         ! NAPSOA: scale up global total (hotp 7/24/09)
          EMISTNAP = EMISTNAP * NAPTOTALSCALE
-
-         ! Set according to input.geos
+         ! Now set according to input.geos (hopt 8/9/09)
          EMISTNAP = EMISTNAP * NAPEMISS
 
          !================================================================
@@ -625,12 +625,14 @@
      &                            1,                  12d-3, 'C2H2' )
          ENDIF
 
-         ! SOAupdate: NAP (hotp, mpayer, 7/27/11)
+         ! SOAupdate: for gas phase NAP chemsitry (hotp 6/24/09)
+         ! NAP 
          IF ( IDENAP /= 0 ) THEN
             DO J = 1, JJPAR
                JREF = J + J0
                DO I = 1, IIPAR
                   IREF = I + I0
+                  ! scale this now since BENZ is also 1985 (hotp 7/28/10)
                   EMIST(I,J,IDENAP) = EMISTNAP(IREF,JREF) *
      &               FLIQCO2(IREF, JREF)
                ENDDO

@@ -124,7 +124,6 @@
 !  (19) Added NKO3PHOTH2 (bhh, jmao, eam, 7/18/11)
 !
 !  !REVISION HISTORY:
-!  28 Jun 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  23 Aug 2011 - M. Long     - Converted to Module from Header file
 !  14 Aug 2012 - R. Yantosca - Add #include "define.h" to USES section
 !  14 Aug 2012 - R. Yantosca - Now set KBLOOP=1 only if we are connecting to
@@ -134,6 +133,7 @@
 !  24 Oct 2012 - R. Yantosca - Rewrite GIGC #ifdef blocks for clarity
 !  19 Nov 2012 - R. Yantosca - Now use funcitions INIT_COMODE_LOOP and
 !                              CLEANUP_COMODE_LOOP to allocate/free arrays
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -427,13 +427,12 @@
       REAL*8  ::         C3090S,      C0030S,    C0030N,   C3090N
 
       ! Added for tracking oxidation of ISOP by OH (dkh, bmy, 6/1/06)
-      ! SOAupdate: Added for tracking oxidation of ISOP by NO3 (hotp, mpayer,
-      !  6/28/11)
+      ! SOAupdate: Added for tracking oxidation of ISOP by NO3 (hotp 6/11/10)
       INTEGER ::         ILISOPOH, ILISOPNO3
 
       ! Added for tracking oxidation of aromatic RO2s (dkh, 10/06/06)  
       ! bug fix: change to INTEGER (dbm, dkh, 06/26/07)  
-      ! SOAupdate: Added ILNRO2H and ILNRO2N (hotp, mpayer, 6/28/11) 
+      ! SOAupdate: added ILNRO2H/N (hotp 7/21/10)
       INTEGER ::         ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N
       INTEGER ::         ILXRO2H,    ILXRO2N,   ILNRO2H,  ILNRO2N
 

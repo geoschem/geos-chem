@@ -1296,8 +1296,8 @@
 !  NOTES:
 !  (1 ) Took the code that reads the emissions from disk from 
 !        BIOMASS_CARB_GEOS in "carbon_mod.f". (bmy, 9/28/06)
-!  27 Jul 2011 - M. Payer    - Add POA1 for SOA + semivolatile POA (H. Pye) 
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Add POA1 for SOA + semivolatile POA (H. Pye) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1311,6 +1311,8 @@
       USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR 
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTBCPO,         IDTOCPO
+      ! SOAupdate (hotp 6/12/09)
+      ! semivolpoa: replace OCPO with POA (hotp 2/17/09)
       USE TRACERID_MOD,         ONLY : IDTPOA1
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
@@ -1337,7 +1339,7 @@
       !=================================================================
 
       ! Make sure BCPO, OCPO tracers are defined
-      ! SOAupdate: Add POA1 for SOA + semivol POA (hotp, mpayer, 7/27/11)
+      ! SOAupdate: add IDTPOA for svpoa (hotp 8/23/09)
       IF ( IDTBCPO == 0 .and. ( IDTOCPO == 0 .or. IDTPOA1 == 0 )) THEN
          BIOMASS_BC = 0d0
          BIOMASS_OC = 0d0
@@ -1458,7 +1460,7 @@
             ! Convert [kg C/month] -> [atoms C/cm2/s]
             BIOMASS_BC(I,J) = BIOMASS_BC(I,J) * XNUMOL(IDTBCPO) * CONV
 
-            ! SOAupdate: Add options for OCPO or  POA1 (hotp, mpayer, 7/27/11)
+            ! SOAupdate: add POA fix (hotp 8/23/09)
             IF ( IDTOCPO > 0 ) THEN
               BIOMASS_OC(I,J) = BIOMASS_OC(I,J) * XNUMOL(IDTOCPO) * CONV
             ELSEIF ( IDTPOA1 > 0 ) THEN

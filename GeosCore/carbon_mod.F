@@ -16,12 +16,13 @@
 !     ALPH, LIMO, ALCO, SOA1, SOA2, SOA3, SOA4, SOG1, SOG2, SOG3, SOG4
 !     SOA5, SOG5 (dkh, 03/24/07)  
 !
-!  Traditional SOA simulation updated by Havala Pye (7/2010) to include
-!  option for SOA + semivolatile POA simulation. This option treats 
-!  semivolatile POA, aerosol from IVOCs, and has updated biogenic SOA. 
-!  For more detailes on the updated SOA + semivol POA simulation, see comments
-!  in SOA_SVPOA_CHEMISTRY, Pye and Seinfeld [2010], and Pye et al [2010].
-!  Note that modifications were made throughout the code for SOA + semivol POA.
+!  SOAupdate: Traditional SOA simulation updated by hotp 7/2010
+!    New code treats semivolatile or nonvolatile POA, aerosol from IVOCs,
+!      and has updated biogenic SOA
+!    For more detailes on the updated SOA/POA simulation, see comments
+!      in SOA_CHEMISTRY, Pye and Seinfeld ACP 2010, Pye et al. in prep
+!      for ACP 2010
+!    Note that modifications were made throughout the code for SOAupdate
 !
 !  References:
 !  ============================================================================
@@ -241,19 +242,12 @@
 !  (25) GET_DOH            : Returns ISOP lost to rxn w/ OH at grid box (I,J,L)
 !  (26) INIT_CARBON        : Allocates and zeroes all module arrays
 !  (27) CLEANUP_CARBON     : Deallocates all module arrays
-!  (28) SOA_SVPOA_CHEMISTRY: Driver routine for SOA + semivol POA chemistry
-!  (29) SOA_SVPOA_PARA     : Gets SOA yield parameters
-!  (30) SOA_SVPOA_PARA_INIT: Initializes SOA yield parameters
-!  (31) SOA_SVPOA_PARTITION: Partitions mass of SOA gas & aerosol tracers
-!  (32) SOA_SVPOA_LUMP     : Returns organic gas & aerosol back to STT
-!  (33) CHEM_NVOC_SVPOA    : Computes oxidation of HC by O3, OH, NO3
-!  (34) BIOGENIC_OC_SVPOA  : Computes biogenic OC
-!  (34) CHECK_EQLB         : Makes sure aerosols are at equilibrium
-!  (35) SAVE_OAGINIT       : Saves total SOA+SOG before partitioning
-!  (36) CHECK_MB           : Checks total SOA+SOG mass balance for diagnostic
-!  (37) GET_NO             : Returns NO from CSPEC array
-!  (38) GET_HO2            : Returns HO2 from CSPEC array
-!  (39) GET_ISOPNO3        : Returns amount of ISOP that has reacted with NO3
+!  (28) CHECK_EQLB         : Makes sure aerosols are at equilibrium
+!  (29) SAVE_OAGINIT       : Saves total SOA+SOG before partitioning
+!  (30) CHECK_MB           : Checks total SOA+SOG mass balance for diagnostic
+!  (31) GET_NO             : Returns NO from CSPEC array
+!  (32) GET_HO2            : Returns HO2 from CSPEC array
+!  (33) GET_ISOPNO3        : Returns amount of ISOP that has reacted with NO3
 !
 !  NOTE: Choose either (16) or (17) for ANTHROPOGENIC emission
 !        Choose either (18) or (19) for BIOMASS BURNING emission.
@@ -326,9 +320,6 @@
 !  (26) Modifications for TOMAS (win, bmy, 1/25/10)
 !  (27) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !  (28) Modified to include GFED3 (psk, 1/5/11)
-!  18 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
-!                              Several routines are added w/ SVPOA tag, rather
-!                              than making major changes to original routines.
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS array with State_Met%SUNCOS and
@@ -337,6 +328,8 @@
 !                              which facilitates connection to GEOS-5 GCM
 !  05 Mar 2013 - R. Yantosca - Remove reference to LNLPBL from logical_mod.F
 !                              and replace with Input_Opt%LNLPBL
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -355,73 +348,57 @@
       PUBLIC :: CLEANUP_CARBON
       PUBLIC :: EMISSCARBON
       PUBLIC :: INIT_CARBON
-      ! ... and this other stuff (dkh, 11/09/06)  
-      PUBLIC :: APROD, GPROD, MNOX, NPROD, MHC, NNOX, MPROD
-      PUBLIC :: PRODPERCOFSTT
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate:NNOX and NPROD no longer public (hotp 5/14/10)
+! SOAupdate:no more APROD, GPROD, so remove these public (hotp 5/20/10)
+!      ! ... and this other stuff (dkh, 11/09/06)  
+!      PUBLIC :: APROD, GPROD, MNOX, NPROD, MHC, NNOX, MPROD
+!      PUBLIC :: PRODPERCOFSTT
+!------------------------------------------------------------------------------
+
+      ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
       PUBLIC :: BETANOSAVE
 
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
+!
+! !DEFINED PARAMETERS:
+!
+      ! OM/OC for POA (hotp 7/26/10)
+      REAL*8,  PARAMETER  :: OCFPOA     = 1.4d0
+      ! OM/OC=2.1 for OPOA, OCPI, OCPO (hotp 7/26/10)
+      REAL*8,  PARAMETER  :: OCFOPOA    = 1.4d0 * 1.5d0
 
-      ! Scalars
-      LOGICAL             :: USE_BOND_BIOBURN = .FALSE.
-      INTEGER             :: DRYBCPI, DRYOCPI, DRYBCPO, DRYOCPO
-      INTEGER             :: DRYALPH, DRYLIMO, DRYALCO
-      INTEGER             :: DRYSOG1, DRYSOG2, DRYSOG3, DRYSOG4
-      INTEGER             :: DRYSOA1, DRYSOA2, DRYSOA3, DRYSOA4
-      INTEGER             :: DRYSOA5, DRYSOG5       ! (dkh, 10/29/06)  
-      INTEGER             :: I1_NA,   J1_NA
-      INTEGER             :: I2_NA,   J2_NA
-      INTEGER             :: DRYSOAG, DRYSOAM
-      ! SOAupdate: Drydep species for SOA + semivol POA (hotp, mpayer, 7/18/11)
-      INTEGER             :: DRYPOA1,  DRYPOA2,  DRYPOG1,  DRYPOG2
-      INTEGER             :: DRYOPOA1, DRYOPOA2, DRYOPOG1, DRYOPOG2
-      INTEGER             :: DRYMTPA,  DRYMTPO
-      INTEGER             :: DRYTSOA1, DRYTSOG1
-      INTEGER             :: DRYTSOA2, DRYTSOG2
-      INTEGER             :: DRYTSOA3, DRYTSOG3
-      INTEGER             :: DRYTSOA0, DRYTSOG0
-      INTEGER             :: DRYISOA1, DRYISOG1
-      INTEGER             :: DRYISOA2, DRYISOG2
-      INTEGER             :: DRYISOA3, DRYISOG3
-      INTEGER             :: DRYASOAN
-      INTEGER             :: DRYASOA1, DRYASOG1
-      INTEGER             :: DRYASOA2, DRYASOG2
-      INTEGER             :: DRYASOA3, DRYASOG3
-
-!----------------------------------------------------------------------
-! Prior to 7/22/11:
-! SOAupdate: The values and dimensions used to define these parameters differ
-! for traditional SOA and SOA + semivolatile POA simulations.
-! Make these parameters variables and set in INIT_CARBON (mpayer, 7/22/11)
-!      ! Parameters
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
 !      !INTEGER, PARAMETER  :: MHC      = 6
 !      !INTEGER, PARAMETER  :: NPROD    = 3  
 !      INTEGER, PARAMETER  :: MHC       = 9  ! (dkh, 10/29/06)
 !      INTEGER, PARAMETER  :: MPROD            = 3
 !      INTEGER, PARAMETER  :: MNOX             = 2  ! (dkh, 11/05/06)
-!  
-! Make these arrays allocatable and set in INIT_CARBON (mpayer, 7/22/11)
-!      INTEGER             :: NPROD(MHC)
-!      INTEGER             :: NNOX(MHC)             ! (dkh, 11/05/06)
-!      REAL*8              :: PRODPERCOFSTT(MHC)     ! (dkh, 11/05/06)
-!      REAL*8              :: KO3_REF(5), KOH_REF(5), KNO3_REF(5)
-!      REAL*8              :: KOM_REF(MNOX,MPROD,MHC)
-!      REAL*8              :: ALPHA(MNOX,MPROD,MHC)
-!--------------------------------------------------------------------------
-      INTEGER             :: MHC                ! max # HCs
-      INTEGER             :: MSV                ! max # lumped semivols
-      INTEGER             :: MPROD              ! max # volatility products
-      INTEGER             :: MNOX               ! max # NOx levels/oxidants
+!------------------------------------------------------------------------------
+      ! SOAupdate:(hotp 5/20/10) new mtp
+      ! one parent HC removed (only 3 instead of 4 monoterps)
+      ! all monoterp and sesquiterp SOA lumped together 
+      ! NOX: now used to indicate high NOx (1), 
+      !      low NOx(2), and +NO3 (3) so MNOX is 3
+      ! PROD: indicates # of volatilities/products
+      INTEGER, PARAMETER  :: MHC        = 11 ! max # HCs
+      INTEGER, PARAMETER  :: MSV        = 5  ! max # lumped semivols
+      INTEGER, PARAMETER  :: MPROD      = 4  ! max # volatility products
+      INTEGER, PARAMETER  :: MNOX       = 3  ! max # NOx levels/oxidants
 
-      REAL*8              :: AARO2NO,  BBRO2NO  ! Rate constants for RO2+NO
-      REAL*8              :: AARO2HO2, BBRO2HO2 ! Rate constants for RO2+HO2
-
-      ! Parameters
       REAL*8,  PARAMETER  :: SMALLNUM   = 1d-20
-      REAL*8,  PARAMETER  :: OCFPOA     = 1.4d0          ! OM/OC for POA
-      REAL*8,  PARAMETER  :: OCFOPOA    = 1.4d0 * 1.5d0  ! OM/OC=2.1 for OPOA
+
+      ! Indicate number of parent HC based on simulation tracers
+      ! (hotp 8/24/09)
+      !INTEGER, SAVE       :: MAXSIMHC
+      ! Now loop over number of semivolatiles (hotp 5/13/10)
+      INTEGER, SAVE       :: MAXSIMSV
+
+      ! Identify parent hydrocarbon by numbers (hotp 5/12/10)
       INTEGER, PARAMETER  :: PARENTMTPA = 1  ! bicyclic monoterpenes
       INTEGER, PARAMETER  :: PARENTLIMO = 2  ! limonene
       INTEGER, PARAMETER  :: PARENTMTPO = 3  ! other monoterpenes
@@ -433,13 +410,73 @@
       INTEGER, PARAMETER  :: PARENTPOA  = 9  ! SVOCs (primary SVOCs)
       INTEGER, PARAMETER  :: PARENTOPOA = 10 ! oxidized SVOCs (secondary SVOCs)
       INTEGER, PARAMETER  :: PARENTNAP  = 11 ! IVOC surrogate (naphthalene)
+      ! if NAP isn't last, check CHEM_NVOC
+
+      ! NOx levels (oxidants) examined (hotp 5/13/10)
       INTEGER, PARAMETER  :: NHIGHNOX   = 1  ! R + OH, RO2 + NO
       INTEGER, PARAMETER  :: NLOWNOX    = 2  ! R + OH, RO2 + HO2
       INTEGER, PARAMETER  :: NNO3RXN    = 3  ! R + NO3
       INTEGER, PARAMETER  :: NONLYNOX   = 1  ! R + any oxidant
-      INTEGER, SAVE       :: MAXSIMSV        ! # parent HC based on sim tracers
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      LOGICAL             :: USE_BOND_BIOBURN = .FALSE.
+      INTEGER             :: DRYBCPI, DRYOCPI, DRYBCPO, DRYOCPO
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      INTEGER             :: DRYALPH, DRYLIMO, DRYALCO
+!      INTEGER             :: DRYSOG1, DRYSOG2, DRYSOG3, DRYSOG4
+!      INTEGER             :: DRYSOA1, DRYSOA2, DRYSOA3, DRYSOA4
+!      INTEGER             :: DRYSOA5, DRYSOG5       ! (dkh, 10/29/06)  
+!------------------------------------------------------------------------------
+      ! SOAupdate: update dry deposited species (hotp 5/20/10)
+      INTEGER             :: DRYPOA1,  DRYPOA2,  DRYPOG1,  DRYPOG2
+      INTEGER             :: DRYOPOA1, DRYOPOA2, DRYOPOG1, DRYOPOG2
+      INTEGER             :: DRYMTPA,  DRYLIMO,  DRYMTPO
+      INTEGER             :: DRYTSOA1, DRYTSOG1
+      INTEGER             :: DRYTSOA2, DRYTSOG2
+      INTEGER             :: DRYTSOA3, DRYTSOG3
+      INTEGER             :: DRYTSOA0, DRYTSOG0
+      INTEGER             :: DRYISOA1, DRYISOG1
+      INTEGER             :: DRYISOA2, DRYISOG2
+      INTEGER             :: DRYISOA3, DRYISOG3
+      INTEGER             :: DRYASOAN
+      INTEGER             :: DRYASOA1, DRYASOG1
+      INTEGER             :: DRYASOA2, DRYASOG2
+      INTEGER             :: DRYASOA3, DRYASOG3
+      INTEGER             :: DRYSOAG,  DRYSOAM
+      INTEGER             :: I1_NA,    J1_NA
+      INTEGER             :: I2_NA,    J2_NA
+      ! Rate constant for RO2+NO and RO2+HO2
+      ! k=Aexp(B/T) like globchem.dat (hotp 5/7/10)
+      REAL*8              :: AARO2NO,  BBRO2NO
+      REAL*8              :: AARO2HO2, BBRO2HO2
 
       ! Arrays
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      INTEGER             :: NPROD(MHC)
+!      INTEGER             :: NNOX(MHC)             ! (dkh, 11/05/06)
+!      REAL*8              :: PRODPERCOFSTT(MHC)     ! (dkh, 11/05/06)
+!      REAL*8              :: KO3_REF(5), KOH_REF(5), KNO3_REF(5)
+!      REAL*8              :: KOM_REF(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+      INTEGER             :: NPROD(MSV) !hotp 5/13/10 now MSV not MHC
+      INTEGER             :: NNOX(MSV)  !hotp 5/13/10  
+      ! now only 4 offline oxidations (hotp 5/20/10)
+      REAL*8              :: KO3_REF(4), KOH_REF(4), KNO3_REF(4)
+      ! KOM_REF now has dims of MPROD, MSV (hotp 5/22/10)
+      REAL*8              :: KOM_REF(MPROD,MSV)
+      REAL*8              :: ALPHA(MNOX,MPROD,MHC)
+
+      ! Array for mapping parent HC to semivolatiles (SV) (hotp 5/14/10)
+      INTEGER             :: IDSV(MHC)
+
+      ! Diagnostic that tracks how much parent HC reacts
+      ! with each allowed reactant (hotp 5/24/10)
+      REAL*8              :: DELTAHCSAVE(MNOX,MHC)
+
       REAL*8, ALLOCATABLE :: ANTH_BLKC(:,:,:)
       REAL*8, ALLOCATABLE :: ANTH_ORGC(:,:,:)
       REAL*8, ALLOCATABLE :: BIOB_BLKC(:,:,:)
@@ -451,47 +488,63 @@
       REAL*8, ALLOCATABLE :: TERP_ORGC(:,:)
       REAL*8, ALLOCATABLE :: BCCONV(:,:,:)
       REAL*8, ALLOCATABLE :: OCCONV(:,:,:)
-      REAL*8, ALLOCATABLE :: BIOG_ALPH(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+ !Removed old arrays for new mtp (hotp 5/20/10)
+!      REAL*8, ALLOCATABLE :: BIOG_ALPH(:,:)
+!      REAL*8, ALLOCATABLE :: BIOG_LIMO(:,:)
+!      REAL*8, ALLOCATABLE :: BIOG_ALCO(:,:)
+!      REAL*8, ALLOCATABLE :: BIOG_TERP(:,:)
+!      REAL*8, ALLOCATABLE :: BIOG_SESQ(:,:)    
+!------------------------------------------------------------------------------
+      ! new mtp precursors (hotp 5/20/10)
+      REAL*8, ALLOCATABLE :: BIOG_MTPA(:,:)
       REAL*8, ALLOCATABLE :: BIOG_LIMO(:,:)
-      REAL*8, ALLOCATABLE :: BIOG_ALCO(:,:)
-      REAL*8, ALLOCATABLE :: BIOG_TERP(:,:)
+      REAL*8, ALLOCATABLE :: BIOG_MTPO(:,:)
       REAL*8, ALLOCATABLE :: BIOG_SESQ(:,:)
-      REAL*8, ALLOCATABLE :: BIOG_MTPA(:,:)  ! (hotp, mpayer, 7/18/11)
-      REAL*8, ALLOCATABLE :: BIOG_MTPO(:,:)  ! (hotp, mpayer, 7/18/11)
       REAL*8, ALLOCATABLE :: DIUR_ORVC(:,:)
       REAL*8, ALLOCATABLE :: GEIA_ORVC(:,:)
       REAL*8, ALLOCATABLE :: TCOSZ(:,:)
       REAL*8, ALLOCATABLE :: ORVC_SESQ(:,:,:)
-      REAL*8, ALLOCATABLE :: ORVC_TERP(:,:,:)
-      !REAL*8, ALLOCATABLE :: GPROD(:,:,:,:,:)
-      !REAL*8, ALLOCATABLE :: APROD(:,:,:,:,:)
-      REAL*8, ALLOCATABLE :: GPROD(:,:,:,:,:,:)  ! Add NOX index (dkh, 11/06/06)  
-      REAL*8, ALLOCATABLE :: APROD(:,:,:,:,:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! no more APROD, GPROD (hotp 5/20/10)
+!      REAL*8, ALLOCATABLE :: ORVC_TERP(:,:,:) ! not needed (hotp 5/20/10)
+!      !REAL*8, ALLOCATABLE :: GPROD(:,:,:,:,:)
+!      !REAL*8, ALLOCATABLE :: APROD(:,:,:,:,:)
+!      REAL*8, ALLOCATABLE :: GPROD(:,:,:,:,:,:)  ! Add NOX index (dkh, 11/06/06)  
+!      REAL*8, ALLOCATABLE :: APROD(:,:,:,:,:,:)
+!------------------------------------------------------------------------------
       REAL*8, ALLOCATABLE :: ISOP_PRIOR(:,:,:)  ! (dkh, 10/09/05)  
 
       REAL*8, ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
+
       ! Cloud fraction - for cloud droplet uptake of dicarbonyls 
       ! (tmf, 12/07/07) 
       REAL*8, ALLOCATABLE :: VCLDF(:,:,:)
 
-      ! SOAupdate: These arrays are now allocatable (mpayer, 7/22/11)
-      INTEGER,      ALLOCATABLE :: NPROD(:)
-      INTEGER,      ALLOCATABLE :: NNOX(:)
-      REAL*8,       ALLOCATABLE :: PRODPERCOFSTT(:)
-      REAL*8,       ALLOCATABLE :: KO3_REF(:), KOH_REF(:), KNO3_REF(:)
-      REAL*8,       ALLOCATABLE :: KOM_REF(:,:,:)
-      REAL*8,       ALLOCATABLE :: KOM_REF_SVPOA(:,:)
-      REAL*8,       ALLOCATABLE :: ALPHA(:,:,:)
+      ! Diagnostic that tracks how much SOA is formed/evaporated
+      ! (hotp 6/5/10)
+      REAL*8, ALLOCATABLE :: SPECSOAPROD(:,:,:,:,:)
+      REAL*8, ALLOCATABLE :: SPECSOAEVAP(:,:,:,:,:)
 
-      INTEGER,      ALLOCATABLE :: IDSV(:)           ! Map parent HC to semivol
-      REAL*8,       ALLOCATABLE :: DELTAHCSAVE(:,:)        ! Parent HC reacted
-      REAL*8,       ALLOCATABLE :: SPECSOAPROD(:,:,:,:,:)  ! SOA formed
-      REAL*8,       ALLOCATABLE :: SPECSOAEVAP(:,:,:,:,:)  ! SOA evaporated
-      REAL*8, SAVE, ALLOCATABLE :: GLOB_POGRXN(:,:,:,:)    ! POG reacted
-      REAL*8, SAVE, ALLOCATABLE :: BETANOSAVE(:,:,:)       ! RO2 branch ratio
-      REAL*8, SAVE, ALLOCATABLE :: POAEMISS(:,:,:,:)       ! POA emissions
-      REAL*8, SAVE, ALLOCATABLE :: OAGINITSAVE(:,:,:,:,:)  ! Initial OA+OG diag
-      REAL*8, SAVE, ALLOCATABLE :: DELTASOGSAVE(:,:,:,:,:) ! Change in SOG diag
+      ! semivolpoa4: diagnostic to keep track of POG reacted (hotp 3/27/09)
+      REAL*8, SAVE, ALLOCATABLE :: GLOB_POGRXN(:,:,:,:)
+
+      ! diagnostic added for RO2 branching ratio (hotp 5/24/10)
+      REAL*8, SAVE, ALLOCATABLE :: BETANOSAVE(:,:,:)
+
+      ! semivolpoa2: array for POA emissions (hotp 2/27/09)
+      ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
+      REAL*8, SAVE, ALLOCATABLE :: POAEMISS(:,:,:,:)
+
+      ! Array for initial OA+OG (hotp 5/17/10)
+      ! Diagnostic only, dims: I,J,L,MPROD,MSV (hotp 5/22/10)
+      REAL*8, SAVE, ALLOCATABLE :: OAGINITSAVE(:,:,:,:,:)
+
+      ! Array for change in SOG (diagnostic) (hotp 5/17/10)
+      ! dims: I,J,L,MNOX,MHC
+      REAL*8, SAVE, ALLOCATABLE :: DELTASOGSAVE(:,:,:,:,:)
 
       ! Days per month (based on 1998)
       INTEGER             :: NDAYS(12) = (/ 31, 28, 31, 30, 31, 30, 
@@ -534,19 +587,26 @@
       USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI
-      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOG4, IDTSOA4
-      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
-      USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
-      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/18/11)
+      USE TRACERID_MOD,       ONLY : IDTBCPI,  IDTBCPO
+      USE TRACERID_MOD,       ONLY : IDTOCPI,  IDTOCPO
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate: update tracers (hotp 7/29/10)
+!      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOG4, IDTSOA4
+!      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
+      ! Add lumped arom/IVOC (hotp 5/14/10)
       USE TRACERID_MOD,       ONLY : IDTASOAN
       USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOG1
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOG2
       USE TRACERID_MOD,       ONLY : IDTASOA3, IDTASOG3
+      ! 1 and 2 POA (hotp 10/11/09)
       USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTOPOA1
       USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTOPOA2
       USE TRACERID_MOD,       ONLY : IDTPOG1,  IDTOPOG1
       USE TRACERID_MOD,       ONLY : IDTPOG2,  IDTOPOG2
+      ! need isoprene semivols for offline sim (hotp 5/20/10)
       USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOG1
       USE TRACERID_MOD,       ONLY : IDTISOA2, IDTISOG2
       USE TRACERID_MOD,       ONLY : IDTISOA3, IDTISOG3
@@ -586,7 +646,6 @@
 !  (6 ) Bug fix for aerosol sim w/ 20 tracers (phs, 9/14/06)
 !  (7 ) Add subroutine call AGING_CARB for converting H-phobic 30-bin EC or OC
 !        to H-philic EC or OC. (win, 1/25/10)
-!  18 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
@@ -596,6 +655,8 @@
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_CHEMISTRY
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -608,7 +669,6 @@
       LOGICAL       :: LSOA
       LOGICAL       :: LEMIS
       LOGICAL       :: LPRT
-      LOGICAL       :: LSVPOA
       INTEGER       :: N
       INTEGER       :: THISMONTH
       CHARACTER(LEN=14) :: DEPNAME(Input_Opt%MAX_DEP)
@@ -629,7 +689,6 @@
       LSOA                 = Input_Opt%LSOA
       LEMIS                = Input_Opt%LEMIS
       LPRT                 = Input_Opt%LPRT
-      LSVPOA               = Input_Opt%LSVPOA
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       DEPNAME              = Input_Opt%DEPNAME
 
@@ -650,18 +709,21 @@
          ! (dkh, bmy, 6/1/06)
          IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
-            ! temp fix for aerosol w/ 20 tracers simulation (phs)
-            IF ( IDTSOG4 .NE. 0 ) THEN   
-               STT(:,:,:,IDTSOG4) = 0d0
-               STT(:,:,:,IDTSOA4) = 0d0
-            ENDIF
-            ! Do the same for SOG5 and SOA5 (dkh, 03/24/07)  
-            IF ( IDTSOG5 .NE. 0 ) THEN   
-               STT(:,:,:,IDTSOG5) = 0d0
-               STT(:,:,:,IDTSOA5) = 0d0
-            ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            ! temp fix for aerosol w/ 20 tracers simulation (phs)
+!            IF ( IDTSOG4 .NE. 0 ) THEN   
+!               STT(:,:,:,IDTSOG4) = 0d0
+!               STT(:,:,:,IDTSOA4) = 0d0
+!            ENDIF
+!            ! Do the same for SOG5 and SOA5 (dkh, 03/24/07)  
+!            IF ( IDTSOG5 .NE. 0 ) THEN   
+!               STT(:,:,:,IDTSOG5) = 0d0
+!               STT(:,:,:,IDTSOA5) = 0d0
+!            ENDIF
+!------------------------------------------------------------------------------
 
-            ! SOAupdate: For SOA + semivol POA (hotp, mpayer, 7/18/11)
+            ! update for isoprene SOA (hotp 5/20/10)
             IF ( IDTISOA1 > 0 ) THEN
                STT(:,:,:,IDTISOA1) = 0d0
                STT(:,:,:,IDTISOA2) = 0d0
@@ -670,6 +732,9 @@
                STT(:,:,:,IDTISOG2) = 0d0
                STT(:,:,:,IDTISOG3) = 0d0
             ENDIF
+
+            ! lumped arom/IVOC (hotp 5/17/10)
+            ! LUMPAROMIVOC: lump arom/IVOC not supported for offline sims
             IF ( IDTASOAN > 0 ) THEN
                STT(:,:,:,IDTASOAN) = 0d0
                STT(:,:,:,IDTASOA1) = 0d0
@@ -682,10 +747,12 @@
          
          ENDIF
 
-         ! SOAupdate: Determine # of semivol parent HC (hotp, mpayer, 7/18/11)
-         ! MAXSIMSV = 0 for traditional SOA (non-volatile POA)
+         ! Determine number of semivolatile parent HC (hotp 8/24/09)
+         !MAXSIMHC = 0 ! for non-volatile sim
+         ! Now use SV instead of HC (hotp 5/13/10)
          MAXSIMSV = 0 
-         IF ( LSVPOA ) THEN
+         IF ( LSOA ) THEN
+            ! updated (hotp 5/20/10) new mtp
             MAXSIMSV = 3  ! mono+sesq (1) + isop (2) + aromatics (3)
             IF ( IDTPOA1  > 0 ) MAXSIMSV = MAXSIMSV + 1
             IF ( IDTOPOA1 > 0 ) MAXSIMSV = MAXSIMSV + 1
@@ -696,17 +763,23 @@
 
             ! Print to log for record
             print*,'Number of SOA semivols (MAXSIMSV): ', MAXSIMSV
-            print*,'This number should be 5 for SOA + semivol POA'
+            print*,'This number should be 5 for semivol POA' ! hotp 5/20/10
          ENDIF
 
          ! Reset first-time flag
          FIRSTCHEM = .FALSE.
 
-         ! SOAupdate: Debug info
-         IF ( prtDebug .and. LSVPOA ) THEN
+         ! Debug info (hotp 5/17/10)
+         IF ( prtDebug ) THEN
             print*,'The following species have been identified'
             print*,'as dry dep species in CHEMCARBON (carbon_mod.f)'
-
+            print*, 'ASOAN ', DEPNAME(DRYASOAN)
+            print*, 'ASOA1 ', DEPNAME(DRYASOA1)
+            print*, 'ASOA2 ', DEPNAME(DRYASOA2)
+            print*, 'ASOA3 ', DEPNAME(DRYASOA3)
+            print*, 'ASOG1 ', DEPNAME(DRYASOG1)
+            print*, 'ASOG2 ', DEPNAME(DRYASOG2)
+            print*, 'ASOG3 ', DEPNAME(DRYASOG3)
             IF ( IDTPOA1 > 0 ) THEN
                print*, 'POA1  ', DEPNAME(DRYPOA1)
                print*, 'POA2  ', DEPNAME(DRYPOA2)
@@ -717,17 +790,14 @@
                print*, 'OPOG1 ', DEPNAME(DRYOPOG1)
                print*, 'OPOG2 ', DEPNAME(DRYOPOG2)
             ENDIF
-
-            print*, 'ASOAN ', DEPNAME(DRYASOAN)
-            print*, 'ASOA1 ', DEPNAME(DRYASOA1)
-            print*, 'ASOA2 ', DEPNAME(DRYASOA2)
-            print*, 'ASOA3 ', DEPNAME(DRYASOA3)
-            print*, 'ASOG1 ', DEPNAME(DRYASOG1)
-            print*, 'ASOG2 ', DEPNAME(DRYASOG2)
-            print*, 'ASOG3 ', DEPNAME(DRYASOG3)
-            print*, 'MTPA  ', DEPNAME(DRYMTPA) 
-            print*, 'LIMO  ', DEPNAME(DRYLIMO) 
-            print*, 'MTPO  ', DEPNAME(DRYMTPO) 
+            ! isoprene semivols (hotp 5/20/10)
+            print*, 'ISOA1 ', DEPNAME(DRYISOA1)
+            print*, 'ISOA2 ', DEPNAME(DRYISOA2)
+            print*, 'ISOA3 ', DEPNAME(DRYISOA3)
+            print*, 'ISOG1 ', DEPNAME(DRYISOG1)
+            print*, 'ISOG2 ', DEPNAME(DRYISOG2)
+            print*, 'ISOG3 ', DEPNAME(DRYISOG3)
+            ! mono+sesq semivols (hotp 5/20/10)
             print*, 'TSOA1 ', DEPNAME(DRYTSOA1)
             print*, 'TSOA2 ', DEPNAME(DRYTSOA2)
             print*, 'TSOA3 ', DEPNAME(DRYTSOA3)
@@ -736,12 +806,10 @@
             print*, 'TSOG2 ', DEPNAME(DRYTSOG2)
             print*, 'TSOG3 ', DEPNAME(DRYTSOG3)
             print*, 'TSOG0 ', DEPNAME(DRYTSOG0)
-            print*, 'ISOA1 ', DEPNAME(DRYISOA1)
-            print*, 'ISOA2 ', DEPNAME(DRYISOA2)
-            print*, 'ISOA3 ', DEPNAME(DRYISOA3)
-            print*, 'ISOG1 ', DEPNAME(DRYISOG1)
-            print*, 'ISOG2 ', DEPNAME(DRYISOG2)
-            print*, 'ISOG3 ', DEPNAME(DRYISOG3)
+            ! gas precursors (hotp 5/20/10)
+            print*, 'MTPA  ', DEPNAME(DRYMTPA) 
+            print*, 'LIMO  ', DEPNAME(DRYLIMO) 
+            print*, 'MTPO  ', DEPNAME(DRYMTPO) 
          ENDIF
 
       ENDIF
@@ -837,34 +905,11 @@
          ! Compute SOA chemistry
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07)
-         !
-         ! SOAupdate: Check to see if using SOA + semivolatile POA or
-         !  traditional SOA simulation since they call different routines
-         !  (mpayer, 7/18/11)
-         IF ( LSVPOA ) THEN
+         CALL SOA_CHEMISTRY( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
 
-            !-------------------------
-            ! SOA + semivolatile POA
-            !-------------------------
-            CALL SOA_SVPOA_CHEMISTRY( am_I_Root, Input_Opt, 
-     &                                State_Met, State_Chm )
-
-            IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMCARBON: a SOA_SVPOA_CHEM' )
-            ENDIF
-
-         ELSE
-
-            !-------------------------
-            ! Traditional SOA
-            !-------------------------
-            CALL SOA_CHEMISTRY( am_I_Root, Input_Opt, 
-     &                          State_Met, State_Chm, RC )
- 
-            IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
-            ENDIF
-
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
 
          ! If SOAG and SOAM are declared, switch on 
@@ -2254,48 +2299,163 @@
 !  (5 ) get T0M gas products
 !  (6 ) equilibrium calculation
 !
-!  There are total of 42 tracers considered in this routine:
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate: Remove old formulation (hotp 7/25/10)
+!!  There are total of 42 tracers considered in this routine:
+!!
+!!  4 classes of primary carbonaceous aerosols:  
+!!     BCPI = Hydrophilic black carbon
+!!     OCPI = Hydrophilic organic carbon
+!!     BCPO = Hydrophobic black carbon
+!!     OCPO = Hydrophobic organic carbon
+!!
+!!!  6 reactive biogenic hydrocarbon groups (NVOC):
+!!  9 reactive biogenic hydrocarbon groups (NVOC):
+!!     ALPH = a-pinene, b-pinene, sabinene, carene, terpenoid ketones
+!!     LIMO = limonene
+!!     TERP = a-terpinene, r-terpinene, terpinolene
+!!     ALCO = myrcene, terpenoid alcohols, ocimene
+!!     SESQ = sesquiterpenes
+!!     ISOP = Isoprene
+!!     BRO2 = peroxide from benzene (dkh, 10/29/06)  
+!!     TRO2 = peroxide from toluene (dkh, 10/29/06)  
+!!     XRO2 = peroxide from xylene (dkh, 10/29/06) 
+!!     NRO2 = peroxide from naphthalene (hotp 7/22/09)
+!!
+!!  NOTE: TERP and SESQ are not tracers because of their high reactivity
+!!        Same goes for aromatic peroxide species.  (dkh, 10/29/06)  
+!!
+!!!  32 organic oxidation products by O3+OH and NO3: 
+!!  56 organic oxidation products by O3+OH and NO3: 
+!!     6 ( 3 gases + 3 aerosols ) from each of first four NVOC  = 24 
+!!     4 ( 2 gases + 2 aerosols ) from sesquiterpenes oxidation = 4
+!!     4 ( 2 gases + 2 aerosols ) from isoprene oxidation       = 4
+!!     8 ( 4 gases + 4 aerosols ) from each aromatic peroxide   = 24 (dkh, 10/29/06)  
+!!
+!!  NOTE: We aggregate these into 6 tracers according to HC classes
+!!     SOG1 = lump of gas products of first three (ALPH+LIMO+TERP) HC oxidation.
+!!     SOG2 = gas product of ALCO oxidation
+!!     SOG3 = gas product of SESQ oxidation 
+!!     SOG4 = gas product of ISOP oxidation
+!!     SOG5 = gas product of xRO2 oxidation, x = B,T,X (dkh, 10/29/06)  
+!!     SOA1 = lump of aerosol products of first 3 (ALPH+LIMO+TERP) HC oxidation.
+!!     SOA2 = aerosol product of ALCO oxidation
+!!     SOA3 = aerosol product of SESQ oxidation 
+!!     SOA4 = aerosol product of ISOP oxidation
+!!     SOA5 = aerosol product of xRO2 oxidation, x = B,T,X (dkh, 10/29/06)  
+!------------------------------------------------------------------------------
+!  As of 5/20/10: Havala's New formulation
 !
-!  4 classes of primary carbonaceous aerosols:  
-!     BCPI = Hydrophilic black carbon
-!     OCPI = Hydrophilic organic carbon
-!     BCPO = Hydrophobic black carbon
-!     OCPO = Hydrophobic organic carbon
+!  ==========================================
+!  FOR SEMIVOLATILE POA and IVOC simulations:
+!  ==========================================
+!  GEOS-Chem treats formation of aerosol from 11 parent hydrocarbons
+!  and oxidation by OH, O3, and NO3:
 !
-!!  6 reactive biogenic hydrocarbon groups (NVOC):
-!  9 reactive biogenic hydrocarbon groups (NVOC):
-!     ALPH = a-pinene, b-pinene, sabinene, carene, terpenoid ketones
-!     LIMO = limonene
-!     TERP = a-terpinene, r-terpinene, terpinolene
-!     ALCO = myrcene, terpenoid alcohols, ocimene
-!     SESQ = sesquiterpenes
-!     ISOP = Isoprene
-!     BRO2 = peroxide from benzene (dkh, 10/29/06)  
-!     TRO2 = peroxide from toluene (dkh, 10/29/06)  
-!     XRO2 = peroxide from xylene (dkh, 10/29/06) 
-!     NRO2 = peroxide from naphthalene (hotp 7/22/09)
+!  The parent hydrocarbons are lumped into 5 semivolatile systems:
+!  TSOA/G: the lumped semivolatile oxidation products of 
+!          monoterpene and sesquiterpene oxidation
+!  ISOA/G: the lumped semivolatile oxidation products of isoprene ox
+!  ASOA/G: the lumped semivolatile (and nonvolatile) products of 
+!          benzene, toluene, xylene, and naphthalene (IVOC surrogate)
+!          oxidation
+!  POA/G : the lumped primary semivolatile emissions
+!  OPOA/G: the lumped products of primary semivolatile oxidation
 !
-!  NOTE: TERP and SESQ are not tracers because of their high reactivity
-!        Same goes for aromatic peroxide species.  (dkh, 10/29/06)  
+!  Parent HC      Oxidized by       Products
+!  =============  ================  ==================================
+!  MTPA           OH, O3, NO3       TSOA/G0-3
+!  LIMO           OH, O3, NO3       TSOA/G1-3
+!  MTPO           OH, O3, NO3       TSOA/G0-3
+!  SESQ           OH, O3, NO3       TSOA/G1-3
+!  ISOP           OH, NO3           ISOA/G1-3
+!  BENZ           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!  SVOC/POA       OH                POA/G1-2
+!  O-SVOC/OPOA    OH                OPOA/G1-2
+!  NAP            OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !
-!!  32 organic oxidation products by O3+OH and NO3: 
-!  56 organic oxidation products by O3+OH and NO3: 
-!     6 ( 3 gases + 3 aerosols ) from each of first four NVOC  = 24 
-!     4 ( 2 gases + 2 aerosols ) from sesquiterpenes oxidation = 4
-!     4 ( 2 gases + 2 aerosols ) from isoprene oxidation       = 4
-!     8 ( 4 gases + 4 aerosols ) from each aromatic peroxide   = 24 (dkh, 10/29/06)  
+!  Tracers that must be defined in input.geos (in addition to standard
+!  full chem tracers) (34 additional):
+!  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
+!  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
+!  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
+!  ASOAN      TSOA0      TSOG0
+!  BENZ       TOLU       XYLE       MTPA       LIMO       MTPO
+!  NAP      
+!  POA1       POG1       POA2       POG2
+!  OPOA1      OPOG1      OPOA2      OPOG2
 !
-!  NOTE: We aggregate these into 6 tracers according to HC classes
-!     SOG1 = lump of gas products of first three (ALPH+LIMO+TERP) HC oxidation.
-!     SOG2 = gas product of ALCO oxidation
-!     SOG3 = gas product of SESQ oxidation 
-!     SOG4 = gas product of ISOP oxidation
-!     SOG5 = gas product of xRO2 oxidation, x = B,T,X (dkh, 10/29/06)  
-!     SOA1 = lump of aerosol products of first 3 (ALPH+LIMO+TERP) HC oxidation.
-!     SOA2 = aerosol product of ALCO oxidation
-!     SOA3 = aerosol product of SESQ oxidation 
-!     SOA4 = aerosol product of ISOP oxidation
-!     SOA5 = aerosol product of xRO2 oxidation, x = B,T,X (dkh, 10/29/06)  
+!  The following should NOT be defined for semivol POA: OCPI, OCPO
+!
+!  ============================================================
+!  FOR NON-VOLATILE TRADITIONAL POA (and no IVOCs) simulations:
+!  ============================================================
+!  GEOS-Chem treats formation of aerosol from 8 parent hydrocarbons
+!  and oxidation by OH, O3, and NO3:
+!
+!  Two non-volatile,traditional primary OC species exist:
+!  OCPO: hydrophobic POA
+!  OCPI: hydrophillic POA
+!
+!  The parent hydrocarbons are lumped into 3 semivolatile systems:
+!  TSOA/G: the lumped semivolatile oxidation products of 
+!          monoterpene and sesquiterpene oxidation
+!  ISOA/G: the lumped semivolatile oxidation products of isoprene ox
+!  ASOA/G: the lumped semivolatile (and nonvolatile) products of 
+!          benzene, toluene, and xylene oxidation
+!
+!  Parent HC      Oxidized by       Products
+!  =============  ================  ==================================
+!  MTPA           OH, O3, NO3       TSOA/G0-3
+!  LIMO           OH, O3, NO3       TSOA/G1-3
+!  MTPO           OH, O3, NO3       TSOA/G0-3
+!  SESQ           OH, O3, NO3       TSOA/G1-3
+!  ISOP           OH, NO3           ISOA/G1-3
+!  BENZ           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!
+!  Tracers that must be defined in input.geos (in addition to standard
+!  full chem tracers) (25 additional):
+!  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
+!  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
+!  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
+!  ASOAN      TSOA0      TSOG0
+!  BENZ       TOLU       XYLE       MTPA       LIMO       MTPO
+!
+!  The following should NOT be defined for traditional POA: 
+!     NAP, POA/G OPOA/G
+!
+!  References (see above for full citations):
+!  ===========================================================================
+!  Monoterpenes and sesquiterpenes:
+!    Experimental Data:
+!      Griffin et al. 1999 JGR      (sesquiterps low NOx)
+!      Shilling et al. 2008 ACP     (a-pinene ozonolysis for MTPO/MTPA)
+!      Zhang et al. 2006 JPhysChemA (limonene ozonolysis)
+!      Ng et al. 2007 ACP           (data for NOx effect on sesq aerosol)
+!    Modeling:
+!      Chung and Seinfeld 2002 JGR  (original formulation in GEOS-Chem)
+!      Liao et al. 2007 JGR         (comparison to measurements)
+!      Pye et al. in prep 2010      (new lumping scheme, NOx effect)
+!  Isoprene
+!      Kroll et al. 2006 ES&T       (low NOx experiments)
+!      Ng et al. 2008 ACP           (isoprene + NO3 experiments)
+!      Henze et al. 2006 GRL        (low NOx isoprene modeling in GEOS-Chem)
+!      Pye et al. in prep 2010      (new lumping scheme and isop+no3 modeling)
+!  Aromatics: benz, tolu, xyle
+!      Ng et al. 2007 ACP           (experiments)
+!      Henze et al. 2008 ACP        (global modeling)
+!  POA/OPOA
+!      Shrivastava et al. 2006 ES&T (POA experiments)
+!      Grieshop et al. 2009 ACP     (POA/SVOC oxidation experiments)
+!      Pye and Seinfeld 2010 ACP    (global modeling)
+!  IVOC/Naphthalene
+!      Chan et al. 2009 ACP         (experiments)
+!      Pye and Seinfeld 2010 ACP    (global modeling)
 !
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
@@ -2315,6 +2475,8 @@
 !  05 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_DEPO
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LPRT
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       USE CMN_O3_MOD
@@ -2326,14 +2488,40 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
-      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
-      USE TRACERID_MOD,       ONLY : IDTSOA4, IDTSOG1, IDTSOG2, IDTSOG3
-      USE TRACERID_MOD,       ONLY : IDTSOG4, IDTSO4,  IDTNH4,  IDTNIT
-      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      USE TRACERID_MOD,       ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
+!      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
+!      USE TRACERID_MOD,       ONLY : IDTSOA4, IDTSOG1, IDTSOG2, IDTSOG3
+!      USE TRACERID_MOD,       ONLY : IDTSOG4, IDTSO4,  IDTNH4,  IDTNIT
+!      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
+!------------------------------------------------------------------------------
+      ! new mtp formulation (hotp 5/20/10)
+      USE TRACERID_MOD,       ONLY : IDTOCPI,  IDTOCPO
+      USE TRACERID_MOD,       ONLY : IDTMTPA,  IDTLIMO, IDTMTPO
+      ! mono+sesq products
+      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOG1
+      USE TRACERID_MOD,       ONLY : IDTTSOA2, IDTTSOG2
+      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOG3
+      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
+      ! isoprene products
+      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOG1
+      USE TRACERID_MOD,       ONLY : IDTISOA2, IDTISOG2
+      USE TRACERID_MOD,       ONLY : IDTISOA3, IDTISOG3
+      ! semivolpoa: add POA (hotp 2/26/09)
+      USE TRACERID_MOD,       ONLY : IDTPOA1,IDTPOA2
+      USE TRACERID_MOD,       ONLY : IDTPOG1, IDTPOG2
+      ! semivolpoa4opoa: add OPOA, OPOG (hotp 3/18/09)
+      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
+      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
+      ! lumped arom/IVOC (hotp 5/14/10)
+      USE TRACERID_MOD,       ONLY : IDTASOAN
+      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOG1
+      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOG2
+      USE TRACERID_MOD,       ONLY : IDTASOA3, IDTASOG3
       USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
-
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2355,26 +2543,51 @@
       LOGICAL         :: prtDebug
       LOGICAL         :: LPRT
       INTEGER         :: I,        J,        L,        N    
-      INTEGER         :: JHC,      IPR,      NOX ! (dkh, 10/30/06)  
+      ! no more NOx (hotp 5/22/10)
+      INTEGER         :: JHC,      IPR!,      NOX ! (dkh, 10/30/06)  
+      INTEGER         :: JSV ! (hotp 5/13/10)
+      INTEGER         :: JSVPOA, JSVOPOA ! for diag (hotp 5/17/10)
       REAL*8          :: RTEMP,    VOL,      FAC,      MPOC 
       REAL*8          :: MNEW,     MSOA_OLD, MPRODUCT, CAIR
       REAL*8          :: LOWER,    UPPER,    TOL,      VALUE
       REAL*8          :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      !REAL*8          :: ALPHA(NPROD,MHC),   KOM(NPROD,MHC)
-      !REAL*8          :: GM0(NPROD,MHC),     AM0(NPROD,MHC)
-      !REAL*8          :: ORG_AER(NPROD,MHC), ORG_GAS(NPROD,MHC)
-      REAL*8          :: KOM(MNOX,MPROD,MHC)
-      REAL*8          :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
-      REAL*8          :: ORG_AER(MNOX,MPROD,MHC)
-      REAL*8          :: ORG_GAS(MNOX,MPROD,MHC)
-      REAL*8          :: SOA_BURD_0(5),       DARO2_TOT_0(6)
-      REAL*8          :: SOA_BURD(5)
-      REAL*8          :: GLOB_AM0_AROM(MNOX,3)
-      REAL*8          :: GLOB_AM0_AROM_0(MNOX,3)
-      REAL*8, SAVE    :: DARO2_TOT(6)     = 0d0
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! Last dimension now MSV (hotp 5/13/10)
+! Remove MNOX dimension (hotp 5/22/10)
+!      !REAL*8          :: ALPHA(NPROD,MHC),   KOM(NPROD,MHC)
+!      !REAL*8          :: GM0(NPROD,MHC),     AM0(NPROD,MHC)
+!      !REAL*8          :: ORG_AER(NPROD,MHC), ORG_GAS(NPROD,MHC)
+!      REAL*8          :: KOM(MNOX,MPROD,MHC)
+!      REAL*8          :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
+!      REAL*8          :: ORG_AER(MNOX,MPROD,MHC)
+!      REAL*8          :: ORG_GAS(MNOX,MPROD,MHC)
+!      REAL*8          :: SOA_BURD_0(5),       DARO2_TOT_0(6)
+!      REAL*8          :: SOA_BURD(5)
+!      REAL*8          :: GLOB_AM0_AROM(MNOX,3)
+!      REAL*8          :: GLOB_AM0_AROM_0(MNOX,3)
+!      REAL*8, SAVE    :: DARO2_TOT(6)     = 0d0
+!      REAL*8, SAVE    :: SOA_PROD         = 0d0
+!      REAL*8, SAVE    :: AM0_AROM_PROD(6) = 0d0
+!------------------------------------------------------------------------------
+      REAL*8          :: KOM(MPROD,MSV)
+      REAL*8          :: GM0(MPROD,MSV), AM0(MPROD,MSV)
+      REAL*8          :: ORG_AER(MPROD,MSV)
+      REAL*8          :: ORG_GAS(MPROD,MSV)
 
-      REAL*8, SAVE    :: SOA_PROD         = 0d0
-      REAL*8, SAVE    :: AM0_AROM_PROD(6) = 0d0
+      ! Parent HC reacted diag for arom/IVOC (hotp 5/17/10)
+      REAL*8          :: DARO2_TOT_0(8)         ! added NAP (hotp 7/22/09)
+      REAL*8, SAVE    :: DARO2_TOT(8) = 0d0     ! added NAP (hotp 7/22/09)
+
+      ! Rate constant for RO2+HO2, RO2+NO rxns (hotp 5/7/10)
+      REAL*8          :: KRO2NO, KRO2HO2
+
+      ! semivolpoa2: add diagnostic info for POA (hotp 3/11/09)
+      ! semivolpoa4: add dimension for OPOA (hotp 3/27/09)
+      REAL*8          :: GLOB_AM0_POA(IIPAR,JJPAR,LLTROP,MNOX,MPROD,2)
+      REAL*8          :: GLOB_AM0_POA_0(IIPAR,JJPAR,LLTROP,MNOX,MPROD,2)
+      REAL*8, SAVE    :: GLOB_POA_PROD
+      REAL*8, SAVE    :: GLOB_OPOA_PROD
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -2388,37 +2601,131 @@
       ! Save fields from Input_Opt to local variables
       LPRT = Input_Opt%LPRT
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
+
+      ! Zero some diagnostics (hotp 5/17/10)
+      GLOB_POGRXN  = 0d0
+      OAGINITSAVE  = 0d0
+      DELTASOGSAVE = 0d0
+
+      ! Save initial OA+OG for diagnostic (hotp 5/17/10)
+      IF ( LPRT ) THEN
+         CALL SAVE_OAGINIT( State_Chm )
+      ENDIF
 
       !this section is need to initialize the equalibirum constants and
       !yield parameters, (jje 06/22/10)
       IF ( FIRST ) THEN
 
          ! initialize alphas, Koms and rxn rate constants
-         CALL SOA_PARA_INIT
+         CALL SOA_PARA_INIT( Input_Opt )
+
+         ! Diagnostic/debug info (hotp 5/22/10)
+         IF ( prtDebug ) THEN
+            WRITE(*,*) 'HC and SV IDs'
+            print*, 'Monoterpenes and sesquiterpenes'
+            print*, 'MTPA ', PARENTMTPA, IDSV(PARENTMTPA)
+            print*, 'LIMO ', PARENTLIMO, IDSV(PARENTLIMO)
+            print*, 'MTPO ', PARENTMTPO, IDSV(PARENTMTPO)
+            print*, 'SESQ ', PARENTSESQ, IDSV(PARENTSESQ)
+            print*, 'Isoprene'
+            print*, 'ISOP ', PARENTISOP, IDSV(PARENTISOP)
+            print*, 'Arom/IVOC'
+            print*, 'BENZ ', PARENTBENZ, IDSV(PARENTBENZ)
+            print*, 'TOLU ', PARENTTOLU, IDSV(PARENTTOLU)
+            print*, 'XYLE ', PARENTXYLE, IDSV(PARENTXYLE)
+            print*, 'NAP  ', PARENTNAP,  IDSV(PARENTNAP )
+            print*, 'POA and OPOA'
+            print*, 'POA  ', PARENTPOA,  IDSV(PARENTPOA)
+            print*, 'OPOA ', PARENTOPOA, IDSV(PARENTOPOA)
+            print*,'NPROD and NNOX for SV groups'
+            DO JSV = 1, MSV
+               print*, (JSV),NPROD(JSV),NNOX(JSV)
+            ENDDO
+         ENDIF
+
+         ! Zero diagnostic (hotp 5/24/10)
+         GLOB_POA_PROD  = 0d0
+         GLOB_OPOA_PROD = 0d0
+         DELTAHCSAVE    = 0d0
+         SPECSOAPROD    = 0d0
+         SPECSOAEVAP    = 0d0
 
          FIRST = .FALSE.
       ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      IF ( prtDebug ) THEN
+         print*, ' MAX DARO2 = ', MAXLOC(GLOB_DARO2(:,:,:,1,1)), 
+     &                            MAXVAL(GLOB_DARO2(:,:,:,1,1))
+      ENDIF
+ 
+      ! semivolpoa2: diagnostic info (hotp 3/11/09) 
+      GLOB_AM0_POA   = 0.d0
+      GLOB_AM0_POA_0 = 0.d0
+
+      ! added debug (hotp 8/24/09)
+      IF ( prtDebug ) THEN
+         print*, 'START SOA_CHEMISTRY'
+         print*, 'species   ','global sum   ', 
+     &              'box 20,33,2   ', 'box 20,33,10    '
+
+         IF ( IDTPOA1 > 0 ) THEN
+            print*,'POA1', SUM(STT(:,:,:,IDTPOA1))
+            print*,'POA2', SUM(STT(:,:,:,IDTPOA2))
+            print*,'POG1', SUM(STT(:,:,:,IDTPOG1))
+            print*,'POG2', SUM(STT(:,:,:,IDTPOG2))
+            print*,'OPOA1',SUM(STT(:,:,:,IDTOPOA1))
+            print*,'OPOA2',SUM(STT(:,:,:,IDTOPOA2))
+            print*,'OPOG1',SUM(STT(:,:,:,IDTOPOG1))
+            print*,'OPOG2',SUM(STT(:,:,:,IDTOPOG2))
+         ENDIF
+
+         ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
+         print*, 'POAEMISS,1,BB,BF',
+     &                 SUM(POAEMISS(:,:,:,1)),POAEMISS(20,33,2,1),
+     &                     POAEMISS(20,33,10,1)
+         print*, 'POAEMISS,2,ANTH',
+     &                 SUM(POAEMISS(:,:,:,2)),POAEMISS(20,33,2,2),
+     &                     POAEMISS(20,33,10,2)
+      
+         ! 10/12/09 debug
+         IF ( IDTPOA1 > 0 ) THEN
+            print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
+     &                         SUM(STT(:,:,:,IDTPOA2))+
+     &                         SUM(STT(:,:,:,IDTPOG1))+
+     &                         SUM(STT(:,:,:,IDTPOG2))
+         ENDIF
+      ENDIF
+ 
+      ! Locate POA and OPOA in AM0 (hotp 5/17/10)
+      JSVPOA  = IDSV(PARENTPOA)
+      JSVOPOA = IDSV(PARENTOPOA)
 
       !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
 
+      ! For parallel do:
+      ! add KRO2XXX to private (hotp 5/7/10)
+      ! add JSV to private (hotp 5/13/10)
+      ! remove NOX (hotp 5/22/10)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,        J,        L,     JHC,   IPR,   GM0,  AM0  )
 !$OMP+PRIVATE( VOL,      FAC,      RTEMP, KO3,   KOH,   KNO3, CAIR )
 !$OMP+PRIVATE( MPRODUCT, MSOA_OLD, VALUE, UPPER, LOWER, MNEW, TOL  )
-!!$OMP+PRIVATE( ORG_AER,  ORG_GAS,  ALPHA, KOM,   MPOC              )
-!$OMP+PRIVATE( ORG_AER,  ORG_GAS,  KOM,   MPOC              )
-!$OMP+PRIVATE( NOX                                                 )   ! (dkh, 10/30/06) 
+!$OMP+PRIVATE( ORG_AER,  ORG_GAS,  KOM,   MPOC                     )
+!$OMP+PRIVATE( KRO2NO,   KRO2HO2,  JSV                             )  
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! MERGE1 (hotp 5/25/09)
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) )  CYCLE
 
          ! Volume of grid box [m3]
          VOL    = State_Met%AIRVOL(I,J,L)
@@ -2434,68 +2741,120 @@
 
          ! Get SOA yield parameters
          ! ALPHA is a module variable now. (ccc, 2/2/10)
+         ! add arguments for RO2+NO, RO2+HO2 rates (hotp 5/7/10)
          CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM,
-     &                  I,     J,   L,   State_Met  )
+     &                  I,     J,   L,   KRO2NO, KRO2HO2, State_Met )
 
          ! Partition mass of gas & aerosol tracers 
          ! according to 5 VOC classes & 3 oxidants
          CALL SOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
 
-         IF ( IDTSOA5 /= 0 ) THEN
-            ! dkh diagnostic
-            GLOB_AM0_AROM_0 = GLOB_AM0_AROM_0 + SUM(AM0(:,:,7:9),2) 
-         ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!         IF ( IDTSOA5 /= 0 ) THEN ! removed hotp 7/25/10
+!            ! dkh diagnostic
+!            GLOB_AM0_AROM_0 = GLOB_AM0_AROM_0 + SUM(AM0(:,:,7:9),2) 
+!         ENDIF
+!------------------------------------------------------------------------------
+
+         ! hotp diagnostic (3/11/09)
+         GLOB_AM0_POA_0(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
 
          ! Compute oxidation of hydrocarbons by O3, OH, NO3
          ! ALPHA is a module variable now (ccc, 2/2/10)
+         ! semivolpoa2: emit POA into semivolatiles here (hotp 2/27/09)
+         ! add RO2+NO,HO2 rate constants (hotp 5/7/10)
          CALL CHEM_NVOC( I,         J,         L, 
      &                   KO3,       KOH,       KNO3, 
-     &                   GM0,       Input_Opt, State_Met, 
-     &                   State_Chm, RC                    )
+     &                   GM0,       KRO2NO,    KRO2HO2,
+     &                   Input_Opt, State_Met, State_Chm, RC )
 
          !==============================================================
          ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
          !==============================================================
 
-         ! Total VOC oxidation products (gas and aerosol) [kg]
-         MPRODUCT = 0.D0   
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! Not used (hotp 5/13/10)
+!         ! Total VOC oxidation products (gas and aerosol) [kg]
+!         MPRODUCT = 0.D0   
+!
+!         ! Initialize aerosol-only total [kg]
+!         MSOA_OLD = 0.D0  
+! 
+!        ! Initialize other arrays to be safe  (dkh, 11/10/06)  
+!         ORG_AER(:,:,:) = 0d0
+!         ORG_GAS(:,:,:) = 0d0 
+!------------------------------------------------------------------------------
+         ! Initialize other arrays to be safe  (dkh, 11/10/06)  
+         ! update dims (hotp 5/22/10)
+         ORG_AER(:,:) = 0d0
+         ORG_GAS(:,:) = 0d0
 
-         ! Initialize aerosol-only total [kg]
-         MSOA_OLD = 0.D0  
- 
-        ! Initialize other arrays to be safe  (dkh, 11/10/06)  
-         ORG_AER(:,:,:) = 0d0
-         ORG_GAS(:,:,:) = 0d0
-     
-         ! Compute total VOC and aerosol-only total
-         DO JHC = 1, MHC
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)   ! add NOX index
-            !MPRODUCT = MPRODUCT + GM0(IPR,JHC) + AM0(IPR,JHC)
-            !MSOA_OLD = MSOA_OLD + AM0(IPR,JHC)
-            MPRODUCT = MPRODUCT + GM0(NOX,IPR,JHC) + AM0(NOX,IPR,JHC)
-            MSOA_OLD = MSOA_OLD + AM0(NOX,IPR,JHC)
-         ENDDO
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! This section not used (hotp 5/13/10)
+!         ! Compute total VOC and aerosol-only total
+!         DO JHC = 1, MHC
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)   ! add NOX index
+!            !MPRODUCT = MPRODUCT + GM0(IPR,JHC) + AM0(IPR,JHC)
+!            !MSOA_OLD = MSOA_OLD + AM0(IPR,JHC)
+!            MPRODUCT = MPRODUCT + GM0(NOX,IPR,JHC) + AM0(NOX,IPR,JHC)
+!            MSOA_OLD = MSOA_OLD + AM0(NOX,IPR,JHC)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!         ! No need to proceed because there is no
+!         ! products that need to be re-equilibrated.
+!         IF ( ( MPRODUCT / State_Met%AD(I,J,L) ) <= 29.D-18 ) CYCLE
+!
+!         ! Individual SOA's; units: [ug/m3]
+!         DO JHC = 1, MHC
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)  ! Add NOX index 
+!            !ORG_GAS(IPR,JHC) = GM0(IPR,JHC) * FAC
+!            !ORG_AER(IPR,JHC) = AM0(IPR,JHC) * FAC
+!            ORG_GAS(NOX,IPR,JHC) = GM0(NOX,IPR,JHC) * FAC
+!            ORG_AER(NOX,IPR,JHC) = AM0(NOX,IPR,JHC) * FAC
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!------------------------------------------------------------------------------
+
+         ! Individual SOA's: convert from [kg] to [ug/m3] or [kgC] to [ugC/m3]
+         DO JSV = 1, MAXSIMSV
+         DO IPR = 1, NPROD(JSV)
+            ORG_GAS(IPR,JSV) = GM0(IPR,JSV) * FAC
+            ORG_AER(IPR,JSV) = AM0(IPR,JSV) * FAC
          ENDDO
          ENDDO
 
-         ! No need to proceed because there is no
-         ! products that need to be re-equilibrated.
-         IF ( ( MPRODUCT / State_Met%AD(I,J,L) ) <= 29.D-18 ) CYCLE
+         ! semivolpoa2: include OA mass with POA (hotp 3/2/09)
+         ! Check to make sure POA is defined (hotp 8/24/09)
+         ! Convert from [ugC/m3] to [ug/m3]
+         IF ( IDTPOA1 > 0 ) THEN
+            JHC = PARENTPOA
+            JSV = IDSV(JHC)
+            DO IPR = 1, NPROD(JSV)
+               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFPOA
+               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFPOA
+            ENDDO          
+         ENDIF
 
-         ! Individual SOA's; units: [ug/m3]
-         DO JHC = 1, MHC
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)  ! Add NOX index 
-            !ORG_GAS(IPR,JHC) = GM0(IPR,JHC) * FAC
-            !ORG_AER(IPR,JHC) = AM0(IPR,JHC) * FAC
-            ORG_GAS(NOX,IPR,JHC) = GM0(NOX,IPR,JHC) * FAC
-            ORG_AER(NOX,IPR,JHC) = AM0(NOX,IPR,JHC) * FAC
-         ENDDO
-         ENDDO
-         ENDDO
+         ! Convert from [ugC/m3] to [ug/m3]
+         ! semivolpoa4opoa: add OPOA mass (hotp 3/18/09)
+         ! Check to make sure OPOA is defined (hotp 8/24/09)
+         IF ( IDTOPOA1 > 0 ) THEN
+            JHC = PARENTOPOA
+            JSV = IDSV(JHC)
+            DO IPR = 1, NPROD(JSV)
+               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFOPOA
+               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFOPOA
+            ENDDO  
+         ENDIF
 
          !-----------------------------------------------------------
          ! Compute SOG condensation onto OC aerosol
@@ -2516,8 +2875,14 @@
          !
          ! (Colette Heald, 12/3/09)
          !-----------------------------------------------------------
-         MPOC = ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * FAC
-         MPOC = MPOC * 2.1d0
+         ! Now treat either traditional POA or semivolatile POA (hotp 7/25/10)
+         IF ( IDTOCPI > 0 ) THEN
+            MPOC = ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * FAC
+            MPOC = MPOC * 2.1d0
+         ELSE
+            ! semivolpoa2: MPOC is zero now (hotp 2/27/09)
+            MPOC = 1d-30
+         ENDIF
 
          !==============================================================
          ! Solve for MNEW by solving for SOA=0
@@ -2526,20 +2891,34 @@
             VALUE = 0.D0
             UPPER = 0.D0
 
-            DO JHC = 1, MHC
-            !DO IPR = 1, NPROD
-            DO IPR = 1, NPROD(JHC)
-            DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
-!               VALUE = VALUE + KOM(IPR,JHC) *
-!     &                 (ORG_GAS(IPR,JHC) + ORG_AER(IPR,JHC))
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            DO JHC = 1, MHC
+!            !DO IPR = 1, NPROD
+!            DO IPR = 1, NPROD(JHC)
+!            DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
+!!               VALUE = VALUE + KOM(IPR,JHC) *
+!!     &                 (ORG_GAS(IPR,JHC) + ORG_AER(IPR,JHC))
+!!
+!!               UPPER = UPPER + ORG_GAS(IPR,JHC) + ORG_AER(IPR,JHC)
+!               VALUE = VALUE + KOM(NOX,IPR,JHC) *
+!     &                 (ORG_GAS(NOX,IPR,JHC) + ORG_AER(NOX,IPR,JHC))
 !
-!               UPPER = UPPER + ORG_GAS(IPR,JHC) + ORG_AER(IPR,JHC)
-               VALUE = VALUE + KOM(NOX,IPR,JHC) *
-     &                 (ORG_GAS(NOX,IPR,JHC) + ORG_AER(NOX,IPR,JHC))
+!               UPPER = UPPER + ORG_GAS(NOX,IPR,JHC)
+!     &                       + ORG_AER(NOX,IPR,JHC)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!------------------------------------------------------------------------------
+            ! Now use SV (hotp 5/13/10)
+            ! update dims (hotp 5/22/10)
+            DO JSV = 1, MAXSIMSV
+            DO IPR = 1, NPROD(JSV)
+               VALUE = VALUE + KOM(IPR,JSV) *
+     &                 (ORG_GAS(IPR,JSV) + ORG_AER(IPR,JSV))
 
-               UPPER = UPPER + ORG_GAS(NOX,IPR,JHC)
-     &                       + ORG_AER(NOX,IPR,JHC)
-            ENDDO
+               UPPER = UPPER + ORG_GAS(IPR,JSV)
+     &                       + ORG_AER(IPR,JSV)
             ENDDO
             ENDDO
 
@@ -2554,14 +2933,25 @@
          ELSE
 
             UPPER = MPOC
-            DO JHC = 1, MHC
-            !DO IPR = 1, NPROD
-            DO IPR = 1, NPROD(JHC)
-            DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 10/30/06)  
-               !UPPER = UPPER + ORG_GAS(IPR,JHC) + ORG_AER(IPR,JHC)
-               UPPER = UPPER + ORG_GAS(NOX,IPR,JHC)
-     &                       + ORG_AER(NOX,IPR,JHC)
-            ENDDO
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            DO JHC = 1, MHC
+!            !DO IPR = 1, NPROD
+!            DO IPR = 1, NPROD(JHC)
+!            DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 10/30/06)  
+!               !UPPER = UPPER + ORG_GAS(IPR,JHC) + ORG_AER(IPR,JHC)
+!               UPPER = UPPER + ORG_GAS(NOX,IPR,JHC)
+!     &                       + ORG_AER(NOX,IPR,JHC)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!------------------------------------------------------------------------------
+            ! Now use SV (hotp 5/13/10)
+            ! update dims (hotp 5/22/10)
+            DO JSV = 1, MAXSIMSV
+            DO IPR = 1, NPROD(JSV)
+               UPPER = UPPER + ORG_GAS(IPR,JSV)
+     &                       + ORG_AER(IPR,JSV)
             ENDDO
             ENDDO
 
@@ -2576,193 +2966,459 @@
          ! concentrations for individual contributions of SOA
          !==============================================================
          IF ( MNEW > 0.D0 ) THEN
-             DO JHC = 1, MHC
-             !DO IPR = 1, NPROD
-             DO IPR = 1, NPROD(JHC)
-             DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 10/30/06)  
-
-!                ORG_AER(IPR,JHC) = KOM(IPR,JHC)*MNEW /
-!     &                            (1.D0 + KOM(IPR,JHC) * MNEW ) *
-!     &                            (ORG_AER(IPR,JHC) + ORG_GAS(IPR,JHC))
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!             DO JHC = 1, MHC
+!             !DO IPR = 1, NPROD
+!             DO IPR = 1, NPROD(JHC)
+!             DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 10/30/06)  
 !
-!                IF ( KOM(IPR,JHC).NE.0D0 ) THEN
-!                    ORG_GAS(IPR,JHC) = ORG_AER(IPR,JHC) * 1.D8 /
-!     &                                 ( KOM(IPR,JHC) * MNEW * 1.D8 )
+!!                ORG_AER(IPR,JHC) = KOM(IPR,JHC)*MNEW /
+!!     &                            (1.D0 + KOM(IPR,JHC) * MNEW ) *
+!!     &                            (ORG_AER(IPR,JHC) + ORG_GAS(IPR,JHC))
+!!
+!!                IF ( KOM(IPR,JHC).NE.0D0 ) THEN
+!!                    ORG_GAS(IPR,JHC) = ORG_AER(IPR,JHC) * 1.D8 /
+!!     &                                 ( KOM(IPR,JHC) * MNEW * 1.D8 )
+!!                ELSE
+!!                   ORG_GAS(IPR,JHC) = 0.D0
+!!                ENDIF
+!! Same version with NOX index.
+!                ORG_AER(NOX,IPR,JHC) = KOM(NOX,IPR,JHC)*MNEW /
+!     &                            (1.D0 + KOM(NOX,IPR,JHC) * MNEW ) *
+!     &                            (ORG_AER(NOX,IPR,JHC)
+!     &                            + ORG_GAS(NOX,IPR,JHC))
+!
+!                IF ( KOM(NOX,IPR,JHC).NE.0D0 ) THEN
+!                   ORG_GAS(NOX,IPR,JHC) = ORG_AER(NOX,IPR,JHC) * 1.D8 /
+!     &                                 ( KOM(NOX,IPR,JHC) * MNEW * 1.D8)
 !                ELSE
-!                   ORG_GAS(IPR,JHC) = 0.D0
+!                   ORG_GAS(NOX,IPR,JHC) = 0.D0
 !                ENDIF
-! Same version with NOX index.
-                ORG_AER(NOX,IPR,JHC) = KOM(NOX,IPR,JHC)*MNEW /
-     &                            (1.D0 + KOM(NOX,IPR,JHC) * MNEW ) *
-     &                            (ORG_AER(NOX,IPR,JHC)
-     &                            + ORG_GAS(NOX,IPR,JHC))
+!
+!             ENDDO
+!             ENDDO
+!             ENDDO
+!------------------------------------------------------------------------------
+            ! Use actual number of HC (hotp 8/24/09)
+            ! Now use SV (hotp 5/13/10)
+            ! updated dims (hotp 7/28/1)
+            DO JSV = 1, MAXSIMSV
+            DO IPR = 1, NPROD(JSV)
+               ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW /
+     &                           (1.D0 + KOM(IPR,JSV) * MNEW ) *
+     &                           (ORG_AER(IPR,JSV)
+     &                           + ORG_GAS(IPR,JSV))
 
-                IF ( KOM(NOX,IPR,JHC).NE.0D0 ) THEN
-                   ORG_GAS(NOX,IPR,JHC) = ORG_AER(NOX,IPR,JHC) * 1.D8 /
-     &                                 ( KOM(NOX,IPR,JHC) * MNEW * 1.D8)
-                ELSE
-                   ORG_GAS(NOX,IPR,JHC) = 0.D0
-                ENDIF
+               IF ( KOM(IPR,JSV).NE.0D0 ) THEN
+                  ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.D8 /
+     &                                ( KOM(IPR,JSV) * MNEW * 1.D8)
+               ELSE
+                  ORG_GAS(IPR,JSV) = 0.D0
+               ENDIF
 
-             ENDDO
-             ENDDO
-             ENDDO
+            ENDDO
+            ENDDO
 
-             ! STORE PRODUCT INTO T0M 
-             DO JHC = 1, MHC
-             !DO IPR = 1, NPROD
-             DO IPR = 1, NPROD(JHC)
-             DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 10/30/06)  
-                !GM0(IPR,JHC) = ORG_GAS(IPR,JHC) / FAC
-                !AM0(IPR,JHC) = ORG_AER(IPR,JHC) / FAC
-                GM0(NOX,IPR,JHC) = ORG_GAS(NOX,IPR,JHC) / FAC
-                AM0(NOX,IPR,JHC) = ORG_AER(NOX,IPR,JHC) / FAC
-             ENDDO
-             ENDDO
-             ENDDO
+            ! semivolpoa2: remove OA mass from POA (hotp 3/2/09)
+            ! Check if POA defined (hotp 8/24/09)
+            IF ( IDTPOA1 > 0 ) THEN
+               JHC = PARENTPOA
+               JSV = IDSV(JHC)
+               DO IPR = 1, NPROD(JSV)
+                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFPOA
+                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFPOA
+               ENDDO
+            ENDIF
+
+            ! semivolpoa4opoa: remove OA mass from OPOA (hotp 3/18/09)
+            ! Check if OPOA defined (hotp 8/24/09)
+            IF ( IDTOPOA1 > 0 ) THEN
+               JHC = PARENTOPOA
+               JSV = IDSV(JHC)
+               DO IPR = 1, NPROD(JSV)
+                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFOPOA
+                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFOPOA
+               ENDDO
+            ENDIF
+
+            ! STORE PRODUCT INTO T0M 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!             DO JHC = 1, MHC
+!             !DO IPR = 1, NPROD
+!             DO IPR = 1, NPROD(JHC)
+!             DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 10/30/06)  
+!                !GM0(IPR,JHC) = ORG_GAS(IPR,JHC) / FAC
+!                !AM0(IPR,JHC) = ORG_AER(IPR,JHC) / FAC
+!                GM0(NOX,IPR,JHC) = ORG_GAS(NOX,IPR,JHC) / FAC
+!                AM0(NOX,IPR,JHC) = ORG_AER(NOX,IPR,JHC) / FAC
+!             ENDDO
+!             ENDDO
+!             ENDDO
+!------------------------------------------------------------------------------
+            ! Use actual number of HC for sim (hotp 8/24/09)
+            ! change to SV (hotp 5/13/10)
+            ! update dims (hotp 5/22/10)
+            DO JSV = 1, MAXSIMSV
+            DO IPR = 1, NPROD(JSV)
+               GM0(IPR,JSV) = ORG_GAS(IPR,JSV) / FAC
+               AM0(IPR,JSV) = ORG_AER(IPR,JSV) / FAC
+            ENDDO
+            ENDDO
 
          !==============================================================
          ! Mnew=0.D0, all SOA evaporates to the gas-phase
          !==============================================================
          ELSE
 
-             DO JHC = 1, MHC
-             !DO IPR = 1, NPROD
-             DO IPR = 1, NPROD(JHC)
-             DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 10/30/06)  
-                !GM0(IPR,JHC) = GM0(IPR,JHC) + AM0(IPR,JHC)
-                !AM0(IPR,JHC) = 1.D-18 * AD(I,J,L)
-                GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC) + AM0(NOX,IPR,JHC)
-                AM0(NOX,IPR,JHC) = 1.D-18 * State_Met%AD(I,J,L)
-             ENDDO
-             ENDDO
-             ENDDO
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!             DO JHC = 1, MHC
+!             !DO IPR = 1, NPROD
+!             DO IPR = 1, NPROD(JHC)
+!             DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 10/30/06)  
+!                !GM0(IPR,JHC) = GM0(IPR,JHC) + AM0(IPR,JHC)
+!                !AM0(IPR,JHC) = 1.D-18 * AD(I,J,L)
+!                GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC) + AM0(NOX,IPR,JHC)
+!                AM0(NOX,IPR,JHC) = 1.D-18 * State_Met%AD(I,J,L)
+!             ENDDO
+!             ENDDO
+!             ENDDO
+!------------------------------------------------------------------------------
+            ! Use actual number of HC for sim (hotp 8/24/09)
+            ! Change to SV (hotp 5/13/10)
+            DO JSV = 1, MAXSIMSV
+            DO IPR = 1, NPROD(JSV)
+               GM0(IPR,JSV) = GM0(IPR,JSV) + AM0(IPR,JSV)
+               !AM0(IPR,JSV) = 1.D-18 * State_Met%AD(I,J,L)
+               ! try this to fix MB problem (hotp 5/25/10)
+               AM0(IPR,JSV) = 1.D-20
+            ENDDO
+            ENDDO
 
          ENDIF
 
          ! enforce direct yield for low nox aromatics
-         NOX = 2
-         DO JHC = 7, 9
-         DO IPR = 1, NPROD(JHC)
-            AM0(NOX,IPR,JHC) = AM0(NOX,IPR,JHC) + GM0(NOX,IPR,JHC)
-            GM0(NOX,IPR,JHC) = 0d0
-         ENDDO
-         ENDDO
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!         NOX = 2
+!         DO JHC = 7, 9
+!         DO IPR = 1, NPROD(JHC)
+!            AM0(NOX,IPR,JHC) = AM0(NOX,IPR,JHC) + GM0(NOX,IPR,JHC)
+!            GM0(NOX,IPR,JHC) = 0d0
+!         ENDDO
+!         ENDDO
+!------------------------------------------------------------------------------
+         ! no longer loop (hotp 7/28/10)
+         JHC = PARENTBENZ
+         JSV = IDSV(JHC)
+         !DO IPR = 1, NPROD(JSV)
+         IPR = 4 ! HARDWIRED!!!!!!!!!
+         AM0(IPR,JSV) = AM0(IPR,JSV) + GM0(IPR,JSV)
+         GM0(IPR,JSV) = 0d0
             
          ! Lump SOA
          CALL SOA_LUMP( I, J, L, GM0, AM0, State_Chm )
 
-         GLOB_AM0_AROM = GLOB_AM0_AROM + SUM(AM0(:,:,7:9),2)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!         GLOB_AM0_AROM = GLOB_AM0_AROM + SUM(AM0(:,:,7:9),2)
+!------------------------------------------------------------------------------
+         ! hotp diagnostic (3/11/09)
+         GLOB_AM0_POA(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
+
+         ! Check equilibrium (hotp 5/18/10)
+         IF ( LPRT ) THEN
+            ! IDSV for lumped arom/IVOC is hardwired (=3) (hotp 5/20/10)
+            ! Low NOX (non-volatile) aromatic product is IPR=4
+            CALL CHECK_EQLB( I, J, L, KOM, FAC, MNEW, LOWER, TOL,
+     &                       ORG_GAS(4,3), ORG_AER(4,3), MPOC,
+     &                       State_Chm )
+         ENDIF
 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Initialize burdens to 0. (ccc, 5/3/10)
-      SOA_BURD = 0d0
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      ! Initialize burdens to 0. (ccc, 5/3/10)
+!      !SOA_BURD = 0d0 hotp removed
+!------------------------------------------------------------------------------
+
+      ! Debug: check mass balance (hotp 5/18/10)
+      IF ( LPRT ) THEN
+         CALL CHECK_MB( am_I_Root, Input_Opt, State_Met, State_Chm )
+      ENDIF
 
       !------------------------------------------------------------------------
       !### Now only print when ND70 is turned on (bmy, 4/21/10)
       IF ( prtDebug ) THEN
 
-        ! dkh print some diagnostics 
+         IF ( IDTPOA1 > 0 ) THEN
+            ! 10/12/09 debug            
+            print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
+     &                         SUM(STT(:,:,:,IDTPOA2))+
+     &                         SUM(STT(:,:,:,IDTPOG1))+
+     &                         SUM(STT(:,:,:,IDTPOG2))
+         ENDIF
+
+         ! dkh print some diagnostics 
+         ! Parent hydrocarbon reacted diagnostic (hotp 5/17/10)
          DARO2_TOT_0(:)    = DARO2_TOT(:)
+
+         print*, ' MAX DARO2 = ', MAXLOC(GLOB_DARO2(:,:,:,1,1)),
+     &                            MAXVAL(GLOB_DARO2(:,:,:,1,1))
+
          DARO2_TOT(1) = DARO2_TOT(1) + SUM(GLOB_DARO2(:,:,:,1,1)) / 1d9
          DARO2_TOT(2) = DARO2_TOT(2) + SUM(GLOB_DARO2(:,:,:,2,1)) / 1d9
          DARO2_TOT(3) = DARO2_TOT(3) + SUM(GLOB_DARO2(:,:,:,1,2)) / 1d9
          DARO2_TOT(4) = DARO2_TOT(4) + SUM(GLOB_DARO2(:,:,:,2,2)) / 1d9
          DARO2_TOT(5) = DARO2_TOT(5) + SUM(GLOB_DARO2(:,:,:,1,3)) / 1d9
          DARO2_TOT(6) = DARO2_TOT(6) + SUM(GLOB_DARO2(:,:,:,2,3)) / 1d9
+         ! added NAP diagnostic info (hotp 7/22/09)
+         ! amount of RO2 reacted in high and low NOx pathways
+         DARO2_TOT(7) = DARO2_TOT(7) + SUM(GLOB_DARO2(:,:,:,1,4)) / 1d9
+         DARO2_TOT(8) = DARO2_TOT(8) + SUM(GLOB_DARO2(:,:,:,2,4)) / 1d9
 
-         IF ( am_I_Root ) THEN
-            PRINT*, ' MAX DARO2 = ',   MAXLOC(GLOB_DARO2(:,:,:,1,1)),
-     &                                 MAXVAL(GLOB_DARO2(:,:,:,1,1))
-            PRINT*, 'GLOB_DARO2 11 =', DARO2_TOT(1),
-     &                                 DARO2_TOT(1) - DARO2_TOT_0(1)
-            PRINT*, 'GLOB_DARO2 21 =', DARO2_TOT(2),
-     &                                 DARO2_TOT(2) - DARO2_TOT_0(2)
-            PRINT*, 'GLOB_DARO2 12 =', DARO2_TOT(3),
-     &                                 DARO2_TOT(3) - DARO2_TOT_0(3)
-            PRINT*, 'GLOB_DARO2 22 =', DARO2_TOT(4),
-     &                                 DARO2_TOT(4) - DARO2_TOT_0(4)
-            PRINT*, 'GLOB_DARO2 13 =', DARO2_TOT(5),
-     &                                 DARO2_TOT(5) - DARO2_TOT_0(5)
-            PRINT*, 'GLOB_DARO2 23 =', DARO2_TOT(6),
-     &                                 DARO2_TOT(6) - DARO2_TOT_0(6)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            PRINT*, ' MAX DARO2 = ',   MAXLOC(GLOB_DARO2(:,:,:,1,1)),
+!     &                                 MAXVAL(GLOB_DARO2(:,:,:,1,1))
+!            PRINT*, 'GLOB_DARO2 11 =', DARO2_TOT(1),
+!     &                                 DARO2_TOT(1) - DARO2_TOT_0(1)
+!            PRINT*, 'GLOB_DARO2 21 =', DARO2_TOT(2),
+!     &                                 DARO2_TOT(2) - DARO2_TOT_0(2)
+!            PRINT*, 'GLOB_DARO2 12 =', DARO2_TOT(3),
+!     &                                 DARO2_TOT(3) - DARO2_TOT_0(3)
+!            PRINT*, 'GLOB_DARO2 22 =', DARO2_TOT(4),
+!     &                                 DARO2_TOT(4) - DARO2_TOT_0(4)
+!            PRINT*, 'GLOB_DARO2 13 =', DARO2_TOT(5),
+!     &                                 DARO2_TOT(5) - DARO2_TOT_0(5)
+!            PRINT*, 'GLOB_DARO2 23 =', DARO2_TOT(6),
+!     &                                 DARO2_TOT(6) - DARO2_TOT_0(6)
+!
+!            ! hotp 7/22/09 diagnostic
+!            ! convert daven's numbers to be kg of parent HC reacted, not kg of
+!            ! RO2 reacted, use Marom/Mro2
+!         PRINT*,'Accumulated parent HC reacted to RO2H,N products in Tg'
+!            PRINT*, 'GLOB_DBRO2 11 =', DARO2_TOT(1)*78/159,
+!     &           (DARO2_TOT(1) - DARO2_TOT_0(1))*78/159
+!            PRINT*, 'GLOB_DBRO2 21 =', DARO2_TOT(2)*78/159,
+!     &           (DARO2_TOT(2) - DARO2_TOT_0(2))*78/159
+!            PRINT*, 'GLOB_DTRO2 12 =', DARO2_TOT(3)*92/173,
+!     &           (DARO2_TOT(3) - DARO2_TOT_0(3))*92/173
+!            PRINT*, 'GLOB_DTRO2 22 =', DARO2_TOT(4)*92/173,
+!     &           (DARO2_TOT(4) - DARO2_TOT_0(4))*92/173
+!            PRINT*, 'GLOB_DXRO2 13 =', DARO2_TOT(5)*106/187,
+!     &           (DARO2_TOT(5) - DARO2_TOT_0(5))*106/187
+!            PRINT*, 'GLOB_DXRO2 23 =', DARO2_TOT(6)*106/187,
+!     &           (DARO2_TOT(6) - DARO2_TOT_0(6))*106/187
+!------------------------------------------------------------------------------
+         ! DARO2 is not mass of parent HC, not RO2 (hotp 5/14/10)
+         print*,'Accumulated parent HC reacted to RO2H,N products in Tg'
+         print*,'Units are Tg of parent'
+         print*, 'GLOB_DBRO2 NOX =', DARO2_TOT(1),
+     &                              (DARO2_TOT(1) - DARO2_TOT_0(1))
+         print*, 'GLOB_DBRO2 HO2 =', DARO2_TOT(2),
+     &                              (DARO2_TOT(2) - DARO2_TOT_0(2))
+         print*, 'GLOB_DTRO2 NOX =', DARO2_TOT(3),
+     &                              (DARO2_TOT(3) - DARO2_TOT_0(3))
+         print*, 'GLOB_DTRO2 HO2 =', DARO2_TOT(4),
+     &                              (DARO2_TOT(4) - DARO2_TOT_0(4))
+         print*, 'GLOB_DXRO2 NOX =', DARO2_TOT(5),
+     &                              (DARO2_TOT(5) - DARO2_TOT_0(5))
+         print*, 'GLOB_DXRO2 HO2 =', DARO2_TOT(6),
+     &                              (DARO2_TOT(6) - DARO2_TOT_0(6))
+         print*, 'GL_DAR NOX NAP =', DARO2_TOT(7),
+     &                               DARO2_TOT(7) - DARO2_TOT_0(7)
+         print*, 'GL_DAR HO2 NAP =', DARO2_TOT(8),
+     &                               DARO2_TOT(8) - DARO2_TOT_0(8)
+         ! end arom parent HC reacted diag (hotp 5/17/10)
 
-            ! hotp 7/22/09 diagnostic
-            ! convert daven's numbers to be kg of parent HC reacted, not kg of
-            ! RO2 reacted, use Marom/Mro2
-         PRINT*,'Accumulated parent HC reacted to RO2H,N products in Tg'
-            PRINT*, 'GLOB_DBRO2 11 =', DARO2_TOT(1)*78/159,
-     &           (DARO2_TOT(1) - DARO2_TOT_0(1))*78/159
-            PRINT*, 'GLOB_DBRO2 21 =', DARO2_TOT(2)*78/159,
-     &           (DARO2_TOT(2) - DARO2_TOT_0(2))*78/159
-            PRINT*, 'GLOB_DTRO2 12 =', DARO2_TOT(3)*92/173,
-     &           (DARO2_TOT(3) - DARO2_TOT_0(3))*92/173
-            PRINT*, 'GLOB_DTRO2 22 =', DARO2_TOT(4)*92/173,
-     &           (DARO2_TOT(4) - DARO2_TOT_0(4))*92/173
-            PRINT*, 'GLOB_DXRO2 13 =', DARO2_TOT(5)*106/187,
-     &           (DARO2_TOT(5) - DARO2_TOT_0(5))*106/187
-            PRINT*, 'GLOB_DXRO2 23 =', DARO2_TOT(6)*106/187,
-     &           (DARO2_TOT(6) - DARO2_TOT_0(6))*106/187
+         ! semivolpoa2: diagnostic info (hotp 3/11/09)
+         ! initial info
+         print*, 'AFTER SOA_CHEMISTRY'
+         print*, 'species   ','global sum   ', 
+     &           'box 20,33,2   ', 'box 20,33,10    '
+
+         IF ( IDTPOA1 > 0 ) THEN
+            print*,'POA1 ', SUM(STT(:,:,:,IDTPOA1))
+            print*,'POA2 ', SUM(STT(:,:,:,IDTPOA2))
+            print*,'POG1 ', SUM(STT(:,:,:,IDTPOG1))
+            print*,'POG2 ', SUM(STT(:,:,:,IDTPOG2))
+            print*,'OPOA1', SUM(STT(:,:,:,IDTOPOA1))
+            print*,'OPOA2', SUM(STT(:,:,:,IDTOPOA2))
+            print*,'OPOG1', SUM(STT(:,:,:,IDTOPOG1))
+            print*,'OPOG2', SUM(STT(:,:,:,IDTOPOG2))
          ENDIF
+
+         ! semivolpoa4: diag for POG reacted (hotp 3/27/09)
+         print*, 'POGRXN ', SUM(GLOB_POGRXN(:,:,:,:)),
+     &                      SUM( GLOB_POGRXN(20,33,2,:)),
+     &                      SUM(GLOB_POGRXN(20,33,10,:))
+         ! POGRXN (hotp 10/11/09)
+         print*, 'POGRXN p1', SUM(GLOB_POGRXN(:,:,:,1))
+         print*, 'POGRXN p2', SUM(GLOB_POGRXN(:,:,:,2))
+
+         ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
+         print*, 'POAEMISS tot',
+     &              SUM(POAEMISS(:,:,:,:)),
+     &              POAEMISS(20,33,2,1)+POAEMISS(20,33,2,2),
+     &              POAEMISS(20,33,10,1)+POAEMISS(20,33,10,2)
+
+         ! semivolpoa4opoa: add OPOA (hotp 3/27/09)
+         IF ( IDTOPOA1 > 0 ) THEN ! hotp 8/24/09 ! hotp 10/11/09
+            GLOB_POA_PROD  = GLOB_POA_PROD +
+     &                       SUM(GLOB_AM0_POA(:,:,:,:,:,1)) -
+     &                       SUM(GLOB_AM0_POA_0(:,:,:,:,:,1))
+            GLOB_OPOA_PROD = GLOB_OPOA_PROD +
+     &                       SUM(GLOB_AM0_POA(:,:,:,:,:,2)) -
+     &                       SUM(GLOB_AM0_POA_0(:,:,:,:,:,2))
+
+            ! semivolpoa4opoa: diagnostic info (hotp 3/27/09)
+            print*, 'POA produced (cumulative tp date) ', GLOB_POA_PROD
+            print*, 'POA P1',  SUM(GLOB_AM0_POA(:,:,:,1,1,1)) -
+     &                         SUM(GLOB_AM0_POA_0(:,:,:,1,1,1))
+            print*, 'POA P2',  SUM(GLOB_AM0_POA(:,:,:,1,2,1)) -
+     &                         SUM(GLOB_AM0_POA_0(:,:,:,1,2,1))
+            print*, 'OPOA P1', SUM(GLOB_AM0_POA(:,:,:,1,1,2)) -
+     &                         SUM(GLOB_AM0_POA_0(:,:,:,1,1,2))
+            print*, 'OPOA P2', SUM(GLOB_AM0_POA(:,:,:,1,2,2)) -
+     &                         SUM(GLOB_AM0_POA_0(:,:,:,1,2,2))
+
+            print*, 'OPOA produced (cumulative to date) ',GLOB_OPOA_PROD
+            print*, 'POA products '
+            print*, 'product 1', SUM(GLOB_AM0_POA(:,:,:,1,1,1)),
+     &                           GLOB_AM0_POA(20,33,2,1,1,1),
+     &                           GLOB_AM0_POA(20,33,10,1,1,1)
+            print*, 'product 2', SUM(GLOB_AM0_POA(:,:,:,1,2,1)),
+     &                           GLOB_AM0_POA(20,33,2,1,2,1),
+     &                           GLOB_AM0_POA(20,33,10,1,2,1)
+            print*, 'OPOA products'
+            print*, 'product 1', SUM(GLOB_AM0_POA(:,:,:,1,1,2)),
+     &                           GLOB_AM0_POA(20,33,2,1,1,2),
+     &                           GLOB_AM0_POA(20,33,10,1,1,2)
+            print*, 'product 2', SUM(GLOB_AM0_POA(:,:,:,1,2,2)),
+     &                           GLOB_AM0_POA(20,33,2,1,2,2),
+     &                           GLOB_AM0_POA(20,33,10,1,2,2)
+     
+            print*, 'POA to trop', SUM(STT(:,:,1:LLTROP,IDTPOA1)) + 
+     &                             SUM(STT(:,:,1:LLTROP,IDTPOA2))
+         ENDIF ! OPOA (hotp 8/24/09)
+
       ENDIF
       !------------------------------------------------------------------------
 
-
-      AM0_AROM_PROD(1) = AM0_AROM_PROD(1) 
-     &                 + GLOB_AM0_AROM(1,1)
-     &                 - GLOB_AM0_AROM_0(1,1)
-      AM0_AROM_PROD(2) = AM0_AROM_PROD(2) 
-     &                 + GLOB_AM0_AROM(2,1)
-     &                 - GLOB_AM0_AROM_0(2,1)
-      AM0_AROM_PROD(3) = AM0_AROM_PROD(3) 
-     &                 + GLOB_AM0_AROM(1,2)
-     &                 - GLOB_AM0_AROM_0(1,2)
-      AM0_AROM_PROD(4) = AM0_AROM_PROD(4) 
-     &                 + GLOB_AM0_AROM(2,2)
-     &                 - GLOB_AM0_AROM_0(2,2)
-      AM0_AROM_PROD(5) = AM0_AROM_PROD(5) 
-     &                 + GLOB_AM0_AROM(1,3)
-     &                 - GLOB_AM0_AROM_0(1,3)
-      AM0_AROM_PROD(6) = AM0_AROM_PROD(6) 
-     &                 + GLOB_AM0_AROM(2,3)
-     &                 - GLOB_AM0_AROM_0(2,3)
-
-      !print*, 'AM0_AROM_PROD 11 =', AM0_AROM_PROD(1) / 1d9
-      !print*, 'AM0_AROM_PROD 21 =', AM0_AROM_PROD(2) / 1d9
-      !print*, 'AM0_AROM_PROD 12 =', AM0_AROM_PROD(3) / 1d9
-      !print*, 'AM0_AROM_PROD 22 =', AM0_AROM_PROD(4) / 1d9
-      !print*, 'AM0_AROM_PROD 13 =', AM0_AROM_PROD(5) / 1d9
-      !print*, 'AM0_AROM_PROD 23 =', AM0_AROM_PROD(6) / 1d9
-
-      SOA_BURD(5) = SUM(STT(:,:,:,IDTSOA5)) / 1d9
-
-      SOA_BURD(1) = SUM(STT(:,:,:,IDTSOA1)) / 1d9
-      SOA_BURD(2) = SUM(STT(:,:,:,IDTSOA2)) / 1d9
-      SOA_BURD(3) = SUM(STT(:,:,:,IDTSOA3)) / 1d9
-      SOA_BURD(4) = SUM(STT(:,:,:,IDTSOA4)) / 1d9
-
-      SOA_PROD = SOA_PROD + SUM(SOA_BURD(:)) - SUM(SOA_BURD_0(:))
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! remove (hotp 7/28/10)
+!      AM0_AROM_PROD(1) = AM0_AROM_PROD(1) 
+!     &                 + GLOB_AM0_AROM(1,1)
+!     &                 - GLOB_AM0_AROM_0(1,1)
+!      AM0_AROM_PROD(2) = AM0_AROM_PROD(2) 
+!     &                 + GLOB_AM0_AROM(2,1)
+!     &                 - GLOB_AM0_AROM_0(2,1)
+!      AM0_AROM_PROD(3) = AM0_AROM_PROD(3) 
+!     &                 + GLOB_AM0_AROM(1,2)
+!     &                 - GLOB_AM0_AROM_0(1,2)
+!      AM0_AROM_PROD(4) = AM0_AROM_PROD(4) 
+!     &                 + GLOB_AM0_AROM(2,2)
+!     &                 - GLOB_AM0_AROM_0(2,2)
+!      AM0_AROM_PROD(5) = AM0_AROM_PROD(5) 
+!     &                 + GLOB_AM0_AROM(1,3)
+!     &                 - GLOB_AM0_AROM_0(1,3)
+!      AM0_AROM_PROD(6) = AM0_AROM_PROD(6) 
+!     &                 + GLOB_AM0_AROM(2,3)
+!     &                 - GLOB_AM0_AROM_0(2,3)
+!
+!      !print*, 'AM0_AROM_PROD 11 =', AM0_AROM_PROD(1) / 1d9
+!      !print*, 'AM0_AROM_PROD 21 =', AM0_AROM_PROD(2) / 1d9
+!      !print*, 'AM0_AROM_PROD 12 =', AM0_AROM_PROD(3) / 1d9
+!      !print*, 'AM0_AROM_PROD 22 =', AM0_AROM_PROD(4) / 1d9
+!      !print*, 'AM0_AROM_PROD 13 =', AM0_AROM_PROD(5) / 1d9
+!      !print*, 'AM0_AROM_PROD 23 =', AM0_AROM_PROD(6) / 1d9
+!
+!      SOA_BURD(5) = SUM(STT(:,:,:,IDTSOA5)) / 1d9
+!
+!      SOA_BURD(1) = SUM(STT(:,:,:,IDTSOA1)) / 1d9
+!      SOA_BURD(2) = SUM(STT(:,:,:,IDTSOA2)) / 1d9
+!      SOA_BURD(3) = SUM(STT(:,:,:,IDTSOA3)) / 1d9
+!      SOA_BURD(4) = SUM(STT(:,:,:,IDTSOA4)) / 1d9
+!
+!      SOA_PROD = SOA_PROD + SUM(SOA_BURD(:)) - SUM(SOA_BURD_0(:))
+!------------------------------------------------------------------------------
 
       !=================================================================       
       ! Calculate dry-deposition
       !=================================================================
-      CALL SOA_DEPO( STT(:,:,:,IDTALPH), DRYALPH, IDTALPH, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTLIMO), DRYLIMO, IDTLIMO, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTALCO), DRYALCO, IDTALCO, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOG1), DRYSOG1, IDTSOG1, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOG2), DRYSOG2, IDTSOG2, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOG3), DRYSOG3, IDTSOG3, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOG4), DRYSOG4, IDTSOG4, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOA1), DRYSOA1, IDTSOA1, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOA2), DRYSOA2, IDTSOA2, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOA3), DRYSOA3, IDTSOA3, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOA4), DRYSOA4, IDTSOA4, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOG5), DRYSOG5, IDTSOG5, Input_Opt )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOA5), DRYSOA5, IDTSOA5, Input_Opt )
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate: remove old (hotp 7/29/10)
+!      CALL SOA_DEPO( STT(:,:,:,IDTALPH), DRYALPH, IDTALPH, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTLIMO), DRYLIMO, IDTLIMO, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTALCO), DRYALCO, IDTALCO, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOG1), DRYSOG1, IDTSOG1, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOG2), DRYSOG2, IDTSOG2, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOG3), DRYSOG3, IDTSOG3, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOG4), DRYSOG4, IDTSOG4, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOA1), DRYSOA1, IDTSOA1, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOA2), DRYSOA2, IDTSOA2, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOA3), DRYSOA3, IDTSOA3, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOA4), DRYSOA4, IDTSOA4, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOG5), DRYSOG5, IDTSOG5, Input_Opt )
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOA5), DRYSOA5, IDTSOA5, Input_Opt )
+!------------------------------------------------------------------------------
+      ! new mtp formulation (hotp 5/20/10)
+      ! precursors
+      CALL SOA_DEPO(STT(:,:,:,IDTMTPA ), DRYMTPA,  IDTMTPA,  Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTLIMO ), DRYLIMO,  IDTLIMO,  Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTMTPO ), DRYMTPO,  IDTMTPO , Input_Opt)
+
+      ! mono + sesq
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOA1), DRYTSOA1, IDTTSOA1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOA2), DRYTSOA2, IDTTSOA2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOA3), DRYTSOA3, IDTTSOA3, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOA0), DRYTSOA0, IDTTSOA0, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOG1), DRYTSOG1, IDTTSOG1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOG2), DRYTSOG2, IDTTSOG2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOG3), DRYTSOG3, IDTTSOG3, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOG0), DRYTSOG0, IDTTSOG0, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOA1), DRYISOA1, IDTISOA1, Input_Opt)
+
+      ! isop
+      CALL SOA_DEPO(STT(:,:,:,IDTISOA2), DRYISOA2, IDTISOA2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOA3), DRYISOA3, IDTISOA3, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOG1), DRYISOG1, IDTISOG1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOG2), DRYISOG2, IDTISOG2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOG3), DRYISOG3, IDTISOG3, Input_Opt)
+
+      ! Now perform depo for lumped AROM (hotp 5/13/10)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOAN), DRYASOAN, IDTASOAN, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOA1), DRYASOA1, IDTASOA1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOA2), DRYASOA2, IDTASOA2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOA3), DRYASOA3, IDTASOA3, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOG1), DRYASOG1, IDTASOG1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOG2), DRYASOG2, IDTASOG2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOG3), DRYASOG3, IDTASOG3, Input_Opt)
+
+      ! semivolpoa: call SOA_DEPO for POA (hotp 2/26/09)
+      IF ( IDTPOA1 > 0 ) THEN
+       CALL SOA_DEPO(STT(:,:,:,IDTPOA1 ), DRYPOA1,  IDTPOA1, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTPOA2 ), DRYPOA2,  IDTPOA2, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTPOG1 ), DRYPOG1,  IDTPOG1, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTPOG2 ), DRYPOG2,  IDTPOG2, Input_Opt)
+      ENDIF
+
+      ! semivolpoa4opoa: call SOA_DEPO for OPOA, OPOG (hotp 3/18/09)
+      IF ( IDTOPOA1 > 0 ) THEN
+       CALL SOA_DEPO(STT(:,:,:,IDTOPOA1), DRYOPOA1, IDTOPOA1, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTOPOA2), DRYOPOA2, IDTOPOA2, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTOPOG1), DRYOPOG1, IDTOPOG1, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTOPOG2), DRYOPOG2, IDTOPOG2, Input_Opt)
+      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -2810,16 +3466,26 @@
 !  (5 ) KOM     (REAL*8) : Equilibrium gas-aerosol partition coeff. [m3/ug]
 !
 !  NOTES:
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       ! Arguments
       REAL*8, INTENT(IN) :: MASS, MPOC         
-      REAL*8, INTENT(IN) :: AEROSOL(MNOX,MPROD,MHC)
-      REAL*8, INTENT(IN) :: GAS(MNOX,MPROD,MHC)
-      REAL*8, INTENT(IN) :: KOM(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! Change dimensions (hotp 5/13/10)
+!      REAL*8, INTENT(IN) :: AEROSOL(MNOX,MPROD,MHC)
+!      REAL*8, INTENT(IN) :: GAS(MNOX,MPROD,MHC)
+!      REAL*8, INTENT(IN) :: KOM(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+      REAL*8, INTENT(IN) :: AEROSOL(MPROD,MSV)
+      REAL*8, INTENT(IN) :: GAS(MPROD,MSV)
+      REAL*8, INTENT(IN) :: KOM(MPROD,MSV)
 
       ! Local variables
-      INTEGER            :: JHC,   IPR,     NOX
+      INTEGER            :: JHC,   IPR!,     NOX (hotp 5/22/10)
+      INTEGER            :: JSV ! hotp 5/13/10
       REAL*8             :: VALUE, SOA_MASS
 
       !=================================================================
@@ -2829,20 +3495,32 @@
       ! Equation (39) on page 139 of notes:
       VALUE = 0.D0
 
-      ! 
-      DO JHC = 1, MHC
-      !DO IPR = 1, NPROD
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)   ! Add NOX index 
-!         VALUE = VALUE + KOM(IPR,JHC)                        / 
-!     &                   ( 1.D0 + KOM(IPR,JHC) * MASS      ) * 
-!     &                   ( GAS(IPR,JHC) + AEROSOL(IPR,JHC) )
-         VALUE = VALUE + KOM(NOX,IPR,JHC)                        /
-     &                   ( 1.D0 + KOM(NOX,IPR,JHC) * MASS      ) *
-     &                   ( GAS(NOX,IPR,JHC) + AEROSOL(NOX,IPR,JHC) )
-      ENDDO                
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      ! 
+!      DO JHC = 1, MHC
+!      !DO IPR = 1, NPROD
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)   ! Add NOX index 
+!!         VALUE = VALUE + KOM(IPR,JHC)                        / 
+!!     &                   ( 1.D0 + KOM(IPR,JHC) * MASS      ) * 
+!!     &                   ( GAS(IPR,JHC) + AEROSOL(IPR,JHC) )
+!         VALUE = VALUE + KOM(NOX,IPR,JHC)                        /
+!     &                   ( 1.D0 + KOM(NOX,IPR,JHC) * MASS      ) *
+!     &                   ( GAS(NOX,IPR,JHC) + AEROSOL(NOX,IPR,JHC) )
+!      ENDDO                
+!      ENDDO
+!      ENDDO   
+!------------------------------------------------------------------------------
+      ! Use SV not HC (hotp 5/13/10)
+      ! update dims (remove NOX) (hotp 5/22/10)
+      DO JSV = 1, MAXSIMSV
+      DO IPR = 1, NPROD(JSV)
+         VALUE = VALUE + KOM(IPR,JSV)                        /
+     &                   ( 1.D0 + KOM(IPR,JSV) * MASS      ) *
+     &                   ( GAS(IPR,JSV) + AEROSOL(IPR,JSV) )
       ENDDO
-      ENDDO   
+      ENDDO
 
       ! Compute SOA mass
       SOA_MASS = VALUE + ( 1.D5 * MPOC ) / ( 1.D5 * MASS ) - 1.0D0
@@ -2888,14 +3566,22 @@
 !  NOTES:
 !  (1 ) Change dabs to ABS and dsign to SIGN, in order to avoid conflicts
 !        with intrinsic function names on the PGI compiler. (bmy, 12/2/04)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       real*8, intent(in) :: ax,bx,tol
       REAL*8, INTENT(IN) :: Mpoc      
-      !REAL*8, INTENT(IN) :: Aerosol(NPROD,MHC), Gas(NPROD,MHC)
-      !REAL*8, INTENT(IN) :: Kom(NPROD,MHC)
-      REAL*8, INTENT(IN) :: Aerosol(MNOX,MPROD,MHC), Gas(MNOX,MPROD,MHC)
-      REAL*8, INTENT(IN) :: Kom(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! Change dimensions (hotp 5/13/10)
+!      !REAL*8, INTENT(IN) :: Aerosol(NPROD,MHC), Gas(NPROD,MHC)
+!      !REAL*8, INTENT(IN) :: Kom(NPROD,MHC)
+!      REAL*8, INTENT(IN) :: Aerosol(MNOX,MPROD,MHC), Gas(MNOX,MPROD,MHC)
+!      REAL*8, INTENT(IN) :: Kom(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+      REAL*8, INTENT(IN) :: Aerosol(MPROD,MSV), Gas(MPROD,MSV)
+      REAL*8, INTENT(IN) :: Kom(MPROD,MSV)
 
       !local variables
       real*8             :: MNEW
@@ -3019,6 +3705,8 @@
 !  (7 ) KOM     (REAL*8) : Equilibrium gas-aerosol partition coeff. [m3/ug]
 !
 !  NOTES:
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3026,12 +3714,19 @@
 
       ! Arguments
       REAL*8, INTENT(IN) :: X1, X2, XACC, MPOC
-      !REAL*8, INTENT(IN) :: AEROSOL(NPROD,MHC)
-      !REAL*8, INTENT(IN) :: GAS(NPROD,MHC)
-      !REAL*8, INTENT(IN) :: KOM(NPROD,MHC)
-      REAL*8, INTENT(IN) :: AEROSOL(MNOX,MPROD,MHC)
-      REAL*8, INTENT(IN) :: GAS(MNOX,MPROD,MHC)
-      REAL*8, INTENT(IN) :: KOM(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! Change dimensions (hotp 5/13/10)
+!      !REAL*8, INTENT(IN) :: AEROSOL(NPROD,MHC)
+!      !REAL*8, INTENT(IN) :: GAS(NPROD,MHC)
+!      !REAL*8, INTENT(IN) :: KOM(NPROD,MHC)
+!      REAL*8, INTENT(IN) :: AEROSOL(MNOX,MPROD,MHC)
+!      REAL*8, INTENT(IN) :: GAS(MNOX,MPROD,MHC)
+!      REAL*8, INTENT(IN) :: KOM(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+      REAL*8, INTENT(IN) :: AEROSOL(MPROD,MSV)
+      REAL*8, INTENT(IN) :: GAS(MPROD,MSV)
+      REAL*8, INTENT(IN) :: KOM(MPROD,MSV)
 
       ! Local variables
       INTEGER, PARAMETER :: JMAX = 100
@@ -3089,8 +3784,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_PARA( TEMP, KO3, KOH, KNO3, KOM,
-     &                     II,   JJ,  LL,  State_Met  )
+      SUBROUTINE SOA_PARA( TEMP, KO3, KOH, KNO3,   KOM,
+     &                     II,   JJ,  LL,  KRO2NO, KRO2HO2, State_Met ) 
 !
 !******************************************************************************
 !  Subroutine SOA_PARA gves mass-based stoichiometric coefficients for semi-
@@ -3147,22 +3842,44 @@
 !        parameter, NNOX (dkh, 10/29/06) 
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
-
+!
+! !INPUT PARAMETERS:
+!
       ! Arguments
       INTEGER,        INTENT(IN)  :: II, JJ, LL
       REAL*8,         INTENT(IN)  :: TEMP
-      REAL*8,         INTENT(OUT) :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      REAL*8,         INTENT(OUT) :: KOM(MNOX,MPROD,MHC)
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,         INTENT(OUT) :: KO3(MHC), KOH(MHC), KNO3(MHC)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! KOM dimensions of MHC now MSV (hotp 5/13/10)
+! update dims (hotp 5/22/10)
+!      REAL*8,         INTENT(OUT) :: KOM(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+      REAL*8,         INTENT(OUT) :: KOM(MPROD,MSV)
 
-      ! Local variables
-      INTEGER              :: IPR,  JHC,  J
-      INTEGER              :: NOX     ! (dkh, 11/06/06)  
+      ! RO2+NO,HO2 rate constants (hotp 5/7/10)
+      REAL*8,         INTENT(OUT) :: KRO2NO, KRO2HO2
+
+      ! Local variable
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      INTEGER              :: IPR,  JHC !,  J (removed 6/7/10)
+!      !INTEGER              :: NOX     ! (dkh, 11/06/06), hotp 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+      INTEGER              :: IPR,  JHC
+      INTEGER              :: JSV ! (hotp 5/13/10)
       REAL*8               :: TMP1, TMP2, TMP3, OVER
 
       ! Activation Energy/R [K] for O3, OH, NO3 (see Refs #6-7)
@@ -3174,9 +3891,11 @@
       REAL*8, PARAMETER    :: HEAT_VAPOR = 5.d3     
 
       ! Reciprocal reference temperatures at 298K and 310K
-      REAL*8, PARAMETER    :: REF295     = 1d0 / 295d0
+      !REAL*8, PARAMETER    :: REF295     = 1d0 / 295d0 !hotp 5/21/10
       REAL*8, PARAMETER    :: REF298     = 1d0 / 298d0
-      REAL*8, PARAMETER    :: REF310     = 1d0 / 310d0
+      !REAL*8, PARAMETER    :: REF310     = 1d0 / 310d0 !hotp 5/21/10
+      ! semivolpoa2: reference T for POA (hotp 2/27/09)
+      REAL*8, PARAMETER    :: REF300     = 1d0 / 300d0
 
       !=================================================================
       ! SOA_PARA begins here!
@@ -3208,6 +3927,11 @@
       ! Temperature Adjustments of KO3, KOH, KNO3
       !=================================================================
 
+      ! Initialize to zero (hotp 5/21/10)
+      KO3  = 0d0
+      KOH  = 0d0
+      KNO3 = 0d0
+
       ! Reciprocal temperature [1/K]
       OVER = 1.0d0 / TEMP
 
@@ -3218,8 +3942,8 @@
 
       ! Multiply photo-oxidation rates by exponential of temperature
       !(dkh, 10/08/05)
-      !DO JHC = 1, MHC 
-      DO JHC = 1, 5 
+      !DO JHC = 1, 5 
+      DO JHC = 1, 4 ! now 4 (hotp 5/21/10)
 !         KO3(JHC)  = KO3(JHC)  * TMP1
 !         KOH(JHC)  = KOH(JHC)  * TMP2
 !         KNO3(JHC) = KNO3(JHC) * TMP3
@@ -3228,18 +3952,28 @@
          KNO3(JHC) = KNO3_REF(JHC) * TMP3
       ENDDO
 
-      ! If we are in the troposphere, then calculate ISOP oxidation rates
-      ! If we are in the stratosphere, set ISOP oxidation rates to zero
-      ! (dkh, bmy, 5/22/06)
-      IF ( ITS_IN_THE_TROP( II, JJ, LL, State_Met ) ) THEN
-         KO3(6)  = 1.05d-14 * EXP(-2000.d0 / TEMP )
-         KOH(6)  = 2.70d-11 * EXP( 390.d0 / TEMP )
-         KNO3(6) = 3.03d-12 * EXP(-446.d0 / TEMP )
-      ELSE
-         KO3(6)  = 0d0
-         KOH(6)  = 0d0
-         KNO3(6) = 0d0
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! isoprene oxidation is online (hotp 5/21/10) remove this:
+!      ! If we are in the troposphere, then calculate ISOP oxidation rates
+!      ! If we are in the stratosphere, set ISOP oxidation rates to zero
+!      ! (dkh, bmy, 5/22/06)
+!      IF ( ITS_IN_THE_TROP( II, JJ, LL, State_Met ) ) THEN
+!         KO3(6)  = 1.05d-14 * EXP(-2000.d0 / TEMP )
+!         KOH(6)  = 2.70d-11 * EXP( 390.d0 / TEMP )
+!         KNO3(6) = 3.03d-12 * EXP(-446.d0 / TEMP )
+!      ELSE
+!         KO3(6)  = 0d0
+!         KOH(6)  = 0d0
+!         KNO3(6) = 0d0
+!      ENDIF
+!------------------------------------------------------------------------------
+
+      !=================================================================
+      ! Calculate KRO2NO, KRO2HO2 at TEMPERATURE (hotp 5/7/10)
+      !=================================================================
+      KRO2NO  = AARO2NO  * EXP( BBRO2NO  * OVER )
+      KRO2HO2 = AARO2HO2 * EXP( BBRO2HO2 * OVER )
 
 !      !=================================================================
 !      ! SOA YIELD PARAMETERS
@@ -3348,35 +4082,122 @@
       ! Temperature Adjustments of KOM
       !=================================================================
 
+      !--------------------------------------------------------
+      ! Lumped semivolatiles 1-3 (hotp 5/21/10)
+      !--------------------------------------------------------
+      ! First 3 semivolatile systems are at Tref = 298K
+      ! SV 1: MTPA,LIMO,MTPO,SESQ
+      ! SV 2: ISOP
+      ! SV 3: BENZ,TOLU,XYLE,(NAP)
+
       ! Reciprocal temperature [1/K]
       OVER = 1.0D0 / TEMP
 
-      ! Divide TEMP by 310K outside the DO loop
-      TMP1 = ( TEMP / 310.D0 )
+      !! Divide TEMP by 310K outside the DO loop
+      !TMP1 = ( TEMP / 310.D0 )
+      ! Divide TEMP by 298K outside the DO loop
+      TMP1 = ( TEMP / 298.D0 )
 
       ! Compute the heat-of-vaporization exponential term outside the DO loop
-      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF310 ) )
+      !TMP2 = EXP( HEAT_VAPOR * ( OVER - REF310 ) )
+      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF298 ) )
 
       ! Multiply KOM by the temperature and heat-of-vaporization terms
-      DO JHC = 1, 5 
-      !DO IPR = 1, 3
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
-         !KOM(IPR,JHC) = KOM(IPR,JHC) * TMP1 * TMP2
-         KOM(NOX,IPR,JHC) = KOM_REF(NOX,IPR,JHC) * TMP1 * TMP2
-      ENDDO
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      DO JHC = 1, 5 
+!      !DO IPR = 1, 3
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
+!         !KOM(IPR,JHC) = KOM(IPR,JHC) * TMP1 * TMP2
+!         KOM(NOX,IPR,JHC) = KOM_REF(NOX,IPR,JHC) * TMP1 * TMP2
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!------------------------------------------------------------------------------
+      ! now use JSV (hotp 5/21/10)
+      ! update dims (hotp 5/22/10)
+      DO JSV = 1, 3          
+      DO IPR = 1, NPROD(JSV)
+         KOM(IPR,JSV) = KOM_REF(IPR,JSV) * TMP1 * TMP2
       ENDDO
       ENDDO
 
       !--------------------------------------------------------
-      ! For isoprene products, reference temperature is 295 K. 
-      ! (dkh, bmy, 5/22/06)
+      ! POA (primary semivolatiles) (hotp 5/13/10)
       !--------------------------------------------------------
-      ! Separate isoprene and aromatic SOA in new formulation (hotp
-      ! 10/2/09)
-      ! isoprene reference temp currently 295 for both old and new
-      ! isoprene SOA formulations (hotp 10/2/09)
-      ! Also want new HEAT_VAPOR 
+      ! semivolpoa2: reference for POA is 300 K (hotp 2/27/09)
+      ! Divide TEMP by 300K outside the DO loop
+      TMP1 = ( TEMP / 300.D0 )
+
+      ! Compute the heat-of-vaporization exponential term outside the DO loop
+      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF300 ) )
+
+      ! Multiply KOM by the temperature and heat-of-vaporization terms
+      ! Adjust POA from reference of 300K
+      JHC = PARENTPOA
+      JSV = IDSV(JHC)
+      DO IPR = 1, NPROD(JSV)
+         KOM(IPR,JSV) = KOM_REF(IPR,JSV) * TMP1 * TMP2
+      ENDDO
+
+      !--------------------------------------------------------
+      ! OPOA (oxidized semivolatiles) (hotp 5/13/10)
+      !--------------------------------------------------------
+      ! Divide TEMP by 300K outside the DO loop
+      TMP1 = ( TEMP / 300.D0 )
+
+      ! Compute the heat-of-vaporization exponential term outside the DO loop
+      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF300 ) )
+
+      ! Adjust OPOA KOM
+      JHC = PARENTOPOA
+      JSV = IDSV(JHC)
+      DO IPR = 1, NPROD(JSV)
+         KOM(IPR,JSV) = KOM_REF(IPR,JSV) * TMP1 * TMP2
+      ENDDO
+
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! isoprene treated above (hotp 5/21/10)
+!      !--------------------------------------------------------
+!      ! For isoprene products, reference temperature is 295 K. 
+!      ! (dkh, bmy, 5/22/06)
+!      !--------------------------------------------------------
+!      ! Separate isoprene and aromatic SOA in new formulation (hotp
+!      ! 10/2/09)
+!      ! isoprene reference temp currently 295 for both old and new
+!      ! isoprene SOA formulations (hotp 10/2/09)
+!      ! Also want new HEAT_VAPOR 
+!!      ! Divide TEMP by 295K outside the DO loop
+!!      TMP1 = ( TEMP / 295.D0 )
+!!
+!!      ! Compute the heat-of-vaporization exponential term outside the DO loop
+!!      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF295 ) )
+!!
+!!      ! Multiply KOM by the temperature and heat-of-vaporization terms
+!!      JHC = 6
+!!      DO IPR = 1, 3
+!!         KOM(IPR,JHC) = KOM(IPR,JHC) * TMP1 * TMP2
+!!      ENDDO
+!
+!      ! Divide TEMP by 295K outside the DO loop
+!      TMP1 = ( TEMP / 295.D0 )
+!      ! Compute the heat-of-vaporization exponential term outside the DO loop
+!      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF295 ) )
+!
+!      ! Multiply KOM by the temperature and heat-of-vaporization terms
+!      !JHC = 6
+!      ! Isoprene only
+!      JHC = 6
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)  ! add NOX index. only consider low nox for isoprene (dkh, 10/29/06)  
+!!         KOM(IPR,JHC) = KOM(IPR,JHC) * TMP1 * TMP2
+!         KOM(NOX,IPR,JHC) = KOM_REF(NOX,IPR,JHC) * TMP1 * TMP2
+!      ENDDO
+!      ENDDO
+!
+!      ! For aromatics (hotp 10/2/09)
 !      ! Divide TEMP by 295K outside the DO loop
 !      TMP1 = ( TEMP / 295.D0 )
 !
@@ -3384,50 +4205,22 @@
 !      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF295 ) )
 !
 !      ! Multiply KOM by the temperature and heat-of-vaporization terms
-!      JHC = 6
-!      DO IPR = 1, 3
-!         KOM(IPR,JHC) = KOM(IPR,JHC) * TMP1 * TMP2
+!      !JHC = 6
+!      DO JHC = 7, 9
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)  ! add NOX index. only consider low nox for isoprene (dkh, 10/29/06)  
+!         KOM(NOX,IPR,JHC) = KOM_REF(NOX,IPR,JHC) * TMP1 * TMP2
 !      ENDDO
-
-      ! Divide TEMP by 295K outside the DO loop
-      TMP1 = ( TEMP / 295.D0 )
-      ! Compute the heat-of-vaporization exponential term outside the DO loop
-      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF295 ) )
-
-      ! Multiply KOM by the temperature and heat-of-vaporization terms
-      !JHC = 6
-      ! Isoprene only
-      JHC = 6
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)  ! add NOX index. only consider low nox for isoprene (dkh, 10/29/06)  
-!         KOM(IPR,JHC) = KOM(IPR,JHC) * TMP1 * TMP2
-         KOM(NOX,IPR,JHC) = KOM_REF(NOX,IPR,JHC) * TMP1 * TMP2
-      ENDDO
-      ENDDO
-
-      ! For aromatics (hotp 10/2/09)
-      ! Divide TEMP by 295K outside the DO loop
-      TMP1 = ( TEMP / 295.D0 )
-
-      ! Compute the heat-of-vaporization exponential term outside the DO loop
-      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF295 ) )
-
-      ! Multiply KOM by the temperature and heat-of-vaporization terms
-      !JHC = 6
-      DO JHC = 7, 9
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)  ! add NOX index. only consider low nox for isoprene (dkh, 10/29/06)  
-         KOM(NOX,IPR,JHC) = KOM_REF(NOX,IPR,JHC) * TMP1 * TMP2
-      ENDDO
-      ENDDO
-      ENDDO
+!      ENDDO
+!      ENDDO
+!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE SOA_PARA
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_PARA_INIT( )
+      SUBROUTINE SOA_PARA_INIT( Input_Opt )
 !
 !******************************************************************************
 !  Subroutine SOA_PARA_INIT initializes the ALPHAS and KOMS, the latter at 
@@ -3444,39 +4237,105 @@
 !     
 !  NOTES:
 !  (1 ) REFT for KOM_REF depends on hydrocarbon. 
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !
 !******************************************************************************
-!     
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 
-      USE TRACERID_MOD, ONLY : IDTSOA5
+!
+! !LOCAL VARIABLES:
+!
+      ! for debug purposes (hotp 7/22/09)
+      INTEGER :: ai,bj,cl
+
+      INTEGER :: NOX ! (hotp 5/21/10)
+
+      ! For fields from Input_Opt
+      LOGICAL :: LPRT
+      LOGICAL :: LSVPOA
 
       !=================================================================
       ! SOA_PARA_INIT begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT    = Input_Opt%LPRT
+      LSVPOA  = Input_Opt%LSVPOA
       
       !=================================================================
       ! Reaction rate constants 
       !=================================================================
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate: remove old (hotp 7/29/10)
+!      ! Photo-oxidation rates of O3 [cm3/molec/s] (See Refs #1-4)
+!      KO3_REF(1) = 56.15d-18
+!      KO3_REF(2) = 200.d-18
+!      KO3_REF(3) = 7707.d-18
+!      KO3_REF(4) = 422.5d-18
+!      KO3_REF(5) = ( 11600.D0 + 11700.D0 ) / 2.D0 * 1.D-18
+!      
+!      ! Photo-oxidation rates of OH [cm3/molec/s] (See Refs #1-4)
+!      KOH_REF(1) = 84.4d-12
+!      KOH_REF(2) = 171.d-12
+!      KOH_REF(3) = 255.d-12
+!      KOH_REF(4) = 199.d-12 
+!      KOH_REF(5) = ( 197.d0 + 293.d0 ) / 2.d0 * 1.d-12
+!      
+!      ! Photo-oxidation rate of NO3 [cm3/molec/s] (See Refs #1-4)
+!      KNO3_REF(1) = 6.95d-12
+!      KNO3_REF(2) = 12.2d-12
+!      KNO3_REF(3) = 88.7d-12
+!      KNO3_REF(4) = 14.7d-12
+!      KNO3_REF(5) = ( 19.d0 + 35.d0 ) / 2.d0 * 1.d-12
+!------------------------------------------------------------------------------
+      ! update reaction rates
+      ! Still based on same underlying data (as summarized by 
+      ! Griffin 1999 and Chung 2002) but lumped by contribution of HC to
+      ! global emissions for that category (hotp 5/21/10)
+      ! K(MTPA) = K_REF(1) = 
+      !      0.53*K(A-PINE) + 0.25*K(B-PINE) + 0.12*K(SABI) + 0.10*K(CAR)
+      ! K(LIMO) = K_REF(2)
+      ! K(MTPO) = K_REF(3) =
+      !      0.11*K(TERPINENE) + 0.11*K(TERPINOLENE) + 0.11*K(MYRCENE) +
+      !      0.11*K(LINALOOL) + 0.11*K(terpinene-4-ol) + 0.45*K(OCIMENE)
+      ! K(SESQ) = K_REF(4) = 0.5*K(B-CARYOPHYLLENE) + 0.5*K(A-HUMULENE)
+
       ! Photo-oxidation rates of O3 [cm3/molec/s] (See Refs #1-4)
-      KO3_REF(1) = 56.15d-18
-      KO3_REF(2) = 200.d-18
-      KO3_REF(3) = 7707.d-18
-      KO3_REF(4) = 422.5d-18
-      KO3_REF(5) = ( 11600.D0 + 11700.D0 ) / 2.D0 * 1.D-18
-      
+      KO3_REF(1) =    63.668d-18
+      KO3_REF(2) =   200.000d-18
+      KO3_REF(3) =  1744.500d-18
+      KO3_REF(4) = 11650.000d-18
+
       ! Photo-oxidation rates of OH [cm3/molec/s] (See Refs #1-4)
-      KOH_REF(1) = 84.4d-12
-      KOH_REF(2) = 171.d-12
-      KOH_REF(3) = 255.d-12
-      KOH_REF(4) = 199.d-12 
-      KOH_REF(5) = ( 197.d0 + 293.d0 ) / 2.d0 * 1.d-12
-      
+      KOH_REF(1) =    71.026d-12
+      KOH_REF(2) =   171.000d-12
+      KOH_REF(3) =   227.690d-12
+      KOH_REF(4) =   245.000d-12
+
       ! Photo-oxidation rate of NO3 [cm3/molec/s] (See Refs #1-4)
-      KNO3_REF(1) = 6.95d-12
-      KNO3_REF(2) = 12.2d-12
-      KNO3_REF(3) = 88.7d-12
-      KNO3_REF(4) = 14.7d-12
-      KNO3_REF(5) = ( 19.d0 + 35.d0 ) / 2.d0 * 1.d-12
+      KNO3_REF(1) =    6.021d-12 
+      KNO3_REF(2) =   12.200d-12
+      KNO3_REF(3) =   33.913d-12
+      KNO3_REF(4) =   27.000d-12
+
+      ! Rate constants for branching ratio (hotp 5/7/10)
+      ! k=A*exp(B/T)
+      ! Reference: Henze et al., 2008 ACP
+      ! RO2+NO
+      AARO2NO = 2.6d-12
+      BBRO2NO = 350.d0
+      ! RO2+HO2
+      AARO2HO2 = 1.4d-12
+      BBRO2HO2 = 700.d0
 
       !=================================================================
       ! SOA YIELD PARAMETERS
@@ -3503,225 +4362,486 @@
       ! The paramters for low NOX are given in Table 1 of Henze 06.
       !=================================================================
 
-      ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
-      ! OX = OH + O3
-      ALPHA(1,1,1) = 0.067d0
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! REMOVE OLD NUMBERS (hotp 5/21/10)
+!      ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
+!      ! OX = OH + O3
+!      ALPHA(1,1,1) = 0.067d0
+!
+!      ! LIMONENE
+!      ALPHA(1,1,2) = 0.239d0
+!
+!      ! Average of TERPINENES and TERPINOLENE
+!      ! OX = OH + O3
+!      ALPHA(1,1,3) = 0.0685d0
+!
+!      ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE      
+!      ! OX = OH + O3
+!      ALPHA(1,1,4) = 0.06675d0
+!
+!      ! Average of BETA-CARYOPHYLLENE and ALPHA-HUMULENE      
+!      ! OX = OH + O3
+!      ALPHA(1,1,5) = 1.0d0
+!
+!      ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE      
+!      ! OX = OH + O3
+!      ALPHA(1,2,1) = 0.35425d0
+!
+!      ! LIMONENE
+!      ALPHA(1,2,2) = 0.363d0
+!
+!      ! Average of TERPINENES and TERPINOLENE
+!      ! OX = OH + O3
+!      ALPHA(1,2,3) = 0.2005d0
+!
+!      ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
+!      ! OX = OH + O3
+!      ALPHA(1,2,4) = 0.135d0
+!
+!      ! There is no second product from OH and O3 for HC = 5
+!      ! Now use the IPR = 2 slot for NO3 oxidation for this HC. 
+!      !ALPHA(1,2,5) = 0.0d0
+!      ALPHA(1,3,5) = 0.0d0
+!
+!      ! Using BETA-PINENE for all species for NO3 oxidation
+!      ! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
+!      !ALPHA(1,3,:) = 1.d0           
+!      ! OX = NO3
+!      ALPHA(1,3,1:4) = 1.d0
+!      ALPHA(1,2,5)   = 1.d0
+!
+!      ! Clear unused parameters 
+!      ! No NOX dependent data for these (yet).
+!      ALPHA(2:MNOX,1:MPROD,1:5) = 0d0
+!
+!      ! Here we define some alphas for isoprene.  (dkh, 11/03/05)  
+!      ! high NOX  [Kroll et al, 2005]
+!      ! set these to zero for now. (dkh, 11/11/06)  
+!      ! Set NNOX(6) = 1 so the high NOX parameters aren't even involved.
+!      ! OX = OH 
+!      ALPHA(2,1,6) = 0d0        !0.264d0
+!      ALPHA(2,2,6) = 0d0        !0.0173d0
+!
+!      ! low NOX   [Kroll et al, 2006; Henze and Seinfeld, 2006]
+!      ! OX = OH 
+!      ALPHA(1,1,6) = 0.232d0
+!      ALPHA(1,2,6) = 0.0288d0
+!
+!! new numbers (dkh, 04/04/07)  
+!! Note: numbers listed in Ng 2007 are for parent aromatic as the parent HC
+!! Since we treat ARO2 as the parent HC, multiply alphas by 
+!!! MW arom / MW aromO2 = MW arom / ( MW arom + 49 ) 
+!! fixed by dkh (hotp 7/31/2008)
+!! MW arom / MW aromO2 = MW arom / ( MW arom + 81 ) 
+!! 
+!      IF ( IDTSOA5 /= 0 ) THEN
+!         ! HIGH NOX AROMATIC YIELDS
+!         ! benzene peroxide
+!         ! OX = NO
+!         !ALPHA(1,1,7) = 0.0442d0 ! = 0.0720d0 * ( 78d0 / ( 78d0 + 49d0 ) )
+!         !ALPHA(1,2,7) = 0.5454d0 ! = 0.8880d0 * ( 78d0 / ( 78d0 + 49d0 ) )
+!         ! dkh ARMv4 (hotp 7/31/2008)
+!         ALPHA(1,1,7) = 0.0353d0 ! = 0.0720d0 * ( 78d0 / ( 78d0 + 81d0 ) )
+!         ALPHA(1,2,7) = 0.4356d0 ! = 0.8880d0 * ( 78d0 / ( 78d0 + 81d0 ) )
+!
+!         ! toluene peroxide
+!         ! OX = NO
+!         ! dkh ARMv4 (hotp 7/31/2008)
+!         !ALPHA(1,1,8) = 0.0378d0 ! = 0.0580d0 * ( 92d0 / ( 92d0 + 49d0 ) )
+!         !ALPHA(1,2,8) = 0.0737d0 ! = 0.1130d0 * ( 92d0 / ( 92d0 + 49d0 ) )
+!         ALPHA(1,1,8) = 0.0308d0 ! = 0.0580d0 * ( 92d0 / ( 92d0 + 81d0 ) )
+!         ALPHA(1,2,8) = 0.0601d0 ! = 0.1130d0 * ( 92d0 / ( 92d0 + 81d0 ) )
+!
+!         ! xylene peroxide
+!         ! OX = NO
+!         ! dkh ARMv4 (hotp 7/31/2008)
+!         !ALPHA(1,1,9) = 0.0212d0 ! = 0.0310d0 * ( 106d0 / ( 106d0 + 49d0 ) )
+!         !ALPHA(1,2,9) = 0.0615d0 ! = 0.0900d0 * ( 106d0 / ( 106d0 + 49d0 ) )
+!         ALPHA(1,1,9) = 0.0176d0 ! = 0.0310d0 * ( 106d0 / ( 106d0 + 81d0 ) )
+!         ALPHA(1,2,9) = 0.0510d0 ! = 0.0900d0 * ( 106d0 / ( 106d0 + 81d0 ) )
+!
+!         ! LOW NOX AROMATIC YIELDS
+!         ! benzene peroxide
+!         ! OX = HO2
+!         ! dkh ARMv4 (hotp 7/31/2008)
+!         !ALPHA(2,1,7) = 0.2272d0 ! = 0.37d0 * ( 78d0 / ( 78d0 + 49d0 ) )
+!         ALPHA(2,1,7) = 0.1815d0 ! = 0.37d0 * ( 78d0 / ( 78d0 + 81d0 ) )
+!         ALPHA(2,2,7) = 0.0d0
+!
+!         ! toluene peroxide
+!         ! OX = HO2
+!         ! dkh ARMv4 (hotp 7/31/2008)
+!         !ALPHA(2,1,8) = 0.2349d0 ! = 0.36d0 * ( 92d0 / ( 92d0 + 49d0 ) )
+!         ALPHA(2,1,8) = 0.1914d0 ! = 0.36d0 * ( 92d0 / ( 92d0 + 81d0 ) )
+!         ALPHA(2,2,8) = 0.0d0
+!
+!         ! xylene peroxide
+!         ! OX = HO2
+!         ! dkh ARMv4 (hotp 7/31/2008)
+!         !ALPHA(2,1,9) = 0.2052d0 ! = 0.30d0 * ( 106d0 / ( 106d0 + 49d0 ) )
+!         ALPHA(2,1,9) = 0.1701d0 ! = 0.30d0 * ( 106d0 / ( 106d0 + 81d0 ) )
+!         ALPHA(2,2,9) = 0.0d0
+!
+!         ! zero the unused NO3 pathway for aromatics and isoprene
+!         ALPHA(1:MNOX,3,6:9) = 0d0
+!      ENDIF
+!------------------------------------------------------------------------------
+      ! SOAupdate: new yield parameterizations
+      ! Initialize all ALPHAs to zero (hotp 5/12/10)
+      ! ALPHAs are indexed by PARENT HYDROCARBON
+      ! all monoterpenes use b-pinene + NO3 for NO3 yields
+      ALPHA = 0d0
 
-      ! LIMONENE
-      ALPHA(1,1,2) = 0.239d0
+      !----------------------------
+      ! MTPA
+      !----------------------------
+      ! MTPA based on Shilling 2008 a-pinene ozonolysis
+      ! updated 6/12/10 (hotp)
+      ! Product 4 has C*=0.1
+      NOX = NHIGHNOX
+      ALPHA(NOX,1,PARENTMTPA) = 0.0095d0
+      ALPHA(NOX,2,PARENTMTPA) = 0.0900d0
+      ALPHA(NOX,3,PARENTMTPA) = 0.0150d0
+      ALPHA(NOX,4,PARENTMTPA) = 0.0400d0
+      NOX = NLOWNOX
+      ALPHA(NOX,1,PARENTMTPA) = 0.019d0
+      ALPHA(NOX,2,PARENTMTPA) = 0.180d0
+      ALPHA(NOX,3,PARENTMTPA) = 0.030d0
+      ALPHA(NOX,4,PARENTMTPA) = 0.080d0
+      NOX = NNO3RXN
+      ALPHA(NOX,1,PARENTMTPA) = 0.0000d0
+      ALPHA(NOX,2,PARENTMTPA) = 0.3207d0
+      ALPHA(NOX,3,PARENTMTPA) = 1.0830d0
 
-      ! Average of TERPINENES and TERPINOLENE
-      ! OX = OH + O3
-      ALPHA(1,1,3) = 0.0685d0
+      !----------------------------
+      ! LIMO
+      !----------------------------
+      ! Use higher LIMO yields of Zhang 2006
+      ! Assumed density of 1.3 g/cm3 (hotp 6/12/10)
+      NOX = NHIGHNOX
+      ALPHA(NOX,1,PARENTLIMO) = 0.4743d0
+      ALPHA(NOX,2,PARENTLIMO) = 0.1174d0
+      ALPHA(NOX,3,PARENTLIMO) = 1.4190d0
+      NOX = NLOWNOX
+      ALPHA(NOX,1,PARENTLIMO) = 0.3661d0
+      ALPHA(NOX,2,PARENTLIMO) = 0.3214d0
+      ALPHA(NOX,3,PARENTLIMO) = 0.8168d0
+      NOX = NNO3RXN
+      ALPHA(NOX,1,PARENTLIMO) = 0.0000d0
+      ALPHA(NOX,2,PARENTLIMO) = 0.3207d0
+      ALPHA(NOX,3,PARENTLIMO) = 1.0830d0
 
-      ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE      
-      ! OX = OH + O3
-      ALPHA(1,1,4) = 0.06675d0
+      !----------------------------
+      ! MTPO
+      !----------------------------
+      ! MTPO based on Shilling 2008 a-pinene ozonolysis
+      ! updated 6/12/10 (hotp)
+      ! Product 4 has C*=0.1
+      NOX = NHIGHNOX
+      ALPHA(NOX,1,PARENTMTPO) = 0.0095d0
+      ALPHA(NOX,2,PARENTMTPO) = 0.0900d0
+      ALPHA(NOX,3,PARENTMTPO) = 0.0150d0
+      ALPHA(NOX,4,PARENTMTPO) = 0.040d0
+      NOX = NLOWNOX
+      ALPHA(NOX,1,PARENTMTPO) = 0.019d0
+      ALPHA(NOX,2,PARENTMTPO) = 0.180d0
+      ALPHA(NOX,3,PARENTMTPO) = 0.030d0
+      ALPHA(NOX,4,PARENTMTPO) = 0.080d0
+      NOX = NNO3RXN
+      ALPHA(NOX,1,PARENTMTPO) = 0.0000d0
+      ALPHA(NOX,2,PARENTMTPO) = 0.3207d0
+      ALPHA(NOX,3,PARENTMTPO) = 1.0830d0
 
-      ! Average of BETA-CARYOPHYLLENE and ALPHA-HUMULENE      
-      ! OX = OH + O3
-      ALPHA(1,1,5) = 1.0d0
+      !----------------------------
+      ! SESQ
+      !----------------------------
+      ! update high and low NOx (hotp 6/4/2010)
+      ! Griffin1999 VOC/NO>3ppbC/ppb is low NOx
+      ! high NOx is double the Y for a given Mo
+      NOX = NHIGHNOX
+      ALPHA(NOX,1,PARENTSESQ) = 0.0005d0
+      ALPHA(NOX,2,PARENTSESQ) = 1.1463d0
+      ALPHA(NOX,3,PARENTSESQ) = 2.9807d0
+      NOX = NLOWNOX
+      ALPHA(NOX,1,PARENTSESQ) = 0.0000d0
+      ALPHA(NOX,2,PARENTSESQ) = 0.5738d0
+      ALPHA(NOX,3,PARENTSESQ) = 1.4893d0
+      NOX = NNO3RXN
+      ALPHA(NOX,1,PARENTSESQ) = 0.0000d0
+      ALPHA(NOX,2,PARENTSESQ) = 0.3207d0
+      ALPHA(NOX,3,PARENTSESQ) = 1.0830d0
 
-      ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE      
-      ! OX = OH + O3
-      ALPHA(1,2,1) = 0.35425d0
+      !----------------------------
+      ! ISOP
+      !----------------------------
+      NOX = 1 ! low NOx/all OH rxn
+      ALPHA(NOX,1,PARENTISOP) = 0.0306d0
+      ALPHA(NOX,2,PARENTISOP) = 0.0000d0
+      ALPHA(NOX,3,PARENTISOP) = 0.0945d0
+      NOX = 2 ! NO3 rxn
+      ALPHA(NOX,1,PARENTISOP) = 0.0000d0
+      ALPHA(NOX,2,PARENTISOP) = 0.2171d0
+      ALPHA(NOX,3,PARENTISOP) = 0.0919d0
 
-      ! LIMONENE
-      ALPHA(1,2,2) = 0.363d0
+      !----------------------------
+      ! BENZ, TOLU, XYLE
+      !----------------------------
+      ! Replace Daven's numbers for BENZ, TOLU, XYLE with new numbers
+      ! Numbers based on a 3 product fit to Ng 2007 data
+      ! These numbers are for parent HC (no adjustment for ARO2) 
+      ! and correspond to C* of 1, 10, 100 in HIGH NOx case (hotp 5/12)
 
-      ! Average of TERPINENES and TERPINOLENE
-      ! OX = OH + O3
-      ALPHA(1,2,3) = 0.2005d0
+      ! HIGH NOX BENZ
+      ALPHA(1,1,PARENTBENZ) = 0.0778d0
+      ALPHA(1,2,PARENTBENZ) = 0.0000d0
+      ALPHA(1,3,PARENTBENZ) = 0.7932d0
+      ! LOW NOX BENZ (non-volatile)
+      ALPHA(2,4,PARENTBENZ) = 0.37d0
 
-      ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
-      ! OX = OH + O3
-      ALPHA(1,2,4) = 0.135d0
+      ! HIGH NOX TOLU
+      ALPHA(1,1,PARENTTOLU) = 0.0315d0
+      ALPHA(1,2,PARENTTOLU) = 0.0944d0
+      ALPHA(1,3,PARENTTOLU) = 0.0800d0
+      ! LOW NOX TOLU
+      ALPHA(2,4,PARENTTOLU) = 0.36d0
 
-      ! There is no second product from OH and O3 for HC = 5
-      ! Now use the IPR = 2 slot for NO3 oxidation for this HC. 
-      !ALPHA(1,2,5) = 0.0d0
-      ALPHA(1,3,5) = 0.0d0
+      ! HIGH NOX XYLE
+      ALPHA(1,1,PARENTXYLE) = 0.0250d0
+      ALPHA(1,2,PARENTXYLE) = 0.0360d0
+      ALPHA(1,3,PARENTXYLE) = 0.0899d0
+      ! LOW NOX XYLE
+      ALPHA(2,4,PARENTXYLE) = 0.30d0
 
-      ! Using BETA-PINENE for all species for NO3 oxidation
-      ! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
-      !ALPHA(1,3,:) = 1.d0           
-      ! OX = NO3
-      ALPHA(1,3,1:4) = 1.d0
-      ALPHA(1,2,5)   = 1.d0
+      !----------------------------
+      ! POA
+      !----------------------------
+      ! semivolpoa2: alphas for POA (hotp 2/27/09)
+      ! based on Shrivastava et al. 2006 ES&T
+      ! Only 2 products (wood smoke)
+      ALPHA(1,1,PARENTPOA) = 0.49d0
+      ALPHA(1,2,PARENTPOA) = 0.51d0
+      ! No high NOx parameters
+      ! semivolpoa3: add diesel/anthropogenic POA (hotp 3/13/09)
+      !ALPHA(2:MNOX,1:MPROD,10) = 0d0
 
-      ! Clear unused parameters 
-      ! No NOX dependent data for these (yet).
-      ALPHA(2:MNOX,1:MPROD,1:5) = 0d0
+      !----------------------------
+      ! OPOA
+      !----------------------------
+      ! semivolpoa4opoa: alphas for OPOA (hotp 3/18/09)
+      ! remove semivolpoa3 changes (hotp 3/27/09)
+      ! biomass burning
+      ! (note that this is the carbon yield)
+      ALPHA(1,1,PARENTOPOA) = 1.d0
+      ALPHA(1,2,PARENTOPOA) = 1.d0
+      ! anthropogenic
+      !ALPHA(2:MNOX,1:MPROD,11) = 0d0
 
-      ! Here we define some alphas for isoprene.  (dkh, 11/03/05)  
-      ! high NOX  [Kroll et al, 2005]
-      ! set these to zero for now. (dkh, 11/11/06)  
-      ! Set NNOX(6) = 1 so the high NOX parameters aren't even involved.
-      ! OX = OH 
-      ALPHA(2,1,6) = 0d0        !0.264d0
-      ALPHA(2,2,6) = 0d0        !0.0173d0
+      !----------------------------
+      ! SOA from oxidation of IVOCs
+      !----------------------------
+      ! NAPSOA: SOA from oxidation of IVOCs (hotp 7/22/09)
+      ! Values from Chan et al. 2009 ACP (refit)
+      ! ALPHAs are set up for the aromatic (NAP) as the parent HC
+      ! ALPHAs must be consistent with GET_DARO2 units!
+      ! HIGH NOX
+      ! Ox = NO
+      ALPHA(1,1,PARENTNAP) = 0.0387d0
+      ALPHA(1,2,PARENTNAP) = 0.2956d0
+      ALPHA(1,3,PARENTNAP) = 0.2349d0
+      ! LOW NOX
+      ! Ox = HO2
+      ALPHA(2,4,PARENTNAP) = 0.73d0
 
-      ! low NOX   [Kroll et al, 2006; Henze and Seinfeld, 2006]
-      ! OX = OH 
-      ALPHA(1,1,6) = 0.232d0
-      ALPHA(1,2,6) = 0.0288d0
-
-! new numbers (dkh, 04/04/07)  
-! Note: numbers listed in Ng 2007 are for parent aromatic as the parent HC
-! Since we treat ARO2 as the parent HC, multiply alphas by 
-!! MW arom / MW aromO2 = MW arom / ( MW arom + 49 ) 
-! fixed by dkh (hotp 7/31/2008)
-! MW arom / MW aromO2 = MW arom / ( MW arom + 81 ) 
-! 
-      IF ( IDTSOA5 /= 0 ) THEN
-         ! HIGH NOX AROMATIC YIELDS
-         ! benzene peroxide
-         ! OX = NO
-         !ALPHA(1,1,7) = 0.0442d0 ! = 0.0720d0 * ( 78d0 / ( 78d0 + 49d0 ) )
-         !ALPHA(1,2,7) = 0.5454d0 ! = 0.8880d0 * ( 78d0 / ( 78d0 + 49d0 ) )
-         ! dkh ARMv4 (hotp 7/31/2008)
-         ALPHA(1,1,7) = 0.0353d0 ! = 0.0720d0 * ( 78d0 / ( 78d0 + 81d0 ) )
-         ALPHA(1,2,7) = 0.4356d0 ! = 0.8880d0 * ( 78d0 / ( 78d0 + 81d0 ) )
-
-         ! toluene peroxide
-         ! OX = NO
-         ! dkh ARMv4 (hotp 7/31/2008)
-         !ALPHA(1,1,8) = 0.0378d0 ! = 0.0580d0 * ( 92d0 / ( 92d0 + 49d0 ) )
-         !ALPHA(1,2,8) = 0.0737d0 ! = 0.1130d0 * ( 92d0 / ( 92d0 + 49d0 ) )
-         ALPHA(1,1,8) = 0.0308d0 ! = 0.0580d0 * ( 92d0 / ( 92d0 + 81d0 ) )
-         ALPHA(1,2,8) = 0.0601d0 ! = 0.1130d0 * ( 92d0 / ( 92d0 + 81d0 ) )
-
-         ! xylene peroxide
-         ! OX = NO
-         ! dkh ARMv4 (hotp 7/31/2008)
-         !ALPHA(1,1,9) = 0.0212d0 ! = 0.0310d0 * ( 106d0 / ( 106d0 + 49d0 ) )
-         !ALPHA(1,2,9) = 0.0615d0 ! = 0.0900d0 * ( 106d0 / ( 106d0 + 49d0 ) )
-         ALPHA(1,1,9) = 0.0176d0 ! = 0.0310d0 * ( 106d0 / ( 106d0 + 81d0 ) )
-         ALPHA(1,2,9) = 0.0510d0 ! = 0.0900d0 * ( 106d0 / ( 106d0 + 81d0 ) )
-
-         ! LOW NOX AROMATIC YIELDS
-         ! benzene peroxide
-         ! OX = HO2
-         ! dkh ARMv4 (hotp 7/31/2008)
-         !ALPHA(2,1,7) = 0.2272d0 ! = 0.37d0 * ( 78d0 / ( 78d0 + 49d0 ) )
-         ALPHA(2,1,7) = 0.1815d0 ! = 0.37d0 * ( 78d0 / ( 78d0 + 81d0 ) )
-         ALPHA(2,2,7) = 0.0d0
-
-         ! toluene peroxide
-         ! OX = HO2
-         ! dkh ARMv4 (hotp 7/31/2008)
-         !ALPHA(2,1,8) = 0.2349d0 ! = 0.36d0 * ( 92d0 / ( 92d0 + 49d0 ) )
-         ALPHA(2,1,8) = 0.1914d0 ! = 0.36d0 * ( 92d0 / ( 92d0 + 81d0 ) )
-         ALPHA(2,2,8) = 0.0d0
-
-         ! xylene peroxide
-         ! OX = HO2
-         ! dkh ARMv4 (hotp 7/31/2008)
-         !ALPHA(2,1,9) = 0.2052d0 ! = 0.30d0 * ( 106d0 / ( 106d0 + 49d0 ) )
-         ALPHA(2,1,9) = 0.1701d0 ! = 0.30d0 * ( 106d0 / ( 106d0 + 81d0 ) )
-         ALPHA(2,2,9) = 0.0d0
-
-         ! zero the unused NO3 pathway for aromatics and isoprene
-         ALPHA(1:MNOX,3,6:9) = 0d0
-      ENDIF
       !=================================================================
       ! Equilibrium gas-particle partition coefficients of 
       ! semi-volatile compounds [ug-1 m**3]
       !=================================================================
 
-      ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
-      ! OX = OH + O3
-      KOM_REF(1,1,1) = 0.1835d0
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! REMOVED OLD (hotp 5/21/10)
+!      ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
+!      ! OX = OH + O3
+!      KOM_REF(1,1,1) = 0.1835d0
+!
+!      ! LIMONENE
+!      KOM_REF(1,1,2) = 0.055d0
+!
+!      ! Average of TERPINENES and TERPINOLENE
+!      ! OX = OH + O3
+!      KOM_REF(1,1,3) = 0.133d0
+!
+!      ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
+!      ! OX = OH + O3
+!      KOM_REF(1,1,4) = 0.22375d0
+!
+!      ! Average of BETA-CARYOPHYLLENE and and ALPHA-HUMULENE
+!      ! OX = OH + O3
+!      KOM_REF(1,1,5) = ( 0.04160d0 + 0.0501d0 ) / 2.d0
+!
+!      ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
+!      ! OX = OH + O3
+!      KOM_REF(1,2,1) = 0.004275d0
+!
+!      ! LIMONENE
+!      KOM_REF(1,2,2) = 0.0053d0
+!
+!      ! Average of TERPINENES and TERPINOLENE
+!      ! OX = OH + O3
+!      KOM_REF(1,2,3) = 0.0035d0
+!
+!      ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
+!      ! OX = OH + O3
+!      KOM_REF(1,2,4) = 0.0082d0
+!
+!      ! NOT APPLICABLE 
+!      ! OX = OH + O3
+!      ! Note: now use the IPR = 2 slot for NO3 oxidation for HC = 5 (dkh, 11/12/06)  
+!      !KOM_REF(1,2,5) = 0.0d0
+!      KOM_REF(1,3,5) = 0.0d0
+!
+!      ! Using BETA-PINENE for all species
+!      ! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
+!      ! only for first 4 HC's (dkh, 11/12/06)  
+!      ! OX = NO3
+!      !KOM_REF(1,3,:) = 0.0163d0
+!      KOM_REF(1,3,1:4) = 0.0163d0
+!      KOM_REF(1,2,5)   = 0.0163d0
+!
+!
+!      ! zero unused parameters 
+!      KOM_REF(2:MNOX,1:MPROD,1:5) = 0d0
+!
+!      ! User specifies parameters (hotp 10/2/09)
+!      ! Again, for isoprene we only consider two products, both from OH oxidation. 
+!      ! (dkh, 11/03/05)  
+!      ! Only use Low NOX for now (NNOX(6) = 1)
+!      ! High NOX
+!      ! OX = OH
+!      KOM_REF(2,1,6) = 0d0      !0.00115d0
+!      KOM_REF(2,2,6) = 0d0      !1.52d0
+!      ! Low NOX
+!      ! OX = OH
+!      KOM_REF(1,1,6) = 0.00862d0
+!      KOM_REF(1,2,6) = 1.62d0
+!
+!      IF ( IDTSOA5 /= 0 ) THEN
+!         ! HIGH NOX AROMATICS 
+!         ! OX = NO
+!! new numbers (dkh, 04/04/07)  
+!         ! benzene peroxides
+!         KOM_REF(1,1,7) = 3.3150d0
+!         KOM_REF(1,2,7) = 0.0090d0
+!         ! toluene peroxides
+!         KOM_REF(1,1,8) = 0.4300d0
+!         KOM_REF(1,2,8) = 0.0470d0
+!         ! xylene peroxides
+!         KOM_REF(1,1,9) = 0.7610d0
+!         KOM_REF(1,2,9) = 0.0290d0
+!
+!         ! LOX NOX AROMATICS 
+!         ! OX = HO2
+!         ! benzene peroxides
+!         KOM_REF(2,1,7) = 10000d0
+!         KOM_REF(2,2,7) = 0.0d0
+!         ! toluene peroxides
+!         KOM_REF(2,1,8) = 10000d0
+!         KOM_REF(2,2,8) = 0.0d0
+!         ! xylene peroxides
+!         KOM_REF(2,1,9) = 10000d0
+!         KOM_REF(2,2,9) = 0d0
+!
+!         ! Zero unused NO3 pathway for aromatics and isoprene
+!         KOM_REF(1:MNOX,3,6:9) = 0d0
+!      ENDIF
+!------------------------------------------------------------------------------
+      ! SOAupdate: KOM for semivolatile systems
+      ! Initialize to zero (hotp 5/12/10)
+      ! KOM_REF are indexed by SEMIVOLATILE SPECIES (hotp 5/13/10) 
+      KOM_REF = 0d0
 
-      ! LIMONENE
-      KOM_REF(1,1,2) = 0.055d0
+      !---------------------------------------
+      ! SEMIVOLATILE 1: MTPA, LIMO, MTPO, SESQ
+      ! (hotp 5/21/10)
+      !---------------------------------------
+      KOM_REF(1,IDSV(PARENTMTPA)) = 1.0d0/1.0d0
+      KOM_REF(2,IDSV(PARENTMTPA)) = 1.0d0/10.0d0
+      KOM_REF(3,IDSV(PARENTMTPA)) = 1.0d0/100.0d0
+      KOM_REF(4,IDSV(PARENTMTPA)) = 1.0d0/0.1d0 ! C*=0.1 hotp 6/12/10
 
-      ! Average of TERPINENES and TERPINOLENE
-      ! OX = OH + O3
-      KOM_REF(1,1,3) = 0.133d0
+      !---------------------------------------
+      ! SEMIVOLATILE 2: ISOP
+      ! (hotp 5/21/10)
+      !---------------------------------------
+      KOM_REF(1,IDSV(PARENTISOP)) = 1.0d0/1.0d0
+      KOM_REF(2,IDSV(PARENTISOP)) = 1.0d0/10.0d0
+      KOM_REF(3,IDSV(PARENTISOP)) = 1.0d0/100.0d0
 
-      ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
-      ! OX = OH + O3
-      KOM_REF(1,1,4) = 0.22375d0
+      !---------------------------------------
+      ! SEMIVOLATILE 3: BENZ, TOLU, XYLE, NAP
+      !---------------------------------------
+      ! Update aromatics to new fits (hotp 5/12/10)
+      ! BENZ, TOLU, XYLE, NAP/IVOC all lumped together
+      KOM_REF(1,IDSV(PARENTBENZ)) = 1.0d0/1.0d0
+      KOM_REF(2,IDSV(PARENTBENZ)) = 1.0d0/10.0d0
+      KOM_REF(3,IDSV(PARENTBENZ)) = 1.0d0/100.0d0
+      ! Low NOX (HO2) non-volatile
+      !KOM_REF(4,IDSV(PARENTBENZ)) = 1.d6
+      KOM_REF(4,IDSV(PARENTBENZ)) = 1.d10 ! more non-vol (hotp 5/28/10)
 
-      ! Average of BETA-CARYOPHYLLENE and and ALPHA-HUMULENE
-      ! OX = OH + O3
-      KOM_REF(1,1,5) = ( 0.04160d0 + 0.0501d0 ) / 2.d0
+      !---------------------------------------
+      ! SEMIVOLATILE 4: POA/SVOCs
+      !---------------------------------------
+      ! semivolpoa2: KOM for POA (hotp 2/27/09)
+      ! based on Shrivastava et al. 2006 ES&T
+      ! Only 2 products (wood smoke)
+      ! Tref is 27 C = 300 K
+      KOM_REF(1,IDSV(PARENTPOA)) = 1d0/1646d0
+      KOM_REF(2,IDSV(PARENTPOA)) = 1d0/20d0
+      ! No high NOx parameters
+      ! remove semivolpoa3 changes (hotp 3/27/09)
+      ! semivolpoa3: add diesel/anthropogenic POA (hotp 3/13/09)
+      !KOM_REF(2:MNOX,1:MPROD,10) = 0d0
 
-      ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
-      ! OX = OH + O3
-      KOM_REF(1,2,1) = 0.004275d0
-
-      ! LIMONENE
-      KOM_REF(1,2,2) = 0.0053d0
-
-      ! Average of TERPINENES and TERPINOLENE
-      ! OX = OH + O3
-      KOM_REF(1,2,3) = 0.0035d0
-
-      ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
-      ! OX = OH + O3
-      KOM_REF(1,2,4) = 0.0082d0
-
-      ! NOT APPLICABLE 
-      ! OX = OH + O3
-      ! Note: now use the IPR = 2 slot for NO3 oxidation for HC = 5 (dkh, 11/12/06)  
-      !KOM_REF(1,2,5) = 0.0d0
-      KOM_REF(1,3,5) = 0.0d0
-
-      ! Using BETA-PINENE for all species
-      ! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
-      ! only for first 4 HC's (dkh, 11/12/06)  
-      ! OX = NO3
-      !KOM_REF(1,3,:) = 0.0163d0
-      KOM_REF(1,3,1:4) = 0.0163d0
-      KOM_REF(1,2,5)   = 0.0163d0
+      !---------------------------------------
+      ! SEMIVOLATILE 5: OPOA/O-SVOCs
+      !---------------------------------------
+      ! semivolpoa4opoa: OPOA parameters (hotp 3/18/09)
+      ! parameters are a factor of 100 more than POA param
+      KOM_REF(1,IDSV(PARENTOPOA)) = KOM_REF(1,IDSV(PARENTPOA)) * 100d0
+      KOM_REF(2,IDSV(PARENTOPOA)) = KOM_REF(2,IDSV(PARENTPOA)) * 100d0
 
 
-      ! zero unused parameters 
-      KOM_REF(2:MNOX,1:MPROD,1:5) = 0d0
+      ! semivolpoa: print POA info to screen (hotp 5/23/09)
+      print*, 'Semivolatile POA settings:---------------'
+      print*, ' ALPHA:   ', ALPHA(1,1,9), ALPHA(1,2,9)
+      print*, ' POA OA/OC ratio:    ', OCFPOA 
+      print*, ' OPOA OA/OC ratio:   ', OCFOPOA
+      print*, ' LSVPOA is set to:   ', LSVPOA
 
-      ! User specifies parameters (hotp 10/2/09)
-      ! Again, for isoprene we only consider two products, both from OH oxidation. 
-      ! (dkh, 11/03/05)  
-      ! Only use Low NOX for now (NNOX(6) = 1)
-      ! High NOX
-      ! OX = OH
-      KOM_REF(2,1,6) = 0d0      !0.00115d0
-      KOM_REF(2,2,6) = 0d0      !1.52d0
-      ! Low NOX
-      ! OX = OH
-      KOM_REF(1,1,6) = 0.00862d0
-      KOM_REF(1,2,6) = 1.62d0
+      ! debug print checks (hotp 7/22/09)
+      IF ( LPRT ) THEN ! (hotp 8/24/09)
+         print*, 'CHECK MHC, NOX, PR', MHC, MNOX, MPROD
+         print*, 'CHECK MSV', MSV
+         print*, '      NOX, PROD, HC/SV'
 
-      IF ( IDTSOA5 /= 0 ) THEN
-         ! HIGH NOX AROMATICS 
-         ! OX = NO
-! new numbers (dkh, 04/04/07)  
-         ! benzene peroxides
-         KOM_REF(1,1,7) = 3.3150d0
-         KOM_REF(1,2,7) = 0.0090d0
-         ! toluene peroxides
-         KOM_REF(1,1,8) = 0.4300d0
-         KOM_REF(1,2,8) = 0.0470d0
-         ! xylene peroxides
-         KOM_REF(1,1,9) = 0.7610d0
-         KOM_REF(1,2,9) = 0.0290d0
+         DO ai = 1, MHC
+         DO bj = 1, MNOX
+         DO cl = 1, MPROD
+            print*,'Alpha', bj,cl,ai
+            print*, ALPHA(bj,cl,ai)
+         ENDDO
+         ENDDO
+         ENDDO
 
-         ! LOX NOX AROMATICS 
-         ! OX = HO2
-         ! benzene peroxides
-         KOM_REF(2,1,7) = 10000d0
-         KOM_REF(2,2,7) = 0.0d0
-         ! toluene peroxides
-         KOM_REF(2,1,8) = 10000d0
-         KOM_REF(2,2,8) = 0.0d0
-         ! xylene peroxides
-         KOM_REF(2,1,9) = 10000d0
-         KOM_REF(2,2,9) = 0d0
-
-         ! Zero unused NO3 pathway for aromatics and isoprene
-         KOM_REF(1:MNOX,3,6:9) = 0d0
+         ! Check KOM_REF (hotp 5/13/10)
+         DO ai = 1, MSV
+         DO cl = 1, MPROD
+            print*,'KOM_REF', cl,ai
+            print*, KOM_REF(cl,ai)
+         ENDDO
+         ENDDO
       ENDIF
 
       ! Return to calling program
@@ -3731,8 +4851,8 @@
 
       SUBROUTINE CHEM_NVOC( I,         J,         L, 
      &                      KO3,       KOH,       KNO3, 
-     &                      GM0,       Input_Opt, State_Met,
-     &                      State_Chm, RC                    )
+     &                      GM0,       KNO,       KHO2,
+     &                      Input_Opt, State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine CHEM_NVOC computes the oxidation of Hydrocarbon by O3, OH, and 
@@ -3760,6 +4880,8 @@
 !  (4 ) Updated for SOA from aromatics. (dkh, 10/29/06)  
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       ! References to F90 kmodules
@@ -3769,23 +4891,52 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACERID_MOD,       ONLY : IDTALCO,     IDTALPH,  IDTLIMO
-
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      USE TRACERID_MOD,       ONLY : IDTALCO,     IDTALPH,  IDTLIMO
+!------------------------------------------------------------------------------
+      ! new mtp (hotp 5/34/10)
+      USE TRACERID_MOD,       ONLY : IDTMTPA, IDTLIMO, IDTMTPO
+      USE TRACERID_MOD,       ONLY : IDTNAP,  IDTPOA1
+      ! semivolpoa4: oxidation diagnostic for POG (hotp 3/28/09)
+      USE DIAG_MOD,           ONLY : AD07_HC
+      USE CMN_DIAG_MOD             ! ND07 info
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: I, J, L
       REAL*8,         INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      REAL*8,         INTENT(INOUT) :: GM0(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! Change to SV (hotp 5/13/10)
+! update dims (hotp 5/22/10)
+!      REAL*8,         INTENT(INOUT) :: GM0(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+      REAL*8,         INTENT(INOUT) :: GM0(MPROD,MSV)
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+      ! RO2+NO, RO2+HO2 rate constants (hotp 5/7/10)
+      REAL*8,         INTENT(IN)    :: KNO         ! RO2+NO  rate constant
+      REAL*8,         INTENT(IN)    :: KHO2        ! RO2+HO2 rate constant
 
       ! Local variables
-      INTEGER  :: JHC, IPR, NOX
-      REAL*8   :: DELHC(MPROD), CHANGE(MHC), NMVOC(MHC)
+      INTEGER  :: JHC, IPR, NOX, JSV !(hotp 5/14/10)
+      INTEGER  :: MAXLOOP ! (hotp 6/7/10)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! DELHC now of size MNOX (hotp 5/22/10)
+!      !REAL*8   :: DELHC(MPROD), CHANGE(MHC), NMVOC(MHC)
+!------------------------------------------------------------------------------
+      REAL*8   :: CHANGE(MHC), NMVOC(MHC), DELHC(MNOX)
       REAL*8   :: OHMC, TTNO3, TTO3, DTCHEM, RK
       REAL*8   :: OVER, DO3, DOH, DNO3
+
+      ! for RO2+NO, RO2+HO2 branching ratio (hotp 5/7/10)
+      REAL*8   :: NOTEMP, HO2TEMP, BETANO
+
+      ! for debug (hotp 5/10/10)
+      REAL*8   :: TEMPHC
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -3811,12 +4962,36 @@
       TTNO3   = GET_NO3( I, J, L, Input_Opt, State_Met )
       TTO3    = GET_O3(  I, J, L, Input_Opt, State_Met ) 
 
-      ! 6 classes NVOC concentrations followed by 4 primary species
-      NMVOC(1) = STT(I,J,L,IDTALPH)
+      ! Get RO2+NO, RO2+HO2 branching ratio (hotp 5/7/10)
+      NOTEMP  = GET_NO(  I, J, L )
+      HO2TEMP = GET_HO2( I, J, L )
+
+      IF ( NOTEMP .GT. 0.0 ) THEN
+         BETANO  = ( KNO * NOTEMP ) / ( KNO * NOTEMP + KHO2 * HO2TEMP )
+      ELSEIF ( HO2TEMP .GT. 0.0 ) THEN
+         BETANO = 0.d0
+      ELSE
+         ! default value if no CSPEC value
+         BETANO = 0.5d0
+      ENDIF
+
+      ! save for diagnostic purposes (hotp 5/24/10)
+      BETANOSAVE(I,J,L) = BETANO
+
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      ! 6 classes NVOC concentrations followed by 4 primary species
+!      NMVOC(1) = STT(I,J,L,IDTALPH)
+!      NMVOC(2) = STT(I,J,L,IDTLIMO)
+!      NMVOC(3) = ORVC_TERP(I,J,L)
+!      NMVOC(4) = STT(I,J,L,IDTALCO)
+!      NMVOC(5) = ORVC_SESQ(I,J,L)
+!------------------------------------------------------------------------------
+      ! update for new mtp lumping (hotp 5/22/10)
+      NMVOC(1) = STT(I,J,L,IDTMTPA)
       NMVOC(2) = STT(I,J,L,IDTLIMO)
-      NMVOC(3) = ORVC_TERP(I,J,L)
-      NMVOC(4) = STT(I,J,L,IDTALCO)
-      NMVOC(5) = ORVC_SESQ(I,J,L)
+      NMVOC(3) = STT(I,J,L,IDTMTPO)
+      NMVOC(4) = ORVC_SESQ(I,J,L)
 
       ! Initialize DELHC so that the values from the previous
       ! time step are not carried over.
@@ -3825,14 +5000,40 @@
       !=================================================================
       ! Change in NVOC concentration due to photooxidation [kg]
       !=================================================================
-      DO JHC = 1, MHC
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      DO JHC = 1, MHC
+!
+!         IF ( JHC <= 5 ) THEN
+!------------------------------------------------------------------------------
+      ! semivolpoa2: update for POA (hotp 2/27/09)
+      ! add POA emissions to GMO here (not to STT in EMITHIGH)
+      
+      ! Only loop over parent hydrocarbons defined for a given simulation
+      ! Max should be 11 for semivolatile POA/IVOC (PARENTNAP =11)
+      ! Max should be 8  for nonvolatile POA/ traditional simulation
+      IF ( IDTPOA1 > 0 ) THEN
+         MAXLOOP = PARENTNAP   !11
+      ELSE
+         MAXLOOP = PARENTXYLE  ! 8
+      ENDIF
 
-         IF ( JHC <= 5 ) THEN
+      DO JHC = 1, MAXLOOP
 
-            !-------------------------------
-            ! Individual gas-phase products
-            !-------------------------------
+         ! Initialize again for safety (hotp 5/22/10)
+         DELHC = 0d0
 
+         ! Get JSV (hotp 5/14/10)
+         JSV = IDSV(JHC)
+     
+         ! update for new mtp (hotp 5/22/10)
+         IF ( JHC == PARENTMTPA .or. JHC == PARENTLIMO .or.
+     &        JHC == PARENTMTPO .or. JHC == PARENTSESQ      ) THEN
+
+            !------------------------------------------
+            ! Oxidize parent hydrocarbon by OH, O3, NO3
+            ! (unmodified from original implemenation)
+            !------------------------------------------
             RK          = KO3(JHC)*TTO3 + KOH(JHC)*OHMC
      &                  + KNO3(JHC)*TTNO3
             CHANGE(JHC) = NMVOC(JHC) * ( 1.D0 - DEXP( -RK * DTCHEM ) )
@@ -3853,99 +5054,319 @@
                DOH   = 0.D0
                DNO3  = 0.D0
             ENDIF
-                  
-            !! VOC change by photooxidation of O3 and OH [kg]
-            !DELHC(1) =  DO3 + DOH 
-            !DELHC(2) =  DO3 + DOH 
-            !
-            !! VOC change by photooxidation of NO3 [kg]
-            !DELHC(3) = DNO3
 
-            ! For efficiency, we moved the parameters for oxidation by NO3
-            ! of HC 5 to the IPR = 2 slot. So for JHC == 5, let DELHC(1) 
-            ! be O3 and OH, DELHC(2) = DNO3, and NPROD(5) = 2. (dkh, 11/12/06)  
-            IF ( JHC <= 4 ) THEN
-               ! VOC change by photooxidation of O3 and OH [kg]
-               DELHC(1) =  DO3 + DOH
-               DELHC(2) =  DO3 + DOH
-   
-               ! VOC change by photooxidation of NO3 [kg]
-               DELHC(3) = DNO3
+            !------------------------------------------
+            ! Determine DELTAHC that corresponds to the alphas
+            !------------------------------------------
+            ! For HC 1-4 (hotp 5/22/10)
+            NOX = NHIGHNOX ! NOX=1, high NOx photooxidation
+            DELHC(NOX) = ( DO3 + DOH ) * BETANO
+            NOX = NLOWNOX  ! NOX=2, low NOx photooxidation
+            DELHC(NOX) = ( DO3 + DOH ) * ( 1d0 - BETANO )
+            NOX = NNO3RXN  ! NOX=3, NO3 oxidation
+            DELHC(NOX) = ( DNO3 )                  
 
-            ELSEIF ( JHC == 5 ) THEN
+            ! debug check (updated hotp 5/26/10)
+            !IF ( CHANGE(JHC) .GT. 1d-16 ) THEN
+            !TEMPHC = ABS(SUM(DELHC(:))-CHANGE(JHC))
+            !TEMPHC = ABS(TEMPHC/CHANGE(JHC))
+            !IF ( (TEMPHC) .GE. 1d-14 ) THEN
+            !   print*,'DELHC Problem in CHEM_NVOC',I,J,L,JHC
+            !   print*,DELHC,CHANGE(JHC),TEMPHC
+            !ENDIF
+            !ENDIF
 
-               ! VOC change by photooxidation of O3 and OH [kg]
-               DELHC(1) =  DO3 + DOH
-   
-               ! VOC change by photooxidation of NO3 [kg]
-               DELHC(2) = DNO3
-               DELHC(3) = 0d0
+            ! Save diagnostic info for bug check (hotp 5/22/10)
+            DELTASOGSAVE(I,J,L,:,JHC) = DELHC(:)
 
-            ENDIF 
- 
-            ! Lump OH and O3 oxidation for HC 1-5
-            DO IPR = 1, NPROD(JHC)
-            DO NOX = 1, NNOX(JHC)
-               !GM0(IPR,JHC) = GM0(IPR,JHC) + ALPHA(IPR,JHC) * DELHC(IPR) 
-               GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
-     &                        + ALPHA(NOX,IPR,JHC) * DELHC(IPR)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            !! VOC change by photooxidation of O3 and OH [kg]
+!            !DELHC(1) =  DO3 + DOH 
+!            !DELHC(2) =  DO3 + DOH 
+!            !
+!            !! VOC change by photooxidation of NO3 [kg]
+!            !DELHC(3) = DNO3
+!
+!            ! For efficiency, we moved the parameters for oxidation by NO3
+!            ! of HC 5 to the IPR = 2 slot. So for JHC == 5, let DELHC(1) 
+!            ! be O3 and OH, DELHC(2) = DNO3, and NPROD(5) = 2. (dkh, 11/12/06)  
+!            IF ( JHC <= 4 ) THEN
+!               ! VOC change by photooxidation of O3 and OH [kg]
+!               DELHC(1) =  DO3 + DOH
+!               DELHC(2) =  DO3 + DOH
+!   
+!               ! VOC change by photooxidation of NO3 [kg]
+!               DELHC(3) = DNO3
+!
+!            ELSEIF ( JHC == 5 ) THEN
+!
+!               ! VOC change by photooxidation of O3 and OH [kg]
+!               DELHC(1) =  DO3 + DOH
+!   
+!               ! VOC change by photooxidation of NO3 [kg]
+!               DELHC(2) = DNO3
+!               DELHC(3) = 0d0
+!
+!            ENDIF 
+! 
+!            ! Lump OH and O3 oxidation for HC 1-5
+!            DO IPR = 1, NPROD(JHC)
+!            DO NOX = 1, NNOX(JHC)
+!               !GM0(IPR,JHC) = GM0(IPR,JHC) + ALPHA(IPR,JHC) * DELHC(IPR) 
+!               GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
+!     &                        + ALPHA(NOX,IPR,JHC) * DELHC(IPR)
+!            ENDDO
+!            ENDDO 
+!------------------------------------------------------------------------------
+
+            !------------------------------------------
+            ! Compute amount of semivolatile formed 
+            ! and add to initial SOG
+            !------------------------------------------
+            ! update dims and switch order (hotp 5/22/10)
+            DO NOX = 1, NNOX(JSV)
+            DO IPR = 1, NPROD(JSV)
+               GM0(IPR,JSV) = GM0(IPR,JSV)
+     &                        + ALPHA(NOX,IPR,JHC) * DELHC(NOX)
             ENDDO
             ENDDO 
 
-         ELSEIF ( JHC == 6 ) THEN 
-!FP_ISOP 01/10/09 (aerosol treatment)
+         ! remove hardwire (hotp 5/17/10)
+         !ELSEIF ( JHC == 6 ) THEN 
+         ELSEIF ( JHC == PARENTISOP ) THEN 
 
             !-------------------------------
-            ! SOA from ISOPRENE
+            ! SOA from ISOPRENE: Parent is oxidized in 
+            ! gas-phase chemsitry
             !-------------------------------
-
 
             ! Get ISOP lost to rxn with OH [kg]
-            DOH = GET_DOH( I, J, L, Input_Opt )
+            !DOH = GET_DOH( I, J, L, Input_Opt )
+            ! Save as DELHC (hotp 5/22/10)
+            DELHC(1) = GET_DOH( I, J, L, Input_Opt )
 
-            ! Consider only OH oxidation for isoprene.  Also convert 
-            ! from mass of carbon to mass of isoprene. (dkh, bmy, 5/22/06)
-            !DO IPR = 1, 3
-            DO IPR = 1, NPROD(JHC)
-               DO NOX = 1, NNOX(JHC) ! Only use LOW NOX FOR ISOPRENE.
-!                  GM0(IPR,JHC) = GM0(IPR,JHC) + ALPHA(IPR,JHC) * DOH
-!     &                                     * 68d0           / 60d0 
-                  GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
-     &                 + ALPHA(NOX,IPR,JHC) * DOH
-     &                 * 68d0 / 60d0 ! (dkh, 11/04/05)  
-               ENDDO
+            ! Get ISOP lost to rxn with NO3 [kgC]
+            DELHC(2) = GET_ISOPNO3( I, J, L )
+
+            ! Save diagnostic info for bug check (hotp 5/22/10)
+            ! convert from kgC to kg
+            DELTASOGSAVE(I,J,L,:,JHC) = DELHC(:) * 68d0/60d0
+
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            ! Consider only OH oxidation for isoprene.  Also convert 
+!            ! from mass of carbon to mass of isoprene. (dkh, bmy, 5/22/06)
+!            !DO IPR = 1, 3
+!            DO IPR = 1, NPROD(JHC)
+!               DO NOX = 1, NNOX(JHC) ! Only use LOW NOX FOR ISOPRENE.
+!!                  GM0(IPR,JHC) = GM0(IPR,JHC) + ALPHA(IPR,JHC) * DOH
+!!     &                                     * 68d0           / 60d0 
+!                  GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
+!     &                 + ALPHA(NOX,IPR,JHC) * DOH
+!     &                 * 68d0 / 60d0 ! (dkh, 11/04/05)  
+!               ENDDO
+!            ENDDO
+!------------------------------------------------------------------------------
+
+            !------------------------------------------
+            ! Compute amount of semivolatile formed 
+            ! and add to initial SOG (hotp 7/28/10)
+            !------------------------------------------
+            ! update dims (hotp 5/22/10)
+            DO NOX = 1, NNOX(JSV)
+            DO IPR = 1, NPROD(JSV)
+              GM0(IPR,JSV) = GM0(IPR,JSV)
+     &                           + ALPHA(NOX,IPR,JHC) * DELHC(NOX)
+     &                           * 68d0 / 60d0 ! (dkh, 11/04/05)  
+            ENDDO
             ENDDO
 
-         ELSEIF ( JHC == 7 .or. JHC == 8 .OR. JHC == 9 ) THEN 
+         ! remove hardwire (hotp 5/17/10)
+         !ELSEIF ( JHC == 7 .or. JHC == 8 .OR. JHC == 9 ) THEN 
+         ! Add NAP/IVOC here (hotp 5/22/10)
+         ELSEIF ( JHC == PARENTBENZ .or. JHC == PARENTTOLU
+     &       .or. JHC == PARENTXYLE .or. JHC == PARENTNAP  ) THEN 
+
             !-------------------------------
             ! SOA from AROMATICS
             !-------------------------------
 
-            ! AROMOX is the kg of HC (aromatic peroxides) calculated 
-            ! with online chemistry. 
-            DO IPR = 1, NPROD(JHC)
-            DO NOX = 1, NNOX(JHC)
-               DELHC(IPR) = GET_DARO2(I,J,L,NOX,JHC,Input_Opt)
-               GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
-     &                       + ALPHA(NOX,IPR,JHC) * DELHC(IPR)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! old (hotp 7/28/10)
+!            ! AROMOX is the kg of HC (aromatic peroxides) calculated 
+!            ! with online chemistry. 
+!            DO IPR = 1, NPROD(JHC)
+!            DO NOX = 1, NNOX(JHC)
+!               DELHC(IPR) = GET_DARO2(I,J,L,NOX,JHC,Input_Opt)
+!               GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
+!     &                       + ALPHA(NOX,IPR,JHC) * DELHC(IPR)
+!
+!               GLOB_DARO2(I,J,L,NOX,JHC-6) = 
+!     &              GET_DARO2(I,J,L,NOX,JHC,Input_Opt)
+!            ENDDO
+!            ENDDO
+!------------------------------------------------------------------------------
 
-               GLOB_DARO2(I,J,L,NOX,JHC-6) = 
-     &              GET_DARO2(I,J,L,NOX,JHC,Input_Opt)
+            ! Locate IDSV (hotp 5/14/10)
+            JSV = IDSV(JHC)
+
+            ! Determine parent hydrocarbon reacted
+            ! For an online calculation, GET_DARO2 can be called
+            ! with 1 for high NOx, 2 for low NOx
+            ! Here, we add the two pathways together and use an
+            ! offline branching ratio (BETANO) (hotp 5/22/10)
+            NOX = NHIGHNOX ! NOX=1
+            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt) +
+     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt) ) * BETANO
+            NOX = NLOWNOX  ! NOX=2
+            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt) +
+     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt) )
+     &                   * (1d0-BETANO)
+
+            ! Determine SOG yield and add to GM0 (hotp 5/22/10)
+            DO NOX = 1, NNOX(JSV)
+            DO IPR = 1, NPROD(JSV)
+                  GM0(IPR,JSV) = GM0(IPR,JSV)
+     &                       + ALPHA(NOX,IPR,JHC) * DELHC(NOX) 
             ENDDO
             ENDDO
+
+            ! Diagnostic/debug info (hotp 5/22/10)
+            IF ( JHC == PARENTBENZ .or. JHC == PARENTTOLU
+     &                             .or. JHC == PARENTXYLE ) THEN 
+               GLOB_DARO2(I,J,L,:,JHC-5) = DELHC(:)
+            ELSE ! NAP
+               GLOB_DARO2(I,J,L,:,4) = DELHC(:)
+            ENDIF
+
+            ! Total SOG production diagnostic (hotp 5/18/10)
+            DELTASOGSAVE(I,J,L,:,JHC)=DELHC(:)
+
+         ! semivolpoa2: emit POA into 2 semivolatiles here (hotp 2/27/09)
+         ELSEIF ( JHC == PARENTPOA ) THEN
+
+             ! semivolpoa4opoa: DO NOTHING NOW
+             ! SVOCs should immediately partition upon emission
+             ! SVOCs also react in the gas-phase
+             ! If SVOCs were emitted here, how would you know how
+             ! much to put in each phase?
+             ! hotp decided to emit them after the existing SVOCs
+             ! react in the gas-phase. Thus the order of operations
+             ! is:
+             ! SVOC + OH in gas-phase
+             ! SVOC emission (added to gas-phase GM0)
+             ! partitioning
+             ! dry dep
+             ! wet dep
+             ! etc
+              
+             ! DO IPR = 1, NPROD(JHC)
+             ! DO NOX =1, NNOX(JHC)
+             !    ! DELHC is now emission of POA
+             !    ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
+             !    !DELHC(IPR) = POAEMISS(I,J,L) ! DELHC not a function of IPR
+             !    DELHC(IPR) = POAEMISS(I,J,L,NOX) 
+             !    GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC) 
+             ! &                     + ALPHA(NOX,IPR,JHC)*DELHC(IPR)
+             ! ENDDO
+             ! ENDDO
+
+         ! semivolpoa4opoa: perform OPOA production (hotp 3/18/09)
+         ELSEIF ( JHC == PARENTOPOA ) THEN
+
+            ! here we oxidize gas phase POA (POG) to OPOG by reaction with OH
+            ! use constant KOH = 2e-11 for now (hotp 3/18/09)
+            OHMC        = GET_OH(  I, J, L, Input_Opt, State_Met ) 
+            RK          = 2.d-11 * OHMC
+
+            ! Identify IDSV (hotp 5/14/10)
+            JSV = IDSV(JHC)
+
+            DO IPR = 1, NPROD(JSV)
+            DO NOX = 1, NNOX(JSV)
+               ! compute loss of POG due to conversion to OPOG
+               DOH = GM0(IPR,IDSV(PARENTPOA)) *
+     &                (1.D0 - DEXP( -RK * DTCHEM) )
+               DOH = MAX( DOH, 1.D-32 )
+
+               ! add OPOG mass and update GM0 (ALPHA=1)
+               GM0(IPR,JSV) = GM0(IPR,JSV) 
+     &                            + ALPHA(NOX,IPR,JHC) * DOH
+               ! update POG mass
+               GM0(IPR,IDSV(PARENTPOA)) = 
+     &                    GM0(IPR,IDSV(PARENTPOA)) - DOH
+
+               ! check (hotp 10/11/09)
+               GM0(IPR,IDSV(PARENTPOA)) = 
+     &              MAX( GM0(IPR,IDSV(PARENTPOA)), 1d-32)
+
+               ! diagnostic information (hotp 3/28/09)
+               GLOB_POGRXN(I,J,L,IPR) = DOH
+
+               ! Total SOG production diagnostic (hotp 5/18/10)
+               ! Caution: the 4th index is actually NOX, but we use
+               ! IPR here
+               DELTASOGSAVE(I,J,L,IPR,JHC) = DOH
+
+            ENDDO
+            ENDDO
+
+            ! semivolpoa4: add diagnostic information on POG ox (hotp 3/28/09)
+            ! units: kgC cumulative
+            IF ( ND07 > 0 .and. L <= LD07 ) THEN
+               ! move POGRXN after all JSV (hotp 5/24/10)
+               AD07_HC(I,J,L,MSV+1) = AD07_HC(I,J,L,MSV+1) +
+     &                                GLOB_POGRXN(I,J,L,1) +
+     &                                GLOB_POGRXN(I,J,L,2)
+            ENDIF
+
 
          ENDIF 
 
-      ENDDO                     
+      ENDDO  ! JHC                  
+
+      IF ( IDTPOA1 > 0 ) THEN
+         ! semivolpoa4opoa: emit POA last (after OPOA formation) (hotp 3/18/09)
+         JHC = PARENTPOA
+   
+         ! Use IDSV (hotp 5/14/10)
+         JSV = IDSV(JHC)
+   
+         DO IPR = 1, NPROD(JSV)
+         DO NOX = 1, NNOX(JSV)   ! update dims (hotp 5/22/10)
+            ! DELHC is now emission of POA
+            ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
+            DELHC(IPR) = POAEMISS(I,J,L,1) + POAEMISS(I,J,L,2)
+            GM0(IPR,JSV) = GM0(IPR,JSV) 
+     &                   + ALPHA(NOX,IPR,JHC)*DELHC(IPR)
+   
+            ! Total SOG production diagnostic (hotp 5/18/10)
+            ! Caution: the 4th index is actually NOX, but we use
+            ! IPR here
+            DELTASOGSAVE(I,J,L,IPR,JHC) = DELHC(IPR)
+   
+         ENDDO
+         ENDDO
+      ENDIF
 
       !=================================================================
       ! Store Hydrocarbon remaining after oxidation rxn back into STT
       !=================================================================
-      STT(I,J,L,IDTALPH) = MAX( NMVOC(1), 1.D-32 )
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      STT(I,J,L,IDTALPH) = MAX( NMVOC(1), 1.D-32 )
+!      STT(I,J,L,IDTLIMO) = MAX( NMVOC(2), 1.D-32 )
+!      ORVC_TERP(I,J,L)   = MAX( NMVOC(3), 1.D-32 )
+!      STT(I,J,L,IDTALCO) = MAX( NMVOC(4), 1.D-32 )
+!      ORVC_SESQ(I,J,L)   = MAX( NMVOC(5), 1.D-32 )
+!------------------------------------------------------------------------------
+      ! update for new mtp lumping (hotp 5/22/10)
+      STT(I,J,L,IDTMTPA) = MAX( NMVOC(1), 1.D-32 )
       STT(I,J,L,IDTLIMO) = MAX( NMVOC(2), 1.D-32 )
-      ORVC_TERP(I,J,L)   = MAX( NMVOC(3), 1.D-32 )
-      STT(I,J,L,IDTALCO) = MAX( NMVOC(4), 1.D-32 )
-      ORVC_SESQ(I,J,L)   = MAX( NMVOC(5), 1.D-32 )
+      STT(I,J,L,IDTMTPO) = MAX( NMVOC(3), 1.D-32 )
+      ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.D-32 )
       ! Nothing to do for isoprene or aromatics here, 
       ! as their oxidation is treated online. 
 
@@ -3963,6 +5384,8 @@
 !  Subroutine SOA_PARTITION partitions the mass of gas and aerosol 
 !  tracers according to five Hydrocarbon species and three oxidants.
 !  (rjp, bmy, 7/7/04, 5/22/06)
+!  Revised purpose: SOA_PARTITION assigns the mass in the STT array to 
+!  the GM0 and AM0 arrays (hotp 5/13/10)
 !
 !  NOTE: GPROD and APROD are mass ratios of individual oxidation 
 !        products of gas/aerosol to the sum of all. 
@@ -3982,23 +5405,49 @@
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Updated for SOG4, SOA4 (bmy, 5/22/06)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       ! Refrences to F90 modules
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
-      USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
-
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
+!      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
+!      USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
+!------------------------------------------------------------------------------
+      ! new mtp (hotp 5/24/10)
+      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
+      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
+      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      ! semivolpoa2: add POG, POA (hotp 3/2/09)
+      USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
+      USE TRACERID_MOD,       ONLY : IDTPOA2, IDTPOG2
+      ! semivolpoa4: add OPOA, OPOG (hotp 3/27/09)
+      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
+      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
+      ! Lumped aromatic/IVOC tracers (hotp 5/13/10)
+      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
+      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
+      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: I, J, L
-      REAL*8,  INTENT(OUT) :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
+      INTEGER,        INTENT(IN)    :: I, J, L
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! Now dimension with MSV (hotp 5/13/10)
+! update dims (hotp 5/22/10)
+!      REAL*8,  INTENT(OUT) :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+      REAL*8,         INTENT(OUT)   :: GM0(MPROD,MSV), AM0(MPROD,MSV)
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
-      INTEGER              :: JHC, IPR, NOX
+      INTEGER              :: JHC, IPR, NOX, JSV ! JSV Added (hotp 5/13)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -4013,92 +5462,177 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-      ! Initialize
-      ! initialize all, up to MPROD and MNOX (dkh, 11/10/06)  
-!      DO JHC = 1, 3
-!      DO IPR = 1, NPROD
-!         GM0(IPR,JHC) = 0D0
-!         AM0(IPR,JHC) = 0D0
-!      ENDDO
-!      ENDDO
-      DO JHC = 1, MHC
-      DO IPR = 1, MPROD
-      DO NOX = 1, MNOX
-         GM0(NOX,IPR,JHC) = 0D0
-         AM0(NOX,IPR,JHC) = 0D0
-      ENDDO
-      ENDDO
-      ENDDO
+      ! Initialize everything to zero (hotp 5/17/10)
+      GM0 = 0d0
+      AM0 = 0d0
 
-      ! Partition the lump of first three HC (ALPH + LIMO + TERP)
-      ! oxidation products.  These are grouped together because they
-      ! have the same molecular weight.
-      DO JHC = 1, 3
-      !DO IPR = 1, NPROD
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 10/30/06)  
-         !GM0(IPR,JHC) = STT(I,J,L,IDTSOG1) * GPROD(I,J,L,IPR,JHC)
-         !AM0(IPR,JHC) = STT(I,J,L,IDTSOA1) * APROD(I,J,L,IPR,JHC)
-         GM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOG1) *GPROD(I,J,L,NOX,IPR,JHC)
-         AM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOA1) *APROD(I,J,L,NOX,IPR,JHC)
-      ENDDO
-      ENDDO                       
-      ENDDO
+      !---------------------------------------
+      ! SEMIVOLATILE 1: MTPA, LIMO, MTPO, SESQ
+      ! hotp 5/21/10
+      !---------------------------------------
+      JHC = PARENTMTPA
+      JSV = IDSV(JHC)
+      ! gas phase
+      GM0(1,JSV)=STT(I,J,L,IDTTSOG1) ! C* =   1
+      GM0(2,JSV)=STT(I,J,L,IDTTSOG2) ! C* =  10
+      GM0(3,JSV)=STT(I,J,L,IDTTSOG3) ! C* = 100
+      GM0(4,JSV)=STT(I,J,L,IDTTSOG0) ! C* =   0.1
+      ! aerosol phase
+      AM0(1,JSV)=STT(I,J,L,IDTTSOA1)
+      AM0(2,JSV)=STT(I,J,L,IDTTSOA2)
+      AM0(3,JSV)=STT(I,J,L,IDTTSOA3)
+      AM0(4,JSV)=STT(I,J,L,IDTTSOA0)
 
-      ! Alcohol
-      JHC = 4
-      !DO IPR = 1, NPROD
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 10/30/06)  
-         !GM0(IPR,JHC) = STT(I,J,L,IDTSOG2) * GPROD(I,J,L,IPR,JHC)
-         !AM0(IPR,JHC) = STT(I,J,L,IDTSOA2) * APROD(I,J,L,IPR,JHC)
-         GM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOG2) *GPROD(I,J,L,NOX,IPR,JHC)
-         AM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOA2) *APROD(I,J,L,NOX,IPR,JHC)
-      ENDDO
-      ENDDO
+      !---------------------------------------
+      ! SEMIVOLATILE 2: ISOP
+      !---------------------------------------
+      JHC = PARENTISOP
+      JSV = IDSV(JHC)
+      ! gas phase
+      GM0(1,JSV)=STT(I,J,L,IDTISOG1)
+      GM0(2,JSV)=STT(I,J,L,IDTISOG2)
+      GM0(3,JSV)=STT(I,J,L,IDTISOG3)
+      ! aerosol phase
+      AM0(1,JSV)=STT(I,J,L,IDTISOA1)
+      AM0(2,JSV)=STT(I,J,L,IDTISOA2)
+      AM0(3,JSV)=STT(I,J,L,IDTISOA3)
 
-      ! Sesqterpene
-      JHC = 5
-      !DO IPR = 1, NPROD
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 10/30/06)  
-         !GM0(IPR,JHC) = STT(I,J,L,IDTSOG3) * GPROD(I,J,L,IPR,JHC)
-         !AM0(IPR,JHC) = STT(I,J,L,IDTSOA3) * APROD(I,J,L,IPR,JHC)
-         GM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOG3) *GPROD(I,J,L,NOX,IPR,JHC)
-         AM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOA3) *APROD(I,J,L,NOX,IPR,JHC)
-      ENDDO
-      ENDDO
+      !---------------------------------------
+      ! SEMIVOLATILE 3: BENZ, TOLU, XYLE, NAP
+      !---------------------------------------
+      ! Lumped arom/IVOC/NAP semivolatiles (hotp 5/13/10)
+      JHC = PARENTBENZ ! IDSV(B)=IDSV(T)=IDSV(X)=IDSV(N)
+      JSV = IDSV(JHC)
+      ! gas phase
+      GM0(1,JSV)=STT(I,J,L,IDTASOG1)
+      GM0(2,JSV)=STT(I,J,L,IDTASOG2)
+      GM0(3,JSV)=STT(I,J,L,IDTASOG3)
+      ! aerosol phase
+      AM0(1,JSV)=STT(I,J,L,IDTASOA1)
+      AM0(2,JSV)=STT(I,J,L,IDTASOA2)
+      AM0(3,JSV)=STT(I,J,L,IDTASOA3)
+      AM0(4,JSV)=STT(I,J,L,IDTASOAN)
 
-      ! Isoprene
-      JHC = 6
-      !FP_ISOP
+      !---------------------------------------
+      ! SEMIVOLATILE 4: POA/SVOCs
+      !---------------------------------------
+      ! POA-Primary SVOCs (hotp 5/13/10)
+      JHC = PARENTPOA
+      JSV = IDSV(JHC)
+      IF ( IDTPOA1 > 0 ) THEN ! (hotp 8/24/09)
+         ! gas phase
+         GM0(1,JSV) = STT(I,J,L,IDTPOG1)
+         GM0(2,JSV) = STT(I,J,L,IDTPOG2)
+         ! aerosol phase
+         AM0(1,JSV) = STT(I,J,L,IDTPOA1)
+         AM0(2,JSV) = STT(I,J,L,IDTPOA2)
+      ENDIF
 
-!      DO IPR = 1, NPROD
-!         GM0(IPR,JHC) = STT(I,J,L,IDTSOG4) * GPROD(I,J,L,IPR,JHC)
-!         AM0(IPR,JHC) = STT(I,J,L,IDTSOA4) * APROD(I,J,L,IPR,JHC)
-!      ENDDO
-      DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 10/30/06)  
-            GM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOG4) *
-     &           GPROD(I,J,L,NOX,IPR,JHC)
-            AM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOA4) *
-     &           APROD(I,J,L,NOX,IPR,JHC)
-         ENDDO
-      ENDDO 
+      !---------------------------------------
+      ! SEMIVOLATILE 5: OPOA/O-SVOCs
+      !---------------------------------------
+      ! OPOA-Oxidized SVOCs (hotp 5/13/10)
+      JHC = PARENTOPOA
+      JSV = IDSV(JHC)
+      IF ( IDTOPOA1 > 0 ) THEN ! (hotp 8/24/09)
+         ! gas phase
+         GM0(1,JSV) = STT(I,J,L,IDTOPOG1)
+         GM0(2,JSV) = STT(I,J,L,IDTOPOG2)
+         ! aerosol phase
+         AM0(1,JSV) = STT(I,J,L,IDTOPOA1)
+         AM0(2,JSV) = STT(I,J,L,IDTOPOA2)
+      ENDIF
 
-
-      ! Aromatics
-      DO JHC = 7, 9
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 10/30/06)  
-         GM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOG5) *GPROD(I,J,L,NOX,IPR,JHC)
-         AM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOA5) *APROD(I,J,L,NOX,IPR,JHC)
-      ENDDO
-      ENDDO
-      ENDDO
-      
       ! Free pointer
       NULLIFY( STT )
+
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! removed old (hotp 7/28/10)
+!      ! Initialize
+!      ! initialize all, up to MPROD and MNOX (dkh, 11/10/06)  
+!!      DO JHC = 1, 3
+!!      DO IPR = 1, NPROD
+!!         GM0(IPR,JHC) = 0D0
+!!         AM0(IPR,JHC) = 0D0
+!!      ENDDO
+!!      ENDDO
+!      DO JHC = 1, MHC
+!      DO IPR = 1, MPROD
+!      DO NOX = 1, MNOX
+!         GM0(NOX,IPR,JHC) = 0D0
+!         AM0(NOX,IPR,JHC) = 0D0
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!
+!      ! Partition the lump of first three HC (ALPH + LIMO + TERP)
+!      ! oxidation products.  These are grouped together because they
+!      ! have the same molecular weight.
+!      DO JHC = 1, 3
+!      !DO IPR = 1, NPROD
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 10/30/06)  
+!         !GM0(IPR,JHC) = STT(I,J,L,IDTSOG1) * GPROD(I,J,L,IPR,JHC)
+!         !AM0(IPR,JHC) = STT(I,J,L,IDTSOA1) * APROD(I,J,L,IPR,JHC)
+!         GM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOG1) *GPROD(I,J,L,NOX,IPR,JHC)
+!         AM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOA1) *APROD(I,J,L,NOX,IPR,JHC)
+!      ENDDO
+!      ENDDO                       
+!      ENDDO
+!
+!      ! Alcohol
+!      JHC = 4
+!      !DO IPR = 1, NPROD
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 10/30/06)  
+!         !GM0(IPR,JHC) = STT(I,J,L,IDTSOG2) * GPROD(I,J,L,IPR,JHC)
+!         !AM0(IPR,JHC) = STT(I,J,L,IDTSOA2) * APROD(I,J,L,IPR,JHC)
+!         GM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOG2) *GPROD(I,J,L,NOX,IPR,JHC)
+!         AM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOA2) *APROD(I,J,L,NOX,IPR,JHC)
+!      ENDDO
+!      ENDDO
+!
+!      ! Sesqterpene
+!      JHC = 5
+!      !DO IPR = 1, NPROD
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 10/30/06)  
+!         !GM0(IPR,JHC) = STT(I,J,L,IDTSOG3) * GPROD(I,J,L,IPR,JHC)
+!         !AM0(IPR,JHC) = STT(I,J,L,IDTSOA3) * APROD(I,J,L,IPR,JHC)
+!         GM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOG3) *GPROD(I,J,L,NOX,IPR,JHC)
+!         AM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOA3) *APROD(I,J,L,NOX,IPR,JHC)
+!      ENDDO
+!      ENDDO
+!
+!      ! Isoprene
+!      JHC = 6
+!      !FP_ISOP
+!
+!!      DO IPR = 1, NPROD
+!!         GM0(IPR,JHC) = STT(I,J,L,IDTSOG4) * GPROD(I,J,L,IPR,JHC)
+!!         AM0(IPR,JHC) = STT(I,J,L,IDTSOA4) * APROD(I,J,L,IPR,JHC)
+!!      ENDDO
+!      DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 10/30/06)  
+!            GM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOG4) *
+!     &           GPROD(I,J,L,NOX,IPR,JHC)
+!            AM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOA4) *
+!     &           APROD(I,J,L,NOX,IPR,JHC)
+!         ENDDO
+!      ENDDO 
+!
+!
+!      ! Aromatics
+!      DO JHC = 7, 9
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 10/30/06)  
+!         GM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOG5) *GPROD(I,J,L,NOX,IPR,JHC)
+!         AM0(NOX,IPR,JHC) = STT(I,J,L,IDTSOA5) *APROD(I,J,L,NOX,IPR,JHC)
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE SOA_PARTITION
@@ -4128,25 +5662,54 @@
 !  (5 ) Typo fix: GPROD should be APROD in a couple places (tmf, bmy, 10/16/06)
 !  (6 ) Bug fix: For SOA4, GPROD and APROD should have default values of 0.5,
 !        instead of 1.0 (dkh, bmy, 2/6/07)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,     ONLY : AD07_HC 
+      USE DIAG_MOD,           ONLY : AD07_HC 
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
-      USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
-      
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
+!      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
+!      USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
+!------------------------------------------------------------------------------
+      ! new mtp (hotp 5/24/10)
+      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
+      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
+      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      ! semivolpoa2: add POA,POG (hotp 3/2/09)
+      USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
+      USE TRACERID_MOD,       ONLY : IDTPOA2, IDTPOG2
+      ! semivolpoa4: add OPOA, OPOG (hotp 3/27/09)
+      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
+      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
+      ! Lumped aromatic/IVOC aerosol (hotp 5/13/10)
+      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
+      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
+      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+
       ! Arguments
-      INTEGER, INTENT(IN)  :: I, J, L
-      REAL*8,  INTENT(IN)  :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
+      INTEGER,        INTENT(IN)    :: I, J, L
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! Dimension with MSV instead of MHC (hotp 5/13/10)
+! update dims (hotp 5/22/10)
+!      REAL*8,  INTENT(IN)  :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+      REAL*8,         INTENT(IN)    :: GM0(MPROD,MSV), AM0(MPROD,MSV)
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
-      INTEGER              :: JHC, IPR, NOX
+      INTEGER              :: JHC, IPR, NOX, JSV ! JSV (hotp 5/13/10)
       REAL*8               :: GASMASS, AERMASS
+      INTEGER              :: IDTSPECIES ! hotp 6/5/10
+      REAL*8               :: AERCHANGE  ! hotp 6/5/10
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -4161,364 +5724,768 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
+      !=================================================================
+      ! Semivolatile Group 1: monoterpenes and sesquiterpenes (hotp 5/22/10)
+      !=================================================================
+
       ! Initialize
       GASMASS = 0D0
       AERMASS = 0D0
+      JHC = PARENTMTPA
+      JSV = IDSV(JHC)
 
-      ! Compute total gas & aerosol mass
-      DO JHC = 1, 3
-      !DO IPR = 1, NPROD
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
-         !GASMASS = GASMASS + GM0(IPR,JHC)
-         !AERMASS = AERMASS + AM0(IPR,JHC)               
-         GASMASS = GASMASS + GM0(NOX,IPR,JHC)
-         AERMASS = AERMASS + AM0(NOX,IPR,JHC)
-      ENDDO
-      ENDDO                       
+      ! Save diagnostic info
+      DO IPR = 1, NPROD(JSV) ! change JHC to JSV
+         GASMASS = GASMASS + GM0(IPR,JSV)
+         AERMASS = AERMASS + AM0(IPR,JSV)
       ENDDO
 
-      !----------------------------
-      ! SOA1 net Production (kg)
-      !----------------------------
+      !-----------------------------
+      ! SOA net production [kg]
+      !-----------------------------
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,1) = AD07_HC(I,J,L,1)
-     &                    + ( AERMASS - STT(I,J,L,IDTSOA1) )
+         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
+     &                    + ( AERMASS - 
+     &                        STT(I,J,L,IDTTSOA1) -
+     &                        STT(I,J,L,IDTTSOA2) -
+     &                        STT(I,J,L,IDTTSOA3) -
+     &                        STT(I,J,L,IDTTSOA0)  )
       ENDIF
 
-      STT(I,J,L,IDTSOG1) = MAX( GASMASS, 1.D-32 )
-      STT(I,J,L,IDTSOA1) = MAX( AERMASS, 1.D-32 )
-
-      IF ( STT(I,J,L,IDTSOG1) > 1.0E-6 ) THEN
-         DO JHC = 1, 3
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
-            GPROD(I,J,L,NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
-     &                               / STT(I,J,L,IDTSOG1)
-         ENDDO
-         ENDDO                       
-         ENDDO
+      !-----------------------------
+      ! Transient mass bal prod/evap
+      ! (hotp 6/5/10)
+      !-----------------------------
+      IDTSPECIES = IDTTSOA1
+      IPR = 1
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         DO JHC = 1, 3
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
-            !GPROD(I,J,L,IPR,JHC)= 0.111111111d0
-            GPROD(I,J,L,NOX,IPR,JHC)= PRODPERCOFSTT(JHC)
-         ENDDO
-         ENDDO
-         ENDDO   
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IF ( STT(I,J,L,IDTSOA1) > 1.0E-6 ) THEN
-         DO JHC = 1, 3
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)     ! Add NOX index (dkh, 10/30/06)  
-            !APROD(I,J,L,IPR,JHC) = AM0(IPR,JHC) / STT(I,J,L,IDTSOA1)
-            APROD(I,J,L,NOX,IPR,JHC) = AM0(NOX,IPR,JHC)
-     &                               / STT(I,J,L,IDTSOA1)
-         ENDDO
-         ENDDO                       
-         ENDDO
+      IDTSPECIES = IDTTSOA2
+      IPR = 2
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         DO JHC = 1, 3
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 10/30/06)  
-            !APROD(I,J,L,IPR,JHC) = 0.111111111d0
-            APROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
-         ENDDO
-         ENDDO
-         ENDDO
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
+
+      IDTSPECIES = IDTTSOA3
+      IPR = 3
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+      ELSE
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+      ENDIF
+
+      ! Add C*=0.1 product (hotp 6/12/10)
+      IDTSPECIES = IDTTSOA0
+      IPR = 4
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+      ELSE
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+      ENDIF
+
+      !-----------------------------
+      ! Update tracers [kg]
+      !-----------------------------
+      ! gas phase
+      STT(I,J,L,IDTTSOG1) = MAX( GM0(1,JSV), 1d-32 )
+      STT(I,J,L,IDTTSOG2) = MAX( GM0(2,JSV), 1d-32 )
+      STT(I,J,L,IDTTSOG3) = MAX( GM0(3,JSV), 1d-32 )
+      STT(I,J,L,IDTTSOG0) = MAX( GM0(4,JSV), 1d-32 )
+      ! aerosol phase
+      STT(I,J,L,IDTTSOA1) = MAX( AM0(1,JSV), 1d-32 )
+      STT(I,J,L,IDTTSOA2) = MAX( AM0(2,JSV), 1d-32 )
+      STT(I,J,L,IDTTSOA3) = MAX( AM0(3,JSV), 1d-32 )
+      STT(I,J,L,IDTTSOA0) = MAX( AM0(4,JSV), 1d-32 )
 
       !=================================================================
-      ! Lump of products of fourth Hydrocarbon class (ALCOHOL)
+      ! Semivolatile Group 2: isoprene (hotp 5/22/10)
       !=================================================================
 
-      JHC     = 4
+      ! Initialize
       GASMASS = 0D0
       AERMASS = 0D0
-      
-      !DO IPR = 1, NPROD
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
-         !GASMASS = GASMASS + GM0(IPR,JHC)
-         !AERMASS = AERMASS + AM0(IPR,JHC)               
-         GASMASS = GASMASS + GM0(NOX,IPR,JHC)
-         AERMASS = AERMASS + AM0(NOX,IPR,JHC)
-      ENDDO
+      JHC = PARENTISOP
+      JSV = IDSV(JHC)
+
+      ! Save diagnostic info
+      DO IPR = 1, NPROD(JSV) ! change JHC to JSV
+         GASMASS = GASMASS + GM0(IPR,JSV)
+         AERMASS = AERMASS + AM0(IPR,JSV)
       ENDDO
 
-      !---------------------------
-      ! SOA2 net Production (kg)
-      !---------------------------
+      !-----------------------------
+      ! SOA net production [kg]
+      !-----------------------------
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,2) = AD07_HC(I,J,L,2)
-     &                    + ( AERMASS - STT(I,J,L,IDTSOA2) )
+         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
+     &                    + ( AERMASS - 
+     &                        STT(I,J,L,IDTISOA1) -
+     &                        STT(I,J,L,IDTISOA2) -
+     &                        STT(I,J,L,IDTISOA3)   )
       ENDIF
 
-      STT(I,J,L,IDTSOG2) = MAX(GASMASS, 1.D-32)
-      STT(I,J,L,IDTSOA2) = MAX(AERMASS, 1.D-32)
+      !-----------------------------
+      ! Transient mass bal prod/evap
+      ! (hotp 6/5/10)
+      !-----------------------------
+      IDTSPECIES = IDTISOA1
+      IPR = 1
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+      ELSE
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+      ENDIF
 
-      IF ( STT(I,J,L,IDTSOG2) > 1.0E-6 ) THEN
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
-            !GPROD(I,J,L,IPR,JHC) = GM0(IPR,JHC) / STT(I,J,L,IDTSOG2)
-            GPROD(I,J,L,NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
-     &                               / STT(I,J,L,IDTSOG2)
-         ENDDO
-         ENDDO                       
+      IDTSPECIES = IDTISOA2
+      IPR = 2
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)     ! Add NOX index (dkh, 10/30/06)  
-            !GPROD(I,J,L,IPR,JHC) = 0.333333333d0
-            GPROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
-         ENDDO
-         ENDDO
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
-      
-      IF ( STT(I,J,L,IDTSOA2) > 1.0E-6 ) THEN
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)     ! Add NOX index (dkh, 10/30/06)  
-            !APROD(I,J,L,IPR,JHC) = AM0(IPR,JHC) / STT(I,J,L,IDTSOA2)
-            APROD(I,J,L,NOX,IPR,JHC) = AM0(NOX,IPR,JHC)
-     &                               / STT(I,J,L,IDTSOA2)
-         ENDDO
-         ENDDO                       
+
+      IDTSPECIES = IDTISOA3
+      IPR = 3
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)     ! Add NOX index  (dkh, 10/30/06)  
-            !APROD(I,J,L,IPR,JHC) = 0.333333333d0
-            APROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
-         ENDDO
-         ENDDO
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
+
+      !-----------------------------
+      ! Update tracers [kg]
+      !-----------------------------
+      ! gas phase
+      STT(I,J,L,IDTISOG1) = MAX( GM0(1,JSV), 1d-32 )
+      STT(I,J,L,IDTISOG2) = MAX( GM0(2,JSV), 1d-32 )
+      STT(I,J,L,IDTISOG3) = MAX( GM0(3,JSV), 1d-32 )
+      ! aerosol phase
+      STT(I,J,L,IDTISOA1) = MAX( AM0(1,JSV), 1d-32 )
+      STT(I,J,L,IDTISOA2) = MAX( AM0(2,JSV), 1d-32 )
+      STT(I,J,L,IDTISOA3) = MAX( AM0(3,JSV), 1d-32 )
 
       !=================================================================
-      ! Lump of products of fifth Hydrocarbon class (SESQTERPINE)
-      !=================================================================
-      JHC     = 5
-      GASMASS = 0D0
-      AERMASS = 0D0
-
-      !DO IPR = 1, NPROD
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)     ! Add NOX index 
-         !GASMASS = GASMASS + GM0(IPR,JHC)
-         !AERMASS = AERMASS + AM0(IPR,JHC)               
-         GASMASS = GASMASS + GM0(NOX,IPR,JHC)
-         AERMASS = AERMASS + AM0(NOX,IPR,JHC)
-      ENDDO
-      ENDDO
-
-      !---------------------------
-      ! SOA3 net Production (kg)
-      !---------------------------
-      IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,3) = AD07_HC(I,J,L,3)
-     &                    + ( AERMASS - STT(I,J,L,IDTSOA3) )
-      ENDIF
-
-      STT(I,J,L,IDTSOG3) = MAX(GASMASS, 1.D-32)
-      STT(I,J,L,IDTSOA3) = MAX(AERMASS, 1.D-32)
-
-      IF ( STT(I,J,L,IDTSOG3) > 1.0E-6 ) THEN
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)     ! Add NOX index (dkh, 10/30/06)  
-            !GPROD(I,J,L,IPR,JHC) = GM0(IPR,JHC) / STT(I,J,L,IDTSOG3)
-            GPROD(I,J,L,NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
-     &                               / STT(I,J,L,IDTSOG3)
-         ENDDO
-         ENDDO                       
-      ELSE
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)     ! Add NOX index (dkh, 10/30/06)  
-            !GPROD(I,J,L,IPR,JHC) = 0.5D0
-            GPROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
-         ENDDO
-         ENDDO
-      ENDIF
-
-      IF ( STT(I,J,L,IDTSOA3) > 1.0E-6 ) THEN
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 11/06/06)  
-            !APROD(I,J,L,IPR,JHC) = AM0(IPR,JHC) / STT(I,J,L,IDTSOA3)
-            APROD(I,J,L,NOX,IPR,JHC) = AM0(NOX,IPR,JHC)
-     &                               / STT(I,J,L,IDTSOA3)
-         ENDDO
-         ENDDO                       
-      ELSE
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)   ! (dkh, 10/30/06)  
-            !GPROD(I,J,L,IPR,JHC) = 0.5D0
-            ! also BUG FIX, should be APROD
-            APROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
-         ENDDO
-         ENDDO
-      ENDIF
-
-      ! make sure there is no second oxidation product 
-      ! for SESQTERPENE by OH + O3
-      ! the 2nd oxidation product is from NO3, no 3rd oxid prod (hotp 8/4/08)
-      ! Only Low NOX product (hotp 8/24/09)
-      !GPROD(I,J,L,2,JHC) = 0.D0
-      !APROD(I,J,L,2,JHC) = 0.D0
-      GPROD(I,J,L,1,3,JHC) = 0.D0
-      APROD(I,J,L,1,3,JHC) = 0.D0
-
-
-      !=================================================================
-      ! Lump of products of sixth Hydrocarbon class (ISOP) 
-      ! (dkh, bmy, 5/22/06)
-      !=================================================================
-      JHC     = 6
-      GASMASS = 0D0
-      AERMASS = 0D0
-
-      !DO IPR = 1, NPROD
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 11/05/06)  
-         !GASMASS = GASMASS + GM0(IPR,JHC)
-         !AERMASS = AERMASS + AM0(IPR,JHC)               
-         GASMASS = GASMASS + GM0(NOX,IPR,JHC)
-         AERMASS = AERMASS + AM0(NOX,IPR,JHC)
-      ENDDO
-      ENDDO
-
-      !---------------------------
-      ! SOA4 net Production (kg)
-      !---------------------------
-
-      IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,4) = AD07_HC(I,J,L,4)
-     &                    + ( AERMASS - STT(I,J,L,IDTSOA4) )
-      ENDIF
-
-      ! SOG4 is only used with Odum model (hotp 10/2/09)
-      STT(I,J,L,IDTSOG4) = MAX( GASMASS, 1.D-32 )
-
-      ! SOA4 is used for both isoprene SOA treatments
-      STT(I,J,L,IDTSOA4) = MAX( AERMASS, 1.D-32 )
-
-      ! Use different GPROD for Odum or new SOA (hotp 10/2/09)
-      IF ( STT(I,J,L,IDTSOG4) > 1.0E-6 ) THEN
-            !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-            DO NOX = 1, NNOX(JHC) ! Add NOX index (dkh, 11/05/06)  
-               !GPROD(I,J,L,IPR,JHC) = GM0(IPR,JHC) / STT(I,J,L,IDTSOG4)
-               GPROD(I,J,L,NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
-     &              / STT(I,J,L,IDTSOG4)
-            ENDDO
-         ENDDO
-      ELSE 
-         ! Use defautl GPROD for EPOX/MPAN SOA (hotp 10/2/09)
-         ! It's not really used
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 11/05/06)  
-            GPROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
-         ENDDO
-         ENDDO
-      ENDIF
-
-      IF ( STT(I,J,L,IDTSOA4) > 1.0E-6 ) THEN
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 11/05/06)  
-            !APROD(I,J,L,IPR,JHC) = AM0(IPR,JHC) / STT(I,J,L,IDTSOA4)
-            APROD(I,J,L,NOX,IPR,JHC) = AM0(NOX,IPR,JHC)
-     &                               / STT(I,J,L,IDTSOA4)
-         ENDDO
-         ENDDO
-      ELSE
-         !DO IPR = 1, NPROD
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 11/05/06)  
-            !GPROD(I,J,L,IPR,JHC) = 1.d0
-            ! also BUG FIX, should be APROD
-            APROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
-         ENDDO
-         ENDDO
-      ENDIF
-
-      !=================================================================
+      ! Semivolatile Group 3: benzene, toluene, xylene, naphthalene/IVOC
       ! Lump of products of 7-9 Hydrocarbon class (aromatics) (dkh, 11/11/06)  
+      ! Lumped aromatic/IVOC (hotp 5/13/10  
       !=================================================================
+
+      ! Initialize
       GASMASS = 0D0
       AERMASS = 0D0
+      JHC = PARENTBENZ
+      JSV = IDSV(JHC)
 
-      DO JHC = 7, 9
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC) ! Add NOX index (dkh, 11/05/06)  
-         !GASMASS = GASMASS + GM0(IPR,JHC)
-         !AERMASS = AERMASS + AM0(IPR,JHC)               
-         GASMASS = GASMASS + GM0(NOX,IPR,JHC)
-         AERMASS = AERMASS + AM0(NOX,IPR,JHC)
-      ENDDO
-      ENDDO
+      ! Save diagnostic info
+      ! This is a lumped species (hotp 5/13/10)
+      DO IPR = 1, NPROD(JSV) ! change JHC to JSV
+         GASMASS = GASMASS + GM0(IPR,JSV)
+         AERMASS = AERMASS + AM0(IPR,JSV)
       ENDDO
 
-      !---------------------------
-      ! SOA5 net Production (kg) (dkh, 11/11/06)  
-      !---------------------------
+      !-----------------------------
+      ! SOA net production [kg]
+      !-----------------------------
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,5) = AD07_HC(I,J,L,5)
-     &                    + ( AERMASS - STT(I,J,L,IDTSOA5) )
+         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
+     &                    + ( AERMASS - 
+     &                        STT(I,J,L,IDTASOAN) -
+     &                        STT(I,J,L,IDTASOA1) -
+     &                        STT(I,J,L,IDTASOA2) -
+     &                        STT(I,J,L,IDTASOA3)   )
       ENDIF
 
-      STT(I,J,L,IDTSOG5) = MAX(GASMASS, 1.D-32)
-      STT(I,J,L,IDTSOA5) = MAX(AERMASS, 1.D-32)
-
-      IF ( STT(I,J,L,IDTSOG5) > 1.0E-6 ) THEN
-         DO JHC = 7, 9
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)
-            GPROD(I,J,L,NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
-     &                               / STT(I,J,L,IDTSOG5)
-         ENDDO
-         ENDDO
-         ENDDO
+      !-----------------------------
+      ! Transient mass bal prod/evap
+      ! (hotp 6/5/10)
+      !-----------------------------
+      IDTSPECIES = IDTASOA1
+      IPR = 1
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         DO JHC = 7, 9
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)
-            GPROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
-         ENDDO
-         ENDDO
-         ENDDO
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
-      IF ( STT(I,J,L,IDTSOA5) > 1.0E-6 ) THEN
-         DO JHC = 7, 9
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)
-            APROD(I,J,L,NOX,IPR,JHC) = AM0(NOX,IPR,JHC)
-     &                               / STT(I,J,L,IDTSOA5)
-         ENDDO
-         ENDDO
-         ENDDO
+      IDTSPECIES = IDTASOA2
+      IPR = 2
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         DO JHC = 7, 9
-         DO IPR = 1, NPROD(JHC)
-         DO NOX = 1, NNOX(JHC)
-            APROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
-         ENDDO
-         ENDDO
-         ENDDO
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
+
+      IDTSPECIES = IDTASOA3
+      IPR = 3
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+      ELSE
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+      ENDIF
+
+      IDTSPECIES = IDTASOAN
+      IPR = 4
+      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+      IF ( AERCHANGE .GT. 0d0 ) THEN
+         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+      ELSE
+         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+      ENDIF
+
+      !-----------------------------
+      ! Update tracers [kg]
+      !-----------------------------
+      ! APROD and GPROD are no longer used, but GM0 and AM0
+      ! need to be saved to tracer arrays (hotp 5/13/10)
+      ! HIGH NOX  ! update dims (hotp 5/22/10)
+      !NOX = NHIGHNOX
+      ! gas phase
+      STT(I,J,L,IDTASOG1) = MAX( GM0(1,JSV), 1d-32 )
+      STT(I,J,L,IDTASOG2) = MAX( GM0(2,JSV), 1d-32 )
+      STT(I,J,L,IDTASOG3) = MAX( GM0(3,JSV), 1d-32 )
+      ! aerosol phase
+      STT(I,J,L,IDTASOA1) = MAX( AM0(1,JSV), 1d-32 )
+      STT(I,J,L,IDTASOA2) = MAX( AM0(2,JSV), 1d-32 )
+      STT(I,J,L,IDTASOA3) = MAX( AM0(3,JSV), 1d-32 )
+      ! LOW NOX (only 1 aerosol phase)
+      !NOX = NLOWNOX ! store in spot 4 (hotp 5/22/10)
+      STT(I,J,L,IDTASOAN) = MAX( AM0(4,JSV), 1d-32 )
+
+      !=================================================================
+      ! Semivolatile 4: POA/primary SVOCs
+      ! Lump of products of 10th Hydrocarbon class (POA) 
+      ! semivolpoa2: lump POA (hotp 2/27/09)
+      !=================================================================
+
+      IF ( IDTPOA1 > 0 ) THEN ! (hotp 8/24/09)
+ 
+         ! Initialize
+         !JHC     = 10
+         GASMASS = 0D0
+         AERMASS = 0D0
+         JHC     = PARENTPOA
+         JSV     = IDSV(JHC)
+
+         ! Replace JHC with JSV (hotp 5/13/10)
+         DO IPR = 1, NPROD(JSV)
+            GASMASS = GASMASS + GM0(IPR,JSV)
+            AERMASS = AERMASS + AM0(IPR,JSV)
+         ENDDO
+
+         !---------------------------
+         ! POA net emission (kg)
+         !---------------------------
+         IF ( ND07 > 0 .and. L <= LD07 ) THEN
+            AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
+     &                         + ( AERMASS - STT(I,J,L,IDTPOA1) -
+     &                                       STT(I,J,L,IDTPOA2) )
+         ENDIF
+
+         !---------------------------
+         ! Transient SOA PROD/EVAP
+         ! (hotp 6/5/10)
+         !---------------------------
+         IDTSPECIES = IDTPOA1
+         IPR = 1
+         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+         IF ( AERCHANGE .GT. 0d0 ) THEN
+            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    SPECSOAPROD(I,J,L,IPR,JSV)
+         ELSE
+            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
+         ENDIF
+
+         IDTSPECIES = IDTPOA2
+         IPR = 2
+         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+         IF ( AERCHANGE .GT. 0d0 ) THEN
+            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    SPECSOAPROD(I,J,L,IPR,JSV)
+         ELSE
+            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
+         ENDIF
+
+         !---------------------------
+         ! Update tracers [kg]
+         !---------------------------
+         ! gas phase
+         STT(I,J,L,IDTPOG1) = MAX( GM0(1,JSV), 1.D-32 )
+         STT(I,J,L,IDTPOG2) = MAX( GM0(2,JSV), 1.D-32 )
+         ! aerosol phase
+         STT(I,J,L,IDTPOA1) = MAX( AM0(1,JSV), 1.D-32 )
+         STT(I,J,L,IDTPOA2) = MAX( AM0(2,JSV), 1.D-32 )
+
+      ENDIF ! POA
+
+      !=================================================================
+      ! Semivolatile 5: OPOA/oxidized primary SVOCs
+      ! Lump of products of 11th Hydrocarbon class (OPOA) 
+      ! semivolpoa4opoa: lump OPOA (hotp 2/27/09)
+      !=================================================================
+
+      IF ( IDTOPOA1 > 0 ) THEN ! (hotp 8/24/09)
+ 
+         ! Initialize
+         GASMASS = 0D0
+         AERMASS = 0D0
+         JHC     = PARENTOPOA
+         JSV     = IDSV(JHC)
+
+         ! Save diagnostic info
+         DO IPR = 1, NPROD(JSV)
+            GASMASS = GASMASS + GM0(IPR,JSV)
+            AERMASS = AERMASS + AM0(IPR,JSV)
+         ENDDO
+
+         !---------------------------
+         ! OPOA net production (kg)
+         !---------------------------
+         IF ( ND07 > 0 .and. L <= LD07 ) THEN
+            AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
+     &                         + ( AERMASS - STT(I,J,L,IDTOPOA1) -
+     &                                       STT(I,J,L,IDTOPOA2) )
+         ENDIF
+
+         !---------------------------
+         ! Transient SOA PROD/EVAP
+         ! (hotp 6/5/10)
+         !---------------------------
+         IDTSPECIES = IDTOPOA1
+         IPR = 1
+         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+         IF ( AERCHANGE .GT. 0d0 ) THEN
+            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    SPECSOAPROD(I,J,L,IPR,JSV)
+         ELSE
+            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
+         ENDIF
+
+         IDTSPECIES = IDTOPOA2
+         IPR = 2
+         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
+         IF ( AERCHANGE .GT. 0d0 ) THEN
+            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    SPECSOAPROD(I,J,L,IPR,JSV)
+         ELSE
+            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
+         ENDIF
+
+         !---------------------------
+         ! Update tracers [kg]
+         !---------------------------
+         ! gas phase
+         STT(I,J,L,IDTOPOG1) = MAX( GM0(1,JSV), 1.D-32 )
+         STT(I,J,L,IDTOPOG2) = MAX( GM0(2,JSV), 1.D-32 )
+         ! aerosol phase
+         STT(I,J,L,IDTOPOA1) = MAX( AM0(1,JSV), 1.D-32 )
+         STT(I,J,L,IDTOPOA2) = MAX( AM0(2,JSV), 1.D-32 )
+
+      ENDIF ! OPOA
 
       ! Free pointer
       NULLIFY( STT )
+
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! removed old (hotp 7/28/10)
+!      ! Initialize
+!      GASMASS = 0D0
+!      AERMASS = 0D0
+!
+!      ! Compute total gas & aerosol mass
+!      DO JHC = 1, 3
+!      !DO IPR = 1, NPROD
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
+!         !GASMASS = GASMASS + GM0(IPR,JHC)
+!         !AERMASS = AERMASS + AM0(IPR,JHC)               
+!         GASMASS = GASMASS + GM0(NOX,IPR,JHC)
+!         AERMASS = AERMASS + AM0(NOX,IPR,JHC)
+!      ENDDO
+!      ENDDO                       
+!      ENDDO
+!
+!      !----------------------------
+!      ! SOA1 net Production (kg)
+!      !----------------------------
+!      IF ( ND07 > 0 .and. L <= LD07 ) THEN
+!         AD07_HC(I,J,L,1) = AD07_HC(I,J,L,1)
+!     &                    + ( AERMASS - STT(I,J,L,IDTSOA1) )
+!      ENDIF
+!
+!      STT(I,J,L,IDTSOG1) = MAX( GASMASS, 1.D-32 )
+!      STT(I,J,L,IDTSOA1) = MAX( AERMASS, 1.D-32 )
+!
+!      IF ( STT(I,J,L,IDTSOG1) > 1.0E-6 ) THEN
+!         DO JHC = 1, 3
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
+!            GPROD(I,J,L,NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
+!     &                               / STT(I,J,L,IDTSOG1)
+!         ENDDO
+!         ENDDO                       
+!         ENDDO
+!      ELSE
+!         DO JHC = 1, 3
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
+!            !GPROD(I,J,L,IPR,JHC)= 0.111111111d0
+!            GPROD(I,J,L,NOX,IPR,JHC)= PRODPERCOFSTT(JHC)
+!         ENDDO
+!         ENDDO
+!         ENDDO   
+!      ENDIF
+!
+!      IF ( STT(I,J,L,IDTSOA1) > 1.0E-6 ) THEN
+!         DO JHC = 1, 3
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)     ! Add NOX index (dkh, 10/30/06)  
+!            !APROD(I,J,L,IPR,JHC) = AM0(IPR,JHC) / STT(I,J,L,IDTSOA1)
+!            APROD(I,J,L,NOX,IPR,JHC) = AM0(NOX,IPR,JHC)
+!     &                               / STT(I,J,L,IDTSOA1)
+!         ENDDO
+!         ENDDO                       
+!         ENDDO
+!      ELSE
+!         DO JHC = 1, 3
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 10/30/06)  
+!            !APROD(I,J,L,IPR,JHC) = 0.111111111d0
+!            APROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!      ENDIF
+!
+!      !=================================================================
+!      ! Lump of products of fourth Hydrocarbon class (ALCOHOL)
+!      !=================================================================
+!
+!      JHC     = 4
+!      GASMASS = 0D0
+!      AERMASS = 0D0
+!      
+!      !DO IPR = 1, NPROD
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
+!         !GASMASS = GASMASS + GM0(IPR,JHC)
+!         !AERMASS = AERMASS + AM0(IPR,JHC)               
+!         GASMASS = GASMASS + GM0(NOX,IPR,JHC)
+!         AERMASS = AERMASS + AM0(NOX,IPR,JHC)
+!      ENDDO
+!      ENDDO
+!
+!      !---------------------------
+!      ! SOA2 net Production (kg)
+!      !---------------------------
+!      IF ( ND07 > 0 .and. L <= LD07 ) THEN
+!         AD07_HC(I,J,L,2) = AD07_HC(I,J,L,2)
+!     &                    + ( AERMASS - STT(I,J,L,IDTSOA2) )
+!      ENDIF
+!
+!      STT(I,J,L,IDTSOG2) = MAX(GASMASS, 1.D-32)
+!      STT(I,J,L,IDTSOA2) = MAX(AERMASS, 1.D-32)
+!
+!      IF ( STT(I,J,L,IDTSOG2) > 1.0E-6 ) THEN
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)   ! Add NOX index (dkh, 10/30/06)  
+!            !GPROD(I,J,L,IPR,JHC) = GM0(IPR,JHC) / STT(I,J,L,IDTSOG2)
+!            GPROD(I,J,L,NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
+!     &                               / STT(I,J,L,IDTSOG2)
+!         ENDDO
+!         ENDDO                       
+!      ELSE
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)     ! Add NOX index (dkh, 10/30/06)  
+!            !GPROD(I,J,L,IPR,JHC) = 0.333333333d0
+!            GPROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
+!         ENDDO
+!         ENDDO
+!      ENDIF
+!      
+!      IF ( STT(I,J,L,IDTSOA2) > 1.0E-6 ) THEN
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)     ! Add NOX index (dkh, 10/30/06)  
+!            !APROD(I,J,L,IPR,JHC) = AM0(IPR,JHC) / STT(I,J,L,IDTSOA2)
+!            APROD(I,J,L,NOX,IPR,JHC) = AM0(NOX,IPR,JHC)
+!     &                               / STT(I,J,L,IDTSOA2)
+!         ENDDO
+!         ENDDO                       
+!      ELSE
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)     ! Add NOX index  (dkh, 10/30/06)  
+!            !APROD(I,J,L,IPR,JHC) = 0.333333333d0
+!            APROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
+!         ENDDO
+!         ENDDO
+!      ENDIF
+!
+!      !=================================================================
+!      ! Lump of products of fifth Hydrocarbon class (SESQTERPINE)
+!      !=================================================================
+!      JHC     = 5
+!      GASMASS = 0D0
+!      AERMASS = 0D0
+!
+!      !DO IPR = 1, NPROD
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)     ! Add NOX index 
+!         !GASMASS = GASMASS + GM0(IPR,JHC)
+!         !AERMASS = AERMASS + AM0(IPR,JHC)               
+!         GASMASS = GASMASS + GM0(NOX,IPR,JHC)
+!         AERMASS = AERMASS + AM0(NOX,IPR,JHC)
+!      ENDDO
+!      ENDDO
+!
+!      !---------------------------
+!      ! SOA3 net Production (kg)
+!      !---------------------------
+!      IF ( ND07 > 0 .and. L <= LD07 ) THEN
+!         AD07_HC(I,J,L,3) = AD07_HC(I,J,L,3)
+!     &                    + ( AERMASS - STT(I,J,L,IDTSOA3) )
+!      ENDIF
+!
+!      STT(I,J,L,IDTSOG3) = MAX(GASMASS, 1.D-32)
+!      STT(I,J,L,IDTSOA3) = MAX(AERMASS, 1.D-32)
+!
+!      IF ( STT(I,J,L,IDTSOG3) > 1.0E-6 ) THEN
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)     ! Add NOX index (dkh, 10/30/06)  
+!            !GPROD(I,J,L,IPR,JHC) = GM0(IPR,JHC) / STT(I,J,L,IDTSOG3)
+!            GPROD(I,J,L,NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
+!     &                               / STT(I,J,L,IDTSOG3)
+!         ENDDO
+!         ENDDO                       
+!      ELSE
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)     ! Add NOX index (dkh, 10/30/06)  
+!            !GPROD(I,J,L,IPR,JHC) = 0.5D0
+!            GPROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
+!         ENDDO
+!         ENDDO
+!      ENDIF
+!
+!      IF ( STT(I,J,L,IDTSOA3) > 1.0E-6 ) THEN
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)  ! Add NOX index (dkh, 11/06/06)  
+!            !APROD(I,J,L,IPR,JHC) = AM0(IPR,JHC) / STT(I,J,L,IDTSOA3)
+!            APROD(I,J,L,NOX,IPR,JHC) = AM0(NOX,IPR,JHC)
+!     &                               / STT(I,J,L,IDTSOA3)
+!         ENDDO
+!         ENDDO                       
+!      ELSE
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)   ! (dkh, 10/30/06)  
+!            !GPROD(I,J,L,IPR,JHC) = 0.5D0
+!            ! also BUG FIX, should be APROD
+!            APROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
+!         ENDDO
+!         ENDDO
+!      ENDIF
+!
+!      ! make sure there is no second oxidation product 
+!      ! for SESQTERPENE by OH + O3
+!      ! the 2nd oxidation product is from NO3, no 3rd oxid prod (hotp 8/4/08)
+!      ! Only Low NOX product (hotp 8/24/09)
+!      !GPROD(I,J,L,2,JHC) = 0.D0
+!      !APROD(I,J,L,2,JHC) = 0.D0
+!      GPROD(I,J,L,1,3,JHC) = 0.D0
+!      APROD(I,J,L,1,3,JHC) = 0.D0
+!
+!
+!      !=================================================================
+!      ! Lump of products of sixth Hydrocarbon class (ISOP) 
+!      ! (dkh, bmy, 5/22/06)
+!      !=================================================================
+!      JHC     = 6
+!      GASMASS = 0D0
+!      AERMASS = 0D0
+!
+!      !DO IPR = 1, NPROD
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 11/05/06)  
+!         !GASMASS = GASMASS + GM0(IPR,JHC)
+!         !AERMASS = AERMASS + AM0(IPR,JHC)               
+!         GASMASS = GASMASS + GM0(NOX,IPR,JHC)
+!         AERMASS = AERMASS + AM0(NOX,IPR,JHC)
+!      ENDDO
+!      ENDDO
+!
+!      !---------------------------
+!      ! SOA4 net Production (kg)
+!      !---------------------------
+!
+!      IF ( ND07 > 0 .and. L <= LD07 ) THEN
+!         AD07_HC(I,J,L,4) = AD07_HC(I,J,L,4)
+!     &                    + ( AERMASS - STT(I,J,L,IDTSOA4) )
+!      ENDIF
+!
+!      ! SOG4 is only used with Odum model (hotp 10/2/09)
+!      STT(I,J,L,IDTSOG4) = MAX( GASMASS, 1.D-32 )
+!
+!      ! SOA4 is used for both isoprene SOA treatments
+!      STT(I,J,L,IDTSOA4) = MAX( AERMASS, 1.D-32 )
+!
+!      ! Use different GPROD for Odum or new SOA (hotp 10/2/09)
+!      IF ( STT(I,J,L,IDTSOG4) > 1.0E-6 ) THEN
+!            !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!            DO NOX = 1, NNOX(JHC) ! Add NOX index (dkh, 11/05/06)  
+!               !GPROD(I,J,L,IPR,JHC) = GM0(IPR,JHC) / STT(I,J,L,IDTSOG4)
+!               GPROD(I,J,L,NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
+!     &              / STT(I,J,L,IDTSOG4)
+!            ENDDO
+!         ENDDO
+!      ELSE 
+!         ! Use defautl GPROD for EPOX/MPAN SOA (hotp 10/2/09)
+!         ! It's not really used
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 11/05/06)  
+!            GPROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
+!         ENDDO
+!         ENDDO
+!      ENDIF
+!
+!      IF ( STT(I,J,L,IDTSOA4) > 1.0E-6 ) THEN
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 11/05/06)  
+!            !APROD(I,J,L,IPR,JHC) = AM0(IPR,JHC) / STT(I,J,L,IDTSOA4)
+!            APROD(I,J,L,NOX,IPR,JHC) = AM0(NOX,IPR,JHC)
+!     &                               / STT(I,J,L,IDTSOA4)
+!         ENDDO
+!         ENDDO
+!      ELSE
+!         !DO IPR = 1, NPROD
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)    ! Add NOX index (dkh, 11/05/06)  
+!            !GPROD(I,J,L,IPR,JHC) = 1.d0
+!            ! also BUG FIX, should be APROD
+!            APROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
+!         ENDDO
+!         ENDDO
+!      ENDIF
+!
+!      !=================================================================
+!      ! Lump of products of 7-9 Hydrocarbon class (aromatics) (dkh, 11/11/06)  
+!      !=================================================================
+!      GASMASS = 0D0
+!      AERMASS = 0D0
+!
+!      DO JHC = 7, 9
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC) ! Add NOX index (dkh, 11/05/06)  
+!         !GASMASS = GASMASS + GM0(IPR,JHC)
+!         !AERMASS = AERMASS + AM0(IPR,JHC)               
+!         GASMASS = GASMASS + GM0(NOX,IPR,JHC)
+!         AERMASS = AERMASS + AM0(NOX,IPR,JHC)
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!
+!      !---------------------------
+!      ! SOA5 net Production (kg) (dkh, 11/11/06)  
+!      !---------------------------
+!      IF ( ND07 > 0 .and. L <= LD07 ) THEN
+!         AD07_HC(I,J,L,5) = AD07_HC(I,J,L,5)
+!     &                    + ( AERMASS - STT(I,J,L,IDTSOA5) )
+!      ENDIF
+!
+!      STT(I,J,L,IDTSOG5) = MAX(GASMASS, 1.D-32)
+!      STT(I,J,L,IDTSOA5) = MAX(AERMASS, 1.D-32)
+!
+!      IF ( STT(I,J,L,IDTSOG5) > 1.0E-6 ) THEN
+!         DO JHC = 7, 9
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)
+!            GPROD(I,J,L,NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
+!     &                               / STT(I,J,L,IDTSOG5)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!      ELSE
+!         DO JHC = 7, 9
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)
+!            GPROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!      ENDIF
+!
+!      IF ( STT(I,J,L,IDTSOA5) > 1.0E-6 ) THEN
+!         DO JHC = 7, 9
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)
+!            APROD(I,J,L,NOX,IPR,JHC) = AM0(NOX,IPR,JHC)
+!     &                               / STT(I,J,L,IDTSOA5)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!      ELSE
+!         DO JHC = 7, 9
+!         DO IPR = 1, NPROD(JHC)
+!         DO NOX = 1, NNOX(JHC)
+!            APROD(I,J,L,NOX,IPR,JHC) = PRODPERCOFSTT(JHC)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE SOA_LUMP
@@ -4704,8 +6671,8 @@
 !  Subroutine EMISSCARBON is the interface between the GEOS-CHEM model
 !  and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 9/25/06)
 !
-!  For SOA + semivolatile POA simulations: do not distinguish between 
-!  hyrophobic and hydrophilic emissions (H. Pye)
+!  For  semivolpoa: do not distinguish between hyrophobic and 
+!  hydrophilic emissions  (hotp 2/13/09)
 !
 !  NOTES:
 !  (1 ) Now references LSOA from "CMN_SETUP".  Also now call OHNO3TIME since
@@ -4732,12 +6699,13 @@
 !        arrays later. (win, 2/26/08)
 !  (11) Correct the biogenic mass input to SOA condensation from mass OC to
 !        mass OM using the OC2OM factor. (win, 9/20/08)
-!  20 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4752,6 +6720,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      ! Emissions are semivol if IDTPOA is defined (hotp 8/24/09)
       USE TRACERID_MOD,       ONLY : IDTPOA1
 #if defined( TOMAS )
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
@@ -4826,7 +6795,6 @@
       LOGICAL         :: LPRT
       LOGICAL         :: LSOA
       LOGICAL         :: LRCP
-      LOGICAL         :: LSVPOA
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -4850,7 +6818,6 @@
       LPRT      = Input_Opt%LPRT
       LSOA      = Input_Opt%LSOA
       LRCP      = Input_Opt%LRCP
-      LSVPOA    = Input_Opt%LSVPOA
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -4955,26 +6922,8 @@
       !--------------------------
       ! Compute biogenic OC
       !--------------------------
-      ! SOAupdate: Check to see if using SOA + semivolatile POA or
-      !  traditional SOA simulation since these call different routines
-      !  (mpayer, 8/1/11)
-      IF ( LSVPOA ) THEN
-
-         !-------------------------
-         ! SOA + semivolatile POA 
-         !-------------------------
-         CALL BIOGENIC_OC_SVPOA( Input_Opt, State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BIOGENIC_OC_SV' )
-
-      ELSE
-
-         !-------------------------
-         ! Traditional SOA
-         !-------------------------
-         CALL BIOGENIC_OC( Input_Opt, State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BIOGENIC_OC'    )
-
-      ENDIF
+      CALL BIOGENIC_OC( Input_Opt, State_Met )
+      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BIOGENIC_OC'    )
 
       !=================================================================
       ! Sum up BC and OC sources. 
@@ -5029,8 +6978,8 @@
      &                  BIOF_ORGC(I,J,2) + 
      &                  BIOB_ORGC(I,J,2) 
 
-         ! SOAupdate: Semivolatile POA (hotp, mpayer, 7/20/11)
-         ! OCSRC1 is BB + BF, OCSRC2 is ANTH
+         ! If semivolatile POA is being used, 
+         ! OCSRC1 is BB + BF, OCSRC2 is ANTH (hotp 8/24/09)
          IF ( IDTPOA1 > 0 ) THEN
             OCSRC(I,J,1) = BIOF_ORGC(I,J,1) + BIOF_ORGC(I,J,2) +
      &                     BIOB_ORGC(I,J,1) + BIOB_ORGC(I,J,2)
@@ -5106,51 +7055,38 @@
 
             IF ( LSOA ) THEN
 
-               ! SOAupdate: Check to see if using SOA + semivol POA or 
-               ! traditional SOA simulation (mpayer, 7/20/11)
-               IF ( LSVPOA ) THEN
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!               ! ALPHA-PINENE
+!               AD07(I,J,8)  = AD07(I,J,8)    + BIOG_ALPH(I,J)
+!
+!               ! LIMONENE
+!               AD07(I,J,9)  = AD07(I,J,9)    + BIOG_LIMO(I,J)
+!             
+!               ! TERPENE
+!               AD07(I,J,10) = AD07(I,J,10)   + BIOG_TERP(I,J)
+!
+!               ! ALCOHOL
+!               AD07(I,J,11) = AD07(I,J,11)   + BIOG_ALCO(I,J)
+!
+!               ! SESQTERPENE
+!               AD07(I,J,12) = AD07(I,J,12)   + BIOG_SESQ(I,J)
+!------------------------------------------------------------------------------
+               ! reorganize AD07 for consistency with new mtp (hotp 5/20/10)
+               ! MTPA = a-pinene ,b-pinene, sabinene, carene
+               AD07(I,J,8) = AD07(I,J,8)   + BIOG_MTPA(I,J)
 
-                  !-------------------------------------
-                  ! SOA + semivolatile POA (H. Pye)
-                  !-------------------------------------
+               ! LIMONENE
+               AD07(I,J,9)  = AD07(I,J,9)    + BIOG_LIMO(I,J)
 
-                  ! MTPA = a-pinene ,b-pinene, sabinene, carene
-                  AD07(I,J,8) = AD07(I,J,8)   + BIOG_MTPA(I,J)
+               ! MTPO = terpinene, terpinolene, myrcene, ocimene,
+               ! terpenoid alcohols, and all other monoterpenes (hotp 7/28/10)
+               AD07(I,J,10) = AD07(I,J,10)   + BIOG_MTPO(I,J)
 
-                  ! LIMONENE
-                  AD07(I,J,9)  = AD07(I,J,9)    + BIOG_LIMO(I,J)
+               ! SESQTERPENE moved (hotp 7/28/10)
+               AD07(I,J,11) = AD07(I,J,11)   + BIOG_SESQ(I,J)
 
-                  ! MTPO = terpinene, terpinolene, myrcene, ocimene, terpenoid
-                  !        alcohols,  and all other monoterpenes
-                  AD07(I,J,10) = AD07(I,J,10)   + BIOG_MTPO(I,J)
-
-                  ! SESQTERPENE
-                  AD07(I,J,11) = AD07(I,J,11)   + BIOG_SESQ(I,J)
-
-               ELSE
-
-                  !-------------------------------------
-                  ! Traditional SOA
-                  !-------------------------------------
-
-                  ! ALPHA-PINENE
-                  AD07(I,J,8)  = AD07(I,J,8)    + BIOG_ALPH(I,J)
-
-                  ! LIMONENE
-                  AD07(I,J,9)  = AD07(I,J,9)    + BIOG_LIMO(I,J)
-             
-                  ! TERPENE
-                  AD07(I,J,10) = AD07(I,J,10)   + BIOG_TERP(I,J)
-
-                  ! ALCOHOL
-                  AD07(I,J,11) = AD07(I,J,11)   + BIOG_ALCO(I,J)
-
-                  ! SESQTERPENE
-                  AD07(I,J,12) = AD07(I,J,12)   + BIOG_SESQ(I,J)
-
-               ENDIF ! LSVPOA
-
-            ENDIF ! LSOA
+            ENDIF
 
          ENDDO
          ENDDO
@@ -5160,8 +7096,8 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after ND07' )
       ENDIF
 
-      ! SOAupdate: Print info for checks
-      IF ( LPRT .AND. LSVPOA ) THEN
+      ! semivolpoa: print some info for checks (hotp 2/16/09)
+      IF ( LPRT ) THEN
          print*,'POA emissions in kg/timestep conv to Tg/yr'
          print*,'ANTH_ORGC ',SUM(ANTH_ORGC(:,:,:))*1d-9*365.0*24.0
          print*,'BIOB_ORGC ',SUM(BIOB_ORGC(:,:,:))*1d-9*365.0*24.0
@@ -5873,6 +7809,8 @@ ccc
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOSmid
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5883,7 +7821,12 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
-      USE MEGAN_MOD,          ONLY : GET_EMMONOG_MEGAN
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      !USE MEGAN_MOD,          ONLY : GET_EMMONOG_MEGAN renamed EMTERP
+!------------------------------------------------------------------------------
+      ! Speciated MEGAN monoterpenes (hotp 3/10/10)
+      USE MEGAN_MOD,          ONLY : GET_EMTERP_MEGAN
       USE MEGANUT_MOD,        ONLY : XLTMMP
       USE TIME_MOD,           ONLY : GET_MONTH,        GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
@@ -6074,31 +8017,72 @@ ccc
             !  et al., Geophys. Res. Lett. 26 (17): 2721-2724 (1999)
             !===========================================================
 
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            ! OLD EMISSIONS LUMPED TO NEW SPECIES (hotp 5/20/10)
+            ! hotp recommends you run with LMEGANMONO=.TRUE. and
+            ! not use this
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            !---------------------------------
+            ! MTPA
+            !---------------------------------
+            ! old ALPH is now MTPA (hotp 5/20/10)
             ! ALPHA-PINENE (0.35)
             ! BETA-PINENE lumped with ALPHA-PINENE (0.23)
-            ! SABINENE lumped with ALPHA-PINENE (0.05)
-            ! D3-CARENE lumped with ALPHA-PINENE (0.04)
-            BIOG_ALPH(I,J) = TERP_ORGC(I,J) * FC1 * 0.67D0
+            ! SABINENE    lumped with ALPHA-PINENE (0.05)
+            ! D3-CARENE   lumped with ALPHA-PINENE (0.04)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            BIOG_ALPH(I,J) = TERP_ORGC(I,J) * FC1 * 0.67D0
+!------------------------------------------------------------------------------
+            BIOG_MTPA(I,J) = TERP_ORGC(I,J) * FC1 * 0.67D0
 
             ! TERPENOID KETONE is lumped with SABINENE
-            ! Then SABINENE is lumped with ALPHA-PINENE
-            BIOG_ALPH(I,J) = BIOG_ALPH(I,J)
+            ! Then SABINENE    is lumped with ALPHA-PINENE
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            BIOG_ALPH(I,J) = BIOG_ALPH(I,J)
+!------------------------------------------------------------------------------
+            BIOG_MTPA(I,J) = BIOG_MTPA(I,J)
      &                     + ( DIUR_ORVC(I,J) * FC4 * 0.04D0 ) !using campher
 
+            !---------------------------------
             ! LIMONENE
+            !---------------------------------
+            ! limonene is the same (hotp 5/20/10)
             BIOG_LIMO(I,J) = TERP_ORGC(I,J) * FC1 * 0.23D0
 
+            !---------------------------------
+            ! MTPO is all other monoterpenes
+            !---------------------------------
             ! TERPINENE is lumped with TERPINOLENE
-            BIOG_TERP(I,J) = TERP_ORGC(I,J) * FC1 * 0.03D0
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            BIOG_TERP(I,J) = TERP_ORGC(I,J) * FC1 * 0.03D0
+!------------------------------------------------------------------------------
+            BIOG_MTPO(I,J) = TERP_ORGC(I,J) * FC1 * 0.03D0
 
             ! MYRCENE is lumped with TERPENOID ALCOHOL (0.05)
-            ! OCIMENE lumped with TERPENOID ALCOHOL (0.02)
-            BIOG_ALCO(I,J) = TERP_ORGC(I,J) * FC1 * 0.07D0
+            ! OCIMENE is lumped with TERPENOID ALCOHOL (0.02)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            BIOG_ALCO(I,J) = TERP_ORGC(I,J) * FC1 * 0.07D0
+!------------------------------------------------------------------------------
+            BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
+     &                       TERP_ORGC(I,J) * FC1 * 0.07D0
 
             ! Other reactive volatile organic carbon emissions
-            BIOG_ALCO(I,J) = BIOG_ALCO(I,J)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            BIOG_ALCO(I,J) = BIOG_ALCO(I,J)
+!------------------------------------------------------------------------------
+            BIOG_MTPO(I,J) = BIOG_MTPO(I,J)
      &                     + ( DIUR_ORVC(I,J) * FC2 * 0.09D0 ) !using LINALOOL
 
+            !---------------------------------
+            ! SESQUITERPENES
+            !---------------------------------
+            ! SESQ is same (hotp 5/20/10)
             ! We do not transport SESQ (C15H24) 
             ! because its chemical lifetime is short (reactive)
             BIOG_SESQ(I,J) = DIUR_ORVC(I,J) * FC3 * 0.05D0
@@ -6106,81 +8090,186 @@ ccc
 
             ! The new MEGAN implementation has speciated information
             ! (hotp 3/7/10)
-            ! For GCAP Meteorology year 2000 in Tg/yr:
+            !! For GCAP Meteorology year 2000 in Tg/yr:
+            !! ------------------------------
+            !! HC Class  New MEGAN  Old MEGAN
+            !! --------  ---------  ---------
+            !! ALPH        84         92
+            !! LIMO        10         27
+            !! TERP         3.2        3.5
+            !! ALCO        47         38
+            !! SESQ        15         15    (no change for SESQ)
+            !!           -----      -----
+            !! TOTAL      159        176
+            ! ------------------------------
+            ! updated again to include MEGAN sesquiterpenes 
+            ! and other monoterpenes (hotp 7/28/10)
+            ! as of 7/28/10 for year 2000 GEOS4 2x2.5 in Tg/yr:
             ! ------------------------------
             ! HC Class  New MEGAN  Old MEGAN
             ! --------  ---------  ---------
-            ! ALPH        84         92
-            ! LIMO        10         27
-            ! TERP         3.2        3.5
-            ! ALCO        47         38
-            ! SESQ        15         15    (no change for SESQ)
-            !           -----      -----
-            ! TOTAL      159        176
-            ! ------------------------------
+            ! MTPA        73         86
+            ! LIMO        10         25
+            ! MTPO        33          3.2+38 
+            ! SESQ        13         15
+            !           -----      --------
+            ! TOTAL      129        167.2
+            ! see Pye et al. 2010 ACP
+
             IF ( LMEGANMONO ) THEN
 
-               ! bug fix: swap TMMP and SC (hotp 3/10/10)
-               ! ALPH in kg compound
+               ! MEGAN emission update for SESQ and other monoterps
+               ! (hotp 3/10/10)
+               ! terpenoid ketones no longer lumped into ALPH
+               ! terpenoid alcohols no longer lumped in ALCO
+               ! Other monoterpenes (OMTP from MEGAN) all placed in TERP
+               ! All sesq lumped together into SESQ
+
+               ! new mtp lumping (as of 5/20/10) hotp
+               ! GEOS-Chem   MEGAN
+               ! =========   ==========================================
+               ! MTPA        a-pinene, b-pinene, sabinene, carene
+               ! LIMO        limonene
+               ! MTPO        myrcene, ocimene, other monot (OMTP)
+               ! SESQ        farnesene (FARN), b-caryoph (BCAR), OSQT
+               ! =========   ==========================================
+
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!               ! bug fix: swap TMMP and SC (hotp 3/10/10)
+!               ! ALPH in kg compound
+!               ! a-pinene
+!               BIOG_ALPH(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!     &                                   PDR, PDF, 1d0, 'APINE') * FC1
+!               ! b-pinene
+!               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+!     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!     &                                   PDR, PDF, 1d0, 'BPINE') * FC1
+!               ! sabinene
+!               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+!     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+!     &                                   PDR, PDF, 1d0, 'SABIN') * FC1
+!               ! d3-carene
+!               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+!     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+!     &                                   PDR, PDF, 1d0, 'CAREN') * FC1
+!               ! terpenoid ketones (assumed to behave like sabinene)
+!               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) + 
+!     &                          + ( DIUR_ORVC(I,J) * FC4 * 0.04D0 ) !using campher
+!------------------------------------------------------------------------------
+               !----------------------------------------
+               ! MTPA in kg compound
+               !----------------------------------------
+               ! rename EMMONOG to EMTERP (hotp 7/29/10)
+               ! New lumping: MTPA=a-,b-pinene,sabinene,carene (hotp 5/20/10)
                ! a-pinene
-               BIOG_ALPH(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+               BIOG_MTPA(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP, 
      &                                   PDR, PDF, 1d0, 'APINE') * FC1
                ! b-pinene
-               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
-     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+               BIOG_MTPA(I,J) = BIOG_MTPA(I,J) +
+     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
      &                                   PDR, PDF, 1d0, 'BPINE') * FC1
                ! sabinene
-               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
-     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+               BIOG_MTPA(I,J) = BIOG_MTPA(I,J) +
+     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0, 'SABIN') * FC1
                ! d3-carene
-               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
-     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+               BIOG_MTPA(I,J) = BIOG_MTPA(I,J) +
+     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0, 'CAREN') * FC1
-               ! terpenoid ketones (assumed to behave like sabinene)
-               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) + 
-     &                          + ( DIUR_ORVC(I,J) * FC4 * 0.04D0 ) !using campher
-      
-               ! LIMO in kg compound
+               ! no more terpenoid ketones here (hotp 3/10/10)
+
+               !----------------------------------------
+               ! LIMO in kg compound (no change)
+               !----------------------------------------
                ! limonene
-               BIOG_LIMO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!               BIOG_LIMO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!------------------------------------------------------------------------------
+               BIOG_LIMO(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP, 
      &                                   PDR, PDF, 1d0, 'LIMON') * FC1 
 
-               ! TERP in kg compound
-               ! terpinene and terpinolene 
-               ! Use ratio to alpha-pinene from Griffin 1999 GRL:
-               ! 3% of monoterpenes are terpinene + terpinolene
-               ! 35% of monoterpenes are a-pinene.
-               ! Will be revised when other monoterpene emissions are
-               ! implemented in megan_mod.f.
-               BIOG_TERP(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP,
-     &                          PDR, PDF, 1d0, 'APINE') * FC1 * 3d0/35d0
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!               ! TERP in kg compound
+!               ! terpinene and terpinolene 
+!               ! Use ratio to alpha-pinene from Griffin 1999 GRL:
+!               ! 3% of monoterpenes are terpinene + terpinolene
+!               ! 35% of monoterpenes are a-pinene.
+!               ! Will be revised when other monoterpene emissions are
+!               ! implemented in megan_mod.f.
+!               BIOG_TERP(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+!     &                          PDR, PDF, 1d0, 'APINE') * FC1 * 3d0/35d0
+!
+!               ! ALCO in kg compound
+!               ! myrcene
+!               BIOG_ALCO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!     &                                   PDR, PDF, 1d0, 'MYRCN') * FC1
+!               ! ocimene
+!               BIOG_ALCO(I,J) = BIOG_ALCO(I,J) +
+!     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!     &                                   PDR, PDF, 1d0, 'OCIMN') * FC1
+!               ! Other reactive volatile organic carbon emissions
+!               ! (terpenoid alcohols)
+!               BIOG_ALCO(I,J) = BIOG_ALCO(I,J)
+!     &                          + ( DIUR_ORVC(I,J) * FC2 * 0.09D0 ) !using LINALOOL
+!------------------------------------------------------------------------------
+               !----------------------------------------
+               ! MTPO in kg compound
+               !----------------------------------------
+               ! MTPO is all other monoterpenes (MEGAN categories:
+               ! myrcene, ocimene, OMTP) (hotp 5/20/10)
+               ! All other monoterpenes (mostly camphene, linalool,
+               ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
+               ! 14-18% of OMTP is terpinene and terpinolene
+               BIOG_MTPO(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
+     &                          PDR, PDF, 1d0, 'OMTPE') * FC1 
 
-               ! ALCO in kg compound
+               ! ALCO in kg compound (no more)
+
                ! myrcene
-               BIOG_ALCO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+               BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
+     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
      &                                   PDR, PDF, 1d0, 'MYRCN') * FC1
                ! ocimene
-               BIOG_ALCO(I,J) = BIOG_ALCO(I,J) +
-     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+               BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
+     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
      &                                   PDR, PDF, 1d0, 'OCIMN') * FC1
+
                ! Other reactive volatile organic carbon emissions
                ! (terpenoid alcohols)
-               BIOG_ALCO(I,J) = BIOG_ALCO(I,J)
-     &                          + ( DIUR_ORVC(I,J) * FC2 * 0.09D0 ) !using LINALOOL
- 
-               ! SESQ (same as above)
-               ! We do not transport SESQ (C15H24) 
-               ! because its chemical lifetime is short (reactive)
-               ! Will be revised when sesq emissions are implemented in
-               ! megan_mod.f.
-               BIOG_SESQ(I,J) = DIUR_ORVC(I,J) * FC3 * 0.05D0
+               ! terpenoid alchohols moved to TERP (hotp 3/10/10)
+
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!               ! SESQ (same as above)
+!               ! We do not transport SESQ (C15H24) 
+!               ! because its chemical lifetime is short (reactive)
+!               ! Will be revised when sesq emissions are implemented in
+!               ! megan_mod.f.
+!               BIOG_SESQ(I,J) = DIUR_ORVC(I,J) * FC3 * 0.05D0
+!------------------------------------------------------------------------------
+               !----------------------------------------
+               ! SESQ updated
+               !----------------------------------------
+               ! Sesquiterpenes from MEGAN (hotp 3/10/10)
+               ! Farnesene
+               BIOG_SESQ(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
+     &                          PDR, PDF, 1d0, 'FARNE' ) * FC3
+               ! beta-caryophyllene
+               BIOG_SESQ(I,J) = BIOG_SESQ(I,J) +
+     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
+     &                                   PDR, PDF, 1d0, 'BCARE' ) * FC3
+               ! other sesquiterpenes
+               BIOG_SESQ(I,J) = BIOG_SESQ(I,J) +
+     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
+     &                                   PDR, PDF, 1d0, 'OSQTE' ) * FC3
 
             ENDIF ! end speciated MEGAN (hotp)
 
          ENDDO
          ENDDO
-
 !$OMP END PARALLEL DO
 
       ENDIF
@@ -7118,9 +9207,10 @@ ccc
 !        file-reading code to gc_biomass_mod.f. (bmy, 9/25/06)
 !  (7 ) Prevent seg fault error when LBIOMASS=F (bmy, 11/3/06)
 !  (8 ) Now apply future emissions if necessary (hotp, swu, bmy, 2/19/09)
-!  21 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add modifications for SOA + semivolatile POA 
+!                              simulation (H. Pye)
 !******************************************************************************
 !
 !
@@ -7133,7 +9223,8 @@ ccc
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRACERID_MOD,         ONLY : IDTBCPO,  IDTOCPO
-      USE TRACERID_MOD,         ONLY : IDTPOA1   ! (hotp, mpayer, 7/21/11)
+      ! semivolpoa: add POA (hotp 2/26/09)
+      USE TRACERID_MOD,         ONLY : IDTPOA1
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
 
@@ -7176,7 +9267,8 @@ ccc
 
       ! Conversion factor for [s * kg/molec]
       CONV_BC = DTSRCE / XNUMOL(IDTBCPO)
-      ! SOAupdate: Check to see if OCPO/POA1 is defined (hotp, mpayer, 7/21/11)
+
+      ! Check to see which tracers are defined (hotp 8/24/09)
       IF ( IDTOCPO > 0 ) CONV_OC = DTSRCE / XNUMOL(IDTOCPO)
       IF ( IDTPOA1 > 0 ) CONV_OC = DTSRCE / XNUMOL(IDTPOA1)
 
@@ -7255,9 +9347,9 @@ ccc
 !        (lin, 5/29/09)
 !  (5 ) Bug fix: EMIS_SAVE should be EMIS_SAVE(I,J,...) instead of
 !        EMIS_SAVE(:,:,...) since we are in a parallel loop (bmy, 1/11/10)
-!  Jul 21 2011 - M. Payer    - Add MTPA, MTPO, and POA for SOA + semivolatile
-!                              POA (H. Pye)
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, args
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       USE CMN_SIZE_MOD
@@ -7265,8 +9357,12 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
-      USE TRACERID_MOD,       ONLY : IDTALPH, IDTLIMO, IDTALCO
-      USE TRACERID_MOD,       ONLY : IDTMTPA, IDTMTPO
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      USE TRACERID_MOD,       ONLY : IDTALPH, IDTLIMO, IDTALCO
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IDTMTPA, IDTLIMO, IDTMTPO ! hotp 5/20/10
+      ! Add POA treatment (hotp 8/24/09)
       USE TRACERID_MOD,       ONLY : IDTPOA1
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (Lin, 03/31/09)
 !
@@ -7283,15 +9379,17 @@ ccc
 ! !LOCAL VARIABLES:
 !
       LOGICAL         :: IS_BCPO, IS_OCPO, IS_BCPI, IS_OCPI
-      LOGICAL         :: IS_ALPH, IS_LIMO, IS_ALCO
-      LOGICAL         :: IS_MTPA, IS_MTPO
-      LOGICAL         :: IS_POA
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      LOGICAL         :: IS_ALPH, IS_LIMO, IS_ALCO
+!------------------------------------------------------------------------------
+      LOGICAL         :: IS_MTPA, IS_LIMO, IS_MTPO ! hotp 5/20/10
+      LOGICAL         :: IS_POA ! for poa (hotp 8/24/09)
       INTEGER         :: I,       J,       L,       PBL_MAX
       REAL*8          :: F_OF_PBL
 
       ! For fields from Input_Opt
       LOGICAL         :: LNLPBL
-      LOGICAL         :: LSVPOA
       REAL*8          :: POAEMISSSCALE
 
       ! Pointers
@@ -7305,22 +9403,27 @@ ccc
 
       ! Copy values from Input_Opt
       LNLPBL        = Input_Opt%LNLPBL
-      LSVPOA        = Input_Opt%LSVPOA
       POAEMISSSCALE = Input_Opt%POAEMISSSCALE
 
       ! Define logical flags for expediency
+      ! semivolpoa: no OCPI and OCPO tracers, replace with POA
       IS_BCPI = ( IDTBCPI > 0 )
       IS_OCPI = ( IDTOCPI > 0 ) 
       IS_BCPO = ( IDTBCPO > 0 )
       IS_OCPO = ( IDTOCPO > 0 )
-      IS_POA  = ( IDTPOA1 > 0 )  ! (hotp, mpayer, 7/21/11)
-      IS_ALPH = ( IDTALPH > 0 )
+      IS_POA  = ( IDTPOA1 > 0 )  ! hotp 8/24/09
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      IS_ALPH = ( IDTALPH > 0 )
+!      IS_LIMO = ( IDTLIMO > 0 )
+!      IS_ALCO = ( IDTALCO > 0 )
+!------------------------------------------------------------------------------
+      ! Update for new lumping (hotp 5/20/10)
+      IS_MTPA = ( IDTMTPA > 0 )
       IS_LIMO = ( IDTLIMO > 0 )
-      IS_ALCO = ( IDTALCO > 0 )
-      IS_MTPA = ( IDTMTPA > 0 )  ! (hotp, mpayer, 7/21/11)
-      IS_MTPO = ( IDTMTPO > 0 )  ! (hotp, mpayer, 7/21/11)
+      IS_MTPO = ( IDTMTPO > 0 )
 
-      ! Initialize to zero
+      ! semivolpoa2: initialize POAEMISS (hotp 2/27/09)
       POAEMISS = 0d0
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -7340,75 +9443,70 @@ ccc
             IF ( IS_OCPI ) EMIS_SAVE(I,J,IDTOCPI) = OCSRC(I,J,1)
             IF ( IS_BCPO ) EMIS_SAVE(I,J,IDTBCPO) = BCSRC(I,J,2)
             IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO) = OCSRC(I,J,2)
-            IF ( IS_ALPH ) EMIS_SAVE(I,J,IDTALPH) = BIOG_ALPH(I,J)
-
-            IF ( IS_LIMO ) THEN
-               EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
-
-               ! SOAupdate: TERP not used for SOA + semivol POA
-               !  (hotp, mpayer, 7/21/11)
-               IF ( .NOT. LSVPOA ) THEN
-                  ! lead to too much ORVC_TERP in the 1st layer?
-                  ORVC_TERP(I,J,1)   = ORVC_TERP(I,J,1) + BIOG_TERP(I,J)
-               ENDIF
-            ENDIF
-
-            IF ( IS_ALCO ) THEN
-               EMIS_SAVE(I,J,IDTALCO) = BIOG_ALCO(I,J)
-
-               ! lead to too much ORVC_SESQ in the 1st layer?
-               ORVC_SESQ(I,J,1)   = ORVC_SESQ(I,J,1) + BIOG_SESQ(I,J)
-            ENDIF
-
-            ! SOAupdate: Add new MTP (hotp, mpayer, 7/21/11)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            IF ( IS_ALPH ) EMIS_SAVE(I,J,IDTALPH) = BIOG_ALPH(I,J)
+!            IF ( IS_LIMO ) THEN
+!               EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
+!
+!               ! lead to too much ORVC_TERP in the 1st layer?
+!               ORVC_TERP(I,J,1)   = ORVC_TERP(I,J,1) + BIOG_TERP(I,J)
+!            ENDIF
+!            IF ( IS_ALCO ) THEN
+!               EMIS_SAVE(I,J,IDTALCO) = BIOG_ALCO(I,J)
+!
+!               ! lead to too much ORVC_SESQ in the 1st layer?
+!               ORVC_SESQ(I,J,1)   = ORVC_SESQ(I,J,1) + BIOG_SESQ(I,J)
+!            ENDIF
+!------------------------------------------------------------------------------
+            ! update for new mtp (hotp 7/28/10)
+            ! TERP and ALCO no longer used
+            IF ( IS_LIMO ) EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
             IF ( IS_MTPA ) EMIS_SAVE(I,J,IDTMTPA) = BIOG_MTPA(I,J)
             IF ( IS_MTPO ) EMIS_SAVE(I,J,IDTMTPO) = BIOG_MTPO(I,J)
-   
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
-         ! SOAupdate: Fix for species whose emissions are not added to STT in 
-         ! this routine (hotp, mpayer, 7/21/11)
+         ! Fix for species without tracers 
+         ! species whose emissions are not added to STT in this routine
+         ! (hotp 7/28/10)
          ! Just use old PBL mixing to prevent all emissions from going into 
          ! into surface layer for now
-         IF ( LSVPOA ) THEN
 
-            ! Maximum extent of PBL [model levels]
-            PBL_MAX = GET_PBL_MAX_L()
+         ! Maximum extent of PBL [model levels]
+         PBL_MAX = GET_PBL_MAX_L()
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_OF_PBL )
-            DO L = 1, PBL_MAX
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+         DO L = 1, PBL_MAX
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-               ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-               F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
+            ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+            F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
-               IF ( IS_LIMO ) THEN
-                  ! Sesquiterpenes
-                  ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                              ( F_OF_PBL * BIOG_SESQ(I,J) )
-               ENDIF
+            IF ( IS_LIMO ) THEN
+               ! Sesquiterpenes
+               ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
+     &                           ( F_OF_PBL * BIOG_SESQ(I,J) )
+            ENDIF
 
-               ! Add OCSRC to POA tracer
-               ! Note that POA emissions do not go directly into the STT array
-               ! Semivolatile POA emissions are based on OCPI+OCPO with
-               !  a scaling factor (POAEMISSSCALE)
-               ! Emiss added to STT in SOA_SVPOA_CHEMISTRY via CHEM_NVOC_SVPOA
-               IF ( IS_POA ) THEN
-                 POAEMISS(I,J,L,1) = F_OF_PBL*OCSRC(I,J,1)*POAEMISSSCALE
-                 POAEMISS(I,J,L,2) = F_OF_PBL*OCSRC(I,J,2)*POAEMISSSCALE
-               ENDIF
+            ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
+            ! Note that POA emissions do not go directly into the STT array
+            ! Semivolatile POA emissions are based on OCPI+OCPO with
+            !  a scaling factor (POAEMISSSCALE)
+            ! Emiss added to STT in SOA_CHEMISTRY via CHEM_NVOC
+            IF ( IS_POA ) THEN
+               POAEMISS(I,J,L,1) = F_OF_PBL*OCSRC(I,J,1)*POAEMISSSCALE
+               POAEMISS(I,J,L,2) = F_OF_PBL*OCSRC(I,J,2)*POAEMISSSCALE
+            ENDIF
 
-            ENDDO
-            ENDDO
-            ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
-
-         ENDIF  ! LSVPOA
 
          RETURN ! we don't need to use below
 
@@ -7454,47 +9552,64 @@ ccc
      &                           ( F_OF_PBL * OCSRC(I,J,2) )
          ENDIF
 
-         ! ALPHA-PINENE
-         IF ( IS_ALPH ) THEN
-            STT(I,J,L,IDTALPH) = STT(I,J,L,IDTALPH) + 
-     &                           ( F_OF_PBL * BIOG_ALPH(I,J) )
-         ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!         ! ALPHA-PINENE
+!         IF ( IS_ALPH ) THEN
+!            STT(I,J,L,IDTALPH) = STT(I,J,L,IDTALPH) + 
+!     &                           ( F_OF_PBL * BIOG_ALPH(I,J) )
+!         ENDIF
+!
+!         ! LIMONENE
+!         IF ( IS_LIMO ) THEN
+!            STT(I,J,L,IDTLIMO) = STT(I,J,L,IDTLIMO) + 
+!     &                           ( F_OF_PBL * BIOG_LIMO(I,J) )
+!
+!            ORVC_TERP(I,J,L)   = ORVC_TERP(I,J,L) + 
+!     &                           ( F_OF_PBL * BIOG_TERP(I,J) )
+!         ENDIF
+!
+!         ! ALCOHOL and SESQTERPENE (not a tracer)
+!         IF ( IS_ALCO ) THEN
+!            STT(I,J,L,IDTALCO) = STT(I,J,L,IDTALCO) + 
+!     &                           ( F_OF_PBL * BIOG_ALCO(I,J) )
+!               
+!            ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
+!     &                           ( F_OF_PBL * BIOG_SESQ(I,J) )
+!         ENDIF
+!------------------------------------------------------------------------------
 
-         ! LIMONENE
-         IF ( IS_LIMO ) THEN
-            STT(I,J,L,IDTLIMO) = STT(I,J,L,IDTLIMO) + 
-     &                           ( F_OF_PBL * BIOG_LIMO(I,J) )
-
-            ! SOAupdate: TERP not used for SOA + semivol SOA
-            !  (hotp, mpayer, 7/21/11)
-            IF ( .NOT. LSVPOA ) THEN
-               ORVC_TERP(I,J,L)   = ORVC_TERP(I,J,L) + 
-     &                           ( F_OF_PBL * BIOG_TERP(I,J) )
-            ENDIF
-         ENDIF
-
-         ! ALCOHOL and SESQTERPENE (not a tracer)
-         IF ( IS_ALCO ) THEN
-            STT(I,J,L,IDTALCO) = STT(I,J,L,IDTALCO) + 
-     &                           ( F_OF_PBL * BIOG_ALCO(I,J) )
-               
-            ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                           ( F_OF_PBL * BIOG_SESQ(I,J) )
-         ENDIF
-
-         ! SOAupdate: Lumped MTPA (hotp, mpayer, 7/21/11)
+         ! Lumped MTPA (hotp 5/20/10) new mtp
          IF ( IS_MTPA ) THEN
             STT(I,J,L,IDTMTPA) = STT(I,J,L,IDTMTPA) + 
      &                           ( F_OF_PBL * BIOG_MTPA(I,J) )
          ENDIF
 
-         ! SOAupdate: Lumped MTPO and SESQTERPENE (hotp, mpayer, 7/21/11)
+         ! Limonene (no change)
+         IF ( IS_LIMO ) THEN
+            STT(I,J,L,IDTLIMO) = STT(I,J,L,IDTLIMO) + 
+     &                           ( F_OF_PBL * BIOG_LIMO(I,J) )
+         ENDIF
+
+         ! Lumped MTPO (hotp 5/20/10) new mtp
          IF ( IS_MTPO ) THEN
             STT(I,J,L,IDTMTPO) = STT(I,J,L,IDTMTPO) + 
      &                           ( F_OF_PBL * BIOG_MTPO(I,J) )
 
+            ! sesquiterpenes (no change)
             ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
      &                           ( F_OF_PBL * BIOG_SESQ(I,J) )
+         ENDIF
+
+         ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
+         ! note that POA emissions do not go directly into the STT array
+         IF ( IS_POA ) THEN
+            ! semivolpoa2: store emission of OC into 
+            ! POAEMISS array for use in CHEM_NVOC (hotp 2/27/09)
+            ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
+            ! add POAEMISSSCALE here (hotp 9/22/09)
+            POAEMISS(I,J,L,1) = F_OF_PBL * OCSRC(I,J,1) * POAEMISSSCALE
+            POAEMISS(I,J,L,2) = F_OF_PBL * OCSRC(I,J,2) * POAEMISSSCALE
          ENDIF
 
       ENDDO
@@ -8134,8 +10249,8 @@ ccc
 !
 !
 !  NOTES:
-!  21 Jul 2011 - M. Payer    - Add NAP for SOA + semivolatile POA (H. Pye)
 !  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
+!  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -8146,6 +10261,7 @@ ccc
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACERID_MOD,       ONLY : IDTBENZ, IDTTOLU, IDTXYLE
+      ! NAPSOA: add IVOC surrogate (NAP) (hotp 7/22/09)
       USE TRACERID_MOD,       ONLY : IDTNAP
 
       ! Arguments
@@ -8160,15 +10276,11 @@ ccc
       REAL*8                     :: ARO2CARB
 
       ! For values from Input_Opt
-      LOGICAL                    :: LSVPOA
       REAL*8                     :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! GET_DARO2 begins here!
       !=================================================================
-
-      ! Copy logical fields from INPUT_OPT to local variables
-      LSVPOA  = Input_Opt%LSVPOA
 
       !print*, ' get DARO2'
       DARO2 = 0d0
@@ -8185,181 +10297,112 @@ ccc
          ! Test if we are in the troposphere
          IF ( JLOOP > 0 ) THEN
 
-            ! SOAupdate: Check to see if using SOA + semivolatile POA or
-            ! traditional SOA simulation (mpayer, 7/21/11)
-            IF ( LSVPOA ) THEN 
+            ! Get information on the 
+            ! specified type of aromatic peroxy radical
+            ! Benzene
+            ! now reference PARENT variable (hotp 5/13/10)
+            !IF    ( JHC == 7 ) THEN
+            IF    ( JHC == PARENTBENZ ) THEN
 
-               !-------------------------------------
-               ! SOA + semivolatile POA (H. Pye)
-               !-------------------------------------
-
-               ! Get info on the specified type of aromatic peroxy radical
-               ! Reference PARENT variable, not hardwire
-               ! Benzene
-               IF    ( JHC == PARENTBENZ ) THEN
-  
-                  ! Loss due to NO2 corresponds to high NOX experiments
-                  ! (NOX = 1) while loss due to HO2 corresponds to 
-                  ! low NOX experiments (NOX = 2). 
-                  IF ( NOX == 1 ) THEN
-                     ILARO2 = ILBRO2N
-                  ELSEIF ( NOX == 2 ) THEN
-                     ILARO2 = ILBRO2H
-                  ELSE
-                     CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
-                  ENDIF
-
-                  ! kg C of ARO2 / kg ARO2
-                  ! dkh ARMv4 (hotp 7/31/2008)
-                  ! Use parent HC (C6H6) instead of RO2
-                  ARO2CARB = 6d0 * 12d0 / ( 6d0 * 12d0 + 6d0 )
-
-                  ! Tracer index of the parent aromatic
-                  IDTAROM = IDTBENZ
-  
-               ! Toluene
-               ELSEIF ( JHC == PARENTTOLU ) THEN
-
-                  IF ( NOX == 1 ) THEN
-                     ILARO2 = ILTRO2N
-                  ELSEIF ( NOX == 2 ) THEN
-                     ILARO2 = ILTRO2H
-                  ELSE
-                     CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
-                  ENDIF
-
-                  ! kg C of ARO2 / kg ARO2
-                  ! dkh ARMv4 (hotp 7/31/2008)
-                  ! Use parent HC (C7H8) instead of RO2
-                  ARO2CARB = 7d0 * 12d0 / ( 7d0 * 12d0 + 8d0 )
-
-                  ! Tracer index of the parent aromatic
-                  IDTAROM = IDTTOLU
-
-               ! XYLENE
-               ELSEIF ( JHC == PARENTXYLE ) THEN
-
-                  IF ( NOX == 1 ) THEN
-                     ILARO2 = ILXRO2N
-                  ELSEIF ( NOX == 2 ) THEN
-                     ILARO2 = ILXRO2H
-                  ELSE
-                     CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
-                  ENDIF
-
-                  ! kg C of ARO2 / kg ARO2
-                  ! dkh ARMv4 (hotp 7/31/2008)
-                  ! Use parent HC (C8H10) instead of RO2
-                  ARO2CARB = 8d0 * 12d0 / ( 8d0 * 12d0 + 10d0 ) 
-
-                  ! Tracer index of the parent aromatic
-                  IDTAROM = IDTXYLE
-
-               ! NAPHTHALENE (IVOC surrogate)
-               ELSEIF ( JHC == PARENTNAP ) THEN
-
-                  IF ( NOX == 1 ) THEN
-                     ILARO2 = ILNRO2N
-                  ELSEIF ( NOX == 2 ) THEN
-                     ILARO2 = ILNRO2H
-                  ELSE
-                     CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
-                  ENDIF
-
-                  ! kg C of ARO2 / kg ARO2
-                  ! NOTE: Here GET_DARO2 is kg of NAP reacted, not kg of ARO2
-                  ! ALPHAs are set up for this
-                  ARO2CARB = 12d0 * 10d0 / ( 12d0 * 10d0 + 8d0 )
- 
-                  ! Tracer index of the parent aromatic
-                  IDTAROM = IDTNAP
-
+               ! Loss due to NO2 corresponds to high NOX experiments
+               ! (NOX = 1) while loss due to HO2 corresponds to 
+               ! low NOX experiments (NOX = 2). 
+               IF ( NOX == 1 ) THEN
+                  ILARO2 = ILBRO2N
+               ELSEIF ( NOX == 2 ) THEN
+                  ILARO2 = ILBRO2H
                ELSE
-
-                  CALL ERROR_STOP('Bad JHC', 'GET_DAR2')
-
+                  CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
                ENDIF
+
+               ! kg C of ARO2 / kg ARO2
+               ! dkh ARMv4 (hotp 7/31/2008)
+               !ARO2CARB = 0.5669d0 ! = 6*12/(6*12+3*16+7)
+               !ARO2CARB = 0.4528d0 ! = 6*12/(6*12+5*16+7)
+               ! Now use parent HC instead of RO2 (hotp 5/13/10)
+               ! C6H6
+               ARO2CARB = 6d0 * 12d0 / ( 6d0 * 12d0 + 6d0 )
+
+               ! Tracer index of the parent aromatic
+               IDTAROM = IDTBENZ
+
+            ! Toluene
+            !ELSEIF ( JHC == 8 ) THEN ! hotp 5/13/10
+            ELSEIF ( JHC == PARENTTOLU ) THEN
+
+               IF ( NOX == 1 ) THEN
+                  ILARO2 = ILTRO2N
+               ELSEIF ( NOX == 2 ) THEN
+                  ILARO2 = ILTRO2H
+               ELSE
+                  CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
+               ENDIF
+
+               ! kg C of ARO2 / kg ARO2
+               ! dkh ARMv4 (hotp 7/31/2008)
+               !ARO2CARB = 0.5874 ! = 7*12/(7*12+3*16+11)  ! This was wrong for 2 reasons
+               !ARO2CARB = 0.5957d0 ! = 7*12/(7*12+3*16+9) ! <-- just change 11 to 9
+               !ARO2CARB = 0.48d0 ! = 7*12/(7*12+5*16+11)  ! <-- just change 3*16 to 5*16
+               !ARO2CARB = 0.4855d0 ! = 7*12/(7*12+5*16+9)  ! <-- change both
+               ! Now use parent HC instead of RO2 (hotp 5/13/10)
+               ! C7H8
+               ARO2CARB = 7d0 * 12d0 / ( 7d0 * 12d0 + 8d0 )
+
+               ! Tracer index of the parent aromatic
+               IDTAROM = IDTTOLU
+
+            ! XYLENE
+            !ELSEIF ( JHC == 9 ) THEN ! hotp 5/13/10
+            ELSEIF ( JHC == PARENTXYLE ) THEN
+
+               IF ( NOX == 1 ) THEN
+                  ILARO2 = ILXRO2N
+               ELSEIF ( NOX == 2 ) THEN
+                  ILARO2 = ILXRO2H
+               ELSE
+                  CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
+               ENDIF
+
+               ! kg C of ARO2 / kg ARO2
+               ! dkh ARMv4 (hotp 7/31/2008)
+               !ARO2CARB = 0.6194d0 ! = 8*12/(8*12+3*16+11)
+               !ARO2CARB = 0.5134d0 ! = 8*12/(8*12+3*16+11)
+               ! comments on above are bad (hotp 7/22/09)
+               ! ARO2CARB for XYL is = 8*12/(8*12+5*16+11) (hotp 7/22/09)
+               ! Now use parent HC instead of RO2 (hotp 5/13/10)
+               ! old value based on RO2: 0.5134d0
+               ! C8H10
+               ARO2CARB = 8d0 * 12d0 / ( 8d0 * 12d0 + 10d0 ) 
+
+               ! Tracer index of the parent aromatic
+               IDTAROM = IDTXYLE
+
+            ! NAPHTHALENE (IVOC surrogate) (hotp 7/22/09)
+            !ELSEIF ( JHC == 12 ) THEN ! hotp 5/13/10
+            ELSEIF ( JHC == PARENTNAP ) THEN
+
+               IF ( NOX == 1 ) THEN
+                  ILARO2 = ILNRO2N
+               ELSEIF ( NOX == 2 ) THEN
+                  ILARO2 = ILNRO2H
+               ELSE
+                  CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
+               ENDIF
+
+               ! kg C of ARO2 / kg ARO2
+               ! NOTE: for NAP, GET_DARO2 is the kg of NAP reacted,
+               ! not the kg of ARO2
+               ! ALPHAs are set up for this
+               ARO2CARB = 12d0 * 10d0 / ( 12d0 * 10d0 + 8d0 )
+
+               ! Tracer index of the parent aromatic
+               IDTAROM = IDTNAP
 
             ELSE
 
-               !-------------------------------------
-               ! Traditional SOA
-               !-------------------------------------
+               CALL ERROR_STOP('Bad JHC', 'GET_DAR2')
 
-               ! Get information on the 
-               ! specified type of aromatic peroxy radical
-               ! Benzene
-               IF    ( JHC == 7 ) THEN
-
-                  ! Loss due to NO2 corresponds to high NOX experiments
-                  ! (NOX = 1) while loss due to HO2 corresponds to 
-                  ! low NOX experiments (NOX = 2). 
-                  IF ( NOX == 1 ) THEN
-                     ILARO2 = ILBRO2N
-                 ELSEIF ( NOX == 2 ) THEN
-                     ILARO2 = ILBRO2H
-                  ELSE
-                     CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
-                  ENDIF
-
-                  ! kg C of ARO2 / kg ARO2
-                  ! dkh ARMv4 (hotp 7/31/2008)
-                  !ARO2CARB = 0.5669d0 ! = 6*12/(6*12+3*16+7)
-                  ARO2CARB = 0.4528d0 ! = 6*12/(6*12+5*16+7)
-
-                  ! Tracer index of the parent aromatic
-                  IDTAROM = IDTBENZ
-
-               ! Toluene
-               ELSEIF ( JHC == 8 ) THEN
-
-                  IF ( NOX == 1 ) THEN
-                     ILARO2 = ILTRO2N
-                  ELSEIF ( NOX == 2 ) THEN
-                     ILARO2 = ILTRO2H
-                  ELSE
-                     CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
-                  ENDIF
-
-                  ! kg C of ARO2 / kg ARO2
-                  ! dkh ARMv4 (hotp 7/31/2008)
-                  !ARO2CARB = 0.5874 ! = 7*12/(7*12+3*16+11)  ! This was wrong for 2 reasons
-                  !ARO2CARB = 0.5957d0 ! = 7*12/(7*12+3*16+9) ! <-- just change 11 to 9
-                  !ARO2CARB = 0.48d0 ! = 7*12/(7*12+5*16+11)  ! <-- just change 3*16 to 5*16
-                  ARO2CARB = 0.4855d0 ! = 7*12/(7*12+5*16+9)  ! <-- change both
-
-
-                  ! Tracer index of the parent aromatic
-                  IDTAROM = IDTTOLU
-
-               ! XYLENE
-               ELSEIF ( JHC == 9 ) THEN
-
-                  IF ( NOX == 1 ) THEN
-                     ILARO2 = ILXRO2N
-                  ELSEIF ( NOX == 2 ) THEN
-                     ILARO2 = ILXRO2H
-                  ELSE
-                     CALL ERROR_STOP('Bad NOX', 'GET_DARO2')
-                  ENDIF
-
-                  ! kg C of ARO2 / kg ARO2
-                  ! dkh ARMv4 (hotp 7/31/2008)
-                  !ARO2CARB = 0.6194d0 ! = 8*12/(8*12+3*16+11)
-                  ARO2CARB = 0.5134d0 ! = 8*12/(8*12+3*16+11)
-                  ! comments on above are bad (hotp 7/22/09)
-                  ! ARO2CARB for XYL is = 8*12/(8*12+5*16+11) (hotp 7/22/09)
-
-                  ! Tracer index of the parent aromatic
-                  IDTAROM = IDTXYLE
-
-               ELSE
-
-                  CALL ERROR_STOP('Bad JHC', 'GET_DAR2')
-
-               ENDIF
-
-            ENDIF ! LSVPOA
+            ENDIF
 
             !-----------------------------------------------------------
             ! Get DARO2 from CSPEC [molec/cm3] and 
@@ -9082,3009 +11125,22 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_SVPOA_CHEMISTRY( am_I_Root, Input_Opt,
-     &                                State_Met, State_Chm )
-
-!
-!******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!  Subroutine SOA_SVPOA_CHEMISTRY performs SOA formation for SOA + semivolatile
-!  POA simulation.  This code is from the Caltech group (Hong Liao, 
-!  Serena Chung, et al) and was modified for GEOS-CHEM. (rjp, bmy, 7/8/04, 
-!  12/21/09)
-!
-!  Procedure:
-!  ============================================================================
-!  (1 ) Read in NO3, O3, OH in CHEM_SOA
-!  (2 ) Scales these fields using OHNO3TIME in sulfate_mod.f (see GET_OH)
-!  (3 ) Calculate reaction rates (Serena's OCHEMPARAETER)
-!  (4 ) CALCULATE DELHC
-!  (5 ) get T0M gas products
-!  (6 ) equilibrium calculation
-!
-!  SOA + SEMIVOLATILE POA simulation was created by Havala Pye.
-! 
-!  In this simulation GEOS-Chem treats formation of aerosol from 11 parent
-!  hydrocarbons and oxidation by OH, O3, and NO3:
-!
-!  Parent HCs:
-!  MTPA        = a-pinene, b-pinene, sabinene, carene
-!  LIMO        = limonene
-!  MTPO        = myrcene, ocimene, terpinene, terpinolene, alcohols, ketones
-!  SESQ        = sesquiterpenes
-!  ISOP        = isoprene
-!  BENZ        = benzene
-!  TOLU        = toluene
-!  XYLE        = xylene
-!  SVOC/POA    = POA from SVOC
-!  O-SVOC/OPOA = POA from oxidized SVOC 
-!  NAP         = naphthalene (IVOC surrogate)
-!
-!  The parent hydrocarbons are lumped into 5 semivolatile systems:
-!  TSOA/G: the lumped semivolatile oxidation products of monoterpene
-!          and sesquiterpene oxidation
-!  ISOA/G: the lumped semivolatile oxidation products of isoprene oxidation
-!  ASOA/G: the lumped semivolatile (and nonvolatile) products of 
-!          benzene, toluene, xylene, and naphthalene oxidation
-!  POA/G : the lumped primary semivolatile emissions
-!  OPOA/G: the lumped products of primary semivolatile oxidation
-!
-!  Parent HC      Oxidized by       Products
-!  =============  ================  ====================================
-!  MTPA           OH, O3, NO3       TSOA/G0-3
-!  LIMO           OH, O3, NO3       TSOA/G1-3
-!  MTPO           OH, O3, NO3       TSOA/G0-3
-!  SESQ           OH, O3, NO3       TSOA/G1-3
-!  ISOP           OH, NO3           ISOA/G1-3
-!  BENZ           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!  SVOC/POA       OH                POA/G1-2
-!  O-SVOC/OPOA    OH                OPOA/G1-2
-!  NAP            OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!
-!  Tracers that must be defined in input.geos (in addition to standard
-!  full chem tracers) (34 additional):
-!  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
-!  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
-!  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
-!  ASOAN      TSOA0      TSOG0
-!  MTPA       LIMO       MTPO
-!  BENZ       TOLU       XYLE       NAP      
-!  POA1       POG1       POA2       POG2
-!  OPOA1      OPOG1      OPOA2      OPOG2
-!  
-!  The following should NOT be defined for semivol POA: OCPI, OCPO
-!
-!  References (see above for full citations):
-!  ===========================================================================
-!  Monoterpenes and sesquiterpenes:
-!    Experimental Data:
-!      Griffin et al., 1999       (sesquiterps low NOx)
-!      Shilling et al., 2008      (a-pinene ozonolysis for MTPO/MTPA)
-!      Zhang et al., 2006         (limonene ozonolysis)
-!      Ng et al., 2007            (data for NOx effect on sesq aerosol)
-!    Modeling:
-!      Chung and Seinfeld, 2002   (original formulation in GEOS-Chem)
-!      Liao et al., 2007          (comparison to measurements)
-!      Pye et al., 2010           (lumping scheme, NOx effect)
-!  Isoprene
-!      Kroll et al., 2006         (low NOx experiments)
-!      Ng et al., 2008            (isoprene + NO3 experiments)
-!      Henze et al., 2006         (low NOx isoprene modeling in GEOS-Chem)
-!      Pye et al., 2010           (lumping scheme and isop+no3 modeling)
-!  Aromatics: BENZ, TOLU, XYLE
-!      Ng et al., 2007            (experiments)
-!      Henze et al., 2008         (global modeling)
-!  POA/OPOA
-!      Shrivastava et al., 2006   (POA experiments)
-!      Grieshop et al., 2009      (POA/SVOC oxidation experiments)
-!      Pye and Seinfeld, 2010     (global modeling)
-!  IVOC/Naphthalene
-!      Chan et al., 2009          (experiments)
-!      Pye and Seinfeld, 2010     (global modeling)
-!
-!  NOTES:
-!  15 Jul 2011 - M. Payer    - Initial code based on SOA_CHEMISTRY and
-!                              modifications for SOA + semivol POA (H. Pye)
-!  07 Aug 2013 - M. Sulprizio- Now pass am_I_Root, Input_Opt, State_Met,
-!                              and State_Chm as arguments
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD,    ONLY   : DEBUG_MSG
-      USE DIAG_MOD,     ONLY   : AD07_HC
-      USE TRACERID_MOD, ONLY   : IDTOCPI,  IDTOCPO
-      USE TRACERID_MOD, ONLY   : IDTMTPA,  IDTLIMO, IDTMTPO
-      USE TRACERID_MOD, ONLY   : IDTTSOA1, IDTTSOG1
-      USE TRACERID_MOD, ONLY   : IDTTSOA2, IDTTSOG2
-      USE TRACERID_MOD, ONLY   : IDTTSOA3, IDTTSOG3
-      USE TRACERID_MOD, ONLY   : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD, ONLY   : IDTISOA1, IDTISOG1
-      USE TRACERID_MOD, ONLY   : IDTISOA2, IDTISOG2
-      USE TRACERID_MOD, ONLY   : IDTISOA3, IDTISOG3 
-      USE TRACERID_MOD, ONLY   : IDTPOA1,  IDTPOA2
-      USE TRACERID_MOD, ONLY   : IDTPOG1,  IDTPOG2
-      USE TRACERID_MOD, ONLY   : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD, ONLY   : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD, ONLY   : IDTASOAN
-      USE TRACERID_MOD, ONLY   : IDTASOA1, IDTASOG1
-      USE TRACERID_MOD, ONLY   : IDTASOA2, IDTASOG2
-      USE TRACERID_MOD, ONLY   : IDTASOA3, IDTASOG3
-      USE TIME_MOD,     ONLY   : GET_TS_CHEM,       GET_MONTH
-      USE TIME_MOD,     ONLY   : ITS_TIME_FOR_BPCH
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_O3_MOD           ! XNUMOL
-      USE CMN_DIAG_MOD         ! ND44
-
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      LOGICAL       :: prtDebug
-      INTEGER       :: I,        J,        L,        N    
-      INTEGER       :: JHC,      IPR 
-      INTEGER       :: JSV
-      INTEGER       :: JSVPOA,   JSVOPOA
-      REAL*8        :: RTEMP,    VOL,      FAC,      MPOC 
-      REAL*8        :: MNEW,     MSOA_OLD, MPRODUCT, CAIR
-      REAL*8        :: LOWER,    UPPER,    TOL,      VALUE
-      REAL*8        :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      REAL*8        :: KOM_SVPOA(MPROD,MSV)
-      REAL*8        :: GM0(MPROD,MSV), AM0(MPROD,MSV)
-      REAL*8        :: ORG_AER(MPROD,MSV)
-      REAL*8        :: ORG_GAS(MPROD,MSV)
-      REAL*8        :: DARO2_TOT_0(8)      ! Parent HC reacted for arom/IVOC
-      REAL*8, SAVE  :: DARO2_TOT(8) = 0d0
-      REAL*8        :: KRO2NO, KRO2HO2     ! Rate constants
-      REAL*8        :: GLOB_AM0_POA(IIPAR,JJPAR,LLTROP,MNOX,MPROD,2)
-      REAL*8        :: GLOB_AM0_POA_0(IIPAR,JJPAR,LLTROP,MNOX,MPROD,2)
-      REAL*8, SAVE  :: GLOB_POA_PROD
-      REAL*8, SAVE  :: GLOB_OPOA_PROD
-
-      ! For fields from Input_Opt
-      LOGICAL         :: LPRT
-
-      ! Pointers
-      REAL*8, POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! SOA_SVPOA_CHEMISTRY begins here!
-      !=================================================================
-
-      ! Save fields from Input_Opt to local variables
-      LPRT = Input_Opt%LPRT
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT  => State_Chm%Tracers
-
-      ! Do we have to print debug output?
-      prtDebug = ( LPRT .and. am_I_Root )
-
-      ! Zero for safety
-      GLOB_POGRXN  = 0d0
-      OAGINITSAVE  = 0d0
-      DELTASOGSAVE = 0d0
-
-      ! Save initial OA+OG for diagnostic
-      IF ( LPRT ) THEN
-         CALL SAVE_OAGINIT( State_Chm )
-      ENDIF
-
-      ! This section is need to initialize the equilibirum constants and
-      ! yield parameters, (jje 06/22/10)
-      IF ( FIRST ) THEN
-
-         ! Initialize alphas, Koms and rxn rate constants
-         CALL SOA_SVPOA_PARA_INIT( Input_Opt )
-
-         ! Diagnostic/debug info
-         IF ( prtDebug ) THEN
-            WRITE(*,*) 'HC and SV IDs'
-            print*, 'Monoterpenes and sesquiterpenes'
-            print*, 'MTPA ', PARENTMTPA, IDSV(PARENTMTPA)
-            print*, 'LIMO ', PARENTLIMO, IDSV(PARENTLIMO)
-            print*, 'MTPO ', PARENTMTPO, IDSV(PARENTMTPO)
-            print*, 'SESQ ', PARENTSESQ, IDSV(PARENTSESQ)
-            print*, 'Isoprene'
-            print*, 'ISOP ', PARENTISOP, IDSV(PARENTISOP)
-            print*, 'Arom/IVOC'
-            print*, 'BENZ ', PARENTBENZ, IDSV(PARENTBENZ)
-            print*, 'TOLU ', PARENTTOLU, IDSV(PARENTTOLU)
-            print*, 'XYLE ', PARENTXYLE, IDSV(PARENTXYLE)
-            print*, 'NAP  ', PARENTNAP,  IDSV(PARENTNAP )
-            print*, 'POA and OPOA'
-            print*, 'POA  ', PARENTPOA,  IDSV(PARENTPOA)
-            print*, 'OPOA ', PARENTOPOA, IDSV(PARENTOPOA)
-            print*,'NPROD and NNOX for SV groups'
-            DO JSV = 1, MSV
-               print*, (JSV),NPROD(JSV),NNOX(JSV)
-            ENDDO
-         ENDIF
-
-         ! Initialize to zero
-         GLOB_POA_PROD  = 0d0
-         GLOB_OPOA_PROD = 0d0
-         DELTAHCSAVE    = 0d0
-         SPECSOAPROD    = 0d0
-         SPECSOAEVAP    = 0d0
-
-         ! Change flag
-         FIRST = .FALSE.
-
-      ENDIF
-
-      IF ( prtDebug ) THEN
-         print*, ' MAX DARO2 = ', MAXLOC(GLOB_DARO2(:,:,:,1,1)), 
-     &                            MAXVAL(GLOB_DARO2(:,:,:,1,1))
-      ENDIF
- 
-      ! Zero diagnostic info
-      GLOB_AM0_POA   = 0.d0
-      GLOB_AM0_POA_0 = 0.d0
-
-      ! Print initial POA info
-      IF ( prtDebug ) THEN
-         print*, 'START SOA_SVPOA_CHEMISTRY'
-         print*, 'species   ','global sum   ', 
-     &              'box 20,33,2   ', 'box 20,33,10    '
-
-         IF ( IDTPOA1 > 0 ) THEN
-            print*,'POA1', SUM(STT(:,:,:,IDTPOA1))
-            print*,'POA2', SUM(STT(:,:,:,IDTPOA2))
-            print*,'POG1', SUM(STT(:,:,:,IDTPOG1))
-            print*,'POG2', SUM(STT(:,:,:,IDTPOG2))
-            print*,'OPOA1',SUM(STT(:,:,:,IDTOPOA1))
-            print*,'OPOA2',SUM(STT(:,:,:,IDTOPOA2))
-            print*,'OPOG1',SUM(STT(:,:,:,IDTOPOG1))
-            print*,'OPOG2',SUM(STT(:,:,:,IDTOPOG2))
-         ENDIF
-
-         ! Separate biomass burning/biofuel from anthropogenic
-         print*, 'POAEMISS,1,BB,BF',
-     &                 SUM(POAEMISS(:,:,:,1)),POAEMISS(20,33,2,1),
-     &                     POAEMISS(20,33,10,1)
-         print*, 'POAEMISS,2,ANTH',
-     &                 SUM(POAEMISS(:,:,:,2)),POAEMISS(20,33,2,2),
-     &                     POAEMISS(20,33,10,2)
-      
-         IF ( IDTPOA1 > 0 ) THEN
-            print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
-     &                         SUM(STT(:,:,:,IDTPOA2))+
-     &                         SUM(STT(:,:,:,IDTPOG1))+
-     &                         SUM(STT(:,:,:,IDTPOG2))
-         ENDIF
-      ENDIF
- 
-      ! Locate POA and OPOA in AM0
-      JSVPOA  = IDSV(PARENTPOA)
-      JSVOPOA = IDSV(PARENTOPOA)
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,        J,        L,     JHC,   IPR,   GM0,  AM0  )
-!$OMP+PRIVATE( VOL,      FAC,      RTEMP, KO3,   KOH,   KNO3, CAIR )
-!$OMP+PRIVATE( MPRODUCT, MSOA_OLD, VALUE, UPPER, LOWER, MNEW, TOL  )
-!$OMP+PRIVATE( ORG_AER,  ORG_GAS,  KOM_SVPOA,    MPOC              )
-!$OMP+PRIVATE( KRO2NO,   KRO2HO2,  JSV    )  
-      DO L = 1, LLTROP
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) )  CYCLE
-
-         ! Volume of grid box [m3]
-         VOL    = State_Met%AIRVOL(I,J,L)    
-
-         ! conversion factor from kg to ug/m3
-         FAC    = 1.D9 / VOL       
-
-         ! air conc. in kg/m3
-         CAIR   = State_Met%AD(I,J,L) / VOL  
-
-         ! Temperature [K]
-         RTEMP  = State_Met%T(I,J,L)         
-
-         ! Get SOA yield parameters
-         CALL SOA_SVPOA_PARA( RTEMP, KO3, KOH, KNO3,   KOM_SVPOA,   
-     &                        I,     J,   L,   KRO2NO, KRO2HO2   )
-
-         ! Partition mass of gas & aerosol tracers 
-         ! according to 5 VOC classes & 3 oxidants
-         CALL SOA_SVPOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
-
-         ! hotp diagnostic
-         GLOB_AM0_POA_0(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
-
-         ! Compute oxidation of hydrocarbons by O3, OH, NO3
-         ! Emit POA into semivolatiles here
-         CALL CHEM_NVOC_SVPOA( I,         J,         L,
-     &                         KO3,       KOH,       KNO3,
-     &                         GM0,       KRO2NO,    KRO2HO2,
-     &                         Input_Opt, State_Met, State_Chm)
-
-         !==============================================================
-         ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
-         !============================================================== 
- 
-         ! Initialize other arrays to be safe
-         ORG_AER(:,:) = 0d0
-         ORG_GAS(:,:) = 0d0
-
-         ! Individual SOA's: convert from [kg] to [ug/m3] or [kgC] to [ugC/m3]
-         DO JSV = 1, MAXSIMSV
-         DO IPR = 1, NPROD(JSV)
-            ORG_GAS(IPR,JSV) = GM0(IPR,JSV) * FAC
-            ORG_AER(IPR,JSV) = AM0(IPR,JSV) * FAC
-         ENDDO
-         ENDDO
-
-         ! Semivolatile POA: convert from [ugC/m3] to [ug/m3]
-         IF ( IDTPOA1 > 0 ) THEN
-            JHC = PARENTPOA
-            JSV = IDSV(JHC)
-            DO IPR = 1, NPROD(JSV)
-               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFPOA
-               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFPOA
-            ENDDO          
-         ENDIF
-
-         ! OPOA: Convert from [ugC/m3] to [ug/m3]
-         IF ( IDTOPOA1 > 0 ) THEN
-            JHC = PARENTOPOA
-            JSV = IDSV(JHC)
-
-            DO IPR = 1, NPROD(JSV)
-               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFOPOA
-               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFOPOA
-            ENDDO  
-
-         ENDIF
-
-         !-----------------------------------------------------------
-         ! Compute SOG condensation onto OC aerosol
-         !
-         ! Primary organic aerosol concentrations [ug/m3]
-         ! We carry carbon mass only in the STT array and here
-         ! multiply by 2.1 to account for non-carbon mass in the SOA.
-         !
-         ! Partitioning theory (Pankow, 1994) describes organic
-         ! phase partitioning assuming absorption into pre-existing
-         ! organic mass.  There is currently no theoretical or
-         ! laboratory support for absorption of organics into
-         ! inorganics.
-         !
-         ! Note that previous versions of the standard code
-         ! (v7-04-07 through v8-02-04) did include absorption into
-         ! inorganics.
-         !
-         ! (Colette Heald, 12/3/09)
-         !-----------------------------------------------------------
-
-         ! Treat either OCPI or semivolatile POA
-         IF ( IDTOCPI > 0 ) THEN
-            MPOC = ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * FAC
-            MPOC = MPOC * 2.1d0
-         ELSE
-            ! MPOC is zero for semivolatile POA
-            MPOC = 1d-30
-         ENDIF
-
-         !==============================================================
-         ! Solve for MNEW by solving for SOA=0
-         !==============================================================
-         IF ( ( MPOC / ( CAIR*1.D9 ) ) <= 2.1D-18 ) THEN
-
-            VALUE = 0.D0
-            UPPER = 0.D0
-
-            DO JSV = 1, MAXSIMSV
-            DO IPR = 1, NPROD(JSV)
-               VALUE = VALUE + KOM_SVPOA(IPR,JSV) *
-     &                 (ORG_GAS(IPR,JSV) + ORG_AER(IPR,JSV))
-
-               UPPER = UPPER + ORG_GAS(IPR,JSV)
-     &                       + ORG_AER(IPR,JSV)
-            ENDDO
-            ENDDO
-
-            IF ( VALUE <= 1.D0 ) THEN
-               MNEW  = 0.D0
-            ELSE
-               LOWER = 1.D-18 * ( CAIR * 1.D9 )
-               TOL   = 1.D-18 
-               MNEW  = ZEROIN_SVPOA(LOWER,UPPER,TOL,MPOC,ORG_AER,
-     &                              ORG_GAS, KOM_SVPOA)
-            ENDIF
-
-         ELSE
-
-            UPPER = MPOC
-            DO JSV = 1, MAXSIMSV
-            DO IPR = 1, NPROD(JSV)
-               UPPER = UPPER + ORG_GAS(IPR,JSV)
-     &                       + ORG_AER(IPR,JSV)
-            ENDDO
-            ENDDO
-            
-            LOWER = MPOC
-            TOL   = 1.D-9*MPOC
-            MNEW  = ZEROIN_SVPOA(LOWER,UPPER,TOL,MPOC,ORG_AER,ORG_GAS,
-     &                     KOM_SVPOA)
-
-         ENDIF
-
-         !==============================================================
-         ! Equilibrium partitioning into new gas and aerosol 
-         ! concentrations for individual contributions of SOA
-         !==============================================================
-         IF ( MNEW > 0.D0 ) THEN
-
-            DO JSV = 1, MAXSIMSV
-            DO IPR = 1, NPROD(JSV)
-
-               ORG_AER(IPR,JSV) = KOM_SVPOA(IPR,JSV)*MNEW /
-     &                    (1.D0 + KOM_SVPOA(IPR,JSV) * MNEW ) *
-     &                       (ORG_AER(IPR,JSV)
-     &                      + ORG_GAS(IPR,JSV))
-
-               IF ( KOM_SVPOA(IPR,JSV).NE.0D0 ) THEN
-                  ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.D8 /
-     &                              ( KOM_SVPOA(IPR,JSV) * MNEW * 1.D8)
-               ELSE
-                  ORG_GAS(IPR,JSV) = 0.D0
-               ENDIF
-
-            ENDDO
-            ENDDO
-
-            IF ( IDTPOA1 > 0 ) THEN
- 
-               JHC = PARENTPOA
-               JSV = IDSV(JHC)
-
-               DO IPR = 1, NPROD(JSV)
-                   ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFPOA
-                   ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFPOA
-               ENDDO    
-      
-            ENDIF
-
-            IF ( IDTOPOA1 > 0 ) THEN
-
-               JHC = PARENTOPOA
-               JSV = IDSV(JHC)
-
-               DO IPR = 1, NPROD(JSV)
-                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFOPOA
-                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFOPOA
-               ENDDO          
-
-            ENDIF
-
-            ! STORE PRODUCT INTO T0M  
-            ! COPY BACK TO THE STT (more or less)
-            DO JSV = 1, MAXSIMSV
-            DO IPR = 1, NPROD(JSV)
-               GM0(IPR,JSV) = ORG_GAS(IPR,JSV) / FAC
-               AM0(IPR,JSV) = ORG_AER(IPR,JSV) / FAC
-            ENDDO
-            ENDDO
-
-         !==============================================================
-         ! Mnew=0.D0, all SOA evaporates to the gas-phase
-         !==============================================================
-         ELSE
-
-            DO JSV = 1, MAXSIMSV
-            DO IPR = 1, NPROD(JSV)
-               GM0(IPR,JSV) = GM0(IPR,JSV) + AM0(IPR,JSV)
-               !AM0(IPR,JSV) = 1.D-18 * State_Met%AD(I,J,L)
-               AM0(IPR,JSV) = 1.D-20 ! try this to fix mass bal (hotp 5/25/10)
-            ENDDO
-            ENDDO
-
-         ENDIF
-
-         ! enforce direct yield for low nox aromatics
-         JHC = PARENTBENZ
-         JSV = IDSV(JHC)
-
-         ! no longer loop (hotp 7/28/10)
-         !DO IPR = 1, NPROD(JSV)
-         IPR = 4 ! Hardwired
-            AM0(IPR,JSV) = AM0(IPR,JSV) + GM0(IPR,JSV)
-            GM0(IPR,JSV) = 0d0
-            
-         ! Lump SOA
-         CALL SOA_SVPOA_LUMP( I, J, L, GM0, AM0, State_Chm )
-
-         ! hotp diagnostic
-         GLOB_AM0_POA(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
-
-         ! Check equilibrium
-         IF ( LPRT ) THEN
-            ! IDSV for lumped arom/IVOC is hardwired (=3)
-            ! Low NOX (non-volatile) aromatic product is IPR=4
-            CALL CHECK_EQLB( I, J, L, KOM_SVPOA, FAC, MNEW, LOWER, TOL,
-     &                       ORG_GAS(4,3), ORG_AER(4,3), MPOC,
-     &                       State_Chm )
-          ENDIF
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Debug: check mass balance
-      IF ( LPRT ) THEN
-         CALL CHECK_MB( am_I_Root, Input_Opt, State_Met, State_Chm )
-      ENDIF
-
-      !------------------------------------------------------------------------
-      !### Now only print when ND70 is turned on (bmy, 4/21/10)
-      IF ( prtDebug ) THEN
-
-         IF ( IDTPOA1 > 0 ) THEN
-            print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
-     &                         SUM(STT(:,:,:,IDTPOA2))+
-     &                         SUM(STT(:,:,:,IDTPOG1))+
-     &                         SUM(STT(:,:,:,IDTPOG2))
-         ENDIF
-
-         ! Print parent hydrocarbon reacted diagnostic
-         DARO2_TOT_0(:)    = DARO2_TOT(:)
-
-         print*, ' MAX DARO2 = ', MAXLOC(GLOB_DARO2(:,:,:,1,1)),
-     &                            MAXVAL(GLOB_DARO2(:,:,:,1,1))
-
-         DARO2_TOT(1) = DARO2_TOT(1) + SUM(GLOB_DARO2(:,:,:,1,1)) / 1d9
-         DARO2_TOT(2) = DARO2_TOT(2) + SUM(GLOB_DARO2(:,:,:,2,1)) / 1d9
-         DARO2_TOT(3) = DARO2_TOT(3) + SUM(GLOB_DARO2(:,:,:,1,2)) / 1d9
-         DARO2_TOT(4) = DARO2_TOT(4) + SUM(GLOB_DARO2(:,:,:,2,2)) / 1d9
-         DARO2_TOT(5) = DARO2_TOT(5) + SUM(GLOB_DARO2(:,:,:,1,3)) / 1d9
-         DARO2_TOT(6) = DARO2_TOT(6) + SUM(GLOB_DARO2(:,:,:,2,3)) / 1d9
-         DARO2_TOT(7) = DARO2_TOT(7) + SUM(GLOB_DARO2(:,:,:,1,4)) / 1d9
-         DARO2_TOT(8) = DARO2_TOT(8) + SUM(GLOB_DARO2(:,:,:,2,4)) / 1d9
-
-         ! DARO2 is mass of parent HC, not RO2
-         print*,'Accumulated parent HC reacted to RO2H,N products in Tg'
-         print*,'Units are Tg of parent'
-         print*, 'GLOB_DBRO2 NOX =', DARO2_TOT(1),
-     &                              (DARO2_TOT(1) - DARO2_TOT_0(1))
-         print*, 'GLOB_DBRO2 HO2 =', DARO2_TOT(2),
-     &                              (DARO2_TOT(2) - DARO2_TOT_0(2))
-         print*, 'GLOB_DTRO2 NOX =', DARO2_TOT(3),
-     &                              (DARO2_TOT(3) - DARO2_TOT_0(3))
-         print*, 'GLOB_DTRO2 HO2 =', DARO2_TOT(4),
-     &                              (DARO2_TOT(4) - DARO2_TOT_0(4))
-         print*, 'GLOB_DXRO2 NOX =', DARO2_TOT(5),
-     &                              (DARO2_TOT(5) - DARO2_TOT_0(5))
-         print*, 'GLOB_DXRO2 HO2 =', DARO2_TOT(6),
-     &                              (DARO2_TOT(6) - DARO2_TOT_0(6))
-         print*, 'GL_DAR NOX NAP =', DARO2_TOT(7),
-     &                               DARO2_TOT(7) - DARO2_TOT_0(7)
-         print*, 'GL_DAR HO2 NAP =', DARO2_TOT(8),
-     &                               DARO2_TOT(8) - DARO2_TOT_0(8)
-
-         ! Print POA info
-         print*, 'AFTER SOA_SVPOA_CHEMISTRY'
-         print*, 'species   ','global sum   ', 
-     &           'box 20,33,2   ', 'box 20,33,10    '
-
-         IF ( IDTPOA1 > 0 ) THEN
-            print*,'POA1',SUM(STT(:,:,:,IDTPOA1))
-            print*,'POA2',SUM(STT(:,:,:,IDTPOA2))
-            print*,'POG1',SUM(STT(:,:,:,IDTPOG1))
-            print*,'POG2',SUM(STT(:,:,:,IDTPOG2))
-            print*,'OPOA1',SUM(STT(:,:,:,IDTOPOA1))
-            print*,'OPOA2',SUM(STT(:,:,:,IDTOPOA2))
-            print*,'OPOG1',SUM(STT(:,:,:,IDTOPOG1))
-            print*,'OPOG2',SUM(STT(:,:,:,IDTOPOG2))
-         ENDIF
-
-         print*, 'POGRXN ', SUM(GLOB_POGRXN(:,:,:,:)),
-     &                      SUM( GLOB_POGRXN(20,33,2,:)),
-     &                      SUM(GLOB_POGRXN(20,33,10,:))
-
-         print*, 'POGRXN p1', SUM(GLOB_POGRXN(:,:,:,1))
-         print*, 'POGRXN p2', SUM(GLOB_POGRXN(:,:,:,2))
-
-         print*, 'POAEMISS tot', SUM(POAEMISS(:,:,:,:)),
-     &                 POAEMISS(20,33, 2,1)+POAEMISS(20,33, 2,2),
-     &                 POAEMISS(20,33,10,1)+POAEMISS(20,33,10,2)
-
-         IF ( IDTOPOA1 > 0 ) THEN
-            GLOB_POA_PROD = GLOB_POA_PROD +
-     &                      SUM(GLOB_AM0_POA(:,:,:,:,:,1)) -
-     &                      SUM(GLOB_AM0_POA_0(:,:,:,:,:,1))
-            GLOB_OPOA_PROD = GLOB_OPOA_PROD +
-     &                       SUM(GLOB_AM0_POA(:,:,:,:,:,2)) -
-     &                       SUM(GLOB_AM0_POA_0(:,:,:,:,:,2))
-
-            print*, 'POA produced (cumulative tp date) ', GLOB_POA_PROD
-
-            print*, 'POA P1',    SUM(GLOB_AM0_POA(:,:,:,1,1,1)) -
-     &                           SUM(GLOB_AM0_POA_0(:,:,:,1,1,1))
-            print*, 'POA P2',    SUM(GLOB_AM0_POA(:,:,:,1,2,1)) -
-     &                           SUM(GLOB_AM0_POA_0(:,:,:,1,2,1))
-            print*, 'OPOA P1',   SUM(GLOB_AM0_POA(:,:,:,1,1,2)) -
-     &                           SUM(GLOB_AM0_POA_0(:,:,:,1,1,2))
-            print*, 'OPOA P2',   SUM(GLOB_AM0_POA(:,:,:,1,2,2)) -
-     &                           SUM(GLOB_AM0_POA_0(:,:,:,1,2,2))
-            print*, 'OPOA produced (cumulative to date) ',GLOB_OPOA_PROD
-            print*, 'POA products '
-            print*, 'product 1', SUM(GLOB_AM0_POA(:,:,:,1,1,1)),
-     &                           GLOB_AM0_POA(20,33,2,1,1,1),
-     &                           GLOB_AM0_POA(20,33,10,1,1,1)
-            print*, 'product 2', SUM(GLOB_AM0_POA(:,:,:,1,2,1)),
-     &                           GLOB_AM0_POA(20,33,2,1,2,1),
-     &                           GLOB_AM0_POA(20,33,10,1,2,1)
-            print*, 'OPOA products'
-            print*, 'product 1', SUM(GLOB_AM0_POA(:,:,:,1,1,2)),
-     &                           GLOB_AM0_POA(20,33,2,1,1,2),
-     &                           GLOB_AM0_POA(20,33,10,1,1,2)
-            print*, 'product 2', SUM(GLOB_AM0_POA(:,:,:,1,2,2)),
-     &                           GLOB_AM0_POA(20,33,2,1,2,2),
-     &                           GLOB_AM0_POA(20,33,10,1,2,2)
-            print*, 'POA to trop', SUM(STT(:,:,1:LLTROP,IDTPOA1)) + 
-     &                             SUM(STT(:,:,1:LLTROP,IDTPOA2))
-  
-         ENDIF
-
-      ENDIF
-
-      !=================================================================       
-      ! Calculate dry-deposition
-      !=================================================================
-
-      CALL SOA_DEPO(STT(:,:,:,IDTMTPA ), DRYMTPA,  IDTMTPA,  Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTLIMO ), DRYLIMO,  IDTLIMO,  Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTMTPO ), DRYMTPO,  IDTMTPO , Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA1), DRYTSOA1, IDTTSOA1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA2), DRYTSOA2, IDTTSOA2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA3), DRYTSOA3, IDTTSOA3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA0), DRYTSOA0, IDTTSOA0, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG1), DRYTSOG1, IDTTSOG1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG2), DRYTSOG2, IDTTSOG2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG3), DRYTSOG3, IDTTSOG3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG0), DRYTSOG0, IDTTSOG0, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOA1), DRYISOA1, IDTISOA1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOA2), DRYISOA2, IDTISOA2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOA3), DRYISOA3, IDTISOA3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOG1), DRYISOG1, IDTISOG1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOG2), DRYISOG2, IDTISOG2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOG3), DRYISOG3, IDTISOG3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOAN), DRYASOAN, IDTASOAN, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOA1), DRYASOA1, IDTASOA1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOA2), DRYASOA2, IDTASOA2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOA3), DRYASOA3, IDTASOA3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOG1), DRYASOG1, IDTASOG1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOG2), DRYASOG2, IDTASOG2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOG3), DRYASOG3, IDTASOG3, Input_Opt)
-
-      IF ( IDTPOA1 > 0 ) THEN
-       CALL SOA_DEPO(STT(:,:,:,IDTPOA1 ), DRYPOA1,  IDTPOA1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTPOA2 ), DRYPOA2,  IDTPOA2, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTPOG1 ), DRYPOG1,  IDTPOG1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTPOG2 ), DRYPOG2,  IDTPOG2, Input_Opt)
-      ENDIF
-
-      IF ( IDTOPOA1 > 0 ) THEN
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOA1), DRYOPOA1, IDTOPOA1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOA2), DRYOPOA2, IDTOPOA2, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOG1), DRYOPOG1, IDTOPOG1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOG2), DRYOPOG2, IDTOPOG2, Input_Opt)
-      ENDIF
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      ! Return to calling program
-      END SUBROUTINE SOA_SVPOA_CHEMISTRY
-
-!-----------------------------------------------------------------------------
-
-      FUNCTION SOA_SVPOA_EQUIL( MASS, MPOC, AER_SV, GAS_SV, 
-     &                          KOM_SVPOA ) 
-     &         RESULT( SOA_MASS )
-!
-!******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!  Subroutine SOA_SVPOA_EQUIL solves SOAeqn=0 to determine Mnew (= mass)
-!  See Eqn (27) on page 70 of notes.  Originally written by Serena Chung at
-!  Caltech, and modified for inclusion into GEOS-CHEM. (rjp, bmy, 7/8/04)
-!
-!  This version does NOT assume that the gas and aerosol phases are in 
-!  equilibrium before chemistry; therefore, gas phase concentrations are 
-!  needed explicitly.  The gas and aerosol phases are assumed to be in 
-!  equilibrium after chemistry.
-! 
-!  Note: Unlike FUNCTION SOA, this function assumes no reactions.  It only 
-!  considers the partitioning of existing products of VOC oxidation.
-!
-!  HC_JHC + OXID_IOXID - > 
-!    alpha(1,IOXID,JHC) [SOAprod_gas(1,IOXID,JHC)+SOAprod(1,IOXID,JHC)]+
-!    alpha(2,IOXID,JHC) [SOAprod_gas(2,IOXID,JHC)+SOAprod(2,IOXID,JHC)]
-!
-!  SOAprod_gas(IPR,IOXID,JHC) <--> SOAprod(IPR,IOXID,JHC)   
-!                                           (aerosol phase)
-!
-!  w/ equilibrium partitioning:
-!
-!                                   SOAprod(IPR,IOXID,JHC)
-!    SOAprod_gas(IPR,IOXID,JHC) = ------------------------
-!                                     Kom(IPR,IOXID,JHC)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MASS    (REAL*8) : Pre-existing aerosol mass                [ug/m3]
-!  (2 ) MPOC    (REAL*8) : POA Mass                                 [ug/m3]
-!  (3 ) AEROSOL (REAL*8) : Aerosol concentration                    [ug/m3]
-!  (4 ) GAS     (REAL*8) : Gas-phase concentration                  [ug/m3]
-!  (5 ) KOM     (REAL*8) : Equilibrium gas-aerosol partition coeff. [m3/ug]
-!
-!  NOTES:
-!  25 Jul 2011 - M. Payer    - Initial code based on SOA_EQUIL and
-!                              modifications for SOA + semivol POA (H. Pye)
-!******************************************************************************
-!
-      ! Arguments
-      REAL*8, INTENT(IN) :: MASS, MPOC         
-      REAL*8, INTENT(IN) :: AER_SV(MPROD,MSV)
-      REAL*8, INTENT(IN) :: GAS_SV(MPROD,MSV)
-      REAL*8, INTENT(IN) :: KOM_SVPOA(MPROD,MSV)
-
-      ! Local variables
-      INTEGER            :: JHC,   IPR,     NOX
-      INTEGER            :: JSV
-      REAL*8             :: VALUE, SOA_MASS
-
-      !=================================================================
-      ! SOA_SVPOA_EQUIL begins here!
-      !=================================================================
-
-      ! Equation (39) on page 139 of notes:
-      VALUE = 0.D0
-
-      ! Use JSV not JHC
-      DO JSV = 1, MAXSIMSV
-      DO IPR = 1, NPROD(JSV)
-         VALUE = VALUE + KOM_SVPOA(IPR,JSV)                    /
-     &               ( 1.D0 + KOM_SVPOA(IPR,JSV) * MASS      ) *
-     &               ( GAS_SV(IPR,JSV) + AER_SV(IPR,JSV) )
-      ENDDO
-      ENDDO
-
-      ! Compute SOA mass
-      SOA_MASS = VALUE + ( 1.D5 * MPOC ) / ( 1.D5 * MASS ) - 1.0D0
-
-      ! Return to calling program
-      END FUNCTION SOA_SVPOA_EQUIL
-
-!------------------------------------------------------------------------------
-
-      FUNCTION ZEROIN_SVPOA( AX, BX, TOL, MPOC, AER_SV,
-     &                       GAS_SV, KOM_SVPOA)
-     &         RESULT( MNEW )
-!
-!******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-! NOTE: This function may be problematic -- it uses GOTO's, which are not
-! good for parallelization. (bmy, 7/8/04)
-!
-! shc I got this code from http://www.netlib.org
-!
-!      a zero of the function  f(x)  is computed in the interval ax,bx .
-!
-!  input..
-!
-!  ax     left endpoint of initial interval
-!  bx     right endpoint of initial interval
-!  f      function subprogram which evaluates f(x) for any x in
-!         the interval  ax,bx
-!  tol    desired length of the interval of uncertainty of the
-!         final result ( .ge. 0.0d0)
-!
-!
-!  output..
-!
-!  zeroin abcissa approximating a zero of  f  in the interval ax,bx
-!
-!
-!      it is assumed  that   f(ax)   and   f(bx)   have  opposite  signs
-!  without  a  check.  zeroin  returns a zero  x  in the given interval
-!  ax,bx  to within a tolerance  4*macheps*abs(x) + tol, where macheps
-!  is the relative machine precision.
-!      this function subprogram is a slightly  modified  translation  of
-!  the algol 60 procedure  zero  given in  richard brent, algorithms for
-!  minimization without derivatives, prentice - hall, inc. (1973).
-!
-!  NOTES:
-!  19 Jul 2011 - M. Payer    - Initial code based on ZEROIN and modifications
-!                              for SOA + semivolatile POA (H. Pye)
-!******************************************************************************
-!
-      ! Arguments
-      real*8, intent(in) :: ax,bx,tol
-      REAL*8, INTENT(IN) :: Mpoc      
-      REAL*8, INTENT(IN) :: AER_SV(MPROD,MSV)
-      REAL*8, INTENT(IN) :: GAS_SV(MPROD,MSV)
-      REAL*8, INTENT(IN) :: KOM_SVPOA(MPROD,MSV)
-
-      !local variables
-      real*8             :: MNEW
-      real*8             :: a,b,c,d,e,eps,fa,fb,fc,tol1,xm,p,q,r,s
-!
-!  compute eps, the relative machine precision
-!
-      eps = 1.0d0
-   10 eps = eps/2.0d0
-      tol1 = 1.0d0 + eps
-      if (tol1 .gt. 1.0d0) go to 10
-!
-! initialization
-!
-      a  = ax
-      b  = bx
-      fa = SOA_SVPOA_equil(A, MPOC, AER_SV, GAS_SV, KOM_SVPOA)
-      fb = SOA_SVPOA_equil(B, MPOC, AER_SV, GAS_SV, KOM_SVPOA)
-!
-! begin step
-!
-   20 c = a
-      fc = fa
-      d = b - a
-      e = d
-
-   30 if (ABS(fc) .ge. ABS(fb)) go to 40
-      a = b
-      b = c
-      c = a
-      fa = fb
-      fb = fc
-      fc = fa
-!
-! convergence test
-!
-   40 tol1 = 2.0d0*eps*ABS(b) + 0.5d0*tol
-      xm = 0.5D0*(c - b)
-      if (ABS(xm) .le. tol1) go to 90
-      if (fb .eq. 0.0d0) go to 90
-!
-! is bisection necessary
-!
-      if (ABS(e) .lt. tol1) go to 70
-      if (ABS(fa) .le. ABS(fb)) go to 70
-!
-! is quadratic interpolation possible
-!
-      if (a .ne. c) go to 50
-!
-! linear interpolation
-!
-      s = fb/fa
-      p = 2.0d0*xm*s
-      q = 1.0d0 - s
-      go to 60
-!
-! inverse quadratic interpolation
-!
-   50 q = fa/fc
-      r = fb/fc
-      s = fb/fa
-      p = s*(2.0d0*xm*q*(q - r) - (b - a)*(r - 1.0d0))
-      q = (q - 1.0d0)*(r - 1.0d0)*(s - 1.0d0)
-!
-! adjust signs
-!
-   60 if (p .gt. 0.0d0) q = -q
-      p = ABS(p)
-!
-! is interpolation acceptable
-!
-      if ((2.0d0*p) .ge. (3.0d0*xm*q - ABS(tol1*q))) go to 70
-      if (p .ge. ABS(0.5d0*e*q)) go to 70
-
-      e = d
-      d = p/q
-      go to 80
-!
-! bisection
-!
-   70 d = xm
-      e = d
-!
-! complete step
-!
-   80 a = b
-      fa = fb
-      if (ABS(d) .gt. tol1) b = b + d
-      if (ABS(d) .le. tol1) b = b + SIGN(tol1, xm)
-
-      fb = SOA_SVPOA_equil(B, MPOC, AER_SV, GAS_SV, KOM_SVPOA)
-
-      if ((fb*(fc/ABS(fc))) .gt. 0.0d0) go to 20
-      go to 30
-!
-! done
-!
-   90 MNEW = b
-
-      ! Return to calling program
-      END FUNCTION ZEROIN_SVPOA
-
-!------------------------------------------------------------------------------
-
-      FUNCTION RTBIS_SVPOA( X1, X2, XACC, MPOC, AER_SV,
-     &                      GAS_SV, KOM_SVPOA )
-     &         RESULT( ROOT )
-!
-!******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 
-!  Function RTBIS_SVPOA finds the root of the function SOA_SVPOA_EQUIL via the 
-!  bisection method.  Original algorithm from "Numerical Recipes" by Press et
-!  al, Cambridge UP, 1986.  Modified for inclusion into GEOS-CHEM.(bmy, 7/8/04)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) X1      (REAL*8) : Endpoint #1 
-!  (2 ) X2      (REAL*8) : Endpoint #2
-!  (3 ) XACC    (REAL*8) : Desired accuracy of solution
-!  (4 ) MPOC    (REAL*8) : POA Mass                                 [ug/m3]
-!  (5 ) AEROSOL (REAL*8) : Aerosol concentration                    [ug/m3]
-!  (6 ) GAS     (REAL*8) : Gas-phase concentration                  [ug/m3]
-!  (7 ) KOM     (REAL*8) : Equilibrium gas-aerosol partition coeff. [m3/ug]
-!
-!  NOTES:
-!  19 Jul 2011 - M. Payer    - Initial code based on RTBIS and modifications 
-!                              for SOA + semivolatile POA (H. Pye)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ERROR_STOP
-
-      ! Arguments
-      REAL*8, INTENT(IN) :: X1, X2, XACC, MPOC
-      REAL*8, INTENT(IN) :: AER_SV(MPROD,MSV)
-      REAL*8, INTENT(IN) :: GAS_SV(MPROD,MSV)
-      REAL*8, INTENT(IN) :: KOM_SVPOA(MPROD,MSV)
-
-      ! Local variables
-      INTEGER, PARAMETER :: JMAX = 100
-      INTEGER            :: J
-      REAL*8             :: ROOT, DX, F, FMID, XMID
-
-      !=================================================================
-      ! RTBIS_SVPOA begins here!
-      !=================================================================
-
-      ! Compute value of function SOA_SVPOA_EQUIL at endpoints
-      FMID = SOA_SVPOA_EQUIL( X2, MPOC, AER_SV, GAS_SV,
-     &                        KOM_SVPOA )
-      F    = SOA_SVPOA_EQUIL( X1, MPOC, AER_SV, GAS_SV,
-     &                        KOM_SVPOA )
-
-      ! Test if we are bracketing a root
-      IF ( F * FMID >= 0d0 ) THEN
-         CALL ERROR_STOP( 'Root must be bracketed!', 
-     &                    'RTBIS_SVPOA ("carbon_mod.f")' )
-      ENDIF
-
-      ! Set initial root and interval
-      IF ( F < 0d0 ) THEN
-         ROOT = X1
-         DX   = X2 - X1
-      ELSE
-         ROOT = X2
-         DX   = X1 - X2
-      ENDIF
-
-      ! Loop until max iteration count
-      DO J = 1, JMAX
-
-         ! Halve the existing interval
-         DX   = DX * 0.5D0
-
-         ! Compute midpoint of new interval
-         XMID = ROOT + DX
-
-         ! Compute value of function SOA_SVPOA_EQUIL at new midpoint
-         FMID = SOA_SVPOA_EQUIL( XMID, MPOC, AER_SV, GAS_SV,
-     &                           KOM_SVPOA )
-
-         ! We have found the root!
-         IF ( FMID <= 0D0 ) ROOT = XMID
-
-         ! We have reached the tolerance, so return
-         IF ( ABS( DX ) < XACC .OR. FMID == 0.D0 ) RETURN
-      ENDDO
-
-      ! Stop with error condition
-      CALL ERROR_STOP( 'Too many bisections!', 
-     &                 'RTBIS_SVPOA ("carbon_mod.f")' )
-
-      ! Return to calling program
-      END FUNCTION RTBIS_SVPOA
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE SOA_SVPOA_PARA( TEMP, KO3, KOH, KNO3,   KOM_SVPOA,
-     &                           II,   JJ,  LL,  KRO2NO, KRO2HO2 ) 
-!
-!******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!  Subroutine SOA_SVPOA_PARA gives mass-based stoichiometric coefficients for 
-!  semi-volatile products from the oxidation of hydrocarbons.  It calculates 
-!  secondary organic aerosol yield parameters.  Temperature effects are
-!  included.  Original code from the CALTECH group and modified for inclusion
-!  to GEOS-CHEM. (rjp, bmy, 7/8/04, 6/30/08)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) II     (INTEGER) : GEOS-Chem longitude index 
-!  (2 ) JJ     (INTEGER) : GEOS-Chem latitude index
-!  (3 ) LL     (INTEGER) : GEOS-Chem altitude index
-!  (4 ) TEMP   (REAL*8 ) : Temperature [k]
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (5 ) KO3       (REAL*8 ) : Rxn rate for HC oxidation by O3     [cm3/molec/s]
-!  (6 ) KOH       (REAL*8 ) : Rxn rate for HC oxidation by OH     [cm3/molec/s]
-!  (7 ) KNO3      (REAL*8 ) : Rxn rate for HC oxidation by NO3    [cm3/molec/s]
-!  (8 ) RALPHA    (REAL*8 ) : Mass-based stoichiometric coefficients [unitless]
-!  (9 ) KOM_SVPOA (REAL*8 ) : Equilibrium gas-aerosol partition coeff   [m3/ug]
-!
-!  References:
-!  ============================================================================
-!  PHOTO-OXIDATION RATE CONSTANTS OF ORGANICS come from:
-!  (1 ) Atkinson, el al., Int. J. Chem.Kinet., 27: 941-955 (1995)
-!  (2 ) Shu and Atkinson, JGR 100: 7275-7281 (1995)
-!  (3 ) Atkinson, J. Phys. Chem. Ref. Data 26: 215-290 (1997)   
-!  (4 ) Some are reproduced in Table 1 of Griffin, et al., JGR 104: 3555-3567
-!  (5 ) Chung and Seinfeld (2002)
-!
-!  ACTIVATION ENERGIES come from:
-!  (6 ) Atkinson, R. (1994) Gas-Phase Tropospheric Chemistry of Organic 
-!        Compounds.  J. Phys. Chem. Ref. Data, Monograph No.2, 1-216. 
-!  (7 ) They are also reproduced in Tables B.9 and B.10 of Seinfeld and 
-!        Pandis (1988).
-!  
-!  PARAMETERS FOR ISOPRENE:
-!  (8 ) Kroll et al., GRL, 109, L18808 (2005)
-!  (9 ) Kroll et al., Environ Sci Tech, in press (2006)
-!  (10) Henze and Seinfeld, GRL, submitted (2006)
-!
-!  NOTES:
-!  19 Jul 2011 - M. Payer    - Initial code based on SOA_PARA and modifications
-!                              for SOA + semivolatile POA (H. Pye)
-!******************************************************************************
-!
-      ! Arguments
-      INTEGER, INTENT(IN)  :: II, JJ, LL
-      REAL*8,  INTENT(IN)  :: TEMP
-      REAL*8,  INTENT(OUT) :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      REAL*8, INTENT(OUT)  :: KOM_SVPOA(MPROD,MSV)
-      REAL*8, INTENT(OUT)  :: KRO2NO, KRO2HO2 ! Rate constants
-
-      ! Local variables
-      INTEGER              :: IPR,  JHC
-      INTEGER              :: JSV
-      REAL*8               :: TMP1, TMP2, TMP3, OVER
-
-      ! Activation Energy/R [K] for O3, OH, NO3 (see Refs #6-7)
-      REAL*8, PARAMETER    :: ACT_O3     =  732.0d0   
-      REAL*8, PARAMETER    :: ACT_OH     = -400.0d0   
-      REAL*8, PARAMETER    :: ACT_NO3    = -490.0d0   
-
-      ! Heat of vaporization (from CRC Handbook of Chemistry & Physics)
-      REAL*8, PARAMETER    :: HEAT_VAPOR = 5.d3     
-
-      ! Reciprocal reference temperatures [K]
-      !REAL*8, PARAMETER    :: REF295     = 1d0 / 295d0
-      !REAL*8, PARAMETER    :: REF310     = 1d0 / 310d0
-      REAL*8, PARAMETER    :: REF300     = 1d0 / 300d0 ! Ref T for POA
-      REAL*8, PARAMETER    :: REF298     = 1d0 / 298d0 ! Ref T for semivols
-
-      !=================================================================
-      ! SOA_SVPOA_PARA begins here!
-      !=================================================================
-
-      !=================================================================
-      ! Temperature Adjustments of KO3, KOH, KNO3
-      !=================================================================
-
-      ! Initialize to zero
-      KO3  = 0d0
-      KOH  = 0d0
-      KNO3 = 0d0
-
-      ! Reciprocal temperature [1/K]
-      OVER = 1.0d0 / TEMP
-
-      ! Compute the exponentials once outside the DO loop
-      TMP1 = EXP( ACT_O3  * ( REF298 - OVER ) )
-      TMP2 = EXP( ACT_OH  * ( REF298 - OVER ) )
-      TMP3 = EXP( ACT_NO3 * ( REF298 - OVER ) )
-
-      ! Multiply photo-oxidation rates by exponential of temperature
-      !(dkh, 10/08/05)
-      DO JHC = 1, 4
-         KO3(JHC)  = KO3_REF(JHC)  * TMP1
-         KOH(JHC)  = KOH_REF(JHC)  * TMP2
-         KNO3(JHC) = KNO3_REF(JHC) * TMP3
-      ENDDO
-
-      ! Note: Isoprene oxidation is online, so don't need to calculate 
-      !       ISOP oxidation rates (hotp, mpayer, 7/19/11)
-
-      !=================================================================
-      ! Calculate KRO2NO, KRO2HO2 at TEMPERATURE
-      !=================================================================
-      KRO2NO  = AARO2NO  * EXP( BBRO2NO  * OVER )
-      KRO2HO2 = AARO2HO2 * EXP( BBRO2HO2 * OVER )
-                           
-      !=================================================================
-      ! Temperature Adjustments of KOM
-      !=================================================================
-
-      !-----------------------------------------------------------------
-      ! Lumped semivolatiles 1-3, reference temperature is 298 K
-      !
-      !   SV 1: MTPA,LIMO,MTPO,SESQ
-      !   SV 2: ISOP
-      !   SV 3: BENZ,TOLU,XYLE,(NAP)
-      !-----------------------------------------------------------------
-
-      ! Reciprocal temperature [1/K]
-      OVER = 1.0D0 / TEMP
-
-      ! Divide TEMP by 298K outside the DO loop
-      TMP1 = ( TEMP / 298.D0 )
-
-      ! Compute the heat-of-vaporization exponential term outside of DO loop
-      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF298 ) )
-
-      ! Multiply KOM by the temperature and heat-of-vaporization terms
-      DO JSV = 1, 3
-      DO IPR = 1, NPROD(JSV)
-         KOM_SVPOA(IPR,JSV) = KOM_REF_SVPOA(IPR,JSV) * TMP1 * TMP2
-      ENDDO
-      ENDDO
-
-      !-----------------------------------------------------------------
-      ! POA (primary semivolatiles), reference temperature is 300 K
-      !-----------------------------------------------------------------
-
-      ! Divide TEMP by 300K outside the DO loop
-      TMP1 = ( TEMP / 300.D0 )
-
-      ! Compute the heat-of-vaporization exponential term outside of DO loop
-      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF300 ) )
-
-      ! Multiply KOM by the temperature and heat-of-vaporization terms
-      ! Adjust POA from reference of 300K
-      JHC = PARENTPOA
-      JSV = IDSV(JHC)
-      DO IPR = 1, NPROD(JSV)
-         KOM_SVPOA(IPR,JSV) = KOM_REF_SVPOA(IPR,JSV) * TMP1 * TMP2
-      ENDDO
-
-      !-----------------------------------------------------------------
-      ! OPOA (oxidized semivolatiles), reference temperature is 300 K
-      !-----------------------------------------------------------------
-
-      ! Divide TEMP by 300K outside the DO loop
-      TMP1 = ( TEMP / 300.D0 )
-
-      ! Compute the heat-of-vaporization exponential term outside of DO loop
-      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF300 ) )
-
-      ! Adjust OPOA KOM
-      JHC = PARENTOPOA
-      JSV = IDSV(JHC)
-      DO IPR = 1, NPROD(JSV)
-         KOM_SVPOA(IPR,JSV) = KOM_REF_SVPOA(IPR,JSV) * TMP1 * TMP2
-      ENDDO
-
-      ! Return to calling program
-      END SUBROUTINE SOA_SVPOA_PARA
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE SOA_SVPOA_PARA_INIT( Input_Opt )
-!
-!******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!  Subroutine SOA_SVPOA_PARA_INIT initializes the ALPHAS and KOMS, the latter 
-!  at their reference temperature, for SOA + semivolatile POa simulations. It 
-!  is faster to define these seperately as it only needs to be done once. (dkh,
-!  11/12/06)
-!  
-!  ALPHA are indexed by parent hydrocarbon (for use in CHEM_NVOC_SVPOA)
-!  KOM_REF (and KOM) are indexed by semivolatile species
-!
-!  Module variables as Output:
-!  ============================================================================
-!  (1 ) KO3_REF  (REAL*8) : O3 and HC rxn rate constant at T298 [cm3/molec/s]
-!  (2 ) KOH_REF  (REAL*8) : O3 and HC rxn rate constant at T298 [cm3/molec/s]
-!  (3 ) KNO3_REF (REAL*8) : O3 and HC rxn rate constant at T298 [cm3/molec/s]
-!  (4 ) ALPHA    (REAL*8) : SOG yields
-!  (5 ) KOM_REF_SVPOA  (REAL*8) : SOA equilibrium constants at REFT [ug-1 m**3]
-!
-!  References (see above for full citations):
-!  =========================================================================== 
-!  (1 ) Chung and Seinfeld, 2002
-!  (2 ) Griffin et al., 1999
-!  (3 ) Henze et al., 2008
-!  (4 ) Ng, 2007
-!
-!  NOTES:
-!  20 Jul 2011 - M. Payer    - Initial code based on SOA_PARA_INIT and 
-!                              modifications for SOA + semivol POA (H. Pye)
-!******************************************************************************
-!     
-      ! References to F90 modules
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-
-      ! Local variables
-      INTEGER :: ai,bj,cl   ! for debug
-      INTEGER :: NOX
-      LOGICAL :: LPRT
-      LOGICAL :: LSVPOA
-
-      !=================================================================
-      ! SOA_SVPOA_PARA_INIT begins here!
-      !=================================================================
-
-      LPRT    = Input_Opt%LPRT
-      LSVPOA  = Input_Opt%LSVPOA
-
-      !=================================================================
-      ! REACTION RATE CONSTANTS 
-      !
-      ! Rates based on same underlying data as traditional SOA
-      ! (summarized by Griffin et al. 1999 and Chung & Seinfeld 2002) 
-      ! but lumped by contribution of HC to global emissions for that 
-      ! category.
-      !
-      ! K(MTPA) = K_SVPOA_REF(1) = 
-      !      0.53*K(A-PINE) + 0.25*K(B-PINE) + 0.12*K(SABI) + 0.10*K(CAR)
-      !
-      ! K(LIMO) = K_SVPOA_REF(2)
-      !
-      ! K(MTPO) = K_SVPOA_REF(3) =
-      !      0.11*K(TERPINENE) + 0.11*K(TERPINOLENE) + 0.11*K(MYRCENE) +
-      !      0.11*K(LINALOOL) + 0.11*K(terpinene-4-ol) + 0.45*K(OCIMENE)
-      !
-      ! K(SESQ) = K_SVPOA_REF(4) = 0.5*K(B-CARYOPHYLLENE) +0.5*K(A-HUMULENE)
-      !=================================================================
-
-      ! Photo-oxidation rates of O3 [cm3/molec/s] (See Refs #1-4)
-      KO3_REF(1) =    63.668d-18
-      KO3_REF(2) =   200.000d-18
-      KO3_REF(3) =  1744.500d-18
-      KO3_REF(4) = 11650.000d-18
-
-      ! Photo-oxidation rates of OH [cm3/molec/s] (See Refs #1-4)
-      KOH_REF(1) =    71.026d-12
-      KOH_REF(2) =   171.000d-12
-      KOH_REF(3) =   227.690d-12
-      KOH_REF(4) =   245.000d-12
- 
-      ! Photo-oxidation rate of NO3 [cm3/molec/s] (See Refs #1-4)
-      KNO3_REF(1) =    6.021d-12 
-      KNO3_REF(2) =   12.200d-12
-      KNO3_REF(3) =   33.913d-12
-      KNO3_REF(4) =   27.000d-12
-
-      ! Rate constants for branching ratio (see Henze et al., 2008)
-      ! k=A*exp(B/T)
-      ! RO2+NO
-      AARO2NO = 2.6d-12
-      BBRO2NO = 350.d0
-      ! RO2+HO2
-      AARO2HO2 = 1.4d-12
-      BBRO2HO2 = 700.d0
-
-      !=================================================================
-      ! SOA YIELD PARAMETERS
-      !
-      ! Note:
-      !  ALPHAs are indexed by PARENT HYDROCARBON
-      !  All monoterpenes use b-pinene + NO3 for NO3 yields
-      !=================================================================
-
-      ! Initialize all ALPHAs to zero
-      ALPHA = 0d0
-
-      !----------------------------
-      ! MTPA
-      !----------------------------
-      ! Based on Shilling et al. (2008) a-pinene ozonolysis
-      ! Product 4 has C*=0.1
-      NOX = NHIGHNOX
-      ALPHA(NOX,1,PARENTMTPA) = 0.0095d0
-      ALPHA(NOX,2,PARENTMTPA) = 0.0900d0
-      ALPHA(NOX,3,PARENTMTPA) = 0.0150d0
-      ALPHA(NOX,4,PARENTMTPA) = 0.0400d0
-      NOX = NLOWNOX
-      ALPHA(NOX,1,PARENTMTPA) = 0.019d0
-      ALPHA(NOX,2,PARENTMTPA) = 0.180d0
-      ALPHA(NOX,3,PARENTMTPA) = 0.030d0
-      ALPHA(NOX,4,PARENTMTPA) = 0.080d0
-      NOX = NNO3RXN
-      ALPHA(NOX,1,PARENTMTPA) = 0.0000d0
-      ALPHA(NOX,2,PARENTMTPA) = 0.3207d0
-      ALPHA(NOX,3,PARENTMTPA) = 1.0830d0
-
-      !----------------------------
-      ! LIMO
-      !----------------------------
-      ! Use LIMO yields of Zhang et al. (2006)
-      ! Assumed density of 1.3 g/cm3
-      NOX = NHIGHNOX
-      ALPHA(NOX,1,PARENTLIMO) = 0.4743d0
-      ALPHA(NOX,2,PARENTLIMO) = 0.1174d0
-      ALPHA(NOX,3,PARENTLIMO) = 1.4190d0
-      NOX = NLOWNOX
-      ALPHA(NOX,1,PARENTLIMO) = 0.3661d0
-      ALPHA(NOX,2,PARENTLIMO) = 0.3214d0
-      ALPHA(NOX,3,PARENTLIMO) = 0.8168d0
-      NOX = NNO3RXN
-      ALPHA(NOX,1,PARENTLIMO) = 0.0000d0
-      ALPHA(NOX,2,PARENTLIMO) = 0.3207d0
-      ALPHA(NOX,3,PARENTLIMO) = 1.0830d0
-
-      !----------------------------
-      ! MTPO
-      !----------------------------
-      ! Based on Shilling et al. (2008) a-pinene ozonolysis
-      ! Product 4 has C*=0.1
-      NOX = NHIGHNOX
-      ALPHA(NOX,1,PARENTMTPO) = 0.0095d0
-      ALPHA(NOX,2,PARENTMTPO) = 0.0900d0
-      ALPHA(NOX,3,PARENTMTPO) = 0.0150d0
-      ALPHA(NOX,4,PARENTMTPO) = 0.040d0
-      NOX = NLOWNOX
-      ALPHA(NOX,1,PARENTMTPO) = 0.019d0
-      ALPHA(NOX,2,PARENTMTPO) = 0.180d0
-      ALPHA(NOX,3,PARENTMTPO) = 0.030d0
-      ALPHA(NOX,4,PARENTMTPO) = 0.080d0
-      NOX = NNO3RXN
-      ALPHA(NOX,1,PARENTMTPO) = 0.0000d0
-      ALPHA(NOX,2,PARENTMTPO) = 0.3207d0
-      ALPHA(NOX,3,PARENTMTPO) = 1.0830d0
-
-      !----------------------------
-      ! SESQ
-      !----------------------------
-      ! Griffin et al. (1999) VOC/NO > 3ppbC/ppb is low NOx
-      ! High NOx is double the Y for a given Mo
-      NOX = NHIGHNOX
-      ALPHA(NOX,1,PARENTSESQ) = 0.0005d0
-      ALPHA(NOX,2,PARENTSESQ) = 1.1463d0
-      ALPHA(NOX,3,PARENTSESQ) = 2.9807d0
-      NOX = NLOWNOX
-      ALPHA(NOX,1,PARENTSESQ) = 0.0000d0
-      ALPHA(NOX,2,PARENTSESQ) = 0.5738d0
-      ALPHA(NOX,3,PARENTSESQ) = 1.4893d0
-      NOX = NNO3RXN
-      ALPHA(NOX,1,PARENTSESQ) = 0.0000d0
-      ALPHA(NOX,2,PARENTSESQ) = 0.3207d0
-      ALPHA(NOX,3,PARENTSESQ) = 1.0830d0
-
-      !----------------------------
-      ! ISOP
-      !----------------------------
-      NOX = 1 ! low NOx/all OH rxn
-      ALPHA(NOX,1,PARENTISOP) = 0.0306d0
-      ALPHA(NOX,2,PARENTISOP) = 0.0000d0
-      ALPHA(NOX,3,PARENTISOP) = 0.0945d0
-      NOX = 2 ! NO3 rxn
-      ALPHA(NOX,1,PARENTISOP) = 0.0000d0
-      ALPHA(NOX,2,PARENTISOP) = 0.2171d0
-      ALPHA(NOX,3,PARENTISOP) = 0.0919d0
-
-      !----------------------------
-      ! BENZ, TOLU, XYLE
-      !----------------------------
-      ! Numbers based on a 3 product fit to Ng et al. (2007) data
-      ! These numbers are for parent HC (no adjustment for ARO2) 
-      ! and correspond to C* of 1, 10, 100 in HIGH NOx case
-
-      ! HIGH NOX BENZ
-      ALPHA(1,1,PARENTBENZ) = 0.0778d0
-      ALPHA(1,2,PARENTBENZ) = 0.0000d0
-      ALPHA(1,3,PARENTBENZ) = 0.7932d0
-      ! LOW NOX BENZ (non-volatile)
-      ALPHA(2,4,PARENTBENZ) = 0.37d0
-
-      ! HIGH NOX TOLU
-      ALPHA(1,1,PARENTTOLU) = 0.0315d0
-      ALPHA(1,2,PARENTTOLU) = 0.0944d0
-      ALPHA(1,3,PARENTTOLU) = 0.0800d0
-      ! LOW NOX TOLU
-      ALPHA(2,4,PARENTTOLU) = 0.36d0
-
-      ! HIGH NOX XYLE
-      ALPHA(1,1,PARENTXYLE) = 0.0250d0
-      ALPHA(1,2,PARENTXYLE) = 0.0360d0
-      ALPHA(1,3,PARENTXYLE) = 0.0899d0
-      ! LOW NOX XYLE
-      ALPHA(2,4,PARENTXYLE) = 0.30d0
-
-      !----------------------------
-      ! POA
-      !----------------------------
-      ! Based on Shrivastava et al. (2006)
-      ! Only 2 products (wood smoke)
-      ALPHA(1,1,PARENTPOA) = 0.49d0
-      ALPHA(1,2,PARENTPOA) = 0.51d0
-      ! No high NOx parameters
-      ! Diesel/anthropogenic POA
-      !ALPHA(2:MNOX,1:MPROD,10) = 0d0
-
-      !----------------------------
-      ! OPOA
-      !----------------------------
-      ! Biomass burning
-      ! (note that this is the carbon yield)
-      ALPHA(1,1,PARENTOPOA) = 1.d0
-      ALPHA(1,2,PARENTOPOA) = 1.d0
-      ! Anthropogenic
-      !ALPHA(2:MNOX,1:MPROD,11) = 0d0
-
-      !----------------------------
-      ! SOA from oxidation of IVOCs
-      !----------------------------
-      ! Values from Chan et al. (2009) (refit)
-      ! ALPHAs are set up for the aromatic (NAP) as the parent HC
-      ! ALPHAs must be consistent with GET_DARO2 units!
-      ! HIGH NOX
-      ! Ox = NO
-      ALPHA(1,1,PARENTNAP) = 0.0387d0
-      ALPHA(1,2,PARENTNAP) = 0.2956d0
-      ALPHA(1,3,PARENTNAP) = 0.2349d0
-      ! LOW NOX
-      ! Ox = HO2
-      ALPHA(2,4,PARENTNAP) = 0.73d0
-
-      !=================================================================
-      ! Equilibrium gas-particle partition coefficients of 
-      ! semi-volatile compounds [ug-1 m**3]
-      !=================================================================
-
-      ! Initialize to zero (hotp 5/12/10) 
-      KOM_REF_SVPOA = 0d0
-
-      ! KOM_REF_SVPOA are indexed by SEMIVOLATILE SPECIES
-
-      !---------------------------------------
-      ! SEMIVOLATILE 1: MTPA, LIMO, MTPO, SESQ
-      !---------------------------------------
-      KOM_REF_SVPOA(1,IDSV(PARENTMTPA)) = 1.0d0/1.0d0
-      KOM_REF_SVPOA(2,IDSV(PARENTMTPA)) = 1.0d0/10.0d0
-      KOM_REF_SVPOA(3,IDSV(PARENTMTPA)) = 1.0d0/100.0d0
-      KOM_REF_SVPOA(4,IDSV(PARENTMTPA)) = 1.0d0/0.1d0   ! C*=0.1
-
-      !---------------------------------------
-      ! SEMIVOLATILE 2: ISOP
-      !---------------------------------------
-      KOM_REF_SVPOA(1,IDSV(PARENTISOP)) = 1.0d0/1.0d0
-      KOM_REF_SVPOA(2,IDSV(PARENTISOP)) = 1.0d0/10.0d0
-      KOM_REF_SVPOA(3,IDSV(PARENTISOP)) = 1.0d0/100.0d0
- 
-      !---------------------------------------
-      ! SEMIVOLATILE 3: BENZ, TOLU, XYLE, NAP
-      !---------------------------------------
-      KOM_REF_SVPOA(1,IDSV(PARENTBENZ)) = 1.0d0/1.0d0
-      KOM_REF_SVPOA(2,IDSV(PARENTBENZ)) = 1.0d0/10.0d0
-      KOM_REF_SVPOA(3,IDSV(PARENTBENZ)) = 1.0d0/100.0d0
-      ! Low NOX (HO2) non-volatile
-      KOM_REF_SVPOA(4,IDSV(PARENTBENZ)) = 1.d10
-
-      !---------------------------------------
-      ! SEMIVOLATILE 4: POA/SVOCs
-      !---------------------------------------
-      ! Based on Shrivastava et al. (2006)
-      ! Only 2 products (wood smoke)
-      ! Tref is 27 C = 300 K
-      KOM_REF_SVPOA(1,IDSV(PARENTPOA)) = 1d0/1646d0
-      KOM_REF_SVPOA(2,IDSV(PARENTPOA)) = 1d0/20d0
-
-      !---------------------------------------
-      ! SEMIVOLATILE 5: OPOA/O-SVOCs
-      !---------------------------------------
-      ! Parameters are a factor of 100 more than POA parameters
-      KOM_REF_SVPOA(1,IDSV(PARENTOPOA)) = 
-     &             KOM_REF_SVPOA(1,IDSV(PARENTPOA)) * 100d0
-      KOM_REF_SVPOA(2,IDSV(PARENTOPOA)) =
-     &             KOM_REF_SVPOA(2,IDSV(PARENTPOA)) * 100d0
-
-      ! Print POA info
-      print*, 'Semivolatile POA settings:---------------'
-      ! print*, ' KOM_REF_SVPOA: ', KOM_REF_SVPOA(1,1,10), 
-     &         !  KOM_REF_SVPOA(1,2,10)
-      !print*, ' ALPHA:   ', ALPHA(1,1,10), ALPHA(1,2,10)
-      print*, ' ALPHA:   ', ALPHA(1,1,9), ALPHA(1,2,9)
-      print*, ' POA OA/OC ratio:    ',OCFPOA 
-      print*, ' OPOA OA/OC ratio:   ',OCFOPOA
-      !print*, ' KOM_SVPOA(OPOA)/KOM_SVPOA(POA): ',
-     &         ! KOM_REF_SVPOA(1,1,11)/KOM_REF_SVPOA(1,1,10)
-      print*, ' LSVPOA is set to: ', LSVPOA
-
-      ! Debug print checks
-      IF ( LPRT ) THEN
-
-         print*, 'CHECK MHC, NOX, PR', MHC, MNOX, MPROD
-         print*, 'CHECK MSV', MSV
-         print*, '      NOX, PROD, HC/SV'
-
-         DO ai = 1, MHC
-         DO bj = 1, MNOX
-         DO cl = 1, MPROD
-            print*,'Alpha', bj,cl,ai
-            print*, ALPHA(bj,cl,ai)
-         ENDDO
-         ENDDO
-         ENDDO
-
-         DO ai = 1, MSV
-         DO cl = 1, MPROD
-            print*,'KOM_REF_SVPOA', cl,ai
-            print*, KOM_REF_SVPOA(cl,ai)
-         ENDDO
-         ENDDO
-
-      ENDIF
-
-      ! Return to calling program
-      END SUBROUTINE SOA_SVPOA_PARA_INIT
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE SOA_SVPOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
-!
-!******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!  Subroutine SOA_SVPOA_PARTITION assigns the mass in the STT array to 
-!  the GM0 and AM0 arrays. (hotp 5/13/10)
-!
-!  NOTE: GPROD and APROD are mass ratios of individual oxidation 
-!        products of gas/aerosol to the sum of all. 
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I   (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J   (INTEGER) : GEOS-CHEM latitude index
-!  (3 ) L   (INTEGER) : GEOS-CHEM altitude index
-! 
-!  Arguments as Output:
-!  ============================================================================
-!  (4 ) GM0 (REAL*8 ) : Gas mass for each HC and its oxidation product     [kg]
-!  (5 ) AM0 (REAL*8 ) : Aerosol mass for each HC and its oxidation product [kg]
-!
-!  NOTES:
-!  20 Jul 2011 - M. Payer    - Initial code based on SOA_PARTITION and
-!                              modifications for SOA + semivol POA (H. Pye)
-!  07 Aug 2013 - M. Sulprizio- Now pass STT array using State_Chm
-!******************************************************************************
-!
-      ! Refrences to F90 modules
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOG1
-      USE TRACERID_MOD, ONLY : IDTPOA2,  IDTPOG2
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD, ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-
-      USE CMN_SIZE_MOD       ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: I, J, L
-      REAL*8,  INTENT(OUT) :: GM0(MPROD,MSV), AM0(MPROD,MSV)
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
-      ! Local variables
-      INTEGER              :: JHC, IPR, NOX, JSV
-
-      ! Pointers
-      REAL*8, POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! SOA_SVPOA_PARTITION begins here!
-      !=================================================================
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT => State_Chm%Tracers
-
-      ! Initialize to zero
-      GM0 = 0d0
-      AM0 = 0d0
-
-      !---------------------------------------
-      ! SEMIVOLATILE 1: MTPA, LIMO, MTPO, SESQ
-      !---------------------------------------
-      JHC = PARENTMTPA
-      JSV = IDSV(JHC)
-      ! gas phase
-      GM0(1,JSV)=STT(I,J,L,IDTTSOG1) ! C* =   1
-      GM0(2,JSV)=STT(I,J,L,IDTTSOG2) ! C* =  10
-      GM0(3,JSV)=STT(I,J,L,IDTTSOG3) ! C* = 100
-      GM0(4,JSV)=STT(I,J,L,IDTTSOG0) ! C* =   0.1
-      ! aerosol phase
-      AM0(1,JSV)=STT(I,J,L,IDTTSOA1)
-      AM0(2,JSV)=STT(I,J,L,IDTTSOA2)
-      AM0(3,JSV)=STT(I,J,L,IDTTSOA3)
-      AM0(4,JSV)=STT(I,J,L,IDTTSOA0)
-
-      !---------------------------------------
-      ! SEMIVOLATILE 2: ISOP
-      !---------------------------------------
-      JHC = PARENTISOP
-      JSV = IDSV(JHC)
-      ! gas phase
-      GM0(1,JSV)=STT(I,J,L,IDTISOG1)
-      GM0(2,JSV)=STT(I,J,L,IDTISOG2)
-      GM0(3,JSV)=STT(I,J,L,IDTISOG3)
-      ! aerosol phase
-      AM0(1,JSV)=STT(I,J,L,IDTISOA1)
-      AM0(2,JSV)=STT(I,J,L,IDTISOA2)
-      AM0(3,JSV)=STT(I,J,L,IDTISOA3)
-
-      !---------------------------------------
-      ! SEMIVOLATILE 3: BENZ, TOLU, XYLE, NAP
-      !---------------------------------------
-      JHC = PARENTBENZ ! IDSV(B)=IDSV(T)=IDSV(X)=IDSV(N)
-      JSV = IDSV(JHC)
-      ! gas phase
-      GM0(1,JSV)=STT(I,J,L,IDTASOG1)
-      GM0(2,JSV)=STT(I,J,L,IDTASOG2)
-      GM0(3,JSV)=STT(I,J,L,IDTASOG3)
-      ! aerosol phase
-      AM0(1,JSV)=STT(I,J,L,IDTASOA1)
-      AM0(2,JSV)=STT(I,J,L,IDTASOA2)
-      AM0(3,JSV)=STT(I,J,L,IDTASOA3)
-      AM0(4,JSV)=STT(I,J,L,IDTASOAN)
-
-      !---------------------------------------
-      ! SEMIVOLATILE 4: POA/SVOCs
-      !---------------------------------------
-      JHC = PARENTPOA
-      JSV = IDSV(JHC)
-      IF ( IDTPOA1 > 0 ) THEN
-         ! gas phase
-         GM0(1,JSV) = STT(I,J,L,IDTPOG1)
-         GM0(2,JSV) = STT(I,J,L,IDTPOG2)
-         ! aerosol phase
-         AM0(1,JSV) = STT(I,J,L,IDTPOA1)
-         AM0(2,JSV) = STT(I,J,L,IDTPOA2)
-      ENDIF
-
-      !---------------------------------------
-      ! SEMIVOLATILE 5: OPOA/O-SVOCs
-      !---------------------------------------
-      JHC = PARENTOPOA
-      JSV = IDSV(JHC)
-      IF ( IDTOPOA1 > 0 ) THEN
-         ! gas phase
-         GM0(1,JSV) = STT(I,J,L,IDTOPOG1)
-         GM0(2,JSV) = STT(I,J,L,IDTOPOG2)
-         ! aerosol phase
-         AM0(1,JSV) = STT(I,J,L,IDTOPOA1)
-         AM0(2,JSV) = STT(I,J,L,IDTOPOA2)
-      ENDIF
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      ! Return to calling program
-      END SUBROUTINE SOA_SVPOA_PARTITION
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE SOA_SVPOA_LUMP( I, J, L, GM0, AM0, State_Chm )
-!
-!******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!  Subroutine SOA_SVPOA_LUMP returns the organic gas and aerosol back to the
-!  STT array.  (rjp, bmy, 7/7/04, 2/6/07)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I   (INTEGER) : Longitude index
-!  (2 ) J   (INTEGER) : Latitude index
-!  (3 ) L   (INTEGER) : Altitude index
-!  (4 ) GM0 (REAL*8 ) : Gas mass for each HC and its oxidation product     [kg]
-!  (5 ) AM0 (REAL*8 ) : Aerosol mass for each HC and its oxidation product [kg]
-! 
-!  NOTES:
-!  20 Jul 2011 - M. Payer    - Initial code based on SOA_LUMP and modifications
-!                              for SOA + semivolatile POA (H. Pye)
-!  07 Aug 2013 - M. Sulprizio- Now pass STT array using State_Chm
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD07_HC 
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOG1
-      USE TRACERID_MOD, ONLY : IDTPOA2,  IDTPOG2
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD, ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44, ND07, LD07
-      
-      ! Arguments
-      INTEGER, INTENT(IN)  :: I, J, L
-      REAL*8,  INTENT(IN)  :: GM0(MPROD,MSV), AM0(MPROD,MSV)
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
-      ! Local variables
-      INTEGER              :: JHC, IPR, NOX, JSV
-      REAL*8               :: GASMASS, AERMASS
-      INTEGER              :: IDTSPECIES
-      REAL*8               :: AERCHANGE 
-
-      ! Pointers
-      REAL*8, POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! SOA_SVPOA_LUMP begins here!
-      !=================================================================
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT => State_Chm%Tracers
-
-      !=================================================================
-      ! SEMIVOLATILE GROUP 1: Monoterpenes and Sesquiterpenes
-      !=================================================================
-
-      ! Initialize
-      GASMASS = 0D0
-      AERMASS = 0D0
-      JHC = PARENTMTPA
-      JSV = IDSV(JHC)
-
-      ! Save diagnostic info
-      DO IPR = 1, NPROD(JSV)
-         GASMASS = GASMASS + GM0(IPR,JSV)
-         AERMASS = AERMASS + AM0(IPR,JSV)
-      ENDDO
-
-      !-----------------------------
-      ! SOA net production [kg]
-      !-----------------------------
-      IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                    + ( AERMASS - 
-     &                        STT(I,J,L,IDTTSOA1) -
-     &                        STT(I,J,L,IDTTSOA2) -
-     &                        STT(I,J,L,IDTTSOA3) -
-     &                        STT(I,J,L,IDTTSOA0)  )
-      ENDIF
-
-      !-----------------------------
-      ! Transient mass bal prod/evap (hotp 6/5/10)
-      !-----------------------------
-      IDTSPECIES = IDTTSOA1
-      IPR = 1
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      IDTSPECIES = IDTTSOA2
-      IPR = 2
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      IDTSPECIES = IDTTSOA3
-      IPR = 3
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      IDTSPECIES = IDTTSOA0
-      IPR = 4
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      ! Update tracers [kg]
-      ! gas phase
-      STT(I,J,L,IDTTSOG1) = MAX( GM0(1,JSV), 1d-32 )
-      STT(I,J,L,IDTTSOG2) = MAX( GM0(2,JSV), 1d-32 )
-      STT(I,J,L,IDTTSOG3) = MAX( GM0(3,JSV), 1d-32 )
-      STT(I,J,L,IDTTSOG0) = MAX( GM0(4,JSV), 1d-32 )
-      ! aerosol phase
-      STT(I,J,L,IDTTSOA1) = MAX( AM0(1,JSV), 1d-32 )
-      STT(I,J,L,IDTTSOA2) = MAX( AM0(2,JSV), 1d-32 )
-      STT(I,J,L,IDTTSOA3) = MAX( AM0(3,JSV), 1d-32 )
-      STT(I,J,L,IDTTSOA0) = MAX( AM0(4,JSV), 1d-32 )
-
-      !=================================================================
-      ! SEMIVOLATILE GROUP 2: Isoprene
-      !=================================================================
-
-      ! Initialize
-      GASMASS = 0D0
-      AERMASS = 0D0
-      JHC = PARENTISOP
-      JSV = IDSV(JHC)
-
-      ! Save diagnostic info
-      DO IPR = 1, NPROD(JSV)
-         GASMASS = GASMASS + GM0(IPR,JSV)
-         AERMASS = AERMASS + AM0(IPR,JSV)
-      ENDDO
-
-      !-----------------------------
-      ! SOA net production [kg]
-      !-----------------------------
-      IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                    + ( AERMASS - 
-     &                        STT(I,J,L,IDTISOA1) -
-     &                        STT(I,J,L,IDTISOA2) -
-     &                        STT(I,J,L,IDTISOA3)   )
-      ENDIF
-
-      !-----------------------------
-      ! Transient mass bal prod/evap (hotp 6/5/10)
-      !-----------------------------
-      IDTSPECIES = IDTISOA1
-      IPR = 1
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      IDTSPECIES = IDTISOA2
-      IPR = 2
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      IDTSPECIES = IDTISOA3
-      IPR = 3
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      ! Update tracers [kg]
-      ! gas phase
-      STT(I,J,L,IDTISOG1) = MAX( GM0(1,JSV), 1d-32 )
-      STT(I,J,L,IDTISOG2) = MAX( GM0(2,JSV), 1d-32 )
-      STT(I,J,L,IDTISOG3) = MAX( GM0(3,JSV), 1d-32 )
-      ! aerosol phase
-      STT(I,J,L,IDTISOA1) = MAX( AM0(1,JSV), 1d-32 )
-      STT(I,J,L,IDTISOA2) = MAX( AM0(2,JSV), 1d-32 )
-      STT(I,J,L,IDTISOA3) = MAX( AM0(3,JSV), 1d-32 )
-
-      !=================================================================
-      ! SEMIVOLATILE GROUP 3: benzene, toluene, xylene, naphthalene/IVOC
-      !=================================================================
-
-      ! Initialize
-      GASMASS = 0D0
-      AERMASS = 0D0
-      JHC = PARENTBENZ
-      JSV = IDSV(JHC)
-
-      ! Save diagnostic info
-      DO IPR = 1, NPROD(JSV) ! change JHC to JSV
-      !DO NOX = 1, NNOX(JSV)    ! Add NOX index (dkh, 11/05/06)               
-         !GASMASS = GASMASS + GM0(NOX,IPR,JHC)
-         !AERMASS = AERMASS + AM0(NOX,IPR,JHC)
-         GASMASS = GASMASS + GM0(IPR,JSV)
-         AERMASS = AERMASS + AM0(IPR,JSV)
-      !ENDDO
-      ENDDO
-
-      !-----------------------------      
-      ! SOA net production [kg]
-      !-----------------------------
-      IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                    + ( AERMASS - 
-     &                        STT(I,J,L,IDTASOAN) -
-     &                        STT(I,J,L,IDTASOA1) -
-     &                        STT(I,J,L,IDTASOA2) -
-     &                        STT(I,J,L,IDTASOA3)   )
-      ENDIF
-
-      !-----------------------------
-      ! Transient mass bal prod/evap (hotp 6/5/10)
-      !-----------------------------
-      IDTSPECIES = IDTASOA1
-      IPR = 1
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      IDTSPECIES = IDTASOA2
-      IPR = 2
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      IDTSPECIES = IDTASOA3
-      IPR = 3
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      IDTSPECIES = IDTASOAN
-      IPR = 4
-      AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-      IF ( AERCHANGE > 0d0 ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      ! Update tracers [kg]
-      ! APROD and GPROD are not used in SOA + semivolatile POA, but 
-      ! GM0 and AM0 need to be saved to tracer arrays
-      ! HIGH NOX
-      !NOX = NHIGHNOX
-      ! gas phase
-      STT(I,J,L,IDTASOG1) = MAX( GM0(1,JSV), 1d-32 )
-      STT(I,J,L,IDTASOG2) = MAX( GM0(2,JSV), 1d-32 )
-      STT(I,J,L,IDTASOG3) = MAX( GM0(3,JSV), 1d-32 )
-      ! aerosol phase
-      STT(I,J,L,IDTASOA1) = MAX( AM0(1,JSV), 1d-32 )
-      STT(I,J,L,IDTASOA2) = MAX( AM0(2,JSV), 1d-32 )
-      STT(I,J,L,IDTASOA3) = MAX( AM0(3,JSV), 1d-32 )
-      ! LOW NOX (only 1 aerosol phase)
-      !NOX = NLOWNOX 
-      STT(I,J,L,IDTASOAN) = MAX( AM0(4,JSV), 1d-32 )
-
-      !=================================================================
-      ! SEMIVOLATILE GROUP 4: POA/primary SVOCs
-      !=================================================================
-
-      IF ( IDTPOA1 > 0 ) THEN
- 
-         ! Initialize
-         GASMASS = 0D0
-         AERMASS = 0D0
-         JHC     = PARENTPOA
-         JSV     = IDSV(JHC)
-
-         ! Replace JHC with JSV (hotp 5/13/10)
-         DO IPR = 1, NPROD(JSV)
-         !DO NOX = 1, NNOX(JSV) ! update dims (hotp 5/22/10) 
-            GASMASS = GASMASS + GM0(IPR,JSV)
-            AERMASS = AERMASS + AM0(IPR,JSV)
-         !ENDDO
-         ENDDO
-
-         !-----------------------------
-         ! POA net emission [kg]
-         !-----------------------------
-         IF ( ND07 > 0 .and. L <= LD07 ) THEN
-            AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                       + ( AERMASS - STT(I,J,L,IDTPOA1) -
-     &                                     STT(I,J,L,IDTPOA2) )
-         ENDIF
-
-         !-----------------------------
-         ! Transient SOA prod/evap (hotp 6/5/10)
-         !-----------------------------
-         IDTSPECIES = IDTPOA1
-         IPR = 1
-         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-         IF ( AERCHANGE > 0d0 ) THEN
-            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAPROD(I,J,L,IPR,JSV)
-         ELSE
-            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
-         ENDIF
-
-         IDTSPECIES = IDTPOA2
-        IPR = 2
-         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-        IF ( AERCHANGE > 0d0 ) THEN
-            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAPROD(I,J,L,IPR,JSV)
-         ELSE
-            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
-         ENDIF
-
-         ! Update tracers [kg]
-         ! gas phase
-         STT(I,J,L,IDTPOG1) = MAX( GM0(1,JSV), 1.D-32 )
-         STT(I,J,L,IDTPOG2) = MAX( GM0(2,JSV), 1.D-32 )
-         ! aerosol phase
-         STT(I,J,L,IDTPOA1) = MAX( AM0(1,JSV), 1.D-32 )
-         STT(I,J,L,IDTPOA2) = MAX( AM0(2,JSV), 1.D-32 )
-
-      ENDIF ! POA
-
-      !=================================================================
-      ! SEMIVOLATILE GROUP 5: OPOA/oxidized primary SVOCs
-      !=================================================================
-
-      IF ( IDTOPOA1 > 0 ) THEN
-  
-         ! Initialize
-         GASMASS = 0D0
-         AERMASS = 0D0
-         JHC     = PARENTOPOA
-         JSV     = IDSV(JHC)
-
-         ! Save diagnostic info
-         DO IPR = 1, NPROD(JSV)
-            GASMASS = GASMASS + GM0(IPR,JSV)
-            AERMASS = AERMASS + AM0(IPR,JSV)
-         ENDDO
-
-         !-----------------------------
-         ! OPOA net production [kg]
-         !-----------------------------
-         IF ( ND07 > 0 .and. L <= LD07 ) THEN
-            AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                       + ( AERMASS - STT(I,J,L,IDTOPOA1) -
-     &                                     STT(I,J,L,IDTOPOA2) )
-         ENDIF
-
-         !-----------------------------
-         ! Transient SOA prod/evap (hotp 6/5/10)
-         !-----------------------------
-         IDTSPECIES = IDTOPOA1
-         IPR = 1
-         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-         IF ( AERCHANGE > 0d0 ) THEN
-            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAPROD(I,J,L,IPR,JSV)
-         ELSE
-            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
-         ENDIF
-
-         IDTSPECIES = IDTOPOA2
-         IPR = 2
-         AERCHANGE = AM0(IPR,JSV) - STT(I,J,L,IDTSPECIES)
-         IF ( AERCHANGE > 0d0 ) THEN
-            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAPROD(I,J,L,IPR,JSV)
-         ELSE
-            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
-         ENDIF
-
-         ! Update tracers [kg]
-         ! gas phase
-         STT(I,J,L,IDTOPOG1) = MAX( GM0(1,JSV), 1.D-32 )
-        STT(I,J,L,IDTOPOG2) = MAX( GM0(2,JSV), 1.D-32 )
-         ! aerosol phase
-         STT(I,J,L,IDTOPOA1) = MAX( AM0(1,JSV), 1.D-32 )
-         STT(I,J,L,IDTOPOA2) = MAX( AM0(2,JSV), 1.D-32 )
-
-      ENDIF ! OPOA
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      ! Return to calling program
-      END SUBROUTINE SOA_SVPOA_LUMP
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE CHEM_NVOC_SVPOA( I,         J,         L,
-     &                            KO3,       KOH,       KNO3,
-     &                            GM0,       KNO,       KHO2,
-     &                            Input_Opt, State_Met, State_Chm )
-
-!
-!******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!  Subroutine CHEM_NVOC_SVPOA computes the oxidation of Hydrocarbon by O3, OH, 
-!  and NO3.  This comes from the Caltech group (Hong Liao, Serena Chung, et al)
-!  and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04, 6/1/06)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I      (INTEGER) : GEOS-Chem longitude index
-!  (2 ) J      (INTEGER) : GEOS-Chem latitude index
-!  (3 ) L      (INTEGER) : GEOS-Chem altitude index
-!  (4 ) KO3    (REAL*8 ) : Rxn rate for HC oxidation by O3        [cm3/molec/s]
-!  (5 ) KOH    (REAL*8 ) : Rxn rate for HC oxidation by OH        [cm3/molec/s]
-!  (6 ) KNO3   (REAL*8 ) : Rxn rate for HC oxidation by NO3       [cm3/molec/s]
-!  (7 ) KNO    (REAL*8 ) : RO2 + NO  rate constant
-!  (8 ) KHO2   (REAL*8 ) : RO2 + HO2 rate constant
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (8 ) GM0   (REAL*8 ) : Gas mass for each HC and its oxidation product [kg]
-!  
-!  NOTES:
-!  20 Jul 2011 - M. Payer    - Initial code based on CHEM_NVOC and 
-!                              modifications for SOA + semivol POA (H. Pye)
-!   7 Aug 2013 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm
-!                              as arguments
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIAG_MOD,      ONLY : AD07_HC
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,  ONLY : IDTMTPA, IDTLIMO, IDTMTPO
-      USE TRACERID_MOD,  ONLY : IDTPOA1
-      USE TRACERID_MOD,  ONLY : IDTNAP
-      USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND07 info
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: I, J, L
-      REAL*8,  INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      REAL*8,  INTENT(INOUT) :: GM0(MPROD,MSV)
-      REAL*8,  INTENT(IN)    :: KNO, KHO2
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
-      ! Local variables
-      INTEGER                :: JHC, IPR, NOX, JSV
-      INTEGER                :: MAXLOOP
-      REAL*8                 :: CHANGE(MHC), NMVOC(MHC), DELHC(MNOX)
-      REAL*8                 :: OHMC, TTNO3, TTO3, DTCHEM, RK
-      REAL*8                 :: OVER, DO3, DOH, DNO3
-      REAL*8                 :: NOTEMP, HO2TEMP, BETANO
-
-      ! for debug (hotp 5/10/10)
-      !REAL*8 :: BETABRO2
-      !REAL*8 :: BETATRO2
-      !REAL*8 :: BETAXRO2
-      !REAL*8 :: BETANRO2
-      REAL*8 :: TEMPHC
-
-      ! Pointers
-      REAL*8, POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! CHEM_NVOC_SVPOA begins here!
-      !=================================================================
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT => State_Chm%Tracers
-
-      ! Chemistry timestep [s]
-      DTCHEM  = GET_TS_CHEM() * 60d0 
-
-      ! Get offline OH, NO3, O3 concentrations [molec/cm3]
-      OHMC    = GET_OH(  I, J, L, Input_Opt, State_Met ) 
-      TTNO3   = GET_NO3( I, J, L, Input_Opt, State_Met )
-      TTO3    = GET_O3(  I, J, L, Input_Opt, State_Met ) 
-
-      ! Get RO2+NO, RO2+HO2 branching ratio
-      NOTEMP  = GET_NO(  I, J, L )
-      HO2TEMP = GET_HO2( I, J, L )
-
-      IF ( NOTEMP > 0.0 ) THEN
-         BETANO  = ( KNO * NOTEMP ) / ( KNO * NOTEMP + KHO2 * HO2TEMP )
-      ELSEIF ( HO2TEMP > 0.0 ) THEN
-         BETANO = 0.d0
-      ELSE
-         ! Default value if no CSPEC value
-         BETANO = 0.5d0
-      ENDIF
-
-      ! Save for diagnostic purposes
-      BETANOSAVE(I,J,L) = BETANO
-
-      ! 4 classes NVOC concentrations
-      NMVOC(1) = STT(I,J,L,IDTMTPA)
-      NMVOC(2) = STT(I,J,L,IDTLIMO)
-      NMVOC(3) = STT(I,J,L,IDTMTPO)
-      NMVOC(4) = ORVC_SESQ(I,J,L)
-
-      ! Initialize DELHC so that the values from the previous
-      ! time step are not carried over.
-      DELHC(:) = 0.D0
-
-      !=================================================================
-      ! Change in NVOC concentration due to photooxidation [kg]
-      !=================================================================
-
-      ! Add POA emissions to GM0 here (not to STT in EMITHIGH)
-      
-      ! Only loop over parent hydrocarbons defined for a given simulation
-      ! Max should be 11 for SOA + semivolatile POA
-      ! Max should be 8  for traditional SOA (nonvolatile POA)
-      IF ( IDTPOA1 > 0 ) THEN
-         MAXLOOP = PARENTNAP   ! 11
-      ELSE
-         MAXLOOP = PARENTXYLE  ! 8
-      ENDIF
-
-      DO JHC = 1, MAXLOOP
-
-         ! Initialize again for safety
-         DELHC = 0d0
-
-         ! Get JSV
-         JSV = IDSV(JHC)
-     
-         IF ( JHC == PARENTMTPA .or. JHC == PARENTLIMO .or.
-     &        JHC == PARENTMTPO .or. JHC == PARENTSESQ      ) THEN
-
-            !===========================================================
-            ! Oxidize parent hydrocarbon by OH, O3, NO3
-            ! (unmodified from traditional SOA implemenation)
-            !===========================================================
-            RK          = KO3(JHC)*TTO3 + KOH(JHC)*OHMC
-     &                  + KNO3(JHC)*TTNO3
-            CHANGE(JHC) = NMVOC(JHC) * ( 1.D0 - DEXP( -RK * DTCHEM ) )
-
-            ! In case that the biogenic hydrocarbon is the limiting reactant
-            IF ( CHANGE(JHC) >= NMVOC(JHC) ) CHANGE(JHC) = NMVOC(JHC)
-      
-            ! NMVOC concentration after oxidation reactions
-            NMVOC(JHC) = NMVOC(JHC) - CHANGE(JHC)
-
-            IF( CHANGE(JHC) > 1.D-16 ) THEN
-               OVER  = 1.D0 / RK
-               DO3   = CHANGE(JHC) * KO3(JHC)  * TTO3  * OVER ![kg]
-               DOH   = CHANGE(JHC) * KOH(JHC)  * OHMC  * OVER ![kg]
-               DNO3  = CHANGE(JHC) * KNO3(JHC) * TTNO3 * OVER ![kg]
-            ELSE
-               DO3   = 0.D0
-               DOH   = 0.D0
-               DNO3  = 0.D0
-            ENDIF
-
-            !-----------------------------------------------------------
-            ! Determine DELTAHC that corresponds to the alphas
-            !-----------------------------------------------------------
-
-            ! For HC 1-4
-            NOX = NHIGHNOX ! NOX=1, high NOx photooxidation
-            DELHC(NOX) = ( DO3 + DOH ) * BETANO
-            NOX = NLOWNOX  ! NOX=2, low NOx photooxidation
-            DELHC(NOX) = ( DO3 + DOH ) * ( 1d0 - BETANO )
-            NOX = NNO3RXN  ! NOX=3, NO3 oxidation
-            DELHC(NOX) = ( DNO3 )                  
-
-            ! debug check (hotp 5/26/10)
-            !IF ( CHANGE(JHC) > 1d-16 ) THEN
-            !   TEMPHC = ABS(SUM(DELHC(:))-CHANGE(JHC))
-            !   TEMPHC = ABS(TEMPHC/CHANGE(JHC))
-            !   IF ( (TEMPHC) > 1d-14 ) THEN
-            !      print*,'DELHC Problem in CHEM_NVOC_SVPOA',I,J,L,JHC
-            !      print*,DELHC,CHANGE(JHC),TEMPHC
-            !   ENDIF
-            !ENDIF
-
-            ! Total SOG production diagnostic
-            DELTASOGSAVE(I,J,L,:,JHC) = DELHC(:)
-
-            !-----------------------------------------------------------
-            ! Compute amount of semivolatile formed & add to initial SOG
-            !-----------------------------------------------------------
-            DO NOX = 1, NNOX(JSV)
-            DO IPR = 1, NPROD(JSV)
-               GM0(IPR,JSV) = GM0(IPR,JSV)
-     &                        + ALPHA(NOX,IPR,JHC) * DELHC(NOX)
-            ENDDO
-            ENDDO 
-
-         ELSEIF ( JHC == PARENTISOP ) THEN 
-
-            !===========================================================
-            ! SOA from ISOPRENE
-            ! Parent is oxidized in gas-phase chemsitry
-            !===========================================================
-
-            ! Get ISOP lost to rxn with OH [kgC]
-            DELHC(1) = GET_DOH( I, J, L, Input_Opt )
-
-            ! Get ISOP lost to rxn with NO3 [kgC]
-            DELHC(2) = GET_ISOPNO3( I, J, L )
-
-            ! Save diagnostic info for bug check
-            ! convert from [kgC] to [kg]
-            DELTASOGSAVE(I,J,L,:,JHC) = DELHC(:) * 68d0/60d0
-
-            !-----------------------------------------------------------
-            ! Compute amount of semivolatile formed & add to initial SOG
-            !-----------------------------------------------------------
-            DO NOX = 1, NNOX(JSV)
-            DO IPR = 1, NPROD(JSV) 
-              GM0(IPR,JSV) = GM0(IPR,JSV)
-     &                           + ALPHA(NOX,IPR,JHC) * DELHC(NOX)
-     &                           * 68d0 / 60d0
-            ENDDO
-            ENDDO
-
-         ELSEIF ( JHC == PARENTBENZ .or. JHC == PARENTTOLU
-     &       .or. JHC == PARENTXYLE .or. JHC == PARENTNAP  ) THEN
-
-            !-----------------------------------------------------------
-            ! SOA from AROMATICS
-            !-----------------------------------------------------------
- 
-            ! Get IDSV
-            JSV = IDSV(JHC)
-
-            ! Determine parent hydrocarbon reacted:
-            ! For an online calculation, GET_DARO2 can be called with
-            ! 1 for high NOx, 2 for low NOx. Here, we add the two pathways
-            ! together and use an offline branching ratio BETANO (hotp)
-            NOX = NHIGHNOX ! NOX=1
-            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt) +
-     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt) ) * BETANO
-            NOX = NLOWNOX  ! NOX=2
-            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt) +
-     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt) ) * 
-     &                   ( 1d0-BETANO )
-
-            ! Determine SOG yield and add to GM0
-            DO NOX = 1, NNOX(JSV)
-            DO IPR = 1, NPROD(JSV)
-                  GM0(IPR,JSV) = GM0(IPR,JSV)
-     &                       + ALPHA(NOX,IPR,JHC) * DELHC(NOX) 
-            ENDDO
-            ENDDO
-
-            ! Diagnostic/debug info
-            IF ( JHC == PARENTBENZ .or. JHC == PARENTTOLU
-     &                             .or. JHC == PARENTXYLE ) THEN 
-               GLOB_DARO2(I,J,L,:,JHC-5) = DELHC(:)
-            ELSE ! NAP
-               GLOB_DARO2(I,J,L,:,4) = DELHC(:)
-            ENDIF
-
-            ! Total SOG production diagnostic
-            DELTASOGSAVE(I,J,L,:,JHC)=DELHC(:)
-
-         ELSEIF ( JHC == PARENTPOA ) THEN
-
-            !-----------------------------------------------------------
-            ! Emit POA into 2 semivolatiles
-            !-----------------------------------------------------------
-
-            ! DO NOTHING NOW
-
-            ! SVOCs should immediately partition upon emission and they
-            ! also react in the gas-phase. If SVOCs were emitted here, 
-            ! how would you know how much to put in each phase?
-            ! Here, are emitted after the existing SVOCs react in the gas
-            ! phase. Thus the order of operations is:
-            !   SVOC + OH in gas-phase
-            !   SVOC emission (added to gas-phase GM0)
-            !   partitioning
-            !   dry dep
-            !   wet dep
-            !   etc.
-            ! (H. Pye)
-              
-         ELSEIF ( JHC == PARENTOPOA ) THEN
-
-            !-----------------------------------------------------------
-            ! OPOA production
-            !-----------------------------------------------------------
-
-            ! Here we oxidize gas phase POA (POG) to OPOG by reaction with OH
-            ! use constant KOH = 2e-11 for now (hotp 3/18/09)
-            OHMC        = GET_OH(  I, J, L, Input_Opt, State_Met ) 
-            RK          = 2.d-11 * OHMC
-
-            ! Get IDSV
-            JSV = IDSV(JHC)
-
-            DO IPR = 1, NPROD(JSV)
-            DO NOX = 1, NNOX(JSV)
-
-               ! Compute loss of POG due to conversion to OPOG
-               DOH = GM0(IPR,IDSV(PARENTPOA)) *
-     &                (1.D0 - DEXP( -RK * DTCHEM) )
-               DOH = MAX( DOH, 1.D-32 )
-
-               ! Add OPOG mass and update GM0 (ALPHA=1)
-               GM0(IPR,JSV) = GM0(IPR,JSV) 
-     &                            + ALPHA(NOX,IPR,JHC) * DOH
-
-               ! Update POG mass
-               GM0(IPR,IDSV(PARENTPOA)) = 
-     &                    GM0(IPR,IDSV(PARENTPOA)) - DOH
-
-               ! Check (hotp 10/11/09)
-               GM0(IPR,IDSV(PARENTPOA)) = 
-     &              MAX( GM0(IPR,IDSV(PARENTPOA)), 1d-32)
-
-               ! Diagnostic information
-               GLOB_POGRXN(I,J,L,IPR) = DOH
-
-               ! Total SOG production diagnostic
-               ! Caution: 4th index is actually NOX, but we use IPR here
-               DELTASOGSAVE(I,J,L,IPR,JHC) = DOH
-
-            ENDDO
-            ENDDO
-
-            ! Diagnostic information on POG ox [cumulative kgC]
-            IF ( ND07 > 0 .and. L <= LD07 ) THEN
-               AD07_HC(I,J,L,MSV+1) = AD07_HC(I,J,L,MSV+1) +
-     &                                GLOB_POGRXN(I,J,L,1) + 
-     &                                GLOB_POGRXN(I,J,L,2)
-            ENDIF
-
-         ENDIF 
-
-      ENDDO  ! JHC
-
-      IF ( IDTPOA1 > 0 ) THEN
-         ! Emit POA last (after OPOA formation)
-         JHC = PARENTPOA
-
-         ! Get IDSV
-         JSV = IDSV(JHC)
-
-         DO IPR = 1, NPROD(JSV)
-         DO NOX =1, NNOX(JSV)
-            ! DELHC is now emission of POA
-            ! Separate BB,BF from anthro
-            DELHC(IPR) = POAEMISS(I,J,L,1) + POAEMISS(I,J,L,2)
-            GM0(IPR,JSV) = GM0(IPR,JSV) 
-     &                   + ALPHA(NOX,IPR,JHC)*DELHC(IPR)
-
-            ! Total SOG production diagnostic
-            ! Caution: 4th index is actually NOX, but we use IPR here
-            DELTASOGSAVE(I,J,L,IPR,JHC) = DELHC(IPR)
-
-         ENDDO
-         ENDDO
-
-      ENDIF
-
-      !=================================================================
-      ! Store Hydrocarbon remaining after oxidation rxn back into STT
-      !=================================================================
-      STT(I,J,L,IDTMTPA) = MAX( NMVOC(1), 1.D-32 )
-      STT(I,J,L,IDTLIMO) = MAX( NMVOC(2), 1.D-32 )
-      STT(I,J,L,IDTMTPO) = MAX( NMVOC(3), 1.D-32 )
-      ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.D-32 )
-      ! Nothing to do for isoprene or aromatics here, 
-      ! as their oxidation is treated online. 
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      ! Return to calling program
-      END SUBROUTINE CHEM_NVOC_SVPOA
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE BIOGENIC_OC_SVPOA( Input_Opt, State_Met )
-!
-!******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!  Subroutine BIOGENIC_OC_SVPOA emits secondary organic carbon aerosols.
-!  Also modified for SOA + semivolatile POA tracers. (rjp, bmy, 4/1/04, 1/24/0)
-!
-!  Terpene emissions as a source of OC:  TERP.GEIA90.a1.2x2.5.*
-!  Assuming 10% yield of OC(hydrophilic) from terpene emission.
-!
-!  References (see above for full citations):
-!  ===========================================================================
-!  (1 ) Pye et al., 2010
-!
-!  NOTES:
-!  20 Jul 2011 - M. Payer    - Initial code based on BIOGENIC_OC and
-!                              modifications for SOA + semivol POA (H. Pye)
-!  15 Mar 2012 - M. Payer    - Remove GEIA biogenic emissions option
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
-      USE MEGAN_MOD,     ONLY : GET_EMTERP_MEGAN  ! Speciated MEGAN terp emiss
-      USE TIME_MOD,      ONLY : GET_MONTH,        GET_TS_CHEM
-      USE TIME_MOD,      ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE MEGANUT_MOD,   ONLY : XLTMMP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD        ! Size parameters
-!
-! !INOUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE          :: FIRST = .TRUE.
-      INTEGER                :: I, J, IJLOOP, THISMONTH
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8                 :: CONVERT(NVEGTYPE)
-      REAL*8                 :: GMONOT(NVEGTYPE)
-      REAL*8                 :: FD2D(IIPAR,JJPAR)
-      REAL*8                 :: TMMP, EMMO, VALUE
-      REAL*8                 :: XTAU, STEPS_PER_MON
-      REAL*8, PARAMETER      :: FC1 = 136.2364D0 / 120.11D0
-      REAL*8, PARAMETER      :: FC2 = 154.2516D0 / 120.11D0
-      REAL*8, PARAMETER      :: FC3 = 204.3546D0 / 180.165D0
-      REAL*8, PARAMETER      :: FC4 = 152.D0     / 120.11D0
-      CHARACTER(LEN=255)     :: FILENAME
-
-      ! Fraction of yield of OC (hydrophilic) from terpene emission
-      REAL*8, PARAMETER      :: FBIOG = 1.0d-1
-
-      ! Cosine SZA & PAR (for calculation of monoterpenes) (mpb,2009)
-      REAL*8                 :: SC, PDF, PDR
-
-      ! For fields from Input_Opt
-      LOGICAL         :: LMEGANMONO
-      LOGICAL         :: LSOA
-
-      !=================================================================
-      ! BIOGENIC_OC_SVPOA begins here!
-      !=================================================================
-
-      ! Copy values from Input_Opt
-      LMEGANMONO = Input_Opt%LMEGANMONO
-      LSOA       = Input_Opt%LSOA
-
-      !=================================================================
-      ! If secondary organic aerosols are turned off ...
-      ! Compute biogenic organic carbon as 0.1 * MONOTERPENES
-      !=================================================================
-      IF ( .not. LSOA ) THEN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, TMMP, EMMO, SC, PDR, PDF )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! 1-D loop index
-            IJLOOP         = ( (J-1) * IIPAR ) + I
-
-             ! Surface temperature [K]
-            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
-
-            ! +++++++++++++++++++++++++++++++++++++++++
-            ! ** MEGAN v2.1 **
-            ! Cosine of solar zenith angle   (mpb,2009) 
-            ! Diffuse and direct PAR         (mpb,2009)
-            SC   = State_Met%SUNCOSmid(I,J)
-            PDR  = State_Met%PARDR(I,J)
-            PDF  = State_Met%PARDF(I,J)
-            ! +++++++++++++++++++++++++++++++++++++++++
-
-            ! Get monoterpenes from MEGAN [kg C/box]
-            IF ( LMEGANMONO ) THEN
-               EMMO = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0 )
-            ENDIF
-
-            ! Fraction of EMMO that converts into OC [kg/box/timestep]
-            TERP_ORGC(I,J) = EMMO * FBIOG
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-      !=================================================================
-      ! If secondary organic aerosols are turned on ...
-      ! Then use CALTECH algorithm 
-      !=================================================================
-      ELSE 
-
-         ! Current month
-         THISMONTH     = GET_MONTH()
-
-         ! Number of emission timesteps per month
-         STEPS_PER_MON = ( ( 1440 * NDAYS(THISMONTH) ) / GET_TS_EMIS() )
-
-         !-----------------------------------------
-         ! Read data from disk if it's a new month
-         !-----------------------------------------
-         IF ( ITS_A_NEW_MONTH() ) THEN
-         
-            ! Get TAU0 value to index the punch file
-            XTAU  = GET_TAU0( THISMONTH, 1, 1990 )
-
-            ! Filename for carbon aerosol from fossil fuel use
-            FILENAME = TRIM( DATA_DIR )      //
-     &                 'carbon_200411/NVOC.' // GET_NAME_EXT_2D() //
-     &                 '.'                   // GET_RES_EXT()
-
-            ! Echo info
-            WRITE( 6, 100 ) TRIM( FILENAME )
- 100        FORMAT( '     - BIOGENIC_OC_SVPOA: Reading ', a )
-
-            ! Read NVOC emission in kg/month
-            CALL READ_BPCH2( FILENAME, 'NVOCSRCE', 35, 
-     &                       XTAU,      IGLOB,     JGLOB,     
-     &                       1,         ARRAY,     QUIET=.TRUE. ) 
-
-            ! Cast to REAL*8 and resize
-            CALL TRANSFER_2D( ARRAY(:,:,1), GEIA_ORVC )
-
-            ! from kgC/month to kgC/timestep
-            GEIA_ORVC(:,:) = GEIA_ORVC(:,:) / STEPS_PER_MON
-         ENDIF
-
-         !------------------------------
-         ! Get TERP_ORGC and DIUR_ORVC
-         !------------------------------
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, TMMP, SC, PDR, PDF )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! 1-D loop index
-            IJLOOP         = ( (J-1) * IIPAR ) + I
-
-            ! Surface temperature [K]
-            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
-
-            ! Monoterpene emission [kg C/box/timestep]
-
-            ! +++++++++++++++++++++++++++++++++++++++++
-            ! ** MEGAN v2.1 **
-            ! Cosine of solar zenith angle   (mpb,2009) 
-            ! Diffuse and direct PAR         (mpb,2009)
-            SC   = State_Met%SUNCOSmid(I,J)
-            PDR  = State_Met%PARDR(I,J)
-            PDF  = State_Met%PARDF(I,J)
-            ! +++++++++++++++++++++++++++++++++++++++++
-
-            ! Get monoterpenes from MEGAN [kg C/box]
-            IF ( LMEGANMONO ) THEN
-               TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0 )               
-            ENDIF
-
-            !---------------------------------------------------
-            ! Impose a diurnal variation on NVOC during the day
-            !---------------------------------------------------
-            IF ( State_Met%SUNCOSmid(I,J) > 0d0  .and.
-     &           TCOSZ(I,J)               > 0d0 ) THEN
-               DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
-     &              ( State_Met%SUNCOSmid(I,J) / TCOSZ(I,J) ) *
-     &              ( 1440d0                   / GET_TS_CHEM() )
-
-               ! Make sure ORVC is not negative
-               DIUR_ORVC(I,J) = MAX( DIUR_ORVC(I,J), 0d0 )
-
-            ELSE
-
-               ! At night, ORVC goes to zero
-               DIUR_ORVC(I,J) = 0d0
-
-            ENDIF
-
-            !===========================================================
-            ! For SOA (Hong Liao, 02/13/04)
-            ! 
-            ! The input emission data files have units of 
-            ! [kg C/box/timestep]
-            !
-            ! The variable scale is used to convert to the relevant 
-            ! units as follows:
-            ! (1) Convert from kg C/step to kg compound/step
-            ! (2) Multiply by the fraction of monoterpenes that 
-            !      contributes to the particular species of interest.
-            !
-            ! The fraction of monoterpenes is from Table 4 of Griffin
-            !  et al., Geophys. Res. Lett. 26 (17): 2721-2724 (1999)
-            !===========================================================
-
-            ! OLD EMISSIONS LUMPED TO SOA + SEMIVOL POA SPECIES
-            ! H. Pye recommends you run with LMEGANMONO=.TRUE. and not use this
-
-            !---------------------------------
-            ! MTPA
-            !---------------------------------
-            ! ALPHA-PINENE (0.35)
-            ! BETA-PINENE lumped with ALPHA-PINENE (0.23)
-            ! SABINENE    lumped with ALPHA-PINENE (0.05)
-            ! D3-CARENE   lumped with ALPHA-PINENE (0.04)
-            BIOG_MTPA(I,J) = TERP_ORGC(I,J) * FC1 * 0.67D0
-
-            ! TERPENOID KETONE is lumped with SABINENE
-            ! Then SABINENE    is lumped with ALPHA-PINENE
-            BIOG_MTPA(I,J) = BIOG_MTPA(I,J)
-     &                     + ( DIUR_ORVC(I,J) * FC4 * 0.04D0 ) !using campher
-
-            !---------------------------------
-            ! LIMONENE
-            !---------------------------------
-            BIOG_LIMO(I,J) = TERP_ORGC(I,J) * FC1 * 0.23D0
-
-            !---------------------------------
-            ! MTPO is all other monoterpenes
-            !---------------------------------
-            ! TERPINENE is lumped with TERPINOLENE
-            BIOG_MTPO(I,J) = TERP_ORGC(I,J) * FC1 * 0.03D0
-
-            ! MYRCENE is lumped with TERPENOID ALCOHOL (0.05)
-            ! OCIMENE is lumped with TERPENOID ALCOHOL (0.02)
-            BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
-     &                       TERP_ORGC(I,J) * FC1 * 0.07D0
-
-            ! Other reactive volatile organic carbon emissions
-            BIOG_MTPO(I,J) = BIOG_MTPO(I,J)
-     &                     + ( DIUR_ORVC(I,J) * FC2 * 0.09D0 ) !using LINALOOL
-
-            !---------------------------------
-            ! SESQUITERPENES
-            !---------------------------------
-            ! We do not transport SESQ (C15H24) 
-            ! because its chemical lifetime is short (reactive)
-            BIOG_SESQ(I,J) = DIUR_ORVC(I,J) * FC3 * 0.05D0
-
-
-            ! SOA + semivol POA MEGAN implementation has speciated information
-            ! As of 7/28/10 for year 2000 GEOS4 2x2.5 in Tg/yr:
-            ! (see Pye et al. 2010)
-            ! ------------------------------
-            ! HC Class  New MEGAN  Old MEGAN
-            ! --------  ---------  ---------
-            ! MTPA        73         86
-            ! LIMO        10         25
-            ! MTPO        33          3.2+38 
-            ! SESQ        13         15
-            !           -----      --------
-            ! TOTAL      129        167.2
-            ! ------------------------------
-
-
-            IF ( LMEGANMONO ) THEN
-
-               ! MEGAN emission update for SESQ and other mtp (hotp, 3/10/10):
-               !  Terpenoid ketones no longer lumped into ALPH
-               !  Terpenoid alcohols no longer lumped in ALCO
-               !  Other monoterpenes (OMTP from MEGAN) all placed in TERP
-               !  All sesq lumped together into SESQ
-
-               ! SOA + semivol POA monoterpene lumping:
-               ! GEOS-Chem   MEGAN
-               ! =========   ==========================================
-               ! MTPA        a-pinene, b-pinene, sabinene, carene
-               ! LIMO        limonene
-               ! MTPO        myrcene, ocimene, other monot (OMTP)
-               ! SESQ        farnesene (FARN), b-caryoph (BCAR), OSQT
-               ! =========   ==========================================
-             
-               !----------------------------------------
-               ! MTPA in kg compound
-               !----------------------------------------
-               ! a-pinene
-               BIOG_MTPA(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP, 
-     &                                   PDR, PDF, 1d0, 'APINE') * FC1
-               ! b-pinene
-               BIOG_MTPA(I,J) = BIOG_MTPA(I,J) +
-     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
-     &                                   PDR, PDF, 1d0, 'BPINE') * FC1
-               ! sabinene
-               BIOG_MTPA(I,J) = BIOG_MTPA(I,J) +
-     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0, 'SABIN') * FC1
-               ! d3-carene
-               BIOG_MTPA(I,J) = BIOG_MTPA(I,J) +
-     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0, 'CAREN') * FC1
-      
-               !----------------------------------------
-               ! LIMO in kg compound
-               !----------------------------------------
-               ! limonene
-               BIOG_LIMO(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP, 
-     &                                   PDR, PDF, 1d0, 'LIMON') * FC1 
-
-               !----------------------------------------
-               ! MTPO in kg compound
-               !----------------------------------------
-               ! All other monoterpenes (mostly camphene, linalool,
-               !  terpinolene, terpinolene, phellandrene)
-               ! 14-18% of OMTP is terpinene and terpinolene
-               BIOG_MTPO(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
-     &                          PDR, PDF, 1d0, 'OMTPE') * FC1 
-
-               ! myrcene 
-               BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
-     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
-     &                                   PDR, PDF, 1d0, 'MYRCN') * FC1
-               ! ocimene
-               BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
-     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
-     &                                   PDR, PDF, 1d0, 'OCIMN') * FC1
- 
-               !----------------------------------------
-               ! SESQ
-               ! We do not transport SESQ (C15H24) 
-               ! because its chemical lifetime is short (reactive)
-               ! Will be revised when sesq emissions are implemented in
-               ! megan_mod.f
-               !----------------------------------------
-               ! Sesquiterpenes from MEGAN 
-               ! Farnesene
-               BIOG_SESQ(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
-     &                          PDR, PDF, 1d0, 'FARNE' ) * FC3
-
-               ! beta-caryophyllene
-               BIOG_SESQ(I,J) = BIOG_SESQ(I,J) +
-     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0, 'BCARE' ) * FC3
-
-               ! other sesquiterpenes
-               BIOG_SESQ(I,J) = BIOG_SESQ(I,J) +
-     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0, 'OSQTE' ) * FC3
-
-            ENDIF ! end speciated MEGAN
-
-         ENDDO
-         ENDDO
-
-!$OMP END PARALLEL DO
-
-      ENDIF
-
-      ! Return to calling program
-      END SUBROUTINE BIOGENIC_OC_SVPOA
-
-!------------------------------------------------------------------------------
-
       SUBROUTINE CHECK_EQLB( I,   J,   L, KOMIJL, CONVFAC, MSOACHEM, 
      &                       LOW, TOL, ASOANGAS, ASOANAER, OCPIOCPO,
      &                       State_Chm )
 
 !******************************************************************************
 !
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 !  Subroutine CHECK_EQLB makes sure aerosols are at equilibrium (checks 
-!  SOA=SOG*KOM*Mo). Called inside SOA_SVPOA_CHEMISTRY I, J, L loop after
-!  SOA_SVPOA_LUMP. Created by Havala Pye (5/18/10).
+!  SOA=SOG*KOM*Mo). Called inside SOA_CHEMISTRY I, J, L loop after SOA_LUMP
+!  created hotp 5/18/10
 !
 !  Note: There are some deviations from equilibrium due to the fact
-!   that ASOAN is supposed to be nonvolatile, but is modeled with a KOM of 
-!   10^6. An adjustment is made in SOA_SVPOA_CHEMISTRY to force all ASOAN to
-!   the aerosol phase. This was found to lead to error up to 1e-5 ug/m3
-!   in Mo. This error is small, but the effects can be investigated 
-!   here if you're interested!
+!  that ASOAN is supposed to be nonvolatile, but is modeled with a KOM of 
+!  10^6. An adjustment is made in SOA_CHEMISTRY to force all ASOAN to
+!  the aerosol phase. This was found to lead to error up to 1e-5 ug/m3
+!  in Mo. This error is small, but the effects can be investigated 
+!  here if you're interested!
 !
 !  As of 6/2010, KOM for ASOAN was increased and the error in Mo reduced.
 !
@@ -12093,9 +11149,9 @@ ccc
 !  (1-3) I, J, L (INTEGER): Grid box indices for lon, lat, vertical level
 !  (4)   KOMIJL   (REAL*8): KOM at grid box conditions (adjusted for T)
 !  (5)   CONVFAC  (REAL*8): Conversion factor for kg to ug/m3
-!  (6)   MSOACHEM (REAL*8): Tot organic partitioning medium from SOA_SVPOA_CHEM
-!  (7)   LOW      (REAL*8): Lower bound for bisection method in SOA_SVPOA_CHEM
-!  (8)   TOL      (REAL*8): Tolerance for bisection method in SOA_SVPOA_CHEM
+!  (6)   MSOACHEM (REAL*8): Tot organic partitioning medium from SOA_CHEM
+!  (7)   LOW      (REAL*8): Lower bound for bisection method in SOA_CHEM
+!  (8)   TOL      (REAL*8): Tolerance for bisection method in SOA_CHEM
 !  (9)   ASOANGAS (REAL*8): Gas phase ASOAN in ug/m3
 !  (10)  ASOANAER (REAL*8): Aerosol phase ASOAN in ug/m3
 !
@@ -12433,14 +11489,9 @@ ccc
       SUBROUTINE SAVE_OAGINIT( State_Chm )
 
 !******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 !  Subroutine SAVE_OAGINIT saves total SOA+SOG before partitioning for 
-!  diagnostic purposes. Units are the same as the STT array ([kg] or [kgC per 
-!  box]). Created Havala Pye (5/17/10).
+!  diagnostic purposes. Units are the same as the STT array (kg or kgC per box)
+!  created hotp 5/17/10
 !
 !  Notes:
 !  (1) added TSOA and ISOA (hotp 5/24/10)
@@ -12572,15 +11623,10 @@ ccc
       SUBROUTINE CHECK_MB( am_I_Root, Input_Opt, State_Met, State_Chm )
 
 !******************************************************************************
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 !  Subroutine CHECK_MB checks total SOA+SOG mass balance for diagnostic/
-!  debugging purposes. Units are the same as the STT array ([kg] or [kgC per
-!  box]). Routine also prints helpful budget info. Created by Havala Pye
-!  (5/18/10).
+!  debugging purposes. Units are the same as the STT array (kg or kgC per box)
+!  Routine also prints helpful budget info
+!  created hotp 5/18/10
 !
 !  Notes:
 !  (1) added monoterpene, sesq, isoprene SOA (hotp 5/24/10)
@@ -13114,12 +12160,8 @@ ccc
 !
 !******************************************************************************
 !
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!  Function GET_NO returns NO from SMVGEAR's CSPEC array (for coupled runs).
-!  Created by Havala Pye (5/7/2010).
+!  Function GET_NO returns NO from SMVGEAR's CSPEC array (for coupled runs)
+!  (hotp 5/7/2010)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -13185,12 +12227,8 @@ ccc
 !
 !******************************************************************************
 !
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!  Function GET_HO2 returns HO2 from SMVGEAR's CSPEC array (for coupled runs).
-!  Created by Havala Pye (5/7/2010).
+!  Function GET_HO2 returns HO2 from SMVGEAR's CSPEC array (for coupled runs)
+!  (hotp 5/7/2010)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -13256,14 +12294,8 @@ ccc
 !
 !******************************************************************************
 !
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 !  Modification of GET_DOH that returns the amount of isoprene [kgC] that has 
-!  reacted with NO3 during the last chemistry time step. Created by
-!  Havala Pye (5/22/10).
-!
+!  reacted with NO3 during the last chemistry time step. (hotp 5/22/10)
 !  Location in CSPEC array is in comode.h
 !
 !  Arguments as Input:
@@ -13379,11 +12411,12 @@ ccc
 !  (6 ) Now set parameters for NESTED_EU grid (amv, bmy, 12/19/09)
 !  14 Jan 2011 - R. Yantosca - If we are using GEOS-5 or MERRA met, then get
 !                              the cloud fraction directly from the met fields.
-!  21 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  01 Mar 2012 - R. Yantosca - Now use GET_BOUNDING_BOX from grid_mod.F90
 !  04 Mar 2013 - R. Yantosca - Now take am_I_Root, Input_Opt, RC as arguments
 !  04 Mar 2013 - R. Yantosca - Now search for drydep flags here
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
 ! !USES:
@@ -13394,7 +12427,10 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
       USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
-      USE TRACERID_MOD,       ONLY : IDTSOA5
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      USE TRACERID_MOD,       ONLY : IDTSOA5 (hotp 7/28/10)
+!------------------------------------------------------------------------------
 !
 ! !INPUT PARAMETERS:
 !
@@ -13416,6 +12452,48 @@ ccc
       
       ! Assume success
       RC = GIGC_SUCCESS
+
+      ! Some parent hydrocarbons are lumped together into 1 or more
+      ! semivolatiles. Map the parent HC to lumped semivolatiles here
+      ! (hotp 5/13/10)
+      ! mono + sesq
+      IDSV(PARENTMTPA) = 1
+      IDSV(PARENTLIMO) = 1
+      IDSV(PARENTMTPO) = 1
+      IDSV(PARENTSESQ) = 1
+      ! isoprene
+      IDSV(PARENTISOP) = 2
+      ! Lumped arom/IVOC
+      IDSV(PARENTBENZ) = 3
+      IDSV(PARENTTOLU) = 3
+      IDSV(PARENTXYLE) = 3
+      IDSV(PARENTNAP ) = 3
+      ! More individuals
+      IDSV(PARENTPOA ) = 4
+      IDSV(PARENTOPOA) = 5
+
+      ! Define number of products per semivolatile (hotp 5/14/10)
+      NPROD(IDSV(PARENTMTPA)) = 4 ! 3 add C*=0.1 product (hotp 6/12/10)
+      NPROD(IDSV(PARENTISOP)) = 3
+      NPROD(IDSV(PARENTBENZ)) = 4
+      NPROD(IDSV(PARENTPOA )) = 2
+      NPROD(IDSV(PARENTOPOA)) = 2
+      ! Check to make sure NPROD doesn't exceed max
+      IF ( MAXVAL(NPROD(:)) > MPROD ) THEN
+         CALL ERROR_STOP('Too many PRODs per SV','carbon_mod.f')
+      ENDIF
+
+      ! Define number of NOx/Ox conditions per semivolatile 
+      ! (hotp 5/14/10)
+      NNOX(IDSV(PARENTMTPA)) = 3 ! high NOx, low NOx, NO3
+      NNOX(IDSV(PARENTISOP)) = 2 ! low  NOx, NO3
+      NNOX(IDSV(PARENTBENZ)) = 2 ! high NOx, low NOx
+      NNOX(IDSV(PARENTPOA )) = 1 ! just OH
+      NNOX(IDSV(PARENTOPOA)) = 1 ! just OH
+      ! Check to make sure NNOx doesn't exceed max
+      IF ( MAXVAL(NNOX(:)) > MNOX ) THEN
+         CALL ERROR_STOP('Too many NOx levels','carbon_mod.f')
+      ENDIF
 
       ALLOCATE( ANTH_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_BLKC' )
@@ -13453,6 +12531,12 @@ ccc
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
       OCCONV = 0d0
 
+      ! semivolpoa2: for POA emissions (hotp 2/27/09)
+      ! semivolpoa3: separate BB,BF from ANTH (hotp 3/13/09)
+      ALLOCATE( POAEMISS( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
+      POAEMISS = 0d0
+
       !=================================================================
       ! These only have to be allocated if we are
       ! reading in monthly/8-day/3-hr mean biomass burning
@@ -13474,186 +12558,28 @@ ccc
       !=================================================================
       IF ( Input_Opt%LSOA ) THEN
       
-         ! SOAupdate: Check to see if using SOA + semivolatile POA or
-         ! traditional SOA simulation (mpayer, 7/21/11)
-         IF ( Input_Opt%LSVPOA ) THEN
-
-            !------------------------
-            ! SOA + semivolatile POA
-            !-------------------------
-
-            ! All monoterpene and sesquiterpene SOA lumped together 
-            ! NOX: Used to indicate (1) high NOx, (2) low NOx, and (3) +NO3
-            ! (hotp, mpayer, 7/21/11)
-            MHC   = 11
-            MSV   = 5
-            MPROD = 4
-            MNOX  = 3
-
-            ALLOCATE( NPROD( MSV ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'NPROD' )
-            NPROD = 0d0
-
-            ALLOCATE( NNOX( MSV ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'NNOX' )
-            NNOX = 0d0
-
-            ALLOCATE( KO3_REF(4), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'KO3_REF' )
-            KO3_REF = 0d0
-
-            ALLOCATE( KOH_REF(4), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'KOH_REF' )
-            KOH_REF = 0d0
-
-            ALLOCATE( KNO3_REF(4), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'KNO3_REF' )
-            KNO3_REF = 0d0
-
-            ALLOCATE( KOM_REF_SVPOA( MPROD, MSV ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'KOM_REF_SVPOA' )
-            KOM_REF_SVPOA = 0d0
-
-            ALLOCATE( ALPHA( MNOX, MPROD, MHC ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'KOM_REF' )
-            KOM_REF = 0d0
-
-            ALLOCATE( BIOG_MTPA( IIPAR, JJPAR ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPA' )
-            BIOG_MTPA = 0d0
-
-            ALLOCATE( BIOG_MTPO( IIPAR, JJPAR ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPO' )
-            BIOG_MTPO = 0d0
-
-            ! Last dimension includes NAP
-            ALLOCATE( GLOB_DARO2( IIPAR, JJPAR, LLPAR,2,4), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_DARO2' )
-            GLOB_DARO2 = 0d0
-
-            ALLOCATE( IDSV( MHC ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'IDSV' )
-            IDSV = 0d0
-
-            ALLOCATE( DELTAHCSAVE( MNOX, MHC ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELTAHCSAVE' )
-            DELTAHCSAVE = 0d0
-
-            ALLOCATE( SPECSOAPROD( IIPAR, JJPAR, LLPAR, MPROD, MSV), 
-     &         STAT = AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAPROD' )
-            SPECSOAPROD = 0d0
-
-            ALLOCATE( SPECSOAEVAP( IIPAR, JJPAR, LLPAR, MPROD, MSV), 
-     &         STAT = AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAEVAP' )
-            SPECSOAEVAP = 0d0
-
-            ALLOCATE( GLOB_POGRXN( IIPAR, JJPAR, LLPAR,2 ), STAT = AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_POGRXN' )
-            GLOB_POGRXN = 0d0
-
-            ALLOCATE( BETANOSAVE( IIPAR, JJPAR, LLPAR), STAT = AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'BETANOSAVE' )
-            BETANOSAVE = 0d0
-
-            ALLOCATE( POAEMISS( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
-            POAEMISS = 0d0
-
-            ALLOCATE( OAGINITSAVE( IIPAR, JJPAR, LLPAR, MPROD, MSV ),
-     &                STAT = AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'OAGINITSAVE' )
-            OAGINITSAVE = 0d0
-
-            ALLOCATE( DELTASOGSAVE( IIPAR, JJPAR, LLPAR, MNOX, MHC ),
-     &                STAT = AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELTASOGSAVE' )
-            DELTASOGSAVE = 0d0
-
-         ELSE
-
-            !------------------------
-            ! Traditional SOA
-            !------------------------
-
-            MHC   = 9
-            MSV   = 0 ! not used in traditional SOA
-            MPROD = 3
-            MNOX  = 2
-
-            ALLOCATE( NPROD( MHC ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'NPROD' )
-            NPROD = 0d0
-
-            ALLOCATE( NNOX( MHC ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'NNOX' )
-            NNOX = 0d0
-
-            ALLOCATE( PRODPERCOFSTT( MHC ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRODPERCOFSTT' )
-            PRODPERCOFSTT = 0d0
-
-            ALLOCATE( KO3_REF(5), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'KO3_REF' )
-            KO3_REF = 0d0
-
-            ALLOCATE( KOH_REF(5), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'KOH_REF' )
-            KOH_REF = 0d0
-  
-            ALLOCATE( KNO3_REF(5), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'KNO3_REF' )
-            KNO3_REF = 0d0
-
-            ALLOCATE( KOM_REF( MNOX, MPROD, MHC ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'KOM_REF' )
-            KOM_REF = 0d0
-
-            ALLOCATE( ALPHA( MNOX, MPROD, MHC ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'KOM_REF' )
-            KOM_REF = 0d0
-
-            ALLOCATE( BIOG_ALPH( IIPAR, JJPAR ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_ALPH' )
-            BIOG_ALPH = 0d0
-
-            ALLOCATE( BIOG_ALCO( IIPAR, JJPAR ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_ALCO' )
-            BIOG_ALCO = 0d0
-
-            ALLOCATE( BIOG_TERP( IIPAR, JJPAR ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_TERP' )
-            BIOG_TERP = 0d0
-
-            ALLOCATE( ORVC_TERP( IIPAR, JJPAR, LLPAR ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_TERP' )
-            ORVC_TERP = 0d0
-
-            ! diagnostic  (dkh, 11/11/06)  
-            ALLOCATE( GLOB_DARO2( IIPAR, JJPAR, LLPAR,2,3), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_DARO2' )
-            GLOB_DARO2 = 0d0
-
-         ENDIF ! LSVPOA
-
-         ! SOAupdate: The following are used in both traditional SOA and
-         ! SOA + semivol POA
-!-----------------------------------------------------------------------
-! Prior to 7/21/11:
-! SOAupdate: Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
 !         ALLOCATE( BIOG_ALPH( IIPAR, JJPAR ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_ALPH' )
 !         BIOG_ALPH = 0d0
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+
+         ! MTPA, LIMO, MTPO update for new mtp lumping (hotp 5/20/10)
+         ALLOCATE( BIOG_MTPA( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPA' )
+         BIOG_MTPA = 0d0
 
          ALLOCATE( BIOG_LIMO( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_LIMO' )
          BIOG_LIMO = 0d0
 
-!-----------------------------------------------------------------------
-! Prior to 7/21/11:
-! SOAupdate: Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
+         ALLOCATE( BIOG_MTPO( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPO' )
+         BIOG_MTPO = 0d0
+
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
 !         ALLOCATE( BIOG_ALCO( IIPAR, JJPAR ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_ALCO' )
 !         BIOG_ALCO = 0d0
@@ -13661,7 +12587,7 @@ ccc
 !         ALLOCATE( BIOG_TERP( IIPAR, JJPAR ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_TERP' )
 !         BIOG_TERP = 0d0
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
          ALLOCATE( BIOG_SESQ( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_SESQ' )
@@ -13679,13 +12605,13 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
          TCOSZ = 0d0
 
-!-----------------------------------------------------------------------
-! Prior to 7/21/11:
-! SOAupdate: Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! removed (hotp 7/29/10)
 !         ALLOCATE( ORVC_TERP( IIPAR, JJPAR, LLPAR ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_TERP' )
 !         ORVC_TERP = 0d0
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
          ALLOCATE( ORVC_SESQ( IIPAR, JJPAR, LLPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
@@ -13696,55 +12622,48 @@ ccc
          ! directly from the met fields.  (skim, bmy, 1/14/10)
          ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
-
          VCLDF = 0d0
 #endif
 
-      ENDIF ! LSOA
+         ! diagnostic  (dkh, 11/11/06) 
+         ! increase last dimension by 1 to add NAP (hotp 7/22/09)
+         ALLOCATE( GLOB_DARO2( IIPAR, JJPAR, LLPAR,2,4), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_DARO2' )
+         GLOB_DARO2 = 0d0
 
-      !=================================================================
-      ! SOAupdate: Map parent HCs to lumped semivolatiles
-      ! (hotp, mpayer, 7/21/11)
-      !=================================================================
+         ! semivolpoa4: diagnostic (hotp 3/27/09)
+         ALLOCATE( GLOB_POGRXN( IIPAR, JJPAR, LLPAR,2 ), STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_POGRXN' )
+         GLOB_POGRXN = 0d0
 
-      IF ( Input_Opt%LSVPOA ) THEN
-         ! Monoterpenes + sesquiterpenes
-         IDSV(PARENTMTPA) = 1
-         IDSV(PARENTLIMO) = 1
-         IDSV(PARENTMTPO) = 1
-         IDSV(PARENTSESQ) = 1
-         ! Isoprene
-         IDSV(PARENTISOP) = 2
-         ! Lumped aromatic/IVOC
-         IDSV(PARENTBENZ) = 3
-         IDSV(PARENTTOLU) = 3
-         IDSV(PARENTXYLE) = 3
-         IDSV(PARENTNAP ) = 3
-         ! More individuals
-         IDSV(PARENTPOA ) = 4
-         IDSV(PARENTOPOA) = 5
+         ! Initial OA+OG diagnostic (hotp 5/17/10)
+         ALLOCATE( OAGINITSAVE( IIPAR, JJPAR, LLPAR, MPROD, MSV ),
+     &             STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OAGINITSAVE' )
+         OAGINITSAVE = 0d0
 
-         ! Define number of products per semivolatile
-         NPROD(IDSV(PARENTMTPA)) = 4
-         NPROD(IDSV(PARENTISOP)) = 3
-         NPROD(IDSV(PARENTBENZ)) = 4
-         NPROD(IDSV(PARENTPOA )) = 2
-         NPROD(IDSV(PARENTOPOA)) = 2
-         ! Check to make sure NPROD doesn't exceed max
-         IF ( MAXVAL(NPROD(:)) > MPROD ) THEN
-            CALL ERROR_STOP('Too many PRODs per SV','carbon_mod.f')
-         ENDIF
+         ! Change in OA+OG diagnostic (hotp 5/17/10)
+         ALLOCATE( DELTASOGSAVE( IIPAR, JJPAR, LLPAR, MNOX, MHC ),
+     &             STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELTASOGSAVE' )
+         DELTASOGSAVE = 0d0
 
-         ! Define number of NOx/Ox conditions per semivolatile 
-         NNOX(IDSV(PARENTMTPA)) = 3 ! high NOx, low NOx, NO3
-         NNOX(IDSV(PARENTISOP)) = 2 ! low  NOx, NO3
-         NNOX(IDSV(PARENTBENZ)) = 2 ! high NOx, low NOx
-         NNOX(IDSV(PARENTPOA )) = 1 ! just OH
-         NNOX(IDSV(PARENTOPOA)) = 1 ! just OH
-         ! Check to make sure NNOx doesn't exceed max
-         IF ( MAXVAL(NNOX(:)) > MNOX ) THEN
-            CALL ERROR_STOP('Too many NOx levels','carbon_mod.f')
-         ENDIF
+         ! Diagnostic for NO branching ratio (hotp 5/24/10)
+         ALLOCATE( BETANOSAVE( IIPAR, JJPAR, LLPAR), STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BETANOSAVE' )
+         BETANOSAVE = 0d0
+
+         ! Diagnostic (hotp 6/5/10)
+         ALLOCATE( SPECSOAPROD( IIPAR, JJPAR, LLPAR, MPROD, MSV), 
+     &      STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAPROD' )
+         SPECSOAPROD = 0d0
+
+         ! Diagnostic (hotp 6/5/10)
+         ALLOCATE( SPECSOAEVAP( IIPAR, JJPAR, LLPAR, MPROD, MSV), 
+     &      STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAEVAP' )
+         SPECSOAEVAP = 0d0
 
       ENDIF
 
@@ -13820,25 +12739,60 @@ ccc
       !=================================================================
 
       ! Initialize flags
-      DRYBCPI = 0
-      DRYOCPI = 0
-      DRYBCPO = 0
-      DRYOCPO = 0
-      DRYALPH = 0
-      DRYLIMO = 0
-      DRYALCO = 0
-      DRYSOG1 = 0
-      DRYSOG2 = 0
-      DRYSOG3 = 0
-      DRYSOG4 = 0
-      DRYSOG5 = 0
-      DRYSOA1 = 0
-      DRYSOA2 = 0
-      DRYSOA3 = 0
-      DRYSOA4 = 0
-      DRYSOA5 = 0
-      DRYSOAG = 0
-      DRYSOAM = 0
+      DRYBCPI  = 0
+      DRYOCPI  = 0
+      DRYBCPO  = 0
+      DRYOCPO  = 0
+      DRYPOA1  = 0
+      DRYPOA2  = 0
+      DRYPOG1  = 0
+      DRYPOG2  = 0
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      DRYALPH = 0
+!      DRYLIMO = 0
+!      DRYALCO = 0
+!      DRYSOG1 = 0
+!      DRYSOG2 = 0
+!      DRYSOG3 = 0
+!      DRYSOG4 = 0
+!      DRYSOG5 = 0
+!      DRYSOA1 = 0
+!      DRYSOA2 = 0
+!      DRYSOA3 = 0
+!      DRYSOA4 = 0
+!      DRYSOA5 = 0
+!------------------------------------------------------------------------------
+      DRYOPOA1 = 0
+      DRYOPOA2 = 0
+      DRYOPOG1 = 0
+      DRYOPOG2 = 0
+      DRYMTPA  = 0
+      DRYLIMO  = 0
+      DRYMTPO  = 0
+      DRYTSOA1 = 0
+      DRYTSOG1 = 0
+      DRYTSOA2 = 0
+      DRYTSOG2 = 0
+      DRYTSOA3 = 0
+      DRYTSOG3 = 0
+      DRYTSOA0 = 0
+      DRYTSOG0 = 0
+      DRYISOA1 = 0
+      DRYISOG1 = 0
+      DRYISOA2 = 0
+      DRYISOG2 = 0
+      DRYISOA3 = 0
+      DRYISOG3 = 0
+      DRYASOAN = 0
+      DRYASOA1 = 0
+      DRYASOG1 = 0
+      DRYASOA2 = 0
+      DRYASOG2 = 0
+      DRYASOA3 = 0
+      DRYASOG3 = 0
+      DRYSOAG  = 0
+      DRYSOAM  = 0
 
       ! Locate drydep indices for each carbon or SOA aerosol 
       ! in the list of dry depositing species.
@@ -13853,45 +12807,48 @@ ccc
                   DRYBCPO = N
                CASE ( 'OCPO' )
                   DRYOCPO = N
-               CASE ( 'ALPH' )
-                  DRYALPH = N
-               CASE ( 'LIMO' )
-                  DRYLIMO = N
-               CASE ( 'ALCO' )
-                  DRYALCO = N
-               CASE ( 'SOG1' )
-                  DRYSOG1 = N
-               CASE ( 'SOG2' )
-                  DRYSOG2 = N
-               CASE ( 'SOG3' )
-                  DRYSOG3 = N
-               CASE ( 'SOG4' )
-                  DRYSOG4 = N
-               CASE ( 'SOG5' )
-                  DRYSOG5 = N
-               CASE ( 'SOA1' )
-                  DRYSOA1 = N
-               CASE ( 'SOA2' )
-                  DRYSOA2 = N
-               CASE ( 'SOA3' )
-                  DRYSOA3 = N
-               CASE ( 'SOA4' )
-                  DRYSOA4 = N
-               CASE ( 'SOA5' ) 
-                  DRYSOA5 = N
-               CASE ( 'SOAG' )
-                  DRYSOAG = N
-               CASE ( 'SOAM' )
-                  DRYSOAM = N
-               ! SOAupdate: For SOA + semivol POA (hotp, mpayer, 7/18/11)
+               ! semivolpoa: add POA (hotp 2/26/09)
                CASE ( 'POA1'  )
                   DRYPOA1  = N
                CASE ( 'POA2'  )
                   DRYPOA2  = N
+               ! semivolpoa2: add POG (hotp 3/2/09)
                CASE ( 'POG1'  )
                   DRYPOG1  = N
                CASE ( 'POG2'  )
                   DRYPOG2  = N
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! removed ALPH,LIMO,ALCO,SOA1-4,SOG1-4
+! and replaced with new mtp (hotp 5/20/10)
+!               CASE ( 'ALPH' )
+!                  DRYALPH = N
+!               CASE ( 'LIMO' )
+!                  DRYLIMO = N
+!               CASE ( 'ALCO' )
+!                  DRYALCO = N
+!               CASE ( 'SOG1' )
+!                  DRYSOG1 = N
+!               CASE ( 'SOG2' )
+!                  DRYSOG2 = N
+!               CASE ( 'SOG3' )
+!                  DRYSOG3 = N
+!               CASE ( 'SOG4' )
+!                  DRYSOG4 = N
+!               CASE ( 'SOG5' )
+!                  DRYSOG5 = N
+!               CASE ( 'SOA1' )
+!                  DRYSOA1 = N
+!               CASE ( 'SOA2' )
+!                  DRYSOA2 = N
+!               CASE ( 'SOA3' )
+!                  DRYSOA3 = N
+!               CASE ( 'SOA4' )
+!                  DRYSOA4 = N
+!               CASE ( 'SOA5' ) 
+!                  DRYSOA5 = N
+!------------------------------------------------------------------------------
+               ! semivolpoa4opoa: add OPOA and OPOG (hotp 3/18/09)
                CASE ( 'OPOA1' )
                   DRYOPOA1 = N
                CASE ( 'OPOA2' )
@@ -13900,6 +12857,7 @@ ccc
                   DRYOPOG1 = N
                CASE ( 'OPOG2' )
                   DRYOPOG2 = N
+               ! Lumped arom/IVOC (hotp 5/13/10)
                CASE ( 'ASOAN' )
                   DRYASOAN = N 
                CASE ( 'ASOA1' )
@@ -13914,10 +12872,16 @@ ccc
                   DRYASOG2 = N 
                CASE ( 'ASOG3' )
                   DRYASOG3 = N
+               ! removed ALPH,LIMO,ALCO,SOA1-4,SOG1-4
+               ! and replaced with new mtp (hotp 5/20/10)
+               ! precursors
                CASE ( 'MTPA' )
                   DRYMTPA = N 
+               CASE ( 'LIMO' )
+                  DRYLIMO = N 
                CASE ( 'MTPO' )
                   DRYMTPO = N 
+               ! terpenes (hotp 7/29/10)
                CASE ( 'TSOA1' )
                   DRYTSOA1 = N 
                CASE ( 'TSOA2' )
@@ -13934,6 +12898,7 @@ ccc
                   DRYTSOG3 = N 
                CASE ( 'TSOG0' )
                   DRYTSOG0 = N
+               ! isoprene (hotp 7/29/10)
                CASE ( 'ISOA1' )
                   DRYISOA1 = N 
                CASE ( 'ISOA2' )
@@ -13946,7 +12911,10 @@ ccc
                   DRYISOG2 = N 
                CASE ( 'ISOG3' )
                   DRYISOG3 = N
-               ! End SOAupdate
+               CASE ( 'SOAG' )
+                  DRYSOAG = N
+               CASE ( 'SOAM' )
+                  DRYSOAM = N
                CASE DEFAULT
                   ! Nothing
             END SELECT        
@@ -13966,7 +12934,8 @@ ccc
 !
 !  NOTES:
 !  (1 ) Now deallocate arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
-!  21 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
       !=================================================================
@@ -13983,27 +12952,26 @@ ccc
       IF ( ALLOCATED( OCCONV        ) ) DEALLOCATE( OCCONV        )
       IF ( ALLOCATED( EF_BLKC       ) ) DEALLOCATE( EF_BLKC       )
       IF ( ALLOCATED( EF_ORGC       ) ) DEALLOCATE( EF_ORGC       )
-      IF ( ALLOCATED( BIOG_ALPH     ) ) DEALLOCATE( BIOG_ALPH     )
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      IF ( ALLOCATED( BIOG_ALPH     ) ) DEALLOCATE( BIOG_ALPH     )
+!      IF ( ALLOCATED( BIOG_ALCO     ) ) DEALLOCATE( BIOG_ALCO     )
+!      IF ( ALLOCATED( BIOG_TERP     ) ) DEALLOCATE( BIOG_TERP     
+!------------------------------------------------------------------------------
+      IF ( ALLOCATED( BIOG_MTPA     ) ) DEALLOCATE( BIOG_MTPA     )
       IF ( ALLOCATED( BIOG_LIMO     ) ) DEALLOCATE( BIOG_LIMO     )
-      IF ( ALLOCATED( BIOG_ALCO     ) ) DEALLOCATE( BIOG_ALCO     )
-      IF ( ALLOCATED( BIOG_TERP     ) ) DEALLOCATE( BIOG_TERP     )
+      IF ( ALLOCATED( BIOG_MTPO     ) ) DEALLOCATE( BIOG_MTPO     )
       IF ( ALLOCATED( BIOG_SESQ     ) ) DEALLOCATE( BIOG_SESQ     )
       IF ( ALLOCATED( DIUR_ORVC     ) ) DEALLOCATE( DIUR_ORVC     )
       IF ( ALLOCATED( GEIA_ORVC     ) ) DEALLOCATE( GEIA_ORVC     )
       IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )
-      IF ( ALLOCATED( ORVC_TERP     ) ) DEALLOCATE( ORVC_TERP     )
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      IF ( ALLOCATED( ORVC_TERP     ) ) DEALLOCATE( ORVC_TERP     )
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( ORVC_SESQ     ) ) DEALLOCATE( ORVC_SESQ     )
       IF ( ALLOCATED( VCLDF         ) ) DEALLOCATE( VCLDF         )
       IF ( ALLOCATED( GLOB_DARO2    ) ) DEALLOCATE( GLOB_DARO2    )
-      IF ( ALLOCATED( NPROD         ) ) DEALLOCATE( NPROD         )
-      IF ( ALLOCATED( NNOX          ) ) DEALLOCATE( NNOX          )
-      IF ( ALLOCATED( KO3_REF       ) ) DEALLOCATE( KO3_REF       )
-      IF ( ALLOCATED( KOH_REF       ) ) DEALLOCATE( KOH_REF       )
-      IF ( ALLOCATED( KNO3_REF      ) ) DEALLOCATE( KNO3_REF      )
-      IF ( ALLOCATED( KOM_REF       ) ) DEALLOCATE( KOM_REF       )
-      IF ( ALLOCATED( KOM_REF_SVPOA ) ) DEALLOCATE( KOM_REF_SVPOA )
-      IF ( ALLOCATED( BIOG_MTPA     ) ) DEALLOCATE( BIOG_MTPA     )
-      IF ( ALLOCATED( BIOG_MTPO     ) ) DEALLOCATE( BIOG_MTPO     )
       IF ( ALLOCATED( POAEMISS      ) ) DEALLOCATE( POAEMISS      )
       IF ( ALLOCATED( GLOB_POGRXN   ) ) DEALLOCATE( GLOB_POGRXN   )
       IF ( ALLOCATED( OAGINITSAVE   ) ) DEALLOCATE( OAGINITSAVE   )
@@ -14011,8 +12979,6 @@ ccc
       IF ( ALLOCATED( BETANOSAVE    ) ) DEALLOCATE( BETANOSAVE    )
       IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
       IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
-      IF ( ALLOCATED( DELTAHCSAVE   ) ) DEALLOCATE( DELTAHCSAVE   )
-      IF ( ALLOCATED( POAEMISS      ) ) DEALLOCATE( POAEMISS      )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_CARBON

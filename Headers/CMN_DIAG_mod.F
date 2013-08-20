@@ -68,7 +68,7 @@
       ! changed PD39 (wetdep) to 38 (jpp, 7/08/09)
       ! Now set PD46 to 16 (jpp, 6/7/09)
       ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
-      ! Increase PD46 from 16 to 20 for SOAupdate (hotp, mpayer, 6/28/11)
+      ! SOAupdate: PD46 increased from 16 to 20 (hotp 3/1/10)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3

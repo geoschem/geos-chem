@@ -109,6 +109,8 @@
 #  30 Oct 2012 - R. Yantosca - Remove reference to rdsoil.F
 #  27 Nov 2012 - R. Yantosca - Remove reference to getifsun.F
 #  30 May 2013 - R. Yantosca - Remove reference to GEOS-3 TPCORE routines 
+#  13 Aug 2013 - M. Sulprizio- Remove reference to soaprod_mod.F (no longer
+#                              needed) (SOAupdate, hotp 7/25/10)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -847,7 +849,7 @@ main.o                      : main.F                                         \
                               lightning_nox_mod.o     linoz_mod.o            \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           ocean_mercury_mod.o    \
-                              planeflight_mod.o       soaprod_mod.o          \
+                              planeflight_mod.o                              \
                               tpcore_bc_mod.o         tracer_mod.o           \
                               transport_mod.o         tropopause_mod.o       \
                               restart_mod.o           uvalbedo_mod.o         \
@@ -1044,10 +1046,6 @@ setmodel.o                  : setmodel.F
 sfcwindsqr.o                : sfcwindsqr.F            dao_mod.o
 
 smvgear.o                   : smvgear.F               comode_mod.o
-
-soaprod_mod.o               : soaprod_mod.F                                  \
-                              carbon_mod.o            dao_mod.o              \
-                              logical_mod.o           tracer_mod.o
 
 soil_nox_mod.o              : soil_nox_mod.F
 

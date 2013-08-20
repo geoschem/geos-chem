@@ -86,14 +86,14 @@
 !  (20) Added 9 gaseous biofuel emissions: GLYX, MGLY, BENZ, 
 !        TOLU, XYLE, C2H4, C2H2, GLYC, HAC. (tmf, 1/7/09)
 !  (21) Emissions for these 9 tracers are scaled from CO emissions. (tmf, 1/7/09)
-!  06 Jul 2011 - M. Payer    - Add gas-phase NAP chemistry & biofuel emissions
-!                              for SOA + semivolatile POA (H. Pye)
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
 !  12 Jun 2013 - R. Yantosca - Now declare BIOFUEL_KG w/ the TARGET attribute
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
+!  13 Aug 2013 - M. Sulprizio- Add NAP biofuel emissions for SOA + semivolatile
+!                              POA simulation (H. Pye)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -123,7 +123,7 @@
       ! MODULE VARIABLES
       !=================================================================
 
-      ! SOAupdate: Increase NBFMAX from 19 to 20 for NAP (hotp, mpayer, 7/6/11)
+      ! SOAupdate: increase NBFMAX for NAP (hotp 6/25/09)
       INTEGER, PARAMETER          :: NBFMAX = 20
 
       INTEGER                     :: NBFTRACE
@@ -214,7 +214,6 @@
 !  18 Aug 2011 - D. Millet   - RETRO anthropogenic emissions include 
 !                              residential biofuel, so we need to zero out the
 !                              biofuel contributions to avoid double-counting
-!  06 Jul 2011 - M. Payer    - Add NAP for SOA + semivolatile POA (H. Pye)
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              NOx (E. Leibensperger)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
@@ -234,6 +233,7 @@
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -270,7 +270,8 @@
       USE BRAVO_MOD,            ONLY : GET_BRAVO_MASK
       USE CAC_ANTHRO_MOD,       ONLY : GET_CANADA_MASK
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
-      ! SOAupdate: For gas-phase NAP chemistry and emiss (hotp, mpayer, 7/6/11)
+      ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
+      ! add NAP biofuel emissions 
       USE TRACERID_MOD,         ONLY : IDTNAP
       USE TRACERID_MOD,         ONLY : IDBFNAP
       USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM 
@@ -324,10 +325,11 @@
 
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
       
-      ! SOAupdate: Scale CO down & remove effect of VOC ox (hotp,mpayer,7/6/11)
+      ! SOAupdate: to scale CO down and remove effect of VOC ox (hotp 6/25/09)
+      ! for gas phase NAP chemistry simulation 
       REAL*8                        :: COSCALEDOWN
 
-      ! SOAupdate: Scale up NAP emissions (hotp, mpayer, 7/6/11)
+      ! SOAupdate: NAPSOA: scale up NAP emiss (hotp 7/24/09)
       REAL*8, PARAMETER             :: NAPTOTALSCALE = 66.09027d0
 
       ! For fields from Input_Opt
@@ -896,14 +898,16 @@
                ! Define MOLWT for use below
                MOLWT(N) = 74d-3
 
+            ! SOAupdate: for NAP gas phase chemistry (hotp 6/24/09)
+            ! NAP biofuel emissions scaled from CO
             ELSE IF ( NN == IDTNAP ) THEN
 
                !------------------------
-               ! SOAupdate: Biofuel NAP
-               ! (hotp, mpayer, 7/6/11)
+               ! Biofuel NAP
                !------------------------
 
-               ! Remove extra CO to account for VOC oxidation (default value)
+               ! Remove extra CO to account for VOC oxidation
+               ! default value
                COSCALEDOWN = 1d0
 
                ! Adjust based on simulation type
@@ -913,20 +917,22 @@
                    COSCALEDOWN = 1d0/1.189d0
                ENDIF
 
-               ! Emmision ratio NAP/CO = 0.0701d-3 [mole/mole]
-               !
-               ! NAP emiss = 0.025 g NAP/kg DM (Table 4, Hays et al, 2002)
-               ! CO  emiss =    78 g CO /kg DM (Table 1, Andreae & Merlet,2001)
-               !
-               ! Scale emissions down if appropriate to remove the
+               ! = CO emissions * emissions ratio of mol NAP / mol CO 
+               ! * kg C / mol NAP * mol CO / kg CO 
+               ! mmol NAP / mol CO = 0.025 g NAP/ kg DM / 
+               !              ( 78 g CO/ kg DM ) * 28 g CO / mol CO
+               !            / ( 128 g NAP / mol NAP ) *1000 mmol/mol
+               ! scale emissions down if appropriate to remove the
                ! effect of VOC ox on CO emission
+               ! EF for NAP from Andreae and Merlet 2001 Glob Biog Cyc
+               ! EF for CO  from Andreae and Merlet 2001 Glob Biog Cyc
                BIOFUEL_KG(N,:,:) = BIOFUEL_KG(IDBFCO,:,:) * 0.0701d-3 
-     &                             * 120d0 / 28d0 * COSCALEDOWN ! [kg C/box/yr]
+     &                             * 120d0 / 28d0 * COSCALEDOWN
 
-               ! Scale up NAP emiss
+               ! NAPSOA: scale up NAP emiss (hotp 7/24/09)
                BIOFUEL_KG(N,:,:) = BIOFUEL_KG(N,:,:) * NAPTOTALSCALE
 
-               ! Set NAP emissions according to input.geos
+               ! Set according to input.geos (hotp 8/9/09)
                BIOFUEL_KG(N,:,:) = BIOFUEL_KG(N,:,:) * NAPEMISS
 
                ! Compute future NAP emissions (if necessary)
@@ -1060,7 +1066,7 @@
                      ! We do not have EPA/NEI biofuel emission.  
                      ! Use default emission for the newly added species. 
                      ! (tmf, 1/8/08) 
-                     ! SOAupdate: Add NAP (hotp, mpayer, 7/6/11) 
+                     ! SOAupdate: add NAP too (hotp 7/25/10)
                      IF ( (NN /= IDTGLYX) .and. (NN /= IDTMGLY) .and. 
      &                    (NN /= IDTBENZ) .and. (NN /= IDTTOLU) .and.
      &                    (NN /= IDTXYLE) .and. (NN /= IDTC2H4) .and.
@@ -1262,8 +1268,9 @@
      &                  BIOFUEL(IDBFCO,I,J) * 3.31d-3             
                   ENDIF
 
-                  ! SOAupdate: NAP (hotp, mpayer, 7/6/11)
+                  ! SOAupdate: add NAP (hotp 7/25/10)
                   IF ( IDBFNAP > 0 ) THEN
+                  !also needs scaling
                   BIOFUEL(IDBFNAP,I,J) = 
      &                 BIOFUEL(IDBFCO,I,J) * 0.0701d-3 * 10.d0 *
      &                  NAPTOTALSCALE * NAPEMISS
@@ -1488,11 +1495,11 @@
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05
-!  06 Jul 2011 - M. Payer    - Add NAP for SOA + semivolatile POA (H. Pye)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1508,7 +1515,7 @@
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTBENZ,  IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE,  IDTC2H4,  IDTC2H2,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTHAC
-      ! SOAupdate: For gas-phase NAP chemistry and emiss (hotp, mpayer, 7/6/11)
+      ! SOAupdate: for gas phase NAP chemistry, NAP biofuel emis (hotp 6/24/09)
       USE TRACERID_MOD, ONLY : IDTNAP
       USE TRACERID_MOD, ONLY : IDBFNAP
 
@@ -1542,7 +1549,8 @@
       IF ( IDBFC2H2 /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFGLYC /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFHAC  /= 0 ) NBFTRACE = NBFTRACE + 1 
-      IF ( IDBFNAP  /= 0 ) NBFTRACE = NBFTRACE + 1  ! (hotp, mpayer, 7/6/11)
+      ! SOAupdate: for gas phase NAP chemistry, NAP bf emiss (hotp 6/24/09)
+      IF ( IDBFNAP  /= 0 ) NBFTRACE = NBFTRACE + 1
 
       ! Fill BFTRACE w/ appropriate TRACER ID #'s
       ! Replaced NOx with NO (mpayer, 3/14/13)
@@ -1565,7 +1573,8 @@
       IF ( IDBFC2H2 /= 0 ) BFTRACE(IDBFC2H2) = IDTC2H2
       IF ( IDBFGLYC /= 0 ) BFTRACE(IDBFGLYC) = IDTGLYC
       IF ( IDBFHAC  /= 0 ) BFTRACE(IDBFHAC ) = IDTHAC
-      IF ( IDBFNAP  /= 0 ) BFTRACE(IDBFNAP ) = IDTNAP  ! (hotp, mpayer, 7/6/11)
+      ! SOAupdate: for gas phase NAP chemistry, NAP bf emiss (hotp 6/24/09)
+      IF ( IDBFNAP  /= 0 ) BFTRACE(IDBFNAP ) = IDTNAP
 
       ! Echo biofuel tracer information
       IF ( am_I_Root ) THEN

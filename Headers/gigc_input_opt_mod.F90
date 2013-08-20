@@ -587,7 +587,7 @@ MODULE GIGC_Input_Opt_Mod
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged EDGAR
 !  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
 !  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
-!  07 Aug 2013 - M. Sulprizio- Add extra fields for SOA + SVPOA simulation
+!  13 Aug 2013 - M. Sulprizio- Add extra fields for semivolatile POA (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC

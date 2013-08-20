@@ -98,10 +98,10 @@
 !  (6 ) Now always scale biomass CO regardless of inventory (jaf, mak, 11/6/09)
 !  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
 !  (8)  Updates to include GFED3 (psk, 1/5/11)
-!  06 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  14 Feb 2012 - M. Payer    - Add modifications for CH4 simulation (K. Wecht)
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  13 Aug 2013 - M. Sulprizio- Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       USE CMN_SIZE_MOD               ! Size parameters
@@ -194,11 +194,11 @@
 !        chemistry mechanisms. This used to be done in gc_biomass_mod.f but 
 !        then is not used for GFED2, FLAMBE, etc. (jaf, mak, 11/6/09)
 !  27 Jul 2011 - R. Yantosca - Make sure that IDBCO > 0 before using it
-!  06 Jul 2011 - M. Payer    - Add NAP and POA biomass burning emissions for 
-!                              SOA + semivolatile POA (H. Pye)
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  13 Aug 2013 - M. Sulprizio- Add NAP and POA biomass burning emissions for 
+!                              SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -219,10 +219,11 @@
       USE TRACERID_MOD,       ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
       USE TRACERID_MOD,       ONLY : IDBCO, IDBNO
       USE TRACERID_MOD,       ONLY : IDBCO2
-      ! SOAupdate: For POA, NAP (hotp, mpayer, 7/6/11)
+      USE TRACERID_MOD,       ONLY : IDBXYLE, IDBTOLU, IDBBENZ ! hotp for debug
+      ! SOAupdate: POA  (hotp 10/11/09)
       USE TRACERID_MOD,       ONLY : IDTPOA1
+      ! SOAupdate: For NAPSOA (hotp 8/24/09)
       USE TRACERID_MOD,       ONLY : IDBNAP
-      USE TRACERID_MOD,       ONLY : IDBXYLE, IDBTOLU, IDBBENZ
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic flags
@@ -244,7 +245,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! SOAupdate: Scale up total NAP emissions (hotp, mpayer, 7/6/11)
+      ! SOAupdate: NAPSOA: scale up total NAP emiss (hotp 7/24/09)
       REAL*8, PARAMETER   :: NAPTOTALSCALE = 66.09027d0
 
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -263,7 +264,6 @@
       LOGICAL             :: LBIOMASS, LGFED2BB, LGFED3BB
       LOGICAL             :: L8DAYBB,  LSYNOPBB, L3HRBB
       LOGICAL             :: LDAYBB3,  L3HRBB3
-      LOGICAL             :: LSVPOA
       REAL*8              :: NAPEMISS
 
       !=================================================================
@@ -286,7 +286,6 @@
       L3HRBB              = Input_Opt%L3HRBB
       LDAYBB3             = Input_Opt%LDAYBB3
       L3HRBB3             = Input_Opt%L3HRBB3  
-      LSVPOA              = Input_Opt%LSVPOA
       NAPEMISS            = Input_Opt%NAPEMISS
 
       ! If there are biomass emissions ...
@@ -413,7 +412,7 @@
 
                ! Get biomass BC & OC [molec/cm2/s]
                ! SOAupdate: OC emissions now are nonvolatile (OCPO defined) or
-               !  semivolatile (POA defined) (hotp, mpayer, 7/6/11) 
+               !  semivolatile (POA defined) (hotp 8/23/09)
                IF ( IDTBCPO > 0 ) THEN
                   IF ( IDTOCPO > 0 .or. IDTPOA1 > 0 ) THEN
                   CALL GC_READ_BIOMASS_BCOC( YEAR, MONTH,
@@ -451,47 +450,46 @@
          ENDIF
 
          !==============================================================
-         ! SOAupdate: NAP emissions (hotp, mpayer, 7/6/11)
+         ! NAP emissions
          !==============================================================
 
+         ! SOAupdate: Add NAP EMISSIONS (hotp 8/23/09)
          IF ( IDBNAP > 0 ) THEN
             
-            ! Obtain NAP emissions using scale factor:
-            ! Emmision ratio NAP/CO = 0.0602d-3 [mole/mole]
-            !
-            ! NAP emiss = 0.0253 g NAP/kg DM (Table 4, Hays et al, 2002)
-            ! CO  emiss =     92 g CO /kg DM (Table 1, Andreae & Merlet, 2001)
+            ! For gas phase NAP chemistry simulation (hotp 6/25/09)
+            ! Obtain NAP emissions using scale factor from 
+            ! Hays 2002 ES&T ( 0.0253 g NAP/kg DM )
+            ! and Andreae and Merlet 2001 GBC ( 92 g CO/kg DM )
             ! NAP has 10 carbons
             BIOMASS(:,:,IDBNAP ) = BIOMASS(:,:,IDBCO) * 0.0602d-3 * 10d0
-            
-            ! Scale up total
+
+            ! NAPSOA: scale up total (hotp 7/24/09)
             BIOMASS(:,:,IDBNAP ) = BIOMASS(:,:,IDBNAP) * NAPTOTALSCALE
 
-            ! Set according to input.geos
+            ! Now set according to input.geos (hotp 8/9/09)
             BIOMASS(:,:,IDBNAP ) = BIOMASS(:,:,IDBNAP) * NAPEMISS
 
          ENDIF
 
-         ! Print for SOA + semivol POA
-         IF ( LSVPOA ) THEN
-            ! 2592000d0 is seconds in June
-            IF ( IDBBENZ > 0 )
-     &         CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBBENZ) * 2592000d0,
-     &                                12d-3, 'BENZ' )
+         ! SOAupdate: diagnostic only (hotp 5/23/09)
+         ! 2592000d0 is seconds in June
+         IF ( IDBBENZ > 0 )
+     &        CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBBENZ) * 2592000d0,
+     &                               12d-3, 'BENZ' )
 
+         IF ( IDBTOLU > 0 ) 
+     &        CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBTOLU) * 2592000d0,
+     &                               12d-3, 'TOLU' )
 
-            IF ( IDBTOLU > 0 ) 
-     &         CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBTOLU) * 2592000d0,
-     &                                12d-3, 'TOLU' )
+         IF ( IDBXYLE > 0 )
+     &        CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBXYLE) * 2592000d0,
+     &                               12d-3, 'XYLE' )
 
-            IF ( IDBXYLE > 0 )
-     &         CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBXYLE) * 2592000d0,
-     &                                12d-3, 'XYLE' )
-
-            IF ( IDBNAP > 0 )
-     &         CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNAP ) * 2592000d0,
+         ! print NAP too (hotp 6/25/09)
+         IF ( IDBNAP > 0 )
+     &        CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNAP ) * 2592000d0,
      &                                12d-3, 'NAP ' )
-         ENDIF
+
       
          !==============================================================
          ! Do the following on every timestep:
@@ -545,12 +543,12 @@
 !  tracers in input.geos (FP 6/2009, hotp 7/30/09)
 !
 !  NOTES:
-!  06 Jul 2011 - M. Payer    - Add NAP and POA biomass burning emissions for 
-!                              SOA + semivolatile POA (H. Pye)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  13 Aug 2013 - M. Sulprizio- Add NAP and POA biomass burning emissions for 
+!                              SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 
 !FP_ISOP
@@ -572,7 +570,7 @@
       ! Add dicarbonyls
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
       USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
-      ! SOAupdate: Add NAP emissions (hotp, mpayer, 7/6/11)
+      ! SOAupdate: Add NAP emissions (hotp 8/23/09)
       USE TRACERID_MOD, ONLY : IDBNAP
 
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTACET 
@@ -581,11 +579,10 @@
       USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
-      USE TRACERID_MOD, ONLY : IDTHAC, IDTGLYC, IDTMGLY, IDTGLYX
+      USE TRACERID_MOD, ONLY : IDTHAC,  IDTGLYC, IDTMGLY, IDTGLYX
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
-      ! SOAupdate: Add NAP emissions, POA (hotp, mpayer, 7/6/11)
-      USE TRACERID_MOD, ONLY : IDTNAP
-      USE TRACERID_MOD, ONLY : IDTPOA1
+      ! SOAupdate: Add NAP emissions (hotp 8/23/09)
+      USE TRACERID_MOD, ONLY : IDTNAP,  IDTPOA1
 
       USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
 
@@ -627,7 +624,8 @@
       IF ( IDBC2H2  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBGLYC  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBHAC   /= 0 ) NBIOTRCE = NBIOTRCE + 1 
-      IF ( IDBNAP   /= 0 ) NBIOTRCE = NBIOTRCE + 1  ! (hotp, mpayer, 7/6/11)
+      ! SOAupdate: Add NAP (hotp 8/23/09)
+      IF ( IDBNAP   /= 0 ) NBIOTRCE = NBIOTRCE + 1
 
       ! Fill BIOTRCE w/ appropriate TRACER ID #'s
       ! Replaced NOx with NO (mpayer, 3/14/13)
@@ -650,7 +648,7 @@
       ! depending on if POA is semivolatile (hotp 8/23/09)
       IF ( IDBOC    /= 0 ) THEN 
          IF ( IDTOCPI  /= 0 ) BIOTRCE(IDBOC) = IDTOCPI
-         IF ( IDTPOA1  /= 0 ) BIOTRCE(IDBOC) = IDTPOA1 ! (hotp, mpayer, 7/6/11)
+         IF ( IDTPOA1  /= 0 ) BIOTRCE(IDBOC) = IDTPOA1
       ENDIF
 
       IF ( IDBXYLE  /= 0 ) BIOTRCE(IDBXYLE) = IDTXYLE 
@@ -664,7 +662,8 @@
       IF ( IDBC2H2  /= 0 ) BIOTRCE(IDBC2H2) = IDTC2H2
       IF ( IDBGLYC  /= 0 ) BIOTRCE(IDBGLYC) = IDTGLYC
       IF ( IDBHAC   /= 0 ) BIOTRCE(IDBHAC)  = IDTHAC      
-      IF ( IDBNAP   /= 0 ) BIOTRCE(IDBNAP)  = IDTNAP  ! (hotp, mpayer, 7/6/11)
+      ! SOAupdate: Add NAP (hotp 8/23/09)
+      IF ( IDBNAP   /= 0 ) BIOTRCE(IDBNAP)  = IDTNAP
 
       ! Set T/F of BIOBGAS() (hotp 8/3/09)
       ! BIOBGAS(IDBxx) is true if IDBxx should be handled by
@@ -693,7 +692,7 @@
       IF ( IDBXYLE  /= 0 ) BIOBGAS(IDBXYLE) = .TRUE. 
       IF ( IDBTOLU  /= 0 ) BIOBGAS(IDBTOLU) = .TRUE.
       IF ( IDBBENZ  /= 0 ) BIOBGAS(IDBBENZ) = .TRUE.
-      ! SOAupdate: NAP handled by setemis (hotp, mpayer, 7/6/11)
+      ! SOAupdate: NAP handled by setemis (hotp 8/23/09)
       IF ( IDBNAP   /= 0 ) BIOBGAS(IDBNAP)  = .TRUE.
 
       ! Dicarbonyls handled by setemis

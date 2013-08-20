@@ -220,7 +220,6 @@
 !                              the photolysis issue.
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
-!  27 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !   6 Mar 2012 - R. Yantosca - Now reference TO3 from dao_mod.F
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
@@ -240,6 +239,8 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  31 May 2013 - R. Yantosca - Now pass State_Met to DO_DIAG_PL, for TOMAS
 !  06 Jun 2013 - M. Payer    - Move SETEMIS to after FAST_J (C. Holmes)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -275,7 +276,6 @@
       LOGICAL       :: LVARTROP
       LOGICAL       :: LFUTURE
       LOGICAL       :: LSVCSPEC
-      LOGICAL       :: LSVPOA
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -301,7 +301,6 @@
       LVARTROP  = Input_Opt%LVARTROP
       LFUTURE   = Input_Opt%LFUTURE
       LSVCSPEC  = Input_Opt%LSVCSPEC
-      LSVPOA    = Input_Opt%LSVPOA
 
       ! Do we need to print debug output?
       prtDebug  = ( LPRT .and. am_I_Root )
@@ -448,13 +447,11 @@
          ENDIF
 
          !---------------------------------------------------
-         ! SOAupdate: Check ILISOPNO3 for SOA + semivol POA
-         !  (hotp, mpayer, 7/27/11)
+         ! SOAupdate: Check ILISOPNO3 for SOA (hotp 6/1/10)
          !---------------------------------------------------
-         IF ( LSVPOA .and. ILISOPNO3 == 0 ) THEN
-            CALL ERROR_STOP( 
-     &         'IDLISOPNO3 needs to be defined for SOA + semivol POA!',
-     &         'chemdr.f' )
+         IF ( LSOA .and. ILISOPNO3 == 0 ) THEN
+            CALL ERROR_STOP( 'IDLISOPNO3 needs to be defined for SOA!',
+     &                       'chemdr.f' )
          ENDIF
 
          !---------------------------------

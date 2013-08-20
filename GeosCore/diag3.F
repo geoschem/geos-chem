@@ -194,13 +194,14 @@
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  08 Feb 2012 - R. Yantosca - Restructure USE statements for clarity
 !  08 Feb 2012 - R. Yantosca - Add counter for I3 (inst 3hr) met fields
-!  27 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  05 Apr 2012 - R. Yantosca - Bug fix: use hourly scale for SLP in the
 !                              ND67 diagnostic for GEOS-5.7.x met fields
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
 !                              of removal of NOx-Ox partitioning
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -483,13 +484,11 @@
       IF ( ND07 > 0 .and. LCARB ) THEN
 
          ! Unit
-         ! SOAupdate: For SOA + semivolatile POA units are kg C
-         ! (hotp, mpayer, 7/27/11)
-         IF ( LSVPOA ) THEN
-            UNIT = 'kgC'
-         ELSE
-            UNIT = 'kg'
-         ENDIF
+         ! updated units, OC and BC in kg C, SOA in kg (hotp 7/31/08)
+         !UNIT = 'kg' 
+         ! UNITS WERE CONFUSING -> everything in kgC (see latter)
+         UNIT = 'kgC' ! SOAupdate (hotp 7/29/10)
+
          
          !-------------------
          ! BC ANTHRO source
@@ -550,8 +549,8 @@
          ! OC ANTHRO source
          !------------------------------ 
          CATEGORY     = 'OC-ANTH'
-
-         ! SOAupdate: Use OCPI or POA (hotp, mpayer, 7/27/11)
+         ! SOAupdate (hotp 5/27/09)
+         ! semivolpoa: now use POA or OCPI (hotp 2/17/09)
          IF ( IDTOCPI > 0 ) N = IDTOCPI
          IF ( IDTPOA1 > 0 ) N = IDTPOA1
 
@@ -568,8 +567,8 @@
          !------------------------------
          CATEGORY     = 'OC-BIOB'
 !-----------------------------------------------------------------------
-! Prior to 7/27/11:
-! SOAupdate: Use N from above (hotp, mpayer, 7/27/11)
+! Prior to 8/13/13:
+! SOAupdate: Use N from above (hotp 8/23/09)
 !         N            = IDTOCPI
 !-----------------------------------------------------------------------
          ARRAY(:,:,1) = AD07(:,:,5) 
@@ -585,8 +584,8 @@
          !------------------------------
          CATEGORY     = 'OC-BIOF'
 !-----------------------------------------------------------------------
-! Prior to 7/27/11:
-! SOAupdate: Use N from above (hotp, mpayer, 7/27/11)
+! Prior to 8/13/13:
+! SOAupdate: Use N from above (hotp 8/23/09)
 !         N            = IDTOCPI
 !-----------------------------------------------------------------------
          ARRAY(:,:,1) = AD07(:,:,6) 
@@ -602,8 +601,8 @@
          !------------------------------
          CATEGORY     = 'OC-BIOG'
 !-----------------------------------------------------------------------
-! Prior to 7/27/11:
-! SOAupdate: Use N from above (hotp, mpayer, 7/27/11)
+! Prior to 8/13/13:
+! SOAupdate: Use N from above (hotp 8/23/09)
 !         N            = IDTOCPI
 !-----------------------------------------------------------------------
          ARRAY(:,:,1) = AD07(:,:,7) 
@@ -617,7 +616,7 @@
          !------------------------------ 
          ! H-philic OC from H-phobic OC
          !------------------------------
-         ! SOAupdate: This only exists with OCPI/OCPO (hotp, mpayer, 7/27/11)
+         ! SOAupdate: This only exists with OCPI/OCPO (hotp 8/23/09
          IF ( IDTOCPI > 0 ) THEN
             CATEGORY     = 'PL-OC=$'
             N            = IDTOCPI
@@ -642,100 +641,77 @@
             !------------------------------
             ! NVOC SOURCE diagnostics
             !------------------------------
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            DO N = 8, 12
+!
+!               SELECT CASE ( N )
+!
+!                  ! ALPH
+!                  CASE ( 8 )
+!                     CATEGORY = 'OC-ALPH'
+!                     NN       = IDTALPH
+!
+!                  ! LIMO
+!                  CASE ( 9 )
+!                     CATEGORY = 'OC-LIMO'
+!                     NN       = IDTLIMO
+!
+!                  ! TERP
+!                  CASE ( 10 )
+!                     CATEGORY = 'OC-TERP'
+!                     NN       = IDTLIMO + 1
+!
+!                  ! ALCO
+!                  CASE ( 11 )
+!                     CATEGORY = 'OC-ALCO'
+!                     NN       = IDTLIMO + 2
+!
+!                  ! SESQ
+!                  CASE ( 12 )
+!                     CATEGORY = 'OC-SESQ'
+!                     NN       = IDTLIMO + 3
+!
+!               END SELECT
+!------------------------------------------------------------------------------
+            ! SOAupdate: Only 11 now (hotp 5/20/10) new mtp
+            DO N = 8, 11
 
-            ! SOAupdate: Check to see if using SOA + semivolatile POA or
-            ! traditional SOA simulation (mpayer, 7/27/11)
-            IF ( LSVPOA ) THEN
+               SELECT CASE ( N )
 
-               !---------------------------------
-               ! SOA + semivolatile POA (H. Pye)
-               !---------------------------------
+                  ! MTPA
+                  CASE ( 8 )
+                     CATEGORY = 'OC-MTPA'
+                     NN       = IDTMTPA
 
-               DO N = 8, 11
+                  ! LIMO
+                  CASE ( 9 )
+                     CATEGORY = 'OC-LIMO'
+                     NN       = IDTLIMO
 
-                  SELECT CASE ( N )
+                  ! MTPO
+                  CASE ( 10 )
+                     CATEGORY = 'OC-MTPO'
+                     NN       = IDTMTPO
 
-                     ! MTPA
-                     CASE ( 8 )
-                        CATEGORY = 'OC-MTPA'
-                        NN       = IDTMTPA
+                  ! SESQ
+                  CASE ( 11 )
+                     CATEGORY = 'OC-SESQ'
+                     NN       = IDTLIMO + 3
 
-                     ! LIMO
-                     CASE ( 9 )
-                        CATEGORY = 'OC-LIMO'
-                        NN       = IDTLIMO
+               END SELECT
 
-                     ! MTPO
-                     CASE ( 10 )
-                        CATEGORY = 'OC-MTPO'
-                        NN       = IDTMTPO
-
-                     ! SESQ
-                     CASE ( 11 )
-                        CATEGORY = 'OC-SESQ'
-                        NN       = IDTLIMO + 3
-
-                  END SELECT
-
-                  ARRAY(:,:,1) = AD07(:,:,N)
+               ARRAY(:,:,1) = AD07(:,:,N)
                   
-                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                        IIPAR,     JJPAR,     1,        IFIRST,
-     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                     IIPAR,     JJPAR,     1,        IFIRST,
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
-               ENDDO
+            ENDDO
 
-            ELSE
-
-               !---------------------------------
-               ! Traditional SOA
-               !---------------------------------
-
-               DO N = 8, 12
-
-                  SELECT CASE ( N )
-
-                     ! ALPH
-                     CASE ( 8 )
-                        CATEGORY = 'OC-ALPH'
-                        NN       = IDTALPH
-
-                     ! LIMO
-                     CASE ( 9 )
-                        CATEGORY = 'OC-LIMO'
-                        NN       = IDTLIMO
-
-                     ! TERP
-                     CASE ( 10 )
-                        CATEGORY = 'OC-TERP'
-                        NN       = IDTLIMO + 1
-
-                     ! ALCO
-                     CASE ( 11 )
-                        CATEGORY = 'OC-ALCO'
-                        NN       = IDTLIMO + 2
-
-                     ! SESQ
-                     CASE ( 12 )
-                        CATEGORY = 'OC-SESQ'
-                        NN       = IDTLIMO + 3
-
-                  END SELECT
-
-                  ARRAY(:,:,1) = AD07(:,:,N)
-                  
-                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                        IIPAR,     JJPAR,     1,        IFIRST,
-     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-               ENDDO
-
-            ENDIF ! LSVPOA
-
+         
             !-----------------------------------------------
             ! SOA Production from NVOC oxidation [kg]
             ! 1:ALPH+LIMO+TERP, 2:ALCO, 3:SESQ, 4:ISOP
@@ -743,87 +719,75 @@
             !-----------------------------------------------
             CATEGORY = 'PL-OC=$'
 
-            ! SOAupdate: Check to see if using SOA + semivolatile POA or
-            ! traditional SOA simulation (mpayer, 7/27/11)
-            IF ( LSVPOA ) THEN
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!            ! (hotp 5/25/09) add SO5
+!            !DO N = 1, 4
+!            DO N = 1, 5
+!
+!               ! hotp 7/31/08 units
+!               UNIT = 'kg'
+!
+!               IF ( N == 1 ) NN = IDTSOA1
+!               IF ( N == 2 ) NN = IDTSOA2
+!               IF ( N == 3 ) NN = IDTSOA3
+!               IF ( N == 4 ) NN = IDTSOA4  ! (tmf, bmy, 3/20/07)
+!               IF ( N == 5 ) NN = IDTSOA5
+!
+!               ! Check to make sure the tracer exists (hotp 8/23/09)
+!               IF ( NN > 0 ) THEN
+!                  DO L = 1, LD07
+!                     ARRAY(:,:,L) = AD07_HC(:,:,L,N)
+!                  ENDDO
+!
+!               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+!     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
+!     &                     IIPAR,     JJPAR,     LD07,     IFIRST,
+!     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+!               ENDIF ! NN
+!
+!            ENDDO
+!------------------------------------------------------------------------------
+            ! SOAupdate: hotp 5/24/10 (new mtp)
+            DO N = 1, 6
 
-               !---------------------------------
-               ! SOA + semivolatile POA (H. Pye) 
-               !---------------------------------
+               ! hotp 7/31/08 units
+               UNIT = 'kg' 
 
-               DO N = 1, 6
+               ! SOAupdate: semivolpoa2: units diff for POA (hotp 3/4/09)
+               ! now correspond to JSV (hotp 5/24/10) (new mtp)
+               IF     ( N == 1 ) THEN
+                  NN = IDTTSOA1
+               ELSEIF ( N == 2 ) THEN
+                  NN = IDTISOA1
+               ELSEIF ( N == 3 ) THEN
+                  NN = IDTASOA1
+               ELSEIF ( N == 4 ) THEN
+                  NN = IDTPOA1
+                  UNIT = 'kgC'
+               ELSEIF ( N == 5 ) THEN
+                  NN = IDTOPOA1
+                  UNIT = 'kgC'
+               ELSEIF ( N == 6 ) THEN
+                  NN = IDTOPOG1
+                  UNIT = 'kgC'
+               ENDIF
 
-                  ! hotp 7/31/08 units
-                  UNIT = 'kg' 
-
-                  ! Units diff for POA (hotp 3/4/09)
-                  IF     ( N == 1 ) THEN
-                     NN = IDTTSOA1
-                  ELSEIF ( N == 2 ) THEN
-                     NN = IDTISOA1
-                  ELSEIF ( N == 3 ) THEN
-                     NN = IDTASOA1
-                  ELSEIF ( N == 4 ) THEN
-                     NN = IDTPOA1
-                     UNIT = 'kgC'
-                  ELSEIF ( N == 5 ) THEN
-                     NN = IDTOPOA1
-                     UNIT = 'kgC'
-                  ELSEIF ( N == 6 ) THEN
-                     NN = IDTOPOG1
-                     UNIT = 'kgC'
-                  ENDIF
-
-                  ! Check to make sure the tracer exists (hotp 8/23/09)
-                  IF ( NN > 0 ) THEN
-                     DO L = 1, LD07
-                        ARRAY(:,:,L) = AD07_HC(:,:,L,N)
-                     ENDDO
-
-                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                        IIPAR,     JJPAR,     LD07,     IFIRST,
-     &                        JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
-                  ENDIF ! NN
-
-               ENDDO
-
-            ELSE
-
-               !---------------------------------
-               ! Traditional SOA
-               !---------------------------------
-
-               ! (hotp 5/25/09) add SO5
-               !DO N = 1, 4
-               DO N = 1, 5
-
-                  ! hotp 7/31/08 units
-                  UNIT = 'kg'
-
-                  IF ( N == 1 ) NN = IDTSOA1
-                  IF ( N == 2 ) NN = IDTSOA2
-                  IF ( N == 3 ) NN = IDTSOA3
-                  IF ( N == 4 ) NN = IDTSOA4  ! (tmf, bmy, 3/20/07)
-                  IF ( N == 5 ) NN = IDTSOA5
-
-                  ! Check to make sure the tracer exists (hotp 8/23/09)
-                  IF ( NN > 0 ) THEN
-                     DO L = 1, LD07
-                        ARRAY(:,:,L) = AD07_HC(:,:,L,N)
-                     ENDDO
+               ! Check to make sure the tracer exists (hotp 8/23/09)
+               IF ( NN > 0 ) THEN
+                  DO L = 1, LD07
+                     ARRAY(:,:,L) = AD07_HC(:,:,L,N)
+                  ENDDO
 
                   CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                        HALFPOLAR, CENTER180, CATEGORY, NN,
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                        IIPAR,     JJPAR,     LD07,     IFIRST,
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
-                  ENDIF ! NN
+               ENDIF ! NN
 
-               ENDDO
-
-            ENDIF ! LSVPOA
+            ENDDO
 
             !-----------------------------------------------
             ! SOA Production from GLYX and MGLY [kg]
@@ -3193,22 +3157,26 @@
 !
 !   # : Field  : Description    : Units         : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1)  ISOP   : Isoprene       : atoms C/cm2/s : SCALE3
-!  (2)  ACET   : Acetone        : atoms C/cm2/s : SCALE3
-!  (3)  PRPE   : Propene        : atoms C/cm2/s : SCALE3
-!  (4)  MONOT  : Monoterpenes   : atoms C/cm2/s : SCALE3
-!  (5)  MBO    : Methyl Butenol : atoms C/cm2/s : SCALE3
-!  (6)  C2H4   : Ethene         : atoms C/cm2/s : SCALE3
-!  (7 ) APINE  : Alpha pinene   : atoms C/cm2/s : SCALE3
-!  (8 ) BPINE  : Beta pinene    : atoms C/cm2/s : SCALE3
-!  (9 ) LIMON  : Limonene       : atoms C/cm2/s : SCALE3
-!  (10) SABIN  : Sabinene       : atoms C/cm2/s : SCALE3
-!  (11) MYRCN  : Mycrene        : atoms C/cm2/s : SCALE3
-!  (12) CAREN  : 3-Carene       : atoms C/cm2/s : SCALE3
-!  (13) OCIMN  : Ocimene        : atoms C/cm2/s : SCALE3
-!  (14) CHBr3  : Bromoform      :      kg/m2/s  : SCALESRCE
-!  (15) CH2Br2 : Dibromomethane :      kg/m2/s  : SCALESRCE
-!  (16) Br2    : Molec. Bromine :      kg/m2/s  : SCALESRCE
+!  (1)  ISOP   : Isoprene       : atoms C/cm2/s : SCALESRCE
+!  (2)  ACET   : Acetone        : atoms C/cm2/s : SCALESRCE
+!  (3)  PRPE   : Propene        : atoms C/cm2/s : SCALESRCE
+!  (4)  MONOT  : Monoterpenes   : atoms C/cm2/s : SCALESRCE
+!  (5)  MBO    : Methyl Butenol : atoms C/cm2/s : SCALESRCE
+!  (6)  C2H4   : Ethene         : atoms C/cm2/s : SCALESRCE
+!  (7 ) APINE  : Alpha pinene   : atoms C/cm2/s : SCALESRCE
+!  (8 ) BPINE  : Beta pinene    : atoms C/cm2/s : SCALESRCE
+!  (9 ) LIMON  : Limonene       : atoms C/cm2/s : SCALESRCE
+!  (10) SABIN  : Sabinene       : atoms C/cm2/s : SCALESRCE
+!  (11) MYRCN  : Mycrene        : atoms C/cm2/s : SCALESRCE
+!  (12) CAREN  : 3-Carene       : atoms C/cm2/s : SCALESRCE
+!  (13) OCIMN  : Ocimene        : atoms C/cm2/s : SCALESRCE
+!  (14) FARN   : Farnesene      : atoms C/cm2/s : SCALESRCE
+!  (15) BCAR   : b-caryophyllene: atoms C/cm2/s : SCALESRCE
+!  (16) OSQT   : Other sesquitrp: atoms C/cm2/s : SCALESRCE
+!  (17) OMPT   : Other monoterp : atoms C/cm2/s : SCALESRCE
+!  (18) CHBr3  : Bromoform      :       kg/m2/s : SCALESRCE
+!  (19) CH2Br2 : Dibromomethane :       kg/m2/s : SCALESRCE
+!  (20) Br2    : Molec. Bromine :       kg/m2/s : SCALESRCE
 !
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
@@ -3236,15 +3204,6 @@
             IF ( N == 3 .and. IDTPRPE == 0 ) CYCLE
             IF ( N == 6 .and. IDTC2H4 == 0 ) CYCLE
 
-            ! SOAupdate: No FARN, BCAR, OSQT, OMTP for traditional SOA
-            ! (mpayer, 8/12/11)
-            IF ( .NOT. LSVPOA ) THEN
-               IF ( N == 14 ) CYCLE
-               IF ( N == 15 ) CYCLE
-               IF ( N == 16 ) CYCLE
-               IF ( N == 17 ) CYCLE
-            ENDIF
-            
             ! jpp, 6/7/09
             IF ( N == 18 .and. IDTCHBr3  == 0 ) CYCLE
             IF ( N == 19 .and. IDTCH2Br2 == 0 ) CYCLE

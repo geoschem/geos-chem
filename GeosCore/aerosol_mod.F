@@ -333,15 +333,21 @@
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
       USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
-      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOA5  
-      USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
-      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/13/11)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate: remove old tracers (hotp 7/25/10)
+!      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
+!      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOA5  
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IDTSO4,   IDTSOAG, IDTSOAM
+      ! SOAupdate: update SOA tracers (hotp 7/25/10)
       USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
       USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
+      ! SOAupdate: new mtp replaces SOA1-4 (hotp 5/20/10
       USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2 
       USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
       USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      ! SOAupdate: replace SOA5 with lumped aromatic (hotp 5/12/10)
       USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
 !
@@ -370,7 +376,6 @@
 !  (2 ) Now add contribution from SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
 !  (3 ) Now set OCF=2.1 to be consistent w/ "carbon_mod.f" (tmf, 2/10/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  13 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  13 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
@@ -379,6 +384,8 @@
 !  05 Mar 2013 - R. Yantosca - Remove call to INIT_AEROSOL, this is now done
 !                              in the initialization stage
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -388,11 +395,11 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      REAL*8,  PARAMETER :: OCF     = 2.1d0
+      !REAL*8,  PARAMETER :: OCF     = 2.1d0
+      ! SOAupdate: semivolpoa: reduce OCF to 1.4 for POA (hotp 2/17/09)
+      REAL*8,  PARAMETER :: OCF     = 1.4d0
 
-      ! SOAupdate: OC/OM Ratios for POA & OPOA (hotp, mpayer, 7/13/11)
-      ! (see Pye & Seinfeld, 2010)
-      REAL*8,  PARAMETER :: OCFPOA  = 1.4d0
+      ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
       REAL*8,  PARAMETER :: OCFOPOA = 1.4d0*1.5d0  ! 2.1
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
@@ -415,7 +422,6 @@
       LOGICAL            :: LSOA
       LOGICAL            :: LSSALT
       LOGICAL            :: LSULF
-      LOGICAL            :: LSVPOA
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -439,7 +445,6 @@
       LSOA   = Input_Opt%LSOA
       LSSALT = Input_Opt%LSSALT
       LSULF  = Input_Opt%LSULF
-      LSVPOA = Input_Opt%LSVPOA
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -494,14 +499,14 @@
 
             ! Hydrophobic OC [kg/m3]
             ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
-            !  (hotp, mpayer, 7/13/11)
+            ! POA now 1 and 2 (hotp 10/11/09)
             IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 ) THEN
-               OCPO(I,J,L) = STT(I,J,L,IDTPOA1) * OCFPOA /
+               OCPO(I,J,L) = STT(I,J,L,IDTPOA1) * OCF /
      &                       State_Met%AIRVOL(I,J,L)     +
-     &                       STT(I,J,L,IDTPOA2) * OCFPOA /
+     &                       STT(I,J,L,IDTPOA2) * OCF /
      &                       State_Met%AIRVOL(I,J,L)
             ELSE
-               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF /
+               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCFOPOA /
      &                       State_Met%AIRVOL(I,J,L)
             ENDIF
 
@@ -511,63 +516,50 @@
                ! to multiply by OCF to account for the mass of other 
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!               ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
+!               OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
+!     &                     +   STT(I,J,L,IDTSOA1)
+!     &                     +   STT(I,J,L,IDTSOA2)
+!     &                     +   STT(I,J,L,IDTSOA3)
+!     &                     +   STT(I,J,L,IDTSOA4)
+!     &                     +   STT(I,J,L,IDTSOA5) )
+!     &                     /   State_Met%AIRVOL(I,J,L)
+!------------------------------------------------------------------------------
+               ! SOAupdate: Update traditional SOA (hotp 7/21/10)
+               ! for new mtp and isop (hotp 5/20/10)
+               OCPI(I,J,L) = ( STT(I,J,L,IDTTSOA1)
+     &                      +  STT(I,J,L,IDTTSOA2)
+     &                      +  STT(I,J,L,IDTTSOA3)
+     &                      +  STT(I,J,L,IDTTSOA0)
+     &                      +  STT(I,J,L,IDTISOA1)
+     &                      +  STT(I,J,L,IDTISOA2)
+     &                      +  STT(I,J,L,IDTISOA3) )
+     &                      /  State_Met%AIRVOL(I,J,L) 
 
-               ! SOAupdate: Check to see if using SOA + semivolatile POA or
-               ! traditional SOA simulation (mpayer, 7/14/11)
-               IF ( LSVPOA ) THEN
-
-                  !---------------------------------
-                  ! SOA + semivolatile POA (H. Pye)
-                  !---------------------------------
-
-                  OCPI(I,J,L) = ( STT(I,J,L,IDTTSOA1)
-     &                         +  STT(I,J,L,IDTTSOA2)
-     &                         +  STT(I,J,L,IDTTSOA3)
-     &                         +  STT(I,J,L,IDTTSOA0)
-     &                         +  STT(I,J,L,IDTISOA1)
-     &                         +  STT(I,J,L,IDTISOA2)
-     &                         +  STT(I,J,L,IDTISOA3) )
-     &                         / State_Met%AIRVOL(I,J,L) 
-
-                  IF ( IDTOPOA1 > 0 .AND.IDTOPOA2 > 0 ) THEN
-                     OCPI(I,J,L) = OCPI(I,J,L) 
-     &                           + ( STT(I,J,L,IDTOPOA1) * OCFOPOA
-     &                           / State_Met%AIRVOL(I,J,L) )
-     &                           + ( STT(I,J,L,IDTOPOA2) * OCFOPOA
-     &                           / State_Met%AIRVOL(I,J,L) )
-                  ENDIF
-
-                  IF ( IDTOCPI > 0 ) THEN
-                    OCPI(I,J,L) = OCPI(I,J,L)                                  
-     &                          + ( STT(I,J,L,IDTOCPI) * OCFOPOA
-     &                          / State_Met%AIRVOL(I,J,L) )
-                  ENDIF
-
-                  ! LUMPAROMIVOC (always present)
-                  OCPI(I,J,L) = OCPI(I,J,L) +
-     &                     ( (  STT(I,J,L,IDTASOAN) 
-     &                        + STT(I,J,L,IDTASOA1)
-     &                        + STT(I,J,L,IDTASOA2)
-     &                        + STT(I,J,L,IDTASOA3) )
+               IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 ) THEN  ! hotp 7/28/10
+                  OCPI(I,J,L) = OCPI(I,J,L) 
+     &                        + ( STT(I,J,L,IDTOPOA1) * OCFOPOA
      &                        / State_Met%AIRVOL(I,J,L) )
+     &                        + ( STT(I,J,L,IDTOPOA2) * OCFOPOA
+     &                        / State_Met%AIRVOL(I,J,L) )
+               ENDIF
 
-               ELSE
-         
-                  !---------------------------------
-                  ! Traditional SOA
-                  !---------------------------------
+               IF ( IDTOCPI > 0 ) THEN  ! hotp 7/28/10
+                  OCPI(I,J,L) = OCPI(I,J,L)                                  
+     &                        + ( STT(I,J,L,IDTOCPI) * OCFOPOA
+     &                        / State_Met%AIRVOL(I,J,L) )
+               ENDIF
 
-                  ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
-                  OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
-     &                        +   STT(I,J,L,IDTSOA1)
-     &                        +   STT(I,J,L,IDTSOA2)
-     &                        +   STT(I,J,L,IDTSOA3)
-     &                        +   STT(I,J,L,IDTSOA4)
-     &                        +   STT(I,J,L,IDTSOA5) )
-     &                        /   State_Met%AIRVOL(I,J,L)
+               ! LUMPAROMIVOC (always present) hotp 7/28/10
+               OCPI(I,J,L) = OCPI(I,J,L) +
+     &                  ( (  STT(I,J,L,IDTASOAN) 
+     &                     + STT(I,J,L,IDTASOA1)
+     &                     + STT(I,J,L,IDTASOA2)
+     &                     + STT(I,J,L,IDTASOA3) )
+     &                     / State_Met%AIRVOL(I,J,L) )
 
-               ENDIF  ! LSVPOA
- 
                ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
                IF ( IDTSOAG > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
@@ -580,13 +572,15 @@
      &                         STT(I,J,L,IDTSOAM) * OCFM /
      &                         State_Met%AIRVOL(I,J,L)
                ENDIF
+
             ELSE
 
                ! Hydrophilic primary and SOA OC [kg/m3].   We need
                ! to multiply by OCF to account for the mass of other 
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
-               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF /
+               ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
+               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCFOPOA /
      &                       State_Met%AIRVOL(I,J,L)
                   
             ENDIF ! LSOA

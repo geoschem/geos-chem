@@ -63,13 +63,13 @@
 !  20 Jul 2010 - C. Carouge  - Add LPREINDHG and LGTMM for updated mercury.
 !  24 Jan 2011 - L. Murray   - Remove LOTDREG, LCTH, LMFLUX, LPRECON,
 !                               and LOTDSCALE for lightning
-!  06 Jul 2011 - M. Payer    - Added LSVPOA for SOA + semivol POA (H. Pye)
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !  26 Mar 2012 - R. Yantosca - Add USE_OLSON_2001 switch, which will use the
 !                              newer Olson 2001 land map & drydep inputs
 !  26 Apr 2013 - R. Yantosca - Remove LTOMAS; we now use #if defined( TOMAS )
 !  07 Aug 2013 - M. Sulprizio- Move NAPEMISS and POAEMISSSCALE for SOA + SVPOA
 !                              simulation to Headers/gigc_input_opt_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Added LSVPOA switch for semivolatile POA (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -88,7 +88,7 @@
       LOGICAL :: LSOA            ! Use secondary organic aerosol tracers?
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
       LOGICAL :: LDICARB         ! Use dicarbonyl chemistry mechanism?
-      LOGICAL :: LSVPOA          ! Use SOA + semivolatile POA? (H. Pye)
+      LOGICAL :: LSVPOA          ! Switch for semi-volatile POA (hotp 8/9/09)
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?

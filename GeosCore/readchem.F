@@ -38,13 +38,14 @@
 !  13 Jun 2011 - R. Yantosca - Bug fix: prevent out-of-bounds errors in MAPPL
 !                              array.  Test species flags to make sure they
 !                              are nonzero before using them.
-!  27 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument even when
 !                              called from the traditional driver "main.F"
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
 !                              ".rc" to input.geos (instead of ___.rc)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
 !******************************************************************************
 !
 ! !USES:
@@ -167,7 +168,6 @@
 
       CHARACTER(LEN=255) :: FILENAME
       LOGICAL            :: LPRT
-      LOGICAL            :: LSVPOA
 
       INTEGER             :: IU_CHEMDAT ! GLOBCHEM.DAT LUN
 
@@ -184,7 +184,6 @@
 
       ! Copy logical fields from INPUT_OPT to local variables for use below
       LPRT           = Input_Opt%LPRT
-      LSVPOA         = Input_Opt%LSVPOA
 
       NINAC          = 0
       NACTIVE        = 0 
@@ -529,20 +528,20 @@
       IH2O     = 0
       ICH4     = 0
       ILISOPOH = 0
+      ILISOPNO3= 0 ! SOAupdate hotp 6/11/10
       ! add these as well (dkh, 10/06/06)  
-      ILBRO2H = 0
-      ILBRO2N = 0
-      ILTRO2H = 0
-      ILTRO2N = 0
-      ILXRO2H = 0
-      ILXRO2N = 0
+      ILBRO2H  = 0
+      ILBRO2N  = 0
+      ILTRO2H  = 0
+      ILTRO2N  = 0
+      ILXRO2H  = 0
+      ILXRO2N  = 0
       ! and for the new VSL index holders (jpp, 4/15/10)
       ICH2Br2  = 0
       ICHBr3   = 0
-      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/27/11)
-      ILISOPNO3=0
-      ILNRO2H = 0 
-      ILNRO2N = 0 
+      ! SOAupdate: add NAP (hotp 6/25/09)
+      ILNRO2H  = 0 
+      ILNRO2N  = 0 
 
       ! Locate positions of O2, H2O, CH4, LISOPOH in CSPEC array
       DO I = 1, NTSPECGAS
@@ -556,6 +555,8 @@
                ICH4     = I
             CASE( 'LISOPOH' )
                ILISOPOH = I
+            CASE( 'LISOPNO3' )  ! SOAupdate: hotp 6/11/10
+               ILISOPNO3= I
             ! Add definitions (dkh, 10/06/06)  
             CASE( 'LBRO2H' )
                ILBRO2H = I
@@ -573,13 +574,11 @@
                ICHBr3   = I
             CASE( 'CH2Br2'  ) ! adding selection of CH2Br2
                ICH2Br2  = I
-            ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/27/11)
-            CASE( 'LISOPNO3' )
-               IF ( LSVPOA ) ILISOPNO3 = I
+            ! SOAupdate: add NAP (hotp 6/25/09)
             CASE( 'LNRO2H' )
-               IF ( LSVPOA ) ILNRO2H   = I
+               ILNRO2H   = I
             CASE( 'LNRO2N' )
-               IF ( LSVPOA ) ILNRO2N   = I
+               ILNRO2N   = I
             CASE DEFAULT
                ! Nothing
          END SELECT
@@ -1444,8 +1443,7 @@
                      ENDIF
                   ENDIF
 
-                  ! SOAupdate: Add ILNRO2H/N for SOA + semivol POA
-                  !  (hotp, mpayer, 7/27/11)
+                  ! SOAupdate: add NAP (hotp 6/25/09)
                   IF ( ILNRO2H > 0 ) THEN 
                      IF ( J == MAPPL(ILNRO2H,NCS) ) THEN
                         ITS_NOT_A_ND65_FAMILY(J) = .FALSE.

@@ -121,7 +121,6 @@
 !  25 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  15 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  29 Jul 2011 - R. Yantosca - Bug fix in READ_EMISSIONS_MENU for nested NA
 !  07 Sep 2011 - P. Kasibhatla - Modified to include monthly GFED3
 !  17 Jan 2012 - P. Kasibhatla - Modified to include daily and 3-hourly GFED3
@@ -140,6 +139,8 @@
 !                              calls out of the run stage when using ESMF
 !  23 Apr 2013 - R. Yantosca - For TOMAS, rename READ_MICROPHYSICS_MENU to 
 !                              INIT_TOMAS_MICROPHYSICS
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1558,18 +1559,26 @@
       USE TRACERID_MOD, ONLY : IDTMSA,   IDTNH3,   IDTNH4,  IDTNITs 
       USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTNH4aq 
       USE TRACERID_MOD, ONLY : IDTSO4aq, IDTBCPO,  IDTBCPI, IDTOCPO 
-      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTALPH,  IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
-      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IDTOCPI
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate: remove old (hotp 7/29/10)
+!      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTALPH,  IDTLIMO, IDTALCO 
+!      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
+!      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
+!      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
+!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
-      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
-      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/15/11)
-      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
+      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
+      ! SOAupdate: remove old tracers and add new mtp (hotp 5/24/10)
+      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
       USE TRACERID_MOD, ONLY : IDTBENZ,  IDTTOLU,  IDTXYLE
       USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
       USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
       USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3, IDTASOAN
+      ! semivolpoa : add POA (hotp 8/23/09)
+      ! POA now 1 and 2 (hotp 10/11/09), and NAP (hotp 7/28/10)
       USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
       USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
       USE TRACERID_MOD, ONLY : IDTNAP
@@ -1602,11 +1611,11 @@
 !  (7 ) Add LDICARB switch to cancel SOG condensation onto OC aerosols.
 !      (ccc, tmf, 3/10/09)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  15 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
-!  07 Aug 2013 - M. Sulprizio- Now copy SOA + SVPOA options to Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1645,15 +1654,17 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
       READ( SUBSTRS(1:N), * ) LSOA
 
-      ! SOAupdate: Use SOA + semivolatile POA option? 
+      ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
       READ( SUBSTRS(1:N), * ) LSVPOA
 
-      ! SOAupdate: Naphthanele (IVOC surrogate) emissions [Tg/yr]
+      ! SOAupdate: Add NAP/IVOC surrogate emissions (hotp 8/9/09)
+      ! SOAupdate: set NAP emissions (in Tg/yr)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
       READ( SUBSTRS(1:N), * ) Input_Opt%NAPEMISS
 
-      ! SOAupdate: Fractional POA emission scale, recommend value: 1.27
+      ! SOAupdate: Add scaling for POA emiss (hotp 9/21/09)
+      ! Fractional scaling, recommended value: 1.27
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
       READ( SUBSTRS(1:N), * ) Input_Opt%POAEMISSSCALE
 
@@ -1782,7 +1793,7 @@
       !---------------------------------
       ! Error check CARBON AEROSOLS
       !---------------------------------
-      ! SOAupdate: Add IDTPOA1 (hotp, mpayer, 7/15/11)
+      ! SOAupdate: Add POA (hotp 10/11/09)
       I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI + IDTPOA1
 
       IF ( LCARB ) THEN
@@ -1797,19 +1808,12 @@
          ENDIF
       ENDIF
 
-      !-----------------------------------------------
-      ! SOAupdate: Error check SOA + semivolatile POA
-      ! (hotp, mpayer, 7/15/11)
-      !-----------------------------------------------
       IF ( LSVPOA .and. ( .NOT. LSOA ) ) THEN
-         MSG = 'SOA + Semivolatile POA requires LSOA=T'
+         MSG = 'Semivolatile POA requires LSOA=T'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
-      !---------------------------------
-      ! SOAupdate: Error check POA
-      ! (hotp, mpayer, 7/15/11)
-      !---------------------------------
+      ! SOAupdate: Error check (hotp 8/24/09)
       ! OCPI and OCPO are the non-volatile POA tracers
       ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA tracers
       ! You can't have both!
@@ -1826,14 +1830,14 @@
          ENDIF
       ENDIF
 
+      ! SOAupdate
       ! Options for organic aerosol tracers:
       ! IF LSOA = F: only OCPI and OCPO
       ! IF LSOA = T:
-      !   Traditional SOA  : OCPI OCPO SOA
-      !                      (non-vol POA + original SOA)
-      !   SOA + semivol POA: POA  POG  OPOA  OPOG  SOA  BTX  NAP
-      !                      (semivol POA + updated SOA + aromatics/IVOC )
+      !   OCPI OCPO SOA (non-vol + original traditional)
+      !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
       ! NAP emissions are set in input.geos
+      ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
       I = IDTPOA1  + IDTPOA2  + IDTPOG1  + IDTPOG2  + 
      &    IDTOPOA1 + IDTOPOA2 + IDTOPOG1 + IDTOPOG2
       IF ( LSVPOA ) THEN
@@ -1850,56 +1854,32 @@
       !---------------------------------
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      ! Add SOA5 in the check. (ccc, 2/4/10)
+!      I = IDTALPH + IDTLIMO + IDTALCO + 
+!     &    IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
+!     &    IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4 + 
+!     &    IDTSOAG + IDTSOAM + IDTSOA5
+!------------------------------------------------------------------------------
+      ! SOAupdate: update for new mtp (hotp 5/24/10)
+      I = IDTMTPA  + IDTLIMO  + IDTMTPO  + 
+     &    IDTBENZ  + IDTTOLU  + IDTXYLE  +
+     &    IDTTSOA1 + IDTTSOA2 + IDTTSOA3 +
+     &    IDTISOA1 + IDTISOA2 + IDTISOA3 +
+     &    IDTASOA1 + IDTASOA2 + IDTASOA3 + IDTASOAN +
+     &    IDTSOAG  + IDTSOAM
 
-      ! SOAupdate: Define I based on using SOA + semivolatile POA or
-      ! traditional SOA simulation (hotp, mpayer, 7/15/11)
-      IF ( LSVPOA ) THEN
-
-         !------------------------
-         ! SOA + semivolatile POA
-         !------------------------
-
-         I = IDTMTPA  + IDTLIMO  + IDTMTPO  + 
-     &       IDTBENZ  + IDTTOLU  + IDTXYLE  +
-     &       IDTTSOA1 + IDTTSOA2 + IDTTSOA3 +
-     &       IDTISOA1 + IDTISOA2 + IDTISOA3 +
-     &       IDTASOA1 + IDTASOA2 + IDTASOA3 + IDTASOAN +
-     &       IDTSOAG  + IDTSOAM
-
+      IF ( LSOA ) THEN
          IF ( I == 0 ) THEN
-            MSG = 'LSVPOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
+            MSG = 'LSOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ELSE
          IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSVPOA=F!'
+            MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSOA=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
-      ENDIF
-
-      IF ( .not. LSVPOA) THEN
-
-         !------------------------
-         ! Traditional SOA
-         !------------------------
-
-         I = IDTALPH + IDTLIMO + IDTALCO + 
-     &       IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
-     &       IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4 + 
-     &       IDTSOAG + IDTSOAM + IDTSOA5
-
-         IF ( LSOA ) THEN
-            IF ( I == 0 ) THEN
-               MSG = 'LSOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
-               CALL ERROR_STOP( MSG, LOCATION )
-            ENDIF
-         ELSE
-            IF ( I > 0 ) THEN
-               MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSOA=F!'
-               CALL ERROR_STOP( MSG, LOCATION )
-            ENDIF
-         ENDIF
-
       ENDIF
 
       !---------------------------------
@@ -8537,8 +8517,6 @@
 !  19 Nov 2009 - C. Carouge  - Initialize LMODISLAI and LPECCA
 !  01 Dec 2009 - C. Carouge  - Initialize LNEI05 
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  15 Jul 2011 - M. Payer    - Initialize LSVPOA, NAPEMISS, POAEMISSSCALE
-!                              for SOA + semivolatile POA (H. Pye)
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
 !  17 Jan 2012 - P. Kasibhatla - Modified for GFED3
 !   8 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
@@ -8546,6 +8524,8 @@
 !  26 Mar 2012 - R. Yantosca - Now turn off switch USE_OLSON_2001 by default
 !                              (except for GEOS-5.7.2 met)
 !  27 Mar 2012 - R. Yantosca - Cosmetic changes
+!  13 Aug 2013 - M. Sulprizio- Add modifications for SOA + semivolatile POA
+!                              simulation (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8636,7 +8616,8 @@
       LWARWICK_VSLS  = .FALSE.
       LSSABr2        = .FALSE.
       LFIX_PBL_BRO   = .FALSE.
-      LSVPOA         = .FALSE.  ! (hotp, mpayer, 7/15/11)
+      ! SOAupdate stuff for semivol POA (hotp 10/1/09)
+      LSVPOA         = .FALSE.
       
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.

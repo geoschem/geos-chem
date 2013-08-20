@@ -65,7 +65,7 @@
       REAL*8, PARAMETER   :: D2RAD =  PI_180           ! Degrees to radians
       REAL*8, PARAMETER   :: RAD2D =  1d0 / PI_180     ! Radians to degrees
 
-      ! SOAupdate: Megan group IDs (from MEGAN CDP) (hotp, mpayer, 7/13/11)
+      ! SOAupdate: Megan group IDs (from MEGAN CDP) (hotp 3/1/10)
       ! Used to locate species within EF and AEF_GEN arrays
       INTEGER, PARAMETER  :: IDMGFARN = 10  ! farnesene
       INTEGER, PARAMETER  :: IDMGBCAR = 11  ! beta-caryophyllene
@@ -108,7 +108,7 @@
       REAL*8, ALLOCATABLE :: AEF_ACET(:,:)      ! Acetone
       REAL*8, ALLOCATABLE :: AEF_GEN(:,:,:)     ! Generic (all 20 MEGAN groups)
 
-      ! SOAupdate: Plant functional types (hotp, mpayer, 7/13/11)
+      ! SOAupdate: Plant functional types (hotp 2/26/10)
       REAL*8, ALLOCATABLE :: PFT_BT(:,:)        ! broadleaf trees
       REAL*8, ALLOCATABLE :: PFT_NT(:,:)        ! needleleaf trees
       REAL*8, ALLOCATABLE :: PFT_SH(:,:)        ! shrubs
@@ -125,10 +125,13 @@
       PUBLIC  :: GET_EMACET_MEGAN    
       PUBLIC  :: GET_EMISOP_MEGAN  
       PUBLIC  :: GET_EMMBO_MEGAN    
-      PUBLIC  :: GET_EMMONOG_MEGAN 
-      PUBLIC  :: GET_EMMONOT_MEGAN
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      PUBLIC  :: GET_EMMONOG_MEGAN 
+!------------------------------------------------------------------------------
+!     SOAudpate: renamed, includes SESQ (hotp 3/2/10)
       PUBLIC  :: GET_EMTERP_MEGAN
-      PUBLIC  :: GET_TOT_EMTERP_MEGAN
+      PUBLIC  :: GET_EMMONOT_MEGAN
       PUBLIC  :: GET_AEF   
       PUBLIC  :: GET_AEF_05x0666        
       PUBLIC  :: INIT_MEGAN        
@@ -170,15 +173,15 @@
 !                              NUM_DAYS (instead of 15) days of sfc temp data
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids 
 !  06 Dec 2011 - E. Fischer  - Added Acetone emissions 
-!  13 Jul 2011 - M. Payer    - Modifications for SOA + semivol POA (H. Pye):
-!                               Add sesquiterpenes to MEGAN group;
-!                               Add plant functional types (PFT_xx);
-!                               Add routines GET_EMTERP_MEGAN, GET_TOT_EMTERP, 
-!                               READ_PFT, GET_AEF_GEN
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Modifications for updated SOA sim (H. Pye):
+!                               Add sesquiterpenes to MEGAN group;
+!                               Add plant functional types (PFT_xx);
+!                               Rename GET_EMMONOG_MEGAN to GET_EMTERP_MEGAN;
+!                               Add routines READ_PFT and GET_AEF_GEN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -491,23 +494,226 @@
 
       END FUNCTION GET_EMMBO_MEGAN
 !EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 8/13/13:
+! Renamed to GET_EMTERP_MEGAN for updated SOA simulation (H. Pye)
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: get_emmonog_megan
+!!
+!! !DESCRIPTION: Subroutine GET\_EMMONOG\_MEGAN computes generic ('G') 
+!!  monoterpene emissions for individual monoterpene species in units of 
+!!  [atoms C/box] using the new v2.1 MEGAN inventory emission factor maps.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      FUNCTION GET_EMMONOG_MEGAN( I,     J,      SUNCOS, TS, 
+!     &                            Q_DIR, Q_DIFF, XNUMOL, MONO_SPECIES ) 
+!     &            RESULT( EMMONOT )
+!!
+!! !USES:
+!!
+!      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+!      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+!      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+!      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+!      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
+!      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER,          INTENT(IN) :: I, J          ! Lon & lat indices
+!      REAL*8,           INTENT(IN) :: SUNCOS        ! Cos(solar zenith angle)
+!      REAL*8,           INTENT(IN) :: TS            ! Surface temperature [K]
+!      REAL*8,           INTENT(IN) :: Q_DIR         ! Direct PAR [W/m2]
+!      REAL*8,           INTENT(IN) :: Q_DIFF        ! Diffuse PAR [W/m2]
+!      REAL*8,           INTENT(IN) :: XNUMOL        ! Number of atoms C / kg C 
+!      CHARACTER(LEN=5), INTENT(IN) :: MONO_SPECIES  ! Monoterpene species name
+!!
+!! !RETURN VALUE:
+!!
+!      REAL*8                       :: EMMONOT       ! Emissions [atoms C/box]
+!!
+!! !REMARKS:
+!!  References (see above for full citations):
+!!  ============================================================================
+!!  (1 ) Guenther et al, 1995, 1999, 2004, 2006
+!!  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
+!! 
+!! !REVISION HISTORY: 
+!!  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by 
+!!       dsa,tmf.
+!!  (2 ) Uses gamma factors instead of exchange factors, this includes
+!!        calling of a new temperature algorithm which use a beta factor.
+!!        (mpb,2008)
+!!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !DEFINED PARAMETERS:
+!!
+!      REAL*8, PARAMETER :: BETA = 0.09
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER           :: IJLOOP
+!      REAL*8            :: GAMMA_LAI
+!      REAL*8            :: GAMMA_LEAF_AGE
+!      REAL*8            :: GAMMA_P
+!      REAL*8            :: GAMMA_T
+!      REAL*8            :: GAMMA_SM
+!      REAL*8            :: D_BTW_M
+!      REAL*8            :: LDF 
+!      REAL*8            :: Q_DIR_2, Q_DIFF_2
+!      REAL*8            :: AEF_SPARE
+!
+!      !=================================================================
+!      ! GET_EMMONOT_MEGAN begins here!
+!      !================================================================= 
+!
+!      ! Initialize return value & activity factors
+!      EMMONOT         = 0.d0
+!      GAMMA_T         = 0.d0
+!      GAMMA_LAI       = 0.d0
+!      GAMMA_LEAF_AGE  = 0.d0
+!      GAMMA_P         = 0.d0
+!      GAMMA_SM        = 0.d0
+!      AEF_SPARE       = 0.d0
+!
+!      ! Number of days between MISOLAI and PMISOLAI
+!      D_BTW_M  = DBLE( DAYS_BTW_M )
+!
+!      ! Convert Q_DIR and Q_DIFF from [W/m2] to [umol/m2/s]
+!      Q_DIR_2  = Q_DIR  * WM2_TO_UMOLM2S
+!      Q_DIFF_2 = Q_DIFF * WM2_TO_UMOLM2S
+!
+!      ! Need to determine which monoterpene AEFs 
+!      ! we need to use (mpb,2009)
+!      SELECT CASE( MONO_SPECIES) 
+!      CASE( 'APINE' )
+!         AEF_SPARE = AEF_APINE(I,J) ! hotp add I,J (3/10/10)
+!         LDF       = 0.1
+!      CASE( 'BPINE' )
+!         AEF_SPARE = AEF_BPINE(I,J) ! hotp add I,J (3/10/10)
+!         LDF       = 0.1
+!      CASE( 'LIMON' )
+!         AEF_SPARE = AEF_LIMON(I,J) ! hotp add I,J (3/10/10)
+!         LDF       = 0.05
+!      CASE( 'SABIN' )
+!         AEF_SPARE = AEF_SABIN(I,J) ! hotp add I,J (3/10/10)
+!         LDF       = 0.1
+!      CASE( 'MYRCN' )
+!         AEF_SPARE = AEF_MYRCN(I,J) ! hotp add I,J (3/10/10)
+!         LDF       = 0.05
+!      CASE( 'CAREN' )
+!         AEF_SPARE = AEF_CAREN(I,J) ! hotp add I,J (3/10/10)
+!         LDF       = 0.05
+!      CASE( 'OCIMN' )
+!         AEF_SPARE = AEF_OCIMN(I,J) ! hotp add I,J (3/10/10)
+!         LDF       = 0.8
+!      CASE DEFAULT
+!         CALL ERROR_STOP( 'Invalid MONOTERPENE species', 
+!     &                    'GET_EMMONOG_MEGAN (megan_mod.f)' )
+!      END SELECT   
+!
+!      !-----------------------------------------------------
+!      ! Only interested in terrestrial biosphere (pip)
+!      ! If (local LAI != 0 .AND. baseline emission !=0 ) 
+!      !-----------------------------------------------------
+!      ! AEF_SPARE no longer I,J (hotp 3/10/10)
+!      !IF ( ISOLAI(I,J) * AEF_SPARE(I,J) > 0d0 ) THEN
+!      IF ( ISOLAI(I,J) * AEF_SPARE > 0d0 ) THEN
+!
+!            ! Calculate gamma PAR only if sunlight conditions
+!            IF ( SUNCOS > 0d0 ) THEN
+!
+!               IF ( LPECCA ) THEN 
+!               
+!                  GAMMA_P = GET_GAMMA_P_PECCA(I, J, Q_DIR_2, Q_DIFF_2,
+!     &                         PARDR_15_AVG(I,J),  PARDF_15_AVG(I,J) )
+!               ELSE 
+!  
+!                  GAMMA_P = GET_GAMMA_P( ISOLAI(I,J), SUNCOS,
+!     &                                    Q_DIR_2, Q_DIFF_2 )
+!               END IF 
+!
+!            ELSE             
+! 
+!               ! If night
+!               GAMMA_P = 0.d0  
+!           
+!            END IF
+!
+!            ! Activity factor for leaf area
+!            GAMMA_LAI = GET_GAMMA_LAI( MISOLAI(I,J) )
+!
+!            ! Activity factor for leaf age 
+!            GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI(I,J), 
+!     &                                 PMISOLAI(I,J), D_BTW_M, 
+!     &                                 'MONO', T_15_AVG(I,J) )
+!
+!            ! Activity factor for temperature
+!            GAMMA_T = GET_GAMMA_T_NISOP( TS, BETA )
+!
+!            ! Activity factor for soil moisture
+!            GAMMA_SM = 1.d0
+!
+!         ELSE
+!
+!            ! set activity factors to zero
+!            GAMMA_T         = 0.d0
+!            GAMMA_LAI       = 0.d0
+!            GAMMA_LEAF_AGE  = 0.d0
+!            GAMMA_P         = 0.d0
+!            GAMMA_SM        = 0.d0
+!
+!      END IF
+!    
+!      ! Monoterpene emission is the product of all these; must be 
+!      ! careful to distinguish between canopy & PECCA models.
+!      IF ( LPECCA ) THEN
+!         EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
+!     &                          * GAMMA_SM       * GAMMA_LAI
+!     &                          * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
+!
+!      ELSE 
+!
+!         ! removed I,J from AEF_SPARE (hotp 3/10/10)
+!         EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
+!     &                          * GAMMA_SM       
+!     &                * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
+!
+!      END IF 
+!
+!      ! Convert from [kg/box] to [atoms C/box]
+!      EMMONOT  = EMMONOT * XNUMOL
+!
+!      END FUNCTION GET_EMMONOG_MEGAN
+!!EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_emmonog_megan
+! !IROUTINE: get_emterp_megan
 !
-! !DESCRIPTION: Subroutine GET\_EMMONOG\_MEGAN computes generic ('G') 
-!  monoterpene emissions for individual monoterpene species in units of 
-!  [atoms C/box] using the new v2.1 MEGAN inventory emission factor maps.
+! !DESCRIPTION: Function GET\_EMTERP\_MEGAN computes monoterpene and
+!  sesquiterpene emissions for individual species in units of [atoms C/box]
+!  using the MEGAN v2.1 inventory.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_EMMONOG_MEGAN( I,     J,      SUNCOS, TS, 
-     &                            Q_DIR, Q_DIFF, XNUMOL, MONO_SPECIES ) 
-     &            RESULT( EMMONOT )
+      FUNCTION GET_EMTERP_MEGAN( I,     J,      SUNCOS, TS,
+     &                           Q_DIR, Q_DIFF, XNUMOL, TERP_SPECIES ) 
+     &            RESULT( EMTERP )
 !
 ! !USES:
 !
@@ -515,8 +721,9 @@
       USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
       USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
       USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
-      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
       USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
+
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -526,17 +733,19 @@
       REAL*8,           INTENT(IN) :: Q_DIR         ! Direct PAR [W/m2]
       REAL*8,           INTENT(IN) :: Q_DIFF        ! Diffuse PAR [W/m2]
       REAL*8,           INTENT(IN) :: XNUMOL        ! Number of atoms C / kg C 
-      CHARACTER(LEN=5), INTENT(IN) :: MONO_SPECIES  ! Monoterpene species name
+      CHARACTER(LEN=5), INTENT(IN) :: TERP_SPECIES  ! Terpene species name
 !
 ! !RETURN VALUE:
 !
-      REAL*8                       :: EMMONOT       ! Emissions [atoms C/box]
+      ! SOAupdate: Add terpene emissions
+      REAL*8                       :: EMTERP        ! Emissions [atoms C/box]
 !
 ! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995, 1999, 2004, 2006
 !  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
+!  (3 ) Sakulyanontvittaya et al, 2008
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by 
@@ -546,13 +755,11 @@
 !        (mpb,2008)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Renamed from GET_EMMONOG_MEGAN and added
+!                              sesquiterpenes (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !DEFINED PARAMETERS:
-!
-      REAL*8, PARAMETER :: BETA = 0.09
 !
 ! !LOCAL VARIABLES:
 !
@@ -565,14 +772,16 @@
       REAL*8            :: D_BTW_M
       REAL*8            :: LDF 
       REAL*8            :: Q_DIR_2, Q_DIFF_2
-      REAL*8            :: AEF_SPARE
+      REAL*8            :: AEF_SPARE   ! Local AEF_SPARE
+      REAL*8            :: BETA        ! Value depends on the species
+      CHARACTER(LEN=4)  :: AGE_SPECIES ! Identify age param & pass to GAMMA_AGE
 
       !=================================================================
-      ! GET_EMMONOT_MEGAN begins here!
+      ! GET_EMTERP_MEGAN begins here!
       !================================================================= 
 
       ! Initialize return value & activity factors
-      EMMONOT         = 0.d0
+      EMTERP          = 0.d0
       GAMMA_T         = 0.d0
       GAMMA_LAI       = 0.d0
       GAMMA_LEAF_AGE  = 0.d0
@@ -589,39 +798,77 @@
 
       ! Need to determine which monoterpene AEFs 
       ! we need to use (mpb,2009)
-      SELECT CASE( MONO_SPECIES) 
+      ! SOAudpate: add BETA, AGE_SPECIES (hotp 7/29/10)
+      SELECT CASE( TERP_SPECIES )
       CASE( 'APINE' )
-         AEF_SPARE = AEF_APINE(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.1
+         AEF_SPARE      = AEF_APINE(I,J)
+         LDF            = 0.1
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'BPINE' )
-         AEF_SPARE = AEF_BPINE(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.1
+         AEF_SPARE      = AEF_BPINE(I,J)
+         LDF            = 0.1
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'LIMON' )
-         AEF_SPARE = AEF_LIMON(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.05
+         AEF_SPARE      = AEF_LIMON(I,J)
+         LDF            = 0.05
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'SABIN' )
-         AEF_SPARE = AEF_SABIN(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.1
+         AEF_SPARE      = AEF_SABIN(I,J)
+         LDF            = 0.1
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'MYRCN' )
-         AEF_SPARE = AEF_MYRCN(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.05
+         AEF_SPARE      = AEF_MYRCN(I,J)
+         LDF            = 0.05
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'CAREN' )
-         AEF_SPARE = AEF_CAREN(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.05
+         AEF_SPARE      = AEF_CAREN(I,J)
+         LDF            = 0.05
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'OCIMN' )
-         AEF_SPARE = AEF_OCIMN(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.8
+         AEF_SPARE      = AEF_OCIMN(I,J)
+         LDF            = 0.8
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
+      ! SOAupdate: add Sesquiterpenes (hotp 3/1/10)
+      ! Sesquiterpene LDF based on Sakulyanontvittaya 2008
+      ! beta from MEGANv2.04 (megan CDP)
+      ! make name 5 characters
+      CASE( 'FARNE' )
+         AEF_SPARE      = AEF_GEN(I,J,IDMGFARN)
+         LDF            = 0.5d0
+         BETA           = 0.17d0
+         AGE_SPECIES    = 'SESQ'
+      CASE( 'BCARE' )
+         AEF_SPARE      = AEF_GEN(I,J,IDMGBCAR)
+         LDF            = 0.5d0
+         BETA           = 0.17d0
+         AGE_SPECIES    = 'SESQ'
+      CASE( 'OSQTE' )
+         AEF_SPARE      = AEF_GEN(I,J,IDMGOSQT)
+         LDF            = 0.5d0
+         BETA           = 0.17d0
+         AGE_SPECIES    = 'SESQ'
+      ! Other monoterpenes (hotp 3/5/10)
+      CASE( 'OMTPE' )
+         AEF_SPARE      = AEF_GEN(I,J,IDMGOMTP)
+         LDF            = 0.1d0
+         BETA           = 0.1d0
+         AGE_SPECIES    = 'MONO'
       CASE DEFAULT
-         CALL ERROR_STOP( 'Invalid MONOTERPENE species', 
-     &                    'GET_EMMONOG_MEGAN (megan_mod.f)' )
+           CALL ERROR_STOP( 'Invalid TERPENE species', 
+     &                      'GET_EMTERP_MEGAN (megan_mod.f)' )
       END SELECT   
 
       !-----------------------------------------------------
       ! Only interested in terrestrial biosphere (pip)
       ! If (local LAI != 0 .AND. baseline emission !=0 ) 
       !-----------------------------------------------------
-      ! AEF_SPARE no longer I,J (hotp 3/10/10)
-      !IF ( ISOLAI(I,J) * AEF_SPARE(I,J) > 0d0 ) THEN
       IF ( ISOLAI(I,J) * AEF_SPARE > 0d0 ) THEN
 
             ! Calculate gamma PAR only if sunlight conditions
@@ -648,9 +895,10 @@
             GAMMA_LAI = GET_GAMMA_LAI( MISOLAI(I,J) )
 
             ! Activity factor for leaf age 
+            ! SOAudpate: Treat either mono- or sesq-terpenes (hotp 3/2/10)
             GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI(I,J), 
      &                                 PMISOLAI(I,J), D_BTW_M, 
-     &                                 'MONO', T_15_AVG(I,J) )
+     &                                 AGE_SPECIES, T_15_AVG(I,J) )
 
             ! Activity factor for temperature
             GAMMA_T = GET_GAMMA_T_NISOP( TS, BETA )
@@ -669,26 +917,26 @@
 
       END IF
     
-      ! Monoterpene emission is the product of all these; must be 
+      ! Terpene emission is the product of all these; must be 
       ! careful to distinguish between canopy & PECCA models.
       IF ( LPECCA ) THEN
-         EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-     &                          * GAMMA_SM       * GAMMA_LAI
-     &                          * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
+
+         EMTERP    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
+     &                         * GAMMA_SM       * GAMMA_LAI
+     &                         * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
 
       ELSE 
 
-         ! removed I,J from AEF_SPARE (hotp 3/10/10)
-         EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-     &                          * GAMMA_SM       
+         EMTERP    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
+     &                         * GAMMA_SM       
      &                * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
 
       END IF 
 
       ! Convert from [kg/box] to [atoms C/box]
-      EMMONOT  = EMMONOT * XNUMOL
+      EMTERP  = EMTERP * XNUMOL
 
-      END FUNCTION GET_EMMONOG_MEGAN
+      END FUNCTION GET_EMTERP_MEGAN 
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -955,337 +1203,23 @@
       ! Loop over all species
       DO K = 1, N
 
-         ! Get contribution from each individual species [atoms C/box]
-         MONO = GET_EMMONOG_MEGAN( I ,     J ,       SUNCOS, 
-     &                             TS ,    Q_DIR ,   Q_DIFF, 
-     &                             XNUMOL ,SPECIES(K)        ) 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!         ! Get contribution from each individual species [atoms C/box]
+!         MONO = GET_EMMONOG_MEGAN( I ,     J ,       SUNCOS, 
+!     &                             TS ,    Q_DIR ,   Q_DIFF, 
+!     &                             XNUMOL ,SPECIES(K)        ) 
+!------------------------------------------------------------------------------
+         ! GET_EMMONOG_MEGAN renamed SOAupdate (hotp 3/2/10)
+         MONO = GET_EMTERP_MEGAN( I,      J,         SUNCOS, 
+     &                            TS,     Q_DIR,     Q_DIFF,
+     &                            XNUMOL, SPECIES(K)         ) 
 
          ! Compute overall total
          EMMONOT = EMMONOT + MONO
       ENDDO
 
       END FUNCTION GET_EMMONOT_MEGAN
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_emterp_megan
-!
-! !DESCRIPTION: Function GET\_EMTERP\_MEGAN computes terpene (monoterpene +
-!  sesquiterpene) emissions for individual terpene species in units of 
-!  [atoms C/box] using the MEGAN v2.1 inventory.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_EMTERP_MEGAN( I,     J,      SUNCOS, TS,
-     &                           Q_DIR, Q_DIFF, XNUMOL, TERP_SPECIES ) 
-     &            RESULT( EMTERP )
-!
-! !USES:
-!
-      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
-      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
-      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
-      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
-      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
-
-      USE CMN_SIZE_MOD      ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,          INTENT(IN) :: I, J          ! Lon & lat indices
-      REAL*8,           INTENT(IN) :: SUNCOS        ! Cos(solar zenith angle)
-      REAL*8,           INTENT(IN) :: TS            ! Surface temperature [K]
-      REAL*8,           INTENT(IN) :: Q_DIR         ! Direct PAR [W/m2]
-      REAL*8,           INTENT(IN) :: Q_DIFF        ! Diffuse PAR [W/m2]
-      REAL*8,           INTENT(IN) :: XNUMOL        ! Number of atoms C / kg C
-      CHARACTER(LEN=5), INTENT(IN) :: TERP_SPECIES  ! Terpene species name
-!
-! !RETURN VALUE:
-!
-      ! Function return value
-      ! SOAupdate: Add terpene emissions
-      REAL*8                       :: EMTERP        ! Emissions [atoms C/box]
-!
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!                                                                             .
-!  References (see above for full citations):
-!  ============================================================================
-!  (1 ) Guenther et al, 1995, 1999, 2004, 2006
-!  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
-!  (3 ) Sakulyanontvittaya et al, 2008
-! 
-! !REVISION HISTORY: 
-!  13 Jul 2011 - M. Payer    - Initial code based on GET_EMMONOG_MEGAN and
-!                              modifications for SOA + semivol POA (H. Pye)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER           :: IJLOOP
-      REAL*8            :: GAMMA_LAI
-      REAL*8            :: GAMMA_LEAF_AGE
-      REAL*8            :: GAMMA_P
-      REAL*8            :: GAMMA_T
-      REAL*8            :: GAMMA_SM
-      REAL*8            :: D_BTW_M
-      REAL*8            :: LDF 
-      REAL*8            :: Q_DIR_2, Q_DIFF_2
-      REAL*8            :: AEF_SPARE   ! Local AEF_SPARE
-      REAL*8            :: BETA        ! Value depends on the species
-      CHARACTER(LEN=4)  :: AGE_SPECIES ! Identify age param & pass to GAMMA_AGE
-
-      !=================================================================
-      ! GET_EMTERP_MEGAN begins here!
-      !================================================================= 
-
-      ! Initialize return value & activity factors
-      EMTERP          = 0.d0
-      GAMMA_T         = 0.d0
-      GAMMA_LAI       = 0.d0
-      GAMMA_LEAF_AGE  = 0.d0
-      GAMMA_P         = 0.d0
-      GAMMA_SM        = 0.d0
-      AEF_SPARE       = 0.d0
-
-      ! Number of days between MISOLAI and PMISOLAI
-      D_BTW_M  = DBLE( DAYS_BTW_M )
-
-      ! Convert Q_DIR and Q_DIFF from [W/m2] to [umol/m2/s]
-      Q_DIR_2  = Q_DIR  * WM2_TO_UMOLM2S
-      Q_DIFF_2 = Q_DIFF * WM2_TO_UMOLM2S
-
-      ! Need to determine which monoterpene AEFs
-      ! we need to use (mpb,2009)
-      SELECT CASE( TERP_SPECIES )
-      CASE( 'APINE' )
-         AEF_SPARE      = AEF_APINE(I,J)
-         LDF            = 0.1
-         BETA           = 0.09
-         AGE_SPECIES    = 'MONO'
-      CASE( 'BPINE' )
-         AEF_SPARE      = AEF_BPINE(I,J)
-         LDF            = 0.1
-         BETA           = 0.09
-         AGE_SPECIES    = 'MONO'
-      CASE( 'LIMON' )
-         AEF_SPARE      = AEF_LIMON(I,J)
-         LDF            = 0.05
-         BETA           = 0.09
-         AGE_SPECIES    = 'MONO'
-      CASE( 'SABIN' )
-         AEF_SPARE      = AEF_SABIN(I,J)
-         LDF            = 0.1
-         BETA           = 0.09
-         AGE_SPECIES    = 'MONO'
-      CASE( 'MYRCN' )
-         AEF_SPARE      = AEF_MYRCN(I,J)
-         LDF            = 0.05
-         BETA           = 0.09
-         AGE_SPECIES    = 'MONO'
-      CASE( 'CAREN' )
-         AEF_SPARE      = AEF_CAREN(I,J)
-         LDF            = 0.05
-         BETA           = 0.09
-         AGE_SPECIES    = 'MONO'
-      CASE( 'OCIMN' )
-         AEF_SPARE      = AEF_OCIMN(I,J)
-         LDF            = 0.8
-         BETA           = 0.09
-         AGE_SPECIES    = 'MONO'
-      ! Sesquiterpene LDF based on Sakulyanontvittaya et al, 2008
-      ! BETA from MEGANv2.04 (megan CDP)
-      CASE( 'FARNE' )
-         AEF_SPARE      = AEF_GEN(I,J,IDMGFARN)
-         LDF            = 0.5d0
-         BETA           = 0.17d0
-         AGE_SPECIES    = 'SESQ'
-      CASE( 'BCARE' )
-         AEF_SPARE      = AEF_GEN(I,J,IDMGBCAR)
-         LDF            = 0.5d0
-         BETA           = 0.17d0
-         AGE_SPECIES    = 'SESQ'
-      CASE( 'OSQTE' )
-         AEF_SPARE      = AEF_GEN(I,J,IDMGOSQT)
-         LDF            = 0.5d0
-         BETA           = 0.17d0
-         AGE_SPECIES    = 'SESQ'
-      CASE( 'OMTPE' )
-         AEF_SPARE      = AEF_GEN(I,J,IDMGOMTP)
-         LDF            = 0.1d0
-         BETA           = 0.1d0
-         AGE_SPECIES    = 'MONO'
-      CASE DEFAULT
-           CALL ERROR_STOP( 'Invalid TERPENE species', 
-     &                      'GET_EMTERP_MEGAN (megan_mod.f)' )
-      END SELECT   
-
-      !-----------------------------------------------------
-      ! Only interested in terrestrial biosphere (pip)
-      ! If (local LAI != 0 .AND. baseline emission !=0 ) 
-      !-----------------------------------------------------
-      IF ( ISOLAI(I,J) * AEF_SPARE > 0d0 ) THEN
-
-            ! Calculate gamma PAR only if sunlight conditions
-            IF ( SUNCOS > 0d0 ) THEN
-
-               IF ( LPECCA ) THEN 
-               
-                  GAMMA_P = GET_GAMMA_P_PECCA(I, J, Q_DIR_2, Q_DIFF_2,
-     &                         PARDR_15_AVG(I,J),  PARDF_15_AVG(I,J) )
-               ELSE 
-  
-                  GAMMA_P = GET_GAMMA_P( ISOLAI(I,J), SUNCOS,
-     &                                    Q_DIR_2, Q_DIFF_2 )
-               END IF 
-
-            ELSE             
- 
-               ! If night
-               GAMMA_P = 0.d0  
-           
-            END IF
-
-            ! Activity factor for leaf area
-            GAMMA_LAI = GET_GAMMA_LAI( MISOLAI(I,J) )
-
-            ! Activity factor for leaf age 
-            ! Treat either monoterpenes or sesquiterpenes by using
-            ! AGE_SPECIES (hotp 3/2/10)
-            GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI(I,J), 
-     &                                 PMISOLAI(I,J), D_BTW_M, 
-     &                                 AGE_SPECIES, T_15_AVG(I,J) )
-
-            ! Activity factor for temperature
-            GAMMA_T = GET_GAMMA_T_NISOP( TS, BETA )
-
-            ! Activity factor for soil moisture
-            GAMMA_SM = 1.d0
-
-         ELSE
-
-            ! set activity factors to zero
-            GAMMA_T         = 0.d0
-            GAMMA_LAI       = 0.d0
-            GAMMA_LEAF_AGE  = 0.d0
-            GAMMA_P         = 0.d0
-            GAMMA_SM        = 0.d0
-
-      END IF
-    
-      ! Terpene emission is the product of all these; must be 
-      ! careful to distinguish between canopy & PECCA models.
-      IF ( LPECCA ) THEN
-
-         EMTERP    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-     &                               * GAMMA_SM       * GAMMA_LAI
-     &                       * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
-
-      ELSE 
-
-         EMTERP    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-     &                               * GAMMA_SM       
-     &                * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
-
-      END IF 
-
-      ! Convert from [kg/box] to [atoms C/box]
-      EMTERP  = EMTERP * XNUMOL
-
-      ! return to calling program
-      END FUNCTION GET_EMTERP_MEGAN 
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_tot_emterp_megan
-!
-! !DESCRIPTION: Function GET\_TOT\_EMTERP\_MEGAN computes the total 
-!  terpene (monoterpene + sesquiterpene) emissions in units of [atoms C/box]
-!  using the MEGAN v2.1 inventory.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_TOT_EMTERP_MEGAN( I,  J,     SUNCOS, 
-     &                            TS, Q_DIR, Q_DIFF, XNUMOL ) 
-     &            RESULT( TOT_EMTERP )
-!
-! !USES:
-!
-      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
-      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
-      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
-      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
-
-      USE CMN_SIZE_MOD     ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I, J      ! Lon & lat indices
-      REAL*8,  INTENT(IN) :: SUNCOS    ! Cos( solar zenith angle ) 
-      REAL*8,  INTENT(IN) :: TS        ! Local surface air temperature [K]
-      REAL*8,  INTENT(IN) :: Q_DIR     ! Direct PAR above canopy [W/m2]
-      REAL*8,  INTENT(IN) :: Q_DIFF    ! Diffuse PAR above canopy [W/m2]
-      REAL*8,  INTENT(IN) :: XNUMOL    ! Number of atoms C / kg C 
-!
-! !RETURN VALUE:
-!
-      REAL*8              :: TOT_EMTERP ! Total terpene emissions [atoms C/box]
-!
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!                                                                             .
-!  References (see above for full citations):
-!  ============================================================================
-!  (1 ) Guenther et al, 1995, 1999, 2000, 2006
-!  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
-! 
-! !REVISION HISTORY: 
-!  13 Jul 2011 - M. Payer    - Initial code based on GET_EMMONOT_MEGAN and
-!                              modifications for SOA + semivol POA (H. Pye) 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8                        :: TERP
-      INTEGER                       :: K 
-      INTEGER, PARAMETER            :: N = 11
-      CHARACTER(LEN=5),DIMENSION(11) :: SPECIES
-      SPECIES = ( / 'APINE' , 'BPINE' , 'LIMON' , 'SABIN' , 'MYRCN' ,
-     &              'CAREN' , 'OCIMN' , 'FARNE' , 'BCARE' , 'OSQTE' , 
-     &              'OMTPE' / )
-
-      !=================================================================
-      ! GET_TOT_EMTERP_MEGAN begins here!
-      !================================================================= 
-
-      ! Initialize
-      TOT_EMTERP = 0.d0
-
-      DO K = 1 , N
-         TERP = GET_EMTERP_MEGAN( I , J , SUNCOS, TS , Q_DIR ,
-     &                             Q_DIFF , XNUMOL , SPECIES(K) ) 
-
-         TOT_EMTERP = TOT_EMTERP + TERP
-      ENDDO
-
-      ! Return to calling program
-      END FUNCTION GET_TOT_EMTERP_MEGAN
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2021,7 +1955,7 @@
 !       all foilage fractions if ( CMLAI = PMLAI ). Also removed TG variable 
 !       as not now needed. (mpb,2000)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  13 Jul 2011 - M. Payer    - Add sesquiterpenes for SOA + semivol POA (H.Pye)
+!  13 Aug 2013 - M. Sulprizio- Updated for sesquiterpenes (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2053,7 +1987,8 @@
       INTEGER            :: AINDX
  
       ! Use species specific relative emission activity factors (mpb,2008)
-      ! SOAupdate: Increase N_CAT from 4 to 5 for sesq (hotp, mpayer, 7/13/11)
+      !INTEGER, PARAMETER :: N_CAT = 4
+      ! SOAudpate: add sesq (hotp 3/2/10)
       INTEGER, PARAMETER :: N_CAT = 5
       REAL*8             :: ANEW(N_CAT)
       REAL*8             :: AGRO(N_CAT)
@@ -2073,20 +2008,20 @@
       ! Current set-up (v7-04-11) - used for other VOCs (OVOC)
       DATA    ANEW(  4),  AGRO(  4),  AMAT(  4),  ASEN(  4)
      &     /  0.01d0   ,  0.5d0    ,  1.00d0   ,  0.33d0     /
-      ! SOAupdate: Sesquiterpenes - from MEGANv2.04/src/EMPROC/INCLDIR
-      ! (hotp, mpayer, 7/13/11)
+      ! SOAupdate: Sesquiterpenes hotp 3/2/10
+      ! from MEGANv2.04/src/EMPROC/INCLDIR
       DATA    ANEW(  5),  AGRO(  5),  AMAT(  5),  ASEN(  5)
      &     /  0.4d0   ,  0.6d0    ,  1.075d0   ,  1.0d0     /
 
       ! Normalization factors
-      ! SOAupdate: Add NORM_V(5) = 1/[0.1*0.6 + 0.1*1 + 0.8*1.075]
-      !  (hotp, mpayer, 7/13/11)
+      ! SOAupdate: Sesq normalization factor added (hotp 3/16/2010)
+      ! NORM_V(5) = 1/( 0.1*0.6 + 0.1*1 + 0.8*1.075 )
       DATA   NORM_V(1) , NORM_V(2) , NORM_V(3) , NORM_V(4), NORM_V(5) 
      &     /                 1.0d0 , ! Constant
      &       0.96153846153846145d0 , ! Monoterpenes
      &       0.94339622641509424d0 , ! Isoprene & MBO
      &         1.132502831257078d0 , ! Other VOCs
-     &            0.980392156863d0 / ! Sesquiterpenes
+     &            0.980392156863d0 / ! Sesquiterpenes (hotp 3/2/10,3/16/10)
 
       !=================================================================
       ! GET_GAMMA_LEAF_AGE begins here!
@@ -2154,7 +2089,7 @@
          AINDX = 3
       CASE ('OVOC')
          AINDX = 4
-      ! SOAupdate: Add sesquiterpenes (hotp, mpayer, 7/13/11)
+      ! SOAupdate: Sesquiterpenes (hotp 3/2/10)
       CASE ('SESQ')
          AINDX = 5
       CASE DEFAULT
@@ -3263,14 +3198,17 @@
 !
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  References:
+!  ============================================================================
+!  (1 ) MEGAN PFT data originally from:
+!       http://cdp.ucar.edu (search for MEGAN)
+!       MEGAN_V2.0/Input/NETCDF_30min/PFT/PFT21.tar
+!       PFT files dated 3 Feb 2009, downloaded 26 February 2010 by hotp
 !                                                                             .
 !  Notes:
 !  ============================================================================
@@ -3301,14 +3239,11 @@
 !       files using make_pft.pro based on Dylan Millet's 
 !       make_aef_ald2.pro (hotp 2/25/10)
 !  (3 ) PFTs from file are in units of m2/m2 (unitless) (hotp 2/27/10)
-!  (4 ) MEGAN PFT data originally from:
-!       http://cdp.ucar.edu (search for MEGAN)
-!       MEGAN_V2.0/Input/NETCDF_30min/PFT/PFT21.tar
-!       PFT files dated 3 Feb 2009, downloaded 26 February 2010 by hotp
 !
 ! !REVISION HISTORY: 
 !  25 Feb 2010 - H.O.T. Pye  - Wrote original code
 !  13 Jul 2011 - M. Payer    - Added ProTeX headers
+!  13 Aug 2013 - M. Sulprizio- Now regrid using MAP_A2A algorithm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3316,11 +3251,18 @@
 ! !LOCAL VARIABLES:
 !
       REAL*4                  :: ARRAY(I1x1,J1x1,1)
+      REAL*8                  :: INGRID(I1x1,J1x1)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
 
       !=================================================================
       ! READ_PFT begins here!
       !=================================================================
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       !------------------------------------------------
       ! Fraction of grid box covered by Broadleaf Trees
@@ -3339,7 +3281,11 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'm2/m2', ARRAY, PFT_BT ) 
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      PFT_BT = OUTGRID
 
       !------------------------------------------------
       ! Fraction of grid box covered by Needleleaf Trees
@@ -3357,7 +3303,11 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'm2/m2', ARRAY, PFT_NT ) 
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      PFT_NT = OUTGRID
 
       !------------------------------------------------
       ! Fraction of grid box covered by Shrubs
@@ -3375,7 +3325,11 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'm2/m2', ARRAY, PFT_SH ) 
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      PFT_SH = OUTGRID
 
       !------------------------------------------------
       ! Fraction of grid box covered by Grasses
@@ -3393,7 +3347,11 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'm2/m2', ARRAY, PFT_GR ) 
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      PFT_GR = OUTGRID
 
       !------------------------------------------------
       ! Fraction of grid box covered by Crops
@@ -3411,8 +3369,11 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'm2/m2', ARRAY, PFT_CR ) 
-
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      PFT_CR = OUTGRID
 
       ! Return to calling program
       END SUBROUTINE READ_PFT 
@@ -3443,17 +3404,16 @@
       USE EF_MGN20_MOD      ! EF_MGN20.EXT from MEGAN CDP, EFs
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!                                                                             .
-!  Notes:
+!  References:
 !  ============================================================================
 !  (1 ) MEGAN CDP: MEGAN EFs originally from:
 !       http://cdp.ucar.edu (search for MEGAN)
 !       MEGAN_v2.04/src/MECHCONV/INCDIR/EF_MGN20.EXT
 !       Files dated: 23 Aug 2007
-!  (2 ) EFs are from EF_MGN20.EXT from the MEGAN CDP
+!
+!  Notes:
+!  ============================================================================
+!  (1 ) EFs are from EF_MGN20.EXT from the MEGAN CDP
 !
 ! !REVISION HISTORY: 
 !  25 Feb 2010 - H.O.T. Pye  - Wrote original code
@@ -3600,7 +3560,6 @@
 !                              been hardwired to 15 days previously)
 !  07 Feb 2011 - R. Yantosca - Fix typos: make sure to zero out the proper 
 !                              PARDF_* and PARDR_* arrays after allocation
-!  15 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids
 !  08 Feb 2012 - R. Yantosca - Now read surface temperature for GEOS-5.7.x
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
@@ -3608,6 +3567,8 @@
 !                              initialize the LAI arrays from main.F
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  11 Apr 2013 - R. Yantosca - Now pass directory info with Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add modifications for sesquiterpenes and PFTs 
+!                              (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3665,7 +3626,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_ACET' )
       AEF_ACET = 0d0
 
-
       ! New monoterpene species (mpb,2008)
       ALLOCATE( AEF_APINE( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_APINE' )
@@ -3695,6 +3655,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_OCIMN' )
       AEF_OCIMN = 0d0
 
+      ! SOAupdate: For all 20 MEGAN groups (hotp 2/27/10)
+      ALLOCATE( AEF_GEN( IIPAR, JJPAR, 20 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_GEN' )
+      AEF_GEN = 0d0
 
       ! Allocate arrays for light (mpb,2009)
 
@@ -3732,39 +3696,29 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_DAILY' )
       PARDF_DAILY = 0d0
 
-      ! SOAupdate: Only allocate PFT and AEG_GEN if using SOA + semivol POA
-      ! (hotp, mpayer, 7/13/11)
-      IF ( Input_Opt%LSVPOA ) THEN
+      ! SOAupdate: Array for PFT coverage (hotp 2/27/10)
+      ALLOCATE( PFT_BT( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_BT' )
+      PFT_BT = 0d0
 
-         ALLOCATE( PFT_BT( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_BT' )
-         PFT_BT = 0d0
+      ALLOCATE( PFT_NT( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_NT' )
+      PFT_NT = 0d0
 
-         ALLOCATE( PFT_NT( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_NT' )
-         PFT_NT = 0d0
+      ALLOCATE( PFT_SH( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_SH' )
+      PFT_SH = 0d0
 
-         ALLOCATE( PFT_SH( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_SH' )
-         PFT_SH = 0d0
+      ALLOCATE( PFT_GR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_GR' )
+      PFT_GR = 0d0
 
-         ALLOCATE( PFT_GR( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_GR' )
-         PFT_GR = 0d0
+      ALLOCATE( PFT_CR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_CR' )
+      PFT_CR = 0d0
 
-         ALLOCATE( PFT_CR( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_CR' )
-         PFT_CR = 0d0
-
-         ALLOCATE( AEF_GEN( IIPAR, JJPAR, 20 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_GEN' )
-         AEF_GEN = 0d0
-
-      ENDIF
-
-      ! SOAupdate: Read fractional coverage of PFTs from file
-      ! (hotp, mpayer, 7/13/11)
-      IF ( Input_Opt%LSVPOA ) CALL READ_PFT
+      ! SOAupdate: Read fractional coverage of PFTs from file (hotp 2/27/10)
+      CALL READ_PFT
 
 !------------------------------------------------------------------------------
 ! Prior to 11/22/11:
@@ -3797,9 +3751,9 @@
       ! For global and nested simulations (lzh, bmy, 11/22/11)
       CALL GET_AEF
 
-      ! SOAupdate: Get annual emission factors for MEGAN inventory for
-      ! species without geospatial information (hotp, mpayer, 7/13/11)
-      IF ( Input_Opt%LSVPOA ) CALL GET_AEF_GEN
+      ! SOAupdate: Get annual emission factors for MEGAN inventory for species
+      ! without geospatial information (hotp 3/1/10)
+      CALL GET_AEF_GEN
 
       !=================================================================
       ! Read A3 fields for the 15 days before the start of the run
@@ -3975,7 +3929,8 @@
 ! 
 ! !REVISION HISTORY: 
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  13 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for sesquiterpenes and PFTs
+!                              (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4007,7 +3962,9 @@
       IF ( ALLOCATED( AEF_MYRCN    ) ) DEALLOCATE( AEF_MYRCN    )
       IF ( ALLOCATED( AEF_CAREN    ) ) DEALLOCATE( AEF_CAREN    )
       IF ( ALLOCATED( AEF_OCIMN    ) ) DEALLOCATE( AEF_OCIMN    )
+      ! SOAupdate: add AEF_GEN (hotp 2/27/10)
       IF ( ALLOCATED( AEF_GEN      ) ) DEALLOCATE( AEF_GEN      )
+      ! PFT coverage arrays (hotp 2/27/10)
       IF ( ALLOCATED( PFT_BT       ) ) DEALLOCATE( PFT_BT       )
       IF ( ALLOCATED( PFT_NT       ) ) DEALLOCATE( PFT_NT       )
       IF ( ALLOCATED( PFT_SH       ) ) DEALLOCATE( PFT_SH       )

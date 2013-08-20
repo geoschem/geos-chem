@@ -118,7 +118,6 @@
       LOGICAL                      :: LBRAVO
       LOGICAL                      :: LCAC
       LOGICAL                      :: LFUTURE
-      LOGICAL                      :: LSVPOA
 !
 ! !DEFINED PARAMETERS:
 !
@@ -405,6 +404,7 @@
       USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD,       ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
       USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
+      ! added POA (jje 8/19/10)
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI, IDTPOA1
 #if defined( DEVEL )
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
@@ -429,8 +429,6 @@
 !                              in updated files (by Aaron van Donkelaar) to
 !                              fix a problem in the VOC emissions.
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
-!  01 Aug 2011 - M. Payer    - Re-define SPECIES_ID for SOA + semivol POA,
-!                               which renames OCPI to POA1
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
@@ -443,6 +441,7 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time).
+!  13 Aug 2013 - M. Sulprizio- Re-define SPECIES_ID for semivolatile POA (H.Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -484,7 +483,6 @@
       LBRAVO    = Input_Opt%LBRAVO
       LCAC      = Input_Opt%LCAC
       LFUTURE   = Input_Opt%LFUTURE
-      LSVPOA    = Input_Opt%LSVPOA
       N_TRACERS = Input_Opt%N_TRACERS
 
       ! First-time initialization
@@ -509,28 +507,19 @@
 #endif
 
       ! List of ID of available species
-      ! SOAupdate: Check to see if using SOA + semivolatile POA or standard
-      ! chemistry simulation (mpayer, 8/1/11)
-      IF ( LSVPOA ) THEN
-
-         !------------------------
-         ! SOA + semivolatile POA
-         !------------------------
-         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4,  
-     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
-     &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
-     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
-
-      ELSE
-
-         !------------------------
-         ! Standard chemistry
-         !------------------------
+      ! For non-volatile POA
+      IF ( IDTOCPI > 0 ) THEN
          SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, 
      &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
      &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
      &                   IDTCH2O, IDTPRPE, IDTMEK            /)
-
+      ENDIF
+      ! For semi-volatile POA (jje 8/19/10)
+      IF ( IDTPOA1 > 0 ) THEN
+         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4,  
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
       ENDIF
 
       ! ID #'s for that are not tied to IDTxxxx flags
@@ -834,7 +823,7 @@
             DO L = 1, 5
 
                !-----------------
-               ! OC
+               ! OC or POA1
                !-----------------
 
                ! Point to array slices
@@ -1365,6 +1354,7 @@
       USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD,       ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
       USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
+      ! added POA (jje 8/19/10)
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI, IDTPOA1
 #if defined( DEVEL )
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
@@ -1391,11 +1381,10 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (leave for future use)
 !  27 Jul 2011 - R. Yantosca - Fixed typo: now *really* point to the NEI2005
 !                              data directory NEI2005_101007/
-!  01 Aug 2011 - M. Payer    - Re-define SPECIES_ID for SOA + semivol POA,
-!                              which renames OCPI to POA1
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x like MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  13 Aug 2013 - M. Sulprizio- Re-define SPECIES_ID for semivolatile POA (H.Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1458,28 +1447,20 @@
 #endif
 
       ! List of ID of available species
-      ! SOAupdate: Check to see if using SOA + semivolatile POA or standard
-      ! chemistry simulation (mpayer, 8/1/11)
-      IF ( LSVPOA ) THEN
-
-         !------------------------
-         ! SOA + semivolatile POA
-         !------------------------
-         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4,  
-     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
-     &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
-     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
-
-      ELSE
-
-         !------------------------
-         ! Standard chemistry
-         !------------------------
+      ! For non-volatile POA
+      IF ( IDTOCPI > 0 ) THEN
          SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, 
      &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
      &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
      &                   IDTCH2O, IDTPRPE, IDTMEK            /)
 
+      ENDIF
+      ! For semi-volatile POA (jje 8/19/10)
+      IF ( IDTPOA1 > 0 ) THEN
+         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4,  
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
       ENDIF
 
       ! ID #'s for that are not tied to IDTxxxx flags
