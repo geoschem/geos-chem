@@ -14,7 +14,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -109,6 +109,7 @@
 #  30 Oct 2012 - R. Yantosca - Remove reference to rdsoil.F
 #  27 Nov 2012 - R. Yantosca - Remove reference to getifsun.F
 #  30 May 2013 - R. Yantosca - Remove reference to GEOS-3 TPCORE routines 
+#  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -162,19 +163,19 @@ endif
 	@$(MAKE) exe
 
 tomas:
-	@$(MAKE) TOMAS=yes lib                          #  and the executable
+	@$(MAKE) TOMAS=yes lib                     # TOMAS, 30 bins (default)
 	@$(MAKE) TOMAS=yes tomexe
 
 tomas40:
-	@$(MAKE) TOMAS40=yes lib              #  and the executable
+	@$(MAKE) TOMAS40=yes lib                   # TOMAS, 40 bins
 	@$(MAKE) TOMAS40=yes tomexe
 
 tomas12:
-	@$(MAKE) TOMAS12=yes lib              #  and the executable
+	@$(MAKE) TOMAS12=yes lib                   # TOMAS, 12 bins
 	@$(MAKE) TOMAS12=yes tomexe
 
 tomas15:
-	@$(MAKE) TOMAS15=yes lib              #  and the executable
+	@$(MAKE) TOMAS15=yes lib                   # TOMAS, 15 bins
 	@$(MAKE) TOMAS15=yes tomexe
 
 lib:                                               # Build all G-C libraries
@@ -194,11 +195,11 @@ libkpp:                                            # Build code in KPP/
 	@$(MAKE) -C $(KPP)			  
 
 libnc:                                             # Build code in NcdfUtil/
-	@$(MAKE) -C $(NCDF) lib
+	@$(MAKE) -C $(NCDF) libnc
 
 ncdfcheck:                                         # Check netCDF library
 	@$(MAKE) libnc
-	@$(MAKE) -C $(NCDF) check
+	@$(MAKE) -C $(NCDF) ncdfcheck
 
 libutil:                                           # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)			  
@@ -233,15 +234,14 @@ realclean:                                         # Remove files everywhere
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
-	@@echo $(FFLAGS)
 doc:                                               # Build documentation
-	@$(MAKE) -C $(DOC) all
+	@$(MAKE) -C $(DOC) doc
 
 docclean:                                          # Remove documentation
 	@$(MAKE) -C $(DOC) clean
 
 help:                                              # Show help screen
-	@$(MAKE) -C $(HELP)
+	@$(MAKE) -C $(HELP) help
 
 debug:
 	@@echo "targets: $(MAKECMDGOALS)"

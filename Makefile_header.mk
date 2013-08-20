@@ -15,7 +15,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -135,6 +135,12 @@
 # Set default shell to bash, for use with the Makefile conditionals
 SHELL     := /bin/bash
 
+# Error message for bad MET input
+ERR_MET   := "Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp)"
+
+# Error message for bad GRID input
+ERR_GRID  := "Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125"
+
 # Library include path
 NCI       := -I$(GC_INCLUDE)
 
@@ -201,12 +207,17 @@ endif
 # Met field settings
 #---------------------------------------
 
-# Exit if the user has not selected a met field type
-# Skip this error check for "make clean, make distclean, make realclean"
-REGEXP := ([clean])
-ifneq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
+# If the user has omitted MET, then throw an error UNLESS we are trying
+# to compile with "clean", "distclean", "realclean", "doc", "help",
+# "ncdfcheck", or "libnc".  These targets don't depend on the value of MET.
 ifndef MET
-$(error Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp)
+ifndef MAKECMDGOALS
+$(error $(ERR_MET))
+else
+REGEXP :=  ($clean|^doc|^help|^libnc|^ncdfcheck)
+ifneq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
+$(error $(ERR_MET))
+endif
 endif
 endif
 
@@ -264,12 +275,17 @@ endif
 # Horizontal grid settings
 #---------------------------------------
 
-# Exit if the user has not selected a met field type
-# Skip this error check for "make clean, make distclean, make realclean"
-REGEXP := ([clean])
+# If the user has omitted GRID, then throw an error UNLESS we are trying
+# to compile with "clean", "distclean", "realclean", "doc", "help",
+# "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
+ifndef MET
+ifndef MAKECMDGOALS
+$(error $(ERR_GRID))
+else
+REGEXP := ($clean|^doc|^help|^libnc|^ncdfcheck)
 ifneq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
-ifndef GRID
-$(error Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125)
+$(error $(ERR_GRID))
+endif
 endif
 endif
 

@@ -72,6 +72,7 @@
 #                              obsolete functions
 #  22 Jul 2013 - M. Sulprizio- Added rcp_mod
 #  01 Aug 2013 - M. Sulprizio- Added aeic_mod
+#  20 Aug 2013 - R. Yantosca - Remove reference to "define.h"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -80,7 +81,6 @@
 SRC1 :=                               \
 ./intro.geos-chem                     \
 ./headers.geos-chem                   \
-$(HDR)/define.h                       \
 $(HDR)/CMN_SIZE_mod.F                 \
 $(HDR)/CMN_DIAG_mod.F                 \
 $(HDR)/CMN_GCTM_mod.F                 \
@@ -228,7 +228,6 @@ $(CORE)/set_aer.F                     \
 $(CORE)/setemdep.F                    \
 $(CORE)/set_prof.F                    \
 $(CORE)/SPHERE.F                      \
-$(CORE)/rdsoil.F                      \
 $(CORE)/read_jv_atms_dat.F90          \
 $(CORE)/ruralbox.F                    \
 $(CORE)/setemis.F                     \

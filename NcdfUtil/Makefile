@@ -12,7 +12,7 @@
 # !REMARKS:
 # To build the program, call "make" with the following syntax:
 #
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #
 # To display a complete list of options, type "make help".
 #
@@ -40,7 +40,7 @@
 #  05 Apr 2012 - R. Yantosca - Change BL_LIB_NETCDF to LIB_NETCDF
 #  05 Apr 2012 - R. Yantosca - Change BL_LIB_HDF5   to LIB_HDF5
 #  11 May 2012 - R. Yantosca - Now use exported NCL from Makefile_header.mk
-
+#  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -48,18 +48,18 @@
 #==============================================================================
 # Initialization
 #==============================================================================
-
 # Define variables
-BIN     := ../bin
-DOC     := ../doc
-HDR     := ../Headers
+ROOTDIR := ..
+BIN     := $(ROOTDIR)/bin
+DOC     := $(ROOTDIR)/doc
+HDR     := $(ROOTDIR)/Headers
 EXE     := TestNcdfUtil.x
-LIB     := ../lib
-MOD     := ../mod
+LIB     := $(ROOTDIR)/lib
+MOD     := $(ROOTDIR)/mod
 
-# Include header file.  This returns variables F90, LD, LINK_NC
+# Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include ../Makefile_header.mk
+include $(ROOTDIR)/Makefile_header.mk
 
 #==============================================================================
 # Filename section
@@ -131,20 +131,23 @@ TestNcdfUtil.o           : TestNcdfUtil.F90             \
 # Makefile targets
 #==============================================================================
 
-.PHONY: clean help test
+.PHONY: clean help libnc ncdfcheck test
 
-lib: $(OBJ)
+libnc: $(OBJ)
 	$(AR) crs libNcUtils.a $(OBJ)
 	mv libNcUtils.a $(LIB)
 
-check: $(OBJx)
+lib: libnc
+
+ncdfcheck: $(OBJx)
 	$(LD) $(OBJx) -L$(LIB) -lNcUtils $(NCL) -o $(EXE)
 	$(EXE) 
 
+check: ncdfcheck
+test: ncdfcheck
+
 clean:
 	rm -f *.a *.mod *.o *.nc *.x 
-
-test: check
 
 print:
 	@echo $(LINK)
