@@ -43,6 +43,7 @@
 !                              running with the traditional driver main.F
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LFUTURE instead of LFUTURE
 !                              from logical_mod.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
 ! !USES:
@@ -51,7 +52,6 @@
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !

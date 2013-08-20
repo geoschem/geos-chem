@@ -9,6 +9,7 @@
 !  (1 ) Now direct some output to "smv2.log" file.  Now call GEOS_CHEM_STOP
 !        to deallocate all arrays and stop the run safely.  Now also force
 !        double-precision with "D" exponents. (bmy, 4/18/03)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -18,7 +19,6 @@
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
       IMPLICIT NONE
-#     include "define.h"
 
       LOGICAL, INTENT(IN) :: am_I_Root
 !

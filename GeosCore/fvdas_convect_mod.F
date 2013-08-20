@@ -50,10 +50,10 @@
 !  (10) Bug fix in CONVTRAN to avoid div potential div by zero.  Make SMALLEST
 !        = 1d-60 to avoid problems (bmy, 12/19/06)
 !  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
       
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 

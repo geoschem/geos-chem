@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -38,6 +37,7 @@
 !  13 Aug 2007 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers 
 !  27 Aug 2012 - M. Payer    - Now parallelize DO loops
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

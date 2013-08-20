@@ -22,7 +22,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
 
       IMPLICIT NONE
-#include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -69,6 +68,7 @@
 !  23 Oct 2012 - R. Yantosca - Add better error checks to prevent div-by-zero
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 c!BOC

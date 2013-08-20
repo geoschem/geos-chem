@@ -225,8 +225,6 @@ CONTAINS
     USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
     IMPLICIT NONE
-
-#include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -263,6 +261,7 @@ CONTAINS
 !                              partitioning
 !  18 Mar 2013 - R. Yantosca - Now pass Input_Opt via the arg list
 !  19 Mar 2013 - R. Yantosca - Now only copy Input_Opt%TCVV(1:N_TRACERS)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1238,8 +1237,6 @@ CONTAINS
     USE CMN_SIZE_MOD
 
     IMPLICIT NONE
-
-#include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1264,6 +1261,7 @@ CONTAINS
 !  05 Oct 2012 - R. Yantosca - Bug fix for IFORT 12: extend the #if statement
 !                              to avoid including code for nested-grid sims
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, RC arguments
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1762,7 +1760,6 @@ CONTAINS
     USE CMN_GCTM_MOD             ! Rdg0
 
     IMPLICIT NONE
-#include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1860,6 +1857,7 @@ CONTAINS
 !                              partitioning
 !  25 Mar 2013 - R. Yantosca - Now use explicit numbers for J30S, J30N
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -26,8 +26,6 @@ MODULE GIGC_Environment_Mod
 ! !USES
 !        
   IMPLICIT NONE
-# include "define.h"
-
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -49,6 +47,7 @@ MODULE GIGC_Environment_Mod
 !  19 Oct 2012 - R. Yantosca - Removed routine INIT_LOCAL_MET, this is now
 !                              handled in Headers/gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed to gigc_environment_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

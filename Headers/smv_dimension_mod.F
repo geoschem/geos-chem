@@ -20,7 +20,6 @@
 !
       IMPLICIT NONE
       PUBLIC
-#     include "define.h"
 !
 ! !DEFINED PARAMETERS: 
 !
@@ -70,6 +69,7 @@
 !  10 Aug 2012 - R. Yantosca - Now define MAX_COLUMN=47 for GRIDREDUCED or
 !                              =72 otherwise.  Kludge for testing DEVEL code.
 !  02 Jul 2013 - R. Yantosca - Set MAX_COLUMN properly for GCAP grid
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
       END MODULE SMV_DIMENSION_MOD
 !------------------------------------------------------------------------------

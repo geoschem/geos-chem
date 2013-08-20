@@ -18,7 +18,6 @@
       USE EPA_NEI_MOD, ONLY : GET_USA_MASK
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:

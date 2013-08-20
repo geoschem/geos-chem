@@ -86,16 +86,13 @@ CONTAINS
 !
   FUNCTION Get_Resolution_String() RESULT( resString )
 !
-! !USES:
-!
-#   include "define.h"
-!
 ! !RETURN VALUE:
 !
     CHARACTER(LEN=255) :: resString
 ! 
 ! !REVISION HISTORY:
 !  10 Feb 2012 - R. Yantosca - Initial version
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

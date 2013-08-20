@@ -88,8 +88,6 @@
       USE TIME_MOD,               ONLY : GET_MONTH
       USE TRACERID_MOD
       USE TRACER_MOD,             ONLY : TRACER_NAME
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -98,6 +96,7 @@
 ! !REVISION HISTORY: 
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
 !  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -20,7 +20,6 @@ MODULE Global_Grid_Mod
   USE Error_Mod                ! Error-handling routines
 
   IMPLICIT NONE
-# include "define.h"
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -35,6 +34,7 @@ MODULE Global_Grid_Mod
 !
 ! !REVISION HISTORY:
 !  01 May 2012 - M. Payer    - Initial version, based on grid_mod.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

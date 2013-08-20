@@ -21,8 +21,7 @@
 
       IMPLICIT NONE
       PRIVATE
-
-#     include "define.h"
+!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: AVGPOLE
@@ -162,6 +161,7 @@
 !                              CLEANUP_DAO and arrays AIRDEN_FULLGRID and
 !                              T_FULLGRID. They are required to correct vertical
 !                              regridding of OH for offline simulations.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

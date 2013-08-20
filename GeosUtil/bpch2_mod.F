@@ -433,8 +433,6 @@
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
       USE FILE_MOD,  ONLY : IOERROR
-
-#     include "define.h" 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -476,6 +474,7 @@
 !  25 May 2012 - R. Yantosca - Update TEMPARRAY for GRID025x03125
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -725,10 +724,6 @@
 !
       FUNCTION GET_NAME_EXT() RESULT( NAME_EXT )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
 #if   defined( GEOS_4 )
@@ -765,6 +760,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
 !                              EXTERNAL_FORCING Cpp switches
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -844,10 +840,6 @@
 !
       FUNCTION GET_RES_EXT() RESULT( RES_EXT )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
 #if   defined( GRID4x5 )
@@ -885,7 +877,7 @@
 !  (2 ) Added extension for 0.5 x 0.666 grid (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  10 Feb 2012 - R. Yantosca - Added extension for 0.25 x 0.3125 grids
-
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -906,10 +898,6 @@
 !
       FUNCTION GET_HALFPOLAR() RESULT( HALFPOLAR )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: HALFPOLAR  ! =1 if we have half-sized polar boxes, =0 if not
@@ -917,6 +905,7 @@
 ! !REVISION HISTORY:
 !  28 Jun 2005 - S. Wu & R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca         - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -45,6 +44,7 @@
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -74,8 +74,6 @@
 
       USE CMN_SIZE_MOD                      ! Size parameters
       IMPLICIT NONE
-#     include "define.h"
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -99,6 +97,7 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  19 Aug 2010 - R. Yantosca - Removed hardwiring of data directory
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

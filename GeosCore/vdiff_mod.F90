@@ -22,8 +22,6 @@ MODULE VDIFF_MOD
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR
 
   IMPLICIT NONE
-# include "define.h"
-  
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -120,6 +118,7 @@ MODULE VDIFF_MOD
 !  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 
@@ -1811,8 +1810,6 @@ contains
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
                                    NDRYDEP, emis_save
 
-#   include "define.h"
-
     implicit none
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1853,6 +1850,7 @@ contains
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  18 Jun 2013 - M. Payer    - Add emissions for offline aerosol simulation
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2634,7 +2632,6 @@ contains
     USE VDIFF_PRE_MOD,      ONLY : EMISRR, EMISRRN
 
     IMPLICIT NONE
-#   include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -2660,6 +2657,7 @@ contains
 !  05 Mar 2013 - R. Yantosca - Now call SETEMIS with am_I_Root, Input_Opt, RC
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_A_FULLCHEM_SIM
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

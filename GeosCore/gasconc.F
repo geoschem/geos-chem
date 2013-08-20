@@ -39,7 +39,6 @@
       USE TROPOPAUSE_MOD,     ONLY : SAVE_FULL_TROP
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -123,6 +122,7 @@
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA and Input_Opt%LVARTROP
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  25 Mar 2013 - R. Yantosca - Now get XNUMOL, N_TRACERS from Input_Opt
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

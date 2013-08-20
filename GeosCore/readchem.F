@@ -44,13 +44,11 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
 !                              ".rc" to input.geos (instead of ___.rc)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
 ! !USES:
 !
-#     include "define.h"
-
-      ! References to F90 modules
       USE DRYDEP_MOD,         ONLY : MAXDEP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD,        ONLY : SETJFAM, SETPL

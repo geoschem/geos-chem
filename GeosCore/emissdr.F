@@ -97,6 +97,7 @@
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCPAIR from Input_Opt
 !  31 Jul 2013 - M. Sulprizio- Now use aircraft emissions from the AEIC
 !                              inventory (S. Eastham)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -145,7 +146,6 @@
       USE COMMSOIL_MOD             ! Soil wetness variables
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !

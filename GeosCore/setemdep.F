@@ -16,10 +16,7 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE TRACERID_MOD, ONLY : IDEMIS, IDTRMB, NEMANTHRO, NEMBIOG
-
       USE CMN_SIZE_MOD                   ! Size parameters
       USE COMODE_LOOP_MOD                ! SMVGEAR II arrays
       USE GIGC_ErrCode_Mod
@@ -50,6 +47,7 @@
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  13 Nov 2012 - R. Yantosca - Now pass Input_Opt and RC as arguments for GIGC
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%NUMDEP and Input_Opt%DEPNAME
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

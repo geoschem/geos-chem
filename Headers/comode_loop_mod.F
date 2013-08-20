@@ -19,8 +19,6 @@
 
       IMPLICIT NONE
       PUBLIC
-
-#     include "define.h"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -133,6 +131,7 @@
 !  24 Oct 2012 - R. Yantosca - Rewrite GIGC #ifdef blocks for clarity
 !  19 Nov 2012 - R. Yantosca - Now use funcitions INIT_COMODE_LOOP and
 !                              CLEANUP_COMODE_LOOP to allocate/free arrays
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -48,10 +48,9 @@
 !  NOTES:
 !  (1 ) Remove PRES as an argument, since we no longer need to pass that
 !        to PHOTOJ. (bmy, 11/29/07)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
-#     include "define.h"
-
       USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH, LLPAR
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ, JPNL, ZPJ
 !      USE JV_CMN_MOD, ONLY : ZPJ

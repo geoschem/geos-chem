@@ -15,8 +15,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
 
@@ -35,6 +33,7 @@
 !  01 Jun 1999 - O. Wild     - Initial version
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -127,7 +127,6 @@ MODULE Tpcore_FvDas_Mod
 ! !USES:
 ! 
   IMPLICIT NONE
-#     include "define.h"
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -197,6 +196,7 @@ MODULE Tpcore_FvDas_Mod
 !                             loops over vertical levels outside the 
 !                             horizontal transport routines for reducing
 !                             processing time.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 

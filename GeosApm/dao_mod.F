@@ -21,8 +21,6 @@
 
       IMPLICIT NONE
       PRIVATE
-
-#     include "define.h"
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -254,6 +252,7 @@
 !  28 Nov 2012 - R. Yantosca - Removed SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr
 !  28 Nov 2012 - R. Yantosca - Removed routines INIT_DAO, INIT_DAO_DERIVED, and
 !                              CLEANUP_DAO; we have no more allocatable arrays
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

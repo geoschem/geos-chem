@@ -188,6 +188,7 @@
 !  07 Feb 2013 - M. Payer    - Add NO, NO2, NO2, HNO2, and O3 as tracers to
 !                              replace NOx and Ox
 !  01 Apr 2013 - M. Payer    - Restore IDTOX for tagged Ox simulation
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
 
@@ -196,7 +197,6 @@
       USE CMN_SIZE_MOD, ONLY : NNNTRID=>NNPAR
 
       IMPLICIT NONE
-#     include "define.h"
 
       INTEGER, PARAMETER :: MMMEMBER = 15
       INTEGER            :: NMEMBER(NNNTRID) 

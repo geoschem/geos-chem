@@ -20,8 +20,6 @@
 
       IMPLICIT NONE
       PRIVATE
-
-#     include "define.h"
 !
 ! !DEFINED PARAMETERS: 
 !      
@@ -126,6 +124,7 @@
 !                              be used with the Grid-Independent GEOS-Chem
 !  30 Oct 2012 - R. Yantosca - Now make all arrays that depend on lon &
 !                              lat into ALLOCATABLE arrays (for GIGC code)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
 #     include "netcdf.inc" ! Needed for netCDF libraries
       PRIVATE
 !
@@ -40,6 +39,7 @@
 !  14 Dec 2012 - S. Eastham  - Adapted from AIRCRAFT_NOX_MOD. Now emits
 !                              aircraft NOx, CO, HC, SO2, SO4, OC and BC
 !  01 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

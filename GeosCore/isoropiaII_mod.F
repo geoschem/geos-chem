@@ -20,7 +20,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -73,6 +72,7 @@
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
 !  21 Apr 2010 - R. Yantosca  - Bug fix in DO_ISOROPIAII for offline aerosol
 !  16 Feb 2011 - R. Yantosca  - Add modifications for APM from G. Luo
+!  20 Aug 2013 - R. Yantosca  - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

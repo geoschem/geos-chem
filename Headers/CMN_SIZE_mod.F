@@ -16,8 +16,6 @@
 !
       IMPLICIT NONE
       PUBLIC
-
-!#     include "define.h"
 !
 ! !DEFINED PARAMETERS:
 !
@@ -647,6 +645,7 @@
 !                              adopted GEOS-Chem naming convention
 !  27 Nov 2012 - R. Yantosca - Removed commented out code
 !  05 Jun 2013 - R. Yantosca - Now define GEOS-5 0.25x0.3125 nested NA grid
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

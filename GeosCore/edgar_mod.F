@@ -65,10 +65,10 @@
 !        They are PUBLIC routines as they are used by anthroems.f.(ccc, 3/2/09)
 !  (6 ) Fixed typos in READ_C2H2 and READ_C2H4 (tmf, bmy, 12/20/10)
 !  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
@@ -2323,6 +2323,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2331,9 +2332,6 @@
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD         ! Size parameters
-
-!      IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*4, INTENT(OUT)     :: E_BENZ(IIPAR,JJPAR )
@@ -2451,6 +2449,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2459,9 +2458,6 @@
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD         ! Size parameters
-
-!      IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*4, INTENT(OUT)     :: E_C2H4(IIPAR,JJPAR )
@@ -2531,6 +2527,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2539,9 +2536,6 @@
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD         ! Size parameters
-
-!      IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*4, INTENT(OUT)     :: E_C2H2(IIPAR,JJPAR )
@@ -2611,15 +2605,12 @@
 !                         [molec/cm2/s]  (tmf, 7/8/05)
 !
 !  NOTES:
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-
-!      IMPLICIT NONE
-#     include "define.h"
-
       USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
@@ -2706,15 +2697,12 @@
 !                         [molec/cm2/s] (tmf, 7/8/05)
 !
 !  NOTES:
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-
-!      IMPLICIT NONE
-#     include "define.h"
-
       USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
@@ -2767,16 +2755,13 @@
 !                         [molec/cm2/s] (tmf, 7/8/05)
 !
 !  NOTES:
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
       USE TIME_MOD,      ONLY : GET_MONTH
       USE BPCH2_MOD  
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-
-!      IMPLICIT NONE
-#     include "define.h"
-
       USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments

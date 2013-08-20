@@ -15,8 +15,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
       USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
@@ -45,7 +43,7 @@
 !                              running with the traditional driver main.F
 !  31 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  10 Aug 2012 - R. Yantosca - Replace LPAR with LLPAR
-
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

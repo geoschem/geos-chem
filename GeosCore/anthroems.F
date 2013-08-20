@@ -53,9 +53,6 @@
       USE CMN_O3_MOD                 ! EMIST, EMISR, EMISRR, etc.
 
       IMPLICIT NONE
-#     include "define.h"
-
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -145,6 +142,7 @@
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -31,8 +31,6 @@
       USE CMN_O3_MOD
 
       IMPLICIT NONE
-#     include "define.h"
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -72,6 +70,7 @@
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox emissions with NO and O3
 !                              emissions as part of removal of NOx-Ox
 !                              partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

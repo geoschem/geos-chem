@@ -22,8 +22,6 @@
       USE CMN_DIAG_MOD  ! Diagnostic switches & arrays
 
       IMPLICIT NONE
-#     include "define.h"
-
 ! 
 ! !REVISION HISTORY: 
 !  01 May 1998 - R. Yantosca - Initial version
@@ -44,6 +42,7 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  29 Mar 2013 - M. Payer    - Removed NO, NO2, and NO3 from ND43. These are
 !                              now tracers.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

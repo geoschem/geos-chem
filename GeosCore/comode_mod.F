@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -90,7 +89,8 @@
 !  (11) Added 3 *_KPP arrays (phs,ks,dhk, 09/15/09)
 !  (12) Removed 3 *_KPP arrays (phs, 09/16/09)
 !  21 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  04 Apr 2013 - R. Yantosca - Removed CSPEC_FULL (now in State_Chm)   
+!  04 Apr 2013 - R. Yantosca - Removed CSPEC_FULL (now in State_Chm)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete 
 !EOP
 !------------------------------------------------------------------------------
 !BOC

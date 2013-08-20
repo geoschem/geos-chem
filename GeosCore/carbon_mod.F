@@ -182,10 +182,10 @@
 !                              which facilitates connection to GEOS-5 GCM
 !  05 Mar 2013 - R. Yantosca - Remove reference to LNLPBL from logical_mod.F
 !                              and replace with Input_Opt%LNLPBL
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 

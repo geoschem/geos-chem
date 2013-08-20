@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -41,6 +40,7 @@
 !        (bmy, 9/5/06)
 !  (2 ) Now divide AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
