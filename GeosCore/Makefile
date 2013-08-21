@@ -293,9 +293,9 @@ aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               logical_mod.o           tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o  
 
-aircraft_nox_mod.o          : aircraft_nox_mod.F                             \
+aeic_mod.o                  : aeic_mod.F              tropopause_mod.o       \
                               dao_mod.o               diag_mod.o             \
-                              tracerid_mod.o          tropopause_mod.o
+                              tracerid_mod.o
 
 airmas.o                    : airmas.F
 
@@ -416,7 +416,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
 
 cleanup.o                   : cleanup.F                                      \
                               acetone_mod.o           aerosol_mod.o          \
-                              arctas_ship_emiss_mod.o aircraft_nox_mod.o     \
+                              arctas_ship_emiss_mod.o aeic_mod.o             \
                               biomass_mod.o           biofuel_mod.o          \
                               bravo_mod.o             c2h6_mod.o             \
                               cac_anthro_mod.o        carbon_mod.o           \
@@ -601,7 +601,7 @@ emfossil.o                  : emfossil.F                                     \
                               rcp_mod.o
 
 emissdr.o                   : emissdr.F                                      \
-                              acetone_mod.o           aircraft_nox_mod.o     \
+                              acetone_mod.o           aeic_mod.o             \
                               biofuel_mod.o           dao_mod.o              \
                               diag_mod.o              emissions_mod.o        \
 			      lightning_nox_mod.o     logical_mod.o          \
@@ -978,6 +978,9 @@ RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F
 
+rcp_mod.o                   : rcp_mod.F               diag_mod.o             \
+                              tracer_mod.o            tracerid_mod.o
+
 readsoil.o		    : readsoil.F
 
 readfert.o		    : readfert.F
@@ -1034,7 +1037,7 @@ setemdep.o                  : setemdep.F              drydep_mod.o           \
                               tracer_mod.o            tracerid_mod.o
 
 setemis.o                   : setemis.F                                      \
-                              aircraft_nox_mod.o      biofuel_mod.o          \
+                                                      biofuel_mod.o          \
                               biomass_mod.o           comode_mod.o           \
                               diag_mod.o              emissions_mod.o        \
                               lightning_nox_mod.o     logical_mod.o          \
@@ -1206,6 +1209,4 @@ ion_nucl.o                  : ion_nucl.F
 YuIMN_Code.o                : YuIMN_Code.F
 cf_nucl.o                   : cf_nucl.F
 
-rcp_mod.o                   : rcp_mod.F               diag_mod.o            \
-                              aircraft_nox_mod.o      dao_mod.o
 #EOC

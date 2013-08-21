@@ -4685,6 +4685,8 @@
 !        the TOMAS aerosol from tracerid_mod  (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_SULFATE
+!  31 Jul 2013 - M. Sulprizio- Now set SO2 aircraft emissions to zero if using
+!                              AEIC aircraft emissions (S. Eastham)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4707,6 +4709,7 @@
       LOGICAL       :: LBIOMASS
       LOGICAL       :: LPRT
       LOGICAL       :: LSHIPSO2
+      LOGICAL       :: LAEIC
       LOGICAL       :: ITS_AN_AEROSOL_SIM
       INTEGER       :: N_TRACERS
 
@@ -4728,6 +4731,7 @@
       LBIOMASS           = Input_Opt%LBIOMASS
       LPRT               = Input_Opt%LPRT
       LSHIPSO2           = Input_Opt%LSHIPSO2
+      LAEIC              = Input_Opt%LAEIC
       ITS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       N_TRACERS          = Input_Opt%N_TRACERS
 
@@ -4801,18 +4805,26 @@
          ! Add LANTHRO switch to turn off anthropogenic emissions.
          ! (ccc, 4/15/09)
          IF ( LANTHRO ) THEN
-            CALL READ_AIRCRAFT_SO2( MONTH, State_Met )
+
+            IF ( LAEIC) THEN
+               ESO2_ac = 0d0
+            ELSE
+               CALL READ_AIRCRAFT_SO2( MONTH, State_Met )
+            ENDIF
 #if defined( TOMAS )
             ! Scale anthro SO2 for TOMAS
             ESO2_ac = ESO2_ac * scaleanthso2
 #endif
+
             CALL READ_ANTHRO_SOx( Input_Opt, MONTH, NSEASON )
 #if defined( TOMAS )
             ! Scale anthro SO2 for TOMAS
             ESO2_an  = ESO2_an * scaleanthso2
             ESO4_an  = ESO4_an * scaleanthso2
 #endif
+
             CALL READ_ANTHRO_NH3( Input_Opt, MONTH )
+
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 

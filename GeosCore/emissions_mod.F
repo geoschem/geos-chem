@@ -709,6 +709,7 @@
          ! so that we get the same emissions for Tagged CO as 
          ! we do for the full-chemistry (jaf, mak, bmy, 2/14/08)
          CALL EMISSDR 
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          
          ! Emit tagged CO
          CALL EMISS_TAGGED_CO

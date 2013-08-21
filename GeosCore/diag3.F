@@ -2178,7 +2178,7 @@
 !
 !  Levels        : Field                  : Units       : Scale Factor
 !  -------------------------------------------------------------------------
-!  1 - LLTROP    : Aircraft NOx           : molec/cm2/s : SCALESRCE
+!  1 - LLPAR     : Aircraft NOx           : molec/cm2/s : SCALESRCE
 !  1 - NOXEXTENT : Anthropogenic NOx      : molec/cm2/s : SCALESRCE
 !  Surface       : Biomass Burning NOx    : molec/cm2/s : SCALESRCE
 !  Surface       : Biofuel Burning NOx    : molec/cm2/s : SCALESRCE
@@ -2195,6 +2195,8 @@
 !  (2) ND32 now uses allocatable arrays instead of AIJ. (bmy 3/16/00)
 !  (3) Added biofuel burning to ND32 diagnostic (bmy, 9/12/00)
 !  (4) Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
+!  (5) Aircraft NOx emissions now extend to LLPAR for AEIC inventory
+!       (mpayer, 7/31/13)
 !******************************************************************************
 !
       IF ( ND32  > 0                     .and. 
@@ -2209,15 +2211,15 @@
          !==============================================================
          CATEGORY = 'NO-AC-$'
             
-         DO L = 1, LLTROP
+         DO L = 1, LLPAR
             ARRAY(:,:,L) = AD32_ac(:,:,L) / SCALESRCE               
          ENDDO
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLTROP,   IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
+     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
 
          !==============================================================
          ! Anthropogenic NOx

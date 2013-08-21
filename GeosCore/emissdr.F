@@ -95,13 +95,15 @@
 !  13 Dec 2012 - R. Yantosca - Now remove reference to obsolete CMN_DEP_mod.F
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCPAIR from Input_Opt
+!  31 Jul 2013 - M. Sulprizio- Now use aircraft emissions from the AEIC
+!                              inventory (S. Eastham)
 !  13 Aug 2013 - M. Sulprizio- Update MEGAN biogenics to include sesquiterpenes
 !                              for updated SOA simulation (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ACETONE_MOD,        ONLY : EMISS_BIOACET, OCEAN_SOURCE_ACET
-      USE AIRCRAFT_NOX_MOD,   ONLY : AIREMISS
+      USE AEIC_MOD,           ONLY : EMIT_AEIC
       USE BIOFUEL_MOD,        ONLY : BIOFUEL_BURN
       USE BROMOCARB_MOD,      ONLY : EMIS_CHBr3, EMIS_CH2Br2
       USE BROMOCARB_MOD,      ONLY : Br_SCALING
@@ -225,7 +227,6 @@
       LOGICAL                :: LLIGHTNOX
       LOGICAL                :: LSOILNOX
       LOGICAL                :: LFERTILIZERNOX
-      LOGICAL                :: LAIRNOX
       LOGICAL                :: LBIOMASS
       LOGICAL                :: LBIONOX
       LOGICAL                :: LBIOFUEL
@@ -235,6 +236,7 @@
       LOGICAL                :: LBIOGENIC
       LOGICAL                :: LNLPBL
       LOGICAL                :: LRCPAIR
+      LOGICAL                :: LAEIC
       LOGICAL                :: ITS_A_TAGCO_SIM
       INTEGER                :: N_TRACERS
 !
@@ -255,7 +257,6 @@
       LLIGHTNOX        = Input_Opt%LLIGHTNOX
       LSOILNOX         = Input_Opt%LSOILNOX
       LFERTILIZERNOX   = Input_Opt%LFERTILIZERNOX
-      LAIRNOX          = Input_Opt%LAIRNOX
       LBIOMASS         = Input_Opt%LBIOMASS
       LBIONOX          = Input_Opt%LBIOMASS
       LBIOFUEL         = Input_Opt%LBIOFUEL
@@ -265,6 +266,7 @@
       LBIOGENIC        = Input_Opt%LBIOGENIC
       LNLPBL           = Input_Opt%LNLPBL
       LRCPAIR          = Input_Opt%LRCPAIR
+      LAEIC            = Input_Opt%LAEIC
       ITS_A_TAGCO_SIM  = Input_Opt%ITS_A_TAGCO_SIM
       N_TRACERS        = Input_Opt%N_TRACERS
 
@@ -472,18 +474,16 @@
                CALL EMLIGHTNING( State_Met, State_Chm )
             ENDIF
 !-----------------------------------------------------------------------------
-! AIRCRAFT emissions NOx [molecules/cm3/s]
+! AIRCRAFT emissions [kg/box]
 !
-            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) THEN
-
+            IF ( LAEIC .AND. I == 1 .AND. J == 1 ) THEN
                ! Choose between RCP inventory and default
                ! (cdh, 6/14/12)
                IF (LRCPAIR) THEN
                   CALL RCP_AIREMISS( State_Met )
                ELSE
-                  CALL AIREMISS( State_Met, State_Chm )
+                  CALL EMIT_AEIC( Input_Opt, State_Met, State_Chm )
                ENDIF
-
             ENDIF
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  

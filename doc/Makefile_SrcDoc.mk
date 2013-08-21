@@ -72,6 +72,7 @@
 #  13 Dec 2012 - R. Yantosca - Added biofit, sunparam, and removed some 
 #                              obsolete functions
 #  22 Jul 2013 - M. Sulprizio- Added rcp_mod
+#  01 Aug 2013 - M. Sulprizio- Added aeic_mod
 #  20 Aug 2013 - M. Sulprizio- Added carbon_mod
 #EOP
 #------------------------------------------------------------------------------
@@ -101,6 +102,7 @@ $(HDR)/smv_dimension_mod.F            \
 $(HDR)/smv_physconst_mod.F            \
 $(CORE)/main.F                        \
 $(CORE)/acetone_mod.F                 \
+$(CORE)/aeic_mod.F                    \
 $(CORE)/aerosol_mod.F                 \
 $(CORE)/arctas_ship_emiss_mod.F	      \
 $(CORE)/benchmark_mod.F               \
