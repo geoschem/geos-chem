@@ -140,7 +140,9 @@ EF_MGN20_mod.o       : EF_MGN20_mod.F
 gigc_errcode_mod.o   : gigc_errcode_mod.F90
 
 gigc_input_opt_mod.o : gigc_input_opt_mod.F90   \
-                       gigc_errcode_mod.o
+                       gigc_errcode_mod.o       \
+                       CMN_SIZE_mod.o
+
 
 gigc_state_chm_mod.o : gigc_state_chm_mod.F90   \
                        gigc_errcode_mod.o       \

@@ -6898,9 +6898,10 @@ C     &      call debugprint( NK, MK, i,j,l,LOCATION)
       REAL*8              :: save1,save2,save3,save4,save5
 !      REAL*8,   PARAMETER :: EPS2= 1.D-32 !small number for Mk 
 !      REAL*8,   PARAMETER :: EPS = 1.D-2 !small number for Nk 
-      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk
-      REAL*8,   PARAMETER :: EPS2= 1.D-28 !small number for Mk
-      REAL*8,   PARAMETER :: TINY= 1.D-36 !very small number
+      REAL*8,   PARAMETER :: EPS  = 1.D-20 !small number for Nk
+      REAL*8,   PARAMETER :: EPS2 = 1.D-28 !small number for Mk
+      REAL*8,   PARAMETER :: TINY = 1.D-36 !small number
+      REAL*8,   PARAMETER :: VTINY= 1.D-50 !very small number
 
       LOGICAL             :: FIXERROR
       LOGICAL             :: PRT
@@ -6982,29 +6983,29 @@ C     &      call debugprint( NK, MK, i,j,l,LOCATION)
       save2=xk(1)
 
       ! JRP check for neg numbers
-      DO K = 1,IBINS
-        IF (NK(K) < 0.d0) THEN
-           print*,'1 NK < 0 in MNFIX',K,NK(K)
-        ENDIF
-        DO J=1,ICOMP
-           IF (MK(K,J) < 0.d0) THEN
-              print*,'1 MK < 0 in MNFIX',K,J,MK(K,J)
-           ENDIF
-        ENDDO
-        IF ( IT_IS_NAN(NK(K)) ) THEN
-           PRINT *,'11 Found Nan in Nk at bin',K
-           ERRORSWITCH = .TRUE.
-           print *,'11 MNFIX(0): Found NaN in Nk(,',k,')'
-           GOTO 300
-        ENDIF
-        DO J = 1, ICOMP
-           IF ( IT_IS_NAN(MK(K,J)) ) THEN
-              PRINT *,'11 Found Nan in Mk at bin',K,'component',J
-              ERRORSWITCH = .TRUE.
-              GOTO 300
-           ENDIF
-        ENDDO
-      ENDDO
+!      DO K = 1,IBINS
+!        IF (NK(K) < 0.d0) THEN
+!           print*,'1 NK < 0 in MNFIX',K,NK(K)
+!        ENDIF
+!        DO J=1,ICOMP
+!           IF (MK(K,J) < 0.d0) THEN
+!              print*,'1 MK < 0 in MNFIX',K,J,MK(K,J)
+!           ENDIF
+!        ENDDO
+!        IF ( IT_IS_NAN(NK(K)) ) THEN
+!           PRINT *,'11 Found Nan in Nk at bin',K
+!           ERRORSWITCH = .TRUE.
+!           print *,'11 MNFIX(0): Found NaN in Nk(,',k,')'
+!           GOTO 300
+!        ENDIF
+!        DO J = 1, ICOMP
+!           IF ( IT_IS_NAN(MK(K,J)) ) THEN
+!              PRINT *,'11 Found Nan in Mk at bin',K,'component',J
+!              ERRORSWITCH = .TRUE.
+!              GOTO 300
+!           ENDIF
+!        ENDDO
+!      ENDDO
 
       ! Check if both number and mass are zero, if yes then exit mnfix.
       !----------------------------------------------------------------
@@ -7061,7 +7062,7 @@ C     &      call debugprint( NK, MK, i,j,l,LOCATION)
                MK(K,J) = EPS*AVGMASS(k)
                !MK(K,J) = 0.d0
             else
-               MK(K,J) = TINY
+               MK(K,J) = VTINY
             endif
          enddo
          !print*,'allbins',MK(:,1)
@@ -7078,7 +7079,7 @@ C     &      call debugprint( NK, MK, i,j,l,LOCATION)
                   MK(K,J) = EPS*AVGMASS(k)
                   !MK(K,J) = 0.d0
                else
-                  MK(K,J) = TINY
+                  MK(K,J) = VTINY
                endif
             enddo
          endif
@@ -7216,9 +7217,11 @@ C     &      call debugprint( NK, MK, i,j,l,LOCATION)
          ! If over boundary of the current bin
          IF ( AVG >  xk(K+1) ) THEN
            IF ( PRT ) PRINT *, 'MNFIX [3]: AVG>Xk(',K+1,')'
+           IF ( PRT ) CALL DEBUGPRINT(NK,MK,0,0,0,'inside MNFIX')
            IF ( FIXERROR ) THEN 
             !Average mass is too high - shift to higher bin
             !KK = K + 1 ! jrp, this was causing errors
+!      ERRORSWITCH=.TRUE.
             KK = K
             XNEW = xk(KK+1)/ 1.1
             if ( PRT ) PRINT *, 'k',k,'AVG',AVG,' XNEW ',XNEW
