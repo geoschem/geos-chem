@@ -1,21 +1,60 @@
-! $Id: carbon_mod.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!     
+! !MODULE: carbon_mod
+!     
+! !DESCRIPTION: Module CARBON\_MOD contains arrays and routines for performing
+!  a carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 6/30/10)
+!\\   
+!\\   
+! !INTERFACE: 
+!
       MODULE CARBON_MOD
 !
-!******************************************************************************
-!  Module CARBON_MOD contains arrays and routines for performing a 
-!  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 6/30/10)
+! !USES:
 !
+!
+      IMPLICIT NONE
+#     include "define.h"
+      PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: CHEMCARBON
+      PUBLIC :: CLEANUP_CARBON
+      PUBLIC :: EMISSCARBON
+      PUBLIC :: INIT_CARBON
+!
+! !PUBLIC DATA MEMBERS:
+!
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate:NNOX and NPROD no longer public (hotp 5/14/10)
+! SOAupdate:no more APROD, GPROD, so remove these public (hotp 5/20/10)
+!      ! ... and this other stuff (dkh, 11/09/06)  
+!      PUBLIC :: APROD, GPROD, MNOX, NPROD, MHC, NNOX, MPROD
+!      PUBLIC :: PRODPERCOFSTT
+!------------------------------------------------------------------------------
+      ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
+      PUBLIC :: BETANOSAVE
+!
+! !REMARKS:
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
-!      
+!                                                                             .
 !  For secondary organic aerosol (SOA) simulation orginal code developed
 !  by Chung and Seinfeld [2002] and Hong Liao from John Seinfeld's group 
 !  at Caltech was taken and further modified accordingly (rjp, bmy, 7/15/04)
-!  This simulation introduces additional following species:
-!     ALPH, LIMO, ALCO, SOA1, SOA2, SOA3, SOA4, SOG1, SOG2, SOG3, SOG4
-!     SOA5, SOG5 (dkh, 03/24/07)  
-!
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!!  This simulation introduces additional following species:
+!!     ALPH, LIMO, ALCO, SOA1, SOA2, SOA3, SOA4, SOG1, SOG2, SOG3, SOG4
+!!     SOA5, SOG5 (dkh, 03/24/07)  
+!------------------------------------------------------------------------------
+!                                                                             .
 !  SOAupdate: Traditional SOA simulation updated by hotp 7/2010
 !    New code treats semivolatile or nonvolatile POA, aerosol from IVOCs,
 !      and has updated biogenic SOA
@@ -23,7 +62,7 @@
 !      in SOA_CHEMISTRY, Pye and Seinfeld ACP 2010, Pye et al. in prep
 !      for ACP 2010
 !    Note that modifications were made throughout the code for SOAupdate
-!
+!                                                                             .
 !  References:
 !  ============================================================================
 !  (1 ) Bond, T.C., E. Bhardwaj, R. Dong, R. Jogani, S. Jung, C. Roden, D.G.
@@ -95,185 +134,10 @@
 !        organic aerosol formation from limonene ozonolysis: Homogeneous and
 !        heterogeneous influences as a function of NOx", J. Phys. Chem. A, Vol
 !        110, 11053-11063, doi:10.1021/Jp06286f, 2006.
-!
+!                                                                             .
 !      Base Year is 2000. More at http://www.hiwater.org
 !
-!        
-!  Module Variables:
-!  ============================================================================
-!  (1 ) ANTH_BLKC        (REAL*8 ) : BC anthropogenic emissions       [kg C ]
-!  (2 ) ANTH_ORGC        (REAL*8 ) : OC anthropogenic emissions       [kg C ]
-!  (3 ) APROD            (REAL*8 ) : Aerosol mass ratio               
-!  (4 ) BCCONV           (REAL*8 ) : Hydrophilic BC from Hydrophobic  [kg C ]
-!  (5 ) BIOB_BLKC        (REAL*8 ) : BC biomass emissions             [kg C ]
-!  (6 ) BIOB_ORGC        (REAL*8 ) : OC biomass emissions             [kg C ]
-!  (7 ) BIOF_BLKC        (REAL*8 ) : BC biofuel emissions             [kg C ]
-!  (8 ) BIOF_ORGC        (REAL*8 ) : OC biofuel emissions             [kg C ]
-!  (9 ) BIOG_ALPH        (REAL*8 ) : A-PINENE biogenic emissions      [kg]
-!  (10) BIOG_LIMO        (REAL*8 ) : LIMONENE biogenic emissions      [kg]
-!  (11) BIOG_ALCO        (REAL*8 ) : ALCOHOL biogenic emissions       [kg]
-!  (12) BIOG_TERP        (REAL*8 ) : TERPENE biogenic emissions       [kg]
-!  (13) BIOG_SESQ        (REAL*8 ) : SESQTERPENE biogenic emissions   [kg]
-!  (14) DIUR_ORVC        (REAL*8 ) : Diurnal variation of NVOC        [kg C]
-!  (15) DRYBCPI          (INTEGER) : Index for BCPI in drydep array 
-!  (16) DRYOCPI          (INTEGER) : Index for OCPI in drydep array 
-!  (17) DRYBCPO          (INTEGER) : Index for BCPO in drydep array 
-!  (18) DRYOCPO          (INTEGER) : Index for OCPO in drydep array 
-!  (19) DRYALPH          (INTEGER) : Index for ALPH in drydep array 
-!  (20) DRYLIMO          (INTEGER) : Index for LIMO in drydep array 
-!  (21) DRYALCO          (INTEGER) : Index for ALCO in drydep array 
-!  (22) DRYSOG1          (INTEGER) : Index for SOG1 in drydep array 
-!  (23) DRYSOG2          (INTEGER) : Index for SOG2 in drydep array 
-!  (24) DRYSOG3          (INTEGER) : Index for SOG3 in drydep array 
-!  (25) DRYSOA1          (INTEGER) : Index for SOA1 in drydep array 
-!  (26) DRYSOA2          (INTEGER) : Index for SOA2 in drydep array 
-!  (27) DRYSOA3          (INTEGER) : Index for SOA3 in drydep array 
-!  (28) EF_BLKC          (REAL*8 ) : Emission factors for BC          [kg/kg]
-!  (29) EF_ORGC          (REAL*8 ) : Emission factors for OC          [kg/kg]
-!  (30) GEIA_ORVC        (REAL*8 ) : NVOC emissions from GEIA         [kg C ]
-!  (31) I1_NA            (REAL*8 ) : Starting lon index for N. America region
-!  (32) I2_NA            (REAL*8 ) : Ending   lon index for N. America region
-!  (33) J1_NA            (REAL*8 ) : Starting lat index for N. America region
-!  (34) J2_NA            (REAL*8 ) : Ending   lat index for N. America region
-!  (35) GPROD            (REAL*8 ) : Gas mass ratio                   
-!  (36) MHC              (INTEGER) : Number of VOC clasees
-!  (37) NDAYS            (INTEGER) : Array w/ number of days per month
-!  (38) NPROD            (INTEGER) : Number of products by oxdation
-!  (39) OCCONV           (REAL*8 ) : Hydrophilic OC from Hydrophobic  [kg C ]
-!  (40) ORVC_SESQ        (REAL*8 ) : SESQTERPENE concentration        [kg]
-!  (41) ORVC_TERP        (REAL*8 ) : MONOTERPENES concentration       [kg]
-!  (42) TCOSZ            (REAL*8 ) : Summing array for SUNCOS
-!  (43) TERP_ORGC        (REAL*8 ) : Lumped terpene emissions         [kg C ]
-!  (44) SMALLNUM         (REAL*8 ) : A small positive number
-!  (45) USE_BOND_BIOBURN (LOGICAL) : Flag to use annual biomass emiss.
-!-----Added for SOA + semivolatile POA simulation-----
-!  () DRYPOA1          (INTEGER) : Index for POA1  in drydep array
-!  () DRYPOA2          (INTEGER) : Index for POA2  in drydep array
-!  () DRYPOG1          (INTEGER) : Index for POG1  in drydep array
-!  () DRYPOG2          (INTEGER) : Index for POG2  in drydep array
-!  () DRYOPOA1         (INTEGER) : Index for OPOA1 in drydep array
-!  () DRYOPOA2         (INTEGER) : Index for OPOA2 in drydep array
-!  () DRYOPOG1         (INTEGER) : Index for OPOG1 in drydep array
-!  () DRYOPOG2         (INTEGER) : Index for OPOG2 in drydep array
-!  () DRYMTPA          (INTEGER) : Index for MTPA  in drydep array
-!  () DRYMTPO          (INTEGER) : Index for MTPO  in drydep array
-!  () DRYTSOA1         (INTEGER) : Index for TSOA1 in drydep array
-!  () DRYTSOA2         (INTEGER) : Index for TSOA2 in drydep array 
-!  () DRYTSOA3         (INTEGER) : Index for TSOA3 in drydep array
-!  () DRYTSOA0         (INTEGER) : Index for TSOA0 in drydep array
-!  () DRYTSOG1         (INTEGER) : Index for TSOG1 in drydep array
-!  () DRYTSOG2         (INTEGER) : Index for TSOG2 in drydep array
-!  () DRYTSOG3         (INTEGER) : Index for TSOG3 in drydep array
-!  () DRYTSOG0         (INTEGER) : Index for TSOG0 in drydep array
-!  () DRYISOA1         (INTEGER) : Index for ISOA1 in drydep array
-!  () DRYISOA2         (INTEGER) : Index for ISOA2 in drydep array
-!  () DRYISOA3         (INTEGER) : Index for ISOA3 in drydep array
-!  () DRYISOG1         (INTEGER) : Index for ISOG1 in drydep array
-!  () DRYISOG2         (INTEGER) : Index for ISOG2 in drydep array
-!  () DRYISOG3         (INTEGER) : Index for ISOG3 in drydep array
-!  () DRYASOAN         (INTEGER) : Index for ASOAN in drydep array
-!  () DRYASOA1         (INTEGER) : Index for ASOA1 in drydep array
-!  () DRYASOA2         (INTEGER) : Index for ASOA2 in drydep array
-!  () DRYASOA3         (INTEGER) : Index for ASOA3 in drydep array
-!  () DRYASOG1         (INTEGER) : Index for ASOG1 in drydep array
-!  () DRYASOG2         (INTEGER) : Index for ASOG2 in drydep array 
-!  () DRYASOG3         (INTEGER) : Index for ASOG3 in drydep array
-!  () MSV              (INTEGER) : Maximum number of lumped semivolatiles
-!  () IDSV             (INTEGER) : Array for mapping parent HC to semivols (SV)
-!  () AARO2NO          (INTEGER) : Rate constant for RO2+NO
-!  () BBRO2NO          (INTEGER) : Rate constant for RO2+NO
-!  () AARO2HO2         (INTEGER) : Rate constant for RO2+HO2
-!  () BBRO2HO2         (INTEGER) : Rate constant for RO2+HO2
-!  () OCFPOA           (REAL*8 ) : OM/OC for POA
-!  () OCFOPOA          (REAL*8 ) : OM/OC for OPOA
-!  () MAXSIMSV         (INTEGER) : Number of semivolatiles
-!  () PARENTMTPA       (INTEGER) : Index for MTPA
-!  () PARENTLIMO       (INTEGER) : Index for LIMO
-!  () PARENTMTPO       (INTEGER) : Index for MTPO
-!  () PARENTSESQ       (INTEGER) : Index for SESQ
-!  () PARENTISOP       (INTEGER) : Index for ISOP
-!  () PARENTBENZ       (INTEGER) : Index for BENZ
-!  () PARENTTOLU       (INTEGER) : Index for TOLU
-!  () PARENTXYLE       (INTEGER) : Index for XYLE
-!  () PARENTPOA        (INTEGER) : Index for POA
-!  () PARENTOPOA       (INTEGER) : Index for OPOA
-!  () PARENTNAP        (INTEGER) : Index for NAP
-!  () NHIGHNOX         (INTEGER) : High NOx (R + OH, RO2 + NO )
-!  () NLOWNOX          (INTEGER) : Low  NOx (R + OH, RO2 + HO2)
-!  () NNO3RXN          (INTEGER) : Oxidant (R + NO3)
-!  () NONLYNOX         (INTEGER) : Oxidant (R + any oxidant)
-!  () BIOG_MTPA        (REAL*8 ) : MTPA biomass emissions           [kg C ]
-!  () BIOG_MTPO        (REAL*8 ) : MTPO biomass emissions           [kg C ]
-!  () DELTAHCSAVE      (REAL*8 ) : Tracks how much parent HC reacts
-!  () SPECSOAPROD      (REAL*8 ) : Tracks how much SOA is formed
-!  () SPECSOAEVAP      (REAL*8 ) : Tracks how much SOA is evaporated
-!  () GLOB_POGRXN      (REAL*8 ) : Tracks POG reacted
-!  () BETANOSAVE       (REAL*8 ) : RO2 branching ratio diagnostic
-!  () POAEMISS         (REAL*8 ) : POA emissions
-!  () OAGINITSAVE      (REAL*8 ) : Initial organic aerosol + organic gas
-!  () DELTASOGSAVE     (REAL*8 ) : Change in SOG
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) CHEMCARBON         : Driver program for carbon aerosol chemistry
-!  (2 ) CHEM_BCPO          : Chemistry routine for hydrophobic BC (aka EC)
-!  (3 ) CHEM_BCPI          : Chemistry routine for hydrophilic BC (aka EC)
-!  (4 ) CHEM_OCPO          : Chemistry routine for hydrophobic OC
-!  (5 ) CHEM_OCPI          : Chemistry routine for hydrophilic OC
-!  (6 ) SOA_CHEMISTRY      : Driver routine for SOA chemistry
-!  (7 ) SOA_EQUIL          : Determines mass of SOA
-!  (8 ) ZEROIN             : Finds root of an equation by bisection method
-!  (9 ) SOA_PARA           : Gets SOA yield parameters
-!  (10) CHEM_NVOC          : Computes oxidation of HC by O3, OH, NO3
-!  (11) SOA_PARTITION      : Partitions mass of SOA gas & aerosol tracers
-!  (12) SOA_LUMP           : Returns organic gas & aerosol back to STT
-!  (13) SOA_DEPO           : Performs dry deposition of SOA tracers & species
-!  (14) EMISSCARBON        : Driver routine for carbon aerosol emissions
-!  (15) BIOGENIC_OC        : Computes biogenic OC [each time step]
-!  (16) ANTHRO_CARB_TBOND  : Computes anthropogenic OC/EC [annual data]
-!  (17) ANTHRO_CARB_COOKE  : Computes anthropogenic OC/EC [monthly data]
-!  (18) BIOMASS_CARB_TBOND : Computes biomass burning OC/EC [annual data]
-!  (19) BIOMASS_CARB_GEOS  : Computes biomass burning OC/EC [monthly data]
-!  (20) EMITHIGH           : Computes complete mixing of emission within PBL
-!  (21) OHNO3TIME          : Computes the sum of the cosine of SZA
-!  (22) GET_OH             : Returns monthly-mean OH conc.  at grid box (I,J,L)
-!  (23) GET_NO3            : Returns monthly-mean O3 conc.  at grid box (I,J,L)
-!  (24) GET_O3             : Returns monthly-mean NO3 conc. at grid box (I,J,L)
-!  (25) GET_DOH            : Returns ISOP lost to rxn w/ OH at grid box (I,J,L)
-!  (26) INIT_CARBON        : Allocates and zeroes all module arrays
-!  (27) CLEANUP_CARBON     : Deallocates all module arrays
-!  (28) CHECK_EQLB         : Makes sure aerosols are at equilibrium
-!  (29) SAVE_OAGINIT       : Saves total SOA+SOG before partitioning
-!  (30) CHECK_MB           : Checks total SOA+SOG mass balance for diagnostic
-!  (31) GET_NO             : Returns NO from CSPEC array
-!  (32) GET_HO2            : Returns HO2 from CSPEC array
-!  (33) GET_ISOPNO3        : Returns amount of ISOP that has reacted with NO3
-!
-!  NOTE: Choose either (16) or (17) for ANTHROPOGENIC emission
-!        Choose either (18) or (19) for BIOMASS BURNING emission.
-!
-!  GEOS-CHEM modules referenced by carbon_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f        : Module w/ routines for binary punch file I/O
-!  (2 ) dao_mod.f          : Module w/ arrays for DAO met fields
-!  (3 ) diag_mod.f         : Module w/ GEOS-CHEM diagnostic arrays
-!  (4 ) directory_mod.f    : Module w/ GEOS-CHEM data & met field dirs
-!  (5 ) drydep_mod.f       : Module w/ routines for dry deposition
-!  (6 ) error_mod.f        : Module w/ I/O error and NaN check routines
-!  (7 ) global_no3_mod.f   : Module w/ routines to read 3-D NO3 field
-!  (8 ) global_oh_mod.f    : Module w/ routines to read 3-D OH  field
-!  (9 ) global_o3_mod.f    : Module w/ routines to read 3-D O3  field
-!  (10) grid_mod.f         : Module w/ horizontal grid information
-!  (11) logical_mod.f      : Module w/ GEOS-CHEM logical switches
-!  (12) megan_mod.f        : Module w/ routines to read MEGAN biogenic emiss
-!  (13) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
-!  (14) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
-!  (15) time_mod.f         : Module w/ routines for computing time & date
-!  (16) tracer_mod.f       : Module w/ GEOS-CHEM tracer array STT etc. 
-!  (17) tracerid_mod.f     : Module w/ pointers to tracers & emissions
-!  (18) transfer_mod.f     : Module w/ routines to cast & resize arrays
-!
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Added code from the Caltech group for SOA chemistry (rjp, bmy, 7/15/04)
 !  (2 ) Now references "directory_mod.f", "logical_mod.f", "tracer_mod.f".
 !        (bmy, 7/20/04)
@@ -330,41 +194,13 @@
 !                              and replace with Input_Opt%LNLPBL
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-      IMPLICIT NONE
-#     include "define.h"
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "carbon_mod.f"
-      !=================================================================
-
-      ! Declare everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: CHEMCARBON
-      PUBLIC :: CLEANUP_CARBON
-      PUBLIC :: EMISSCARBON
-      PUBLIC :: INIT_CARBON
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate:NNOX and NPROD no longer public (hotp 5/14/10)
-! SOAupdate:no more APROD, GPROD, so remove these public (hotp 5/20/10)
-!      ! ... and this other stuff (dkh, 11/09/06)  
-!      PUBLIC :: APROD, GPROD, MNOX, NPROD, MHC, NNOX, MPROD
-!      PUBLIC :: PRODPERCOFSTT
-!------------------------------------------------------------------------------
-
-      ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
-      PUBLIC :: BETANOSAVE
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
+!BOC
 !
 ! !DEFINED PARAMETERS:
+!
 !
       ! OM/OC for POA (hotp 7/26/10)
       REAL*8,  PARAMETER  :: OCFPOA     = 1.4d0
@@ -1744,29 +1580,42 @@
 
       END SUBROUTINE CHEM_OCPI
 !EOC
-!-------------------------------------------------------------------------------
-
 #if   defined( TOMAS )
+!-------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: aging_carb
+!
+! !DESCRIPTION: Subroutine AGING\_CARB converts the size-resolved hydrophobic
+!  EC or OC to hydrophilic EC or OC with an assumed e-folding time.
+!  (win, 9/11/07)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE AGING_CARB( MIL, MOB )
 !
-!******************************************************************************
-!  Subroutine AGING_CARB converts the size-resolved hydrophobic EC or OC to 
-!  hydrophilic EC or OC with an assumed e-folding time. (win, 9/11/07)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-
-      ! Reference to F90 modules
+      USE CMN_SIZE_MOD
       USE TIME_MOD,     ONLY : GET_TS_CHEM    ! [=] minute
       USE TOMAS_MOD,    ONLY : IBINS
-
-      USE CMN_SIZE_MOD       ! Size parameters
-
-      ! Argument
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
       REAL*8,  INTENT(INOUT) :: MIL(IIPAR,JJPAR,LLPAR, IBINS)
       REAL*8,  INTENT(INOUT) :: MOB(IIPAR,JJPAR,LLPAR, IBINS)
-
-      ! Local variables
+!
+! !REMARKS:
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                :: I, J, L, K
       REAL*8                 :: DTCHEM
       REAL*8,  PARAMETER     :: TAU_HYDRO = 1.15D0  ! [=]day
@@ -1789,37 +1638,32 @@
       ENDDO
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE AGING_CARB
+!EOC
 #endif
- 
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soa_liggio_diff
+!
+! !DESCRIPTION: Subroutine SOAG\_LIGGIO\_DIFF produces SOA on aqueous aerosol
+!  surfaces from GLYX following the uptake model used for N2O5, and the gamma 
+!  from Liggio et al. [2005]. (tmf, 5/30/06)
+!\\
+!\\
+! !INTERFACE:
+!
 
       SUBROUTINE SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, 
      &                             State_Met, State_Chm, RC )
 !
-!******************************************************************************
-!  Subroutine SOAG_LIGGIO_DIFF produces SOA on aqueous aerosol surfaces
-!   from GLYX following the uptake model used for N2O5, and the gamma 
-!   from Liggio et al. [2005]. (tmf, 5/30/06)
-!
-!  Procedure:
-!  ============================================================================
-!  (1 ) 
-!
-!  NOTES:
-!  (1 ) SOAG (SOA product of GLYX is produced at existing hydrophilic aerosol
-!        surface.
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!******************************************************************************
-!
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE CMN_O3_MOD
       USE CMN_DIAG_MOD
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS 
       USE COMODE_MOD,         ONLY : AIRDENS, JLOP
       USE COMODE_LOOP_MOD
@@ -1845,7 +1689,19 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-
+!
+! !REMARKS: 
+!  (1 ) SOAG (SOA product of GLYX is produced at existing hydrophilic aerosol
+!        surface.
+!
+! !REVISION HISTORY:
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -2033,37 +1889,30 @@
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program 
       END SUBROUTINE SOAG_LIGGIO_DIFF
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soam_liggio_diff
+!
+! !DESCRIPTION: Subroutine SOAM\_LIGGIO\_DIFF produces SOA on aqueous aerosol
+!  surfaces from GLYX following the uptake model used for N2O5, and the gamma 
+!  from Liggio et al. [2005]. (tmf, 5/30/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, 
      &                             State_Met, State_Chm, RC )
 !
-!******************************************************************************
-!  Subroutine SOAG_LIGGIO_DIFF produces SOA on aqueous aerosol surfaces
-!   from GLYX following the uptake model used for N2O5, and the gamma 
-!   from Liggio et al. [2005]. (tmf, 5/30/06)
-!
-!  Procedure:
-!  ============================================================================
-!  (1 ) 
-!
-!  NOTES:
-!  (1 ) SOAM (SOA product of MGLY) is produced at existing hydrophilic aerosol
-!        surface.
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!   5 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt arguments
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!******************************************************************************
-!
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE CMN_O3_MOD
       USE CMN_DIAG_MOD
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
       USE COMODE_MOD,         ONLY : AIRDENS, JLOP
       USE COMODE_LOOP_MOD
@@ -2089,6 +1938,20 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  (1 ) SOAM (SOA product of MGLY) is produced at existing hydrophilic aerosol
+!        surface.
+! 
+! !REVISION HISTORY:
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!   5 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt arguments
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -2276,211 +2139,29 @@
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program 
       END SUBROUTINE SOAM_LIGGIO_DIFF
-
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soa_chemistry
+!
+! !DESCRIPTION: Subroutine SOA\_CHEMISTRY performs SOA formation. This code is
+!  from the Caltech group (Hong Liao, Serena Chung, et al) and was modified for 
+!  GEOS-CHEM. (rjp, bmy, 7/8/04, 12/21/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SOA_CHEMISTRY( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
 !
-!******************************************************************************
-!  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
-!  Caltech group (Hong Liao, Serena Chung, et al) and was modified for 
-!  GEOS-CHEM. (rjp, bmy, 7/8/04, 12/21/09)
+! !USES:
 !
-!  Procedure:
-!  ============================================================================
-!  (1 ) Read in NO3, O3, OH in CHEM_SOA
-!  (2 ) Scales these fields using OHNO3TIME in sulfate_mod.f (see GET_OH)
-!  (3 ) Calculate reaction rates (Serena's OCHEMPARAETER)
-!  (4 ) CALCULATE DELHC
-!  (5 ) get T0M gas products
-!  (6 ) equilibrium calculation
-!
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: Remove old formulation (hotp 7/25/10)
-!!  There are total of 42 tracers considered in this routine:
-!!
-!!  4 classes of primary carbonaceous aerosols:  
-!!     BCPI = Hydrophilic black carbon
-!!     OCPI = Hydrophilic organic carbon
-!!     BCPO = Hydrophobic black carbon
-!!     OCPO = Hydrophobic organic carbon
-!!
-!!!  6 reactive biogenic hydrocarbon groups (NVOC):
-!!  9 reactive biogenic hydrocarbon groups (NVOC):
-!!     ALPH = a-pinene, b-pinene, sabinene, carene, terpenoid ketones
-!!     LIMO = limonene
-!!     TERP = a-terpinene, r-terpinene, terpinolene
-!!     ALCO = myrcene, terpenoid alcohols, ocimene
-!!     SESQ = sesquiterpenes
-!!     ISOP = Isoprene
-!!     BRO2 = peroxide from benzene (dkh, 10/29/06)  
-!!     TRO2 = peroxide from toluene (dkh, 10/29/06)  
-!!     XRO2 = peroxide from xylene (dkh, 10/29/06) 
-!!     NRO2 = peroxide from naphthalene (hotp 7/22/09)
-!!
-!!  NOTE: TERP and SESQ are not tracers because of their high reactivity
-!!        Same goes for aromatic peroxide species.  (dkh, 10/29/06)  
-!!
-!!!  32 organic oxidation products by O3+OH and NO3: 
-!!  56 organic oxidation products by O3+OH and NO3: 
-!!     6 ( 3 gases + 3 aerosols ) from each of first four NVOC  = 24 
-!!     4 ( 2 gases + 2 aerosols ) from sesquiterpenes oxidation = 4
-!!     4 ( 2 gases + 2 aerosols ) from isoprene oxidation       = 4
-!!     8 ( 4 gases + 4 aerosols ) from each aromatic peroxide   = 24 (dkh, 10/29/06)  
-!!
-!!  NOTE: We aggregate these into 6 tracers according to HC classes
-!!     SOG1 = lump of gas products of first three (ALPH+LIMO+TERP) HC oxidation.
-!!     SOG2 = gas product of ALCO oxidation
-!!     SOG3 = gas product of SESQ oxidation 
-!!     SOG4 = gas product of ISOP oxidation
-!!     SOG5 = gas product of xRO2 oxidation, x = B,T,X (dkh, 10/29/06)  
-!!     SOA1 = lump of aerosol products of first 3 (ALPH+LIMO+TERP) HC oxidation.
-!!     SOA2 = aerosol product of ALCO oxidation
-!!     SOA3 = aerosol product of SESQ oxidation 
-!!     SOA4 = aerosol product of ISOP oxidation
-!!     SOA5 = aerosol product of xRO2 oxidation, x = B,T,X (dkh, 10/29/06)  
-!------------------------------------------------------------------------------
-!  As of 5/20/10: Havala's New formulation
-!
-!  ==========================================
-!  FOR SEMIVOLATILE POA and IVOC simulations:
-!  ==========================================
-!  GEOS-Chem treats formation of aerosol from 11 parent hydrocarbons
-!  and oxidation by OH, O3, and NO3:
-!
-!  The parent hydrocarbons are lumped into 5 semivolatile systems:
-!  TSOA/G: the lumped semivolatile oxidation products of 
-!          monoterpene and sesquiterpene oxidation
-!  ISOA/G: the lumped semivolatile oxidation products of isoprene ox
-!  ASOA/G: the lumped semivolatile (and nonvolatile) products of 
-!          benzene, toluene, xylene, and naphthalene (IVOC surrogate)
-!          oxidation
-!  POA/G : the lumped primary semivolatile emissions
-!  OPOA/G: the lumped products of primary semivolatile oxidation
-!
-!  Parent HC      Oxidized by       Products
-!  =============  ================  ==================================
-!  MTPA           OH, O3, NO3       TSOA/G0-3
-!  LIMO           OH, O3, NO3       TSOA/G1-3
-!  MTPO           OH, O3, NO3       TSOA/G0-3
-!  SESQ           OH, O3, NO3       TSOA/G1-3
-!  ISOP           OH, NO3           ISOA/G1-3
-!  BENZ           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!  SVOC/POA       OH                POA/G1-2
-!  O-SVOC/OPOA    OH                OPOA/G1-2
-!  NAP            OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!
-!  Tracers that must be defined in input.geos (in addition to standard
-!  full chem tracers) (34 additional):
-!  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
-!  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
-!  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
-!  ASOAN      TSOA0      TSOG0
-!  BENZ       TOLU       XYLE       MTPA       LIMO       MTPO
-!  NAP      
-!  POA1       POG1       POA2       POG2
-!  OPOA1      OPOG1      OPOA2      OPOG2
-!
-!  The following should NOT be defined for semivol POA: OCPI, OCPO
-!
-!  ============================================================
-!  FOR NON-VOLATILE TRADITIONAL POA (and no IVOCs) simulations:
-!  ============================================================
-!  GEOS-Chem treats formation of aerosol from 8 parent hydrocarbons
-!  and oxidation by OH, O3, and NO3:
-!
-!  Two non-volatile,traditional primary OC species exist:
-!  OCPO: hydrophobic POA
-!  OCPI: hydrophillic POA
-!
-!  The parent hydrocarbons are lumped into 3 semivolatile systems:
-!  TSOA/G: the lumped semivolatile oxidation products of 
-!          monoterpene and sesquiterpene oxidation
-!  ISOA/G: the lumped semivolatile oxidation products of isoprene ox
-!  ASOA/G: the lumped semivolatile (and nonvolatile) products of 
-!          benzene, toluene, and xylene oxidation
-!
-!  Parent HC      Oxidized by       Products
-!  =============  ================  ==================================
-!  MTPA           OH, O3, NO3       TSOA/G0-3
-!  LIMO           OH, O3, NO3       TSOA/G1-3
-!  MTPO           OH, O3, NO3       TSOA/G0-3
-!  SESQ           OH, O3, NO3       TSOA/G1-3
-!  ISOP           OH, NO3           ISOA/G1-3
-!  BENZ           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
-!
-!  Tracers that must be defined in input.geos (in addition to standard
-!  full chem tracers) (25 additional):
-!  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
-!  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
-!  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
-!  ASOAN      TSOA0      TSOG0
-!  BENZ       TOLU       XYLE       MTPA       LIMO       MTPO
-!
-!  The following should NOT be defined for traditional POA: 
-!     NAP, POA/G OPOA/G
-!
-!  References (see above for full citations):
-!  ===========================================================================
-!  Monoterpenes and sesquiterpenes:
-!    Experimental Data:
-!      Griffin et al. 1999 JGR      (sesquiterps low NOx)
-!      Shilling et al. 2008 ACP     (a-pinene ozonolysis for MTPO/MTPA)
-!      Zhang et al. 2006 JPhysChemA (limonene ozonolysis)
-!      Ng et al. 2007 ACP           (data for NOx effect on sesq aerosol)
-!    Modeling:
-!      Chung and Seinfeld 2002 JGR  (original formulation in GEOS-Chem)
-!      Liao et al. 2007 JGR         (comparison to measurements)
-!      Pye et al. in prep 2010      (new lumping scheme, NOx effect)
-!  Isoprene
-!      Kroll et al. 2006 ES&T       (low NOx experiments)
-!      Ng et al. 2008 ACP           (isoprene + NO3 experiments)
-!      Henze et al. 2006 GRL        (low NOx isoprene modeling in GEOS-Chem)
-!      Pye et al. in prep 2010      (new lumping scheme and isop+no3 modeling)
-!  Aromatics: benz, tolu, xyle
-!      Ng et al. 2007 ACP           (experiments)
-!      Henze et al. 2008 ACP        (global modeling)
-!  POA/OPOA
-!      Shrivastava et al. 2006 ES&T (POA experiments)
-!      Grieshop et al. 2009 ACP     (POA/SVOC oxidation experiments)
-!      Pye and Seinfeld 2010 ACP    (global modeling)
-!  IVOC/Naphthalene
-!      Chan et al. 2009 ACP         (experiments)
-!      Pye and Seinfeld 2010 ACP    (global modeling)
-!
-!  NOTES:
-!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!  (2 ) Now modified for SOG4, SOA4 -- products of oxidation by isoprene.
-!        (dkh, bmy, 6/1/06)
-!  (3 ) Now consider SOG condensation onto SO4, NH4, NIT aerosols (if SO4,
-!        NH4, NIT are defined as tracers). (rjp, bmy, 8/3/06) 
-!  (4 ) Updated formulation of SOG condensation onto OC aerosol, according
-!        to recommendations of Aerosol Working Group (clh, bmy, 12/21/09)
-!  (5 ) Now only print out debug info when LPRT=T (bmy, 4/21/10)
-!  (6 ) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
-!  05 Oct 2011 - R. Yantosca - SUNCOS is not needed, so remove
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  05 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_DEPO
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LPRT
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-      USE CMN_O3_MOD
       USE CMN_DIAG_MOD
+      USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -2488,6 +2169,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
 !------------------------------------------------------------------------------
 ! Prior to 8/13/13:
 !      USE TRACERID_MOD,       ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
@@ -2519,8 +2202,6 @@
       USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOG1
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOG2
       USE TRACERID_MOD,       ONLY : IDTASOA3, IDTASOG3
-      USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
-      USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
@@ -2536,6 +2217,199 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REMARKS:
+!  Procedure:
+!  ============================================================================
+!  (1 ) Read in NO3, O3, OH in CHEM_SOA
+!  (2 ) Scales these fields using OHNO3TIME in sulfate_mod.f (see GET_OH)
+!  (3 ) Calculate reaction rates (Serena's OCHEMPARAETER)
+!  (4 ) CALCULATE DELHC
+!  (5 ) get T0M gas products
+!  (6 ) equilibrium calculation
+!                                                                             .
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! SOAupdate: Remove old formulation (hotp 7/25/10)
+!!  There are total of 42 tracers considered in this routine:
+!!                                                                            .
+!!  4 classes of primary carbonaceous aerosols:  
+!!     BCPI = Hydrophilic black carbon
+!!     OCPI = Hydrophilic organic carbon
+!!     BCPO = Hydrophobic black carbon
+!!     OCPO = Hydrophobic organic carbon
+!!                                                                            .
+!!!  6 reactive biogenic hydrocarbon groups (NVOC):
+!!  9 reactive biogenic hydrocarbon groups (NVOC):
+!!     ALPH = a-pinene, b-pinene, sabinene, carene, terpenoid ketones
+!!     LIMO = limonene
+!!     TERP = a-terpinene, r-terpinene, terpinolene
+!!     ALCO = myrcene, terpenoid alcohols, ocimene
+!!     SESQ = sesquiterpenes
+!!     ISOP = Isoprene
+!!     BRO2 = peroxide from benzene (dkh, 10/29/06)  
+!!     TRO2 = peroxide from toluene (dkh, 10/29/06)  
+!!     XRO2 = peroxide from xylene (dkh, 10/29/06) 
+!!     NRO2 = peroxide from naphthalene (hotp 7/22/09)
+!!                                                                            .
+!!  NOTE: TERP and SESQ are not tracers because of their high reactivity
+!!        Same goes for aromatic peroxide species.  (dkh, 10/29/06)  
+!!                                                                            .
+!!!  32 organic oxidation products by O3+OH and NO3: 
+!!  56 organic oxidation products by O3+OH and NO3: 
+!!     6 ( 3 gases + 3 aerosols ) from each of first four NVOC  = 24 
+!!     4 ( 2 gases + 2 aerosols ) from sesquiterpenes oxidation = 4
+!!     4 ( 2 gases + 2 aerosols ) from isoprene oxidation       = 4
+!!     8 ( 4 gases + 4 aerosols ) from each aromatic peroxide   = 24 (dkh, 10/29/06)  
+!!                                                                            .
+!!  NOTE: We aggregate these into 6 tracers according to HC classes
+!!     SOG1 = lump of gas products of first three (ALPH+LIMO+TERP) HC oxidation.
+!!     SOG2 = gas product of ALCO oxidation
+!!     SOG3 = gas product of SESQ oxidation 
+!!     SOG4 = gas product of ISOP oxidation
+!!     SOG5 = gas product of xRO2 oxidation, x = B,T,X (dkh, 10/29/06)  
+!!     SOA1 = lump of aerosol products of first 3 (ALPH+LIMO+TERP) HC oxidation.
+!!     SOA2 = aerosol product of ALCO oxidation
+!!     SOA3 = aerosol product of SESQ oxidation 
+!!     SOA4 = aerosol product of ISOP oxidation
+!!     SOA5 = aerosol product of xRO2 oxidation, x = B,T,X (dkh, 10/29/06)  
+!------------------------------------------------------------------------------
+!  As of 5/20/10: Havala's New formulation
+!                                                                             .
+!  ==========================================
+!  FOR SEMIVOLATILE POA and IVOC simulations:
+!  ==========================================
+!  GEOS-Chem treats formation of aerosol from 11 parent hydrocarbons
+!  and oxidation by OH, O3, and NO3:
+!                                                                             .
+!  The parent hydrocarbons are lumped into 5 semivolatile systems:
+!  TSOA/G: the lumped semivolatile oxidation products of 
+!          monoterpene and sesquiterpene oxidation
+!  ISOA/G: the lumped semivolatile oxidation products of isoprene ox
+!  ASOA/G: the lumped semivolatile (and nonvolatile) products of 
+!          benzene, toluene, xylene, and naphthalene (IVOC surrogate)
+!          oxidation
+!  POA/G : the lumped primary semivolatile emissions
+!  OPOA/G: the lumped products of primary semivolatile oxidation
+!                                                                             .
+!  Parent HC      Oxidized by       Products
+!  =============  ================  ==================================
+!  MTPA           OH, O3, NO3       TSOA/G0-3
+!  LIMO           OH, O3, NO3       TSOA/G1-3
+!  MTPO           OH, O3, NO3       TSOA/G0-3
+!  SESQ           OH, O3, NO3       TSOA/G1-3
+!  ISOP           OH, NO3           ISOA/G1-3
+!  BENZ           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!  SVOC/POA       OH                POA/G1-2
+!  O-SVOC/OPOA    OH                OPOA/G1-2
+!  NAP            OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!                                                                             .
+!  Tracers that must be defined in input.geos (in addition to standard
+!  full chem tracers) (34 additional):
+!  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
+!  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
+!  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
+!  ASOAN      TSOA0      TSOG0
+!  BENZ       TOLU       XYLE       MTPA       LIMO       MTPO
+!  NAP      
+!  POA1       POG1       POA2       POG2
+!  OPOA1      OPOG1      OPOA2      OPOG2
+!                                                                             .
+!  The following should NOT be defined for semivol POA: OCPI, OCPO
+!                                                                             .
+!  ============================================================
+!  FOR NON-VOLATILE TRADITIONAL POA (and no IVOCs) simulations:
+!  ============================================================
+!  GEOS-Chem treats formation of aerosol from 8 parent hydrocarbons
+!  and oxidation by OH, O3, and NO3:
+!                                                                             .
+!  Two non-volatile,traditional primary OC species exist:
+!  OCPO: hydrophobic POA
+!  OCPI: hydrophillic POA
+!                                                                             .
+!  The parent hydrocarbons are lumped into 3 semivolatile systems:
+!  TSOA/G: the lumped semivolatile oxidation products of 
+!          monoterpene and sesquiterpene oxidation
+!  ISOA/G: the lumped semivolatile oxidation products of isoprene ox
+!  ASOA/G: the lumped semivolatile (and nonvolatile) products of 
+!          benzene, toluene, and xylene oxidation
+!                                                                             .
+!  Parent HC      Oxidized by       Products
+!  =============  ================  ==================================
+!  MTPA           OH, O3, NO3       TSOA/G0-3
+!  LIMO           OH, O3, NO3       TSOA/G1-3
+!  MTPO           OH, O3, NO3       TSOA/G0-3
+!  SESQ           OH, O3, NO3       TSOA/G1-3
+!  ISOP           OH, NO3           ISOA/G1-3
+!  BENZ           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
+!                                                                             .
+!  Tracers that must be defined in input.geos (in addition to standard
+!  full chem tracers) (25 additional):
+!  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
+!  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
+!  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
+!  ASOAN      TSOA0      TSOG0
+!  BENZ       TOLU       XYLE       MTPA       LIMO       MTPO
+!                                                                             .
+!  The following should NOT be defined for traditional POA: 
+!     NAP, POA/G OPOA/G
+!                                                                             .
+!  References (see above for full citations):
+!  ===========================================================================
+!  Monoterpenes and sesquiterpenes:
+!    Experimental Data:
+!      Griffin et al. 1999 JGR      (sesquiterps low NOx)
+!      Shilling et al. 2008 ACP     (a-pinene ozonolysis for MTPO/MTPA)
+!      Zhang et al. 2006 JPhysChemA (limonene ozonolysis)
+!      Ng et al. 2007 ACP           (data for NOx effect on sesq aerosol)
+!    Modeling:
+!      Chung and Seinfeld 2002 JGR  (original formulation in GEOS-Chem)
+!      Liao et al. 2007 JGR         (comparison to measurements)
+!      Pye et al. in prep 2010      (new lumping scheme, NOx effect)
+!  Isoprene
+!      Kroll et al. 2006 ES&T       (low NOx experiments)
+!      Ng et al. 2008 ACP           (isoprene + NO3 experiments)
+!      Henze et al. 2006 GRL        (low NOx isoprene modeling in GEOS-Chem)
+!      Pye et al. in prep 2010      (new lumping scheme and isop+no3 modeling)
+!  Aromatics: benz, tolu, xyle
+!      Ng et al. 2007 ACP           (experiments)
+!      Henze et al. 2008 ACP        (global modeling)
+!  POA/OPOA
+!      Shrivastava et al. 2006 ES&T (POA experiments)
+!      Grieshop et al. 2009 ACP     (POA/SVOC oxidation experiments)
+!      Pye and Seinfeld 2010 ACP    (global modeling)
+!  IVOC/Naphthalene
+!      Chan et al. 2009 ACP         (experiments)
+!      Pye and Seinfeld 2010 ACP    (global modeling)
+! 
+! !REVISION HISTORY:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now modified for SOG4, SOA4 -- products of oxidation by isoprene.
+!        (dkh, bmy, 6/1/06)
+!  (3 ) Now consider SOG condensation onto SO4, NH4, NIT aerosols (if SO4,
+!        NH4, NIT are defined as tracers). (rjp, bmy, 8/3/06) 
+!  (4 ) Updated formulation of SOG condensation onto OC aerosol, according
+!        to recommendations of Aerosol Working Group (clh, bmy, 12/21/09)
+!  (5 ) Now only print out debug info when LPRT=T (bmy, 4/21/10)
+!  (6 ) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
+!  05 Oct 2011 - R. Yantosca - SUNCOS is not needed, so remove
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_DEPO
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LPRT
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -3423,55 +3297,29 @@
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program
       END SUBROUTINE SOA_CHEMISTRY
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soa_equil
+!
+! !DESCRIPTION: Function SOA\_EQUIL solves SOAeqn=0 to determine Mnew (= mass)
+!  See Eqn (27) on page 70 of notes.  Originally written by Serena Chung at
+!  Caltech, and modified for inclusion into GEOS-CHEM. (rjp, bmy, 7/8/04)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION SOA_EQUIL( MASS, MPOC, AEROSOL, GAS, KOM ) 
      &         RESULT( SOA_MASS )
 !
-!******************************************************************************
-!  Subroutine SOA_EQUIL solves SOAeqn=0 to determine Mnew (= mass)
-!  See Eqn (27) on page 70 of notes.  Originally written by Serena Chung at
-!  Caltech, and modified for inclusion into GEOS-CHEM. (rjp, bmy, 7/8/04)
+! !INPUT/OUTPUT PARAMETERS: 
 !
-!  This version does NOT assume that the gas and aerosol phases are in 
-!  equilibrium before chemistry; therefore, gas phase concentrations are 
-!  needed explicitly.  The gas and aerosol phases are assumed to be in 
-!  equilibrium after chemistry.
-! 
-!  Note: Unlike FUNCTION SOA, this function assumes no reactions.  It only 
-!  considers the partitioning of existing products of VOC oxidation.
-!
-!  HC_JHC + OXID_IOXID - > 
-!    alpha(1,IOXID,JHC) [SOAprod_gas(1,IOXID,JHC)+SOAprod(1,IOXID,JHC)]+
-!    alpha(2,IOXID,JHC) [SOAprod_gas(2,IOXID,JHC)+SOAprod(2,IOXID,JHC)]
-!
-!  SOAprod_gas(IPR,IOXID,JHC) <--> SOAprod(IPR,IOXID,JHC)   
-!                                           (aerosol phase)
-!
-!  w/ equilibrium partitioning:
-!
-!                                   SOAprod(IPR,IOXID,JHC)
-!    SOAprod_gas(IPR,IOXID,JHC) = ------------------------
-!                                     Kom(IPR,IOXID,JHC)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MASS    (REAL*8) : Pre-existing aerosol mass                [ug/m3]
-!  (2 ) MPOC    (REAL*8) : POA Mass                                 [ug/m3]
-!  (3 ) AEROSOL (REAL*8) : Aerosol concentration                    [ug/m3]
-!  (4 ) GAS     (REAL*8) : Gas-phase concentration                  [ug/m3]
-!  (5 ) KOM     (REAL*8) : Equilibrium gas-aerosol partition coeff. [m3/ug]
-!
-!  NOTES:
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-      ! Arguments
-      REAL*8, INTENT(IN) :: MASS, MPOC         
+      REAL*8, INTENT(IN) :: MASS                ! Pre-existing aer mass [ug/m3]
+      REAL*8, INTENT(IN) :: MPOC                ! POA Mass [ug/m3]
 !------------------------------------------------------------------------------
 ! Prior to 8/13/13:
 ! Change dimensions (hotp 5/13/10)
@@ -3479,14 +3327,50 @@
 !      REAL*8, INTENT(IN) :: GAS(MNOX,MPROD,MHC)
 !      REAL*8, INTENT(IN) :: KOM(MNOX,MPROD,MHC)
 !------------------------------------------------------------------------------
-      REAL*8, INTENT(IN) :: AEROSOL(MPROD,MSV)
-      REAL*8, INTENT(IN) :: GAS(MPROD,MSV)
-      REAL*8, INTENT(IN) :: KOM(MPROD,MSV)
-
-      ! Local variables
+      REAL*8, INTENT(IN) :: AEROSOL(MPROD,MSV)  ! Aerosol concentration [ug/m3]
+      REAL*8, INTENT(IN) :: GAS(MPROD,MSV)      ! Gas-phase conc [ug/m3]
+      REAL*8, INTENT(IN) :: KOM(MPROD,MSV)      ! Equilibrium gas-aerosol
+                                                !  partition coeff. [m3/ug]
+!
+! !RETURN VALUE:
+!
+      REAL*8             :: SOA_MASS
+!
+! !REMARKS:
+!  This version does NOT assume that the gas and aerosol phases are in 
+!  equilibrium before chemistry; therefore, gas phase concentrations are 
+!  needed explicitly.  The gas and aerosol phases are assumed to be in 
+!  equilibrium after chemistry.
+!                                                                             .
+!  Note: Unlike FUNCTION SOA, this function assumes no reactions.  It only 
+!  considers the partitioning of existing products of VOC oxidation.
+!                                                                             .
+!  HC_JHC + OXID_IOXID - > 
+!    alpha(1,IOXID,JHC) [SOAprod_gas(1,IOXID,JHC)+SOAprod(1,IOXID,JHC)]+
+!    alpha(2,IOXID,JHC) [SOAprod_gas(2,IOXID,JHC)+SOAprod(2,IOXID,JHC)]
+!                                                                             .
+!  SOAprod_gas(IPR,IOXID,JHC) <--> SOAprod(IPR,IOXID,JHC)   
+!                                           (aerosol phase)
+!                                                                             .
+!  w/ equilibrium partitioning:
+!                                                                             .
+!                                   SOAprod(IPR,IOXID,JHC)
+!    SOAprod_gas(IPR,IOXID,JHC) = ------------------------
+!                                     Kom(IPR,IOXID,JHC)
+!
+!  NOTES:
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: JHC,   IPR!,     NOX (hotp 5/22/10)
       INTEGER            :: JSV ! hotp 5/13/10
-      REAL*8             :: VALUE, SOA_MASS
+      REAL*8             :: VALUE
 
       !=================================================================
       ! SOA_EQUIL begins here!
@@ -3525,52 +3409,30 @@
       ! Compute SOA mass
       SOA_MASS = VALUE + ( 1.D5 * MPOC ) / ( 1.D5 * MASS ) - 1.0D0
 
-      ! Return to calling program
       END FUNCTION SOA_EQUIL
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: zeroin
+!
+! !DESCRIPTION: Function ZEROIN computes a zero of the function f(x) in the
+!  interval ax,bx.
+!\\
+!\\
+! !INTERFACE:
+!
 !------------------------------------------------------------------------------
 
       FUNCTION ZEROIN(AX,BX,TOL,MPOC,AEROSOL,GAS,KOM) RESULT( MNEW )
 !
-!******************************************************************************
-! NOTE: This function may be problematic -- it uses GOTO's, which are not
-! good for parallelization. (bmy, 7/8/04)
+! !INPUT PARAMETERS: 
 !
-! shc I got this code from http://www.netlib.org
-!
-!      a zero of the function  f(x)  is computed in the interval ax,bx .
-!
-!  input..
-!
-!  ax     left endpoint of initial interval
-!  bx     right endpoint of initial interval
-!  f      function subprogram which evaluates f(x) for any x in
-!         the interval  ax,bx
-!  tol    desired length of the interval of uncertainty of the
-!         final result ( .ge. 0.0d0)
-!
-!
-!  output..
-!
-!  zeroin abcissa approximating a zero of  f  in the interval ax,bx
-!
-!
-!      it is assumed  that   f(ax)   and   f(bx)   have  opposite  signs
-!  without  a  check.  zeroin  returns a zero  x  in the given interval
-!  ax,bx  to within a tolerance  4*macheps*abs(x) + tol, where macheps
-!  is the relative machine precision.
-!      this function subprogram is a slightly  modified  translation  of
-!  the algol 60 procedure  zero  given in  richard brent, algorithms for
-!  minimization without derivatives, prentice - hall, inc. (1973).
-!
-!  NOTES:
-!  (1 ) Change dabs to ABS and dsign to SIGN, in order to avoid conflicts
-!        with intrinsic function names on the PGI compiler. (bmy, 12/2/04)
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-      real*8, intent(in) :: ax,bx,tol
+      REAL*8, INTENT(IN) :: ax
+      REAL*8, INTENT(IN) :: bx
+      REAL*8, INTENT(IN) :: tol
       REAL*8, INTENT(IN) :: Mpoc      
 !------------------------------------------------------------------------------
 ! Prior to 8/13/13:
@@ -3580,12 +3442,56 @@
 !      REAL*8, INTENT(IN) :: Aerosol(MNOX,MPROD,MHC), Gas(MNOX,MPROD,MHC)
 !      REAL*8, INTENT(IN) :: Kom(MNOX,MPROD,MHC)
 !------------------------------------------------------------------------------
-      REAL*8, INTENT(IN) :: Aerosol(MPROD,MSV), Gas(MPROD,MSV)
+      REAL*8, INTENT(IN) :: Aerosol(MPROD,MSV)
+      REAL*8, INTENT(IN) :: Gas(MPROD,MSV)
       REAL*8, INTENT(IN) :: Kom(MPROD,MSV)
-
-      !local variables
-      real*8             :: MNEW
-      real*8             :: a,b,c,d,e,eps,fa,fb,fc,tol1,xm,p,q,r,s
+!
+! !RETURN VALUE:
+!
+      REAL*8             :: MNEW
+!
+! !REMARKS:
+! NOTE: This function may be problematic -- it uses GOTO's, which are not
+! good for parallelization. (bmy, 7/8/04)
+!                                                                             .
+! shc I got this code from http://www.netlib.org
+!                                                                             .
+!      a zero of the function  f(x)  is computed in the interval ax,bx .
+!                                                                             .
+!  input..
+!                                                                             .
+!  ax     left endpoint of initial interval
+!  bx     right endpoint of initial interval
+!  f      function subprogram which evaluates f(x) for any x in
+!         the interval  ax,bx
+!  tol    desired length of the interval of uncertainty of the
+!         final result ( .ge. 0.0d0)
+!                                                                             .
+!  output..
+!                                                                             .
+!  zeroin abcissa approximating a zero of  f  in the interval ax,bx
+!                                                                             .
+!      it is assumed  that   f(ax)   and   f(bx)   have  opposite  signs
+!  without  a  check.  zeroin  returns a zero  x  in the given interval
+!  ax,bx  to within a tolerance  4*macheps*abs(x) + tol, where macheps
+!  is the relative machine precision.
+!      this function subprogram is a slightly  modified  translation  of
+!  the algol 60 procedure  zero  given in  richard brent, algorithms for
+!  minimization without derivatives, prentice - hall, inc. (1973).
+!
+! !REVISION HISTORY:
+!  (1 ) Change dabs to ABS and dsign to SIGN, in order to avoid conflicts
+!        with intrinsic function names on the PGI compiler. (bmy, 12/2/04)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: a,b,c,d,e,eps,fa,fb,fc,tol1,xm,p,q,r,s
 !
 !  compute eps, the relative machine precision
 !
@@ -3681,39 +3587,36 @@
 !
    90 MNEW = b
 
-      ! Return to calling program
       END FUNCTION ZEROIN
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rtbis
+!
+! !DESCRIPTION: Function RTBIS finds the root of the function SOA\_EQUIL via
+!  the bisection method.  Original algorithm from "Numerical Recipes" by Press
+!  et al, Cambridge UP, 1986.  Modified for inclusion into GEOS-CHEM.
+!  (bmy, 7/8/04)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION RTBIS( X1,   X2,      XACC, 
      &                MPOC, AEROSOL, GAS, KOM ) RESULT( ROOT )
 !
-!******************************************************************************
-!  Function RTBIS finds the root of the function SOA_EQUIL via the bisection
-!  method.  Original algorithm from "Numerical Recipes" by Press et al, 
-!  Cambridge UP, 1986.  Modified for inclusion into GEOS-CHEM. (bmy, 7/8/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) X1      (REAL*8) : Endpoint #1 
-!  (2 ) X2      (REAL*8) : Endpoint #2
-!  (3 ) XACC    (REAL*8) : Desired accuracy of solution
-!  (4 ) MPOC    (REAL*8) : POA Mass                                 [ug/m3]
-!  (5 ) AEROSOL (REAL*8) : Aerosol concentration                    [ug/m3]
-!  (6 ) GAS     (REAL*8) : Gas-phase concentration                  [ug/m3]
-!  (7 ) KOM     (REAL*8) : Equilibrium gas-aerosol partition coeff. [m3/ug]
-!
-!  NOTES:
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
-
-      ! Arguments
-      REAL*8, INTENT(IN) :: X1, X2, XACC, MPOC
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: X1                 ! Endpoint #1
+      REAL*8, INTENT(IN) :: X2                 ! Endpoint #2
+      REAL*8, INTENT(IN) :: XACC               ! Desired accuracy of solution
+      REAL*8, INTENT(IN) :: MPOC               ! POA mass [ug/m3]
 !------------------------------------------------------------------------------
 ! Prior to 8/13/13:
 ! Change dimensions (hotp 5/13/10)
@@ -3724,14 +3627,31 @@
 !      REAL*8, INTENT(IN) :: GAS(MNOX,MPROD,MHC)
 !      REAL*8, INTENT(IN) :: KOM(MNOX,MPROD,MHC)
 !------------------------------------------------------------------------------
-      REAL*8, INTENT(IN) :: AEROSOL(MPROD,MSV)
-      REAL*8, INTENT(IN) :: GAS(MPROD,MSV)
-      REAL*8, INTENT(IN) :: KOM(MPROD,MSV)
-
-      ! Local variables
+      REAL*8, INTENT(IN) :: AEROSOL(MPROD,MSV) ! Aerosol concentration [ug/m3]
+      REAL*8, INTENT(IN) :: GAS(MPROD,MSV)     ! Gas-phase concentration [ug/m3]
+      REAL*8, INTENT(IN) :: KOM(MPROD,MSV)     ! Equilibrium gas-aerosol
+                                               !  partition coeff. [m3/ug]
+!
+! !RETURN VALUE:
+!
+      REAL*8             :: ROOT
+!
+! !REVISION HISTORY:
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
       INTEGER, PARAMETER :: JMAX = 100
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: J
-      REAL*8             :: ROOT, DX, F, FMID, XMID
+      REAL*8             :: DX, F, FMID, XMID
 
       !=================================================================
       ! RTBIS begins here!
@@ -3779,36 +3699,63 @@
       CALL ERROR_STOP( 'Too many bisections!', 
      &                 'RTBIS ("carbon_mod.f")' )
 
-      ! Return to calling program
       END FUNCTION RTBIS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soa_para
+!
+! !DESCRIPTION: Subroutine SOA\_PARA gves mass-based stoichiometric
+!  coefficients for semi-volatile products from the oxidation of hydrocarbons.
+!  It calculates secondary organic aerosol yield parameters.  Temperature
+!  effects are included.  Original code from the CALTECH group and modified for
+!  inclusion to GEOS-CHEM. (rjp, bmy, 7/8/04, 6/30/08)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SOA_PARA( TEMP, KO3, KOH, KNO3,   KOM,
      &                     II,   JJ,  LL,  KRO2NO, KRO2HO2, State_Met ) 
 !
-!******************************************************************************
-!  Subroutine SOA_PARA gves mass-based stoichiometric coefficients for semi-
-!  volatile products from the oxidation of hydrocarbons.  It calculates 
-!  secondary organic aerosol yield parameters.  Temperature effects are
-!  included.  Original code from the CALTECH group and modified for inclusion
-!  to GEOS-CHEM. (rjp, bmy, 7/8/04, 6/30/08)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) II     (INTEGER) : GEOS-Chem longitude index 
-!  (2 ) JJ     (INTEGER) : GEOS-Chem latitude index
-!  (3 ) LL     (INTEGER) : GEOS-Chem altitude index
-!  (4 ) TEMP   (REAL*8 ) : Temperature [k]
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (5 ) KO3    (REAL*8 ) : Rxn rate for HC oxidation by O3        [cm3/molec/s]
-!  (6 ) KOH    (REAL*8 ) : Rxn rate for HC oxidation by OH        [cm3/molec/s]
-!  (7 ) KNO3   (REAL*8 ) : Rxn rate for HC oxidation by NO3       [cm3/molec/s]
-!  (8 ) RALPHA (REAL*8 ) : Mass-based stoichiometric coefficients  [unitless]
-!  (9 ) KOM    (REAL*8 ) : Equilibrium gas-aerosol partition coeff [m3/ug]
+! !INPUT PARAMETERS:
 !
+      ! Arguments
+      INTEGER,        INTENT(IN)  :: II              ! Longitude index 
+      INTEGER,        INTENT(IN)  :: JJ              ! Latitude index
+      INTEGER,        INTENT(IN)  :: LL              ! Altitude index
+      REAL*8,         INTENT(IN)  :: TEMP            ! Temperature [k]
+      TYPE(MetState), INTENT(IN)  :: State_Met       ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,         INTENT(OUT) :: KO3(MHC)        ! Rxn rate for HC oxidation
+                                                     !  by O3 [cm3/molec/s]
+      REAL*8,         INTENT(OUT) :: KOH(MHC)        ! Rxn rate for HC oxidation
+                                                     !  by OH [cm3/molec/s]
+      REAL*8,         INTENT(OUT) :: KNO3(MHC)       ! Rxn rate for HC oxidation
+                                                     !  by NO3 [cm3/molec/s]
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+! KOM dimensions of MHC now MSV (hotp 5/13/10)
+! update dims (hotp 5/22/10)
+!      REAL*8,         INTENT(OUT) :: KOM(MNOX,MPROD,MHC)
+!------------------------------------------------------------------------------
+      REAL*8,         INTENT(OUT) :: KOM(MPROD,MSV)  ! Equilibrium gas-aerosol
+                                                     !  partition coeff [m3/ug]
+
+      ! RO2+NO,HO2 rate constants (hotp 5/7/10)
+      REAL*8,         INTENT(OUT) :: KRO2NO          ! RO2+NO  rate constant
+      REAL*8,         INTENT(OUT) :: KRO2HO2         ! RO2+HO2 rate constant
+!
+! !REMARKS:
 !  References:
 !  ============================================================================
 !  PHOTO-OXIDATION RATE CONSTANTS OF ORGANICS come from:
@@ -3817,19 +3764,19 @@
 !  (3 ) Atkinson, J. Phys. Chem. Ref. Data 26: 215-290 (1997)   
 !  (4 ) Some are reproduced in Table 1 of Griffin, et al., JGR 104: 3555-3567
 !  (5 ) Chung and Seinfeld (2002)
-!
+!                                                                             .
 !  ACTIVATION ENERGIES come from:
 !  (6 ) Atkinson, R. (1994) Gas-Phase Tropospheric Chemistry of Organic 
 !        Compounds.  J. Phys. Chem. Ref. Data, Monograph No.2, 1-216. 
 !  (7 ) They are also reproduced in Tables B.9 and B.10 of Seinfeld and 
 !        Pandis (1988).
-!  
+!                                                                             .
 !  PARAMETERS FOR ISOPRENE:
 !  (8 ) Kroll et al., GRL, 109, L18808 (2005)
 !  (9 ) Kroll et al., Environ Sci Tech, in press (2006)
 !  (10) Henze and Seinfeld, GRL, submitted (2006)
 !
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Now use temporary variables TMP1, TMP2, TMP3 to pre-store the values
 !        of exponential terms outside of DO-loops (bmy, 7/8/04)
 !  (2 ) Add parameters for isoprene.  Now include grid cell location in
@@ -3844,44 +3791,13 @@
 !                              derived type object
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
-!
-! !INPUT PARAMETERS:
-!
-      ! Arguments
-      INTEGER,        INTENT(IN)  :: II, JJ, LL
-      REAL*8,         INTENT(IN)  :: TEMP
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,         INTENT(OUT) :: KO3(MHC), KOH(MHC), KNO3(MHC)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! KOM dimensions of MHC now MSV (hotp 5/13/10)
-! update dims (hotp 5/22/10)
-!      REAL*8,         INTENT(OUT) :: KOM(MNOX,MPROD,MHC)
-!------------------------------------------------------------------------------
-      REAL*8,         INTENT(OUT) :: KOM(MPROD,MSV)
-
-      ! RO2+NO,HO2 rate constants (hotp 5/7/10)
-      REAL*8,         INTENT(OUT) :: KRO2NO, KRO2HO2
-
-      ! Local variable
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      INTEGER              :: IPR,  JHC !,  J (removed 6/7/10)
-!      !INTEGER              :: NOX     ! (dkh, 11/06/06), hotp 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-      INTEGER              :: IPR,  JHC
-      INTEGER              :: JSV ! (hotp 5/13/10)
-      REAL*8               :: TMP1, TMP2, TMP3, OVER
-
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
       ! Activation Energy/R [K] for O3, OH, NO3 (see Refs #6-7)
       REAL*8, PARAMETER    :: ACT_O3     =  732.0d0   
       REAL*8, PARAMETER    :: ACT_OH     = -400.0d0   
@@ -3896,6 +3812,18 @@
       !REAL*8, PARAMETER    :: REF310     = 1d0 / 310d0 !hotp 5/21/10
       ! semivolpoa2: reference T for POA (hotp 2/27/09)
       REAL*8, PARAMETER    :: REF300     = 1d0 / 300d0
+!
+! !LOCAL VARIABLES:
+!
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      INTEGER              :: IPR,  JHC !,  J (removed 6/7/10)
+!      !INTEGER              :: NOX     ! (dkh, 11/06/06), hotp 
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+      INTEGER              :: IPR,  JHC
+      INTEGER              :: JSV ! (hotp 5/13/10)
+      REAL*8               :: TMP1, TMP2, TMP3, OVER
 
       !=================================================================
       ! SOA_PARA begins here!
@@ -4215,32 +4143,23 @@
 !      ENDDO
 !------------------------------------------------------------------------------
 
-      ! Return to calling program
       END SUBROUTINE SOA_PARA
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soa_para_init
+!
+! !DESCRIPTION: Subroutine SOA\_PARA\_INIT initializes the ALPHAS and KOMS, the
+!  latter at their reference temperature. It is faster to define these
+!  seperately as it only needs to be done once. (dkh, 11/12/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SOA_PARA_INIT( Input_Opt )
-!
-!******************************************************************************
-!  Subroutine SOA_PARA_INIT initializes the ALPHAS and KOMS, the latter at 
-!  their reference temperature. It is faster to define these seperately as 
-!  it only needs to be done once. (dkh, 11/12/06)  
-!
-!  Module variables as Output:
-!  ============================================================================
-!  (1 ) KO3_REF  (REAL*8) : O3 and HC rxn rate constant at T298 [cm3/molec/s]
-!  (2 ) KOH_REF  (REAL*8) : O3 and HC rxn rate constant at T298 [cm3/molec/s]
-!  (3 ) KNO3_REF (REAL*8) : O3 and HC rxn rate constant at T298 [cm3/molec/s]
-!  (4 ) ALPHA   (REAL*8) : SOG yields
-!  (5 ) KOM_REF  (REAL*8) : SOA equilibrium constants at REFT   [ug-1 m**3]
-!     
-!  NOTES:
-!  (1 ) REFT for KOM_REF depends on hydrocarbon. 
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!
-!******************************************************************************
 !
 ! !USES:
 !
@@ -4249,7 +4168,15 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-
+!
+! !REMARKS:
+!  NOTE: REFT for KOM_REF depends on hydrocarbon.
+!
+! !REVISION HISTORY:
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -4844,48 +4771,33 @@
          ENDDO
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SOA_PARA_INIT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_nvoc
+!
+! !DESCRIPTION: Subroutine CHEM\_NVOC computes the oxidation of Hydrocarbon by
+!  O3, OH, and NO3.  This comes from the Caltech group (Hong Liao, Serena
+!  Chung, et al) and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04,6/1/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEM_NVOC( I,         J,         L, 
      &                      KO3,       KOH,       KNO3, 
      &                      GM0,       KNO,       KHO2,
      &                      Input_Opt, State_Met, State_Chm, RC )
 !
-!******************************************************************************
-!  Subroutine CHEM_NVOC computes the oxidation of Hydrocarbon by O3, OH, and 
-!  NO3.  This comes from the Caltech group (Hong Liao, Serena Chung, et al)
-!  and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04, 6/1/06)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I      (INTEGER) : GEOS-Chem longitude index
-!  (2 ) J      (INTEGER) : GEOS-Chem latitude index
-!  (3 ) L      (INTEGER) : GEOS-Chem altitude index
-!  (4 ) KO3    (REAL*8 ) : Rxn rate for HC oxidation by O3        [cm3/molec/s]
-!  (5 ) KOH    (REAL*8 ) : Rxn rate for HC oxidation by OH        [cm3/molec/s]
-!  (6 ) KNO3   (REAL*8 ) : Rxn rate for HC oxidation by NO3       [cm3/molec/s]
-!  (7 ) ALPHA  (REAL*8 ) : Mass-based stoichiometric coefficients [unitless]  
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (8 ) GM0   (REAL*8 ) : Gas mass for each HC and its oxidation product [kg]
-!  
-!  NOTES:
-!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (3 ) Updated for SOA from isoprene.  Now calls GET_DOH. (dkh, bmy, 6/1/06)
-!  (4 ) Updated for SOA from aromatics. (dkh, 10/29/06)  
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
-!                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-      ! References to F90 kmodules
+      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+      ! semivolpoa4: oxidation diagnostic for POG (hotp 3/28/09)
+      USE DIAG_MOD,           ONLY : AD07_HC
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -4898,29 +4810,56 @@
       ! new mtp (hotp 5/34/10)
       USE TRACERID_MOD,       ONLY : IDTMTPA, IDTLIMO, IDTMTPO
       USE TRACERID_MOD,       ONLY : IDTNAP,  IDTPOA1
-      ! semivolpoa4: oxidation diagnostic for POG (hotp 3/28/09)
-      USE DIAG_MOD,           ONLY : AD07_HC
-      USE CMN_DIAG_MOD             ! ND07 info
-
-      ! Arguments
-      INTEGER,        INTENT(IN)    :: I, J, L
-      REAL*8,         INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)    :: I             ! Longitude index
+      INTEGER,        INTENT(IN)    :: J             ! Latitude index
+      INTEGER,        INTENT(IN)    :: L             ! Altitude index
+      REAL*8,         INTENT(IN)    :: KO3(MHC)      ! Rxn rate for HC oxidation
+                                                     !  by O3 [cm3/molec/s]
+      REAL*8,         INTENT(IN)    :: KOH(MHC)      ! Rxn rate for HC oxidation
+                                                     !  by OH [cm3/molec/s]
+      REAL*8,         INTENT(IN)    :: KNO3(MHC)     ! Rxn rate for HC oxidation
+                                                     !  by NO3 [cm3/molec/s]
+      ! RO2+NO, RO2+HO2 rate constants (hotp 5/7/10)
+      REAL*8,         INTENT(IN)    :: KNO           ! RO2+NO  rate constant
+      REAL*8,         INTENT(IN)    :: KHO2          ! RO2+HO2 rate constant
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
 !------------------------------------------------------------------------------
 ! Prior to 8/13/13:
 ! Change to SV (hotp 5/13/10)
 ! update dims (hotp 5/22/10)
 !      REAL*8,         INTENT(INOUT) :: GM0(MNOX,MPROD,MHC)
 !------------------------------------------------------------------------------
-      REAL*8,         INTENT(INOUT) :: GM0(MPROD,MSV)
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-      ! RO2+NO, RO2+HO2 rate constants (hotp 5/7/10)
-      REAL*8,         INTENT(IN)    :: KNO         ! RO2+NO  rate constant
-      REAL*8,         INTENT(IN)    :: KHO2        ! RO2+HO2 rate constant
-
-      ! Local variables
+      REAL*8,         INTENT(INOUT) :: GM0(MPROD,MSV)! Gas mass for HCs and
+                                                     !  oxidation products [kg]
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm     ! Chemistry State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(OUT)   :: RC            ! Success or failure?
+! 
+! !REVISION HISTORY:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Updated for SOA from isoprene.  Now calls GET_DOH. (dkh, bmy, 6/1/06)
+!  (4 ) Updated for SOA from aromatics. (dkh, 10/29/06)  
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER  :: JHC, IPR, NOX, JSV !(hotp 5/14/10)
       INTEGER  :: MAXLOOP ! (hotp 6/7/10)
 !------------------------------------------------------------------------------
@@ -5373,44 +5312,29 @@
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program
       END SUBROUTINE CHEM_NVOC
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE SOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine SOA_PARTITION partitions the mass of gas and aerosol 
-!  tracers according to five Hydrocarbon species and three oxidants.
+! !IROUTINE: soa_partition
+!
+! !DESCRIPTION: Subroutine SOA\_PARTITION partitions the mass of gas and
+!  aerosol tracers according to five Hydrocarbon species and three oxidants.
 !  (rjp, bmy, 7/7/04, 5/22/06)
 !  Revised purpose: SOA_PARTITION assigns the mass in the STT array to 
 !  the GM0 and AM0 arrays (hotp 5/13/10)
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTE: GPROD and APROD are mass ratios of individual oxidation 
-!        products of gas/aerosol to the sum of all. 
+      SUBROUTINE SOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I   (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J   (INTEGER) : GEOS-CHEM latitude index
-!  (3 ) L   (INTEGER) : GEOS-CHEM altitude index
-! 
-!  Arguments as Output:
-!  ============================================================================
-!  (4 ) GM0 (REAL*8 ) : Gas mass for each HC and its oxidation product     [kg]
-!  (5 ) AM0 (REAL*8 ) : Aerosol mass for each HC and its oxidation product [kg]
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (3 ) Updated for SOG4, SOA4 (bmy, 5/22/06)
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-      ! Refrences to F90 modules
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
 !------------------------------------------------------------------------------
 ! Prior to 8/13/13:
@@ -5434,19 +5358,47 @@
       USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-
-      ! Arguments
-      INTEGER,        INTENT(IN)    :: I, J, L
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)    :: I              ! Longitude index
+      INTEGER,        INTENT(IN)    :: J              ! Latitude index
+      INTEGER,        INTENT(IN)    :: L              ! Altitude index
+!
+! !OUTPUT PARAMETERS: 
+!
 !------------------------------------------------------------------------------
 ! Prior to 8/13/13:
 ! Now dimension with MSV (hotp 5/13/10)
 ! update dims (hotp 5/22/10)
 !      REAL*8,  INTENT(OUT) :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
 !------------------------------------------------------------------------------
-      REAL*8,         INTENT(OUT)   :: GM0(MPROD,MSV), AM0(MPROD,MSV)
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
-      ! Local variables
+      REAL*8,         INTENT(OUT)   :: GM0(MPROD,MSV) ! Gas mass for HCs and
+                                                      !  oxidation products [kg]
+      REAL*8,         INTENT(OUT)   :: AM0(MPROD,MSV) ! Aer mass for HCs and
+                                                      !  oxidation products [kg]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm      ! Chemistry State object
+!
+! !REMARKS:
+!  NOTE: GPROD and APROD are mass ratios of individual oxidation 
+!        products of gas/aerosol to the sum of all. 
+! 
+! !REVISION HISTORY:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Updated for SOG4, SOA4 (bmy, 5/22/06)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: JHC, IPR, NOX, JSV ! JSV Added (hotp 5/13)
 
       ! Pointers
@@ -5634,39 +5586,25 @@
 !      ENDDO
 !------------------------------------------------------------------------------
 
-      ! Return to calling program
       END SUBROUTINE SOA_PARTITION
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soa_lump
+!
+! !DESCRIPTION: Subroutine SOA\_LUMP returns the organic gas and aerosol back
+!  to the STT array.  (rjp, bmy, 7/7/04, 2/6/07)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SOA_LUMP( I, J, L, GM0, AM0, State_Chm )
 !
-!******************************************************************************
-!  Subroutine SOA_LUMP returns the organic gas and aerosol back to the
-!  STT array.  (rjp, bmy, 7/7/04, 2/6/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I   (INTEGER) : Longitude index
-!  (2 ) J   (INTEGER) : Latitude index
-!  (3 ) L   (INTEGER) : Altitude index
-!  (4 ) GM0 (REAL*8 ) : Gas mass for each HC and its oxidation product     [kg]
-!  (5 ) AM0 (REAL*8 ) : Aerosol mass for each HC and its oxidation product [kg]
-! 
-!  NOTES:
-!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!  (2 ) Bug fix: make sure L <= LD07 before saving into AD07 array, or else
-!        we will get an out-of-bounds error. (bmy, 3/4/05)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Updated for SOG4, SOA4 (dkh, bmy, 5/22/06)
-!  (5 ) Typo fix: GPROD should be APROD in a couple places (tmf, bmy, 10/16/06)
-!  (6 ) Bug fix: For SOA4, GPROD and APROD should have default values of 0.5,
-!        instead of 1.0 (dkh, bmy, 2/6/07)
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC 
@@ -5693,19 +5631,45 @@
       USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-
-      ! Arguments
-      INTEGER,        INTENT(IN)    :: I, J, L
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)    :: I              ! Longitude index
+      INTEGER,        INTENT(IN)    :: J              ! Latitude index
+      INTEGER,        INTENT(IN)    :: L              ! Altitude index
 !------------------------------------------------------------------------------
 ! Prior to 8/13/13:
 ! Dimension with MSV instead of MHC (hotp 5/13/10)
 ! update dims (hotp 5/22/10)
 !      REAL*8,  INTENT(IN)  :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
 !------------------------------------------------------------------------------
-      REAL*8,         INTENT(IN)    :: GM0(MPROD,MSV), AM0(MPROD,MSV)
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
-      ! Local variables
+      REAL*8,         INTENT(IN)    :: GM0(MPROD,MSV) ! Gas mass for HCs and
+                                                      !  oxidation products [kg]
+      REAL*8,         INTENT(IN)    :: AM0(MPROD,MSV) ! Aer mass for HCs and
+                                                      !  oxidation products [kg]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm      ! Chemistry State object
+! 
+! !REVISION HISTORY:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Bug fix: make sure L <= LD07 before saving into AD07 array, or else
+!        we will get an out-of-bounds error. (bmy, 3/4/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Updated for SOG4, SOA4 (dkh, bmy, 5/22/06)
+!  (5 ) Typo fix: GPROD should be APROD in a couple places (tmf, bmy, 10/16/06)
+!  (6 ) Bug fix: For SOA4, GPROD and APROD should have default values of 0.5,
+!        instead of 1.0 (dkh, bmy, 2/6/07)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: JHC, IPR, NOX, JSV ! JSV (hotp 5/13/10)
       REAL*8               :: GASMASS, AERMASS
       INTEGER              :: IDTSPECIES ! hotp 6/5/10
@@ -6487,38 +6451,27 @@
 !      ENDIF
 !------------------------------------------------------------------------------
 
-      ! Return to calling program
       END SUBROUTINE SOA_LUMP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soa_depo
+!
+! !DESCRIPTION: Subroutine SOA\_DEPO computes dry-deposition of a particular
+!  SOA species. (rjp, bmy, 7/8/04, 10/25/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SOA_DEPO( TC, DEPID, TRID, Input_Opt )
-!
-!******************************************************************************
-!  Subroutine SOA_DEPO computes dry-deposition of a particular SOA species.
-!  (rjp, bmy, 7/8/04, 10/25/05)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC    (REAL*8 ) : Array of SOA tracer 
-!  (2 ) DEPID (INTEGER) : Dry deposition ID # (from DEPVEL) 
-!  (3 ) TRID  (INTEGER) : GEOS-CHEM tracer number 
-! 
-!  NOTES:
-!  (1 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
-!  (2 ) Replace PBLFRAC from "drydep_mod.f" with  GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f" (bmy, 2/17/05)
-!  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
-!  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (5 ) Add non-local PBL scheme option for dry deposition (lin, 06/09/08)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!******************************************************************************
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD44 
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -6535,6 +6488,20 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Tracer [kg]
+! 
+! !REVISION HISTORY:
+!  (1 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
+!  (2 ) Replace PBLFRAC from "drydep_mod.f" with  GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f" (bmy, 2/17/05)
+!  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
+!  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (5 ) Add non-local PBL scheme option for dry deposition (lin, 06/09/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -6659,22 +6626,73 @@
 !$OMP END PARALLEL DO
       ENDIF    
 
-      ! Return to calling program
       END SUBROUTINE SOA_DEPO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emisscarbon
+!
+! !DESCRIPTION: Subroutine EMISSCARBON is the interface between the GEOS-CHEM
+!  model and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 9/25/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISSCARBON( am_I_Root, Input_Opt,
      &                        State_Met, State_Chm, RC )
 !
-!******************************************************************************
-!  Subroutine EMISSCARBON is the interface between the GEOS-CHEM model
-!  and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 9/25/06)
+! !USES:
 !
+      ! References to F90 modules
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD07
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
+      USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      ! Emissions are semivol if IDTPOA is defined (hotp 8/24/09)
+      USE TRACERID_MOD,       ONLY : IDTPOA1
+#if defined( TOMAS )
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE DIAG_MOD,           ONLY : AD59_ECIL, AD59_ECOB
+      USE DIAG_MOD,           ONLY : AD59_OCIL, AD59_OCOB
+      USE DIAG_MOD,           ONLY : AD59_NUMB
+      USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
+      USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG
+      USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
+#endif
+#if defined( DEVEL )
+      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+#endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
 !  For  semivolpoa: do not distinguish between hyrophobic and 
 !  hydrophilic emissions  (hotp 2/13/09)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY:
 !  (1 ) Now references LSOA from "CMN_SETUP".  Also now call OHNO3TIME since
 !        biogenic emissions also have a diurnal variation. (rjp, bmy, 7/15/04)
 !  (2 ) Now references LSOA and LPRT from "logical_mod.f".  Now references
@@ -6706,57 +6724,13 @@
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD07
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
-      USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      ! Emissions are semivol if IDTPOA is defined (hotp 8/24/09)
-      USE TRACERID_MOD,       ONLY : IDTPOA1
-#if defined( TOMAS )
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE DIAG_MOD,           ONLY : AD59_ECIL, AD59_ECOB
-      USE DIAG_MOD,           ONLY : AD59_OCIL, AD59_OCOB
-      USE DIAG_MOD,           ONLY : AD59_NUMB
-      USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
-      USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG
-      USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1
-      USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
-#endif
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND07
-
-#if defined( DEVEL )
-      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
-#endif
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J, MONTH, N
       REAL*8               :: BCSRC(IIPAR,JJPAR,2)
@@ -7326,28 +7300,33 @@
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program
       END SUBROUTINE EMISSCARBON
-
-!------------------------------------------------------------------------------
-
+!EOC
 #if   defined( TOMAS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emitsgc
+!
+! !DESCRIPTION: Subroutine EMITSGC calculates sub-grid coagulation for the size
+!  distribution of emission. (win, 10/6/07)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMITSGC( EMISMASS,  CTYPE, 
      &                    Input_Opt, State_Met, State_Chm )
 !
-!******************************************************************************
-!  Subroutine EMITSGC calculates sub-grid coagulation for the size distribution
-!  of emission. (win, 10/6/07)
+! !USES:
 !
-! !REVISION HISTORY:
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!******************************************************************************
-
-      ! References to F90 modules
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD             ! ND59
       USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB
       USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
       USE DIAG_MOD,           ONLY : AD59_NUMB
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -7362,21 +7341,28 @@
       USE TOMAS_MOD,          ONLY : SRTH2O,   MNFIX
       USE TOMAS_MOD,          ONLY : SUBGRIDCOAG
       USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
-      USE ERROR_MOD,          ONLY : IT_IS_NAN
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND59
-
-      ! Arguments
+!
+! !INPUT PARAMETERS:
+!
       REAL*8,         INTENT(IN)    :: EMISMASS(IIPAR, JJPAR, IBINS)
       INTEGER,        INTENT(IN)    :: CTYPE       ! 1 = EC and 2 = OC
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !REVISION HISTORY:
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
       REAL*8                      :: NDISTINIT(IBINS) 
       REAL*8                      :: NDISTFINAL(IBINS) 
       REAL*8                      :: MADDFINAL(IBINS) 
@@ -7623,46 +7609,61 @@ ccc
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling subroutine
       END SUBROUTINE EMITSGC
-            
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: scalecarb
+!
+! !DESCRIPTION: Function SCALECARB split the carbonaceous emission from each
+!  source into the TOMAS aerosol size bins using different mass distribution
+!  for fossil fuel and biomass burning+biofuel.  The mass size distributions
+! are different for EC and OC. (win, 9/4/07)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION SCALECARB( BULKEMIS, STYPE, CTYPE ) RESULT( VALUE )
 !
-!******************************************************************************
-!  Function SCALECARB split the carbonaceous emission from each source into the
-!  TOMAS aerosol size bins using different mass distribution for fossil fuel
-!  and biomass burning+biofuel.  The mass size distributions are different for
-!  EC and OC.   (win, 9/4/07)
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE TOMAS_MOD,   ONLY : IBINS
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8,  INTENT(IN) :: BULKEMIS(IIPAR, JJPAR)
+      INTEGER, INTENT(IN) :: STYPE,  CTYPE
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: VALUE(IIPAR, JJPAR, IBINS)
+!
+! !REMARKS:
 !    STYPE (source type): 1 = Fossil fule
 !                         2 = Biofuel
 !                         3 = Biomass burning
 !    CTYPE (carbon type): 1 = EC 
 !                         2 = OC
-!
+!                                                                              .
 !  Array ECSCALE30 and OCSCALE100 specify how mass is distributed into bins 
 !  for a 30 nm number peak and a 100 nm peak.  Similary for OC size split.
-!
+!                                                                              .
 !  This function is adapted from emisOCbond.f and emisBCbond.f by Jeff Pierce
 !  (Jan, 2007) used in GISS GCM-II'.  Introduced to GEOS-Chem by Win T.(9/4/07)
 !
-!  NOTES:
-!******************************************************************************
 !
-      ! Reference to F90 modules
-      USE TOMAS_MOD,   ONLY : IBINS
-
-      USE CMN_SIZE_MOD      ! Size parameters
-
-      ! Arguments
-      REAL*8,  INTENT(IN) :: BULKEMIS(IIPAR, JJPAR)
-      INTEGER, INTENT(IN) :: STYPE,  CTYPE
-
-      ! Return value
-      REAL*8              :: VALUE(IIPAR, JJPAR, IBINS)
-
-      ! Local variables
+! !REVISION HISTORY:
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, J, K
       REAL*8              :: ECSCALE30(IBINS), ECSCALE100(IBINS)
       REAL*8              :: OCSCALE30(IBINS), OCSCALE100(IBINS)
@@ -7776,20 +7777,53 @@ ccc
       ENDDO
 
       END FUNCTION SCALECARB
+!EOC
 #endif
-
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: biogenic_oc
+!
+! !DESCRIPTION: Subroutine BIOGENIC\_OC emits secondary organic carbon
+!  aerosols. Also modified for SOA tracers. (rjp, bmy, 4/1/04, 1/24/08)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE BIOGENIC_OC( Input_Opt, State_Met )
 !
-!******************************************************************************
-!  Subroutine BIOGENIC_OC emits secondary organic carbon aerosols.
-!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 1/24/08)
+! !USES:
 !
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,         READ_BPCH2
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      !USE MEGAN_MOD,          ONLY : GET_EMMONOG_MEGAN renamed EMTERP
+!------------------------------------------------------------------------------
+      ! Speciated MEGAN monoterpenes (hotp 3/10/10)
+      USE MEGAN_MOD,          ONLY : GET_EMTERP_MEGAN
+      USE MEGANUT_MOD,        ONLY : XLTMMP
+      USE TIME_MOD,           ONLY : GET_MONTH,        GET_TS_CHEM
+      USE TIME_MOD,           ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !REMARKS:
 !  Terpene emissions as a source of OC:  TERP.GEIA90.a1.2x2.5.*
 !  Assuming 10% yield of OC(hydrophilic) from terpene emission.
 !
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Now separate computation for FULLCHEM and OFFLINE runs (bmy, 7/8/04)
 !  (2 ) Now references DATA_DIR from "directory_mod.f".  Now references LSOA
 !        from "logical_mod.f". (bmy, 7/20/04)
@@ -7811,33 +7845,23 @@ ccc
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOSmid
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,         READ_BPCH2
-      USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      !USE MEGAN_MOD,          ONLY : GET_EMMONOG_MEGAN renamed EMTERP
-!------------------------------------------------------------------------------
-      ! Speciated MEGAN monoterpenes (hotp 3/10/10)
-      USE MEGAN_MOD,          ONLY : GET_EMTERP_MEGAN
-      USE MEGANUT_MOD,        ONLY : XLTMMP
-      USE TIME_MOD,           ONLY : GET_MONTH,        GET_TS_CHEM
-      USE TIME_MOD,           ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER           :: FC1 = 136.2364D0 / 120.11D0
+      REAL*8, PARAMETER           :: FC2 = 154.2516D0 / 120.11D0
+      REAL*8, PARAMETER           :: FC3 = 204.3546D0 / 180.165D0
+      REAL*8, PARAMETER           :: FC4 = 152.D0     / 120.11D0
 
-
-      ! Arguments
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
-      ! Local variables
+      ! Fraction of yield of OC (hydrophilic) from terpene emission
+      REAL*8, PARAMETER           :: FBIOG = 1.0d-1
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE               :: FIRST = .TRUE.
       INTEGER                     :: I, J, IJLOOP, THISMONTH
       REAL*4                      :: ARRAY(IIPAR,JJPAR,1)
@@ -7846,14 +7870,7 @@ ccc
       REAL*8                      :: FD2D(IIPAR,JJPAR)
       REAL*8                      :: TMMP, EMMO, VALUE
       REAL*8                      :: XTAU, STEPS_PER_MON
-      REAL*8, PARAMETER           :: FC1 = 136.2364D0 / 120.11D0
-      REAL*8, PARAMETER           :: FC2 = 154.2516D0 / 120.11D0
-      REAL*8, PARAMETER           :: FC3 = 204.3546D0 / 180.165D0
-      REAL*8, PARAMETER           :: FC4 = 152.D0     / 120.11D0
       CHARACTER(LEN=255)          :: FILENAME
-
-      ! Fraction of yield of OC (hydrophilic) from terpene emission
-      REAL*8, PARAMETER           :: FBIOG = 1.0d-1
 
       ! Cosine SZA & PAR (for calculation of monoterpenes) (mpb,2009)
       REAL*8                      :: SC, PDF, PDR
@@ -8274,27 +8291,55 @@ ccc
 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE BIOGENIC_OC
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: anthro_carb_tbond
+!
+! !DESCRIPTION: Subroutine ANTHRO\_CARB\_TBOND reads monthly mean anthropogenic
+!  and biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC
+!  CARBON. It also separates these into HYDROPHILIC and HYDROPHOBIC fractions.
+!  (eml 4/17/09, rjp, bmy, 4/2/04, 5/30/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ANTHRO_CARB_TBOND( THISMONTH, Input_Opt )
 !
-!******************************************************************************
-!  Subroutine ANTHRO_CARB_TBOND reads monthly mean anthropogenic and biofuel
-!  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.
-!  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!  (eml 4/17/09, rjp, bmy, 4/2/04, 5/30/06)
+! !USES:
 !
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR,        DATA_DIR_1x1
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCff
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
+      USE TIME_MOD,             ONLY : GET_TS_EMIS
+      USE TIME_MOD,             ONLY : GET_HISTYR
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !REMARKS:
 !  Emissions data comes from Bond et al [GBC, 2007] inventory and has units
 !  of [kg C/yr], which is converted to [kg C/timestep] below. Seasonality is
 !  applied over the US as in Park [2003].
-!
+!                                                                             .
 !  We also assume that 20% of BC and 50% of OC from anthropogenic 
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
@@ -8307,31 +8352,18 @@ ccc
 !  19 Feb 2013 - M. Payer    - Add calculation of XTAU under LBIOFUEL. Otherwise
 !                              XTAU will not be set if LANTHRO=F (C.L. Heald)
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
-!******************************************************************************
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-! !USES:
+! !DEFINED PARAMETERS:
 !
-      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR,        DATA_DIR_1x1
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbf
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCff
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbf
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCff
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE TIME_MOD,             ONLY : GET_TS_EMIS
-![eml
-      USE TIME_MOD,             ONLY : GET_HISTYR
-!eml]
-      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-      USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
+      ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
+      REAL*8, PARAMETER             :: FHB = 0.2d0
 
-      USE CMN_SIZE_MOD
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER,        INTENT(IN)    :: THISMONTH
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      ! Hydrophilic fraction of ORGANIC CARBON 
+      REAL*8, PARAMETER             :: FHO = 0.5d0 
 !
 ! !LOCAL VARIABLES:
 !
@@ -8354,12 +8386,6 @@ ccc
       LOGICAL                       :: LHIST
       LOGICAL                       :: LBIOFUEL
       LOGICAL                       :: LANTHRO
-
-      ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
-      REAL*8, PARAMETER             :: FHB = 0.2d0
-
-      ! Hydrophilic fraction of ORGANIC CARBON 
-      REAL*8, PARAMETER             :: FHO = 0.5d0 
 
       !=================================================================
       ! ANTHRO_CARB_TBOND begins here!
@@ -8681,39 +8707,30 @@ ccc
       ENDIF ! IF LBIOFUEL
 !eml]
 
-      ! Return to calling program
       END SUBROUTINE ANTHRO_CARB_TBOND
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: anthro_carb_cooke
+!
+! !DESCRIPTION: Subroutine ANTHRO\_CARB\_COOKE computes monthly mean
+!  anthropogenic and  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON)
+!  and ORGANIC CARBON.  It also separates these into HYDROPHILIC and
+!  HYDROPHOBIC fractions. (rjp, bmy, 4/2/04, 5/30/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ANTHRO_CARB_COOKE( THISMONTH, Input_Opt )
 !
-!******************************************************************************
-!  Subroutine ANTHRO_CARB_COOKE computes monthly mean anthropogenic and 
-!  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
-!  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!  fractions. (rjp, bmy, 4/2/04, 5/30/06)
+! !USES:
 !
-!  Emissions data comes from the Cooke et al. [1999] inventory and 
-!  seasonality imposed by Park et al. [2003].  The data has units of 
-!  [kg C/month].  This will be converted to [kg C/timestep] below.
-!
-!  We also assume that 20% of BC and 50% of OC from anthropogenic 
-!  emissions are hydrophilic (soluble) and the rest are hydrophobic.
-!
-!  NOTES:
-!  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR.  Now only apply
-!        Cooke/RJP emissions over the North American region (i.e. the region
-!        bounded by indices I1_NA, J1_NA, I2_NA, J2_NA).  (rjp, bmy, 12/1/04)
-!  (3 ) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
-!  (4 ) Now compute future emissions of BC,OC if necessary. (swu, bmy, 5/30/06)
-!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCff
@@ -8722,13 +8739,40 @@ ccc
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS
 !
-      INTEGER,        INTENT(IN)    :: THISMONTH
+      INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !REMARKS:
+!  Emissions data comes from the Cooke et al. [1999] inventory and 
+!  seasonality imposed by Park et al. [2003].  The data has units of 
+!  [kg C/month].  This will be converted to [kg C/timestep] below.
+!                                                                             .
+!  We also assume that 20% of BC and 50% of OC from anthropogenic 
+!  emissions are hydrophilic (soluble) and the rest are hydrophobic.
+!
+! !REVISION HISTORY:
+!  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR.  Now only apply
+!        Cooke/RJP emissions over the North American region (i.e. the region
+!        bounded by indices I1_NA, J1_NA, I2_NA, J2_NA).  (rjp, bmy, 12/1/04)
+!  (3 ) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
+!  (4 ) Now compute future emissions of BC,OC if necessary. (swu, bmy, 5/30/06)
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! Hydrophilic fraction of BLACK CARBON aerosol
+      REAL*8, PARAMETER             :: FHB = 0.2d0
+
+      ! Hydrophilic fraction of ORGANIC CARBON aerosol
+      REAL*8, PARAMETER             :: FHO = 0.5d0
 !
 ! !LOCAL VARIABLES:
 !
@@ -8740,12 +8784,6 @@ ccc
 
       ! For fields from Input_Opt
       LOGICAL                       :: LFUTURE
-
-      ! Hydrophilic fraction of BLACK CARBON aerosol
-      REAL*8, PARAMETER             :: FHB = 0.2d0
-
-      ! Hydrophilic fraction of ORGANIC CARBON aerosol
-      REAL*8, PARAMETER             :: FHO = 0.5d0
 
       !=================================================================
       ! ANTHRO_CARB_COOKE begins here!
@@ -8927,48 +8965,63 @@ ccc
       ENDDO
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE ANTHRO_CARB_COOKE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: anthro_carb_rcp
+!
+! !DESCRIPTION: Subroutine ANTHRO\_CARB\_RCP reads monthly mean anthropogenic
+!  and biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC
+!  CARBON. (cdh, 1/2/2013)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ANTHRO_CARB_RCP( THISMONTH )
 !
-!******************************************************************************
-!  Subroutine ANTHRO_CARB_RCP reads monthly mean anthropogenic and biofuel
-!  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.
-!  (cdh, 1/2/2013)
+! !USES:
 !
-!  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions using 
-!  the same fractions as the Bond et al. (2007) global inventory.
+      USE CMN_SIZE_MOD
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
+      USE TIME_MOD,             ONLY : GET_TS_EMIS
+      USE TRACERID_MOD,         ONLY : IDTBCPO, IDTOCPO
+      USE TRACER_MOD,           ONLY : XNUMOL
 !
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)           :: THISMONTH   ! Current month
+!
+! !REMARKS:
+!  This function also separates these into HYDROPHILIC and HYDROPHOBIC
+!  fractions using the same fractions as the Bond et al. (2007) global
+!  inventory.
+!                                                                             .
 !  We also assume that 20% of BC and 50% of OC from anthropogenic 
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
-!  NOTES:
-!******************************************************************************
+! !REVISION HISTORY:
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE TIME_MOD,             ONLY : GET_TS_EMIS
-      USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE TRACERID_MOD,         ONLY : IDTBCPO, IDTOCPO
-      USE TRACER_MOD,           ONLY : XNUMOL
-      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
-
-      USE CMN_SIZE_MOD             ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: THISMONTH
-
-      ! Local variables
-      INTEGER                       :: I, J
-      REAL*8                        :: AREA_CM2, BC, OC
-
+! !DEFINED PARAMETERS:
+!
       ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
       REAL*8, PARAMETER             :: FHB = 0.2d0
 
       ! Hydrophilic fraction of ORGANIC CARBON 
       REAL*8, PARAMETER             :: FHO = 0.5d0 
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                       :: I, J
+      REAL*8                        :: AREA_CM2, BC, OC
 
       !=================================================================
       ! ANTHRO_CARB_RCP begins here!
@@ -9022,32 +9075,24 @@ ccc
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE ANTHRO_CARB_RCP
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE BIOMASS_CARB_TBOND( Input_Opt )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine BIOMASS_CARB_TBOND computes annual mean biomass burning 
-!  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
+! !IROUTINE: biomass_carb_tbond
+!
+! !DESCRIPTION: Subroutine BIOMASS\_CARB\_TBOND computes annual mean biomass
+!  burning emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
 !  (rjp, bmy, 4/2/04, 5/30/06)
+!\\
+!\\
+! !INTERFACE:
 !
-!  Emissions data comes from the Bond et al [2004] inventory and has units
-!  of [kg C/yr].  This will be converted to [kg C/timestep] below.
-!
-!  We also assume that 20% of BC and 50% of OC from anthropogenic 
-!  emissions are hydrophilic (soluble) and the rest are hydrophobic.
-!
-!  NOTES:
-!  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
-!  (3 ) Now can read from both GEOS and GCAP grids (bmy, 8/16/05)
-!  (4 ) Now compute future emissions of BC,OC if necessary (swu, bmy, 5/30/06)
-!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
-!******************************************************************************
+      SUBROUTINE BIOMASS_CARB_TBOND( Input_Opt )
 !
 ! !USES:
 !
@@ -9065,6 +9110,30 @@ ccc
 !
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
+! !REMARKS:
+!  Emissions data comes from the Bond et al [2004] inventory and has units
+!  of [kg C/yr].  This will be converted to [kg C/timestep] below.
+!                                                                             .
+!  We also assume that 20% of BC and 50% of OC from anthropogenic 
+!  emissions are hydrophilic (soluble) and the rest are hydrophobic.
+!
+! !REVISION HISTORY:
+!  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
+!  (3 ) Now can read from both GEOS and GCAP grids (bmy, 8/16/05)
+!  (4 ) Now compute future emissions of BC,OC if necessary (swu, bmy, 5/30/06)
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! Hydrophilic fraction of carbonaceous aerosols
+      REAL*8, PARAMETER             :: FHB = 0.2d0
+      REAL*8, PARAMETER             :: FHO = 0.5d0
+!
 ! !LOCAL VARIABLES:
 !
       ! Local variables
@@ -9076,10 +9145,6 @@ ccc
 
       ! For fields from Input_Opt
       LOGICAL                       :: LFUTURE
-
-      ! Hydrophilic fraction of carbonaceous aerosols
-      REAL*8, PARAMETER             :: FHB = 0.2d0
-      REAL*8, PARAMETER             :: FHO = 0.5d0
 
       !=================================================================
       ! BIOMASS_CARB_TBOND begins here!
@@ -9172,29 +9237,54 @@ ccc
       ENDDO
 !$OMP END PARALLEL DO
       
-      ! Return to calling program
       END SUBROUTINE BIOMASS_CARB_TBOND
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE BIOMASS_CARB_GEOS( Input_Opt )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine BIOMASS_CARB_GEOS computes monthly mean biomass burning 
-!  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
+! !IROUTINE: biomass_carb_geos
+!
+! !DESCRIPTION: Subroutine BIOMASS\_CARB\_GEOS computes monthly mean biomass
+!  burning emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
 !  (rjp, bmy, 4/2/04, 2/19/09)
+!\\
+!\\
+! !INTERFACE:
 !
+      SUBROUTINE BIOMASS_CARB_GEOS( Input_Opt )
+!
+! !USES:
+!
+      USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE CMN_SIZE_MOD
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE TIME_MOD,             ONLY : GET_TS_EMIS
+      USE TRACERID_MOD,         ONLY : IDBBC,   IDBOC
+      USE TRACERID_MOD,         ONLY : IDTBCPO, IDTOCPO
+      ! semivolpoa: add POA (hotp 2/26/09)
+      USE TRACERID_MOD,         ONLY : IDTPOA1
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !REMARKS:
 !  Emissions are contained in the BIOMASS array of "biomass_mod.f", and will 
 !  contain biomass emissions from either the Duncan et al [2001] inventory or 
 !  the GFED2 inventory, depending on the option selected at runtime startup.  
 !  BIOMASS has units of [atoms C/cm3/s].  Units will be converted to
 !  [kg C/timestep] below. 
-!
+!                                                                            .
 !  We also assume that 20% of BC and 50% of OC from anthropogenic 
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed CMN,
 !        it's obsolete. (bmy, 7/20/04)
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
@@ -9211,36 +9301,21 @@ ccc
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  13 Aug 2013 - M. Sulprizio- Add modifications for SOA + semivolatile POA 
 !                              simulation (H. Pye)
-!******************************************************************************
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!
-! !USES:
-!
-      USE BIOMASS_MOD,          ONLY : BIOMASS
-      USE CMN_SIZE_MOD
-      USE TRACERID_MOD,         ONLY : IDBBC, IDBOC
-      USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE TIME_MOD,             ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,         ONLY : IDTBCPO,  IDTOCPO
-      ! semivolpoa: add POA (hotp 2/26/09)
-      USE TRACERID_MOD,         ONLY : IDTPOA1
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
-
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !LOCAL VARIABLES:
+! !DEFINED PARAMETERS:
 !
       ! Hydrophilic fraction of BLACK CARBON
       REAL*8, PARAMETER     :: FHB = 0.2d0
 
       ! Hydrophilic fraction of ORGANIC CARBON
       REAL*8, PARAMETER     :: FHO = 0.5d0 
-                                    
+!
+! !LOCAL VARIABLES:
+!                                   
       INTEGER               :: I,       J
       REAL*8                :: A_CM2,   BIOBC,   BIOOC
       REAL*8                :: CONV_BC, CONV_OC, DTSRCE, FUT_SCL
@@ -9321,41 +9396,29 @@ ccc
       ENDDO
 !$OMP END PARALLEL DO  
 
-        ! Return to calling program
         END SUBROUTINE BIOMASS_CARB_GEOS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emithigh
+!
+! !DESCRIPTION: Subroutine EMITHIGH mixes tracer completely from the surface to
+!  the PBL top. (rjp, bmy, 4/2/04, 1/11/10)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMITHIGH( BCSRC, OCSRC, Input_Opt, State_Chm )
 !
-!******************************************************************************
-!  Subroutine EMITHIGH mixes tracer completely from the surface to the PBL
-!  top. (rjp, bmy, 4/2/04, 1/11/10)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) BCSRC (REAL*8) : Array which holds Total BC (H-phobic & H-philic)
-!  (2 ) OCSRC (REAL*8) : Array which holds Total OC (H-phobic & H-philic)
-!
-!  NOTES:
-!  (1 ) Now also mix ALPH, LIMO, ALCO tracers (rjp, bmy, 7/8/04)
-!  (2 ) Now reference STT from "tracer_mod.f" (bmy, 7/20/04)
-!  (3 ) Remove references to "dao_mod.f", "pressure_mod.f", and "error_mod.f".
-!        Rewrote for computational expediency using routines from
-!        "pbl_mix_mod.f".  (bmy, 2/17/05)
-!  (4 ) Add emis_save to save surface emissions for non-local PBL scheme. 
-!        (lin, 5/29/09)
-!  (5 ) Bug fix: EMIS_SAVE should be EMIS_SAVE(I,J,...) instead of
-!        EMIS_SAVE(:,:,...) since we are in a parallel loop (bmy, 1/11/10)
-!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, args
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
+! !USES:
 !
       USE CMN_SIZE_MOD
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
 !------------------------------------------------------------------------------
 ! Prior to 8/13/13:
@@ -9368,13 +9431,31 @@ ccc
 !
 ! !INPUT PARAMETERS:
 !      
-      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,2)
-      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,2)
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,2) ! Total BC [kg]
+      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,2) ! Total OC [kg]
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt            ! Input Options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+! 
+! !REVISION HISTORY:
+!  (1 ) Now also mix ALPH, LIMO, ALCO tracers (rjp, bmy, 7/8/04)
+!  (2 ) Now reference STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (3 ) Remove references to "dao_mod.f", "pressure_mod.f", and "error_mod.f".
+!        Rewrote for computational expediency using routines from
+!        "pbl_mix_mod.f".  (bmy, 2/17/05)
+!  (4 ) Add emis_save to save surface emissions for non-local PBL scheme. 
+!        (lin, 5/29/09)
+!  (5 ) Bug fix: EMIS_SAVE should be EMIS_SAVE(I,J,...) instead of
+!        EMIS_SAVE(:,:,...) since we are in a parallel loop (bmy, 1/11/10)
+!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, args
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -9622,33 +9703,27 @@ ccc
 
       ! Return to calling program
       END SUBROUTINE EMITHIGH
-
-!------------------------------------------------------------------------------
-
+!EOC
 #if defined( TOMAS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emithigh2
+!
+! !DESCRIPTION: Subroutine EMITHIGH2 mixes tracer completely from the surface
+!  to the PBL top. This is a copy of subroutine EMITHIGH modified to work with
+!  30-bin EC and OC mass and also aerosol number.  (win, 9/4/07)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMITHIGH2( BCSRC, OCSRC, NUMBSRC, 
      &                      Input_Opt, State_Chm )
 !
-!******************************************************************************
-!  Subroutine EMITHIGH2 mixes tracer completely from the surface to the PBL
-!  top. This is a copy of subroutine EMITHIGH modified to work with 30-bin
-!  EC and OC mass and also aerosol number.  (win, 9/4/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) BCSRC (REAL*8) : Array which holds Total BC (H-phobic & H-philic)
-!  (2 ) OCSRC (REAL*8) : Array which holds Total OC (H-phobic & H-philic)
-!  (3 ) NUMBSRC(REAL*8): Array which holds number emission from BC+OC
-!
-!  NOTES:
-!  (1 ) Now also mix ALPH, LIMO, ALCO tracers (rjp, bmy, 7/8/04)
-!  (2 ) Now reference STT from "tracer_mod.f" (bmy, 7/20/04)
-!  (3 ) Remove references to "dao_mod.f", "pressure_mod.f", and "error_mod.f".
-!        Rewrote for computational expediency using routines from
-!        "pbl_mix_mod.f".  (bmy, 2/17/05)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE CMN_SIZE_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -9657,15 +9732,31 @@ ccc
       USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
       USE TOMAS_MOD,          ONLY : IBINS
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
-
-      ! Arguments
-      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,IBINS, 2)
-      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,IBINS, 2)
-      REAL*8,         INTENT(IN)    :: NUMBSRC(IIPAR,JJPAR,IBINS)
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,         INTENT(IN)  :: BCSRC(IIPAR,JJPAR,IBINS, 2) ! Total BC [kg]
+      REAL*8,         INTENT(IN)  :: OCSRC(IIPAR,JJPAR,IBINS, 2) ! Total OC [kg]
+      REAL*8,         INTENT(IN)  :: NUMBSRC(IIPAR,JJPAR,IBINS)
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt                   ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
-      ! Local variables
+! 
+! !REVISION HISTORY:
+!  (1 ) Now also mix ALPH, LIMO, ALCO tracers (rjp, bmy, 7/8/04)
+!  (2 ) Now reference STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (3 ) Remove references to "dao_mod.f", "pressure_mod.f", and "error_mod.f".
+!        Rewrote for computational expediency using routines from
+!        "pbl_mix_mod.f".  (bmy, 2/17/05)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                       :: I, J, L, PBL_MAX, K
       REAL*8                        :: F_OF_PBL
 
@@ -9738,21 +9829,35 @@ ccc
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program
       END SUBROUTINE EMITHIGH2
+!EOC
 #endif
-
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ohno3time
+!
+! !DESCRIPTION: Subroutine OHNO3TIME computes the sum of cosine of the solar
+!  zenith angle over a 24 hour day, as well as the total length of daylight. 
+!  This is needed to scale the offline OH and NO3 concentrations.
+!  (rjp, bmy, 12/16/02, 1/18/05) 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE OHNO3TIME
 !
-!******************************************************************************
-!  Subroutine OHNO3TIME computes the sum of cosine of the solar zenith
-!  angle over a 24 hour day, as well as the total length of daylight. 
-!  This is needed to scale the offline OH and NO3 concentrations.
-!  (rjp, bmy, 12/16/02, 1/18/05)
+! !USES:
 !
-!  NOTES:
+      USE CMN_GCTM_MOD
+      USE CMN_SIZE_MOD
+      USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
+      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+! 
+! !REVISION HISTORY:
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN
 !        values.  Figure this out later (rjp, bmy, 1/10/03)
 !  (2 ) Now replace XMID(I) with routine GET_XMID from "grid_mod.f".  
@@ -9765,17 +9870,13 @@ ccc
 !  (4 ) Also added parallel loop over grid boxes (bmy, 1/18/05)
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
-!******************************************************************************
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_GCTM_MOD
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER             :: I, IJLOOP, J, L, N, NT, NDYSTEP
       REAL*8              :: A0, A1, A2, A3, B1, B2, B3
@@ -9878,33 +9979,27 @@ ccc
          FIRST = .FALSE.
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE OHNO3TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_oh
+!
+! !DESCRIPTION: Function GET\OH returns OH from SMVGEAR's CSPEC array (for
+!  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
+!  variation on OH for offline simulations. (bmy, 7/9/04)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_OH( I, J, L, Input_Opt, State_Met ) 
      &         RESULT( OH_MOLEC_CM3 )
 !
-!******************************************************************************
-!  Function GET_OH returns OH from SMVGEAR's CSPEC array (for coupled runs)
-!  or monthly mean OH (for offline runs).  Imposes a diurnal variation on
-!  OH for offline simulations. (bmy, 7/9/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
-!
-!  NOTES:
-!  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 11/1/02)
-!  (2 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
-!  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
-!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
-!  28 Nov 2012 - R. Yantosca - Add State_Met to the argument list
-!   4 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
-!******************************************************************************
-!
-      ! References to F90 modules
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -9913,15 +10008,34 @@ ccc
       USE GLOBAL_OH_MOD,      ONLY : OH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDOH
-
-      ! Arguments
-      INTEGER,        INTENT(IN) :: I, J, L
-      TYPE(OptInput), INTENT(IN) :: Input_Opt
-      TYPE(MetState), INTENT(IN) :: State_Met
-
-      ! Local variables
-      INTEGER             :: JLOOP
-      REAL*8              :: OH_MOLEC_CM3
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      INTEGER,        INTENT(IN)  :: L           ! Altitude index
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !RETURN VALUE:
+!
+      REAL*8                      :: OH_MOLEC_CM3
+! 
+! !REVISION HISTORY:
+!  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 11/1/02)
+!  (2 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
+!  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  28 Nov 2012 - R. Yantosca - Add State_Met to the argument list
+!   4 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: JLOOP
  
       !=================================================================
       ! GET_OH begins here!
@@ -9980,24 +10094,50 @@ ccc
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_OH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_no3
+!
+! !DESCRIPTION: Function GET\_NO3 returns NO3 from SMVGEAR's CSPEC array (for
+!  coupled runs) or monthly mean OH (for offline runs).  For offline runs, the
+!  concentration of NO3 is set to zero during the day. (rjp, bmy, 12/16/02,
+!  7/20/04)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NO3( I, J, L, Input_Opt, State_Met ) 
      &         RESULT( NO3_MOLEC_CM3 ) 
 !
-!******************************************************************************
-!  Function GET_NO3 returns NO3 from SMVGEAR's CSPEC array (for coupled runs)
-!  or monthly mean OH (for offline runs).  For offline runs, the concentration
-!  of NO3 is set to zero during the day. (rjp, bmy, 12/16/02, 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
+      USE CMN_SIZE_MOD
+      USE CMN_MOD                  ! NSRCX
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_NO3_MOD,     ONLY : NO3
+      USE TRACERID_MOD,       ONLY : IDNO3
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      INTEGER,        INTENT(IN)  :: L           ! Altitude index
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !RETURN VALUE:
+!
+      REAL*8                      :: NO3_MOLEC_CM3
+! 
+! !REVISION HISTORY:
 !  (1 ) Now references ERROR_STOP from "error_mod.f".  We also assume that
 !        SETTRACE has been called to define IDNO3.  Now also set NO3 to 
 !        zero during the day. (rjp, bmy, 12/16/02)
@@ -10006,31 +10146,22 @@ ccc
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
-!******************************************************************************
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_NO3_MOD,     ONLY : NO3
-      USE TRACERID_MOD,       ONLY : IDNO3
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_MOD                  ! NSRCX
-
-      ! Arguments
-      INTEGER,        INTENT(IN)  :: I, J, L
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
-      ! Local variables
-      INTEGER                     :: JLOOP
-      REAL*8                      :: NO3_MOLEC_CM3
-      REAL*8,  PARAMETER          :: XNUMOL_NO3 = 6.022d23 / 62d-3
-                              
-      ! External functions    
-      REAL*8,  EXTERNAL           :: BOXVL
+! !DEFINED PARAMETERS:
+!
+      REAL*8,  PARAMETER :: XNUMOL_NO3 = 6.022d23 / 62d-3
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: JLOOP
+            !
+! !EXTERNAL FUNCTIONS:
+! 
+      REAL*8,  EXTERNAL  :: BOXVL
 
       !=================================================================
       ! GET_NO3 begins here!
@@ -10112,33 +10243,27 @@ ccc
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_NO3
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_o3
+!
+! !DESCRIPTION: Function GET\_O3 returns monthly mean O3 for offline sulfate
+!  aerosol simulations. (bmy, 12/16/02, 7/20/04)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_O3( I, J, L, Input_Opt, State_Met ) 
      &         RESULT( O3_MOLEC_CM3 )
 !
-!******************************************************************************
-!  Function GET_O3 returns monthly mean O3 for offline sulfate aerosol
-!  simulations. (bmy, 12/16/02, 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L   (INTEGER) : Grid box indices for lon, lat, vertical level
-!
-!  NOTES:
-!  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
-!  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
-!  (3 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/20/05)
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
-!  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
-!******************************************************************************
-!
-      ! References to F90 modules
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -10147,21 +10272,43 @@ ccc
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
-
-      USE CMN_SIZE_MOD             ! Size parameters
-
-      ! Arguments
-      INTEGER,        INTENT(IN) :: I, J, L
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-
-      ! Local variables
-      INTEGER                    :: JLOOP
-      REAL*8                     :: O3_MOLEC_CM3
-      REAL*8,  PARAMETER         :: XNUMOL_O3 = 6.022d23 / 48d-3
-                               
-      ! External functions     
-      REAL*8,  EXTERNAL          :: BOXVL
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      INTEGER,        INTENT(IN)  :: L           ! Altitude index
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !RETURN VALUE:
+!
+      REAL*8                      :: O3_MOLEC_CM3
+! 
+! !REVISION HISTORY:
+!  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
+!  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  (3 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/20/05)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8,  PARAMETER :: XNUMOL_O3 = 6.022d23 / 48d-3
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: JLOOP
+!
+! !EXTERNAL FUNCTIONS:
+!
+      REAL*8,  EXTERNAL  :: BOXVL
 
       !=================================================================
       ! GET_O3 begins here!
@@ -10232,51 +10379,64 @@ ccc
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_O3
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_daro2
+!
+! !DESCRIPTION: Function GET\_DARO2 returns the amount of aromatic peroxy
+!  radical that reacted with HO2 or NO during the last chemistry timestep.
+!  (dkh, 11/10/06)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_DARO2( I, J, L, NOX, JHC, Input_Opt ) RESULT( DARO2 )
 !
-!******************************************************************************
-!  Function GET_DARO2 returns the amount of aromatic peroxy radical that 
-!  reacted with HO2 or NO during the last chemistry timestep. (dkh, 11/10/06)  
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
-!
-!
-!  NOTES:
-!  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
-!  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
-!******************************************************************************
-!
-      ! References to F90 modules
+      USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
-      USE CMN_O3_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACERID_MOD,       ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       ! NAPSOA: add IVOC surrogate (NAP) (hotp 7/22/09)
       USE TRACERID_MOD,       ONLY : IDTNAP
-
-      ! Arguments
-      INTEGER,        INTENT(IN) :: I, J, L, NOX, JHC
-      TYPE(OptInput), INTENT(IN) :: Input_Opt
-
-      ! Function returns 
-      REAL*8                     :: DARO2
-
-      ! Local variables
-      INTEGER                    :: JLOOP, ILARO2, IDTAROM
-      REAL*8                     :: ARO2CARB
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      INTEGER,        INTENT(IN)  :: L           ! Altitude index
+      INTEGER,        INTENT(IN)  :: NOX
+      INTEGER,        INTENT(IN)  :: JHC
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !RETURN VALUE:
+!
+      REAL*8                      :: DARO2
+! 
+! !REVISION HISTORY:
+!  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
+!  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: JLOOP, ILARO2, IDTAROM
+      REAL*8  :: ARO2CARB
 
       ! For values from Input_Opt
-      REAL*8                     :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! GET_DARO2 begins here!
@@ -10452,43 +10612,53 @@ ccc
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_DARO2
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_doh
+!
+! !DESCRIPTION: Function GET\_DOH returns the amount of isoprene [kg] that has
+!  reacted with OH during the last chemistry time step. (dkh, bmy, 6/01/06)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_DOH( I, J, L, Input_Opt ) RESULT( DOH )
 !
-!******************************************************************************
-!  Function GET_DOH returns the amount of isoprene [kg] that has reacted with 
-!  OH during the last chemistry time step. (dkh, bmy, 6/01/06)  
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
-!
-!
-!  NOTES:
-!  04 Mar 2013 - R. Yantosca - Now use fields from Input_Opt object
-!******************************************************************************
-!
-      ! References to F90 modules
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE COMODE_LOOP_MOD
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACERID_MOD,       ONLY : IDTISOP
-
-      ! Arguments
-      INTEGER,        INTENT(IN) :: I, J, L
-      TYPE(OptInput), INTENT(IN) :: Input_Opt
-
-      ! Function returns 
-      REAL*8                     :: DOH
-
-      ! Local variables
-      INTEGER                    :: JLOOP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      INTEGER,        INTENT(IN)  :: L           ! Altitude index
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !RETURN VALUE:
+!
+      REAL*8                      :: DOH
+!
+! !REVISION HISTORY:
+!  04 Mar 2013 - R. Yantosca - Now use fields from Input_Opt object
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: JLOOP
 
       !=================================================================
       ! GET_DOH begins here!
@@ -10547,42 +10717,57 @@ ccc
 
       ENDIF 
 
-      ! Return to calling program
       END FUNCTION GET_DOH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_vcldf
+!
+! !DESCRIPTION: Subroutine GET\_VCLDF computes the volume cloud fraction for
+!  SO2 chemistry. (rjp, bdf, bmy, 9/23/02)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_VCLDF( State_Met )
 !
-!******************************************************************************
-!  Subroutine GET_VCLDF computes the volume cloud fraction for SO2 chemistry.
-!  (rjp, bdf, bmy, 9/23/02)
+! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !REMARKS:
 !  References:
 !  ============================================================================
 !  (1) Sundqvist et al. [1989]
 !
-!  NOTES:
-!  (1 ) Copied from 'sulfate_mod.f' for cloud uptake of GLYX and MGLY (tmf, 2/26/07)
+! !REVISION HISTORY:
+!  (1 ) Copied from 'sulfate_mod.f' for cloud uptake of GLYX and MGLY (tmf,
+!       2/26/07)
 !  14 Jan 2011 - R. Yantosca - Return if VCLDF is not allocated
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
-!******************************************************************************
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules 
-      USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
-
-      ! Arguments
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
-      ! Local variables
+! !DEFINED PARAMETERS:
+!
+      REAL*8,  PARAMETER          :: ZRT = 0.60d0, ZRS = 0.99d0
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                     :: I,    J,    L
       REAL*8                      :: PRES, PSFC, RH2, R0, B0
-                                 
-      ! Parameters               
-      REAL*8,  PARAMETER          :: ZRT = 0.60d0, ZRS = 0.99d0
 		
       !=================================================================
       ! GET_VCLDF begins here!
@@ -10625,32 +10810,39 @@ ccc
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE GET_VCLDF
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_lwc
+!
+! !DESCRIPTION: Function GET\_LWC returns the cloud liquid water content
+!  [g H2O/m3 air] at a GEOS-CHEM grid box as a function of temperature.
+!  (rjp, bmy, 10/31/02, 1/14/03)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_LWC( T ) RESULT( LWC )
 !
-!******************************************************************************
-!  Function GET_LWC returns the cloud liquid water content [g H2O/m3 air] at a 
-!  GEOS-CHEM grid box as a function of temperature. (rjp, bmy, 10/31/02, 
-!  1/14/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) T (REAL*8) : Temperature value at a GEOS-CHEM grid box [K]
+      REAL*8, INTENT(IN) :: T     ! Temperature [K]
 !
-!  NOTES:
+! !RETURN VALUE:
+!
+      REAL*8             :: LWC   ! Cloud liquid water content [g H2O/m3 air]
+!
+! !REVISION HISTORY:
 !  (1 ) Copied from 'sulfate_mod.f' for cloud uptake of GLYX and MGLY (tmf, 2/26/07)
 !  18 Jan 2011 - R. Yantosca - Updated comments
-!******************************************************************************
-!
-      ! Arguments
-      REAL*8, INTENT(IN) :: T
-
-      ! Function value
-      REAL*8             :: LWC
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       !=================================================================
       ! GET_LWC begins here!
@@ -10671,35 +10863,27 @@ ccc
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_LWC
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soag_cloud
+!
+! !DESCRIPTION: Subroutine SOAG\_CLOUD produces SOAG from GLYX during a cloud
+!  event. Mimics the SO2 -> SO4 process from 'sulfate_mod.f'.  (tmf, 2/26/07)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SOAG_CLOUD( State_Met, State_Chm )
-!
-!******************************************************************************
-!  Subroutine SOAG_CLOUD produces SOAG from GLYX during a cloud event.
-!  Mimics the SO2 -> SO4 process from 'sulfate_mod.f'.  (tmf, 2/26/07)
-!
-!  Procedure:
-!  ============================================================================
-!  (1 ) 
-!
-!  NOTES:
-!  (1 ) SOAG (SOA product of GLYX is produced at existing hydrophilic aerosol
-!        surface. (tmf, 2/26/07)
-!  (2 ) Assume marine and continental cloud droplet size (tmf, 2/26/07)
-!  14 Jan 2011 - R. Yantosca - Now compute cloud fraction and liquid water
-!                              content directly from GEOS-5 & MERRA met fields
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!******************************************************************************
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_LAND 
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -10707,12 +10891,45 @@ ccc
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
-
+!
+! !INPUT PARAMETERS:
+!
       ! Arguments
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
-      ! Local variables
+! 
+! !REVISION HISTORY:
+!  (1 ) SOAG (SOA product of GLYX is produced at existing hydrophilic aerosol
+!        surface. (tmf, 2/26/07)
+!  (2 ) Assume marine and continental cloud droplet size (tmf, 2/26/07)
+!  14 Jan 2011 - R. Yantosca - Now compute cloud fraction and liquid water
+!                              content directly from GEOS-5 & MERRA met fields
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4 ! Cloud droplet radius in
+                                               !  continental warm clouds [cm]
+      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4 ! Cloud droplet radius in marine
+                                               !  warm clouds [cm]
+      REAL*8, PARAMETER :: XMW = 58.d0         ! Molec wt of glyoxal [g/mole]
+      REAL*8, PARAMETER :: XNAVO = 6.023d23    ! Avogadro's number
+      REAL*8, PARAMETER :: MINDAT = 1.d-20     ! Minimum GLYX mixing ratio to
+                                               !  calculate cloud uptake
+      REAL*8, PARAMETER :: XGAMMA = 2.9d-3     ! Uptake coefficient (Assume
+                                               !  XGAMMA = 2.9d-3 following
+                                               ! Liggio et al., 2005)
+!
+! !LOCAL VARIABLES:
+!
       INTEGER           :: I, J, L
       REAL*8            :: DTCHEM    ! Chemistry time step [s]
       REAL*8            :: XAIRM     ! Air mass [kg/box]
@@ -10733,26 +10950,13 @@ ccc
       REAL*8            :: FC        ! Cloud fraction by volume [unitless]
       REAL*8            :: LWC       ! Liquid water content [g/m3]
 
-      ! Parameters
-      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4 ! Cloud droplet radius in
-                                               !  continental warm clouds [cm]
-      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4 ! Cloud droplet radius in marine
-                                               !  warm clouds [cm]
-      REAL*8, PARAMETER :: XMW = 58.d0         ! Molec wt of glyoxal [g/mole]
-      REAL*8, PARAMETER :: XNAVO = 6.023d23    ! Avogadro's number
-      REAL*8, PARAMETER :: MINDAT = 1.d-20     ! Minimum GLYX mixing ratio to
-                                               !  calculate cloud uptake
-      REAL*8, PARAMETER :: XGAMMA = 2.9d-3     ! Uptake coefficient (Assume
-                                               !  XGAMMA = 2.9d-3 following
-                                               ! Liggio et al., 2005)
-
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
-      ! SOAG_CLOUD
+      ! SOAG_CLOUD begins here!
       !=================================================================
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -10897,32 +11101,27 @@ ccc
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program 
       END SUBROUTINE SOAG_CLOUD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soam_cloud
+!
+! !DESCRIPTION: Subroutine SOAM\_CLOUD produces SOAM from MGLY during a cloud
+!  event. Mimics the SO2 -> SO4 process from 'sulfate_mod.f'.  (tmf, 2/26/07)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SOAM_CLOUD( State_Met, State_Chm )
 !
-!******************************************************************************
-!  Subroutine SOAM_CLOUD produces SOAM from MGLY during a cloud event.
-!  Mimics the SO2 -> SO4 process from 'sulfate_mod.f'.  (tmf, 2/26/07)
+! !USES:
 !
-!  Procedure:
-!  ============================================================================
-!  (1 ) 
-!
-!  NOTES:
-!  (1 ) SOAM (SOA product of MGLY is produced at existing hydrophilic aerosol
-!        surface. (tmf, 2/26/07)
-!  (2 ) Assume typical marine and continental cloud droplet size (tmf, 2/26/07)
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!******************************************************************************
-!
-      ! Reference to diagnostic arrays
-      USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_LAND
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -10930,13 +11129,43 @@ ccc
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
-
-
-      !Arguments
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
-      ! Local variables
+! 
+! !REVISION HISTORY:
+!  (1 ) SOAM (SOA product of MGLY is produced at existing hydrophilic aerosol
+!        surface. (tmf, 2/26/07)
+!  (2 ) Assume typical marine and continental cloud droplet size (tmf, 2/26/07)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4 ! Cloud droplet radius in
+                                               !  continental warm clouds [cm]
+      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4 ! Cloud droplet radius in marine
+                                               !  warm clouds [cm]
+      REAL*8, PARAMETER :: XMW = 72.d0         ! Molec wt of methylglyoxal
+                                               !  [g/mole]
+      REAL*8, PARAMETER :: XNAVO = 6.023d23    ! Avogadro's number
+      REAL*8, PARAMETER :: MINDAT = 1.d-20     ! Minimum GLYX mixing ratio to
+                                               !  calculate cloud uptake
+      REAL*8, PARAMETER :: XGAMMA = 2.9d-3     ! Uptake coefficient (Assume
+                                               !  XGAMMA = 2.9d-3 following
+                                               !  Liggio et al., 2005)
+!
+! !LOCAL VARIABLES:
+!
       INTEGER           :: I, J, L
       REAL*8            :: DTCHEM    ! Chemistry time step [s]
       REAL*8            :: XAIRM     ! Air mass [kg/box]
@@ -10957,27 +11186,13 @@ ccc
       REAL*8            :: FC        ! Cloud fraction by volume [unitless]
       REAL*8            :: LWC       ! Liquid water content [g/m3]
 
-      ! Parameters
-      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4 ! Cloud droplet radius in
-                                               !  continental warm clouds [cm]
-      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4 ! Cloud droplet radius in marine
-                                               !  warm clouds [cm]
-      REAL*8, PARAMETER :: XMW = 72.d0         ! Molec wt of methylglyoxal
-                                               !  [g/mole]
-      REAL*8, PARAMETER :: XNAVO = 6.023d23    ! Avogadro's number
-      REAL*8, PARAMETER :: MINDAT = 1.d-20     ! Minimum GLYX mixing ratio to
-                                               !  calculate cloud uptake
-      REAL*8, PARAMETER :: XGAMMA = 2.9d-3     ! Uptake coefficient (Assume
-                                               !  XGAMMA = 2.9d-3 following
-                                               !  Liggio et al., 2005)
-
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
-      ! SOAG_CLOUD
+      ! SOAM_CLOUD begins here!
       !=================================================================
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -11120,90 +11335,96 @@ ccc
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program 
       END SUBROUTINE SOAM_CLOUD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_eqlb
+!
+! !DESCRIPTION: Subroutine CHECK\_EQLB makes sure aerosols are at equilibrium
+!  (checks SOA=SOG*KOM*Mo). Called inside SOA\_SVPOA\_CHEMISTRY I, J, L loop
+!  after SOA\_SVPOA\_LUMP. Created by Havala Pye (5/18/10).
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_EQLB( I,   J,   L, KOMIJL, CONVFAC, MSOACHEM, 
      &                       LOW, TOL, ASOANGAS, ASOANAER, OCPIOCPO,
      &                       State_Chm )
+!
+! !USES:
+!
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTASOAN
+      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
+      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOG1
+      USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTPOG2
+      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
+      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
+      USE TRACERID_MOD,       ONLY : IDTOCPI,  IDTOCPO
+      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
+      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
+      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      INTEGER,        INTENT(IN)  :: L           ! Altitude index
+      REAL*8,         INTENT(IN)  :: KOMIJL(MPROD,MSV) ! KOM at grid box (adj T)
+      REAL*8,         INTENT(IN)  :: CONVFAC     ! Conversion factor kg to ug/m3
+      REAL*8,         INTENT(IN)  :: OCPIOCPO    ! POA mass [ug/m3]
 
-!******************************************************************************
-!
-!  Subroutine CHECK_EQLB makes sure aerosols are at equilibrium (checks 
-!  SOA=SOG*KOM*Mo). Called inside SOA_CHEMISTRY I, J, L loop after SOA_LUMP
-!  created hotp 5/18/10
-!
+      ! Arguments for debugging
+      REAL*8,         INTENT(IN)  :: MSOACHEM    ! MNEW from calling prog
+      REAL*8,         INTENT(IN)  :: LOW         ! Lower bound on soln
+      REAL*8,         INTENT(IN)  :: TOL         ! Tolerance on soln
+      REAL*8,         INTENT(IN)  :: ASOANGAS    ! Gas phase ASOAN (should =0)
+      REAL*8,         INTENT(IN)  :: ASOANAER    ! Aer phase ASOAN [ug/m3]
+
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+! 
+! !REMARKS:
 !  Note: There are some deviations from equilibrium due to the fact
 !  that ASOAN is supposed to be nonvolatile, but is modeled with a KOM of 
 !  10^6. An adjustment is made in SOA_CHEMISTRY to force all ASOAN to
 !  the aerosol phase. This was found to lead to error up to 1e-5 ug/m3
 !  in Mo. This error is small, but the effects can be investigated 
 !  here if you're interested!
-!
+!                                                                             .
 !  As of 6/2010, KOM for ASOAN was increased and the error in Mo reduced.
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L (INTEGER): Grid box indices for lon, lat, vertical level
-!  (4)   KOMIJL   (REAL*8): KOM at grid box conditions (adjusted for T)
-!  (5)   CONVFAC  (REAL*8): Conversion factor for kg to ug/m3
-!  (6)   MSOACHEM (REAL*8): Tot organic partitioning medium from SOA_CHEM
-!  (7)   LOW      (REAL*8): Lower bound for bisection method in SOA_CHEM
-!  (8)   TOL      (REAL*8): Tolerance for bisection method in SOA_CHEM
-!  (9)   ASOANGAS (REAL*8): Gas phase ASOAN in ug/m3
-!  (10)  ASOANAER (REAL*8): Aerosol phase ASOAN in ug/m3
-!
-!  NOTES:
-!  ============================================================================
+! !REVISION HISTORY:
 !  (1)  Updated for TSOA and ISOA (hotp 5/24/10)
 !  (2)  Add OCPIOCPO and remove NOX (hotp 6/9/10)
 !  (3)  Add TSOA0 (hotp 6/12/10)
-!******************************************************************************
-
-      ! References to modules
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD, ONLY : IDTASOAN
-      USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOG1
-      USE TRACERID_MOD, ONLY : IDTPOA2,  IDTPOG2
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD, ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTOCPO
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-
-      ! Arguments (only inputs, no output)
-      INTEGER, INTENT(IN) :: I, J, L
-      REAL*8,  INTENT(IN) :: KOMIJL(MPROD,MSV), CONVFAC
-      REAL*8,  INTENT(IN) :: OCPIOCPO ! [ug/m3]
-      ! Arguments for debugging
-      REAL*8,  INTENT(IN) :: MSOACHEM ! MNEW from calling prog
-      REAL*8,  INTENT(IN) :: LOW      ! Lower bound on soln
-      REAL*8,  INTENT(IN) :: TOL      ! tolerance on soln
-      REAL*8,  INTENT(IN) :: ASOANGAS ! gas phase ASOAN (should =0)
-      REAL*8,  INTENT(IN) :: ASOANAER ! aer phase ASOAN
-      TYPE(ChmState), INTENT(IN) :: State_Chm ! Chemistry State object
-
-      ! Local variables
-      INTEGER             :: NOX, IPR, JHC, JSV
-      REAL*8              :: MOTEMP, OATEMP, EQLBDIFF
-
-      ! Parameters
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
       !REAL*8, PARAMETER   :: ACCEPTERRORUG = 1d-6 ! error in ug/m3
       ! KOM_REF for non-vol is larger, so error smaller (hotp 5/28/10)
       !REAL*8, PARAMETER   :: ACCEPTERRORUG = 1d-10 ! error in ug/m3
       ! relax error tolerance (KOM_REF for ASOAN still not perfect)
       ! hotp 6/11/10
       REAL*8, PARAMETER   :: ACCEPTERRORUG = 1d-8 ! error in ug/m3
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: NOX, IPR, JHC, JSV
+      REAL*8              :: MOTEMP, OATEMP, EQLBDIFF
 
       ! Pointers
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER     :: STT(:,:,:,:)
 
       !=================================================================
       ! CHECK_EQLB starts here
@@ -11481,48 +11702,58 @@ ccc
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program
       END SUBROUTINE CHECK_EQLB
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE SAVE_OAGINIT( State_Chm )
-
-!******************************************************************************
-!  Subroutine SAVE_OAGINIT saves total SOA+SOG before partitioning for 
-!  diagnostic purposes. Units are the same as the STT array (kg or kgC per box)
-!  created hotp 5/17/10
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!  Notes:
+! !IROUTINE: save_oaginit
+!
+! !DESCRIPTION: Subroutine SAVE\_OAGINIT saves total SOA+SOG before
+!  partitioning for diagnostic purposes. Units are the same as the STT array
+!  ([kg] or [kgC per box]).
+!  created hotp 5/17/10
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SAVE_OAGINIT( State_Chm )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTASOAN
+      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
+      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOG1
+      USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTPOG2
+      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
+      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
+      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
+      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
+      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+!
+! !REVISION HISTORY:
 !  (1) added TSOA and ISOA (hotp 5/24/10)
 !  (2) OAGINITSAVE dimensions changes from (I,J,L,NOx,NPROD,JSV) to
 !      (I,J,L,NPROD,JSV)
 !  (3) Add compatability with non-vol sim (hotp 6/7/10)
-!******************************************************************************
-
-      ! References to modules
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD, ONLY : IDTASOAN
-      USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD, ONLY : IDTPOA1, IDTPOG1
-      USE TRACERID_MOD, ONLY : IDTPOA2, IDTPOG2
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD, ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-
-      USE CMN_SIZE_MOD       ! Size parameters
-
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-! !INPUT PARAMETERS: 
+! !LOCAL VARIABLES:
 !
-      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
-
-      ! Local variables
       INTEGER :: I, J, L, NOX, JHC, JSV
 
       ! Pointers
@@ -11615,67 +11846,79 @@ ccc
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program
       END SUBROUTINE SAVE_OAGINIT
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CHECK_MB( am_I_Root, Input_Opt, State_Met, State_Chm )
-
-!******************************************************************************
-!  Subroutine CHECK_MB checks total SOA+SOG mass balance for diagnostic/
-!  debugging purposes. Units are the same as the STT array (kg or kgC per box)
-!  Routine also prints helpful budget info
-!  created hotp 5/18/10
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!  Notes:
+! !IROUTINE: check_mb
+!
+! !DESCRIPTION: Subroutine CHECK\_MB checks total SOA+SOG mass balance for
+!  diagnostic/debugging purposes. Units are the same as the STT array ([kg] or
+!  [kgC per box]). Routine also prints helpful budget info. Created by Havala
+!  Pye (5/18/10).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHECK_MB( am_I_Root, Input_Opt, State_Met, State_Chm )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTASOAN
+      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOA2, IDTASOA3
+      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
+      USE TRACERID_MOD,       ONLY : IDTPOA2, IDTPOG2
+      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOG1
+      USE TRACERID_MOD,       ONLY : IDTOPOA2, IDTOPOG2
+      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
+      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
+      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      ! for debug:
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+!
+! !REVISION HISTORY:
 !  (1) added monoterpene, sesq, isoprene SOA (hotp 5/24/10)
 !  (2) updated OAGINITSAVE dimensions (hotp 5/24/10)
 !  (3) keeps track and prints to screen amount of parent HC reacted
 !      with each oxidant cumulative (hotp 5/24/10)
 !  (4) Add non-volatile compatability (hotp 6/9/10)
-!******************************************************************************
-
-      ! References to modules
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,   ONLY : IDTASOAN
-      USE TRACERID_MOD,   ONLY : IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,   ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD,   ONLY : IDTPOA1, IDTPOG1
-      USE TRACERID_MOD,   ONLY : IDTPOA2, IDTPOG2
-      USE TRACERID_MOD,   ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD,   ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD,   ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,   ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,   ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,   ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,   ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-      ! for debug:
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-
-      USE CMN_SIZE_MOD         ! Size parameters
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-! !INPUT PARAMETERS:
+! !DEFINED PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
-
-      ! Local variables
+      ! [kg/kg] of acceptable error, 1d-12 = 1d-10 %
+      !REAL*8, PARAMETER  :: ACCEPTERROR = 1d-12 
+      ! more strict (hotp 5/26/10): 1d-12 %
+      REAL*8, PARAMETER  :: ACCEPTERROR = 1d-14
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
       LOGICAL :: prtDebug
       INTEGER :: I, J, L, NOX, JHC, JSV, IPR
       REAL*8  :: TEMPDELTA(MNOX,MPROD)
       REAL*8  :: TEMPSOAG
       REAL*8  :: MBDIFF
-
-      ! Parameters
-      ! [kg/kg] of acceptable error, 1d-12 = 1d-10 %
-      !REAL*8, PARAMETER  :: ACCEPTERROR = 1d-12 
-      ! more strict (hotp 5/26/10): 1d-12 %
-      REAL*8, PARAMETER  :: ACCEPTERROR = 1d-14 
 
       ! For fields from Input_Opt
       LOGICAL         :: LPRT
@@ -12151,42 +12394,53 @@ ccc
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program
       END SUBROUTINE CHECK_MB
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_no
+!
+! !DESCRIPTION: Function GET\_NO returns NO from SMVGEAR's CSPEC array 
+! (for coupled runs). (hotp 5/7/2010)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NO( I, J, L ) RESULT( NO_MOLEC_CM3 )
 !
-!******************************************************************************
+! !USES:
 !
-!  Function GET_NO returns NO from SMVGEAR's CSPEC array (for coupled runs)
-!  (hotp 5/7/2010)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
-!
-!  NOTES:
-!  (1 ) We assume SETTRACE has been called to define IDNO (bmy, 11/1/02)
-!  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
-!  (4 ) Based on GET_OH (hotp 5/7/2010)
-!******************************************************************************
-!
-      ! References to F90 modules
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,    ONLY : CSPEC, JLOP
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,  ONLY : IDNO
-
-      USE CMN_SIZE_MOD        ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
-
-      ! Local variables
-      INTEGER             :: JLOOP
-      REAL*8              :: NO_MOLEC_CM3
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)    :: I    ! Longitude index
+      INTEGER, INTENT(IN)    :: J    ! Latitude index
+      INTEGER, INTENT(IN)    :: L    ! Altitude index
+!
+! !RETURN VALUE
+!
+      REAL*8                 :: NO_MOLEC_CM3
+!
+! !REVISION HISTORY:
+!  (1 ) We assume SETTRACE has been called to define IDNO (bmy, 11/1/02)
+!  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  (4 ) Based on GET_OH (hotp 5/7/2010)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: JLOOP
  
       !=================================================================
       ! GET_NO begins here!
@@ -12218,42 +12472,53 @@ ccc
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_NO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ho2
+!
+! !DESCRIPTION: Function GET\_HO2 returns HO2 from SMVGEAR's CSPEC array 
+! (for coupled runs). Created by Havala Pye (5/7/2010).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_HO2( I, J, L ) RESULT( HO2_MOLEC_CM3 )
 !
-!******************************************************************************
+! !USES:
 !
-!  Function GET_HO2 returns HO2 from SMVGEAR's CSPEC array (for coupled runs)
-!  (hotp 5/7/2010)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
-!
-!  NOTES:
-!  (1 ) We assume SETTRACE has been called to define IDHO2 (bmy, 11/1/02)
-!  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
-!  (4 ) Based on GET_OH (hotp 5/6/2010)
-!******************************************************************************
-!
-      ! References to F90 modules
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,    ONLY : CSPEC, JLOP
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,  ONLY : IDHO2
-
-      USE CMN_SIZE_MOD        ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
-
-      ! Local variables
-      INTEGER             :: JLOOP
-      REAL*8              :: HO2_MOLEC_CM3
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)    :: I    ! Longitude index
+      INTEGER, INTENT(IN)    :: J    ! Latitude index
+      INTEGER, INTENT(IN)    :: L    ! Altitude index
+!
+! !RETURN VALUE
+!
+      REAL*8                 :: HO2_MOLEC_CM3
+!
+! !REVISION HISTORY:
+!  (1 ) We assume SETTRACE has been called to define IDHO2 (bmy, 11/1/02)
+!  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  (4 ) Based on GET_OH (hotp 5/6/2010)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: JLOOP
  
       !=================================================================
       ! GET_HO2 begins here!
@@ -12285,49 +12550,57 @@ ccc
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_HO2
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_isopno3
+!
+! !DESCRIPTION: Modification of GET\_DOH that returns the amount of isoprene
+!  [kgC] that has reacted with NO3 during the last chemistry time step.
+!  (hotp 5/22/10)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_ISOPNO3( I, J, L ) RESULT( ISOPNO3 )
 !
-!******************************************************************************
+! !USES:
 !
-!  Modification of GET_DOH that returns the amount of isoprene [kgC] that has 
-!  reacted with NO3 during the last chemistry time step. (hotp 5/22/10)
-!  Location in CSPEC array is in comode.h
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
-!
-!
-!  NOTES:
-!  (1) IDLISOPNO3 is declared in tracerid_mod.f and initialized by SETTRACE
-!      in tracerid_mod (called in chemdr). Before each chemistry call,
-!      CSPEC(JLOOP,IDLISOPNO3) is zeroed so that the CSPEC array only stores
-!      the parent HC reacted during that timestep. (hotp 6/1/10)
-!******************************************************************************
-!
-      ! References to F90 modules
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD     ! ILISOPNO3
       USE COMODE_MOD,    ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,    ONLY : XNUMOL,             TRACER_COEFF
       USE TRACERID_MOD,  ONLY : IDTISOP
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE COMODE_LOOP_MOD     ! ILISOPNO3
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: I, J, L
-
-      ! Function returns 
-      REAL*8                 :: ISOPNO3
-
-      ! Local variables
-      INTEGER                :: JLOOP
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)    :: I        ! Longitude index
+      INTEGER, INTENT(IN)    :: J        ! Latitude index
+      INTEGER, INTENT(IN)    :: L        ! Altitude index
+!
+! !RETURN VALUE
+!
+      REAL*8                 :: ISOPNO3  ! Isoprene replaced with NO3 [kg C]
+!
+! !REVISION HISTORY:
+!  (1) IDLISOPNO3 is declared in tracerid_mod.f and initialized by SETTRACE
+!      in tracerid_mod (called in chemdr). Before each chemistry call,
+!      CSPEC(JLOOP,IDLISOPNO3) is zeroed so that the CSPEC array only stores
+!      the parent HC reacted during that timestep. (hotp 6/1/10)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: JLOOP
 
       !=================================================================
       ! GET_ISOPNO3 begins here!
@@ -12387,18 +12660,46 @@ ccc
 
       ENDIF 
 
-      ! Return to calling program
       END FUNCTION GET_ISOPNO3
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_carbon
+!
+! !DESCRIPTION: Subroutine INIT\_CARBON initializes all module arrays. 
+!  (rjp, bmy, 4/1/04, 12/19/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_CARBON( am_I_Root, Input_Opt, RC )
 !
-!******************************************************************************
-!  Subroutine INIT_CARBON initializes all module arrays. 
-!  (rjp, bmy, 4/1/04, 12/19/09)
+! !USES:
 !
-!  NOTES:
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
+      USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
+!------------------------------------------------------------------------------
+! Prior to 8/13/13:
+!      USE TRACERID_MOD,       ONLY : IDTSOA5 (hotp 7/28/10)
+!------------------------------------------------------------------------------
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
 !  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
 !  (3 ) Now reference LSOA from "logical_mod.f" not CMN_SETUP.  Now call
@@ -12417,29 +12718,10 @@ ccc
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
-      USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      USE TRACERID_MOD,       ONLY : IDTSOA5 (hotp 7/28/10)
-!------------------------------------------------------------------------------
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root 
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -12921,23 +13203,32 @@ ccc
          ENDDO
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE INIT_CARBON
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_carbon
+!
+! !DESCRIPTION: Subroutine CLEANUP\_CARBON deallocates all module arrays 
+!  (rjp, bmy, 4/1/04, 7/8/04)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_CARBON
 !
-!******************************************************************************
-!  Subroutine CLEANUP_CARBON deallocates all module arrays 
-!  (rjp, bmy, 4/1/04, 7/8/04)
-!
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Now deallocate arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
-!******************************************************************************
-!
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
       !=================================================================
       ! CLEANUP_CARBON begins here!
       !=================================================================
@@ -12980,10 +13271,6 @@ ccc
       IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
       IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_CARBON
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE CARBON_MOD

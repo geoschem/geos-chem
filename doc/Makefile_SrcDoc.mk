@@ -72,6 +72,7 @@
 #  13 Dec 2012 - R. Yantosca - Added biofit, sunparam, and removed some 
 #                              obsolete functions
 #  22 Jul 2013 - M. Sulprizio- Added rcp_mod
+#  20 Aug 2013 - M. Sulprizio- Added carbon_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -108,6 +109,7 @@ $(CORE)/bromocarb_mod.F               \
 $(CORE)/c2h6_mod.F                    \
 $(CORE)/cac_anthro_mod.F              \
 $(CORE)/canopy_nox_mod.F              \
+$(CORE)/carbon_mod.F                  \
 $(CORE)/chemistry_mod.F               \
 $(CORE)/co2_mod.F                     \
 $(CORE)/comode_mod.F                  \
