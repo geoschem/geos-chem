@@ -41,11 +41,9 @@
 # selected by the user is case-insensitive:
 # 
 #   # %%%%% GEOS-5 %%%%%
-#   ifdef MET
 #   REGEXP    := ((^[Gg][Ee][Oo][Ss])?5|.5)
-#   ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+#   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
 #   USER_DEFS += -DGEOS_5
-#   endif
 #   endif
 #                                                                             .
 # The [[ ]] in bash is an evauluation.  The above ifeq statement uses regular
@@ -124,6 +122,7 @@
 #                              user options via the Make command
 #  14 Aug 2013 - R. Yantosca - Now use regular expressions to test the
 #                              validity of command-line inputs
+#  21 Aug 2013 - R. Yantosca - Improved error checking for command line inputs
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -135,11 +134,17 @@
 # Set default shell to bash, for use with the Makefile conditionals
 SHELL     := /bin/bash
 
+# Error message for bad COMPILER input
+ERR_CMPLR := "Select a compiler: COMPILER=ifort, COMPILER=pgi"
+
 # Error message for bad MET input
 ERR_MET   := "Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp)"
 
 # Error message for bad GRID input
 ERR_GRID  := "Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125"
+
+# Error message for bad NEST input
+ERR_NEST  := "Select a nested grid: NEST=ch, NEST=eu, NEST=na"
 
 # Library include path
 NCI       := -I$(GC_INCLUDE)
@@ -179,9 +184,9 @@ LHG       := $(LINK) -lNcUtils $(NCL)
 # for more info: http://www.tldp.org/LDP/abs/html/x17046.html
 #==============================================================================
 
-#---------------------------------------
+#------------------------------------------------------------------------------
 # Compiler settings
-#---------------------------------------
+#------------------------------------------------------------------------------
 
 # %%%%% OpenMP parallelization default) %%%%%
 ifndef OMP
@@ -193,240 +198,233 @@ ifndef COMPILER
 COMPILER  := ifort
 endif
 REGEXP    := (^[Ii][Ff][Oo][Rr][Tt])
-ifeq ($(shell [[ $(COMPILER) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DLINUX_IFORT
 endif
 
 # %%%%% PGI compiler %%%%%
 REGEXP    := (^[Pp][Gg][Ii])
-ifeq ($(shell [[ $(COMPILER) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DLINUX_PGI
 endif
 
-#---------------------------------------
+# %%%%% ERROR CHECK!  Make sure our COMPILER selection is valid! %%%%%
+REGEXP    := ((-DLINUX_)?IFORT|PGI)
+ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+$(error $(ERR_CMPLR))
+endif
+
+#------------------------------------------------------------------------------
 # Met field settings
-#---------------------------------------
+#------------------------------------------------------------------------------
 
 # If the user has omitted MET, then throw an error UNLESS we are trying
 # to compile with "clean", "distclean", "realclean", "doc", "help",
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of MET.
 ifndef MET
-ifndef MAKECMDGOALS
-$(error $(ERR_MET))
+REGEXP    :=  ($clean|^doc|^help|^libnc|^ncdfcheck)
+ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ $(REGEXP) ]] && echo true),true)
+NO_MET_NEEDED := 1
 else
-REGEXP :=  ($clean|^doc|^help|^libnc|^ncdfcheck)
-ifneq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
 $(error $(ERR_MET))
-endif
 endif
 endif
 
+# We can skip the following checks for targets that don't require MET
+ifndef NO_MET_NEEDED 
+
 # %%%%% GCAP %%%%%
-ifdef MET
 REGEXP    := (^[Gg][Cc][Aa][Pp])
-ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DGCAP
-endif
 endif
 
 # %%%%% GEOS-4 %%%%%
-ifdef MET
 REGEXP    := ((^[Gg][Ee][Oo][Ss])?4|.4)
-ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DGEOS_4
-endif
 endif
 
 # %%%%% GEOS-5 %%%%%
-ifdef MET
 REGEXP    := ((^[Gg][Ee][Oo][Ss])?5|.5)
-ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DGEOS_5
-endif
 endif
 
 # %%%%% MERRA %%%%%
-ifdef MET
 REGEXP    := (^[Mm][Ee][Rr][Rr][Aa])
-ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DMERRA
-endif
 endif
 
 # %%%%% GEOS-FP %%%%%
-ifdef MET
 REGEXP    := (^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
-ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DGEOS_57
 endif
-endif
 
-# %%%%% REDUCED VERTICAL GRID %%%%
-# Assume a reduced vertical grid, unless specified otherwise
+# %%%%% REDUCED VERTICAL GRID (default, unless specified otherwise) %%%%
 ifndef NO_REDUCED
 USER_DEFS += -DGRIDREDUCED
 else
 REGEXP := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(NO_REDUCED) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(NO_REDUCED)" =~ $(REGEXP) ]] && echo true),true)
 endif
 endif
 
-#---------------------------------------
+# %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
+REGEXP := (\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_57)
+ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+$(error $(ERR_MET))
+endif
+
+endif  # NO_MET_NEEDED
+
+#------------------------------------------------------------------------------
 # Horizontal grid settings
-#---------------------------------------
+#------------------------------------------------------------------------------
 
 # If the user has omitted GRID, then throw an error UNLESS we are trying
 # to compile with "clean", "distclean", "realclean", "doc", "help",
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
-ifndef MET
-ifndef MAKECMDGOALS
-$(error $(ERR_GRID))
-else
+ifndef GRID
 REGEXP := ($clean|^doc|^help|^libnc|^ncdfcheck)
-ifneq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
+NO_GRID_NEEDED := 1
+else
 $(error $(ERR_GRID))
-endif
 endif
 endif
 
+# We can skip the following checks for targets that don't require GRID
+ifndef NO_GRID_NEEDED
+
 # %%%%% 4 x 5 %%%%%
-ifdef GRID
 REGEXP    := (^4.5|^4\.0.5\.0)
-ifeq ($(shell [[ $(GRID) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DGRID4x5
-endif
 endif
 
 # %%%%% 2 x 2.5 %%%%%
-ifdef GRID
 REGEXP    := (^2.25|^2.2\.5|^2\.0.2\.5)
-ifeq ($(shell [[ $(GRID) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DGRID2x25
-endif
 endif
 
 # %%%%% 1 x 1.25 %%%%%
-ifdef GRID
 REGEXP    := (^1.125|^1.1\.25|^1\.0.1\.25)
-ifeq ($(shell [[ $(GRID) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DGRID1x125
-endif
 endif
 
 # %%%%% 0.5 x 0.666 %%%%%
-ifdef GRID
 REGEXP    := (^05.066.|^0\.5.0\.066.)
-ifeq ($(shell [[ $(GRID) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 
 # Ensure that MET=geos5
-ifdef MET
 REGEXP    := ((^[Gg][Ee][Oo][Ss])?5|.5)
-ifneq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
 $(error When GRID=05x0666, you can only use MET=geos5)
-endif
 endif
 
 # Ensure that a nested-grid option is selected
 ifndef NEST
 $(error Please select a nested grid option, e.g. NEST=ch, NEST=eu, NEST=na)
 else
+NEST_NEEDED := 1
 USER_DEFS += -DGRID05x0666
-endif
 endif
 endif
 
 # %%%%% 0.25 x 0.3125 %%%%%
-ifdef GRID
 REGEXP    := (^025.03125|^0\.25.0\.3125)
-ifeq ($(shell [[ $(GRID) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 
 # Ensure that MET=geos-fp
-ifdef MET
 REGEXP    := (^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
-ifneq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
 $(error When GRID=025x03125, you can only use MET=geos-fp)
-endif
 endif
 
 # Ensure that a nested-grid option is selected
 ifndef NEST
 $(error Please select a nested grid option, e.g. NEST=ch, NEST=eu, NEST=na)
 else
+NEST_NEEDED := 1
 USER_DEFS += -DGRID025x03125
 endif
 endif
+
+# %%%%% ERROR CHECK!  Make sure our GRID selection is valid! %%%%%
+REGEXP := ((\-DGRID)?4x5|2x25|1x125|05x0666|025x03125)
+ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+$(error $(ERR_GRID))
 endif
 
-#---------------------------------------
+#------------------------------------------------------------------------------
 # Nested grid settings
-#---------------------------------------
+#------------------------------------------------------------------------------
 
 # %%%%% China (CH) %%%%%
-ifdef NEST
 REGEXP    := (^[Cc][Hh])
-ifeq ($(shell [[ $(NEST) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DNESTED_CH
-endif
 endif
 
 # %%%%% Europe (EU) %%%%%
-ifdef NEST
 REGEXP    := (^[Ee][Uu])
-ifeq ($(shell [[ $(NEST) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DNESTED_EU
-endif
 endif
 
 # %%%%% North America (NA) %%%%%
-ifdef NEST
 REGEXP    := (^[Nn][Aa])
-ifeq ($(shell [[ $(NEST) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DNESTED_NA
 endif
+
+# %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
+ifdef NEST_NEEDED
+REGEXP := ((\-DNESTED_)?CH|NA|EU)
+ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+$(error $(ERR_NEST))
+endif
 endif
 
-#---------------------------------------
+endif  # NO_GRID_NEEDED
+
+#------------------------------------------------------------------------------
 # Aerosol microphysics settings
-#---------------------------------------
+#------------------------------------------------------------------------------
 
 # %%%%% TOMAS, 30 bins (default) %%%%%
-ifdef TOMAS
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(TOMAS) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(TOMAS)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DTOMAS
-endif
 endif
 
 # %%%%% TOMAS, 40 bins %%%%%
-ifdef TOMAS40
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(TOMAS40) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(TOMAS40)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DTOMAS -DTOMAS40
-endif
 endif
 
 # %%%%% TOMAS, 15 bins %%%%% 
-ifdef TOMAS15
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(TOMAS15) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(TOMAS15)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DTOMAS -DTOMAS15
-endif
 endif
 
 # %%%%% TOMAS, 12 bins %%%%%
-ifdef TOMAS12
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(TOMAS12) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(TOMAS12)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DTOMAS -DTOMAS12
-endif
 endif
 
 # %%%%% APM %%%%%
-ifdef APM
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(APM) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(APM)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DAPM
-endif
 endif
 
 #---------------------------------------
@@ -434,19 +432,15 @@ endif
 #---------------------------------------
 
 # Specify GTMM mercury model
-ifdef GTMM_Hg
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(GTMM_Hg) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(GTMM_Hg)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DGTMM_Hg
-endif
 endif
 
 # Option to turn off ISORROPIA for testing
-ifdef NO_ISO
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(NO_ISO) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(NO_ISO)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DNO_ISORROPIA
-endif
 endif
 
 #---------------------------------------
@@ -454,27 +448,21 @@ endif
 #---------------------------------------
 
 # %%%%% DEVEL %%%%%
-ifdef DEVEL
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(DEVEL) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(DEVEL)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DDEVEL
-endif
 endif
 
 # %%%%% EXTERNAL_GRID %%%%%
-ifdef EXTERNAL_GRID
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(EXTERNAL_GRID) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(EXTERNAL_GRID)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DEXTERNAL_GRID
-endif
 endif
 
 # %%%%% EXTERNAL_FORCING %%%%%
-ifdef EXTERNAL_FORCING
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ $(EXTERNAL_FORCING) =~ $(REGEXP) ]] && echo true),true)
+ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DEXTERNAL_FORCING
-endif
 endif
 
 #==============================================================================
