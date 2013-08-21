@@ -5324,7 +5324,9 @@
 ! !DESCRIPTION: Subroutine SOA\_PARTITION partitions the mass of gas and
 !  aerosol tracers according to five Hydrocarbon species and three oxidants.
 !  (rjp, bmy, 7/7/04, 5/22/06)
-!  Revised purpose: SOA_PARTITION assigns the mass in the STT array to 
+!\\
+!\\
+!  Revised purpose: SOA\_PARTITION assigns the mass in the STT array to 
 !  the GM0 and AM0 arrays (hotp 5/13/10)
 !\\
 !\\
@@ -9988,7 +9990,7 @@ ccc
 !
 ! !IROUTINE: get_oh
 !
-! !DESCRIPTION: Function GET\OH returns OH from SMVGEAR's CSPEC array (for
+! !DESCRIPTION: Function GET\_OH returns OH from SMVGEAR's CSPEC array (for
 !  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
 !  variation on OH for offline simulations. (bmy, 7/9/04)
 !\\
@@ -10873,7 +10875,7 @@ ccc
 ! !IROUTINE: soag_cloud
 !
 ! !DESCRIPTION: Subroutine SOAG\_CLOUD produces SOAG from GLYX during a cloud
-!  event. Mimics the SO2 -> SO4 process from 'sulfate_mod.f'.  (tmf, 2/26/07)
+!  event. Mimics the SO2 -> SO4 process from 'sulfate\_mod.f'.  (tmf, 2/26/07)
 !\\
 !\\
 ! !INTERFACE:
@@ -11111,7 +11113,7 @@ ccc
 ! !IROUTINE: soam_cloud
 !
 ! !DESCRIPTION: Subroutine SOAM\_CLOUD produces SOAM from MGLY during a cloud
-!  event. Mimics the SO2 -> SO4 process from 'sulfate_mod.f'.  (tmf, 2/26/07)
+!  event. Mimics the SO2 -> SO4 process from 'sulfate\_mod.f'.  (tmf, 2/26/07)
 !\\
 !\\
 ! !INTERFACE:
