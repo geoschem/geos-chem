@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -333,6 +332,7 @@
 !  02 Apr 2013 - M. Payer    - Removed *NO, *NO2, and *NO3 arrays for ND43
 !                              diagnostic. These are no longer needed because
 !                              NO, NO2, and NO3 are now tracers.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

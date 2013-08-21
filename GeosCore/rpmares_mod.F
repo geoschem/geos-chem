@@ -43,10 +43,10 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now only apply RPMARES to boxes in the troposphere. (bmy, 4/3/08)
 !  (7 ) Add bug fix for low ammonia case in RPMARES (phs, bmy, 4/10/08)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 

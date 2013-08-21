@@ -17,8 +17,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : ABSHUM
       USE COMODE_MOD,         ONLY : AIRDENS
@@ -111,6 +109,7 @@
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid
 !  01 Mar 2013 - R. Yantosca - Now set RC to GIGC_SUCCESS for default
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

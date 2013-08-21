@@ -21,7 +21,6 @@
       USE inquireMod,    ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS: 
@@ -140,6 +139,7 @@
 !  13 Mar 2013 - R. Yantosca   - Bug fix: make sure we pass values to the
 !                                SOIL_DRYDEP routine even when ND44 is off
 !  30 May 2013 - S. Farina     - Merged TOMAS code into sulfate_mod.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4948,7 +4948,6 @@
 !                 
       USE ERROR_MOD,    ONLY : ERROR_STOP
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !             
@@ -4963,6 +4962,7 @@
 !
 ! !REVISION HISTORY: 
 !  27 Oct 2009 - P. Le Sager - initial
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

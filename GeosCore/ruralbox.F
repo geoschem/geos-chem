@@ -23,9 +23,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER,      GET_PEDGE
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
-
-#     include "define.h"
-
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! NPVERT
 
@@ -72,6 +69,7 @@
 !  10 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

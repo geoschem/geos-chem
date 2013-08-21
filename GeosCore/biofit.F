@@ -18,7 +18,6 @@
       USE CMN_SIZE_MOD, ONLY : NPOLY        ! # of drydep coefficients
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -38,6 +37,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  13 Dec 2012 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

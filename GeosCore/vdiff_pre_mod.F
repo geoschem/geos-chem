@@ -15,12 +15,10 @@
 ! !USES:
 !
       USE TRACER_MOD, ONLY : N_TRACERS
-
-#     include "define.h"
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD                    ! IDEMS, NEMIS, NCS
-      USE CMN_O3_MOD                      ! EMISRR, EMISRRN
-      USE CMN_DIAG_MOD                    ! ND15
+      USE COMODE_LOOP_MOD                   ! IDEMS, NEMIS, NCS
+      USE CMN_O3_MOD                        ! EMISRR, EMISRRN
+      USE CMN_DIAG_MOD                      ! ND15
 
       IMPLICIT NONE
 
@@ -47,6 +45,7 @@
 ! !REVISION HISTORY:
 !  01 Jun 2009 - C. Carouge & J. Lin - Initial version  
 !  07 Oct 2009 - R. Yantosca         - Added CVS Id tag  
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -127,8 +127,6 @@
       USE GIGC_State_Met_Mod    ! Derived type for Meteorology State object
 
       IMPLICIT NONE
-
-#     include "define.h"
 !
 ! !REMARKS:
 !                                                                             .
@@ -229,6 +227,7 @@
 !  29 Mar 2013 - R. Yantosca - Bring code out of DEVEL blocks
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object to STDRUN routine
 !  03 Jun 2013 - R. Yantosca - Use routines from updated mercury_mod.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -22,7 +22,6 @@
       USE inquireMod,    ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS: 
@@ -135,6 +134,7 @@
 !  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !  13 Mar 2012 - M. Cooper     - Changed regrid algorithm to map_a2a
 !  28 Nov 2012 - R. Yantosca   - Use SUNCOS fields from the State_Met object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4905,7 +4905,6 @@
 !                 
       USE ERROR_MOD,    ONLY : ERROR_STOP
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !             
@@ -4920,6 +4919,7 @@
 !
 ! !REVISION HISTORY: 
 !  27 Oct 2009 - P. Le Sager - initial
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

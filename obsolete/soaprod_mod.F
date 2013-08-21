@@ -31,10 +31,10 @@
 !  NOTES:
 !  (1 ) Based on restart_mod.f (dkh, 11/09/06) 
 !  (2 ) Removed debug output (bmy, 4/21/10)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 

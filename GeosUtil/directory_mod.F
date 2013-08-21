@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC DATA MEMBERS:
@@ -43,6 +42,13 @@
       CHARACTER(LEN=255) :: TPBC_DIR_SE   ! Dir w/ TPCORE BC's for SEAC4RS grid
       CHARACTER(LEN=255) :: POP_EMISDIR   ! Dir w/ POPS emissions files
 !
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS NOW OBSOLETE AND IS SLATED TO BE REMOVED!   %%%
+!  %%%  WE NOW USE THE DIR NAMES FROM Input_Opt INSTEAD OF FROM HERE.    %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  25 May 2005 - R. Yantosca - Added variables GCAP_DIR and GEOS_5_DIR
@@ -54,6 +60,7 @@
 !  01 Feb 2012 - R. Yantosca - Added GEOS_57_DIR for GEOS-5.7.x met fields
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  29 May 2012 - S. Kim      - Added directory for SEAC4RS BCs
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

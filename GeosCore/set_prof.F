@@ -22,8 +22,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_SIZE_MOD,  ONLY : LLPAR
       USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ  
       USE JV_CMN_MOD            
@@ -89,6 +87,7 @@
 !        i.e. after 2008. (ccc, 7/13/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  02 Aug 2012 - R. Yantosca - Use online temperature when connecting to GCM
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -105,28 +105,28 @@
 !==============================================================================
 ! Undefine all "switches" so that they cannot be accidentally reset  
 !==============================================================================
-#undef GCAP
-#undef GEOS_4
-#undef GEOS_5
-#undef GEOS_57
-#undef MERRA
-#undef GRIDREDUCED
-#undef GRID4x5
-#undef GRID2x25  
-#undef GRID1x125
-#undef GRID1x1
-#undef GRID025x03125
-#undef GRID05x0666
-#undef NESTED_NA
-#undef NESTED_CH
-#undef SEAC4RS
-#undef NESTED_EU
-#undef IBM_AIX
-#undef IBM_XLF
-#undef LINUX_PGI
-#undef LINUX_IFORT
-#undef SPARC
-#undef GTMM_Hg
+!#undef GCAP
+!#undef GEOS_4
+!#undef GEOS_5
+!#undef GEOS_57
+!#undef MERRA
+!#undef GRIDREDUCED
+!#undef GRID4x5
+!#undef GRID2x25  
+!#undef GRID1x125
+!#undef GRID1x1
+!#undef GRID025x03125
+!#undef GRID05x0666
+!#undef NESTED_NA
+!#undef NESTED_C
+!#undef SEAC4RS
+!#undef NESTED_EU
+!#undef IBM_AIX
+!#undef IBM_XLF
+!#undef LINUX_PGI
+!#undef LINUX_IFORT
+!#undef SPARC
+!#undef GTMM_Hg
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
@@ -137,7 +137,7 @@
 !----- Model types -----
 !#define GCAP             'GCAP'
 !#define GEOS_4           'GEOS_4'
-#define GEOS_5           'GEOS_5'
+!#define GEOS_5           'GEOS_5'
 !#define MERRA            'MERRA'
 !#define GEOS_57          'GEOS_57'
 
@@ -151,60 +151,60 @@
 !#define GRID1x1          'GRID1x1'
 !#define GRID1x125        'GRID1x125'
 !#define GRID2x25         'GRID2x25'
-#define GRID4x5          'GRID4x5'
-#define GRIDREDUCED      'GRIDREDUCED'
+!#define GRID4x5          'GRID4x5'
+!#define GRIDREDUCED      'GRIDREDUCED'
 
 !----- Compilers -----
 !#define IBM_AIX          'IBM_AIX'
 !#define IBM_XLF          'IBM_XLF'
 !#define LINUX_PGI        'LINUX_PGI'
-#define LINUX_IFORT      'LINUX_IFORT'
+!#define LINUX_IFORT      'LINUX_IFORT'
 !#define SPARC            'SPARC'
 
 !----- Simulation type -----
 !#define GTMM_Hg
 
-!==============================================================================
-! Force a compile error if a model type is undefined
-!==============================================================================
-#if !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57) && !defined(EXTERNAL_FORCING) && !defined( EXTERNAL_GRID )
-#error "ERROR: GEOS_4, GEOS_5, GEOS-5.7, MERRA, and GCAP"
-#error "are ALL undefined in header file define.h"
-#endif
-
-!==============================================================================
-! Force a compile error if a grid type is undefined
-!==============================================================================
-#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1) && !defined(GRID05x0666) && !defined(GRID025x03125) && !defined(EXTERNAL_GRID)
-#error "ERROR: GRID4x5, GRID2x25, GRID1x125, GRID1x1, "
-#error " GRID05x0666, and GRID025x03125"
-#error "are ALL undefined in header file define.h"
-#endif
-
-!==============================================================================
-! Force a compile error if all compiler switches are undefined
-!==============================================================================
-#if !defined(IBM_AIX) && !defined(IBM_XLF) && !defined(LINUX_PGI) && !defined(LINUX_IFORT) && !defined(SPARC)
-#error "ERROR: One of IBM_AIX, IBL_XLF, LINUX_PGI, LINUX_IFORT,"
- #error "SPARC must be defined in header file define.h"
-#endif
-
-!==============================================================================
-! If EXTERNAL_GRID or EXTERNAL_FORCING are used, undefine all other grids
-! when either EXTERNAL_GRID or EXTERNAL_FORCING are used.  This is to 
-! facilitate connecting to an external GCM such as the NASA GEOS-5 GCM.
-!==============================================================================
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-#undef GRIDREDUCED
-#undef GRID4x5
-#undef GRID2x25  
-#undef GRID1x125
-#undef GRID1x1
-#undef GRID025x03125
-#undef GRID05x0666
-#undef NESTED_NA
-#undef NESTED_CH
-#undef SEAC4RS
-#undef NESTED_EU
-#endif
+!!==============================================================================
+!! Force a compile error if a model type is undefined
+!!==============================================================================
+!#if !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57) && !defined(EXTERNAL_FORCING) && !defined( EXTERNAL_GRID )
+!#error "ERROR: GEOS_4, GEOS_5, GEOS-5.7, MERRA, and GCAP"
+!#error "are ALL undefined in header file define.h"
+!#endif
+!
+!!==============================================================================
+!! Force a compile error if a grid type is undefined
+!!==============================================================================
+!#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1) && !defined(GRID05x0666) && !defined(GRID025x03125) && !defined(EXTERNAL_GRID)
+!#error "ERROR: GRID4x5, GRID2x25, GRID1x125, GRID1x1, "
+!#error " GRID05x0666, and GRID025x03125"
+!#error "are ALL undefined in header file define.h"
+!#endif
+!
+!!==============================================================================
+!! Force a compile error if all compiler switches are undefined
+!!==============================================================================
+!#if !defined(IBM_AIX) && !defined(IBM_XLF) && !defined(LINUX_PGI) && !defined(LINUX_IFORT) && !defined(SPARC)
+!#error "ERROR: One of IBM_AIX, IBL_XLF, LINUX_PGI, LINUX_IFORT,"
+! #error "SPARC must be defined in header file define.h"
+!#endif
+!
+!!==============================================================================
+!! If EXTERNAL_GRID or EXTERNAL_FORCING are used, undefine all other grids
+!! when either EXTERNAL_GRID or EXTERNAL_FORCING are used.  This is to 
+!! facilitate connecting to an external GCM such as the NASA GEOS-5 GCM.
+!!==============================================================================
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#undef GRIDREDUCED
+!#undef GRID4x5
+!#undef GRID2x25  
+!#undef GRID1x125
+!#undef GRID1x1
+!#undef GRID025x03125
+!#undef GRID05x0666
+!#undef NESTED_NA
+!#undef NESTED_CH
+!#undef SEAC4RS
+!#undef NESTED_EU
+!#endif
 !EOC

@@ -235,6 +235,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations; Removed tracers
 !                              for old SOA simulation (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
 
@@ -243,7 +244,6 @@
       USE CMN_SIZE_MOD, ONLY : NNNTRID=>NNPAR
 
       IMPLICIT NONE
-#     include "define.h"
 
       INTEGER, PARAMETER :: MMMEMBER = 15
       INTEGER            :: NMEMBER(NNNTRID) 

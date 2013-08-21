@@ -16,8 +16,6 @@
 !
       IMPLICIT NONE
       PUBLIC
-
-#     include "define.h"
 !
 ! !DEFINED PARAMETERS:
 !
@@ -654,6 +652,7 @@
 !  05 Jun 2013 - R. Yantosca - Now define GEOS-5 0.25x0.3125 nested NA grid
 !  13 Aug 2013 - M. Sulprizio- Increase NNPAR & NBIOMAX for updated SOA and
 !                              SOA + semivolatile POA simulations (H. Pye) 
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

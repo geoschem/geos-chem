@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -110,6 +109,7 @@
 !                              level edges) instead of Psurface-PTOP.
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

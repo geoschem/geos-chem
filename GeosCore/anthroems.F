@@ -56,9 +56,6 @@
       USE CMN_O3_MOD                ! EMIST, EMISR, EMISRR, etc.
 
       IMPLICIT NONE
-#     include "define.h"
-
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -156,6 +153,7 @@
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  13 Aug 2013 - M. Sulprizio- Add NAP emissions for SOA + semivolatile POA
 !                              simulation (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

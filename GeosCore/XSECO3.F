@@ -3,7 +3,6 @@
 !-----------------------------------------------------------------------
 c  Cross-sections for O3 for all processes interpolated across 3 temps
 !-----------------------------------------------------------------------
-#     include "define.h"
 
       USE JV_CMN_MOD
 

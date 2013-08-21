@@ -19,7 +19,6 @@
 !
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -75,6 +74,7 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  04 Mar 2013 - R. Yantosca - Now call INIT_SULFATE from the init stage
 !                              which facilitates connection to GEOS-5 GCM
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

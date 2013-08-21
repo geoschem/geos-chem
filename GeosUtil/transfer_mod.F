@@ -17,11 +17,9 @@
 ! 
 ! !USES:
 !
+      USE CMN_SIZE_MOD              
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-#     include "define.h"
-      USE CMN_SIZE_MOD              
 
       IMPLICIT NONE
 
@@ -172,6 +170,7 @@
 !  01 Mar 2012 - R. Yantosca - Updated to use grid_mod.F90 for the GI model
 !  20 Jul 2012 - R. Yantosca - Add routine TRANSFER_3D_Bry, which takes
 !                              data sized (144,91,:) as inputs & outputs
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -16,8 +16,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_SIZE_MOD
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ  ! F77_CMN_SIZE  
       USE CMN_FJ_MOD, ONLY : RINDEX, RNAMES, BRANCH
@@ -42,6 +40,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

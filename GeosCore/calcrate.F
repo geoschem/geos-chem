@@ -95,6 +95,7 @@
 !                              that the plume parameterization calculates.
 !  06 Jun 2013 - M. Payer    - Move ship NOx plume emissions to routine
 !                              SETEMIS (C. Holmes)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
 ! !USES:
@@ -126,7 +127,6 @@
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTNIT
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1838,13 +1838,14 @@ c new OH+CO rate from JPL2006.
       !                              input.geos. Recommended value is 0.2
       !                              based on Jacob et al (2000) and Mao
       !                              et al. (2013).
+      !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is 
+      !                              now obsolete
       !=================================================================
       
       ! References to F90 modules 
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*8,  INTENT(IN) :: RADIUS, TEMP, DENAIR, HO2DENS, SQM

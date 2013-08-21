@@ -18,7 +18,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -62,6 +61,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -532,6 +532,8 @@
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  02 Jul 2013 - R. Yantosca - For GCAP, PBL is now State_Met%PBLH (similarly
 !                              for State_Met%PRECCON and State_Met%PRECTOT)
+!  13 Aug 2013 - R. Yantosca - For GEOS-4, PBL is now State_Met%PBLH (similarly
+!                              for State_Met%PRECCON and State_Met%PRECTOT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -573,9 +575,9 @@
      &              GWETTOP = State_Met%GWETTOP, 
      &              PARDF   = State_Met%PARDF,   
      &              PARDR   = State_Met%PARDR,  
-     &              PBL     = State_Met%PBL,         
-     &              PREACC  = State_Met%PREACC, 
-     &              PRECON  = State_Met%PRECON, 
+     &              PBL     = State_Met%PBLH,         
+     &              PREACC  = State_Met%PRECTOT, 
+     &              PRECON  = State_Met%PRECCON, 
      &              RADLWG  = State_Met%RADLWG,   
      &              RADSWG  = State_Met%RADSWG, 
      &              SNOW    = State_Met%SNOW,  

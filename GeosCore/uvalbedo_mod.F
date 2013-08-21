@@ -32,10 +32,10 @@
 !  (5 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (6 ) Bug fix for GCAP grid in READ_UVALBEDO (bmy, 8/16/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE VARIABLES

@@ -98,7 +98,6 @@
 #endif
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -256,6 +255,7 @@
 !                              for ND43. These are no longer needed because NO,
 !                              NO2, and NO3 are now tracers.
 !  13 Aug 2013 - M. Sulprizio- Modify AD07_HC for updated SOA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

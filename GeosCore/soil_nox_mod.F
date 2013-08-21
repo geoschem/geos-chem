@@ -17,7 +17,6 @@
       USE CMN_SIZE_MOD
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -95,7 +94,8 @@
 !                                  regridded) landfraction, climate and
 !                                  fertilizer data
 !  29 Aug 2012 - J.D. Maasakkers - Removed all unused Wang et al. code
-!                                  (comments)  
+!                                  (comments)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

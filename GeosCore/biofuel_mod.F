@@ -94,10 +94,10 @@
 !                              this had been done w/r/t the GMT time.
 !  13 Aug 2013 - M. Sulprizio- Add NAP biofuel emissions for SOA + semivolatile
 !                              POA simulation (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -234,6 +234,7 @@
 !                              this had been done w/r/t the GMT time.
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -282,7 +283,6 @@
       USE CMN_DIAG_MOD               ! ND29, ND32, ND34
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !

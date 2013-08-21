@@ -76,12 +76,12 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND48 a local module variable
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 

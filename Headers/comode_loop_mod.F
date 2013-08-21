@@ -19,8 +19,6 @@
 
       IMPLICIT NONE
       PUBLIC
-
-#     include "define.h"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -134,6 +132,7 @@
 !  19 Nov 2012 - R. Yantosca - Now use funcitions INIT_COMODE_LOOP and
 !                              CLEANUP_COMODE_LOOP to allocate/free arrays
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

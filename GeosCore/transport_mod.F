@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -69,6 +68,7 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
 !  21 Jun 2012 - R. Yantosca - Comment out GEOS-3 window subroutine
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

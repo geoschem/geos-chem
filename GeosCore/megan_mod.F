@@ -48,7 +48,6 @@
       USE ERROR_MOD                                    ! Error trapping
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
@@ -182,6 +181,7 @@
 !                               Add plant functional types (PFT_xx);
 !                               Rename GET_EMMONOG_MEGAN to GET_EMTERP_MEGAN;
 !                               Add routines READ_PFT and GET_AEF_GEN
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

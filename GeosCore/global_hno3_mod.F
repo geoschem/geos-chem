@@ -34,10 +34,10 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !   8 Feb 2012 - R. Yantosca - Add modifications for GEOS_5.7.x
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !     
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -134,6 +134,7 @@
 !  (9 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -146,7 +147,6 @@
       USE CMN_SIZE_MOD  ! Size parameters
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH

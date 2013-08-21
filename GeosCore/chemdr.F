@@ -55,7 +55,6 @@
       USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !

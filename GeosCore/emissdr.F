@@ -99,6 +99,7 @@
 !                              inventory (S. Eastham)
 !  13 Aug 2013 - M. Sulprizio- Update MEGAN biogenics to include sesquiterpenes
 !                              for updated SOA simulation (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -153,7 +154,6 @@
       USE COMMSOIL_MOD             ! Soil wetness variables
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !

@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h" 
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -56,6 +55,7 @@
 !  (7 ) Now modified
 !  22 Mar 2012 - M. Payer    - Add function GET_C2H6_ANTHRO
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

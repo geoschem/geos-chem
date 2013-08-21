@@ -46,13 +46,11 @@
 !                              ".rc" to input.geos (instead of ___.rc)
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
 ! !USES:
 !
-#     include "define.h"
-
-      ! References to F90 modules
       USE DRYDEP_MOD,         ONLY : MAXDEP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD,        ONLY : SETJFAM, SETPL

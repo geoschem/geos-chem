@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
@@ -77,6 +76,7 @@
 !  29 May 2010 - S. Kim      - Add IU_BC_SE for the SEAC4RS grid
 !  06 Aug 2012 - R. Yantosca - Remove several IU_* variables, as these have
 !                              now been moved to various other modules
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,14 +101,22 @@
 ! !USES:
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-#     include "define.h"                         ! C-preprocessor switches
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,          INTENT(IN) :: ERROR_NUM  ! I/O error from IOSTAT
       INTEGER,          INTENT(IN) :: UNIT       ! Logical unit # for file
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION   ! Descriptive message
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: "LINUX_IFORT" and "LINUX_PGI" ARE CURRENTLY THE ONLY       %%%
+!  %%%  SUPPORTED COMPILER OPTIONS.  MOST SYSTEMS NOW USE A UNIX VERSION %%%
+!  %%%  BASED ON LINUX, SO OTHER COMPILERS (IBM/AIX, SUN/SPARC, etc.)    %%%
+!  %%%  ARE GENERALLY NOT USED ANYMORE.  LEAVE THE OLDER CODE HERE JUST  %%%
+!  %%%  IN CASE WE NEED TO REVERT TO IT AGAIN IN THE FUTURE.             %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  (1 ) Now flush the standard output buffer before stopping.  
@@ -134,6 +142,7 @@
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Removed commented-out code for SGI, COMPAQ
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -243,10 +252,6 @@
 !
       FUNCTION FILE_EX_C( FILENAME ) RESULT( IT_EXISTS )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME   ! Name of file or dir to test
@@ -262,6 +267,7 @@
 !  23 Mar 2005 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Updated for LINUX/IFORT Intel v9 compiler
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -317,10 +323,6 @@
 !
       FUNCTION FILE_EX_I( IUNIT ) RESULT( IT_EXISTS )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !INPUT PARAMETERS: 
 !
       ! Arguments
@@ -336,6 +338,7 @@
 ! !REVISION HISTORY:
 !  23 Mar 2005 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -23,7 +23,6 @@ MODULE GIGC_State_Met_Mod
 ! USES:
 !
   IMPLICIT NONE
-# include "define.h"
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -187,6 +186,7 @@ MODULE GIGC_State_Met_Mod
 !  15 Nov 2012 - M. Payer    - Added all remaining met fields
 !  12 Dec 2012 - R. Yantosca - Add IREG, ILAND, IUSE fields for dry deposition
 !  13 Dec 2012 - R. Yantosca - Add XLAI, XLAI2 fields for dry deposition
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

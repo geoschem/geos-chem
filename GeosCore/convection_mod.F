@@ -21,7 +21,6 @@
       USE SMV_PHYSCONST_MOD
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 
 !
@@ -65,6 +64,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1041,7 +1041,6 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
 
       IMPLICIT NONE
-#     include "define.h"
 
 !
 ! !INPUT PARAMETERS: 
@@ -1207,6 +1206,7 @@
 !  29 May 2013 - R. Yantosca - Now set TINY = 1d-60 only for TOMAS code
 !  31 May 2013 - R. Yantosca - Now pass State_Chm and then have Q point to 
 !                              State_Chm%Tracers.  This is for TOMAS.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -57,6 +56,7 @@
 !  01 Feb 2011 - C Friedman  - Added POP emissions
 !  07 Feb 2011 - R. Yantosca - Now use EPA/NEI99 biofuel emissions when
 !                              EPA/NEI05 anthro emissions are selected.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
