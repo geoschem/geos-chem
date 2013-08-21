@@ -1944,7 +1944,7 @@
          WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
          WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
-         WRITE( 6, 100     ) 'SOA + Semivolatile POA?     : ', LSVPOA
+         WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
          WRITE( 6, 105     ) 'Annual NAP emiss [TgC/yr]   : ',
      &                        Input_Opt%NAPEMISS
          WRITE( 6, 105     ) 'POA emission scale [dimless]: ', 

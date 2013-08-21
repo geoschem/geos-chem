@@ -606,47 +606,47 @@
          FIRSTCHEM = .FALSE.
 
          ! Debug info (hotp 5/17/10)
-         IF ( prtDebug ) THEN
-            print*,'The following species have been identified'
-            print*,'as dry dep species in CHEMCARBON (carbon_mod.f)'
-            print*, 'ASOAN ', DEPNAME(DRYASOAN)
-            print*, 'ASOA1 ', DEPNAME(DRYASOA1)
-            print*, 'ASOA2 ', DEPNAME(DRYASOA2)
-            print*, 'ASOA3 ', DEPNAME(DRYASOA3)
-            print*, 'ASOG1 ', DEPNAME(DRYASOG1)
-            print*, 'ASOG2 ', DEPNAME(DRYASOG2)
-            print*, 'ASOG3 ', DEPNAME(DRYASOG3)
-            IF ( IDTPOA1 > 0 ) THEN
-               print*, 'POA1  ', DEPNAME(DRYPOA1)
-               print*, 'POA2  ', DEPNAME(DRYPOA2)
-               print*, 'POG1  ', DEPNAME(DRYPOG1)
-               print*, 'POG2  ', DEPNAME(DRYPOG2)
-               print*, 'OPOA1 ', DEPNAME(DRYOPOA1)
-               print*, 'OPOA2 ', DEPNAME(DRYOPOA2)
-               print*, 'OPOG1 ', DEPNAME(DRYOPOG1)
-               print*, 'OPOG2 ', DEPNAME(DRYOPOG2)
-            ENDIF
-            ! isoprene semivols (hotp 5/20/10)
-            print*, 'ISOA1 ', DEPNAME(DRYISOA1)
-            print*, 'ISOA2 ', DEPNAME(DRYISOA2)
-            print*, 'ISOA3 ', DEPNAME(DRYISOA3)
-            print*, 'ISOG1 ', DEPNAME(DRYISOG1)
-            print*, 'ISOG2 ', DEPNAME(DRYISOG2)
-            print*, 'ISOG3 ', DEPNAME(DRYISOG3)
-            ! mono+sesq semivols (hotp 5/20/10)
-            print*, 'TSOA1 ', DEPNAME(DRYTSOA1)
-            print*, 'TSOA2 ', DEPNAME(DRYTSOA2)
-            print*, 'TSOA3 ', DEPNAME(DRYTSOA3)
-            print*, 'TSOA0 ', DEPNAME(DRYTSOA0)
-            print*, 'TSOG1 ', DEPNAME(DRYTSOG1)
-            print*, 'TSOG2 ', DEPNAME(DRYTSOG2)
-            print*, 'TSOG3 ', DEPNAME(DRYTSOG3)
-            print*, 'TSOG0 ', DEPNAME(DRYTSOG0)
-            ! gas precursors (hotp 5/20/10)
-            print*, 'MTPA  ', DEPNAME(DRYMTPA) 
-            print*, 'LIMO  ', DEPNAME(DRYLIMO) 
-            print*, 'MTPO  ', DEPNAME(DRYMTPO) 
-         ENDIF
+         !IF ( prtDebug ) THEN
+         !   print*,'The following species have been identified'
+         !   print*,'as dry dep species in CHEMCARBON (carbon_mod.f)'
+         !   print*, 'ASOAN ', DEPNAME(DRYASOAN)
+         !   print*, 'ASOA1 ', DEPNAME(DRYASOA1)
+         !   print*, 'ASOA2 ', DEPNAME(DRYASOA2)
+         !   print*, 'ASOA3 ', DEPNAME(DRYASOA3)
+         !   print*, 'ASOG1 ', DEPNAME(DRYASOG1)
+         !   print*, 'ASOG2 ', DEPNAME(DRYASOG2)
+         !   print*, 'ASOG3 ', DEPNAME(DRYASOG3)
+         !   IF ( IDTPOA1 > 0 ) THEN
+         !      print*, 'POA1  ', DEPNAME(DRYPOA1)
+         !      print*, 'POA2  ', DEPNAME(DRYPOA2)
+         !      print*, 'POG1  ', DEPNAME(DRYPOG1)
+         !      print*, 'POG2  ', DEPNAME(DRYPOG2)
+         !      print*, 'OPOA1 ', DEPNAME(DRYOPOA1)
+         !      print*, 'OPOA2 ', DEPNAME(DRYOPOA2)
+         !      print*, 'OPOG1 ', DEPNAME(DRYOPOG1)
+         !      print*, 'OPOG2 ', DEPNAME(DRYOPOG2)
+         !   ENDIF
+         !   ! isoprene semivols (hotp 5/20/10)
+         !   print*, 'ISOA1 ', DEPNAME(DRYISOA1)
+         !   print*, 'ISOA2 ', DEPNAME(DRYISOA2)
+         !   print*, 'ISOA3 ', DEPNAME(DRYISOA3)
+         !   print*, 'ISOG1 ', DEPNAME(DRYISOG1)
+         !   print*, 'ISOG2 ', DEPNAME(DRYISOG2)
+         !   print*, 'ISOG3 ', DEPNAME(DRYISOG3)
+         !   ! mono+sesq semivols (hotp 5/20/10)
+         !   print*, 'TSOA1 ', DEPNAME(DRYTSOA1)
+         !   print*, 'TSOA2 ', DEPNAME(DRYTSOA2)
+         !   print*, 'TSOA3 ', DEPNAME(DRYTSOA3)
+         !   print*, 'TSOA0 ', DEPNAME(DRYTSOA0)
+         !   print*, 'TSOG1 ', DEPNAME(DRYTSOG1)
+         !   print*, 'TSOG2 ', DEPNAME(DRYTSOG2)
+         !   print*, 'TSOG3 ', DEPNAME(DRYTSOG3)
+         !   print*, 'TSOG0 ', DEPNAME(DRYTSOG0)
+         !   ! gas precursors (hotp 5/20/10)
+         !   print*, 'MTPA  ', DEPNAME(DRYMTPA) 
+         !   print*, 'LIMO  ', DEPNAME(DRYLIMO) 
+         !   print*, 'MTPO  ', DEPNAME(DRYMTPO) 
+         !ENDIF
 
       ENDIF
 
@@ -7073,14 +7073,14 @@
       ENDIF
 
       ! semivolpoa: print some info for checks (hotp 2/16/09)
-      IF ( LPRT ) THEN
-         print*,'POA emissions in kg/timestep conv to Tg/yr'
-         print*,'ANTH_ORGC ',SUM(ANTH_ORGC(:,:,:))*1d-9*365.0*24.0
-         print*,'BIOB_ORGC ',SUM(BIOB_ORGC(:,:,:))*1d-9*365.0*24.0
-         print*,'BIOF_ORGC ',SUM(BIOF_ORGC(:,:,:))*1d-9*365.0*24.0
-         print*,'OCSRC1BBBF',SUM(OCSRC(:,:,1))*1d-9*365.0*24.0
-         print*,'OCSRC2ANTH',SUM(OCSRC(:,:,2))*1d-9*365.0*24.0
-      ENDIF 
+      !IF ( LPRT ) THEN
+      !   print*,'POA emissions in kg/timestep conv to Tg/yr'
+      !   print*,'ANTH_ORGC ',SUM(ANTH_ORGC(:,:,:))*1d-9*365.0*24.0
+      !   print*,'BIOB_ORGC ',SUM(BIOB_ORGC(:,:,:))*1d-9*365.0*24.0
+      !   print*,'BIOF_ORGC ',SUM(BIOF_ORGC(:,:,:))*1d-9*365.0*24.0
+      !   print*,'OCSRC1BBBF',SUM(OCSRC(:,:,1))*1d-9*365.0*24.0
+      !   print*,'OCSRC2ANTH',SUM(OCSRC(:,:,2))*1d-9*365.0*24.0
+      !ENDIF 
 
 #if   defined( TOMAS )
       !=================================================================
