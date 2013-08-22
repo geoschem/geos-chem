@@ -2542,8 +2542,6 @@
                ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
             ENDIF
 
-            ENDIF
-
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
