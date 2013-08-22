@@ -2538,6 +2538,10 @@
             IF ( AD36_SHIP_COUNT >= 1 ) THEN
                ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS +
      &              AD36_SHIP(:,:,MM) / REAL( AD36_SHIP_COUNT )
+            ELSE 
+               ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
+            ENDIF
+
             ENDIF
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
