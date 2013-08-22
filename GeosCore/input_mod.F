@@ -2222,6 +2222,7 @@
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR to Input_Opt
 !  31 Jul 2013 - M. Sulprizio- Now copy LAEIC to Input_Opt; Add check to
 !                              make sure LAEIC and LRCPAIR are not both on
+!  22 Aug 2013 - R. Yantosca - Now read path for soil NOx restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2229,7 +2230,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC, SOIL_RST_FILE
 ![eml
       INTEGER            :: HISTYR
 !eml]
@@ -2408,10 +2409,14 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
+      ! Soil NOx restart file name
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37a' )
+      READ( SUBSTRS(1:N), * ) SOIL_RST_FILE
+
       ! separate use fertilizer and soil NOx (fp, 06/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LFERTILIZERNOX
-
+      
       !(FP, 15/12/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) NOx_SCALING
@@ -2885,6 +2890,7 @@
       Input_Opt%LLIGHTNOX      = LLIGHTNOX
       Input_Opt%LOTDLOC        = LOTDLOC
       Input_Opt%LSOILNOX       = LSOILNOX
+      Input_Opt%SOIL_RST_FILE  = SOIL_RST_FILE
       Input_Opt%LFERTILIZERNOX = LFERTILIZERNOX
       Input_Opt%NOx_SCALING    = NOx_SCALING
       Input_Opt%LEDGARSHIP     = LEDGARSHIP
@@ -2967,6 +2973,8 @@
         WRITE( 6, 100 ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
         WRITE( 6, 100 ) 'Use OTD-LIS local redist?   : ', LOTDLOC
         WRITE( 6, 100 ) 'Turn on SOIL NOx?           : ', LSOILNOX
+        WRITE( 6, 130 ) 'Soil NOx restart file name? : ', 
+     &       TRIM( SOIL_RST_FILE )
         WRITE( 6, 100 ) 'Turn on Fertilizer NOx?     : ', 
      &                                                  LFERTILIZERNOX
         WRITE( 6, 120 ) 'NOx scaling                 : ', NOx_SCALING
@@ -3504,6 +3512,7 @@
 !                              to ACCEPT_EXTERNAL_DATE_TIME
 !  22 May 2013 - M. Payer    - Now read in GAMMA_HO2. Recommended value is 0.2
 !                              based on Jacon et al (2000) and Mao et al (2013).
+!  22 Aug 2013 - R. Yantosca - Now read in path for species restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3511,7 +3520,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, SPEC_RST_FILE
 
       !=================================================================
       ! READ_CHEMISTRY_MENU begins here!
@@ -3543,16 +3552,20 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
-      ! Use KPP solver ?
+      ! Read and save CSPEC ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      READ( SUBSTRS(1:N), '(a)' ) SPEC_RST_FILE
+
+      ! Use KPP solver ?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
       READ( SUBSTRS(1:N), * ) LKPP
 
       ! GAMMA HO2 ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
       READ( SUBSTRS(1:N), * ) Input_Opt%GAMMA_HO2
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
 
       !=================================================================
       ! Set fields of Input Options object
@@ -3587,7 +3600,7 @@
       !-----------------------------------------------------------------
       
       ! Save to local variables for printing below
-      TS_CHEM            = Input_Opt%TS_CHEM
+      TS_CHEM                 = Input_Opt%TS_CHEM
 
       ! Pass chemistry timestep to time_mod.F
       CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
@@ -3603,17 +3616,18 @@
       ! the field Input_OPt%TS_CHEM with the value read in from 
       ! input.geos. (bmy, 12/6/12)
       !-----------------------------------------------------------------
-      Input_Opt%TS_CHEM  = TS_CHEM
+      Input_Opt%TS_CHEM       = TS_CHEM
 
 #endif
-      Input_Opt%LCHEM    = LCHEM
-      Input_Opt%LSCHEM   = LSCHEM
-      Input_Opt%LLINOZ   = LLINOZ
-      Input_Opt%LSVCSPEC = LSVCSPEC
-      Input_Opt%LKPP     = LKPP
+      Input_Opt%LCHEM         = LCHEM
+      Input_Opt%LSCHEM        = LSCHEM
+      Input_Opt%LLINOZ        = LLINOZ
+      Input_Opt%LSVCSPEC      = LSVCSPEC
+      Input_Opt%SPEC_RST_FILE = TRIM( SPEC_RST_FILE )
+      Input_Opt%LKPP          = LKPP
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC                      = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3626,6 +3640,8 @@
          WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', LLINOZ
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
+         WRITE( 6, 130     ) ' => CSPEC restart file?     : ', 
+     &        TRIM( SPEC_RST_FILE )
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
          WRITE( 6, 100     ) 'GAMMA HO2                   : ',
      &      Input_Opt%GAMMA_HO2
@@ -3635,6 +3651,7 @@
  100  FORMAT( A, L5  )
  110  FORMAT( A, I5  )
  120  FORMAT( A, 2I5 )
+ 130  FORMAT( A, A   )
 
       END SUBROUTINE READ_CHEMISTRY_MENU  
 !EOC

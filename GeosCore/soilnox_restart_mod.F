@@ -48,37 +48,51 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_SOILNOX_RESTART( YYYYMMDD, HHMMSS, TAU )
+      SUBROUTINE MAKE_SOILNOX_RESTART( am_I_Root, Input_Opt, YYYYMMDD,  
+     &                                 HHMMSS,    TAU,       RC        )
 ! 
 ! !USES:
 !
-      USE BPCH2_MOD,   ONLY : BPCH2,         GET_MODELNAME
-      USE BPCH2_MOD,   ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IOERROR
-      USE GRID_MOD,    ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE inquireMod,  ONLY : findfreeLUN
+      USE BPCH2_MOD,          ONLY : BPCH2
+      USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
+      USE BPCH2_MOD,          ONLY : GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
       USE CMN_SIZE_MOD
       USE COMMSOIL_MOD
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GRID_MOD,           ONLY : GET_XOFFSET
+      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE inquireMod,         ONLY : findfreeLUN
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: YYYYMMDD ! Year-Month-Day
-      INTEGER, INTENT(IN)  :: HHMMSS   ! Hour-Min-Sec
-      REAL*8,  INTENT(IN)  :: TAU      ! GEOS-CHEM TAU value corresponding
-                                       ! to YYYYMMDD, HHMMSS
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: YYYYMMDD    ! Year-Month-Day
+      INTEGER,        INTENT(IN)  :: HHMMSS      ! Hour-Min-Sec
+      REAL*8,         INTENT(IN)  :: TAU         ! TAU value corresponding
+                                                 !  to YYYYMMDD, HHMMSS
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
 !  31 Oct 2012 - R. Yantosca - Now define a title string
+!  22 Aug 2013 - R. Yantosca - Add am_I_Root, Input_Opt, RC arguments
+!  22 Aug 2013 - R. Yantosca - Now get soil NOx file path from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL              :: LPRT
       INTEGER              :: I0, IOS,  J0, N, IU_SOIL
       INTEGER              :: YYYY, MM, DD,  HH, SS
       CHARACTER(LEN=255)   :: FILENAME
@@ -88,8 +102,6 @@
       REAL*4               :: DRES(IGLOB, JGLOB) 
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180 = 1
-      
-      CHARACTER(LEN=255)   :: OUTPUT_RESTART_FILE 
       CHARACTER(LEN=20)    :: MODELNAME
       CHARACTER(LEN=40)    :: CATEGORY
       CHARACTER(LEN=40)    :: UNIT     
@@ -99,6 +111,9 @@
       !=================================================================
       ! MAKE_SOILNOX_RESTART begins here!
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
 
       ! Lon & lat sizes
       LONRES    = DISIZE
@@ -119,21 +134,21 @@
       ! Top-of-file title string
       TITLE     = 'GEOS-CHEM Restart File: Soil NOx quantities'
 
+      ! Print debug output?
+      LPRT      = ( am_I_Root .and. Input_Opt%LPRT )
+
       !=================================================================
       ! Open the restart file for output -- binary punch format
       !=================================================================
 
-      ! Default file name (maybe later add this to input file)
-      OUTPUT_RESTART_FILE = 'restart.soilnox.YYYYMMDDhh'
-
-      ! Copy the output restart file name into a local variable
-      FILENAME = TRIM( OUTPUT_RESTART_FILE )
+      ! Copy the soil NOx restart filename template into a local variable
+      FILENAME = TRIM( Input_Opt%SOIL_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
 
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - MAKE_SOILNOX_RESTART_FILE: Writing: ', a )
+ 100  FORMAT( '     - MAKE_SOILNOX_RESTART: Writing: ', a )
 
       CALL FLUSH(6)
 
@@ -226,61 +241,75 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_SOIL_RESTART( YYYYMMDD, HHMMSS ) 
+      SUBROUTINE READ_SOIL_RESTART( am_I_Root, Input_Opt, 
+     &                              YYYYMMDD,  HHMMSS,    RC ) 
 ! 
 ! !USES:
 !
-      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IOERROR
-      USE LOGICAL_MOD, ONLY : LSPLIT,      LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE inquireMod,  ONLY : findfreeLUN
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
       USE CMN_SIZE_MOD
       USE COMMSOIL_MOD
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE inquireMod,         ONLY : findfreeLUN
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: YYYYMMDD ! Year-Month-Day
-      INTEGER, INTENT(IN) :: HHMMSS   ! Hour-Min-Sec
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: YYYYMMDD    ! Year-Month-Day
+      INTEGER,        INTENT(IN)  :: HHMMSS      ! Hour-Min-Sec
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
+!  22 Aug 2013 - R. Yantosca - Add am_I_Root, Input_Opt, RC arguments
+!  22 Aug 2013 - R. Yantosca - Now get soil NOx file path from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL             :: LSPLIT, LPRT
       INTEGER             :: I, IOS, J, L, N
       CHARACTER(LEN=255)  :: FILENAME
 
       ! For binary punch file, version 2.0
-      INTEGER             :: NI,     NJ, NL
-      INTEGER             :: IFIRST, JFIRST, LFIRST
+      INTEGER             :: NI,        NJ,       NL
+      INTEGER             :: IFIRST,    JFIRST,   LFIRST
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       INTEGER             :: IU_SOIL
       REAL*4              :: LONRES,    LATRES
       REAL*8              :: ZTAU0,     ZTAU1
-      REAL*4               :: DRES(IGLOB, JGLOB) 
+      REAL*4              :: DRES(IGLOB, JGLOB) 
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
-      CHARACTER(LEN=255)  :: INPUT_RESTART_FILE  
 
       !=================================================================
       ! READ_SOIL_RESTART begins here!
-      !=================================================================
-  
-      !=================================================================
+      !
       ! Open restart file and read top-of-file header
       !=================================================================
-      INPUT_RESTART_FILE = 'restart.soilnox.YYYYMMDDhh'
 
-      ! Copy input file name to a local variable
-      FILENAME = TRIM( INPUT_RESTART_FILE )
+      ! Assume success
+      RC       = GIGC_SUCCESS
+
+      ! Get logicals from Input_Opt
+      LSPLIT   = Input_Opt%LSPLIT
+      LPRT     = ( am_I_Root .and. Input_Opt%LPRT )
+
+      ! Copy soil NOx restart filename template to a local variable
+      FILENAME = TRIM( Input_Opt%SOIL_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
@@ -289,7 +318,7 @@
       WRITE( 6, '(a)'   ) REPEAT( '-', 79 )
       WRITE( 6, '(a,/)' ) 'SOIL NOx Restart'
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'READ_RESTART_FILE: Reading ', a )
+ 100  FORMAT( 'READ_SOIL_RESTART: Reading ', a )
 
       IU_SOIL = findFreeLUN()
 

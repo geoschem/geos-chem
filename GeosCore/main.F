@@ -580,9 +580,12 @@
 
       ! Read soil NOx initial conditions
       IF ( LSOILNOX ) THEN
-         CALL READ_SOIL_RESTART( NYMDb , NHMSb )
-         IF ( prtDebug ) 
-     &      CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+         CALL READ_SOIL_RESTART
+     &      ( am_I_Root, Input_Opt, NYMDb , NHMSb, RC )
+
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+         ENDIF
       ENDIF
 
 !------------------------------------------------------------------------------
@@ -712,7 +715,9 @@
                   
                ! Make soil restart file
                IF ( LSOILNOX ) THEN
-                  CALL MAKE_SOILNOx_RESTART( NYMD, NHMS, TAU )
+                  CALL MAKE_SOILNOx_RESTART
+     &               ( am_I_Root, Input_Opt, NYMD, 
+     &                 NHMS,      TAU,       RC    )
                ENDIF
 
                ! Make ocean mercury restart file

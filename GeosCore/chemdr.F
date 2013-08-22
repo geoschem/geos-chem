@@ -613,8 +613,8 @@
 
          ! Read the CSPEC restart file.  If not found, then 
          ! return IT_EXISTS = .FALSE.
-         CALL READ_CSPEC_FILE( am_I_Root, GET_NYMD(), GET_NHMS(),
-     &                         IT_EXISTS, State_Chm   )
+         CALL READ_CSPEC_FILE( am_I_Root,  Input_Opt, GET_NYMD(), 
+     &                         GET_NHMS(), IT_EXISTS, State_Chm,  RC  )
    
          IF ( .not. IT_EXISTS ) THEN 
 
@@ -660,7 +660,7 @@
 
       !### Debug
       IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after READ_CSPEC_FILEC' )
+         CALL DEBUG_MSG( '### CHEMDR: after READ_CSPEC_FILE' )
       ENDIF
 #endif
 

@@ -109,7 +109,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE TIME_MOD,           ONLY : EXPAND_DATE
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -938,8 +937,6 @@
       INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
       INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
       CHARACTER(LEN=255)   :: FILENAME
-      CHARACTER(LEN=255)   :: OUTPUT_CHECKPT_FILE
-
 
       ! Temporary storage arrays for checkpointed variables
       REAL*4               :: TMP(ILONG, ILAT, IPVERT)
@@ -973,13 +970,10 @@
       !=================================================================
 
       ! Assume success
-      RC                  =  GIGC_SUCCESS
+      RC       =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      LPRT                = Input_Opt%LPRT
-
-      ! Hardwire output file for now
-      OUTPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+      LPRT     = ( am_I_Root .and. Input_Opt%LPRT )
 
       ! Clear some arrays 
       ! use minimum value instead of zero hotp 2/25/09
@@ -1014,8 +1008,8 @@
       ! Find a free file LUN
       IU_RST   = findFreeLUN()
 
-      ! Copy the output checkpoint file name into a local variable
-      FILENAME = TRIM( OUTPUT_CHECKPT_FILE )
+      ! Copy the output restart filename template into a local variable
+      FILENAME = TRIM( Input_Opt%SPEC_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
@@ -1107,8 +1101,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CSPEC_FILE( am_I_Root, YYYYMMDD, HHMMSS,
-     &                            IT_EXISTS, State_Chm )
+      SUBROUTINE READ_CSPEC_FILE( am_I_Root, Input_Opt, YYYYMMDD, 
+     &                            HHMMSS,    IT_EXISTS, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1116,6 +1110,8 @@
       USE CMN_MOD
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE COMODE_MOD,         ONLY : JLOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -1127,14 +1123,20 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,       INTENT(IN)     :: am_I_Root   ! Is this the root CPU?
-      INTEGER,       INTENT(IN)     :: YYYYMMDD    ! YYYY/MM/DD GMT date
-      INTEGER,       INTENT(IN)     :: HHMMSS      ! hh:mm:ss   GMT time
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)    :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)    :: HHMMSS      ! hh:mm:ss   GMT time
+!     
+! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!     
 ! !OUTPUT PARAMETERS: 
 !
+
       LOGICAL,        INTENT(OUT)   :: IT_EXISTS   ! Does CSPEC restart exist?
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(OUT)   :: RC 
 ! 
 ! !REVISION HISTORY: 
 !  30 Aug 2004 - D. Henze    - Initial version, based on READ_RESTART  
@@ -1149,6 +1151,8 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  04 Apr 2013 - R. Yantosca - Now declare State_Chm INTENT(INOUT)
+!  22 Aug 2013 - R. Yantosca - Add Input_Opt, RC arguments
+!  22 Aug 2013 - R. Yantosca - Now get species restart filename from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1161,9 +1165,7 @@
 
       REAL*8              :: SUMTC
       CHARACTER(LEN=255)  :: FILENAME
-      CHARACTER(LEN=255)  :: INPUT_CHECKPT_FILE
       CHARACTER(LEN=255)  :: MSG
-     
 
       ! For binary punch file, version 2.0
       INTEGER             :: NI,     NJ,     NL
@@ -1186,8 +1188,8 @@
       ! READ_CSPEC_FILE begins here!
       !=================================================================
 
-      ! Hardwire output file for now
-      INPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+      ! Assume success
+      RC         = GIGC_SUCCESS
 
       ! Initialize some variables
       !TMP(:,:,:) = 0e0
@@ -1205,8 +1207,8 @@
       ! Find a free file LUN
       IU_RST   = findFreeLUN()
      
-      ! Copy input file name to a local variable
-      FILENAME = TRIM( INPUT_CHECKPT_FILE )
+      ! Copy the output restart file name into a local variable
+      FILENAME = TRIM( Input_Opt%SPEC_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )

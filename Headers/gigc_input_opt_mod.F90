@@ -149,6 +149,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LLIGHTNOX
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
+     CHARACTER(LEN=255)          :: SOIL_RST_FILE
      LOGICAL                     :: LFERTILIZERNOX
      REAL*8                      :: NOx_SCALING
      LOGICAL                     :: LEDGARSHIP
@@ -211,6 +212,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LLINOZ
      INTEGER                     :: TS_CHEM
      LOGICAL                     :: LSVCSPEC
+     CHARACTER(LEN=255)          :: SPEC_RST_FILE
      LOGICAL                     :: LKPP
      REAL*8                      :: GAMMA_HO2
 
@@ -590,6 +592,8 @@ MODULE GIGC_Input_Opt_Mod
 !  31 Jul 2013 - M. Sulprizio- Add extra field for AEIC aircraft emissions and
 !                              remove LAIRNOX field
 !  13 Aug 2013 - M. Sulprizio- Add extra fields for semivolatile POA (H. Pye)
+!  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -659,6 +663,7 @@ CONTAINS
 !                              consistent with the settings in diag48_mod.F
 !  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
 !  07 Aug 2013 - M. Sulprizio- Add extra fields for SOA + SVPOA simulation
+!  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -802,6 +807,7 @@ CONTAINS
     Input_Opt%LLIGHTNOX              = .FALSE.
     Input_Opt%LOTDLOC                = .FALSE.
     Input_Opt%LSOILNOX               = .FALSE.
+    Input_Opt%SOIL_RST_FILE          = ''
     Input_Opt%LFERTILIZERNOX         = .FALSE.
     Input_Opt%NOx_SCALING            = 0d0
     Input_Opt%LEDGARSHIP             = .FALSE.
@@ -865,6 +871,7 @@ CONTAINS
     Input_Opt%LLINOZ                 = .FALSE. 
     Input_Opt%TS_CHEM                = 0
     Input_Opt%LSVCSPEC               = .FALSE. 
+    Input_Opt%SPEC_RST_FILE          = ''
     Input_Opt%LKPP                   = .FALSE. 
     Input_Opt%GAMMA_HO2              = 0d0
 
