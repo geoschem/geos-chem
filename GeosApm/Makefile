@@ -56,6 +56,8 @@
 #  30 May 2013 - R. Yantosca - Remove reference to GEOS-3 TPCORE routines 
 #  13 Aug 2013 - M. Sulprizio- Remove reference to soaprod_mod.F (no longer
 #                              needed) (SOAupdate, hotp 7/25/10)
+#  22 Aug 2013 - R. Yantosca - Bug fix: when making realclean, also do
+#                              a "make clean" in the Headers directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -95,7 +97,7 @@ include $(ROOTDIR)/Makefile_header.mk
 #=============================================================================
 
 OBJ =                                                                        \
-BLKSLV.o                 CLDSRF.o                CO_strat_pl.o               \
+BLKSLV.o                 CLDSRF.o                                            \
 EFOLD.o                  FLINT.o                 GAUSSP.o                    \
 GEN.o                    JRATET.o                JVALUE.o                    \
 LEGND0.o                 MATIN4.o                MIESCT.o                    \
@@ -228,6 +230,7 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(NCDF) clean
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) -C $(CORE) clean
+	@$(MAKE) -C $(HDR)  clean
 	@$(MAKE) -C $(GTMM) clean
 	@$(MAKE) docclean
 	rm -f $(LIB)/*.a
@@ -1017,7 +1020,7 @@ retro_mod.o                 : retro_mod.F                                    \
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           tracer_mod.o           \
-                              tropopause_mod.o  		       
+                              tropopause_mod.o        vdiff_pre_mod.o       
 
 rpmares_mod.o               : rpmares_mod.F                                  \
                               dao_mod.o               global_hno3_mod.o      \

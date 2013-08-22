@@ -376,7 +376,7 @@ carbon_mod.o                : carbon_mod.F                                   \
                               dao_mod.o               diag_mod.o             \
                               drydep_mod.o            future_emissions_mod.o \
                               gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
-                              global_no3_mod.o                               \
+                              global_no3_mod.o        rcp_mod.o              \
                               global_o3_mod.o         global_oh_mod.o        \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           tracerid_mod.o         \
@@ -1044,7 +1044,7 @@ setemis.o                   : setemis.F                                      \
                               diag_mod.o              emissions_mod.o        \
                               lightning_nox_mod.o     logical_mod.o          \
                               pbl_mix_mod.o           tracerid_mod.o         \
-                              tropopause_mod.o    
+                              tropopause_mod.o        diag63_mod.o
 
 setmodel.o                  : setmodel.F
 

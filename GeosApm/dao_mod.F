@@ -3747,6 +3747,7 @@
       PBL0b  = 0.d0
 
       END SUBROUTINE INIT_DAO_DERIVED
+#endif
 !EOC
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------

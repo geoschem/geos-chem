@@ -1278,7 +1278,7 @@
 
 #if   defined( APM )
             ! Call the main APM microphysics driver
-            CALL APM_DRIV( State_Met )
+            CALL APM_DRIV( State_Met, State_Chm )
 #endif
          ENDIF 
 
