@@ -2411,7 +2411,7 @@
 
       ! Soil NOx restart file name
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37a' )
-      READ( SUBSTRS(1:N), * ) SOIL_RST_FILE
+      READ( SUBSTRS(1:N), '(a)' ) SOIL_RST_FILE
 
       ! separate use fertilizer and soil NOx (fp, 06/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
