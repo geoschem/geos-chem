@@ -252,10 +252,10 @@
             O3COL        = GET_OVERHEAD_O3( NLON, NLAT )
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
-            ! and at 1000nm, IWV=14 (DAR)
+            ! and at 1000nm, IWV=7 (DAR)
             !OPTAER wants NAER*NRH values but ODAER is now 
             !NAER - use IRHARR to map to correct OPTAER bin (DAR 08/13)
-            OPTAER(:,:)=0.0
+            !OPTAER(:,:)=0.0
             DO N = 1, NAER
              DO L = 1, LLPAR
               IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
@@ -264,12 +264,9 @@
              ENDDO
             ENDDO
             !OPTAER(:,:)  = ODAER(NLON,NLAT,:,7,:)
-            !WRITE(6,*) 'odaer :',ODAER(NLON,NLAT,1,7,:)
-            !WRITE(6,*) 'optaer:',OPTAER(1,:)
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
             ! and at 1000nm, IWV=7 (DAR)
             OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,7,:)
-
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD         = OD(1:LLPAR,NLON,NLAT)
 
