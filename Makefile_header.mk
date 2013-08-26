@@ -123,6 +123,7 @@
 #  14 Aug 2013 - R. Yantosca - Now use regular expressions to test the
 #                              validity of command-line inputs
 #  21 Aug 2013 - R. Yantosca - Improved error checking for command line inputs
+#  26 Aug 2013 - R. Yantosca - Add -debug all as an IFORT debugging option
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -478,7 +479,7 @@ endif
 # Pick compiler options for debug run or regular run 
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g -DDEBUG -check arg_temp_created
+FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g -DDEBUG -check arg_temp_created -debug all
 TRACEBACK := yes
 else
 FFLAGS    := -cpp -w $(OPT) -auto -noalign -convert big_endian -vec-report0 
