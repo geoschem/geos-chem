@@ -984,6 +984,7 @@ CONTAINS
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Aug 2013 - R. Yantosca - Avoid array temporaries
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1000,6 +1001,8 @@ CONTAINS
     ! Index arrays
     INTEGER            :: II(1)
     INTEGER            :: JJ(1)
+    INTEGER            :: st1d(1), st4d(4)
+    INTEGER            :: ct1d(1), ct4d(4)
 
     ! Arrays defined on the 2 x 2.5 grid
     REAL*4             :: XMID_COARSE ( 144                    )
@@ -1046,8 +1049,19 @@ CONTAINS
 
     ! Get the lat and lon centers of the 2x2.5 GMI climatology
     ! WARNING MAKE 2x25 after testing
-    call NcRd( XMID_COARSE, fileID, 'longitude', (/1/),  (/144/) )
-    call NcRd( YMID_COARSE, fileID, 'latitude',  (/1/),  (/91/) )
+!-----------------------------------------------------------------------------
+! Prior to 8/26/13:
+! Avoid array temporaries
+!    call NcRd( XMID_COARSE, fileID, 'longitude', (/1/),  (/144/) )
+!    call NcRd( YMID_COARSE, fileID, 'latitude',  (/1/),  (/91/) )
+!-----------------------------------------------------------------------------
+    st1d = (/ 1   /)
+    ct1d = (/ 144 /)
+    call NcRd( XMID_COARSE, fileID, 'longitude', st1d, ct1d )
+
+    st1d = (/ 1   /)
+    ct1d = (/ 91  /)    
+    call NcRd( YMID_COARSE, fileID, 'latitude',  st1d, ct1d )
 
     ! For each fine grid index, determine the closest coarse (2x2.5) index
     ! Note: This doesn't do anything special for the date line, and may 
@@ -1075,9 +1089,17 @@ CONTAINS
     DO J = 1, JGLOB
     DO I = 1, IGLOB
 
-       call NcRd( column, fileID, 'species',           &
-                  (/ I_f2c(I), J_f2c(J),     1, m /),  & ! Start
-                  (/        1,        1, lglob, 1 /)  ) ! Count
+!------------------------------------------------------------------------------
+! Prior to 8/26/13:
+! Avoid array temporaries (bmy, 8/26/13)
+!       call NcRd( column, fileID, 'species',           &
+!                  (/ I_f2c(I), J_f2c(J),     1, m /),  & ! Start
+!                  (/        1,        1, lglob, 1 /)  ) ! Count
+!------------------------------------------------------------------------------
+ 
+       st4d = (/ I_f2c(I), J_f2c(J),     1, m /)
+       ct4d  =(/        1,        1, lglob, 1 /)
+       call NcRd( column, fileID, 'species', st4d, ct4d )
        array( I, J, : ) = column
 
     ENDDO
@@ -1163,9 +1185,16 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'prod',                       &
-                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
-                             (/        1,        1, lglob,  1 /)  )  ! Count
+!-----------------------------------------------------------------------------
+! Prior to 8/26/13:
+! Avoid array temporaries (bmy, 8/26/13)
+!          call NcRd( column, fileID, 'prod',                       &
+!                            (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
+!                             (/        1,        1, lglob,  1 /)  )  ! Count
+!-----------------------------------------------------------------------------
+          st4d = (/ I_f2c(I), J_f2c(J),     1,  m /)
+          ct4d = (/        1,        1, lglob,  1 /) 
+          call NcRd( column, fileID, 'prod', st4d, ct4d )
           array( I, J, : ) = column
 
        ENDDO
@@ -1188,9 +1217,16 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'loss',                       &
-                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
-                             (/        1,        1, lglob,  1 /)  )  ! Count
+!-----------------------------------------------------------------------------
+! Prior to 8/26/13:
+! Avoid array temporaries (bmy, 8/26/13)
+!          call NcRd( column, fileID, 'loss',                       &
+!                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
+!                             (/        1,        1, lglob,  1 /)  )  ! Count
+!-----------------------------------------------------------------------------
+          st4d = (/ I_f2c(I), J_f2c(J),     1,  m /)
+          ct4d = (/        1,        1, lglob,  1 /)
+          call NcRd( column, fileID, 'loss', st4d, ct4d )
           array( I, J, : ) = column
 
        ENDDO
