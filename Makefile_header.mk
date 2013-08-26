@@ -476,7 +476,8 @@ OPT       := -O2
 endif
 
 # Pick compiler options for debug run or regular run 
-ifdef DEBUG
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g -DDEBUG -check arg_temp_created
 TRACEBACK := yes
 else
@@ -484,7 +485,8 @@ FFLAGS    := -cpp -w $(OPT) -auto -noalign -convert big_endian -vec-report0
 endif
 
 # Turn on OpenMP parallelization
-ifeq ($(OMP),yes) 
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS    += -openmp
 endif
 
@@ -508,8 +510,9 @@ FFLAGS    += -mcmodel=medium -shared-intel
 endif
 
 # Turn on floating-point exceptions
-ifdef FPE
-FFLAGS    += -debug parallel -fpe3 -ftrapuv
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
+FFLAGS    += -debug all -fpe3 -ftrapuv
 endif
 
 # Prevent any optimizations that would change numerical results
@@ -517,17 +520,20 @@ endif
 FFLAGS    += -fp-model source
 
 # Add special IFORT optimization commands
-ifdef IPO
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(IPO)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS    += -ipo -static
 endif
 
 # Add option for "array out of bounds" checking
-ifdef BOUNDS
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS    += -CB
 endif
 
 # Also add traceback option
-ifdef TRACEBACK
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS    += -traceback
 endif
 
@@ -557,7 +563,8 @@ OPT       := -fast
 endif
 
 # Pick compiler options for debug run or regular run 
-ifdef DEBUG 
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS    := -byteswapio -Mpreprocess -Bstatic -g -O0 
 else
 FFLAGS    := -byteswapio -Mpreprocess -Bstatic $(OPT)
@@ -568,22 +575,26 @@ endif
 FFLAGS    += -mcmodel=medium
 
 # Turn on OpenMP parallelization
-ifeq ($(OMP),yes) 
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS    += -mp -Mnosgimp -Dmultitask
 endif
 
 # Add option for suppressing PGI non-uniform memory access (numa) library 
-ifeq ($(NONUMA),yes) 
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NONUMA)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS    += -mp=nonuma
 endif
 
 # Add option for "array out of bounds" checking
-ifdef BOUNDS
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS    += -C
 endif
 
 # Also add traceback option
-ifdef TRACEBACK
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS    += -traceback
 endif
 
