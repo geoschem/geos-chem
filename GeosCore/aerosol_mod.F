@@ -579,6 +579,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LSULF,        LCARB,      LSSALT
+      USE LOGICAL_MOD,   ONLY : LSTRATOD
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
@@ -1582,6 +1583,12 @@
 #endif
 
       ENDIF 
+
+      ! Turn off radiative effects of stratospheric aerosols?
+      IF (.not.(LSTRATOD)) THEN
+         ODAER(:,:,:,NRHAER*NRH+1) = 0.d0
+         ODAER(:,:,:,NRHAER*NRH+2) = 0.d0
+      ENDIF
 
       !=================================================================
       ! To turn off the radiative effects of different aerososl

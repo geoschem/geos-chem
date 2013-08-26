@@ -250,7 +250,6 @@
 
       ! Minimum lifetime of a species for PSC heterogeneous chemistry
       !-----SDE DEBUG
-      !REAL*8, PARAMETER :: PSCMINLIFE=600.d0
       REAL*8, PARAMETER :: PSCMINLIFE=1.d-3
       !-----SDE DEBUG
       CHARACTER(LEN=255) :: PSCMESSAGE
@@ -943,9 +942,10 @@ c new OH+CO rate from JPL2006.
             NK         = NKSPECZ(NCS)
             DO KLOOP   = 1, KTLOOP
 #if defined( GMISTRAT )
+               JLOOP = LREORDER(JLOOPLO+KLOOP)
                RRATE(KLOOP,NK) =
      +          (RRATE(KLOOP,NK)+RRATE(KLOOP,NK+1)*DENAIR(KLOOP)) * 
-     +          (1.D0+1.4D-21*CSPEC(KLOOP,IH2O)*EXP(2200.D0/T3K(KLOOP)))
+     +          (1.D0+1.4D-21*CSPEC(JLOOP,IH2O)*EXP(2200.D0/T3K(KLOOP)))
 #else
                RRATE(KLOOP,NK) =
      +          (RRATE(KLOOP,NK)+RRATE(KLOOP,NK+1)*DENAIR(KLOOP)) * 
@@ -1161,7 +1161,8 @@ c new OH+CO rate from JPL2006.
 
                   ELSE IF ( NK == NKBrNO3 ) THEN
 
-                     KII_KI = .TRUE.
+                     ! Only apply adjustment if at high altitude
+                     KII_KI = STRATBOX
 
                      ! Get the aerosol type
                      ! If it's sulfate then use 0.8 for alpha, following
@@ -1201,9 +1202,6 @@ c new OH+CO rate from JPL2006.
                         ! sulfate, 2 modes of sea-salt
                         XSTKCF = BRR(NK,NCS)
                      ELSEIF ( N == 13 ) THEN
-                        ! Do not apply rate limitation condition
-                        ! stratospheric aerosols in this case - 
-                        ! JPP applies a different rate limitation
                         XSTKCF = KHETI_SLA(IX,IY,IZ,11)
                      ELSEIF ( N == 14 ) THEN
                         XSTKCF = 0.1d0
@@ -1355,7 +1353,7 @@ c new OH+CO rate from JPL2006.
                      ! factor in this case, including c-bar
                      ADJUSTEDRATE = XAREA * XSTKCF
                   ELSE
-                     ! Reaction rate for dust size bin N
+                     ! Reaction rate for surface of aerosol
                      ADJUSTEDRATE=
      &                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
                   ENDIF
@@ -1538,12 +1536,11 @@ c new OH+CO rate from JPL2006.
             PSCEDUCTCONC(10,2) = CSPEC(JLOOP,IDHCl)
 
             ! This is still pseudo-first-order - ignore            
-            PSCEDUCTCONC(11,1) = 1.d0
             PSCEDUCTCONC(11,2) = 1.d0
-            !PSCEDUCTCONC(11,1) = CSPEC(JLOOP,IDHOBr)
-            !PSCEDUCTCONC(11,2) = CSPEC(JLOOP,IDHBr)
+            PSCEDUCTCONC(11,1) = CSPEC(JLOOP,IDHOBr)
+            PSCEDUCTCONC(11,2) = CSPEC(JLOOP,IDHBr)
 #endif
-            DO PSCIDX=1,11
+            DO PSCIDX=1,10
                NK = NKPSC(NCS,PSCIDX)
                ! Pseudo-first-order reactions - divide by number-conc
                ! of aerosol-phase educt to yield 2nd-order constant
@@ -1578,11 +1575,11 @@ c new OH+CO rate from JPL2006.
                   !
                   ! If all these checks are passed, we set k = ki/[B].
                   !-----SDE DEBUG
-                  IF (ADJUSTEDRATE.gt.(1.d0/PSCMINLIFE)) THEN
-                     ADJUSTEDRATE = 1.d0/PSCMINLIFE
-                  ENDIF
                   ! Rxn 11 is first-order - ignore
                   IF (PSCIDX.ne.11) THEN
+                     IF (ADJUSTEDRATE.gt.(1.d0/PSCMINLIFE)) THEN
+                        ADJUSTEDRATE = 1.d0/PSCMINLIFE
+                     ENDIF
                      ! Convert from 1st-order to 2nd-order
                      IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
                         ! Temporarily store [B]/(T*[A])

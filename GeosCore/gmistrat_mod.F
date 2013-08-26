@@ -52,6 +52,7 @@
       PUBLIC  :: SETTLE_STRAT_AER
       PUBLIC  :: SO4_PHOTFRAC
       PUBLIC  :: GMISTRAT_NOX
+      PUBLIC  :: GMISTRAT_H2SO4PHOT
       PUBLIC  :: CALC_STRAT_AER
       PUBLIC  :: GET_STRAT_OPT
       PUBLIC  :: KG_STRAT_AER
@@ -144,6 +145,7 @@
       ! AERFRACIND         : Indices of liquid aerosol species
       ! NOX_O              : Monthly mean noontime O3P/O1D for NOx calcs
       ! NOX_J              : Monthly mean noontime J-rates for NOx calcs
+      ! SO4_TOPPHOT        : Photolysis rate at the top of the chemgrid (1/s)
       !
       ! Strings
       !
@@ -195,6 +197,7 @@
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NOX_J
       REAL*8,DIMENSION(:,:,:),ALLOCATABLE   :: GE_INJECT
       INTEGER,DIMENSION(:,:),ALLOCATABLE    :: GE_LMIN, GE_LMAX
+      REAL*8,DIMENSION(:,:),ALLOCATABLE     :: SO4_TOPPHOT
  
       ! Strings
       CHARACTER(LEN=255)                :: TRAC_FILE
@@ -4745,6 +4748,114 @@
       END SUBROUTINE SET_H2O_TRAC
 !
 !EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gmistrat_h2so4phot
+!
+! !DESCRIPTION: Subroutine GMISTRAT\_H2SO4PHOT propagates the calculated H2SO4
+!  photolysis (J) rate at the top of the chemistry grid through to the top
+!  of the transport grid, approximating H2SO4 photolysis in the mesosphere.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GMISTRAT_H2SO4PHOT( SUNCOS )
+!
+! !USES:
+!
+      USE CHEMGRID_MOD,    ONLY : GET_CHEMGRID_LEVEL
+      USE COMODE_LOOP_MOD, ONLY : IRM, NKSO4PHOT, NCSGAS
+      USE COMODE_LOOP_MOD, ONLY : DEFPRAT, NAMEGAS, NRATES
+      USE TIME_MOD,        ONLY : GET_TS_CHEM
+      USE TRACER_MOD,      ONLY : STT,TRACER_MW_G
+      USE TRACERID_MOD,    ONLY : IDTSO2,IDTSO4
+      USE FAST_JX_MOD,     ONLY : FJXFUNC
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8, INTENT(IN)           :: SUNCOS(MAXIJ) ! Cosine of SZA
+!
+! !REMARKS:
+! (1) A remark
+! 
+! !REVISION HISTORY: 
+!  17 Aug 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER               :: I, J, L, IJWINDOW
+      REAL*8                :: GMU,SO4_IN,PHOTDELTA,DTCHEM
+      REAL*8                :: SO4_DELTA
+      LOGICAL               :: DAYCOLUMN
+      INTEGER               :: LMINPHOT
+      INTEGER,SAVE          :: LOCAL_NKSO4PHOT
+      CHARACTER*8,SAVE      :: LOCAL_NAME
+      INTEGER,SAVE          :: LOCAL_IPHOT
+      INTEGER,SAVE          :: IFNC,IBRCH
+      REAL*8,SAVE           :: RELWT
+      LOGICAL,SAVE          :: FIRST=.TRUE.
+      INTEGER               :: ICS
+
+      !=================================================================
+      ! GMISTRAT_H2SO4PHOT begins here!
+      !=================================================================
+
+      IF (FIRST) THEN
+         FIRST = .FALSE.
+         DO ICS = 1,NCSGAS
+            IF (NKSO4PHOT(ICS).ne.0) THEN
+               LOCAL_NKSO4PHOT = NKSO4PHOT(ICS)
+               LOCAL_NAME = NAMEGAS(IRM(1,LOCAL_NKSO4PHOT,ICS))
+               LOCAL_IPHOT = LOCAL_NKSO4PHOT - NRATES(ICS)
+               IFNC = DEFPRAT(LOCAL_NKSO4PHOT,ICS) + 0.01d0
+               IBRCH = 10.d0*(DEFPRAT(LOCAL_NKSO4PHOT,ICS)-IFNC) + 0.5d0
+               RELWT = TRACER_MW_G(IDTSO2)/TRACER_MW_G(IDTSO4)
+            ENDIF
+         ENDDO 
+      ENDIF
+
+      ! Allow for the possibility of variable timestep
+      DTCHEM = GET_TS_CHEM()*60.d0
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, IJWINDOW, DAYCOLUMN, GMU )
+!$OMP+PRIVATE( LMINPHOT, PHOTDELTA, SO4_IN, SO4_DELTA )
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+      IJWINDOW = (J-1)*IIPAR + I
+      GMU = SUNCOS(IJWINDOW)
+      DAYCOLUMN = (GMU.gt.0d0)
+      IF (DAYCOLUMN) THEN
+         LMINPHOT = GET_CHEMGRID_LEVEL(I,J)
+         ! Retrieve photolysis rate as a fraction of gaseous SO4
+         PHOTDELTA = FJXFUNC(I,J,LMINPHOT,LOCAL_IPHOT,IBRCH,LOCAL_NAME)
+     &                                                         * DTCHEM
+         PHOTDELTA = MIN(1.d0,PHOTDELTA)
+         DO L=LMINPHOT+1,LLPAR
+            ! Apply photolysis to SO4
+            ! First retrieve gaseous fraction
+            SO4_IN = STT(I,J,L,IDTSO4)*SO4_PHOTFRAC(I,J,L)
+            SO4_DELTA = PHOTDELTA*SO4_IN
+            ! Remove from SO4
+            STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) - SO4_DELTA
+            ! Add to SO2. Note change in molar mass
+            STT(I,J,L,IDTSO2) = STT(I,J,L,IDTSO2) + (SO4_DELTA*RELWT)
+         ENDDO
+      ENDIF
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE GMISTRAT_H2SO4PHOT
+!
+!EOC
 !!------------------------------------------------------------------------------
 !!               MIT Laboratory for Aviation and the Environment               !
 !!------------------------------------------------------------------------------
@@ -5103,6 +5214,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GE_LMAX' )
       GE_LMAX = 1
 
+      ! H2SO4 photolysis rate at the top of the chemgrid
+      ALLOCATE( SO4_TOPPHOT( IIPAR,JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_TOPPHOT' )
+      SO4_TOPPHOT = 0.d0
+
       END SUBROUTINE INIT_GMISTRAT
 !
 !EOC
@@ -5148,6 +5264,7 @@
       IF ( ALLOCATED( GE_INJECT  ) ) DEALLOCATE( GE_INJECT  )
       IF ( ALLOCATED( GE_LMIN    ) ) DEALLOCATE( GE_LMIN    )
       IF ( ALLOCATED( GE_LMAX    ) ) DEALLOCATE( GE_LMAX    )
+      IF ( ALLOCATED( SO4_TOPPHOT) ) DEALLOCATE( SO4_TOPPHOT)
 
       END SUBROUTINE CLEANUP_GMISTRAT
 !

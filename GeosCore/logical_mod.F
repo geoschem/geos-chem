@@ -112,6 +112,7 @@
       LOGICAL :: USE_OLSON_2001  ! Use the Olson 2001 land map & drydep info?
 
       !%%%% Emissions %%%%
+      LOGICAL :: LACSO2          ! Use non-AIEC aircraft SO2?
       LOGICAL :: LAEIC           ! Use aircraft emissions from AEIC?
       LOGICAL :: LANTHRO         ! Turns all anthropogenic emissions on/off
       LOGICAL :: LBBSEA          ! Use seasonal biomass burning emissions?
@@ -184,6 +185,7 @@
       LOGICAL :: LSETNOYSTRAT    ! Initialize strat. NOx/HNO3 to generic conditions?
       LOGICAL :: LSETOCS         ! Initialize OCS to generic conditions?
       LOGICAL :: LSETH2SO4       ! Initialize H2SO4 to generic conditions?
+      LOGICAL :: LSTRATOD        ! Add stratospheric aerosolsin OD calculation?
       LOGICAL :: LGEOENG         ! Apply geoengineering emissions?
 
       !%%%% Transport and strat BC's %%%%

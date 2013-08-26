@@ -294,8 +294,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_M2 )
-      DO J = 1, NLAT
-      DO I = 1, NLONG
+      DO J = 1, IIPAR
+      DO I = 1, JJPAR
 
          ! store the surface area of the box
          AREA_M2 = GET_AREA_M2( I, J, 1 )

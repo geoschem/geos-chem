@@ -1285,6 +1285,7 @@
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
       USE LOGICAL_MOD,  ONLY : LDICARB, LGRAVSTRAT, LHOMNUCNAT
       USE LOGICAL_MOD,  ONLY : LSOLIDPSC, LPSCCHEM
+      USE LOGICAL_MOD,  ONLY : LSTRATOD
       USE GMISTRAT_MOD, ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
@@ -1412,8 +1413,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
       READ( SUBSTRS(1:N), * ) LPSCCHEM 
 
-      ! Separator line
+      ! Include stratospheric aerosols optical depths?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:17' )
+      READ( SUBSTRS(1:N), * ) LSTRATOD
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:18' )
 
       !=================================================================
       ! Error checks
@@ -1605,6 +1610,7 @@
          WRITE( 6, 120     ) 'Ice supersaturation req.    : ',
      &                                        ((P_ICE_SUPERSAT-1)*1.d2)
          WRITE( 6, 100     ) 'Perform PSC het. chemistry? : ',LPSCCHEM
+         WRITE( 6, 100     ) 'Use strat. aerosol OD?      : ', LSTRATOD
       ENDIF
 
  100  FORMAT( A, L5     )
@@ -1779,365 +1785,369 @@
       READ( SUBSTRS(1:N), * ) LRETRO
 
       ! Aircraft emissions submenus
-      ! Run LTO emissions?
+      ! Run old aircraft SO2 emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
+      READ( SUBSTRS(1:N), * ) LACSO2
+
+      ! Run LTO emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LLTO_EMIS
 
       ! Fuelburn multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_FB_MULT
 
       ! NOx multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_NOx_MULT
 
       ! HC multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_HC_MULT
 
       ! CO multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_CO_MULT
 
       ! Black carbon emissions index
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_BC_EI
 
       ! Organic carbon emissions index
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_OC_EI
 
       ! Run CRUISE emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LCRUISE_EMIS
 
       ! Fuelburn multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_FB_MULT
 
       ! NOx multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_NOx_MULT
 
       ! HC multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_HC_MULT
 
       ! CO multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_CO_MULT
 
       ! Black carbon emissions index
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_BC_EI
 
       ! Organic carbon emissions index
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_OC_EI
 
       ! Fuel sulfur content
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%FSC
 
       ! Convert to fraction
       OPTIONS_AEIC%FSC = OPTIONS_AEIC%FSC * 1.d-6
 
       ! Sulfur conversion efficiency
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%SULFCONV
 
       OPTIONS_AEIC%SULFCONV = OPTIONS_AEIC%SULFCONV * 1.d-2
 
       ! Exclusion code (-1/0/1) and LL and RR corners grid idx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
       READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%EXC_CODE
 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_emissions_menu:29' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_emissions_menu:30' )
       READ(SUBSTRS(1:N),*) OPTIONS_AEIC%EXC_LL_I,OPTIONS_AEIC%EXC_LL_J
 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_emissions_menu:30' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_emissions_menu:31' )
       READ(SUBSTRS(1:N),*) OPTIONS_AEIC%EXC_UR_I,OPTIONS_AEIC%EXC_UR_J
   
       ! Cut-off altitude (no emissions below this) in km
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
       READ(SUBSTRS(1:N),*) OPTIONS_AEIC%ALT_FLR
 
       ! Altitude offset in km
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ(SUBSTRS(1:N),*) OPTIONS_AEIC%ALT_OFFSET
  
       ! AEIC preprocessed emissions directory
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
       READ( SUBSTRS(1:N), '(a)' ) OPTIONS_AEIC%AEIC_DIR_1x1
 
       ! Are we running aircraft at all?
       LAEIC = (OPTIONS_AEIC%LLTO_EMIS .or. OPTIONS_AEIC%LCRUISE_EMIS)
 
       ! Use EPA/NEI99 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
       READ( SUBSTRS(1:N), * ) LNEI99
       
       ! Include ICARTT-based corrections ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
       READ( SUBSTRS(1:N), * ) LICARTT
 
       ! Include VISTAS anthro emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LVISTAS
 
       ! Include biofuel emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LBIOFUEL
 
       ! Include biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) LBIOGENIC
 
       ! Use MEGAN biogenic emissions for ISOP?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
       READ( SUBSTRS(1:N), * ) LMEGAN
 
       ! Use PCEEA model for biogenic emissions for? (mpb,2009)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) LPECCA
 
       ! Use MEGAN biogenic emissions for MONOT and MBO ? (ccc, 2/2/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
       READ( SUBSTRS(1:N), * ) LMEGANMONO
 
       ! Isoprene Emissions scaling (fp, 06/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) ISOP_SCALING
 
       ! Include biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
       ! Separator line (start of GFED2 biomass emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
 
       ! Use monthly GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
       READ( SUBSTRS(1:N), * ) LGFED2BB
 
       ! Use 8-day GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
       READ( SUBSTRS(1:N), * ) L8DAYBB
 
       ! Use 3-hr GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
       READ( SUBSTRS(1:N), * ) L3HRBB
 
       ! Use 3-hr synoptic GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
       READ( SUBSTRS(1:N), * ) LSYNOPBB
 
       ! Separator line (start of GFED3 biomass emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
 
       ! Use monthly GFED3 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
       READ( SUBSTRS(1:N), * ) LGFED3BB
 
       ! Use daily GFED3 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
       READ( SUBSTRS(1:N), * ) LDAYBB3
 
       ! Use 3-hr GFED3 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
       READ( SUBSTRS(1:N), * ) L3HRBB3
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Apply OTD-LIS local redistribution for lightning spatial and
       ! seasonal constraint
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:58' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:58' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:59' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! separate use fertilizer and soil NOx (fp, 06/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:59' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:60' )
       READ( SUBSTRS(1:N), * ) LFERTILIZERNOX
 
       !(FP, 15/12/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:60' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:61' )
       READ( SUBSTRS(1:N), * ) NOx_SCALING
 
       ! Separator line (start of ship emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:61' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:62' )
 
       ! Use ship EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:62' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:63' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:63' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:64' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
 
       ! Use ship EMEP emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:64' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:65' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
       ! Use ship SO2 Corbett emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:65' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:66' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use ship ARCTAS (SO2, CO2) emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:66' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:67' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use COOKE over North AMerica for BC/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:67' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:68' )
       READ( SUBSTRS(1:N), * ) LCOOKE
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:68' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:69' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Use MODIS-derived LAI fields? (mpb,2009)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:69' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:70' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
       ! Use historical emissions (EDGAR NOx/SO2 and Bond BC/OC) for 
       ! 1890-2000?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:70' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:71' )
       READ( SUBSTRS(1:N), * ) LHIST
       
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:71' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:72' )
       READ( SUBSTRS(1:N), * ) HISTYR
       CALL SET_HISTYR( HISTYR )
 
       ! Separator line (start of bromine emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:72' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:73' )
 
       ! Use the Warwick(2006), scenario 3? (400Gg/yr of CHBr3)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:73' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:74' )
       READ( SUBSTRS(1:N), * ) LWARWICK_VSLS
 
       ! Use sea-salt Br2 emissions? Currently Monahan w/ Yang et al. 2005
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:74' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:75' )
       READ( SUBSTRS(1:N), * ) LSSABr2
 
       ! Set PBL BrO concentrations equal to 1ppt during the day?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:75' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:76' )
       READ( SUBSTRS(1:N), * ) LFIX_PBL_BRO
 
       ! Bromine Emissions scaling
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:76' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:77' )
       READ( SUBSTRS(1:N), * ) Br_SCALING
 
       ! Use methane emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:77' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:78' )
       READ( SUBSTRS(1:N), * ) LCH4EMIS
 
       ! Use fixed OCS surface mixing ratio?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:78' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:79' )
       READ( SUBSTRS(1:N), * ) LOCSEMIS
 
       ! Use Montreal CFC emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:79' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:80' )
       READ( SUBSTRS(1:N), * ) LCFCEMIS
 
       ! Use chlorine emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:80' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:81' )
       READ( SUBSTRS(1:N), * ) LCLEMIS
 
       ! Use bromine emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:81' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:82' )
       READ( SUBSTRS(1:N), * ) LBREMIS
 
       ! Use fixed N2O surface mixing ratio?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:82' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:83' )
       READ( SUBSTRS(1:N), * ) LN2OEMIS
 
       ! Initialize strat H2O to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:83' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:84' )
       READ( SUBSTRS(1:N), * ) LSETH2O
 
       ! Initialize CH4 to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:84' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:85' )
       READ( SUBSTRS(1:N), * ) LSETCH4
 
       ! Initialize OCS to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:85' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:86' )
       READ( SUBSTRS(1:N), * ) LSETOCS
 
       ! Initialize CFCs to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:86' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:87' )
       READ( SUBSTRS(1:N), * ) LSETCFC
 
       ! Initialize chlorine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:87' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:88' )
       READ( SUBSTRS(1:N), * ) LSETCL
 
       ! Initialize bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:88' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
       READ( SUBSTRS(1:N), * ) LSETBR
 
       ! Initialize stratospheric bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
       READ( SUBSTRS(1:N), * ) LSETBRSTRAT
 
       ! Initialize stratospheric NOx/HNO3 to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
       READ( SUBSTRS(1:N), * ) LSETNOYSTRAT
 
       ! Initialize N2O to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
       READ( SUBSTRS(1:N), * ) LSETN2O
 
       ! Initialize stratospheric sulfates to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
       READ( SUBSTRS(1:N), * ) LSETH2SO4
 
       ! Directory containing 2D data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
       READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
 
       TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
 
       ! Apply geoengineering emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
       READ( SUBSTRS(1:N), * ) LGEOENG
 
       ! Total geoeongeering emissions (TgS/yr)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:96' )
       READ( SUBSTRS(1:N), * ) GE_TGS
 
       ! Geoengineering pressure base (hPa)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:96' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:97' )
       READ( SUBSTRS(1:N), * ) GE_PBASE
 
       ! Geoengineering pressure ceiling (hPa)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:97' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:98' )
       READ( SUBSTRS(1:N), * ) GE_PCEIL
 
       ! Lower latitude edge (deg)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:98' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:99' )
       READ( SUBSTRS(1:N), * ) GE_MINLAT
 
       ! Upper latitude edge (deg)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:99' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:100' )
       READ( SUBSTRS(1:N), * ) GE_MAXLAT
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:100' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:101' )
 
       !=================================================================
       ! Error check logical flags
@@ -2156,6 +2166,7 @@
       LBIOMASS          = ( LBIOMASS       .and. LEMIS     )
 
       ! Anthro
+      LACSO2            = ( LACSO2         .and. LANTHRO   )
       LAEIC             = ( LAEIC          .and. LANTHRO   )
       LEMEP             = ( LEMEP          .and. LANTHRO   )
       LBRAVO            = ( LBRAVO         .and. LANTHRO   )
@@ -2216,6 +2227,7 @@
       IF ( .not. ITS_A_FULLCHEM_SIM() ) THEN
          LLIGHTNOX      = .FALSE.
          LAEIC          = .FALSE.
+         LACSO2         = .FALSE.
          LSOILNOX       = .FALSE.
          LFERTILIZERNOX = .FALSE. 
          LSETH2O        = .FALSE.
@@ -2320,6 +2332,17 @@
 
 #endif
 
+      !=================================================================
+      ! Check SO2 aircraft emissions options
+      !=================================================================
+      IF ( (LAEIC) .and. (LACSO2) ) THEN
+         LACSO2 = .FALSE. ! AEIC supercedes old aircraft SO2
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(/,a,/)' ) 
+     &         ' Old aircraft SO2 has been ' //
+     &         'superceded by MIT AEIC emissions'
+         ENDIF
+       ENDIF 
       
       !=================================================================
       ! Check SO2 ship emissions options
@@ -2596,6 +2619,7 @@
         WRITE( 6, 100 ) '  Use STREETS anthro emiss. : ', LSTREETS
         WRITE( 6, 100 ) '  Use EPA/NEI 2005          : ', LNEI05
         WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
+        WRITE( 6, 100 ) '  Use old aircraft SO2      : ', LACSO2
         WRITE( 6, 100 ) '  Use AEIC emissions        : ', LAEIC
         WRITE( 6, 100 ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
         WRITE( 6, 100 ) '      --> with NOx VISTAS?  : ', LVISTAS
@@ -3089,7 +3113,6 @@
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
       USE LOGICAL_MOD, ONLY : LCH4CHEM, LGMISTRAT, LACTIVEH2O
-      USE LOGICAL_MOD, ONLY : LSETH2SO4
       USE TRACERID_MOD,ONLY : IDTCH4
 
       USE CMN_SIZE_MOD                   ! Size parameters
@@ -3154,19 +3177,19 @@
       READ( SUBSTRS(1:N), * ) LACTIVEH2O
 
       ! Chemistry timestep
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
 
       ! Read and save CSPEC ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
       ! Use KPP solver ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:10' )
       READ( SUBSTRS(1:N), * ) LKPP
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:11' )
 
       !=================================================================
       ! Error check settings
@@ -7192,6 +7215,7 @@
       LPRT           = .FALSE.
       LSTDRUN        = .FALSE.
       LDRYD          = .FALSE.
+      LACSO2         = .FALSE.
       LAEIC          = .FALSE.
       LANTHRO        = .FALSE.
       LBIONOX        = .FALSE.
@@ -7258,6 +7282,7 @@
       LSETOCS        = .FALSE.
       LSETN2O        = .FALSE.
       LSETH2SO4      = .FALSE.
+      LSTRATOD       = .FALSE.
       LCFCEMIS       = .FALSE.
       LCLEMIS        = .FALSE.
       LBREMIS        = .FALSE.

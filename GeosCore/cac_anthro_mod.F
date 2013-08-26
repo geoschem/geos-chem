@@ -440,6 +440,11 @@
             ENDIF
          ENDIF
 
+         ! Bug fix required for 2006/2007
+         WHERE ( GEOS_1x1 < 0d0 )
+            GEOS_1x1 = 0d0
+         END WHERE
+
          ! Regrid from GEOS 1x1 --> current model resolution [kg/yr]
          INGRID => GEOS_1x1(:,:,1)
 

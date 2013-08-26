@@ -48,6 +48,7 @@
       USE LOGICAL_MOD,          ONLY : LGRAVSTRAT ! SDE 04/12/13
       USE GMISTRAT_MOD,         ONLY : CALC_STRAT_AER ! SDE 04/18/13
       USE GMISTRAT_MOD,         ONLY : GMISTRAT_NOX ! SDE 07/17/13
+      USE GMISTRAT_MOD,         ONLY : GMISTRAT_H2SO4PHOT ! SDE 08/17/13
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE COMODE_LOOP_MOD            ! SMVGEAR variables
@@ -525,16 +526,6 @@
          CALL DEBUG_MSG( '### CHEMDR: after GASCONC' )
       ENDIF
 
-      !=================================================================  
-      ! Call SETEMIS which sets emission rates REMIS 
-      !=================================================================
-      CALL SETEMIS( EMISRR, EMISRRN, am_I_Root )
-      
-      !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
-      ENDIf
-
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
       !=================================================================
@@ -588,6 +579,16 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-JX' )
 
+      !=================================================================  
+      ! Call SETEMIS which sets emission rates REMIS 
+      !=================================================================
+      CALL SETEMIS( EMISRR, EMISRRN, am_I_Root )
+      
+      !### Debug
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
+      ENDIf
+
       !================================================================
       ! Call chemistry routines
       !================================================================
@@ -631,11 +632,16 @@
       ENDIF
 
       ! If using stratospheric chemistry, applying high-altitude
-      ! active nitrogen approximations outside the chemgrid
+      ! active nitrogen partitioning and H2SO4 photolysis
+      ! approximations  outside the chemgrid
       IF ( LGMISTRAT ) THEN
          CALL GMISTRAT_NOX
          IF ( LPRT .and. am_I_Root ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after GMISTRAT_NOX' )
+         ENDIF
+         CALL GMISTRAT_H2SO4PHOT(SUNCOS_MID)
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMDR: after GMISTRAT_H2SO4PHOT' )
          ENDIF
       ENDIF
 
