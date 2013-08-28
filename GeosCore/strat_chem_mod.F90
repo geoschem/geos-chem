@@ -1535,7 +1535,7 @@ CONTAINS
     STT => State_Chm%Tracers
 
     ! Initialize counters, initial times, mapping arrays
-    TpauseL_Cnt              = 0.
+    TpauseL_Cnt              = 0.d0
     NSCHEM                   = 0
     TauInit                  = GET_TAU()
     NymdInit                 = GET_NYMD()
