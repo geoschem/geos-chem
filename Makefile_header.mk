@@ -513,7 +513,7 @@ endif
 # Turn on floating-point exceptions
 REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS    += -debug all -fpe3 -ftrapuv
+FFLAGS    += -fpe0 -ftrapuv
 endif
 
 # Prevent any optimizations that would change numerical results
