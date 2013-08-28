@@ -400,7 +400,7 @@
       REAL*8,  PARAMETER :: OCF     = 1.4d0
 
       ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
-      REAL*8,  PARAMETER :: OCFOPOA = 1.4d0*1.5d0  ! 2.1
+      REAL*8,  PARAMETER :: OCFOPOA = 2.1d0  ! = 1.4*1.5
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
