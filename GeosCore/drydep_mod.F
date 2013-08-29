@@ -1611,6 +1611,8 @@
 !  13 Dec 2012 - R. Yantosca - Now get XLAI from State_Met
 !  31 May 2013 - R. Yantosca - Now pass State_Chm, for TOMAS
 !  14 Jun 2013 - R. Yantosca - Now use Input_Opt%ITS_A_POPS_SIM
+!  29 Aug 2013 - R. Yantosca - Bug fix: Skip to the next species if XMW = 0
+!                              in order to prevent a FP-invalid condition
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1903,6 +1905,22 @@
             DO 160  K = 1,NUMDEP
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
+
+               ! %%%%%%%%% FIX TO CORRECT A FLOATING-POINT INVALID %%%%%%%%%
+               !
+               ! Skip to the next xpecies if XMW(K) is zero.  Some drydep
+               ! species (like PMN) are given a molecular weight of zero in
+               ! INIT_DRYDEP because they use the drydep velocity of another
+               ! species.  (This assignment of a different species dep vel
+               ! is done in routine DO_DRYDEP after the call to DEPVEL.)
+               !
+               ! The quick fix is just to avoid passing a zero molecular
+               ! weight (XMW) to function DIFFG, since that will cause a
+               ! floating-point invalid.  This will be trapped if you
+               ! compile the code with the FPE=yes option. (bmy, 8/29/13)
+               !
+               IF ( .not. ( ABS( XMW(K) > 0d0 ) ) ) GOTO 155
+
                XMWH2O = 18.D-3
                RIXX = RIX*DIFFG(TEMPK,PRESSU(IJLOOP),XMWH2O)/
      C              DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K))
