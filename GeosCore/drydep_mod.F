@@ -1611,8 +1611,9 @@
 !  13 Dec 2012 - R. Yantosca - Now get XLAI from State_Met
 !  31 May 2013 - R. Yantosca - Now pass State_Chm, for TOMAS
 !  14 Jun 2013 - R. Yantosca - Now use Input_Opt%ITS_A_POPS_SIM
-!  29 Aug 2013 - R. Yantosca - Bug fix: Skip to the next species if XMW = 0
-!                              in order to prevent a FP-invalid condition
+!  29 Aug 2013 - R. Yantosca - Bug fix: Skip to the next species if unless
+!                              HSTAR>0 and XMW>0, or AIROSOL=t.  This avoids
+!                              a floating-point invalid condition.
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1697,12 +1698,25 @@
 !
 !** If LDEP(K)=F, species does not deposit.
 !** Deposition is applied only to species with LDEP=T.
-
       DO K = 1,NUMDEP
-         LDEP(K) = (HSTAR(K).GT.0.D0 .OR. F0(K).GT.0.D0 
-     &              .OR. AIROSOL(K)) 
+!-----------------------------------------------------------------------------
+! Prior to 8/29/13:
+!         LDEP(K) = (HSTAR(K).GT.0.D0 .OR. F0(K).GT.0.D0 
+!     &              .OR. AIROSOL(K)) 
+!-----------------------------------------------------------------------------
+         ! Better test for depositing species K: We need both HSTAR and XMW
+         ! to be nonzero, OR the value of AIROSOL to be true.  This should
+         ! avoid any futher floating point invalid issues caused by putting
+         ! a zero value in a denominator. (bmy, 8/29/13)
+         ! (bmy, 8/29/13)
+         IF ( ( HSTAR(K) > 0d0   .and. 
+     &          XMW  (K) > 0d0 ) .or.  AIROSOL(K) ) THEN
+            LDEP(K) = .TRUE.
+         ELSE
+            LDEP(K) = .FALSE.
+         ENDIF
       ENDDO
-                                   
+
       DO K = 1,NUMDEP    
          DO IJLOOP =1,NPTS
             DVEL(IJLOOP,K) = 0.0D0
@@ -1905,21 +1919,6 @@
             DO 160  K = 1,NUMDEP
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
-
-               ! %%%%%%%%% FIX TO CORRECT A FLOATING-POINT INVALID %%%%%%%%%
-               !
-               ! Skip to the next xpecies if XMW(K) is zero.  Some drydep
-               ! species (like PMN) are given a molecular weight of zero in
-               ! INIT_DRYDEP because they use the drydep velocity of another
-               ! species.  (This assignment of a different species dep vel
-               ! is done in routine DO_DRYDEP after the call to DEPVEL.)
-               !
-               ! The quick fix is just to avoid passing a zero molecular
-               ! weight (XMW) to function DIFFG, since that will cause a
-               ! floating-point invalid.  This will be trapped if you
-               ! compile the code with the FPE=yes option. (bmy, 8/29/13)
-               !
-               IF ( .not. ( ABS( XMW(K) > 0d0 ) ) ) GOTO 155
 
                XMWH2O = 18.D-3
                RIXX = RIX*DIFFG(TEMPK,PRESSU(IJLOOP),XMWH2O)/
@@ -4330,6 +4329,9 @@
 !                              with fields from Input_Opt
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  29 Aug 2013 - R. Yantosca - Assign XMW=118d-3 to RIP and IEPOX.  This now
+!                              prevents XMW=0d0 from being passed to function
+!                              DIFFG, where it is in the denominator.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4804,7 +4806,7 @@
             DEPNAME(NUMDEP) = 'RIP'
             HSTAR(NUMDEP)   = 1.70d6
             F0(NUMDEP)      = 1.0d0!Karl et al. 2010(science)
-            XMW(NUMDEP)     = 0d0
+            XMW(NUMDEP)     = 118d-3
             AIROSOL(NUMDEP) = .FALSE.
 
          !IEPOX
@@ -4815,7 +4817,7 @@
             DEPNAME(NUMDEP) = 'IEPOX'
             HSTAR(NUMDEP)   = 1.30d8
             F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
-            XMW(NUMDEP)     = 0d0
+            XMW(NUMDEP)     = 118d-3
             AIROSOL(NUMDEP) = .FALSE.
 
          !MAP
