@@ -433,21 +433,10 @@ CONTAINS
     REAL*8,  INTENT(IN)    :: bk(KM+1)              
 
     ! u-wind (m/s) at mid-time-level (t=t+dt/2)
-!----------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Now use assumed-shape declaration for U (bmy, 6/4/13)
-!   REAL*8,  INTENT(IN)    :: u(IM,JFIRST:JLAST,KM)
-!----------------------------------------------------------------------------
     REAL*8,  INTENT(IN)    :: u(:,:,:)
 
     ! E/W and N/S mass fluxes [kg/s]
     ! (These are computed by the pressure fixer, and passed into TPCORE)
-!----------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Now use assumed-shape declaration for XMASS, YMASS (bmy, 6/4/13)
-!   REAL*8,  INTENT(IN)    :: XMASS(IM,JM,KM)
-!   REAL*8,  INTENT(IN)    :: YMASS(IM,JM,KM)
-!----------------------------------------------------------------------------
     REAL*8,  INTENT(IN)    :: XMASS(:,:,:)
     REAL*8,  INTENT(IN)    :: YMASS(:,:,:)
 
@@ -467,11 +456,6 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! V-wind (m/s) at mid-time-level (t=t+dt/2)
-!----------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Now use assumed-shape declaration for V (bmy, 6/4/13)
-!    REAL*8,  INTENT(INOUT) :: v(IM, JFIRST-MG:JLAST+MG, KM)
-!----------------------------------------------------------------------------
     REAL*8,  INTENT(INOUT) :: v(:,:,:)
 
     ! surface pressure at current time
@@ -481,11 +465,6 @@ CONTAINS
     REAL*8,  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
 
     ! Tracer "mixing ratios" [v/v]
-!----------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Now use assumed-shape declaration for Q (bmy, 6/4/13)
-!    REAL*8,  INTENT(INOUT) :: q(IM, JFIRST-NG:JLAST+NG, KM, NQ)
-!----------------------------------------------------------------------------
     REAL*8,  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
     ! E/W, N/S, and up/down diagnostic mass fluxes
@@ -913,12 +892,6 @@ CONTAINS
      ! ==========
        call Fzppm  &
      ! ==========
-!-----------------------------------------------------------------------------
-! Prior to 6/5/13:
-! Now pass ptr_Q to avoid creating an array temporary in FZPPM.
-! This array temporary was found with -check arg_temp_created (bmy, 6/5/13)
-!            (klmt, delp1, wz, dq1, q(:,:,:,iq), fz(:,:,:,iq), &
-!-----------------------------------------------------------------------------
             (klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), &
             j1p, 1, jm, 1, im, 1, jm, &
             im, km, 1, im, 1, jm, 1, km)

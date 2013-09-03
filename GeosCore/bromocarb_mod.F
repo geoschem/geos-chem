@@ -848,13 +848,6 @@
       
       ! Read in CHBr3 emission file ([kg(CHBr3)/m2/s]), regrid
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
-!-----------------------------------------------------------------------------
-! Prior to 6/5/13:
-! Recode to avoid creating array temporaries
-! This was found with the argument -check arg_temp_created (bmy, 6/5/13)
-!      call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', 
-!     &           (/ 1, 1 /),  (/ 144, 91 /) )
-!-----------------------------------------------------------------------------
       call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', st2d, ct2d )
 
       CALL DO_REGRID_A2A( LLFILENAME, 144,         91, 
@@ -864,13 +857,6 @@
 
       ! Read in CH2Br2 emission file ([kg(CH2Br2)/m2/s]), regrid
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
-!------------------------------------------------------------------------------
-! Prior to 6/5/13:
-! Recode to avoid creating array temporaries (bmy, 6/5/13)
-! This was found with the argument -check arg_temp_created (bmy, 6/5/13)
-!      call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission',
-!     &           (/ 1, 1 /),  (/ 144, 91 /) )
-!------------------------------------------------------------------------------
       call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission', st2d, ct2d )
       CALL DO_REGRID_A2A( LLFILENAME, 144,          91,
      &                    ARRAY2x25,  CH2Br2_EMISS, IS_MASS=0,

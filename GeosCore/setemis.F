@@ -854,16 +854,6 @@
 
                      ! Convert emissions from [molec species/box/s] to 
                      ! [molec species/cm3/s] and store in the REMIS array
-!-----------------------------------------------------------------------------
-! Prior to 6/18/13:
-! NOTE: We should be adding into REMIS here.  This line of code causes
-! setemis.F as written to not generate the same results when OMP=no.  This
-! may be because the optimizer may execute this section of code before
-! the ship NOx code when OMP=yes but not when OMP=no.  In any case, this
-! fixes the problem.  REMIS is always set to zero at the top of the routine,
-! so it's OK to add into it. (bmy, 6/18/13)
-!                     REMIS(JLOOP,N) = EMIS_BL / VOLUME(JLOOP)    
-!-----------------------------------------------------------------------------
                      REMIS(JLOOP,N) = REMIS(JLOOP,N) 
      &                              + ( EMIS_BL / VOLUME(JLOOP) )
 

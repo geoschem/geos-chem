@@ -125,13 +125,6 @@
       USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: renamed to GET_EMTERP (hotp 3/2/10)
-!      USE MEGAN_MOD,          ONLY : GET_EMMONOG_MEGAN
-! ACTIVITY_FACTORS not used (hotp 2/17/10)
-!      USE MEGAN_MOD,          ONLY : ACTIVITY_FACTORS
-!------------------------------------------------------------------------------
       USE MEGAN_MOD,          ONLY : GET_EMTERP_MEGAN
       USE MEGANUT_MOD,        ONLY : XLTMMP
       USE MODIS_LAI_MOD
@@ -206,17 +199,6 @@
       ! Add in new monoterpene species (mpb,2009)
       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
       REAL*8                 :: MYRCN  , CAREN , OCIMN
-
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! commented out since not used (hotp 2/17/10)
-!      ! Add in gamma activity factors for isoprene ONLY (mpb,2009)
-!      REAL*8                 :: GAMMA_LAI
-!      REAL*8                 :: GAMMA_LEAF_AGE
-!      REAL*8                 :: GAMMA_P
-!      REAL*8                 :: GAMMA_T
-!      REAL*8                 :: GAMMA_SM
-!------------------------------------------------------------------------------
 
       ! SOAupdate: Sesquiterpenes (hotp 3/1/10)
       REAL*8                 :: FARN, BCAR, OSQT
@@ -534,47 +516,8 @@
                   EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
      &                                      PDR, PDF, XNUMOL_C )
 
-
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: EMMONOG now EMTERP (hotp 3/2/10)
-!                  ! ------------------------------------------
-!                  ! Aplha Pinene emissions
-!                  APINE = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-!     &                       PDR , PDF , XNUMOL_C , 'APINE' )
-!                  ! ------------------------------------------
-!                  ! Beta Pinene emissions
-!                  BPINE = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-!     &                       PDR , PDF , XNUMOL_C , 'BPINE' )
-!                  ! ------------------------------------------
-!                  ! Limonene emissions 
-!                  LIMON = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-!     &                       PDR , PDF , XNUMOL_C , 'LIMON' )
-!                  ! ------------------------------------------
-!                  ! Sabinene emissions
-!                  SABIN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-!     &                       PDR , PDF , XNUMOL_C , 'SABIN' )               
-!                  ! ------------------------------------------
-!                  ! Mycrene emissions
-!                  MYRCN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-!     &                       PDR , PDF , XNUMOL_C , 'MYRCN' )
-!                  ! ------------------------------------------
-!                  ! 3-Carene emissions
-!                  CAREN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-!     &                       PDR , PDF , XNUMOL_C , 'CAREN' )
-!                  ! ------------------------------------------
-!                  ! Ocimene emissions
-!                  OCIMN = GET_EMMONOG_MEGAN( I , J , SC , TMMP ,  
-!     &                       PDR , PDF , XNUMOL_C , 'OCIMN' )
-!                  ! ------------------------------------------
-!
-!                  ! Total monoterpenes = sum of individual
-!                  EMMO = APINE + BPINE + LIMON + SABIN + 
-!     &                   MYRCN + CAREN + OCIMN
-!------------------------------------------------------------------------------
-
                   ! ------------------------------------------
-                  ! Aplha Pinene emissions
+                  ! Alpha Pinene emissions
                   APINE = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
      &                       PDR , PDF , XNUMOL_C , 'APINE' )
                   ! ------------------------------------------

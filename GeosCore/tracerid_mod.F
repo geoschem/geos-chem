@@ -303,13 +303,6 @@
       INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
       INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: Remove old SOA (hotp 5/20/10) new mtp
-!      INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2 
-!      INTEGER            :: IDTSOG3, IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3
-!      INTEGER            :: IDTSOA4, IDTHG0,   IDTHg2,  IDTHgP,  IDTAS
-!------------------------------------------------------------------------------
       INTEGER            :: IDTHG0,  IDTHg2,  IDTHgP,  IDTAS
       INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
       INTEGER            :: IDTNITs
@@ -340,13 +333,6 @@
 
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
-
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! removed 5/12/10 hotp
-!      ! update for arom (dkh, 10/05/06)  
-!      INTEGER            :: IDTSOA5, IDTSOG5
-!------------------------------------------------------------------------------
 
       !jpp, 6/5/09: bromine ids
       INTEGER            :: IDTBr2,   IDTBr,   IDTBrO,  IDTHOBr, IDTHBr
@@ -983,50 +969,6 @@
             CASE ( 'OPOG2' )
                IDTOPOG2  = N
 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: remove old and add new mtp (hotp 5/20/10)
-!            CASE ( 'ALPH' )
-!               IDTALPH  = N
-!
-!            CASE ( 'LIMO' )
-!               IDTLIMO  = N
-!
-!            CASE ( 'ALCO' )
-!               IDTALCO  = N
-!
-!            CASE ( 'SOG1' )
-!               IDTSOG1  = N
-!
-!            CASE ( 'SOG2' )
-!               IDTSOG2  = N
-!
-!            CASE ( 'SOG3' )
-!               IDTSOG3  = N
-!
-!            CASE ( 'SOG4' )
-!               IDTSOG4  = N
-!
-!            !(hotp 5/25/09)
-!            CASE ( 'SOG5' )
-!               IDTSOG5  = N
-!
-!            CASE ( 'SOA1' )
-!               IDTSOA1  = N
-!
-!            CASE ( 'SOA2' )
-!               IDTSOA2  = N
-!
-!            CASE ( 'SOA3' )
-!               IDTSOA3  = N
-!
-!            CASE ( 'SOA4' )
-!               IDTSOA4  = N
-!
-!            !(hotp 5/25/09)
-!            CASE ( 'SOA5' )
-!               IDTSOA5  = N
-!------------------------------------------------------------------------------
             ! SOAupdate: remove old and add new mtp (hotp 5/20/10)
             ! Gas-phase precursors (hotp 5/20/10)
             CASE ( 'MTPA' )
@@ -4252,24 +4194,6 @@
       IDTOCPO   = 0
       IDTOxStrt = 0
       IDTOX     = 0  
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: Remove old IDTs (hotp 5/20/10) new mtp
-!      IDTALPH   = 0
-!      IDTLIMO   = 0
-!      IDTALCO   = 0
-!      IDTSOG1   = 0
-!      IDTSOG2   = 0
-!      IDTSOG3   = 0
-!      IDTSOG4   = 0
-!      IDTSOA1   = 0
-!      IDTSOA2   = 0
-!      IDTSOA3   = 0
-!      IDTSOA4   = 0
-!      ! (hotp 5/25/09)
-!      IDTSOG5   = 0
-!      IDTSOA5   = 0
-!------------------------------------------------------------------------------
       IDTDST1   = 0
       IDTDST2   = 0
       IDTDST3   = 0

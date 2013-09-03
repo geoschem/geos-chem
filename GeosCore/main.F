@@ -49,11 +49,6 @@
       USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: remove all APROD/GPROD references (hotp 7/25/10)
-!      USE SOAPROD_MOD           ! For SOA simulation
-!------------------------------------------------------------------------------
       USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
@@ -588,25 +583,6 @@
          ENDIF
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAudpate: APROD GPROD removed (hotp 7/25/10)
-!      ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)
-!      IF ( LSOA ) THEN
-!
-!         !! use this to make initial soaprod files  
-!         !CALL SET_SOAPROD
-!         !CALL FIRST_APRODGPROD()
-!         !CALL MAKE_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
-!         !goto 9999
-!         !!
-!
-!         CALL SET_SOAPROD
-!         CALL READ_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
-!
-!      ENDIF
-!------------------------------------------------------------------------------
-
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
          CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb, Input_Opt )
@@ -725,25 +701,6 @@
                   CALL MAKE_OCEAN_Hg_RESTART
      &               ( NYMD, NHMS, TAU, Input_Opt )
                ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAudpate: removed APROD GPROD (hotp 7/25/10)
-!               ! (dkh, 11/09/06)  
-!               ! Save SOA quantities GPROD & APROD
-!               IF ( LSOA .and. LCHEM ) THEN 
-!                  CALL WRITE_GPROD_APROD( NYMD, NHMS, TAU )
-!               ENDIF
-!
-!               IF ( LSOA .and. LCHEM ) THEN
-!                  CALL MAKE_SOAPROD_FILE( GET_NYMD(), GET_NHMS() )
-!
-!                  !### Debug
-!                  IF ( prtDebug ) THEN
-!                     CALL DEBUG_MSG('### MAIN: a MAKE_SOAPROD_FILE')
-!                  ENDIF
-!               ENDIF
-!------------------------------------------------------------------------------
 
                ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)
                IF ( LCHEM .and. LSVCSPEC ) THEN 

@@ -209,15 +209,6 @@
       ! (25) SMALLNUM : A small number to prevent underflow
       !=================================================================
 
-      ! Scalars 
-      !-----------------------------------------------------------------
-      ! Prior to 6/6/13:
-      ! These are now local variables in MERCURY_READYR (bmy, 6/6/13)
-      !INTEGER              :: ANTHRO_Hg_YEAR
-      !
-      !CHARACTER(LEN=255)   :: SCENARIO !eds 5/17/12
-      !-----------------------------------------------------------------
-
       ! Parameters
       REAL*8,  PARAMETER   :: SMALLNUM = 1D-20
 
@@ -7172,12 +7163,6 @@
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
       INTEGER             :: N_TRACERS
-!----------------------------------------------------------------------------
-! Prior to 6/6/13:
-! These area now local variables in MERCURY_READYR (bmy, 6/6/13)
-!      INTEGER             :: ANTHRO_Hg_YEAR
-!      CHARACTER(LEN=255)  :: HG_SCENARIO
-!----------------------------------------------------------------------------
 
       !=================================================================
       ! INIT_MERCURY begins here!
@@ -7195,12 +7180,6 @@
       LNLPBL         = Input_Opt%LNLPBL           ! Use non-local PBL?
       LSPLIT         = Input_Opt%LSPLIT           ! Tagged simulation?
       N_TRACERS      = Input_Opt%N_TRACERS        ! # of Hg tracers
-!----------------------------------------------------------------------------
-! Prior to 6/6/13:
-! These area now local variables in MERCURY_READYR (bmy, 6/6/13)
-!      ANTHRO_Hg_YEAR = Input_Opt%ANTHRO_Hg_YEAR   ! Hg emissions year
-!      SCENARIO       = Input_Opt%HG_SCENARIO      ! Future emiss scenario
-!----------------------------------------------------------------------------
 
       ! Location string for ERROR_STOP
       LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'

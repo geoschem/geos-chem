@@ -498,12 +498,6 @@
          ! For boxes below freezing, reduce 222Rn emissions by 3x
          IF ( State_Met%TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
 
-!-----------------------------------------------------------------------------
-! Prior to 8/1/13
-! Now modified for non-local PBL mixing (jintai, bmy, 8/1/13)
-!         ! Save 222Rn into STT array [kg]
-!         STT(I,J,1,1) = STT(I,J,1,1) + ADD_Rn
-!-----------------------------------------------------------------------------
          ! Save 222Rn into STT array [kg]
          IF ( Input_Opt%LNLPBL ) THEN 
             EMIS_SAVE(I,J,1) = ADD_Rn / DTSRCE          ! For non-local PBL
@@ -563,12 +557,6 @@
                CALL CORRECT_STE( ADD_Be )
             ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/1/13:
-! Now modified for non-local PBL mixing (jintai, bmy, 8/1/13)
-!            ! Add 7Be into STT tracer array [kg]
-!            STT(I,J,L,3) = STT(I,J,L,3) + ADD_Be
-!------------------------------------------------------------------------------
             ! Add 7Be into STT tracer array [kg]
             IF ( Input_Opt%LNLPBL ) THEN
 

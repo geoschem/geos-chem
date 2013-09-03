@@ -1560,14 +1560,6 @@
       USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTNH4aq 
       USE TRACERID_MOD, ONLY : IDTSO4aq, IDTBCPO,  IDTBCPI, IDTOCPO 
       USE TRACERID_MOD, ONLY : IDTOCPI
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: remove old (hotp 7/29/10)
-!      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTALPH,  IDTLIMO, IDTALCO 
-!      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
-!      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
-!      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
@@ -1854,14 +1846,6 @@
       !---------------------------------
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      ! Add SOA5 in the check. (ccc, 2/4/10)
-!      I = IDTALPH + IDTLIMO + IDTALCO + 
-!     &    IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
-!     &    IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4 + 
-!     &    IDTSOAG + IDTSOAM + IDTSOA5
-!------------------------------------------------------------------------------
       ! SOAupdate: update for new mtp (hotp 5/24/10)
       I = IDTMTPA  + IDTLIMO  + IDTMTPO  + 
      &    IDTBENZ  + IDTTOLU  + IDTXYLE  +
@@ -7394,11 +7378,6 @@
       IF ( ITS_A_MERCURY_SIM() ) THEN 
 
          ! Initialize "mercury_mod.f"
-!----------------------------------------------------------------------------
-! Prior to 6/3/13:
-! Now pass fields via Input_Opt instead of directly (bmy, 6/3/13)
-!         CALL INIT_MERCURY( ANTHRO_Hg_YEAR, HG_SCENARIO ) !eds 5/17/12
-!----------------------------------------------------------------------------
          CALL INIT_MERCURY( am_I_Root, Input_Opt, RC )
          CALL INIT_LAND_MERCURY()
          CALL INIT_DEPO_MERCURY(TRIM( GTMM_RST_FILE ))

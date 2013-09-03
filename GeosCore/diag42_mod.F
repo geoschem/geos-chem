@@ -85,12 +85,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: remove old (hotp 5/15/10)
-!      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-!      USE TRACERID_MOD,       ONLY : IDTSOA5
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDTOCPI, IDTOCPO
       USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTNIT, IDTNH4
@@ -169,16 +163,6 @@
       ! SOAupdate: Define logical flags to decide whether or not to archive
       ! into AD42 array.  This will prevent out-of-bounds errors. 
       ! (mpayer, 7/12/11)
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      IS_SOA1    = ( IDTSOA1  > 0 )
-!      IS_SOA2    = ( IDTSOA2  > 0 )
-!      IS_SOA3    = ( IDTSOA3  > 0 )
-!      IS_SOA4    = ( IDTSOA4  > 0 )
-!      IS_SOA5    = ( IDTSOA5  > 0 )
-!      IS_SOA1to5 = ( IDTSOA1  > 0 .AND. IDTSOA2  > 0 .AND. IDTSOA3  > 0
-!     &         .AND. IDTSOA4  > 0 .AND. IDTSOA5  > 0 )
-!------------------------------------------------------------------------------
       IS_OC      = ( IDTOCPI  > 0 .AND. IDTOCPO  > 0 )
       IS_BC      = ( IDTBCPI  > 0 .AND. IDTBCPO  > 0 )
       IS_SO4     = ( IDTSO4   > 0 )
@@ -194,19 +178,6 @@
      &         .AND. IDTASOA3 > 0 )
       IS_POA     = ( IDTPOA1  > 0 .AND. IDTPOA2  > 0 )
       IS_OPOA    = ( IDTOPOA1 > 0 .AND. IDTOPOA2 > 0 )
-
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      ! Error check
-!      IF ( IDTSOA1 == 0 ) RETURN
-!      IF ( IDTSOA2 == 0 ) RETURN
-!      IF ( IDTSOA3 == 0 ) RETURN
-!      IF ( IDTSOA4 == 0 ) RETURN
-!      IF ( IDTSOA5 == 0 ) RETURN
-!      ! Check these below (hotp 8/24/09)
-!      IF ( IDTOCPO == 0 ) RETURN
-!      IF ( IDTOCPI == 0 ) RETURN
-!------------------------------------------------------------------------------
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -228,80 +199,6 @@
 
          ! Conversion factor from [kg] --> [ug/m3]
          FACTOR        = 1d9 / State_Met%AIRVOL(I,J,L)
-
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!         ! SOA1 [ug/m3]
-!         AD42(I,J,L,1) = AD42(I,J,L,1)        + 
-!     &                   ( STT(I,J,L,IDTSOA1) * FACTOR )
-! 
-!         ! SOA2 [ug/m3]
-!         AD42(I,J,L,2) = AD42(I,J,L,2)        + 
-!     &                   ( STT(I,J,L,IDTSOA2) * FACTOR )
-!
-!         ! SOA3 [ug/m3]
-!         AD42(I,J,L,3) = AD42(I,J,L,3)        + 
-!     &                   ( STT(I,J,L,IDTSOA3) * FACTOR )
-!
-!         ! SOA4 [ug/m3]
-!         AD42(I,J,L,4) = AD42(I,J,L,4)        + 
-!     &                   ( STT(I,J,L,IDTSOA4) * FACTOR )
-!
-!         ! SOA5 [ug/m3]
-!         AD42(I,J,L,5) = AD42(I,J,L,5)        + 
-!     &                   ( STT(I,J,L,IDTSOA5) * FACTOR )
-!
-!         ! Sum of original 3 SOA types [ug/m3]
-!         AD42(I,J,L,6) = AD42(I,J,L,6)        + 
-!     &                   ( STT(I,J,L,IDTSOA1) + 
-!     &                     STT(I,J,L,IDTSOA2) +  
-!     &                     STT(I,J,L,IDTSOA3) ) * FACTOR
-!
-!         ! Sum of all biogenic SOA [ug/m3] 
-!         AD42(I,J,L,7) = AD42(I,J,L,7)        + 
-!     &                   ( STT(I,J,L,IDTSOA1) + 
-!     &                     STT(I,J,L,IDTSOA2) + 
-!     &                     STT(I,J,L,IDTSOA3) + 
-!     &                     STT(I,J,L,IDTSOA4) ) * FACTOR
-!
-!         ! Sum of all SOA [ug/m3] 
-!         AD42(I,J,L,8) = AD42(I,J,L,8)        +
-!     &                   ( STT(I,J,L,IDTSOA1) + 
-!     &                     STT(I,J,L,IDTSOA2) + 
-!     &                     STT(I,J,L,IDTSOA3) + 
-!     &                     STT(I,J,L,IDTSOA4) + 
-!     &                     STT(I,J,L,IDTSOA5) ) * FACTOR
-!
-!
-!         ! Sum of primary OC + SOA1 to SOA4 [ug C/m3] 
-!         ! Use higher ratio (2.1) of molecular weight of
-!         ! organic mass per carbon mass accounting for non-carbon
-!         ! components attached to OC [Turpin and Lim, 2001] 
-!         AD42(I,J,L,9) = AD42(I,J,L,9)          +
-!     &                   ( ( STT(I,J,L,IDTSOA1) + 
-!     &                       STT(I,J,L,IDTSOA2) + 
-!     &                       STT(I,J,L,IDTSOA3) + 
-!     &                       STT(I,J,L,IDTSOA4) +
-!     &                       STT(I,J,L,IDTSOA5))   / 2.1d0
-!     &                   + ( STT(I,J,L,IDTOCPO) + 
-!     &                       STT(I,J,L,IDTOCPI) ) ) * FACTOR
-!
-!         ! Sum of PRIMARY OC + SOA1 to SOA4 [ug C/sm3] at STP
-!         PRES          = GET_PCENTER( I, J, L )
-!         AD42(I,J,L,10) = AD42(I,J,L,9)      * STD_VOL_FAC * 
-!     &                    State_Met%T(I,J,L) / PRES
-!
-!         ! Sum of all OA in ug/m3
-!         AD42(I,J,L,11) = AD42(I,J,L,11)        +
-!     &                    ( STT(I,J,L,IDTSOA1) + 
-!     &                      STT(I,J,L,IDTSOA2) + 
-!     &                      STT(I,J,L,IDTSOA3) + 
-!     &                      STT(I,J,L,IDTSOA4) + 
-!     &                      STT(I,J,L,IDTSOA5) +
-!     &                    ( STT(I,J,L,IDTOCPO) +
-!     &                      STT(I,J,L,IDTOCPI) ) * 2.1d0 )
-!     &                    * FACTOR
-!------------------------------------------------------------------------------
 
          ! SOAupdate: AD42(1-11) updated (hotp 7/29/10)
          ! TSOA (terpene SOA) (hotp 5/24/10)
@@ -490,28 +387,6 @@
      &                        STT(I,J,L,IDTSALC) ) * FACTOR 
          ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: removed (hotp 7/29/10)
-!         ! total aerosol [ug/m3]
-!         IF ( IS_SOA1to5 .AND. IS_SO4 .AND. IS_NH4 .AND. IS_NIT .AND. 
-!     &        IS_BC      .AND. IS_OC ) THEN
-!            AD42(I,J,L,18) = AD42(I,J,L,18)        +
-!     &                       ( STT(I,J,L,IDTSOA1)  +
-!     &                        STT(I,J,L,IDTSOA2)   +
-!     &                        STT(I,J,L,IDTSOA3)   +
-!     &                        STT(I,J,L,IDTSOA4)   +
-!     &                        STT(I,J,L,IDTSOA5)   +
-!     &                        STT(I,J,L,IDTSO4)    +
-!     &                        STT(I,J,L,IDTNH4)    +
-!     &                        STT(I,J,L,IDTNIT)    +
-!     &                        STT(I,J,L,IDTBCPI)   +
-!     &                        STT(I,J,L,IDTBCPO)   +
-!     &                       ( STT(I,J,L,IDTOCPO)  +
-!     &                         STT(I,J,L,IDTOCPI) ) * 2.1 )
-!     &                       * FACTOR
-!         ENDIF
-!------------------------------------------------------------------------------
          !--------------------------------------------------------------
          ! Additional diagnostics for SOAG, SOAM (tmf, 12/8/07) 
          ! Assume SOAG mass = GLYX mass, SOAM mass = MGLY mass
@@ -527,51 +402,6 @@
             ! SOAM [ug total mass /m3]
             AD42(I,J,L,20) = AD42(I,J,L,20)        + 
      &                      ( STT(I,J,L,IDTSOAM) * 1.d0 * FACTOR )
-
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: removed (hotp 7/29/10)
-!            ! Sum of SOA1 to SOA4, SOAG, SOAM (tmf, 1/31/07)
-!            IF ( IS_SOA1to5 ) THEN
-!               AD42(I,J,L,21) = AD42(I,J,L,21)       + 
-!     &                          ( STT(I,J,L,IDTSOA1) + 
-!     &                            STT(I,J,L,IDTSOA2) + 
-!     &                            STT(I,J,L,IDTSOA3) + 
-!     &                            STT(I,J,L,IDTSOA4) +
-!     &                            STT(I,J,L,IDTSOA5) +
-!     &                          ( STT(I,J,L,IDTSOAG) * 1.d0 ) +
-!     &                          ( STT(I,J,L,IDTSOAM) * 1.d0 )) * FACTOR
-!            ENDIF
-!
-!            ! Sum of SOA1 to SOA4, SOAG, SOAM in carbon (tmf, 1/31/07) 
-!            ! Except SOAG is 0.41 carbon, SOAM is 0.5 carbon
-!            IF ( IS_SOA1to5 .AND. IS_OC ) THEN
-!               AD42(I,J,L,22) = AD42(I,J,L,22)         +
-!     &                          ( ( STT(I,J,L,IDTSOA1) + 
-!     &                              STT(I,J,L,IDTSOA2) + 
-!     &                              STT(I,J,L,IDTSOA3) + 
-!     &                              STT(I,J,L,IDTSOA4) + 
-!     &                              STT(I,J,L,IDTSOA5) )   / 2.1d0 +
-!     &                            ( STT(I,J,L,IDTSOAG) * 0.41D0 ) +
-!     &                            ( STT(I,J,L,IDTSOAM) * 0.50D0 ) +
-!     &                            ( STT(I,J,L,IDTOCPO) + 
-!     &                              STT(I,J,L,IDTOCPI) ) ) * FACTOR 
-!            ENDIF
-!          
-!
-!            ! Sum of SOA1 to SOA4, SOAG, SOAM at STP [ug/sm3 STP] (tmf, 1/31/07)
-!            IF ( IS_SOA1to5 ) THEN            
-!               PRES           = GET_PCENTER( I, J, L )
-!               AD42(I,J,L,23) = AD42(I,J,L,21)     * STD_VOL_FAC *
-!     &                          State_Met%T(I,J,L) / PRES
-!            ENDIF
-!
-!            ! Sum of all OC [ug C/sm3] at STP (including SOAG, SOAM)
-!            IF ( IS_SOA1to5 .AND. IS_OC ) THEN
-!            AD42(I,J,L,24) = AD42(I,J,L,22)     * STD_VOL_FAC *
-!     &                       State_Met%T(I,J,L) / PRES
-!            ENDIF
-!------------------------------------------------------------------------------
 
          ENDIF
 
@@ -727,17 +557,6 @@
 
          ! Pick proper unit
          SELECT CASE ( N )
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!            CASE( 10, 24 )
-!               UNIT = 'ug C/sm3'
-!            CASE( 9, 12, 13, 22 )
-!               UNIT = 'ug C/m3'
-!            CASE( 23 )
-!               UNIT = 'ug/sm3'
-!            CASE DEFAULT
-!               UNIT = 'ug/m3'
-!------------------------------------------------------------------------------
             ! SOAupdate: update units (hotp 5/24/10)
             CASE( 7, 10, 11, 12, 13, 22 )
                UNIT = 'ug C/m3'

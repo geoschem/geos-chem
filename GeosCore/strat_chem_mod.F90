@@ -1049,12 +1049,6 @@ CONTAINS
 
     ! Get the lat and lon centers of the 2x2.5 GMI climatology
     ! WARNING MAKE 2x25 after testing
-!-----------------------------------------------------------------------------
-! Prior to 8/26/13:
-! Avoid array temporaries
-!    call NcRd( XMID_COARSE, fileID, 'longitude', (/1/),  (/144/) )
-!    call NcRd( YMID_COARSE, fileID, 'latitude',  (/1/),  (/91/) )
-!-----------------------------------------------------------------------------
     st1d = (/ 1   /)
     ct1d = (/ 144 /)
     call NcRd( XMID_COARSE, fileID, 'longitude', st1d, ct1d )
@@ -1089,14 +1083,6 @@ CONTAINS
     DO J = 1, JGLOB
     DO I = 1, IGLOB
 
-!------------------------------------------------------------------------------
-! Prior to 8/26/13:
-! Avoid array temporaries (bmy, 8/26/13)
-!       call NcRd( column, fileID, 'species',           &
-!                  (/ I_f2c(I), J_f2c(J),     1, m /),  & ! Start
-!                  (/        1,        1, lglob, 1 /)  ) ! Count
-!------------------------------------------------------------------------------
- 
        st4d = (/ I_f2c(I), J_f2c(J),     1, m /)
        ct4d  =(/        1,        1, lglob, 1 /)
        call NcRd( column, fileID, 'species', st4d, ct4d )
@@ -1185,13 +1171,6 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-!-----------------------------------------------------------------------------
-! Prior to 8/26/13:
-! Avoid array temporaries (bmy, 8/26/13)
-!          call NcRd( column, fileID, 'prod',                       &
-!                            (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
-!                             (/        1,        1, lglob,  1 /)  )  ! Count
-!-----------------------------------------------------------------------------
           st4d = (/ I_f2c(I), J_f2c(J),     1,  m /)
           ct4d = (/        1,        1, lglob,  1 /) 
           call NcRd( column, fileID, 'prod', st4d, ct4d )
@@ -1217,13 +1196,6 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-!-----------------------------------------------------------------------------
-! Prior to 8/26/13:
-! Avoid array temporaries (bmy, 8/26/13)
-!          call NcRd( column, fileID, 'loss',                       &
-!                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
-!                             (/        1,        1, lglob,  1 /)  )  ! Count
-!-----------------------------------------------------------------------------
           st4d = (/ I_f2c(I), J_f2c(J),     1,  m /)
           ct4d = (/        1,        1, lglob,  1 /)
           call NcRd( column, fileID, 'loss', st4d, ct4d )

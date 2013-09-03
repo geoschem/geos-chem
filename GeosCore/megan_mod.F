@@ -124,10 +124,6 @@
       PUBLIC  :: GET_EMACET_MEGAN    
       PUBLIC  :: GET_EMISOP_MEGAN  
       PUBLIC  :: GET_EMMBO_MEGAN    
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      PUBLIC  :: GET_EMMONOG_MEGAN 
-!------------------------------------------------------------------------------
 !     SOAudpate: renamed, includes SESQ (hotp 3/2/10)
       PUBLIC  :: GET_EMTERP_MEGAN
       PUBLIC  :: GET_EMMONOT_MEGAN
@@ -494,209 +490,6 @@
 
       END FUNCTION GET_EMMBO_MEGAN
 !EOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Prior to 8/13/13:
-! Renamed to GET_EMTERP_MEGAN for updated SOA simulation (H. Pye)
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_emmonog_megan
-!!
-!! !DESCRIPTION: Subroutine GET\_EMMONOG\_MEGAN computes generic ('G') 
-!!  monoterpene emissions for individual monoterpene species in units of 
-!!  [atoms C/box] using the new v2.1 MEGAN inventory emission factor maps.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_EMMONOG_MEGAN( I,     J,      SUNCOS, TS, 
-!     &                            Q_DIR, Q_DIFF, XNUMOL, MONO_SPECIES ) 
-!     &            RESULT( EMMONOT )
-!!
-!! !USES:
-!!
-!      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
-!      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
-!      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
-!      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
-!      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
-!      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER,          INTENT(IN) :: I, J          ! Lon & lat indices
-!      REAL*8,           INTENT(IN) :: SUNCOS        ! Cos(solar zenith angle)
-!      REAL*8,           INTENT(IN) :: TS            ! Surface temperature [K]
-!      REAL*8,           INTENT(IN) :: Q_DIR         ! Direct PAR [W/m2]
-!      REAL*8,           INTENT(IN) :: Q_DIFF        ! Diffuse PAR [W/m2]
-!      REAL*8,           INTENT(IN) :: XNUMOL        ! Number of atoms C / kg C 
-!      CHARACTER(LEN=5), INTENT(IN) :: MONO_SPECIES  ! Monoterpene species name
-!!
-!! !RETURN VALUE:
-!!
-!      REAL*8                       :: EMMONOT       ! Emissions [atoms C/box]
-!!
-!! !REMARKS:
-!!  References (see above for full citations):
-!!  ============================================================================
-!!  (1 ) Guenther et al, 1995, 1999, 2004, 2006
-!!  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
-!! 
-!! !REVISION HISTORY: 
-!!  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by 
-!!       dsa,tmf.
-!!  (2 ) Uses gamma factors instead of exchange factors, this includes
-!!        calling of a new temperature algorithm which use a beta factor.
-!!        (mpb,2008)
-!!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !DEFINED PARAMETERS:
-!!
-!      REAL*8, PARAMETER :: BETA = 0.09
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER           :: IJLOOP
-!      REAL*8            :: GAMMA_LAI
-!      REAL*8            :: GAMMA_LEAF_AGE
-!      REAL*8            :: GAMMA_P
-!      REAL*8            :: GAMMA_T
-!      REAL*8            :: GAMMA_SM
-!      REAL*8            :: D_BTW_M
-!      REAL*8            :: LDF 
-!      REAL*8            :: Q_DIR_2, Q_DIFF_2
-!      REAL*8            :: AEF_SPARE
-!
-!      !=================================================================
-!      ! GET_EMMONOT_MEGAN begins here!
-!      !================================================================= 
-!
-!      ! Initialize return value & activity factors
-!      EMMONOT         = 0.d0
-!      GAMMA_T         = 0.d0
-!      GAMMA_LAI       = 0.d0
-!      GAMMA_LEAF_AGE  = 0.d0
-!      GAMMA_P         = 0.d0
-!      GAMMA_SM        = 0.d0
-!      AEF_SPARE       = 0.d0
-!
-!      ! Number of days between MISOLAI and PMISOLAI
-!      D_BTW_M  = DBLE( DAYS_BTW_M )
-!
-!      ! Convert Q_DIR and Q_DIFF from [W/m2] to [umol/m2/s]
-!      Q_DIR_2  = Q_DIR  * WM2_TO_UMOLM2S
-!      Q_DIFF_2 = Q_DIFF * WM2_TO_UMOLM2S
-!
-!      ! Need to determine which monoterpene AEFs 
-!      ! we need to use (mpb,2009)
-!      SELECT CASE( MONO_SPECIES) 
-!      CASE( 'APINE' )
-!         AEF_SPARE = AEF_APINE(I,J) ! hotp add I,J (3/10/10)
-!         LDF       = 0.1
-!      CASE( 'BPINE' )
-!         AEF_SPARE = AEF_BPINE(I,J) ! hotp add I,J (3/10/10)
-!         LDF       = 0.1
-!      CASE( 'LIMON' )
-!         AEF_SPARE = AEF_LIMON(I,J) ! hotp add I,J (3/10/10)
-!         LDF       = 0.05
-!      CASE( 'SABIN' )
-!         AEF_SPARE = AEF_SABIN(I,J) ! hotp add I,J (3/10/10)
-!         LDF       = 0.1
-!      CASE( 'MYRCN' )
-!         AEF_SPARE = AEF_MYRCN(I,J) ! hotp add I,J (3/10/10)
-!         LDF       = 0.05
-!      CASE( 'CAREN' )
-!         AEF_SPARE = AEF_CAREN(I,J) ! hotp add I,J (3/10/10)
-!         LDF       = 0.05
-!      CASE( 'OCIMN' )
-!         AEF_SPARE = AEF_OCIMN(I,J) ! hotp add I,J (3/10/10)
-!         LDF       = 0.8
-!      CASE DEFAULT
-!         CALL ERROR_STOP( 'Invalid MONOTERPENE species', 
-!     &                    'GET_EMMONOG_MEGAN (megan_mod.f)' )
-!      END SELECT   
-!
-!      !-----------------------------------------------------
-!      ! Only interested in terrestrial biosphere (pip)
-!      ! If (local LAI != 0 .AND. baseline emission !=0 ) 
-!      !-----------------------------------------------------
-!      ! AEF_SPARE no longer I,J (hotp 3/10/10)
-!      !IF ( ISOLAI(I,J) * AEF_SPARE(I,J) > 0d0 ) THEN
-!      IF ( ISOLAI(I,J) * AEF_SPARE > 0d0 ) THEN
-!
-!            ! Calculate gamma PAR only if sunlight conditions
-!            IF ( SUNCOS > 0d0 ) THEN
-!
-!               IF ( LPECCA ) THEN 
-!               
-!                  GAMMA_P = GET_GAMMA_P_PECCA(I, J, Q_DIR_2, Q_DIFF_2,
-!     &                         PARDR_15_AVG(I,J),  PARDF_15_AVG(I,J) )
-!               ELSE 
-!  
-!                  GAMMA_P = GET_GAMMA_P( ISOLAI(I,J), SUNCOS,
-!     &                                    Q_DIR_2, Q_DIFF_2 )
-!               END IF 
-!
-!            ELSE             
-! 
-!               ! If night
-!               GAMMA_P = 0.d0  
-!           
-!            END IF
-!
-!            ! Activity factor for leaf area
-!            GAMMA_LAI = GET_GAMMA_LAI( MISOLAI(I,J) )
-!
-!            ! Activity factor for leaf age 
-!            GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI(I,J), 
-!     &                                 PMISOLAI(I,J), D_BTW_M, 
-!     &                                 'MONO', T_15_AVG(I,J) )
-!
-!            ! Activity factor for temperature
-!            GAMMA_T = GET_GAMMA_T_NISOP( TS, BETA )
-!
-!            ! Activity factor for soil moisture
-!            GAMMA_SM = 1.d0
-!
-!         ELSE
-!
-!            ! set activity factors to zero
-!            GAMMA_T         = 0.d0
-!            GAMMA_LAI       = 0.d0
-!            GAMMA_LEAF_AGE  = 0.d0
-!            GAMMA_P         = 0.d0
-!            GAMMA_SM        = 0.d0
-!
-!      END IF
-!    
-!      ! Monoterpene emission is the product of all these; must be 
-!      ! careful to distinguish between canopy & PECCA models.
-!      IF ( LPECCA ) THEN
-!         EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-!     &                          * GAMMA_SM       * GAMMA_LAI
-!     &                          * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
-!
-!      ELSE 
-!
-!         ! removed I,J from AEF_SPARE (hotp 3/10/10)
-!         EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-!     &                          * GAMMA_SM       
-!     &                * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
-!
-!      END IF 
-!
-!      ! Convert from [kg/box] to [atoms C/box]
-!      EMMONOT  = EMMONOT * XNUMOL
-!
-!      END FUNCTION GET_EMMONOG_MEGAN
-!!EOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1203,13 +996,6 @@
       ! Loop over all species
       DO K = 1, N
 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!         ! Get contribution from each individual species [atoms C/box]
-!         MONO = GET_EMMONOG_MEGAN( I ,     J ,       SUNCOS, 
-!     &                             TS ,    Q_DIR ,   Q_DIFF, 
-!     &                             XNUMOL ,SPECIES(K)        ) 
-!------------------------------------------------------------------------------
          ! GET_EMMONOG_MEGAN renamed SOAupdate (hotp 3/2/10)
          MONO = GET_EMTERP_MEGAN( I,      J,         SUNCOS, 
      &                            TS,     Q_DIR,     Q_DIFF,
@@ -3719,34 +3505,6 @@
 
       ! SOAupdate: Read fractional coverage of PFTs from file (hotp 2/27/10)
       CALL READ_PFT
-
-!------------------------------------------------------------------------------
-! Prior to 11/22/11:
-! Lin Zhang (linzhang@fas.harvard.edu) wrote:
-!
-! I want to bring up an error in the MEGAN biogenic emissions with the nested 
-! model in the latest versions (eg. v9-01-01).  The MEGAN emissions have been 
-! updated from MEGAN 2.0 to MEGAN 2.1 since v8-02-04 in the standard model 
-! with 4x5 or 2x2.5 resolution, however, they are not fully implemented in the 
-! nested model.  The nested model for allregions still uses some old annual 
-! emission factors (as we can see in the module megan_mod.f, subroutine 
-! GET_AEF vs. GET_AEF_05x0666).  This error would cause biogenic isoprene 
-! emissions (with MEGAN 2.1) over the US a factor of two higher in the nested 
-! NA model than that in the 2x2.5 model. It can also affect the CH and EU 
-! nested models.
-!
-! A quick fix can be implemented calling GET_AEF for both nested & global
-! grids.  In this case, the model would read the annual emission factors at 
-! 1x1 resolution and then regrid to the underlying resolution.
-!
-! Comment this out:
-!      ! Get annual emission factors for MEGAN inventory
-!#if   defined( GRID05x0666 )
-!      CALL GET_AEF_05x0666     ! GEOS-5 nested grids only
-!#else
-!      CALL GET_AEF             ! Global simulations
-!#endif 
-!------------------------------------------------------------------------------
 
       ! For global and nested simulations (lzh, bmy, 11/22/11)
       CALL GET_AEF

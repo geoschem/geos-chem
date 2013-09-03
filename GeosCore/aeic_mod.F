@@ -213,12 +213,6 @@
      &               'READ_AEIC (aeic_mod.F90)' )
          END SELECT
  
-!------------------------------------------------------------------------------ 
-! Prior to 8/26/13:
-! Avoid array temporaries (bmy, 8/26/13)
-!         CALL NcRd(AEIC_1x1(:,:,:,EMIT_INDEX),AEIC_FID,TRIM(EMIT_NAME),
-!     &       (/ 1, 1, 1 , INMONTH /),(/360, 180, NLVLAEIC, 1 /))
-!------------------------------------------------------------------------------ 
          st4d = (/   1,   1,        1 , INMONTH /)
          ct4d = (/ 360, 180, NLVLAEIC,        1 /)
          CALL NcRd( AEIC_1x1(:,:,:,EMIT_INDEX),

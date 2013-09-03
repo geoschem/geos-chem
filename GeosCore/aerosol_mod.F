@@ -333,12 +333,6 @@
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
       USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: remove old tracers (hotp 7/25/10)
-!      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-!      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOA5  
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDTSO4,   IDTSOAG, IDTSOAM
       ! SOAupdate: update SOA tracers (hotp 7/25/10)
       USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
@@ -516,17 +510,6 @@
                ! to multiply by OCF to account for the mass of other 
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!               ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
-!               OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
-!     &                     +   STT(I,J,L,IDTSOA1)
-!     &                     +   STT(I,J,L,IDTSOA2)
-!     &                     +   STT(I,J,L,IDTSOA3)
-!     &                     +   STT(I,J,L,IDTSOA4)
-!     &                     +   STT(I,J,L,IDTSOA5) )
-!     &                     /   State_Met%AIRVOL(I,J,L)
-!------------------------------------------------------------------------------
                ! SOAupdate: Update traditional SOA (hotp 7/21/10)
                ! for new mtp and isop (hotp 5/20/10)
                OCPI(I,J,L) = ( STT(I,J,L,IDTTSOA1)

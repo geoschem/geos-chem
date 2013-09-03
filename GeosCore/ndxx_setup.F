@@ -393,10 +393,6 @@
          ALLOCATE( AD07_OC( IIPAR, JJPAR, LD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OC' )
 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!         ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 5 ), STAT=AS )
-!------------------------------------------------------------------------------
          ! SOAupdate (hotp 6/15/09)
          ! semivolpoa2: increase dimension for POA (hotp 3/3/09)
          ! semivolpoa4: increase dimension for OPOA(hotp 3/27/09)

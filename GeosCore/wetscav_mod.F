@@ -831,16 +831,6 @@
       USE TRACERID_MOD,       ONLY : IDTBCPO,   IDTOCPO,   IDTDST1 
       USE TRACERID_MOD,       ONLY : IDTDST2,   IDTDST3,   IDTDST4 
       USE TRACERID_MOD,       ONLY : IDTSALA,   IDTSALC
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: update biogenics (new mtp) (hotp 5/24/10)
-!      USE TRACERID_MOD,       ONLY : IDTSALA,   IDTSALC,   IDTALPH
-!      USE TRACERID_MOD,       ONLY : IDTLIMO,   IDTALCO,   IDTSOG1
-!      USE TRACERID_MOD,       ONLY : IDTSOG2,   IDTSOG3,   IDTSOG4
-!      USE TRACERID_MOD,       ONLY : IDTSOA1,   IDTSOA2,   IDTSOA3
-!      USE TRACERID_MOD,       ONLY : IDTSOA4,   IS_Hg2,    IS_HgP
-!      USE TRACERID_MOD,       ONLY : IDTSOA5,   IDTSOG5
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IS_Hg2,    IS_HgP
       USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC      
       USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
@@ -1725,170 +1715,6 @@
          CALL F_AEROSOL( KC, N, F, State_Met ) 
          ISOL = GET_ISOL( N )
 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      !-------------------------------
-!      ! ALPH (liquid phase only)
-!      !-------------------------------
-!      ELSE IF ( N == IDTALPH ) THEN
-!
-!         ! No scavenging at the surface
-!         F(:,:,1) = 0d0
-!
-!         ! Start scavenging at level 2
-!         DO L = 2, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!
-!            ! Compute liquid to gas ratio for ALPH, using
-!            ! the appropriate parameters for Henry's law
-!            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-!            CALL COMPUTE_L2G( 0.023d0, 0.d0, State_Met%T(I,J,L), 
-!     &                        CLDLIQ(I,J,L), L2G )
-!
-!            ! Fraction of ALPH in liquid phase
-!            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-!            C_TOT = 1d0 + L2G
-!            F_L   = L2G / C_TOT
-!
-!            ! Compute the rate constant K.  Assume retention factor  
-!            ! for liquid ALPH is 0.0 for T <= 248 K and 0.02 for 
-!            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-!            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
-!               K = KC * F_L  
-!
-!            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-!     &                State_Met%T(I,J,L) < 268d0 ) THEN
-!               K = KC * ( 2d-2 * F_L ) 
-!                  
-!            ELSE
-!               K = 0d0
-!
-!            ENDIF
-!               
-!            ! Distance between grid box centers [m]
-!            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-!     &                      State_Met%BXHEIGHT(I,J,L) ) 
-!
-!            ! F is the fraction of ALPH scavenged out of the updraft
-!            ! (Eq. 2, Jacob et al, 2000)
-!            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
-!
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!
-!         ISOL = GET_ISOL( N )
-!
-!      !-------------------------------
-!      ! LIMO (liquid phase only)
-!      !-------------------------------
-!      ELSE IF ( N == IDTLIMO ) THEN
-!
-!         ! No scavenging at the surface
-!         F(:,:,1) = 0d0
-!
-!         ! Start scavenging at level 2
-!         DO L = 2, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!
-!            ! Compute liquid to gas ratio for LIMO, using
-!            ! the appropriate parameters for Henry's law
-!            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-!            CALL COMPUTE_L2G( 0.07d0,  0.d0, State_Met%T(I,J,L),
-!     &                        CLDLIQ(I,J,L), L2G )
-!
-!            ! Fraction of LIMO in liquid phase
-!            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-!            C_TOT = 1d0 + L2G
-!            F_L   = L2G / C_TOT
-!
-!            ! Compute the rate constant K.  Assume retention factor  
-!            ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
-!            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-!            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
-!               K = KC * F_L  
-!
-!            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-!     &                State_Met%T(I,J,L) < 268d0 ) THEN
-!               K = KC * ( 2d-2 * F_L ) 
-!                  
-!            ELSE
-!               K = 0d0
-!
-!            ENDIF
-!               
-!            ! Distance between grid box centers [m]
-!            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-!     &                      State_Met%BXHEIGHT(I,J,L) ) 
-!
-!            ! F is the fraction of LIMO scavenged out of the updraft
-!            ! (Eq. 2, Jacob et al, 2000)
-!            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
-!
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!
-!         ! ND38 index
-!         ISOL = GET_ISOL( N )
-!
-!      !-------------------------------
-!      ! ALCO (liquid phase only)
-!      !-------------------------------
-!      ELSE IF ( N == IDTALCO ) THEN
-!
-!         ! No scavenging at the surface
-!         F(:,:,1) = 0d0
-!
-!         ! Start scavenging at level 2
-!         DO L = 2, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!
-!            ! Compute liquid to gas ratio for ALCO, using
-!            ! the appropriate parameters for Henry's law
-!            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-!            CALL COMPUTE_L2G( 54.d0,  0.d0,  State_Met%T(I,J,L), 
-!     &                        CLDLIQ(I,J,L), L2G )
-!
-!            ! Fraction of ALCO in liquid phase
-!            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-!            C_TOT = 1d0 + L2G
-!            F_L   = L2G / C_TOT
-!
-!            ! Compute the rate constant K.  Assume retention factor  
-!            ! for liquid ALCO is 0.0 for T <= 248 K and 0.02 for 
-!            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-!            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
-!               K = KC * F_L  
-!
-!            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-!     &                State_Met%T(I,J,L) < 268d0 ) THEN
-!               K = KC * ( 2d-2 * F_L ) 
-!                  
-!            ELSE
-!               K = 0d0
-!
-!            ENDIF
-!               
-!            ! Distance between grid box centers [m]
-!            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-!     &                      State_Met%BXHEIGHT(I,J,L) ) 
-!
-!            ! F is the fraction of ALCO scavenged out of the updraft
-!            ! (Eq. 2, Jacob et al, 2000)
-!            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
-!
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!
-!         ! ND38 index
-!         ISOL = GET_ISOL( N )
-!------------------------------------------------------------------------------
-
       !-------------------------------
       ! MTPA (liquid phase only)
       !-------------------------------
@@ -2117,16 +1943,6 @@
       !-----------------------------------
       ! SOG (liquid phase only)
       !-----------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      ! Add SOG5 (dkh, 03/26/07)  
-!      ! add PMNN assuming it behaves like SOG4 FP_ISOP 10/09
-!      !ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!      !&          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
-!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!     &          N == IDTSOG3 .or. N == IDTSOG4  .or. 
-!     &          N == IDTSOG5                     ) THEN
-!------------------------------------------------------------------------------
       ! update for new mtp (hotp 5/24/10), SOAudpate
       ELSE IF ( N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
      &          N == IDTTSOG3 .or. N == IDTTSOG0 .or. 
@@ -2189,15 +2005,6 @@
       ! SOA (aerosol)
       ! Scavenging efficiency for SOA is 0.8
       !------------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      ! Add SOA5 (dkh, 03/26/07)  
-!      !ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!      !&          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
-!      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!     &          N == IDTSOA3 .or. N == IDTSOA4  .or. 
-!     &          N == IDTSOA5                    ) THEN
-!------------------------------------------------------------------------------
       ! update for new mtp (hotp 5/24/10), SOAupdate
       ELSE IF ( N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
      &          N == IDTTSOA3 .or. N == IDTTSOA0 .or. 
@@ -3136,14 +2943,6 @@
       USE TRACERID_MOD,       ONLY : IDTOCPI, IDTBCPO,  IDTOCPO, IDTDST1 
       USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3,  IDTDST4, IDTSALA 
       USE TRACERID_MOD,       ONLY : IDTSALC
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate:  update biogenics (new mtp) (hotp 5/24/10)
-!      USE TRACERID_MOD,       ONLY : IDTSALC, IDTALPH,  IDTLIMO, IDTALCO 
-!      USE TRACERID_MOD,       ONLY : IDTSOG1, IDTSOG2,  IDTSOG3, IDTSOG4
-!      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2,  IDTSOA3, IDTSOA4
-!      USE TRACERID_MOD,       ONLY : IDTSOA5, IDTSOG5
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IS_Hg2,  IS_HgP
       USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
       USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
@@ -3849,109 +3648,6 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! new mtp (hotp 5/24/10), SOAupdate
-!      !------------------------------
-!      ! ALPH (liquid phase only)
-!      !------------------------------
-!      ELSE IF ( N == IDTALPH ) THEN
-!
-!         ! Compute liquid to gas ratio for ALPH, using
-!         ! the appropriate parameters for Henry's law
-!         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-!         CALL COMPUTE_L2G( 0.023d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
-!
-!         ! Fraction of ALPH in liquid phase
-!         ! (Eqs. 4, 5, Jacob et al, 2000)
-!         C_TOT = 1d0 + L2G
-!         F_L   = L2G / C_TOT
-!
-!         ! Compute the rate constant K.  Assume that the retention factor
-!         ! for liquid ALPH is 0.02 for 248 K < T < 268 K, and
-!         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-!         IF ( TK >= 268d0 ) THEN
-!            K = K_RAIN * F_L
-!
-!         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-!            K = K_RAIN * ( 2d-2 * F_L )
-!
-!         ELSE
-!            K = 0d0
-!
-!         ENDIF
-! 
-!         ! Compute RAINFRAC, the fraction of rained-out ALPH
-!         ! (Eq. 10, Jacob et al, 2000)
-!         RAINFRAC = GET_RAINFRAC( K, F, DT )
-!
-!      !------------------------------
-!      ! LIMO (liquid phase only)
-!      !------------------------------
-!      ELSE IF ( N == IDTLIMO ) THEN
-!
-!         ! Compute liquid to gas ratio for LIMO, using
-!         ! the appropriate parameters for Henry's law
-!         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-!         CALL COMPUTE_L2G( 0.07d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
-!
-!         ! Fraction of LIMO in liquid phase
-!         ! (Eqs. 4, 5, Jacob et al, 2000)
-!         C_TOT = 1d0 + L2G
-!         F_L   = L2G / C_TOT
-!
-!         ! Compute the rate constant K.  Assume that the retention factor
-!         ! for liquid LIMO is 0.02 for 248 K < T < 268 K, and
-!         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-!         IF ( TK >= 268d0 ) THEN
-!            K = K_RAIN * F_L
-!
-!         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-!            K = K_RAIN * ( 2d-2 * F_L )
-!
-!         ELSE
-!            K = 0d0
-!
-!         ENDIF
-!
-!         ! Compute RAINFRAC, the fraction of rained-out LIMO
-!         ! (Eq. 10, Jacob et al, 2000)
-!         RAINFRAC = GET_RAINFRAC( K, F, DT )
-!
-!      !------------------------------
-!      ! ALCO (liquid phase only)
-!      !------------------------------
-!      ELSE IF ( N == IDTALCO ) THEN
-!
-!         ! Compute liquid to gas ratio for ALCO, using
-!         ! the appropriate parameters for Henry's law
-!         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-!         CALL COMPUTE_L2G( 54.d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
-!
-!         ! Fraction of ALCO in liquid phase
-!         ! (Eqs. 4, 5, Jacob et al, 2000)
-!         C_TOT = 1d0 + L2G
-!         F_L   = L2G / C_TOT
-!
-!         ! Compute the rate constant K.  Assume that the retention factor
-!         ! for liquid ALCO is 0.02 for 248 K < T < 268 K, and
-!         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-!         IF ( TK >= 268d0 ) THEN
-!            K = K_RAIN * F_L
-!
-!         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-!            K = K_RAIN * ( 2d-2 * F_L )
-!
-!         ELSE
-!            K = 0d0
-!
-!         ENDIF
-!
-!         ! Compute RAINFRAC, the fraction of rained-out ALCO
-!         ! (Eq. 10, Jacob et al, 2000)   
-!         RAINFRAC = GET_RAINFRAC( K, F, DT )
-!------------------------------------------------------------------------------
-
       !------------------------------
       ! MTPA (liquid phase only)
       !------------------------------
@@ -4093,12 +3789,6 @@
       !----------------------------------
       ! SOG (liquid phase only)
       !----------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!     &          N == IDTSOG3 .or. N == IDTSOG4  .or. 
-!     &          N == IDTSOG5                    ) THEN  
-!------------------------------------------------------------------------------
       ! update for new mtp (hotp 5/24/10), SOAudpate
       ELSE IF ( N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
      &          N == IDTTSOG3 .or. N == IDTTSOG0 .or.
@@ -4277,12 +3967,6 @@
          ! SOA (aerosol)
          ! Scavenging efficiency for SOA is 0.8
          !--------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!         ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!     &             N == IDTSOA3 .or. N == IDTSOA4  .or. 
-!     &             N == IDTSOA5                    ) THEN
-!------------------------------------------------------------------------------
          ! update new mtp (hotp 5/24/10), SOAudpate
          ELSE IF ( N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
      &             N == IDTTSOA3 .or. N == IDTTSOA0 .or. 
@@ -4550,13 +4234,6 @@
       USE TRACERID_MOD, ONLY : IDTOCPI,  IDTBCPO,  IDTOCPO, IDTDST1 
       USE TRACERID_MOD, ONLY : IDTDST2,  IDTDST3,  IDTDST4, IDTSALA 
       USE TRACERID_MOD, ONLY : IDTSALC
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      USE TRACERID_MOD, ONLY : IDTSALC,  IDTALPH,  IDTLIMO, IDTALCO 
-!      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
-!      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
-!      USE TRACERID_MOD, ONLY : IDTSOA5,  IDTSOG5
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
@@ -4974,33 +4651,6 @@
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
  
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      !------------------------------
-!      ! ALPH (liquid & gas phases)
-!      !------------------------------
-!      ELSE IF ( N == IDTALPH ) THEN
-!         KIN      = .FALSE.
-!         CALL WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP,       DT,  F,  
-!     &                          DZ,      TK,   WASHFRAC, KIN  )
-!
-!      !------------------------------
-!      ! LIMO (liquid & gas phases)
-!      !------------------------------
-!      ELSE IF ( N == IDTLIMO ) THEN
-!         KIN      = .FALSE.
-!         CALL WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP,       DT,  F,  
-!     &                          DZ,     TK,   WASHFRAC, KIN  )
-!
-!      !------------------------------
-!      ! ALCO (liquid & gas phases)
-!      !------------------------------
-!      ELSE IF ( N == IDTALCO ) THEN
-!         KIN      = .FALSE.
-!         CALL WASHFRAC_LIQ_GAS( 54.d0,  0.d0, PP,       DT,  F,  
-!     &                          DZ,     TK,   WASHFRAC, KIN  )
-!------------------------------------------------------------------------------
-
       !------------------------------
       ! MTPA (liquid & gas)
       !------------------------------
@@ -5039,12 +4689,6 @@
       !---------------------------------
       ! SOG (liq & gas phases)
       !---------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!     &          N == IDTSOG3 .or. N == IDTSOG4  .or.  
-!     &          N == IDTSOG5                    ) THEN   
-!------------------------------------------------------------------------------
       ! update for new mtp (hotp 5/24/10), SOAupdate
       ELSE IF ( N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
      &          N == IDTTSOG3 .or. N == IDTTSOG0 .or. 
@@ -5060,12 +4704,6 @@
       !------------------------------
       ! SOA (aerosol)
       !------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!     &          N == IDTSOA3 .or. N == IDTSOA4  .or.  
-!     &          N == IDTSOA5                    ) THEN
-!------------------------------------------------------------------------------
       ! update for new mtp (hotp 5/24/10), SOAupdate
       ELSE IF ( N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
      &          N == IDTTSOA3 .or. N == IDTTSOA0 .or. 
@@ -8047,13 +7685,6 @@
       USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
       USE TRACERID_MOD, ONLY : IDTSALC
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
-!      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOG4
-!      USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,   IDTSOA3, IDTSOA4
-!      USE TRACERID_MOD, ONLY : IDTSOA5,   IDTSOG5
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IS_Hg2,    IS_HgP
       USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
       USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
@@ -8305,63 +7936,6 @@
          ELSE IF ( N == IDTPOA2 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTPOA2
-
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!         ELSE IF ( N == IDTALPH ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTALPH
-!
-!         ELSE IF ( N == IDTLIMO ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTLIMO
-!
-!         ELSE IF ( N == IDTALCO ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTALCO
-!
-!         ELSE IF ( N == IDTSOG1 ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTSOG1
-!
-!         ELSE IF ( N == IDTSOG2 ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTSOG2
-!
-!         ELSE IF ( N == IDTSOG3 ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTSOG3
-!
-!         ELSE IF ( N == IDTSOG4 ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTSOG4
-!
-!         ! Added SOG5 (dkh, 03/26/07)  
-!         ELSE IF ( N == IDTSOG5 ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTSOG5
-!       
-!         ELSE IF ( N == IDTSOA1 ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTSOA1
-!
-!         ELSE IF ( N == IDTSOA2 ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTSOA2
-!
-!         ELSE IF ( N == IDTSOA3 ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTSOA3
-!
-!         ELSE IF ( N == IDTSOA4 ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTSOA4
-!
-!         ! added SOA5 (dkh, 03/26/07)  
-!         ELSE IF ( N == IDTSOA5 ) THEN
-!            NSOL         = NSOL + 1
-!            IDWETD(NSOL) = IDTSOA5
-!------------------------------------------------------------------------------
 
          ! new mtp (hotp 5/24/10), SOAupdate
          ELSE IF ( N == IDTMTPA ) THEN
@@ -8773,10 +8347,6 @@
          IF ( LSSALT )   NMAX = NMAX + 2             ! plus 2 seasalts
 
          IF ( LSOA ) THEN                            !%% SOA SIMULATION %%
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!            IF ( LCARB ) NMAX = NMAX + 17            ! carbon + SOA aerosols
-!------------------------------------------------------------------------------
             ! SOAudpate (hotp 7/25/10)
             IF ( LCARB ) NMAX = NMAX + 32            ! carbon + SOA aerosols
             IF ( IDTSOAG /= 0 ) NMAX = NMAX + 1      ! plus SOAG deposition
@@ -8805,10 +8375,6 @@
          IF ( LSSALT )   NMAX = NMAX + 2             ! add 2 seasalts
 
          IF ( LSOA ) THEN                            !%% SOA SIMULATION %%
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!            IF ( LCARB ) NMAX = NMAX + 15            ! carbon + SOA aerosols
-!------------------------------------------------------------------------------
             ! SOAudpate (hotp 7/25/10)
             IF ( LCARB ) NMAX = NMAX + 32            ! carbon + SOA aerosols
          ELSE                                        !%% non-SOA simulation %%

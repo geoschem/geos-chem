@@ -566,11 +566,6 @@
          ! OC BIOMASS source
          !------------------------------
          CATEGORY     = 'OC-BIOB'
-!-----------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: Use N from above (hotp 8/23/09)
-!         N            = IDTOCPI
-!-----------------------------------------------------------------------
          ARRAY(:,:,1) = AD07(:,:,5) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -583,11 +578,6 @@
          ! OC BIOFUEL source
          !------------------------------
          CATEGORY     = 'OC-BIOF'
-!-----------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: Use N from above (hotp 8/23/09)
-!         N            = IDTOCPI
-!-----------------------------------------------------------------------
          ARRAY(:,:,1) = AD07(:,:,6) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -600,11 +590,6 @@
          ! OC BIOGENIC source
          !------------------------------
          CATEGORY     = 'OC-BIOG'
-!-----------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: Use N from above (hotp 8/23/09)
-!         N            = IDTOCPI
-!-----------------------------------------------------------------------
          ARRAY(:,:,1) = AD07(:,:,7) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -641,39 +626,6 @@
             !------------------------------
             ! NVOC SOURCE diagnostics
             !------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!            DO N = 8, 12
-!
-!               SELECT CASE ( N )
-!
-!                  ! ALPH
-!                  CASE ( 8 )
-!                     CATEGORY = 'OC-ALPH'
-!                     NN       = IDTALPH
-!
-!                  ! LIMO
-!                  CASE ( 9 )
-!                     CATEGORY = 'OC-LIMO'
-!                     NN       = IDTLIMO
-!
-!                  ! TERP
-!                  CASE ( 10 )
-!                     CATEGORY = 'OC-TERP'
-!                     NN       = IDTLIMO + 1
-!
-!                  ! ALCO
-!                  CASE ( 11 )
-!                     CATEGORY = 'OC-ALCO'
-!                     NN       = IDTLIMO + 2
-!
-!                  ! SESQ
-!                  CASE ( 12 )
-!                     CATEGORY = 'OC-SESQ'
-!                     NN       = IDTLIMO + 3
-!
-!               END SELECT
-!------------------------------------------------------------------------------
             ! SOAupdate: Only 11 now (hotp 5/20/10) new mtp
             DO N = 8, 11
 
@@ -719,36 +671,6 @@
             !-----------------------------------------------
             CATEGORY = 'PL-OC=$'
 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!            ! (hotp 5/25/09) add SO5
-!            !DO N = 1, 4
-!            DO N = 1, 5
-!
-!               ! hotp 7/31/08 units
-!               UNIT = 'kg'
-!
-!               IF ( N == 1 ) NN = IDTSOA1
-!               IF ( N == 2 ) NN = IDTSOA2
-!               IF ( N == 3 ) NN = IDTSOA3
-!               IF ( N == 4 ) NN = IDTSOA4  ! (tmf, bmy, 3/20/07)
-!               IF ( N == 5 ) NN = IDTSOA5
-!
-!               ! Check to make sure the tracer exists (hotp 8/23/09)
-!               IF ( NN > 0 ) THEN
-!                  DO L = 1, LD07
-!                     ARRAY(:,:,L) = AD07_HC(:,:,L,N)
-!                  ENDDO
-!
-!               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-!     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
-!     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-!     &                     IIPAR,     JJPAR,     LD07,     IFIRST,
-!     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
-!               ENDIF ! NN
-!
-!            ENDDO
-!------------------------------------------------------------------------------
             ! SOAupdate: hotp 5/24/10 (new mtp)
             DO N = 1, 6
 
