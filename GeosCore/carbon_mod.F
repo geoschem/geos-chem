@@ -3846,14 +3846,14 @@
       ALPHA(1,2,PARENTTOLU) = 0.0944d0
       ALPHA(1,3,PARENTTOLU) = 0.0800d0
       ! LOW NOX TOLU
-      ALPHA(2,4,PARENTTOLU) = 0.36d0
+      ALPHA(2,4,PARENTTOLU) = 0.30d0
 
       ! HIGH NOX XYLE
       ALPHA(1,1,PARENTXYLE) = 0.0250d0
       ALPHA(1,2,PARENTXYLE) = 0.0360d0
       ALPHA(1,3,PARENTXYLE) = 0.0899d0
       ! LOW NOX XYLE
-      ALPHA(2,4,PARENTXYLE) = 0.30d0
+      ALPHA(2,4,PARENTXYLE) = 0.36d0
 
       !----------------------------
       ! POA
