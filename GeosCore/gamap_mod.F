@@ -1691,6 +1691,7 @@
 !                              semivolatile POA simulations (H. Pye)
 !  04 Sep 2013 - R. Yantosca - Fix ND44 tracer listing
 !  04 Sep 2013 - R. Yantosca - Now also reference everything in tracerid_mod.F
+!  04 Sep 2013 - R. Yantosca - Bug fix: # of ND46 tracers should be 20
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5965,9 +5966,7 @@
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         ! Increase for bromine (jpp, mpayer, 12/28/11)
-         !NTRAC(46) = 20 
-         NTRAC(46) = 24 ! SOAupdate: hotp 3/1/10
+         NTRAC(46) = 20
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
