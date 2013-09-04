@@ -4900,6 +4900,9 @@
 !                              parameter.
 !  20 Jan 2012 - H Amos      - rename WASHFRAC_FINE_AEROSOL to distinguish 
 !                              this function from WASHFRAC_COARSE_AEROSOL
+!  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F 
+!                              multiplies the whole expression for WASHFRAC,
+!                              WASHFRAC=0 whenever F=0 anyway. (bmy, 9/4/13)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4913,14 +4916,29 @@
       !=================================================================
       ! WASHFRAC_FINE_AEROSOL begins here!
       !=================================================================
-
-      ! Washout only happens at or above 268 K
       IF ( ( TK >= 268d0 ) .OR. ITS_A_POPS_SIM ) THEN
-         WASHFRAC = F *(1d0 - EXP( -K_WASH * 
-     &                         (PP / F*3.6d4 )**0.61d0 * DT / 3.6d3 ))
+
+         !---------------------------------
+         ! T >= 268K (or POPS simulation)  
+         !---------------------------------
+         IF ( F > 0d0 ) THEN
+            WASHFRAC = F *(1d0 - EXP( -K_WASH * 
+     &                    (PP / F*3.6d4 )**0.61d0 * DT / 3.6d3 ))
+         ELSE
+            WASHFRAC = 0d0
+         ENDIF
+
       ELSE
-         WASHFRAC = F *(1d0 - EXP( -2.6d1*K_WASH *
-     &                         (PP / F*3.6d4 )**0.96d0 * DT / 3.6d3 ))
+
+         !---------------------------------
+         ! T < 268K
+         !---------------------------------
+         IF ( F > 0d0 ) THEN 
+            WASHFRAC = F *(1d0 - EXP( -2.6d1*K_WASH *
+     &                    (PP / F*3.6d4 )**0.96d0 * DT / 3.6d3 ))
+         ELSE
+            WASHFRAC = 0d0
+         ENDIF
 
       ENDIF
 
