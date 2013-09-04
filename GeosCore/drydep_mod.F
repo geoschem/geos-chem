@@ -1752,7 +1752,11 @@
 !$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
 !$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
-!$OMP+PRIVATE( C1X,    VK,     I,      J                      )
+!$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
+#if defined( GCAP )
+!$OMP+PRIVATE( ZO                                             )
+#endif
+
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -2378,7 +2382,9 @@
                PRINT*, 'CFRAC    = ', CFRAC(IJLOOP)
                PRINT*, 'ZH       = ', ZH(IJLOOP)
                PRINT*, 'LRGERA   = ', LRGERA(IJLOOP)
+#if !defined( GCAP )
                PRINT*, 'ZO       = ', ZO(IJLOOP)
+#endif
                PRINT*, 'STOP in depvel.f!'
                CALL CLEANUP
                STOP
@@ -2403,7 +2409,9 @@
                PRINT*, 'CFRAC    = ', CFRAC(IJLOOP)
                PRINT*, 'ZH       = ', ZH(IJLOOP)
                PRINT*, 'LRGERA   = ', LRGERA(IJLOOP)
+#if !defined( GCAP )
                PRINT*, 'ZO       = ', ZO(IJLOOP)
+#endif
                CALL CLEANUP
                STOP
 !$OMP END CRITICAL
