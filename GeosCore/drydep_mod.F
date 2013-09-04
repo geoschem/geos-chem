@@ -4322,6 +4322,7 @@
 !  29 Aug 2013 - R. Yantosca - Assign XMW=118d-3 to RIP and IEPOX.  This now
 !                              prevents XMW=0d0 from being passed to function
 !                              DIFFG, where it is in the denominator.
+!  04 Sep 2013 - R. Yantosca - Improve printout of drydep species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4336,6 +4337,8 @@
       REAL*8, SAVE :: POP_K_POPP_O3A, POP_K_POPP_O3B
       REAL*8, SAVE :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
       REAL*8       :: DUM
+
+      CHARACTER(LEN=255) :: MSG
 
       !=================================================================
       ! INIT_DRYDEP begins here!
@@ -4733,21 +4736,21 @@
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 160.d-3
             AIROSOL(NUMDEP) = .FALSE.
-         !--------------------------------------------
 
-         !FP_ISOP
-         ! !ISOPN=ISOPNDISOPNB
+         ! NOTE: ISOPN is composed of 2 species (ISOPND + ISOPNB)
          ELSE IF ( N == IDTISOPN ) THEN
-         !ISOPNNR
+
+            ! First species; ISOPND
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTISOPN
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'ISOPND'
             HSTAR(NUMDEP)   = 17d3 !ITO 2007
             F0(NUMDEP)      = 1d0  !Karl et al. 2010(science)
-             XMW(NUMDEP)     = 147d-3
+            XMW(NUMDEP)     = 147d-3
             AIROSOL(NUMDEP) = .FALSE.
 
+            ! Second species: ISOPNB
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTISOPN
             NDVZIND(NUMDEP) = NUMDEP
@@ -4757,8 +4760,10 @@
             XMW(NUMDEP)     = 147d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-         !MMN=MACRN+MVKN
+         ! NOTE: MMN is composed of 2 species (MACRN + MVKN)
          ELSE IF ( N == IDTMMN ) THEN
+
+            ! First species; MACRN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTMMN
             NDVZIND(NUMDEP) = NUMDEP
@@ -4768,6 +4773,7 @@
             XMW(NUMDEP)     = 149d-3
             AIROSOL(NUMDEP) = .FALSE.
        
+            ! Second species: MVKN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTMMN
             NDVZIND(NUMDEP) = NUMDEP
@@ -6223,19 +6229,33 @@
       ! Echo information to stdout
       !=================================================================
       IF ( am_I_Root ) THEN
-      WRITE( 6, '(/,a)' ) 'INIT_DRYDEP: List of dry deposition species:'
-      WRITE( 6, '(/,a)'   )
-     & '  #   Name  Tracer DEPVEL Henry''s    React.   Molec.  Aerosol?'
-      WRITE( 6, '(a)'   )
-     & '            Number Index  Law Const  Factor   Weight  (T or F)'
-      WRITE( 6, '(a)'   ) REPEAT( '-', 65 )
 
-      DO N = 1, NUMDEP
-         WRITE( 6, 100 ) N, TRIM( DEPNAME(N) ), NTRAIND(N), NDVZIND(N), 
-     &                   HSTAR(N),  F0(N),      XMW(N),     AIROSOL(N)
-      ENDDO
+         ! Line 1
+         MSG = 'INIT_DRYDEP: List of dry deposition species:'
+         WRITE( 6, '(/,a)' ) TRIM( MSG )
 
- 100  FORMAT( i3, 3x, a5, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
+         ! Line 2
+         MSG =  '  #   Name      Tracer DEPVEL Henry''s    React.'
+     &       // '   Molec.   Aerosol?'
+         WRITE( 6, '(/,a)'   ) TRIM( MSG )
+
+         ! Line 3
+         MSG =  '                Number Index  Law Const  Factor'
+     &       // '   Weight   (T or F)'
+         WRITE( 6, '(a)'   ) TRIM( MSG )
+
+         ! Separator
+         WRITE( 6, '(a)'   ) REPEAT( '-', 70 )
+
+         ! Output
+         DO N = 1, NUMDEP
+            WRITE( 6, 100 ) N,          ADJUSTL( DEPNAME(N) ), 
+     &                      NTRAIND(N), NDVZIND(N), 
+     &                      HSTAR(N),   F0(N),      
+     &                      XMW(N),     AIROSOL(N)
+
+         ENDDO
+ 100     FORMAT( i3, 3x, a8, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
       ENDIF
 
       !=================================================================

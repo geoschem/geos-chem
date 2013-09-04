@@ -202,6 +202,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  04 Sep 2013 - R. Yantosca - Make ND44 output consistent w/ modifications in
+!                              GeosCore/gamap_mod.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,7 +211,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
-      INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC
+      INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
 
       INTEGER            :: NN1    ! TOMAS tracers
@@ -2886,19 +2888,25 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 #endif
 
-
+            !-----------------------------------------------------------
             ! Special case for tracers with several deposition tracers.
-            ! (E.G. ISOPN: ISOPND and ISOPNB). Not aerosols (ccc, 2/3/10)
+            ! We have already written drydep fluxes for ISOPND and 
+            ! MACRN above.  Therefore, also write the drydep velocities
+            ! for the second species (ISOPNB and MVKN) here.
+            !-----------------------------------------------------------
             SELECT CASE( DEPNAME( N ) )
                CASE( 'ISOPND' ) 
                   !ISOPNB is the next deposition tracer
                   ! Save into ARRAY
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,1) / SCALECHEM )
 
+                  ! Index under which ISOPN is stored
+                  T            = N_TRACERS + 1
+
                   ! Write to file
                   ! It's number is NNPAR+1 (see gamap_mod.f)
                   CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+1,    
+     &                        HALFPOLAR, CENTER180, CATEGORY, T,    
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                        IIPAR,     JJPAR,     1,        IFIRST,     
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2908,10 +2916,13 @@
                   ! Save into ARRAY
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,1) / SCALECHEM )
 
+                  ! Index under which MVKN is stored
+                  T            = N_TRACERS + 2
+
                   ! Write to file
                   ! It's number is NNPAR+2 (see gamap_mod.f)
                   CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+2,    
+     &                        HALFPOLAR, CENTER180, CATEGORY, T,
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                        IIPAR,     JJPAR,     1,        IFIRST,     
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2973,18 +2984,27 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
 
+            !-----------------------------------------------------------
             ! Special case for tracers with several deposition tracers.
-            ! (E.G. ISOPN: ISOPND and ISOPNB) (ccc, 2/3/10)
+            ! We have already written drydep velocities for ISOPND and 
+            ! MACRN above.  Therefore, also write the drydep velocities
+            ! for the second species (ISOPNB and MVKN) here.
+            ! (ccc, bmy, 9/4/13)
+            !-----------------------------------------------------------
             SELECT CASE( DEPNAME( N ) )
+
                CASE( 'ISOPND' ) 
                   !ISOPNB is the next deposition tracer
                   ! Save into ARRAY
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,2) / SCALECHEM )
 
+                  ! Index under which ISOPN is stored
+                  T            = N_TRACERS + 1
+
                   ! Write to file
                   ! It's number is NNPAR+1 (see gamap_mod.f)
                   CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+1,    
+     &                        HALFPOLAR, CENTER180, CATEGORY, T,    
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                        IIPAR,     JJPAR,     1,        IFIRST,     
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2994,10 +3014,13 @@
                   ! Save into ARRAY
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,2) / SCALECHEM )
 
+                  ! Index under which MVKN is stored
+                  T            = N_TRACERS + 2
+
                   ! Write to file
                   ! It's number is NNPAR+2 (see gamap_mod.f)
                   CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+2,    
+     &                        HALFPOLAR, CENTER180, CATEGORY, T,    
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                        IIPAR,     JJPAR,     1,        IFIRST,     
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
