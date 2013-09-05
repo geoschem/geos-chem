@@ -4902,7 +4902,7 @@
 !                              this function from WASHFRAC_COARSE_AEROSOL
 !  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F 
 !                              multiplies the whole expression for WASHFRAC,
-!                              WASHFRAC=0 whenever F=0 anyway. (bmy, 9/4/13)
+!                              WASHFRAC=0 whenever F=0 anyway.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4951,8 +4951,8 @@
 !
 ! !IROUTINE: washfrac_coarse_aerosol
 !
-! !DESCRIPTION: Function WASHFRAC\_COARSE\_AEROSOL returns the fraction of soluble 
-!  aerosol tracer lost to washout.
+! !DESCRIPTION: Function WASHFRAC\_COARSE\_AEROSOL returns the fraction of 
+!  soluble aerosol tracer lost to washout.
 !\\
 !\\
 ! !INTERFACE:
@@ -4987,7 +4987,9 @@
 !                              parameter.
 !  20 Jan 2012 - H Amos      - WASHFRAC_COARSE_AEROSOL created to handle
 !                              SALC and DST4
-!
+!  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F
+!                              multiplies the whole expression for WASHFRAC,
+!                              WASHFRAC=0 whenever F=0 anyway.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4998,15 +5000,34 @@
 
       ! Washout only happens at or above 268 K
       IF ( TK >= 268d0 ) THEN
-           WASHFRAC = F *(1d0 - EXP( -0.92d0 * ( PP / F*3.6d4 )**0.79d0 
-     &                             * DT / 3.6d3 ))
+
+         !-------------
+         ! T >= 268K 
+         !-------------
+         IF ( F > 0d0 ) THEN
+            WASHFRAC = F *(1d0 - EXP( -0.92d0 * ( PP / F*3.6d4 )**0.79d0 
+     &                                        * DT / 3.6d3 ))
+         ELSE
+            WASHFRAC = 0d0
+         ENDIF
+
       ELSE
-           WASHFRAC = F *(1d0 - EXP( -1.57d0 *
-     &                          (PP / F*3.6d4)**0.96d0 * DT / 3.6d3 ))
+
+         !-------------
+         ! T < 268K 
+         !-------------
+         IF ( F > 0d0 ) THEN
+            WASHFRAC = F *(1d0 - EXP( -1.57d0 *
+     &                           (PP / F*3.6d4)**0.96d0 * DT / 3.6d3 ))
+         ELSE
+            WASHFRAC = 0d0
+         ENDIF
+
       ENDIF   
 
       END FUNCTION WASHFRAC_COARSE_AEROSOL
 !EOC
+#if defined( TOMAS )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -5021,50 +5042,53 @@
 ! !INTERFACE:
 !
 
-#if defined( TOMAS )
       FUNCTION WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
      &                                State_Met, State_Chm ) 
      &         RESULT( WASHFRAC )
 !
-!******************************************************************************
-!  Function WASHFRAC_SIZE_AEROSOL returns the fraction of soluble size-resolved
-!  aerosol tracer lost to washout.  This applies different washout coefficient 
-!  for each size. (win, 7/16/ 09)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DT       (REAL*8 ) : Dynamic timestep                   [s]
-!  (2 ) F        (REAL*8 ) : Fraction of grid box 
-!                             that is precipitating             [unitless]
-!  (3 ) PP       (REAL*8 ) : Precip rate thru at bottom    
-!                             of grid box (I,J,L)           [cm3 H2O/cm2 air/s]
-!  (4 ) TK       (REAL*8 ) : Temperature in grid box            [K]
-!  (5 ) N        (INTEGER) : Tracer number                      [unitless]
-!  (6 ) I,J,L    (INTEGER) : Grid box location
-!
-!  NOTES:
-!  31 May 2013 - R. Yantosca - Now accept State_Met, State_Chm as arguments
-!******************************************************************************
-!   
-      ! Reference to F90 modules
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTNK1
       USE TOMAS_MOD,          ONLY : IBINS, GETDP, STRATSCAV
-
-      ! Arguments
-      REAL*8, INTENT(IN)    :: DT, F, PP, TK
-      INTEGER,INTENT(IN)    :: I             ! Longitude index
-      INTEGER,INTENT(IN)    :: J             ! Latitude index
-      INTEGER,INTENT(IN)    :: N, L
+!
+! !INPUT PARAMETERS:
+! 
+      REAL*8,         INTENT(IN)    :: DT          ! Dynamic timestep [s]     
+      REAL*8,         INTENT(IN)    :: F           ! Fraction of grid box
+                                                   !  that is precipitating
+      REAL*8,         INTENT(IN)    :: PP          ! Precip rate thru bottom
+                                                   !  of grid box (I,J,L)
+                                                   !  [cm3 H2O/cm2 air/s]
+      REAL*8,         INTENT(IN)    :: TK          ! Temperature [K] 
+      INTEGER,        INTENT(IN)    :: I           ! Longitude index
+      INTEGER,        INTENT(IN)    :: J           ! Latitude index
+      INTEGER,        INTENT(IN)    :: L           ! Level index
+      INTEGER,        INTENT(IN)    :: N           ! Tracer index
 
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
-      ! Function value
-      REAL*8             :: WASHFRAC
-
-      ! Local variables
+!
+! !RETURN VALUE:
+!
+      REAL*8                        :: WASHFRAC    ! Fraction of tracer 
+                                                   !  lost to washout
+! 
+! !REVISION HISTORY: 
+!  31 May 2013 - R. Yantosca - Now accept State_Met, State_Chm as arguments
+!  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F 
+!                              multiplies the whole expression for WASHFRAC,
+!                              WASHFRAC=0 whenever F=0 anyway.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*8             :: DPAERO          ! Average diameter of particle 
       REAL*8             :: SCAVR !Below-cloud scavenging coefficient (per cm rain)
       REAL*8, SAVE       :: SCAVRSAVE(IBINS)
@@ -5075,8 +5099,12 @@
       ! WASHFRAC_SIZE_AEROSOL begins here!
       !=================================================================
 
-      ! Washout only happens at or above 268 K
       IF ( TK >= 268d0 ) THEN
+
+         !-------------
+         ! T >= 268K 
+         !-------------
+
          ! For aerosol number, get Dp and calculate scavr 
          IF ( N < IDTNK1 + IBINS ) THEN
             DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
@@ -5089,15 +5117,27 @@
             IF( BIN == 0 ) BIN = IBINS
             SCAVR = SCAVRSAVE(BIN)
          ENDIF
-         WASHFRAC = F * ( 1d0 - EXP( -SCAVR * ( PP / F ) * DT ) )
+
+         ! Prevent div by zero (bmy, 9/4/13)
+         IF ( F > 0d0 ) THEN
+            WASHFRAC = F * ( 1d0 - EXP( -SCAVR * ( PP / F ) * DT ) )
+         ELSE
+            WASHFRAC = 0d0
+         ENDIF
+
       ELSE
+
+         !-------------
+         ! T < 268K 
+         !-------------
          WASHFRAC = 0d0
+
       ENDIF
 
       ! Return to calling program
       END FUNCTION WASHFRAC_SIZE_AEROSOL
-#endif
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -5132,14 +5172,16 @@
 
 ! 
 ! !REVISION HISTORY: 
-!   13 Aug 2011, H Amos: Initial version, modeled after WASHFRAC_AEROSOL.
-!                        Seperate function created to emphasize that the new,
-!                        updated washout coefficients from Feng et al (2007;
-!                        2009) should only be applied to aerosol species. It
-!                        was a coincidence before that the original washout
-!                        coefficients for aerosols and HNO3 were the same.
-!   16 Aug 2011, H Amos: Remove K_WASH from input list, now a defined parameter
-!
+!  13 Aug 2011, H Amos: Initial version, modeled after WASHFRAC_AEROSOL.
+!                       Seperate function created to emphasize that the new,
+!                       updated washout coefficients from Feng et al (2007;
+!                       2009) should only be applied to aerosol species. It
+!                       was a coincidence before that the original washout
+!                       coefficients for aerosols and HNO3 were the same.
+!  16 Aug 2011, H Amos: Remove K_WASH from input list, now a defined parameter
+!  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F 
+!                              multiplies the whole expression for WASHFRAC,
+!                              WASHFRAC=0 whenever F=0 anyway.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5152,14 +5194,25 @@
       !=================================================================
       ! WASHFRAC_HNO3 begins here!
       !=================================================================
+      IF ( TK >= 268d0  ) THEN
 
-      !Washout only happens at or above 268 K
-      IF (  TK >= 268d0  ) THEN
-         WASHFRAC = F * ( 1d0 - EXP( -K_WASH * ( PP / F ) * DT ) )
+         !------------------------
+         ! T >= 268K: Do washout
+         !------------------------
+         IF ( F > 0d0 ) THEN
+            WASHFRAC = F * ( 1d0 - EXP( -K_WASH * ( PP / F ) * DT ) )
+         ELSE
+            WASHFRAC = 0d0
+         ENDIF
+
       ELSE
-         WASHFRAC = 0d0
-      ENDIF
 
+         !------------------------
+         ! T < 268K: No washout
+         !------------------------
+         WASHFRAC = 0d0
+
+      ENDIF
 
       END FUNCTION WASHFRAC_HNO3
 !EOC
@@ -5236,6 +5289,10 @@
       ! Suppress washout below 268 K
       IF ( TK >= 268d0 ) THEN
 
+         !------------------------
+         ! T >= 268K: Do washout
+         !------------------------
+
          ! Rainwater content in the grid box (Eq. 17, Jacob et al, 2000)
          LP = ( PP * DT ) / ( F * DZ ) 
 
@@ -5259,6 +5316,10 @@
          ENDIF
             
       ELSE
+
+         !------------------------
+         ! T < 268K: No washout
+         !------------------------
          WASHFRAC = 0d0
             
       ENDIF

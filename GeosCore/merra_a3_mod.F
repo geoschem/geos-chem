@@ -411,6 +411,7 @@
 !  20 Aug 2010 - R. Yantosca - Now save CLDTOPS to ND67 diagnostic
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  05 Sep 2013 - R. Yantosca - Set negatives in QI, QL to zero
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -800,6 +801,10 @@
       ! positives, and then divide by 8.64d7 to convert to units of
       ! [kg H2O/kg air/s].  (bmy, 4/5/99)
       MOISTQ = -MOISTQ / 8.64d7
+
+      ! Reset negatives to zero in QI, QL fields (bmy, 9/5/13)
+      WHERE( QI < 0d0 ) QI = 0d0
+      WHERE( QL < 0d0 ) QL = 0d0
 
       !=================================================================
       !          %%%%% ND66 diagnostic: 3-D met fields %%%%%

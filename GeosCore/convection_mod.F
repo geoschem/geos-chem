@@ -1938,6 +1938,9 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  31 May 2013 - R. Yantosca - Now pass State_Chm to WASHOUT
+!  05 Sep 2013 - R. Yantosca - Bug fix: DT is apparently undefined, but still
+!                              passed to WASHOUT.  Use SDT instead.  This
+!                              avoids a floating-point error.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2498,7 +2501,14 @@
                   ! Call WASHOUT to compute the fraction of tracer lost
                   ! to washout in grid box (I,J,K)
                   CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 
-     &                          T(K),      QDOWN,    DT,   
+!-----------------------------------------------------------------------------
+! Prior to 9/4/13:
+! Bug fix: need to call WASHOUT with SDT instead of DT, since DT is a typo.
+! There is no variable DT defined in this routine.  This error was found by
+! compiling with FPE=yes. (bmy, 9/4/13)
+!     &                          T(K),      QDOWN,    DT,   
+!-----------------------------------------------------------------------------
+     &                          T(K),      QDOWN,    SDT,   
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
      &                          WASHFRAC,  AER,      State_Met,
      &                          State_Chm                         )
