@@ -124,7 +124,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,    ONLY : AD, AIRVOL
       USE TRACER_MOD, ONLY : TCVV
       USE CMN_SIZE_MOD    ! Size parameters
 

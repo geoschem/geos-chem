@@ -1673,7 +1673,7 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : IS_WATER, AIRVOL
+      USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD05
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV
@@ -1691,7 +1691,6 @@
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,       ONLY : IDTH2O2
       USE TRACERID_MOD,       ONLY : IDTSO2
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTNH3,  IDTNH4,  IDTHNO3
@@ -1783,6 +1782,7 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  05 Sep 2013 - M. Sulprizio- Add modifications for cloud pH (B. Alexander)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1799,6 +1799,7 @@
       ! Scalars
       LOGICAL               :: LNLPBL
       LOGICAL               :: IS_OFFLINE
+      LOGICAL               :: IS_FULLCHEM
       INTEGER               :: I,      J,       L       !,      I1,   I2
       INTEGER               :: II,     NSTEP,   N_TRACERS
       INTEGER               :: BULK,   SIZE_RES 
@@ -1833,14 +1834,15 @@
       IF ( IDTH2O2 == 0 .or. IDTSO2 == 0 .or. DRYSO2 == 0 ) RETURN
 
       ! Assume success
-      RC         = GIGC_SUCCESS
+      RC          = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      IS_OFFLINE = Input_Opt%ITS_AN_AEROSOL_SIM
-      N_TRACERS  = Input_Opt%N_TRACERS
-      TCVV       = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL     = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL     = Input_Opt%LNLPBL
+      IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
+      IS_OFFLINE  = Input_Opt%ITS_AN_AEROSOL_SIM
+      N_TRACERS   = Input_Opt%N_TRACERS
+      TCVV        = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL      = Input_Opt%XNUMOL(1:N_TRACERS)
+      LNLPBL      = Input_Opt%LNLPBL
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -2122,8 +2124,8 @@
 	    ! Get sulfate concentration and convert from [v/v] to
             ! [moles/liter]
 	    ! Use a cloud scavenging ratio of 0.7 
-	    SO4nss  =  STT(I,J,L,IDTSO4) *  AIRDEN(I,J,L) *  0.7d0 / 
-     &                ( 28.97d0 * LWC )
+	    SO4nss  =  STT(I,J,L,IDTSO4) * State_Met%AIRDEN(L,I,J) *
+     &                 0.7d0 / ( 28.97d0 * LWC )
 
 	    ! Get total ammonia (NH3 + NH4+) concentration [v/v]
 	    ! Use a cloud scavenging ratio of 0.7 for NH4+
@@ -2132,11 +2134,11 @@
 
 	    ! Get total nitrate (HNO3 + NIT) concentrations [v/v] 
      	    ! Use a cloud scavenging ratio of 0.7 for NIT
-	    IF ( ITS_A_FULLCHEM_SIM() ) THEN
+	    IF ( IS_FULLCHEM ) THEN
                TNO3 = STT(I,J,L,IDTHNO3) + 
      &              ( STT(I,J,L,IDTNIT) * 0.7d0 )
 	       GNO3 = STT(I,J,L,IDTHNO3) !For Fahey & Pandis decision algorithm
-            ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+            ELSE IF ( IS_OFFLINE ) THEN
                TANIT = STT(I,J,L,IDTNIT) !aerosol nitrate [v/v]
 	       GNO3  = GET_HNO3_VV(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
    	       ANIT  = TANIT * 0.7d0 ! aerosol nitrate in the cloud drops [v/v]
@@ -2223,10 +2225,12 @@
             ! tracers if these are being transported (bec, 12/23/11)
             ALKdst = ( STT(I,J,L,IDTDST1) + STT(I,J,L,IDTDST2) +
      &                 STT(I,J,L,IDTDST3) + STT(I,J,L,IDTDST4) ) *
-     &                 1.D9 * AD(I,J,L) / TCVV(IDTDST1) / AIRVOL(I,J,L)
+     &                 1.D9 * State_Met%AD(I,J,L) / TCVV(IDTDST1) /
+     &                 State_Met%AIRVOL(I,J,L)
 
             ALKss  = ( STT(I,J,L,IDTSALA  ) + STT(I,J,L,IDTSALC) ) *
-     &                 1.D9 * AD(I,J,L) / TCVV(IDTSALA) / AIRVOL(I,J,L)
+     &                 1.D9 * State_Met%AD(I,J,L) / TCVV(IDTSALA) /
+     &                 State_Met%AIRVOL(I,J,L)
 
             ALKds = ALKdst + ALKss
 
@@ -2355,7 +2359,7 @@
             ! Decide whether or not to perform sulfate production rate
             ! enhancement due to cloud drop heterogenity in pH over the oceans
             ! (bec, 12/23/11)
-            IF ( SIZE_RES == 1 .AND. IS_WATER(I,J) .AND. 
+            IF ( SIZE_RES == 1 .AND. IS_WATER( I, J, State_MEt) .AND. 
      &           TK > 268.15 ) THEN
 
 	       ! Get total in-cloud sulfate production based on bulk cloud pH
@@ -2376,7 +2380,8 @@
                SO2_sr = MAX( SO2_ss - ( ( L2S + L3S ) * FC ), MINDAT )
 
                CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, 
-     &                             aSO4, NH3, SO2_sr, H2O20, GNO3,  SR )
+     &                             aSO4, NH3, SO2_sr, H2O20, GNO3,  SR,
+     &                             State_Met )
 
 	    ELSE
 		SR = 0.d0
@@ -2442,7 +2447,7 @@
 !            AD05(I,J,L,7) = AD05(I,J,L,7) +
 !     &                      ( L3S * State_Met%AD(I,J,L) / TCVV_S )
             AD05(I,J,L,7) = AD05(I,J,L,7) +
-   &                    ( ( L3S + SR ) * State_Met%AD(I,J,L) / TCVV_S )
+     &                  ( ( L3S + SR ) * State_Met%AD(I,J,L) / TCVV_S )
 
             ! P(SO4) from O3 oxidation in sea-salt aerosols [kg S/timestep]
             AD05(I,J,L,8) = AD05(I,J,L,8) +
@@ -3887,30 +3892,36 @@
 ! !INTERFACE:
 !
       SUBROUTINE HET_DROP_CHEM( I, J, L, LSTOT, SSCvv, aSO4, GNH3,
-     &                          SO2_sr, H2O20, GNO3, SR )
+     &                          SO2_sr, H2O20, GNO3, SR, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,         ONLY : AD, AIRVOL
-      USE DAO_MOD,         ONLY : UWND, VWND, AIRDEN
-      USE ERROR_MOD,       ONLY : IT_IS_FINITE, GEOS_CHEM_STOP
-      USE TIME_MOD,        ONLY : GET_TS_CHEM
-      USE TRACER_MOD,      ONLY : TCVV
-      USE TRACERID_MOD,    ONLY : IDTSO4, IDTSALC
-      USE TRACERID_MOD,    ONLY : IDTDST2, IDTDST3, IDTDST4
+      USE ERROR_MOD,          ONLY : IT_IS_FINITE, GEOS_CHEM_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : TCVV
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTSALC
+      USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3, IDTDST4
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I, J, L
-      REAL*8,  INTENT(IN)  :: LSTOT, SSCvv
-      REAL*8,  INTENT(IN)  :: aSO4, GNH3, SO2_sr, H2O20, GNO3
+      INTEGER,        INTENT(IN)  :: I, J, L
+      REAL*8,         INTENT(IN)  :: LSTOT
+      REAL*8,         INTENT(IN)  :: SSCvv
+      REAL*8,         INTENT(IN)  :: aSO4
+      REAL*8,         INTENT(IN)  :: GNH3
+      REAL*8,         INTENT(IN)  :: SO2_sr
+      REAL*8,         INTENT(IN)  :: H2O20
+      REAL*8,         INTENT(IN)  :: GNO3
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(OUT) :: SR ! Sulfate production rate
+      REAL*8,         INTENT(OUT) :: SR ! Sulfate production rate
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  05 Sep 2013 - M. Sulprizio- Now pass met fields using the State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3948,23 +3959,26 @@
       HNO3 = GNO3 * 1.0d12
 
       ! Convert sulfate aerosol concentrations from [v/v] to [ug/m3]
-      SO4 = ( aSO4 * AD(I,J,L) * 1.0d9 ) / 
-     &      ( TCVV(IDTSO4) * AIRVOL(I,J,L) )
+      SO4 = ( aSO4         * State_Met%AD(I,J,L)     * 1.0d9 ) / 
+     &      ( TCVV(IDTSO4) * State_Met%AIRVOL(I,J,L) )
 
       ! Convert in cloud sulfate production rate from [v/v/timestep] to
       ! [ug/m3/timestep]
-      B  = ( LSTOT  * AD(I,J,L) * 1.0d9 ) / 
-     &     ( TCVV(IDTSO4) * AIRVOL(I,J,L) )
+      B  = ( LSTOT        * State_Met%AD(I,J,L)     * 1.0d9 ) / 
+     &     ( TCVV(IDTSO4) * State_Met%AIRVOL(I,J,L) )
 
       ! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
       ! based on equation in Hofmann, Science, 1990.
       ! First convert from [v/v] to [kg/m3 air]
-      CNss = SSCvv   * AD(I,J,L) / ( TCVV(IDTSALC) * AIRVOL(I,J,L) )
+      CNss = SSCvv         * State_Met%AD(I,J,L)     /
+     &     ( TCVV(IDTSALC) * State_Met%AIRVOL(I,J,L) )
+
       ! Now convert from [kg/m3 air] to [#/cm3 air]
       ! Sea-salt
       NDss = ( (3.d0/4.d0) * CNss ) / 
      &       (PI * SS_DEN * RG_S**3.d0 * exp( (9.d0/2.d0) * 
      &       (LOG(SIG_S)) ** 2.d0 ) )
+
       ! Total coarse mode number concentration [#/cm3]
       CN = NDss ! sea-salt 
 
@@ -4013,9 +4027,11 @@
       ! Compute H (integration time interval * air parcel velocity) [m]
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
+
       ! Compute air parcel velocity [m/s]
-      APV = SQRT( (UWND(I,J,L)*UWND(I,J,L)) + 
-     &            (VWND(I,J,L)*VWND(I,J,L)) )
+      APV = SQRT( (State_Met%U(I,J,L) * State_Met%U(I,J,L)) + 
+     &            (State_Met%V(I,J,L) * State_Met%V(I,J,L)) )
+
       H   = DTCHEM * APV          ![m]
 
       sum_gas = (alpha_NH3 * NH3) + (alpha_SO2 * SO2) +
@@ -4030,7 +4046,7 @@
       SR = DSVI - B 
 
       ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
-      SR = SR *TCVV(IDTSO4) * 1.D-9 / AIRDEN(I,J,L)
+      SR = SR *TCVV(IDTSO4) * 1.D-9 / State_Met%AIRDEN(L,I,J)
 	
       ! Don't allow SR to be negative
       SR = MAX( SR, 0.d0 )
@@ -8356,8 +8372,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : OH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,       ONLY : IDOH
 !
 ! !INPUT PARAMETERS: 
@@ -11150,7 +11164,6 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
 !
 ! !INPUT PARAMETERS:
 !
