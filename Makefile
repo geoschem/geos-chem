@@ -13,7 +13,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -32,12 +32,16 @@
 #  25 Jan 2010 - R. Yantosca - Added Makefile targets for TOMAS microphysics
 #  16 Feb 2011 - R. Yantosca - Added Makefile targets for APM microphysics
 #  04 Nov 2011 - R. Yantosca - Remove ESMF targets, those are not needed
+#  24 Jan 2012 - R. Yantosca - Also add libnc target to build netCDF utils
+#  11 May 2012 - R. Yantosca - Now make sure that all targets of the 
+#                              GeosCore/Makefile are pointed to properly
+#  20 Aug 2013 - R. Yantosca - Make sure Makefile names are consistent
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Get the Unix shell definition
-include ./Makefile_header.mk
+#include ./Makefile_header.mk
 
 # Define variables
 GEOSAPM = GeosApm
@@ -49,7 +53,7 @@ GTMM = GTMM
 # Makefile targets: type "make help" for a complete list!
 #=============================================================================
 
-.PHONY: all lib libkpp libutil exe clean realclean doc docclean help
+.PHONY: all lib libkpp libnc libutil exe clean realclean doc docclean help
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all
@@ -60,17 +64,32 @@ lib:
 libcore:
 	@$(MAKE) -C $(GEOSDIR) libcore
 
+libiso:
+	@$(MAKE) -C $(GEOSDIR) libiso
+
 libkpp:
 	@$(MAKE) -C $(GEOSDIR) libkpp
 
+libnc:
+	@$(MAKE) -C $(GEOSDIR) libnc	
+
+ncdfcheck:
+	@$(MAKE) -C $(GEOSDIR) ncdfcheck
+
 libutil:
 	@$(MAKE) -C $(GEOSDIR) libutil
+
+libheaders:
+	@$(MAKE) -C $(GEOSDIR) libheaders
 
 exe:
 	@$(MAKE) -C $(GEOSDIR) exe
 
 clean:
 	@$(MAKE) -C $(GEOSDIR) clean
+
+distclean:
+	@$(MAKE) -C $(GEOSDIR) distclean
 
 realclean:
 	@$(MAKE) -C $(GEOSDIR) realclean
@@ -85,22 +104,22 @@ help:
 	@$(MAKE) -C $(GEOSDIR) help
 
 #=============================================================================
-# Targets for TOMAS aerosol microphysics code (win, bmy, 1/25/10)
+# Targets for mercury simulation (ccc, 6/7/10)
 #=============================================================================
 
-.PHONY: tomas libtomas exetomas cleantomas
+.PHONY: allhg libhg libgtmm exehg
 
-tomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes all
+allhg:
+	@$(MAKE) -C $(GEOSDIR) allhg
 
-libtomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes lib
+libhg:
+	@$(MAKE) -C $(GEOSDIR) libhg
 
-exetomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes exe
+ligbtmm:
+	@$(MAKE) -C $(GEOSDIR) libgtmm
 
-cleantomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes clean
+exehg:
+	@$(MAKE) -C $(GEOSDIR) exehg
 
 #=============================================================================
 # Targets for APM aerosol microphysics code (bmy, 2/16/11)
@@ -120,14 +139,6 @@ exeapm:
 cleanapm:
 	@$(MAKE) -C $(GEOSAPM) APM=yes clean
 
-#=============================================================================
-# Targets for mercury simulation (ccc, 6/7/10)
-#=============================================================================
-
-.PHONY: hg 
-
-hg:
-	@$(MAKE) -C $(GEOSDIR) allhg
 
 #EOC
 

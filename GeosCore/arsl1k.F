@@ -1,4 +1,3 @@
-! $Id: arsl1k.f,v 1.3 2010/02/02 16:57:55 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -17,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -57,6 +55,7 @@
 !  03 Dec 2009 - R. Yantosca - Prevent div-by-zero errors by returning the
 !                              default value if any of the args are zero 
 !  03 Dec 2009 - R. Yantosca - Added ProTeX Header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -73,7 +72,8 @@
 
          ! Use default value if any of the above values are zero
          ! This will prevent div-by-zero errors in the eqns below
-         ARSL1K = 1.D-3
+         ! Value changed from 1d-3 to 1d-30 (bhh, jmao, eam, 7/18/2011)
+         ARSL1K = 1.D-30
 
       ELSE
 

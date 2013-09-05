@@ -11,129 +11,67 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG3                                                    
+      SUBROUTINE DIAG3( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD
-      ! NBIOMAX now refers to the maximum number of possible
-      ! BB species (hotp 7/31/09)
-      ! NBIOTRCE is the number for a given simulation and
-      ! set of tracers
-      ! NBIOMAX in F77_CMN_SIZE (FP)
-      USE BIOMASS_MOD,  ONLY : BIOTRCE !     NBIOMAX
-      USE BIOFUEL_MOD,  ONLY : NBFTRACE,    BFTRACE
-      USE DIAG_MOD,     ONLY : AD01,        AD02,        AD05    
-      USE DIAG_MOD,     ONLY : AD06,        AD07,        AD07_BC
-      USE DIAG_MOD,     ONLY : AD07_SOAGM
-      USE DIAG_MOD,     ONLY : AD07_OC,     AD07_HC,     AD08
-      USE DIAG_MOD,     ONLY : AD09,        AD09_em,     AD11
-      USE DIAG_MOD,     ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
-      USE DIAG_MOD,     ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
-      USE DIAG_MOD,     ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
-      USE DIAG_MOD,     ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
-      USE DIAG_MOD,     ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
-      USE DIAG_MOD,     ONLY : CONVFLUP,    TURBFLUP,    AD16
-      USE DIAG_MOD,     ONLY : CT16,        AD17,        CT17
-      USE DIAG_MOD,     ONLY : AD18,        CT18,        AD21
-      USE DIAG_MOD,     ONLY : AD21_cr,     AD22,        LTJV
-      USE DIAG_MOD,     ONLY : CTJV,        MASSFLEW,    MASSFLNS
-      USE DIAG_MOD,     ONLY : MASSFLUP,    AD28,        AD29
-      USE DIAG_MOD,     ONLY : AD30,        AD31
-      ! potential temperature (hotp 7/31/09)
-      USE DIAG_MOD,     ONLY : AD57
-      USE DIAG_MOD,     ONLY : AD32_ac,     AD32_an,     AD32_bb
-      USE DIAG_MOD,     ONLY : AD32_bf,     AD32_fe,     AD32_li
-      USE DIAG_MOD,     ONLY : AD32_so,     AD32_ub,     AD33
-      USE DIAG_MOD,     ONLY : AD34,        AD35,        AD36
-      USE DIAG_MOD,     ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,     ONLY : AD43,        LTNO
-      USE DIAG_MOD,     ONLY : CTNO,        LTOH,        CTOH
-      USE DIAG_MOD,     ONLY : LTHO2,       CTHO2,       LTNO2
-      USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
-      ! update for arom (dkh, 06/21/07)  
-      ! to save the amount of RO2 consumed by HO2 (*H) or NO (*N)
-      ! CTLxRO2x : # of times a grid box was in the ND43 time range between
-      ! the last .bpch write and current .bpch write
-      USE DIAG_MOD,     ONLY : CTLBRO2H,      CTLBRO2N
-      USE DIAG_MOD,     ONLY : CTLTRO2H,      CTLTRO2N
-      USE DIAG_MOD,     ONLY : CTLXRO2H,      CTLXRO2N
-      USE DIAG_MOD,     ONLY : AD44,        AD45,        LTOTH
-      USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,     ONLY : AD52
-      USE DIAG_MOD,     ONLY : AD54,        CTO3,        CTO3_24h
-      USE DIAG_MOD,     ONLY : AD19,        AD58,        AD60
-      USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
-      USE DIAG_MOD,     ONLY : AD68,        AD69
-      USE DIAG_MOD,     ONLY : AD10,        AD10em
-      USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
-      USE DIAG04_MOD,   ONLY : ND04,        WRITE_DIAG04
-      USE DIAG41_MOD,   ONLY : ND41,        WRITE_DIAG41
-      USE DIAG42_MOD,   ONLY : ND42,        WRITE_DIAG42
-      USE DIAG56_MOD,   ONLY : ND56,        WRITE_DIAG56
-      USE DIAG_PL_MOD,  ONLY : AD65
-      ! For mercury simulation. (ccc, 6/4/10)
-      USE DEPO_MERCURY_MOD, ONLY : UPDATE_DEP
-      USE DRYDEP_MOD,   ONLY : NUMDEP,      NTRAIND
-      ! To handle tracers with several dry dep. tracers
-      !(ccc, 2/3/10)
-      USE DRYDEP_MOD,   ONLY : DEPNAME
-      USE FILE_MOD,     ONLY : IU_BPCH
-      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
-      USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT
-      USE LOGICAL_MOD,  ONLY : LEDGARSHIP,  LARCSHIP,    LEMEPSHIP
-      USE LOGICAL_MOD,  ONLY : LICOADSSHIP, LGTMM
+      ! Modules from Headers directory
+      USE CMN_SIZE_MOD                       ! Size parameters
+      USE CMN_MOD                            ! IFLX, LPAUSE
+      USE CMN_O3_MOD                         ! FMOL, XNUMOL
+      USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
+      USE COMODE_LOOP_MOD                    ! IDEMS
+      USE FILE_MOD                           
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
+      USE TIME_MOD
 
-      USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
-      USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
-      USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_EMIS, GET_CT_I6   
-      USE TIME_MOD,     ONLY : GET_CT_DIAG, GET_CT_A1
-      USE TRACER_MOD,   ONLY : N_TRACERS,   STT,         TRACER_MW_G
-      USE TRACER_MOD,   ONLY : TRACER_NAME
-      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM
-      USE TRACERID_MOD, ONLY : IDTPB,       IDTDST1,     IDTDST2 
-      USE TRACERID_MOD, ONLY : IDTDST3,     IDTDST4,     IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI,     IDTALPH,     IDTLIMO 
-      USE TRACERID_MOD, ONLY : IDTSOA1,     IDTSOA2,     IDTSOA3 
-      ! aromatic SOA
-      USE TRACERID_MOD, ONLY : IDTSOA5
-      USE TRACERID_MOD, ONLY : IDTSALA,     IDTSALC,     IDTDMS 
-      USE TRACERID_MOD, ONLY : IDTSO2,      IDTSO4,      IDTNH3 
-      USE TRACERID_MOD, ONLY : IDTOX,       IDTNOX,      IDTHNO3 
-      USE TRACERID_MOD, ONLY : IDTISOP,     IDTACET,     IDTPRPE 
-      USE TRACERID_MOD, ONLY : IDTH2,       IDTHD
-      USE TRACERID_MOD, ONLY : NEMANTHRO ,  IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSOAG,     IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTMONX,     IDTMBO,      IDTC2H4
-      USE TRACERID_MOD, ONLY : IS_Hg2
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
+      ! Modules from GeosCore directory
+      USE BPCH2_MOD                          ! For binary punch I/O routines
+      USE BIOMASS_MOD                        ! For biomass emissions
+      USE BIOFUEL_MOD                        ! For biofuel emissions
+      USE DIAG_MOD                           ! For diagnostic arrays
+      USE DIAG03_MOD                         ! For Hg diagnostic
+      USE DIAG04_MOD                         ! For CO2 diagnostics
+      USE DIAG41_MOD                         ! For afternoon PBL diag
+      USE DIAG42_MOD                         ! For SOA diag
+      USE DIAG53_MOD                         ! For POPs diag
+      USE DIAG56_MOD                         ! For time in tropopause diag
+      USE DIAG_PL_MOD                        ! For prod/loss diagnostic
+      USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
+      USE DRYDEP_MOD                         ! For dry deposition
+      USE LOGICAL_MOD                        ! For logical switches
+      USE TRACERID_MOD                       ! For tracer flags
+      USE WETSCAV_MOD                        ! For wet deposition
+#if   defined( TOMAS )
+      USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
+#endif
+
 #if   defined( APM )
-      USE DIAG_MOD,     ONLY : AD07_OM
-      USE TRACER_MOD,   ONLY : N_APMTRA
+      ! Modules from GeosApm directory
       USE APM_DRIV_MOD, ONLY : IFTEMPOUT
       USE APM_DRIV_MOD, ONLY : TEMPOUT
       USE APM_DRIV_MOD, ONLY : NTEMPOUT
       USE APM_DRIV_MOD, ONLY : NPOUTSTEPS
 #endif
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! IDEMS
-      USE CMN_O3_MOD       ! FMOL, XNUMOL
-      USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
-      USE CMN_MOD          ! IFLX, LPAUSE
-
       IMPLICIT NONE
-#     include "define.h"
-
-! 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
 !        categories "SO2-AC-$" and "SO2-EV-$".  Now reference F90 module
@@ -235,14 +173,15 @@
 !        steps. (ccc, 7/20/09)
 !  (87) Add diagnostics 19, 58 and 60 for methane. (kjw, 8/18/09)
 !  (88) Account for 3D AD13_NH3_an now (phs, 10/22/09)
-!  (89) NBIOMAX is now in F77_CMN_SIZE (hotp 7/31/09)
-!  (90) Add SOA5 to ND07_HC, add AD57 for potential temperature. (fp, 2/3/10)
-!  (91) Modify ND44 for tracers with several deposition tracers. (ccc, 2/3/10)
-!  (92) Add aromatics to ND43. (dkh, 06/21/07)
-!  (93) Add ND57 for potential temperature. (fp, 2/3/10)
-!  (94) Re-order levels in mass fluxes diagnostics before writing them to file.
+!  (89) Added TOMAS diagnostics (win, bmy, 1/25/10)
+!  (90) NBIOMAX is now in CMN_SIZE (hotp 7/31/09)
+!  (91) Add SOA5 to ND07_HC, add AD57 for potential temperature. (fp, 2/3/10)
+!  (92) Modify ND44 for tracers with several deposition tracers. (ccc, 2/3/10)
+!  (93) Add aromatics to ND43. (dkh, 06/21/07)
+!  (94) Add ND57 for potential temperature. (fp, 2/3/10)
+!  (95) Re-order levels in mass fluxes diagnostics before writing them to file.
 !       (ND24, 25, 26). (ccc, 3/8/10)
-!  (95) Add call to update_dep for mercury simulation at the end.(ccc, 7/19/10)
+!  (96) Add call to update_dep for mercury simulation at the end.(ccc, 7/19/10)
 !  20 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2010 - R. Yantosca - Now pick proper scale for ND66 for MERRA
 !  20 Aug 2010 - R. Yantosca - Now pick proper scale for ND67 for MERRA
@@ -251,6 +190,20 @@
 !  26 May 2011 - R. Yantosca - For ND44, omit the special treatment of
 !                              isoprene tracers if we are not doing fullchem
 !  27 May 2011 - R. Yantosca - Now use SCALEDIAG for ND54 (time-in-trop) diag
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  08 Feb 2012 - R. Yantosca - Restructure USE statements for clarity
+!  08 Feb 2012 - R. Yantosca - Add counter for I3 (inst 3hr) met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  05 Apr 2012 - R. Yantosca - Bug fix: use hourly scale for SLP in the
+!                              ND67 diagnostic for GEOS-5.7.x met fields
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
+!                              of removal of NOx-Ox partitioning
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  04 Sep 2013 - R. Yantosca - Make ND44 output consistent w/ modifications in
+!                              GeosCore/gamap_mod.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,8 +211,12 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
-      INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC
+      INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
+
+      INTEGER            :: NN1    ! TOMAS tracers
+      INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
+
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
       REAL*8             :: SCALE_I6,   SCALE_A6,   SCALE_A3  
       REAL*8             :: SCALE_A1,   SCALED,     SCALEDYN
@@ -267,7 +224,7 @@
       REAL*8             :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
       REAL*8             :: SCALEX,     SECONDS,    PMASS      
       REAL*8             :: PRESSX,     FDTT,       AREA_M2
-      REAL*8             :: DIAGb,      DIAGe
+      REAL*8             :: DIAGb,      DIAGe,      SCALE_I3
       
       ! For binary punch file, version 2.0
       CHARACTER (LEN=40) :: CATEGORY 
@@ -279,6 +236,14 @@
       CHARACTER (LEN=20) :: MODELNAME 
       CHARACTER (LEN=40) :: UNIT
       CHARACTER (LEN=40) :: RESERVED = ''
+
+      ! For fields from Input_Opt
+      INTEGER         :: N_TRACERS
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -287,6 +252,12 @@
 !  Add a small number (e.g. 1d-32) to prevent division by zero errors.
 !******************************************************************************
 !
+      ! Assume success
+      RC         = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS  = Input_Opt%N_TRACERS
+
       ! Pick the proper # of tracers
 #if   defined( APM )
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
@@ -306,6 +277,7 @@
       SCALE_A1   = DBLE( GET_CT_A1()   ) + 1d-32
       SCALE_A3   = DBLE( GET_CT_A3()   ) + 1d-32
       SCALE_A6   = DBLE( GET_CT_A6()   ) + 1d-32
+      SCALE_I3   = DBLE( GET_CT_I3()   ) + 1d-32
       SCALE_I6   = DBLE( GET_CT_I6()   ) + 1d-32
       SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1d-32
 !
@@ -412,6 +384,8 @@
 !******************************************************************************
 !
       IF ( ND03 > 0 ) CALL WRITE_DIAG03
+! ADD ND53 (eck, 10/21/10)
+      IF ( ND53 > 0 ) CALL WRITE_DIAG53
 !
 !******************************************************************************
 !  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)
@@ -512,7 +486,11 @@
       IF ( ND07 > 0 .and. LCARB ) THEN
 
          ! Unit
-         UNIT = 'kg'
+         ! updated units, OC and BC in kg C, SOA in kg (hotp 7/31/08)
+         !UNIT = 'kg' 
+         ! UNITS WERE CONFUSING -> everything in kgC (see latter)
+         UNIT = 'kgC' ! SOAupdate (hotp 7/29/10)
+
          
          !-------------------
          ! BC ANTHRO source
@@ -573,7 +551,11 @@
          ! OC ANTHRO source
          !------------------------------ 
          CATEGORY     = 'OC-ANTH'
-         N            = IDTOCPI
+         ! SOAupdate (hotp 5/27/09)
+         ! semivolpoa: now use POA or OCPI (hotp 2/17/09)
+         IF ( IDTOCPI > 0 ) N = IDTOCPI
+         IF ( IDTPOA1 > 0 ) N = IDTPOA1
+
          ARRAY(:,:,1) = AD07(:,:,4) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -586,7 +568,6 @@
          ! OC BIOMASS source
          !------------------------------
          CATEGORY     = 'OC-BIOB'
-         N            = IDTOCPI
          ARRAY(:,:,1) = AD07(:,:,5) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -599,7 +580,6 @@
          ! OC BIOFUEL source
          !------------------------------
          CATEGORY     = 'OC-BIOF'
-         N            = IDTOCPI
          ARRAY(:,:,1) = AD07(:,:,6) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -612,7 +592,6 @@
          ! OC BIOGENIC source
          !------------------------------
          CATEGORY     = 'OC-BIOG'
-         N            = IDTOCPI
          ARRAY(:,:,1) = AD07(:,:,7) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -624,51 +603,53 @@
          !------------------------------ 
          ! H-philic OC from H-phobic OC
          !------------------------------
-         CATEGORY     = 'PL-OC=$'
-         N            = IDTOCPI
+         ! SOAupdate: This only exists with OCPI/OCPO (hotp 8/23/09
+         IF ( IDTOCPI > 0 ) THEN
+            CATEGORY     = 'PL-OC=$'
+            N            = IDTOCPI
 
-         DO L = 1, LD07
-            ARRAY(:,:,L) = AD07_OC(:,:,L) 
-         ENDDO
+            DO L = 1, LD07
+               ARRAY(:,:,L) = AD07_OC(:,:,L) 
+            ENDDO
          
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     LD07,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     LD07,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+         ENDIF
 
          ! Only save extra SOA diagnostics if LSOA=T
          IF ( LSOA ) THEN
 
+            ! Add units
+            UNIT = 'kg'
+
             !------------------------------
             ! NVOC SOURCE diagnostics
             !------------------------------
-            DO N = 8, 12
+            ! SOAupdate: Only 11 now (hotp 5/20/10) new mtp
+            DO N = 8, 11
 
                SELECT CASE ( N )
 
-                  ! ALPH
+                  ! MTPA
                   CASE ( 8 )
-                     CATEGORY = 'OC-ALPH'
-                     NN       = IDTALPH
+                     CATEGORY = 'OC-MTPA'
+                     NN       = IDTMTPA
 
                   ! LIMO
                   CASE ( 9 )
                      CATEGORY = 'OC-LIMO'
                      NN       = IDTLIMO
 
-                  ! TERP
+                  ! MTPO
                   CASE ( 10 )
-                     CATEGORY = 'OC-TERP'
-                     NN       = IDTLIMO + 1
-
-                  ! ALCO
-                  CASE ( 11 )
-                     CATEGORY = 'OC-ALCO'
-                     NN       = IDTLIMO + 2
+                     CATEGORY = 'OC-MTPO'
+                     NN       = IDTMTPO
 
                   ! SESQ
-                  CASE ( 12 )
+                  CASE ( 11 )
                      CATEGORY = 'OC-SESQ'
                      NN       = IDTLIMO + 3
 
@@ -684,6 +665,7 @@
 
             ENDDO
 
+         
             !-----------------------------------------------
             ! SOA Production from NVOC oxidation [kg]
             ! 1:ALPH+LIMO+TERP, 2:ALCO, 3:SESQ, 4:ISOP
@@ -691,18 +673,30 @@
             !-----------------------------------------------
             CATEGORY = 'PL-OC=$'
 
-            ! (hotp 5/25/09) add SO5
-            !DO N = 1, 4
-            DO N = 1, 5
+            ! SOAupdate: hotp 5/24/10 (new mtp)
+            DO N = 1, 6
 
                ! hotp 7/31/08 units
-               UNIT = 'kg'
+               UNIT = 'kg' 
 
-               IF ( N == 1 ) NN = IDTSOA1
-               IF ( N == 2 ) NN = IDTSOA2
-               IF ( N == 3 ) NN = IDTSOA3
-               IF ( N == 4 ) NN = IDTSOA4  ! (tmf, bmy, 3/20/07)
-               IF ( N == 5 ) NN = IDTSOA5
+               ! SOAupdate: semivolpoa2: units diff for POA (hotp 3/4/09)
+               ! now correspond to JSV (hotp 5/24/10) (new mtp)
+               IF     ( N == 1 ) THEN
+                  NN = IDTTSOA1
+               ELSEIF ( N == 2 ) THEN
+                  NN = IDTISOA1
+               ELSEIF ( N == 3 ) THEN
+                  NN = IDTASOA1
+               ELSEIF ( N == 4 ) THEN
+                  NN = IDTPOA1
+                  UNIT = 'kgC'
+               ELSEIF ( N == 5 ) THEN
+                  NN = IDTOPOA1
+                  UNIT = 'kgC'
+               ELSEIF ( N == 6 ) THEN
+                  NN = IDTOPOG1
+                  UNIT = 'kgC'
+               ENDIF
 
                ! Check to make sure the tracer exists (hotp 8/23/09)
                IF ( NN > 0 ) THEN
@@ -710,11 +704,11 @@
                      ARRAY(:,:,L) = AD07_HC(:,:,L,N)
                   ENDDO
 
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                     IIPAR,     JJPAR,     LD07,     IFIRST,
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                        IIPAR,     JJPAR,     LD07,     IFIRST,
+     &                        JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
                ENDIF ! NN
 
             ENDDO
@@ -947,10 +941,8 @@
 !  (1)  ACETmo : Acetone source from MONOTERPENES   : at C/cm2/s : SCALESRCE
 !  (2)  ACETmb : Acetone source from METHYL BUTENOL : at C/cm2/s : SCALESRCE 
 !  (3)  ACETbg : Acetone source from DIRECT EMISSION: at C/cm2/s : SCALESRCE 
-!  (4)  ACETdl : Acetone source from DRY LEAF MATTER: at C/cm2/s : SCALESRCE 
-!  (5)  ACETgr : Acetone source from GRASSLANDS     : at C/cm2/s : SCALESRCE 
-!  (6)  ACETop : Acetone source from OCEANS         : at C/cm2/s : SCALESRCE 
-!  (7)  ACETol : Acetone sink   from OCEANS         : at C/cm2/s : SCALECHEM
+!  (4)  ACETop : Acetone source from OCEANS         : at C/cm2/s : SCALESRCE 
+!  (5)  ACETol : Acetone sink   from OCEANS         : at C/cm2/s : SCALECHEM
 !******************************************************************************
 !
       IF ( ND11 > 0 ) THEN
@@ -1023,7 +1015,8 @@
 !******************************************************************************
 !
       IF ( ND13 > 0 .and. 
-     &   ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) ) THEN
+     &   ( Input_Opt%ITS_A_FULLCHEM_SIM .or. 
+     &     Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
          UNIT = 'kg S'
 
          !==============================================================
@@ -1136,8 +1129,9 @@
          ! New test on logical flag (phs, 3/2/09)
          !==============================================================
          ! Add ICOADSSHIP (cklee, 6/30/09)
-         IF ( LSHIPSO2 .OR. LEDGARSHIP .OR. LARCSHIP .OR.
-     $        LEMEPSHIP .OR. LICOADSSHIP ) THEN
+         ! Add RCP
+         IF ( LSHIPSO2  .OR. LEDGARSHIP  .OR. LARCSHIP .OR.
+     $        LEMEPSHIP .OR. LICOADSSHIP .OR. LRCPSHIP ) THEN
             
             CATEGORY     = 'SO2-SHIP'
             ARRAY(:,:,1) = AD13_SO2_sh(:,:)
@@ -1659,6 +1653,7 @@
 !  (2) Pick the right tracer field from AD22 if only a subset of tracers
 !       are requested to be printed out. (ccc, 12/15/08)
 !  (3) Add GLYX and MGLY tracers (tmf, 3/6/09)
+!  (4) Replaced NOx with NO2 (mpayer, 3/14/13)
 !******************************************************************************
 !
       IF ( ND22 > 0 ) THEN
@@ -1688,8 +1683,8 @@
             IF ( NN >= N_TRACERS+1 ) THEN
                MM = 5    ! Write 'O3' and 'OH'
             ELSE
-               SELECT CASE ( TRIM( TRACER_NAME(NN) ) )
-                  CASE ( 'NOx', 'HCN', 'CH3I' )
+               SELECT CASE ( TRIM( Input_Opt%TRACER_NAME(NN) ) )
+                  CASE ( 'NO2', 'HCN', 'CH3I' )
                      MM = 1
                   CASE ( 'HNO3' )
                      MM = 2
@@ -1701,6 +1696,18 @@
                      MM = 7
                   CASE ( 'MGLY' )
                      MM = 8
+                  CASE ( 'BrO' ) ! jpp, 4/24/2011 - added bromine
+                     MM = 9
+                  CASE ( 'HOBr' )
+                     MM = 10
+                  CASE ( 'BrNO2' )
+                     MM = 11
+                  CASE ( 'BrNO3' )
+                     MM = 12
+                  CASE ( 'CHBr3' )
+                     MM = 13
+                  CASE ( 'Br2' )
+                     MM = 14
                   CASE DEFAULT
                      MM = 0
                END SELECT
@@ -1758,8 +1765,8 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,1:LD24,N) / SCALEDYN
-            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LD24:1:-1,N) / SCALEDYN
+            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LLPAR:LLPAR-LD24+1:-1,N) /
+     &                          SCALEDYN
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -1791,8 +1798,8 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
 
-!            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,1:LD25,N) / SCALEDYN
-            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LD25:1:-1,N) / SCALEDYN
+            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LLPAR:LLPAR-LD25+1:-1,N) /
+     &                          SCALEDYN
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -1824,8 +1831,8 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,1:LD26,N) / SCALEDYN
-            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LD26:1:-1,N) / SCALEDYN
+            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LLPAR:LLPAR-LD26+1:-1,N) /
+     &                          SCALEDYN
                
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES, 
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -1854,13 +1861,14 @@
 !       same as the ND27 diagnostic. (bmy, 10/15/04)
 !  (5) Now provides stratrospheric flux of H2/HD if it is a H2/HD simulation
 !       (lyj, phs, 9/18/07)
+!  (6) Replaced Ox with O3 for full-chemistry simulation (mpayer, 3/14/13)
 !******************************************************************************
 !
 #if   !defined( GEOS_4 ) 
-      IF ( ND27 > 0 .and. IDTOX > 0 ) then
-         IF ( ( IDTOX > 0 .and. 
-     &        ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGOX_SIM() ) ) .OR. 
-     &        ( ITS_A_H2HD_SIM()                              ) ) THEN
+      IF ( ND27 > 0 .and. ( IDTO3 > 0 .or. IDTOx > 0 )) THEN
+         IF ( ( IDTO3 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM )  .OR.
+     &        ( IDTOx > 0 .and. Input_Opt%ITS_A_TAGOX_SIM    )  .OR. 
+     &        (                 Input_Opt%ITS_A_H2HD_SIM    )) THEN
 
             CATEGORY = 'STRT-FLX'
             UNIT     = 'kg/s'
@@ -1869,9 +1877,9 @@
             ! H2/HD            -- compute H2,  HD fluxes
             ! Single tracer Ox -- compute Ox flux only, hardwire
             !                     to tracer = 1 (bmy, 2/7/00)
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
-               ITEMP = (/ IDTNOX, IDTOX, IDTHNO3 /)
-            ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+               ITEMP = (/ IDTNO, IDTO3, IDTHNO3 /)
+            ELSE IF ( Input_Opt%ITS_A_H2HD_SIM ) THEN
                ITEMP = (/ IDTH2, IDTHD, 0 /)
             ELSE
                ITEMP = (/ 1, 0, 0 /)
@@ -2094,7 +2102,7 @@
 !
 !  Levels        : Field                  : Units       : Scale Factor
 !  -------------------------------------------------------------------------
-!  1 - LLTROP    : Aircraft NOx           : molec/cm2/s : SCALESRCE
+!  1 - LLPAR     : Aircraft NOx           : molec/cm2/s : SCALESRCE
 !  1 - NOXEXTENT : Anthropogenic NOx      : molec/cm2/s : SCALESRCE
 !  Surface       : Biomass Burning NOx    : molec/cm2/s : SCALESRCE
 !  Surface       : Biofuel Burning NOx    : molec/cm2/s : SCALESRCE
@@ -2110,9 +2118,14 @@
 !       and if NOx is a defined tracer ( IDTNOX > 0 ). (bmy, 5/26/99)
 !  (2) ND32 now uses allocatable arrays instead of AIJ. (bmy 3/16/00)
 !  (3) Added biofuel burning to ND32 diagnostic (bmy, 9/12/00)
+!  (4) Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
+!  (5) Aircraft NOx emissions now extend to LLPAR for AEIC inventory
+!       (mpayer, 7/31/13)
 !******************************************************************************
 !
-      IF ( ND32 > 0 .and. IDTNOX > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( ND32  > 0                     .and. 
+     &     IDTNO > 0                     .and. 
+     &     Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          ! All categories of NOx are in molec/cm2/s
          UNIT = 'molec/cm2/s'
@@ -2120,29 +2133,38 @@
          !==============================================================
          ! Aircraft NOx
          !==============================================================
-         CATEGORY = 'NOX-AC-$'
+         CATEGORY = 'NO-AC-$'
             
-         DO L = 1, LLTROP
+         DO L = 1, LLPAR
             ARRAY(:,:,L) = AD32_ac(:,:,L) / SCALESRCE               
          ENDDO
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLTROP,   IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
+     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
 
          !==============================================================
          ! Anthropogenic NOx
          !==============================================================
-         CATEGORY = 'NOX-AN-$'
+         CATEGORY = 'NO-AN-$'
 
          DO L = 1, NOXEXTENT 
             ARRAY(:,:,L) = AD32_an(:,:,L) / SCALESRCE
          ENDDO
-            
+
+         ! Add ship NOx to layer 1
+         ! We scale by AD32_ship_count because the ship emission diagnostic
+         ! is recorded every CHEMISTRY timestep when using INSTANT PBL mixing
+         ! and every CONVECTION timestep when using NON-LOCAL PBL mixing
+         IF ( AD32_SHIP_COUNT >= 1 ) THEN
+            ARRAY(:,:,1) = ARRAY(:,:,1) + 
+     &           AD32_SHIP(:,:) / REAL( AD32_SHIP_COUNT )
+         ENDIF
+
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY,  IDTNOX,    
+     &               HALFPOLAR, CENTER180, CATEGORY,  IDTNO,
      &               UNIT,      DIAGb,     DIAGe,     RESERVED,   
      &               IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
@@ -2150,11 +2172,12 @@
          !==============================================================
          ! Biomass Burning NOx
          !==============================================================
-         CATEGORY     = 'NOX-BIOB'
+         CATEGORY     = 'NO-BIOB'
+
          ARRAY(:,:,1) = AD32_bb(:,:) / SCALESRCE
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2162,11 +2185,12 @@
          !==============================================================
          ! Binary punch file: NOx from Biofuel
          !==============================================================
-         CATEGORY     = 'NOX-BIOF'
+         CATEGORY     = 'NO-BIOF'
+
          ARRAY(:,:,1) = AD32_bf(:,:) / SCALESRCE
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &                  HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+     &                  HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2174,11 +2198,12 @@
          !==============================================================
          ! Fertilizer NOx
          !==============================================================
-         CATEGORY     = 'NOX-FERT'
+         CATEGORY     = 'NO-FERT'
+
          ARRAY(:,:,1) = AD32_fe(:,:) / SCALESRCE
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2186,14 +2211,14 @@
          !==============================================================
          ! Lightning NOx
          !==============================================================
-         CATEGORY = 'NOX-LI-$'
+         CATEGORY = 'NO-LI-$'
 
          DO L = 1, LLCONVM 
             ARRAY(:,:,L) = AD32_li(:,:,L) / SCALESRCE
          ENDDO
                
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX, 
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     LLCONVM,  IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLCONVM) )
@@ -2201,11 +2226,12 @@
          !==============================================================
          ! Soil NOx
          !==============================================================
-         CATEGORY     = 'NOX-SOIL'
+         CATEGORY     = 'NO-SOIL'
+
          ARRAY(:,:,1) = AD32_so(:,:) / SCALESRCE
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO ,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2213,11 +2239,12 @@
          !==============================================================
          ! Stratospheric NOx (boundary condition)
          !==============================================================
-         CATEGORY     = 'NOX-STRT'
+         CATEGORY     = 'NO-STRT'
+
          ARRAY(:,:,1) = AD32_ub(:,:) / SCALEDYN
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO ,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2382,7 +2409,7 @@
             ! Get the tracer # from input.geos
             N  = TINDEX(36,M)
 
-            IF ( ITS_A_CH3I_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_CH3I_SIM ) THEN
 
                !--------------------------------------------------------
                ! For CH3I simulation only 
@@ -2428,8 +2455,16 @@
                   
             ENDIF
 
-            ! Divide by seconds
-            ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
+            ! Divide by seconds for AD36 and by AD36_SHIP_COUNT for AD36_SHIP
+            ! We scale by AD32_ship_count because the ship emission diagnostic
+            ! is recorded every CHEMISTRY timestep when using INSTANT PBL mixing
+            ! and every CONVECTION timestep when using NON-LOCAL PBL mixing
+            IF ( AD36_SHIP_COUNT >= 1 ) THEN
+               ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS +
+     &              AD36_SHIP(:,:,MM) / REAL( AD36_SHIP_COUNT )
+            ELSE 
+               ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
+            ENDIF
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -2589,7 +2624,7 @@
 !  ND42: SOA concentrations [ug/m3]
 !******************************************************************************
 !
-      IF ( ND42 > 0 ) CALL WRITE_DIAG42
+      IF ( ND42 > 0 ) CALL WRITE_DIAG42( Input_Opt )
 !
 !******************************************************************************
 !  ND42: Free diagnostic as of 11/24/99
@@ -2599,10 +2634,7 @@
 !   # : Field : Description             : Units   : Scale Factor
 !  ---------------------------------------------------------------------------
 !  (1)  OH    : OH  Chemical Diagnostic : mol/cm3 : CTOH
-!  (2)  NO    : NO  Chemical Diagnostic : v/v     : CTNO
 !  (3)  HO2   : HO2 Chemical Diagnostic : v/v     : CTHO2
-!  (4)  NO2   : NO2 Chemical Diagnostic : v/v     : CTNO2
-!  (5)  NO3   : NO3 Chemical Diagnostic : v/v     : CTNO3
 !
 !  NOTES:
 !  (1) Print output for either a NOx-Ox-HC run (NSRCX == 3), or a CO run
@@ -2614,9 +2646,10 @@
 !  (5) Now uses 3D counters (phs, 1/24/07)
 !  (6) Now assume that LD43 can't be higher than LD45 (phs, 1/24/07)
 !  (7) Check that CTxx are not zero, instead of adding 1e-20 (phs, 11/13/07)
+!  (8) Removed NO, NO2, and NO3. These are now tracers (mpayer, 3/29/13)
 !******************************************************************************
 !
-      IF ( ND43 > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( ND43 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          CATEGORY = 'CHEM-L=$' 
 
@@ -2640,42 +2673,12 @@
                   ENDWHERE
 
                   UNIT = 'molec/cm3'
-                  
-               ! NO
-               CASE ( 2 ) 
-                  WHERE( CTNO /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTNO )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-                  
 
                ! HO2 (rvm, bmy, 2/27/02)
                CASE ( 3 )
                   WHERE( CTHO2 /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
      $                    FLOAT( CTHO2 )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-
-               ! NO2 (rvm, bmy, 2/27/02)
-               CASE ( 4 ) 
-                  WHERE( CTNO2 /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTNO2 )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-                  
-
-               ! NO3 (rjp, bmy, 1/16/03)
-               CASE ( 5 )
-                  WHERE( CTNO3 /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTNO3 )
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
@@ -2787,22 +2790,34 @@
          CATEGORY = 'DRYD-FLX'
 
          ! # of drydep flux tracers
-         IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_TAGOX_SIM .or. 
+     &        Input_Opt%ITS_A_MERCURY_SIM ) THEN
             M = N_TRACERS
          ELSE
+            ! Extend dry dep tracers if 30-bin aerosol is turned on (win, 7/14/09)
+#if   defined ( TOMAS )
+            IF ( IDTNK1 > 0 ) THEN
+               M = NUMDEP + ( ( ICOMP - IDIAG )* IBINS )
+            ELSE
+               M = NUMDEP
+            ENDIF
+#else
             M = NUMDEP
+#endif
          ENDIF
 
          ! Loop over drydep tracers
          DO N = 1, M
 
-            IF ( ITS_A_RnPbBe_SIM() .or. ITS_A_H2HD_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_RnPbBe_SIM .or. 
+     &           Input_Opt%ITS_A_H2HD_SIM ) THEN
 
                ! Radon or H2/HD
                UNIT = 'kg/s'       
                NN   = NTRAIND(N)
  
-            ELSE IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
+            ELSE IF ( Input_Opt%ITS_A_TAGOX_SIM .or. 
+     &                Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
                ! Tagged Ox or Tagged Hg
                UNIT = 'molec/cm2/s'
@@ -2812,20 +2827,39 @@
      
                ! Other simulations
                UNIT = 'molec/cm2/s'
+
+#if   defined( TOMAS )
+               ! For extended drydep tracers, assign tracer ID of the TOMAS
+               ! aerosol mass (win, 7/14/09)
+               IF ( N <= NUMDEP ) THEN 
+                  NN  = NTRAIND(N)
+                  NN1 = NN
+               ELSE
+                  ! To calculate the IDTxxx of the associated  
+                  ! tracer. (ccc, 3/11/10) 
+                  NN  = MOD( N - NUMDEP-1, IBINS ) + IDTNK1
+
+                  ! Tracer number for bpch file
+                  NN1  = ( N - NUMDEP ) + ( IDTNK1 + IBINS - 1 )
+               ENDIF
+#else
                NN   = NTRAIND(N)
+#endif
  
             ENDIF
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
+#if !defined( TOMAS )
             MM  = 1
             MMB = 0
             DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
                MMB = TINDEX(44,MM)
                MM  = MM + 1
             ENDDO
+#endif
           
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
                ! Special case for tracers with several dry dep. tracers
                ! E.g. ISOPN: ISOPND and ISOPNB.
                ! We handle both tracers at the same time so we need to 
@@ -2840,25 +2874,39 @@
             ARRAY(:,:,1) = ( AD44(:,:,N,1) / SCALECHEM )
 
             ! Write to file
+#if   defined( TOMAS )
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN1,    
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+#else
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+#endif
 
-
+            !-----------------------------------------------------------
             ! Special case for tracers with several deposition tracers.
-            ! (E.G. ISOPN: ISOPND and ISOPNB) (ccc, 2/3/10)
+            ! We have already written drydep fluxes for ISOPND and 
+            ! MACRN above.  Therefore, also write the drydep velocities
+            ! for the second species (ISOPNB and MVKN) here.
+            !-----------------------------------------------------------
             SELECT CASE( DEPNAME( N ) )
                CASE( 'ISOPND' ) 
                   !ISOPNB is the next deposition tracer
                   ! Save into ARRAY
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,1) / SCALECHEM )
 
+                  ! Index under which ISOPN is stored
+                  T            = N_TRACERS + 1
+
                   ! Write to file
                   ! It's number is NNPAR+1 (see gamap_mod.f)
                   CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+1,    
+     &                        HALFPOLAR, CENTER180, CATEGORY, T,    
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                        IIPAR,     JJPAR,     1,        IFIRST,     
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2868,10 +2916,13 @@
                   ! Save into ARRAY
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,1) / SCALECHEM )
 
+                  ! Index under which MVKN is stored
+                  T            = N_TRACERS + 2
+
                   ! Write to file
                   ! It's number is NNPAR+2 (see gamap_mod.f)
                   CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+2,    
+     &                        HALFPOLAR, CENTER180, CATEGORY, T,
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                        IIPAR,     JJPAR,     1,        IFIRST,     
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2890,9 +2941,9 @@
          UNIT      = 'cm/s'
 
          ! # of drydep velocity tracers
-         IF ( ITS_A_TAGOX_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
             M = 1
-         ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+         ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN  ! Ask Helen
             M = 2
          ELSE
             M = NUMDEP
@@ -2911,7 +2962,7 @@
                MM  = MM + 1
             ENDDO
 
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
                ! Special case for tracers with several dry dep. tracers
                ! E.g. ISOPN: ISOPND and ISOPNB.
                ! We handle both tracers at the same time so we need to 
@@ -2933,18 +2984,27 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
 
+            !-----------------------------------------------------------
             ! Special case for tracers with several deposition tracers.
-            ! (E.G. ISOPN: ISOPND and ISOPNB) (ccc, 2/3/10)
+            ! We have already written drydep velocities for ISOPND and 
+            ! MACRN above.  Therefore, also write the drydep velocities
+            ! for the second species (ISOPNB and MVKN) here.
+            ! (ccc, bmy, 9/4/13)
+            !-----------------------------------------------------------
             SELECT CASE( DEPNAME( N ) )
+
                CASE( 'ISOPND' ) 
                   !ISOPNB is the next deposition tracer
                   ! Save into ARRAY
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,2) / SCALECHEM )
 
+                  ! Index under which ISOPN is stored
+                  T            = N_TRACERS + 1
+
                   ! Write to file
                   ! It's number is NNPAR+1 (see gamap_mod.f)
                   CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+1,    
+     &                        HALFPOLAR, CENTER180, CATEGORY, T,    
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                        IIPAR,     JJPAR,     1,        IFIRST,     
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2954,10 +3014,13 @@
                   ! Save into ARRAY
                   ARRAY(:,:,1) = ( AD44(:,:,N+1,2) / SCALECHEM )
 
+                  ! Index under which MVKN is stored
+                  T            = N_TRACERS + 2
+
                   ! Write to file
                   ! It's number is NNPAR+2 (see gamap_mod.f)
                   CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+2,    
+     &                        HALFPOLAR, CENTER180, CATEGORY, T,    
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                        IIPAR,     JJPAR,     1,        IFIRST,     
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2980,6 +3043,8 @@
 !  (2) Now store pure O3 as NNPAR+1 (now tracer #32). (bmy, 1/10/03)
 !  (3) Now uses CTO3 instead of CTOH for pure O3 (phs, 1/24/07)
 !  (4) Better handling of O3 case (phs, 11/17/08)
+!  (6) Removed code for storing pure O3 as NNPAR+1 because O3 is now a tracer
+!      (mpayer, 3/14/13)
 !******************************************************************************
 !
       IF ( ND45 > 0 ) THEN
@@ -2989,8 +3054,7 @@
 
          DO M = 1, TMAX(45)
             N  = TINDEX(45,M)
-            IF ( N > N_TOT_TRC ) CYCLE
-
+            IF ( N > N_TOT_TRC ) CYCLE !(sfarina, 1/28/2013 - valid for all sims)
             NN = N
 
             DO L = 1, LD45
@@ -3003,24 +3067,6 @@
      &                  IIPAR,     JJPAR,     LD45,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
 
-            ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
-            IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
-
-                  WHERE( CTO3 /= 0 )
-                     ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N_TOT_TRC+1) /
-     $                    FLOAT( CTO3 )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD45) = 0.
-                  ENDWHERE
-                  
-               NN = N_TOT_TRC + 1
-
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     LD45,     IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
-            ENDIF
          ENDDO
       ENDIF
 
@@ -3053,19 +3099,34 @@
       ENDIF
 #endif
 
+
 !
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
 !
-!   # : Field : Description    : Units         : Scale Factor
+!   # : Field  : Description    : Units         : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1)  ISOP  : Isoprene       : atoms C/cm2/s : SCALE3
-!  (2)  ACET  : Acetone        : atoms C/cm2/s : SCALE3
-!  (3)  PRPE  : Propene        : atoms C/cm2/s : SCALE3
-!  (4)  MONOT : Monoterpenes   : atoms C/cm2/s : SCALE3
-!  (5)  MBO   : Methyl Butenol : atoms C/cm2/s : SCALE3
-!  (6)  C2H4  : Ethene         : atoms C/cm2/s : SCALE3
-!  
+!  (1)  ISOP   : Isoprene       : atoms C/cm2/s : SCALESRCE
+!  (2)  ACET   : Acetone        : atoms C/cm2/s : SCALESRCE
+!  (3)  PRPE   : Propene        : atoms C/cm2/s : SCALESRCE
+!  (4)  MONOT  : Monoterpenes   : atoms C/cm2/s : SCALESRCE
+!  (5)  MBO    : Methyl Butenol : atoms C/cm2/s : SCALESRCE
+!  (6)  C2H4   : Ethene         : atoms C/cm2/s : SCALESRCE
+!  (7 ) APINE  : Alpha pinene   : atoms C/cm2/s : SCALESRCE
+!  (8 ) BPINE  : Beta pinene    : atoms C/cm2/s : SCALESRCE
+!  (9 ) LIMON  : Limonene       : atoms C/cm2/s : SCALESRCE
+!  (10) SABIN  : Sabinene       : atoms C/cm2/s : SCALESRCE
+!  (11) MYRCN  : Mycrene        : atoms C/cm2/s : SCALESRCE
+!  (12) CAREN  : 3-Carene       : atoms C/cm2/s : SCALESRCE
+!  (13) OCIMN  : Ocimene        : atoms C/cm2/s : SCALESRCE
+!  (14) FARN   : Farnesene      : atoms C/cm2/s : SCALESRCE
+!  (15) BCAR   : b-caryophyllene: atoms C/cm2/s : SCALESRCE
+!  (16) OSQT   : Other sesquitrp: atoms C/cm2/s : SCALESRCE
+!  (17) OMPT   : Other monoterp : atoms C/cm2/s : SCALESRCE
+!  (18) CHBr3  : Bromoform      :       kg/m2/s : SCALESRCE
+!  (19) CH2Br2 : Dibromomethane :       kg/m2/s : SCALESRCE
+!  (20) Br2    : Molec. Bromine :       kg/m2/s : SCALESRCE
+!
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
 !  (2) Also write out PRPE for CO-OH run (NSRCX == 5), regardless of
@@ -3091,7 +3152,12 @@
             IF ( N == 2 .and. IDTACET == 0 ) CYCLE
             IF ( N == 3 .and. IDTPRPE == 0 ) CYCLE
             IF ( N == 6 .and. IDTC2H4 == 0 ) CYCLE
-            
+
+            ! jpp, 6/7/09
+            IF ( N == 18 .and. IDTCHBr3  == 0 ) CYCLE
+            IF ( N == 19 .and. IDTCH2Br2 == 0 ) CYCLE
+            IF ( N == 20 .and. IDTBr2    == 0 ) CYCLE
+
             ARRAY(:,:,1) = AD46(:,:,N) / SCALESRCE
                
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -3118,6 +3184,8 @@
 !       CTO3 (phs, 1/24/07)
 !  (5) Revert to SCALEDYN for all species, except O3, which uses new 
 !       CTO3_24h counter (phs, 11/17/08)
+!  (6) Removed code for storing pure O3 as NNPAR+1 because O3 is now a tracer
+!      (mpayer, 3/14/13)
 !******************************************************************************
 !
       IF ( ND47 > 0 ) THEN
@@ -3139,24 +3207,6 @@
      &                  IIPAR,     JJPAR,     LD47,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD47) )
 
-            ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
-            IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
-
-               WHERE( CTO3_24h(:,:,1:LD47) /= 0 )
-                  ARRAY(:,:,1:LD47) = AD47(:,:,1:LD47,N_TRACERS+1) /
-     $                                FLOAT( CTO3_24h(:,:,1:LD47) )
-               ELSEWHERE
-                  ARRAY(:,:,1:LD47) = 0.
-               ENDWHERE
-               
-               NN = N_TRACERS + 1
-
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     LD47,     IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD47) )
-            ENDIF
          ENDDO
       ENDIF
 
@@ -3318,6 +3368,418 @@
          ENDDO
       ENDIF
 
+#if   defined( TOMAS )
+!
+!*****************************************************************************
+!  ND59: Size-resolved primary aerosol emission (win, 8/22/07)
+!        Unit is amount of aerosol per time of simulation e.g. sulfate[=] kg S
+!
+!   # : Field   : Description                 : Units     : Scale Factor
+!  ---------------------------------------------------------------------------
+!  (1 )  NK-EMISS : Size-resolved number emission   : No       : 1
+!  (2 )  SF-EMISS : Size-resolved sulfate emission  : kg S     : 1
+!  (3 )  SS-EMISS : Size-resolved sea-salt emission : kg       : 1 
+!  (4 )  ECIL-SRC : Size-resolved H-phillic EC emission   : kg : 1
+!  (5 )  ECOB-SRC : Size-resolved H-phobic EC emission    : kg : 1
+!  (6 )  OCIL-SRC : Size-resolved H-phillic OC emission   : kg : 1
+!  (7 )  OCOB-SRC : Size-resolved H-phobic OC emission    : kg : 1
+!  (8 )  DUST-SRC : Size-resolved dust emission      : kg      : 1
+!
+!  NOTES:
+!*****************************************************************************
+!
+      IF ( ND59 > 0 ) THEN
+
+         !==============================================================
+         ! Size-resolved primary aerosol number emission 
+         !==============================================================
+         UNIT         = 'No.'
+         CATEGORY     = 'NK-EMISS'
+         DO NBIN =1,IBINS
+            N        = IDTNK1 + NBIN - 1
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_NUMB(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary aerosol sulfate mass emission 
+         !==============================================================
+         UNIT         = 'kg S'
+         CATEGORY     = 'SF-EMISS'
+         DO NBIN =1,IBINS
+            N        = IDTSF1 + NBIN - 1
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_SULF(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary aerosol sea-salt mass emission 
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'SS-EMISS'
+         DO NBIN =1,IBINS
+            N        = IDTSS1 + NBIN - 1
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_SALT(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary Hydrophillic EC mass emission
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'ECIL-SRC'
+         DO NBIN =1,IBINS
+            N        = IDTECIL1 - 1 + NBIN
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_ECIL(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary Hydrophobic EC mass emission
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'ECOB-SRC'
+         DO NBIN =1,IBINS
+            N        = IDTECOB1 - 1 + NBIN
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_ECOB(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary Hydrophillic OC mass emission
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'OCIL-SRC'
+         DO NBIN =1,IBINS
+            N        = IDTOCIL1 - 1 + NBIN
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_OCIL(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary Hydrophobic OC mass emission
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'OCOB-SRC'
+         DO NBIN =1,IBINS
+            N        = IDTOCOB1 - 1 + NBIN
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_OCOB(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved dust mass emission
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'DUST-SRC'
+         DO NBIN =1,IBINS
+            N        = IDTDUST1 - 1 + NBIN
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_DUST(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+      ENDIF  
+!
+!*****************************************************************************
+!  ND60: TOMAS Aerosol microphysical rate (win, 7/9/07)
+!        Unit is amount of aerosol per time of simulation e.g. sulfate[=] kg S
+!
+!   # : Field   : Description                 : Units     : Scale Factor
+!  ---------------------------------------------------------------------------
+!  (1) TMS-COND : Condensation rate           : no. or kg : NONE
+!  (2) TMS-COAG : Coagulation rate            : no. or kg : NONE
+!  (3) TMS-NUCL : Nucleation rate             : no. or kg : NONE
+!  (4) TMS-AQOX : Aqueous oxidation rate      : no. or kg : NONE
+!  (5) AERO-FIX : Accumulated error fixed     : no. or kg : NONE
+!  (6) TMS-SOA  : SOA condensation rate       : no. or kg : NONE
+!
+!  NOTES:
+!  (1 ) Add TMS-SOA diagnostic (win, 9/25/07)
+!*****************************************************************************
+!
+      IF ( ND60 > 0 ) THEN
+         
+         !==============================================================
+         ! Condensation rate
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'TMS-COND'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+            DO L = 1, LD60
+               ARRAY(1,:,L) = AD60_COND(1,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+         ENDDO
+
+         !==============================================================
+         ! Coagulation rate
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'TMS-COAG'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+            DO L = 1, LD60
+               ARRAY(1,:,L) = AD60_COAG(1,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+         ENDDO
+
+         !==============================================================
+         ! Nucleation rate
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'TMS-NUCL'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+            DO L = 1, LD60
+               ARRAY(1,:,L) = AD60_NUCL(1,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+         ENDDO
+
+         !==============================================================
+         ! Aqueous oxidation rate
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'TMS-AQOX'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+            DO L = 1, LD60
+               ARRAY(1,:,L) = AD60_AQOX(1,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+         ENDDO
+
+         !==============================================================
+         ! Error fudging during aerosol microphysics
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'AERO-FIX'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+             DO L = 1, LD60
+                ARRAY(1,:,L) = AD60_ERROR(1,:,L,M) / SCALEX
+             ENDDO
+
+             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+          ENDDO
+
+         !==============================================================
+         ! SOA Condensation rate  (win, 9/25/07)
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'TMS-SOA'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+            DO L = 1, LD60
+               ARRAY(1,:,L) = AD60_SOA(1,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+         ENDDO
+
+      ENDIF
+
+!
+!*****************************************************************************
+!  ND61: TOMAS microphysics process rate saved in 3-D (kg/s)
+!
+!  Remark: for aerosol number, the unit 'kg' is used as a fake kg where
+!          1 fake kg = 1 aerosol number.
+!          Molecular weight of aerosol number is 1g/mol and   
+!
+!   # : Field   : Description                 : Units     : Scale Factor
+!  ---------------------------------------------------------------------------
+!  (1) TOMAS-3D : 3-D microphysics rate       : kg/s      : SCALECHEM
+!
+!  NOTES: 
+!  (1 ) Create ND61 to output nucleation rate in 3-D array diagnostic (win, 6/21/08)
+!  (2 ) Change ND61 tracer and unit to be new list with unit of 'cm-3s-1'
+!       (win, 10/6/08)
+!*****************************************************************************
+
+      IF ( ND61 > 0 ) THEN
+         CATEGORY = 'TOMAS-3D'
+         
+         DO M = 1, TMAX(61)
+            NN = TINDEX(61,M)
+
+            SCALEX = SCALECHEM
+
+            UNIT = 'cm-3s-1'
+
+            DO L = 1, LD61
+               ARRAY(:,:,L) = AD61(:,:,L,NN) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     LD61,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD61)  )
+         ENDDO
+      ENDIF
+#else  
+! ND60 s used for wetland fraction in non-tomas sim diagnostics
 !
 !******************************************************************************
 !  ND60: Wetland fraction
@@ -3343,7 +3805,7 @@
 
       ENDIF
 
-
+#endif
 !
 !*****************************************************************************
 !  ND62: I-J Instantaneous Column Maps for Tracers (molec/cm^2)  
@@ -3363,24 +3825,30 @@
       IF ( ND62 > 0 ) THEN
          CATEGORY = 'INST-MAP'
 
+#if defined( DEVEL )
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+#endif
+
          DO M = 1, TMAX(62)
             N  = TINDEX(62,M)
             IF ( N > N_TRACERS ) CYCLE
             NN = N
 
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid box surface area [cm2]
-               AREA_M2 = GET_AREA_M2( J )
+               AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-               DO I = 1, IIPAR
-                  ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * 6.022d22 )
-     &                         / ( TRACER_MW_G(N)       * AREA_M2  )
-               ENDDO
+               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) )      * 6.022d22 )
+     &                      / ( Input_Opt%TRACER_MW_G(N) * AREA_M2  )
+            ENDDO
             ENDDO
 
             ! Write the proper unit string
-            IF ( TRACER_MW_G(N) > 12d0 ) THEN
+            IF ( Input_Opt%TRACER_MW_G(N) > 12d0 ) THEN
                UNIT = 'molec/cm2'
             ELSE
                UNIT = 'atoms C/cm2'
@@ -3393,6 +3861,12 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
          ENDDO
+
+#if defined( DEVEL )
+         ! Free pointer
+         NULLIFY( STT )
+#endif
+
       ENDIF
 !
 !******************************************************************************
@@ -3423,7 +3897,7 @@
 
             ! Don't add TRCOFFSET for single tracer Ox
             ! Also select proper unit string
-            IF ( ITS_A_CH3I_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_CH3I_SIM ) THEN
                NN          = N
                UNIT        = 'kg/s'
 
@@ -3431,7 +3905,7 @@
                   ARRAY(:,:,L) = AD65(:,:,L,N)
                ENDDO
 
-            ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+            ELSE IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
                NN          = N
                UNIT        = 'kg/s'
                
@@ -3442,7 +3916,7 @@
                   ARRAY(:,:,1:LD65) = 0.
                ENDWHERE
 
-            ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+            ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
                NN          = N
                UNIT        = 'mol/cm3/s'
 
@@ -3491,17 +3965,18 @@
 !       the scale factors accordingly.  Also delete KZZ. (bmy, 6/23/03)
 !  (4) Modified for GEOS-5 and GCAP (bmy, 6/9/05)
 !  20 Aug 2010 - R. Yantosca - Modified for MERRA
+!   8 Feb 2012 - R. Yantosca - Modified for GEOS-5.7.x
 !******************************************************************************
 !
       IF ( ND66 > 0 ) THEN
          CATEGORY = 'DAO-3D-$'
 
-#if   defined( GEOS_3 )
-         SCALE_ND66 = SCALE_I6   ! For GEOS-3, ND66 is 6-hr instantaneous data
+#if   defined( GEOS_57 )
+         SCALE_ND66 = SCALE_A3   ! For GEOS_5.7.x,  ND66 is 3-hr time-avg data
 #elif defined( MERRA )
-         SCALE_ND66 = SCALE_A3   ! For MERRA,  ND66 is 3-hour time-avg data
+         SCALE_ND66 = SCALE_A3   ! For MERRA,       ND66 is 3-hr time-avg data
 #else
-         SCALE_ND66 = SCALE_A6   ! Otherwise,  ND66 is 6-hr time-avg data
+         SCALE_ND66 = SCALE_A6   ! Otherwise,       ND66 is 6-hr time-avg data
 #endif
 
          DO M = 1, TMAX(66)
@@ -3517,20 +3992,25 @@
 
                ! TMPU
                CASE ( 3 )
+#if   defined( GEOS_57 )
+                  SCALEX = SCALE_I3      ! T is an I3 field in GEOS-5.7.x
+#else
                   SCALEX = SCALE_ND66
+#endif
                   UNIT   = 'K'
 
                ! SPHU
                CASE ( 4 )
+#if   defined( GEOS_57 )
+                  SCALEX = SCALE_I3      ! SPHU is an I3 field in GEOS-5.7.x
+#else
                   SCALEX = SCALE_ND66
+#endif
                   UNIT   = 'g/kg'
 
                ! CLDMAS, DTRAIN
                CASE( 5, 6 )
                   SCALEX = SCALE_ND66 
-#if   defined( GEOS_3 )
-                  SCALEX = SCALE_A6      ! GEOS-3 CLDMAS/DTRAIN are 6-hr avg'd
-#endif
                   UNIT   = 'kg/m2/s'
 
                CASE DEFAULT
@@ -3585,15 +4065,20 @@
 !     models (phs, 9/3/08)
 !  (7 ) add EFLUX for output. (lin, ccc 5/29/09)
 !  26 Aug 2010 - R. Yantosca - Modified for MERRA
+!  03 Nov 2011 - M. Payer    - Fix SCALEX for SLP: use A1 for MERRA, otherwise
+!                              use I6
+!  08 Feb 2012 - R. Yantosca - Modified for GEOS-5.7.x
 !******************************************************************************
 !
       IF ( ND67 > 0 ) THEN
          CATEGORY = 'DAO-FLDS'
 
 #if   defined( MERRA )
-         SCALE_ND67 = SCALE_A1     ! For MERRA, most ND67 fields are hourly
+         SCALE_ND67 = SCALE_A1    ! For MERRA,      ND67 fields are hourly
+#elif defined( GEOS_57 )
+         SCALE_ND67 = SCALE_A1    ! For GEOS-5.7.x, ND67 fields are hourly
 #else
-         SCALE_ND67 = SCALE_A3     ! Otherwise, most ND67 fields are 3-hourly
+         SCALE_ND67 = SCALE_A3    ! Otherwise, most ND67 fields are 3-hourly
 #endif
 
          ! Binary punch file
@@ -3637,18 +4122,14 @@
                   ! Bug fix: For GEOS-3, ALBEDO is an I-6 field, but
                   ! for GEOS-4, GEOS-5, GCAP, it is an A-3 field.
                   ! (lyj, phs, bmy, 10/7/08)
-#if   defined( GEOS_3 )
-                  SCALEX = SCALE_I6 
-#else
                   SCALEX = SCALE_ND67
-#endif
                   UNIT   = 'unitless'
                CASE ( 15 )
                   SCALEX = SCALED
                   UNIT   = 'm'
                CASE ( 16 )
-#if   defined( MERRA )
-                  SCALEX = SCALE_A3     ! MERRA CLDTOPS is a 3-hr time avg'd
+#if   defined( MERRA ) || defined( GEOS_57 )
+                  SCALEX = SCALE_A3     ! MERRA/GEOS-5.7.x CLDTOPS 3-hr avg'd
 #else 
                   SCALEX = SCALE_A6     ! Otherwise CLDTOPS is 6-hr time avg'd
 #endif
@@ -3657,7 +4138,11 @@
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-                  SCALEX = SCALE_ND67
+#if   defined( MERRA ) || defined( GEOS_57 )
+                 SCALEX = SCALE_A1      ! MERRA/GEOS-5.7.x SLP is hourly
+#else
+                 SCALEX = SCALE_I6      ! Otherwise SLP is 6-h inst.
+#endif
                   UNIT   = 'hPa'
                CASE ( 19 )
                   SCALEX = SCALE_ND67

@@ -15,8 +15,9 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -35,6 +36,9 @@
 !
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now make IU_I6 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -42,6 +46,7 @@
 ! !PRIVATE TYPES:
 !
       INTEGER :: N_I6_FIELDS    ! # of fields in the file
+      INTEGER :: IU_I6          ! File LUN for I-6 fields
 
       CONTAINS
 !EOC
@@ -58,26 +63,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_I6_FIELDS( NYMD, NHMS )
+      SUBROUTINE OPEN_MERRA_I6_FIELDS( NYMD, NHMS, Input_Opt )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IU_I6
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date
-      INTEGER, INTENT(IN) :: NHMS   ! hhmmss time
+      INTEGER,        INTENT(IN) :: NYMD        ! YYYYMMDD date
+      INTEGER,        INTENT(IN) :: NHMS        ! hhmmss time
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_I6 locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,6 +93,7 @@
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IT_EXISTS
+      LOGICAL            :: IS_OPEN
       INTEGER            :: IOS, IUNIT
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: GEOS_DIR
@@ -104,7 +112,7 @@
          !---------------------------
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( MERRA_DIR )
+         GEOS_DIR = TRIM( Input_Opt%MERRA_DIR )
          I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
 
          ! Replace date tokens
@@ -112,11 +120,13 @@
          CALL EXPAND_DATE( I6_FILE,  NYMD, NHMS )
 
          ! Full file path
-         PATH = TRIM( DATA_DIR ) // 
-     &          TRIM( GEOS_DIR ) // TRIM( I6_FILE )
+         PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &          TRIM( GEOS_DIR           ) // 
+     &          TRIM( I6_FILE            )
 
          ! Close previously opened A-3 file
-         CLOSE( IU_I6 )
+	 INQUIRE( IU_I6, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_I6 )
 
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_I6 ) ) THEN 
@@ -128,6 +138,9 @@
          ! Open the I6 file
          !---------------------------
 
+         ! Find a free file LUN
+         IU_I6 = findFreeLUN()
+
          ! Open the file
          OPEN( UNIT   = IU_I6,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
@@ -138,8 +151,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_I6
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 )
          
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
@@ -176,20 +189,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : PS1       ! Surface pressure  [hPa]
-      USE DAO_MOD, ONLY : RH1       ! Relative humidity [fraction]
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,9 +217,9 @@
       !=================================================================
       CALL READ_I6( NYMD = NYMD, 
      &              NHMS = NHMS, 
-     &              PS   = PS1, 
-     &              RH   = RH1   )
-      
+     &              PS   = State_Met%PS1, 
+     &              RH   = State_Met%RH1   )
+
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
 !EOC
 !------------------------------------------------------------------------------
@@ -216,20 +235,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : PS2       ! Surface pressure  [hPa]
-      USE DAO_MOD, ONLY : RH2       ! Relative humidity [fraction]
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -238,9 +262,9 @@
       !=================================================================
       CALL READ_I6( NYMD = NYMD, 
      &              NHMS = NHMS,
-     &              PS   = PS2, 
-     &              RH   = RH2   )
-      
+     &              PS   = State_Met%PS2, 
+     &              RH   = State_Met%RH2  )
+
       END SUBROUTINE GET_MERRA_I6_FIELDS_2
 !EOC
 !------------------------------------------------------------------------------
@@ -261,14 +285,13 @@
 ! !USES:
 !
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_I6
       USE TIME_MOD,     ONLY : SET_CT_I6
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
 
-      USE CMN_SIZE_MOD                             ! Size parameters
-      USE CMN_DIAG_MOD                             ! NDxx flags
+      USE CMN_SIZE_MOD                               ! Size parameters
+      USE CMN_DIAG_MOD                               ! NDxx flags
 !
 ! !INPUT PARAMETERS: 
 !
@@ -282,6 +305,8 @@
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_I6 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -377,7 +402,7 @@
          IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
             IF ( NFOUND == N_I6_FIELDS ) THEN
                STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-               WRITE( 6, 210 ) NFOUND, STAMP
+               WRITE( 6, 210 ) NFOUND, STAMP, IU_I6
                EXIT
             ENDIF
          ENDIF
@@ -385,7 +410,8 @@
 
       ! FORMATs
  200  FORMAT( 'Searching for next MERRA I6 field!'                    )
- 210  FORMAT( '     - Found all ', i3, ' MERRA I6 met fields for ', a )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA I6 met fields for ', 
+     &             a, ' on unit ', i4                                 )
 
       !=================================================================
       ! Cleanup and quit

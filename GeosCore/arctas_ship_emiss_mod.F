@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -34,6 +33,9 @@
 ! !REVISION HISTORY:
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  31 Aug 2010 - R. Yantosca - Updated comments
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use the new function
+!                              GET_AREA_CM2( I, J, L ) from grid_mod.F90 
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !
 ! !REMARKS:
 !  (1) Part of the ARCTAS pre-campaign composite inventory distributed by
@@ -61,9 +63,6 @@
 !
 ! !PRIVATE DATA MEMBERS:
 !
-      ! Arrays
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
-
       ! Anthro emiss arrays
       REAL*8,  TARGET, ALLOCATABLE :: SO2_SHIP(:,:)
       REAL*8,  TARGET, ALLOCATABLE :: CO2_SHIP(:,:)
@@ -93,6 +92,7 @@
 !
 ! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTSO2
@@ -169,13 +169,14 @@
       !------------------------------
       IF ( DO_KGS ) THEN
 
-            ! Convert from [kg/yr] to [kg/s]         
-            VALUE = VALUE / SEC_IN_YEAR              
+         ! Convert from [kg/yr] to [kg/s]         
+         VALUE = VALUE / SEC_IN_YEAR              
 
       ELSE IF ( DO_MCS ) THEN
 
-            ! Convert from [kg/yr] to [molec/cm2/s]            
-            VALUE = VALUE * XNUMOL(N) / ( A_CM2(J) * SEC_IN_YEAR )  
+         ! Convert from [kg/yr] to [molec/cm2/s]            
+         VALUE = ( VALUE       * XNUMOL(N)               )
+     &         / ( SEC_IN_YEAR * GET_AREA_CM2( I, J, 1 ) )  
 
       ENDIF
 
@@ -194,18 +195,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_ARCTAS_SHIP( YEAR )
+      SUBROUTINE EMISS_ARCTAS_SHIP( am_I_Root, YEAR, 
+     &                              Input_Opt, State_Chm, RC )
 !
 ! !USES:
 ! 
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
-      USE TRACER_MOD,     ONLY : ITS_A_CO2_SIM
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTSO2
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)     :: YEAR   ! Year of data to read
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: YEAR        ! Year of data to read
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
@@ -215,16 +229,25 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE           :: FIRST = .TRUE.
-      CHARACTER(LEN=255)      :: FILENAME, DIR
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      CHARACTER(LEN=255) :: FILENAME, DIR
+
+      ! For fields from Input_Opt
+      INTEGER            :: N_TRACERS
 
       !=================================================================
       ! EMISS_ARCTAS_SHIP begins here!
       !=================================================================
 
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_ARCTAS_SHIP
+         CALL INIT_ARCTAS_SHIP( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -234,7 +257,7 @@
       DIR = TRIM( DATA_DIR_1x1 ) // 'ARCTAS_SHIP_2008/'
       
 
-      IF ( ITS_A_CO2_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
 
          !--------------------------
          ! Read CO2 and regrid
@@ -248,6 +271,10 @@
          CALL READ_ARCTAS_SHIP( FILENAME, 'CO2-SRCE', 1, CO2_SHIP,
      $        YEAR )
             
+#if defined( DEVEL )
+         State_Chm%TRAC_TEND(:,:,1,N_TRACERS+1) = 
+     &   State_Chm%TRAC_TEND(:,:,1,N_TRACERS+1) + CO2_SHIP(:,:)
+#endif
       ELSE
 
          !--------------------------
@@ -262,13 +289,17 @@
          CALL READ_ARCTAS_SHIP( FILENAME, 'ANTHSRCE', 26, SO2_SHIP,
      $        YEAR )
          
+#if defined( DEVEL )
+         State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &   State_Chm%TRAC_TEND(:,:,1,IDTSO2) + SO2_SHIP(:,:)
+#endif
 
       ENDIF
      
       !--------------------------
       ! Print emission totals
       !--------------------------
-      CALL TOTAL_EMISS_Tg
+      CALL TOTAL_EMISS_Tg( Input_Opt )
 
       END SUBROUTINE EMISS_ARCTAS_SHIP
 !EOC
@@ -293,10 +324,11 @@
 ! !USES:
 ! 
       USE BPCH2_MOD,        ONLY : GET_TAU0,      READ_BPCH2
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
+      USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
+      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1      
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
 
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -314,52 +346,64 @@
       ! Array containing output data
       REAL*8,           INTENT(INOUT) :: ARR(IIPAR,JJPAR)
 !
-! !REVISION HISTORY: 
-!  28 Jan 2009 - P. Le Sager - Initial Version
 !
 ! !REMARKS:
 !  (1) Even though the inventory was prepared for Arctas 2008 campaign, CO2 
 !       base year is 2000, and SO2 base year is 2006. Input YEAR is used to 
 !       scale SO2 into 1985-2005 
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  14 May 2012 - R. Yantosca - Bug fix: SC should be defined w/ IIPAR,JJPAR
+!  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4         :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8         :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8         :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8         :: SC_1x1(I1x1,J1x1)
-      REAL*8         :: TAU2008
+      REAL*4              :: ARRAY(I1x1,J1x1-1,1)
+      REAL*8, TARGET      :: GEN_1x1(I1x1,J1x1-1)
+      REAL*4              :: SC(IIPAR,JJPAR)
+      REAL*8              :: TAU2008
+      CHARACTER(LEN=255)  :: LLFILENAME
+      REAL*8, POINTER     :: INGRID (:,:) => NULL()
+      REAL*8              :: OUTGRID(IIPAR,JJPAR)
 
       ! TAU0 values for 2008
       TAU2008 = GET_TAU0( 1, 1, 2008 )
 
       ! Initialize
-      SC_1x1 = 1d0
+      SC = 1d0
 
-      ! Read data
+      ! Read data [kg/yr]
       CALL READ_BPCH2( FILENAME,  CATEGORY,  TRACERN, 
      &                 TAU2008,   I1x1,      J1x1-1,     
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
-      
-      ! Regrid from GENERIC 1x1 --> GEOS 1x1 
-      CALL DO_REGRID_G2G_1x1( 'kg/yr', GEN_1x1, GEOS_1x1(:,:,1) )
+  
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
+      ! Regrid from GENERIC 1x1 --> Current Model Resolution
+      INGRID => GEN_1x1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, IS_MASS=1, 
+     &                    netCDF=.TRUE. )
 
-      ! Get & apply scaling factor to GEOS 1x1
+      ! Get & apply scaling factor
       IF ( TRACERN == 26 )
-     $     CALL GET_ANNUAL_SCALAR_1x1( 73, 2000, YEAR, SC_1x1 )
+     $     CALL GET_ANNUAL_SCALAR( 73, 2000, YEAR, SC )
+      ARR = OUTGRID * SC
 
-      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
-
-
-      ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, ARR )
+      ! Free pointer
+      NULLIFY( INGRID )
 
       END SUBROUTINE READ_ARCTAS_SHIP
 !EOC
@@ -376,13 +420,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TOTAL_EMISS_TG
+      SUBROUTINE TOTAL_EMISS_TG( Input_Opt )
 !
 ! !USES:
 ! 
-      USE TRACER_MOD, ONLY : ITS_A_CO2_SIM 
-
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
@@ -405,7 +452,7 @@
 
 
       ! Test for simulation type
-      IF ( ITS_A_CO2_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
 
          !-----------------------
          ! CO2 simulation
@@ -453,45 +500,54 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_ARCTAS_SHIP
+      SUBROUTINE INIT_ARCTAS_SHIP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 ! 
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD, ONLY : LARCSHIP
-      USE TRACER_MOD,  ONLY : ITS_A_CO2_SIM 
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: AS, J
+
+      ! Assume success
+      RC =  GIGC_SUCCESS
 
       !=================================================================
       ! INIT_ARCTAS_SHIP begins here!
       !=================================================================
 
       ! Allocate ANTHRO arrays if LARCTAS_SHIP is TRUE
-      IF ( LARCSHIP ) THEN
+      IF ( Input_Opt%LARCSHIP ) THEN
       
          !--------------------------------------------------
          ! Allocate and zero arrays for SHIP emissions
          !--------------------------------------------------
          ! Test for simulation type
-         IF ( ITS_A_CO2_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
 
             !-----------------------
             ! CO2 simulation
             !-----------------------
-            ALLOCATE( CO2_SHIP( IIPAR, JJPAR ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO2_SHIP' )
+            ALLOCATE( CO2_SHIP( IIPAR, JJPAR ), STAT=RC )
+            IF ( RC /= 0 ) CALL ALLOC_ERR( 'CO2_SHIP' )
             CO2_SHIP = 0d0
 
          ELSE
@@ -499,22 +555,11 @@
             !-----------------------
             ! Other simulations
             !-----------------------
-            ALLOCATE( SO2_SHIP( IIPAR, JJPAR ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2_SHIP' )
+            ALLOCATE( SO2_SHIP( IIPAR, JJPAR ), STAT=RC )
+            IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2_SHIP' )
             SO2_SHIP = 0d0
 
          ENDIF
-
-         !---------------------------------------------------
-         ! Allocate array for grid box surface area in cm2
-         !---------------------------------------------------
-         ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-         ! Fill array
-         DO J = 1, JJPAR
-            A_CM2(J) = GET_AREA_CM2( J )
-         ENDDO
 
       ENDIF
 
@@ -543,7 +588,6 @@
       !=================================================================
       ! CLEANUP_ARCTAS_SHIP begins here!
       !=================================================================
-      IF ( ALLOCATED( A_CM2        ) ) DEALLOCATE( A_CM2        )
       IF ( ALLOCATED( SO2_SHIP     ) ) DEALLOCATE( SO2_SHIP     )
       IF ( ALLOCATED( CO2_SHIP     ) ) DEALLOCATE( CO2_SHIP     )
 

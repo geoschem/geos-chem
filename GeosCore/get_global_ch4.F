@@ -1,6 +1,7 @@
 ! $Id: get_global_ch4.f,v 1.1 2009/09/16 14:06:26 bmy Exp $
       SUBROUTINE GET_GLOBAL_CH4( THISYEAR, VARIABLE_CH4, 
-     &                           A3090S, A0030S, A0030N, A3090N )
+     &                           A3090S, A0030S, A0030N, A3090N,
+     &                           am_I_Root, Input_Opt )
 !
 !******************************************************************************
 !  Subroutine GET_GLOBAL_CH4 computes the latitudinal gradient in CH4
@@ -38,22 +39,34 @@
 !        (swu, havala, bmy, 1/25/08)
 !  (7 ) Updated CH4 vales with version 2008-07-02 for 1983-2007. Also use
 !        2007 for years past 2007 (jaf, 4/15/09) 
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LFUTURE instead of LFUTURE
+!                              from logical_mod.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
-      ! References to F90 modules
+! !USES:
+!
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCENARIO
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
 
       IMPLICIT NONE
-#     include "define.h"
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: THISYEAR
-      LOGICAL, INTENT(IN)           :: VARIABLE_CH4
-      REAL*8,  INTENT(OUT)          :: A3090S, A0030S, A0030N, A3090N
-
-      ! Local variables
-      CHARACTER(LEN=2)              :: FUTURE_SCENARIO
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN)  :: THISYEAR
+      LOGICAL,        INTENT(IN)  :: VARIABLE_CH4
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,         INTENT(OUT) :: A3090S, A0030S, A0030N, A3090N
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=2)            :: FUTURE_SCENARIO
 
       !=================================================================
       ! GET_GLOBAL_CH4 begins here!
@@ -80,7 +93,7 @@
       IF ( VARIABLE_CH4 ) THEN
 
          ! Get IPCC future scenario (e.g. A1, A2, B1, B2)
-         IF ( LFUTURE ) THEN
+         IF ( Input_Opt%LFUTURE ) THEN
             FUTURE_SCENARIO = GET_FUTURE_SCENARIO()
          ENDIF
 
@@ -335,26 +348,28 @@
       ! Print the latitudinal CH4 gradient for this year to stdout
       !=================================================================
 !$OMP CRITICAL
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, 105   ) THISYEAR
- 105  FORMAT( 'GET_GLOBAL_CH4: YEAR = ', i4 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, 105   ) THISYEAR
+ 105     FORMAT( 'GET_GLOBAL_CH4: YEAR = ', i4 )
 
-      WRITE( 6, 110 ) A3090N, A0030N, A0030S, A3090S 
- 110  FORMAT( 'CH4 (90N - 30N) : ', f7.1, ' [ppbv]', /,
-     &        'CH4 (30N - 00 ) : ', f7.1, ' [ppbv]', /,
-     &        'CH4 (00  - 30S) : ', f7.1, ' [ppbv]', /,
-     &        'CH4 (30S - 90S) : ', f7.1, ' [ppbv]' )
+         WRITE( 6, 110 ) A3090N, A0030N, A0030S, A3090S 
+ 110     FORMAT( 'CH4 (90N - 30N) : ', f7.1, ' [ppbv]', /,
+     &           'CH4 (30N - 00 ) : ', f7.1, ' [ppbv]', /,
+     &           'CH4 (00  - 30S) : ', f7.1, ' [ppbv]', /,
+     &           'CH4 (30S - 90S) : ', f7.1, ' [ppbv]' )
 
-      ! Indicate to the log file if we are using CH4 gradient data
-      ! from 2007 as a proxy for years past 2007 (mje, bmy, 7/7/03,
-      ! jaf, 4/15/09)
-      IF ( THISYEAR > 2007 ) THEN
-         WRITE( 6, 115 ) 
- 115     FORMAT( /, 'Using CH4 gradient data from 2007 as a proxy',
+         ! Indicate to the log file if we are using CH4 gradient data
+         ! from 2007 as a proxy for years past 2007 (mje, bmy, 7/7/03,
+         ! jaf, 4/15/09)
+         IF ( THISYEAR > 2007 ) THEN
+            WRITE( 6, 115 ) 
+ 115        FORMAT( /, 'Using CH4 gradient data from 2007 as a proxy',
      &           /, 'since 2007 is the last year with reported data!' )
-      ENDIF
+         ENDIF
 
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      ENDIF
 !$OMP END CRITICAL
 
       ! Return to calling program

@@ -12,23 +12,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
+      SUBROUTINE PARTITION( NTRACER, XNUMOL, am_I_Root, State_Chm ) 
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : CSPEC,     JLOP,       VOLUME
-      USE COMODE_MOD,   ONLY : JLOP_PREVIOUS
-      USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
-      USE TRACERID_MOD, ONLY : IDTOX,     IDTNOX,     IDTRMB
-      USE TRACERID_MOD, ONLY : IDO3,      IDNO,       IDHNO2
-      USE TRACERID_MOD, ONLY : CTRMB,     NMEMBER
-
-#     include "define.h"
+      USE COMODE_MOD,         ONLY : CSPEC,     JLOP,       VOLUME
+      USE COMODE_MOD,         ONLY : JLOP_PREVIOUS
+      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTRMB
+      USE TRACERID_MOD,       ONLY : IDO3,      IDNO,       IDHNO2
+      USE TRACERID_MOD,       ONLY : CTRMB,     NMEMBER
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
 
       IMPLICIT NONE
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -37,11 +35,14 @@
 
       ! Conversion factor: molecules tracer / kg tracer 
       REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
+
+      ! Is this the root CPU?
+      LOGICAL, INTENT(IN)    :: am_I_Root
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      ! Updated tracer concentrations [molec/cm3/box]
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+      ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
 ! !REMARKS:
 !  Warning: 
@@ -67,6 +68,12 @@
 !                                   that was in the troposphere on the previous
 !                                   timestep.
 !  27 Jun 2011 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  14 Mar 2013 - M. Payer    - Remove partitioning of NOx and Ox. Family tracers
+!                              NOx and Ox have now been replaced with tracers
+!                              NO, NO2, NO3, HNO3, and O3.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,6 +89,11 @@
       REAL*8  :: CONCTMP, CONCNOX, SUM, SUM1
       REAL*8  :: CSAVE( ITLOOP, NTRACER )
       REAL*8  :: QTEMP
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! PARTITION begins here!
@@ -100,8 +112,6 @@
          ! Skip if this is not a valid tracer
          IF ( IDTRMB(N,1) == 0 ) CYCLE
 
-         ! Handle all other tracers except Ox 
-         IF ( N /= IDTOX ) THEN
             DO KK = 1, NMEMBER(N)
                IDNUM             = IDNUM + 1
                JJ                = IDTRMB(N,KK)
@@ -109,13 +119,6 @@
                CSAVEID_JJ(IDNUM) = JJ
             ENDDO
 
-         ! Handle Ox
-         ELSE IF ( IDTOX /= 0 ) THEN
-            JJ                = IDTRMB(N,1)
-            IDNUM             = IDNUM + 1
-            CSAVEID(JJ)       = IDNUM
-            CSAVEID_JJ(IDNUM) = JJ
-         ENDIF
       ENDDO
 
       ! Loop over tracer members and boxes
@@ -191,13 +194,17 @@
       ! initial ratios. In tracer sequence, OX must be after NOX, 
       ! otherwise, adjust the code
       !=================================================================
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       DO N = 1, NTRACER
 
          ! Skip if it's not a valid tracer
          IF ( IDTRMB(N,1) == 0 ) CYCLE
 
          !### Debug
-         !WRITE(6,*) 'IN PARTITION N= ', N
+         !IF( am_I_Root ) WRITE(6,*) 'IN PARTITION N= ', N
 
          ! Loop over grid boxes
 !$OMP PARALLEL DO
@@ -223,193 +230,59 @@
             ! First, find sum of starting concentrations
             !===========================================================
 
-            !------------------------
-            ! All tracers except Ox
-            !------------------------
-            IF ( N /= IDTOX ) THEN
-               SUM = 0.d0
+            SUM = 0.d0
 
-               DO KK = 1, NMEMBER(N)
-                  JJ = IDTRMB(N, KK)
+            DO KK = 1, NMEMBER(N)
+               JJ = IDTRMB(N, KK)
 
-                  ! Error check
-                  IF ( JJ == 0 ) THEN
+               ! Error check
+               IF ( JJ == 0 ) THEN
 !$OMP CRITICAL
+                  IF ( am_I_Root ) THEN
                      PRINT *,JJ,JLOOP,N,KK,IDTRMB(N, KK)
-!$OMP END CRITICAL
                   ENDIF
+!$OMP END CRITICAL
+               ENDIF
 
-                  SUM = SUM + CSAVE(JLOOP,CSAVEID(JJ)) * (CTRMB(N,KK)+1)
-               ENDDO
-
-            !------------------------
-            ! Ox
-            !------------------------
-            ELSE IF ( IDTOX /= 0 ) THEN
-               JJ   = IDTRMB(N,1)
-               SUM  = CSAVE(JLOOP,CSAVEID(JJ)) * (CTRMB(N,1)+1)
-               SUM1 = 0.d0
-
-
-               ! SUM  = sum of starting values for all Ox species (incl. O3)
-               ! SUM1 = sum of new values for all Ox species except O3,
-               ! based on NOx partitioning
-               DO KK = 2, NMEMBER(N)
-                  JJ   = IDTRMB(N,KK)
-                  SUM  = SUM + CSAVE(JLOOP,CSAVEID(JJ))*(CTRMB(N,KK)+1)
-                  SUM1 = SUM1+ CSPEC(JLOOP,JJ) * (CTRMB(N,KK)+1)
-               ENDDO
-
-            ENDIF
+               SUM = SUM + CSAVE(JLOOP,CSAVEID(JJ)) * (CTRMB(N,KK)+1)
+            ENDDO
 
             !===========================================================
             ! Now perform the partitioning
             !===========================================================
 
-            !----------------------------------------
-            ! All tracers except Ox
-            !----------------------------------------
-            IF ( N /= IDTOX ) THEN
+            ! Loop over # of member species in this tracer
+            DO KK = 1, NMEMBER(N)
 
-               ! Loop over # of member species in this tracer
-               DO KK = 1, NMEMBER(N)
+               ! Index of member species for CSPEC
+               JJ = IDTRMB(N, KK)
 
-                  ! Index of member species for CSPEC
-                  JJ = IDTRMB(N, KK)
-
-                  ! QTEMP is the fraction of the given member species KK
-                  ! in the tracer N.  The value QTEMP*CONCTMP is the 
-                  ! concentration of the member species itself, and that
-                  ! needs to be saved into CSPEC.
-                  !
-                  ! In the partitioning, now be sure to perform a safe
-                  ! floating point division of CSAVE/SUM.  Return the value
-                  ! 1/NMEMBER(N) if the division can't be done, i.e. do a
-                  ! uniform paritioning among all member species of the
-                  ! given tracer. (phs, bmy, 2/26/08)
-                  QTEMP = SAFE_DIV( CSAVE(JLOOP,CSAVEID(JJ)),
-     &                              SUM, 1d0/NMEMBER(N) )
+               ! QTEMP is the fraction of the given member species KK
+               ! in the tracer N.  The value QTEMP*CONCTMP is the 
+               ! concentration of the member species itself, and that
+               ! needs to be saved into CSPEC.
+               !
+               ! In the partitioning, now be sure to perform a safe
+               ! floating point division of CSAVE/SUM.  Return the value
+               ! 1/NMEMBER(N) if the division can't be done, i.e. do a
+               ! uniform paritioning among all member species of the
+               ! given tracer. (phs, bmy, 2/26/08)
+               QTEMP = SAFE_DIV( CSAVE(JLOOP,CSAVEID(JJ)),
+     &                           SUM, 1d0/NMEMBER(N) )
                      
-                  ! Store the concentration of member species KK
-                  ! into the CSPEC array.  Do not allow underflow!
-                  CSPEC(JLOOP,JJ) = MAX( QTEMP*CONCTMP, SMAL2 )
-               ENDDO
+               ! Store the concentration of member species KK
+               ! into the CSPEC array.  Do not allow underflow!
+               CSPEC(JLOOP,JJ) = MAX( QTEMP*CONCTMP, SMAL2 )
+            ENDDO
 
-            !----------------------------------------
-            ! For Ox, take O3 = Ox - SUM(NO2+NO3*2)
-            !----------------------------------------
-            ELSE IF ( IDTOX /= 0 .AND. IDTNOX /= 0 ) THEN
-
-               ! Find Ox in CSPEC
-               JJ              = IDO3
-               CSPEC(JLOOP,JJ) = CONCTMP - SUM1
-
-               ! If Ox partitioning is OK, then skip to next tracer
-               IF ( CSPEC(JLOOP,JJ) > 0.0d0 ) GOTO 220
-
-               !---------------------------------------------------------
-               ! Ox partitioning failed, we are getting a negative ozone 
-               ! concentration.  Instead, try partitioning Ox before NOx
-               !---------------------------------------------------------
-
-               ! Loop over member species in Ox
-               DO KK = 1, NMEMBER(N)
-
-                  ! Index of member species for CSPEC array
-                  JJ = IDTRMB(N, KK)
-
-                  ! QTEMP is the fraction of the given member species in the
-                  ! Ox tracer.  The value QTEMP*CONCTMP is the concentration 
-                  ! of the member species itself, and that needs to be
-                  ! saved into CSPEC.
-                  !
-                  ! In the partitioning, now be sure to perform a safe
-                  ! floating point division of CSAVE/SUM.  Return the value
-                  ! 1/NMEMBER(N) if the division can't be done, i.e. do a
-                  ! uniform paritioning among all member species of the
-                  ! given tracer. (phs, bmy, 2/26/08)
-                  QTEMP = SAFE_DIV( CSAVE(JLOOP,CSAVEID(JJ)),
-     &                              SUM, 1d0/NMEMBER(N) )
-
-                  ! Store the concentration of member species KK
-                  ! into the CSPEC array.  Do not allow underflow!
-                  CSPEC(JLOOP,JJ) = MAX( QTEMP*CONCTMP, SMAL2 )
-               ENDDO
-
-               !---------------------------------------------------------
-               ! then partition NO+HNO2 
-               ! (the only NOx species not contained in Ox)
-               ! SUM  = sum of starting values for NO and HNO2
-               ! SUM1 = sum of new values for all NOx species except 
-               ! NO and HNO2, based on Ox partitioning
-               !---------------------------------------------------------
-               SUM  = 0.d0
-               SUM1 = 0.d0
-               
-               ! Loop over member species of NOx
-               DO KK = 1, NMEMBER(IDTNOX)
-                  JJ = IDTRMB(IDTNOX, KK)
-
-                  IF ( JJ == IDNO .OR. JJ == IDHNO2 ) THEN
-                     SUM = SUM + CSAVE(JLOOP,CSAVEID(JJ)) *
-     &                           (CTRMB(IDTNOX,KK)+1)
-                  ELSE
-                     SUM1 = SUM1 + CSPEC(JLOOP,JJ)*(CTRMB(IDTNOX,KK)+1)
-                  ENDIF
-               ENDDO
-
-               ! Get NOx concentration from STT
-               CONCNOX = STT(I,J,L,IDTNOX)
-
-               ! Error test
-               IF ( CONCNOX - SUM1 < 0.d0 ) THEN
-!$OMP CRITICAL 
-                  PRINT*, '### In partition.f: CONCNOX - SUM1 < 0'
-                  PRINT*, '### If CONCNOX = 0 and SUM1 ~ 1e-99 it is OK'
-                  PRINT*, '### I, J, L : ', I, J, L
-                  PRINT*, '### CONCNOX : ', CONCNOX
-                  PRINT*, '### SUM1    : ', SUM1
-!$OMP END CRITICAL
-               ENDIF
-
-               ! Loop over member species in NOx
-               DO KK = 1, NMEMBER(IDTNOX)
-
-                  ! Index of member species for CSPEC
-                  JJ = IDTRMB(IDTNOX,KK)
-
-                  ! For species NO and NO2 ...
-                  IF ( JJ == IDNO .OR. JJ == IDHNO2 ) THEN
-
-                     ! QTEMP is the fraction of the given member species in 
-                     ! the Ox tracer.  The value QTEMP*CONCTMP is the 
-                     ! concentration of the member species itself, and that 
-                     ! needs to be saved into CSPEC.
-                     !
-                     ! In the partitioning, now be sure to perform a safe
-                     ! floating point division of CSAVE/SUM.  Return the value
-                     ! 1/NMEMBER(N) if the division can't be done, i.e. do a
-                     ! uniform paritioning among all member species of the
-                     ! given tracer. (phs, bmy, 2/26/08)
-                     QTEMP = SAFE_DIV( CSAVE(JLOOP,CSAVEID(JJ)),
-     &                                 SUM, 1d0/NMEMBER(IDTNOX) )
-
-                     ! Store the concentration of member species NO or HNO2
-                     ! into the CSPEC array.  Do not allow underflow!
-                     CSPEC(JLOOP,JJ) = MAX(QTEMP*(CONCNOX-SUM1), SMAL2)
-                  ENDIF
-               ENDDO
-
-               !========================================================
-               ! Ox partitioning is OK
-               !========================================================
- 220           CONTINUE
-            ENDIF
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
       ENDDO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE PARTITION
 !EOC

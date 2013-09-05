@@ -18,19 +18,26 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: AEROSOL_CONC
       PUBLIC :: AEROSOL_RURALBOX
-      PUBLIC :: RDAER
       PUBLIC :: CLEANUP_AEROSOL
+      PUBLIC :: INIT_AEROSOL
+      PUBLIC :: RDAER
 !
 ! !PUBLIC DATA MEMBERS:
 !
       PUBLIC :: SOILDUST
+!
+! !REMARKS:
+!  References:
+!  ============================================================================
+!  (1 ) Pye, H.O.T., and J.H. Seinfeld, "A global perspective on aerosol from
+!        low-volatility organic compounds", Atmos. Chem. & Phys., Vol 10, pp
+!        4377-4401, 2010.
 !
 ! !REVISION HISTORY:
 !  (1 ) Added AEROSOL_RURALBOX routine (bmy, 9/28/04)
@@ -52,6 +59,8 @@
 !  (10) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  05 Mar 2013 - R. Yantosca - Now make INIT_AEROSOL a public routine
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -79,6 +88,12 @@
       REAL*8, ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
       REAL*8, ALLOCATABLE :: SOILDUST(:,:,:,:)
 
+      ! Mass of hydrophobic aerosol from Mian Chin
+      REAL*8, ALLOCATABLE, SAVE   :: DAERSL(:,:,:,:)
+
+      ! Mass of hydrophilic aerosol from Mian Chin
+      REAL*8, ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -98,22 +113,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AEROSOL_RURALBOX( N_TROP )
+      SUBROUTINE AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
+     &                             Input_Opt, State_Met )
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, IXSAVE   
-      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  JLOP       
-      USE DAO_MOD,        ONLY : AD,     AVGW,    MAKE_AVGW, T
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE LOGICAL_MOD,    ONLY : LVARTROP
+      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
+      USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
+      USE DAO_MOD,            ONLY : MAKE_AVGW
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE COMODE_LOOP_MOD      ! AD, AVG, WTAIR, other SMVGEAR variables
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! AD, AVG, WTAIR, etc.
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
+      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: N_TROP  ! Number of tropospheric boxes
+      INTEGER,        INTENT(OUT)   :: N_TROP    ! # tropospheric boxes
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now convert ABSHUM from absolute humidity to relative humidity in
@@ -124,6 +150,10 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Modified for variable tropopause (phs, bdf, 9/14/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  08 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,14 +177,14 @@
       NPVERT = NVERT
 
       ! Create AVGW field -- mixing ratio of water [v/v]
-      CALL MAKE_AVGW
+      CALL MAKE_AVGW( State_Met )
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call
       !=================================================================
 
       ! bdf-phs: must do it everytime with a variable tropopause
-      IF ( FIRST .or. LVARTROP ) THEN
+      IF ( FIRST .or. Input_Opt%LVARTROP ) THEN
 
          ! Initialize 1-D index
          JLOOP  = 0
@@ -170,7 +200,7 @@
             !----------------------------------
             ! Boxes w/in ann mean tropopause
             !----------------------------------
-            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -190,7 +220,11 @@
 
          ! JLOOP is now the number of boxes w/in GEOS-CHEM's annual mean 
          ! tropopause.  Copy to SAVEd variable N_TROP_BOXES.
-         write(6,*) '  in aerosol ruralbox, val of trop boxes: ', jloop
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) jloop
+ 100        FORMAT( '  in aerosol ruralbox, val of trop boxes: ', I10)
+         ENDIF
+
          N_TROP_BOXES = JLOOP
 
          ! Set NTLOOP, NTTLOOP here.  Howeve, we will have to reset these
@@ -248,14 +282,16 @@
          IF ( JLOOP > 0 ) THEN
 
             ! Air density in [molec/cm3]
-            AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/BOXVL(I,J,L)*AVG/WTAIR
+            AIRDENS(JLOOP) = State_Met%AD(I,J,L)    * 1000.d0 / 
+     &                       BOXVL(I,J,L,State_Met) * AVG  / WTAIR
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
-            ABSHUM(JLOOP)  = AVGW(I,J,L) * AIRDENS(JLOOP)
+            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L)  * AIRDENS(JLOOP)
 
             ! Convert ABSHUM to relative humidity [fraction]
             ! using the same algorithm as in "gasconc.f"
-            TK             = T(I,J,L)
+            TK             = State_Met%T(I,J,L)
+
             CONSEXP        = 17.2693882d0      * 
      &                       ( TK - 273.16d0 ) / ( TK - 35.86d0 )
             VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TK
@@ -284,21 +320,44 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AEROSOL_CONC
+      SUBROUTINE AEROSOL_CONC( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : AIRVOL
-      USE LOGICAL_MOD,  ONLY : LCARB,   LDUST,   LSOA,    LSSALT, LSULF
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
-      USE TRACERID_MOD, ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
-      USE TRACERID_MOD, ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
-      USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
+      USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
+      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
+      USE TRACERID_MOD,       ONLY : IDTSO4,   IDTSOAG, IDTSOAM
+      ! SOAupdate: update SOA tracers (hotp 7/25/10)
+      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
+      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
+      ! SOAupdate: new mtp replaces SOA1-4 (hotp 5/20/10
+      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2 
+      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
+      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      ! SOAupdate: replace SOA5 with lumped aromatic (hotp 5/12/10)
+      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
+      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  This code was originally included in "chemdr.f", but the same computation 
@@ -311,6 +370,16 @@
 !  (2 ) Now add contribution from SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
 !  (3 ) Now set OCF=2.1 to be consistent w/ "carbon_mod.f" (tmf, 2/10/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  13 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
+!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  05 Mar 2013 - R. Yantosca - Remove call to INIT_AEROSOL, this is now done
+!                              in the initialization stage
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -320,7 +389,12 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      REAL*8,  PARAMETER :: OCF = 2.1d0
+      !REAL*8,  PARAMETER :: OCF     = 2.1d0
+      ! SOAupdate: semivolpoa: reduce OCF to 1.4 for POA (hotp 2/17/09)
+      REAL*8,  PARAMETER :: OCF     = 1.4d0
+
+      ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
+      REAL*8,  PARAMETER :: OCFOPOA = 2.1d0  ! = 1.4*1.5
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
@@ -332,18 +406,39 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd variables
       LOGICAL, SAVE      :: FIRST = .TRUE. 
+
+      ! Non-SAVEd variables
       INTEGER            :: I, J, L, N
+      LOGICAL            :: LCARB
+      LOGICAL            :: LDUST
+      LOGICAL            :: LSOA
+      LOGICAL            :: LSSALT
+      LOGICAL            :: LSULF
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
 
-      ! First-time initialization
-      IF ( FIRST ) THEN
-         CALL INIT_AEROSOL
-         FIRST = .FALSE.
-      ENDIF
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LCARB  = Input_Opt%LCARB
+      LDUST  = Input_Opt%LDUST
+      LSOA   = Input_Opt%LSOA
+      LSSALT = Input_Opt%LSSALT
+      LSULF  = Input_Opt%LSULF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -375,9 +470,10 @@
          IF ( LSULF ) THEN
 
             ! Compute SO4 aerosol concentration [kg/m3]
-            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
-     &                             STT(I,J,L,IDTNH4) +
-     &                             STT(I,J,L,IDTNIT) ) / AIRVOL(I,J,L)
+            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)     + 
+     &                             STT(I,J,L,IDTNH4)     +
+     &                             STT(I,J,L,IDTNIT) )   /
+     &                             State_Met%AIRVOL(I,J,L)
 
          ENDIF
 
@@ -390,47 +486,87 @@
          IF ( LCARB ) THEN
 
             ! Hydrophilic BC [kg/m3]
-            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
+            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / State_Met%AIRVOL(I,J,L)
 
             ! Hydrophobic BC [kg/m3]
-            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
+            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / State_Met%AIRVOL(I,J,L)
 
-            ! Hydrophobic OC [kg/m3] 
-            OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF / AIRVOL(I,J,L)
+            ! Hydrophobic OC [kg/m3]
+            ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
+            ! POA now 1 and 2 (hotp 10/11/09)
+            IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 ) THEN
+               OCPO(I,J,L) = STT(I,J,L,IDTPOA1) * OCF /
+     &                       State_Met%AIRVOL(I,J,L)     +
+     &                       STT(I,J,L,IDTPOA2) * OCF /
+     &                       State_Met%AIRVOL(I,J,L)
+            ELSE
+               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCFOPOA /
+     &                       State_Met%AIRVOL(I,J,L)
+            ENDIF
 
             IF ( LSOA ) THEN
 
-               ! Hydrophilic primary OC plus SOA [kg/m3A.  We need
+               ! Hydrophilic primary OC plus SOA [kg/m3].  We need
                ! to multiply by OCF to account for the mass of other 
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
-               ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
-               OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
-     &                     +   STT(I,J,L,IDTSOA1)
-     &                     +   STT(I,J,L,IDTSOA2)
-     &                     +   STT(I,J,L,IDTSOA3)
-     &                     +   STT(I,J,L,IDTSOA4)
-     &                     +   STT(I,J,L,IDTSOA5) ) / AIRVOL(I,J,L)
- 
+               ! SOAupdate: Update traditional SOA (hotp 7/21/10)
+               ! for new mtp and isop (hotp 5/20/10)
+               OCPI(I,J,L) = ( STT(I,J,L,IDTTSOA1)
+     &                      +  STT(I,J,L,IDTTSOA2)
+     &                      +  STT(I,J,L,IDTTSOA3)
+     &                      +  STT(I,J,L,IDTTSOA0)
+     &                      +  STT(I,J,L,IDTISOA1)
+     &                      +  STT(I,J,L,IDTISOA2)
+     &                      +  STT(I,J,L,IDTISOA3) )
+     &                      /  State_Met%AIRVOL(I,J,L) 
+
+               IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 ) THEN  ! hotp 7/28/10
+                  OCPI(I,J,L) = OCPI(I,J,L) 
+     &                        + ( STT(I,J,L,IDTOPOA1) * OCFOPOA
+     &                        / State_Met%AIRVOL(I,J,L) )
+     &                        + ( STT(I,J,L,IDTOPOA2) * OCFOPOA
+     &                        / State_Met%AIRVOL(I,J,L) )
+               ENDIF
+
+               IF ( IDTOCPI > 0 ) THEN  ! hotp 7/28/10
+                  OCPI(I,J,L) = OCPI(I,J,L)                                  
+     &                        + ( STT(I,J,L,IDTOCPI) * OCFOPOA
+     &                        / State_Met%AIRVOL(I,J,L) )
+               ENDIF
+
+               ! LUMPAROMIVOC (always present) hotp 7/28/10
+               OCPI(I,J,L) = OCPI(I,J,L) +
+     &                  ( (  STT(I,J,L,IDTASOAN) 
+     &                     + STT(I,J,L,IDTASOA1)
+     &                     + STT(I,J,L,IDTASOA2)
+     &                     + STT(I,J,L,IDTASOA3) )
+     &                     / State_Met%AIRVOL(I,J,L) )
+
                ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
                IF ( IDTSOAG > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
-     &                         STT(I,J,L,IDTSOAG) * OCFG / AIRVOL(I,J,L)
+     &                         STT(I,J,L,IDTSOAG) * OCFG /
+     &                         State_Met%AIRVOL(I,J,L)
                ENDIF
 
                IF ( IDTSOAM > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
-     &                         STT(I,J,L,IDTSOAM) * OCFM / AIRVOL(I,J,L)
+     &                         STT(I,J,L,IDTSOAM) * OCFM /
+     &                         State_Met%AIRVOL(I,J,L)
                ENDIF
+
             ELSE
 
                ! Hydrophilic primary and SOA OC [kg/m3].   We need
                ! to multiply by OCF to account for the mass of other 
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
-               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF / AIRVOL(I,J,L)
+               ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
+               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCFOPOA /
+     &                       State_Met%AIRVOL(I,J,L)
                   
-            ENDIF
+            ENDIF ! LSOA
 
             ! Now avoid division by zero (bmy, 4/20/04)
             BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
@@ -438,7 +574,7 @@
             BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
             OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
          
-         ENDIF
+         ENDIF ! LCARB
             
          !===========================================================
          ! M I N E R A L   D U S T   A E R O S O L S
@@ -464,18 +600,21 @@
 
             ! Lump 1st dust tracer for het chem
             SOILDUST(I,J,L,1) = 
-     &              0.06d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.06d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
             SOILDUST(I,J,L,2) =
-     &              0.12d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.12d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
             SOILDUST(I,J,L,3) =
-     &              0.24d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.24d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
             SOILDUST(I,J,L,4) =
-     &              0.58d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.58d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
 
             ! Other hetchem bins
-            SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) /
+     &                          State_Met%AIRVOL(I,J,L)
+            SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) /
+     &                          State_Met%AIRVOL(I,J,L)
+            SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) /
+     &                          State_Met%AIRVOL(I,J,L)
             
          ENDIF
 
@@ -487,10 +626,10 @@
          IF ( LSSALT ) THEN
 
             ! Accumulation mode seasalt aerosol [kg/m3]
-            SALA(I,J,L) = STT(I,J,L,IDTSALA) / AIRVOL(I,J,L)
+            SALA(I,J,L) = STT(I,J,L,IDTSALA) / State_Met%AIRVOL(I,J,L)
             
             ! Coarse mode seasalt aerosol [kg/m3]
-            SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
+            SALC(I,J,L) = STT(I,J,L,IDTSALC) / State_Met%AIRVOL(I,J,L)
 
             ! Avoid division by zero
             SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
@@ -502,6 +641,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -521,43 +663,56 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDAER( MONTH, YEAR, WAVELENGTH )
+      SUBROUTINE RDAER( am_I_Root, Input_Opt, State_Met,  RC,
+     &                  MONTH,     YEAR,      WAVELENGTH      )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE COMODE_MOD,    ONLY : ABSHUM,       ERADIUS,    IXSAVE
-      USE COMODE_MOD,    ONLY : IYSAVE,       IZSAVE,     TAREA 
-      USE COMODE_MOD,    ONLY : WTAREA,       WERADIUS
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD21
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LSULF,        LCARB,      LSSALT
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-
-      USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR,   LLTROP
-      USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
-      USE CMN_FJ_MOD,    ONLY : IPAR,  JPAR,    LPAR,    JPMAX,   JPPJ
-      USE JV_CMN_MOD          ! ODAER, QAA, RAA, QAA_AOD (clh)
-      USE COMODE_LOOP_MOD     ! NTLOOP
-      USE CMN_DIAG_MOD        ! ND21, LD21
+      USE CMN_FJ_MOD,         ONLY : JPMAX
+      USE CMN_FJ_MOD,         ONLY : JPPJ   
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE COMODE_LOOP_MOD
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE BPCH2_MOD,          ONLY : READ_BPCH2
+      USE COMODE_MOD,         ONLY : ABSHUM
+      USE COMODE_MOD,         ONLY : ERADIUS
+      USE COMODE_MOD,         ONLY : IXSAVE
+      USE COMODE_MOD,         ONLY : IYSAVE
+      USE COMODE_MOD,         ONLY : IZSAVE
+      USE COMODE_MOD,         ONLY : TAREA 
+      USE COMODE_MOD,         ONLY : WTAREA
+      USE COMODE_MOD,         ONLY : WERADIUS
+      USE DIAG_MOD,           ONLY : AD21
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE JV_CMN_MOD
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
       IMPLICIT NONE
-#     include "define.h"
-
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN), OPTIONAL :: MONTH      ! # of current month (1-12)
-      INTEGER, INTENT(IN), OPTIONAL :: YEAR       ! 4-digit year (e.g. 2002)
-      INTEGER, INTENT(IN), OPTIONAL :: WAVELENGTH ! Logical indicator
-!                                                 ! = 0 AOD computed at 999 nm
-!                                                 ! = 1 AOD computed at
-                                                  !   wavelength in jv_spec_aod
+      LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State
+      INTEGER,        OPTIONAL    :: MONTH         ! # of current month
+      INTEGER,        OPTIONAL    :: YEAR          ! 4-digit year
+      INTEGER,        OPTIONAL    :: WAVELENGTH    ! Logical indicator
+                                                   !  = 0: AOD computed 
+                                                   !       at 999 nm
+                                                   !  = 1: AOD computed 
+                                                   !       at wavelength 
+                                                   !       in jv_spec_aod.dat
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
+!
+! !OUTPUT PARAMETERS:                             
+!
+      INTEGER,        INTENT(OUT) :: RC            ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
@@ -595,6 +750,12 @@
 !        should only be updated when WAVELENGTH = 1. (skim, 02/03/11)
 !  09 Mar 2011 - R. Yantosca - Set MSDENS(2) = 1800 for APM (G. Luo)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  13 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC arguments for GIGC
+!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -602,6 +763,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: FIRST = .TRUE.
+      LOGICAL             :: IT_IS_A_FULLCHEM_SIM
       LOGICAL             :: DO_READ_DATA
       CHARACTER(LEN=255)  :: FILENAME
       INTEGER             :: THISMONTH, THISYEAR
@@ -610,12 +772,6 @@
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL*8              :: TEMP2(IIPAR,JJPAR,LLPAR)
       REAL*8              :: MSDENS(NAER), XTAU, DRYAREA
-
-      ! Mass of hydrophobic aerosol from Mian Chin
-      REAL*8, SAVE        :: DAERSL(IIPAR,JJPAR,LLPAR,2)       
-
-      ! Mass of hydrophilic aerosol from Mian Chin
-      REAL*8, SAVE        :: WAERSL(IIPAR,JJPAR,LLPAR,NAER)    
 
       ! Effective radius at RH bins read in from "jv_spec.dat"
       REAL*8		  :: RW(NRH)	
@@ -648,9 +804,25 @@
       ! The following are ordered according to the mass densities below
       INTEGER, SAVE	  :: IND(NAER) = (/22, 29, 36, 43, 50/)
 
+      ! Local variables for quantities from Input_Opt
+      CHARACTER(LEN=255)  :: DATA_DIR
+      LOGICAL             :: LCARB
+      LOGICAL             :: LSSALT
+      LOGICAL             :: LSULF
+
       !=================================================================
       ! RDAER begins here!
       !=================================================================
+
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      DATA_DIR             = Input_Opt%DATA_DIR
+      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+      LCARB                = Input_Opt%LCARB
+      LSSALT               = Input_Opt%LSSALT
+      LSULF                = Input_Opt%LSULF
 
       ! Copy MONTH argument to local variable THISMONTH
       IF ( PRESENT( MONTH ) ) THEN
@@ -668,7 +840,7 @@
 
       ! Set a logical flag if we have to read data from disk
       ! (once per month, for full-chemistry simulations)
-      DO_READ_DATA = ( ITS_A_FULLCHEM_SIM() .and. ITS_A_NEW_MONTH() )
+      DO_READ_DATA = ( IT_IS_A_FULLCHEM_SIM .and. ITS_A_NEW_MONTH() )
 
       !=================================================================
       ! For full-chemistry runs w/ offline fields, define filename
@@ -702,7 +874,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            WRITE( 6, 100 ) 
+            IF ( am_I_Root ) WRITE( 6, 100 ) 
  100        FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
          ENDIF
 
@@ -726,7 +898,7 @@
          IF ( DO_READ_DATA ) THEN
             
             ! Print filename
-            WRITE( 6, 105 ) TRIM( FILENAME )
+            IF ( am_I_Root ) WRITE( 6, 105 ) TRIM( FILENAME )
  105        FORMAT( '     - RDAER: Reading SULFATE from ', a )
 
             ! Read data
@@ -759,7 +931,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            WRITE( 6, 110 ) 
+            IF ( am_I_Root ) WRITE( 6, 110 ) 
  110        FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
          ENDIF
 
@@ -795,7 +967,7 @@
          IF ( DO_READ_DATA ) THEN
 
             ! Print filename
-            WRITE( 6, 115 ) TRIM( FILENAME )
+            IF ( am_I_Root ) WRITE( 6, 115 ) TRIM( FILENAME )
  115        FORMAT( '     - RDAER: Reading BC and OC from ', a )
 
             !--------------------------------
@@ -857,7 +1029,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            WRITE( 6, 120 ) 
+            IF ( am_I_Root ) WRITE( 6, 120 ) 
  120        FORMAT( '     - RDAER: Using online SALA SALC' )
          ENDIF
 
@@ -887,7 +1059,7 @@
          IF ( DO_READ_DATA ) THEN
 
             ! Print filename
-            WRITE( 6, 125 ) TRIM( FILENAME )
+            IF ( am_I_Root ) WRITE( 6, 125 ) TRIM( FILENAME )
  125        FORMAT( '     - RDAER: Reading SEASALT from ', a )
 
             !----------------------------------
@@ -1123,9 +1295,9 @@
             ! Save aerosol optical depth for each combination 
             ! of aerosol type and relative humidity into ODAER, 
             ! which will get passed to the FAST-J routines
-            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) 
-     &                        * 0.75d0 * BXHEIGHT(I,J,L) 
-     &                        * WAERSL(I,J,L,N) * QAA_AOD(IND(N)) / 
+            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) * 0.75d0
+     &                        * State_Met%BXHEIGHT(I,J,L) 
+     &                        * WAERSL(I,J,L,N)  * QAA_AOD(IND(N)) / 
      &                        ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
 
             ELSE
@@ -1133,9 +1305,9 @@
             ! Save aerosol optical depth for each combination 
             ! of aerosol type and relative humidity into ODAER, 
             ! which will get passed to the FAST-J routines
-            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) 
-     &                        * 0.75d0 * BXHEIGHT(I,J,L) 
-     &                        * WAERSL(I,J,L,N) * QAA(4,IND(N)) / 
+            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) * 0.75d0 
+     &                        * State_Met%BXHEIGHT(I,J,L) 
+     &                        * WAERSL(I,J,L,N)  * QAA(4,IND(N)) / 
      &                        ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
 
             ENDIF
@@ -1223,16 +1395,16 @@
             IF ( WAVELENGTH > 0 ) THEN
 
             ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 
-     &                          0.75d0            * BXHEIGHT(I,J,L) * 
+            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
+     &                          State_Met%BXHEIGHT(I,J,L)  * 
      &                          DAERSL(I,J,L,N-1) * QAA_AOD(IND(N))   / 
      &                          ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
 
             ELSE
 
             ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 
-     &                          0.75d0            * BXHEIGHT(I,J,L) * 
+            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
+     &                          State_Met%BXHEIGHT(I,J,L)  * 
      &                          DAERSL(I,J,L,N-1) * QAA(4,IND(N))   / 
      &                          ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
 
@@ -1410,21 +1582,32 @@
 ! !IROUTINE: init_aerosol
 !
 ! !DESCRIPTION: Subroutine INIT\_AEROSOL allocates and zeroes module arrays
-!  (bmy, 7/20/04)
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_AEROSOL
+      SUBROUTINE INIT_AEROSOL( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1437,6 +1620,10 @@
       ! INIT_AEROSOL begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Allocate arrays
       ALLOCATE( BCPI( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI' )
       BCPI = 0d0
@@ -1468,6 +1655,18 @@
       ALLOCATE( SOILDUST( IIPAR, JJPAR, LLPAR, NDUST ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
       SOILDUST = 0d0
+
+      ! Mass of hydrophobic aerosol from Mian Chin
+      ALLOCATE( DAERSL(IIPAR,JJPAR,LLPAR,2), STAT=AS)       
+      IF ( AS /= 0) CALL ALLOC_ERR( 'DAERSL' )
+      DAERSL = 0d0
+
+      ! Mass of hydrophilic aerosol from Mian Chin
+      ALLOCATE( WAERSL(IIPAR,JJPAR,LLPAR,NAER), STAT=AS)       
+      IF ( AS /= 0) CALL ALLOC_ERR( 'WAERSL' )
+      DAERSL = 0d0
+
+      ! Return to calling program
 
       END SUBROUTINE INIT_AEROSOL
 !EOC

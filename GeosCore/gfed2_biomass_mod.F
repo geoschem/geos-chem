@@ -72,7 +72,7 @@
 !  (5 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
 !  (6 ) grid_mod.f             : Module w/ horizontal grid information
 !  (7 ) time_mod.f             : Module w/ routines for computing time & date
-!  (8 ) regrid_1x1_mod.f       : Module w/ routines for regrid 1x1 data
+!  (8 ) regrid_a2a_mod.f       : Module w/ routines for regrid data
 !
 !  References:
 !  ============================================================================
@@ -100,12 +100,21 @@
 !  (6 ) Added 9 gaseous biomass burning emissions (tmf, 1/7/09)
 !  (7 ) The value of N_SPEC is now determined in INIT_GFED2_BIOMASS and depend
 !        on the tracers used in the simulation. (ccc, 4/23/09)
-!  (6 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
+!  (8 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
 !        2008 is now available on disk (bmy, 7/8/09)
+!  14 Feb 2012 - M. Payer    - Add modifications for CH4 (K. Wecht)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -124,16 +133,6 @@
       ! MODULE VARIABLES
       !==================================================================
 
-      ! Scalars
-!      INTEGER                       :: IDBNOx,  IDBCO,   IDBALK4
-!      INTEGER                       :: IDBACET, IDBMEK,  IDBALD2
-!      INTEGER                       :: IDBPRPE, IDBC3H8, IDBCH2O
-!      INTEGER                       :: IDBC2H6, IDBBC,   IDBOC
-!      INTEGER                       :: IDBSO2,  IDBNH3,  IDBCO2
-!      INTEGER                       :: IDBBENZ, IDBTOLU, IDBXYLE
-!      INTEGER                       :: IDBC2H2, IDBC2H4, IDBGLYX
-!      INTEGER                       :: IDBMGLY, IDBGLYC, IDBHAC
-
       ! BIO_SAVE stores IDB for GFED2 species number (hotp 7/31/09)
       ! BIO_SAVE(GFED#xxx) = IDBxxx
       INTEGER, ALLOCATABLE  :: BIO_SAVE(:)
@@ -144,8 +143,8 @@
 
       ! Parameters
       INTEGER,          PARAMETER   :: N_EMFAC = 3
-!------------------------------------------------------------------------
-      INTEGER,          PARAMETER   :: N_SPEC  = 24
+      !INTEGER,          PARAMETER   :: N_SPEC  = 24
+      INTEGER,          PARAMETER   :: N_SPEC  = 25  !kjw
 
       ! Arrays
       INTEGER,          ALLOCATABLE :: VEG_GEN_1x1(:,:)
@@ -322,6 +321,10 @@
 !  (6 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
 !        2008 is now available on disk (bmy, 7/8/09)
 !  (7 ) Reordering of species done by REARRANGE_BIOM (fp, 6/09)
+!  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -331,16 +334,15 @@
       USE LOGICAL_MOD,    ONLY : LFUTURE
       USE LOGICAL_MOD,    ONLY : L8DAYBB, L3HRBB, LSYNOPBB, LGFED2BB
       USE TIME_MOD,       ONLY : EXPAND_DATE,   TIMESTAMP_STRING
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : GET_DAY, GET_HOUR, GET_DAY_OF_YEAR
       USE TIME_MOD,       ONLY : ITS_A_LEAPYEAR
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments 
-      INTEGER,            INTENT(IN)    :: THIS_YYYY
-      INTEGER,            INTENT(IN)    :: THIS_MM
-!      REAL*8,              INTENT(INOUT) :: BIOM_OUT(IIPAR,JJPAR,N_SPEC)
+      INTEGER,            INTENT(IN)  :: THIS_YYYY
+      INTEGER,            INTENT(IN)  :: THIS_MM
       REAL*8,             INTENT(OUT) :: BIOM_OUT(IIPAR,JJPAR,NBIOMAX)
 
       ! Local variables
@@ -349,13 +351,15 @@
       INTEGER                 :: YYYY, MM, MM1, YYYY1
       INTEGER                 :: YYYYMMDD, HHMMSS
       REAL*4                  :: DM_GEN_1x1(I1x1,J1x1-1)
-      REAL*8                  :: BIOM_GEN_1x1(I1x1,J1x1-1,N_SPEC)
-      REAL*8                  :: BIOM_GEOS_1x1(I1x1,J1x1,N_SPEC)
+      REAL*8,  TARGET         :: BIOM_GEN_1x1(I1x1,J1x1-1,N_SPEC)
       REAL*8                  :: TAU0, TAU1, JD8DAY
       REAL*4                  :: TMP
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=16 )      :: TIME_STR
       INTEGER                 :: DD, HH, DOY
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8                  :: GFED_REGRIDDED(IIPAR,JJPAR)
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! GFED2_COMPUTE_BIOMASS begins here!
@@ -601,16 +605,23 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-         ! Regrid each species from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID
-         CALL DO_REGRID_G2G_1x1( 'molec/cm2',
-     &                            BIOM_GEN_1x1(:,:,N), 
-     &                            BIOM_GEOS_1x1(:,:,N) )
-      ENDDO
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
-      ! Regrid from GEOS 1x1 grid to current grid.  (The unit 'molec/cm2' 
-      ! is just used to denote that the quantity is per unit area.)
-      CALL DO_REGRID_1x1( N_SPEC,       'molec/cm2', 
-     &                    BIOM_GEOS_1x1, GFED2_BIOMASS ) 
+      ! Regrid each species from GENERIC 1x1 to current model resolution
+      ! (The unit 'molec/cm2' is just used to denote that the quantity
+      ! is per unit area.)
+      INGRID => BIOM_GEN_1X1(:,:,N)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,           J1x1-1,
+     &                    INGRID,     GFED_REGRIDDED, IS_MASS=0,
+     &                    netCDF=.TRUE.                          )
+      GFED2_BIOMASS(:,:,N) = GFED_REGRIDDED
+
+      ! Free pointer
+      NULLIFY( INGRID )
+
+      ENDDO
 
       ! Compute future biomass emissions (if necessary)
       IF ( LFUTURE ) THEN
@@ -657,6 +668,8 @@
 !  (1 ) Now scale to IPCC future scenario for BC, OC, SO2, NH3 (bmy, 9/25/03)
 !  (2 ) IDBs are now defined in TRACERID_MOD. Use BIO_SAVE for correspondance
 !       of species order. (fp, ccc, 01/29/10)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -667,10 +680,11 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_SO2bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
-      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM       
+      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM  
+      USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
 
       !Need IDBs from TRACERID_MOD now.
-      USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBSO2 
+      USE TRACERID_MOD, ONLY : IDBNO,   IDBCO,   IDBSO2 
       USE TRACERID_MOD, ONLY : IDBNH3,  IDBBC,   IDBOC 
 
       USE CMN_SIZE_MOD               ! Size parameters
@@ -680,6 +694,7 @@
 
       ! Local variables
       LOGICAL                         :: ITS_CO2
+      LOGICAL                         :: ITS_CH4
       INTEGER                         :: I, J, N
       
       !=================================================================
@@ -688,6 +703,8 @@
 
       ! Test if it's a CO2 simulation outside of the loop
       ITS_CO2 = ITS_A_CO2_SIM()
+      ITS_CH4 = ITS_A_CH4_SIM()
+
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -699,45 +716,39 @@
       DO I = 1, IIPAR 
 
          ! Scale each species to IPCC future scenario
-! Now use BIO_SAVE to have the correspondance GFED order -> tracers order.
-! (ccc, 01/27/10)
-!         IF ( N == IDBNOx ) THEN
-         IF ( BIO_SAVE(N) == IDBNOx ) THEN
+         ! Now use BIO_SAVE to have the correspondance GFED order -> tracers
+         !  order. (ccc, 01/27/10)
+         IF ( BIO_SAVE(N) == IDBNO ) THEN
 
             ! Future biomass NOx [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NOxbb( I, J )
 
-!         ELSE IF ( N == IDBCO ) THEN
          ELSE IF ( BIO_SAVE(N) == IDBCO ) THEN
 
             ! Future biomass CO [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_CObb( I, J )
 
-!         ELSE IF ( N == IDBSO2 ) THEN
          ELSE IF ( BIO_SAVE(N) == IDBSO2 ) THEN
 
             ! Future biomass SO2 [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_SO2bb( I, J )
 
-!         ELSE IF ( N == IDBNH3 ) THEN
          ELSE IF ( BIO_SAVE(N) == IDBNH3 ) THEN
 
             ! Future biomass NH3 [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NH3bb( I, J )
 
-!         ELSE IF ( N == IDBBC ) THEN
          ELSE IF ( BIO_SAVE(N) == IDBBC ) THEN
 
             ! Future biomass BC [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_BCbb( I, J )
 
-!         ELSE IF ( N == IDBOC ) THEN
          ELSE IF ( BIO_SAVE(N) == IDBOC ) THEN
 
             ! Future biomass OC [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_OCbb( I, J )
 
-         ELSE IF ( ITS_CO2 ) THEN
+         ELSE IF ( ITS_CO2 .OR. ITS_CH4 ) THEN
 
             ! Nothing
 
@@ -771,6 +782,7 @@
 !  (2 ) MM      (INTEGER) : Currrent month
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -800,16 +812,17 @@
          UNIT  = GFED2_SPEC_UNIT(N)
          TOTAL = 0d0
 
-         ! Loop over latitudes
+         ! Loop over surface boxes
          DO J = 1, JJPAR
-         
-            ! Convert to [Tg/gfed-period] (or [Tg C/gfed-period] for HC's)
-            CONV = GET_AREA_CM2( J ) * ( MOLWT / 6.023d23 ) * 1d-9
+         DO I = 1, IIPAR
 
-            ! Loop over longitudes
-            DO I = 1, IIPAR
-               TOTAL = TOTAL + ( GFED2_BIOMASS(I,J,N) * CONV )
-            ENDDO
+            ! Convert to [Tg/gfed-period] (or [Tg C/gfed-period] for HC's)
+            CONV = GET_AREA_CM2( I, J, 1 ) 
+     &           * ( MOLWT / 6.023d23 ) * 1d-9
+
+
+            TOTAL = TOTAL + ( GFED2_BIOMASS(I,J,N) * CONV )
+         ENDDO
          ENDDO
      
          ! Write totals
@@ -835,31 +848,34 @@
 !        set (phs, 3/18/08)
 !  (3 ) Add 9 gaseous biomass burning emissions (tmf, 1/7/09)
 !  (4 ) Add IDBs from TRACERID_MOD. Initialize BIO_SAVE (fp, 01/29/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE FILE_MOD,      ONLY : IOERROR, IU_FILE
+      USE FILE_MOD,      ONLY : IOERROR
       USE LOGICAL_MOD,   ONLY : LDICARB
-
-      !(fp)
-      USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBALK4
-      USE TRACERID_MOD, ONLY : IDBACET, IDBMEK,  IDBALD2
-      USE TRACERID_MOD, ONLY : IDBPRPE, IDBC3H8, IDBCH2O
-      USE TRACERID_MOD, ONLY : IDBC2H6, IDBBC,   IDBOC
-      USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3,  IDBCO2
-      USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ
-      USE TRACERID_MOD, ONLY : IDBTOLU, IDBXYLE, IDBC2H4
-      USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE TRACERID_MOD,  ONLY : IDBNO,   IDBCO,   IDBALK4
+      USE TRACERID_MOD,  ONLY : IDBACET, IDBMEK,  IDBALD2
+      USE TRACERID_MOD,  ONLY : IDBPRPE, IDBC3H8, IDBCH2O
+      USE TRACERID_MOD,  ONLY : IDBC2H6, IDBBC,   IDBOC
+      USE TRACERID_MOD,  ONLY : IDBSO2,  IDBNH3,  IDBCO2
+      USE TRACERID_MOD,  ONLY : IDBGLYX, IDBMGLY, IDBBENZ
+      USE TRACERID_MOD,  ONLY : IDBTOLU, IDBXYLE, IDBC2H4
+      USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
+      USE TRACERID_MOD,  ONLY : IDBCH4   !kjw
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Local variables
-      INTEGER                :: AS, IOS, M, N, NDUM
-      REAL*4                 :: ARRAY(I1x1,J1x1-1,1)
-      CHARACTER(LEN=255)     :: FILENAME
+      INTEGER            :: IU_FILE
+      INTEGER            :: AS, IOS, M, N, NDUM
+      REAL*4             :: ARRAY(I1x1,J1x1-1,1)
+      CHARACTER(LEN=255) :: FILENAME
       
       !=================================================================
       ! INIT_GFED2_BIOMASS begins here!
@@ -915,6 +931,9 @@
       FILENAME = TRIM( DATA_DIR_1x1) // 
      &           'GFED2_200601/GFED2_emission_factors_73t.txt'
 
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
+
       ! Open emission factor file (ASCII format)
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_gfed2:1' )
@@ -963,33 +982,6 @@
       ! Define local ID flags and arrays for the names, units, 
       ! and molecular weights of the GFED2 biomass species
       !=================================================================
-      
-      ! Initialize 
-      ! These are now in tracerid_mod (fp, hotp 7/31/09)
-      !IDBNOx  = 0  
-      !IDBCO   = 0
-      !IDBALK4 = 0
-      !IDBACET = 0 
-      !IDBMEK  = 0 
-      !IDBALD2 = 0
-      !IDBPRPE = 0
-      !IDBC3H8 = 0
-      !IDBCH2O = 0
-      !IDBC2H6 = 0
-      !IDBBC   = 0
-      !IDBOC   = 0
-      !IDBSO2  = 0
-      !IDBNH3  = 0
-      !IDBCO2  = 0
-      !IDBGLYX = 0
-      !IDBMGLY = 0
-      !IDBBENZ = 0
-      !IDBTOLU = 0   
-      !IDBXYLE = 0
-      !IDBC2H4 = 0
-      !IDBC2H2 = 0 
-      !IDBGLYC = 0
-      !IDBHAC  = 0
  
       ! Save correspondance between GFED2 species order (N) and 
       ! species order of the simulation (IDBxxxs).(ccc, 2/4/10)
@@ -997,8 +989,8 @@
       DO N = 1, N_SPEC
          SELECT CASE ( TRIM( GFED2_SPEC_NAME(N) ) ) 
             CASE( 'NOx'  )
-!               IDBNOx              = N
-               BIO_SAVE(N)         = IDBNOX
+               ! Replaced NOx with NO (mpayer, 3/14/13)
+               BIO_SAVE(N)         = IDBNO
                GFED2_SPEC_MOLWT(N) = 14d-3
                GFED2_SPEC_UNIT(N)  = '[Tg N]'
             CASE( 'CO'   )
@@ -1093,6 +1085,10 @@
             CASE( 'CO2'  )
                BIO_SAVE(N)         = IDBCO2
                GFED2_SPEC_MOLWT(N) = 44d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
+            CASE( 'CH4' )
+               BIO_SAVE(N)         = IDBCH4
+               GFED2_SPEC_MOLWT(N) = 16d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE DEFAULT
                ! Nothing

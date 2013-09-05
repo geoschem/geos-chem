@@ -15,8 +15,11 @@
 ! 
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+      USE inquireMod, ONLY : I_Am_UnOPENed
+
       IMPLICIT NONE
-#     include "define.h"
+!#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -81,6 +84,9 @@
 !  (33) Modifications for GEOS-5 nested grids (bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  19 Jul 2012 - R. Yantosca - Bug fix in GET_NAME_EXT_2D
+!  03 Aug 2012 - R. Yantosca - Reference file LUN routines from inquireMod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,7 +115,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER,           INTENT(IN)            :: IUNIT     ! LUN for file I/O
-      CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! Name of file
+      CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! File to open
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -118,6 +124,9 @@
 ! !REVISION HISTORY: 
 !  (1 ) Now references ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  06 Aug 2012 - R. Yantosca - Do not call findFreeLun() in this subroutine
+!                              but instead in the calling routine and pass
+!                              the file unit as an argument.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,14 +220,17 @@
 ! !REVISION HISTORY:
 !  30 Jul 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  06 Aug 2012 - R. Yantosca - Do not call findFreeLun() in this subroutine
+!                              but instead in the calling routine and pass
+!                              the file unit as an argument.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER                                 :: IOS
-      CHARACTER(LEN=80)                       :: TMP_TITLE
+      INTEGER           :: IOS
+      CHARACTER(LEN=80) :: TMP_TITLE
 
       !=================================================================
       ! OPEN_BPCH2_FOR_WRITE begins here!
@@ -420,9 +432,7 @@
 ! !USES:
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
-
-#     include "define.h" 
+      USE FILE_MOD,  ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
 !
@@ -461,6 +471,10 @@
 !        are doing a 0.5 x 0.666 nested simulation. (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  18 Dec 2009 - Aaron van D - Add NESTED_EU flag
+!  25 May 2012 - R. Yantosca - Update TEMPARRAY for GRID025x03125
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -468,6 +482,7 @@
 ! !LOCAL VARIABLES:
 ! 
       LOGICAL            :: FOUND, TMP_QUIET
+      INTEGER            :: IU_FILE
       INTEGER            :: I,  J,  L,  N,  IOS, M
       INTEGER            :: I1, I2, J1, J2, L1,  L2
       CHARACTER(LEN=255) :: MSG
@@ -478,7 +493,11 @@
       ! run only the global simulations.  Therefore increase the size of 
       ! TEMPARRAY only if we are doing a 0.5 x 0.666 nested simulation.
       ! (yxw, bmy, dan, 11/6/08)
-#if   defined( GRID05x0666 ) 
+      !
+      ! Also use the same limits for GRID025x03125.  We do not need to set
+      ! the global limits since we will never run the model at the full
+      ! global resolution, due to memory restrictions. (bmy, 5/25/12)
+#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
       REAL*4             :: TEMPARRAY(540,361,73)   
 #else
       REAL*4             :: TEMPARRAY(360,181,73)   
@@ -516,8 +535,13 @@
       ! Open binary punch file and read top-of-file header.
       ! Do some error checking to make sure the file is the right format.
       !=================================================================
-      CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
 
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
+
+      ! Open the BPCH file
+      CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
+      
       !=================================================================
       ! Read data from the binary punch file 
       !
@@ -559,9 +583,9 @@
       !=================================================================
       IF ( FOUND ) THEN 
 
-#if   defined( GRID1x1 )   || defined( GRID05x0666 )
+#if   defined( GRID1x1 ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
 
-#if   defined(NESTED_CH) || defined(NESTED_NA) || defined( NESTED_EU ) 
+#if   defined(NESTED_CH) || defined(NESTED_NA) || defined( NESTED_EU ) || defined( SEAC4RS ) 
          ! *** NOTE: now use NESTED_CH/NESTED_NA/NESTED_EU cpp switches ***
          ! *** to block off this section of code (bmy, 12/1/04)  ***
          ! This is a kludge to overwrite the IFIRST, JFIRST, LFIRST For
@@ -589,7 +613,7 @@
          IF ( .not. TMP_QUIET ) THEN 
             WRITE( 6, 100 ) ZTAU0, NTRACER
  100        FORMAT( 'READ_BPCH2: Found data for TAU = ', f10.2, 
-     &              ' and tracer # ', i6 )
+     &              ' and tracer # ', i6, ' on unit ', i4 )
          ENDIF
 
       ELSE
@@ -604,6 +628,7 @@
 
       ! Return to calling program
       END SUBROUTINE READ_BPCH2
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -640,17 +665,15 @@
 !  (6 ) Rename GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - Added MERRA model names
+!  01 Feb 2012 - R. Yantosca - Added GEOS-5.7.x model names
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
+!                              EXTERNAL_FORCING Cpp switches
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_3 ) && defined( GRIDREDUCED )
-      MODELNAME = 'GEOS3_30L'
-
-#elif defined( GEOS_3 )
-      MODELNAME = 'GEOS3'
-
-#elif defined( GEOS_4 ) && defined( GRIDREDUCED )
+#if   defined( GEOS_4 ) && defined( GRIDREDUCED )
       MODELNAME = 'GEOS4_30L'
 
 #elif defined( GEOS_4 )
@@ -670,6 +693,15 @@
       
 #elif defined( MERRA ) 
       MODELNAME = 'MERRA'
+
+#elif defined( GEOS_57 ) && defined( GRIDREDUCED )
+      MODELNAME = 'GEOS57_47L'
+
+#elif defined( GEOS_57 )
+      MODELNAME = 'GEOS57'
+
+#elif defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID ) 
+      MODELNAME = 'EXTERNAL'
 
 #endif
 
@@ -692,21 +724,13 @@
 !
       FUNCTION GET_NAME_EXT() RESULT( NAME_EXT )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
-#if   defined( GEOS_3 )
-      CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'geos3'
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos4'
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( GEOS_57 )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos5'
 
@@ -716,7 +740,11 @@
 
 #elif defined( MERRA )
       CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'geos5'
+      NAME_EXT = 'merra'
+
+#elif defined( EXTERNAL_GRID ) || ( EXTERNAL_FORCING )
+      CHARACTER(LEN=5) :: NAME_EXT
+      NAME_EXT = 'ext'
 
 #endif
 !
@@ -728,6 +756,11 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - MERRA uses "geos5" name extension since its
 !                              grid is identical to GEOS-5.
+!  01 Feb 2012 - R. Yantosca - Now also define output for GEOS-5.7.x met
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
+!                              EXTERNAL_FORCING Cpp switches
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -751,7 +784,7 @@
 !
 ! !RETURN VALUE:
 !
-      CHARACTER(LEN=4) :: NAME_EXT_2D
+      CHARACTER(LEN=4) :: NAME_EXT_2D   ! Return 1st 4 chars of "geos", "gcap"
 !
 ! !REVISION HISTORY:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
@@ -759,6 +792,8 @@
 !  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  19 Jul 2012 - R. Yantosca - For MERRA meterology, return "geos", which
+!                              indicates surface data only
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -774,8 +809,18 @@
       ! Get the name extension
       TEMP_NAME   = GET_NAME_EXT()
 
+#if   defined( MERRA )
+
+      ! Return "geos" for MERRA meteorology, to denote data
+      ! that is only defined at the surface. (bmy, 7/19/12)
+      NAME_EXT_2D = 'geos'
+
+#else
+
       ! Take the 1st 4 characters ("geos" or "gcap") and return
       NAME_EXT_2D = TEMP_NAME(1:4)
+
+#endif
 
       ! Return to calling program
       END FUNCTION GET_NAME_EXT_2D 
@@ -794,10 +839,6 @@
 ! !INTERFACE:
 !
       FUNCTION GET_RES_EXT() RESULT( RES_EXT )
-!
-! !USES:
-!
-#     include "define.h"
 !
 ! !RETURN VALUE:
 !
@@ -821,12 +862,22 @@
       CHARACTER(LEN=7) :: RES_EXT
       RES_EXT = '05x0666'
 
+#elif defined( GRID025x03125 )
+      CHARACTER(LEN=9) :: RES_EXT
+      RES_EXT = '025x03125'
+
+#elif defined( EXTERNAL_GRID )
+      CHARACTER(LEN=8) :: RES_EXT
+      RES_EXT = 'external'
+
 #endif
 !
 ! !REVISION HISTORY:
 !  (1 ) Added extension for 1 x 1.25 grid (bmy, 12/1/04)
 !  (2 ) Added extension for 0.5 x 0.666 grid (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Feb 2012 - R. Yantosca - Added extension for 0.25 x 0.3125 grids
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -847,10 +898,6 @@
 !
       FUNCTION GET_HALFPOLAR() RESULT( HALFPOLAR )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: HALFPOLAR  ! =1 if we have half-sized polar boxes, =0 if not
@@ -858,6 +905,7 @@
 ! !REVISION HISTORY:
 !  28 Jun 2005 - S. Wu & R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca         - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

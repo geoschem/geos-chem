@@ -55,10 +55,18 @@
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (12) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
+      USE CMN_SIZE_MOD  ! Size parameters
+
       IMPLICIT NONE
-#     include "define.h"
+
+      REAL*8, ALLOCATABLE :: OCDATA(:,:) ! ocean field for emiss. flux
+      REAL*8, ALLOCATABLE :: EFCH4R(:,:) ! emission flux from rice
+      REAL*8, ALLOCATABLE :: EFCH4W(:,:) ! emission flux from wetlands
+      REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -92,7 +100,7 @@
 !        (surface water concentration should not exceed 8 ng/L)
 !  (2 ) CH3I emissions from rice and wetlands use Fung's CH4 emission
 !        inventory scaled with a constant factor from BIBLE observations.
-!  (3 ) Added "F77_CMN_SETUP" so that the proper path name to the /data/ctm
+!  (3 ) Added "CMN_SETUP" so that the proper path name to the /data/ctm
 !        directories can be supplied. (bmy, 3/18/99)
 !  (4 ) Trap I/O errors with subroutine IOERROR (bmy, 5/27/99)
 !  (5 ) OCDATA now holds the aqueous CH3I in [ng/L], as read from disk.
@@ -129,13 +137,6 @@
       ! Arguments
       INTEGER, INTENT(IN) ::  THISMONTH    ! month of the year (1, 2, .., 12)
 
-      ! Local common blocks (shared with OPEN_CH3I_FILES)      
-      REAL*8              :: OCDATA(IIPAR,JJPAR) ! ocean field for emiss. flux
-      REAL*8              :: EFCH4R(IIPAR,JJPAR) ! emission flux from rice
-      REAL*8              :: EFCH4W(IIPAR,JJPAR) ! emission flux from wetlands
-      REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
-      COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
-      
       ! Local variables
       REAL*4              :: Q1(IIPAR,JJPAR,1)
       REAL*8              :: XTAU
@@ -232,7 +233,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EMISSCH3I
+      SUBROUTINE EMISSCH3I( am_I_Root, Input_Opt,
+     &                      State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine EMISSCH3I (mgs, bmy, 11/23/98, 9/27/06) specifies methyl 
@@ -291,7 +293,7 @@
 !  (11) Fixed bugs in the expressions for H and FLUX (mgs, bmy, 5/15/99)
 !  (12) Now uses bilinear correlation with NPP and RADSWG for ocean source
 !       (before only NPP)   (mgs, 16 Jun 1999
-!  (13) FRCLND removed as argument, because F77_CMN_DEP now included 
+!  (13) FRCLND removed as argument, because CMN_DEP now included 
 !       (mgs, 06/16/99)
 !  (14) Ocean emissions now differetn parametrizations for 3 latitude regions.
 !        Emissions protocolled in more detail.
@@ -329,35 +331,50 @@
 !  (33) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !  (34) IDBCO is now defined in TRACERID_MOD. (fp, hotp 7/31/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE BIOFUEL_MOD,  ONLY : BIOFUEL,   BIOFUEL_BURN
-      ! IDBCO now in tracerid_mod (fp, hotp 7/31/09)
-      USE BIOMASS_MOD,  ONLY : BIOMASS !,   IDBCO
-      USE TRACERID_MOD, ONLY : IDBCO
-      USE DAO_MOD,      ONLY : AIRVOL,    BXHEIGHT, TS
-      USE DIAG_MOD,     ONLY : AD29,      AD36
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LEMIS
-      USE TIME_MOD,     ONLY : GET_DAY,   GET_GMT,
-     &                         GET_MONTH, GET_TS_EMIS
-      USE TRACER_MOD,   ONLY : STT,       N_TRACERS
-      USE TRACERID_MOD, ONLY : IDBFCO
+      USE BIOFUEL_MOD,        ONLY : BIOFUEL,   BIOFUEL_BURN
+      USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE DIAG_MOD,           ONLY : AD29,      AD36
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE TIME_MOD,           ONLY : GET_DAY,   GET_GMT,
+     &                               GET_MONTH, GET_TS_EMIS
+      USE TRACERID_MOD,       ONLY : IDBCO
+      USE TRACERID_MOD,       ONLY : IDBFCO
 
-
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_DIAG_MOD    ! Diagnostic switches
-      USE CMN_DEP_MOD     ! RADIAT, FRCLND
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
       ! Local common blocks (shared with OPEN_CH3I_FILES)
       REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
       REAL*8 :: EFCH4R(IIPAR,JJPAR)  ! scaled emission flux from rice
       REAL*8 :: EFCH4W(IIPAR,JJPAR)  ! scaled emission flux from wetlands
       REAL*8 :: CH3ISUM(5)           ! sum of emissions in kg/yr
-
-      COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
 
       ! Local variables:
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE.
@@ -419,9 +436,27 @@
       ! output flag
       LOGICAL, PARAMETER :: OUTLOG = .FALSE.
 
+      ! For fields from Input_Opt
+      LOGICAL         :: LEMIS
+      INTEGER         :: N_TRACERS
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! EMISSCH3I begins here!
-      !
+      !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LEMIS     = Input_Opt%LEMIS
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      !=================================================================
       ! If this is the first emission step, do the following...
       !=================================================================
       IF ( FIRSTEMISS ) THEN 
@@ -459,6 +494,10 @@
 !         ENDIF
 !      ENDIF
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! DTSRCE = the number of seconds between emissions
       DTSRCE = GET_TS_EMIS() * 60d0
 
@@ -488,7 +527,7 @@
          DO I = 1, IIPAR
 
             ! set all values over land to zero
-            IF ( FRCLND(I,J) >= 0.8 ) OCDATA(I,J) = 0.0D0
+            IF ( State_Met%FRCLND(I,J) >= 0.8 ) OCDATA(I,J) = 0.0D0
          
             ! make sure we have no negative concentrations
             IF ( OCDATA(I,J) < 0. ) OCDATA(I,J) = 0.0D0
@@ -588,15 +627,16 @@
       N = 1
       L = 1
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-      DO I = 1, IIPAR
-         IF ( TS(I,J) >= 271.15 .and. FRCLND(I,J) < 0.8 ) THEN
+         IF ( State_Met%TS(I,J)     >= 271.15 .and.
+     &        State_Met%FRCLND(I,J) <  0.8    ) THEN
 
             ! surface air temp [K]
-            TK = TS(I,J)        
+            TK = State_Met%TS(I,J)        
 
             ! sea surface temp [C] 
             ! (use TS as surrogate for SST) 
@@ -609,14 +649,16 @@
             Sc = MVR__ * ( 2004. - 93.5*TC + 1.39*TC**2 )
             
             ! 10-m wind speed 
-            W10  = SQRT( SFCWINDSQR(I,J) )
+            W10  = SQRT( SFCWINDSQR( I, J,
+     &                               State_Met%U10M,
+     &                               State_Met%V10M ) )
 
             ! Piston velocity [cm/h], cf Nightingale et al [2000b] 
             ! (swu, bmy, 8/16/05)
             Kw   = ( 0.24d0*W10*W10 + 0.061d0*W10 ) * SQRT( ScCO2/Sc )  
 
             ! convert gas-phase tracer mass to concentration in ng/L
-            CGAS = STT(I,J,L,N) * 1.0D9 / AIRVOL(I,J,L)
+            CGAS = STT(I,J,L,N) * 1.0D9 / State_Met%AIRVOL(I,J,L)
 
             ! Emission of CH3I from the ocean 
             FLUX = KW * ( OCDATA(I,J) - CGAS*H )
@@ -698,7 +740,7 @@
       DO I = 1, IIPAR
 
          ! Grid box height [cm]
-         BXHEIGHT_CM = BXHEIGHT(I,J,L) * 100d0
+         BXHEIGHT_CM = State_Met%BXHEIGHT(I,J,L) * 100d0
 
          !-----------------------------------------------------------------
          ! Get emission flux in kg/cm3/time step
@@ -715,7 +757,7 @@
          ENDIF
 
          ! Convert to kg/grid box/time step
-         FLUX = FLUX * BOXVL(I,J,L)
+         FLUX = FLUX * BOXVL(I,J,L,State_Met)
 
          ! add to tracer mass and to global sum
          STT(I,J,L,N) = STT(I,J,L,N) + FLUX
@@ -739,6 +781,7 @@
 
       ! Now reference routine BIOFUEL_BURN from "biofuel_mod.f" (bmy, 9/12/00)
       CALL BIOFUEL_BURN
+     &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       N = 3
       L = 1
@@ -752,11 +795,12 @@
 
          ! Add to diagnostic array as kg/m2/time step
          IF ( ND36 > 0 ) THEN
-            BXHEIGHT_CM = BXHEIGHT(I,J,L) * 100d0
-            AD36(I,J,N) = AD36(I,J,N) + FLUX*BXHEIGHT_CM*1.0D4*1.0D+12
+            BXHEIGHT_CM = State_Met%BXHEIGHT(I,J,L) * 100d0
+            AD36(I,J,N) = AD36(I,J,N)  + FLUX * BXHEIGHT_CM *
+     &                    1.0D4 * 1.0D + 12
          ENDIF
 
-         FLUX = FLUX * BOXVL(I,J,L)
+         FLUX = FLUX * BOXVL(I,J,L,State_Met)
          
          ! add to tracer mass and to global sum
          STT(I,J,L,N) = STT(I,J,L,N) + FLUX
@@ -779,11 +823,10 @@
       N = 4
       L = 1
       DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
-
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! First compute flux as kg/m2/time step
             FLUX = EFCH4R(I,J)
@@ -818,11 +861,10 @@
       N = 5
       L = 1
       DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
-
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! First compute flux as kg/m2/time step
             FLUX = EFCH4W(I,J)
@@ -864,6 +906,9 @@
 !          WRITE( 97, * )
 !       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Make sure the next time is not the first emission time step ;-)
       FIRSTEMISS = .FALSE.
 
@@ -872,7 +917,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMCH3I
+      SUBROUTINE CHEMCH3I( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, STATUS )
 !
 !******************************************************************************
 !  Subroutine CHEMCH3I performs loss chemistry for methyl iodide (CH3I).  
@@ -928,21 +974,43 @@
 !        switch any more (bmy, 6/23/05)
 !  (24) Now use Nightingale et al [2000b] formulation for piston velocity
 !        (swu, bmy, 8/16/05)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE DAO_MOD,      ONLY : OPTD, SUNCOS
-      USE DIAG_MOD,     ONLY : AD22, LTJV
-      USE DIAG_PL_MOD,  ONLY : AD65
-      USE UVALBEDO_MOD, ONLY : UVALBEDO
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT, N_TRACERS
+!
+! !USES:
+!
+      USE DIAG_MOD,           ONLY : AD22, LTJV
+      USE DIAG_PL_MOD,        ONLY : AD65
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! SPECNAME
-      USE CMN_DIAG_MOD     ! ND36
-
-      ! Local variables
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! SPECNAME
+      USE CMN_DIAG_MOD             ! ND36
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: STATUS      ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
       REAL*8                 :: DTCHEM, RLRAD, RDLOSS, T1L
       REAL*8                 :: TCHEMA, JVALUE
@@ -952,6 +1020,7 @@
 
       ! Local loop and index variables
       INTEGER                :: I, IFNC, IBRCH, J, L, LN22, N, NK, NR
+      INTEGER                :: RC
 
       ! Hardwired Logical flag for FAST-J
       LOGICAL, PARAMETER     :: DO_FASTJ = .TRUE. 
@@ -959,9 +1028,27 @@
       ! External functions
       REAL*8, EXTERNAL       :: FJFUNC 
 
+      ! For fields from Input_Opt
+      INTEGER               :: N_TRACERS
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEMCH3I begins here!
       !=================================================================
+
+      ! Assume success
+      STATUS = GIGC_SUCCESS
+      
+      ! Get N_TRACERS field from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! convert DTCHEM from mn to sec.
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1007,7 +1094,7 @@
          ! them in an internal array.  SUNCOS, OPTD, and UVALBEDO are 
          ! needed for FAST-J.
          !==============================================================
-         CALL FAST_J( SUNCOS, OPTD, UVALBEDO )
+         CALL FAST_J( am_I_Root, State_Met, RC )
         
          !==============================================================
          ! NR is the loop over the number of reactions (NR=1 for now!)
@@ -1047,7 +1134,7 @@
             DO I = 1, IIPAR
 
                ! SUNCOS > 0 means daytime!
-               IF ( SUNCOS( (J-1)*IIPAR + I ) > 0 ) THEN
+               IF ( State_Met%SUNCOS(I,J) > 0d0 ) THEN
                   JVALUE = FJFUNC( I, J, L, NR, IBRCH, SPECNAME )
                   RLRAD  = JVALUE * DTCHEM
                   RDLOSS = EXP( -RLRAD )
@@ -1092,9 +1179,28 @@
 !       ENDIF
 !-----------------------------------------------------------------------------
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE CHEMCH3I
 
+#if defined( DEVEL )
+!------------------------------------------------------------------------------
+      SUBROUTINE SET_CH3I_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(
+     &  OCDATA(IIPAR,JJPAR),      ! ocean field for emiss. flux
+     &  EFCH4R(IIPAR,JJPAR),      ! emission flux from rice
+     &  EFCH4W(IIPAR,JJPAR),      ! emission flux from wetlands
+     &  STAT=AS)
+ 
+      END SUBROUTINE SET_CH3I_MOD
+#endif
 !------------------------------------------------------------------------------
 
       END MODULE CH3I_MOD

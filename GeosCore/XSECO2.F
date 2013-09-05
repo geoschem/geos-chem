@@ -3,9 +3,7 @@
 !-----------------------------------------------------------------------
 c  Cross-sections for O2 interpolated across 3 temps; No S_R Bands yet!
 !-----------------------------------------------------------------------
-#     include "define.h"
       
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
       USE JV_CMN_MOD
 
       IMPLICIT NONE

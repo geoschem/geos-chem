@@ -20,10 +20,10 @@
 !        according to Sprengnether et al., 2002. (amf, bmy, 1/7/02)
 !  (4 ) Eliminate obsolete code from 1/02 (bmy, 2/27/02)
 !  (5 ) Updated comment description of XCARBN (bmy, 6/26/03)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*8, INTENT(IN) :: XCARBN, ZDNUM, TT

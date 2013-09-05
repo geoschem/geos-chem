@@ -15,8 +15,9 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -73,6 +74,10 @@
 !  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now use routines from the new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,21 +115,22 @@
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE FILE_MOD,      ONLY : IOERROR
+      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  07 Aug 2002 - H. Liu - Initial version
 !  (1 ) This code was split off from routine EMISSRnPbBe below. (bmy, 8/7/02)
 !  (2 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      INTEGER            :: IU_FILE
       INTEGER            :: IOS, J, L
       CHARACTER(LEN=255) :: FILENAME
 
@@ -137,6 +143,9 @@
 
       ! Define the file name
       FILENAME = TRIM( DATA_DIR ) // 'RnPbBe_200203/7Be.Lal'
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open the 7Be file
       OPEN( IU_FILE,      FILE=TRIM( FILENAME ), 
@@ -201,10 +210,6 @@
 !
       SUBROUTINE CORRECT_STE( EMISSION )
 !
-! !USES:
-!
-#     include "define.h"    ! Switches
-!
 ! !INPUT PARAMETERS: 
 !
       ! Arguments
@@ -218,6 +223,8 @@
 !  (1 ) Now updated for GCAP met fields (swu, bmy, 5/24/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,10 +233,7 @@
       !
       ! Correction factors were computed by Hongyu Liu (hyl, 8/6/02)
       !=================================================================
-#if   defined( GEOS_3 )
-      EMISSION = EMISSION / 3.5d0 
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
       !EMISSION = 0d0           ! to be determined later
 
 #elif defined( GEOS_5 ) || defined( MERRA )
@@ -255,24 +259,39 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSRnPbBe
+      SUBROUTINE EMISSRnPbBe( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : AD, TS
-      USE DIAG_MOD,       ONLY : AD01 
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE GRID_MOD,       ONLY : GET_YMID
-      USE GRID_MOD,       ONLY : GET_YEDGE 
-      USE LOGICAL_MOD,    ONLY : LEMIS
-      USE TIME_MOD,       ONLY : GET_TS_EMIS
-      USE TRACER_MOD,     ONLY : STT, N_TRACERS
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND02 
-      USE CMN_DEP_MOD        ! FRCLND
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD01 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE GRID_MOD,           ONLY : GET_YEDGE 
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  28 May 1999 - I. Bey - Initial version
@@ -280,14 +299,14 @@
 !  (2 ) Now trap I/O errors with subroutine IOERROR (bmy, 5/28/99)
 !  (3 ) Eliminate obsolete code and ND63 diagnostic (bmy, 4/12/00)
 !  (4 ) Now reference TS from "dao_mod.f" instead of from common block
-!        header file "F77_CMN_TS". (bmy, 6/23/00)
+!        header file "CMN_TS". (bmy, 6/23/00)
 !  (5 ) Cosmetic changes (bmy, 7/12/00)
 !  (6 ) Now use IOS /= 0 criterion to trap both I/O errors and EOF 
 !        condition. (bmy, 9/13/00)
 !  (7 ) Added to module "RnPbBe_mod.f".  Also updated comments and made
 !        cosmetic changes. (bmy, 6/14/01)
 !  (8 ) Replace PW(I,J) with P(I,J) (bmy, 10/3/01)
-!  (9 ) Now reference DATA_DIR from "F77_CMN_SETUP".  Added FILENAME variable.
+!  (9 ) Now reference DATA_DIR from "CMN_SETUP".  Added FILENAME variable.
 !        Now read "7Be.Lal" file from DATA_DIR/RnPbBe_200203/ directory.
 !        (bmy, 3/29/02)
 !  (10) Add diagnostics for Rn/Be emissions.  Also cleaned up some old code
@@ -314,6 +333,13 @@
 !        from "tropopause_mod.f" to diagnose strat boxes. (bmy, 8/15/05)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
+!  01 Mar 2012 - R. Yantosca - Now use functions GET_AREA_CM2(I,J,L) and
+!                              GET_YEDGE(I,J,L) from the new grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  25 Mar 2013 - R. Yantosca - Now use fields from Input_Opt
+!  01 Aug 2013 - R. Yantosca - Modified for use with non-local PBL mixing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -328,12 +354,24 @@
       REAL*8        :: LAT_H,      LAT_L,      F_LAND,    F_WATER
       REAL*8        :: F_BELOW_70, F_BELOW_60, F_ABOVE_60
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! EMISSRnPbBe begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Return if we are not doing emissions!
-      IF ( .not. LEMIS ) RETURN   
+      IF ( .not. Input_Opt%LEMIS ) RETURN   
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -357,18 +395,17 @@
       !  global atmospheric transport models using Rn-222 and other 
       !  short-lived tracers, JGR, 1997 (102):5953-5970
       !=================================================================
-      
-      ! Loop over latitudes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, LAT_S, LAT_N, LAT_H, LAT_L, F_BELOW_70     )
 !$OMP+PRIVATE( F_BELOW_60, F_ABOVE_60, A_CM2, Rn_LAND, Rn_WATER )
 !$OMP+PRIVATE( F_LAND, F_WATER, ADD_Rn                          )
       DO J = 1, JJPAR
-         
+      DO I = 1, IIPAR
+
          ! Get ABS( latitude ) at S and N edges of grid box
-         LAT_S      = ABS( GET_YEDGE(J)   ) 
-         LAT_N      = ABS( GET_YEDGE(J+1) )
+         LAT_S      = ABS( GET_YEDGE( I, J,   1 ) ) 
+         LAT_N      = ABS( GET_YEDGE( I, J+1, 1 ) )
          LAT_H      = MAX( LAT_S, LAT_N )
          LAT_L      = MIN( LAT_S, LAT_N ) 
 
@@ -382,7 +419,7 @@
          F_ABOVE_60 = 1d0 - F_BELOW_60
 
          ! Grid box surface area [cm2]
-         A_CM2      = GET_AREA_CM2( J )
+         A_CM2      = GET_AREA_CM2( I, J, 1 )
 
          ! Baseline 222Rn emissions over land [kg]
          ! Rn_LAND [kg] = [1 atom 222Rn/cm2/s] / [atoms/kg] * [s] * [cm2]
@@ -391,11 +428,8 @@
          ! Baseline 222Rn emissions over water or ice [kg]
          Rn_WATER   = Rn_LAND * 0.005d0
 
-      ! Loop over longitudes
-      DO I = 1, IIPAR
-
          ! Fraction of grid box that is land
-         F_LAND  = FRCLND(I,J)
+         F_LAND  = State_Met%FRCLND(I,J)
 
          ! Fraction of grid box that is water
          F_WATER = 1d0 - F_LAND
@@ -462,10 +496,14 @@
          ENDIF
 
          ! For boxes below freezing, reduce 222Rn emissions by 3x
-         IF ( TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
+         IF ( State_Met%TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
 
          ! Save 222Rn into STT array [kg]
-         STT(I,J,1,1) = STT(I,J,1,1) + ADD_Rn
+         IF ( Input_Opt%LNLPBL ) THEN 
+            EMIS_SAVE(I,J,1) = ADD_Rn / DTSRCE          ! For non-local PBL
+         ELSE
+            STT(I,J,1,1)     = STT(I,J,1,1) + ADD_Rn    ! For TURBDAY
+         ENDIF
 
          ! ND01 diag: 222Rn emission [kg/s] 
          IF ( ND01 > 0 ) THEN
@@ -481,7 +519,7 @@
       ! Original units of 7Be emissions are [stars/g air/sec],
       ! where "stars" = # of nuclear disintegrations of cosmic rays
       !=================================================================
-      IF ( N_TRACERS >= 3 ) THEN
+      IF ( Input_Opt%N_TRACERS >= 3 ) THEN
 
          ! Read 7Be emissions on the first timestep only
          IF ( FIRSTEMISS ) CALL READ_7BE
@@ -499,7 +537,7 @@
 
             ! Get absolute value of latitude, since we will assume that 
             ! the 7Be distribution is symmetric about the equator
-            LAT_TMP = ABS( GET_YMID( J ) )
+            LAT_TMP = ABS( GET_YMID( I, J, L ) )
 
             ! Pressure at (I,J,L) -- need to change for fvDAS!
             P_TMP   = GET_PCENTER( I, J, L )
@@ -509,18 +547,32 @@
 
             ! Be_TMP = [stars/g air/s] * [0.045 atom/star] * 
             !          [kg air] * [1e3 g/kg] = 7Be emissions [atoms/s]
-            Be_TMP  = Be_TMP * 0.045d0 * AD(I,J,L) * 1.d3 
+            Be_TMP  = Be_TMP * 0.045d0 * State_Met%AD(I,J,L) * 1.d3 
                   
             ! ADD_Be = [atoms/s] * [s] / [atom/kg] = 7Be emissions [kg]
             ADD_Be  = Be_TMP * DTSRCE / XNUMOL_Be 
 
             ! Correct the strat-trop exchange of 7Be
-            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
                CALL CORRECT_STE( ADD_Be )
             ENDIF
 
             ! Add 7Be into STT tracer array [kg]
-            STT(I,J,L,3) = STT(I,J,L,3) + ADD_Be
+            IF ( Input_Opt%LNLPBL ) THEN
+
+               ! For non-local PBL mixing
+               IF ( L == 1 ) THEN
+                  EMIS_SAVE(I,J,3) = ADD_Be / DTSRCE
+               ELSE
+                  STT(I,J,L,3)     = STT(I,J,L,3) + ADD_Be
+               ENDIF
+
+            ELSE
+
+               ! For TURBDAY PBL mixing
+               STT(I,J,L,3)        = STT(I,J,L,3) + ADD_Be
+
+            ENDIF
 
             ! ND01 diag: 7Be emission [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN
@@ -531,6 +583,9 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+
+      ! Free pointer
+      NULLIFY( STT )
      
       ! Reset FIRSTEMISS
       FIRSTEMISS = .FALSE.
@@ -550,17 +605,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMRnPbBe
+      SUBROUTINE CHEMRnPbBe( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DIAG_MOD,       ONLY : AD01, AD02
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TRACER_MOD,     ONLY : STT, N_TRACERS
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND01, ND02
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD01, AD02
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  31 Oct 1999 - H. Liu - Initial version
@@ -582,6 +654,9 @@
 !        from "tropopause_mod.f" to diagnose strat boxes. (bmy, 8/15/05)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -599,12 +674,30 @@
       ! Ratio of molecular weights of 210Pb/222Rn
       REAL*8, PARAMETER :: Pb_Rn_RATIO = 210d0 / 222d0
 
+      ! For fields from Input_Opt
+      INTEGER         :: N_TRACERS
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEMRnPbBe begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS =  Input_Opt%N_TRACERS
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT       => State_Chm%Tracers
+
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM    =  GET_TS_CHEM() * 60d0
 
       ! Pre-compute exponential terms only on first timestep
       IF ( FIRSTCHEM ) THEN 
@@ -659,7 +752,7 @@
             ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
             ! Correct strat-trop exchange of 210Pb in stratosphere
-            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
                CALL CORRECT_STE( ADD_Pb )
             ENDIF
 
@@ -715,6 +808,11 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE CHEMRnPbBe
 !EOC

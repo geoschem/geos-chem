@@ -16,8 +16,9 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -80,7 +81,7 @@
 !        * Allow option of mid-level scaling to match global avg ann flash
 !           rate between G-C and OTD-LIS 11-year climatology (new function)
 !        * Local Redist now a la Murray et al, 2007 in preparation (monthly)
-!        * Replace GEMISNOX (from F77_CMN_NOX) with module variable EMIS_LI_NOx
+!        * Replace GEMISNOX (from CMN_NOX) with module variable EMIS_LI_NOx
 !  (5 ) Added MFLUX, PRECON redistribution options (ltm, bmy, 11/29/07)
 !  (6 ) Updated OTD/LIS scaling for GEOS-5 to get more realistic totals
 !        (ltm, bmy, 2/20/08)
@@ -99,6 +100,10 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  10 Nov 2010 - L. Murray   - Updated OTD/LIS local scaling for MERRA 4x5
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,19 +150,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LIGHTNING
+      SUBROUTINE LIGHTNING( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    PRECON,   T, ZMMU
-      USE DIAG56_MOD,   ONLY : AD56,      ND56
-      USE GRID_MOD,     ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
-      USE LOGICAL_MOD,  ONLY : LOTDLOC
-      USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
+      USE DIAG56_MOD,         ONLY : AD56,      ND56
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
+      USE LOGICAL_MOD,        ONLY : LOTDLOC
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_GCTM_MOD     ! Physical constants
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_GCTM_MOD             ! Physical constants
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Output Lightning NOX [molec/cm3/s] is stored in the EMIS_NOX_LI array.
@@ -181,6 +190,8 @@
 !        Reprocessed for bug in CLDTOPS calculation. See PDF on wiki for
 !        full description of changes for v9-01-01. (ltm, bmy, 1/25,11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,21 +269,24 @@
 !$OMP+PRIVATE( RATE_SAVE,   VERTPROF                              )
 !$OMP+SCHEDULE( DYNAMIC )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Grid box surface areas in [m2] and [km2]
-         A_M2  = GET_AREA_M2( J )
-         A_KM2 = A_M2 / 1d6
+            !%%% NOTE: Use L=1 for GRID_MOD functions.  This is OK for the
+            !%%% existing GEOS-Chem with a pure cartesian grid, but may be an
+            !%%% issue when interfaced with a GCM with a non-regular grid
+            !%%% (bmy, 3/1/12)
 
-         ! Grid box latitude [degrees]
-         YMID  = GET_YMID( J )
+            ! Grid box surface areas in [m2] and [km2]
+            A_M2     = GET_AREA_M2( I, J, 1 )
+            A_KM2    = A_M2 / 1d6
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+            ! Grid box latitude [degrees]
+            YMID     = GET_YMID( I, J, 1 )
 
             ! Grid box longitude [degrees]
-            XMID     = GET_XMID( I )
+            XMID     = GET_XMID( I, J, 1 )
 
             ! Initialize
             LBOTTOM  = 0
@@ -308,7 +322,7 @@
 
             ! Find negative charge layer
             DO L = 1, LMAX
-               IF ( T(I,J,L) <= T_NEG_CTR ) THEN
+               IF ( State_Met%T(I,J,L) <= T_NEG_CTR ) THEN
                   LCHARGE = L
                   EXIT
                ENDIF
@@ -329,8 +343,8 @@
 
             ! Temperatures [K] at the centers of grid
             ! boxes (I,J,LCHARGE-1) and (I,J,LCHARGE)
-            T1   = T(I,J,LCHARGE-1)
-            T2   = T(I,J,LCHARGE  )
+            T1   = State_Met%T(I,J,LCHARGE-1)
+            T2   = State_Met%T(I,J,LCHARGE  )
  
             ! DZ is the height [m] from the center of box (I,J,LCHARGE-1)
             ! to the negative charge layer.  It may be found in either
@@ -365,7 +379,7 @@
                HCHARGE = DZ - ZUP
             ELSE
                LCHARGE = LCHARGE - 1
-               HCHARGE = ( BXHEIGHT(I,J,LCHARGE) - ZUP ) + DZ
+               HCHARGE = ( State_Met%BXHEIGHT(I,J,LCHARGE) - ZUP ) + DZ
             ENDIF
 
             !===========================================================
@@ -393,7 +407,7 @@
             !===========================================================
 
             ! Cloud top level
-            LTOP = CLDTOPS(I,J)
+            LTOP = State_Met%CLDTOPS(I,J)
             
             ! Error check LTOP
             IF ( LTOP == 0 ) CYCLE
@@ -408,19 +422,19 @@
             ! GEOS-4 only
             !--------------------------
             ! Shallow-cloud inhibition trap (see Murray et al. [2011])
-            IF ( T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
+            IF ( State_Met%T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
 
 #endif
 
             ! H0 is the convective cloud top height [m].  This is the
             ! distance from the surface to the top edge of box (I,J,LTOP).
-            H0   = SUM( BXHEIGHT(I,J,1:LTOP) )
+            H0   = SUM( State_Met%BXHEIGHT(I,J,1:LTOP) )
 
             ! Z_CG is the cloud-ground path (ground --> HCHARGE) [m]
-            Z_CG = SUM( BXHEIGHT(I,J,1:LCHARGE-1)  ) + HCHARGE
+            Z_CG = SUM( State_Met%BXHEIGHT(I,J,1:LCHARGE-1)  ) + HCHARGE
 
             ! Z_IC is the intra-cloud path (HCHARGE --> cloud top) [m]
-            Z_IC = SUM( BXHEIGHT(I,J,LCHARGE:LTOP) ) - HCHARGE
+            Z_IC = SUM( State_Met%BXHEIGHT(I,J,LCHARGE:LTOP) ) - HCHARGE
 
             !===========================================================
             ! (3) COMPUTE COLD CLOUD THICKNESS
@@ -445,7 +459,7 @@
 
             ! Find the level where T = 0 C
             DO L = 1, LMAX
-               IF ( T(I,J,L) <= T_NEG_BOT ) THEN
+               IF ( State_Met%T(I,J,L) <= T_NEG_BOT ) THEN
                   LBOTTOM = L
                   EXIT
                ENDIF
@@ -466,8 +480,8 @@
 
             ! Temperature [K] at the centers of grid
             ! boxes (I,J,LBOTTOM-1) and (I,J,LBOTTOM)
-            T1   = T(I,J,LBOTTOM-1)
-            T2   = T(I,J,LBOTTOM  )
+            T1   = State_Met%T(I,J,LBOTTOM-1)
+            T2   = State_Met%T(I,J,LBOTTOM  )
        
             ! DZ is the height [m] from the center of box (I,J,LCHARGE-1)
             ! to the negative charge layer.  It may be found in either
@@ -502,12 +516,13 @@
                HBOTTOM = DZ - ZUP
             ELSE
                LBOTTOM = LBOTTOM - 1
-               HBOTTOM = ( BXHEIGHT(I,J,LBOTTOM) - ZUP ) + DZ
+               HBOTTOM = ( State_Met%BXHEIGHT(I,J,LBOTTOM) - ZUP ) + DZ
             ENDIF
   
             ! Cold cloud thickness is difference of cloud top 
             ! height (H0) and the height to the bottom.
-            CC = H0 - SUM( BXHEIGHT(I,J,1:LBOTTOM-1) ) - HBOTTOM 
+            CC = H0 - SUM( State_Met%BXHEIGHT(I,J,1:LBOTTOM-1) ) -
+     &           HBOTTOM 
 
             !===========================================================
             ! (4) COMPUTE IC/CG FLASH_RATIO FROM COLD-CLOUD DEPTH
@@ -543,7 +558,7 @@
             !--------------------------------------------------------
 
             ! Get lightning flash rate per minute and IC/CG ratio
-            CALL FLASHES_CTH( I, J, H0, FLASHRATE )
+            CALL FLASHES_CTH( I, J, H0, FLASHRATE, State_Met )
 
             !===========================================================
             ! (6) COMPUTE TOTAL LNOx AND PARTITION INTO VERTICAL LAYERS
@@ -731,7 +746,6 @@
                !AD56(I,J,2) = AD56(I,J,2) + ( RATE_SAVE * ( 1d0 - X ) )
                AD56(I,J,3) = AD56(I,J,3) + ( RATE_SAVE *         X   )
 
-
                AD56(I,J,2) = AD56(I,J,2) + H0 * 1d-3
 
             ENDIF
@@ -749,13 +763,15 @@
 
                ! Partition the column total NOx [molec/6h] from lightning 
                ! into the vertical using Pickering PDF functions
-               CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF )
+               CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF,
+     &                         State_Met )
 
                ! Add vertically partitioned NOx into SLBASE array
                DO L = 1, LLPAR
                   SLBASE(I,J,L) = SLBASE(I,J,L) + VERTPROF(L) 
                ENDDO
             ENDIF
+
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -775,32 +791,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF )
+      SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF,
+     &                      State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : BXHEIGHT, IS_ICE,  IS_LAND
-      USE DAO_MOD,       ONLY : IS_NEAR,  IS_WATER
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,      ONLY : IU_FILE,  IOERROR
-      USE GRID_MOD,      ONLY : GET_YMID
-      USE TIME_MOD,      ONLY : GET_MONTH
+      USE DAO_MOD,            ONLY : IS_LAND,  IS_WATER
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE TIME_MOD,           ONLY : GET_MONTH
 
-      USE CMN_SIZE_MOD                        ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I                 ! Longitude index
-      INTEGER, INTENT(IN)  :: J                 ! Latitude index 
-      INTEGER, INTENT(IN)  :: LTOP              ! Level of conv cloud top
-      REAL*8,  INTENT(IN)  :: H0                ! Conv cloud top height [m]
-      REAL*8,  INTENT(IN)  :: XLAT              ! Latitude value [degrees]
-      REAL*8,  INTENT(IN)  :: TOTAL             ! Column Total # of LNOx molec 
+      INTEGER,        INTENT(IN)  :: I          ! Longitude index
+      INTEGER,        INTENT(IN)  :: J          ! Latitude index 
+      INTEGER,        INTENT(IN)  :: LTOP       ! Level of conv cloud top
+      REAL*8,         INTENT(IN)  :: H0         ! Conv cloud top height [m]
+      REAL*8,         INTENT(IN)  :: XLAT       ! Latitude value [degrees]
+      REAL*8,         INTENT(IN)  :: TOTAL      ! Column Total # of LNOx molec 
+      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: VERTPROF(LLPAR)   ! Vertical profile of LNOx
+      REAL*8,         INTENT(OUT) :: VERTPROF(LLPAR) ! Vertical profile of LNOx
 !
 ! !REMARKS:
 !  References:
@@ -836,6 +854,10 @@
 !  (11) Now use the Ott et al. [2010] profiles, and apply consistently with
 !        GMI model [Allen et al., 2010] (ltm, bmy, 1/25/11).
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  15 Jun 2012 - Nielsen - INQUIRE finds free logical unit number for IU_FILE
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -855,7 +877,12 @@
       MTYPE    = 0
       VERTPROF = 0d0
       MONTH    = GET_MONTH()
-      YMID     = GET_YMID(J)
+
+      !%%% NOTE: Use L=1 for GRID_MOD functions.  This is OK for the
+      !%%% existing GEOS-Chem with a pure cartesian grid, but may be an
+      !%%% issue when interfaced with a GCM with a non-regular grid
+      !%%% (bmy, 3/1/12)
+      YMID     = GET_YMID( I, J, 1 )
 
       !=================================================================
       ! Test whether location (I,J) is continental, marine, or snow/ice
@@ -879,7 +906,7 @@
       CASE ( 1,2,3,12 )
 
          IF ( ABS(YMID) .le. 15 ) THEN
-            IF ( IS_LAND(I,J) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
                MTYPE = 2        ! Tropical continental
             ELSE
                MTYPE = 1        ! Tropical marine
@@ -896,7 +923,7 @@
       CASE ( 4,5,10,11 )
 
          IF ( ABS(YMID) .le. 15 ) THEN
-            IF ( IS_LAND(I,J) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
                MTYPE = 2        ! Tropical continental
             ELSE
                MTYPE = 1        ! Tropical marine
@@ -911,7 +938,7 @@
       CASE ( 6,7,8,9 )
 
          IF ( ABS(YMID) .le. 15 ) THEN
-            IF ( IS_LAND(I,J) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
                MTYPE = 2        ! Tropical continental
             ELSE
                MTYPE = 1        ! Tropical marine
@@ -938,7 +965,7 @@
       ! Compute the height [km] at the top of each vertical level.
       ! Look up the cumulative fraction of NOx for each vertical level
       DO L = 1, LTOP
-         ZHEIGHT = ZHEIGHT + BXHEIGHT(I,J,L)
+         ZHEIGHT = ZHEIGHT + State_Met%BXHEIGHT(I,J,L)
          FRAC(L) = PROFILE( NINT( ( ZHEIGHT/H0 )*3200. ), MTYPE ) *0.01
       ENDDO
 
@@ -968,25 +995,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FLASHES_CTH( I, J, HEIGHT, FLASHRATE )
+      SUBROUTINE FLASHES_CTH( I, J, HEIGHT, FLASHRATE, State_Met )
 !
 ! !USES:
 !
-#     include "define.h"
 
-      USE DAO_MOD, ONLY : IS_ICE
-      USE DAO_MOD, ONLY : IS_LAND
-      USE DAO_MOD, ONLY : IS_WATER
+      USE DAO_MOD,            ONLY : IS_ICE
+      USE DAO_MOD,            ONLY : IS_LAND
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I           ! Longitude index
-      INTEGER, INTENT(IN)  :: J           ! Latitude index
-      REAL*8,  INTENT(IN)  :: HEIGHT      ! Height of conv cloud top [m]
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      REAL*8,         INTENT(IN)  :: HEIGHT      ! Height of conv cloud top [m]
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: FLASHRATE   ! Lightning flash rate [flashes/min]
+      REAL*8,         INTENT(OUT) :: FLASHRATE   ! Lightning flast rate
+                                                 !  [flashes/min]
 !
 ! !REVISION HISTORY: 
 !  10 May 2006 - L. Murray - Initial version
@@ -996,6 +1025,7 @@
 !  (3  ) Remove the near-land formulation (i.e. use function IS_LAND 
 !         instead of IS_NEAR).(ltm, bmy, 9/24/07)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1021,17 +1051,17 @@
       !================================================================
 
       ! Test for land type
-      IF ( IS_LAND( I, J ) ) THEN
+      IF ( IS_LAND( I, J, State_Met ) ) THEN
 
          ! Flashes/min over land boxes
          FLASHRATE   = 3.44d-5 * ( ( HEIGHT * 1d-3 )**4.9d0  )
 
-      ELSE IF ( IS_WATER( I, J ) ) THEN
+      ELSE IF ( IS_WATER( I, J, State_Met ) ) THEN
 
          ! Flahes/min over water
          FLASHRATE   = 6.4d-4  * ( ( HEIGHT * 1d-3 )**1.73d0 )
 
-      ELSE IF ( IS_ICE( I, J ) ) THEN
+      ELSE IF ( IS_ICE( I, J, State_Met ) ) THEN
 
          ! Suppress lightning over snow/ice
          FLASHRATE   = 0d0
@@ -1205,6 +1235,7 @@
 !       new data directory. Special handling for GEOS5.1.0 and 5.2.0 added. 
 !       (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1223,6 +1254,8 @@
       ! Get model name
 #if   defined( MERRA )
       MODELNAME = 'merra'
+#elif defined( GEOS_57 )
+         MODELNAME = 'geos5.7.2'
 #elif defined( GEOS_5 )
       ! GEOS-5 convection scheme changed in GCM post 9/1/2008
       IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
@@ -1241,8 +1274,19 @@
      &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 
       ! Prefix directory to file name
+#if !defined( GEOS_57 )
+
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-      
+#endif      
+
+      ! For GEOS-57 nested grids, append a suffix to denote either
+      ! SEAC4RS or the China domain (skim, 5/29/12)
+#if   defined( GEOS_57 ) && defined( NESTED_CH )
+      FILENAME = TRIM( FILENAME ) // '.CH'
+#elif defined( GEOS_57 ) && defined( SEAC4RS )
+      FILENAME = TRIM( FILENAME ) // '.SE'
+#endif
+
       ! For GEOS-5 nested grids, append the a suffix to denote either 
       ! CHINA or NORTH AMERICA nested regions (ltm, bmy, 11/14/08)
 #if   defined( GEOS_5 ) && defined( NESTED_CH ) 
@@ -1284,40 +1328,49 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMLIGHTNING( I, J )
+      SUBROUTINE EMLIGHTNING( State_Met, State_Chm )
+
 !
 ! !USES:
 !
-      USE DAO_MOD,  ONLY : BXHEIGHT
-      USE DIAG_MOD, ONLY : AD32_li
-
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! ND32
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD32_li
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTNO
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: I   ! Longitude index
-      INTEGER, INTENT(IN) :: J   ! Latitude index
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  09 Oct 1997 - R. Yantosca - Initial version
 !  (1 ) Remove IOFF, JOFF from the argument list.  Also remove references
-!        to header files "F77_CMN_O3" and "comtrid.h" (bmy, 3/16/00)
+!        to header files "CMN_O3" and "comtrid.h" (bmy, 3/16/00)
 !  (2 ) Now use allocatable array for ND32 diagnostic (bmy, 3/16/00)  
 !  (3 ) Now reference BXHEIGHT from "dao_mod.f".  Updated comments, cosmetic
 !        changes.  Replace LCONVM with the parameter LLCONVM. (bmy, 9/18/02)
 !  (4 ) Removed obsolete reference to "CMN".  Now bundled into 
 !        "lightning_mod.f" (bmy, 4/14/04)
 !  (5 ) Renamed from EMLIGHTNING_NL to EMLIGHTNING.  Now replace GEMISNOX
-!        (from F77_CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
+!        (from CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-!     
-      INTEGER             :: L
+!   
+      INTEGER             :: I,J,L
       REAL*8              :: TMP
 
       ! External functions
@@ -1327,17 +1380,29 @@
       ! EMLIGHTNING begins here!
       !=================================================================
       DO L = 1, LLCONVM 
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+                
+         ! No lightning emissions in the stratosphere (cdh, 4/25/2013)
+         IF ( ITS_IN_THE_STRAT(I, J, L, State_Met) ) EXIT
 
-          ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
-          ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
-          TMP             = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L) )
-          EMIS_LI_NOx(I,J,L) = TMP
+         ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
+         ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
+         TMP = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L,State_Met) )
 
-          ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
-          IF ( ND32 > 0 ) THEN
-             AD32_li(I,J,L) = AD32_li(I,J,L) + 
-     &                        ( TMP * BXHEIGHT(I,J,L) * 1d2 )
-          ENDIF
+         EMIS_LI_NOx(I,J,L)                = TMP
+
+#if defined( DEVEL ) 
+         State_Chm%TRAC_TEND(I,J,L,IDTNO)  = TMP
+#endif
+
+         ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
+         IF ( ND32 > 0 ) THEN
+            AD32_li(I,J,L) = AD32_li(I,J,L) + 
+     &                     ( TMP * State_Met%BXHEIGHT(I,J,L) * 1d2 )
+         ENDIF
+      ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE EMLIGHTNING
@@ -1363,11 +1428,9 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE BPCH2_MOD,   ONLY : GET_TAU0
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,    ONLY : GET_TAU
+      USE TIME_MOD,    ONLY : GET_TAU, GET_MONTH, GET_YEAR
 !
 ! !RETURN VALUE:
 !
@@ -1392,6 +1455,9 @@
 !  (8 ) Reprocessed for error in CLDTOPS field; Updated for GEOS
 !        5.1.0 vs. 5.2.0; MERRA added; (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Compute BETA for MERRA 2 x 2.5
+!  02 Feb 2012 - R. Yantosca - Compute BETA for GEOS-5.7.x
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1458,7 +1524,58 @@
       ! Initialize
       BETA = 1d0
 
-#if   defined( MERRA ) && defined( GRID4x5 )
+#if   defined( GEOS_57 ) && defined( GRID4x5 ) 
+
+      !---------------------------------------
+      ! GEOS-5.7.x: 4 x 5 global simulation
+      !---------------------------------------
+
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.63453405d0
+      ENDIF
+
+#elif defined( GEOS_57 ) && defined( GRID2x25 )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: 2 x 2.5 global simulation
+      !---------------------------------------
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
+
+#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( NESTED_CH )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: Nested China simulation
+      !---------------------------------------
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
+
+#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( SEAC4RS )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: Nested SEAC4RS simulation
+      !---------------------------------------
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
+
+#elif defined( MERRA ) && defined( GRID2x25 )
+
+      !---------------------------------------
+      ! MERRA: 2 x 2.5 global simulation
+      !---------------------------------------
+      BETA = ANN_AVG_FLASHRATE / 253.55888d0
+
+#elif   defined( MERRA ) && defined( GRID4x5 )
 
       !---------------------------------------
       ! MERRA: 4 x 5 global simulation
@@ -1578,8 +1695,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR
-      USE FILE_MOD,      ONLY : IU_FILE
-      USE GRID_MOD,      ONLY : GET_YEDGE
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LOTDLOC
 
@@ -1603,13 +1718,14 @@
 !  (8 ) Read in new Ott profiles from lightning_NOx_201101. Remove
 !        depreciated options. (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Removed reference to GET_YEDGE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: AS, III, IOS, JJJ
+      INTEGER             :: AS, III, IOS, JJJ, IU_FILE
       REAL*8              :: Y0, Y1
       CHARACTER(LEN=255)  :: FILENAME
 
@@ -1667,6 +1783,9 @@
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - INIT_LIGHTNING: Reading ', a )
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
       
       ! Open file containing lightning PDF data
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )

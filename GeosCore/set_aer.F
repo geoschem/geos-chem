@@ -1,18 +1,45 @@
-! $Id: set_aer.f,v 1.1 2009/09/16 14:06:10 bmy Exp $
-      subroutine set_aer
-!-----------------------------------------------------------------------
-c  Set aerosol/cloud types and define black carbon profile
-!-----------------------------------------------------------------------
-c     MX       Number of different types of aerosol to be considered
-c     MIEDX    Index of aerosol types in jv_spec.dat - hardwire in here
-!-----------------------------------------------------------------------
-#     include "define.h"
-
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: set_aer
+!
+! !DESCRIPTION: Routine SET\_AER sets aerosol/cloud types and define black 
+!  carbon profile for the FAST-J photolysis scheme.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_AER( am_I_Root )
+!
+! !USES:
+!
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !REMARKS:
+!  MX       Number of different types of aerosol to be considered
+!  MIEDX    Index of aerosol types in jv_spec.dat - hardwire in here
+! 
+! 
+! !REVISION HISTORY: 
+!  01 Jun 1999 - O. Wild     - Initial version
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       integer i
 c
 c  Initialise aerosol index
@@ -61,9 +88,13 @@ c  Each of these types must be listed in the order used by OPMIE.F
 c
 c  Ensure all 'MX' types are valid selections
       do i=1,MX
-        write(6,1000) MIEDX(i),TITLEA(MIEDX(i))
-        if(MIEDX(i).gt.NAA.or.MIEDX(i).le.0) then
-          write(6,1200) MIEDX(i),NAA
+         IF ( am_I_Root ) THEN 
+            write(6,1000) MIEDX(i),TITLEA(MIEDX(i))
+         ENDIF
+         if(MIEDX(i).gt.NAA.or.MIEDX(i).le.0) then
+            IF ( am_I_Root ) THEN
+               write(6,1200) MIEDX(i),NAA
+            ENDIF
           stop
         endif
       enddo
@@ -80,5 +111,5 @@ c
       return
  1000 format('Using Aerosol type: ',i3,1x,a)
  1200 format('Aerosol type ',i3,' unsuitable; supplied values must be ',
-     $       'between 1 and ',i3)
-      end
+     &       'between 1 and ',i3)
+      END SUBROUTINE SET_AER

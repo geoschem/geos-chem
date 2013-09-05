@@ -35,7 +35,7 @@ $(ROOTDIR)/Makefile            \
 $(ROOTDIR)/Makefile_header.mk  \
 $(UTIL)/Makefile               \
 $(ISO)/Makefile                \
-$(CODE)/Makefile               \
+$(CORE)/Makefile               \
 $(KPP)/Makefile                \
 $(KPP)/standard/Makefile       \
 $(KPP)/SOA/Makefile            \

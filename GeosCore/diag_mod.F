@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -146,6 +145,8 @@
       REAL*4,  ALLOCATABLE :: AD32_li(:,:,:)
       REAL*4,  ALLOCATABLE :: AD32_so(:,:)
       REAL*4,  ALLOCATABLE :: AD32_ub(:,:)
+      REAL*4,  ALLOCATABLE :: AD32_ship(:,:)
+      INTEGER              :: AD32_ship_count
 
       ! For ND33 -- tropopsheric sum of tracer
       REAL*4,  ALLOCATABLE :: AD33(:,:,:)
@@ -158,6 +159,8 @@
 
       ! For ND36 -- Anthropogenic source diagnostic
       REAL*4,  ALLOCATABLE :: AD36(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD36_SHIP(:,:,:)
+      INTEGER              :: AD36_SHIP_COUNT
 
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
       REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
@@ -168,18 +171,12 @@
       ! For ND39 -- Washout in aerosol wet deposition diagnostic
       REAL*4,  ALLOCATABLE :: AD39(:,:,:,:)      
 
-      ! For ND43 -- OH, NO, NO2, HO2 chemical diagnostics
+      ! For ND43 -- OH and HO2 chemical diagnostics
       REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)      
-      INTEGER, ALLOCATABLE :: LTNO(:,:)
-      INTEGER, ALLOCATABLE :: CTNO(:,:,:)
       INTEGER, ALLOCATABLE :: LTOH(:,:)
       INTEGER, ALLOCATABLE :: CTOH(:,:,:)
-      INTEGER, ALLOCATABLE :: LTNO2(:,:)
-      INTEGER, ALLOCATABLE :: CTNO2(:,:,:)
       INTEGER, ALLOCATABLE :: LTHO2(:,:)
       INTEGER, ALLOCATABLE :: CTHO2(:,:,:)
-      INTEGER, ALLOCATABLE :: LTNO3(:,:)
-      INTEGER, ALLOCATABLE :: CTNO3(:,:,:)
       ! update for arom (dkh, 06/21/07)  
       INTEGER, ALLOCATABLE :: CTLBRO2H(:,:,:)
       INTEGER, ALLOCATABLE :: CTLBRO2N(:,:,:)
@@ -233,6 +230,34 @@
       REAL*4,  ALLOCATABLE :: AD58(:,:,:)
       REAL*4,  ALLOCATABLE :: AD60(:,:)
 
+#if   defined( TOMAS )
+      ! For ND59 -- Size-resolved primary aerosol emissions
+      REAL*4,  ALLOCATABLE :: AD59_NUMB(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_SULF(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_SALT(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_ECIL(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_ECOB(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_OCIL(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_OCOB(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_DUST(:,:,:,:)
+
+      ! For ND60 -- TOMAS condensation rate diagnostic
+      REAL*4,  ALLOCATABLE :: AD60_COND(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_COAG(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_NUCL(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_AQOX(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_ERROR(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_SOA(:,:,:,:)
+
+      ! For ND61 -- 3D TOMAS rate diagnostic
+      REAL*4,  ALLOCATABLE :: AD61(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD61_inst(:,:,:,:)
+#endif
+
+      ! For ND63 -- fraction of NOx remaining and Integrated OPE
+      REAL*4,  ALLOCATABLE :: AD63(:,:,:)
+      INTEGER, ALLOCATABLE :: AD63_COUNT
+
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
 
@@ -244,7 +269,6 @@
 
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
-
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version
@@ -296,10 +320,19 @@
 !       (tmf, 3/6/09)
 !  (31) Add LTO3 for ND45 diag. (ccc, 7/20/09)
 !  (32) Add AD19, AD58, AD60 for CH4 (kjw, 8/18/09)
-!  (33) AD13_NH3_an is 3D now (phs, 10/22/09)   
-!  (34) Add counter for aromatics SOA and add AD57 diagnostic for potential
+!  (33) AD13_NH3_an is 3D now (phs, 10/22/09)  
+!  (34) Add AD59_NUMB, AD59_SULF, AD59_SALT, AD59_ECOB, AD59_ECIL, AD59_OCOB, 
+!        AD59_OCIL, and AD59_DUST for size-resolved emission  (win, 1/25/10)
+!  (35) Add AD60_COND, AD60_COAG, AD60_NUCL, AD60_AQOX, AD60_SOA, and 
+!        AD60_ERROR for TOMAS process rate diagnostics (win, 1/25/10)
+!  (36) Add AD61 and AD61_INST for saving 3-D TOMAS rate (win, 1/25/10)   
+!  (37) Add counter for aromatics SOA and add AD57 diagnostic for potential
 !       temperature. (fp, 2/3/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  02 Apr 2013 - M. Payer    - Removed *NO, *NO2, and *NO3 arrays for ND43
+!                              diagnostic. These are no longer needed because
+!                              NO, NO2, and NO3 are now tracers.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -338,6 +371,7 @@
 !  (12) Now also deallocate AD09 and AD09_em (bmy, 6/27/05)
 !  (13) Now deallocate AD30 (bmy, 8/18/05)
 !  (14) Now deallocate CTO3, AD10, AD10em arrays (phs, 9/18/07)
+!  (15) Now deallocate TOMAS related arrays (win, bmy, 1/25/10)
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM microphysics
 !EOP
 !------------------------------------------------------------------------------
@@ -392,10 +426,12 @@
       IF ( ALLOCATED( AD32_li     ) ) DEALLOCATE( AD32_li     )
       IF ( ALLOCATED( AD32_so     ) ) DEALLOCATE( AD32_so     )
       IF ( ALLOCATED( AD32_ub     ) ) DEALLOCATE( AD32_ub     )
+      IF ( ALLOCATED( AD32_ship   ) ) DEALLOCATE( AD32_ship   )
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD34        ) ) DEALLOCATE( AD34        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD36        ) ) DEALLOCATE( AD36        )
+      IF ( ALLOCATED( AD36_SHIP   ) ) DEALLOCATE( AD36_SHIP   )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
@@ -411,7 +447,28 @@
       IF ( ALLOCATED( AD57        ) ) DEALLOCATE( AD57        )
       IF ( ALLOCATED( AD19        ) ) DEALLOCATE( AD19        )
       IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        )
+#if   defined( TOMAS )
+      IF ( ALLOCATED( AD59_NUMB   ) ) DEALLOCATE( AD59_NUMB   ) !(win, 1/25/10)
+      IF ( ALLOCATED( AD59_SULF   ) ) DEALLOCATE( AD59_SULF   )
+      IF ( ALLOCATED( AD59_SALT   ) ) DEALLOCATE( AD59_SALT   )
+      IF ( ALLOCATED( AD59_ECIL   ) ) DEALLOCATE( AD59_ECIL   )
+      IF ( ALLOCATED( AD59_ECOB   ) ) DEALLOCATE( AD59_ECOB   )
+      IF ( ALLOCATED( AD59_OCIL   ) ) DEALLOCATE( AD59_OCIL   )
+      IF ( ALLOCATED( AD59_OCOB   ) ) DEALLOCATE( AD59_OCOB   )
+      IF ( ALLOCATED( AD59_DUST   ) ) DEALLOCATE( AD59_DUST   )
+      IF ( ALLOCATED( AD60_COND   ) ) DEALLOCATE( AD60_COND   )
+      IF ( ALLOCATED( AD60_COAG   ) ) DEALLOCATE( AD60_COAG   )
+      IF ( ALLOCATED( AD60_NUCL   ) ) DEALLOCATE( AD60_NUCL   )
+      IF ( ALLOCATED( AD60_AQOX   ) ) DEALLOCATE( AD60_AQOX   )
+      IF ( ALLOCATED( AD60_ERROR  ) ) DEALLOCATE( AD60_ERROR  )
+      IF ( ALLOCATED( AD60_SOA    ) ) DEALLOCATE( AD60_SOA    )
+      IF ( ALLOCATED( AD61        ) ) DEALLOCATE( AD61        )
+      IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   ) !(win, 1/25/10)
+#else
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
+#endif
+      IF ( ALLOCATED( AD63        ) ) DEALLOCATE( AD63        )
+      IF ( ALLOCATED( AD63_COUNT  ) ) DEALLOCATE( AD63_COUNT  )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
@@ -420,12 +477,9 @@
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )
       IF ( ALLOCATED( CT18        ) ) DEALLOCATE( CT18        )
       IF ( ALLOCATED( CTJV        ) ) DEALLOCATE( CTJV        )
-      IF ( ALLOCATED( CTNO        ) ) DEALLOCATE( CTNO        )
       IF ( ALLOCATED( CTO3        ) ) DEALLOCATE( CTO3        )
       IF ( ALLOCATED( CTO3_24h    ) ) DEALLOCATE( CTO3_24h    )
       IF ( ALLOCATED( CTOH        ) ) DEALLOCATE( CTOH        )
-      IF ( ALLOCATED( CTNO2       ) ) DEALLOCATE( CTNO2       )
-      IF ( ALLOCATED( CTNO3       ) ) DEALLOCATE( CTNO3       )
       ! update for arom (dkh, 06/21/07)  
       IF ( ALLOCATED( CTLBRO2H    ) ) DEALLOCATE( CTLBRO2H    )
       IF ( ALLOCATED( CTLBRO2N    ) ) DEALLOCATE( CTLBRO2N    )
@@ -443,10 +497,7 @@
       IF ( ALLOCATED( CTOTH       ) ) DEALLOCATE( CTOTH       )
       IF ( ALLOCATED( DIAGCHLORO  ) ) DEALLOCATE( DIAGCHLORO  )
       IF ( ALLOCATED( LTJV        ) ) DEALLOCATE( LTJV        )
-      IF ( ALLOCATED( LTNO        ) ) DEALLOCATE( LTNO        )
       IF ( ALLOCATED( LTOH        ) ) DEALLOCATE( LTOH        )
-      IF ( ALLOCATED( LTNO2       ) ) DEALLOCATE( LTNO2       )
-      IF ( ALLOCATED( LTNO3       ) ) DEALLOCATE( LTNO3       )
       IF ( ALLOCATED( LTHO2       ) ) DEALLOCATE( LTHO2       )
       IF ( ALLOCATED( LTOTH       ) ) DEALLOCATE( LTOTH       )
       IF ( ALLOCATED( LTO3        ) ) DEALLOCATE( LTO3        )
@@ -454,7 +505,7 @@
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
-      IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  ) 
+      IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  )
 
 #if   defined( APM )
       !-----------------------------------------
@@ -466,4 +517,5 @@
       END SUBROUTINE CLEANUP_DIAG
 !EOC
       END MODULE DIAG_MOD 
+
 

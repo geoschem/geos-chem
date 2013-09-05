@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -48,6 +47,11 @@
 !  (12) Now use LD65 instead of LLTROP everywhere (phs, 11/17/08)
 !  (13) Updates for LINOZ (dbj, jliu, bmy, 10/26/09)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -84,16 +88,17 @@
 !
 ! !DESCRIPTION: Subroutine ADD\_STRAT\_POX adds the stratospheric influx of 
 !  Ox to the stratospheric Ox tracer.  This is called from routine 
-!  UPBDFLX\_O3, which is applied when the tracer array has units of [v/v].  
+!  Do\_Synoz, which is applied when the tracer array has units of [v/v].  
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ADD_STRAT_POX( I, J, L, POx )
+      SUBROUTINE ADD_STRAT_POX( I, J, L, POx, State_Chm )
 !
 ! !USES:
 !
-      USE TRACER_MOD, ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD, ONLY : IDTOxStrt
 
       USE CMN_SIZE_MOD           ! Size parameters
 !
@@ -103,18 +108,39 @@
       INTEGER, INTENT(IN) :: J     ! GEOS-Chem grid box lat index
       INTEGER, INTENT(IN) :: L     ! GEOS-Chem grid box level index
       REAL*8,  INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2003 - R. Yantosca - Initial version
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  10 Jun 2012 - L. Murray - Enable tagged Ox for Synoz.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! GET_STRAT_POX begins here!
       !=================================================================
-      !STT(I,J,L,N_STRAT) = STT(I,J,L,N_STRAT) + POx
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
+      STT(I,J,L,IDTOxStrt) = STT(I,J,L,IDTOxStrt) + POx
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC
@@ -301,23 +327,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_REGIONAL_POX( I, J, L, PP )
+      SUBROUTINE GET_REGIONAL_POX( I, J, L, PP, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : PBL
-      USE GRID_MOD,       ONLY : GET_XMID,  GET_YMID
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44, ND65, LD65
-      USE CMN_GCTM_MOD       ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44, ND65, LD65
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 !
 ! !INPUT PARAMETERS: 
 !
       ! GEOS-Chem grid box indices for lon, lat, alt
-      INTEGER, INTENT(IN)  :: I, J, L
+      INTEGER,        INTENT(IN)  :: I, J, L
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -328,7 +357,7 @@
 !  19 Aug 2003 - A. Fiore - Initial version
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
-!        Now references SCALE_HEIGHT from "F77_CMN_GCTM". (bmy, 1/15/04)
+!        Now references SCALE_HEIGHT from "CMN_GCTM". (bmy, 1/15/04)
 !  (3 ) Now uses model levels instead of pressure in order to delineate
 !        between PBL, MT, and UT regions (amf, rch, bmy, 5/27/04)
 !  (4 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f".  Now remove
@@ -338,6 +367,9 @@
 !  (7 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
 !  (8 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -362,7 +394,7 @@
       PP(I,J,L,:) = 0d0
       
       ! IS TROP is TRUE if we are in the troposphere
-      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L )
+      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L, State_Met )
       
       ! Skip stratospheric boxes
       IF ( .not. ITS_IN_TROP ) RETURN
@@ -373,18 +405,15 @@
       !=================================================================      
 
       ! Longitude [degrees]
-      X          = GET_XMID( I )   
-      Y          = GET_YMID( J )
+      X          = GET_XMID( I, J, L )   
+      Y          = GET_YMID( I, J, L )
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa
-#if   defined( GEOS_3 ) 
-      PBLTOP = 10
-      MTTOP  = 16
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
       PBLTOP = 5
       MTTOP  = 10
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       PBLTOP = 5
       MTTOP  = 10
 #endif
@@ -412,7 +441,8 @@
       !=================================================================
 
       ! P(Ox) [kg]
-      PPROD = P24H(I,J,L) * BOXVL(I,J,L) * ( GET_TS_CHEM() * 60d0 )
+      PPROD = P24H(I,J,L)     * BOXVL(I,J,L,State_Met) *
+     &        ( GET_TS_CHEM() * 60d0 )
 
       !-----------------------
       ! #1: Total P(Ox)
@@ -497,34 +527,45 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_OX 
+      SUBROUTINE CHEM_TAGGED_OX( am_I_Root, Input_Opt,
+     &                           State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DIAG_MOD,       ONLY : AD44
-      USE DIAG_PL_MOD,    ONLY : AD65
-      USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
-      USE DRYDEP_MOD,     ONLY : DEPSAV      
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LDRYD
-      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TIME_MOD,       ONLY : ITS_A_NEW_DAY 
-      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,     ONLY : STT
-      USE TRACER_MOD,     ONLY : N_TRACERS
-      USE TRACER_MOD,     ONLY : XNUMOL
-      USE TRACERID_MOD,   ONLY : IDTOX
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE LOGICAL_MOD,    ONLY : LNLPBL
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! ND44, ND65, LD65
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44
+      USE DIAG_PL_MOD,        ONLY : AD65
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE DRYDEP_MOD,         ONLY : DEPSAV      
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY 
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRACERID_MOD,       ONLY : IDTOX
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
       IMPLICIT NONE
-#     include "define.h"
-
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Hudman   - Initial version
@@ -548,6 +589,11 @@
 !  (9 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !  (10) Now only compute loss rate in troposphere (dbj, bmy, 10/26/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -564,6 +610,18 @@
       REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
       CHARACTER(LEN=16) :: STAMP
 
+      ! For fields from Input_Opt
+      LOGICAL           :: LDRYD
+      LOGICAL           :: LNLPBL
+      LOGICAL           :: LSPLIT
+      INTEGER           :: N_TRACERS
+      REAL*8            :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       ! External routines
       REAL*8, EXTERNAL :: BOXVL
 
@@ -571,12 +629,27 @@
       ! CHEM_TAGGED_OX begins here!
       !=================================================================
 
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      LDRYD     = Input_Opt%LDRYD
+      LNLPBL    = Input_Opt%LNLPBL
+      LSPLIT    = Input_Opt%LSPLIT
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! First-time initialization only
+      !%%% NOTE: Need to eventually move this to the init stage %%%
       IF ( FIRST ) THEN 
-         CALL INIT_TAGGED_OX
+         CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -639,15 +712,17 @@
 
             ! P(Ox) is a function of geographic & altitude location
             ! NOTE: We call this only when N==1 for optimal looping
-            IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP )
+            IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP,
+     &                                           State_Met   )
             
             ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
-            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
-               LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM
+            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
+               LL = STT(I,J,L,N)           * L24H(I,J,L) *
+     &              BOXVL(I,J,L,State_Met) * DTCHEM
             ELSE
                LL = 0.0d0
             ENDIF 
-                           
+
             !===========================================================
             ! ND65 diagnostic: Chemical prod/loss [kg/s]
             !===========================================================
@@ -656,13 +731,14 @@
                ! Only archive chemical production if this
                ! region has production to begin with [kg/s]
                IF ( PP(I,J,L,N) > 0d0 ) THEN
-                  PL            = P24H(I,J,L) * BOXVL(I,J,L)
+                  PL            = P24H(I,J,L) * BOXVL(I,J,L,State_Met)
                   AD65(I,J,L,N) = AD65(I,J,L,N) + PL
                ENDIF
 
                ! Archive loss for all tracers [kg/s]
-               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L)
+               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L,State_Met)
                AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
+
             ENDIF
 
             !===========================================================
@@ -703,8 +779,8 @@
                      IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
 
                         ! Convert from [kg] to [molec/cm2/s]
-                        FLUX = Ox_LOST         * XNUMOL(IDTOX) / 
-     &                         GET_AREA_CM2(J) / DTCHEM 
+                        FLUX = Ox_LOST             * XNUMOL(IDTOX) / 
+     &                         GET_AREA_CM2(I,J,L) / DTCHEM 
                      
                         ! Store dryd flx in ND44_TMP as a placeholder
                         ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
@@ -742,6 +818,9 @@
          ENDIF
       ENDDO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CHEM_TAGGED_OX
 !EOC
 !------------------------------------------------------------------------------
@@ -757,22 +836,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_OX
+      SUBROUTINE INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE TRACER_MOD, ONLY : N_TRACERS
-
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! ND44, ND65, LD65
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
 !  (1 ) Now reference N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now use LD65 instead of LLTROP to dimension P24H, L24H (phs, 11/18/08)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -785,8 +877,11 @@
       ! INIT_TAGGED_OX begins here
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Safety valve
-      IF ( N_TRACERS > N_TAGGED ) THEN
+      IF ( Input_Opt%N_TRACERS > N_TAGGED ) THEN
          CALL ERROR_STOP( 'NTRACE is too large for Tagged Ox!', 
      &                    'INIT_TAGGED_OX (tagged_ox_mod.f)' )
       ENDIF

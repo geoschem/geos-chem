@@ -17,42 +17,21 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
 !
+      !----------------------------------------------------------------
+      ! In the GEOS-5 GCM, the unit numbers cannot be PARAMETERs.
+      ! Instead,  use INQUIREs to find open LUNs at the point of 
+      ! request.  References to most IU_* variables have now been
+      ! made local.  IU_BPCH is the only LUN that needs to be seen
+      ! across several variables.
+      !----------------------------------------------------------------
+
       ! Logical file unit numbers for ...
-      INTEGER, PUBLIC, PARAMETER :: IU_RST     = 1   ! Tracer restart file
-      INTEGER, PUBLIC, PARAMETER :: IU_CHEMDAT = 7   ! "chem.dat" 
-      INTEGER, PUBLIC, PARAMETER :: IU_FASTJ   = 8   ! FAST-J input files
-      INTEGER, PUBLIC, PARAMETER :: IU_GEOS    = 10  ! "input.geos" 
-      INTEGER, PUBLIC, PARAMETER :: IU_BPCH    = 11  ! "ctm.bpch" 
-      INTEGER, PUBLIC, PARAMETER :: IU_ND20    = 12  ! "rate.YYYYMMDD"   
-      INTEGER, PUBLIC, PARAMETER :: IU_ND48    = 13  ! ND48 output
-      INTEGER, PUBLIC, PARAMETER :: IU_ND49    = 14  ! "tsYYYYMMDD.bpch" 
-      INTEGER, PUBLIC, PARAMETER :: IU_ND50    = 15  ! "ts24h.bpch"
-      INTEGER, PUBLIC, PARAMETER :: IU_ND51    = 16  ! "ts10_12am.bpch" etc.
-      INTEGER, PUBLIC, PARAMETER :: IU_ND51b   = 23  ! for ND51b diagnostic
-      INTEGER, PUBLIC, PARAMETER :: IU_ND52    = 17  ! ND52 output (NRT only)
-      INTEGER, PUBLIC, PARAMETER :: IU_PLANE   = 18  ! "plane.log"
-      INTEGER, PUBLIC, PARAMETER :: IU_BC      = 19  ! TPCORE BC files
-      INTEGER, PUBLIC, PARAMETER :: IU_BC_NA   = 20  ! TPCORE BC files: NA grid
-      INTEGER, PUBLIC, PARAMETER :: IU_BC_EU   = 21  ! TPCORE BC files: EU grid
-      INTEGER, PUBLIC, PARAMETER :: IU_BC_CH   = 22  ! TPCORE BC files: CH grid
-      INTEGER, PUBLIC, PARAMETER :: IU_FILE    = 65  ! Generic file
-      INTEGER, PUBLIC, PARAMETER :: IU_TP      = 69  ! "YYYYMMDD.tropp.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_PH      = 70  ! "YYYYMMDD.phis.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_I6      = 71  ! "YYYYMMDD.i6.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_A6      = 72  ! "YYYYMMDD.a6.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_A3      = 73  ! "YYYYMMDD.a3.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_A1      = 74  ! "YYYYMMDD.a1.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_GWET    = 75  ! "YYYYMMDD.gwet.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_XT      = 76  ! "YYYYMMDD.xtra.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_CN      = 77  ! "YYYYMMDD.cn.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_SMV2LOG = 93  ! "smv2.log"
-      INTEGER, PUBLIC, PARAMETER :: IU_DEBUG   = 98  ! Reserved for debugging
-      INTEGER, PUBLIC, PARAMETER :: IU_OAP     = 99  ! soaprod.YYYYMMDDhh
+      INTEGER, PUBLIC :: IU_BPCH      ! "ctm.bpch" 
+      INTEGER, PUBLIC :: IU_FILE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -94,6 +73,10 @@
 !  15 Mar 2010 - D. Henze    - Add IU_OAP for SOA restart file.  
 !  19 Aug 2010 - R. Yantosca - Added IU_CN and IU_A1 parameters for MERRA
 !  19 Aug 2010 - R. Yantosca - Remove IU_KZZ
+!  29 May 2010 - S. Kim      - Add IU_BC_SE for the SEAC4RS grid
+!  06 Aug 2012 - R. Yantosca - Remove several IU_* variables, as these have
+!                              now been moved to various other modules
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,14 +101,22 @@
 ! !USES:
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-#     include "define.h"                         ! C-preprocessor switches
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,          INTENT(IN) :: ERROR_NUM  ! I/O error from IOSTAT
       INTEGER,          INTENT(IN) :: UNIT       ! Logical unit # for file
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION   ! Descriptive message
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: "LINUX_IFORT" and "LINUX_PGI" ARE CURRENTLY THE ONLY       %%%
+!  %%%  SUPPORTED COMPILER OPTIONS.  MOST SYSTEMS NOW USE A UNIX VERSION %%%
+!  %%%  BASED ON LINUX, SO OTHER COMPILERS (IBM/AIX, SUN/SPARC, etc.)    %%%
+!  %%%  ARE GENERALLY NOT USED ANYMORE.  LEAVE THE OLDER CODE HERE JUST  %%%
+!  %%%  IN CASE WE NEED TO REVERT TO IT AGAIN IN THE FUTURE.             %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  (1 ) Now flush the standard output buffer before stopping.  
@@ -151,6 +142,7 @@
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Removed commented-out code for SGI, COMPAQ
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -260,10 +252,6 @@
 !
       FUNCTION FILE_EX_C( FILENAME ) RESULT( IT_EXISTS )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME   ! Name of file or dir to test
@@ -279,6 +267,7 @@
 !  23 Mar 2005 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Updated for LINUX/IFORT Intel v9 compiler
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -334,10 +323,6 @@
 !
       FUNCTION FILE_EX_I( IUNIT ) RESULT( IT_EXISTS )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !INPUT PARAMETERS: 
 !
       ! Arguments
@@ -353,6 +338,7 @@
 ! !REVISION HISTORY:
 !  23 Mar 2005 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -387,37 +373,12 @@
 !  18 Dec 2009 - Aaron van D - Now close files IU_BC_NA, IU_BC_EU, IU_BC_CH 
 !  19 Aug 2010 - R. Yantosca - Remove IU_KZZ  
 !  19 Aug 2010 - R. Yantosca - Now close IU_A1
+!  29 May 2010 - S. Kim      - Now close IU_BC_SE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      CLOSE( IU_RST     )
-      CLOSE( IU_CHEMDAT )
-      CLOSE( IU_FASTJ   )
-      CLOSE( IU_GEOS    )
       CLOSE( IU_BPCH    )
-      CLOSE( IU_ND20    )
-      CLOSE( IU_ND48    )
-      CLOSE( IU_ND49    )
-      CLOSE( IU_ND50    )
-      CLOSE( IU_ND51    )
-      CLOSE( IU_ND51b   )
-      CLOSE( IU_ND52    )
-      CLOSE( IU_PLANE   )
-      CLOSE( IU_BC      )
-      CLOSE( IU_BC_NA   )
-      CLOSE( IU_BC_EU   )
-      CLOSE( IU_BC_CH   )
       CLOSE( IU_FILE    )
-      CLOSE( IU_PH      )
-      CLOSE( IU_TP      )
-      CLOSE( IU_I6      )
-      CLOSE( IU_A6      )
-      CLOSE( IU_A3      )
-      CLOSE( IU_A1      )
-      CLOSE( IU_GWET    )
-      CLOSE( IU_XT      )
-      CLOSE( IU_SMV2LOG )
-      CLOSE( IU_DEBUG   )
 
       END SUBROUTINE CLOSE_FILES
 !EOC      

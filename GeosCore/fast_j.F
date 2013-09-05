@@ -24,38 +24,49 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
+      SUBROUTINE FAST_J( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T, CLDF
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GRID_MOD,     ONLY : GET_YMID
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
-      USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
-      USE TOMS_MOD,     ONLY : READ_TOMS
-
-#     include "define.h"
-
-      USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
-      USE CMN_SIZE_MOD, ONLY : NDUST, MAXIJ, NAER, NRH
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ     ! IPAR, JPAR, LPAR, F77_CMN_SIZE
-      USE JV_CMN_MOD, ONLY : ODMDUST, PJ, NB, ODAER
+      USE CMN_SIZE_MOD,       ONLY : IIPAR
+      USE CMN_SIZE_MOD,       ONLY : JJPAR
+      USE CMN_SIZE_MOD,       ONLY : LLPAR
+      USE CMN_SIZE_MOD,       ONLY : NDUST
+      USE CMN_SIZE_MOD,       ONLY : MAXIJ
+      USE CMN_SIZE_MOD,       ONLY : NAER
+      USE CMN_SIZE_MOD,       ONLY : NRH
+      USE CMN_FJ_MOD,         ONLY : JPMAX
+      USE CMN_FJ_MOD,         ONLY : JPPJ
+      USE JV_CMN_MOD,         ONLY : NB
+      USE JV_CMN_MOD,         ONLY : ODAER
+      USE JV_CMN_MOD,         ONLY : ODMDUST
+      USE JV_CMN_MOD,         ONLY : PJ
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_DAY
+      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
+      USE TIME_MOD,           ONLY : GET_TAU
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
 
       IMPLICIT NONE
-
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Cosine of solar zenith angle [unitless]
-      REAL*8, INTENT(IN)    :: SUNCOS(MAXIJ)   
+      ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root
 
-      ! Cloud optical depth [unitless]
-      REAL*8, INTENT(IN)    :: OD(LLPAR,IIPAR,JJPAR) 
-
-      ! UV albedo [unitless]
-      REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)    
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !
@@ -75,7 +86,7 @@
 !  (5 ) Add OPTDUST as a local variable -- make OPTDUST private for
 !        the parallel DO-loop, since it stores 1 column of aerosol optical
 !        depth for each dust type (bmy, rvm, 10/2/00)
-!  (6 ) For now, LPAR in "cmn_fj.h" = LGLOB in "F77_CMN_SIZE".  Therefore we 
+!  (6 ) For now, LPAR in "cmn_fj.h" = LGLOB in "CMN_SIZE".  Therefore we 
 !        assume that we are always doing global runs. (bmy, 10/2/00)
 !  (7 ) Removed obsolete code from 10/2/00 (bmy, 12/21/00)
 !  (8 ) Replace {IJL}GLOB w/ IIPAR,JJPAR,LLPAR everywhere.  Also YLMID(NLAT)
@@ -111,7 +122,19 @@
 !        in-cloud optical depths. (bmy, hyl, 10/24/08)
 !  (10) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Treat GEOS-5 in the same way as MERRA
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  06 Mar 2012 - R. Yantosca - Now call GET_OVERHEAD_O3 to get the total
+!                              overhead O3 column for FAST-J
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  27 Nov 2012 - R. Yantosca - Cosmetic changes
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid field
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -120,15 +143,15 @@
 !
       INTEGER, SAVE      :: LASTMONTH = -1
       INTEGER            :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
-      REAL*8             :: CSZA, PRES, SFCA, YLAT
+      REAL*8             :: CSZA, PRES, SFCA, YLAT,  O3COL
       REAL*8             :: TEMP(LLPAR), OPTD(LLPAR)
       REAL*8             :: OPTDUST(LLPAR,NDUST)
       REAL*8             :: OPTAER(LLPAR,NAER*NRH)
 
       ! Local variables for cloud overlap (hyl, phs)
-      INTEGER           :: NUMB, KK, I
+      INTEGER            :: NUMB, KK, I
       INTEGER            :: INDIC(LLPAR+1)
-      INTEGER            :: INDGEN(LLPAR+1) = (/ (i,i=1,LLPAR+1) /)
+      INTEGER            :: INDGEN(LLPAR+1)
       INTEGER            :: KBOT(LLPAR)
       INTEGER            :: KTOP(LLPAR)
       INTEGER            :: INDICATOR(LLPAR+2)
@@ -151,6 +174,20 @@
       ! FAST_J begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      IF ( FIRST ) THEN
+
+         DO i = 1,LLPAR+1
+            INDGEN(i) = i
+         ENDDO
+         FIRST = .FALSE.
+
+      ENDIF
+#endif
+
       ! Get day of year (0-365 or 0-366)
       DAY_OF_YR = GET_DAY_OF_YEAR()
 
@@ -160,12 +197,6 @@
       ! Get day of month
       DAY       = GET_DAY()
 
-      ! Read TOMS O3 columns if it's a new month
-      IF ( MONTH /= LASTMONTH ) THEN
-         CALL READ_TOMS( MONTH, GET_YEAR() )
-         LASTMONTH = MONTH
-      ENDIF
-
       !=================================================================
       ! For each (NLON,NLAT) location, call subroutine PHOTOJ (in a 
       ! parallel loop to compute J-values for the entire column.  
@@ -174,37 +205,48 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( NLON, NLAT,   YLAT,  CSZA,      OPTAER  )
-!$OMP+PRIVATE( PRES, TEMP,   OPTD,  SFCA,      OPTDUST )
-!$OMP+PRIVATE( FMAX, CLDF1D, KK,    NUMB,      L       )
-!$OMP+PRIVATE( KBOT, KTOP,   ODNEW, INDICATOR, INDIC   )
+!$OMP+PRIVATE( NLON,  NLAT,   YLAT,  CSZA,      OPTAER  )
+!$OMP+PRIVATE( PRES,  TEMP,   OPTD,  SFCA,      OPTDUST )
+!$OMP+PRIVATE( FMAX,  CLDF1D, KK,    NUMB,      L       )
+!$OMP+PRIVATE( KBOT,  KTOP,   ODNEW, INDICATOR, INDIC   )
+!$OMP+PRIVATE( O3COL                                    )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
       DO NLAT = 1, JJPAR
 
-         ! Grid box latitude [degrees]
-         YLAT = GET_YMID( NLAT )
-
          ! Loop over longitudes
          DO NLON = 1, IIPAR
 
-            ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
-            CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
+            ! Grid box latitude [degrees]
+            YLAT         = GET_YMID( NLON, NLAT, 1 )
 
-            ! Define the PJ array here (bmy, 11/16/07)
+            ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
+            CSZA         = State_Met%SUNCOSmid(NLON,NLAT)
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            ! Define the PJ array here, using GCM pressures
+            DO L = 1, LLPAR+1
+               PJ(L)     = State_Met%PEDGE( NLON, NLAT, L )
+            ENDDO
+#else
+            ! Define the PJ array here, using Ap and Bp from GEOS-Chem
             DO L = 1, NB
                PJ(L)     = GET_PEDGE( NLON, NLAT, L )
             ENDDO
+#endif
 
             ! Top edge of PJ is top of atmosphere (bmy, 2/13/07)
             PJ(NB+1)     = 0d0
 
             ! Temperature profile [K] at (NLON,NLAT)
-            TEMP         = T(NLON,NLAT,1:LLPAR)
+            TEMP         = State_Met%T(NLON,NLAT,1:LLPAR)
 
             ! Surface albedo [unitless] at (NLON,NLAT)
-            SFCA         = ALBD(NLON,NLAT)
+            SFCA         = State_Met%UVALBEDO(NLON,NLAT)
+
+            ! Overhead ozone column [DU] at (NLON, NLAT)
+            O3COL        = GET_OVERHEAD_O3( NLON, NLAT )
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
             OPTAER(:,:)  = ODAER(NLON,NLAT,:,:)
@@ -213,7 +255,7 @@
             OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
-            OPTD         = OD(1:LLPAR,NLON,NLAT)
+            OPTD         = State_Met%OPTD(1:LLPAR,NLON,NLAT)
 
             !-----------------------------------------------------------
             !### If you want to exclude aerosol OD, mineral dust OD,
@@ -232,10 +274,10 @@
             !===========================================================
             IF ( OVERLAP == 1 ) then
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
                ! Column cloud fraction (not less than zero)
-               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+               CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
@@ -248,9 +290,10 @@
 #endif
 
                ! Call FAST-J routines to compute J-values
-               CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR,  
-     &                      MONTH, DAY,  CSZA,    TEMP,    
-     &                      SFCA,  OPTD, OPTDUST, OPTAER )
+               CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR,  
+     &                      MONTH, DAY,      CSZA,    TEMP,    
+     &                      SFCA,  OPTD,     OPTDUST, OPTAER, 
+     &                      O3COL, am_I_Root                     )
 
             !===========================================================
             ! CLOUD OVERLAP : APPROXIMATE RANDOM OVERLAP
@@ -259,10 +302,10 @@
             ELSE IF ( OVERLAP == 2 ) THEN
 
                ! Column cloud fraction (not less than zero)
-               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+               CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                ! optical depth & cloud fractions regridded with RegridTau)
@@ -284,9 +327,10 @@
 #endif
 
                ! Call FAST-J routines to compute J-values
-               CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR,  
-     &                      MONTH, DAY,  CSZA,    TEMP,  
-     &                      SFCA,  OPTD, OPTDUST, OPTAER )
+               CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR,  
+     &                      MONTH, DAY,      CSZA,    TEMP,  
+     &                      SFCA,  OPTD,     OPTDUST, OPTAER,
+     &                      O3COL, am_I_Root                    )
 
             !===========================================================
             ! CLOUD OVERLAP : MAXIMUM RANDOM OVERLAP
@@ -326,7 +370,7 @@
                ! Initialize
                FMAX(:)   = 0d0  ! max cloud fraction in each cloud block
                ODNEW(:)  = 0d0  ! in-cloud optical depth
-               CLDF1D    = CLDF(1:LLPAR,NLON,NLAT)
+               CLDF1D    = State_Met%CLDF(1:LLPAR,NLON,NLAT)
                INDICATOR = 0
 
                ! set small negative CLDF or OPTD to zero. 
@@ -365,7 +409,7 @@
                   ! Max cloud fraction
                   FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
                   ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                   ! optical depth & cloud fractions regridded with RegridTau)
@@ -395,9 +439,10 @@
                SELECT CASE( NUMB ) 
            
                   CASE( 0,7: )
-                     CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR, 
-     &                            MONTH, DAY,  CSZA,    TEMP,  
-     &                            SFCA,  OPTD, OPTDUST, OPTAER )
+                     CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR, 
+     &                            MONTH, DAY,      CSZA,    TEMP,  
+     &                            SFCA,  OPTD,     OPTDUST, OPTAER,
+     &                            O3COL, am_I_Root                    )
 
                   CASE( 1:6 ) 
                      CALL MMRAN_16( NUMB,  NLON,  NLAT,      YLAT,   

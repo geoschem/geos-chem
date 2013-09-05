@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -44,6 +43,8 @@
 !  (6 ) Bug fix in GET_GLOBAL_O3 (bmy, 1/14/09)
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -73,8 +74,6 @@
 
       USE CMN_SIZE_MOD                      ! Size parameters
       IMPLICIT NONE
-#     include "define.h"
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -97,6 +96,8 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5 
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  19 Aug 2010 - R. Yantosca - Removed hardwiring of data directory
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,7 +122,7 @@
          FIRST = .FALSE.
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !----------------------------------------------------------------
       ! GEOS-5 or MERRA
@@ -129,9 +130,16 @@
 #if   defined( GRIDREDUCED )
 
       ! Filename for 47-level model
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to handle the nested-resolution file, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR )                           // 
+     &           'mercury_201203/MERGE.O3.47L.'             //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+#else
       FILENAME = TRIM( DATA_DIR )                           // 
      &           'sulfate_sim_200508/offline/MERGE.O3.47L.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+#endif
 
 #else
 

@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -39,6 +38,8 @@
 !  (3 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,6 +268,7 @@
 !        height in meters for GEOS-1, GEOS-STRAT, GEOS-3.  This eliminates an 
 !        overprediction of the PBL height. (swu, bmy, 11/6/03)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,7 +288,7 @@
       DO I = 1, IIPAR
 
          ! Local time
-         LT = GET_LOCALTIME( I )
+         LT = GET_LOCALTIME( I, 1, 1 )
    
          ! Find points between 12 and 16 GMT
          IF ( LT >= 12d0 .and. LT <= 16d0 ) THEN

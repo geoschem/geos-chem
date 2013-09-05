@@ -13,7 +13,7 @@
 # !REMARKS:
 # To build the documentation, call "make" with the following syntax:
 #
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #
 # To display a complete list of options, type "make help".
 #
@@ -32,6 +32,7 @@
 #  27 Aug 2010 - R. Yantosca - Brought up to date for newly documented code
 #  31 Aug 2010 - R. Yantosca - Add documentation for GTMM routines
 #  14 Sep 2010 - R. Yantosca - Now split make commands into include files
+#  20 Aug 2013 - R. Yantosca - Remove GeosTomas directory, that is obsolete
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -46,12 +47,12 @@ BIN     := $(ROOTDIR)/bin
 BPCH    := $(ROOTDIR)/GeosBpch
 CORE    := $(ROOTDIR)/GeosCore
 DOC     := $(ROOTDIR)/doc
+ESMF    := $(ROOTDIR)/ESMF
 GTMM    := $(ROOTDIR)/GTMM
 HDR     := $(ROOTDIR)/Headers
 HELP    := $(ROOTDIR)/help
 ISO     := $(ROOTDIR)/ISOROPIA
 KPP     := $(ROOTDIR)/KPP
-TOM     := $(ROOTDIR)/GeosTomas
 UTIL    := $(ROOTDIR)/GeosUtil
 
 # Get the Unix shell in SHELL from the Makefile_header.mk
@@ -61,9 +62,9 @@ include $(ROOTDIR)/Makefile_header.mk
 # Makefile targets
 #==============================================================================
 
-.PHONY: all docclean help
+.PHONY: doc docclean help
 
-all: srcdoc utildoc gtmmdoc makedoc
+doc: srcdoc utildoc gtmmdoc makedoc
 
 clean:
 	rm -f *.tex *.ps *.pdf

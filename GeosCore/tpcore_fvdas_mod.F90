@@ -127,8 +127,6 @@ MODULE Tpcore_FvDas_Mod
 ! !USES:
 ! 
   IMPLICIT NONE
-#     include "define.h"
-#     include "define.h"
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -198,6 +196,7 @@ MODULE Tpcore_FvDas_Mod
 !                             loops over vertical levels outside the 
 !                             horizontal transport routines for reducing
 !                             processing time.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 
@@ -434,12 +433,12 @@ CONTAINS
     REAL*8,  INTENT(IN)    :: bk(KM+1)              
 
     ! u-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL*8,  INTENT(IN)    :: u(IM,JFIRST:JLAST,KM) 
+    REAL*8,  INTENT(IN)    :: u(:,:,:)
 
     ! E/W and N/S mass fluxes [kg/s]
     ! (These are computed by the pressure fixer, and passed into TPCORE)
-    REAL*8,  INTENT(IN)    :: XMASS(IM,JM,KM)
-    REAL*8,  INTENT(IN)    :: YMASS(IM,JM,KM)
+    REAL*8,  INTENT(IN)    :: XMASS(:,:,:)
+    REAL*8,  INTENT(IN)    :: YMASS(:,:,:)
 
     ! Grid box surface area for mass flux diag [m2]
     REAL*8,  INTENT(IN)    :: AREA_M2(JM)        
@@ -457,7 +456,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! V-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL*8,  INTENT(INOUT) :: v(IM, JFIRST-MG:JLAST+MG, KM) 
+    REAL*8,  INTENT(INOUT) :: v(:,:,:)
 
     ! surface pressure at current time
     REAL*8,  INTENT(INOUT) :: ps1(IM, JFIRST:JLAST)  
@@ -466,13 +465,9 @@ CONTAINS
     REAL*8,  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
 
     ! Tracer "mixing ratios" [v/v]
-    REAL*8,  INTENT(INOUT) :: q(IM, JFIRST-NG:JLAST+NG, KM, NQ)  
+    REAL*8,  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
     ! E/W, N/S, and up/down diagnostic mass fluxes
-!--- Previous to (ccc, 12/3/09)
-!    REAL*8,  INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ)  ! for ND24 diagnostic
-!    REAL*8,  INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ)  ! for ND25 diagnostic
-!    REAL*8,  INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ)  ! for ND26 diagnostic 
     REAL*8,  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
     REAL*8,  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
     REAL*8,  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
@@ -487,21 +482,28 @@ CONTAINS
 !   John Tannahill, LLNL (jrt@llnl.gov)
 ! 
 ! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the 
-!                               loops over vertical levels outside the 
-!                               horizontal transport routines for reducing
-!                               processing time.
-!   03 Dec 2009 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and 
-!                               MASSFLUP to save memory space.
+!  05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
+!                              Yeh with the TPCORE routines from GMI model.
+!                              This eliminates the polar overshoot in the
+!                              stratosphere.
+!  05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                              Declare all REAL variables as REAL*8.  Also
+!                              make sure all numerical constants are declared
+!                              with the "D" double-precision exponent.  Added
+!                              OpenMP parallel DO loops.
+!  01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the
+!                              loops over vertical levels outside the
+!                              horizontal transport routines for reducing
+!                              processing time.
+!  03 Dec 2009 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and
+!                              MASSFLUP to save memory space.
+!  30 May 2013 - S. Farina   - For TOMAS, zero out UA and VA variables
+!  04 Jun 2013 - R. Yantosca - Use assumed-shape declarations for XMASS, YMASS,
+!                              U, V, and Q arrays.  These arrays are used to
+!                              pass pointer references, so this may help to
+!                              reduce the creation of array temporaries,
+!                              which will reduce memory.
+!   5 Jun 2013 - R. Yantosca - Avoid array temporary in call to FZPPM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -568,6 +570,9 @@ CONTAINS
     INTEGER, SAVE      :: ilmt, jlmt, klmt
     INTEGER            :: js2g0, jn2g0
     
+    ! Add pointer to avoid array temporary in call to FZPPM (bmy, 6/5/13)
+    REAL*8,  POINTER   :: ptr_Q(:,:,:)
+
     !     ----------------
     !     Begin execution.
     !     ----------------
@@ -575,7 +580,27 @@ CONTAINS
     ! Add definition of j1p and j2p for enlarge polar cap. (ccc, 11/20/08)
     j1p = 3
     j2p = jm - j1p + 1
-    
+
+#if defined( TOMAS )
+      !================================================================
+      ! For TOMAS microphysics: zero out UA and VA.
+      !
+      ! Segregate this block from the code with an #ifdef block.
+      ! We can't bring this into the standard GEOS-Chem yet, since
+      ! that will make it hard to compare benchmark results to prior
+      ! versions.  When we do bring this change into the standard code,
+      ! we will have to benchmark it. (sfarina, bmy, 5/30/13)
+      !================================================================
+      do ik= 1, km
+      do ij= 1, jm
+      do il= 1, im
+         va(il,ij,ik) = 0.D0
+         ua(il,ij,ik) = 0.D0
+      end do
+      end do
+      end do
+#endif
+
     ! Average surf. pressures in the polar cap. (ccc, 11/20/08)
     CALL Average_Press_Poles( area_m2, ps1, 1, im, 1, jm, 1, im, 1, jm )
     CALL Average_Press_Poles( area_m2, ps2, 1, im, 1, jm, 1, im, 1, jm )
@@ -744,7 +769,7 @@ CONTAINS
 !--------------------------------------------------------
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1 )
+!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q )
     do iq = 1, nq
 
        do ik = 1, km
@@ -860,14 +885,20 @@ CONTAINS
 
        qtemp(:,:,:,iq) = q(:,:,:,iq)
 
+       ! Set up temporary pointer to Q to avoid array temporary in FZPPM
+       ! (bmy, 6/5/13)
+       ptr_Q => q(:,:,:,iq)
 
      ! ==========
        call Fzppm  &
      ! ==========
-            (klmt, delp1, wz, dq1, q(:,:,:,iq), fz(:,:,:,iq), &
+            (klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), &
             j1p, 1, jm, 1, im, 1, jm, &
             im, km, 1, im, 1, jm, 1, km)
          
+       ! Free pointer memory (bmy, 6/5/13)
+       NULLIFY( ptr_Q )
+
        !.sds notes on output arrays
        !   wz  (in) : vertical mass flux
        !   dq1 (inout) : species density (mb)

@@ -31,6 +31,10 @@
 !        (Nov. 3, 2004) 
 !  \item Guenther, A., \emph{AEF for methyl butenol}, personal commucation. 
 !        (Nov, 2004)
+!  \item Sakulyanontvittaya, T., T. Duhl, C. Wiedinmyer, D. Helmig, S. 
+!        Matsunaga, M. Potosnak, J. Milford, and A. Guenther, \emph{Monoterpene
+!        and sesquiterpene emission estimates for the United States}, 
+!        \underline{Environ. Sci. Technol}, \textbf{42}, 1623-1629, 2008.
 !  \end{itemize}
 !
 ! !INTERFACE:
@@ -39,18 +43,17 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE CMN_GCTM_MOD                                 ! Physical constants
+      USE ERROR_MOD                                    ! Error trapping
 
-      USE CMN_SIZE_MOD                               ! Size parameters
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
-
 !
 ! !DEFINED PARAMETERS:
 ! 
       ! Scalars
-#if   defined( MERRA ) 
+#if   defined( MERRA ) || defined( GEOS_57 )
       INTEGER, PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
 #else
       INTEGER, PARAMETER  :: DAY_DIM        = 8        ! # of 3-hr periods/day
@@ -58,10 +61,15 @@
       INTEGER, PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
       REAL*8,  PARAMETER  :: WM2_TO_UMOLM2S = 4.766d0  ! W/m2 -> umol/m2/s
 
-      ! Some conversions factors (mpb,2009)
-      REAL*8, PARAMETER   :: D2RAD =  3.14159d0 /   180.0d0  ! Deg -> Radians
-      REAL*8, PARAMETER   :: RAD2D =    180.0d0 / 3.14159d0  ! Radians -> Deg
-      REAL*8, PARAMETER   :: PI    =  3.14159d0              ! PI
+      REAL*8, PARAMETER   :: D2RAD =  PI_180           ! Degrees to radians
+      REAL*8, PARAMETER   :: RAD2D =  1d0 / PI_180     ! Radians to degrees
+
+      ! SOAupdate: Megan group IDs (from MEGAN CDP) (hotp 3/1/10)
+      ! Used to locate species within EF and AEF_GEN arrays
+      INTEGER, PARAMETER  :: IDMGFARN = 10  ! farnesene
+      INTEGER, PARAMETER  :: IDMGBCAR = 11  ! beta-caryophyllene
+      INTEGER, PARAMETER  :: IDMGOSQT = 12  ! other sesquiterpenes
+      INTEGER, PARAMETER  :: IDMGOMTP = 9   ! other monoterpenes
 !
 ! !PRIVATE TYPES:
 !
@@ -96,11 +104,15 @@
       REAL*8, ALLOCATABLE :: AEF_MYRCN(:,:)     ! Myrcene
       REAL*8, ALLOCATABLE :: AEF_CAREN(:,:)     ! 3-Carene
       REAL*8, ALLOCATABLE :: AEF_OCIMN(:,:)     ! Ocimene
-      !evf, acetone update (5/24/2011)
       REAL*8, ALLOCATABLE :: AEF_ACET(:,:)      ! Acetone
+      REAL*8, ALLOCATABLE :: AEF_GEN(:,:,:)     ! Generic (all 20 MEGAN groups)
 
-      ! bug fix: causes issues in parallel (hotp 3/10/10) 
-      !REAL*8, ALLOCATABLE :: AEF_SPARE(:,:)     ! Temp array for monoterp's
+      ! SOAupdate: Plant functional types (hotp 2/26/10)
+      REAL*8, ALLOCATABLE :: PFT_BT(:,:)        ! broadleaf trees
+      REAL*8, ALLOCATABLE :: PFT_NT(:,:)        ! needleleaf trees
+      REAL*8, ALLOCATABLE :: PFT_SH(:,:)        ! shrubs
+      REAL*8, ALLOCATABLE :: PFT_GR(:,:)        ! grasses
+      REAL*8, ALLOCATABLE :: PFT_CR(:,:)        ! crops
 
       ! Path to MEGAN emission factors
       CHARACTER(LEN=20)   :: MEGAN_SUBDIR = 'MEGAN_200909/'
@@ -109,12 +121,12 @@
 !
       PUBLIC  :: ACTIVITY_FACTORS
       PUBLIC  :: CLEANUP_MEGAN
-      ! evf, acetone update (5/24/2011)
       PUBLIC  :: GET_EMACET_MEGAN    
       PUBLIC  :: GET_EMISOP_MEGAN  
       PUBLIC  :: GET_EMMBO_MEGAN    
-      PUBLIC  :: GET_EMMONOG_MEGAN 
-      PUBLIC  :: GET_EMMONOT_MEGAN 
+!     SOAudpate: renamed, includes SESQ (hotp 3/2/10)
+      PUBLIC  :: GET_EMTERP_MEGAN
+      PUBLIC  :: GET_EMMONOT_MEGAN
       PUBLIC  :: GET_AEF   
       PUBLIC  :: GET_AEF_05x0666        
       PUBLIC  :: INIT_MEGAN        
@@ -149,13 +161,23 @@
 !  09 Mar 2010 - R. Yantosca - Minor bug fix in GET_EMMONOT_MEGAN
 !  17 Mar 2010 - H. Pye      - AEF_SPARE must be a scalar local variable
 !                              in GET_EMMONOT_MEGAN for parallelization.
-!  20 Aug 2010 - R. Yantosca - Move F77_CMN_SIZE to top of module
+!  20 Aug 2010 - R. Yantosca - Move CMN_SIZE to top of module
 !  20 Aug 2010 - R. Yantosca - Now set DAY_DIM = 24 for MERRA, since the
 !                              surface temperature is now an hourly field.
 !  01 Sep 2010 - R. Yantosca - Bug fix in INIT_MEGAN: now only read in 
 !                              NUM_DAYS (instead of 15) days of sfc temp data
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids 
 !  06 Dec 2011 - E. Fischer  - Added Acetone emissions 
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Modifications for updated SOA sim (H. Pye):
+!                               Add sesquiterpenes to MEGAN group;
+!                               Add plant functional types (PFT_xx);
+!                               Rename GET_EMMONOG_MEGAN to GET_EMTERP_MEGAN;
+!                               Add routines READ_PFT and GET_AEF_GEN
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -180,22 +202,25 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J    ! GEOS-Chem lon & lat indices
-      REAL*8,  INTENT(IN) :: SUNCOS  ! Solar zenith angle [unitless]
-      REAL*8,  INTENT(IN) :: TS      ! Surface temperature [K]
-      REAL*8,  INTENT(IN) :: Q_DIR   ! Flux of direct PAR above canopy [W/m2]
-      REAL*8,  INTENT(IN) :: Q_DIFF  ! Flux of diffuse PAR above canopy [W/m2]
-      REAL*8,  INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
+      INTEGER, INTENT(IN) :: I, J     ! GEOS-Chem lon & lat indices
+      REAL*8,  INTENT(IN) :: SUNCOS   ! Solar zenith angle [unitless]
+      REAL*8,  INTENT(IN) :: TS       ! Surface temperature [K]
+      REAL*8,  INTENT(IN) :: Q_DIR    ! Flux of direct PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: Q_DIFF   ! Flux of diffuse PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: XNUMOL   ! Number of atoms C / kg C 
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: EMISOP  ! Isoprene emissions [atoms C/box]
+      REAL*8              :: EMISOP   ! Isoprene emissions [atoms C/box]
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -212,20 +237,22 @@
 !        carefully distinguished from TSKIN. (tmf, 11/20/04)
 !  (3 ) Restructing of function & implementation of activity factors (mpb,2009)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
+!  11 Apr 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: IJLOOP
-      REAL*8              :: GAMMA_LAI
-      REAL*8              :: GAMMA_LEAF_AGE
-      REAL*8              :: GAMMA_P
-      REAL*8              :: GAMMA_P_PECCA
-      REAL*8              :: GAMMA_T
-      REAL*8              :: GAMMA_SM
-      REAL*8              :: D_BTW_M, Q_DIR_2, Q_DIFF_2
+      INTEGER :: IJLOOP
+      REAL*8  :: GAMMA_LAI
+      REAL*8  :: GAMMA_LEAF_AGE
+      REAL*8  :: GAMMA_P
+      REAL*8  :: GAMMA_P_PECCA
+      REAL*8  :: GAMMA_T
+      REAL*8  :: GAMMA_SM
+      REAL*8  :: D_BTW_M, Q_DIR_2, Q_DIFF_2
             
       !=================================================================
       ! GET_EMISOP_MEGAN begins here!
@@ -331,8 +358,12 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 !
 ! !INPUT PARAMETERS: 
 !
@@ -362,19 +393,23 @@
 !        carefully distinguished from TSKIN. (tmf, 11/20/04)
 !  (3 ) Restructing of function & implementation of activity factors (mpb,2009)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8              :: GAMMA_LAI
-      REAL*8              :: GAMMA_LEAF_AGE
-      REAL*8              :: GAMMA_P
-      REAL*8              :: GAMMA_T
-      REAL*8              :: GAMMA_SM
-      REAL*8              :: D_BTW_M, Q_DIR_2, Q_DIFF_2
-      REAL*8, PARAMETER   :: BETA = 0.09
+      REAL*8            :: GAMMA_LAI
+      REAL*8            :: GAMMA_LEAF_AGE
+      REAL*8            :: GAMMA_P
+      REAL*8            :: GAMMA_T
+      REAL*8            :: GAMMA_SM
+      REAL*8            :: D_BTW_M, Q_DIR_2, Q_DIFF_2
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: BETA = 0.09
 
       !=================================================================
       ! GET_EMMBO_MEGAN begins here!
@@ -460,23 +495,28 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_emmonog_megan
+! !IROUTINE: get_emterp_megan
 !
-! !DESCRIPTION: Subroutine GET\_EMMONOG\_MEGAN computes generic ('G') 
-!  monoterpene emissions for individual monoterpene species in units of 
-!  [atoms C/box] using the new v2.1 MEGAN inventory emission factor maps.
+! !DESCRIPTION: Function GET\_EMTERP\_MEGAN computes monoterpene and
+!  sesquiterpene emissions for individual species in units of [atoms C/box]
+!  using the MEGAN v2.1 inventory.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_EMMONOG_MEGAN( I,     J,      SUNCOS, TS, 
-     &                            Q_DIR, Q_DIFF, XNUMOL, MONO_SPECIES ) 
-     &            RESULT( EMMONOT )
+      FUNCTION GET_EMTERP_MEGAN( I,     J,      SUNCOS, TS,
+     &                           Q_DIR, Q_DIFF, XNUMOL, TERP_SPECIES ) 
+     &            RESULT( EMTERP )
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
+
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -486,17 +526,19 @@
       REAL*8,           INTENT(IN) :: Q_DIR         ! Direct PAR [W/m2]
       REAL*8,           INTENT(IN) :: Q_DIFF        ! Diffuse PAR [W/m2]
       REAL*8,           INTENT(IN) :: XNUMOL        ! Number of atoms C / kg C 
-      CHARACTER(LEN=5), INTENT(IN) :: MONO_SPECIES  ! Monoterpene species name
+      CHARACTER(LEN=5), INTENT(IN) :: TERP_SPECIES  ! Terpene species name
 !
 ! !RETURN VALUE:
 !
-      REAL*8                       :: EMMONOT       ! Emissions [atoms C/box]
+      ! SOAupdate: Add terpene emissions
+      REAL*8                       :: EMTERP        ! Emissions [atoms C/box]
 !
 ! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995, 1999, 2004, 2006
 !  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
+!  (3 ) Sakulyanontvittaya et al, 2008
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by 
@@ -505,13 +547,12 @@
 !        calling of a new temperature algorithm which use a beta factor.
 !        (mpb,2008)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Renamed from GET_EMMONOG_MEGAN and added
+!                              sesquiterpenes (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !DEFINED PARAMETERS:
-!
-      REAL*8, PARAMETER :: BETA = 0.09
 !
 ! !LOCAL VARIABLES:
 !
@@ -524,16 +565,16 @@
       REAL*8            :: D_BTW_M
       REAL*8            :: LDF 
       REAL*8            :: Q_DIR_2, Q_DIFF_2
-      ! bug fix: need local AEF_SPARE (hotp 3/10/10)
-      ! AEF_SPARE is a scaler
-      REAL*8              :: AEF_SPARE
+      REAL*8            :: AEF_SPARE   ! Local AEF_SPARE
+      REAL*8            :: BETA        ! Value depends on the species
+      CHARACTER(LEN=4)  :: AGE_SPECIES ! Identify age param & pass to GAMMA_AGE
 
       !=================================================================
-      ! GET_EMMONOT_MEGAN begins here!
+      ! GET_EMTERP_MEGAN begins here!
       !================================================================= 
 
       ! Initialize return value & activity factors
-      EMMONOT         = 0.d0
+      EMTERP          = 0.d0
       GAMMA_T         = 0.d0
       GAMMA_LAI       = 0.d0
       GAMMA_LEAF_AGE  = 0.d0
@@ -550,39 +591,77 @@
 
       ! Need to determine which monoterpene AEFs 
       ! we need to use (mpb,2009)
-      SELECT CASE( MONO_SPECIES) 
+      ! SOAudpate: add BETA, AGE_SPECIES (hotp 7/29/10)
+      SELECT CASE( TERP_SPECIES )
       CASE( 'APINE' )
-         AEF_SPARE = AEF_APINE(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.1
+         AEF_SPARE      = AEF_APINE(I,J)
+         LDF            = 0.1
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'BPINE' )
-         AEF_SPARE = AEF_BPINE(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.1
+         AEF_SPARE      = AEF_BPINE(I,J)
+         LDF            = 0.1
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'LIMON' )
-         AEF_SPARE = AEF_LIMON(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.05
+         AEF_SPARE      = AEF_LIMON(I,J)
+         LDF            = 0.05
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'SABIN' )
-         AEF_SPARE = AEF_SABIN(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.1
+         AEF_SPARE      = AEF_SABIN(I,J)
+         LDF            = 0.1
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'MYRCN' )
-         AEF_SPARE = AEF_MYRCN(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.05
+         AEF_SPARE      = AEF_MYRCN(I,J)
+         LDF            = 0.05
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'CAREN' )
-         AEF_SPARE = AEF_CAREN(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.05
+         AEF_SPARE      = AEF_CAREN(I,J)
+         LDF            = 0.05
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
       CASE( 'OCIMN' )
-         AEF_SPARE = AEF_OCIMN(I,J) ! hotp add I,J (3/10/10)
-         LDF       = 0.8
+         AEF_SPARE      = AEF_OCIMN(I,J)
+         LDF            = 0.8
+         BETA           = 0.09
+         AGE_SPECIES    = 'MONO'
+      ! SOAupdate: add Sesquiterpenes (hotp 3/1/10)
+      ! Sesquiterpene LDF based on Sakulyanontvittaya 2008
+      ! beta from MEGANv2.04 (megan CDP)
+      ! make name 5 characters
+      CASE( 'FARNE' )
+         AEF_SPARE      = AEF_GEN(I,J,IDMGFARN)
+         LDF            = 0.5d0
+         BETA           = 0.17d0
+         AGE_SPECIES    = 'SESQ'
+      CASE( 'BCARE' )
+         AEF_SPARE      = AEF_GEN(I,J,IDMGBCAR)
+         LDF            = 0.5d0
+         BETA           = 0.17d0
+         AGE_SPECIES    = 'SESQ'
+      CASE( 'OSQTE' )
+         AEF_SPARE      = AEF_GEN(I,J,IDMGOSQT)
+         LDF            = 0.5d0
+         BETA           = 0.17d0
+         AGE_SPECIES    = 'SESQ'
+      ! Other monoterpenes (hotp 3/5/10)
+      CASE( 'OMTPE' )
+         AEF_SPARE      = AEF_GEN(I,J,IDMGOMTP)
+         LDF            = 0.1d0
+         BETA           = 0.1d0
+         AGE_SPECIES    = 'MONO'
       CASE DEFAULT
-         CALL ERROR_STOP( 'Invalid MONOTERPENE species', 
-     &                    'GET_EMMONOG_MEGAN (megan_mod.f)' )
+           CALL ERROR_STOP( 'Invalid TERPENE species', 
+     &                      'GET_EMTERP_MEGAN (megan_mod.f)' )
       END SELECT   
 
       !-----------------------------------------------------
       ! Only interested in terrestrial biosphere (pip)
       ! If (local LAI != 0 .AND. baseline emission !=0 ) 
       !-----------------------------------------------------
-      ! AEF_SPARE no longer I,J (hotp 3/10/10)
-      !IF ( ISOLAI(I,J) * AEF_SPARE(I,J) > 0d0 ) THEN
       IF ( ISOLAI(I,J) * AEF_SPARE > 0d0 ) THEN
 
             ! Calculate gamma PAR only if sunlight conditions
@@ -609,9 +688,10 @@
             GAMMA_LAI = GET_GAMMA_LAI( MISOLAI(I,J) )
 
             ! Activity factor for leaf age 
+            ! SOAudpate: Treat either mono- or sesq-terpenes (hotp 3/2/10)
             GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI(I,J), 
      &                                 PMISOLAI(I,J), D_BTW_M, 
-     &                                 'MONO', T_15_AVG(I,J) )
+     &                                 AGE_SPECIES, T_15_AVG(I,J) )
 
             ! Activity factor for temperature
             GAMMA_T = GET_GAMMA_T_NISOP( TS, BETA )
@@ -630,29 +710,26 @@
 
       END IF
     
-      ! Monoterpene emission is the product of all these; must be 
+      ! Terpene emission is the product of all these; must be 
       ! careful to distinguish between canopy & PECCA models.
       IF ( LPECCA ) THEN
-         ! removed I,J from AEF_SPARE (hotp 3/10/10)
-         !EMMONOT    = AEF_SPARE(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
-         EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-     &                               * GAMMA_SM       * GAMMA_LAI
-     &                       * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
+
+         EMTERP    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
+     &                         * GAMMA_SM       * GAMMA_LAI
+     &                         * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
 
       ELSE 
 
-         ! removed I,J from AEF_SPARE (hotp 3/10/10)
-         !EMMONOT    = AEF_SPARE(I,J) * GAMMA_LEAF_AGE * GAMMA_T
-         EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-     &                               * GAMMA_SM       
+         EMTERP    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
+     &                         * GAMMA_SM       
      &                * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
 
       END IF 
 
       ! Convert from [kg/box] to [atoms C/box]
-      EMMONOT  = EMMONOT * XNUMOL
+      EMTERP  = EMTERP * XNUMOL
 
-      END FUNCTION GET_EMMONOG_MEGAN
+      END FUNCTION GET_EMTERP_MEGAN 
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -673,10 +750,13 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE LOGICAL_MOD,   ONLY : LMEGAN                     ! Is MEGAN used?
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 !
 ! !INPUT PARAMETERS: 
 !
@@ -706,6 +786,8 @@
 !  24 May 2011 - E. Fischer  - Modified for acetone. Function GET_EMACET_MEGAN
 !                              is called from "acetone_mod.f"
 !  06 Dec 2011 - M. Payer    - Added ProTeX headers
+!  27 Mar 2012 - R. Yantosca - Avoid segfault errors if LMEGAN=.FALSE.
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -714,6 +796,7 @@
 !
       ! Fraction of emission that is light dependent (A. Guenther 5/25/2011)
       REAL*8, PARAMETER   :: LDF    = 0.20d0
+
       ! Temperature response factor for light-independent emissions
       ! (A. Guenther 5/25/2011)
       REAL*8, PARAMETER   :: BETA   = 0.10d0
@@ -740,6 +823,11 @@
       GAMMA_LEAF_AGE  = 1.d0
       GAMMA_P         = 0.d0
       GAMMA_SM        = 0.d0
+
+      ! For safety's sake: exit with EMACET=0d0 if MEGAN emissions
+      ! are turned off.  This prevents a segfault error caused by
+      ! trying to access unallocated arrays. (bmy, 3/27/12)
+      IF ( .not. LMEGAN ) RETURN
 
       ! Number of days between MISOLAI and PMISOLAI
       D_BTW_M  = DBLE( DAYS_BTW_M )
@@ -805,7 +893,8 @@
 
          ELSE
 
-            ! set activity factors to zero, except leaf age dependence for acetone
+            ! set activity factors to zero, 
+            ! except leaf age dependence for acetone
             GAMMA_T         = 0.d0
             GAMMA_LAI       = 0.d0
             GAMMA_LEAF_AGE  = 1.d0
@@ -818,13 +907,13 @@
       ! careful to distinguish between canopy & PECCA models.
       IF ( LPECCA ) THEN
 
-         EMACET    = AEF_ACET(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
+         EMACET   = AEF_ACET(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
      &            * GAMMA_SM       * GAMMA_LAI
      &            * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
 
       ELSE 
 
-         EMACET    = AEF_ACET(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
+         EMACET   = AEF_ACET(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
      &            * GAMMA_SM       
      &            * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
 
@@ -853,10 +942,6 @@
      &                            TS, Q_DIR, Q_DIFF, XNUMOL ) 
      &            RESULT( EMMONOT )
 !
-! !USES:
-!
-      USE LAI_MOD,    ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-!
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I, J      ! Lon & lat indices
@@ -881,18 +966,25 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  09 Mar 2010 - H.O.T. Pye  - Change order of arguments in call to 
 !                              routine GET_EMMONOG_MEGAN
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!
+      INTEGER, PARAMETER :: N = 7
+!
 ! !LOCAL VARIABLES:
 !
-      REAL*8                        :: MONO
-      INTEGER                       :: K 
-      INTEGER, PARAMETER            :: N = 7
-      CHARACTER(LEN=5),DIMENSION(7) :: SPECIES      
-      SPECIES = ( / 'APINE' , 'BPINE' , 'LIMON' , 'SABIN' , 'MYRCN' ,
-     &            'CAREN' , 'OCIMN' / )
+      ! Scalars
+      REAL*8             :: MONO
+      INTEGER            :: K 
+
+      ! Arrays
+      CHARACTER(LEN=5)   :: SPECIES(N) = (/ 'APINE', 'BPINE', 'LIMON', 
+     &                                      'SABIN', 'MYRCN', 'CAREN', 
+     &                                      'OCIMN'                   /)
 
       !=================================================================
       ! GET_EMMONOT_MEGAN begins here!
@@ -901,10 +993,15 @@
       ! Initialize
       EMMONOT = 0.d0
 
-      DO K = 1 , N
-         MONO = GET_EMMONOG_MEGAN( I , J , SUNCOS, TS , Q_DIR ,
-     &                             Q_DIFF , XNUMOL , SPECIES(K) ) 
+      ! Loop over all species
+      DO K = 1, N
 
+         ! GET_EMMONOG_MEGAN renamed SOAupdate (hotp 3/2/10)
+         MONO = GET_EMTERP_MEGAN( I,      J,         SUNCOS, 
+     &                            TS,     Q_DIR,     Q_DIFF,
+     &                            XNUMOL, SPECIES(K)         ) 
+
+         ! Compute overall total
          EMMONOT = EMMONOT + MONO
       ENDDO
 
@@ -932,8 +1029,12 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 !
 ! !INPUT PARAMETERS: 
 !
@@ -957,6 +1058,7 @@
 ! !REVISION HISTORY: 
 !  (1 ) Original code written by Michael Barkley (mpb,2009).
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1002,8 +1104,10 @@
                GAMMA_LAI = GET_GAMMA_LAI( MISOLAI(I,J) )
 
                ! Activity factor for light 
-               GAMMA_P = GET_GAMMA_P_PECCA( I, J, Q_DIR_2, Q_DIFF_2,
-     &                        PARDR_15_AVG(I,J), PARDF_15_AVG(I,J) )
+               GAMMA_P = GET_GAMMA_P_PECCA( I,       J, 
+     &                                      Q_DIR_2, Q_DIFF_2,
+     &                                      PARDR_15_AVG(I,J), 
+     &                                      PARDF_15_AVG(I,J)  )
             ELSE 
 
                ! Using a canopy model set this to 1
@@ -1011,14 +1115,16 @@
 
                ! Activity factor for light 
                GAMMA_P = GET_GAMMA_P( ISOLAI(I,J), SUNCOS,
-     &                                 Q_DIR_2, Q_DIFF_2 )
+     &                                Q_DIR_2,     Q_DIFF_2 )
  
             ENDIF
 
             ! Activity factor for leaf age 
             GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI(I,J), 
-     &                                 PMISOLAI(I,J), D_BTW_M, 
-     &                                'ISOP' , T_15_AVG(I,J) )
+     &                                           PMISOLAI(I,J), 
+     &                                           D_BTW_M, 
+     &                                           'ISOP' , 
+     &                                           T_15_AVG(I,J) )
          
             ! Activity factor for temperature
             GAMMA_T = GET_GAMMA_T_ISOP( TS, T_15_AVG(I,J), 
@@ -1064,8 +1170,6 @@
       USE TIME_MOD,   ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,   ONLY : GET_LOCALTIME
       USE GRID_MOD,   ONLY : GET_YMID  
-
-      USE CMN_GCTM_MOD   ! Physical constants (why?!)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1092,20 +1196,22 @@
 !  (2 ) Code was taken & adapted directly from the MEGAN v2.1 source code.
 !       (mpb,2009)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8              :: LUT , LAT 
-      REAL*8              :: mmPARDR_DAILY
-      REAL*8              :: mmPARDF_DAILY
-      REAL*8              :: PAC_DAILY, PAC_INSTANT, C_PPFD
-      REAL*8              :: PTOA, PHI
-      REAL*8              :: BETA,   SINbeta 
-      INTEGER             :: DOY 
-      REAL*8              :: AAA, BBB
+      REAL*8  :: LUT , LAT 
+      REAL*8  :: mmPARDR_DAILY
+      REAL*8  :: mmPARDF_DAILY
+      REAL*8  :: PAC_DAILY, PAC_INSTANT, C_PPFD
+      REAL*8  :: PTOA, PHI
+      REAL*8  :: BETA,   SINbeta 
+      INTEGER :: DOY 
+      REAL*8  :: AAA, BBB
 
       !-----------------------------------------------------------------
       ! Compute GAMMA_P_PECCA
@@ -1125,8 +1231,8 @@
 
       ! Get day of year, local-time and latitude
       DOY   = GET_DAY_OF_YEAR()
-      LUT   = GET_LOCALTIME( I )
-      LAT   = GET_YMID( J )
+      LUT   = GET_LOCALTIME( I, J, 1 )
+      LAT   = GET_YMID( I, J, 1 )
 
       ! Get solar elevation angle
       SINbeta      =  SOLAR_ANGLE( DOY , LUT , LAT  )
@@ -1180,10 +1286,6 @@
 !
       FUNCTION SOLAR_ANGLE( DOY, SHOUR, LAT ) RESULT( SINbeta )
 !
-! !USES:
-!
-
-!
 ! !INPUT PARAMETERS: 
 !
       ! Arguments
@@ -1209,9 +1311,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
-      REAL*8    :: BETA                 ! solar elevation angle
-      REAL*8    :: sindelta, cosdelta, A, B
+      REAL*8 :: BETA                        ! solar elevation angle
+      REAL*8 :: sindelta, cosdelta, A, B
 
       ! Calculation of sin beta 
       sindelta = -SIN( 0.40907d0 ) * 
@@ -1391,10 +1492,6 @@
 !
       FUNCTION GET_GAMMA_P( LAI, SUNCOS1, Q_DIR_2, Q_DIFF_2 ) 
      &              RESULT( GAMMA_P )
-!
-! !USES:
-!
-      USE CMN_GCTM_MOD   ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1605,7 +1702,7 @@
 ! !INTERFACE:
 !
       FUNCTION GET_GAMMA_LEAF_AGE( CMLAI, PMLAI, T, SPECIES, TT ) 
-     &            RESULT( GAMMA_LEAF_AGE )
+     &         RESULT( GAMMA_LEAF_AGE )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1644,6 +1741,7 @@
 !       all foilage fractions if ( CMLAI = PMLAI ). Also removed TG variable 
 !       as not now needed. (mpb,2000)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2013 - M. Sulprizio- Updated for sesquiterpenes (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1675,7 +1773,9 @@
       INTEGER            :: AINDX
  
       ! Use species specific relative emission activity factors (mpb,2008)
-      INTEGER, PARAMETER :: N_CAT = 4
+      !INTEGER, PARAMETER :: N_CAT = 4
+      ! SOAudpate: add sesq (hotp 3/2/10)
+      INTEGER, PARAMETER :: N_CAT = 5
       REAL*8             :: ANEW(N_CAT)
       REAL*8             :: AGRO(N_CAT)
       REAL*8             :: AMAT(N_CAT)
@@ -1694,13 +1794,20 @@
       ! Current set-up (v7-04-11) - used for other VOCs (OVOC)
       DATA    ANEW(  4),  AGRO(  4),  AMAT(  4),  ASEN(  4)
      &     /  0.01d0   ,  0.5d0    ,  1.00d0   ,  0.33d0     /
+      ! SOAupdate: Sesquiterpenes hotp 3/2/10
+      ! from MEGANv2.04/src/EMPROC/INCLDIR
+      DATA    ANEW(  5),  AGRO(  5),  AMAT(  5),  ASEN(  5)
+     &     /  0.4d0   ,  0.6d0    ,  1.075d0   ,  1.0d0     /
 
       ! Normalization factors
-      DATA   NORM_V(1) , NORM_V(2) , NORM_V(3) , NORM_V(4) 
+      ! SOAupdate: Sesq normalization factor added (hotp 3/16/2010)
+      ! NORM_V(5) = 1/( 0.1*0.6 + 0.1*1 + 0.8*1.075 )
+      DATA   NORM_V(1) , NORM_V(2) , NORM_V(3) , NORM_V(4), NORM_V(5) 
      &     /                 1.0d0 , ! Constant
      &       0.96153846153846145d0 , ! Monoterpenes
      &       0.94339622641509424d0 , ! Isoprene & MBO
-     &         1.132502831257078d0 / ! Other VOCs
+     &         1.132502831257078d0 , ! Other VOCs
+     &            0.980392156863d0 / ! Sesquiterpenes (hotp 3/2/10,3/16/10)
 
       !=================================================================
       ! GET_GAMMA_LEAF_AGE begins here!
@@ -1768,6 +1875,9 @@
          AINDX = 3
       CASE ('OVOC')
          AINDX = 4
+      ! SOAupdate: Sesquiterpenes (hotp 3/2/10)
+      CASE ('SESQ')
+         AINDX = 5
       CASE DEFAULT
            CALL ERROR_STOP( 'Invalid BVOC species', 
      &                      'GET_GAMMA_LEAF_AGE (megan_mod.f)' )
@@ -1852,10 +1962,9 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
 !
@@ -1871,17 +1980,27 @@
 !  (5 ) Uses new v2.1 emission factors maps for isoprene, MBO and 7 monoterpene
 !        species, download in 2009. (mpb,2009)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                 :: I, J, IJLOOP
-      REAL*4                  :: ARRAY(I1x1,J1x1,1)
-      REAL*8                  :: DTSRCE, AREA_M2, FACTOR
-      CHARACTER(LEN=255)      :: FILENAME
+      ! Scalars
+      INTEGER            :: I, J, IJLOOP
+      REAL*8             :: DTSRCE, AREA_M2, FACTOR
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=255) :: LLFILENAME
 
+      ! Arrays
+      REAL*4             :: ARRAY(I1x1,J1x1,1)
+      REAL*8             :: INGRID(I1x1,J1x1)
+      REAL*8             :: OUTGRID(IIPAR,JJPAR)
 
       ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       ! In MEGAN v2.1 the emission factors are expressed in units of:
@@ -1942,27 +2061,36 @@
      &                 0d0,       I1x1,      J1x1,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
-      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ISOP ) 
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
-      ! Loop over longitudes
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+      INGRID   = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      AEF_ISOP = OUTGRID
+
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
-       
+      DO I = 1, IIPAR
+
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2       = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
-         
- 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
+         FACTOR        = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+        
+         ! Convert AEF_ISOP To [kg C/box]
+         AEF_ISOP(I,J) = AEF_ISOP(I,J) * FACTOR * ISOP2CARBON
 
-            ! Convert AEF_ISOP To [kg C/box]
-            AEF_ISOP(I,J) = AEF_ISOP(I,J) * FACTOR * ISOP2CARBON
-
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !---------------------------------------------
       ! Read in MONOTERPENE Annual Emission Factors
@@ -1981,25 +2109,31 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MONOT ) 
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      AEF_MONOT = OUTGRID
 
-      ! Loop over longitudes
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area 
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR  = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
+         ! Convert AEF_MONOT to [kg C/box]
+         AEF_MONOT(I,J) = AEF_MONOT(I,J) * FACTOR * MONO2CARBON
 
-            ! Convert AEF_MONOT to [kg C/box]
-            AEF_MONOT(I,J) = AEF_MONOT(I,J) * FACTOR * MONO2CARBON
-
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !---------------------------------------------
       ! Read in MBO Annual Emission Factors
@@ -2018,25 +2152,31 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MBO ) 
+      INGRID  = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )      
+      AEF_MBO = OUTGRID
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2      = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR       = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_MBO(I,J) = AEF_MBO(I,J) * FACTOR * MBO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_MBO(I,J) = AEF_MBO(I,J) * FACTOR * MBO2CARBON
             
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !---------------------------------------------
       ! Read in Acetone Annual Emission Factors
@@ -2058,27 +2198,27 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ACET ) 
+      INGRID   = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      AEF_ACET = OUTGRID 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
-
+      DO I = 1, IIPAR
+            
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2       = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR        = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR
+          ! Convert AEF to [kg C/box/step]
+         AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR
             
-         ENDDO
       ENDDO
-
- 
+      ENDDO
 
       !---------------------------------------------
       ! Read in other VOC Annual Emission Factors
@@ -2097,31 +2237,37 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OVOC ) 
+      INGRID   = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      AEF_OVOC = OUTGRID
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2       = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR        = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_OVOC(I,J) = AEF_OVOC(I,J) * FACTOR
+         ! Convert AEF to [kg C/box/step]
+         AEF_OVOC(I,J) = AEF_OVOC(I,J) * FACTOR
             
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !--------------------------------------------------
       ! Read in other Monoterpene Annual Emission Factors
       !-------------------------------------------------
 
-      ! 1) Alpha Pinene (APIN) 
+      !%%%%% 1) Alpha Pinene (APIN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2136,27 +2282,33 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_APINE ) 
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      AEF_APINE = OUTGRID
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
-
+      DO I = 1, IIPAR
+            
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_APINE(I,J) = AEF_APINE(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_APINE(I,J) = AEF_APINE(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
-      ! 2) Beta Pinene (BPIN) 
+      !%%%%% 2) Beta Pinene (BPIN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2171,27 +2323,33 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_BPINE ) 
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      AEF_BPINE = OUTGRID
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_BPINE(I,J) = AEF_BPINE(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_BPINE(I,J) = AEF_BPINE(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
-      ! 3) Limonene (LIMON) 
+      !%%%%% 3) Limonene (LIMON) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2206,27 +2364,33 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_LIMON ) 
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      AEF_LIMON = OUTGRID
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_LIMON(I,J) = AEF_LIMON(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_LIMON(I,J) = AEF_LIMON(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
-      ! 4) Sabinene (SABIN) 
+      !%%%%% 4) Sabinene (SABIN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2241,27 +2405,33 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_SABIN ) 
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      AEF_SABIN = OUTGRID
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_SABIN(I,J) = AEF_SABIN(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_SABIN(I,J) = AEF_SABIN(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
-      ! 5) Myrcene (MYRCN) 
+      !%%%%% 5) Myrcene (MYRCN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2276,27 +2446,34 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MYRCN ) 
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
 
-      ! Loop over latitudes
+      AEF_MYRCN = OUTGRID
+
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_MYRCN(I,J) = AEF_MYRCN(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_MYRCN(I,J) = AEF_MYRCN(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
-      ! 6) 3-Carene (CAREN) 
+      !%%%%% 6) 3-Carene (CAREN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2311,27 +2488,33 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_CAREN ) 
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      AEF_CAREN = OUTGRID
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_CAREN(I,J) = AEF_CAREN(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_CAREN(I,J) = AEF_CAREN(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
-      ! 7) Ocimene (OCIMN) 
+      !%%%%% 7) Ocimene (OCIMN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2346,25 +2529,31 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OCIMN ) 
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      AEF_OCIMN = OUTGRID
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_OCIMN(I,J) = AEF_OCIMN(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_OCIMN(I,J) = AEF_OCIMN(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       END SUBROUTINE GET_AEF
 !EOC
@@ -2389,11 +2578,11 @@
 !
       USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
+
 !
 ! !REMARKS:
 !  Reference: (5 ) Guenther et al, 2004 
@@ -2402,6 +2591,13 @@
 !  (1) Specially constructed to read 0.5 x 0.666 nested grid data for the 
 !      GEOS-5 nested grid simulations. (yxw, dan, bmy, 11/6/08)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  02 Jul 2012 - R. Yantosca - Rename the input file latlon_nested.txt to 
+!                              latlon_geos05x0666.txt to avoid confusion
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Bug fix for regridding. Changed to PERAREA=0
+!                              since data is in ug C/m2/hr.
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2410,12 +2606,15 @@
 !
       INTEGER                 :: I, J, IJLOOP
       REAL*4                  :: ARRAY(I05x0666,J05x0666,1)
-      REAL*8                  :: GEOS_05x0666(I05x0666,J05x0666,1)  !(dan)
+      REAL*8, TARGET          :: GEOS_05x0666(I05x0666,J05x0666)  !(dan)
       REAL*8                  :: DTSRCE, AREA_M2, FACTOR
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
 
       !=================================================================
-      ! GET_AEF begins here!
+      ! GET_AEF_05x0666 begins here!
       !=================================================================
 
       ! Emission timestep [min]
@@ -2425,162 +2624,178 @@
       ! Read in ISOPRENE Annual Emission Factors
       !---------------------------------------------
 
-      ! 1x1 file name
-      FILENAME = TRIM( DATA_DIR ) //
-     &           'MEGAN_200510/MEGAN_AEF_ISOP.geos.05x0666'
+      ! Global 0.5 x 0.666 file name
+      FILENAME   = TRIM( DATA_DIR ) //
+     &             'MEGAN_200510/MEGAN_AEF_ISOP.geos.05x0666'
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1 ) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos05x0666.nc'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 100   FORMAT( '     - GET_AEF: Reading ', a )
 
-      ! Read data at 1x1 resolution [ug C/m2/hr] 
+      ! Read global data at 0.5 x 0.666 resolution [ug C/m2/hr] 
       CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
-     &                 0d0,       I05x0666,      J05x0666,
+     &                 0d0,       I05x0666,  J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
-         ! Cast to REAL*8 before regridding
-         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      ! Cast to REAL*8 before regridding
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
-      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1, 'ug C/m2/hr', GEOS_05x0666, AEF_ISOP )
+      ! Regrid from 0.5 x 0.666 global to the current nested grid
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+     &                    INGRID,     OUTGRID,  IS_MASS=0,
+     &                    netCDF=.TRUE.                    )
+      AEF_ISOP = OUTGRID
+      NULLIFY( INGRID )
 
-      ! Loop over longitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
          FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
+         ! Convert AEF_ISOP To [kg C/box]
+         AEF_ISOP(I,J) = AEF_ISOP(I,J) * FACTOR
 
-            ! Convert AEF_ISOP To [kg C/box]
-            AEF_ISOP(I,J) = AEF_ISOP(I,J) * FACTOR
-
-         ENDDO
+      ENDDO
       ENDDO
 
       !---------------------------------------------
       ! Read in MONOTERPENE Annual Emission Factors
       !---------------------------------------------
 
-      ! 1x1 file name
+      ! Global 0.5 x 0.666 file name
       FILENAME = TRIM( DATA_DIR ) //
      &           'MEGAN_200510/MEGAN_AEF_MTP.geos.05x0666'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data at 1x1 resolution [ug C/m2/hr]
+      ! Read data at 0.5 x 0.666 resolution [ug C/m2/hr]
       CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
-     &                 0d0,       I05x0666,      J05x0666,
+     &                 0d0,       I05x0666,  J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
-         ! Cast to REAL*8 before regridding
-         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      ! Cast to REAL*8 before regridding
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
-      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_MONOT )
+      ! Regrid from 0.5 x 0.666 to the current nested grid
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+     &                    INGRID,     OUTGRID,  IS_MASS=0,
+     &                    netCDF=.TRUE.                    )
+      AEF_MONOT = OUTGRID
+      NULLIFY( INGRID )
 
-      ! Loop over longitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area 
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
          FACTOR  = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
+         ! Convert AEF_MONOT to [kg C/box]
+         AEF_MONOT(I,J) = AEF_MONOT(I,J) * FACTOR
 
-            ! Convert AEF_MONOT to [kg C/box]
-            AEF_MONOT(I,J) = AEF_MONOT(I,J) * FACTOR
-
-         ENDDO
+      ENDDO
       ENDDO
 
       !---------------------------------------------
       ! Read in MBO Annual Emission Factors
       !---------------------------------------------
 
-      ! 1x1 file name
+      ! Global 0.5 x 0.666 file name
       FILENAME = TRIM( DATA_DIR ) //
      &           'MEGAN_200510/MEGAN_AEF_MBO.geos.05x0666'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data at 1x1 resolution [ug C/m2/hr]
+      ! Read data at 0.5 x 0.666 resolution [ug C/m2/hr]
       CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
      &                 0d0,       I05x0666,      J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 before regridding
-      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
 
-      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr',GEOS_05x0666, AEF_MBO )
+      ! Regrid from 0.5 x 0.666 global to the current nested grid
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+     &                    INGRID,     OUTGRID,  IS_MASS=0,
+     &                    netCDF=.TRUE.                    )
+      AEF_MBO = OUTGRID
+      NULLIFY( INGRID )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
          FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Convert AEF to [kg C/box/step]
+         AEF_MBO(I,J) = AEF_MBO(I,J) * FACTOR
 
-            ! Convert AEF to [kg C/box/step]
-            AEF_MBO(I,J) = AEF_MBO(I,J) * FACTOR
-
-         ENDDO
+      ENDDO
       ENDDO
 
       !---------------------------------------------
       ! Read in other VOC Annual Emission Factors
       !---------------------------------------------
 
-      ! 1x1 file name
+      ! Global 0.5 x 0.666 file name
       FILENAME = TRIM( DATA_DIR ) //
      &           'MEGAN_200510/MEGAN_AEF_MTP.geos.05x0666'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data at 1x1 resolution [ug C/m2/hr]
+      ! Read data at 0.5 x 0.666 resolution [ug C/m2/hr]
       CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
-     &                 0d0,       I05x0666,      J05x0666,
+     &                 0d0,       I05x0666,  J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 before regridding
-      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
-      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_OVOC )
+      ! Regrid from 0.5 x 0.666 global to the current nested grid
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+     &                    INGRID,     OUTGRID,  IS_MASS=0,
+     &                    netCDF=.TRUE.                    )
+      AEF_OVOC = OUTGRID
+      NULLIFY( INGRID )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
          FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Convert AEF to [kg C/box/step]
+         AEF_OVOC(I,J) = AEF_OVOC(I,J) * FACTOR
 
-            ! Convert AEF to [kg C/box/step]
-            AEF_OVOC(I,J) = AEF_OVOC(I,J) * FACTOR
-
-         ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE GET_AEF_05x0666
@@ -2599,11 +2814,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UPDATE_T_DAY
+      SUBROUTINE UPDATE_T_DAY( State_Met )
 !
 ! !USES:
 !
-      USE MEGANUT_MOD     ! We use all functions from the module
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE MEGANUT_MOD              ! We use all functions from the module
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
@@ -2612,6 +2832,8 @@
 !  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
 !        'a3_read_mod.f'. 
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2619,12 +2841,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: I, J, D
-
-!--- Moved all functions to module MEGANUT_MOD
-!      ! External functions
-!      REAL*8, EXTERNAL  :: XLTMMP
-!      REAL*8, EXTERNAL  :: XLPARDR ! (mpb,2009)
-!      REAL*8, EXTERNAL  :: XLPARDF ! (mpb,2009)
 
       !=================================================================
       ! UPDATE_T_DAY begins here!
@@ -2644,9 +2860,9 @@
          ENDDO
             
          ! Store 
-         T_DAY(I,J,1)     = XLTMMP(I,J)
-         PARDF_DAY(I,J,1) = XLPARDF(I,J)
-         PARDR_DAY(I,J,1) = XLPARDR(I,J)
+         T_DAY(I,J,1)     = XLTMMP ( I, J, State_Met%TS    )
+         PARDF_DAY(I,J,1) = XLPARDF( I, J, State_Met%PARDF )
+         PARDR_DAY(I,J,1) = XLPARDR( I, J, State_Met%PARDR )
 
       ENDDO
       ENDDO
@@ -2674,12 +2890,6 @@
 ! !INTERFACE:
 !
       SUBROUTINE UPDATE_T_15_AVG
-!
-! !USES:
-!
-      IMPLICIT NONE
-#     include "define.h"
-#     include "define.h"
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version
@@ -2759,6 +2969,340 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: read_pft
+!
+! !DESCRIPTION: Subroutine READ\_PFT reads the MEGAN v2.1 plant functional type
+!  coverage from file for year 2001. Regridding from 1x1 to the simulation
+!  resolution is also done here. (hotp 2/25/10)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_PFT
+!
+! !USES:
+!
+      USE BPCH2_MOD,      ONLY : READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+
+      USE CMN_SIZE_MOD         ! Size parameters
+!
+! !REMARKS:
+!  References:
+!  ============================================================================
+!  (1 ) MEGAN PFT data originally from:
+!       http://cdp.ucar.edu (search for MEGAN)
+!       MEGAN_V2.0/Input/NETCDF_30min/PFT/PFT21.tar
+!       PFT files dated 3 Feb 2009, downloaded 26 February 2010 by hotp
+!                                                                             .
+!  Notes:
+!  ============================================================================
+!  (1 ) From the MEGAN Community Data Portal Documentation:
+!       http://acd.ucar.edu/~guenther/MEGAN/MEGAN.htm
+!       PFT: fraction of a grid covered by a plant functional type for the year
+!       2001. The units are non-dimensional. Note that the PFTS do not
+!       necessarily add up to one since part of the grid may not have
+!       vegetation! (e.g. barren,rock, ice, water).
+!       Version 2.0 has 6 PFTs and is described in Guenther et al. 2006:
+!          BTR: broadleaf trees
+!          FTD: fineleaf deciduous trees
+!          FTE: fineleaf evergreen trees
+!          CRP: crops
+!          GRS: grass
+!          SHR: shrub
+!       This GEOS-Chem code actually uses v2.1.
+!       Version 2.1 combines FTD ands FTE into a single category (NTR=
+!       needleleaftrees) It is an input for determining PFT weighted emission
+!       factors PFT21 contains
+!          btr200121: fraction of grid covered by broadleaf trees
+!          ntr200121: fraction of grid covered by needleleaf trees
+!          grs200121: fraction of grid covered by grass
+!          crp200121: fraction of grid covered by crops
+!          shr200121: fraction of grid covered by shrubs
+!  (2 ) 30min x 30min netcdf files from the MEGAN CDP are regridded and
+!       converted from % to fraction and saved as geos 1x1 binary punch 
+!       files using make_pft.pro based on Dylan Millet's 
+!       make_aef_ald2.pro (hotp 2/25/10)
+!  (3 ) PFTs from file are in units of m2/m2 (unitless) (hotp 2/27/10)
+!
+! !REVISION HISTORY: 
+!  25 Feb 2010 - H.O.T. Pye  - Wrote original code
+!  13 Jul 2011 - M. Payer    - Added ProTeX headers
+!  13 Aug 2013 - M. Sulprizio- Now regrid using MAP_A2A algorithm
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*4                  :: ARRAY(I1x1,J1x1,1)
+      REAL*8                  :: INGRID(I1x1,J1x1)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+
+      !=================================================================
+      ! READ_PFT begins here!
+      !=================================================================
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
+
+      !------------------------------------------------
+      ! Fraction of grid box covered by Broadleaf Trees
+      !------------------------------------------------
+
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
+     &  TRIM( MEGAN_SUBDIR ) // 'MEGAN_PFT_BT.geos.1x1'
+
+      ! Echo info
+      WRITE( 6, 300 ) TRIM( FILENAME )
+300   FORMAT( '     - READ_PFT: Reading ', a )
+
+      ! Read data at 1x1 resolution [m2/m2] 
+      CALL READ_BPCH2( FILENAME, 'BIOGPFTS', 99,   
+     &                 0d0,       I1x1,      J1x1,     
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      PFT_BT = OUTGRID
+
+      !------------------------------------------------
+      ! Fraction of grid box covered by Needleleaf Trees
+      !------------------------------------------------
+
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
+     &  TRIM( MEGAN_SUBDIR ) // 'MEGAN_PFT_NT.geos.1x1'
+
+      ! Echo info
+      WRITE( 6, 300 ) TRIM( FILENAME )
+
+      ! Read data at 1x1 resolution [m2/m2] 
+      CALL READ_BPCH2( FILENAME, 'BIOGPFTS', 99,   
+     &                 0d0,       I1x1,      J1x1,     
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      PFT_NT = OUTGRID
+
+      !------------------------------------------------
+      ! Fraction of grid box covered by Shrubs
+      !------------------------------------------------
+
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
+     &  TRIM( MEGAN_SUBDIR ) // 'MEGAN_PFT_SH.geos.1x1'
+
+      ! Echo info
+      WRITE( 6, 300 ) TRIM( FILENAME )
+
+      ! Read data at 1x1 resolution [m2/m2] 
+      CALL READ_BPCH2( FILENAME, 'BIOGPFTS', 99,   
+     &                 0d0,       I1x1,      J1x1,     
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      PFT_SH = OUTGRID
+
+      !------------------------------------------------
+      ! Fraction of grid box covered by Grasses
+      !------------------------------------------------
+
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
+     &  TRIM( MEGAN_SUBDIR ) // 'MEGAN_PFT_GR.geos.1x1'
+
+      ! Echo info
+      WRITE( 6, 300 ) TRIM( FILENAME )
+
+      ! Read data at 1x1 resolution [m2/m2] 
+      CALL READ_BPCH2( FILENAME, 'BIOGPFTS', 99,   
+     &                 0d0,       I1x1,      J1x1,     
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      PFT_GR = OUTGRID
+
+      !------------------------------------------------
+      ! Fraction of grid box covered by Crops
+      !------------------------------------------------
+
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
+     &  TRIM( MEGAN_SUBDIR ) // 'MEGAN_PFT_CR.geos.1x1'
+
+      ! Echo info
+      WRITE( 6, 300 ) TRIM( FILENAME )
+
+      ! Read data at 1x1 resolution [m2/m2] 
+      CALL READ_BPCH2( FILENAME, 'BIOGPFTS', 99,   
+     &                 0d0,       I1x1,      J1x1,     
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                   )
+      PFT_CR = OUTGRID
+
+      ! Return to calling program
+      END SUBROUTINE READ_PFT 
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_aef_gen
+!
+! !DESCRIPTION: Subroutine GET\_AEF\_GEN creates AEFs for species without 
+!  global explicit georeferenced emission factor maps. This includes 
+!  sesquiterpenes (isoprene, MBO, and monoterpenes all have global AEF maps 
+!  available).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_AEF_GEN
+!
+! !USES:
+!
+      USE TIME_MOD,    ONLY : GET_TS_EMIS
+      USE GRID_MOD,    ONLY : GET_AREA_M2
+
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE EF_MGN20_MOD      ! EF_MGN20.EXT from MEGAN CDP, EFs
+!
+! !REMARKS:
+!  References:
+!  ============================================================================
+!  (1 ) MEGAN CDP: MEGAN EFs originally from:
+!       http://cdp.ucar.edu (search for MEGAN)
+!       MEGAN_v2.04/src/MECHCONV/INCDIR/EF_MGN20.EXT
+!       Files dated: 23 Aug 2007
+!
+!  Notes:
+!  ============================================================================
+!  (1 ) EFs are from EF_MGN20.EXT from the MEGAN CDP
+!
+! !REVISION HISTORY: 
+!  25 Feb 2010 - H.O.T. Pye  - Wrote original code
+!  13 Jul 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER              :: I, J, SPECIES
+      REAL*8               :: DTSRCE, AREA_M2, FACTOR
+      REAL*8               :: SPECIES2CARBON
+
+      !=================================================================
+      ! GET_AEF_GEN begins here!
+      !=================================================================
+
+      ! Calculation:
+      ! AEF = PFT (m2/m2) * EF (ug/m2/h) * FACTOR
+      ! FACTOR = ugC/ug * kgC/ugC * area (m2) * Emiss ts (hr)
+      ! AEF in kgC/box/emission timestep
+
+      ! Emission timestep [min]
+      DTSRCE = GET_TS_EMIS()
+
+      ! Loop over the 20 MEGAN groups
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( SPECIES, SPECIES2CARBON )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
+      DO SPECIES = 1, 20
+
+         ! Ratio of carbon mass to total compound mass [kgC/kg]
+         IF ( SPECIES == IDMGFARN ) THEN
+            SPECIES2CARBON = 15.d0 * 12.01d0 / 
+     &                       ( 15.d0 * 12.01d0 + 24.d0 * 1.01d0 )
+         ELSEIF( SPECIES == IDMGBCAR ) THEN
+            SPECIES2CARBON = 15.d0 * 12.01d0 / 
+     &                       ( 15.d0 * 12.01d0 + 24.d0 * 1.01d0 )
+         ELSEIF( SPECIES == IDMGOSQT ) THEN
+            SPECIES2CARBON = 15.d0 * 12.01d0 / 
+     &                       ( 15.d0 * 12.01d0 + 24.d0 * 1.01d0 )
+         ! Other monoterpenes (hotp 3/5/10)
+         ELSEIF( SPECIES == IDMGOMTP ) THEN
+            SPECIES2CARBON = 10.d0 * 12.01d0 /
+     &                       ( 10.d0 * 12.01d0 + 16.d0 * 1.01d0 )
+         ELSE 
+            ! species other than those listed above have not been
+            ! checked so let's zero them
+            SPECIES2CARBON = 0d0
+         ENDIF
+
+         ! Compute AEF and convert from [ug/m2/hr] to [kg C/box/timestep]
+         ! Loop over surface boxes
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Surface area 
+            AREA_M2 = GET_AREA_M2( I, J, 1 )
+  
+            ! Conversion factor from [ug/m2/hr] to [kgC/box/timestep]
+            FACTOR  = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0 *
+     &                   SPECIES2CARBON
+ 
+
+            ! Calculate AEF in [ug/m2/hr]
+            AEF_GEN( I, J, SPECIES ) =
+     &                        PFT_BT( I, J ) * EF_BT( SPECIES ) +
+     &                        PFT_NT( I, J ) * EF_NT( SPECIES ) +
+     &                        PFT_SH( I, J ) * EF_SB( SPECIES ) +
+     &                        PFT_GR( I, J ) * EF_HB( SPECIES ) +
+     &                        PFT_CR( I, J ) * EF_HB( SPECIES )
+
+            ! Convert AEF to [kg C/box/timestep]
+            AEF_GEN( I, J, SPECIES ) = AEF_GEN( I, J, SPECIES ) *
+     &                                 FACTOR 
+
+         ENDDO
+         ENDDO
+
+      ENDDO       ! species
+!$OMP END PARALLEL DO
+
+      ! Diagnostic info to log/screen
+      print*,'Annual Sesquiterpene Base AEFs [TgC/yr]:'
+      print*,'   FARN', 
+     & SUM(AEF_GEN(:,:,IDMGFARN))*1d-9*365d0*24d0*60d0/DTSRCE
+      print*,'   BCAR',
+     & SUM(AEF_GEN(:,:,IDMGBCAR))*1d-9*365d0*24d0*60d0/DTSRCE
+      print*,'   OSQT',
+     & SUM(AEF_GEN(:,:,IDMGOSQT))*1d-9*365d0*24d0*60d0/DTSRCE
+      print*,'   OMTP',
+     & SUM(AEF_GEN(:,:,IDMGOMTP))*1d-9*365d0*24d0*60d0/DTSRCE
+
+      ! Return to calling program
+      END SUBROUTINE GET_AEF_GEN
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: init_megan
 !
 ! !DESCRIPTION: Subroutine INIT\_MEGAN allocates and initializes all
@@ -2767,19 +3311,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MEGAN
+      SUBROUTINE INIT_MEGAN( Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE A3_READ_MOD
+      USE GEOS57_READ_MOD,    ONLY : GEOS57_READ_A1
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE inquireMod,         ONLY : findFreeLUN
       USE MERRA_A1_MOD
-      USE FILE_MOD,    ONLY : IU_A3
-      USE JULDAY_MOD,  ONLY : CALDATE
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LAI_MOD,     ONLY : INIT_LAI
-      USE LOGICAL_MOD, ONLY : LUNZIP
-      USE TIME_MOD,    ONLY : GET_FIRST_A3_TIME, GET_JD
-      USE TIME_MOD,    ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
+      USE JULDAY_MOD,         ONLY : CALDATE
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE TIME_MOD,           ONLY : GET_FIRST_A3_TIME
+      USE TIME_MOD,           ONLY : GET_JD
+      USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
+      USE TIME_MOD,           ONLY : YMD_EXTRACT
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
@@ -2792,6 +3347,14 @@
 !  07 Feb 2011 - R. Yantosca - Fix typos: make sure to zero out the proper 
 !                              PARDF_* and PARDR_* arrays after allocation
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids
+!  08 Feb 2012 - R. Yantosca - Now read surface temperature for GEOS-5.7.x
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Apr 2012 - R. Yantosca - Now remove the call to INIT_LAI; we shall 
+!                              initialize the LAI arrays from main.F
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  11 Apr 2013 - R. Yantosca - Now pass directory info with Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add modifications for sesquiterpenes and PFTs 
+!                              (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2799,7 +3362,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL              :: GCAP_LEAP
-      INTEGER              :: AS
+      INTEGER              :: AS,        IUNIT
       INTEGER              :: DATE_T15b(2)
       INTEGER              :: NYMD_T15b, NHMS_T15b, NYMD_T15, NHMS_T15
       INTEGER              :: I,         J,         G4AHEAD
@@ -2849,9 +3412,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_ACET' )
       AEF_ACET = 0d0
 
-
       ! New monoterpene species (mpb,2008)
-
       ALLOCATE( AEF_APINE( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_APINE' )
       AEF_APINE = 0d0
@@ -2880,10 +3441,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_OCIMN' )
       AEF_OCIMN = 0d0
 
-      ! AEF_SPARE no longer "global" to module (hotp 3/10/10)
-      !ALLOCATE( AEF_SPARE( IIPAR, JJPAR ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_SPARE' )
-      !AEF_SPARE = 0d0
+      ! SOAupdate: For all 20 MEGAN groups (hotp 2/27/10)
+      ALLOCATE( AEF_GEN( IIPAR, JJPAR, 20 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_GEN' )
+      AEF_GEN = 0d0
 
       ! Allocate arrays for light (mpb,2009)
 
@@ -2921,39 +3482,36 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_DAILY' )
       PARDF_DAILY = 0d0
 
-!------------------------------------------------------------------------------
-! Prior to 11/22/11:
-! Lin Zhang (linzhang@fas.harvard.edu) wrote:
-!
-! I want to bring up an error in the MEGAN biogenic emissions with the nested 
-! model in the latest versions (eg. v9-01-01).  The MEGAN emissions have been 
-! updated from MEGAN 2.0 to MEGAN 2.1 since v8-02-04 in the standard model 
-! with 4x5 or 2x2.5 resolution, however, they are not fully implemented in the 
-! nested model.  The nested model for allregions still uses some old annual 
-! emission factors (as we can see in the module megan_mod.f, subroutine 
-! GET_AEF vs. GET_AEF_05x0666).  This error would cause biogenic isoprene 
-! emissions (with MEGAN 2.1) over the US a factor of two higher in the nested 
-! NA model than that in the 2x2.5 model. It can also affect the CH and EU 
-! nested models.
-!
-! A quick fix can be implemented calling GET_AEF for both nested & global
-! grids.  In this case, the model would read the annual emission factors at 
-! 1x1 resolution and then regrid to the underlying resolution.
-!
-! Comment this out:
-!      ! Get annual emission factors for MEGAN inventory
-!#if   defined( GRID05x0666 )
-!      CALL GET_AEF_05x0666     ! GEOS-5 nested grids only
-!#else
-!      CALL GET_AEF             ! Global simulations
-!#endif 
-!------------------------------------------------------------------------------
+      ! SOAupdate: Array for PFT coverage (hotp 2/27/10)
+      ALLOCATE( PFT_BT( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_BT' )
+      PFT_BT = 0d0
+
+      ALLOCATE( PFT_NT( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_NT' )
+      PFT_NT = 0d0
+
+      ALLOCATE( PFT_SH( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_SH' )
+      PFT_SH = 0d0
+
+      ALLOCATE( PFT_GR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_GR' )
+      PFT_GR = 0d0
+
+      ALLOCATE( PFT_CR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_CR' )
+      PFT_CR = 0d0
+
+      ! SOAupdate: Read fractional coverage of PFTs from file (hotp 2/27/10)
+      CALL READ_PFT
 
       ! For global and nested simulations (lzh, bmy, 11/22/11)
       CALL GET_AEF
 
-      ! Initialize LAI arrays
-      CALL INIT_LAI
+      ! SOAupdate: Get annual emission factors for MEGAN inventory for species
+      ! without geospatial information (hotp 3/1/10)
+      CALL GET_AEF_GEN
 
       !=================================================================
       ! Read A3 fields for the 15 days before the start of the run
@@ -2970,16 +3528,10 @@
       ! Astronomical Julian Date of the A3 file at start of run
       JD_T15b   = GET_JD( NYMD_T15b, NHMS_T15b )
 
-#if   defined( GEOS_3 )
+#if   defined( MERRA ) || defined( GEOS_57 )
 
-      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
-      ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  
-      G4AHEAD   = 0
-
-#elif defined( MERRA )
-
-      ! For MERRA, the A1 fields are timestamped on the half-hours:
-      ! 00:30, 01:30, 02:30, ... 23:30
+      ! For MERRA and GEOS-5.7.x, the A1 fields are timestamped
+      ! on the half-hours: 00:30, 01:30, 02:30, ... 23:30
       G4AHEAD   = 003000
 
 #else
@@ -3016,8 +3568,8 @@
 #endif
 
       ! Remove any leftover A-3 files in temp dir (if necessary)
-      IF ( LUNZIP ) THEN
-         CALL UNZIP_A3_FIELDS( 'remove all' )
+      IF ( Input_Opt%LUNZIP ) THEN
+         CALL UNZIP_A3_FIELDS( Input_Opt, 'remove all' )
       ENDIF
 
       ! Loop over 15 days
@@ -3033,14 +3585,27 @@
          CALL CALDATE( JD_T15, NYMD_T15, NHMS_T15 )
 
          ! Unzip A-3 files for archving (if necessary)
-         IF ( LUNZIP ) THEN
-            CALL UNZIP_A3_FIELDS( 'unzip foreground', NYMD_T15 )
+         IF ( Input_Opt%LUNZIP ) THEN
+            CALL UNZIP_A3_FIELDS( Input_Opt, 
+     &                            'unzip foreground', 
+     &                            NYMD_T15             )
          ENDIF
 
          ! Loop over 3h periods during day
          DO J = 0, DAY_DIM-1  
 
-#if   defined( MERRA )
+#if   defined( GEOS_57 )
+
+            !-----------------------------
+            ! GEOS-5.7.x met fields
+            ! Sfc temp is hourly data
+            !-----------------------------
+            CALL GEOS57_READ_A1( NYMD_T15, 
+     &                           010000*J + G4AHEAD,
+     &                           Input_Opt, 
+     &                           State_Met           ) 
+
+#elif   defined( MERRA )
 
             !-----------------------------
             ! MERRA met fields
@@ -3048,10 +3613,15 @@
             !-----------------------------
 
             ! Open A1 fields
-            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 010000*J + G4AHEAD )
+            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 
+     &                                 010000*J + G4AHEAD,
+     &                                 Input_Opt, 
+     &                                 IUNIT=IUNIT         )
 
             ! Read A1 fields from disk
-            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
+            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 
+     &                                 010000*J + G4AHEAD,
+     &                                 State_Met           ) 
 
 #else
             !-----------------------------
@@ -3060,33 +3630,42 @@
             !-----------------------------
 
             ! Open A3 fields
-            CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD )
+            CALL OPEN_A3_FIELDS( NYMD_T15, 
+     &                           030000*J + G4AHEAD,
+     &                           Input_Opt,  
+     &                           IUNIT=IUNIT         )
 
             ! Read A3 fields from disk
-            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD ) 
+            CALL GET_A3_FIELDS(  NYMD_T15, 
+     &                           030000*J + G4AHEAD, 
+     &                           State_Met           ) 
 
 #endif
 
             ! Update hourly temperatures
-            CALL UPDATE_T_DAY
+            CALL UPDATE_T_DAY( State_Met )
          ENDDO     
 
          ! Compute 15-day average temperatures
          CALL UPDATE_T_15_AVG
 
          ! Remove A-3 file from temp dir (if necessary)
-         IF ( LUNZIP ) THEN
-            CALL UNZIP_A3_FIELDS( 'remove date', NYMD_T15 )
+         IF ( Input_Opt%LUNZIP ) THEN
+            CALL UNZIP_A3_FIELDS( Input_Opt, 
+     &                            'remove date', 
+     &                            NYMD_T15       )
          ENDIF
 
       ENDDO
 
-      ! Close the A-3 file
-      CLOSE( IU_A3 )
+#if   !defined( GEOS_57 ) 
+      ! Close any open files
+      CLOSE( IUNIT )
+#endif
 
       ! Remove any leftover A-3 files in temp dir
-      IF ( LUNZIP ) THEN
-         CALL UNZIP_A3_FIELDS(  'remove all' )
+      IF ( Input_Opt%LUNZIP ) THEN
+         CALL UNZIP_A3_FIELDS( Input_Opt, 'remove all' )
       ENDIF
 
       END SUBROUTINE INIT_MEGAN
@@ -3108,6 +3687,8 @@
 ! 
 ! !REVISION HISTORY: 
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2013 - M. Sulprizio- Add modifications for sesquiterpenes and PFTs
+!                              (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3115,34 +3696,38 @@
       ! CLEANUP_MEGAN begins here!
       !=================================================================
 
-      IF ( ALLOCATED( T_DAY         ) ) DEALLOCATE( T_DAY         )
-      IF ( ALLOCATED( T_15          ) ) DEALLOCATE( T_15          )
-      IF ( ALLOCATED( T_15_AVG      ) ) DEALLOCATE( T_15_AVG      )
-      IF ( ALLOCATED( T_DAILY       ) ) DEALLOCATE( T_DAILY       )
-      IF ( ALLOCATED( PARDR_DAY     ) ) DEALLOCATE( PARDR_DAY     )
-      IF ( ALLOCATED( PARDR_15      ) ) DEALLOCATE( PARDR_15      )
-      IF ( ALLOCATED( PARDR_15_AVG  ) ) DEALLOCATE( PARDR_15_AVG  )
-      IF ( ALLOCATED( PARDR_DAILY   ) ) DEALLOCATE( PARDR_DAILY   )
-      IF ( ALLOCATED( PARDF_DAY     ) ) DEALLOCATE( PARDF_DAY     )
-      IF ( ALLOCATED( PARDF_15      ) ) DEALLOCATE( PARDF_15      )
-      IF ( ALLOCATED( PARDF_15_AVG  ) ) DEALLOCATE( PARDF_15_AVG  )
-      IF ( ALLOCATED( PARDF_DAILY   ) ) DEALLOCATE( PARDF_DAILY   )
-
-      IF ( ALLOCATED( AEF_ISOP  ) ) DEALLOCATE( AEF_ISOP  )
-      IF ( ALLOCATED( AEF_MONOT ) ) DEALLOCATE( AEF_MONOT )
-      IF ( ALLOCATED( AEF_MBO   ) ) DEALLOCATE( AEF_MBO   )
-      IF ( ALLOCATED( AEF_OVOC  ) ) DEALLOCATE( AEF_OVOC  )
-      ! evf, acetone update (5/24/2011):
-      IF ( ALLOCATED( AEF_ACET  ) ) DEALLOCATE( AEF_ACET  )
-      IF ( ALLOCATED( AEF_APINE ) ) DEALLOCATE( AEF_APINE )
-      IF ( ALLOCATED( AEF_BPINE ) ) DEALLOCATE( AEF_BPINE )
-      IF ( ALLOCATED( AEF_LIMON ) ) DEALLOCATE( AEF_LIMON )
-      IF ( ALLOCATED( AEF_SABIN ) ) DEALLOCATE( AEF_SABIN )
-      IF ( ALLOCATED( AEF_MYRCN ) ) DEALLOCATE( AEF_MYRCN )
-      IF ( ALLOCATED( AEF_CAREN ) ) DEALLOCATE( AEF_CAREN )
-      IF ( ALLOCATED( AEF_OCIMN ) ) DEALLOCATE( AEF_OCIMN )
-      ! bug fix (hotp 3/10/10)
-      !IF ( ALLOCATED( AEF_SPARE ) ) DEALLOCATE( AEF_SPARE )
+      IF ( ALLOCATED( T_DAY        ) ) DEALLOCATE( T_DAY        )
+      IF ( ALLOCATED( T_15         ) ) DEALLOCATE( T_15         )
+      IF ( ALLOCATED( T_15_AVG     ) ) DEALLOCATE( T_15_AVG     )
+      IF ( ALLOCATED( T_DAILY      ) ) DEALLOCATE( T_DAILY      )
+      IF ( ALLOCATED( PARDR_DAY    ) ) DEALLOCATE( PARDR_DAY    )
+      IF ( ALLOCATED( PARDR_15     ) ) DEALLOCATE( PARDR_15     )
+      IF ( ALLOCATED( PARDR_15_AVG ) ) DEALLOCATE( PARDR_15_AVG )
+      IF ( ALLOCATED( PARDR_DAILY  ) ) DEALLOCATE( PARDR_DAILY  )
+      IF ( ALLOCATED( PARDF_DAY    ) ) DEALLOCATE( PARDF_DAY    )
+      IF ( ALLOCATED( PARDF_15     ) ) DEALLOCATE( PARDF_15     )
+      IF ( ALLOCATED( PARDF_15_AVG ) ) DEALLOCATE( PARDF_15_AVG )
+      IF ( ALLOCATED( PARDF_DAILY  ) ) DEALLOCATE( PARDF_DAILY  )
+      IF ( ALLOCATED( AEF_ISOP     ) ) DEALLOCATE( AEF_ISOP     )
+      IF ( ALLOCATED( AEF_MONOT    ) ) DEALLOCATE( AEF_MONOT    )
+      IF ( ALLOCATED( AEF_MBO      ) ) DEALLOCATE( AEF_MBO      )
+      IF ( ALLOCATED( AEF_OVOC     ) ) DEALLOCATE( AEF_OVOC     )
+      IF ( ALLOCATED( AEF_ACET     ) ) DEALLOCATE( AEF_ACET     )
+      IF ( ALLOCATED( AEF_APINE    ) ) DEALLOCATE( AEF_APINE    )
+      IF ( ALLOCATED( AEF_BPINE    ) ) DEALLOCATE( AEF_BPINE    )
+      IF ( ALLOCATED( AEF_LIMON    ) ) DEALLOCATE( AEF_LIMON    )
+      IF ( ALLOCATED( AEF_SABIN    ) ) DEALLOCATE( AEF_SABIN    )
+      IF ( ALLOCATED( AEF_MYRCN    ) ) DEALLOCATE( AEF_MYRCN    )
+      IF ( ALLOCATED( AEF_CAREN    ) ) DEALLOCATE( AEF_CAREN    )
+      IF ( ALLOCATED( AEF_OCIMN    ) ) DEALLOCATE( AEF_OCIMN    )
+      ! SOAupdate: add AEF_GEN (hotp 2/27/10)
+      IF ( ALLOCATED( AEF_GEN      ) ) DEALLOCATE( AEF_GEN      )
+      ! PFT coverage arrays (hotp 2/27/10)
+      IF ( ALLOCATED( PFT_BT       ) ) DEALLOCATE( PFT_BT       )
+      IF ( ALLOCATED( PFT_NT       ) ) DEALLOCATE( PFT_NT       )
+      IF ( ALLOCATED( PFT_SH       ) ) DEALLOCATE( PFT_SH       )
+      IF ( ALLOCATED( PFT_GR       ) ) DEALLOCATE( PFT_GR       )
+      IF ( ALLOCATED( PFT_CR       ) ) DEALLOCATE( PFT_CR       )
 
       END SUBROUTINE CLEANUP_MEGAN
 !EOC

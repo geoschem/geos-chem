@@ -12,39 +12,26 @@
 !\\
 ! !INTERFACE:
 !
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! SUNCOS is no longer used in RURALBOX, we can remove it (bmy, 10/5/11)
-!      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
-!------------------------------------------------------------------------------
-      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD )
+      SUBROUTINE RURALBOX( State_Met )
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS,  IXSAVE, IYSAVE
-      USE COMODE_MOD,     ONLY : IZSAVE, JLOP,     PRESS3, T3,  VOLUME 
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER,      GET_PEDGE
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
-
-#     include "define.h"
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE COMODE_LOOP_MOD       ! NPVERT
+      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE
+      USE COMODE_MOD,         ONLY : IZSAVE, JLOP
+      USE COMODE_MOD,         ONLY : PRESS3, T3,       VOLUME 
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER,      GET_PEDGE
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! NPVERT
 
       IMPLICIT NONE
 
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN) :: AD(IIPAR,JJPAR,LLPAR)     ! Air mass [kg]
-      REAL*8,  INTENT(IN) :: T(IIPAR,JJPAR,LLPAR)      ! Temperature [K]
-      REAL*8,  INTENT(IN) :: AVGW(IIPAR,JJPAR,LLPAR)   ! Mix rat. of H2O [v/v]
-      REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)         ! Sfc albedo [unitless]
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! SUNCOS is no longer used in RURALBOX, we can remove it (bmy, 10/5/11)
-!      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)             ! Cos of SZA [unitless]
-!------------------------------------------------------------------------------
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Developers: amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 2/25/10)
@@ -52,12 +39,12 @@
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version
 !  (1 ) Remove PTOP from the arg list.  PTOP is now a parameter
-!        in "F77_CMN_SIZE". (bmy, 2/10/00)
+!        in "CMN_SIZE". (bmy, 2/10/00)
 !  (2 ) Add C-preprocessor switch LSLOWJ to bracket code for 
 !        SLOW-J photolysis (bmy, 2/25/00)
 !  (3 ) Now reference ABHSUM, AIRDENS, IXSAVE, IYSAVE, IZSAVE, JLOP, PRESS3, 
 !        T3, and VOLUME from F90 module "comode_mod.f" (bmy, 10/19/00)
-!  (4 ) PTOP is already a parameter in "F77_CMN_SIZE", don't declare it here
+!  (4 ) PTOP is already a parameter in "CMN_SIZE", don't declare it here
 !        (bmy, 7/16/01)
 !  (5 ) Replace IGCMPAR,JGCMPAR,LGCMPAR with IIPAR,JJPAR,LLPAR.  Also moved
 !        CLOUDREF to SLOW-J block.  Also remove IREF, JREF, IOFF, JOFF, these
@@ -80,6 +67,9 @@
 !  (14) Remove ALT and CLOUDS from arg list -- they are obsolete (bmy, 4/10/06)
 !  (15) Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
 !  10 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -88,7 +78,9 @@
 !
       LOGICAL                 :: LDEBUG
       INTEGER                 :: I, J, L, JLOOP, IJLOOP
-
+#if defined( DEVEL )
+      INTEGER                 :: TMP_LEV
+#endif
       ! External functions
       REAL*8,  EXTERNAL       :: BOXVL
 
@@ -107,7 +99,16 @@
       NTLOOPNCS = 0
 
       ! Loop over vertical levels (max = LLTROP) 
+#if defined( DEVEL )
+      IF (NVERT .gt. LLPAR) THEN
+         TMP_LEV = LLPAR
+      ELSE
+         TMP_LEV = NVERT
+      ENDIF
+      DO L = 1, TMP_LEV
+#else
       DO L = 1, NVERT
+#endif
 
          ! Loop over surface grid boxes
          DO J = 1, NLAT
@@ -121,7 +122,7 @@
                !=======================================================
                ! Skip over strat boxes
                !=======================================================
-               IF ( ITS_IN_THE_STRAT( I, J, L ) ) GOTO 40
+               IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) GOTO 40
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -148,7 +149,7 @@
                JLOOP          = JLOOP + 1
                JLOP(I,J,L)    = JLOOP
 
-               IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+               IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
 
                   ! Tropospheric boxes go into the SMVGEAR II "URBAN" slot
                   NTLOOPNCS(NCSURBAN) = NTLOOPNCS(NCSURBAN) + 1
@@ -181,20 +182,21 @@
             IZSAVE(JLOOP)  = L                              
 
             ! get box volume [cm3]
-            VOLUME(JLOOP)  = BOXVL(I, J, L)
+            VOLUME(JLOOP)  = BOXVL( I, J, L, State_Met )
 
             ! get air density in (molecs cm^-3)
-            AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/VOLUME(JLOOP)*AVG/WTAIR
+            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.d0 / 
+     &                       VOLUME(JLOOP) * AVG / WTAIR
 
             ! get temperature
-            T3(JLOOP)      = T(I,J,L)
+            T3(JLOOP)      = State_Met%T(I,J,L)
 
             ! PRESS3 = pressure in bar, multiply mb * 1000
-            PRESS3(JLOOP) = GET_PCENTER(I,J,L) * 1000d0
+            PRESS3(JLOOP)  = GET_PCENTER(I,J,L) * 1000d0
 
             ! Get relative humidity (here is absolute #H2O/cc air)
             ! AVGW is the mixing ratio of water vapor [v/v]
-            ABSHUM(JLOOP) = AVGW(I,J,L) * AIRDENS(JLOOP)
+            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L) * AIRDENS(JLOOP)
 
             ! Go to next I
  40         CONTINUE           

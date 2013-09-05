@@ -16,26 +16,27 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: CLEANUP_TROPOPAUSE
-      PUBLIC  :: CHECK_VAR_TROP
-      PUBLIC  :: COPY_FULL_TROP
-      PUBLIC  :: DIAG_TROPOPAUSE
-      PUBLIC  :: GET_MIN_TPAUSE_LEVEL
-      PUBLIC  :: GET_MAX_TPAUSE_LEVEL
-      PUBLIC  :: GET_TPAUSE_LEVEL
-      PUBLIC  :: ITS_IN_THE_TROP
-      PUBLIC  :: ITS_IN_THE_STRAT
-      PUBLIC  :: READ_TROPOPAUSE
-      PUBLIC  :: SAVE_FULL_TROP
+      PUBLIC :: CLEANUP_TROPOPAUSE
+      PUBLIC :: CHECK_VAR_TROP
+      PUBLIC :: COPY_FULL_TROP
+      PUBLIC :: DIAG_TROPOPAUSE
+      PUBLIC :: GET_MIN_TPAUSE_LEVEL
+      PUBLIC :: GET_MAX_TPAUSE_LEVEL
+      PUBLIC :: GET_TPAUSE_LEVEL
+      PUBLIC :: INIT_TROPOPAUSE
+      PUBLIC :: ITS_IN_THE_TROP
+      PUBLIC :: ITS_IN_THE_STRAT
+      PUBLIC :: READ_TROPOPAUSE
+      PUBLIC :: SAVE_FULL_TROP
 !
-! !PRIVATE MEMBER FUNCTIONS:
+! !PUBLIC DATA MEMBERS:
 !
-      PRIVATE :: INIT_TROPOPAUSE
+      PUBLIC :: LMIN
+      PUBLIC :: LMAX
 !
 ! !REVISION HISTORY:
 !  22 Aug 2005 - R. Yantosca - Initial version
@@ -50,6 +51,8 @@
 !  (5 ) Updated comments (bmy, 9/18/07)
 !  (6 ) Bug fix: make ITS_IN_THE_STRAT more robust. (phs, 11/14/08)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - R. Yantosca - Now make INIT_TROPOPAUSE a public function
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -62,6 +65,9 @@
       ! Arrays
       INTEGER, ALLOCATABLE :: TROPOPAUSE(:,:)
       INTEGER, ALLOCATABLE :: IFLX(:,:)
+
+      ! Shadow variables for values in Input_Opt
+      LOGICAL              :: LVARTROP
 
       CONTAINS
 !EOC
@@ -79,15 +85,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_FULL_TROP
+      SUBROUTINE COPY_FULL_TROP( State_Chm )
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : CSPEC,  CSPEC_FULL
-      USE COMODE_MOD,     ONLY : IXSAVE, IYSAVE, IZSAVE
-
       USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
       USE COMODE_LOOP_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
@@ -99,6 +109,7 @@
 !        be in COMODE_MOD.F, and called GET_SPECIES_CONCENTRATION (phs)
 !  (2 ) Bug fix: set NCS=NCSURBAN for safety's sake (bmy, 4/25/07)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,7 +130,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JGAS, JLOOP, IX, IY, IZ )
 
-      ! Loop over species
+      ! Loop over species (active + inactive)
       DO JGAS  = 1, NTSPEC(NCS)
 
          ! Loop over 1-D grid boxes
@@ -129,9 +140,9 @@
             IX = IXSAVE(JLOOP)
             IY = IYSAVE(JLOOP)
             IZ = IZSAVE(JLOOP)
-            
+
             ! Copy from 3-D array
-            CSPEC(JLOOP,JGAS) = CSPEC_FULL(IX,IY,IZ,JGAS)
+            CSPEC(JLOOP,JGAS) = State_Chm%Species(IX,IY,IZ,JGAS)
 
          ENDDO
       ENDDO
@@ -153,15 +164,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SAVE_FULL_TROP
+      SUBROUTINE SAVE_FULL_TROP( State_Chm )
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : CSPEC,  CSPEC_FULL
-      USE COMODE_MOD,     ONLY : IXSAVE, IYSAVE, IZSAVE
-
       USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
       USE COMODE_LOOP_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
@@ -173,6 +188,7 @@
 !        be in COMODE_MOD.F, and called SAVE_SPECIES_CONCENTRATION (phs)
 !  (2 ) Bug fix: set NCS=NCSURBAN for safety's sake! (bmy, 4/25/07)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -192,7 +208,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JGAS, JLOOP, IX, IY, IZ )
 
-      ! Loop over species
+      ! Loop over species (active + inactive)
       DO JGAS = 1, NTSPEC(NCS)
 
          ! Loop over 1-D grid boxes
@@ -204,7 +220,7 @@
             IZ = IZSAVE(JLOOP)
 
             ! Save in 3-D array
-            CSPEC_FULL(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
+            State_Chm%Species(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
 
          ENDDO
       ENDDO
@@ -226,15 +242,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_VAR_TROP
+      SUBROUTINE CHECK_VAR_TROP( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : TROPP
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_MOD           ! LPAUSE, for backwards compatibility
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_MOD                  ! LPAUSE, for backwards compatibility
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  24 Aug 2006 - P. Le Sager - Initial version
@@ -257,7 +277,7 @@
       ! set LMIN and LMAX to current min and max tropopause
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL(I,J)
+         TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL( I, J, State_Met )
       ENDDO
       ENDDO
 
@@ -334,13 +354,14 @@
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (15) Simplify counting of # of tropospheric boxes (bmy, 11/1/05)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - R. Yantosca - Remove call to INIT_TROPOPAUSE, this is now
+!                              done in the init stage
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE      :: FIRST=.TRUE.
       INTEGER            :: I, J, COUNT
       REAL*4             :: ARRAY(IIPAR,JJPAR,1)
       CHARACTER(LEN=255) :: FILENAME
@@ -352,12 +373,6 @@
       ! format).  Transfer data into an array of size (IIPAR,JJPAR).
       !=================================================================
       
-      ! Allocate arrays
-      IF ( FIRST ) THEN
-         CALL INIT_TROPOPAUSE
-         FIRST = .FALSE.
-      ENDIF
-
       ! Create filename
       FILENAME = TRIM( DATA_DIR )                      // 
      &           'ann_mean_trop_200202/ann_mean_trop.' //
@@ -506,30 +521,33 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TPAUSE_LEVEL( I, J ) RESULT( L_TP )
+      FUNCTION GET_TPAUSE_LEVEL( I, J, State_Met ) RESULT( L_TP )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : TROPP, PSC2
-      USE LOGICAL_MOD,  ONLY : LVARTROP
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LVARTROP
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I      ! Longitude index
-      INTEGER, INTENT(IN) :: J      ! Latitude index
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      INTEGER             :: L_TP   ! Tropopause level at (I,J)
+      INTEGER                    :: L_TP   ! Tropopause level at (I,J)
 !
 ! !REVISION HISTORY: 
 !  22 Aug 2005 - R. Yantosca - Initial version
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  10 Sep 2010 - R. Yantosca - Update comments, remove obsolete documentation
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -560,7 +578,7 @@
             ! Break out of this loop if we encounter the box (I,J,L_TP)
             ! where the tropopause occurs.  This box is partially in the
             ! trop and partially in the strat.
-            IF ( TROPP(I,J) >= PRESS_BEDGE ) THEN
+            IF ( State_Met%TROPP(I,J) >= PRESS_BEDGE ) THEN
                L_TP = L - 1       
                EXIT
             ENDIF
@@ -609,23 +627,24 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_IN_THE_TROP( I, J, L ) RESULT ( IS_TROP )
+      FUNCTION ITS_IN_THE_TROP( I, J, L, State_Met ) RESULT ( IS_TROP )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : TROPP, PSC2
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,  ONLY : LVARTROP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I         ! Longitude index
-      INTEGER, INTENT(IN) :: J         ! Latitude index
-      INTEGER, INTENT(IN) :: L         ! Level index
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      INTEGER,        INTENT(IN) :: L           ! Level index
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      LOGICAL             :: IS_TROP   ! =T if we are in the troposphere 
+      LOGICAL                    :: IS_TROP   ! =T if we are in the troposphere 
 !
 ! !REMARKS:
 ! 
@@ -634,6 +653,8 @@
 !  10 Feb 2005 - P. Le Sager - Initial version
 !  (1 ) Modified for variable tropopause (phs, 9/14/06)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -651,7 +672,7 @@
          PRESS_BEDGE = GET_PEDGE(I,J,L)
 
          ! Check against actual tropopause pressure
-         IS_TROP     = ( PRESS_BEDGE > TROPP(I,J) )
+         IS_TROP     = ( PRESS_BEDGE > State_Met%TROPP(I,J) )
 
       ELSE
          
@@ -675,17 +696,22 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_IN_THE_STRAT( I, J, L ) RESULT( IS_STRAT )
+      FUNCTION ITS_IN_THE_STRAT( I, J, L, State_Met ) RESULT( IS_STRAT )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I          ! Longitude index
-      INTEGER, INTENT(IN) :: J          ! Latitude index
-      INTEGER, INTENT(IN) :: L          ! Level index
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      INTEGER,        INTENT(IN) :: L           ! Level index
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      LOGICAL             :: IS_STRAT   ! =T if we are in the stratosphere
+      LOGICAL                    :: IS_STRAT  ! =T if we are in the stratosphere
 !
 ! !REVISION HISTORY: 
 !  10 Feb 2005 - P. Le Sager - Initial version
@@ -699,11 +725,10 @@
       !=================================================================
       ! ITS_IN_THE_STRAT begins here
       !=================================================================
-
       ! Make the algorithm more robust by making ITS_IN_THE_STRAT be the 
       ! exact opposite of function ITS_IN_THE_TROP.  This should avoid
       ! numerical issues. (phs, 11/14/08)
-      IS_STRAT = ( .not. ITS_IN_THE_TROP( I, J, L ) )
+      IS_STRAT = ( .not. ITS_IN_THE_TROP( I, J, L, State_Met ) )
 
       END FUNCTION ITS_IN_THE_STRAT
 !EOC
@@ -719,19 +744,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG_TROPOPAUSE
+      SUBROUTINE DIAG_TROPOPAUSE( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : BXHEIGHT
-      USE DAO_MOD,        ONLY : TROPP
-      USE DIAG_MOD,       ONLY : AD55
-      USE LOGICAL_MOD,    ONLY : LVARTROP
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
+      USE DIAG_MOD,           ONLY : AD55
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LVARTROP
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! Diagnostic switches
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  For GEOS-4, GEOS-5, 'MERRA', we use the tropopause pressure from the met 
@@ -776,11 +804,13 @@
 !  10 Sep 2010 - R. Yantosca - Reorganize #if blocks for clarity
 !  10 Sep 2010 - R. Yantosca - Renamed to DIAG_TROPOPAUSE and bundled into
 !                              tropopause_mod.f
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 !
 ! !LOCAL VARIABLES:
 ! 
@@ -808,12 +838,12 @@
             !---------------------------
     
             ! For this (I,J) column, get the level where the t'pause occurs
-            L_TP = GET_TPAUSE_LEVEL( I, J )
+            L_TP = GET_TPAUSE_LEVEL( I, J, State_Met )
 
             ! Get height (from surface to top edge) of all boxes that lie
             ! totally w/in the troposphere.  NOTE: Grid box (I,J,L_TP-1)
             ! is the highest purely tropospheric grid box in the column.
-            H    = SUM( BXHEIGHT( I, J, 1:L_TP-1 ) )
+            H    = SUM( State_Met%BXHEIGHT( I, J, 1:L_TP-1 ) )
 
             ! Get the pressures [hPa] at the bottom and top edges
             ! of the grid box in which the tropopause occurs
@@ -822,18 +852,19 @@
 
             ! FRAC is the fraction of the grid box (I,J,L_TP) 
             ! that lies totally within the troposphere
-            FRAC = ( Pb - TROPP(I,J) ) / ( Pb - Pt ) 
+            FRAC = ( Pb - State_Met%TROPP(I,J) ) / ( Pb - Pt ) 
 
             ! Add to H the height [m] of the purely tropospheric 
             ! fraction of grid box (I,J,L_TP)
-            H    = H + ( FRAC * BXHEIGHT(I,J,L_TP) )
+            H    = H + ( FRAC * State_Met%BXHEIGHT(I,J,L_TP) )
 
             !---------------------------
             ! Archive into ND55 array
             !---------------------------
             AD55(I,J,1) = AD55(I,J,1) + L_TP        ! T'pause level
             AD55(I,J,2) = AD55(I,J,2) + H/1.0d3     ! T'pause height [km]
-            AD55(I,J,3) = AD55(I,J,3) + TROPP(I,J)  ! T'pause pressure [hPa]
+            AD55(I,J,3) = AD55(I,J,3) + 
+     &                    State_Met%TROPP(I,J)      ! T'pause pressure [hPa]
 
          ENDDO
          ENDDO
@@ -866,7 +897,7 @@
       ! H (in m) is the height of the midpoint of layer L (hyl, 03/28/99)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         H(I,J,1) = BXHEIGHT(I,J,1) / 2.d0
+         H(I,J,1) = State_Met%BXHEIGHT(I,J,1) / 2.d0
       ENDDO
       ENDDO
 
@@ -875,7 +906,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          H(I,J,L+1) = H(I,J,L) + 
-     &               ( BXHEIGHT(I,J,L) + BXHEIGHT(I,J,L+1) ) / 2.d0
+     &               ( State_Met%BXHEIGHT(I,J,L) +
+     &                 State_Met%BXHEIGHT(I,J,L+1) ) / 2.d0
       ENDDO
       ENDDO
       ENDDO
@@ -888,7 +920,7 @@
          DO I = 1, IIPAR
 
             ! Get the tropopause level
-            L           = GET_TPAUSE_LEVEL( I, J )
+            L           = GET_TPAUSE_LEVEL( I, J, State_Met )
 
             ! If we are using the variable tropopause, then (I,J,L) is the
             ! highest purely tropospheric grid box.  The grid box in which
@@ -927,18 +959,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TROPOPAUSE
+      SUBROUTINE INIT_TROPOPAUSE( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
+! !REMARKS:
+!  Now 
+!
 ! !REVISION HISTORY: 
 !  10 Feb 2005 - R. Yantosca - Initial version
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - R. Yantosca - Now made public so we can shadow LVARTROP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -950,14 +995,27 @@
       !=================================================================
       ! INIT_TROPOPAUSE
       !=================================================================
-      ALLOCATE( TROPOPAUSE( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPOPAUSE' )
-      TROPOPAUSE = 0
 
-      ! For now don't allocate IFLX
-      !ALLOCATE( IFLX( IIPAR, JJPAR ), STAT=AS ) 
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IFLX' )
-      !IFLX = 0
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Shadow Input_Opt%LVARTROP in a module variable
+      LVARTROP = Input_Opt%LVARTROP
+
+      ! Only allocate arrays if we are not using the variable tropopause
+      IF ( .not. LVARTROP ) THEN 
+
+         ! Array for the ann mean tropopause
+         ALLOCATE( TROPOPAUSE( IIPAR, JJPAR ), STAT=AS ) 
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPOPAUSE' )
+         TROPOPAUSE = 0
+
+         ! For now don't allocate IFLX
+         !ALLOCATE( IFLX( IIPAR, JJPAR ), STAT=AS ) 
+         !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IFLX' )
+         !IFLX = 0
+         
+      ENDIF
 
       END SUBROUTINE INIT_TROPOPAUSE
 !EOC

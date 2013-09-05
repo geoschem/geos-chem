@@ -7,9 +7,9 @@
 !
 !  NOTES:
 !  (1 ) Now force double-precision w/ "D" exponents (bmy, 4/18/03)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
-#     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 

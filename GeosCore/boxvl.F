@@ -12,32 +12,35 @@
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION BOXVL( I, J, L )
+      REAL*8 FUNCTION BOXVL( I, J, L, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : AIRVOL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I   ! Longitude index
-      INTEGER, INTENT(IN) :: J   ! Latitude index
-      INTEGER, INTENT(IN) :: L   ! Level index
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      INTEGER,        INTENT(IN) :: L           ! Level index
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
-!  (1 ) F77_CMN_VOL is used to pass AIRVOL.
-!  (2 ) Use C-preprocessor #include statement to include F77_CMN_SIZE, which 
+!  (1 ) CMN_VOL is used to pass AIRVOL.
+!  (2 ) Use C-preprocessor #include statement to include CMN_SIZE, which 
 !        has IIPAR, JJPAR, LLPAR, IIPAR, JJPAR, LGLOB. 
 !  (3 ) Now use F90 syntax for declarations (bmy, 10/5/99)
 !  (4 ) Now reference AIRVOL from "dao_mod.f" instead of from common
-!        block header file "F77_CMN_VOL". (bmy, 6/26/00)
+!        block header file "CMN_VOL". (bmy, 6/26/00)
 !  (5 ) Removed obsolete code from 6/26/00 (bmy, 8/31/00)
 !  (6 ) Updated comments (bmy, 8/5/02)
 !  02 Dec 2010 - R. Yantosca - Initial version
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -47,7 +50,7 @@
       !=================================================================
       ! BOXVL begins here!
       !=================================================================
-      BOXVL = AIRVOL(I,J,L) * 1d6
+      BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
 
       END FUNCTION BOXVL
 !EOC

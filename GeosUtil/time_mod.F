@@ -16,9 +16,11 @@
 ! !USES:
 !
       IMPLICIT NONE
-
-#     include "define.h"
+!
+! !PRIVATE TYPES:
+!
       PRIVATE
+      PRIVATE :: HG2_DIAG !hma, 25 Oct 2011
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -34,9 +36,10 @@
       PUBLIC  :: SET_CT_DYN
       PUBLIC  :: SET_CT_EMIS
       PUBLIC  :: SET_CT_DIAG
-      PUBLIC  :: SET_CT_A1
+      PUBLIC  :: SET_CT_A1 
       PUBLIC  :: SET_CT_A3
       PUBLIC  :: SET_CT_A6
+      PUBLIC  :: SET_CT_I3
       PUBLIC  :: SET_CT_I6
       PUBLIC  :: SET_CT_XTRA
       PUBLIC  :: SET_ELAPSED_MIN
@@ -59,6 +62,7 @@
       PUBLIC  :: GET_SECOND
       PUBLIC  :: GET_DAY_OF_YEAR
       PUBLIC  :: GET_DAY_OF_WEEK
+      PUBLIC  :: GET_DAY_OF_WEEK_LT
       PUBLIC  :: GET_GMT
       PUBLIC  :: GET_TAU
       PUBLIC  :: GET_TAUb
@@ -73,10 +77,6 @@
       PUBLIC  :: GET_TS_DYN
       PUBLIC  :: GET_TS_EMIS
       PUBLIC  :: GET_TS_UNIT
-!-----------------------------------
-! Prior to 10/7/11:
-!      PUBLIC  :: GET_TS_SUN_2
-!-----------------------------------
       PUBLIC  :: GET_CT_CHEM
       PUBLIC  :: GET_CT_CONV
       PUBLIC  :: GET_CT_DYN
@@ -84,16 +84,19 @@
       PUBLIC  :: GET_CT_A1
       PUBLIC  :: GET_CT_A3
       PUBLIC  :: GET_CT_A6
+      PUBLIC  :: GET_CT_I3
       PUBLIC  :: GET_CT_I6
       PUBLIC  :: GET_CT_XTRA
       PUBLIC  :: GET_CT_DIAG
       PUBLIC  :: GET_A1_TIME
       PUBLIC  :: GET_A3_TIME
       PUBLIC  :: GET_A6_TIME
+      PUBLIC  :: GET_I3_TIME
       PUBLIC  :: GET_I6_TIME
       PUBLIC  :: GET_FIRST_A1_TIME
       PUBLIC  :: GET_FIRST_A3_TIME
       PUBLIC  :: GET_FIRST_A6_TIME
+      PUBLIC  :: GET_FIRST_I3_TIME
       PUBLIC  :: GET_FIRST_I6_TIME
       PUBLIC  :: ITS_TIME_FOR_CHEM
       PUBLIC  :: ITS_TIME_FOR_CONV
@@ -104,6 +107,7 @@
       PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
       PUBLIC  :: ITS_TIME_FOR_A6
+      PUBLIC  :: ITS_TIME_FOR_I3
       PUBLIC  :: ITS_TIME_FOR_I6
       PUBLIC  :: ITS_TIME_FOR_UNZIP     
       PUBLIC  :: ITS_TIME_FOR_DEL
@@ -123,9 +127,29 @@
       PUBLIC  :: SYSTEM_TIMESTAMP
       PUBLIC  :: TIMESTAMP_DIAG
       PUBLIC  :: GET_NYMD_DIAG
+      PUBLIC  :: GET_Hg2_DIAG !hma, 25 Oct 2011
+      PUBLIC  :: SET_Hg2_DIAG !hma, 25 Oct 2011
+![eml
+      PUBLIC  :: SET_HISTYR
+      PUBLIC  :: GET_HISTYR
+!eml]
 #if   defined( APM )
       PUBLIC  :: ITS_TIME_FOR_A6UPDATE
 #endif
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      PUBLIC  :: Accept_External_Date_Time
+#endif
+!
+! !REMARKS:
+!  References:
+!  ---------------------------------------------------------------------------
+!  (1) "Practical Astronomy with Your Calculator", 3rd Ed.
+!        Peter Duffett-Smith, Cambridge UP, 1992, p9.
+!  (2) Rounding algorithm from: Hultquist, P.F, "Numerical Methods for
+!        Engineers and Computer Scientists", Benjamin/Cummings, Menlo Park CA,
+!        1988, p. 20.
+!  (3) Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
 !
 ! !REVISION HISTORY:
 !  21 Jun 2000 - R. Yantosca - Initial version
@@ -191,33 +215,95 @@
 !  07 Oct 2011 - R. Yantosca - Remove obsolete TS_SUN_2, GET_TS_SUN_2
 !  07 Oct 2011 - R. Yantosca - Remove obsolete OFFSET argument to GET_LOCALTIME
 !  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
+!  25 Oct 2011 - H. Amos     - bring Hg2 gas-particle partitioning code into
+!                              v9-01-02
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - GET_LOCALTIME now takes (I,J,L,GMT) as args
+!  14 Jun 2013 - R. Yantosca - Now compute day of week in SET_CURRENT_TIME
+!  14 Jun 2013 - R. Yantosca - Added comments to module variable declarations
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Date and time variables
-      INTEGER           :: NYMDb,      NHMSb,       NYMDe   
-      INTEGER           :: NHMSe,      NYMD,        NHMS
-      INTEGER           :: NYMD_DIAG
-      INTEGER           :: MONTH,      DAY,         YEAR
-      INTEGER           :: HOUR,       MINUTE,      SECOND
-      INTEGER           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
-      INTEGER           :: NDIAGTIME
-      REAL*8            :: TAU,        TAUb,        TAUe  
-      REAL*8            :: GMT,        DIAGb,       DIAGe
+!
+! !PRIVATE TYPES:
+!
+      !---------------------------------
+      ! GMT dates @ start & end of run
+      !---------------------------------
+      INTEGER           :: NYMDb          ! YYYY/MM/DD on which to start run
+      INTEGER           :: NHMSb          ! hh:mm:ss   on which to start run
+      REAL*8            :: TAUb           ! Hours since 1/1/1985 @ start of run
+      INTEGER           :: NYMDe          ! YYYY/MM/DD on which to end run
+      INTEGER           :: NHMSe          ! hh:mm:ss   on which to end run
+      REAL*8            :: TAUe           ! Hours since 1/1/1985 @ end of run
 
-      ! Timesteps
-      INTEGER           :: TS_CHEM,    TS_CONV,     TS_DIAG
-      INTEGER           :: TS_DYN,     TS_EMIS,     TS_UNIT
+      !---------------------------------
+      ! Current GMT date/time values
+      !---------------------------------
+      INTEGER           :: NYMD           ! YYYY/MM/DD date
+      INTEGER           :: NHMS           ! hh:mm:ss time
+      INTEGER           :: MONTH          ! Month (1-12)
+      INTEGER           :: DAY            ! Day of month (1-31)
+      INTEGER           :: YEAR           ! Year (YYYY format)
+      INTEGER           :: HOUR           ! hour (0-23)
+      INTEGER           :: MINUTE         ! Minutes (0-59)
+      INTEGER           :: SECOND         ! Seconds (0-59)
+      INTEGER           :: NSEASON        ! Season (1=DJF,2=MAM,3=JJA,4=SON)
+      INTEGER           :: DAY_OF_YEAR    ! Day of year (0-365 or 0-366 if LY)
+      INTEGER           :: DAY_OF_WEEK    ! Day of week (0=Sun,1=Mon,.., 6=Sat)
+      REAL*8            :: TAU            ! Hours since 1/1/1985
+      REAL*8            :: GMT            ! Current GMT time [decimal hours]
 
-      ! Timestep counters
-      INTEGER           :: CT_CHEM,    CT_CONV,     CT_DYN    
-      INTEGER           :: CT_EMIS,    CT_A3,       CT_A6
-      INTEGER           :: CT_I6,      CT_XTRA,     CT_DIAG
-      INTEGER           :: CT_A1
+      !---------------------------------
+      ! Elapsed time values
+      !---------------------------------
+      INTEGER           :: ELAPSED_MIN    ! # of minutes into the run
+      REAL*8            :: LEAP_YEAR_DAYS ! # of leap years since start of run
 
-      ! Number of leap years we have encountered since start of simulation
-      REAL*8            :: LEAP_YEAR_DAYS
+      !---------------------------------
+      ! Diagnostic date/time values
+      !---------------------------------
+      INTEGER           :: NDIAGTIME      ! Hour of day to write diag output
+      INTEGER           :: NYMD_DIAG      ! Diagnostic date for output
+      REAL*8            :: DIAGb          ! Start of diag averaging interval
+      REAL*8            :: DIAGe          ! End   of diag averaging interval
 
+      !---------------------------------
+      ! Timestep values
+      !---------------------------------
+      INTEGER           :: TS_CHEM        ! Chemistry timestep       [min]
+      INTEGER           :: TS_CONV        ! Convection timestep      [min]
+      INTEGER           :: TS_DIAG        ! Diagnostic timestep      [min]
+      INTEGER           :: TS_DYN         ! Dynamic timestep         [min]
+      INTEGER           :: TS_EMIS        ! Emissions timestep       [min]
+      INTEGER           :: TS_UNIT        ! Unit conversion timestep [min]
+
+      !---------------------------------
+      ! Counter values
+      !---------------------------------
+      INTEGER           :: CT_CHEM        ! # of elapsed chemistry timesteps
+      INTEGER           :: CT_CONV        ! # of elapsed convection timesteps
+      INTEGER           :: CT_DYN         ! # of elapsed dynamic timesteps
+      INTEGER           :: CT_EMIS        ! # of elapsed emission timesteps
+      INTEGER           :: CT_A1          ! # of elapsed A1 met field reads
+      INTEGER           :: CT_A3          ! # of elapsed A3 met field reads
+      INTEGER           :: CT_A6          ! # of elapsed I6 met field reads
+      INTEGER           :: CT_I3          ! # of elapsed I3 met field reads
+      INTEGER           :: CT_I6          ! # of elapsed I6 met field reads
+      INTEGER           :: CT_XTRA        ! # of elapsed XTRA met field reads
+      INTEGER           :: CT_DIAG        ! # of elapsed diagnostic timesteps
+      INTEGER           :: Hg2_DIAG       ! # of elapsed Hg2 diag outputs
+
+      !---------------------------------
+      ! For historical emissions
+      !---------------------------------
+      INTEGER           :: HISTYRA        ! Year for historical emissions
+!
+! !DEFINED PARAMETERS:
+!
       ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
       REAL*8, PARAMETER :: JD85 = 2446066.5d0
 
@@ -232,7 +318,8 @@
 !
 ! !DESCRIPTION: Subroutine SET\_CURRENT\_TIME takes in the elapsed time in 
 !  minutes since the start of a GEOS-Chem simulation and sets the GEOS-Chem 
-!  time variables accordingly.
+!  time variables accordingly.  NOTE: All time variables are returned
+!  w/r/t Greenwich Mean Time (aka Universal Time).
 !\\
 !\\
 ! !INTERFACE:
@@ -242,8 +329,6 @@
 ! !USES:
 !
       USE JULDAY_MOD, ONLY : JULDAY, CALDATE
-
-#     include "define.h"
 !
 ! !REMARKS:
 !  The GEOS met fields are assimilated data, and therefore contain data on
@@ -266,6 +351,8 @@
 !  29 Jul 2011 - R. Yantosca - Bug fix: For GCAP, we need to skip over the
 !                              # of leap-year-days that have already occurred
 !                              when going from Julian date to Y/M/D date
+!  14 Jun 2013 - R. Yantosca - Now move the day of week computation here
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -274,7 +361,7 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       REAL*4        :: TMP
-      REAL*8        :: JD0, JD1
+      REAL*8        :: A, B, JD, JD0, JD1, THISDAY
 
       !=================================================================
       ! SET_CURRENT_TIME begins here!
@@ -371,6 +458,31 @@
          CASE ( 9, 10, 11 )
             NSEASON = 4
       END SELECT
+
+      !=================================================================
+      ! Compute day of week w/r/t the GMT date
+      ! (moved here from routine GET_DAY_OF_WEEK)
+      !=================================================================
+
+      ! Get fractional GMT day
+      THISDAY     = DAY + ( GMT / 24d0 )
+
+      ! Get current Julian date 
+      JD          = JULDAY( YEAR, MONTH, THISDAY )
+
+      ! Add 1.5 to JD and divide by 7
+      A           = ( JD + 1.5d0 ) / 7d0
+
+      ! Take fractional part and multiply by 7
+      B           = ( A - INT( A ) ) * 7d0
+
+      ! NOTE: This is not in the Duffett-Smith book, but when using
+      ! REAL*8, we have to round B to 4 decimal places in order
+      ! to avoid floating-point errors. (bmy, 6/13/13)
+      B           = INT( NINT( B*1d5 + SIGN( 5d0, B ) ) / 10d0 ) / 1d4
+
+      ! Discard the fractional part of B
+      DAY_OF_WEEK = INT( B )
 
       END SUBROUTINE SET_CURRENT_TIME
 !EOC
@@ -610,27 +722,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_TIMESTEPS( CHEMISTRY, CONVECTION, DYNAMICS,  
+      SUBROUTINE SET_TIMESTEPS( am_I_Root, 
+     &                          CHEMISTRY, CONVECTION, DYNAMICS,  
      &                          EMISSION,  UNIT_CONV,  DIAGNOS )
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!     &                          SUNCOS )
-!------------------------------------------------------------------------------
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL, INTENT(IN) :: am_I_Root    ! Is this the root CPU?
       INTEGER, INTENT(IN) :: CHEMISTRY    ! Chemistry  timestep [min]
       INTEGER, INTENT(IN) :: CONVECTION   ! Convection timestep [min]
       INTEGER, INTENT(IN) :: DYNAMICS     ! Dynamic    timestep [min]
       INTEGER, INTENT(IN) :: EMISSION     ! Emission   timestep [min]
       INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [min]
       INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [min]
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!      INTEGER, INTENT(IN) :: SUNCOS       ! 1/2 of timestep for SUNCOS [min]
-!------------------------------------------------------------------------------
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -642,6 +746,8 @@
 !                              interval for computing the cosine of the
 !                              solar zenith angle.
 !  07 Oct 2011 - R. Yantosca - Remove obsolete SUNCOS argument
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -652,39 +758,31 @@
       TS_EMIS  = EMISSION
       TS_UNIT  = UNIT_CONV
       TS_DIAG  = DIAGNOS
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!      TS_SUN_2 = SUNCOS
-!------------------------------------------------------------------------------
 
       ! Zero timestep counters
-      CT_CHEM = 0
-      CT_CONV = 0
-      CT_DYN  = 0
-      CT_EMIS = 0
-      CT_A3   = 0
-      CT_A6   = 0
-      CT_I6   = 0
-      CT_XTRA = 0
-      CT_DIAG = 0
+      CT_CHEM  = 0
+      CT_CONV  = 0
+      CT_DYN   = 0
+      CT_EMIS  = 0
+      CT_A3    = 0
+      CT_A6    = 0
+      CT_I6    = 0
+      CT_XTRA  = 0
+      CT_DIAG  = 0
+      Hg2_DIAG = 0
 
       ! Echo to stdout
-      WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
-      WRITE( 6, '(  a)' ) '-------------------------------------------'
-      WRITE( 6, '(''Chemistry  Timestep [min] : '', i4 )' ) TS_CHEM
-      WRITE( 6, '(''Convection Timestep [min] : '', i4 )' ) TS_CONV
-      WRITE( 6, '(''Dynamics   Timestep [min] : '', i4 )' ) TS_DYN
-      WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
-      WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
-      WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!      WRITE( 6, '(''Offset for SUNCOS   [min] : '', i4 )' ) TS_SUN_2
-!------------------------------------------------------------------------------
+      IF ( am_I_Root ) THEN
+       WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
+       WRITE( 6, '(  a)' ) '-------------------------------------------'
+       WRITE( 6, '(''Chemistry  Timestep [min] : '', i4 )' ) TS_CHEM
+       WRITE( 6, '(''Convection Timestep [min] : '', i4 )' ) TS_CONV
+       WRITE( 6, '(''Dynamics   Timestep [min] : '', i4 )' ) TS_DYN
+       WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
+       WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
+       WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
+      ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
 !EOC
 !------------------------------------------------------------------------------
@@ -720,6 +818,42 @@
       ENDIF
 
       END SUBROUTINE SET_CT_CHEM
+
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_hg2_diag
+!
+! !DESCRIPTION: Subroutine SET\_Hg2\_DIAG increments Hg2\_DIAG, the counter for
+!  the number of times AAD03\_Fg and AD03\_Fp are recorded. (hma 20100218)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_Hg2_DIAG( INCREMENT, RESET )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY:
+!  18 Feb 2012 - H. Amos     - Initial version 
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      IF ( PRESENT( INCREMENT ) ) THEN
+         Hg2_DIAG = Hg2_DIAG + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         Hg2_DIAG = 0
+      ENDIF
+
+      END SUBROUTINE SET_Hg2_DIAG
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -957,6 +1091,39 @@
       ENDIF
 
       END SUBROUTINE SET_CT_A6
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_i3
+!
+! !DESCRIPTION: Subroutine SET\_CT\_I3 increments CT\_I3, the counter of the 
+!  number of times we have read in I-3 fields.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_CT_I3( INCREMENT, RESET )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY:
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      IF ( PRESENT( INCREMENT ) ) THEN
+         CT_I3 = CT_I3 + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         CT_I3 = 0
+      ENDIF
+
+      END SUBROUTINE SET_CT_I3
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1392,8 +1559,6 @@
 ! !USES:
 !
       USE JULDAY_MOD, ONLY : CALDATE
-
-#     include "define.h"   ! C-preprocessor flags
 !
 ! !INPUT PARAMETERS:
 !
@@ -1408,6 +1573,7 @@
 !  (1 ) Bug fix for GCAP leap year case (phs, bmy, 12/8/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  17 Dec 2010 - R. Yantosca - Added fix in case HHMMSS is returned as 240000
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1553,6 +1719,64 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: set_histyr
+!
+! !DESCRIPTION: Function SET\_HISTYR returns the year stored in HISTYR w/o
+!  needing to include the CMN\_O3 common block (eml, 8/20/08)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_HISTYR( YEARIN )
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: YEARIN
+! 
+! !REVISION HISTORY:
+!  20 Aug 2008 - E. Leibensperger - Initial version
+!  07 Mar 2012 - M. Payer         - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      HISTYRA = YEARIN
+      
+      END SUBROUTINE SET_HISTYR
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_histyr
+!
+! !DESCRIPTION: Function GET\_HISTYR returns the year stored in HISTYR w/o
+!  needing to include the CMN\_O3 common block (eml, 8/20/08)
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_HISTYR() RESULT( HISTYEAR )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: HISTYEAR
+! 
+! !REVISION HISTORY:
+!  20 Aug 2008 - E. Leibensperger - Initial version
+!  07 Mar 2012 - M. Payer         - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      HISTYEAR = HISTYRA
+
+      END FUNCTION GET_HISTYR
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_hour
 !
 ! !DESCRIPTION: Function GET\_HOUR returns the current GMT hour.
@@ -1669,8 +1893,9 @@
 !
 ! !IROUTINE: get_day_of_week
 !
-! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK returns the day of the week as a 
-!  number: Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
+! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK returns the day of the week (with
+!  respect to GREENWICH MEAN TIME) as a number: Sun=0, Mon=1, Tue=2, Wed=3,
+!  Thu=4, Fri=5, Sat=6.
 !\\
 !\\
 ! !INTERFACE:
@@ -1685,44 +1910,94 @@
 !
       INTEGER :: DAY_NUM   ! Day number of week
 ! 
-! !REMARKS:
-!  Reference:
-!  ----------
-!  "Practical Astronomy with Your Calculator", 3rd Ed.  Peter Duffett-Smith,
-!    Cambridge UP, 1992, p9.
-!
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  14 Jun 2013 - R. Yantosca - Now move computation to SET_CURRENT_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      REAL*8  :: A, B, JD, THISDAY
+      ! Return the day of week w/r/t GMT date
+      ! (stored in module variable DAY_OF_WEEK)
+      DAY_NUM = DAY_OF_WEEK
+
+      END FUNCTION GET_DAY_OF_WEEK
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_day_of_week_lt
+!
+! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK\_LT returns the day of the week
+!  (with repect to the SOLAR LOCAL TIME AT GRID BOX [I,J,L]) as a number:
+!  Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_DAY_OF_WEEK_LT( I, J, L ) RESULT( DAY_NUM )
+!
+! !USES:
+!
+      USE GRID_MOD, ONLY : GET_XMID
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: I         ! Grid box lon index
+      INTEGER, INTENT(IN) :: J         ! Grid box lat index
+      INTEGER, INTENT(IN) :: L         ! Grid box level index
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: DAY_NUM   ! Day of week, w/r/t local time
+! 
+! !REMARKS:
+!  This routine is used by various emissions routines, in order to determine
+!  whether weekday or weekend emissions need to be applied.
+!
+! !REVISION HISTORY: 
+!  13 Jun 2013 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      REAL*8 :: DOW_LOCAL, LOCAL_TIME
 
       !=================================================================
       ! GET_DAY_OF_WEEK begins here!
       !=================================================================
 
-      ! Get fractional day
-      THISDAY = DAY                 + ( HOUR   / 24d0    ) + 
-     &          ( MINUTE / 1440d0 ) + ( SECOND / 86400d0 )
+      ! Get the local time [hrs] at grid box (I,J,L),
+      ! but do not force it into the range of [0..24] hours.
+      LOCAL_TIME = GMT + ( GET_XMID( I, J, L ) / 15d0 )
 
-      ! Get current Julian date 
-      JD      = JULDAY( YEAR, MONTH, THISDAY )
+      ! Add the local fraction of day elapsed to the day of week 
+      ! obtained w/r/t the GREENWICH MEAN TIME.  This accounts for 
+      ! the distance of grid box (I,J,L) from the Greenwich meridian.
+      DOW_LOCAL  = DBLE( DAY_OF_WEEK ) + ( LOCAL_TIME / 24d0 )
 
-      ! Add 1.5 to JD and divide by 7
-      A       = ( JD + 1.5d0 ) / 7d0 
+      ! If DOW_LOCAL is negative, then we need to add 7.
+      ! This means that the day of week w/r/t GMT is Sunday
+      ! but that it is still Saturday at grid box (I,J,L).
+      IF ( DOW_LOCAL < 0d0 ) THEN
+         DOW_LOCAL = DOW_LOCAL + 7d0
+      ENDIF
 
-      ! Take fractional part and multiply by 7
-      B       = ( A - INT( A ) ) * 7d0
+      ! Force the day of week w/r/t LOCAL TIME to fall 
+      ! within the range 0 (Sunday) thru 6 (Saturday).
+      DOW_LOCAL  = MOD( DOW_LOCAL, 7d0 ) 
 
-      ! Round to nearest integer -- this is the day number!
-      DAY_NUM = INT( B + 0.5d0 )
-      
-      END FUNCTION GET_DAY_OF_WEEK
+      ! Cast to integer and return result
+      DAY_NUM    = INT( DOW_LOCAL )
+    
+      END FUNCTION GET_DAY_OF_WEEK_LT
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1912,7 +2187,7 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_LOCALTIME( I, GMT ) RESULT( THISLOCALTIME )
+      FUNCTION GET_LOCALTIME( I, J, L, GMT ) RESULT( THISLOCALTIME )
 !
 ! !USES:
 !
@@ -1921,6 +2196,8 @@
 ! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)           :: I              ! Longitude index
+      INTEGER, INTENT(IN)           :: J              ! Latitude index
+      INTEGER, INTENT(IN)           :: L              ! Level index
       REAL*8,  INTENT(IN), OPTIONAL :: GMT            ! GMT time of day [hrs]
 !
 ! !RETURN VALUE:
@@ -1939,6 +2216,8 @@
 !                              (e.g. at the halfway point of an interval)
 !  05 Oct 2011 - R. Yantosca - Now add GMT as an optional argument
 !  07 Oct 2011 - R. Yantosca - Removed obsolete OFFSET argument
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90, and
+!                              add J, L indices to the argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1955,8 +2234,8 @@
          GMT_HRS = GET_GMT()
       ENDIF
 
-      ! Local time  = GMT time [hrs] +   longitude     / 15
-      THISLOCALTIME = GMT_HRS        + ( GET_XMID( I ) / 15d0 ) 
+      ! Local time  = GMT time [hrs] +   longitude           / 15
+      THISLOCALTIME = GMT_HRS        + ( GET_XMID( I, J, L ) / 15d0 ) 
 
       ! Make sure that THISLOCALTIME is in the range 0-24 hours
       IF ( THISLOCALTIME > 24 ) THISLOCALTIME = THISLOCALTIME - 24d0 
@@ -2167,40 +2446,6 @@
       THIS_TS_UNIT = TS_UNIT
 
       END FUNCTION GET_TS_UNIT
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Remove obsolete GET_TS_SUN_2 function (bmy, 10/7/11)
-!!EOC
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_ts_sun_2
-!!
-!! !DESCRIPTION: Function GET\_TS\_SUN\_2 returns TS\_SUN\_2, which is 1/2 of
-!!  the interval at which we are computing the cosine of the solar zenith
-!!  angle, aka SUNCOS.  This is required to move the time at which we compute
-!!  SUNCOS to the middle of the chemistry timestep interval.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_TS_SUN_2() RESULT( THIS_TS_SUN_2 )
-!!
-!! !RETURN VALUE:
-!!
-!      INTEGER :: THIS_TS_SUN_2  ! 1/2 of SUNCOS interval [min]
-!! 
-!! !REVISION HISTORY: 
-!!  27 Apr 2010 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!      THIS_TS_SUN_2 = TS_SUN_2
-!
-!      END FUNCTION GET_TS_SUN_2
-!------------------------------------------------------------------------------
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2412,6 +2657,34 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_ct_i3
+!
+! !DESCRIPTION: Function GET\_CT\_I3 returns the I-3 fields timestep counter
+!  to the calling program
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_CT_I3() RESULT( THIS_CT_I3 )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_CT_I3   ! # of I-6 timesteps
+! 
+! !REVISION HISTORY: 
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      THIS_CT_I3 = CT_I3
+
+      END FUNCTION GET_CT_I3
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_ct_i6
 !
 ! !DESCRIPTION: Function GET\_CT\_I6 returns the I-6 fields timestep counter
@@ -2483,7 +2756,7 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_CT_DIAG   ! # of diagnostic timesteps
- ! 
+! 
 ! !REVISION HISTORY: 
 !  21 May 2009 - C. Carouge  - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
@@ -2493,6 +2766,35 @@
       THIS_CT_DIAG = CT_DIAG
 
       END FUNCTION GET_CT_DIAG
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_hg2_diag
+!
+! !DESCRIPTION: Function GET\_Hg2\_DIAG returns the DIAG timestep counter to
+!  the calling program. (hma 20100218)
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_Hg2_DIAG() RESULT( THIS_Hg2_DIAG )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_Hg2_DIAG  ! # of diagnostic timesteps
+! 
+! !REVISION HISTORY:
+!  18 Feb 2012 - H. Amos     - Initial version 
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      THIS_Hg2_DIAG = Hg2_DIAG
+
+      END FUNCTION GET_Hg2_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2509,24 +2811,22 @@
 !
       FUNCTION GET_A1_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
 
-      ! MERRA met fields are 1-hour time-averages, timestamped at the
-      ! center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
+      ! MERRA and GEOS-5.7.x met fields are 1-hour time-averages, timestamped 
+      ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
       DATE = GET_TIME_AHEAD( 30 )
 
 #else
@@ -2553,10 +2853,6 @@
 !
       FUNCTION GET_A3_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -2567,27 +2863,17 @@
 !  (2 ) Remove reference to FIRST variable (bmy, 12/10/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if   defined( GEOS_3 )
-
-      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
-      ! by ending time.  Therefore, the difference between the actual time
-      ! when the fields are read and the A-3 timestamp time is 180 minutes.
-      DATE = GET_TIME_AHEAD( 180 )      
-
-#else
 
       ! For GEOS-4, GEOS-5, or GCAP data: The A-3 fields are timestamped 
       ! by center time.  Therefore, the difference between the actual time 
       ! when the fields are read and the A-3 timestamp time is 90 minutes.
       DATE = GET_TIME_AHEAD( 90 )   
-
-#endif
 
       END FUNCTION GET_A3_TIME
 !EOC
@@ -2633,6 +2919,79 @@
 #endif
 
       END FUNCTION GET_A6_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_i3_time
+!
+! !DESCRIPTION: Function GET\_I3\_TIME returns the correct YYYYMMDD and 
+!  HHMMSS values that are needed to read in the next instantaneous 3-hour 
+!  (I-3) fields. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_I3_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+!  
+! !REMARKS:
+!  Modified for start times other than 0 GMT.
+!
+! !REVISION HISTORY: 
+!   6 Feb 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: HH, MM, SS, MINS, OFFSET
+
+      !=================================================================
+      ! ALL MET FIELDS:
+      !=================================================================
+ 
+      IF ( FIRST ) THEN
+
+         !--------------------------------------------------------------
+         ! FIRST-TIME ONLY!  Get the proper # of hours until the next 
+         ! I6 time.  Also works for start times other than 0 GMT.
+         !--------------------------------------------------------------
+
+         ! Split NHMS into hours, mins, seconds
+         CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+         ! Compute minutes elapsed in the 6-hour interval
+         MINS   = MOD( HH, 3 )*60 + MM
+
+         ! Compute offset to next I-3 time
+         OFFSET = 180 - MINS
+
+         ! Get YYYY/MM/DD and hh:mm:ss to next I-6 time
+         DATE   = GET_TIME_AHEAD( OFFSET ) 
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+
+      ELSE
+
+         !--------------------------------------------------------------
+         ! Other than the 1st time: Search 360 mins ahead
+         !--------------------------------------------------------------
+
+         ! We need to read in the I-6 fields 6h (180 mins) ahead of time
+         DATE = GET_TIME_AHEAD( 180 )
+
+      ENDIF
+
+      END FUNCTION GET_I3_TIME
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2740,10 +3099,6 @@
 !
       FUNCTION GET_FIRST_A1_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -2753,6 +3108,7 @@
 !  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2777,10 +3133,6 @@
 !
       FUNCTION GET_FIRST_A3_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -2791,6 +3143,8 @@
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2798,17 +3152,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: HH, MM, SS, MINS, OFFSET
-
-#if   defined( GEOS_3 )
-
-      !==================================================================
-      ! GEOS-3: A3 fields indexed by start time
-      !==================================================================
-
-      ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time
-      DATE = (/ NYMD, NHMS /)
-
-#else
 
       !==================================================================
       ! GEOS-4, GEOS-5, MERRA, GCAP: 
@@ -2827,8 +3170,6 @@
       ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
       DATE   = GET_TIME_AHEAD( OFFSET )
 
-#endif
-
       END FUNCTION GET_FIRST_A3_TIME
 !EOC
 !------------------------------------------------------------------------------
@@ -2846,10 +3187,6 @@
 !
       FUNCTION GET_FIRST_A6_TIME() RESULT( DATE )
 !
-! !USES:
-! 
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
@@ -2860,6 +3197,7 @@
 !  (2 ) Modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2905,6 +3243,53 @@
 #endif
 
       END FUNCTION GET_FIRST_A6_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_first_i3_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_I3\_TIME returns the correct YYYYMMDD and
+!  HHMMSS values the first time that I-3 fields are read in from disk.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_FIRST_I3_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS, MINS, OFFSET
+
+      !==================================================================
+      ! Compute first I-6 time for all met field types
+      !==================================================================
+
+      ! Split NYMS into hours, mins, seconds
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
+
+      ! Compute minutes elapsed in the 3-hour interval
+      MINS   = MOD( HH, 3 )*60 + MM
+
+      ! Compute offset to nearest I-6 time
+      OFFSET = -MINS
+
+      ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
+      DATE   = GET_TIME_AHEAD( OFFSET ) 
+
+      END FUNCTION GET_FIRST_I3_TIME
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2997,12 +3382,6 @@
       M = MAX( M/2, 1 )
 
       ! Is it time for chemistry?
-!-----------------------------------------------------------------------
-! Prior to 9/27/11:
-! Chemistry time step is now in the center of transport time steps. The
-! previous setup was TCTTT, now TTCTT (lzh, mpayer, 9/27/11)
-!      FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == 0 )
-!-----------------------------------------------------------------------
       ! Chemistry time step is now in the center of transport time steps
       FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == (M-1)*TS_DYN )
 
@@ -3114,12 +3493,6 @@
       M = MAX( M/2, 1 )
 
       ! Is it time for emissions?
-!-----------------------------------------------------------------------
-! Prior to 9/27/11:
-! Emission time step is now in the center of transport time steps. The
-! previous setup was TCTTT, now TTCTT (lzh, mpayer, 9/27/11)
-!      FLAG = ( MOD( ELAPSED_MIN, TS_EMIS ) == 0 )
-!-----------------------------------------------------------------------
       ! Emission time step is now in the center of transport time steps
       FLAG = ( MOD( ELAPSED_MIN, TS_EMIS ) == (M-1)*TS_DYN )
 
@@ -3261,10 +3634,6 @@
 !
       FUNCTION ITS_TIME_FOR_A6() RESULT( FLAG )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       LOGICAL :: FLAG 
@@ -3276,6 +3645,7 @@
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3342,9 +3712,6 @@
 !
       FUNCTION ITS_TIME_FOR_A6UPDATE() RESULT( FLAG )
 !
-! !USES:
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       LOGICAL :: FLAG 
@@ -3359,6 +3726,7 @@
 !  (2 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3399,6 +3767,42 @@
 
 !EOC
 #endif
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_i3
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_I3 returns TRUE if it is time to read 
+!  in I2 (instantaneous 3-hr fields) and FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_I3() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG 
+! 
+! !REVISION HISTORY: 
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARAIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      
+      ! We read in I-6 fields at 00, 03, 06, 09, 12, 15, 18, 21 GMT
+      FLAG = ( ( MOD( NHMS, 030000 ) == 0 ) .or. FIRST )
+      
+      FIRST = .FALSE.
+
+      END FUNCTION ITS_TIME_FOR_I3
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -4015,12 +4419,6 @@
 !BOC
 
       ! Test for the 16th of the month at 0 GMT
-!----------------------------------------------------------------------------
-! Prior to 10/14/11:
-! Now use ITS_A_NEW_DAY to tell if it's the first data read time of the day.
-! This will account for the central chemistry timestep option. (bmy, 10/14/11) 
-!      IS_MIDMONTH = ( DAY == 16 .and. NHMS == 000000 )
-!----------------------------------------------------------------------------
       IS_MIDMONTH = ( DAY == 16 .and. ITS_A_NEW_DAY() )
 
       END FUNCTION ITS_MIDMONTH
@@ -4154,7 +4552,6 @@
       ENDIF
 
       END FUNCTION ITS_A_NEW_DAY
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -4251,10 +4648,6 @@
 !
       FUNCTION TIMESTAMP_STRING( YYYYMMDD, HHMMSS ) RESULT( TIME_STR )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN), OPTIONAL :: YYYYMMDD   ! YYYY/MM/DD date
@@ -4270,6 +4663,7 @@
 !  (2 ) Now add optional arguments YYYYMMDD and HHMMSS (bmy, 10/27/03)
 !  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4385,8 +4779,6 @@
 ! !USES:
 !
       USE CHARPAK_MOD, ONLY : STRREPL
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4406,6 +4798,7 @@
 !  (4 ) Now do not replace "ss" with seconds, as the smallest GEOS-Chem
 !        timestep is in minutes. (bmy, 7/20/04)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4622,6 +5015,161 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: accept_external_date_time
+!
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_DATE\_TIME sets the date and
+!  time variables in time\_mod.F with the values obtained from an external
+!  GCM (such as NASA's GEOS-5 GCM).  The various date \& time values from 
+!  the GCM are passed as arguments.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Accept_External_Date_Time( 
+     &   am_I_Root,    value_NYMDb,    value_NYMDe,   value_NYMD,
+     &   value_NHMSb,  value_NHMSe,    value_NHMS,    value_YEAR,
+     &   value_MONTH,  value_DAY,      value_DAYOFYR, value_HOUR,
+     &   value_MINUTE, value_SECOND,   value_UTC,     value_HELAPSED,
+     &   value_TS_CHEM, value_TS_CONV, value_TS_DYN,  value_TS_EMIS,
+     &   RC                                                           )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE JULDAY_MOD,       ONLY : JULDAY
+      USE JULDAY_MOD,       ONLY : CALDATE
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
+      INTEGER, OPTIONAL    :: value_NYMDb     ! YYYY/MM/DD @ start of run
+      INTEGER, OPTIONAL    :: value_NYMDe     ! YYYY/MM/DD @ end of run
+      INTEGER, OPTIONAL    :: value_NYMD      ! YYYY/MM/DD @ current time
+      INTEGER, OPTIONAL    :: value_NHMSb     ! hh:mm:ss   @ start of run
+      INTEGER, OPTIONAL    :: value_NHMSe     ! hh:mm:ss   @ end of run
+      INTEGER, OPTIONAL    :: value_NHMS      ! hh:mm:ss   @ current time
+      INTEGER, OPTIONAL    :: value_YEAR      ! UTC year 
+      INTEGER, OPTIONAL    :: value_MONTH     ! UTC month
+      INTEGER, OPTIONAL    :: value_DAY       ! UTC day
+      INTEGER, OPTIONAL    :: value_DAYOFYR   ! UTC day of year
+      INTEGER, OPTIONAL    :: value_HOUR      ! UTC hour
+      INTEGER, OPTIONAL    :: value_MINUTE    ! UTC minute
+      INTEGER, OPTIONAL    :: value_SECOND    ! UTC second
+      REAL*4,  OPTIONAL    :: value_UTC       ! UTC time [hrs]
+      REAL*4,  OPTIONAL    :: value_HELAPSED  ! Elapsed hours
+      INTEGER, OPTIONAL    :: value_TS_CHEM   ! Chemistry  timestep [min]
+      INTEGER, OPTIONAL    :: value_TS_CONV   ! Convection timestep [min]
+      INTEGER, OPTIONAL    :: value_TS_DYN    ! Dynamic    timestep [min]
+      INTEGER, OPTIONAL    :: value_TS_EMIS   ! Emissions  timestep [min]
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  The date and time values are obtained via the Extract_ subroutine in 
+!  module file GEOSCHEMchem_GridCompMod.F90.      
+! 
+! !REVISION HISTORY: 
+!  06 Dec 2012 - Initial version
+!  11 Dec 2012 - R. Yantosca - Renamed to ACCEPT_EXTERNAL_DATE_TIME
+!  18 Jun 2013 - R. Yantosca - Now compute day of week w/r/t GMT, which is
+!                              the same modification made in SET_CURRENT_TIME
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*4 :: A. B. JD, THISDAY, TMP
+
+      !=================================================================
+      ! Set time/date values of time_mod.F from the ESMF inputs 
+      !=================================================================
+      IF ( PRESENT( value_NYMDb    ) ) NYMDb       = value_NYMdb
+      IF ( PRESENT( value_NYMDe    ) ) NYMDe       = value_NYMDe
+      IF ( PRESENT( value_NYMD     ) ) NYMD        = value_NYMD
+      IF ( PRESENT( value_NHMSb    ) ) NHMSb       = value_NHMSb 
+      IF ( PRESENT( value_NHMSe    ) ) NHMSe       = value_NHMSe
+      IF ( PRESENT( value_NHMS     ) ) NHMS        = value_NHMS 
+      IF ( PRESENT( value_YEAR     ) ) YEAR        = value_YEAR 
+      IF ( PRESENT( value_MONTH    ) ) MONTH       = value_MONTH
+      IF ( PRESENT( value_DAY      ) ) DAY         = value_DAY 
+      IF ( PRESENT( value_DAYOFYR  ) ) DAY_OF_YEAR = value_DAYOFYR
+      IF ( PRESENT( value_HOUR     ) ) HOUR        = value_HOUR
+      IF ( PRESENT( value_MINUTE   ) ) MINUTE      = value_MINUTE
+      IF ( PRESENT( value_SECOND   ) ) SECOND      = value_SECOND
+      IF ( PRESENT( value_TS_CHEM  ) ) TS_CHEM     = value_TS_CHEM
+      IF ( PRESENT( value_TS_CONV  ) ) TS_CONV     = value_TS_CONV
+      IF ( PRESENT( value_TS_DYN   ) ) TS_DYN      = value_TS_DYN
+      IF ( PRESENT( value_TS_EMIS  ) ) TS_EMIS     = value_TS_EMIS
+
+      ! Special handling for GMT to avoid roundoff error
+      IF ( PRESENT( value_UTC  ) ) THEN 
+         TMP = value_UTC
+         GMT = TMP
+      ENDIF
+
+      !=================================================================
+      ! Compute various other derived time/date values
+      !=================================================================
+      
+      ! Elapsed minutes since the start of the run
+      IF ( PRESENT( value_HELAPSED ) ) THEN
+         ELAPSED_MIN = ( value_HELAPSED * 60 )
+      ENDIF
+
+      ! TAUb (hours since 0 UTC on 01 Jan 1985) @ start of simulation
+      IF ( PRESENT( value_NYMDb ) .and. PRESENT( value_NHMSb ) ) THEN
+         TMP  = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e0
+         TAUb = DBLE( TMP )
+      ENDIF
+
+      ! TAUe (hours since 0 UTC on 01 Jan 1985) @ end of simulation
+      IF ( PRESENT( value_NYMDe ) .and. PRESENT( value_NHMSe ) ) THEN
+         TMP  = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e0
+         TAUe = DBLE( TMP )
+      ENDIF
+
+      ! TAU value ( hours since 0 UTC on 01 Jan 1985)
+      IF ( PRESENT( value_NYMD ) .and. PRESENT( value_NHMS ) ) THEN
+         TMP  = ( GET_JD( NYMD, NHMS ) - JD85 ) * 24e0
+         TAU  = DBLE( TMP )
+      ENDIF
+
+      ! Season index (1=DJF, 2=MAM, 3=JJA, 4=SON)
+      SELECT CASE ( MONTH )
+         CASE ( 12, 1, 2 )
+            NSEASON = 1
+         CASE ( 3, 4, 5 )
+            NSEASON = 2
+         CASE ( 6, 7, 8 )
+            NSEASON = 3
+         CASE ( 9, 10, 11 )
+            NSEASON = 4
+      END SELECT
+
+      ! Day of week w/r/t the GMT date  
+      ! Use same algorithm as in routine SET_CURRENT_TIME
+      THISDAY     = DAY + ( GMT / 24d0 )
+      JD          = JULDAY( YEAR, MONTH, THISDAY )
+      A           = ( JD + 1.5d0 ) / 7d0
+      B           = ( A - INT( A ) ) * 7d0
+      B           = INT( NINT( B*1d5 + SIGN( 5d0, B ) ) / 10d0 ) / 1d4
+      DAY_OF_WEEK = INT( B )
+
+      ! Return successfully
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE Accept_External_Date_Time
+!EOC
+#endif
       END MODULE TIME_MOD
 
 

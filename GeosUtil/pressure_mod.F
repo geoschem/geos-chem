@@ -18,26 +18,28 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: CLEANUP_PRESSURE           
-      PUBLIC :: GET_AP
-      PUBLIC :: GET_BP
-      PUBLIC :: GET_PCENTER           
-      PUBLIC :: GET_PEDGE
-      PUBLIC :: GET_PEDGE_FULLGRID             
-      PUBLIC :: INIT_PRESSURE         
-      PUBLIC :: SET_FLOATING_PRESSURE 
+      PUBLIC  :: CLEANUP_PRESSURE
+      PUBLIC  :: GET_AP
+      PUBLIC  :: GET_BP
+      PUBLIC  :: GET_PCENTER
+      PUBLIC  :: GET_PEDGE
+      PUBLIC  :: GET_PEDGE_FULLGRID
+      PUBLIC  :: INIT_PRESSURE
+      PUBLIC  :: SET_FLOATING_PRESSURE
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      PUBLIC  :: Accept_External_Pedge
+#endif
 !
 ! !REMARKS:
 !
-!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/13/10)
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 2/2/12)
 !  ============================================================================
 !                                                                             .
-!  GEOS-4, GEOS-5, and MERRA (hybrid grids):
+!  GEOS-4, GEOS-5, GEOS-5.7, and MERRA (hybrid grids):
 !  ----------------------------------------------------------------------------
 !  For GEOS-4/GEOS-5/MERRA met data products, the pressure at the bottom edge 
 !  of grid box (I,J,L) is defined as follows:
@@ -90,16 +92,30 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
 !  30 Aug 2010 - R. Yantosca - Updated comments
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
+!  10 Aug 2012 - R. Yantosca - Remove DEVEL from #ifdef for EXTERNAL_PEDGE
+!  11 Dec 2012 - R. Yantosca - Now make EXTERNAL_PEDGE private
+!  11 Dec 2012 - R. Yantosca - Add new routine ACCEPT_PEDGE_FROM_ESMF to set
+!                              EXTERNAL_PEDGE from the ESMF environment
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
       ! Module variables
-      REAL*8, ALLOCATABLE :: AP(:)      ! "A" term for hybrid ETA coordinate
-      REAL*8, ALLOCATABLE :: BP(:)      ! "B" term for hybrid ETA coordinate
-      REAL*8, ALLOCATABLE :: PFLT(:,:)  ! "Floating" surface pressure field
-      REAL*8, ALLOCATABLE :: AP_FULLGRID(:) ! "A" term for unreduced ETA
-      REAL*8, ALLOCATABLE :: BP_FULLGRID(:) ! "B" term for unreduced ETA
-
+      REAL*8, ALLOCATABLE :: AP(:)                  ! "A" term for hybrid grid
+      REAL*8, ALLOCATABLE :: BP(:)                  ! "B" term for hybrid grid
+      REAL*8, ALLOCATABLE :: PFLT(:,:)              ! "Floating" sfc pressure
+      REAL*8, ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
+      REAL*8, ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
+                                                    !  external grid
+#endif
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -119,7 +135,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Size parameters
+      USE CMN_SIZE_MOD                ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -157,7 +173,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Size parameters
+      USE CMN_SIZE_MOD                ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -199,7 +215,6 @@
       USE ERROR_MOD, ONLY : CHECK_VALUE
 
       USE CMN_SIZE_MOD  ! Size parameters
-  
 !
 ! !INPUT PARAMETERS: 
 !
@@ -211,29 +226,39 @@
 !  (1 ) Now check PFLT for NaN or Infinities (bmy, 8/27/02)
 !  (2 ) Added parallel DO-loop (bmy, 4/14/04)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER :: I, J
+      INTEGER            :: I, J
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
 
       !=================================================================
       ! SET_FLOATING_PRESSURE begins here!
       !=================================================================
+
+      ! Define quantities for CHECK_VALUE
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Assign into PFLT array
-         PFLT(I,J) = PS(I,J) 
+         PFLT(I,J) = PS(I,J) !  12 Jun 2013 - R. Yantosca -  
+
 
          ! Check for NaN or Infinities
-         CALL CHECK_VALUE( PFLT(I,J), (/I,J,0,0/), 
-     &                    'PFLT',   'set_floating_pressure:1' )
+         ERR_LOC = (/ I, J, 0, 0 /)
+         ERR_VAR = 'PFLT'
+         ERR_MSG = 'set_floating_pressure:1'
+         CALL CHECK_VALUE( PFLT(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -276,18 +301,32 @@
 !  (2 ) Now treat GEOS-5 the same way as GEOS-4 (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - Compute PEDGE for MERRA the same as for GEOS-5
+!  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
+!  10 Aug 2012 - R. Yantosca - Need to put #ifdef for EXTERNAL_PEDGE in the
+!                              section for GEOS-4, GEOS-5, MERRA, GEOS-5.7.x
+!  10 Aug 2012 - R. Yantosca - Now only use Cpp switches EXTERNAL_GRID or 
+!                              EXTERNAL_FORCING to use the GCM pressures.
+!                              This prevents problems when compiling G-C with
+!                              the DEVEL tag when using traditional main.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
       !-----------------------------
 
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      ! Taken from the GCM fields
+      PEDGE = EXTERNAL_PEDGE(I,J,L)
+#else
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      ! Computed for use w/in GEOS-Chem
       PEDGE = AP(L) + ( BP(L) * PFLT(I,J) )
+#endif
 
 #else 
 
@@ -295,8 +334,15 @@
       ! GEOS-3 & GCAP met fields
       !-----------------------------
 
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      ! Taken from the GCM fields
+      PEDGE = EXTERNAL_PEDGE(I,J,L)
+#else
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      ! Computed for use within GEOS-Chem
       PEDGE = AP(L) + ( BP(L) * ( PFLT(I,J) - PTOP ) )
+#endif
 
 #endif     
  
@@ -311,7 +357,7 @@
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
 !  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
-!  L=LLGLOB+1 is the atm top.
+!  L=LLLPAR+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:
@@ -334,6 +380,7 @@
 !
 ! !REVISION HISTORY:
 !  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
+!  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -341,7 +388,7 @@
       ! GET_PEDGE_FULLGRID begins here!
       !=================================================================
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -425,7 +472,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_PRESSURE
+      SUBROUTINE INIT_PRESSURE( am_I_Root )
 !
 ! !USES:
 !
@@ -433,6 +480,10 @@
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
       USE CMN_SIZE_MOD  ! LLPAR, PTOP
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version 
@@ -448,7 +499,12 @@
 !                              GEOS-5.  The vertical grids are identical.
 !  30 Aug 2010 - R. Yantosca - Updated comments
 !  30 Nov 2010 - R. Yantosca - Further improved comments about how GEOS-4 and
-!                              GEOS-5 vertical levels are lumped together.
+!                              GEOS-5 vertical levels are lumped together.\
+!  02 Feb 2012 - R. Yantosca - Compute Ap and Bp for GEOS-5.7.x in the same way
+!                              as for GEOS-5 and MERRA (grids are identical)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -484,7 +540,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
+      EXTERNAL_PEDGE = 0d0
+#endif
+
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !=================================================================
       ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)
@@ -781,80 +843,6 @@
 
 #endif
 
-#elif defined( GEOS_3 ) 
-
-      !=================================================================
-      ! GEOS-3 vertical coordinates (30 or 48 levels)
-      !=================================================================
-
-#if   defined( GRIDREDUCED )
-
-      !-----------------------------------------------------------------
-      ! GEOS-3 30 level grid
-      !-----------------------------------------------------------------
-
-      ! AP [hPa] is just PTOP for a pure-sigma grid
-      AP = PTOP
-
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0, 
-     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0, 
-     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0, 
-     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0, 
-     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0, 
-     &        0.122680d0, 0.096900d0, 0.076480d0, 0.047610d0, 
-     &        0.029600d0, 0.018380d0, 0.007040d0, 0.002530d0, 
-     &        0.000765d0, 0.000155d0, 0.000000d0 /)
-
-      !-----------------------------------
-      ! GEOS-3 48 level grid
-      !-----------------------------------
-
-      ! AP [hPa] is just PTOP for a pure-sigma grid
-      AP_FULLGRID = PTOP
-         
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP_FULLGRID =
-     &     (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
-     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
-     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
-     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
-     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
-     &        0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
-     &        0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
-     &        0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
-     &        0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
-     &        0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
-     &        0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
-     &        0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
-     &        0.000000d0 /)
-
-#else
-
-      !-----------------------------------------------------------------
-      ! GEOS-3 48 level grid
-      !-----------------------------------------------------------------
-
-      ! AP [hPa] is just PTOP for a pure-sigma grid
-      AP = PTOP
-         
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
-     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
-     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
-     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
-     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
-     &        0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
-     &        0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
-     &        0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
-     &        0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
-     &        0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
-     &        0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
-     &        0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
-     &        0.000000d0 /)
-       
-#endif  
-
 #elif defined( GCAP )
 
       !=================================================================
@@ -887,16 +875,19 @@
 
 #endif
       
-      ! Echo info to std output
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
-      WRITE( 6, '(a,/)' ) 'INIT_PRESSURE: Vertical coordinates!'
-      WRITE( 6, '( ''Ap '', /, 6(f11.6,1x) )' ) AP(1:LLPAR+1)
-      WRITE( 6, '(a)'   )
-      WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+#if !defined( ESMF_ ) 
+      ! Echo info to std output (skip if using ESMF interface to GEOS-5 GCM)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+         WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
+         WRITE( 6, '(a,/)' ) 'INIT_PRESSURE: Vertical coordinates!'
+         WRITE( 6, '( ''Ap '', /, 6(f11.6,1x) )' ) AP(1:LLPAR+1)
+         WRITE( 6, '(a)'   )
+         WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      ENDIF
+#endif
 
-      ! Return to calling program
       END SUBROUTINE INIT_PRESSURE
 !EOC
 !------------------------------------------------------------------------------
@@ -920,12 +911,68 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( ALLOCATED( AP   ) ) DEALLOCATE( AP   )
-      IF ( ALLOCATED( BP   ) ) DEALLOCATE( BP   )
-      IF ( ALLOCATED( AP_FULLGRID   ) ) DEALLOCATE( AP_FULLGRID   )
-      IF ( ALLOCATED( BP_FULLGRID   ) ) DEALLOCATE( BP_FULLGRID   )
-      IF ( ALLOCATED( PFLT ) ) DEALLOCATE( PFLT )
+      IF ( ALLOCATED( AP          ) ) DEALLOCATE( AP          )
+      IF ( ALLOCATED( BP          ) ) DEALLOCATE( BP          )
+      IF ( ALLOCATED( AP_FULLGRID ) ) DEALLOCATE( AP_FULLGRID )
+      IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
+      IF ( ALLOCATED( PFLT        ) ) DEALLOCATE( PFLT        )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
+#endif
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: accept_external_pedge
+!
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_PEDGE sets the GEOS-Chem
+!  pressure edge variable with the values obtained from an external GCM
+!  (such as the NASA GEOS-5 GCM).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Accept_External_Pedge( am_I_Root, State_Met, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!     
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine is a setter for EXTERNAL_PEDGE.  It allows us to keep the 
+!  EXTERNAL_PEDGE array PRIVATE to this module, which is good programming
+!  practice.
+! 
+! !REVISION HISTORY: 
+!  06 Dec 2012 - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      ! Set EXTERNAL_PEDGE to the pressure edges [hPa] carried in the
+      ! State_Met object, which were obtained from the external GCM
+      EXTERNAL_PEDGE = State_Met%PEDGE
+
+      ! Return successfully
+      RC             = GIGC_SUCCESS
+      
+      END SUBROUTINE Accept_External_Pedge
+!EOC
+#endif
       END MODULE PRESSURE_MOD
+

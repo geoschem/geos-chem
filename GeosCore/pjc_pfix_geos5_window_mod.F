@@ -84,10 +84,11 @@
 !       Need to restrain the pressure to fixer to an inner window (-1 box in
 !       all directions) because edges mass fluxes and divergence not known.
 !       (lzh, ccc, 8/3/10)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -180,13 +181,13 @@
 !        this P-fixer w/ GEOS-3 winds, pass true surface pressure to this
 !        routine. (bmy, 10/27/03)
 !  (2 ) Now define P2_TMP array for passing to ADJUST_PRESS (yxw, bmy, 3/5/07)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE CMN_SIZE_MOD    ! Size parameters
       USE CMN_GCTM_MOD    ! Physical constants
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*8,  INTENT(IN)  :: D_DYN
@@ -267,15 +268,13 @@
 !  (5 ) PS_AFTER (REAL*8) : Surface pressure - PTOP adjusted by P-fixer
 !
 !  NOTES:
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_MOD       ! STT, NTRACE, LPRT, LWINDO
 
       IMPLICIT NONE
-#     include "define.h"
-#     include "define.h"
-
 
       ! Arguments
       REAL*8, INTENT(IN)  :: XMASS(IIPAR,JJPAR,LLPAR)
@@ -383,7 +382,7 @@
 !    geofac_pc : special geometrical factor (geofac) for Polar cap
 !  
 !  NOTES:
-!  (1 ) Now reference PI from "F77_CMN_GCTM" for consistency.  Also force
+!  (1 ) Now reference PI from "CMN_GCTM" for consistency.  Also force
 !        double-precision with the "D" exponent. (bmy, 5/6/03)
 !  (2 ) New definition for the geometric factor. (lzh, ccc, 8/3/10)
 !******************************************************************************
@@ -1689,6 +1688,8 @@ c     --------------------------------------
 !  the Phil Cameron-Smith P-fixer. (bdf, bmy, 5/8/03)
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1827,7 +1828,7 @@ c     --------------------------------------
       ! Grid box surface areas [m2]
       DO J = JU1_GL, J2_GL
       DO I =  I1_GL, I2_GL
-         MCOR(I,J) = GET_AREA_M2(J)
+         MCOR(I,J) = GET_AREA_M2( I, J, 1 )
       ENDDO
       ENDDO
 
@@ -1853,7 +1854,7 @@ c     --------------------------------------
          
       ! Grid box center latitudes [radians]
       DO J = JU1_GL, J2_GL
-         CLAT_FV(J) = GET_YMID_R(J)
+         CLAT_FV(J) = GET_YMID_R( 1, J, 1 )
       ENDDO
 
       ! Longitude spacing

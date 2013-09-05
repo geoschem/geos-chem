@@ -13,19 +13,17 @@
 !  (6  ) NAME    : SMVGEAR species name (read from "chem.dat")
 !
 !  NOTES:
-!  (1  ) "cmn_fj.h" also includes "F77_CMN_SIZE" and "define.h".
+!  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
 !  (2  ) J-values are stored in array "ZPJ" from "cmn_fj.h".
 !  (3  ) Now references ERROR_STOP from "error_mod.f".  Updated comments,
 !         and made some cosmetic changes. (bmy, 10/15/02)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !*****************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
-
-#     include "define.h"
-
       USE CMN_SIZE_MOD
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE CMN_FJ_MOD, ONLY : ZPJ, RINDEX
 
       IMPLICIT NONE

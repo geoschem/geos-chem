@@ -1,16 +1,40 @@
-! $Id: setemdep.f,v 1.2 2010/03/15 19:33:21 ccarouge Exp $
-      SUBROUTINE SETEMDEP( NTRACER )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine SETEMDEP stores SMVGEAR reaction numbers (listed in "chem.dat")
-!  corresponding to GEOS-CHEM tracers which emit and dry deposit into the
-!  NTEMIS and NTDEP index arrays.  (lwh, jyl, gmg, djj, 1994; bmy, 3/15/10)
+! !ROUTINE: setemdep
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NTRACER (INTEGER) : Number of GEOS-CHEM tracers
+! !DESCRIPTION: Subroutine SETEMDEP stores SMVGEAR reaction numbers 
+!  (listed in "globchem.dat") corresponding to GEOS-CHEM tracers which emit 
+!  and dry deposit into the NTEMIS and NTDEP index arrays.
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE SETEMDEP( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE TRACERID_MOD, ONLY : IDEMIS, IDTRMB, NEMANTHRO, NEMBIOG
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE COMODE_LOOP_MOD                ! SMVGEAR II arrays
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+
+      IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  03 Jan 1994 - L. Horowitz et al - - Initial version
 !  (1 ) Now references "drydep_mod.f" and "tracerid_mod.f".  Updated comments
 !        and made cosmetic changes. (bmy, 12/5/02)
 !  (2 ) Cosmetic changes (bmy, 3/14/03)
@@ -18,34 +42,41 @@
 !  (4 ) Now flag to "smv2.log" the emitted & dry-deposited tracers instead 
 !        of flagging the tracers which aren't. (bmy, 7/20/04)
 !  (5 ) Increase DEPNAME length format for output (fp, 3/15/10)
-!******************************************************************************
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  13 Nov 2012 - R. Yantosca - Now pass Input_Opt and RC as arguments for GIGC
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%NUMDEP and Input_Opt%DEPNAME
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
-      USE TRACER_MOD,   ONLY : TRACER_NAME
-      USE TRACERID_MOD, ONLY : IDEMIS, IDTRMB, NEMANTHRO, NEMBIOG
+! !LOCAL VARIABLES:
+!     
+      ! Scalars
+      INTEGER            :: I, N, NK, NCS_TEMP
+      INTEGER            :: NTRACER, NUMDEP
+      CHARACTER(LEN=14)  :: NAME1
 
-#     include "define.h"
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
-
-      IMPLICIT NONE
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NTRACER
-
-      ! Local variables
-      INTEGER             :: I, N, NK, NCS_TEMP
-      CHARACTER(LEN=14)   :: NAME1
+      ! Arrays
+      CHARACTER(LEN=14 ) :: TRACER_NAME(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! SETEMDEP begins here!
       !=================================================================      
 
       ! Write header to "smv2.log"
-      WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
-      WRITE( IO93, '(a)'   ) 'SETEMDEP: Emission & deposition species'
-      WRITE( IO93, '(a,/)' ) REPEAT( '=', 79 )
+      IF ( am_I_Root ) THEN
+         WRITE( IO93,'(/,a)' ) REPEAT( '=', 79 )
+         WRITE( IO93,'(a)'   ) 'SETEMDEP: Emission & deposition species'
+         WRITE( IO93,'(a,/)' ) REPEAT( '=', 79 )
+      ENDIF
+
+      ! Set local variables from the Input_Opt object
+      NTRACER     = Input_Opt%N_TRACERS
+      TRACER_NAME = Input_Opt%TRACER_NAME
+      NUMDEP      = Input_Opt%NUMDEP
 
       !=================================================================
       ! Flag EMISSION REACTIONS in "globchem.dat" for GEOS-CHEM tracers
@@ -78,7 +109,7 @@
 
             ! Flag emitted tracer
             IF ( NTEMIS(I,NCS) > 0 ) THEN
-               WRITE( IO93, 100 ) I, TRACER_NAME(I)
+               IF ( am_I_Root ) WRITE( IO93, 100 ) I, TRACER_NAME(I)
  100           FORMAT( 'Tracer # ', i3, ' (', a4, ' ) has an ',
      &                 'emission rxn defined in "globchem.dat"' )
             ENDIF
@@ -90,7 +121,7 @@
          NEMIS(NCS) = NEMANTHRO + NEMBIOG
 
          ! Echo output to stdout
-         WRITE( 6, 110 ) NEMIS(NCS)
+         IF ( am_I_Root ) WRITE( 6, 110 ) NEMIS(NCS)
  110     FORMAT( '     - SETEMDEP: Number of emitted '
      &           'species in "globchem.dat":', i3 )
       ENDDO                     
@@ -118,7 +149,7 @@
 
             ! If we can match NAME1 against the GEOS-CHEM drydep tracer
             ! names in DEPNAME, then store the rxn number in NTDEP
-            IF ( DEPNAME(I) == NAME1 ) THEN
+            IF ( Input_Opt%DEPNAME(I) == NAME1 ) THEN
                NTDEP(I) = NK
                EXIT
             ENDIF
@@ -126,10 +157,7 @@
 
          ! Flag drydep tracers
          IF ( NTDEP(I) > 0 ) THEN 
-            WRITE( IO93, 120 ) I, DEPNAME(I)
-            ! increase length of DEPNAME printed so that
-            ! ISOP species are distinguishable FP (hotp 8/1/09)
-! 120        FORMAT( 'Drydep species # ', i3, ' (', a4, 
+            IF ( am_I_Root ) WRITE( IO93, 120 ) I, Input_Opt%DEPNAME(I)
  120        FORMAT( 'Drydep species # ', i3, ' (', a5, 
      &              ') has a drydep rxn defined in "globchem.dat"' )
          ENDIF
@@ -137,11 +165,11 @@
       ENDDO
 
       ! Echo output to stdout
-      WRITE( 6, 130 ) NDRYDEP(1)
+      IF ( am_I_Root ) WRITE( 6, 130 ) NDRYDEP(1)
  130  FORMAT( '     - SETEMDEP: Number of drydep  species '
      &        'in "globchem.dat":', i3 )
 
-      WRITE( 6, 140 ) NUMDEP
+      IF ( am_I_Root ) WRITE( 6, 140 ) NUMDEP
  140  FORMAT( '     - SETEMDEP: Number of all GEOS-CHEM '
      &        'drydep species     :', i3 )
 
@@ -149,5 +177,5 @@
       ! mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
       NCS = NCSURBAN
 
-      ! Return to calling program
       END SUBROUTINE SETEMDEP
+!EOC

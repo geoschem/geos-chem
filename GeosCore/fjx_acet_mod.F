@@ -26,7 +26,6 @@
 ! !USES:
 ! 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -42,8 +41,8 @@
 ! Implemented into GEOS-Chem by Claire Carouge (ccarouge@seas.harvard.edu)
 !
 ! !REVISION HISTORY:
-! 20 Apr 2009 - C. Carouge - Created the module from fastJX64.f code.
-!
+!  20 Apr 2009 - C. Carouge - Created the module from fastJX64.f code.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
       CONTAINS
@@ -64,7 +63,7 @@
 !
 ! !USES
 !
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
 !
 ! !INPUT PARAMETERS:
@@ -107,7 +106,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
 !
 ! !INPUT PARAMETERS: 
@@ -152,7 +151,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
 !
 ! !INPUT PARAMETERS: 
@@ -199,7 +198,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
 !
 ! !INPUT PARAMETERS: 
@@ -253,7 +252,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
 !
 ! !INPUT PARAMETERS: 

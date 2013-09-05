@@ -48,10 +48,10 @@
 !  (6 ) Added routines for regridding to 0.5 x 0.666 GEOS-5 nested grid
 !        (yxw, dan, bmy, 11/6/08)
 !  (7 ) Updated nested grid parameters for EU & NA grids (amv, bmy, 12/18/09)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -356,7 +356,7 @@
 
       ! Regrid data
       CALL DO_THE_REGRIDDING( 1, UNIT, DBLE( INDATA ), TMP_OUT )
-
+ 
       ! Save output data to a 2D array 
       OUTDATA(:,:) = TMP_OUT(:,:,1)
 
@@ -368,7 +368,7 @@
       SUBROUTINE DO_REGRID_1x1_R8_2D( UNIT, INDATA, OUTDATA )
 !
 !******************************************************************************
-!  Subroutine DO_REGRID_1x1_R8_2D is a wrapper routine for DO_THE_REGRIDDING.
+!  Subroutine DO_REGRID_1x1_R8_2D is a wrapper routine for DO_THE_REGRIDING.
 !  It takes a REAL*8 array as input and saves to a 2-D REAL*8 array as output.
 !  (bdf, bmy, 10/24/05)
 !
@@ -451,7 +451,7 @@
          CALL INIT_REGRID_1x1
          FIRST = .FALSE.
       ENDIF
-
+  
       ! Is this concentration data?
       IS_CONC = ITS_CONCENTRATION_DATA( UNIT )
 
@@ -553,7 +553,7 @@
       ! N. Am. nested grid has corners (10N,140W) and (60N,40W)
       ! which corresponds to 1x1 indices (41,101) and (141,151)
       OUTDATA = INDATA( 41:141, 101:151, : )
-
+      
 #elif defined( GRID1x1 )
 
       !--------------------------------------------
@@ -1135,6 +1135,7 @@
 !  (7 ) OUT (REAL*8 ) : Array containing output data on GCAP 4x5 grid
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1237,7 +1238,7 @@
      &              0.5d0 * SUM( IN( E-2:E,   N,   L ) ) * A1x1(N  )
             
             ! 4x5 output field at (I,J,L)
-            OUT(I,J,L) = M_TOT / GET_AREA_M2( J )
+            OUT(I,J,L) = M_TOT / GET_AREA_M2( I, J, L )
          ENDDO 
          ENDDO  
 
@@ -1388,6 +1389,7 @@
 !  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 4x5 grid
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1481,7 +1483,7 @@
      &              0.5d0*SUM( IN( E-2:E,   N,   L ) ) * A1x1(N  )
             
             ! 4x5 output field at (I,J,L)
-            OUT(I,J,L) = M_TOT / GET_AREA_M2( J )
+            OUT(I,J,L) = M_TOT / GET_AREA_M2( I, J, L )
 
          ENDDO 
          ENDDO  
@@ -1591,6 +1593,7 @@
          ENDDO
 
       ENDDO
+
 !$OMP END PARALLEL DO
 
       ! Return to calling program
@@ -1618,6 +1621,7 @@
 !  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 2x25 grid
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1759,7 +1763,7 @@
      &                       0.375d0 * IN(E,  N,  L) * A1x1(N  )
 
                ! 2 x 2.5 output field at (I,J,L)
-               OUT(I,J,L)  = M_TOT / GET_AREA_M2( J )
+               OUT(I,J,L)  = M_TOT / GET_AREA_M2( I, J, L )
 
             ELSE
 
@@ -1780,7 +1784,7 @@
      &           0.125d0 *      IN( E,       N,  L )   * A1X1(N  )
 
                ! 2 x 2.5 output field at (I,J,L)
-               OUT(I,J,L) = M_TOT / GET_AREA_M2( J )
+               OUT(I,J,L) = M_TOT / GET_AREA_M2( I, J, L )
             ENDIF
          ENDDO
          ENDDO

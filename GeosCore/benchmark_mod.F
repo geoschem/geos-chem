@@ -1,64 +1,87 @@
-! $Id: benchmark_mod.f,v 1.1 2009/09/16 14:06:41 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: benchmark_mod
+!
+! !DESCRIPTION: Module BENCHMARK\_MOD contains routines to save out initial 
+!  and final tracer masses which are needed for GEOS-Chem 1-month benchmark 
+!  simulations
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE BENCHMARK_MOD
 !
-!******************************************************************************
-!  Module BENCHMARK_MOD contains routines to save out initial and final
-!  tracer masses which are needed for GEOS-CHEM benchmark diagnostics.
-!  (bmy, 7/20/04, 10/3/05)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) INITIAL_FILE (CHAR*255) : Name of file w/ initial tracer mass
-!  (2 ) FINAL_FILE   (CHAR*255) : Name of file w/ final tracer mass
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) STDRUN : Saves initial or final tracer mass to bpch file format
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  GEOS-CHEM modules referenced by biomass_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) file_mod.f          : Contains file unit numbers and error checks
-!  (3 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
-!  (4 ) time_mod.f      : Module containing routines for computing time & date
-!  (5 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array STT etc.
-!  (6 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
+      PUBLIC :: STDRUN
 !
-!  NOTES:
+! !PUBLIC DATA MEMBERS:
+!
+      CHARACTER(LEN=255), PUBLIC :: INITIAL_FILE ! File w/ initial tracer mass
+      CHARACTER(LEN=255), PUBLIC :: FINAL_FILE   ! File w/ final   tracer mass
+!
+! !REVISION HISTORY:
 !  (1 ) Now expand date & time tokens in filenames (bmy, 1/31/05)
 !  (2 ) Now modified for GCAP grid (swu, bmy, 6/28/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
-!
-      IMPLICIT NONE
-#     include "define.h"
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-      CHARACTER(LEN=255) :: INITIAL_FILE
-      CHARACTER(LEN=255) :: FINAL_FILE
-
-      !=================================================================
-      ! MODULE ROUTINES -- Follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!EOP
 !------------------------------------------------------------------------------
-
-      SUBROUTINE STDRUN( LBEGIN )
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine STDRUN dumps the mass of either Ox [kg] or 222Rn, 210Pb, and 7Be
-!  [kg] at the start & end of each run.  This is necessary for GEOS-CHEM
-!  benchmarking.  (bmy, 8/12/02, 10/3/05)
+! !ROUTINE: stdrun
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) LBEGIN (LOGICAL) : TRUE  denotes beginning of the run;
-!                          FALSE denotes the end of the run
+! !DESCRIPTION: Subroutine STDRUN dumps the mass of either O3 [kg] or 222Rn, 
+!  210Pb, and 7Be [kg] at the start \& end of each run.  This is necessary
+!  for GEOS-CHEM benchmarking.
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE STDRUN( Input_Opt, State_Chm, LBEGIN )
+!
+! !USES:
+!
+      USE BPCH2_MOD,          ONLY : BPCH2             
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+      USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
+      USE BPCH2_MOD,          ONLY : GET_MODELNAME
+      USE CMN_SIZE_MOD
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE inquireMod,         ONLY : findFreeLUN
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_NYMD
+      USE TIME_MOD,           ONLY : GET_NHMS
+      USE TIME_MOD,           ONLY : GET_TAU
+      USE TRACERID_MOD,       ONLY : IDTO3
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+      LOGICAL,        INTENT(IN) :: LBEGIN      ! =T denotes start of run
+                                                ! =F denotes end of run
+! 
+! !REVISION HISTORY: 
+!  12 Aug 2002 - R. Yantosca - Initial version
+!  03 Aug 2012 - R. Yantosca - Added ProTeX headers
 !  (1 ) Changed name from STDRUN_Ox to STDRUN, since we now can also save out 
 !        Rn/Pb/Be for NSRCX==1.  Also deleted obsolete code from 6/02.  Added 
 !        LBEGIN as an argument to determine if this is the start or end of the 
@@ -66,27 +89,21 @@
 !  (2 ) Bundled into "benchmark_mod.f" (bmy, 7/20/04)
 !  (3 ) Now expand date tokens in the filename (bmy, 1/31/05)
 !  (4 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag
-!        value for GEOS or GCAP grids .  Also removed references to F77_CMN_DIAG
+!        value for GEOS or GCAP grids .  Also removed references to CMN_DIAG
 !        and TRCOFFSET. (bmy, 6/28/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to obtain file unit #'s
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of 
+!                              NOx-Ox partitioning
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  30 May 2013 - R. Yantosca - Now pass Input_Opt object via the arg list
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE, BPCH2             
-      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR,        GET_MODELNAME
-      USE FILE_MOD,     ONLY : IU_FILE,              IOERROR
-      USE TIME_MOD,     ONLY : EXPAND_DATE,          GET_NYMD
-      USE TIME_MOD,     ONLY : GET_NHMS,             GET_TAU
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM,   ITS_A_RnPbBe_SIM
-      USE TRACER_MOD,   ONLY : STT,                  N_TRACERS
-      USE TRACERID_MOD, ONLY : IDTOX
-
-      USE CMN_SIZE_MOD   ! Size parameters
-
-      ! Arguments
-      LOGICAL, INTENT(IN) :: LBEGIN 
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: IU_FILE
       INTEGER             :: N,        NYMD,     NHMS
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
       INTEGER, PARAMETER  :: CENTER180=1
@@ -99,13 +116,21 @@
       CHARACTER(LEN=80)   :: TITLE
       CHARACTER(LEN=255)  :: FILENAME
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! STDRUN begins here!
       !=================================================================
 
       ! Return if we are not doing either a radon or fullchem stdrun
-      IF ( ( .not. ITS_A_FULLCHEM_SIM() ) .and. 
-     &     ( .not. ITS_A_RnPbBe_SIM() ) ) RETURN
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. 
+     &     ( .not. Input_Opt%ITS_A_RnPbBe_SIM   ) ) RETURN
+
+      ! Find a free file LUN
+      IU_FILE   = findFreeLUN()
 
       ! Define variables for binary punch file
       MODELNAME = GET_MODELNAME()
@@ -118,6 +143,10 @@
       NYMD      = GET_NYMD()
       NHMS      = GET_NHMS()
       TAU       = GET_TAU()
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT       => State_Chm%Tracers
 
       ! Define filename for beginning or end of benchmark run
       IF ( LBEGIN ) THEN
@@ -134,13 +163,13 @@
       !=================================================================
       ! Save the mass of 222Rn, 210Pb, 7Be to a file
       !=================================================================
-      IF ( ITS_A_RnPbBE_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_RnPbBE_SIM ) THEN
 
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
 
          ! Loop over tracers
-         DO N = 1, N_TRACERS
+         DO N = 1, Input_Opt%N_TRACERS
 
             ! Save Rn, Pb, Be as REAL*4
             ARRAY(:,:,:) = STT(:,:,:,N)
@@ -155,21 +184,21 @@
          ENDDO
 
       !=================================================================
-      ! Save the mass of Ox to a file
+      ! Save the mass of O3 to a file
       !=================================================================
-      ELSE IF ( ITS_A_FULLCHEM_SIM() .and. IDTOX > 0 ) THEN
+      ELSE IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. IDTO3 > 0 ) THEN
 
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
         
-         ! Save Ox as REAL*4
-         ARRAY(:,:,:) = STT(:,:,:,IDTOX)
+         ! Save O3 as REAL*4
+         ARRAY(:,:,:) = STT(:,:,:,IDTO3)
 
-         ! Write Ox to binary punch file
+         ! Write O3 to binary punch file
          CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY,  IDTOX,    
-     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
-     &               IIPAR,     JJPAR,     LLPAR,     IFIRST,     
+     &               HALFPOLAR, CENTER180, CATEGORY,  IDTO3,
+     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
+     &               IIPAR,     JJPAR,     LLPAR,     IFIRST,
      &               JFIRST,    LFIRST,    ARRAY(:,:,:) )
                
       ENDIF
@@ -177,10 +206,9 @@
       ! Close file
       CLOSE( IU_FILE )
 
-      ! Return to MAIN program
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE STDRUN
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE BENCHMARK_MOD

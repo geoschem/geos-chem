@@ -30,10 +30,11 @@
 !        (bmy, 9/5/06)
 !  (3 ) More bug fixes for SUN 4100 platform.  Make SMALLEST = 1d-60 to avoid 
 !        problems (bmy, 12/19/06)
+!  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !  
       IMPLICIT NONE
-#     include "define.h"
       
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -135,7 +136,7 @@
       INTEGER                :: MX(IIPAR)
       INTEGER                :: IDEEP(IIPAR)
       INTEGER                :: IL1G=1
-      INTEGER                :: IL2G=JJPAR
+      INTEGER                :: IL2G
       REAL*8                 :: DPG(IIPAR,LLPAR)
       REAL*8                 :: ED(IIPAR,LLPAR)
       REAL*8                 :: UPDEG(IIPAR,LLPAR)
@@ -156,7 +157,8 @@
 
       ! Fake entrainment in non-entraining plumes (swu, bmy, 6/9/05)
       ENTRAINN = 0d0
- 
+      IL2G=JJPAR
+
       ! Loop over latitudes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -418,12 +420,12 @@
 !        order to avoid seg faults with OpenMP.  Also renamed GEOS-CHEM 
 !        latitude index LATI_INDEX to J.  Added comments. (bmy, 12/13/05)
 !  (2 ) Bug fix: avoid div by zero in formula for CHAT (bmy, 12/19/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD38, CONVFLUP
       USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE DAO_MOD,      ONLY : AD
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -709,7 +711,7 @@
                   LL = LLPAR - K + 1
 
                   ! Grid box surface area [m2] 
-                  AREA_M2 = GET_AREA_M2( JJ ) 
+                  AREA_M2 = GET_AREA_M2( II, JJ, LL ) 
 
                   ! Save into AD38 array [kg/s]
                   AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) 
@@ -725,7 +727,7 @@
                   LL = LLPAR - K + 1
                   
                   ! Grid box surface area [m2]
-                  AREA_M2 = GET_AREA_M2( JJ ) 
+                  AREA_M2 = GET_AREA_M2( II, JJ, LL ) 
 
                   CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M)  
      &              + MU(I,K) * AREA_M2  * (CONU(I,K)-CMIX(I,KM1))

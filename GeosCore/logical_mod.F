@@ -16,7 +16,13 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS NOW OBSOLETE AND IS SLATED TO BE REMOVED!   %%%
+!  %%%  WE NOW USE THE LOGICALS FROM Input_Opt INSTEAD OF FROM HERE.     %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  05 Nov 2004 - R. Yantosca - Added LNEI99 switch to toggle EPA/NEI emissions 
@@ -57,12 +63,20 @@
 !  18 Dec 2009 - Aaron van D - Added logicals for NA, EU, CH, CU nested grids
 !  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
 !  29 Jan 2009 - F. Paulot   - Added LFERTILIZERNOX.
+!  22 Jan 2010 - R. Yantosca - Added LTOMAS switch
 !  26 Feb 2010 - R. Yantosca - Remove obsolete LEMBED flag
 !  18 May 2010 - R. Nassar   - Add logical flags for CO2 offline simulation
 !  20 Jul 2010 - C. Carouge  - Add LPREINDHG and LGTMM for updated mercury.
 !  24 Jan 2011 - L. Murray   - Remove LOTDREG, LCTH, LMFLUX, LPRECON,
 !                               and LOTDSCALE for lightning
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
+!  26 Mar 2012 - R. Yantosca - Add USE_OLSON_2001 switch, which will use the
+!                              newer Olson 2001 land map & drydep inputs
+!  26 Apr 2013 - R. Yantosca - Remove LTOMAS; we now use #if defined( TOMAS )
+!  07 Aug 2013 - M. Sulprizio- Move NAPEMISS and POAEMISSSCALE for SOA + SVPOA
+!                              simulation to Headers/gigc_input_opt_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Added LSVPOA switch for semivolatile POA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -81,10 +95,13 @@
       LOGICAL :: LSOA            ! Use secondary organic aerosol tracers?
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
       LOGICAL :: LDICARB         ! Use dicarbonyl chemistry mechanism?
+      LOGICAL :: LSVPOA          ! Switch for semi-volatile POA (hotp 8/9/09)
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
       LOGICAL :: LKPP            ! Use KPP solver instead of SMVGEAR?
+      LOGICAL :: LSCHEM          ! Use linear strat chem? (vs. no strat schem)
+      LOGICAL :: LLINOZ          ! T = Linoz O3; F = Synoz O3
 
       !%%%% Cloud convection %%%%
       LOGICAL :: LCONV           ! Use cloud convection?
@@ -98,9 +115,10 @@
       !%%%% Deposition %%%%
       LOGICAL :: LDRYD           ! Use dry deposition?
       LOGICAL :: LWETD           ! Use wet deposition?
+      LOGICAL :: USE_OLSON_2001  ! Use the Olson 2001 land map & drydep info?
 
       !%%%% Emissions %%%%
-      LOGICAL :: LAIRNOX         ! Use aircraft NOx emissions?
+      LOGICAL :: LAEIC           ! Use aircraft emissions from AEIC?
       LOGICAL :: LANTHRO         ! Turns all anthropogenic emissions on/off
       LOGICAL :: LBBSEA          ! Use seasonal biomass burning emissions?
       LOGICAL :: LBIONOX         ! <-- deprecated: replace w/ LBIOMASS soon
@@ -144,26 +162,33 @@
       LOGICAL :: L8DAYBB         ! Use GFED2 8-day biomass burning?
       LOGICAL :: L3HRBB          ! Use GFED2 3-hr biomass burning?
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
-      LOGICAL :: L8DAYBB3        ! Use GFED3 8-day biomass burning?
+      LOGICAL :: LDAYBB3         ! Use GFED3 daily biomass burning?
       LOGICAL :: L3HRBB3         ! Use GFED3 3-hr biomass burning?
-      LOGICAL :: LSYNOPBB3       ! Use GFED3 synoptic biomass burning
       LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)
+![eml
+      LOGICAL :: LHIST           ! Use historical emissions?
+!eml]
+      LOGICAL :: LWARWICK_VSLS   ! Use Warwick_s3 R(Br)n? (jpp 8/23/07)
+      LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
+      LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)
+      LOGICAL :: LRCP            ! RCP anthro emissions (cdh, 10/14/11)
+      LOGICAL :: LRCPSHIP        ! RCP anthro SHIP emissions (cdh, 10/14/11)
+      LOGICAL :: LRCPAIR         ! RCP anthro AIRCRAFT emissions (cdh, 10/14/11)
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
       LOGICAL :: LMFCT           ! Turns TPCORE MFCT option on/off
       LOGICAL :: LTRAN           ! Turns advection on/off
       LOGICAL :: LTPFV           ! Are we using the GEOS-4 
-      LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
-      LOGICAL :: LLINOZ          ! Use LINOZ chemistry in the stratosphere?
       LOGICAL :: LWINDO          ! Use nested-grid simulation?
       LOGICAL :: LWINDO2x25      ! Use nested-grid BC's @ 2 x 2.5 resolution?
       LOGICAL :: LWINDO_NA       
       LOGICAL :: LWINDO_EU
       LOGICAL :: LWINDO_CH
       LOGICAL :: LWINDO_CU
+      LOGICAL :: LWINDO_SE
 
       !%%%% Met fields %%%%
       LOGICAL :: LUNZIP          ! Unzip met fields on-the-fly?
@@ -233,6 +258,11 @@
       LOGICAL :: LND50_HDF       ! Save ND50  diagnostic in HDF5?
       LOGICAL :: LND51_HDF       ! Save ND51  diagnostic in HDF5?
       LOGICAL :: LND51b_HDF      ! Save ND51b diagnostic in HDF5?
+ 
+      !%%%% For interface with GCM's in MPI environments
+      LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
+
+      LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
 
       END MODULE LOGICAL_MOD
 !EOC

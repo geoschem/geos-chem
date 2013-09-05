@@ -11,13 +11,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP
+      SUBROUTINE CLEANUP( am_I_Root, RC )
 !
 ! !USES:
 !
-      USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
+      !USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
-      USE AIRCRAFT_NOX_MOD,        ONLY : CLEANUP_AIRCRAFT_NOX
+      USE AEIC_MOD,                ONLY : CLEANUP_AEIC
       USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
       USE BIOMASS_MOD,             ONLY : CLEANUP_BIOMASS
       USE BIOFUEL_MOD,             ONLY : CLEANUP_BIOFUEL
@@ -28,13 +28,13 @@
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE COMODE_MOD,              ONLY : CLEANUP_COMODE
       USE GCKPP_COMODE_MOD,        ONLY : CLEANUP_GCKPP_COMODE
-      USE DAO_MOD,                 ONLY : CLEANUP_DAO
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
       USE DIAG41_MOD,              ONLY : CLEANUP_DIAG41
       USE DIAG50_MOD,              ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
+      USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53 !(clf, 3/11/11)
       USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
       USE DIAG_PL_MOD,             ONLY : CLEANUP_DIAG_PL
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
@@ -53,15 +53,19 @@
       USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_O1D_MOD,          ONLY : CLEANUP_GLOBAL_O1D
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
+      USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
+      USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
+      USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
+      USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
-      USE LAI_MOD,                 ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
+      USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
@@ -72,25 +76,69 @@
       USE REGRID_1x1_MOD,          ONLY : CLEANUP_REGRID_1x1
       USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
+      USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
       USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
+#if   defined( TOMAS )
+      USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
+#endif
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
+      USE TPCORE_GEOS57_WINDOW_MOD,ONLY : EXIT_GEOS57_TPCORE_WINDOW !clb
       USE TRACER_MOD,              ONLY : CLEANUP_TRACER
-      USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
       USE TROPOPAUSE_MOD,          ONLY : CLEANUP_TROPOPAUSE
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
       USE RETRO_MOD,               ONLY : CLEANUP_RETRO
+      USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
+      USE RCP_MOD,                 ONLY : CLEANUP_RCP !(cdh, 10/14/11)
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not deallocate met field arrays from "dao_mod.F"
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Deallocate met field arrays from "dao_mod.F" used to
+      ! correct vertical regridding of OH for offline simulations
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      USE DAO_MOD,                 ONLY : CLEANUP_DAO
+# if !defined( TOMAS )
+# endif
+#endif
+
+#if ! defined( ESMF_ )
+      USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
+#endif
+      USE CMN_Mod,                 ONLY : Cleanup_CMN
+      USE CMN_FJ_Mod,              ONLY : Cleanup_CMN_FJ
+      USE CMN_NOX_Mod,             ONLY : Cleanup_CMN_NOX
+      USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
+      USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
+      USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
+      USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
+      USE JV_CMN_Mod,              ONLY : Cleanup_JV_CMN
+      USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
 
       IMPLICIT NONE
-#     include "define.h"
-
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC           ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version
@@ -174,9 +222,30 @@
 !  (43) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
 !  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
+!  (45) Added call to CLEANUP_GLOBAL_OC, which deallocates arrays from
+!       "global_oc_mod.f"  (clf, 2/28/2011)
+!  (46) Added call to CLEANUP_GLOBAL_BC, which deallocates arrays from
+!       "global_bc_mod.f"  (clf, 2/28/2011) 
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  19 Mar 2012 - M. Payer    - Remove call to CLEANUP_ACETONE. It is no longer
+!                              needed after removal of JO1D and RESP routines.
+!  05 Apr 2012 - R. Yantosca - Now call CLEANUP_MODIS_LAI
+!  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
+!  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
+!                              CLEANUP_GRID
+!  19 Nov 2012 - R. Yantosca - Add cleanup calls for modules in Headers;
+!                              these were omitted during development
+!  28 Nov 2012 - R. Yantosca - Remove reference to CLEANUP_DAO; we have now
+!                              removed all allocatable arrays from dao_mod.F
+!  03 Dec 2012 - R. Yantosca - Now call Cleanup_CMN_SIZE
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  14 Mar 2013 - M. Payer    - Restore reference to CLEANUP_DAO. Some arrays
+!                              have been restored to dao_mod.F for use in
+!                              the vertical regridding of OH for offline
+!                              simulations.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -189,26 +258,27 @@
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! Call cleanup routines from individual F90 modules
-      CALL CLEANUP_ACETONE
+      !CALL CLEANUP_ACETONE
       CALL CLEANUP_AEROSOL
-      CALL CLEANUP_AIRCRAFT_NOX
+      CALL CLEANUP_AEIC
       CALL CLEANUP_ARCTAS_SHIP
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
       CALL CLEANUP_BRAVO
+      CALL CLEANUP_BROMOCARB  ! jpp, 6/17/09
       CALL CLEANUP_C2H6
       CALL CLEANUP_CAC_ANTHRO
       CALL CLEANUP_CARBON
       CALL CLEANUP_CO2
       CALL CLEANUP_COMODE
       CALL CLEANUP_GCKPP_COMODE
-      CALL CLEANUP_DAO
       CALL CLEANUP_DIAG
       CALL CLEANUP_DIAG03
       CALL CLEANUP_DIAG04
       CALL CLEANUP_DIAG41
       CALL CLEANUP_DIAG50
       CALL CLEANUP_DIAG51
+      CALL CLEANUP_DIAG53
       CALL CLEANUP_DIAG_OH
       CALL CLEANUP_DIAG_PL
       CALL CLEANUP_DRYDEP
@@ -227,15 +297,19 @@
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_O1D
       CALL CLEANUP_GLOBAL_OH
+      CALL CLEANUP_GLOBAL_OC
+      CALL CLEANUP_GLOBAL_BC
+      CALL CLEANUP_GLOBAL_GRID
+      CALL CLEANUP_GRID
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF
       CALL CLEANUP_ISOROPIAII
-      CALL CLEANUP_LAI
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_LINOZ
       CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
+      CALL CLEANUP_MODIS_LAI
       CALL CLEANUP_OCEAN_MERCURY
       CALL CLEANUP_DEPO_MERCURY
       CALL CLEANUP_LAND_MERCURY
@@ -246,8 +320,11 @@
       CALL CLEANUP_REGRID_1x1
       CALL CLEANUP_SEASALT
       CALL CLEANUP_SULFATE
+      CALL CLEANUP_STRAT_CHEM
       CALL CLEANUP_TAGGED_CO
+#if ! defined( ESMF_ )
       CALL CLEANUP_TRANSPORT
+#endif
       CALL CLEANUP_TOMS
       CALL CLEANUP_TRACER
       CALL CLEANUP_TROPOPAUSE
@@ -256,16 +333,55 @@
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
       CALL CLEANUP_RETRO
+      CALL CLEANUP_RCP !(cdh, 10/14/11)
 
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
 #endif
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not deallocate met field arrays from "dao_mod.F"
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Deallocate met field arrays from "dao_mod.F" used to
+      ! correct vertical regridding of OH for offline simulations
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      CALL CLEANUP_DAO
+# if !defined( TOMAS )
+      CALL CLEANUP_DAO         ! Clean up met fields for APM
+# endif
+#endif
+
+#if   defined( TOMAS )
+      CALL CLEANUP_TOMAS
+#endif
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
+#elif defined( GEOS_57) && defined( GRID025x03125)
+      ! clb
+      CALL EXIT_GEOS57_TPCORE_WINDOW
 #else
       CALL EXIT_TPCORE
 #endif
+
+      ! Call extra cleanup routines, mostly from modules in Headers/
+      CALL Cleanup_CMN        ( am_I_Root, RC )
+      CALL Cleanup_CMN_FJ     ( am_I_Root, RC )
+      CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
+      CALL Cleanup_CMN_O3     ( am_I_Root, RC )
+      CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
+      CALL Cleanup_COMMSOIL   ( am_I_Root, RC )
+      CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
+      CALL Cleanup_JV_CMN     ( am_I_Root, RC )
+      CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
 
       END SUBROUTINE CLEANUP
 !EOC
