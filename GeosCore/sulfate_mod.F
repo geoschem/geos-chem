@@ -1783,6 +1783,8 @@
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  05 Sep 2013 - M. Sulprizio- Add modifications for cloud pH (B. Alexander)
+!   6 Sep 2013 - M. Sulprizio- Bug fix: Prevent divide-by-zero if LWC=0. Only
+!                              do aqueous SO2 chemistry when LWC>0.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2042,9 +2044,11 @@
          
          ! If (1) there is cloud, (2) there is SO2 present, and 
          ! (3) the T > -15 C, then compute aqueous SO2 chemistry
+         ! Prevent divide-by-zero if LWC=0 (mpayer, 9/6/13)
          IF ( ( FC     > 0.d0   )  .AND. 
      &        ( SO2_ss > MINDAT )  .AND. 
-     &        ( TK     > 258.0  ) ) THEN
+     &        ( TK     > 258.0  )  .AND.
+     &        ( LWC    > 0.d0   ) ) THEN
 
             !===========================================================
             ! NOTE...Sulfate production from aquatic reactions of SO2 
