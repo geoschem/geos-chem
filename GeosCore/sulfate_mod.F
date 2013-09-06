@@ -1874,8 +1874,8 @@
 !$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX, ALK, ALK1, ALK2         )
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
-!$OMP+PRIVATE( HPLUS, SO4nss, TNH3,  TNO3, GNO3,   ANIT, LSTOT, ALKdst )
-!$OMP+PRIVATE( ALKds, NH3,    SSCvv, aSO4, SO2_sr, SR,   TANIT         )
+!$OMP+PRIVATE( HPLUS, SO4nss, TNH3, TNO3,  GNO3, ANIT,   LSTOT, ALKdst )
+!$OMP+PRIVATE( ALKds, ALKss,  NH3,  SSCvv, aSO4, SO2_sr, SR,    TANIT  )
 !$OMP+PRIVATE( BULK,  SIZE_RES                                         )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR 
