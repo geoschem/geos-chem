@@ -75,6 +75,7 @@
 #  01 Aug 2013 - M. Sulprizio- Added aeic_mod
 #  20 Aug 2013 - M. Sulprizio- Added carbon_mod
 #  20 Aug 2013 - R. Yantosca - Remove reference to "define.h"
+#  05 Sep 2013 - M. Sulprizio- Added global_hno3_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -147,6 +148,7 @@ $(CORE)/gfed3_biomass_mod.F           \
 $(CORE)/global_bc_mod.F               \
 $(CORE)/global_br_mod.F               \
 $(CORE)/global_ch4_mod.F              \
+$(CORE)/global_hno3_mod.F             \
 $(CORE)/global_no3_mod.F              \
 $(CORE)/global_nox_mod.F              \
 $(CORE)/global_o1d_mod.F              \
