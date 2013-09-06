@@ -3099,6 +3099,8 @@
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  13 Jan 2013 - M. Payer    - Update soil Hg files for v9-02c (Y. Zhang)
 !  06 Jun 2013 - R. Yantosca - Get ANTHRO_Hg_YEAR, Hg_SCENARIO from Input_Opt
+!  06 Sep 2013 - R. Yantosca - Kludge: use MERRA soil file for GEOS-FP testing
+!                              and debugging.  Worry about this later.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5681,6 +5683,14 @@
 #elif defined( MERRA ) && defined( GRID4x5 )
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.preind.bpch'
+#elif defined( GEOS_57 ) && defined( GRID4x5 )
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%   KLUDGE: For unit-testing, use the MERRA soil file!     %%%
+         !%%%   Ask Team Hg to produce a new GEOS-FP soil file later.  %%%
+         !%%%   (bmy, 9/6/13)                                          %%%
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201110/soilHg.merra.preind.bpch'
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
          ! Need to read nested-grid files, yzh
          FILENAME= TRIM( DATA_DIR )           //
@@ -5705,6 +5715,14 @@
      &             'mercury_201203/soilhg.presentday.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #elif defined( MERRA ) && defined( GRID4x5 )
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201110/soilHg.merra.presentday.bpch'
+#elif defined( GEOS_57 ) && defined( GRID4x5 )
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%   KLUDGE: For unit-testing, use the MERRA soil file!     %%%
+         !%%%   Ask Team Hg to produce a new GEOS-FP soil file later.  %%%
+         !%%%   (bmy, 9/6/13)                                          %%%
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.presentday.bpch'
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
