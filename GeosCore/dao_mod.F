@@ -477,6 +477,8 @@
 !
 !  NOTES:
 !  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
+!  05 Sep 2013 - R. Yantosca - Prevent an out-of-bounds error in the call
+!                              to GET_AREA_CM2.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -499,7 +501,15 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( I, J, L )
+!----------------------------------------------------------------------------
+! Prior to 9/5/13:
+! AREA_M2 is defined on the reduced grid, so L > LLPAR will cause an 
+! out-of-bounds error.  In the "traditional" GEOS-Chem, all of the grid box
+! areas in a column are identical, so we can replace this with (I,J,1).
+! This bug was found by the GEOS-Chem unit tester. (bmy, 9/5/13)
+!         AREA_M2 = GET_AREA_M2( I, J, L )
+!----------------------------------------------------------------------------
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
                
          ! Pressure at bottom edge of grid box [hPa]
          P1          = GET_PEDGE_FULLGRID(I,J,L)
