@@ -204,7 +204,7 @@
       ! J-values will be stored in the common-block variable ZPJ, and 
       ! will be later accessed via function FJFUNC. 
       !=================================================================
-      OPTAER(:,:)=0.0
+      
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( NLON,  NLAT,   YLAT,  CSZA,      OPTAER  )
@@ -255,7 +255,7 @@
             ! and at 1000nm, IWV=7 (DAR)
             !OPTAER wants NAER*NRH values but ODAER is now 
             !NAER - use IRHARR to map to correct OPTAER bin (DAR 08/13)
-            !OPTAER(:,:)=0.0
+            OPTAER(:,:)=0.0
             DO N = 1, NAER
              DO L = 1, LLPAR
               IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
@@ -268,7 +268,7 @@
             ! and at 1000nm, IWV=7 (DAR)
             OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,7,:)
             ! Cloud OD profile [unitless] at (NLON,NLAT)
-            OPTD         = OD(1:LLPAR,NLON,NLAT)
+            OPTD(:)      = OD(1:LLPAR,NLON,NLAT)
 
             !-----------------------------------------------------------
             !### If you want to exclude aerosol OD, mineral dust OD,

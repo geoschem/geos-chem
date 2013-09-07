@@ -1294,6 +1294,19 @@
          !Makes more sense to do the latter for now (DAR)
          W1_FILE  = 'YYYYMMDD' // SHOUR // '.w1.' // GET_RES_EXT()
 
+         !Fix for GEOS-5 (we only have a full year for 2012 at
+         !0.25x0.3125)
+!         WIND_DIR = TRIM( DATA_DIR ) // 'MERRA/2012/' //
+!     &              SMONTH // '/'
+!         W1_FILE  = '2012MMDD' // SHOUR // '.w1.' // GET_RES_EXT()
+
+         
+         !Use available GEOS-5 (e.g. have 03/13 to 05/13 at 0.25x0.3125)
+!         WIND_DIR = TRIM( DATA_DIR ) // 'GEOS_5/2013/' //
+!     &              SMONTH // '/'
+!         W1_FILE  = '2013MMDD' // SHOUR // '.w1.' // GET_RES_EXT()
+
+
          ! Replace date tokens
          CALL EXPAND_DATE( W1_FILE,  NYMD, NHMS )
          CALL EXPAND_DATE( WIND_DIR, NYMD, NHMS )

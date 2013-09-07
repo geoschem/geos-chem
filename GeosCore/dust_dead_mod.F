@@ -886,10 +886,11 @@ ctdf        print *,' no mobilisation candidates'
 
       ! Loop over longitudes
       DO LON_IDX = 1, IIPAR
-
          ! Save latitude slice in SRCE_FUNC_OUT
-         SRCE_FUNC_OUT(LON_IDX) = ERD_FCT_KVN(LON_IDX,LAT_IDX)
-!         SRCE_FUNC_OUT(LON_IDX) = SRCE_FUNC(LON_IDX,LAT_IDX)
+         !Use Koven source function
+!         SRCE_FUNC_OUT(LON_IDX) = ERD_FCT_KVN(LON_IDX,LAT_IDX)
+         !Use original GOCRT source function
+         SRCE_FUNC_OUT(LON_IDX) = SRCE_FUNC(LON_IDX,LAT_IDX)
       ENDDO
 
       ! Return to calling program
@@ -3859,7 +3860,7 @@ ctdf        print *,' no mobilisation candidates'
       !-------------------------------------------------------------------
 
       ! For GOCART source function, we do not use VAI (tdf, bmy, 1/25/07)
-      LOGICAL              :: FLG_VAI_TVBDS = .TRUE.
+      LOGICAL              :: FLG_VAI_TVBDS = .FALSE.
 
       ! [flg] Add 182 days in southern hemisphere
       LOGICAL              :: FLG_SH_ADJ = .TRUE.
@@ -4989,7 +4990,6 @@ c Fix up for negative argument, erf, etc.
 
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), BAR_FRC )
-      write(6,*) 'BAR_FRC(80,55):',BAR_FRC(80,55)
       ! TAU for reading the bpch files
       XTAU      = GET_TAU0( THISMONTH, 1, 1985 )
 

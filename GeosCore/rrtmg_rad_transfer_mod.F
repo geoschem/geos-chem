@@ -1318,7 +1318,7 @@
  100  FORMAT( '     - GET_TES_STRAT_CLIM: READING ', A )
 
       XTAU      = GET_TAU0( 1, 1, 2000 )
-      WRITE(6,*) XTAU,LLPAR
+      !WRITE(6,*) XTAU,LLPAR
       !-----------------------
       ! N2O
       !-----------------------
