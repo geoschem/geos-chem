@@ -422,6 +422,7 @@
                ENDIF
             ENDIF
 
+
             !-----------------------------------------------------------
             ! Get NOx from the David Streets' inventory (SE Asia)
             !-----------------------------------------------------------
@@ -683,9 +684,15 @@
             ! ND36 = save anthro emissions in [molec/cm2]
             ! and then convert to [molec/cm2/s] in DIAG3.F
             IF ( ND36 > 0 ) THEN
-               AD36(I,J,N) = AD36(I,J,N) +
-     &            ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
-            ENDIF  
+               IF LNEI08 THEN
+                  AD36(I,J,N) = AD36(I,J,N) +
+     &              ( EMX(LL) * XNUMOL(IDTNO) / AREA_CM2 )
+               ELSE
+                  AD36(I,J,N) = AD36(I,J,N) +
+     &                 ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
+            
+               ENDIF
+            ENDIF
             IF ( DO_SAVE_DIAG49 ) THEN               
                EMISS_ANTHR(I,J,N) = EMISS_ANTHR(I,J,N) +
      &            ( EMX(LL) * XNUMOL(NN) / (DTSRCE * AREA_CM2 ))
