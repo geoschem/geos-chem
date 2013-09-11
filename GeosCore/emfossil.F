@@ -42,7 +42,7 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TRACERID_MOD,       ONLY : IDENO,    IDEO3,    IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTCO,    IDTHNO3
-      USE TRACERID_MOD,       ONLY : IDTC2H6,  IDTNO2
+      USE TRACERID_MOD,       ONLY : IDTC2H6,  IDTNO2,   IDTNO
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 
@@ -575,23 +575,26 @@
             ENDIF
             
             IF ( LNEI08 .and. .not. LHIST ) THEN
+
                ! Flag for weekday or weekend for NEI/VISTAS emissions
                !WRITE(*,*) 'NEI08 xxx ',sum(NEI08_MASK)
                ! If we are over the USA and CAN/MEX
                IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
-               ! Determine if we should use weekday or weekend NEI
-               ! emissions at grid box (I,J,L).  Since NEI is over
-               ! the US, then weekend is Sat/Sun.
+
+                  ! Determine if we should use weekday or weekend NEI
+                  ! emissions at grid box (I,J,L).  Since NEI is over
+                  ! the US, then weekend is Sat/Sun.
                   DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
                   WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
-               ! Get EPA emissions for NOx; emissions are already 
-               ! in MOLEC_CM2_s, so set to .FALSE.
+
+                  ! Get EPA emissions for NOx; emissions are already 
+                  ! in MOLEC_CM2_s, so set to .FALSE.
                   IF ( LL .le. 3 ) THEN 
                      NEI08 = GET_NEI2008_ANTHRO( I, J, LL, HOURNEI, NN,
      &                    WEEKDAY )
-               ! Replace GEIA with EPA/NEI emissions up to level 3
+                     ! Replace GEIA with EPA/NEI emissions up to level 3
                      EMX(LL) = NEI08 *
-     &                    ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+     &                    ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO)
                   ENDIF
                ENDIF
                
@@ -671,33 +674,65 @@
             ! Store in EMISRRN array and archive diagnostics
             !-----------------------------------------------------------
 
-            ! EMISRRN [molec/box/s] is referenced by LL
-            EMISRRN(I,J,LL) = EMISRRN(I,J,LL) +
-     &                       ( EMX(LL) * XNUMOL(IDTNO2) / DTSRCE )
+            IF ( LNEI08 .and. NEI08_MASK( I, J ) > 0d0 ) THEN
+               !---------------------------------------------
+               !            %%%%%% NEI08 %%%%%%
+               ! NO and NO2 are separate species
+               ! We need to convert NO using mass units NO
+               ! for grid boxes over the US (mpayer, 9/11/13)
+               !---------------------------------------------
 
-            ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
-            IF ( ND32 > 0 ) THEN
-               AD32_an(I,J,LL) = AD32_an(I,J,LL) + 
-     &              ( EMX(LL) * XNUMOL(IDTNO2) / ( DTSRCE * AREA_CM2 ) )   
-            ENDIF
-
-            ! ND36 = save anthro emissions in [molec/cm2]
-            ! and then convert to [molec/cm2/s] in DIAG3.F
-            IF ( ND36 > 0 ) THEN
-               IF LNEI08 THEN
-                  AD36(I,J,N) = AD36(I,J,N) +
-     &              ( EMX(LL) * XNUMOL(IDTNO) / AREA_CM2 )
-               ELSE
-                  AD36(I,J,N) = AD36(I,J,N) +
-     &                 ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
-            
+               ! EMISRRN [molec/box/s] is referenced by LL
+               EMISRRN(I,J,LL) = EMISRRN(I,J,LL) +
+     &                          ( EMX(LL) * XNUMOL(IDTNO) / DTSRCE )
+               
+               ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
+               IF ( ND32 > 0 ) THEN
+                  AD32_an(I,J,LL) = AD32_an(I,J,LL) + 
+     &               ( EMX(LL) * XNUMOL(IDTNO) / ( DTSRCE * AREA_CM2 ) )   
                ENDIF
-            ENDIF
-            IF ( DO_SAVE_DIAG49 ) THEN               
-               EMISS_ANTHR(I,J,N) = EMISS_ANTHR(I,J,N) +
-     &            ( EMX(LL) * XNUMOL(NN) / (DTSRCE * AREA_CM2 ))
+               
+               ! ND36 = save anthro emissions in [molec/cm2]
+               ! and then convert to [molec/cm2/s] in DIAG3.F
+               IF ( ND36 > 0 ) THEN
+                     AD36(I,J,N) = AD36(I,J,N) +
+     &                    ( EMX(LL) * XNUMOL(IDTNO) / AREA_CM2 )
+               ENDIF
+               
+               IF ( DO_SAVE_DIAG49 ) THEN               
+                  EMISS_ANTHR(I,J,N) = EMISS_ANTHR(I,J,N) +
+     &               ( EMX(LL) * XNUMOL(IDTNO) / (DTSRCE * AREA_CM2 ))
+               
+               ENDIF 
+            ELSE
+               !---------------------------------------------
+               !     %%%%%% All other inventories %%%%%%
+               ! We need to convert NO using mass units NO2
+               !---------------------------------------------
 
-            ENDIF    
+               ! EMISRRN [molec/box/s] is referenced by LL
+               EMISRRN(I,J,LL) = EMISRRN(I,J,LL) +
+     &                          ( EMX(LL) * XNUMOL(IDTNO2) / DTSRCE )
+               
+               ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
+               IF ( ND32 > 0 ) THEN
+                  AD32_an(I,J,LL) = AD32_an(I,J,LL) + 
+     &              ( EMX(LL) * XNUMOL(IDTNO2) / ( DTSRCE * AREA_CM2 ) )   
+               ENDIF
+               
+               ! ND36 = save anthro emissions in [molec/cm2]
+               ! and then convert to [molec/cm2/s] in DIAG3.F
+               IF ( ND36 > 0 ) THEN
+                     AD36(I,J,N) = AD36(I,J,N) +
+     &                    ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
+               ENDIF
+               
+               IF ( DO_SAVE_DIAG49 ) THEN               
+                  EMISS_ANTHR(I,J,N) = EMISS_ANTHR(I,J,N) +
+     &               ( EMX(LL) * XNUMOL(IDTNO2) / (DTSRCE * AREA_CM2 ))
+               
+               ENDIF    
+            ENDIF
          ENDDO     
 
       !=================================================================    
