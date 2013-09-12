@@ -121,6 +121,7 @@
 !  (23) Bug fixes in COMPUTE_F (bmy, 7/26/06)
 !  (24) Resize DSTT array in WETDEP to save memory.  Added fixes for GEOS-5
 !        wet deposition per Hongyu Liu's suggestions. (bmy, 3/5/08)
+!  (25) Increased NSOLMAX to 45 for NIT dust and SO4 dust  (tdf 4/30/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -151,7 +152,9 @@
       !=================================================================
 
       ! Parameters
-      INTEGER, PARAMETER   :: NSOLMAX = 33
+!tdf      INTEGER, PARAMETER   :: NSOLMAX = 33
+      INTEGER, PARAMETER   :: NSOLMAX = 45
+
       REAL*8,  PARAMETER   :: EPSILON = 1d-32
 
       ! Scalars
@@ -626,6 +629,13 @@
       USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
+!tdf
+      USE LOGICAL_MOD,  ONLY : LPRT
+      USE ERROR_MOD,    ONLY : DEBUG_MSG
+!tdf
+      USE TRACERID_MOD, ONLY : IDTNITd1, IDTNITd2, IDTNITd3, IDTNITd4
+      USE TRACERID_MOD, ONLY : IDTSO4d1, IDTSO4d2, IDTSO4d3, IDTSO4d4
+      USE TRACERID_MOD, ONLY : IDTDAL1,  IDTDAL2,  IDTDAL3,  IDTDAL4
       
 #     include "CMN_SIZE"    ! Size parameters
 
@@ -977,6 +987,22 @@
      &          N == IDTLET ) THEN 
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
+!tdf
+      !-------------------------------
+      ! NITD1 / NITD2 / NITD3 / NITD4 (aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTNITd1  .or. N == IDTNITd2 .or.
+     &          N == IDTNITd3   .or. N == IDTNITd4 ) THEN
+         CALL F_AEROSOL( KC, F )
+         ISOL = GET_ISOL( N )
+!tdf
+      !-------------------------------
+      ! SO4D1 / SO4D2 / SO4D3 / SO4D4 (aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTSO4d1  .or. N == IDTSO4d2 .or.
+     &          N == IDTSO4d3   .or. N == IDTSO4d4 ) THEN
+         CALL F_AEROSOL( KC, F )
+         ISOL = GET_ISOL( N )
 
       !-------------------------------
       ! BC HYDROPHILIC (aerosol) or
@@ -1009,6 +1035,15 @@
       ! Coarse mode seasalt (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
+         CALL F_AEROSOL( KC, F )
+         ISOL = GET_ISOL( N )
+
+!tdf
+      !-------------------------------
+      ! DSTAL1/DSTAL2/DSTAL3/DSTAL4 (dust alkalinity aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTDAL1 .or. N == IDTDAL2 .or.
+     &          N == IDTDAL3 .or. N == IDTDAL4 ) THEN
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -1512,7 +1547,11 @@
       USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2,  IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2,  IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IS_Hg2,  IS_HgP
-
+!tdf
+      USE TRACERID_MOD, ONLY : IDTDAL1,  IDTDAL2,  IDTDAL3,  IDTDAL4
+      USE TRACERID_MOD, ONLY : IDTNITd1, IDTNITd2, IDTNITd3, IDTNITd4
+      USE TRACERID_MOD, ONLY : IDTSO4d1, IDTSO4d2, IDTSO4d3, IDTSO4d4
+!tdf
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
@@ -1788,7 +1827,21 @@
      &          N == IDTAS  .or. N == IDTAHS  .or. 
      &          N == IDTLET ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
+!tdf
+      !------------------------------
+      ! Dust Nitrate (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTNITd1 .or. N == IDTNITd2 .or.
+     &          N == IDTNITd3 .or. N == IDTNITd4 ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+!tdf
+      !------------------------------
+      ! Dust Sulfate (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTSO4d1 .or. N == IDTSO4d2 .or.
+     &          N == IDTSO4d3 .or. N == IDTSO4d4 ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+!tdf
       !------------------------------
       ! BC HYDROPHILIC (aerosol) or
       ! OC HYDROPHILIC (aerosol)
@@ -1811,7 +1864,14 @@
       ELSE IF ( N == IDTDST1 .or. N == IDTDST2 .or.
      &          N == IDTDST3 .or. N == IDTDST4 ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
+!tdf
+      !-------------------------------
+      ! DUST alkalinity size bins (aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTDAL1 .or. N == IDTDAL2 .or.
+     &          N == IDTDAL3 .or. N == IDTDAL4 ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+!tdf
       !------------------------------
       ! Accum  seasalt (aerosol) or
       ! Coarse seasalt (aerosol)
@@ -2119,7 +2179,11 @@
       USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
-
+!tdf
+      USE TRACERID_MOD, ONLY : IDTDAL1,  IDTDAL2,  IDTDAL3,  IDTDAL4
+      USE TRACERID_MOD, ONLY : IDTNITd1, IDTNITd2, IDTNITd3, IDTNITd4
+      USE TRACERID_MOD, ONLY : IDTSO4d1, IDTSO4d2, IDTSO4d3, IDTSO4d4
+!tdf
 #     include "CMN_SIZE"   ! Size parameters
 
       ! Arguments
@@ -2260,7 +2324,23 @@
      &          N == IDTLET ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
-
+!tdf
+      !------------------------------
+      ! Dust Nitrate (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTNITd1  .or. N == IDTNITd2 .or.
+     &          N == IDTNITd3  .or. N == IDTNITd4 ) THEN
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+!tdf
+      !------------------------------
+      ! Dust Sulfate (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTSO4d1  .or. N == IDTSO4d2 .or.
+     &          N == IDTSO4d3  .or. N == IDTSO4d4 ) THEN
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+!tdf
       !------------------------------
       ! BC HYDROPHILIC (aerosol) or
       ! OC HYDROPHILIC (aerosol) or
@@ -2279,7 +2359,15 @@
      &          N == IDTDST3 .or. N == IDTDST4 ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
-
+!tdf
+      !------------------------------
+      ! DUST alkalinity size bins (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTDAL1 .or. N == IDTDAL2  .or.
+     &          N == IDTDAL3 .or. N == IDTDAL4 ) THEN
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+!tdf
       !------------------------------
       ! Accum  seasalt (aerosol) or
       ! Coarse seasalt (aerosol)
@@ -2593,7 +2681,10 @@
       USE TIME_MOD,          ONLY : GET_TS_DYN
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM, STT
       USE TRACERID_MOD,      ONLY : IDTSO2, IDTSO4, IS_Hg2
-      
+!tdf
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE LOGICAL_MOD, ONLY : LPRT
+!tdf
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -3468,7 +3559,13 @@
       ! Compute rainout rate constant K in s^-1 (Eq. 12, Jacob et al, 2000).
       ! 1.0d-4 = K_MIN, a minimum value for K_RAIN 
       ! 1.5d-6 = L + W, the condensed water content (liq + ice) in the cloud
-      K_RAIN = 1.0d-4 + ( Q / 1.5d-6 ) 
+
+!tdf Reduce condensed water content in the cloud to enhance WETSCAV
+!tdf      K_RAIN = 1.0d-4 + ( Q / 1.5d-6 ) 
+!tdf T5 simulation      K_RAIN = 1.0d-4 + ( Q / 0.5d-6 ) 
+!tdf T6 simulation      K_RAIN = 1.0d-4 + ( Q / 1.0d-6 ) 
+!tdf T7 simulation: revert to original CLWC
+          K_RAIN = 1.0d-4 + ( Q / 1.5d-6 ) 
       
       ! Return to WETDEP
       END FUNCTION LS_K_RAIN
@@ -3508,7 +3605,13 @@
 
       ! Compute F', the area of the grid box undergoing precipitation
       ! 1.5d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
-      F_PRIME = Q / ( K_RAIN * 1.5d-6 )
+
+!tdf Reduce condensed water content in the cloud to enhance WETSCAV
+!tdf      F_PRIME = Q / ( K_RAIN * 1.5d-6 )
+!tdf T5 simulation      F_PRIME = Q / ( K_RAIN * 0.5d-6 )
+!tdf T6 simulation      F_PRIME = Q / ( K_RAIN * 1.0d-6 )
+!tdf T7 simulation: revert to original CLWC
+        F_PRIME = Q / ( K_RAIN * 1.5d-6 )
 
       ! Return to WETDEP
       END FUNCTION LS_F_PRIME
@@ -3678,6 +3781,11 @@
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,   IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IS_Hg2,    IS_HgP
+!tdf
+      USE TRACERID_MOD, ONLY : IDTSO4d1, IDTSO4d2, IDTSO4d3, IDTSO4d4
+      USE TRACERID_MOD, ONLY : IDTNITd1, IDTNITd2, IDTNITd3, IDTNITd4
+      USE TRACERID_MOD, ONLY : IDTDAL1,  IDTDAL2,  IDTDAL3,  IDTDAL4
+!tdf
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3759,6 +3867,66 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTNITs
             
+!tdf dust nitrate
+         !-----------------------------
+         ! Dust nitrate aerosol tracers
+         !-----------------------------
+         ELSE IF ( N == IDTNITd1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTNITd1
+
+         ELSE IF ( N == IDTNITd2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTNITd2
+
+         ELSE IF ( N == IDTNITd3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTNITd3
+
+         ELSE IF ( N == IDTNITd4 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTNITd4
+
+!tdf dust sulfate
+         !-----------------------------
+         ! Dust sulfate aerosol tracers
+         !-----------------------------
+         ELSE IF ( N == IDTSO4d1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSO4d1
+
+         ELSE IF ( N == IDTSO4d2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSO4d2
+
+         ELSE IF ( N == IDTSO4d3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSO4d3
+
+         ELSE IF ( N == IDTSO4d4 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSO4d4
+
+!tdf dust alkalinity
+         !-----------------------------
+         ! Dust alkalinity aerosol tracers
+         !-----------------------------
+         ELSE IF ( N == IDTDAL1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDAL1
+
+         ELSE IF ( N == IDTDAL2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDAL2
+
+         ELSE IF ( N == IDTDAL3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDAL3
+
+         ELSE IF ( N == IDTDAL4 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDAL4
+
          !-----------------------------
          ! Crystal & Aqueous aerosols
          !-----------------------------
@@ -3940,7 +4108,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE LOGICAL_MOD, ONLY : LCARB,  LDUST, LSOA
+!tdf      USE LOGICAL_MOD, ONLY : LCARB,  LDUST, LSOA
+      USE LOGICAL_MOD, ONLY : LCARB,  LDUST, LDSTUP, LSOA
       USE LOGICAL_MOD, ONLY : LSSALT, LSULF, LSPLIT, LCRYST
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,  ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
@@ -3970,7 +4139,11 @@
          ELSE                                 
             IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
          ENDIF
-
+!tdf
+         IF ( LDSTUP )   NMAX = NMAX + NDSTBIN * 3 ! plus dust-sulfate
+                                                   ! plus dust-nitrate
+                                                   ! plus dust-alkalinity
+!tdf
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
          !-----------------------

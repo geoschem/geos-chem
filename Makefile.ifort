@@ -198,6 +198,8 @@ rpmares_mod.o             \
 isoropia_mod.o            \
 wetscav_mod.o             \
 seasalt_mod.o             \
+dust_dead_mod.o           \
+dust_mod.o                \
 sulfate_mod.o             \
 hcn_ch3cn_mod.o           \
 tagged_co_mod.o           \
@@ -207,8 +209,6 @@ gcap_convect_mod.o        \
 fvdas_convect_mod.o       \
 convection_mod.o          \
 pjc_pfix_mod.o            \
-dust_dead_mod.o           \
-dust_mod.o                \
 co2_mod.o                 \
 mercury_mod.o             \
 toms_mod.o                \

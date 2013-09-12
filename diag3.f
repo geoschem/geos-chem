@@ -153,6 +153,9 @@
       USE TRACERID_MOD, ONLY : IDTSO2,      IDTSO4,      IDTNH3 
       USE TRACERID_MOD, ONLY : IDTOX,       IDTNOX,      IDTHNO3 
       USE TRACERID_MOD, ONLY : IDTISOP,     IDTACET,     IDTPRPE 
+!tdf
+      USE TRACERID_MOD, ONLY : IDTDAL1, IDTDAL2, IDTDAL3, IDTDAL4
+!tdf
       USE TRACERID_MOD, ONLY : IDTH2,       IDTHD
       USE TRACERID_MOD, ONLY : NEMANTHRO ,  IDTSOA4
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
@@ -403,6 +406,29 @@
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
+
+!tdf Include Dust alkalinity sources              tdf 6/18/2K8
+
+         DO N = 5, NDSTBIN*2
+
+            ! At present we have 4 dust bins
+
+            IF ( N == 5 ) NN = IDTDAL1
+            IF ( N == 6 ) NN = IDTDAL2
+            IF ( N == 7 ) NN = IDTDAL3
+            IF ( N == 8 ) NN = IDTDAL4
+!tdf
+            ! Save dust into ARRAY
+            ARRAY(:,:,1) = AD06(:,:,N) 
+
+            ! Write to BPCH file
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+
       ENDIF     
 !
 !******************************************************************************

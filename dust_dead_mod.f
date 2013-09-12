@@ -316,6 +316,12 @@
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
+!tdf      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4
+!tdf T6 Half the FLX_MSS_FDG_FCT to tune to INTEX-B data
+!tdf      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.5d-4
+!tdf Quarter tthe FLX_MSS_FDG_FCT to tune to INTEX-B data
+!tdf      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 1.75d-4
+!tdf Restore original FLX_MSS_FDG_FCT
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4
 
       ! Reference height for mobilization processes [m]

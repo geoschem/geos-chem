@@ -49,9 +49,11 @@
       ! Now set PD30 to 1 (bmy, 8/18/05)
       ! Now set PD46 to 5 (tmf, bmy, 10/20/05)
       ! Now set PD10 to 20 (phs, 9/18/07)
-      INTEGER, PARAMETER :: PD01=3            
+      ! Changed PD05 to 12 (tdf, 06/25/08)
+      ! Changed PD05 to 14 (tdf, 03/02/09)
+      INTEGER, PARAMETER :: PD01=3
       INTEGER, PARAMETER :: PD02=3
-      INTEGER, PARAMETER :: PD05=10        
+      INTEGER, PARAMETER :: PD05=14
       INTEGER, PARAMETER :: PD06=NDSTBIN
       INTEGER, PARAMETER :: PD07=12
       INTEGER, PARAMETER :: PD08=2

@@ -986,7 +986,8 @@
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
-      USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
+!tdf      USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
+      USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LDSTUP, LSSALT, LCRYST
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
@@ -1040,6 +1041,10 @@
       ! Use DEAD dust mobilization (=T) or GINOUX (=F)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
       READ( SUBSTRS(1:N), * ) LDEAD      
+!tdf
+      ! Use SO2 and HNO3 uptake on dust aerosols 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6.5' )
+      READ( SUBSTRS(1:N), * ) LDSTUP
 
       ! Use online sea-salt aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
@@ -1079,6 +1084,9 @@
          LSOA   = .FALSE.
          LDUST  = .FALSE.
          LDEAD  = .FALSE.
+!tdf
+         LDSTUP = .FALSE.
+!tdf
          LSSALT = .FALSE.
       ENDIF
 
@@ -1233,6 +1241,8 @@
       WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
       WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
       WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
+!tdf
+      WRITE( 6, 100     ) 'Acid Uptake on DUST AEROSOLS? : ', LDSTUP
       WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
       WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
      &                     SALA_REDGE_um(1), SALA_REDGE_um(2)
@@ -2151,7 +2161,8 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_BPCH
       USE LOGICAL_MOD,  ONLY : LBIOMASS,  LBIOFUEL,  LCARB, LCONV    
-      USE LOGICAL_MOD,  ONLY : LDRYD,     LDUST,     LPRT,  LSULF    
+!tdf      USE LOGICAL_MOD,  ONLY : LDRYD,     LDUST,     LPRT,  LSULF    
+      USE LOGICAL_MOD,  ONLY : LDRYD,  LDUST,  LDSTUP,   LPRT,  LSULF    
       USE LOGICAL_MOD,  ONLY : LSSALT,    LTURB,     LWETD, LGFED2BB  
       USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
       USE TRACER_MOD,   ONLY : N_TRACERS
@@ -4232,7 +4243,8 @@
       USE DIRECTORY_MOD, ONLY : RUN_DIR,    OH_DIR,     O3PL_DIR   
       USE DIRECTORY_MOD, ONLY : TPBC_DIR,   DATA_DIR_1x1
       USE LOGICAL_MOD,   ONLY : LATEQ,      LAVHRRLAI,  LCARB      
-      USE LOGICAL_MOD,   ONLY : LDEAD,      LDUST,      LSULF      
+!tdf      USE LOGICAL_MOD,   ONLY : LDEAD,      LDUST,      LSULF      
+      USE LOGICAL_MOD,   ONLY : LDEAD,      LDUST, LDSTUP,  LSULF      
       USE LOGICAL_MOD,   ONLY : LSOA,       LSSALT,     LCHEM      
       USE LOGICAL_MOD,   ONLY : LEMBED,     LCONV,      LDBUG      
       USE LOGICAL_MOD,   ONLY : LDIAG,      LPRT,       LSTDRUN    
@@ -4276,6 +4288,9 @@
       LCARB        = .FALSE.
       LDEAD        = .FALSE.
       LDUST        = .FALSE.
+!tdf
+      LDSTUP       = .FALSE.
+!tdf
       LSULF        = .FALSE.
       LSOA         = .FALSE.
       LSSALT       = .FALSE.

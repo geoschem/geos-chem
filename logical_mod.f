@@ -66,6 +66,9 @@
 !  (57) LOTDREG   (LOGICAL) : ON/OFF switch for OTD-LIS regional redistribution
 !  (57) LOTDLOC   (LOGICAL) : ON/OFF switch for OTD-LIS local    redistribution
 !  (58) LOTDSCALE (LOGICAL) : ON/OFF switch for scaling to OTD-LIS climatology
+!tdf
+!  (59) LDSTUP    (LOGICAL) : ON/OFF switch for SO2, HNO3 uptake on dust
+!tdf
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
@@ -84,6 +87,9 @@
 !  (13) Added LOTDREG, LOTDLOC for regional or local OTD-LIS redistribution
 !        of lightning flashes. (bmy, 1/31/07)
 !  (14) Added LOTDSCALE (ltm, bmy, 9/24/07)
+!tdf
+!       Added LDSTUP flag which triggers SO2 and HNO3 uptake on mineral dust
+!       (tdf 8/13/2K8)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -101,6 +107,8 @@
       LOGICAL :: LSULF
       LOGICAL :: LSOA
       LOGICAL :: LSSALT
+!tdf
+      LOGICAL :: LDSTUP
 
       ! Chemistry
       LOGICAL :: LCHEM  

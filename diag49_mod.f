@@ -201,6 +201,7 @@
       INTEGER                  :: IOS, GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,   R,     H,    W, X, Y
       REAL*8                   :: TAU, TMP,   SCALE400nm
+      REAL*8                   :: SCALE550nm
       REAL*8                   :: Q( ND49_NI, ND49_NJ, ND49_NL )
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
@@ -618,6 +619,7 @@
 
                ! Scaling factor for 400nm
                SCALE400nm = QAA(2,IND(1)+R-1) / QAA(4,IND(1)+R-1) 
+               SCALE550nm = QAA(3,IND(1)+R-1) / QAA(4,IND(1)+R-1) 
                
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -628,7 +630,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,R) * SCALE400nm )
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,R) * SCALE550nm )
                ENDDO
                ENDDO
                ENDDO
@@ -652,6 +654,7 @@
 
                ! Scaling factor for 400nm
                SCALE400nm = QAA(2,IND(2)+R-1) / QAA(4,IND(2)+R-1) 
+               SCALE550nm = QAA(3,IND(2)+R-1) / QAA(4,IND(2)+R-1) 
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -662,7 +665,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE550nm )
                ENDDO
                ENDDO
                ENDDO
@@ -686,6 +689,7 @@
 
                ! Scaling factor for 400nm
                SCALE400nm = QAA(2,IND(3)+R-1) / QAA(4,IND(3)+R-1)
+               SCALE550nm = QAA(3,IND(3)+R-1) / QAA(4,IND(3)+R-1)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -696,7 +700,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE550nm )
                ENDDO
                ENDDO
                ENDDO
@@ -720,6 +724,7 @@
   
                ! Scaling factor for 400nm
                SCALE400nm = QAA(2,IND(4)+R-1) / QAA(4,IND(4)+R-1)             
+               SCALE550nm = QAA(3,IND(4)+R-1) / QAA(4,IND(4)+R-1)             
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -730,7 +735,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE550nm )
                ENDDO
                ENDDO
                ENDDO
@@ -754,6 +759,7 @@
 
                ! Scaling factor for 400nm
                SCALE400nm = QAA(2,IND(5)+R-1) / QAA(4,IND(5)+R-1)
+               SCALE550nm = QAA(3,IND(5)+R-1) / QAA(4,IND(5)+R-1)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -764,7 +770,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE550nm )
                ENDDO
                ENDDO
                ENDDO
@@ -785,6 +791,7 @@
 
                ! Scaling factor for 400nm
                SCALE400nm = QAA(2,IND(6)+R-1) / QAA(4,IND(6)+R-1)           
+               SCALE550nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)           
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -795,7 +802,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALE400nm
+                  !---------------------------------------------------------
+                  ! Prior to 4/30/07:
+                  !Q(X,Y,K) = ODMDUST(I,J,L,R) * SCALE400nm
+                  !---------------------------------------------------------
+                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALE550nm
                ENDDO
                ENDDO
                ENDDO

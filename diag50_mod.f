@@ -244,6 +244,7 @@
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
       REAL*8              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALE400nm
+      REAL*8              :: SCALE550nm
       CHARACTER(LEN=16)   :: STAMP
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
@@ -324,6 +325,7 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALE400nm ) 
+!$OMP+PRIVATE( SCALE550nm )
 !$OMP+SCHEDULE( DYNAMIC )
       DO W = 1, ND50_N_TRACERS
 
@@ -350,6 +352,83 @@
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / AD(I,J,L) )
+
+            ELSE IF ( N == 60 .and. IS_CHEM ) THEN
+
+               DO R = 1, 1
+
+                  ! Scaling factor to 550 nm
+                  SCALE550nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+                  ! Accumulate
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE550nm
+               ENDDO
+
+            ELSE IF ( N == 61 .and. IS_CHEM ) THEN
+
+               DO R = 2, 2
+
+                  ! Scaling factor to 550 nm
+                  SCALE550nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+                  ! Accumulate
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE550nm
+               ENDDO
+
+            ELSE IF ( N == 62 .and. IS_CHEM ) THEN
+
+               DO R = 3, 3
+
+                  ! Scaling factor to 550 nm
+                  SCALE550nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+                  ! Accumulate
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE550nm
+               ENDDO
+
+            ELSE IF ( N == 63 .and. IS_CHEM ) THEN
+
+               DO R = 4, 4
+
+                  ! Scaling factor to 550 nm
+                  SCALE550nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+                  ! Accumulate
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE550nm
+               ENDDO
+
+            ELSE IF ( N == 64 .and. IS_CHEM ) THEN
+
+               DO R = 5, 5
+
+                  ! Scaling factor to 550 nm
+                  SCALE550nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+                  ! Accumulate
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE550nm
+               ENDDO
+
+            ELSE IF ( N == 65 .and. IS_CHEM ) THEN
+
+               DO R = 6, 6
+
+                  ! Scaling factor to 550 nm
+                  SCALE550nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+                  ! Accumulate
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE550nm
+               ENDDO
+            
+            ELSE IF ( N == 66 .and. IS_CHEM ) THEN
+
+               DO R = 7, 7
+
+                  ! Scaling factor to 550 nm
+                  SCALE550nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+                  ! Accumulate
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE550nm
+               ENDDO
 
             ELSE IF ( N == 71 .and. IS_Ox .and. IS_CHEM ) THEN
 
@@ -492,9 +571,10 @@
                   
                   ! Scaling factor to 400 nm
                   SCALE400nm = QAA(2,IND(1)+R-1) / QAA(4,IND(1)+R-1) 
+                  SCALE550nm = QAA(3,IND(1)+R-1) / QAA(4,IND(1)+R-1) 
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,R) * SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,R) * SCALE550nm
                ENDDO
 
             ELSE IF ( N == 83 .and. IS_CHEM ) THEN
@@ -510,9 +590,10 @@
                   
                   ! Scaling factor to 400 nm
                   SCALE400nm = QAA(2,IND(2)+R-1) / QAA(4,IND(2)+R-1)
+                  SCALE550nm = QAA(3,IND(2)+R-1) / QAA(4,IND(2)+R-1)
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE550nm
                ENDDO
 
             ELSE IF ( N == 84 .and. IS_CHEM ) THEN
@@ -528,9 +609,10 @@
 
                   ! Scaling factor to 400 nm
                   SCALE400nm = QAA(2,IND(3)+R-1) / QAA(4,IND(3)+R-1) 
+                  SCALE550nm = QAA(3,IND(3)+R-1) / QAA(4,IND(3)+R-1) 
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE550nm
                ENDDO
 
             ELSE IF ( N == 85 .and. IS_CHEM ) THEN
@@ -546,9 +628,10 @@
 
                   ! Scaling factor to 400 nm
                   SCALE400nm = QAA(2,IND(4)+R-1) / QAA(4,IND(4)+R-1)
+                  SCALE550nm = QAA(3,IND(4)+R-1) / QAA(4,IND(4)+R-1)
                  
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE550nm
                ENDDO
 
             ELSE IF ( N == 86 .and. IS_CHEM ) THEN
@@ -564,9 +647,10 @@
 
                   ! Scaling factor to 400 nm
                   SCALE400nm = QAA(2,IND(5)+R-1) / QAA(4,IND(5)+R-1)
+                  SCALE550nm = QAA(3,IND(5)+R-1) / QAA(4,IND(5)+R-1)
                   
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE550nm
                ENDDO
 
             ELSE IF ( N == 87 .and. IS_CHEM ) THEN
@@ -579,9 +663,10 @@
 
                   ! Scaling factor to 400 nm
                   SCALE400nm = QAA(2,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+                  SCALE550nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE550nm
                ENDDO
 
             ELSE IF ( N == 88 .and. IS_SEASALT ) THEN
@@ -776,7 +861,7 @@
          SELECT CASE ( ND50_TRACERS(W) )
             CASE( 71, 72, 74, 75 )
                DIVISOR = COUNT_CHEM3D
-            CASE( 82:87 )
+            CASE(60, 61, 62, 63, 64, 65, 66, 82, 83, 84, 85, 86, 87)
                DIVISOR = COUNT_CHEM
             CASE DEFAULT
                DIVISOR = COUNT
@@ -818,6 +903,76 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND50_NL
             GMTRC    = N
+
+         ELSE IF ( N == 60 ) THEN
+
+            !---------------------
+            ! Size bin 1 dust OD
+            !---------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 21
+
+         ELSE IF ( N == 61 ) THEN
+
+            !---------------------
+            ! Size bin 2 dust OD
+            !---------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 22
+
+         ELSE IF ( N == 62 ) THEN
+
+            !---------------------
+            ! Size bin 3 dust OD
+            !---------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 23
+
+         ELSE IF ( N == 63 ) THEN
+
+            !---------------------
+            ! Size bin 4 dust OD
+            !---------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 24
+
+         ELSE IF ( N == 64 ) THEN
+
+            !---------------------
+            ! Size bin 5 dust OD
+            !---------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 25
+
+         ELSE IF ( N == 65 ) THEN
+
+            !---------------------
+            ! Size bin 6 dust OD
+            !---------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 26
+
+         ELSE IF ( N == 66 ) THEN
+
+            !---------------------
+            ! Size bin 7 dust OD
+            !---------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 27
 
          ELSE IF ( N == 71 ) THEN
 

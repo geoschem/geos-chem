@@ -140,6 +140,12 @@
 !  (142) IDBFCH2O  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
 !  (143) IDBFC2H6  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)   
 !
+!tdf Plus 12 flags for dust-nitrate, dust-sulfate, and dust-alkalinity 
+!       Added IDTNITd1, IDTNITd2, IDTNITd3, IDTNITd4  
+!       Added IDTSO4d1, IDTSO4d2, IDTSO4d3, IDTSO4d4 
+!       Added IDTDAL1,  IDTDAL2,  IDTDAL3,  IDTDAL4  
+!       (Four size bins per specie, tdf 4/08/08)
+!
 !  Module Routines:
 !  ============================================================================
 !  (1 ) TRACERID      : Defines tracer, biomass, biofuel, & anthro ID numbers
@@ -171,6 +177,10 @@
 !  (15) Minor fixes for CH3I simulation (bmy, 7/25/06)
 !  (16) Add IDTH2 and IDTHD for H2/HD simulation (hup, lyj, phs, 9/18/07)
 !  (17) Set IDECO=1 for Tagged CO simulation (jaf, mak, bmy, 2/14/08)
+!  (18) Added Flags for NIT/dust, SO4/dust, and dust alkalinity (tdf 04/08/08)
+!       Added IDTNITd1, IDTNITd2, IDTNITd3, IDTNITd4  
+!       Added IDTSO4d1, IDTSO4d2, IDTSO4d3, IDTSO4d4 
+!       Added IDTDAL1,  IDTDAL2,  IDTDAL3,  IDTDAL4  
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -209,6 +219,11 @@
       INTEGER            :: IDTSOA4, IDTHG0,   IDTHg2,  IDTHgP,  IDTAS
       INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
       INTEGER            :: IDTNITs
+!tdf
+      ! Extra Flags for NIT/dust, SO4/dust, and dust alkalinity (tdf 04/08/08)
+      INTEGER            :: IDTNITd1,IDTNITd2, IDTNITd3,IDTNITd4
+      INTEGER            :: IDTSO4d1,IDTSO4d2, IDTSO4d3,IDTSO4d4
+      INTEGER            :: IDTDAL1, IDTDAL2,  IDTDAL3, IDTDAL4
 
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
@@ -268,6 +283,11 @@
 !  (15) Now define IDTH2, IDTHD (hup, lyj, phs, 9/18/07)
 !  (16) To satisfy IF statement in EMISSDR for using EMFOSSIL, we need 
 !        to set IDECO=1 instead of IDECO=2. (jaf, mak, bmy, 2/14/08)
+!tdf
+!  (17) Added Flags for NIT/dust, SO4/dust, and dust alkalinity (tdf 04/08/08)
+!       Added IDTNITd1, IDTNITd2, IDTNITd3, IDTNITd4  
+!       Added IDTSO4d1, IDTSO4d2, IDTSO4d3, IDTSO4d4 
+!       Added IDTDAL1,  IDTDAL2,  IDTDAL3,  IDTDAL4 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -488,6 +508,31 @@
 
             CASE ( 'NITS' )
                IDTNITs  = N
+!tdf
+            ! Add extra cases for nitrate on dust   tdf 04/16/08
+            CASE ( 'NITD1' )
+               IDTNITd1  = N
+
+            CASE ( 'NITD2' )
+               IDTNITd2  = N
+
+            CASE ( 'NITD3' )
+               IDTNITd3  = N
+
+            CASE ( 'NITD4' )
+               IDTNITd4  = N
+!tdf
+            ! Add extra cases for sulfate on dust   tdf 04/16/08
+            CASE ( 'SO4D1' )
+               IDTSO4d1  = N
+            CASE ( 'SO4D2' )
+               IDTSO4d2  = N
+
+            CASE ( 'SO4D3' )
+               IDTSO4d3  = N
+
+            CASE ( 'SO4D4' )
+               IDTSO4d4  = N
 
             !--------------------------------
             ! Crystalline & aqueous aerosols
@@ -569,6 +614,19 @@
 
             CASE ( 'DST4' )
                IDTDST4  = N
+!tdf
+            ! Add extra cases for dust alkalinity   tdf 04/16/08
+            CASE ( 'DSTAL1' )
+               IDTDAL1  = N
+
+            CASE ( 'DSTAL2' )
+               IDTDAL2  = N
+
+            CASE ( 'DSTAL3' )
+               IDTDAL3  = N
+
+            CASE ( 'DSTAL4' )
+               IDTDAL4  = N
 
             !--------------------------------
             ! Seasalt aerosols
@@ -1357,6 +1415,21 @@
       IDTRN     = 0
       IDTPB     = 0
       IDTBE7    = 0
+
+!tdf
+      ! GEOS-CHEM Coated dust tracers        ( tdf 04/08/08 )
+      IDTNITd1  = 0
+      IDTNITd2  = 0
+      IDTNITd3  = 0
+      IDTNITd4  = 0
+      IDTSO4d1  = 0
+      IDTSO4d2  = 0
+      IDTSO4d3  = 0
+      IDTSO4d4  = 0
+      IDTDAL1  = 0
+      IDTDAL2  = 0
+      IDTDAL3  = 0
+      IDTDAL4  = 0
 
       ! GEOS-CHEM Emission ID #'s
       NEMANTHRO = 0

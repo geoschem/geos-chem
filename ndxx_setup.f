@@ -257,7 +257,9 @@
       ! ND06: Dust emissions
       !================================================================
       IF ( ND06 > 0 .and. LDUST ) THEN 
-         ALLOCATE( AD06( IIPAR, JJPAR, NDSTBIN ), STAT=AS )
+!tdf         ALLOCATE( AD06( IIPAR, JJPAR, NDSTBIN ), STAT=AS )
+!tdf Include dust alkalinity tracers
+         ALLOCATE( AD06( IIPAR, JJPAR, NDSTBIN*2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD06' )
       ENDIF
 
