@@ -19,7 +19,7 @@
 #     include "define.h"
 
       USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ
-      USE CMN_SIZE_MOD, ONLY : LLPAR
+      USE CMN_SIZE_MOD, ONLY : LLPAR, NRH
       USE JV_CMN_MOD
       USE JV_MIE_MOD
 
@@ -79,8 +79,8 @@
 ! !LOCAL VARIABLES:
 !
       integer jndlev(LLPAR),jaddlv(nc),jaddto(nc+1)
-      integer km,i,j,k,l,ix,j1
-      real*8 QXMIE(MX),XLAER(MX),SSALB(MX)
+      integer km,i,j,k,l,ix,j1,is,ir,ip
+      real*8 QXMIE(MX),XLAER(MX),SSALB(MX),PHMIE(8,MX)
       real*8 xlo2,xlo3,xlray,xltau,zk,taudn,tauup,zk2
       real*8 POMEGAJ(2*M__,NC+1)
       real*8 DTAUX(NB),PIRAY(NB),PIAER(MX,NB),TTAU(NC+1),FTAU(NC+1)
@@ -97,10 +97,47 @@ c
 !     if( WAVEL .gt. 800.d0 ) KM=4  !drop the 1000 nm wavelength
 c
 !---For Mie code scale extinction at 1000 nm to wavelength WAVEL (QXMIE)
-      do I=1,MX
+!---first for the total BC (not used, water and ice parameters
+!---linked to the jv_spec.dat values using set_aer.F (DAR)
+      do I=1,3
         QXMIE(I) = QAA(KM,MIEDX(I))/QAA(4,MIEDX(I))
         SSALB(I) = SSA(KM,MIEDX(I))
+       do IP=1,8
+        PHMIE(IP,I) = PAA(IP,KM,MIEDX(I))
+       enddo
       enddo
+!   Now read aerosol optics from the new mie lut
+!   we have more spectral resolution in the lut now
+                              KM=1
+      if( WAVEL .gt. 350.d0 ) KM=2
+      if( WAVEL .gt. 450.d0 ) KM=4
+      if( WAVEL .gt. 550.d0 ) KM=6
+      if( WAVEL .gt. 700.d0 ) KM=8
+      if( WAVEL .gt. 900.d0 ) KM=10
+
+!dust (idx=6 in optics arrays)
+      do I=4,10
+       IR=I-3
+       QXMIE(I) = QQAA(KM,IR,6)/QQAA(10,IR,6)
+       SSALB(I) = SSAA(KM,IR,6)
+       do IP=1,8
+        PHMIE(IP,I)=PHAA(KM,IR,6,IP)
+       enddo
+      enddo
+
+!other aerosol
+      do IS=1,5
+       !loop over RH bins (skips 95% and 99%)
+       do IR=1,5
+        I=(IS-1)*NRH+IR+10        
+        QXMIE(I) = QQAA(KM,IR,IS)/QQAA(10,IR,IS)
+        SSALB(I) = SSAA(KM,IR,IS)
+        do IP=1,8
+         PHMIE(IP,I)=PHAA(KM,IR,IS,IP)
+        enddo
+       enddo
+      enddo
+
 c
 !---Reinitialize arrays
       do j=1,nc+1
@@ -115,10 +152,10 @@ c
         XLO2=DM(J)*XQO2(J)*0.20948d0
         XLRAY=DM(J)*QRAYL(KW)
 c  Zero absorption for testing purposes
-c        call NOABS(XLO3,XLO2,XLRAY,AER(1,j),RFLECT)
+c       call NOABS(XLO3,XLO2,XLRAY,AER(1,j),RFLECT)
         do I=1,MX
           XLAER(I)=AER(I,J)*QXMIE(I)
-        
+          write(6,*),'OPMIE:',AER(I,J),QXMIE(I),SSALB(I)
         enddo
 c  Total optical depth from all elements
         DTAUX(J)=XLO3+XLO2+XLRAY
@@ -138,9 +175,9 @@ c
       MFIT = 2*M__
       do j=j1,NB
         do i=1,MFIT
-          pomegaj(i,j) = PIRAY(J)*PAA(I,KM,1)
+          pomegaj(i,j) = PIRAY(J)*PHMIE(I,1)
           do k=1,MX
-            pomegaj(i,j) = pomegaj(i,j) + PIAER(K,J)*PAA(I,KM,MIEDX(K))
+            pomegaj(i,j) = pomegaj(i,j) + PIAER(K,J)*PHMIE(I,K)
           enddo
         enddo
       enddo

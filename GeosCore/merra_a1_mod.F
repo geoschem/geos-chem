@@ -1285,14 +1285,14 @@
          IU_W1 = FINDFREELUN()
          write(6,*) IU_W1
          ! Strings for directory & filename
-         WIND_DIR = TRIM( DATA_DIR ) // 'MERRA/YYYY/' //
-     &              SMONTH // '/'
+!         WIND_DIR = TRIM( DATA_DIR ) // 'MERRA/YYYY/' //
+!     &              SMONTH // '/'
          !For MERRA we have all 30 years processed at 0.5x0.667
          !For GEOS-5 we only have 2012 at 0.25x0.3125
          !Can either fix the year of the file to 2012 or
          !use the potentially lower quality MERRA data...
          !Makes more sense to do the latter for now (DAR)
-         W1_FILE  = 'YYYYMMDD' // SHOUR // '.w1.' // GET_RES_EXT()
+!         W1_FILE  = 'YYYYMMDD' // SHOUR // '.w1.' // GET_RES_EXT()
 
          !Fix for GEOS-5 (we only have a full year for 2012 at
          !0.25x0.3125)
@@ -1302,9 +1302,9 @@
 
          
          !Use available GEOS-5 (e.g. have 03/13 to 05/13 at 0.25x0.3125)
-!         WIND_DIR = TRIM( DATA_DIR ) // 'GEOS_5/2013/' //
-!     &              SMONTH // '/'
-!         W1_FILE  = '2013MMDD' // SHOUR // '.w1.' // GET_RES_EXT()
+         WIND_DIR = TRIM( DATA_DIR ) // 'GEOS_5/2013/' //
+     &              SMONTH // '/'
+         W1_FILE  = '2013MMDD' // SHOUR // '.w1.' // GET_RES_EXT()
 
 
          ! Replace date tokens

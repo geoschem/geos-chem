@@ -106,6 +106,9 @@
        READ(  NJ1,'(A)'    ) TITLE0
        IF  ( am_I_Root ) WRITE( 6,  '(1X,A)' ) TITLE0
        READ(  NJ1,'(A)'    ) TITLE0
+       !Second header line added for more info
+       IF  ( am_I_Root ) WRITE( 6,  '(1X,A)' ) TITLE0
+       READ(  NJ1,'(A)'    ) TITLE0
 
  110     FORMAT( 3x, a20 ) 
        DO i = 1, NRAA
