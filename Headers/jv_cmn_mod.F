@@ -249,7 +249,7 @@
       INTEGER, PARAMETER :: NP      = 56
       INTEGER, PARAMETER :: MX      = 35
 
-      INTEGER, PARAMETER :: NWVAA   = 37 !number of wavelengths in LUT
+      INTEGER, PARAMETER :: NWVAA   = 41 !number of wavelengths in LUT
       INTEGER, PARAMETER :: NRAA    = 7  !number of aer sizes in LUT
       INTEGER, PARAMETER :: NSPAA   = 6  !number of species in LUT
       INTEGER, PARAMETER :: NALBD   = 2

@@ -122,8 +122,9 @@
        ENDDO
        ! Echo info to stdout
        IF ( am_I_Root ) THEN 
-        WRITE( 6, '(a)' ) 'Aerosol Alpha for AOD calculations'
-        WRITE( 6, * ) 'WV(nm)=',WVAA(4,k),' Alpha =',(ALPHAA(4,1,k))
+!        WRITE( 6, '(a)' ) 'Aerosol for AOD calculations'
+!        WRITE( 6, * ) 'WV(nm)=',WVAA(2,k),
+!     &  ' Q=',(QQAA(2,1,k)),'P1=',PHAA(2,i,k,2)
        ENDIF
        ! Close file
        CLOSE( NJ1 )
@@ -174,13 +175,13 @@
       !If LRAD set then only looking at RT wavelengths so that we can output
       !combined optics direct from RT
       IF (LRAD) THEN
-       N0=8
+       N0=12
        N1=NWVAA
        NSTEP=1
       ELSE
        !cycle over standard wavelengths
        N0=1
-       N1=6
+       N1=11
        NSTEP=1
       ENDIF
       NWVREQUIRED=0

@@ -110,15 +110,13 @@ c
 !   we have more spectral resolution in the lut now
                               KM=1
       if( WAVEL .gt. 350.d0 ) KM=2
-      if( WAVEL .gt. 450.d0 ) KM=4
-      if( WAVEL .gt. 550.d0 ) KM=6
-      if( WAVEL .gt. 700.d0 ) KM=8
-      if( WAVEL .gt. 900.d0 ) KM=10
+      if( WAVEL .gt. 500.d0 ) KM=6
 
 !dust (idx=6 in optics arrays)
       do I=4,10
        IR=I-3
        QXMIE(I) = QQAA(KM,IR,6)/QQAA(10,IR,6)
+!       write(6,*) 'QDUST:',IR,QQAA(KM,IR,6),QQAA(10,IR,6)
        SSALB(I) = SSAA(KM,IR,6)
        do IP=1,8
         PHMIE(IP,I)=PHAA(KM,IR,6,IP)
@@ -132,6 +130,7 @@ c
         I=(IS-1)*NRH+IR+10        
         QXMIE(I) = QQAA(KM,IR,IS)/QQAA(10,IR,IS)
         SSALB(I) = SSAA(KM,IR,IS)
+!        write(6,*) 'QAER:',IS,IR,QQAA(KM,IR,IS),QQAA(10,IR,IS)
         do IP=1,8
          PHMIE(IP,I)=PHAA(KM,IR,IS,IP)
         enddo
@@ -155,7 +154,7 @@ c  Zero absorption for testing purposes
 c       call NOABS(XLO3,XLO2,XLRAY,AER(1,j),RFLECT)
         do I=1,MX
           XLAER(I)=AER(I,J)*QXMIE(I)
-          write(6,*),'OPMIE:',J, I,AER(I,J),QXMIE(I),SSALB(I)
+!          write(6,*),'OPMIE:',J, I,AER(I,J),QXMIE(I),SSALB(I)
         enddo
 c  Total optical depth from all elements
         DTAUX(J)=XLO3+XLO2+XLRAY
