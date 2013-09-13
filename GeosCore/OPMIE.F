@@ -155,7 +155,7 @@ c  Zero absorption for testing purposes
 c       call NOABS(XLO3,XLO2,XLRAY,AER(1,j),RFLECT)
         do I=1,MX
           XLAER(I)=AER(I,J)*QXMIE(I)
-          write(6,*),'OPMIE:',AER(I,J),QXMIE(I),SSALB(I)
+          write(6,*),'OPMIE:',J, I,AER(I,J),QXMIE(I),SSALB(I)
         enddo
 c  Total optical depth from all elements
         DTAUX(J)=XLO3+XLO2+XLRAY
