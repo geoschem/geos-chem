@@ -1251,12 +1251,12 @@
        ! (specified by user or all wavelengths for RRTMG)
        ! (1000nm always used for FAST-J and stored in first index)
        IF (ODSWITCH .EQ. 0) THEN
-        ! only doing for 1000nm i.e. IWV=7 in LUT
+        ! only doing for 1000nm i.e. IWV=10 in LUT
         ! N.B. NWVS is fixed to 1 above - only one wavelength
-        IWV=7
+        IWV=10
        ELSE
         IF ( LRAD ) THEN !Loop over all RT wavelengths
-         IWV = IIWV+7
+         IWV = IIWV+11
         ELSE
          ! cycle through all requested wavelengths
          IWV = IWVREQUIRED(IIWV)

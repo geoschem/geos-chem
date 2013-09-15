@@ -1043,7 +1043,7 @@
        NWVS   = 1
       ELSE
        IF ( LRAD ) THEN !Loop over all RT wavelengths
-        NWVS   = NWVAA-7
+        NWVS   = NWVAA-11
        ELSE
         NWVS   = NWVREQUIRED !from RD_AOD, number of wavelengths needed
        ENDIF                 
@@ -1056,10 +1056,10 @@
        IF (ODSWITCH .EQ. 0) THEN
         ! only doing for 1000nm i.e. IWV=7 in LUT
         ! N.B. NWVS is fixed to 1 above - only one wavelength
-        IWV=7
+        IWV=10
        ELSE
         IF ( LRAD ) THEN !Loop over all RT wavelengths
-         IWV = IIWV+7
+         IWV = IIWV+11
         ELSE
          ! cycle through all requested wavelengths
          IWV = IWVREQUIRED(IIWV)
