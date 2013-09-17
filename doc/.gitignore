@@ -1,0 +1,14 @@
+*.[oax]
+*.mod
+*.MOD
+*~*
+geos
+geostomas
+geosapm
+*.aux
+*.dvi
+*.log
+*.ps
+*.pdf
+*.tex
+*.toc

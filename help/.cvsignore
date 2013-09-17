@@ -1,0 +1,7 @@
+*.mod
+*.o
+*.a
+*.pdf
+*.ps
+*.tex
+geos
