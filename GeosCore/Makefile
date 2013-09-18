@@ -133,6 +133,7 @@ MOD     := $(ROOTDIR)/mod
 NCDF    := $(ROOTDIR)/NcdfUtil
 GTMM    := $(ROOTDIR)/GTMM
 UTIL    := $(ROOTDIR)/GeosUtil
+GIGC    := $(ROOTDIR)/GIGC
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
@@ -146,6 +147,7 @@ include $(ROOTDIR)/Makefile_header.mk
 
 # List of source files
 SRC := $(wildcard *.F) $(wildcard *.F90)
+
 
 # Replace .f and .f90 extensions with *.o
 TMP := $(SRC:.F=.o)
@@ -180,6 +182,15 @@ tomas15:
 	@$(MAKE) TOMAS15=yes lib                   # TOMAS, 15 bins
 	@$(MAKE) TOMAS15=yes tomexe
 
+hpc:						   # Build ESMF & MAPL
+	@$(MAKE) baselibs			   # compile for HPC environment
+	@$(MAKE) lib
+	@$(MAKE) libgigc
+ifeq ($(UNAME),Darwin)
+	ranlib -c ../lib/*
+endif
+	@$(MAKE) exe
+
 lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
 	@$(MAKE) libheaders         		  
@@ -198,6 +209,12 @@ libkpp:                                            # Build code in KPP/
 
 libnc:                                             # Build code in NcdfUtil/
 	@$(MAKE) -C $(NCDF) libnc
+
+libgigc:
+	@$(MAKE) -C $(GIGC) lib
+
+baselibs:
+	@$(MAKE) -C $(GIGC) baselibs
 
 ncdfcheck:                                         # Check netCDF library
 	@$(MAKE) libnc
@@ -233,6 +250,7 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) -C $(HDR) clean
 	@$(MAKE) docclean
+	@$(MAKE) -C $(GIGC) clean
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
@@ -280,6 +298,8 @@ exehg:                                             # Create Hg/GTMM exec file
 # (2) For "make -j" to work, all files in this directory must have a 
 #      listed dependency.
 #==============================================================================
+
+GEOSChem.o : GEOSChem.F90
 
 a3_read_mod.o               : a3_read_mod.F           dao_mod.o              \
                               diag_mod.o              logical_mod.o

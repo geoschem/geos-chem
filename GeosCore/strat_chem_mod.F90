@@ -161,7 +161,7 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Do Linoz only if Ox tracer is defined
-    IF ( Input_Opt%LLINOZ .and. IDTOX > 0 ) THEN
+    IF ( Input_Opt%LLINOZ .and. IDTO3 > 0 ) THEN
 
        ! Echo info
        IF ( am_I_Root ) THEN

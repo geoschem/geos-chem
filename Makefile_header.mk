@@ -128,6 +128,7 @@
 #  16 Sep 2013 - R. Yantosca - Now set GIGC Cpp switches first.  This allows
 #                              us to skip the GRID setting if we are using
 #                              EXTERNAL_GRID=yes or EXTERNAL_FORCING=yes.
+#  18 Sep 2013 - M. Long     - Add edits for HPC Grid-Indpendent GEOS-Chem
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -197,7 +198,9 @@ LHG            :=$(LINK) -lNcUtils $(NCL)
 ifndef OMP
 OMP            :=yes
 endif
-
+ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
+OMP       := no
+endif
 # %%%%% IFORT compiler (default) %%%%%
 ifndef COMPILER
 COMPILER       :=ifort
@@ -483,6 +486,28 @@ ifeq ($(shell [[ "$(NO_ISO)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS      += -DNO_ISORROPIA
 endif
 
+#------------------------------------------------------------------------------
+# HPC Settings: Build & use ESMF & MAPL for the Grid-Independent GEOS-Chem
+#------------------------------------------------------------------------------
+ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
+include $(ROOTDIR)/GIGC/GIGC.mk
+HPC            :=yes
+endif
+
+REGEXP         := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS      += -DESMF_
+ESMF_MOD       := -I$(ESMF_DIR)/$(ARCH)/mod
+ESMF_INC       := -I$(ESMF_DIR)/$(ARCH)/include
+ESMF_LIB       := -lrt $(ESMF_DIR)/$(ARCH)/lib/libesmf.so
+MAPL_INC       := -I$(ESMADIR)/$(ARCH)/include/MAPL_Base
+MAPL_INC       += -I$(ESMADIR)/$(ARCH)/include/GMAO_mpeu
+MAPL_LIB       := -L$(ESMADIR)/$(ARCH)/lib -lMAPL_Base -lMAPL_cfio -lGMAO_mpeu
+MPI_INC        := $(dir $(shell which mpif90))../include
+MPI_LIB        := -L$(dir $(shell which mpif90))../lib -lmpi -lmpi_cxx -lmpi_f77 -lmpi_f90 -lopen-rte -lopen-pal
+LINK           := $(LINK) -lGIGC $(ESMF_LIB) $(MAPL_LIB) $(MPI_LIB)
+endif
+
 #==============================================================================
 # IFORT compilation options (default)
 #==============================================================================
@@ -561,6 +586,11 @@ FFLAGS         += $(USER_DEFS)
 
 # Include options (i.e. for finding *.h, *.mod files)
 INCLUDE        := -I$(HDR) -module $(MOD) $(NCI)
+
+# Add include options for ESMF & MAPL
+ifeq($(HPC),yes)
+INCLUDE        += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC)
+endif
 
 # Set the standard compiler variables
 CC             :=
@@ -658,6 +688,7 @@ export LINK
 export R8
 export SHELL
 export NCL
+export HPC
 
 #EOC
 #==============================================================================

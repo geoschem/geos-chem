@@ -3578,7 +3578,7 @@
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
-#if defined( ESMF_ ) 
+#if defined( ESMF_ ) && defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !

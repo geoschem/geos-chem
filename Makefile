@@ -36,18 +36,16 @@
 #  11 May 2012 - R. Yantosca - Now make sure that all targets of the 
 #                              GeosCore/Makefile are pointed to properly
 #  20 Aug 2013 - R. Yantosca - Make sure Makefile names are consistent
+#  18 Sep 2013 - R. Yantosca - Remove GeosTomas, that is now gone
+#  18 Sep 2013 - M. Long     - Add Makefile target "hpc"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-# Get the Unix shell definition
-#include ./Makefile_header.mk
-
 # Define variables
-GEOSAPM = GeosApm
-GEOSDIR = GeosCore
-GEOSTOM = GeosTomas
-GTMM = GTMM
+GEOSAPM :=GeosApm
+GEOSDIR :=GeosCore
+GTMM    :=GTMM
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete list!
@@ -57,6 +55,9 @@ GTMM = GTMM
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all
+
+hpc:
+	@$(MAKE) -C $(GEOSDIR) hpc
 
 lib:
 	@$(MAKE) -C $(GEOSDIR) lib

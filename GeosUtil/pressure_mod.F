@@ -30,7 +30,7 @@
       PUBLIC  :: GET_PEDGE_FULLGRID
       PUBLIC  :: INIT_PRESSURE
       PUBLIC  :: SET_FLOATING_PRESSURE
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       PUBLIC  :: Accept_External_Pedge
 #endif
 !
@@ -100,6 +100,7 @@
 !  11 Dec 2012 - R. Yantosca - Add new routine ACCEPT_PEDGE_FROM_ESMF to set
 !                              EXTERNAL_PEDGE from the ESMF environment
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,7 +113,7 @@
       REAL*8, ALLOCATABLE :: PFLT(:,:)              ! "Floating" sfc pressure
       REAL*8, ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
       REAL*8, ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
                                                     !  external grid
 #endif
@@ -318,7 +319,7 @@
       ! GEOS-4 & GEOS-5 met fields
       !-----------------------------
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -334,7 +335,7 @@
       ! GEOS-3 & GCAP met fields
       !-----------------------------
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -540,7 +541,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
       EXTERNAL_PEDGE = 0d0
@@ -916,13 +917,14 @@
       IF ( ALLOCATED( AP_FULLGRID ) ) DEALLOCATE( AP_FULLGRID )
       IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
       IF ( ALLOCATED( PFLT        ) ) DEALLOCATE( PFLT        )
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
 #endif
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
