@@ -141,6 +141,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Sep 2013 - R. Yantosca - Increase MAXDIM from 255 to 500 for more tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,7 +151,12 @@
       LOGICAL            :: VERBOSE  = .FALSE.
       INTEGER            :: IU_GEOS
       INTEGER, PARAMETER :: FIRSTCOL = 26
-      INTEGER, PARAMETER :: MAXDIM   = 255
+!------------------------------------------------------------------------------
+! Prior to 9/17/13:
+! Increase line length for more tracers (bmy, 9/17/13)
+!      INTEGER, PARAMETER :: MAXDIM   = 255
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: MAXDIM   = 500
       INTEGER            :: TS_CHEM
       INTEGER            :: TS_DYN
       INTEGER            :: TS_CONV
@@ -233,7 +239,12 @@
       INTEGER            :: IOS
       CHARACTER(LEN=1)   :: TAB   = ACHAR(9)
       CHARACTER(LEN=1)   :: SPACE = ' '
-      CHARACTER(LEN=255) :: LINE
+!-----------------------------------------------------------------------------
+! Prior to 9/17/13:
+! Increase length of line to be consistent w/ READ_ONE_LINE (bmy, 9/17/13)
+!      CHARACTER(LEN=255) :: LINE
+!-----------------------------------------------------------------------------
+      CHARACTER(LEN=MAXDIM) :: LINE
 
       !=================================================================
       ! READ_INPUT_FILE begins here!
@@ -481,6 +492,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
+!  17 Sep 2013 - R. Yantosca - Extend line length to read in more tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -488,7 +500,12 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: IOS
-      CHARACTER(LEN=255) :: LINE, MSG
+!------------------------------------------------------------------------------
+! Prior to 9/17/13:
+! Need to extend the line length for many more tracers (bmy, 9/17/13)
+!      CHARACTER(LEN=255) :: LINE, MSG
+!------------------------------------------------------------------------------
+      CHARACTER(LEN=500) :: LINE, MSG
 
       !=================================================================
       ! READ_ONE_LINE begins here!
@@ -570,6 +587,7 @@
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  17 Sep 2013 - R. Yantosca - Extend LINE to 500 chars to allow more tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -577,7 +595,13 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                         :: EOF
-      CHARACTER(LEN=255)              :: LINE, MSG
+!----------------------------------------------------------------------------
+! Prior to 9/17/13:
+! Extend LINE to 500 chars to allow more tracers (bmy, 9/17/13)
+!      CHARACTER(LEN=255)              :: LINE, MSG
+!----------------------------------------------------------------------------
+      CHARACTER(LEN=MAXDIM)           :: LINE
+      CHARACTER(LEN=255)              :: MSG
 
       !=================================================================
       ! SPLIT_ONE_LINE begins here!
