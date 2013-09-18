@@ -134,9 +134,6 @@ NCDF    := $(ROOTDIR)/NcdfUtil
 GTMM    := $(ROOTDIR)/GTMM
 UTIL    := $(ROOTDIR)/GeosUtil
 GIGC    := $(ROOTDIR)/GIGC
-MAPL    := $(ROOTDIR)/GIGC/Shared
-ESMF    := $(ROOTDIR)/GIGC/ESMF
-COMP    := $(ROOTDIR)/GIGC/Components
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
@@ -186,13 +183,7 @@ tomas15:
 	@$(MAKE) TOMAS15=yes tomexe
 
 hpc:						   # Build ESMF & MAPL
-#	@$(MAKE) libesmf			   # compile for HPC environment
-#	@echo "GOALS = $(MAKECMDGOALS)"
-#	@echo "DEFS  = $(USER_DEFS)"
-#	@echo "FFLAGS= $(FFLAGS)"
-#	@echo "HPC   = $(HPC)"
-#	@echo "OBJ   = $(OBJ)"
-#	@$(MAKE) libmapl
+	@$(MAKE) baselibs			   # compile for HPC environment
 	@$(MAKE) lib
 	@$(MAKE) libgigc
 ifeq ($(UNAME),Darwin)
@@ -219,14 +210,11 @@ libkpp:                                            # Build code in KPP/
 libnc:                                             # Build code in NcdfUtil/
 	@$(MAKE) -C $(NCDF) libnc
 
-libesmf:
-	@$(MAKE) -C $(ESMF) install
-
-libmapl:
-	@$(MAKE) -C $(MAPL) install
-
 libgigc:
 	@$(MAKE) -C $(GIGC) lib
+
+baselibs:
+	@$(MAKE) -C $(GIGC) baselibs
 
 ncdfcheck:                                         # Check netCDF library
 	@$(MAKE) libnc
