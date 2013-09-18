@@ -137,7 +137,8 @@
       PUBLIC  :: ITS_TIME_FOR_A6UPDATE
 #endif
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       PUBLIC  :: Accept_External_Date_Time
 #endif
 !
@@ -5015,7 +5016,8 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -5087,7 +5089,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4 :: A. B. JD, THISDAY, TMP
+      REAL*8 :: A, B, JD, THISDAY, TMP
 
       !=================================================================
       ! Set time/date values of time_mod.F from the ESMF inputs 

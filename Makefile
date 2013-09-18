@@ -58,6 +58,9 @@ GTMM = GTMM
 all:
 	@$(MAKE) -C $(GEOSDIR) all
 
+hpc:
+	@$(MAKE) -C $(GEOSDIR) hpc
+
 lib:
 	@$(MAKE) -C $(GEOSDIR) lib
 

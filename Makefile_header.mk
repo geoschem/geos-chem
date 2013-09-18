@@ -193,7 +193,9 @@ LHG       := $(LINK) -lNcUtils $(NCL)
 ifndef OMP
 OMP       := yes
 endif
-
+ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
+OMP       := no
+endif
 # %%%%% IFORT compiler (default) %%%%%
 ifndef COMPILER
 COMPILER  := ifort
@@ -466,6 +468,29 @@ ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS += -DEXTERNAL_FORCING
 endif
 
+#---------------------------------------
+# HPC Settings: Build & use ESMF/MAPL
+#---------------------------------------
+ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
+include $(ROOTDIR)/GIGC/GIGC.mk
+export HPC=yes
+endif
+
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DESMF_
+ESMF_MOD      := -I$(ESMF_DIR)/$(ARCH)/mod
+ESMF_INC      := -I$(ESMF_DIR)/$(ARCH)/include
+ESMF_LIB      := -lrt $(ESMF_DIR)/$(ARCH)/lib/libesmf.so
+MAPL_INC      := -I$(ESMADIR)/$(ARCH)/include/MAPL_Base
+MAPL_INC      += -I$(ESMADIR)/$(ARCH)/include/GMAO_mpeu
+MAPL_LIB      := -L$(ESMADIR)/$(ARCH)/lib -lMAPL_Base -lMAPL_cfio -lGMAO_mpeu
+MPI_INC       := $(dir $(shell which mpif90))../include
+MPI_LIB       := -L$(dir $(shell which mpif90))../lib -lmpi -lmpi_cxx -lmpi_f77 -lmpi_f90 -lopen-rte -lopen-pal
+LINK          := $(LINK) -lGIGC $(ESMF_LIB) $(MAPL_LIB) $(MPI_LIB)
+endif
+
+
 #==============================================================================
 # IFORT compilation options (default)
 #==============================================================================
@@ -542,7 +567,7 @@ endif
 FFLAGS    += $(USER_DEFS)
 
 # Include options (i.e. for finding *.h, *.mod files)
-INCLUDE   := -I$(HDR) -module $(MOD) $(NCI)
+INCLUDE   := -I$(HDR) -module $(MOD) $(NCI) $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC)
 
 # Set the standard compiler variables
 CC        :=
