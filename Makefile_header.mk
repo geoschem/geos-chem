@@ -588,7 +588,7 @@ FFLAGS         += $(USER_DEFS)
 INCLUDE        := -I$(HDR) -module $(MOD) $(NCI)
 
 # Add include options for ESMF & MAPL
-ifeq($(HPC),yes)
+ifeq ($(HPC),yes)
 INCLUDE        += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC)
 endif
 
