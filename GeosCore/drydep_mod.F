@@ -511,7 +511,12 @@
             IF ( NN == IDTACET ) THEN
 
                IF ( IS_LAND( I, J, State_Met ) ) THEN
-                  DVZ = 0.1 
+                  !---------------------------------------
+                  ! Prior to 9/16/13:
+                  ! Use double precision (bmy, 9/16/13)
+                  !DVZ = 0.1
+                  !---------------------------------------
+                  DVZ = 0.1d0
                ELSE
                   DVZ = 0d0
                ENDIF
