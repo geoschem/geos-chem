@@ -1874,8 +1874,6 @@
       USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
       USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_VV
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-!tdf
-      USE LOGICAL_MOD,        ONLY : LDSTUP            ! tdf 08/13/08
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
@@ -1990,7 +1988,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL               :: LNLPBL
+      LOGICAL               :: LNLPBL, LDSTUP
       LOGICAL               :: IS_OFFLINE
       LOGICAL               :: IS_FULLCHEM
       INTEGER               :: I,      J,       L       !,      I1,   I2
@@ -2055,6 +2053,7 @@
       TCVV        = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL      = Input_Opt%XNUMOL(1:N_TRACERS)
       LNLPBL      = Input_Opt%LNLPBL
+      LDSTUP      = Input_Opt%LDSTUP
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -5080,9 +5079,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-!tdf
-      USE LOGICAL_MOD,        ONLY : LDSTUP
-!tdf
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTSO4
@@ -5163,7 +5159,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL               :: LNLPBL, LCRYST, LSSALT
+      LOGICAL               :: LNLPBL, LCRYST, LSSALT,   LDSTUP
       INTEGER               :: N_TRACERS
       INTEGER               :: I,      J,      L,        N,     N_ND44
 ! tdf
@@ -5208,6 +5204,7 @@
       LCRYST    = Input_Opt%LCRYST
       LNLPBL    = Input_Opt%LNLPBL
       LSSALT    = Input_Opt%LSSALT
+      LDSTUP    = Input_Opt%LDSTUP
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS) 
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)

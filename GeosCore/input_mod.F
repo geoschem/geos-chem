@@ -1619,6 +1619,8 @@
 !
       INTEGER            :: N, T, I
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
+      REAL*8             :: NAPEMISS
+      REAL*8             :: POAEMISSSCALE
 
       !=================================================================
       ! READ_AEROSOL_MENU begins here!
@@ -1656,12 +1658,12 @@
       ! SOAupdate: Add NAP/IVOC surrogate emissions (hotp 8/9/09)
       ! SOAupdate: set NAP emissions (in Tg/yr)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
-      READ( SUBSTRS(1:N), * ) Input_Opt%NAPEMISS
+      READ( SUBSTRS(1:N), * ) NAPEMISS
 
       ! SOAupdate: Add scaling for POA emiss (hotp 9/21/09)
       ! Fractional scaling, recommended value: 1.27
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
-      READ( SUBSTRS(1:N), * ) Input_Opt%POAEMISSSCALE
+      READ( SUBSTRS(1:N), * ) POAEMISSSCALE
 
       ! Use online dust aerosols 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
@@ -1919,8 +1921,11 @@
       Input_Opt%LCARB              = LCARB
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
+      Input_Opt%NAPEMISS           = NAPEMISS
+      Input_Opt%POAEMISSSCALE      = POAEMISSSCALE
       Input_Opt%LDUST              = LDUST 
       Input_Opt%LDEAD              = LDEAD
+      Input_Opt%LDSTUP             = LDSTUP
       Input_Opt%LSSALT             = LSSALT
       Input_Opt%LDICARB            = LDICARB  
       Input_Opt%SALA_REDGE_um(1:2) = SALA_REDGE_um(1:2)

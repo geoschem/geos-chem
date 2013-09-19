@@ -983,7 +983,7 @@
          IF ( LDEAD ) THEN
             ! Use Zender's DEAD dust source function
             CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4),
-     &                          State_Met )
+     &                          State_Met, Input_Opt )
          
             !### Debug
             IF ( LPRT ) 
@@ -1011,7 +1011,7 @@
 
             ! Use Zender's DEAD dust source function
             CALL SRC_DUST_DEAD( STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
-     &                          State_Met )
+     &                          State_Met, Input_Opt )
             !### Debug
             IF ( LPRT ) 
      &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
@@ -1054,7 +1054,8 @@
 !tdf         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), State_Met )
          CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4),
      &                       STT(:,:,:,IDTDAL1:IDTDAL4),
-     &                       State_Met )
+     &                       State_Met,
+     &                       Input_Opt )
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
@@ -1104,9 +1105,9 @@
 ! !INTERFACE:
 !
 #if   defined( TOMAS )
-      SUBROUTINE SRC_DUST_DEAD( TC, State_Met )
+      SUBROUTINE SRC_DUST_DEAD( TC, State_Met, Input_Opt )
 #else
-      SUBROUTINE SRC_DUST_DEAD( TC, TALK, State_Met )
+      SUBROUTINE SRC_DUST_DEAD( TC, TALK, State_Met, Input_Opt )
 #endif
 !
 ! !USES:
@@ -1117,10 +1118,9 @@
       USE DUST_DEAD_MOD,      ONLY : GET_MONTHLY_DATA,        DST_MBL
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID_R
-!tdf acidic uptake on dust
-      USE LOGICAL_MOD,        ONLY : LDSTUP
       USE PRESSURE_MOD,       ONLY : GET_PEDGE,       GET_PCENTER 
       USE TIME_MOD,           ONLY : GET_TS_EMIS,     GET_MONTH   
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
@@ -1132,8 +1132,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Meteorology State object
-      TYPE(MetState), INTENT(IN)    :: State_Met
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -1185,6 +1185,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  12 Sep 2013 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
+!  17 Sep 2013 - M. Sulprizio- Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1192,6 +1193,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL                :: LDSTUP
       LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I,      J,      L,       N
       INTEGER                :: M,      IOS,    INC,     LAT_IDX
@@ -1232,6 +1234,9 @@
       !=================================================================
       ! SRC_DUST_DEAD begins here!
       !=================================================================      
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LDSTUP = Input_Opt%LDSTUP
 
       ! DTSRCE is the emission timestep in seconds
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -1421,8 +1426,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-!tdf acidic uptake on dust
-      USE LOGICAL_MOD,        ONLY : LDSTUP
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE ERROR_MOD,          ONLY : ERROR_STOP
 #if   defined ( TOMAS )
@@ -1501,6 +1504,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL                :: LDSTUP
       LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I, J, N, M, IOS
 #if   defined( TOMAS )
@@ -1552,6 +1556,9 @@
       !=================================================================
       ! SRC_DUST_GINOUX begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LDSTUP      = Input_Opt%LDSTUP
 
 #if   defined ( TOMAS )
 #if   defined ( TOMAS40 )

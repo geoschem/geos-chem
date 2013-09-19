@@ -8518,8 +8518,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!tdf
-      USE LOGICAL_MOD,        ONLY : LDSTUP
       USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
 #if defined( TOMAS )
       USE TRACERID_MOD,       ONLY : IDTNK1
@@ -8570,7 +8568,7 @@
 !BOC
 
       ! For fields from Input_Opt
-      LOGICAL :: LCARB,  LDUST, LSOA
+      LOGICAL :: LCARB,  LDUST, LDSTUP, LSOA
       LOGICAL :: LSSALT, LSULF, LSPLIT, LCRYST
 
       !=================================================================
@@ -8583,6 +8581,7 @@
       ! Copy values from Input_Opt
       LCARB  = Input_Opt%LCARB
       LDUST  = Input_Opt%LDUST
+      LDSTUP = Input_Opt%LDSTUP
       LSOA   = Input_Opt%LSOA
       LSSALT = Input_Opt%LSSALT
       LSULF  = Input_Opt%LSULF

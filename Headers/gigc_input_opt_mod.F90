@@ -108,6 +108,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
+     LOGICAL                     :: LDSTUP
      LOGICAL                     :: LDICARB            
      REAL*8,             POINTER :: SALA_REDGE_um(:)   
      REAL*8,             POINTER :: SALC_REDGE_um(:)   
@@ -593,7 +594,7 @@ MODULE GIGC_Input_Opt_Mod
 !                              remove LAIRNOX field
 !  13 Aug 2013 - M. Sulprizio- Add extra fields for semivolatile POA (H. Pye)
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
-
+!  17 Sep 2013 - M. Sulprizio- Add LDSTUP flag for acid uptake on dust aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -666,6 +667,7 @@ CONTAINS
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
 !  12 Sep 2013 - M. Sulprizio- Double size of IDDEP to account for dust
 !                              alkalinity (tdf 04/10/08)
+!  17 Sep 2013 - M. Sulprizio- Add LDSTUP flag for acid uptake on dust aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -767,6 +769,7 @@ CONTAINS
     Input_Opt%POAEMISSSCALE          = 0d0
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
+    Input_Opt%LDSTUP                 = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
     Input_Opt%LDICARB                = .FALSE.
     Input_Opt%SALA_REDGE_um          = 0d0
