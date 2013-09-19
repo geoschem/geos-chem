@@ -4689,18 +4689,28 @@
       !------------------------------
       ! Dust Nitrate (aerosol)
       !------------------------------
-      ELSE IF ( N == IDTNITd1  .or. N == IDTNITd2 .or.
-     &          N == IDTNITd3  .or. N == IDTNITd4 ) THEN
+      ELSE IF ( N == IDTNITd1 .or. N == IDTNITd2 .or.
+     &          N == IDTNITd3  ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+      !!coarse mode aerosols
+      ELSE IF ( N == IDTNITd4 ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+
 !tdf
       !------------------------------
       ! Dust Sulfate (aerosol)
       !------------------------------
-      ELSE IF ( N == IDTSO4d1  .or. N == IDTSO4d2 .or.
-     &          N == IDTSO4d3  .or. N == IDTSO4d4 ) THEN
+      ELSE IF ( N == IDTSO4d1 .or. N == IDTSO4d2 .or.
+     &          N == IDTSO4d3  ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+      !!coarse mode aerosols
+      ELSE IF ( N == IDTSO4d4 ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+
 !tdf
 
       !------------------------------
@@ -4734,9 +4744,13 @@
       ! DUST alkalinity size bins (aerosol)
       !------------------------------
       ELSE IF ( N == IDTDAL1 .or. N == IDTDAL2  .or.
-     &          N == IDTDAL3 .or. N == IDTDAL4 ) THEN
+     &          N == IDTDAL3  ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+      !!coarse mode aerosols
+      ELSE IF ( N == IDTDAL4 ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 !tdf
 
       !------------------------------
