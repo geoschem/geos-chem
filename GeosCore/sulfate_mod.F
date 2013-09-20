@@ -2082,7 +2082,7 @@
 !$OMP+PRIVATE( ALKds, ALKss,  NH3,  SSCvv, aSO4, SO2_sr, SR,    TANIT  )
 !$OMP+PRIVATE( BULK,  SIZE_RES                                         )
 !$OMP+PRIVATE( ALK_d, KTS, KTN, PSO4_d, PH2SO4_d, PNIT_d, SO2_gas      ) !tdf
-!$OMP+PRIVATE( KTH, H2SO4_cd, H2SO4_gas                                ) !tdf
+!$OMP+PRIVATE( KTH, H2SO4_cd, H2SO4_gas, Ki                            ) !tdf
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR 
       DO J = 1, JJPAR
@@ -2107,12 +2107,13 @@
          ! TK : Temperature [K]
          TK     = State_Met%T(I,J,L)
 
+         ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
+         K0  = 3.3d-31 * ( 300.d0 / TK )**4.3d0
+         Ki  = 1.6d-12
+
          IF ( IS_OFFLINE ) THEN
 
             ! Gas phase SO4 production is done here in offline run only 
-            ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
-            K0  = 3.3d-31 * ( 300.d0 / TK )**4.3d0
-            Ki  = 1.6d-12
             M   = State_Met%AIRDEN(L,I,J) * F
             KK  = K0 * M / Ki
             F1  = ( 1.d0 + ( LOG10( KK ) )**2 )**( -1 )
@@ -2123,7 +2124,6 @@
 
             ! For online runs, SMVGEAR deals w/ this computation,
             ! so we can simply set RK1 = 0 (rjp, bmy, 3/23/03)
-            K0  = 0.d0
             M   = 0.d0
             KK  = 0.d0
             F1  = 0.d0
@@ -2164,7 +2164,6 @@
          IF ( LDSTUP ) THEN
             ! Compute gas phase SO4 production again, as in offline case 
             ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
-            K0  = 3.0d-31 * ( 300.d0 / TK )**3.3d0
             M   = State_Met%AIRDEN(L,I,J) * F
             KK  = K0 * M / Ki
             F1  = ( 1.d0 + ( LOG10( KK ) )**2 )**( -1 )
@@ -2175,7 +2174,6 @@
             H2SO4_cd = SO20 * ( 1.d0 - EXP( -RKT ) ) 
 
             !tdf Reset these constants to zero to avoid any problems below
-            K0  = 0.d0
             M   = 0.d0
             KK  = 0.d0
             F1  = 0.d0
