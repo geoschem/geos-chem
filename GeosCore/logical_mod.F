@@ -94,8 +94,7 @@
       LOGICAL :: LCOOKE          ! Use the C
       LOGICAL :: LDEAD           ! Use the DEAD/Zender dust algorithm?
       LOGICAL :: LDUST           ! Use dust aerosol tracers?
-!tdf
-      LOGICAL :: LDSTUP          ! Use acid uptake on dust aerosols?
+      LOGICAL :: LDSTUP          ! Use acid uptake on dust aerosols? (tdf)
       LOGICAL :: LSULF           ! Use sulfate aerosol tracers?
       LOGICAL :: LSOA            ! Use secondary organic aerosol tracers?
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
@@ -172,9 +171,7 @@
       LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)
-![eml
-      LOGICAL :: LHIST           ! Use historical emissions?
-!eml]
+      LOGICAL :: LHIST           ! Use historical emissions? (eml)
       LOGICAL :: LWARWICK_VSLS   ! Use Warwick_s3 R(Br)n? (jpp 8/23/07)
       LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
       LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)

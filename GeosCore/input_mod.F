@@ -1548,35 +1548,20 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA,   LSVPOA
-!tdf      USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
-      USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LDSTUP, LSSALT, LCRYST
-      USE LOGICAL_MOD,  ONLY : LDICARB
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
-      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD, ONLY : IDTDMS,   IDTSO2,   IDTSO4,  IDTSO4s 
-      USE TRACERID_MOD, ONLY : IDTMSA,   IDTNH3,   IDTNH4,  IDTNITs 
-      USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTNH4aq 
-      USE TRACERID_MOD, ONLY : IDTSO4aq, IDTBCPO,  IDTBCPI, IDTOCPO 
-      USE TRACERID_MOD, ONLY : IDTOCPI
-      USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
-      USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
-      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
-      ! SOAupdate: remove old tracers and add new mtp (hotp 5/24/10)
-      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
-      USE TRACERID_MOD, ONLY : IDTBENZ,  IDTTOLU,  IDTXYLE
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3, IDTASOAN
-      ! semivolpoa : add POA (hotp 8/23/09)
-      ! POA now 1 and 2 (hotp 10/11/09), and NAP (hotp 7/28/10)
-      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
-      USE TRACERID_MOD, ONLY : IDTNAP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE LOGICAL_MOD,        ONLY : LSULF,  LCARB
+      USE LOGICAL_MOD,        ONLY : LSOA,   LSVPOA
+      USE LOGICAL_MOD,        ONLY : LDUST,  LDEAD, LDSTUP
+      USE LOGICAL_MOD,        ONLY : LSSALT, LCRYST
+      USE LOGICAL_MOD,        ONLY : LDICARB
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : SALA_REDGE_um
+      USE TRACER_MOD,         ONLY : SALC_REDGE_um
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1673,7 +1658,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
       READ( SUBSTRS(1:N), * ) LDEAD      
 
-!tdf
+      !tdf
       ! Use SO2 and HNO3 uptake on dust aerosols 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9.5' )
       READ( SUBSTRS(1:N), * ) LDSTUP
@@ -1718,9 +1703,7 @@
          LSOA   = .FALSE.
          LDUST  = .FALSE.
          LDEAD  = .FALSE.
-!tdf
          LDSTUP = .FALSE.
-!tdf
          LSSALT = .FALSE.
          LSVPOA = .FALSE.
       ENDIF
@@ -1896,6 +1879,27 @@
          ENDIF
       ENDIF
 
+      !--------------------------------------
+      ! Error check DUST NITRATE    AEROSOLS
+      !             DUST SULFATE    AEROSOLS
+      !             DUST ALKALINITY AEROSOLS
+      !--------------------------------------
+      I = IDTNITd1 + IDTNITd2 + IDTNITd3 + IDTNITd4 +
+     &    IDTSO4d1 + IDTSO4d2 + IDTSO4d3 + IDTSO4d4 +
+     &    IDTDAL1  + IDTDAL2  + IDTDAL3  + IDTDAL4
+
+      IF ( LDSTUP ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LDSTUP=T but COATED DUST AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use COATED DUST AEROSOLS if LDSTUP=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
       !---------------------------------
       ! Error check SEASALT AEROSOLS
       !---------------------------------
@@ -1951,7 +1955,6 @@
      &                        Input_Opt%POAEMISSSCALE
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
-!tdf
          WRITE( 6, 100     ) 'Acid uptake on DUST AEROSOLS: ', LDSTUP
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
          WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
@@ -8569,9 +8572,7 @@
       LCARB          = .FALSE.
       LDEAD          = .FALSE.
       LDUST          = .FALSE.
-!tdf
       LDSTUP         = .FALSE.
-!tdf
       LSULF          = .FALSE.
       LSOA           = .FALSE.
       LSSALT         = .FALSE.

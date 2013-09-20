@@ -341,7 +341,6 @@
       INTEGER            :: IDTBrNO2, IDTBrNO3, IDTCHBr3, IDTCH2Br2
       INTEGER            :: IDTCH3Br
 
-!tdf
       ! Extra Flags for NIT/dust, SO4/dust, and dust alkalinity (tdf 04/08/08)
       INTEGER            :: IDTNITd1,IDTNITd2, IDTNITd3,IDTNITd4
       INTEGER            :: IDTSO4d1,IDTSO4d2, IDTSO4d3,IDTSO4d4
@@ -908,7 +907,7 @@
 
             CASE ( 'NITS' )
                IDTNITs  = N
-!tdf
+
             ! Add extra cases for nitrate on dust   tdf 04/16/08
             CASE ( 'NITD1' )
                IDTNITd1  = N
@@ -921,7 +920,7 @@
 
             CASE ( 'NITD4' )
                IDTNITd4  = N
-!tdf
+
             ! Add extra cases for sulfate on dust   tdf 04/16/08
             CASE ( 'SO4D1' )
                IDTSO4d1  = N
@@ -1097,7 +1096,7 @@
 
             CASE ( 'DST4' )
                IDTDST4  = N
-!tdf
+
             ! Add extra cases for dust alkalinity   tdf 04/16/08
             CASE ( 'DSTAL1' )
                IDTDAL1  = N
@@ -4297,8 +4296,7 @@
       IDTMAP     = 0
       IDTPYPAN   = 0
 
-!tdf
-      ! GEOS-CHEM Coated dust tracers        ( tdf 04/08/08 )
+      ! GEOS-CHEM Coated dust tracers ( tdf 04/08/08 )
       IDTNITd1  = 0
       IDTNITd2  = 0
       IDTNITd3  = 0

@@ -2021,7 +2021,7 @@
      &                   ( DEPNAME(K) == 'DSTAL2' )  .OR.
      &                   ( DEPNAME(K) == 'DSTAL3' )  .OR.
      &                   ( DEPNAME(K) == 'DSTAL4' ) ) THEN
-!tdf
+
                   !=====================================================
                   ! Use size-resolved dry deposition calculations for
                   ! dust alkalinity only.  Do not account for hygroscopic
@@ -2042,7 +2042,7 @@
      &                   ( DEPNAME(K) == 'NITD2' )  .OR.
      &                   ( DEPNAME(K) == 'NITD3' )  .OR.
      &                   ( DEPNAME(K) == 'NITD4' ) ) THEN
-!tdf
+
                   !=====================================================
                   ! Use size-resolved dry deposition calculations for
                   ! dust alkalinity only.  Do not account for hygroscopic
@@ -2063,7 +2063,7 @@
      &                   ( DEPNAME(K) == 'SO4D2' )  .OR.
      &                   ( DEPNAME(K) == 'SO4D3' )  .OR.
      &                   ( DEPNAME(K) == 'SO4D4' ) ) THEN
-!tdf
+
                   !=====================================================
                   ! Use size-resolved dry deposition calculations for
                   ! dust alkalinity only.  Do not account for hygroscopic
@@ -2079,7 +2079,7 @@
                   RSURFC(K,LDT) =
      &             DUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3,
      &                                 TEMPK, USTAR(IJLOOP))
-!tdf
+
 
 #if   defined( TOMAS )
                ! (win, 7/15/09)
@@ -5547,11 +5547,12 @@
             A_RADI(NUMDEP)  = 4.5d-6
             A_DEN(NUMDEP)   = 2650.d0   
             AIROSOL(NUMDEP) = .TRUE.
-!tdf
+
          !----------------------------------
          ! Dust Alkalinity aerosol tracers
+         ! tdf
          !----------------------------------
-!tdf
+
          ! DUST1 alkalinity (aerosol)
          ELSE IF ( N == IDTDAL1 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -5603,14 +5604,11 @@
             A_RADI(NUMDEP)  = 4.5d-6
             A_DEN(NUMDEP)   = 2650.d0
             AIROSOL(NUMDEP) = .TRUE.
-!tdf
          !----------------------------------
          ! Dust nitrate aerosol tracers
+         ! tdf
          !----------------------------------
-!tdf
-         IF ( LPRT ) CALL DEBUG_MSG( '### INIT_DRYDEP: NUMDEP' )
-         print *,' INIT_DRYDEP: NUMDEP ',NUMDEP
-!tdf
+
          ! DUST1 nitrate (aerosol)
          ELSE IF ( N == IDTNITd1 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -5623,7 +5621,7 @@
             A_RADI(NUMDEP)  = 0.73d-6
             A_DEN(NUMDEP)   = 2500.d0
             AIROSOL(NUMDEP) = .TRUE.
-!tdf
+
          ! DUST2 nitrate (aerosol)
          ELSE IF ( N == IDTNITd2 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -5637,7 +5635,6 @@
             A_DEN(NUMDEP)   = 2650.d0
             AIROSOL(NUMDEP) = .TRUE.
 
-!tdf
          ! DUST3 nitrate (aerosol)
          ELSE IF ( N == IDTNITd3 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -5650,7 +5647,7 @@
             A_RADI(NUMDEP)  = 2.4d-6
             A_DEN(NUMDEP)   = 2650.d0
             AIROSOL(NUMDEP) = .TRUE.
-!tdf
+
         ! DUST4 nitrate (aerosol)
          ELSE IF ( N == IDTNITd4 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -5663,12 +5660,12 @@
             A_RADI(NUMDEP)  = 4.5d-6
             A_DEN(NUMDEP)   = 2650.d0
             AIROSOL(NUMDEP) = .TRUE.
-!tdf
 
          !----------------------------------
          ! Dust sulfate aerosol tracers
+         ! tdf
          !----------------------------------
-!tdf
+
          ! DUST1 sulfate (aerosol)
          ELSE IF ( N == IDTSO4d1 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -5681,7 +5678,7 @@
             A_RADI(NUMDEP)  = 0.73d-6
             A_DEN(NUMDEP)   = 2500.d0
             AIROSOL(NUMDEP) = .TRUE.
-!tdf
+
          ! DUST2 sulfate (aerosol)
          ELSE IF ( N == IDTSO4d2 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -5694,7 +5691,7 @@
             A_RADI(NUMDEP)  = 1.4d-6
             A_DEN(NUMDEP)   = 2650.d0
             AIROSOL(NUMDEP) = .TRUE.
-!tdf
+
          ! DUST3 sulfate (aerosol)
          ELSE IF ( N == IDTSO4d3 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -5707,7 +5704,7 @@
             A_RADI(NUMDEP)  = 2.4d-6
             A_DEN(NUMDEP)   = 2650.d0
             AIROSOL(NUMDEP) = .TRUE.
-!tdf
+
          ! DUST4 sulfate (aerosol)
          ELSE IF ( N == IDTSO4d4 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -5720,7 +5717,6 @@
             A_RADI(NUMDEP)  = 4.5d-6
             A_DEN(NUMDEP)   = 2650.d0
             AIROSOL(NUMDEP) = .TRUE.
-!tdf
 
          !----------------------------------
          ! Sea salt aerosol tracers
