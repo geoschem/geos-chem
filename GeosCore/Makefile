@@ -112,6 +112,8 @@
 #  13 Aug 2013 - M. Sulprizio- Remove reference to soaprod_mod.F (no longer
 #                              needed) (SOAupdate, hotp 7/25/10)
 #  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
+#  20 Sep 2013 - R. Yantosca - Bug fix for make realclean: Don't try to make
+#                              clean unless we compile for target hpc
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -250,7 +252,9 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) -C $(HDR) clean
 	@$(MAKE) docclean
+ifeq ($(HPC),yes)
 	@$(MAKE) -C $(GIGC) clean
+endif
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
