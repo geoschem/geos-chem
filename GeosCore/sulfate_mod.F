@@ -2083,6 +2083,7 @@
 !$OMP+PRIVATE( BULK,  SIZE_RES                                         )
 !$OMP+PRIVATE( ALK_d, KTS, KTN, PSO4_d, PH2SO4_d, PNIT_d, SO2_gas      ) !tdf
 !$OMP+PRIVATE( KTH, H2SO4_cd, H2SO4_gas, Ki                            ) !tdf
+!$OMP+PRIVATE( IBIN, PSO4d_tot, PH2SO4d_tot, PNITd_tot, ALKA_d         )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR 
       DO J = 1, JJPAR
@@ -5219,7 +5220,8 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,      J,    L,   AREA_CM2, RKT,   RKTs, E_RKT )
 !$OMP+PRIVATE( E_RKTs, FLUX, SO4, SO4s,     SO40,  SO40s       )
-!$OMP+PRIVATE( E_RKTd, SO4d, SO40d, SO40_dust, RKTd ) ! tdf 04/07/08
+!$OMP+PRIVATE( E_RKTd, SO4d, SO40d, SO40_dust, RKTd            ) ! tdf 04/07/08
+!$OMP+PRIVATE( IBIN,   PSO4d                                   )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -5588,7 +5590,7 @@
       IF ( ND44 > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, IBIN )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLPAR
@@ -6509,6 +6511,7 @@
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTNITd1, IDTNITd2
       USE TRACERID_MOD,       ONLY : IDTNITd3, IDTNITd4
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -6570,6 +6573,8 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  12 Sep 2013 - M. Sulprizio- Now include references to nitrate on dust
 !                              (tdf, 04/07/08)
+!  23 Sep 2013 - M. Sulprizio- Bug fix: Skip stratospheric boxes to prevent
+!                              out-of-bounds error in PNIT_DUST
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6638,10 +6643,14 @@
 !$OMP+PRIVATE( NITs, FREQ,   FREQs,    F_UNDER_TOP, RKT,   E_RKT ) 
 !$OMP+PRIVATE( RKTs, E_RKTs, AREA_CM2, FLUX                      )
 !$OMP+PRIVATE( NITd, NIT0d,  FREQd,    RKTd,        E_RKTd       )! tdf 04/07/08
+!$OMP+PRIVATE( IBIN, PNITd                                       )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Skip stratospheric boxes
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
          ! Initial NITRATE [v/v]
          NIT0  = STT(I,J,L,IDTNIT)
