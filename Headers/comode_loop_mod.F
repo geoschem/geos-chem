@@ -426,7 +426,7 @@
      &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3),
      &                   NKBrNO3,       NKHOBr,       NK1HBr, 
      &                   NK2HOBr,       NK2HBr,       NKO2PHOT(ICS),
-     &                   NKSO4PHOT(ICS),NKPSC(ICS,11)
+     &                   NKSO4PHOT(ICS),NKPSC(ICS,11),NKO3PPHOT(ICS)
      
       ! SDE 05/14/13: Tracking O1D, O3P, N and H
       INTEGER ::         IO1D, IO3P, INATOM, IHATOM, INO

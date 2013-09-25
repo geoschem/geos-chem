@@ -2516,6 +2516,19 @@ c                        or         99.0                 80 km
          PPJ(L) = P_COL(L)
          T_INPUT(L) = T_COL(L)
       ENDDO
+      
+      ! Option to use ozone from GEOS-Chem rather than climatology
+      ! Replace ozone with that taken from CTM levels when within
+      ! chemistry grid
+!      IF (LO3FJX) THEN
+!         DO L=1,LLCHEM
+!             JLOOP = JLOP(ILON,ILAT,L)
+!             IF ( JLOOP == 0 ) CYCLE
+!             O3CONC = CSPEC(JLOOP,IDO3)
+!             ! Convert from molec/cm3 to molec/cm2
+!             OOJ(L) = O3CONC*BXHEIGHT(ILON,ILAT,L)*1.0d2
+!         ENDDO
+!      ENDIF
 
       ! Ensure TOA pressure is zero
       PPJ(L1_+1) = 0.d0

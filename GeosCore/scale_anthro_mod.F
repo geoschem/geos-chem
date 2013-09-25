@@ -231,7 +231,7 @@
          ! Get Tau. Only NOx scaling exists after 2006   
          
          IF ( BASE_YEAR >=2006 .and. TRACER.ne.71) THEN
-             TAU = GET_TAU0(1,1,2005)
+             TAU = GET_TAU0(1,1,2006)
          ELSE 
              TAU = GET_TAU0(1,1,BASE_YEAR)
          ENDIF

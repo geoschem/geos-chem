@@ -4920,7 +4920,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 18 ! Increase for Br2, O2 & N2O (SDE, 03/28/13)
+            NTRAC(22) = 22 ! Increase for strat-chem (SDE, 03/28/13)
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -4939,7 +4939,7 @@
                   CASE( 5  )
                      NAME(T,22) = 'JO3_O1D'
                   CASE( 6  )
-                     NAME(T,22) = 'JO3_TOT'
+                     NAME(T,22) = 'JO3_O3P'
 #else
                   CASE( 5  )
                      NAME(T,22) = 'JO3'
@@ -4970,6 +4970,14 @@
                      NAME(T,22) = 'JNO'
                   CASE( 18 )
                      NAME(T,22) = 'JNO3'
+                  CASE( 19 )
+                     NAME(T,22) = 'JCFC11'
+                  CASE( 20 )
+                     NAME(T,22) = 'JCFC12'
+                  CASE( 21 )
+                     NAME(T,22) = 'JCCl4'
+                  CASE( 22 )
+                     NAME(T,22) = 'JCH3Cl'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
@@ -5570,15 +5578,19 @@
                   NAME(T,43) = 'O1D'
                   UNIT(T,43) = 'molec/cm3'
                   MWT (T,43) = 16e-3
+               CASE( 7 )
+                  NAME(T,43) = 'O'
+                  UNIT(T,43) = 'molec/cm3'
+                  MWT (T,43) = 16e-3
 #else
                   NAME(T,43) = 'LBRO2H'
                   UNIT(T,43) = 'molec/cm3'
                   MWT (T,43) = 127e-3
-#endif
                CASE( 7 )
                   NAME(T,43) = 'LBRO2N'
                   UNIT(T,43) = 'molec/cm3'
                   MWT (T,43) = 127e-3
+#endif
                CASE( 8 )
                   NAME(T,43) = 'LTRO2H'
                   UNIT(T,43) = 'molec/cm3'

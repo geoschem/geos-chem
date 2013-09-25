@@ -30,6 +30,7 @@
       PUBLIC  :: COPY_FULL_CHEMGRID
       PUBLIC  :: DIAG_TROPOPAUSE
       PUBLIC  :: GET_MIN_CHEMGRID_LEVEL
+      PUBLIC  :: GET_MAX_CHEMGRID_LEVEL
       PUBLIC  :: GET_MIN_TPAUSE_LEVEL
       PUBLIC  :: GET_MAX_TPAUSE_LEVEL
       PUBLIC  :: GET_TPAUSE_LEVEL
@@ -550,6 +551,48 @@
 #endif
 
       END FUNCTION GET_MIN_CHEMGRID_LEVEL
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_max_chemgrid_level
+!
+! !DESCRIPTION: Function GET\_MAX\_CHEMGRID\_LEVEL returns GEOS-Chem level at 
+!  the highest extent of the chemistry grid.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_MAX_CHEMGRID_LEVEL() RESULT( L_MAX )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: L_MAX    ! Maximum chemistry grid level
+!
+! !REVISION HISTORY: 
+!  10 Feb 2005 - R. Yantosca - Initial version
+!  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Aug 2013 - S. D. Eastham - Adapted from GET\_MAX\_TPAUSE\_LEVEL
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      !=================================================================
+      ! GET_MAX_CHEMGRID_LEVEL begins here!
+      !=================================================================
+#if defined( GMISTRAT )
+      IF (LGMISTRAT) THEN
+         ! Maximum level is fixed at stratopause
+         L_MAX = LLSTRAT
+      ELSE
+#endif
+      L_MAX = LMAX
+#if defined( GMISTRAT )
+      ENDIF
+#endif
+
+      END FUNCTION GET_MAX_CHEMGRID_LEVEL
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

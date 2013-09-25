@@ -34,6 +34,7 @@
       USE DIAG_MOD,       ONLY : LTOH,  CTOH,  LTOTH, CTOTH, LTNO2
       USE DIAG_MOD,       ONLY : CTNO2, LTHO2, CTHO2, LTNO3, CTNO3
       USE DIAG_MOD,       ONLY : CTO3_24h, LTO3, CTO1D, LTO1D
+      USE DIAG_MOD,       ONLY : CTO3P, LTO3P
       USE DIAG_MOD,       ONLY : LTLBRO2H, LTLBRO2N
       USE DIAG_MOD,       ONLY : LTLTRO2H, LTLTRO2N
       USE DIAG_MOD,       ONLY : LTLXRO2H, LTLXRO2N
@@ -232,6 +233,7 @@
                LTHO2(I,J) = 1
                LTNO3(I,J) = 1
                LTO1D(I,J) = 1
+               LTO3P(I,J) = 1
                ! update for arom (dkh, 06/22/07)  
                LTLBRO2H(I,J) = 1
                LTLTRO2H(I,J) = 1
@@ -244,6 +246,7 @@
                      CTHO2(I,J,L) = CTHO2(I,J,L) + 1
                      CTNO3(I,J,L) = CTNO3(I,J,L) + 1
                      CTO1D(I,J,L) = CTO1D(I,J,L) + 1
+                     CTO3P(I,J,L) = CTO3P(I,J,L) + 1
                      ! update for arom (dkh, 06/22/07)  
                      CTLBRO2H(I,J,L) = CTLBRO2H(I,J,L) + 1
                      CTLTRO2H(I,J,L) = CTLTRO2H(I,J,L) + 1
@@ -256,6 +259,7 @@
                LTHO2(I,J) = 0
                LTNO3(I,J) = 0
                LTO1D(I,J) = 0
+               LTO3P(I,J) = 0
                ! update for arom (dkh, 06/22/07)  
                LTLBRO2H(I,J) = 0
                LTLTRO2H(I,J) = 0

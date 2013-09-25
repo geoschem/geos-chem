@@ -137,7 +137,7 @@ CONTAINS
     USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV, TRACER_MW_KG, XNUMOLAIR
     USE TRACERID_MOD,   ONLY : IDTOX, IDTCHBr3, IDTCH2Br2, IDTCH3Br
     USE CHEMGRID_MOD,   ONLY : GET_TPAUSE_LEVEL
-    USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_TROP
+    USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID
 
     USE CMN_SIZE_MOD
 
@@ -249,7 +249,7 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_TROP( I, J, L ) ) CYCLE
+                IF ( ITS_IN_THE_CHEMGRID( I, J, L ) ) CYCLE
 
                 DO N=1,NSCHEM ! Tracer index of active strat chem species
                    NN = Strat_TrID_GC(N) ! Tracer index in STT
@@ -325,7 +325,7 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+                IF ( ITS_IN_THE_CHEMGRID(I,J,L) ) CYCLE
 
                 ! Density of air at grid box (I,J,L) in [molec cm-3]
                 M = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR
@@ -402,7 +402,7 @@ CONTAINS
              DO J = 1, JJPAR
              DO I = 1, IIPAR  
                   
-                IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+                IF ( ITS_IN_THE_CHEMGRID(I,J,L) ) CYCLE
                    
                 ! Set the Bry boundary conditions. Simulated
                 ! output from the GEOS5 CCM stratosphere.
@@ -1215,6 +1215,7 @@ CONTAINS
     USE TRACER_MOD,    ONLY : N_TRACERS, TRACER_NAME, STT
     USE TRACERID_MOD,  ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
     USE TRACERID_MOD,  ONLY : IDTBr2,IDTBr,IDTBrO,IDTHOBr,IDTHBr,IDTBrNO3
+    USE LOGICAL_MOD,   ONLY : LGMISTRAT
     USE TIME_MOD,      ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
 
     USE m_netcdf_io_open
@@ -1314,6 +1315,16 @@ CONTAINS
                   TRIM(TRACER_NAME(N)) .eq.   'CH3Br' .or. &
                   TRIM(TRACER_NAME(N)) .eq.     'HBr' .or. &
                   TRIM(TRACER_NAME(N)) .eq.    'HOBr'        ) CYCLE
+
+             ! SDE 08/28/13: Full strat. has its own mesospheric NOy handling
+             IF ( LGMISTRAT ) THEN
+                IF ( TRIM(TRACER_NAME(N)) .eq.    'NO' .or. &
+                     TRIM(TRACER_NAME(N)) .eq.   'NO2' .or. &
+                     TRIM(TRACER_NAME(N)) .eq.   'NO3' .or. &
+                     TRIM(TRACER_NAME(N)) .eq.   'NOx' .or. &
+                     TRIM(TRACER_NAME(N)) .eq.     'N' .or. &
+                     TRIM(TRACER_NAME(N)) .eq.   'N2O' ) CYCLE
+             ENDIF
 
              IF ( TRIM(TRACER_NAME(N)) .eq. TRIM(sname) ) THEN
                 

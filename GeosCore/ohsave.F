@@ -14,7 +14,8 @@
 !
       SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3,  
      &                   FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
-     &                   SAVENO,    SAVENO2, SAVENO3,SAVEO1D )
+     &                   SAVENO,    SAVENO2, SAVENO3,SAVEO1D,
+     &                   SAVEO3P )
 !
 ! !USES:
 !
@@ -22,7 +23,7 @@
       USE DIAG_MOD,     ONLY : DIAGCHLORO
       USE TRACERID_MOD, ONLY : IDTOX, IDTNOX, IDO3,  IDNO
       USE TRACERID_MOD, ONLY : IDNO2, IDOH,   IDHO2, IDNO3  
-      USE TRACERID_MOD, ONLY : IDO1D
+      USE TRACERID_MOD, ONLY : IDO1D, IDO3P
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE COMODE_LOOP_MOD     ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
@@ -70,6 +71,9 @@
 
       ! Array of O1D concentrations (molec/cm3)
       REAL*8, INTENT(OUT) :: SAVEO1D(IIPAR,JJPAR,LLPAR)
+
+      ! Array of O3P concentrations (molec/cm3)
+      REAL*8, INTENT(OUT) :: SAVEO3P(IIPAR,JJPAR,LLPAR)
 !
 ! !REVISION HISTORY: 
 !  27 Feb 2002 - R. Yantosca - Initial version
@@ -121,6 +125,7 @@
       SAVENO2 = 0d0
       SAVENO3 = 0d0
       SAVEO1D = 0d0
+      SAVEO3P = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -171,6 +176,9 @@
 #if defined( GMISTRAT )
          ! O1D concentration [molec/cm3]
          SAVEO1D(I,J,L) = CSPEC(JLOOP,IDO1D)
+
+         ! O3P concentration [molec/cm3]
+         SAVEO3P(I,J,L) = CSPEC(JLOOP,IDO3P)
 #endif
 
  350  CONTINUE

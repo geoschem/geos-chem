@@ -654,7 +654,8 @@
      &                FRACNO,                 FRACNO2, 
      &                SAVEOH,                 SAVEHO2, 
      &                SAVENO,                 SAVENO2, 
-     &                SAVENO3,                SAVEO1D )
+     &                SAVENO3,                SAVEO1D,  
+     &                SAVEO3P                         )
 
          !### Debug
          IF ( LPRT .and. am_I_Root ) THEN

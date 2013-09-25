@@ -1587,6 +1587,12 @@
 !  (8  ) JMGLY : MGLY  J-Value                 : s-1   : SCALE
 !  (15 ) JO2   : O2    J-value                 : s-1   : SCALE_JV
 !  (16 ) JN2O  : N2O   J-value                 : s-1   : SCALE_JV
+!  (17 ) JNO   : NO    J-Value                 : s-1   : SCALE_JV
+!  (18 ) JNO3  : NO3   J-Value                 : s-1   : SCALE_JV
+!  (19 ) JCFC11: CFC11 J-value                 : s-1   : SCALE_JV
+!  (20 ) JCFC12: CFC11 J-value                 : s-1   : SCALE_JV
+!  (21 ) JCCl4 : CCl4  J-value                 : s-1   : SCALE_JV
+!  (22 ) JCH3Cl: CH3Cl J-value                 : s-1   : SCALE_JV
 !  (71 ) JCH3I : CH3I  J-value (s^-1)          : s-1   : SCALE_JV
 !  (81 ) JHCN  : HCN   J-value (s^-1)          : s-1   : SCALE_JV
 !
@@ -1669,6 +1675,18 @@
                      MM = 14
                   CASE ( 'N2O' )
                      MM = 16
+                  CASE ( 'NO' )
+                     MM = 17
+                  CASE ( 'NO3' )
+                     MM = 18
+                  CASE ( 'CFC11' )
+                     MM = 19
+                  CASE ( 'CFC12' )
+                     MM = 20
+                  CASE ( 'CCl4' )
+                     MM = 21
+                  CASE ( 'CH3Cl' )
+                     MM = 22
                   CASE DEFAULT
                      MM = 0
                END SELECT

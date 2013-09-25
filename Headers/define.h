@@ -173,7 +173,7 @@
 !#define GTMM_Hg
 #define GMISTRAT
 #define FASTJX7
-#define FORCEO1D
+!#define FORCEO1D
 
 !==============================================================================
 ! Force a compile error if a model type is undefined

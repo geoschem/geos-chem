@@ -698,7 +698,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! R = universal gas constant [L*atm/moles/K]
-      REAL*8, PARAMETER   :: R = 8.32d-2
+      REAL*8, PARAMETER   :: R = 8.2057d-2
 
       ! INV_T0 = 1/298 K
       REAL*8, PARAMETER   :: INV_T0 = 1d0 / 298d0

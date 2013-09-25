@@ -163,6 +163,7 @@
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
       INTEGER :: NP,K,IFNC,IBRCH,IX,IY,IZ,IJWINDOW,INDEX,NN,ii,jj
       INTEGER :: PHOTVAL,KSUN
+      INTEGER :: NKN_2, PHOTVAL_2
 
       ! Added by GVINKEN
       REAL*8  :: SHIP
@@ -178,6 +179,7 @@
       REAL*8  :: PBEG,PFIN,PBEGNEW,PFINNEW,TOFDAYB,TOFDAYE,HOURANGB
       REAL*8  :: HOURANGE,SINFUNCB,SINFUNCE,XAREA,XRADIUS,XSQM,RRATE2
       REAL*8  :: XSTKCF,GMU,SUNCOS(MAXIJ),DUMMY(KBLOOP),XDENA,XSTK
+      REAL*8  :: DUMMYO3P(KBLOOP)
       REAL*8  :: TK,     CONSEXP, VPRESH2O
       ! New variables for new reations (jmao, 4/20/09)
       REAL*8  :: KHI1,KLO1,XYRAT1,BLOG1,FEXP1,KHI2,KLO2,XYRAT2,BLOG2
@@ -294,6 +296,7 @@
 
       ! FAST-JX: Zero out the dummy arrays (bmy, 9/30/99)
       DUMMY   = 0d0
+      DUMMYO3P= 0d0
       DUMMYO2 = 0d0
 
       ! Zero rate arrays for this column, so that we don't have any
@@ -1195,7 +1198,7 @@ c new OH+CO rate from JPL2006.
                      !  ~0 for aerosol types we don't want reactions on
                      !  for the HBr and HOBr surface reaction
 
-                     KII_KI = .TRUE.
+                     KII_KI = STRATBOX
 
                      ! Select proper aerosol type
                      IF ( (N == 8) .OR. (N == 11) .OR. (N == 12)) THEN
@@ -1536,7 +1539,6 @@ c new OH+CO rate from JPL2006.
             PSCEDUCTCONC(10,2) = CSPEC(JLOOP,IDHCl)
 
             ! This is still pseudo-first-order - ignore            
-            PSCEDUCTCONC(11,2) = 1.d0
             PSCEDUCTCONC(11,1) = CSPEC(JLOOP,IDHOBr)
             PSCEDUCTCONC(11,2) = CSPEC(JLOOP,IDHBr)
 #endif
@@ -1740,13 +1742,25 @@ c new OH+CO rate from JPL2006.
             PHOTVAL = NKO3PHOT(NCS) - NRATES(NCS)
             NKN     = NKNPHOTRT(PHOTVAL,NCS)
 
+#if defined( GMISTRAT )
+            IF ( NKO3PPHOT(NCS) > 0 ) THEN
+               PHOTVAL_2 = NKO3PPHOT(NCS) - NRATES(NCS)
+               NKN_2     = NKNPHOTRT(PHOTVAL_2,NCS)
+            ENDIF
+#endif
             DO KLOOP = 1, KTLOOP
+
+#if defined( GMISTRAT )
+               ! Need to subtract O3->O1D from rate
+               RRATE(KLOOP,NKN_2)=RRATE(KLOOP,NKN_2)-RRATE(KLOOP,NKN)
+               DUMMYO3P(KLOOP) = RRATE(KLOOP,NKN_2)
+#endif
 
                ! Save old value of J-O3 in a diagnostic array 
                ! (gcc, bmy, 4/1/03)
                DUMMY(KLOOP) = RRATE(KLOOP,NKN)
 
-#if ( !defined( GMISTRAT ) ) && ( !defined( FORCEO1D ) )
+#if !defined( GMISTRAT )
                !========================================================
                ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
                ! than 2.6e-11.  The temperature dependence remains the
@@ -1761,6 +1775,10 @@ c new OH+CO rate from JPL2006.
                ! (mje 4/5/04)
                !========================================================
 ! Updated from JPL2006, the difference is pretty small.(jmao,02/26/2009)
+               IF ( LGMISTRAT )
+                  CALL ERROR_STOP( 'ERROR in IFSUN -- GMISTRAT',
+     &             'calcrate.f' )
+               ENDIF
                RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
      $            1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
      $          ( 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
@@ -1833,6 +1851,14 @@ c new OH+CO rate from JPL2006.
                INDEX = 17
             CASE ( 'NO3' )
                INDEX = 18
+            CASE ( 'CFC11' )
+               INDEX = 19
+            CASE ( 'CFC12' )
+               INDEX = 20
+            CASE ( 'CCl4' )
+               INDEX = 21
+            CASE ( 'CH3Cl' )
+               INDEX = 22
             CASE DEFAULT
                INDEX = 0
          END SELECT
@@ -1875,11 +1901,9 @@ c new OH+CO rate from JPL2006.
                      AD22(IX,IY,IZ,6) =
      &                    AD22(IX,IY,IZ,6) + RRATE(KLOOP,NKN)
 #else
+                     ! Store O1D/O3P rates separately
                      AD22(IX,IY,IZ,5) = DUMMY(KLOOP)
-                     ! POH is now from O1D rxn; store 
-                     ! total O3 phot rate here instead
-                     AD22(IX,IY,IZ,6) = AD22(IX,IY,IZ,6) +
-     &                                     RRATE(KLOOP,NKN)
+                     AD22(IX,IY,IZ,6) = DUMMYO3P(KLOOP)
 #endif
                   ELSEIF ( INDEX == 15 ) THEN
                      ! Store unadjusted O2

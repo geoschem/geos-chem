@@ -3112,7 +3112,7 @@
       USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP, LGMISTRAT
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
-      USE LOGICAL_MOD, ONLY : LCH4CHEM, LGMISTRAT, LACTIVEH2O
+      USE LOGICAL_MOD, ONLY : LCH4CHEM, LACTIVEH2O
       USE TRACERID_MOD,ONLY : IDTCH4
 
       USE CMN_SIZE_MOD                   ! Size parameters
@@ -3207,11 +3207,22 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 #endif
-      ! Full GMI stratospheric chemistry incompatible with other settings
+!      !================
+!      ! SDE 08/28/13: Can have both now (linearized chem applies only
+!      ! above stratopause)
+!      ! Full GMiI stratospheric chemistry incompatible with other settings
+!      IF ( LGMISTRAT .and. LSCHEM ) THEN
+!         MSG = 'Cannot have both unified and linearized strat chem!'
+!         CALL ERROR_STOP( MSG, LOCATION )
+!      ENDIF
       IF ( LGMISTRAT .and. LSCHEM ) THEN
-         MSG = 'Cannot have both unified and linearized strat chem!'
-         CALL ERROR_STOP( MSG, LOCATION )
+         ! However, cannot use synoz
+         IF (.not.LLINOZ) THEN
+            MSG = 'Cannot use Synoz with linearized meso. chem.!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
       ENDIF
+!      !================
 
       ! Cannot have active H2O without stratospheric chemistry
       IF ( (.not.LGMISTRAT) .and. LACTIVEH2O ) THEN

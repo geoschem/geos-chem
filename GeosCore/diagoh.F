@@ -15,7 +15,8 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD, ONLY: AD43, LTNO, LTOH, LTNO2, LTHO2, LTNO3, LTO1D
+      USE DIAG_MOD, ONLY: AD43, LTNO, LTOH, LTNO2, LTHO2, LTNO3
+      USE DIAG_MOD, ONLY: LTO1D, LTO3P
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_O3_MOD    ! SAVEOH, SAVENO
@@ -43,6 +44,7 @@
 !  (9 ) Corrected typo in comments (bmy, 8/10/09)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  15 Aug 2013 - S. D. Eastham - Added O1D (for strat-chem)
+!  29 Aug 2013 - S. D. Eastham - Added O3P (for strat-chem)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -51,7 +53,7 @@
 !
       INTEGER  :: I,  J,  L 
       REAL*8   :: OH, NO, HO2, NO2, NO3
-      REAL*8   :: O1D
+      REAL*8   :: O1D,O3P
 
       !=================================================================
       ! DIAGOH begins here!
@@ -66,12 +68,13 @@
       !    AD43(:,:,:,4) = NO2   [v/v]
       !    AD43(:,:,:,5) = NO3   [v/v]
       !    AD43(:,:,:,6) = O1D   [molec/cm3]
+      !    AD43(:,:,:,7) = O3P   [molec/cm3]
       !=================================================================
       IF ( ND43 > 0 ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, OH, NO, HO2, NO2, NO3 )  
+!$OMP+PRIVATE( I, J, L, OH, NO, HO2, NO2, NO3, O1D, O3P )  
          DO L = 1, LD43
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -100,6 +103,10 @@
             ! Save O1D as AD43(:,:,:,6)
             O1D           = SAVEO1D(I,J,L) * LTO1D(I,J)
             AD43(I,J,L,6) = AD43(I,J,L,6)  + O1D
+
+            ! Save O3P as AD43(:,:,:,7)
+            O3P           = SAVEO3P(I,J,L) * LTO3P(I,J)
+            AD43(I,J,L,7) = AD43(I,J,L,7)  + O3P
 #endif
 
          ENDDO

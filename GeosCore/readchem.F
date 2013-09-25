@@ -873,6 +873,9 @@
             IF (TRIM(ADJUSTL(COMMENT)) == 'qn') THEN
                NKNOPHOT = NK
             ENDIF
+            IF (TRIM(ADJUSTL(COMMENT)) == 'qq') THEN
+               NKO3PPHOT = NK
+            ENDIF
 
 !FLAG HACET AND GLYC reaction to modify yield according to temperature
 ! (fp, 8/09)
