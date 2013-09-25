@@ -118,6 +118,8 @@
       PUBLIC  :: ITS_A_NEW_MONTH
       PUBLIC  :: ITS_MIDMONTH
       PUBLIC  :: ITS_A_NEW_DAY
+      ! Add for FLAMBE compatibility (skim, 6/21/13)
+      PUBLIC  :: ITS_A_NEW_HOUR
       PUBLIC  :: ITS_A_NEW_SEASON
       PUBLIC  :: PRINT_CURRENT_TIME
       PUBLIC  :: TIMESTAMP_STRING
@@ -784,6 +786,7 @@
        WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
       ENDIF
 
+      ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
 !EOC
 !------------------------------------------------------------------------------
@@ -1968,7 +1971,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
       REAL*8 :: DOW_LOCAL, LOCAL_TIME
 
       !=================================================================
@@ -4553,6 +4556,46 @@
       ENDIF
 
       END FUNCTION ITS_A_NEW_DAY
+
+!------------------------------------------------------------------------------
+
+      FUNCTION ITS_A_NEW_HOUR( ) RESULT( IS_NEW_HOUR )
+!
+!******************************************************************************
+!  Function ITS_A_NEW_HOUR returns TRUE if it's the first timestep of a new
+!  hour (it also returns TRUE on the first timestep of the run).  This is 
+!  useful for setting flags for reading in data. (bmy, 4/1/04)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      LOGICAL :: IS_NEW_HOUR
+      
+      !=================================================================
+      ! ITS_A_NEW_HOUR begins here!
+      !=================================================================
+      IF ( MOD( NHMS, 10000 ) == 0 ) THEN
+
+         ! Test if it's 0 GMT
+         IS_NEW_HOUR = .TRUE.
+
+      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
+
+         ! Also return TRUE if it's the start of the run
+         ! (since files will need to be read in from disk)
+         IS_NEW_HOUR = .TRUE.
+
+      ELSE
+
+         ! Otherwise, it's not a new year
+         IS_NEW_HOUR = .FALSE.
+         
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION ITS_A_NEW_HOUR
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

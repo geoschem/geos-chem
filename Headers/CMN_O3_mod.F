@@ -39,20 +39,30 @@
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       !
       ! New biogenic VOC emissions (mpb,2009) 
+      ! Now 19 species (dbm, 12/2012)
       !
       !     ---------------------------
       !     Species            | Order 
       !     ---------------------------
       !     Isoprene           = 1
-      !     Total Monoterpenes = 2 
-      !     MBO                = 3 
-      !     Alpha-Pinene       = 4
-      !     Beta-Pinene        = 5
-      !     Limonene           = 6
-      !     Sabinene           = 7
-      !     Mycrene            = 8
-      !     3-Carene           = 9
-      !     Ocimene            = 10
+      !     Acetone            = 2
+      !     Propene            = 3
+      !     Total Monoterpenes = 4 
+      !     MBO                = 5 
+      !     Ethene             = 6
+      !     Alpha-Pinene       = 7
+      !     Beta-Pinene        = 8
+      !     Limonene           = 9
+      !     Sabinene           = 10
+      !     Mycrene            = 11
+      !     3-Carene           = 12
+      !     Ocimene            = 13
+      !     Formic acid        = 14
+      !     Acetic acid        = 15
+      !     Acetaldehyde       = 16          
+      !     Other monoterpenes = 17
+      !     Methanol           = 18
+      !     Ethanol            = 19
       !     ---------------------------	
       !     SOAupdate: Sesquiterpenes (hotp 3/1/10):
       !     Farnesene          = 11
@@ -63,7 +73,6 @@
 
       ! Define common block	
       REAL*8, ALLOCATABLE  :: EMISS_BVOC(:,:,:)
-
 
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       ! Arrays to read emissions from updated merge file : 
@@ -164,6 +173,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!  01 Feb 2013 - R. Yantosca - Now allocate EMISS_BVOC to 19 emission species
 !  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
 !                              and SAVENO3. They are no longer needed because
 !                              O3, NO, NO2, and NO3 are now tracers.

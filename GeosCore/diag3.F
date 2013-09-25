@@ -744,6 +744,83 @@
                ENDDO
             ENDIF
          ENDIF
+
+         !------------------------------
+         ! SEAC4RS anthropogenic SOA precursor source
+         !------------------------------
+         IF ( IDTAVOC > 0 ) THEN
+            CATEGORY     = 'ANVOCSRC'
+            N            = IDTAVOC
+            ARRAY(:,:,1) = AD07(:,:,13)
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDIF
+         !------------------------------
+         ! SEAC4RS biomass burning SOA precursor source
+         !------------------------------
+         IF ( IDTBBVOC > 0 ) THEN
+            CATEGORY     = 'BBVOCSRC'
+            N            = IDTBBVOC
+            ARRAY(:,:,1) = AD07(:,:,14)
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDIF
+         !------------------------------
+         ! SEAC4RS biogenic SOA source
+         !------------------------------
+         IF ( IDTBGSOA > 0 ) THEN
+            CATEGORY     = 'BGSOASRC'
+            N            = IDTBGSOA
+            ARRAY(:,:,1) = AD07(:,:,15)
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDIF
+         !------------------------------
+         ! SEAC4RS anthropogenic SOA production
+         !------------------------------
+         IF ( IDTASOA > 0 ) THEN
+            CATEGORY     = 'PL-ANSOA'
+            N            = IDTASOA
+
+            DO L = 1, LD07
+               ARRAY(:,:,L) = AD07_ASOA(:,:,L)
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     LD07,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+         ENDIF
+         !------------------------------
+         ! SEAC4RS biomass SOA production
+         !------------------------------
+         IF ( IDTBBSOA > 0 ) THEN
+            CATEGORY     = 'PL-BBSOA'
+            N            = IDTBBSOA
+
+            DO L = 1, LD07
+               ARRAY(:,:,L) = AD07_BBSOA(:,:,L)
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     LD07,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+         ENDIF
       ENDIF   
 !
 !******************************************************************************
@@ -3136,6 +3213,7 @@
 !       of "tracerinfo.dat" and "diaginfo.dat" for GAMAP. (bmy, 1/2/01)
 !  (4) Added MBO as tracer #5. (tmf, bmy, 10/20/05)
 !  (5) Added C2H4 as tracer #6. (tmf, 1/20/09)
+!  (6) Updated tracers (dbm, 11/2012)
 !******************************************************************************
 !
       IF ( ND46 > 0 ) THEN

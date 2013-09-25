@@ -317,8 +317,8 @@
       INTEGER            :: IGLOB      = 225
       INTEGER            :: JGLOB      = 161
       INTEGER            :: LGLOB      = 72
-      INTEGER            :: IIPAR
-      INTEGER            :: JJPAR
+      INTEGER            :: IIPAR      = IGLOB
+      INTEGER            :: JJPAR      = JGLOB
 #if   defined( GRIDREDUCED )
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -461,8 +461,13 @@
       !INTEGER, PARAMETER :: NEMPARA = 21 
       !  Add RCHO, HCOOH, ACTA
       !INTEGER, PARAMETER :: NEMPARA = 26 
-      INTEGER, PARAMETER :: NEMPARA = 29
-      INTEGER, PARAMETER :: NEMPARB = 20
+      ! +4 for SEAC4RS FF passive tracers (jaf, 6/13/13)
+      ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
+      !INTEGER, PARAMETER :: NEMPARA = 29
+      INTEGER, PARAMETER :: NEMPARA = 37
+      ! +1 for SEAC4RS ISOP passive tracers (jaf, 6/14/13)
+      !INTEGER, PARAMETER :: NEMPARB = 20
+      INTEGER, PARAMETER :: NEMPARB = 21
 
       !=================================================================
       ! OTHER PARAMETERS 
@@ -504,8 +509,9 @@
       ! NOXLEVELS = Number of levels of anthro NOx emission 
       !             (e.g. surface and 100m)
       ! NOXEXTENT = Highest sigma level that receives anthro NOx emission 
-      INTEGER, PARAMETER :: NOXLEVELS = 2
-      INTEGER, PARAMETER :: NOXEXTENT = 2 
+      ! Need to set NOXLEVELS to 5 for NEI05 and 3 for NEI08 (krt)
+      INTEGER, PARAMETER :: NOXLEVELS = 5
+      INTEGER, PARAMETER :: NOXEXTENT = 5 
 
       ! MAXFAM -- Max number of families for prod and loss output
       INTEGER, PARAMETER :: MAXFAM = 40

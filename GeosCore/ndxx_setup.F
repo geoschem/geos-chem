@@ -26,7 +26,7 @@
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
       USE DIAG_MOD,        ONLY : AD06,        AD07,        AD07_BC
       USE DIAG_MOD,        ONLY : AD07_OC,     AD07_HC,     AD08
-      USE DIAG_MOD,        ONLY : AD07_SOAGM
+      USE DIAG_MOD,        ONLY : AD07_SOAGM,  AD07_ASOA,   AD07_BBSOA
       USE DIAG_MOD,        ONLY : AD09,        AD09_em,     AD11
       USE DIAG_MOD,        ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
       USE DIAG_MOD,        ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
@@ -45,6 +45,7 @@
       USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
       USE DIAG_MOD,        ONLY : AD32_SHIP,   AD32_SHIP_COUNT
+      USE DIAG_MOD,        ONLY : EMISS_ANTHR
       USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
       USE DIAG_MOD,        ONLY : AD36_SHIP,   AD36_SHIP_COUNT
       USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
@@ -77,6 +78,7 @@
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       USE DIAG_MOD,        ONLY : LTO3
+      USE DIAG49_MOD,      ONLY : DO_SAVE_DIAG49
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
@@ -85,6 +87,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TRACERID_MOD,    ONLY : NEMANTHRO
+      USE TRACERID_MOD,    ONLY : IDTASOA, IDTBBSOA
       USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
 
 #if   defined( TOMAS )
@@ -404,6 +407,15 @@
 
          ALLOCATE( AD07_SOAGM( IIPAR, JJPAR, LD07, 4 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_SOAGM' )
+
+         IF ( IDTASOA > 0 ) THEN
+            ALLOCATE( AD07_ASOA( IIPAR, JJPAR, LD07 ), STAT=AS )
+            IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_ASOA' )
+         ENDIF
+         IF ( IDTBBSOA > 0 ) THEN
+            ALLOCATE( AD07_BBSOA( IIPAR, JJPAR, LD07 ), STAT=AS )
+            IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_BBSOA' )
+         ENDIF
 
 #if   defined( APM )
          ALLOCATE( AD07_OM( IIPAR, JJPAR ), STAT=AS )

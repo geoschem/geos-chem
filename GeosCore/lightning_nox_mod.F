@@ -1236,6 +1236,7 @@
 !       (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met
+!  18 Apr 2013 - R. Yantosca - Bug fix, prefix DATA_DIR to GEOS-5.7.x file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1269,22 +1270,31 @@
 
       ! Get file name
       ! OTD-LIS Local file for CTH parameterization
-      FILENAME = 
-     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' // 
+!      FILENAME = 
+!     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' // 
+!     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
+
+      FILENAME = '/as/home/skim/Code_Development/'                //
+     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' //
      &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 
       ! Prefix directory to file name
-#if !defined( GEOS_57 )
-
-      FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-#endif      
+      FILENAME = TRIM( FILENAME ) 
 
       ! For GEOS-57 nested grids, append a suffix to denote either
       ! SEAC4RS or the China domain (skim, 5/29/12)
 #if   defined( GEOS_57 ) && defined( NESTED_CH )
       FILENAME = TRIM( FILENAME ) // '.CH'
+      ! Add a switch for the nested North American domain
+#elif defined( GEOS_57 ) && defined( NESTED_NA )
+      FILENAME = TRIM( FILENAME ) // '.NA'
 #elif defined( GEOS_57 ) && defined( SEAC4RS )
       FILENAME = TRIM( FILENAME ) // '.SE'
+#endif
+
+! ltm: 7/10/13. Prevent beta files from making standard code.
+#if   defined( GEOS_57 )
+      FILENAME = TRIM( FILENAME ) // '.temp'
 #endif
 
       ! For GEOS-5 nested grids, append the a suffix to denote either 
@@ -1390,7 +1400,9 @@
          ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
          TMP = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L,State_Met) )
 
-         EMIS_LI_NOx(I,J,L)                = TMP
+         ! For SEAC4RS, knock the emissions down by a factor of 5
+         ! ( skim, 8/15/13)
+         EMIS_LI_NOx(I,J,L)                = TMP / 5.0
 
 #if defined( DEVEL ) 
          State_Chm%TRAC_TEND(I,J,L,IDTNO)  = TMP
@@ -1530,9 +1542,11 @@
       ! GEOS-5.7.x: 4 x 5 global simulation
       !---------------------------------------
 
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.63453405d0
+!     ltm: 7/17/13. WARNING: This value is temporary, intended only for
+!     the SEAC4RS NRT forecast. It should not make the standard code,
+!     and should be updated before SEAC4RS analyses.
+      IF ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) THEN
+         BETA = 0.56429990d0
       ENDIF
 
 #elif defined( GEOS_57 ) && defined( GRID2x25 )
@@ -1541,10 +1555,7 @@
       ! GEOS-5.7.x: 2 x 2.5 global simulation
       !---------------------------------------
       
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
-      ENDIF
+      ! ltm: Will need to be updated when met fields become available.
 
 #elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( NESTED_CH )
 
@@ -1552,12 +1563,9 @@
       ! GEOS-5.7.x: Nested China simulation
       !---------------------------------------
       
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
-      ENDIF
+      ! ltm: Will need to be updated when met fields become available.
 
-#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( SEAC4RS )
+#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( SEAC4RS )
 
       !---------------------------------------
       ! GEOS-5.7.x: Nested SEAC4RS simulation
@@ -1566,6 +1574,21 @@
       ! ltm: Will need to be updated when other months/years become available
       IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
          BETA = 0.20604515d0
+      ENDIF
+
+! Copy the same beta for the other nested grids for now (skim, 6/27/13)
+#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_NA )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: Nested SEAC4RS simulation
+      !---------------------------------------
+
+!     ltm: 7/17/13. WARNING: This value is temporary, intended only for
+!     the SEAC4RS NRT forecast. It should not make the standard code,
+!     and should be updated before SEAC4RS analyses.
+      IF ( ( GET_YEAR()  .eq. 2013 ) .and.
+     &     ( GET_MONTH() .ge. 7      .and. GET_MONTH() .le. 9 ) ) THEN
+         BETA = 0.011773539d0
       ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )

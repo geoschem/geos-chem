@@ -724,7 +724,7 @@
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
 !         RTOL(i) = 2.d-1
-         RTOL(i) = 1.d-1
+         RTOL(i) = 5.d-2
          ATOL(i) = 1.d-2
       END DO
       
@@ -829,7 +829,7 @@
          
          ! Try another time if it failed
          IF ( IERR < 0 ) THEN
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% For KPP tolerance fix (mlong, 4/12/13) %%%
             !%%% Re-entry point for non-convergence     %%%
@@ -854,7 +854,7 @@
             ! 1D grid box index on the global grid
             JLOOP = JLOOPLO+KLOOP
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
             !%%% Increase tolerances by factor of 2     %%%
@@ -866,7 +866,7 @@
             call Integrate( TIN,    TOUT,    ICNTRL, 
      &                      RCNTRL, ISTATUS, RSTATE, IERR )
             IF ( IERR < 0 ) THEN 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
                !%%% Try to solve again; don't quit the run %%%

@@ -37,6 +37,7 @@
       USE TRACER_MOD, ONLY : N_MEMBERS
       USE TRACER_MOD, ONLY : CHECK_STT
       USE TRACER_MOD, ONLY : CHECK_STT_05x0666
+      USE TRACER_MOD, ONLY : CHECK_STT_025x03125
 
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -790,6 +791,8 @@
                   CALL ANTHROEMS( SEASON, Input_Opt )              
                ENDIF
             ENDIF
+
+
          ENDIF
 
          ! Read data required for Hg2 gas-particle partitioning 
@@ -957,6 +960,7 @@
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
             ENDIF
+            
          ENDIF
 
          !==============================================================
@@ -1193,6 +1197,10 @@
          CALL CHECK_STT_05x0666( State_Chm, 
      &                           'end of chem section, before wetdep' )
 #endif 
+#if   defined( GEOS_57) && defined( GRID025x03125)
+         CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
+#endif 
+
 
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
@@ -1359,6 +1367,10 @@
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
             CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
 #endif
+#if   defined( GEOS_57) && defined( GRID025x03125)
+         CALL CHECK_STT_025x03125( State_Chm, 'after dynamics step' )
+#endif 
+
 
             CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
          ENDIF

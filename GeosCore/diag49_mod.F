@@ -146,7 +146,7 @@
 
       INTEGER            :: IOFF,           JOFF,   LOFF
       INTEGER            :: I0,             J0
-      INTEGER            :: ND49_N_TRACERS, ND49_TRACERS(120)
+      INTEGER            :: ND49_N_TRACERS, ND49_TRACERS(134) !+12, (krt 5/2013)
       INTEGER            :: ND49_IMIN,      ND49_IMAX
       INTEGER            :: ND49_JMIN,      ND49_JMAX
       INTEGER            :: ND49_LMIN,      ND49_LMAX
@@ -201,15 +201,19 @@
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TRACERID_MOD,  ONLY : NEMANTHRO
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
+      USE DIAG_MOD,      ONLY : EMISS_ANTHR
 
       USE CMN_FJ_MOD,         ONLY : JPMAX,   JPPJ     ! FAST-J stuff
       USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD (clh)
       USE CMN_O3_MOD	           ! SAVEOH
       USE CMN_GCTM_MOD             ! XTRA2
       USE COMMSOIL_MOD
+      USE COMODE_LOOP_MOD                    ! IDEMS
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -256,6 +260,7 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  18 Jan 2013 - D. Millet   - Updated tracer numbers for EMISS_BVOC
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
 !                              of removal of NOx-Ox partitioning
 !  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
@@ -281,6 +286,7 @@
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER                  :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
+      INTEGER                  :: NE, NN
 
       ! For fields from Input_Opt
       LOGICAL                  :: LSOILNOX
@@ -319,8 +325,9 @@
      &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
      &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
-         FIRST       = .FALSE.
+     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 )
+         ! Comment out for now (skim, 8/6/13)
+         ! FIRST       = .FALSE.
       ENDIF
 
       !=================================================================
@@ -335,7 +342,9 @@
       ! To change TS_DIAG to NHMS format
       TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
 
-      IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
+      ! Kludge for mid hour saving of timeseries output
+      ! (skim, 8/6/13)
+      IF ( NHMS == TS_DIAG .OR. FIRST == .TRUE. ) THEN     ! It's a new day for diagnostics.
 
          ! Find a free file LUN
          IU_ND49 = findFreeLUN()
@@ -354,6 +363,9 @@
             CALL OPEN_BPCH2_FOR_WRITE( IU_ND49, FILENAME, TITLE )
 
          ENDIF
+
+         ! Kludge for mid hour saving of timeseries output
+         FIRST = .FALSE.
 
       ENDIF
 
@@ -411,7 +423,8 @@
             ! Free pointer
             NULLIFY( STT )
 
-         ELSE IF ( N == 91 .and. IS_O3 ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and. IS_O3 ) THEN
 
             !-------------------------------------
             ! PURE O3 CONCENTRATION [v/v]
@@ -444,7 +457,8 @@
             ! Free pointer
             NULLIFY( STT )
 
-         ELSE IF ( N == 92 .and. IS_NO ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and. IS_NO ) THEN
             
             !-------------------------------------
             ! NO CONCENTRATION [v/v]
@@ -477,7 +491,8 @@
             ! Free pointer
             NULLIFY( STT )
 
-         ELSE IF ( N == 93 .and. IS_NOy ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and. IS_NOy ) THEN
 
             !--------------------------------------
             ! NOy CONCENTRATION [v/v]
@@ -560,7 +575,7 @@
             ! Free pointer
             NULLIFY( STT )
 
-         ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 91 .and. IS_FULLCHEM ) THEN
 
             !-------------------------------------
             ! OH CONCENTRATION [molec/cm3]
@@ -585,7 +600,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 77 .and. IS_FULLCHEM ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and. IS_FULLCHEM ) THEN
 
             !-------------------------------------
             ! NO2 CONCENTRATION [molec/cm3]
@@ -611,7 +627,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 78 ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == 92 ) THEN
 
             !--------------------------------------
             ! PBL HEIGHTS [m] 
@@ -633,7 +650,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 79 ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 ) THEN
 
             !--------------------------------------
             ! PBL HEIGHTS [levels] 
@@ -655,7 +673,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 80 ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == 93 ) THEN
 
             !--------------------------------------
             ! AIR DENSITY [molec/cm3]
@@ -1245,7 +1264,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 61 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             ! SOIL NOX EMISSIONS [molec/cm2/s]
@@ -1268,8 +1288,8 @@
 !$OMP END PARALLEL DO
 
 
-
-         ELSE IF ( N == 62 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             ! FERTILIZER SOIL NOX EMISSIONS [molec/cm2/s]
@@ -1294,8 +1314,8 @@
 !$OMP END PARALLEL DO
 
 
-
-         ELSE IF ( N == 63 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             !DRY PERIOD [hours]
@@ -1317,7 +1337,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 64 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             !PFACTOR [unitless]
@@ -1339,7 +1360,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 65 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             !GWET_PREV [unitless]
@@ -1361,8 +1383,8 @@
 !$OMP END PARALLEL DO
 
 
-
-         ELSE IF ( N == 66 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             !Accumulated Precip [mm/day]
@@ -1469,7 +1491,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 2 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 4 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1492,7 +1514,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 3 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 5 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1515,7 +1537,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 4 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 7 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1538,7 +1560,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 5 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 8 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1562,7 +1584,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 6 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 9 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1586,7 +1608,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 7 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 10 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1610,7 +1632,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 8 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 11 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1634,7 +1656,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 9 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 12 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1657,7 +1679,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 10 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 13 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1784,7 +1806,9 @@
 !       HR1 varies between 00 and 23:59. So compares to 00 not 24 anymore.
 !      ITS_TIME = ( INT( HR1 ) == 24 )
 
-      ITS_TIME = ( INT( HR1 ) == 00 )
+      !ITS_TIME = ( INT( HR1 ) == 00 )
+      ! Comment out for now, kludge for SEAC4RS (skim, 8/5/13)
+      ITS_TIME = ( INT( HR1 ) == 21 )
 
       END FUNCTION ITS_TIME_TO_CLOSE_FILE
 !EOC

@@ -1915,13 +1915,13 @@ CONTAINS
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif
 
-#elif defined( GRID1x1 ) 
-
-#if   defined( NESTED_CH ) || defined( NESTED_NA )
-    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-#else  
-    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
-#endif
+!#elif defined( GRID1x1 ) 
+!
+!#if   defined( NESTED_CH ) || defined( NESTED_NA )
+!    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+!#else  
+!    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+!#endif
 
 #elif defined( EXTERNAL_GRID )
     ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
@@ -2273,13 +2273,13 @@ CONTAINS
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif
 
-#elif defined( GRID1x1 ) 
-
-#if   defined( NESTED_CH ) || defined( NESTED_NA )
-    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-#else  
-    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
-#endif
+!#elif defined( GRID1x1 ) 
+!
+!#if   defined( NESTED_CH ) || defined( NESTED_NA )
+!    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+!#else  
+!    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+!#endif
 
 #elif defined( EXTERNAL_GRID )
     ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?

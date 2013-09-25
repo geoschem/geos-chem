@@ -205,7 +205,6 @@
          B_1x1(:,:) = 1.d0
 
       ELSE
-
          ! Filename
          IF ( TRACER == 71 ) THEN
 
@@ -281,7 +280,6 @@
      &                    1,        T_1x1,      QUIET=.TRUE. )
 
       ENDIF
-
       ! Get scaling and cast as real*8
       AS_1x1(:,:) = T_1x1(:,:) / B_1x1(:,:)
 

@@ -113,8 +113,8 @@
 !  (103) IDTDST4   (INTEGER) : DST4  index w/in STT array ("tracer_mod.f")
 !  (104) IDTSALA   (INTEGER) : SALA  index w/in STT array ("tracer_mod.f")
 !  (105) IDTSALC   (INTEGER) : SALC  index w/in STT array ("tracer_mod.f")
-!  (109) IDENOX    (INTEGER) : NOx   index w/in EMISRRN array ("CMN_O3")  
-!  (110) IDEOX     (INTEGER) : Ox    index w/in EMISRR  array ("CMN_O3")  
+!  (109) IDENO     (INTEGER) : NOx   index w/in EMISRRN array ("CMN_O3")  
+!  (110) IDEO3     (INTEGER) : Ox    index w/in EMISRR  array ("CMN_O3")  
 !  (111) IDECO     (INTEGER) : CO    index w/in EMISRR  array ("CMN_O3")     
 !  (112) IDEPRPE   (INTEGER) : PRPE  index w/in EMISRR  array ("CMN_O3")     
 !  (113) IDEC3H8   (INTEGER) : C3H8  index w/in EMISRR  array ("CMN_O3")     
@@ -291,6 +291,11 @@
 
       INTEGER            :: IDH2SO4   !(win, 6/23/09)
       !sfarina - leaving IDH2SO4 defined regardless of sim.
+
+      ! SEAC4RS tracers (jaf, 6/13/13)
+      INTEGER            :: IDPCOFNE, IDPCOFSE, IDPCOFW, IDPCOFRW
+      INTEGER            :: IDPCOBCN, IDPCOBSE, IDPCOBW, IDPCOBRW
+      INTEGER            :: IDPISOP
 
       ! GEOS-CHEM tracer ID's
       INTEGER            :: IDTNO,   IDTNO2,   IDTNO3,  IDTHNO2, IDTO3
@@ -515,6 +520,9 @@
       ! SOAupdate: added gas phase NAP chemistry (hotp 6/24/09)
       ! semivolpoa5: add IVOC chemistry (hotp 3/30/09)
       INTEGER            :: IDBFNAP
+
+      ! SEAC4RS tracers (jaf, 6/13/13)
+      INTEGER           :: IDBFPCOFNE, IDBFPCOFSE, IDBFPCOFW, IDBFPCOFRW
 
       !BIOMASS BURNING  !(FP,01/27/10)
       INTEGER            :: IDBNO,   IDBCO,   IDBALK4, IDBACET 
@@ -1279,6 +1287,71 @@
 
             CASE (  'PYPAN'  )
                IDTPYPAN  = N
+
+            !--------------------------------
+            ! SEAC4RS tracers
+            !--------------------------------
+            CASE ( 'PCOFNE' )
+               COUNT      = COUNT + 1
+               IDTPCOFNE  = N
+               IDBFPCOFNE = COUNT
+
+            CASE ( 'PCOFSE' )
+               COUNT      = COUNT + 1
+               IDTPCOFSE  = N
+               IDBFPCOFSE = COUNT
+
+            CASE ( 'PCOFW' )
+               COUNT      = COUNT + 1
+               IDTPCOFW   = N
+               IDBFPCOFW  = COUNT
+
+            CASE ( 'PCOFRW' )
+               COUNT      = COUNT + 1
+               IDTPCOFRW  = N
+               IDBFPCOFRW = COUNT
+
+            CASE ( 'PCOBCN' )
+               IDTPCOBCN  = N
+
+               COUNT_BB  = COUNT_BB + 1
+               IDBPCOBCN = COUNT_BB
+
+            CASE ( 'PCOBSE' )
+               IDTPCOBSE  = N
+
+               COUNT_BB  = COUNT_BB + 1
+               IDBPCOBSE = COUNT_BB
+
+            CASE ( 'PCOBW' )
+               IDTPCOBW   = N
+
+               COUNT_BB  = COUNT_BB + 1
+               IDBPCOBW  = COUNT_BB
+
+            CASE ( 'PCOBRW' )
+               IDTPCOBRW  = N
+
+               COUNT_BB  = COUNT_BB + 1
+               IDBPCOBRW = COUNT_BB
+
+            CASE ( 'PISOP' )
+               IDTPISOP  = N
+
+            CASE ( 'AVOC' )
+               IDTAVOC    = N
+               
+            CASE ( 'BBVOC' )
+               IDTBBVOC   = N
+
+            CASE ( 'ASOA' )
+               IDTASOA   = N
+
+            CASE ( 'BBSOA' )
+               IDTBBSOA  = N
+
+            CASE ( 'BGSOA' )
+               IDTBGSOA  = N
 
             !--------------------------------
             ! Tagged Ox Tracers
@@ -2712,7 +2785,15 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEC2H2   = NEMANTHRO
          ENDIF
-         
+         ! FOR NEI08, krt, 6/12/13
+         IF ( IDTNO2 > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDENO2    = NEMANTHRO
+         ENDIF
+         IF ( IDTHNO2 > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEHNO2   = NEMANTHRO
+         ENDIF
          !%%%%%%bmy add these here%%%%%%%%%%
 
          ! For now, comment this out, as RETRO does not have RCHO emissions
@@ -2732,6 +2813,40 @@
             IDEACTA   = NEMANTHRO
           ENDIF
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ! SEAC4RS tracers (jaf, 6/13/13)
+         IF ( IDTPCOFNE > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEPCOFNE = NEMANTHRO
+         ENDIF
+         IF ( IDTPCOFSE > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEPCOFSE = NEMANTHRO
+         ENDIF
+         IF ( IDTPCOFW > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEPCOFW  = NEMANTHRO
+         ENDIF
+         IF ( IDTPCOFRW > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEPCOFRW = NEMANTHRO
+         ENDIF
+         IF ( IDTPCOBCN > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEPCOBCN = NEMANTHRO
+         ENDIF
+         IF ( IDTPCOBSE > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEPCOBSE = NEMANTHRO
+         ENDIF
+         IF ( IDTPCOBW > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEPCOBW  = NEMANTHRO
+         ENDIF
+         IF ( IDTPCOBRW > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEPCOBRW = NEMANTHRO
+         ENDIF
 
          ! Now add additional species treated in SMVGEAR that are NOT
          ! anthropogenic, increment NEMBIOG
@@ -2778,6 +2893,11 @@
             NEMBIOG   = NEMBIOG + 1
             IDEBr2    = NEMANTHRO + NEMBIOG
          ENDIF
+         ! SEAC4RS passive tracer (jaf, 6/14/13)
+         IF ( IDTPISOP > 0 ) THEN
+           NEMBIOG    = NEMBIOG   + 1
+           IDEPISOP   = NEMANTHRO + NEMBIOG
+         ENDIF
       ENDIF
       
       !=================================================================
@@ -2787,6 +2907,8 @@
       ! an F90 module somehow.  Think about this later. (bmy, 11/12/02)
       !=================================================================
       IF ( IDENO   /= 0 ) IDEMS(IDENO  ) = IDTNO
+      IF ( IDENO2  /= 0 ) IDEMS(IDENO2 ) = IDTNO2
+      IF ( IDEHNO2 /= 0 ) IDEMS(IDEHNO2 ) = IDTHNO2
       IF ( IDECO   /= 0 ) IDEMS(IDECO  ) = IDTCO
       IF ( IDEPRPE /= 0 ) IDEMS(IDEPRPE) = IDTPRPE
       IF ( IDEC3H8 /= 0 ) IDEMS(IDEC3H8) = IDTC3H8
@@ -2811,6 +2933,16 @@
       IF ( IDERCHO /= 0 )  IDEMS(IDERCHO) = IDTRCHO
       IF ( IDEHCOOH /= 0 ) IDEMS(IDEHCOOH)= IDTHCOOH
       IF ( IDEACTA /= 0 )  IDEMS(IDEACTA) = IDTACTA
+      ! SEAC4RS tracers (jaf, 6/13/13)
+      IF ( IDEPCOFNE /= 0 ) IDEMS(IDEPCOFNE) = IDTPCOFNE
+      IF ( IDEPCOFSE /= 0 ) IDEMS(IDEPCOFSE) = IDTPCOFSE
+      IF ( IDEPCOFW  /= 0 ) IDEMS(IDEPCOFW)  = IDTPCOFW
+      IF ( IDEPCOFRW /= 0 ) IDEMS(IDEPCOFRW) = IDTPCOFRW
+      IF ( IDEPCOBCN /= 0 ) IDEMS(IDEPCOBCN) = IDTPCOBCN
+      IF ( IDEPCOBSE /= 0 ) IDEMS(IDEPCOBSE) = IDTPCOBSE
+      IF ( IDEPCOBW  /= 0 ) IDEMS(IDEPCOBW)  = IDTPCOBW
+      IF ( IDEPCOBRW /= 0 ) IDEMS(IDEPCOBRW) = IDTPCOBRW
+      IF ( IDEPISOP  /= 0 ) IDEMS(IDEPISOP)  = IDTPISOP
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
@@ -2841,10 +2973,13 @@
          WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
          WRITE( 6, 115 ) '          + 6 for dicarbonyls'
          WRITE( 6, 115 ) '          + 3 for bromine'
-         WRITE( 6, 115 ) 'NEMBIOG:   10 max'
+         WRITE( 6, 115 ) '          + 1 for SEAC4RS passive isop tracer'
+         WRITE( 6, 115 ) 'NEMBIOG:   11 max'
          WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
          WRITE( 6, 115 ) '-----------------------------------------'
          WRITE( 6, 120 ) 'IDENO   ', IDENO
+         WRITE( 6, 120 ) 'IDENO2  ', IDENO2
+         WRITE( 6, 120 ) 'IDEHNO2  ', IDEHNO2
          WRITE( 6, 120 ) 'IDECO   ', IDECO
          WRITE( 6, 120 ) 'IDEPRPE ', IDEPRPE
          WRITE( 6, 120 ) 'IDEC3H8 ', IDEC3H8
@@ -2868,6 +3003,15 @@
          WRITE( 6, 120 ) 'IDERCHO ', IDERCHO
          WRITE( 6, 120 ) 'IDEHCOOH', IDEHCOOH
          WRITE( 6, 120 ) 'IDEACTA ', IDEACTA
+         WRITE( 6, 120 ) 'IDEPCOFNE', IDEPCOFNE
+         WRITE( 6, 120 ) 'IDEPCOFSE', IDEPCOFSE
+         WRITE( 6, 120 ) 'IDEPCOFW',  IDEPCOFW
+         WRITE( 6, 120 ) 'IDEPCOFRW', IDEPCOFRW
+         WRITE( 6, 120 ) 'IDEPCOBCN', IDEPCOBCN
+         WRITE( 6, 120 ) 'IDEPCOBSE', IDEPCOBSE
+         WRITE( 6, 120 ) 'IDEPCOBW',  IDEPCOBW
+         WRITE( 6, 120 ) 'IDEPCOBRW', IDEPCOBRW
+         WRITE( 6, 120 ) 'IDEPISOP ', IDEPISOP
          WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
          WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
          WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
@@ -4145,6 +4289,17 @@
       IDDRYBrNO3= 0
       ! +++++++++++++++++
 
+      ! SEAC4RS tracers (jaf, 6/13/13)
+      IDPCOFNE  = 0
+      IDPCOFSE  = 0
+      IDPCOFW   = 0
+      IDPCOFRW  = 0
+      IDPCOBCN  = 0
+      IDPCOBSE  = 0
+      IDPCOBW   = 0
+      IDPCOBRW  = 0
+      IDPISOP   = 0
+
       ! GEOS-CHEM Tracer ID #'s
       IDTNO     = 0
       IDTNO2    = 0
@@ -4725,6 +4880,8 @@
       NEMANTHRO = 0
       NEMBIOG   = 0
       IDENO     = 0
+      IDENO2    = 0 !krt, 6/12/13
+      IDEHNO2   = 0 !krt, 6/12/13
       IDEO3     = 0
       IDECO     = 0
       IDEPRPE   = 0
@@ -4755,6 +4912,17 @@
       ! semivolpoa5: IVOCs (hotp 3/30/09)
       IDENAP    = 0
 
+      ! SEAC4RS tracers (jaf, 6/13/13)
+      IDEPCOFNE  = 0
+      IDEPCOFSE  = 0
+      IDEPCOFW   = 0
+      IDEPCOFRW  = 0
+      IDEPCOBCN  = 0
+      IDEPCOBSE  = 0
+      IDEPCOBW   = 0
+      IDEPCOBRW  = 0
+      IDEPISOP   = 0
+
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNO    = 0
       IDBFCO    = 0
@@ -4778,6 +4946,12 @@
       ! SOAudpate: for gas phase NAP chemistry (hotp 6/24/09)
       ! semivolpoa5: IVOCs (hotp 3/30/09)
       IDBFNAP   = 0
+
+      ! SEAC4RS tracers (jaf, 6/13/13)
+      IDBFPCOFNE  = 0
+      IDBFPCOFSE  = 0
+      IDBFPCOFW   = 0
+      IDBFPCOFRW  = 0
 
       ! Initialize IDBs for BIOMASS BURNING (hotp 8/24/09)
       IDBNO     = 0
@@ -4808,6 +4982,12 @@
       IDBCH4    = 0
 !kjw
       IDBNAP    = 0 ! SOAupdate hotp 7/25/10
+
+      ! SEAC4RS tracers (jaf, 6/13/13)
+      IDBPCOBCN  = 0
+      IDBPCOBSE  = 0
+      IDBPCOBW   = 0
+      IDBPCOBRW  = 0
 
       !-----------------------------------
       ! Initialize tagged Hg index arrays

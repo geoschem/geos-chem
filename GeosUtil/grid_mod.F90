@@ -1247,6 +1247,7 @@ CONTAINS
 !  03 Dec 2012 - R. Yantosca - Add am_I_Root, RC to argument list
 !  04 Dec 2012 - R. Yantosca - Now dimension arrays with IM, JM, LM instead 
 !                              of I1, J1, L1, I2, J2, L2.  
+!  18 Apr 2013 - R. Yantosca - Bug fix: in nested block, use STAT=RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1307,7 +1308,7 @@ CONTAINS
     IS_NESTED = .TRUE.
     
     ! Allocate nested-grid window array of lat centers (radians)
-    ALLOCATE( YMID_R_W( IM, 0:JM+1, LM ), STAT=AS ) 
+    ALLOCATE( YMID_R_W( IM, 0:JM+1, LM ), STAT=RC ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
     YMID_R_W = 0d0
 

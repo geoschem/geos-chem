@@ -116,6 +116,8 @@
 #  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
 #  07 Sep 2012 - R. Yantosca - Now add OPT variable to set global opt levels
 #  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
+#  17 Apr 2013 - R. Yantosca - Add switch to set -DKPP_SOLVE_ALWAYS, which 
+#                              will force KPP to get past nonconvergences
 #  25 Feb 2013 - S. Farina   - Add flag for TOMAS40
 #  22 Apr 2013 - R. Yantosca - TOMAS40=yes option now sets -DTOMAS -DTOMAS40
 #  28 Apr 2013 - S. Farina   - Add flags for TOMAS15 and TOMAS12

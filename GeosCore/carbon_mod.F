@@ -306,6 +306,11 @@
       REAL*8, ALLOCATABLE :: ORVC_SESQ(:,:,:)
       REAL*8, ALLOCATABLE :: ISOP_PRIOR(:,:,:)  ! (dkh, 10/09/05)  
 
+      ! SEAC4RS SOA tracers (jaf, 6/25/13)
+      REAL*8, ALLOCATABLE :: BBVOC_EMIS(:,:)
+      REAL*8, ALLOCATABLE :: AVOC_EMIS(:,:)
+      REAL*8, ALLOCATABLE :: BGSOA_EMIS(:,:)
+
       REAL*8, ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
 
       ! Cloud fraction - for cloud droplet uptake of dicarbonyls 
@@ -636,6 +641,26 @@
          ENDIF
       ENDIF
 #endif
+
+      !=================================================================
+      ! Do chemistry for SEAC4RS simplified SOA tracers (jaf, 6/24/13)
+      !=================================================================
+      ! Chemistry for anthropogenic SOA
+      IF ( IDTASOA > 0 ) THEN 
+         CALL CHEM_ASOA( am_I_Root, Input_Opt, State_Met, 
+     &                   STT(:,:,:,IDTASOA), STT(:,:,:,IDTAVOC), RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_ASOA' )
+         ENDIF
+      ENDIF
+      ! Chemistry for biomass burning SOA
+      IF ( IDTBBSOA > 0 ) THEN 
+         CALL CHEM_BBSOA( am_I_Root, Input_Opt, State_Met,
+     &                    STT(:,:,:,IDTBBSOA), STT(:,:,:,IDTBBVOC), RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BBSOA' )
+         ENDIF
+      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -5283,12 +5308,15 @@
 ! !USES:
 !
       ! References to F90 modules
+      ! Add for FLAMBE compatibility (jaf, 7/31/09)
+      USE BIOMASS_MOD,        ONLY : FLAMBE_IN_USE
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
+      USE FINN_BIOMASS_MOD,   ONLY : FINN_IS_NEW
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -5520,8 +5548,12 @@
       !-----------------------------------
       IF ( .not. USE_BOND_BIOBURN ) THEN
 
-         IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
-     &        ITS_A_NEW_MONTH() ) THEN 
+         ! Have to check if using FLAMBE so that it is called hourly
+         ! rather than whenever GFED2 is updated (generally monthly)
+         ! (jaf, 7/30/09)
+         IF ( GFED2_IS_NEW()    .or. GFED3_IS_NEW()  .or. 
+     &        ITS_A_NEW_MONTH() .or. FLAMBE_IN_USE() .or. 
+     &        FINN_IS_NEW() ) THEN 
             CALL BIOMASS_CARB_GEOS( Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF
@@ -5534,6 +5566,12 @@
       !--------------------------
       CALL BIOGENIC_OC( Input_Opt, State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BIOGENIC_OC'    )
+
+      !--------------------------
+      ! SEAC4RS SOA (jaf, 6/25/13)
+      !--------------------------
+      IF ( IDTAVOC > 0 .or. IDTBBVOC > 0 )
+     &    CALL EMISS_AVOC_BBVOC( Input_Opt, State_Met )
 
       !=================================================================
       ! Sum up BC and OC sources. 
@@ -6497,6 +6535,7 @@ ccc
       ! For fields from Input_Opt
       LOGICAL         :: LMEGANMONO
       LOGICAL         :: LSOA
+      LOGICAL         :: ISOP_SCALE
 
       !=================================================================
       ! BIOGENIC_OC begins here!
@@ -6505,6 +6544,10 @@ ccc
       ! Copy values from Input_Opt
       LMEGANMONO = Input_Opt%LMEGANMONO
       LSOA       = Input_Opt%LSOA
+      ISOP_SCALE = Input_Opt%ISOP_SCALING
+      ! We can't just use the saved value in emissions_mod.F because
+      ! emissions_mod.F already depends on carbon_mod.F, so just pull it
+      ! from input_opt here (jaf, 6/25/13)
 
       !=================================================================
       ! If secondary organic aerosols are turned off ...
@@ -6514,15 +6557,27 @@ ccc
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, TMMP, EMMO, SC, PDR, PDF )
+!$OMP+PRIVATE( I, J, EMMO )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! 1-D loop index
-            IJLOOP         = ( (J-1) * IIPAR ) + I
+            ! Get monoterpenes from MEGAN [kg C/box]
+            IF ( LMEGANMONO ) THEN
 
-            ! Surface temperature [K]
-            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
+               ! Add up individual terpene emissions
+               EMMO = GET_MEGAN_EMISSIONS( I, J, State_Met, 'APIN' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'BPIN' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'LIMO' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'SABI' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'MYRC' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'CARE' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'OCIM' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'OMON' )
+
+               ! Now need to convert this from atomsC to kgC
+               ! dbm (11/2012)
+               EMMO = EMMO * 12d-3/6.02d23
+             ENDIF
 
             ! +++++++++++++++++++++++++++++++++++++++++
             ! ** MEGAN v2.1 **
@@ -6533,14 +6588,21 @@ ccc
             PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN [kg C/box]
-            IF ( LMEGANMONO ) THEN
-               EMMO = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0 )
-            ENDIF
+               ! Also get isoprene from MEGAN [kg C/box]
+               EMIS_ISOP = GET_MEGAN_EMISSIONS(I, J, State_Met, 'ISOP')
 
-            ! Fraction of EMMO that converts into OC [kg/box/timestep]
-            TERP_ORGC(I,J) = EMMO * FBIOG
+               ! Apply same scaling used in emissdr and convert to kgC
+               EMIS_ISOP = EMIS_ISOP * ISOP_SCALE * 12d-3/6.02d23
+
+               ! Add both components to BGSOA_EMIS array
+               BGSOA_EMIS(I,J) = EMMO * FBIOG + EMIS_ISOP * FBIOG_ISOP
+
+            ELSE
+
+               ! Fraction of EMMO that converts into OC [kg/box/timestep]
+               TERP_ORGC(I,J) = EMMO * FBIOG
+
+            ENDIF
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -6591,31 +6653,29 @@ ccc
          !------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, TMMP, SC, PDR, PDF )
+!$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! 1-D loop index
-            IJLOOP         = ( (J-1) * IIPAR ) + I
-
-            ! Surface temperature [K]
-            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
-
-            ! Monoterpene emission [kg C/box/timestep]
-
-            ! +++++++++++++++++++++++++++++++++++++++++
-            ! ** MEGAN v2.1 **
-            ! Cosine of solar zenith angle   (mpb,2009) 
-            ! Diffuse and direct PAR         (mpb,2009)
-            SC   = State_Met%SUNCOSmid(I,J)
-            PDR  = State_Met%PARDR(I,J)
-            PDF  = State_Met%PARDF(I,J)
-            ! +++++++++++++++++++++++++++++++++++++++++
-
             ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0 )               
+
+               ! Use updated MEGAN 2.1 driver (D. Millet)
+               ! Add up individual terpene emissions
+               TERP_ORGC(I,J) = 
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'APIN' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'BPIN' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'LIMO' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'SABI' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'MYRC' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'CARE' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'OCIM' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'OMON' )
+
+               ! Now need to convert this from atomsC to kgC
+               ! dbm (11/2012)
+               TERP_ORGC(I,J) = TERP_ORGC(I,J) * 12d-3/6.02d23
+
             ENDIF
 
             !---------------------------------------------------
@@ -6821,7 +6881,7 @@ ccc
      &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0, 'OSQTE' ) * FC3
 
-            ENDIF ! end speciated MEGAN (hotp)
+            ENDIF 
 
          ENDDO
          ENDDO
@@ -7116,7 +7176,8 @@ ccc
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
-
+!clb XTAU
+            XTAU          = GET_TAU0( THISMONTH, 1, 2000 )
             ! Read data
             CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
      &                       XTAU,      IIPAR,     JJPAR,
@@ -11401,6 +11462,25 @@ ccc
       ENDIF
 
       !=================================================================
+      ! SEAC4RS SOA TRACERS (jaf, 6/25/13)
+      !=================================================================
+      IF ( IDTAVOC > 0 ) THEN
+         ALLOCATE( AVOC_EMIS( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVOC_EMIS' )
+         AVOC_EMIS = 0d0
+      ENDIF
+      IF ( IDTBBVOC > 0 ) THEN
+         ALLOCATE( BBVOC_EMIS( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BBVOC_EMIS' )
+         BBVOC_EMIS = 0d0
+      ENDIF
+      IF ( IDTBGSOA > 0 ) THEN
+         ALLOCATE( BGSOA_EMIS( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BGSOA_EMIS' )
+         BGSOA_EMIS = 0d0
+      ENDIF
+
+      !=================================================================
       ! Compute indices which define the N. America region so that we 
       ! can overwrite T. Bond emissions w/ Cooke/RJP emissions 
       !=================================================================
@@ -11601,6 +11681,10 @@ ccc
                   DRYSOAG = N
                CASE ( 'SOAM' )
                   DRYSOAM = N
+               CASE ( 'ASOA' )
+                  DRYASOA = N
+               CASE ( 'BBSOA' )
+                  DRYBBSOA = N
                CASE DEFAULT
                   ! Nothing
             END SELECT        

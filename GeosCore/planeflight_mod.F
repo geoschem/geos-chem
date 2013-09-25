@@ -138,8 +138,9 @@
 
       ! For specifying date/time
       INTEGER,           ALLOCATABLE :: PDATE(:)
-      INTEGER,           ALLOCATABLE :: PTIME(:)              
-      REAL*4,            ALLOCATABLE :: PTAU(:)               
+      INTEGER,           ALLOCATABLE :: PTIME(:)
+      ! Change to REAL*8 for more precise times (skim, 7/24/13)              
+      REAL*8,            ALLOCATABLE :: PTAU(:)               
 
       ! For specifying lat/lon/alt and ID type
       REAL*4,            ALLOCATABLE :: PLAT(:)               
@@ -456,7 +457,8 @@
       ENDDO
 
       ! Read in the number of species to be output
-      READ( IU_FILE, '(i3)', IOSTAT=IOS ) NPVAR
+      ! Read in as I4 now for the number of variables we save (skim, 7/24/13)
+      READ( IU_FILE, '(i4)', IOSTAT=IOS ) NPVAR
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_variables:2' )
 
       ! Read in a separation line
@@ -1281,6 +1283,9 @@
          !==============================================================
          IF ( PTAU(M) < PTAUS ) THEN
 
+            PRINT*, 'BEGIN PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
+            PRINT*, PTAU(M), PTAUS
+
             ! Write all missing values to disk for point #M
             CALL WRITE_VARS_TO_FILE( M, VARI )      
 
@@ -1290,7 +1295,12 @@
          !==============================================================
          ! We have already found all of the plane points...
          !==============================================================
-         ELSE IF ( PTAU(M) >= PTAUE ) THEN
+         ! Ensure that a model comparison is made for this point
+         ! (skim, 7/24/13)
+         ELSE IF ( PTAU(M) > PTAUE ) THEN
+
+            PRINT*, 'END PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
+            PRINT*, PTAU(M), PTAUE
 
             ! Exit this loop and the subroutine
             EXIT
@@ -2068,7 +2078,8 @@
       !=================================================================
       ! Read in the number of variables to be output -- store in NPVAR
       !=================================================================
-      READ( IU_FILE, '(i3)', IOSTAT=IOS ) NPVAR
+      ! Read in as I4 now for the number of variables we save (skim, 7/24/13)
+      READ( IU_FILE, '(i4)', IOSTAT=IOS ) NPVAR
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:3' )
 
       ! Make sure NPVAR is at least 1
