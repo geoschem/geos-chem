@@ -155,8 +155,6 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  31 May 2013 - R. Yantosca - Now pass objects to NFCLDMX
 !  03 Jun 2013 - R. Yantosca - Bug fix: pass State_Chm to DO_MERRA_CONVECTION
-!  20 Jun 2013 - R. Yantosca - Now pass pointers to DO_MERRA_CONVECTION:
-!                              p_H2O2s, p_SO2s, p_STT.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -339,13 +337,13 @@
       !-----------------------------------------------------------------
       ! Do convection column by column
       !-----------------------------------------------------------------
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( J,          AREA_M2,  I,       IDENT,      L       )
-!!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14,     DIAG38  )
-!!$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
-!!$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
-!!$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J,          AREA_M2,  I,       IDENT,      L       )
+!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14,     DIAG38  )
+!$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
+!$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
+!$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -392,8 +390,6 @@
 #endif
 
          ! Pointers to slices of larger arrays
-         ! Remove State_Met for variables not in the structure
-         !    (skim, 1/31/13)
          p_AD              => State_Met%AD      ( I, J,  :          )
          p_BXHEIGHT        => State_Met%BXHEIGHT( I, J,  :          )
          p_CMFMC           => State_Met%CMFMC   ( I, J, 2:LLPAR+1   )
@@ -408,7 +404,6 @@
          !--------------------------
          ! Do the cloud convection
          !--------------------------
-         ! Change so that pointers are passed to do_merra_convection
          CALL DO_MERRA_CONVECTION( IDENT     = IDENT,
      &                             DIMINFO   = DIMINFO,
      &                             COEF      = COEF,
@@ -478,7 +473,7 @@
          ENDIF
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       ! Free the memory
       DEALLOCATE( COEF%MOLWT_KG )
@@ -1980,7 +1975,7 @@
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
       !========================================================================
-
+      
       ! Put this routine name on error trace stack
       IDENT%LEV               = IDENT%LEV + 1
       IDENT%I_AM( IDENT%LEV ) = 'DO_MERRA_CONVECTION'

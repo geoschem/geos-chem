@@ -447,20 +447,8 @@
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root )
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% KLUDGE FOR SEAC4RS:
-!%%% Move the call to DO_GAMAP after the call to READCHEM etc.
-!%%% so that we can write out the CSPEC restart species names
-!%%% (bmy, 6/24/13)
-!%%%
-      ! NOTE: Call this in the FIRSTCHEM block of chemdr.F
-      ! after the calls to READER/READCHEM.  This is a kludge
-      ! but it should be sufficent. (bmy, 6/24/13)
-      IF ( .not. Input_Opt%LCHEM ) THEN
-         ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
-         CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
-      ENDIF
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
+      CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
 
       ! Echo output
       IF ( am_I_Root ) THEN
@@ -1895,36 +1883,11 @@
             MSG = 'LSOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
-         IF ( (IDTASOA + IDTBBSOA + IDTBGSOA) > 0 ) THEN
-            MSG = 'Cannot used simplified SOA with full SOA chem!'
-            CALL ERROR_STOP( MSG, LOCATION )
-         ENDIF
       ELSE
          IF ( I > 0 ) THEN
             MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSOA=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
-      ENDIF
-
-      ! SEAC4RS simplified SOA tracers
-      IF ( ( (IDTASOA + IDTBBSOA + IDTBGSOA) > 0 ) .and.
-     &     ITS_AN_AEROSOL_SIM() ) THEN
-         MSG = 'Simplified SOA not yet available in offline sim'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
-      IF ( (IDTASOA > 0) .and. (IDTAVOC == 0) ) THEN
-         MSG = 'Must include tracer AVOC to use ASOA'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ELSE IF ( (IDTASOA == 0) .and. (IDTAVOC > 0) ) THEN
-         MSG = 'Tracer AVOC meaningless without ASOA'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
-      IF ( (IDTBBSOA > 0) .and. (IDTBBVOC == 0) ) THEN
-         MSG = 'Must include tracer BBVOC to use BBSOA'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ELSE IF ( (IDTBBSOA == 0) .and. (IDTBBVOC > 0) ) THEN
-         MSG = 'Tracer BBVOC meaningless without BBSOA'
-         CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
       !---------------------------------
@@ -2268,6 +2231,7 @@
 !  31 Jul 2013 - M. Sulprizio- Now copy LAEIC to Input_Opt; Add check to
 !                              make sure LAEIC and LRCPAIR are not both on
 !  22 Aug 2013 - R. Yantosca - Now read path for soil NOx restart file
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2332,12 +2296,8 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
       READ( SUBSTRS(1:N), * ) LNEI05
 
-      ! Include NEI2008 emissions? (krt, 2013)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
-      READ( SUBSTRS(1:N), * ) LNEI08
-
       ! Use RETRO emissions? (wfr, 3/8/11)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
       READ( SUBSTRS(1:N), * ) LRETRO
 
       ! AEIC aircraft emissions
@@ -2446,16 +2406,16 @@
       READ( SUBSTRS(1:N), * ) LRCPAIR
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Apply OTD-LIS local redistribution for lightning spatial and
       ! seasonal constraint
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! Soil NOx restart file name
@@ -2463,22 +2423,22 @@
       READ( SUBSTRS(1:N), '(a)' ) SOIL_RST_FILE
 
       ! separate use fertilizer and soil NOx (fp, 06/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LFERTILIZERNOX
       
       !(FP, 15/12/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) NOx_SCALING
 
       ! Separator line (start of ship emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
 
       ! Use ship EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
 
       ! Use RCP (NOx, SO2, CO) ship  emissions?
@@ -2486,35 +2446,35 @@
       READ( SUBSTRS(1:N), * ) LRCPSHIP
 
       ! Use ship EMEP emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
       ! Use ship SO2 Corbett emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use ship ARCTAS (SO2, CO2) emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use COOKE over North AMerica for BC/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
       READ( SUBSTRS(1:N), * ) LCOOKE
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Use MODIS-derived LAI fields? (mpb,2009)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
       ! Use historical emissions (EDGAR NOx/SO2 and Bond BC/OC) for 
       ! 1890-2000?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
       READ( SUBSTRS(1:N), * ) LHIST
       
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
       READ( SUBSTRS(1:N), * ) HISTYR
       CALL SET_HISTYR( HISTYR )
 
@@ -2564,7 +2524,6 @@
       LSTREETS          = ( LSTREETS       .and. LANTHRO   )
       LCAC              = ( LCAC           .and. LANTHRO   )
       LNEI05            = ( LNEI05         .and. LANTHRO   )
-      LNEI08            = ( LNEI08         .and. LANTHRO   )
       LRETRO            = ( LRETRO         .and. LANTHRO   )
       LNEI99            = ( LNEI99         .and. LANTHRO   )
       LICARTT           = ( LICARTT        .and. LANTHRO   )
@@ -2707,7 +2666,7 @@
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
       !=================================================================
-#if   defined( NESTED_CH ) || defined( SEAC4RS )
+#if   defined( NESTED_CH )
 
       ! Turn off emissions options that are
       ! not appropriate for the Nested CH grid
@@ -2805,31 +2764,7 @@
          ENDIF
       ENDIF
          
-       ! NEI 2008 precedes NEI 1999 (krt, 5/28/13)
-      IF ( LNEI08 .AND. LNEI99 ) THEN
-         LNEI99  = .FALSE.
-         LVISTAS = .FALSE.
-         LICARTT = .FALSE.
-         IF ( am_I_Root ) THEN
-          WRITE( 6, '(/,a,/)' ) 
-     &       ' EPA/NEI99 (incl. VISTAS and ICARTT' //
-     &        'options) has been automatically ' //
-     &        'switched OFF to use NEI 2008.'
-         ENDIF
-      ENDIF
-    
-       ! NEI 2008 precedes NEI 2005 (krt, 5/28/13)
-      IF ( LNEI08 .AND. LNEI05 ) THEN
-         LNEI05  = .FALSE.
-         LVISTAS = .FALSE.
-         LICARTT = .FALSE.
-         IF ( am_I_Root ) THEN
-          WRITE( 6, '(/,a,/)' ) 
-     &       ' EPA/NEI05 (incl. VISTAS and ICARTT' //
-     &        'options) has been automatically ' //
-     &        'switched OFF to use NEI 2008.'
-         ENDIF
-      ENDIF
+      
       !=================================================================
       ! Error check GFED switches (mpayer, 11/7/11)
       !=================================================================
@@ -2940,7 +2875,6 @@
       Input_Opt%LSTREETS       = LSTREETS
       Input_Opt%LCAC           = LCAC
       Input_Opt%LNEI05         = LNEI05
-      Input_Opt%LNEI08         = LNEI08
       Input_Opt%LRETRO         = LRETRO
       Input_Opt%LNEI99         = LNEI99
       Input_Opt%LICARTT        = LICARTT
@@ -3016,7 +2950,6 @@
         WRITE( 6, 100 ) '  Use CAC anthro emissions  : ', LCAC
         WRITE( 6, 100 ) '  Use STREETS anthro emiss. : ', LSTREETS
         WRITE( 6, 100 ) '  Use EPA/NEI 2005          : ', LNEI05
-        WRITE( 6, 100 ) '  Use EPA/NEI 2008          : ', LNEI08
         WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
         WRITE( 6, 100 ) '  Use AEIC emissions        : ', LAEIC
         WRITE( 6, 100 ) '  Use RCP emissions         : ', LRCP
@@ -5719,8 +5652,7 @@
       LOGICAL             :: DO_ND49
       INTEGER             :: N,    I,         AS
       ! Increased to 121 from 100 (mpb,2009)
-      ! Increased to 122-134 (krt, 2013)
-      INTEGER             :: ND49, N_TRACERS, TRACERS(134)
+      INTEGER             :: ND49, N_TRACERS, TRACERS(121)
       INTEGER             :: IMIN, IMAX,      FREQ
       INTEGER             :: JMIN, JMAX,      N_ND49
       INTEGER             :: LMIN, LMAX
@@ -8031,8 +7963,6 @@
          CALL CHECK_DIRECTORY( TPBC_DIR_EU )
 #elif defined( NESTED_CH)
          CALL CHECK_DIRECTORY( TPBC_DIR_CH )
-#elif defined( SEAC4RS )
-         CALL CHECK_DIRECTORY( TPBC_DIR_SE )
 #endif
 
       ENDIF
@@ -8047,9 +7977,6 @@
       ENDIF
       IF ( LWINDO_CH ) THEN
          CALL CHECK_DIRECTORY( TPBC_DIR_CH )
-      ENDIF
-      IF ( LWINDO_SE ) THEN
-         CALL CHECK_DIRECTORY( TPBC_DIR_SE )
       ENDIF
 
 #if   defined( GEOS_4 )
@@ -8257,7 +8184,6 @@
       ! For the centralizing chemistry timestep modification, the emissions 
       ! should be done at the same time as chemistry.  Stop the run if the
       ! emissions timestep differs from the chemistry timestep. (bmy, 10/7/11)
-      write(6,*),TS_EMIS,TS_CHEM
       IF ( TS_EMIS /= TS_CHEM ) THEN 
          IF ( am_I_Root ) THEN
           WRITE(6,*) 'The emission time step should equal the chemistry'
@@ -8681,7 +8607,6 @@
       LMONOT         = .FALSE.
       LNEI99         = .FALSE.
       LNEI05         = .FALSE.
-      LNEI08         = .FALSE.
       LOTDLOC        = .FALSE.
       LSHIPSO2       = .FALSE.
       LSOILNOX       = .FALSE.

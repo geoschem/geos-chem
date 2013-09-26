@@ -7038,11 +7038,6 @@
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
-               ! Determine if we should use weekday or weekend NEI
-               ! emissions at grid box (I,J,L).  Since NEI is over
-               ! the US, then weekend is Sat/Sun.
-               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
-               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
                ! Determine if we should use weekday or weekend NEI
                ! emissions at grid box (I,J,L).  Since NEI is over
@@ -8328,11 +8323,6 @@
             ! If we are using NEI 2005 over North America
             IF ( LNEI05 ) THEN
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
-               ! Determine if we should use weekday or weekend NEI
-               ! emissions at grid box (I,J,L).  Since NEI is over
-               ! the US, then weekend is Sat/Sun.
-               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
-               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
              
                ! Determine if we should use weekday or weekend NEI
                ! emissions at grid box (I,J,L).  Since NEI is over

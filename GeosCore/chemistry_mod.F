@@ -723,8 +723,12 @@
 
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
-!         RTOL(i) = 2.d-1
-         RTOL(i) = 5.d-2
+         RTOL(i) = 2.d-1
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: This update was made in the SEAC4RS code.  Leave here in case we
+!%%% need to restore this. (bmy, 9/25/13)
+!         RTOL(i) = 5.d-2
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ATOL(i) = 1.d-2
       END DO
       

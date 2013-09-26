@@ -4803,7 +4803,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'PROPNN'  !NITROOXYACETONE IN SANDER TABLE
             HSTAR(NUMDEP)   = 1d3       
-            F0(NUMDEP)      = 1d0  !Karl et al. 2010(science)
+            F0(NUMDEP)      = 1d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 119d-3
             AIROSOL(NUMDEP) = .FALSE.   
 
@@ -4813,8 +4813,8 @@
             NTRAIND(NUMDEP) = IDTRIP
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'RIP'
-            HSTAR(NUMDEP)   = 1.70d6
-            F0(NUMDEP)      = 1.0d0!Karl et al. 2010(science)
+            HSTAR(NUMDEP)   = 1.70d6    ! US EPA 2011
+            F0(NUMDEP)      = 1.0d0     ! Karl et al. 2010(science)
             XMW(NUMDEP)     = 118d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4822,11 +4822,11 @@
          ELSE IF ( N == IDTIEPOX ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTIEPOX
-            NDVZIND(NUMDEP) = NUMDEP !USE H2O2
+            NDVZIND(NUMDEP) = NUMDEP    !USE H2O2
             DEPNAME(NUMDEP) = 'IEPOX'
             HSTAR(NUMDEP)   = 1.30d8
-            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
-            XMW(NUMDEP)     = 118d-3
+            F0(NUMDEP)      = 1.0d0     ! Karl et al. 2010(science)
+            XMW(NUMDEP)     = 118d-3    ! (Eddingsaas et al., 2010)
             AIROSOL(NUMDEP) = .FALSE.
 
          !MAP
@@ -5425,43 +5425,6 @@
             HSTAR(NUMDEP)   = 0d0
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 72d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         !----------------------------------
-         ! SEAC4RS SOA tracers (jaf, 6/24/13)
-         !----------------------------------
-
-         ! ASOA
-         ELSE IF ( N == IDTASOA ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTASOA
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ASOA'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 12d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! BBSOA
-         ELSE IF ( N == IDTBBSOA ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTBBSOA
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'BBSOA'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 12d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! BGSOA
-         ELSE IF ( N == IDTBGSOA ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTBGSOA
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'BGSOA'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .TRUE.
 
          !----------------------------------

@@ -93,7 +93,6 @@
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOSmid
 !  13 Dec 2012 - R. Yantosca - Now remove reference to obsolete CMN_DEP_mod.F
-!  01 Feb 2013 - R. Yantosca - Added updates to MEGAN 2.1 (D. Millet)
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCPAIR from Input_Opt
 !  31 Jul 2013 - M. Sulprizio- Now use aircraft emissions from the AEIC
@@ -110,14 +109,8 @@
       USE BROMOCARB_MOD,      ONLY : EMIS_CHBr3, EMIS_CH2Br2
       USE BROMOCARB_MOD,      ONLY : Br_SCALING
       USE CANOPY_NOX_MOD,     ONLY : GET_CANOPY_NOX
-      USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
-      USE CMN_O3_MOD
-      USE CMN_DIAG_MOD
-      USE CMN_NOX_MOD
       USE DIAG_MOD,           ONLY : AD29,          AD46
       USE DIAG_MOD,           ONLY : AD32_fe,       AD32_so
-      USE DIAG_MOD,           ONLY : EMISS_ANTHR
       USE EMISSIONS_MOD,      ONLY : ISOP_SCALING
       USE GET_NDEP_MOD,       ONLY : GET_DEP_N 
       USE GIGC_ErrCode_Mod
@@ -142,17 +135,9 @@
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
       USE TRACERID_MOD,       ONLY : IDEACET,       IDTISOP,   IDEISOP   
       USE TRACERID_MOD,       ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
-      USE TRACERID_MOD,       ONLY : IDEMONX,       IDEC2H4,   IDEALD2
-      USE TRACERID_MOD,       ONLY : IDTMONX,       IDTC2H4
-      USE TRACERID_MOD,       ONLY : IDECHBr3,      IDECH2Br2
-
-      ! SEAC4RS passive tracer (jaf, 6/14/13)
-      USE TRACERID_MOD,       ONLY : IDTPISOP,   IDEPISOP
-
-#if defined( DEVEL )
-      USE TRACERID_MOD,       ONLY : IDTNO
-      USE TRACER_MOD,         ONLY : N_TRACERS
-#endif
+      USE TRACERID_MOD,       ONLY : IDEMONX, IDEC2H4
+      USE TRACERID_MOD,       ONLY : IDTMONX, IDTC2H4
+      USE TRACERID_MOD,       ONLY : IDECHBr3, IDECH2Br2
  
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! IVERT?
@@ -185,16 +170,9 @@
       INTEGER                :: I0, J0, IOFF, JOFF, IREF, JREF
       INTEGER                :: NDAY,JSCEN,NN
       INTEGER, SAVE          :: LASTMONTH = -99
-      REAL*8                 :: DTSRCE,  XLOCTM,   TMMP
-      REAL*8                 :: EMIS_ISOP, EMIS_PRPE
-      REAL*8                 :: EMIS_MONO, EMIS_MBOX, EMIS_C2H4
-      REAL*8                 :: EMIS_APIN, EMIS_BPIN, EMIS_LIMO
-      REAL*8                 :: EMIS_SABI, EMIS_MYRC, EMIS_CARE
-      REAL*8                 :: EMIS_OCIM, EMIS_FAXX, EMIS_AAXX
-      REAL*8                 :: EMIS_ALD2, EMIS_OMON, EMIS_MOHX
-      REAL*8                 :: EMIS_ETOH
-      REAL*8                 :: AREA_CM2
-      REAL*8                 :: TMPVAL,    GRASS, BIO_ACET
+      REAL*8                 :: DTSRCE,  XLOCTM,   EMIS,  TMMP
+      REAL*8                 :: BIOSCAL, AREA_CM2, EMMO,  ACETSCAL
+      REAL*8                 :: TMPVAL,  EMMB,     GRASS, BIO_ACET
       REAL*8                 :: CONVERT(NVEGTYPE), GMONOT(NVEGTYPE)
       REAL*8                 :: SC, PDF, PDR
       INTEGER                :: DOY, MONTH, RC, M
@@ -203,7 +181,6 @@
       REAL*8                 :: TOTALPULSE
       REAL*8                 :: SOILFRT
       REAL*8                 :: DEP_FERT, TEMP_FERT
-      REAL*8                 :: X, Y
 
       ! Add biogenic emission scale factor for ethene (tmf, 1/13/06)
       REAL*8                 :: BIOSCALEC2H4
@@ -415,8 +392,7 @@
       EMISRRN     = 0d0
       EMISRR      = 0d0
       !GEMISNOX2   = 0d0
-      EMISS_BVOC  = 0d0         ! Add BVOC emissions (mpb,2009)
-      EMISS_ANTHR = 0d0         ! Add anthropogenic emisisons (fpaulot, 2013)
+      EMISS_BVOC  = 0d0  ! Add BVOC emissions (mpb,2009)
       
       ! Loop over latitudes
       IJLOOP = 0
@@ -436,25 +412,6 @@
 
             ! Zero biogenic acetone (bmy, 9/14/01)
             BIO_ACET  = 0d0
-            ! Zero other biogenic species as well
-            EMIS_ISOP = 0d0
-            EMIS_PRPE = 0d0
-            EMIS_MONO = 0d0
-            EMIS_MBOX = 0d0
-            EMIS_C2H4 = 0d0
-            EMIS_APIN = 0d0
-            EMIS_BPIN = 0d0
-            EMIS_LIMO = 0d0
-            EMIS_SABI = 0d0
-            EMIS_MYRC = 0d0
-            EMIS_CARE = 0d0
-            EMIS_OCIM = 0d0
-            EMIS_FAXX = 0d0
-            EMIS_AAXX = 0d0
-            EMIS_ALD2 = 0d0
-            EMIS_OMON = 0d0
-            EMIS_MOHX = 0d0
-            EMIS_ETOH = 0d0
 
             ! Use function GET_LOCALTIME to get the local time at lon I
             ! Middle of time step is between 10pm-2am when IHOUR = 1
@@ -522,6 +479,9 @@
 !
             IF ( LBIOGENIC ) THEN
 
+               ! Temperature
+               TMMP  = XLTMMP( I, J, State_Met%TS, IJLOOP )
+            
                ! Modified to choose MEGAN inventory indenpendantly 
                ! for ISOP and MONX/MBO. (ccc, 1/20/09)
                IF ( LMEGAN ) THEN
@@ -530,26 +490,31 @@
                   ! MEGAN Isoprene
                   !------------------
 
+                  ! Cosine of solar zenith angle
+                  SC   = State_Met%SUNCOSmid(I,J)
+
+                  ! Diffuse and direct PAR
+                  PDR  = State_Met%PARDR(I,J)
+                  PDF  = State_Met%PARDF(I,J)
+
                   ! Isoprene         
-                  ! Updated to new MEGAN routine (dbm, 12/2012)
-                  EMIS_ISOP = GET_MEGAN_EMISSIONS( I,         J, 
-     &                                             State_Met, 'ISOP' )
+                  EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
+     &                                      PDR, PDF, XNUMOL_C )
 
                ENDIF
  
                !FP_ISOP (6/2009)
-               EMIS_ISOP = ISOP_SCALING * EMIS_ISOP
+               EMIS = ISOP_SCALING * EMIS
 
                IF ( LMEGANMONO ) THEN
 
                   !------------------
                   ! MEGAN biogenics
                   !------------------
-                  ! Updated the calls below for new MEGAN routine (dbm, 12/2012)
 
                   ! Methyl butenol
-                  EMIS_MBOX = GET_MEGAN_EMISSIONS( I,         J, 
-     &                                             State_Met, 'MBOX' )
+                  EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
+     &                                      PDR, PDF, XNUMOL_C )
 
                   ! ------------------------------------------
                   ! Alpha Pinene emissions
@@ -582,10 +547,8 @@
                   ! ------------------------------------------
 
                   ! Total monoterpenes = sum of individual
-                  ! dbm, now add other lumped monoterpenes (11/2012)
-                  EMIS_MONO = EMIS_APIN + EMIS_BPIN + EMIS_LIMO + 
-     &                        EMIS_SABI + EMIS_MYRC + EMIS_CARE + 
-     &                        EMIS_OCIM + EMIS_OMON
+                  EMMO = APINE + BPINE + LIMON + SABIN + 
+     &                   MYRCN + CAREN + OCIMN
 
                   ! SOAupdate: Sesquiterpenes, OMTP (hotp 3/1/10) 
                   ! (not actually used here)
@@ -609,32 +572,10 @@
 
                ENDIF
 
-               !------------------
-               ! MEGAN ALD2
-               !------------------
-               IF ( IDEALD2 /= 0 ) THEN
-
-                  EMIS_ALD2 = GET_MEGAN_EMISSIONS( I,          J,  
-     &                                             State_Met, 'ALD2' )
-
-                  ! NOTE: Don't save into EMISRR for the tagged CO 
-                  ! simulation (jaf, mak, bmy, 2/14/08)
-                  IF ( NO_TAGCO ) THEN
-                     EMISRR(I,J,IDEALD2) = EMISRR(I,J,IDEALD2) + 
-     &                                     ( EMIS_ALD2 / DTSRCE )
-                  ENDIF
-
-               ENDIF
-
-               !------------------
-               ! MEGAN Acetone
-               !------------------
-               ! Computed within acetone_mod.f
-
-               ! ----------------------------
-               ! Other biogenics. 
-               ! Calls included here for future incorporation or
-               ! specialized simulations. (dbm, 12/2012)
+               ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+               ! Store BVOC emissions for diagnositics 48,49,51 (mpb,2009)
+               !
+               ! Species            | Order 
                ! ----------------------------
                ! Isoprene           = 1
                ! Total Monoterpenes = 2 
@@ -667,16 +608,18 @@
                EMISS_BVOC( I , J , 13) =  OSQT   / AREA_CM2 / DTSRCE 
                EMISS_BVOC( I , J , 14) =  OMTP   / AREA_CM2 / DTSRCE
                
+
 !-----------------------------------------------------------------------------
 ! BIOGENIC ACETONE EMISSIONS
 !
                IF ( IDEACET /= 0 ) THEN
 
+                  ! evf, edits to use MEGAN biogenic acetone emiss (5/25/2011)
                   ! Compute biogenic acetone emissions [atoms C/box/s]
-                  ! NOTE: GRASS is not used anymore (bmy, 2/1/13)
-                  CALL EMISS_BIOACET( I,         J,         State_Met, 
-     &                                XNUMOL_C,  EMIS_MONO, EMIS_ISOP, 
-     &                                EMIS_MBOX, BIO_ACET )
+                  CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
+     &                                SC, PDR, PDF, XNUMOL_C,
+     &                                EMIS, EMMB, GRASS, BIO_ACET )
+
                
                   ! Also add ocean source of acetone [atoms C/box/s]
                   CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET, State_Met )
@@ -687,7 +630,6 @@
                   IF ( NO_TAGCO ) THEN
                     EMISRR(I,J,IDEACET) = EMISRR(I,J,IDEACET) + BIO_ACET
                   ENDIF
-
                ENDIF
 !-----------------------------------------------------------------------------
 
@@ -701,33 +643,18 @@
                   ! simulation (jaf, mak, bmy, 2/14/08)
                   IF ( NO_TAGCO ) THEN
                      EMISRR(I,J,IDEISOP) = EMISRR(I,J,IDEISOP) + 
-     &                                     ( EMIS_ISOP / DTSRCE )
+     &                                     ( EMIS / DTSRCE )
                   ENDIF
                ENDIF
 
-               ! SEAC4RS passive tracer (jaf, 6/14/13)
-               IF ( IDTPISOP /= 0 ) THEN
-
-                  X = GET_XMID(I, J, 1)
-                  Y = GET_YMID(I, J, 1)
-
-                  IF ( (X >= -100.0) .AND. (X <  -75.0)  .AND.
-     &                 (Y >=   25.0) .AND. (Y <   40.0) ) THEN  
-                     EMISRR(I,J,IDEPISOP) = EMISRR(I,J,IDEPISOP) + 
-     &                                      ( EMIS_ISOP / DTSRCE )
-                     IF ( ND46 > 0 ) AD46(I,J,23) = AD46(I,J,23) +
-     &                               ( EMIS_ISOP / AREA_CM2 / DTSRCE )
-                  ENDIF
-               ENDIF
-
-               !=================================================================
-               ! save biogenic monoterpene emission for later use
-               ! EMISRR has units [atoms C/box/s] (tmf, 4/10/06)
-               !=================================================================
-               IF ( IDTMONX /= 0 ) THEN
-                  EMISRR(I,J,IDEMONX) = EMISRR(I,J,IDEMONX) + 
-     &                 ( EMIS_MONO / DTSRCE )
-               ENDIF
+            !=================================================================
+            ! save biogenic monoterpene emission for later use
+            ! EMISRR has units [atoms C/box/s] (tmf, 4/10/06)
+            !=================================================================
+            IF ( IDTMONX /= 0 ) THEN
+               EMISRR(I,J,IDEMONX) = EMISRR(I,J,IDEMONX) + 
+     &                               ( EMMO / DTSRCE )
+            ENDIF
 
 !------------------------------------------------------------------------------
 !
@@ -776,7 +703,7 @@
                ! Also for tagged CO we don't use monoterpenes  ??????
                ! (jaf, mak, bmy, 2/14/08)
                IF ( NO_TAGCO ) THEN
-                  TMPVAL            = ( EMIS_MONO / DTSRCE ) * 0.2d0
+                  TMPVAL            = ( EMMO / DTSRCE ) * 0.2d0
                   EMISRR(I,J,IDECO) = EMISRR(I,J,IDECO) + TMPVAL
 
                   ! ND29: CO-source from monoterpenes [molec/cm2/s]
@@ -786,37 +713,52 @@
                ENDIF
 !
 !******************************************************************************
-!  Biogenic source of PRPE
-
-!  Now uses MEGAN2.1 (dbm, 12/2012)
+!  Biogenic source of PRPE -- scaled to ISOPRENE
+!
+!  Also, add biogenic emissions of alkenes. We do this by scaling to
+!  isoprene emissions (probably OK for summertime conditions). The
+!  scaling factor is based on work by Allen Goldstein. His values
+!  indicate emission ratios of ethene:propene:butene=4:2:1 (on a
+!  per molecule basis), with total emissions approx. equal to
+!  10% of isoprene emissions (again, on molecule basis).
+!  BIOSCAL is in units of atoms C (alkenes) / atoms C (isoprene)
+!******************************************************************************
+! Change this factor to exclude ethene (bey, ljm)
+!    (10 molec alkenes / 100 molec isop) * (1 molec isop / 5 atoms C isop)
+!    *(3 molec butene + propene / 7 molec total alkenes)
+!    *(3.3333 atoms C but+prop mix/ 1 molec but+prop mix)
+!    = 0.0286 atoms C butene+propene / atom C isop
+! Note that 3.3333 atoms C/molecule is the weighted average for this mix.
 !******************************************************************************
 !
+               BIOSCAL = 0.0286d0 ! new factor, (ljm, bey, 9/28/98)
+
                IF ( IDEPRPE /= 0 ) THEN
-                  
-                  EMIS_PRPE = GET_MEGAN_EMISSIONS( I,          J,
-     &                                             State_Met, 'PRPE' )
 
                   ! NOTE: Don't save into EMISRR for the tagged 
                   ! CO simulation. (jaf, mak, bmy, 2/14/08)
                   IF ( NO_TAGCO ) THEN 
                      EMISRR(I,J,IDEPRPE) = EMISRR(I,J,IDEPRPE) +
-     &                    ( EMIS_PRPE / DTSRCE )
+     &                                     ( EMIS / DTSRCE ) * BIOSCAL
                   ENDIF
                ENDIF
 
 !=======================================================================
-! Add biogenic emission of ethene (C2H4)
+! Add biogenic emission of ethene (C2H4) --> scaled to isoprene
 !
-! Now uses MEGAN2.1 (dbm, 12/2012
+! Scale factor BIOSCALEC2H4 =
+!   ( 10 molec alkenes / 100 molec isop ) * ( 1 molec isop / 5 atoms C )
+!   * ( 4 molec ethene / 7 molec alkenes )
+!   * ( 2 atoms C / 1 molec ethene )
+!   = 0.022857d0  [atoms C / atoms C isop]
+! (tmf, 1/13/06)
 
-               IF ( IDEC2H4 /= 0 ) THEN
+            BIOSCALEC2H4 = 0.022857d0
 
-                  EMIS_C2H4 = GET_MEGAN_EMISSIONS( I,          J, 
-     &                                             State_Met, 'C2H4' )
-
-                  EMISRR(I,J,IDEC2H4) = EMISRR(I,J,IDEC2H4) +
-     &                 ( EMIS_C2H4 / DTSRCE ) 
-               ENDIF
+            IF ( IDEC2H4 /= 0 ) THEN
+               EMISRR(I,J,IDEC2H4) = EMISRR(I,J,IDEC2H4) +
+     &            ( EMIS / DTSRCE ) * BIOSCALEC2H4
+            ENDIF
 !=======================================================================
 
 
@@ -830,20 +772,19 @@
             IF ( IDECHBr3 /= 0 ) THEN
                EMISRR(I,J,IDECHBr3) = EMIS_CHBr3( I, J, State_Met )
 
-                  ! Scale emissions
-                  EMISRR(I,J,IDECHBr3) = 
-     &                 EMISRR(I,J,IDECHBr3) * Br_SCALING
+               ! Scale emissions
+               EMISRR(I,J,IDECHBr3) = EMISRR(I,J,IDECHBr3) * Br_SCALING
 
-               ENDIF
+            ENDIF
 
-               IF ( IDECH2Br2 /= 0 ) THEN
-                  EMISRR(I,J,IDECH2Br2) = EMIS_CH2Br2(I,J)
+            IF ( IDECH2Br2 /= 0 ) THEN
+               EMISRR(I,J,IDECH2Br2) = EMIS_CH2Br2(I,J)
 
-                  ! Scale emissions
-                  EMISRR(I,J,IDECH2Br2) = 
-     &                 EMISRR(I,J,IDECH2Br2) * Br_SCALING
+               ! Scale emissions
+               EMISRR(I,J,IDECH2Br2) = EMISRR(I,J,IDECH2Br2) * 
+     &                                 Br_SCALING
 
-               ENDIF
+            ENDIF
 
 !
 !******************************************************************************
@@ -882,23 +823,20 @@
                IF ( ND46 > 0 ) THEN
 
                   ! ISOP emissions [atoms C/cm2/s] -- tracer #1
-                  AD46(I,J,1) = AD46(I,J,1) + 
-     &                 ( EMIS_ISOP / AREA_CM2 / DTSRCE )
+                  AD46(I,J,1) = AD46(I,J,1) + ( EMIS / AREA_CM2 /DTSRCE)
 
                   ! ACET emissions [atoms C/cm2/s] -- tracer #2
                   AD46(I,J,2) = AD46(I,J,2) + ( BIO_ACET / AREA_CM2 )
 
                   ! PRPE emissions [atoms C/cm2/s] -- tracer #3
                   AD46(I,J,3) = AD46(I,J,3) + 
-     &                 ( EMIS_PRPE / AREA_CM2 / DTSRCE )
+     &                          ( EMIS * BIOSCAL / AREA_CM2 / DTSRCE )
 
-                  ! Total monoterpene emissions [atoms C/cm2/s] -- tracer #4
-                  AD46(I,J,4) = AD46(I,J,4) + 
-     &                 ( EMIS_MONO / AREA_CM2 / DTSRCE ) 
+                  ! Monoterpene emissions [atoms C/cm2/s] -- tracer #4
+                  AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 /DTSRCE) 
 
                   ! MBO emissions [atoms C/cm2/s] -- tracer #5
-                  AD46(I,J,5) = AD46(I,J,5) + 
-     &                 ( EMIS_MBOX / AREA_CM2 / DTSRCE ) 
+                  AD46(I,J,5) = AD46(I,J,5) + ( EMMB / AREA_CM2 /DTSRCE) 
 
                   ! C2H4 emissions [atoms C/cm2/s] -- tracer #6 (tmf, 1/13/06)
                   AD46(I,J,6) = AD46(I,J,6) + 

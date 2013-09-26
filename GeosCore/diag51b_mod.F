@@ -1082,7 +1082,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,4) * GOOD_EMIS(I) ) 
+     &                     ( EMISS_BVOC(I,J,2) * GOOD_EMIS(I) ) 
                ENDIF
 
             ELSE IF ( N == 107 ) THEN
@@ -1095,7 +1095,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,5) * GOOD_EMIS(I) ) 
+     &                     ( EMISS_BVOC(I,J,3) * GOOD_EMIS(I) ) 
                ENDIF
 
             ELSE IF ( N == 108 ) THEN
@@ -1108,7 +1108,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,7) * GOOD_EMIS(I) ) 
+     &                     ( EMISS_BVOC(I,J,4) * GOOD_EMIS(I) ) 
                ENDIF
 
            ELSE IF ( N == 109 ) THEN
@@ -1121,7 +1121,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,8) * GOOD_EMIS(I) ) 
+     &                     ( EMISS_BVOC(I,J,5) * GOOD_EMIS(I) ) 
                ENDIF
 
 
@@ -1135,7 +1135,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,9) * GOOD_EMIS(I) ) 
+     &                     ( EMISS_BVOC(I,J,6) * GOOD_EMIS(I) ) 
                ENDIF
 
 
@@ -1149,7 +1149,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,10) * GOOD_EMIS(I) ) 
+     &                     ( EMISS_BVOC(I,J,7) * GOOD_EMIS(I) ) 
                ENDIF
 
            ELSE IF ( N == 112 ) THEN
@@ -1162,7 +1162,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,11) * GOOD_EMIS(I) ) 
+     &                     ( EMISS_BVOC(I,J,8) * GOOD_EMIS(I) ) 
                ENDIF
 
            ELSE IF ( N == 113 ) THEN
@@ -1175,7 +1175,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,12) * GOOD_EMIS(I) ) 
+     &                     ( EMISS_BVOC(I,J,9) * GOOD_EMIS(I) ) 
                ENDIF
 
            ELSE IF ( N == 114 ) THEN
@@ -1188,7 +1188,7 @@
                IF ( K == 1 ) THEN
               
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,13) * GOOD_EMIS(I) ) 
+     &                     ( EMISS_BVOC(I,J,10) * GOOD_EMIS(I) ) 
                ENDIF
 
             ENDIF

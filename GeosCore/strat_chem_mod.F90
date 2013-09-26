@@ -1866,6 +1866,7 @@ CONTAINS
 !  25 Mar 2013 - R. Yantosca - Now use explicit numbers for J30S, J30N
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1911,17 +1912,15 @@ CONTAINS
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #elif defined( NESTED_NA )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-#elif defined( SEAC4RS )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif
 
-!#elif defined( GRID1x1 ) 
-!
-!#if   defined( NESTED_CH ) || defined( NESTED_NA )
-!    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-!#else  
-!    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
-!#endif
+#elif defined( GRID1x1 ) 
+
+#if   defined( NESTED_CH ) || defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+#else  
+    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+#endif
 
 #elif defined( EXTERNAL_GRID )
     ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
@@ -2225,6 +2224,7 @@ CONTAINS
 !  04 Feb 2013 - M. Payer    - Replace all JJPAR with values for nested grids
 !                              since JJPAR is no longer a parameter
 !  25 Mar 2013 - R. Yantosca - Now use explicit numbers for J30S, J30N
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2269,17 +2269,15 @@ CONTAINS
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #elif defined( NESTED_NA )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-#elif defined( SEAC4RS )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif
 
-!#elif defined( GRID1x1 ) 
-!
-!#if   defined( NESTED_CH ) || defined( NESTED_NA )
-!    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-!#else  
-!    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
-!#endif
+#elif defined( GRID1x1 ) 
+
+#if   defined( NESTED_CH ) || defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+#else  
+    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+#endif
 
 #elif defined( EXTERNAL_GRID )
     ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
