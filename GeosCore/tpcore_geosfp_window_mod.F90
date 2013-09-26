@@ -1,5 +1,5 @@
 ! $Id: tpcore_geos5_window_mod.f90,v 1.2 2009/10/15 17:46:23 bmy Exp $
-module TPCORE_GEOS57_WINDOW_MOD
+module TPCORE_GEOSFP_WINDOW_MOD
 !
 !******************************************************************************
 !  Module TPCORE_GES5_WINDOW_MOD contains routines for the GEOS-4/fvDAS 
@@ -61,6 +61,7 @@ module TPCORE_GEOS57_WINDOW_MOD
 !        instead of JM.  (Xiaoguang Gu, bmy, 1/20/09)
 !  09 Sep 2010 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and
 !                              MASSFLUP to save memory space.
+!  26 Sep 2013 - R. Yantosca - Renamed to tpcore_geosfp_window_mod.F90
 !******************************************************************************
 !
 ! The original module documentation header is listed here:
@@ -114,9 +115,9 @@ module TPCORE_GEOS57_WINDOW_MOD
   !%%% TPCORE_FVDAS, which need to be seen outside.  (bdf, bmy, 5/7/03)
   !%%%
   PRIVATE
-  PUBLIC :: TPCORE_GEOS57_WINDOW 
-  PUBLIC :: INIT_GEOS57_WINDOW
-  PUBLIC :: EXIT_GEOS57_TPCORE_WINDOW
+  PUBLIC :: TPCORE_GEOSFP_WINDOW 
+  PUBLIC :: INIT_GEOSFP_WINDOW
+  PUBLIC :: EXIT_GEOSFP_TPCORE_WINDOW
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
 #if defined(SPMD)
@@ -164,7 +165,7 @@ module TPCORE_GEOS57_WINDOW_MOD
 CONTAINS
 
 !-------------------------------------------------------------------------
- subroutine INIT_GEOS57_WINDOW(im,jm,km,jfirst,jlast,ng, mg, dt, ae, clat)
+ subroutine INIT_GEOSFP_WINDOW(im,jm,km,jfirst,jlast,ng, mg, dt, ae, clat)
 !-------------------------------------------------------------------------
 
 #if defined(SPMD)
@@ -368,10 +369,10 @@ CONTAINS
  !%%%PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
- end subroutine INIT_GEOS57_WINDOW
+ end subroutine INIT_GEOSFP_WINDOW
 
 !-------------------------------------------------------------------------
- subroutine EXIT_GEOS57_TPCORE_WINDOW
+ subroutine EXIT_GEOSFP_TPCORE_WINDOW
 !-------------------------------------------------------------------------
 
 #if defined(SPMD) && defined(PILGRIM)
@@ -415,11 +416,11 @@ CONTAINS
  IF ( ALLOCATED( SINE_25) ) DEALLOCATE( SINE_25)  !(dan 0803)
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
- end subroutine EXIT_GEOS57_TPCORE_WINDOW
+ end subroutine EXIT_GEOSFP_TPCORE_WINDOW
 
 
 !----------------------------------------------------------------------------
- subroutine TPCORE_GEOS57_WINDOW( dt,    ae, im, jm, km, jfirst,         &
+ subroutine TPCORE_GEOSFP_WINDOW( dt,    ae, im, jm, km, jfirst,         &
                                  jlast, ng, mg,                         &
                                  nq,    ak, bk, u, v, ps1, ps2, ps,  q, &   
                                  iord, jord, kord, n_adj,               &
@@ -884,7 +885,7 @@ CONTAINS
     ENDDO
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     ENDIF
- END subroutine TPCORE_GEOS57_WINDOW
+ END subroutine TPCORE_GEOSFP_WINDOW
 
 
  subroutine air_mass_flux(im, jm, km, jfirst, jlast, iord, jord,    &
@@ -3408,4 +3409,4 @@ CONTAINS
 
  end subroutine adj_fx
 
-end module TPCORE_GEOS57_WINDOW_MOD
+end module TPCORE_GEOSFP_WINDOW_MOD

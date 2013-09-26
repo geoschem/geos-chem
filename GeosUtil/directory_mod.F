@@ -27,7 +27,7 @@
       CHARACTER(LEN=255) :: GEOS_S_DIR    ! !%%% OBSOLETE 
       CHARACTER(LEN=255) :: GEOS_4_DIR    ! Subdir for GEOS-4 met data
       CHARACTER(LEN=255) :: GEOS_5_DIR    ! Subdir for GEOS-5 met data
-      CHARACTER(LEN=255) :: GEOS_57_DIR   ! Subdir for GEOS-5.7.x met data
+      CHARACTER(LEN=255) :: GEOS_FP_DIR   ! Subdir for GEOS-FP met data
       CHARACTER(LEN=255) :: MERRA_DIR     ! Subdir for MERRA  met data
       CHARACTER(LEN=255) :: TEMP_DIR      ! Temp dir for unzipping met data
       CHARACTER(LEN=255) :: RUN_DIR       ! Run directory for GEOS-Chem
@@ -61,6 +61,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  29 May 2012 - S. Kim      - Added directory for SEAC4RS BCs
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -1807,6 +1807,7 @@
 !  05 Sep 2013 - M. Sulprizio- Add modifications for cloud pH (B. Alexander)
 !   6 Sep 2013 - M. Sulprizio- Bug fix: Prevent divide-by-zero if LWC=0. Only
 !                              do aqueous SO2 chemistry when LWC>0.
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2015,7 +2016,7 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -11884,6 +11885,7 @@
 !  04 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_AN_AEROSOL_SIM
 !  30 May 2013 - S. Farina   - Allocate PSO4_SO2AQ for TOMAS
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -11988,7 +11990,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0d0
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
       ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
       ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )

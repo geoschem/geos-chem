@@ -662,6 +662,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YEDGE(I,J,L) from new grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -682,7 +683,7 @@
       D_NTIME1 = DBLE( NTIME1 )
       D_NTDT   = DBLE( NTDT   )
 
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
       D_NDT    = 10800d0              ! For 3-hr instantaneous fields
 #else
       D_NDT    = 21600d0              ! For 6-hr instantaneous fields
@@ -778,7 +779,7 @@
 #elif defined( MERRA )
 
       !=================================================================
-      ! Do the interpolation for MERRA or GEOS-5.7.x met fields 
+      ! Do the interpolation for MERRA or GEOS-FP met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -827,10 +828,10 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#elif defined( GEOS_57 )
+#elif defined( GEOS_FP )
 
       !=================================================================
-      ! Do the interpolation for GEOS-5.7.x met fields 
+      ! Do the interpolation for GEOS-FP met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1236,7 +1237,7 @@
                GOTO 999
             ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
             !---------------------------------------------------
             ! GEOS-4 / GEOS-5 / MERRA met fields
@@ -2050,6 +2051,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2085,10 +2087,10 @@
       !------------------
       State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa] 
 
-#elif defined( GEOS_57 )
+#elif defined( GEOS_FP )
 
       !------------------
-      ! GEOS-5.7.x met
+      ! GEOS-FP met
       !------------------
       State_Met%PS1    = State_Met%PS2     ! I3 surface pressure    [hPa]
       State_Met%SPHU1  = State_Met%SPHU2   ! I3 specific humidity   [g/kg]

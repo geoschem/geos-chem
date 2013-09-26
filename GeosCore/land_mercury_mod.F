@@ -103,6 +103,7 @@
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,7 +142,7 @@
          FRAC_SNOW_OR_ICE = 0d0
          FRAC_SNOWFREE_LAND  = 1d0
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
          ! Distinguish between ice/snow and snow-free land
          FRAC_SNOW_OR_ICE    = MIN( State_Met%FRSNO(I,J)     +
      &                              State_Met%FRSEAICE(I,J)  + 
@@ -536,6 +537,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -602,7 +604,7 @@
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1d0
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
          FRAC_SNOWFREE_LAND = MAX( State_Met%FRLAND(I,J) - 
      &                             State_Met%FRSNO(I,J), 0d0 )
          IS_SNOWFREE_LAND   = ( FRAC_SNOWFREE_LAND > 0d0 )

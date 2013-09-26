@@ -1579,7 +1579,7 @@
 !  05 Jun 2013 - K. Yu       - Define BC boundaries for GEOS_57 0.25 NA grid
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
-
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1658,8 +1658,8 @@
 
 #if   defined( GRID4x5 ) || defined( NESTED_NA )
 
-#if   defined( GEOS_57 )
-         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID (GEOS_57)
+#if   defined( GEOS_FP )
+         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID (GEOS_FP)
          I1_BC_NA = 11                       ! 4x5  lon index, LL corner
          J1_BC_NA = 26                       ! 4x5  lat index, LL corner
          I2_BC_NA = 25                       ! 4x5  lon index, UR corner
@@ -1678,8 +1678,8 @@
 
 #if   defined( GRID2x25 ) || defined( NESTED_NA )
 
-#if   defined( GEOS_57 )
-         !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID (GEOS_57)
+#if   defined( GEOS_FP )
+         !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID (GEOS_FP)
          I1_BC_NA = 21                       ! 2x25 lon index, LL corner
          J1_BC_NA = 51                       ! 2x25 lat index, LL corner
          I2_BC_NA = 49                       ! 2x25 lon index, UR corner
@@ -1744,19 +1744,13 @@
 
 #if   defined( GRID4x5 ) || defined( NESTED_CH ) 
 
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
 
-         !%%%%% 4x5 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
-         I1_BC_SE = 52          ! 4x5 lon index, LL corner
-         J1_BC_SE = 21          ! 4x5 lat index, LL corner
-         I2_BC_SE = 63          ! 4x5 lon index, UR corner
-         J2_BC_SE = 31          ! 4x5 lat index, UR corner
-         
-         !%%%%% 4x5 BC REGION FOR NESTED CHINA GRID (GEOS-5.7 only) %%%%%
-         I1_BC_CH = 51          ! 4x5 lon index, LL corner
-         J1_BC_CH = 27          ! 4x5 lat index, LL corner
-         I2_BC_CH = 65          ! 4x5 lon index, UR corner
-         J2_BC_CH = 37          ! 4x5 lat index, UR corner
+         !%%%%% 4x5 BC REGION FOR NESTED CHINA GRID (GEOS-FP only) %%%%%
+         I1_BC_CH = 51                       ! 4x5 lon index, LL corner
+         J1_BC_CH = 27                       ! 4x5 lat index, LL corner
+         I2_BC_CH = 65                       ! 4x5 lon index, UR corner
+         J2_BC_CH = 37                       ! 4x5 lat index, UR corner
 
 #else
 
@@ -1774,15 +1768,9 @@
 
 #if   defined( GRID2x25 ) || defined( NESTED_CH )
 
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
 
-         !%%%%% 2x25 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
-         I1_BC_SE = 103                      ! 2x25 lon index, LL corner
-         J1_BC_SE = 41                       ! 2x25 lat index, LL corner
-         I2_BC_SE = 125                      ! 2x25 lon index, UR corner
-         J2_BC_SE = 61                       ! 2x25 lat index, UR corner
-
-         !%%%%% 2x25 BC REGION FOR NESTED CHINA GRID (GEOS-5.7 only) %%%%%
+         !%%%%% 2x25 BC REGION FOR NESTED CHINA GRID (GEOS-FP only) %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 53                       ! 2x25 lat index, LL corner
          I2_BC_CH = 129                      ! 2x25 lon index, UR corner

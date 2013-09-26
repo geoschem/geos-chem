@@ -1849,6 +1849,7 @@ contains
 !  01 Aug 2013 - R. Yantosca - Now pass Input_Opt via the arg list
 !  01 Aug 2013 - J. Lin      - Modified for Rn-Pb-Be simulation
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2291,7 +2292,7 @@ contains
           ! if conditions are met (jaf, 4/26/11)
           FRAC_NO_HG0_DEP = 1d0
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
           FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + &
                                  State_Met%FRSNO(I,J)   + &
                                  State_Met%FRLANDIC(I,J), 1d0)

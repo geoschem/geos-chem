@@ -462,6 +462,7 @@
 !  04 Apr 2013 - C. Holmes   - Use State_Met for met fields.
 !  03 Jun 2013 - R. Yantosca - Now use fields from Input_OPt instead of from
 !                              logical_mod.F and tracer_mod.F
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -689,7 +690,7 @@
 
          ! Area fraction of box with Hg0 dep. Default is dep everywhere
          F_Hg0_Dep = 1d0
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
          ! Deposition occurs over areas that are not ocean, snow or ice
          ! (jaf, 4/26/11)
          F_Hg0_Dep = 1d0 - MAX( 0d0, MIN( 1D0, 
@@ -774,7 +775,7 @@
          ! Reduction rate (requires liquid water content)
          !---------------------------------------------
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -5683,7 +5684,7 @@
 #elif defined( MERRA ) && defined( GRID4x5 )
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.preind.bpch'
-#elif defined( GEOS_57 ) && defined( GRID4x5 )
+#elif defined( GEOS_FP ) && defined( GRID4x5 )
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%%   KLUDGE: For unit-testing, use the MERRA soil file!     %%%
          !%%%   Ask Team Hg to produce a new GEOS-FP soil file later.  %%%
@@ -5717,7 +5718,7 @@
 #elif defined( MERRA ) && defined( GRID4x5 )
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.presentday.bpch'
-#elif defined( GEOS_57 ) && defined( GRID4x5 )
+#elif defined( GEOS_FP ) && defined( GRID4x5 )
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%%   KLUDGE: For unit-testing, use the MERRA soil file!     %%%
          !%%%   Ask Team Hg to produce a new GEOS-FP soil file later.  %%%

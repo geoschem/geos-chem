@@ -204,6 +204,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  04 Sep 2013 - R. Yantosca - Make ND44 output consistent w/ modifications in
 !                              GeosCore/gamap_mod.F.
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3965,18 +3966,18 @@
 !       the scale factors accordingly.  Also delete KZZ. (bmy, 6/23/03)
 !  (4) Modified for GEOS-5 and GCAP (bmy, 6/9/05)
 !  20 Aug 2010 - R. Yantosca - Modified for MERRA
-!   8 Feb 2012 - R. Yantosca - Modified for GEOS-5.7.x
+!   8 Feb 2012 - R. Yantosca - Modified for GEOS-FP
 !******************************************************************************
 !
       IF ( ND66 > 0 ) THEN
          CATEGORY = 'DAO-3D-$'
 
-#if   defined( GEOS_57 )
-         SCALE_ND66 = SCALE_A3   ! For GEOS_5.7.x,  ND66 is 3-hr time-avg data
+#if   defined( GEOS_FP )
+         SCALE_ND66 = SCALE_A3   ! For GEOS-FP,  ND66 is 3-hr time-avg data
 #elif defined( MERRA )
-         SCALE_ND66 = SCALE_A3   ! For MERRA,       ND66 is 3-hr time-avg data
+         SCALE_ND66 = SCALE_A3   ! For MERRA,    ND66 is 3-hr time-avg data
 #else
-         SCALE_ND66 = SCALE_A6   ! Otherwise,       ND66 is 6-hr time-avg data
+         SCALE_ND66 = SCALE_A6   ! Otherwise,    ND66 is 6-hr time-avg data
 #endif
 
          DO M = 1, TMAX(66)
@@ -3992,7 +3993,7 @@
 
                ! TMPU
                CASE ( 3 )
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
                   SCALEX = SCALE_I3      ! T is an I3 field in GEOS-5.7.x
 #else
                   SCALEX = SCALE_ND66
@@ -4001,7 +4002,7 @@
 
                ! SPHU
                CASE ( 4 )
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
                   SCALEX = SCALE_I3      ! SPHU is an I3 field in GEOS-5.7.x
 #else
                   SCALEX = SCALE_ND66
@@ -4075,8 +4076,8 @@
 
 #if   defined( MERRA )
          SCALE_ND67 = SCALE_A1    ! For MERRA,      ND67 fields are hourly
-#elif defined( GEOS_57 )
-         SCALE_ND67 = SCALE_A1    ! For GEOS-5.7.x, ND67 fields are hourly
+#elif defined( GEOS_FP )
+         SCALE_ND67 = SCALE_A1    ! For GEOS-FP,    ND67 fields are hourly
 #else
          SCALE_ND67 = SCALE_A3    ! Otherwise, most ND67 fields are 3-hourly
 #endif
@@ -4128,8 +4129,8 @@
                   SCALEX = SCALED
                   UNIT   = 'm'
                CASE ( 16 )
-#if   defined( MERRA ) || defined( GEOS_57 )
-                  SCALEX = SCALE_A3     ! MERRA/GEOS-5.7.x CLDTOPS 3-hr avg'd
+#if   defined( MERRA ) || defined( GEOS_FP )
+                  SCALEX = SCALE_A3     ! MERRA/GEOS-FP CLDTOPS 3-hr avg'd
 #else 
                   SCALEX = SCALE_A6     ! Otherwise CLDTOPS is 6-hr time avg'd
 #endif
@@ -4138,8 +4139,8 @@
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-#if   defined( MERRA ) || defined( GEOS_57 )
-                 SCALEX = SCALE_A1      ! MERRA/GEOS-5.7.x SLP is hourly
+#if   defined( MERRA ) || defined( GEOS_FP )
+                 SCALEX = SCALE_A1      ! MERRA/GEOS-FP SLP is hourly
 #else
                  SCALEX = SCALE_I6      ! Otherwise SLP is 6-h inst.
 #endif

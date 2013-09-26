@@ -669,6 +669,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
 !                              EXTERNAL_FORCING Cpp switches
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -694,11 +695,11 @@
 #elif defined( MERRA ) 
       MODELNAME = 'MERRA'
 
-#elif defined( GEOS_57 ) && defined( GRIDREDUCED )
-      MODELNAME = 'GEOS57_47L'
+#elif defined( GEOS_FP ) && defined( GRIDREDUCED )
+      MODELNAME = 'GEOSFP_47L'
 
-#elif defined( GEOS_57 )
-      MODELNAME = 'GEOS57'
+#elif defined( GEOS_FP )
+      MODELNAME = 'GEOSFP'
 
 #elif defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID ) 
       MODELNAME = 'EXTERNAL'
@@ -730,7 +731,7 @@
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos4'
 
-#elif defined( GEOS_5 ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( GEOS_FP )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos5'
 

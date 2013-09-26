@@ -707,6 +707,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !******************************************************************************
 !
       ! References to F90 modules
@@ -907,7 +908,7 @@
          ! Use fractional land type information in MERRA (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction.
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
      &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
          A_ocean = A_ocean + A_M2 * 
@@ -988,7 +989,7 @@
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction. Don't let the fraction
          ! be less than zero (jaf, 4/26/11)
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
          FRAC_L       = State_Met%FRLAND(I,J)
          FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
      &                       State_Met%FRSEAICE(I,J), 0d0 )
@@ -2175,6 +2176,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -2231,7 +2233,7 @@
       ! Use fractional land type information in MERRA (jaf, 4/26/11)
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
       FRAC_O     = MAX( State_Met%FROCEAN(I,J) - 
      &                  State_Met%FRSEAICE(I,J), 0d0)
 #else

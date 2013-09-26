@@ -448,6 +448,7 @@
 !                              emissions and monthly variability scale factors.
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !******************************************************************************
 !
       ! References to F90 modules
@@ -603,7 +604,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
             IF ( State_Met%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
 #else
             IF ( IS_WATER(I,J,State_Met) ) SCALOC(I,J) = 0d0

@@ -55,7 +55,7 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: GCAP_DIR           
      CHARACTER(LEN=255)          :: GEOS_4_DIR         
      CHARACTER(LEN=255)          :: GEOS_5_DIR         
-     CHARACTER(LEN=255)          :: GEOS_57_DIR        
+     CHARACTER(LEN=255)          :: GEOS_FP_DIR        
      CHARACTER(LEN=255)          :: MERRA_DIR          
      CHARACTER(LEN=255)          :: DATA_DIR_1x1       
      CHARACTER(LEN=255)          :: TEMP_DIR           
@@ -594,7 +594,7 @@ MODULE GIGC_Input_Opt_Mod
 !                              remove LAIRNOX field
 !  13 Aug 2013 - M. Sulprizio- Add extra fields for semivolatile POA (H. Pye)
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
-
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -665,6 +665,7 @@ CONTAINS
 !  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
 !  07 Aug 2013 - M. Sulprizio- Add extra fields for SOA + SVPOA simulation
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -700,7 +701,7 @@ CONTAINS
     Input_Opt%GCAP_DIR               = ''
     Input_Opt%GEOS_4_DIR             = ''
     Input_Opt%GEOS_5_DIR             = ''
-    Input_Opt%GEOS_57_DIR            = ''
+    Input_Opt%GEOS_FP_DIR            = ''
     Input_Opt%MERRA_DIR              = ''
     Input_Opt%DATA_DIR_1x1           = ''
     Input_Opt%TEMP_DIR               = ''

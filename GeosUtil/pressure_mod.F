@@ -309,11 +309,12 @@
 !                              EXTERNAL_FORCING to use the GCM pressures.
 !                              This prevents problems when compiling G-C with
 !                              the DEVEL tag when using traditional main.F.
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -382,6 +383,7 @@
 ! !REVISION HISTORY:
 !  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
 !  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -389,7 +391,7 @@
       ! GET_PEDGE_FULLGRID begins here!
       !=================================================================
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -506,6 +508,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -547,7 +550,7 @@
       EXTERNAL_PEDGE = 0d0
 #endif
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !=================================================================
       ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)

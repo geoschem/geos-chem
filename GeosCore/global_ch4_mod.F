@@ -712,6 +712,7 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -839,7 +840,7 @@
 !$OMP END PARALLEL DO
 
       ! GEOS5 Calculation of inundated fraction
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( J, I )
@@ -2120,6 +2121,7 @@
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2180,7 +2182,7 @@
 !%%%
 !%%%         COPROD(:,:,M) = DUMMY_OUT(:,:)
 !%%%-----------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
          ! Cast from REAL*4 to REAL*8
          COPROD(:,:,M) = ARRAY(1,:,:)
 #else

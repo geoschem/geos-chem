@@ -231,6 +231,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,7 +296,7 @@
          OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -364,6 +365,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -419,7 +421,7 @@
          OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
@@ -526,6 +528,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2012 - R. Yantosca - Initial version, based on TRANSFER_3D
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -581,7 +584,7 @@
          OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
@@ -640,6 +643,7 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -662,7 +666,7 @@
       ! Return GEOS-5 pressure edges for reduced grid
       !================================================================
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -724,6 +728,7 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -754,7 +759,7 @@
       ! %%% above about 120 hPa. (bmy, 2/8/07)
       !=================================================================
       
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -872,6 +877,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -926,7 +932,7 @@
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -994,6 +1000,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1048,7 +1055,7 @@
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -1735,6 +1742,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1771,8 +1779,8 @@
          L_COPY = 19       ! GEOS-4: Copy up to L=19
 #elif defined( GEOS_5  )
          L_COPY = 36       ! GEOS-5: Copy up to L=36
-#elif defined( GEOS_57 )
-         L_COPY = 36       ! GEOS-5.7.x: Copy up to L=36
+#elif defined( GEOS_FP )
+         L_COPY = 36       ! GEOS-FP: Copy up to L=36
 #elif defined( MERRA   )
          L_COPY = 36       ! MERRA: Copy up to L=36
 #elif defined( GCAP    )
@@ -1790,7 +1798,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
       EDGE_IN = 0d0
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-----------------------------------------------------------------
       ! For GEOS-5/MERRA, levels 1-31 are "terrain-following" 

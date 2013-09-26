@@ -288,10 +288,10 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_CH )
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: Nested China Grid
+      ! GEOS-FP: Nested China Grid
       !-----------------------------------------------------------------
       INTEGER            :: IGLOB      = 225
       INTEGER            :: JGLOB      = 161
@@ -309,10 +309,10 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_NA)
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA)
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: Nested NA Grid
+      ! GEOS-FP Nested NA Grid
       !-----------------------------------------------------------------
       INTEGER            :: IGLOB      = 225
       INTEGER            :: JGLOB      = 202
@@ -330,10 +330,10 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined( GEOS_57 ) && defined( GRID2x25 )
+#elif defined( GEOS_FP ) && defined( GRID2x25 )
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: 2 x 2.5
+      ! GEOS-FP: 2 x 2.5
       !-----------------------------------------------------------------
       INTEGER            :: IGLOB      = 144
       INTEGER            :: JGLOB      = 91
@@ -351,10 +351,10 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined( GEOS_57 ) && defined( GRID4x5 )
+#elif defined( GEOS_FP ) && defined( GRID4x5 )
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: 4 x 5
+      ! GEOS-FP: 4 x 5
       !-----------------------------------------------------------------
       INTEGER            :: IGLOB      = 72
       INTEGER            :: JGLOB      = 46
@@ -627,6 +627,7 @@
 !  13 Aug 2013 - M. Sulprizio- Increase NNPAR & NBIOMAX for updated SOA and
 !                              SOA + semivolatile POA simulations (H. Pye) 
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -305,6 +305,7 @@
 !                              derived type object
 !   5 Jun 2013 - K. Yu       - Use 0.5 x 0.666 NA scale factor for the
 !                              0.25 x 0.3125 NA nested simulation
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !******************************************************************************
 !
       ! References to F90 modules
@@ -339,7 +340,7 @@
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if   defined( GEOS_57 ) && defined( GRID025x03125 )
+#if   defined( GEOS_FP ) && defined( GRID025x03125 )
 
       ! Copy the 05x0666 scale factors for now
       ! (skim, 5/20/12)
@@ -405,14 +406,14 @@
       !----------------------------------------------------------------
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
 
-#elif defined( GEOS_57 ) && defined( GRID2x25 )
+#elif defined( GEOS_FP ) && defined( GRID2x25 )
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: NEED TO SCALE THIS FOR GEOS-5.7.x 2x25!                 %%%
+      !%%%         NOTE: NEED TO SCALE THIS FOR GEOS-FP 2x25!            %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
 
-#elif defined( GEOS_57 ) && defined( GRID4x5 )
+#elif defined( GEOS_FP ) && defined( GRID4x5 )
 
       ! Based on results from GEOS 5.7 for September 2011
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.272d0

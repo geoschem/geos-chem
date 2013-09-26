@@ -1867,6 +1867,7 @@ CONTAINS
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1976,7 +1977,7 @@ CONTAINS
 #if   defined( GEOS_4 )
     PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
     ! For now assume GEOS-5 has same PO3_vmr value 
     ! as GEOS-4; we can redefine later (bmy, 5/25/05)
@@ -2225,6 +2226,7 @@ CONTAINS
 !                              since JJPAR is no longer a parameter
 !  25 Mar 2013 - R. Yantosca - Now use explicit numbers for J30S, J30N
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2317,7 +2319,7 @@ CONTAINS
 
     PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
     ! For now assume GEOS-5 has same PO3_vmr value 
     ! as GEOS-4; we can redefine later (bmy, 5/25/05)

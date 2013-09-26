@@ -475,7 +475,7 @@ cleanup.o                   : cleanup.F                                      \
                               vistas_anthro_mod.o     wetscav_mod.o          \
                               icoads_ship_mod.o       tpcore_fvdas_mod.o     \
                               tpcore_geos5_window_mod.o                      \
-                              tpcore_geos57_window_mod.o                     \
+                              tpcore_geosfp_window_mod.o                     \
                               retro_mod.o             strat_chem_mod.o       \
                               global_bc_mod.o         global_oc_mod.o        \
                               diag53_mod.o            tomas_mod.o            \
@@ -718,7 +718,7 @@ geia_mod.o                  : geia_mod.F
 
 GEN.o                       : GEN.F
 
-geos57_read_mod.o           : geos57_read_mod.F90                            \
+geosfp_read_mod.o           : geosfp_read_mod.F90                            \
                               dao_mod.o
 
 get_popsinfo_mod.o          : get_popsinfo_mod.F
@@ -883,7 +883,7 @@ main.o                      : main.F                                         \
                               vdiff_mod.o             wetscav_mod.o          \
                               merra_cn_mod.o          merra_a1_mod.o         \
                               merra_a3_mod.o          merra_i6_mod.o         \
-                              gigc_environment_mod.o  geos57_read_mod.o      \
+                              gigc_environment_mod.o  geosfp_read_mod.o      \
                               diag63_mod.o            olson_landmap_mod.o    \
                               mapping_mod.o           toms_mod.o             \
                               soilnox_restart_mod.o 
@@ -896,7 +896,7 @@ MATIN4.o                    : MATIN4.F
 megan_mod.o                 : megan_mod.F             a3_read_mod.o          \
                               modis_lai_mod.o         logical_mod.o          \
                               meganut_mod.o           merra_a1_mod.o         \
-                              geos57_read_mod.o
+                              geosfp_read_mod.o
 
 meganut_mod.o               : meganut_mod.F           dao_mod.o     
 
@@ -981,7 +981,7 @@ physproc.o                  : physproc.F                                     \
 
 pjc_pfix_geos5_window_mod.o : pjc_pfix_geos5_window_mod.F
 
-pjc_pfix_geos57_window_mod.o: pjc_pfix_geos57_window_mod.F
+pjc_pfix_geosfp_window_mod.o: pjc_pfix_geosfp_window_mod.F
 
 pjc_pfix_mod.o              : pjc_pfix_mod.F
 
@@ -1148,7 +1148,7 @@ tpcore_bc_mod.o             : tpcore_bc_mod.F                                \
 tpcore_geos5_window_mod.o   : tpcore_geos5_window_mod.F90
 	$(F90) -c $(FREEFORM) $(R8) $<
 
-tpcore_geos57_window_mod.o  : tpcore_geos57_window_mod.F90
+tpcore_geosfp_window_mod.o  : tpcore_geosfp_window_mod.F90
 	$(F90) -c $(FREEFORM) $(R8) $<
 
 tracer_mod.o                : tracer_mod.F
@@ -1163,9 +1163,9 @@ transport_mod.o             : transport_mod.F                                \
                               tpcore_bc_mod.o         tpcore_fvdas_mod.o     \
                               tracer_mod.o                                   \
                               tpcore_geos5_window_mod.o                      \
-                              tpcore_geos57_window_mod.o                     \
+                              tpcore_geosfp_window_mod.o                     \
                               pjc_pfix_geos5_window_mod.o                    \
-                              pjc_pfix_geos57_window_mod.o
+                              pjc_pfix_geosfp_window_mod.o
 
 
 tropopause.o                : tropopause.F                                   \

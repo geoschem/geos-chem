@@ -84,7 +84,7 @@
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
-      USE TPCORE_GEOS57_WINDOW_MOD,ONLY : EXIT_GEOS57_TPCORE_WINDOW !clb
+      USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : EXIT_GEOSFP_TPCORE_WINDOW !clb
       USE TRACER_MOD,              ONLY : CLEANUP_TRACER
       USE TROPOPAUSE_MOD,          ONLY : CLEANUP_TROPOPAUSE
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
@@ -246,6 +246,8 @@
 !                              the vertical regridding of OH for offline
 !                              simulations.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  26 Sep 2013 - R. Yantosca - Now reference EXIT_GEOSFP_TPCORE_WINDOW
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -365,9 +367,9 @@
 #endif
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
-#elif defined( GEOS_57) && defined( GRID025x03125)
+#elif defined( GEOS_FP) && defined( GRID025x03125)
       ! clb
-      CALL EXIT_GEOS57_TPCORE_WINDOW
+      CALL EXIT_GEOSFP_TPCORE_WINDOW
 #else
       CALL EXIT_TPCORE
 #endif

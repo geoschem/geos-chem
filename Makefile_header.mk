@@ -131,6 +131,7 @@
 #                              us to skip the GRID setting if we are using
 #                              EXTERNAL_GRID=yes or EXTERNAL_FORCING=yes.
 #  18 Sep 2013 - M. Long     - Add edits for HPC Grid-Indpendent GEOS-Chem
+#  26 Sep 2013 - R. Yantosca - MET=geosfp now sets Cpp switch w/ -DGEOS_FP
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -301,7 +302,7 @@ endif
 # %%%%% GEOS-FP %%%%%
 REGEXP         :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
 ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DGEOS_57
+USER_DEFS      += -DGEOS_FP
 endif
 
 # %%%%% REDUCED VERTICAL GRID (default, unless specified otherwise) %%%%
@@ -314,7 +315,7 @@ endif
 endif
 
 # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-REGEXP         :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_57)
+REGEXP         :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP)
 ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
 $(error $(ERR_MET))
 endif

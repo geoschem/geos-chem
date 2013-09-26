@@ -155,6 +155,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  31 May 2013 - R. Yantosca - Now pass objects to NFCLDMX
 !  03 Jun 2013 - R. Yantosca - Bug fix: pass State_Chm to DO_MERRA_CONVECTION
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -235,7 +236,7 @@
      &              State_Chm, 
      &              RC                               )
 
-#elif defined( MERRA ) || defined( GEOS_57 )
+#elif defined( MERRA ) || defined( GEOS_FP )
 
       !=================================================================
       ! MERRA met fields
@@ -375,7 +376,7 @@
          ENDDO
          ENDDO
 
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
 
          ! For GEOS-5.7, PFICU and PFLCU are defined on level edges
          p_PFICU           => State_Met%PFICU   ( I, J, 2:LLPAR+1   )
@@ -1207,6 +1208,7 @@
 !  31 May 2013 - R. Yantosca - Now pass State_Chm and then have Q point to 
 !                              State_Chm%Tracers.  This is for TOMAS.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1295,7 +1297,7 @@
          WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-#if defined( GEOS_5 ) || defined( GEOS_57 ) || defined( MERRA )
+#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
          ! Do nothing, these are all hybrid grids
 #else
          ! NOTE: We don't need to do this for GEOS-5 (bmy, 6/27/07)

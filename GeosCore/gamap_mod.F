@@ -1692,6 +1692,7 @@
 !  04 Sep 2013 - R. Yantosca - Fix ND44 tracer listing
 !  04 Sep 2013 - R. Yantosca - Now also reference everything in tracerid_mod.F
 !  04 Sep 2013 - R. Yantosca - Bug fix: # of ND46 tracers should be 20
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6660,7 +6661,7 @@
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
 #else

@@ -142,6 +142,8 @@
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Sep 2013 - R. Yantosca - Increase MAXDIM from 255 to 500 for more tracers
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP everywhere
+!  26 Sep 2013 - R. Yantosca - Now read GEOS_FP_DIR from Input_Opt everywhere
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,11 +153,6 @@
       LOGICAL            :: VERBOSE  = .FALSE.
       INTEGER            :: IU_GEOS
       INTEGER, PARAMETER :: FIRSTCOL = 26
-!------------------------------------------------------------------------------
-! Prior to 9/17/13:
-! Increase line length for more tracers (bmy, 9/17/13)
-!      INTEGER, PARAMETER :: MAXDIM   = 255
-!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: MAXDIM   = 500
       INTEGER            :: TS_CHEM
       INTEGER            :: TS_DYN
@@ -665,7 +662,7 @@
       USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,      ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
       USE DIRECTORY_MOD,      ONLY : GEOS_4_DIR,  GEOS_5_DIR
-      USE DIRECTORY_MOD,      ONLY : MERRA_DIR,   GEOS_57_DIR
+      USE DIRECTORY_MOD,      ONLY : MERRA_DIR,   GEOS_FP_DIR
       USE DIRECTORY_MOD,      ONLY : RUN_DIR
       USE DIRECTORY_MOD,      ONLY : TEMP_DIR   
       USE GIGC_ErrCode_Mod
@@ -782,7 +779,7 @@
 
       ! GEOS-5.7.x subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
-      READ( SUBSTRS(1:N), '(a)' ) GEOS_57_DIR
+      READ( SUBSTRS(1:N), '(a)' ) GEOS_FP_DIR
 
       ! MERRA subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
@@ -818,7 +815,7 @@
       !=================================================================
       ! Add safety checks for logical switches
       !=================================================================
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
       ! Turn unzipping off for MERRA met fields
       LUNZIP = .FALSE. 
 #endif
@@ -880,7 +877,7 @@
       Input_Opt%GCAP_DIR      = GCAP_DIR
       Input_Opt%GEOS_4_DIR    = GEOS_4_DIR
       Input_Opt%GEOS_5_DIR    = GEOS_5_DIR
-      Input_Opt%GEOS_57_DIR   = GEOS_57_DIR
+      Input_Opt%GEOS_FP_DIR   = GEOS_FP_DIR
       Input_Opt%MERRA_DIR     = MERRA_DIR
       Input_Opt%DATA_DIR_1x1  = DATA_DIR_1x1
       Input_Opt%TEMP_DIR      = TEMP_DIR
@@ -912,7 +909,7 @@
          WRITE( 6, 110 ) 'GEOS-5     sub-directory    : ', 
      &                    TRIM( GEOS_5_DIR )
          WRITE( 6, 110 ) 'GEOS-5.7.x sub-directory    : ', 
-     &                    TRIM( GEOS_57_DIR )
+     &                    TRIM( GEOS_FP_DIR )
          WRITE( 6, 110 ) 'MERRA      sub-directory    : ', 
      &                    TRIM( MERRA_DIR )
          WRITE( 6, 110 ) '1x1 Emissions etc Data Dir  : ',
@@ -3935,8 +3932,8 @@
 !  27 Aug 2010 - R. Yantosca - Now allow non-local PBL for MERRA met data
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for MERRA met data
-!  13 Apr 2012 - R. Yantosca - Fixed typo ( defined( GEOS_57 ) should have 
-!                              been !defined( GEOS_57 ) )
+!  13 Apr 2012 - R. Yantosca - Fixed typo ( defined( GEOS_FP ) should have 
+!                              been !defined( GEOS_FP ) )
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
@@ -3980,13 +3977,13 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
 
-      ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-5.7.x
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
+      ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-FP
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
       IF ( LNLPBL ) THEN
          IF( am_I_Root ) THEN
             WRITE(6,*) REPEAT( '=', 79 )
             WRITE(6,*) 'The non-local PBL scheme is only valid for'
-            WRITE(6,*) 'GEOS-5, GEOS-5.7, and MERRA met fields!'
+            WRITE(6,*) 'GEOS-5, GEOS-FP, and MERRA met fields!'
             WRITE(6,*) 'LNLPBL is automatically turned to false !'
             WRITE(6,*) REPEAT( '=', 79 )
          ENDIF
@@ -8008,16 +8005,16 @@
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
-#elif defined( GEOS_57 )
+#elif defined( GEOS_FP )
 
-      ! Check GEOS-5.7.x met field directory (starting date)
-      DIR = GEOS_57_DIR
+      ! Check GEOS-FP met field directory (starting date)
+      DIR = GEOS_FP_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
-      ! Check GEOS-5.7.x met field directory (ending date)
-      DIR = GEOS_57_DIR
+      ! Check GEOS-FP met field directory (ending date)
+      DIR = GEOS_FP_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
@@ -8668,9 +8665,9 @@
       CT2            = 0
       CT3            = 0
 
-#if   defined( GEOS_57 ) 
+#if   defined( GEOS_FP ) 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% KLUDGE FOR TESTING GEOS-5.7.2 (bmy, 3/26/12)
+      !%%% KLUDGE FOR TESTING GEOS-FP (bmy, 3/26/12)
       !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
       !%%% in order to facilitate the SEAC4RS simulations.  Eventually
       !%%% this will replace Olson 1992 for all other met field types,
