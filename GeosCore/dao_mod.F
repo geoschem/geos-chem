@@ -208,6 +208,7 @@
 !        (mpb, bmy, 12/18/09)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -222,8 +223,8 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if   defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
-#if   defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU     ) || defined ( SEAC4RS )
+#if defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
+#if defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU     )
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
       RETURN

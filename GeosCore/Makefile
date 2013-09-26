@@ -355,9 +355,8 @@ biofit.o                    : biofit.F
 biomass_mod.o               : biomass_mod.F                                  \
                               diag_mod.o              gc_biomass_mod.o       \
                               gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
-                              logical_mod.o           flambe_biomass_mod.o   \
-                              tracerid_mod.o          tracer_mod.o           \
-                              finn_biomass_mod.o
+                              logical_mod.o           tracerid_mod.o         \
+                              tracer_mod.o
 
 BLKSLV.o                    : BLKSLV.F
 
@@ -407,7 +406,7 @@ carbon_mod.o                : carbon_mod.F                                   \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o       \
                               vdiff_pre_mod.o         meganut_mod.o          \
-                              tomas_mod.o             finn_biomass_mod.o
+                              tomas_mod.o
 
 ch3i_mod.o                  : ch3i_mod.F                                     \
                               biofuel_mod.o           biomass_mod.o          \
@@ -662,14 +661,6 @@ epa_nei_mod.o               : epa_nei_mod.F                                  \
 
 fast_j.o                    : fast_j.F                                       \
                               dao_mod.o               toms_mod.o
-
-finn_biomass_mod.o          : finn_biomass_mod.F                             \
-			      future_emissions_mod.o  logical_mod.o          \
-                              tracer_mod.o            tracerid_mod.o
-
-flambe_biomass_mod.o        : flambe_biomass_mod.F                           \
-	                      future_emissions_mod.o  logical_mod.o          \
-                              tracer_mod.o            tracerid_mod.o
 
 fjfunc.o                    : fjfunc.F
 
@@ -951,11 +942,6 @@ nei2005_anthro_mod.o        : nei2005_anthro_mod.F                           \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
                               tracer_mod.o
-
-nei2008_anthro_mod.o        : nei2008_anthro_mod.F90                         \
-                              future_emissions_mod.o  logical_mod.o          \
-                              scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o    
 
 NOABS.o                     : NOABS.F
 

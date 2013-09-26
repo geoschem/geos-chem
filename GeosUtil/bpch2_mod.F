@@ -475,6 +475,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -584,8 +585,7 @@
       IF ( FOUND ) THEN 
 
 #if   defined( GRID1x1 ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
-
-#if   defined(NESTED_CH) || defined(NESTED_NA) || defined( NESTED_EU ) || defined( SEAC4RS ) 
+#if   defined(NESTED_CH) || defined(NESTED_NA)     || defined( NESTED_EU )
          ! *** NOTE: now use NESTED_CH/NESTED_NA/NESTED_EU cpp switches ***
          ! *** to block off this section of code (bmy, 12/1/04)  ***
          ! This is a kludge to overwrite the IFIRST, JFIRST, LFIRST For

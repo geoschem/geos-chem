@@ -154,6 +154,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add NAP emissions for SOA + semivolatile POA
 !                              simulation (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -225,12 +226,12 @@
       I0 = 0
       J0 = 0
 
-#elif defined( GRID025x0325 ) && defined( NESTED_CH )
+#elif defined( GRID025x03125 ) && defined( NESTED_NA )
 
       I0 = 0
       J0 = 0
 
-#elif defined( GRID025x0325 ) && defined( SEAC4RS )
+#elif defined( GRID025x03125 ) && defined( NESTED_EU )
 
       I0 = 0
       J0 = 0

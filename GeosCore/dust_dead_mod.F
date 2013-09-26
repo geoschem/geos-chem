@@ -347,9 +347,14 @@
 #if defined(NESTED_CH)  
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(SEAC4RS)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
+!----------------------------------------------------------------------------
+! Prior to 9/26/13:
+! NOTE: The original SEAC4RS grid definition was for SE Asia.  Not sure if
+! this value is correct anymore.  Consult w/ SEAC4RS team. (bmy, 9/26/13)
+!#elif defined(SEAC4RS)
+!      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
 ! added NA, copied 05x0666 scale factor (kyu, 22 April 2013)
+!----------------------------------------------------------------------------
 #elif defined(NESTED_NA)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.16d-4
 #endif

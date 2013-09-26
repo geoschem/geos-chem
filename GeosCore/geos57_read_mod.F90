@@ -93,6 +93,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  10 Feb 2012 - R. Yantosca - Initial version
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocssor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -113,10 +114,12 @@ CONTAINS
     resString = '05x0666.nc'
 
 #elif defined( GRID025x03125 ) && defined( NESTED_CH )
-    resString = '025x03125.SEA4CRS.nc'
-
-#elif defined( GRID025x03125 ) && defined( SEAC4RS )
-    resString = '025x03125.SEA4CRS.nc'
+    !-------------------------------------------------------------------------
+    ! Prior to 9/26/13:
+    ! Remove SEAC4RS declaration from nested-grid China files (bmy, 9/26/13)
+    !resString = '025x03125.SEA4CRS.nc'
+    !-------------------------------------------------------------------------
+    resString = '025x03125.CH.nc'
 
 #elif defined( GRID025x03125 ) && defined( NESTED_EU )
     resString = '025x03125.EU.nc'
@@ -1650,27 +1653,6 @@ CONTAINS
     nc_file = 'GEOS572.YYYYMMDD.I3.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% KLUDGE FOR SEAC4RS!
-!%%% July 22/23 I3 files are corrupted at 4x5, so read new files from 
-!%%% from the run directory (bmy, 8/2/13)
-!%%%
-!%%% Original code here:
-!%%%    ! Construct complete file path
-!%%%    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-!%%%
-#if defined( GEOS_57 ) && defined( GRID4x5 )
-    IF ( YYYYMMDD == 20130722 ) THEN 
-       nc_file = './' // TRIM( nc_file )
-    ELSE
-       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    ENDIF
-#else
-    ! Construct complete file path
-    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
 
@@ -1869,27 +1851,6 @@ CONTAINS
     nc_file = Get_Resolution_String()
     nc_file = 'GEOS572.YYYYMMDD.I3.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% KLUDGE FOR SEAC4RS!
-!%%% July 22/23 I3 files are corrupted at 4x5, so read new files from 
-!%%% from the run directory (bmy, 8/2/13)
-!%%%
-!%%% Original code here:
-!%%%    ! Construct complete file path
-!%%%    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-!%%%
-#if defined( GEOS_57 ) && defined( GRID4x5 )
-    IF ( YYYYMMDD == 20130722 ) THEN 
-       nc_file = './' // TRIM( nc_file )
-    ELSE
-       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    ENDIF
-#else
-    ! Construct complete file path
-    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
