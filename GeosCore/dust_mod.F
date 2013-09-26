@@ -1239,7 +1239,7 @@
        NWVS   = 1
       ELSE
        IF ( LRAD ) THEN !Loop over all RT wavelengths
-        NWVS   = NWVAA-7
+        NWVS   = NWVAA-NWVAA0 !minus the standard wavelengths for RRTMG wvs
        ELSE
         NWVS   = NWVREQUIRED ! 1 or 2 depending if selected wavelength on or
                              ! between LUT tie points
@@ -1253,10 +1253,10 @@
        IF (ODSWITCH .EQ. 0) THEN
         ! only doing for 1000nm i.e. IWV=10 in LUT
         ! N.B. NWVS is fixed to 1 above - only one wavelength
-        IWV=10
+        IWV=IWV1000
        ELSE
         IF ( LRAD ) THEN !Loop over all RT wavelengths
-         IWV = IIWV+11
+         IWV = IIWV+NWVAA0
         ELSE
          ! cycle through all requested wavelengths
          IWV = IWVREQUIRED(IIWV)
@@ -1654,8 +1654,8 @@
 !            IF ( WAVELENGTH > 0 ) THEN
                !this needs fixing properly in case someone uses offline dust
                !DAR
-               ODMDUST(I,J,L,14,N) = 0.75d0   * BXHEIGHT(I,J,L) * 
-     &                            DUST(I,J,L,N) * QQAA(14,N,6)     / 
+               ODMDUST(I,J,L,IWV1000,N) = 0.75d0   * BXHEIGHT(I,J,L) * 
+     &                           DUST(I,J,L,N) * QQAA(IWV1000,N,6)     /
      &                           ( MSDENS(N) * RWAA(N,6) * 1.0D-6 )
 
 !            ELSE

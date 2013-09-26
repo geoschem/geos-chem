@@ -1022,11 +1022,7 @@
       ! Scaling is sufficient for the surface area calculation
       !=================================================================
       MSDENS(1) = 1700.0d0    !SO4
-#if   defined( APM )
       MSDENS(2) = 1800.0d0    !BC 
-#else
-      MSDENS(2) = 1000.0d0    !BC 
-#endif
       MSDENS(3) = 1800.0d0    !OC 
       MSDENS(4) = 2200.0d0    !SS (accum)
       MSDENS(5) = 2200.0d0    !SS (coarse)
@@ -1037,13 +1033,12 @@
       ! DAR Sept 2012
       ! if the call is from chemistry then only need to calc at 1000nm
       ! not for all user specified wavelengths
-      ! first element of WVSELECT is always 14 - the index of 1000nm
 
       IF (ODSWITCH .EQ. 0) THEN
        NWVS   = 1
       ELSE
        IF ( LRAD ) THEN !Loop over all RT wavelengths
-        NWVS   = NWVAA-11
+        NWVS   = NWVAA-NWVAA0
        ELSE
         NWVS   = NWVREQUIRED !from RD_AOD, number of wavelengths needed
        ENDIF                 
@@ -1054,12 +1049,12 @@
        ! (1000nm always used for FAST-J and stored in first index)
        
        IF (ODSWITCH .EQ. 0) THEN
-        ! only doing for 1000nm i.e. IWV=7 in LUT
+        ! only doing for 1000nm (IWV1000 is set in RD_AOD)
         ! N.B. NWVS is fixed to 1 above - only one wavelength
-        IWV=10
+        IWV=IWV1000
        ELSE
         IF ( LRAD ) THEN !Loop over all RT wavelengths
-         IWV = IIWV+11
+         IWV = IIWV+NWVAA0
         ELSE
          ! cycle through all requested wavelengths
          IWV = IWVREQUIRED(IIWV)

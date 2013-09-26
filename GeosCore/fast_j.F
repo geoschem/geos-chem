@@ -45,7 +45,7 @@
       USE CMN_SIZE_MOD, ONLY : IIPAR,   JJPAR, LLPAR
       USE CMN_SIZE_MOD, ONLY : NDUST,   MAXIJ, NAER,  NRH
       USE CMN_FJ_MOD,   ONLY : JPMAX,   JPPJ
-      USE JV_CMN_MOD,   ONLY : ODMDUST, PJ,    NB, ODAER, IRHARR
+      USE JV_CMN_MOD,   ONLY : ODMDUST, PJ,NB, ODAER, IRHARR,IWV1000
 
       IMPLICIT NONE
 !
@@ -252,7 +252,7 @@
             O3COL        = GET_OVERHEAD_O3( NLON, NLAT )
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
-            ! and at 1000nm, IWV=10 (DAR)
+            ! and at 1000nm, IWV1000 (DAR)
             !OPTAER wants NAER*NRH values but ODAER is now 
             !NAER - use IRHARR to map to correct OPTAER bin (DAR 08/13)
             OPTAER(:,:)=0.0
@@ -260,13 +260,13 @@
              DO L = 1, LLPAR
               IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
               !WRITE(6,*) 'IOPT',N,IRHARR(NLON,NLAT,L),IOPT
-              OPTAER(L,IOPT)  = ODAER(NLON,NLAT,L,10,N)
+              OPTAER(L,IOPT)  = ODAER(NLON,NLAT,L,IWV1000,N)
              ENDDO
             ENDDO
             !OPTAER(:,:)  = ODAER(NLON,NLAT,:,7,:)
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-            ! and at 1000nm, IWV=10 (DAR)
-            OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,10,:)
+            ! and at 1000nm, IWV1000 (DAR)
+            OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,IWV1000,:)
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD(:)      = OD(1:LLPAR,NLON,NLAT)
 

@@ -107,9 +107,9 @@
       USE JV_CMN_MOD,   ONLY : NASPECRAD ! NUMBER OF AEROSOL SPECIES
       USE JV_CMN_MOD,   ONLY : SPECMASK, IWVSELECT, NWVSELECT,WVSELECT
       USE JV_CMN_MOD,   ONLY : ACOEF_WV, BCOEF_WV, CCOEF_WV, WVAA, NWVAA
+      USE JV_CMN_MOD,   ONLY : NWVAA0,DO3
       USE LOGICAL_MOD,  ONLY : LLWRAD,LSWRAD,LSKYRAD
 
-      USE JV_CMN_MOD,   ONLY : DO3
       USE TOMS_MOD,     ONLY: GET_OVERHEAD_O3
       USE GRID_MOD,     ONLY : GET_YMID
 
@@ -329,7 +329,7 @@
       !=================================================================
 
       ! INITIALIZE
-      !PRINT *,'IN RRTMG_RAD'
+      PRINT *,'IN RRTMG_RAD'
       NSPEC = NAER+NDUST+4
       FLG_FIRST_STRAT(:) = 0 !FLAG TO DETERMINE IF THE FIRST STRATOSPHERIC LEVEL HAS BEEN REACHED
  
@@ -355,8 +355,8 @@
       !offsetting by number of LW bands and the 
       !standard 7 wavelengths included in the LUT
       DO N=1,NWVSELECT
-       IRTWVSELECT(1,N)=IWVSELECT(1,N)-(NBNDLW+7)
-       IRTWVSELECT(2,N)=IWVSELECT(2,N)-(NBNDLW+7)
+       IRTWVSELECT(1,N)=IWVSELECT(1,N)-(NBNDLW+NWVAA0)
+       IRTWVSELECT(2,N)=IWVSELECT(2,N)-(NBNDLW+NWVAA0)
       ENDDO
 
       TAUCLD(:,:) = 0.0
@@ -601,6 +601,7 @@
              ASMAER(IJLOOP,L,IB_SW) = ASMAER(IJLOOP,L,IB_SW) +
      &                                RTASYMAER(I,J,L,IBX,IS) *
      &                     RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
+
             ENDIF 
             IF (SPECMASK(IS).GT.1) THEN
              TAUAERDIAG(IJLOOP,L,IB_SW)=TAUAERDIAG(IJLOOP,L,IB_SW)+
@@ -610,9 +611,6 @@
              ASMAERDIAG(IJLOOP,L,IB_SW) = ASMAERDIAG(IJLOOP,L,IB_SW) +
      &                     RTASYMAER(I,J,L,IBX,IS) *
      &                     RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
-              !TAUAERDIAG(IJLOOP,L,IB_SW) = 1.0D0
-              !ASMAERDIAG(IJLOOP,L,IB_SW) = 0.02D0
-              !SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99D0*0.02D0
             ENDIF
            ENDIF 
           ENDIF
@@ -658,6 +656,13 @@
               SSAAERDIAG(IJLOOP,L,IB_SW) = SSAAERDIAG(IJLOOP,L,IB_SW) /
      &                                     TAUAERDIAG(IJLOOP,L,IB_SW)
            ENDIF
+!              TAUAER_SW(IJLOOP,L,IB_SW) = 0.10D0
+!              ASMAER(IJLOOP,L,IB_SW)    = 0.02D0
+!              SSAAER(IJLOOP,L,IB_SW)    = 0.99D0
+!              TAUAERDIAG(IJLOOP,L,IB_SW) = 0.10D0
+!              ASMAERDIAG(IJLOOP,L,IB_SW) = 0.02D0
+!              SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99D0
+
           ENDIF
          ENDDO
          ENDDO
@@ -682,12 +687,12 @@
           IF (IB.LE.16) THEN
            TAUAER_LW(IJLOOP,L,IB)    = 0.0
           ELSE
-           TAUAER_SW(IJLOOP,L,IB_SW) = 0.0D0
-           SSAAER(IJLOOP,L,IB_SW)    = 0.99D0
-           ASMAER(IJLOOP,L,IB_SW)    = 0.02D0
-           TAUAERDIAG(IJLOOP,L,IB_SW) = 0.0D0
-           SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99D0
-           ASMAERDIAG(IJLOOP,L,IB_SW) = 0.02D0
+!           TAUAER_SW(IJLOOP,L,IB_SW) = 0.0D0
+!           SSAAER(IJLOOP,L,IB_SW)    = 0.99D0
+!           ASMAER(IJLOOP,L,IB_SW)    = 0.02D0
+!           TAUAERDIAG(IJLOOP,L,IB_SW) = 0.0D0
+!           SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99D0
+!           ASMAERDIAG(IJLOOP,L,IB_SW) = 0.02D0
           ENDIF
          ENDIF
         ENDDO
@@ -696,13 +701,6 @@
        ENDDO
 !OMP END PARALLEL DO 
       ENDIF
-      ! INITIALIZATION
-      !IF (LLWRAD) THEN
-!       CALL RRTMG_LW_INI
-      !ENDIF
-!      IF (LSWRAD) THEN
-!       CALL RRTMG_SW_INI
-!      ENDIF
 
       ! RAD_DRIVER IS THE INTERFACE BETWEEN G-C AND RRTMG
       DOY = GET_DAY_OF_YEAR()
@@ -790,7 +788,6 @@
 !$OMP+SCHEDULE( DYNAMIC )
        DO IL=1, NCOL
         IF (LLWRAD) THEN
-
          CALL MCICA_SUBCOL_LW(ONECOL,LLPAR,ICLDMCL,
      &        SEEDLW,IRNG,PCENTER(IL,:),
      &        CLDFR(IL,:),CICEWP(IL,:),CLIQWP(IL,:),
@@ -808,7 +805,6 @@
 !         write(6,*) MAXVAL(CIWPMCL_LW),MAXVAL(RELQMCL0)
         ENDIF
         IF (LSWRAD) THEN
-
          CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL,
      &        SEEDSW, IRNG,PCENTER(IL,:),
      &        CLDFR(IL,:), CICEWP(IL,:), CLIQWP(IL,:),
@@ -1004,7 +1000,6 @@
       ENDDO 
       ENDDO
 !OMP END PARALLEL DO
-
 !EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER
 
@@ -1186,7 +1181,15 @@
       ! FILENAME AND TIME
       FILENAME  = TRIM( DATA_DIR )         //
      &            'modis_surf_201210/' //
+! the 02-07 file contains our regridded and filled emissivity
+! and albedo climatology for 2002-2007 direct from MODIS products (DAR)
      &            'modis_surf_02-07_' //
+
+! the 01-04 file contains our regridded and filled emissivity
+! for 2002-2007 and eco-type filled albedo produced by MODIS averaged over
+! 2001-2004 data. This is the preferred data (DAR)
+!     &            'modis_surf_01-04_' //
+
      &            STHISDOFY//'.'// GET_RES_EXT()
 
       ! ECHO INFO

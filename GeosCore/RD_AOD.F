@@ -118,6 +118,9 @@
      &               RDAA(i,k),RWAA(i,k),SGAA(i,k),QQAA(j,i,k),
      &               ALPHAA(j,i,k),REAA(i,k),SSAA(j,i,k),
      &               ASYMAA(j,i,k),(PHAA(j,i,k,n),n=1,8)
+         ! make note of where 1000nm is for FAST-J calcs
+         IF (WVAA(j,k).EQ.1000.0) IWV1000=J
+         
         ENDDO
        ENDDO
        ! Echo info to stdout

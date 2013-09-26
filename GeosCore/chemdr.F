@@ -524,7 +524,6 @@
       WAVELENGTH = 0
 
       CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
-
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN 
          CALL DEBUG_MSG( '### CHEMDR: after RDAER' )

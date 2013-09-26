@@ -240,7 +240,7 @@
       CHARACTER(LEN=255)       :: ZTYPE
 
 ! Set cloud flag for RRTMG
-      integer                   :: icld=0,iseed=10
+      integer                   :: ICLD=0,ISEED=10
       INTEGER                   :: RR
 
       ! Arrays
@@ -1087,12 +1087,11 @@
          IF ( ITS_TIME_FOR_CHEM() ) THEN
             CALL RECOMPUTE_OD( am_I_Root )
          ENDIF
-
 #if   defined( RRTMG )
          !==============================================================
          !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
          !==============================================================
-         IF (LRAD) THEN !LRAD
+         IF (LRAD) THEN 
          IF ( ITS_TIME_FOR_RT() ) THEN
          WRITE(6,*) 'CALLING RRTMG...'
          iseed=iseed+15
@@ -1109,14 +1108,14 @@
            !set all values to one for baseline RT calc
            CALL SET_SPECMASK(0)
            !First call for baseline (all aerosol and ozone)
-           CALL DO_RRTMG_RAD_TRANSFER( DAY,MONTH, ICLD, 0, iseed)
+           CALL DO_RRTMG_RAD_TRANSFER( DAY, MONTH, ICLD, 0, ISEED)
 
            !Second call with aerosols or ozone if requested
            DO N = 1, NSPECRADMENU
             IF (LSPECRADMENU(N).EQ.1) THEN
               !generate mask for species in RT
               CALL SET_SPECMASK(N)
-              CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD, N, iseed)
+              CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD, N, ISEED)
             ENDIF
            ENDDO
            ! Increment radiation timestep counter

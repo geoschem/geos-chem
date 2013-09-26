@@ -315,7 +315,6 @@
             YEAR       = 0
             WAVELENGTH = 0
             CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
- 
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSSALT ) THEN
              
@@ -797,7 +796,6 @@
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
                CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
-
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 
                   CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDAER' )

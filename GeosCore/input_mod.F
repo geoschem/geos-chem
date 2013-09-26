@@ -4056,10 +4056,18 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:69' )
       READ( SUBSTRS(1), * ) ND71
+
       !output fields are nspecies*nradfields but user can only specify
       !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
       !divided by number of allowed species (PD71R)
       CALL SET_TINDEX( am_I_Root, 71, ND71, SUBSTRS(2:N), N-1, PD71R )
+
+      !If LRAD is on then ND71 must be on (so the diagnostic is
+      !available to write into). Check for this
+      IF ((LRAD.eq..TRUE.).AND.(ND71.EQ.0)) THEN
+       MSG = 'If LRAD is true then ND71 diagnostic must be switched on'
+       CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
+      ENDIF
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:70' )

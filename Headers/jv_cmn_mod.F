@@ -48,7 +48,7 @@
       INTEGER, PARAMETER :: NP      = 56
       INTEGER, PARAMETER :: MX      = 35
       ! number of wavelengths in optics LUT
-      INTEGER, PARAMETER :: NWV     = 61
+      INTEGER, PARAMETER :: NWV     = 41
       ! number of aerosol sizes in LUT
       INTEGER, PARAMETER :: NR      = 7
       ! number of aerosol types in LUT
@@ -250,6 +250,7 @@
       INTEGER, PARAMETER :: MX      = 35
 
       INTEGER, PARAMETER :: NWVAA   = 41 !number of wavelengths in LUT
+      INTEGER, PARAMETER :: NWVAA0  = 11 !number of non-RRTMG wavelengths
       INTEGER, PARAMETER :: NRAA    = 7  !number of aer sizes in LUT
       INTEGER, PARAMETER :: NSPAA   = 6  !number of species in LUT
       INTEGER, PARAMETER :: NALBD   = 2
@@ -302,6 +303,7 @@
                            !(max=3)
       INTEGER :: NWVREQUIRED !number of wvs required for interpolation
       INTEGER :: IWVREQUIRED(6) !index of wavelengths for interp.
+      INTEGER :: IWV1000 !Store the wavelength index for 1000nm for Fast-J
       ! list of required wavelengths, up to max of 3 x 2
 
       !coefficients for interpolation of wavelength
