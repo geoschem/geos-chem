@@ -1030,9 +1030,18 @@
       !set default values for RH index array
       IRHARR(:,:,:)=1
 
-      ! DAR Sept 2012
-      ! if the call is from chemistry then only need to calc at 1000nm
-      ! not for all user specified wavelengths
+! DAR 09/2013
+! There are two ways RDAER can be called:
+! (1) When Fast-J requires aerosol optics at 1000nm (ODSWITCH=0)
+! (2) Before diags are accumulated, from RECOMPUTE_AOD (ODSWITCH=1) 
+! for (1) we just need the optics stored at a single wavelength
+!     not for all user specified wavelengths, hence NWVS=1, IWV=IWV1000
+! for (2) we need to determine if RRTMG is switched on
+!     if LRAD=true, calculation is over total minus standard wavelengths 
+!     in optics dat files (NWVAA-NWVAA0)
+!     if LRAD=false, calculation is for the wavelengths required for
+!     user-requested wavelength output. These are determined in CALC_AOD
+!     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to interpolate to the  
 
       IF (ODSWITCH .EQ. 0) THEN
        NWVS   = 1

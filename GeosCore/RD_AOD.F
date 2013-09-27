@@ -149,7 +149,7 @@
 ! in the optics LUT wavelengths and the coefficients required to
 ! calculate the angstrom exponent for interpolating to the requested
 ! wavelength. If the wavelength requested matches a standard wavelength
-! in the LUT then we skip the interpolation
+! in the LUT then we skip the interpolation (DAR 09/2013)
 !\\
 !\\
 ! !INTERFACE:
@@ -159,7 +159,7 @@
 #     include "define.h"
 
 
-      USE JV_CMN_MOD, ONLY : NWVAA, WVAA
+      USE JV_CMN_MOD, ONLY : NWVAA, NWVAA0, WVAA
       USE JV_CMN_MOD, ONLY : WVSELECT, IWVSELECT, NWVSELECT
       USE JV_CMN_MOD, ONLY : ACOEF_WV, BCOEF_WV, CCOEF_WV
       USE JV_CMN_MOD, ONLY : NWVREQUIRED, IWVREQUIRED
@@ -170,21 +170,30 @@
       INTEGER             :: MINWV, MAXWV, N, N0, N1, W, NSTEP
       REAL*8              :: WVDIF
 
-      !currently only allow one wavelength at once until all diagnostics
-      !updated for multiple wavelength outputs
-      !NWVSELECT = 2 !now defined by user input
+
+      !Now the user is able to select any 3 wavelengths for optics
+      !output in the input.geos file we need to be able to interpolate
+      !to those wavelengths based on what is available in the optics
+      !look-up table. 
+      !The standard lookup table currently has values for
+      !11 common wavelengths followed by 30 that are required by RRTMG.
+      !If RRTMG=no, only those required to interpolate to user requested
+      !values are selected from the standard wavelengths. 
+      !If RRTMG=yes then the 30 wavelengths required by RRTMG are used 
+      !to interpolate to the user requested wavelengths to minimize the 
+      !number of wavelengths for which optics are calculated. (DAR)
 
       !look for closest WV in LUT to the requested WV
       !If LRAD set then only looking at RT wavelengths so that we can output
       !combined optics direct from RT
       IF (LRAD) THEN
-       N0=12
+       N0=NWVAA0+1
        N1=NWVAA
        NSTEP=1
       ELSE
        !cycle over standard wavelengths
        N0=1
-       N1=11
+       N1=NWVAA0
        NSTEP=1
       ENDIF
       NWVREQUIRED=0
@@ -208,8 +217,6 @@
          MAXWV=0
          !add this wavelength to those for output
          NWVREQUIRED=NWVREQUIRED+1
-         !IWVSELECT(1,W)=N
-         !IWVSELECT(2,W)=N
          IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
         ELSE
          !we are going to have to interpolate to the requested wavelength
@@ -245,8 +252,7 @@
       ENDIF
       
       !now calcualte the angstrom exponent coefs for interpolation -
-      !this is done here to save time in aerosol_mod.F
-      !DO I=1,NWVS
+      !this is done here to save time and repetition in aerosol_mod.F
       IF (IWVSELECT(1,W).NE.IWVSELECT(2,W)) THEN
        ACOEF_WV(W) = WVAA(IWVSELECT(2,W),1)/WVSELECT(W)
        BCOEF_WV(W) =1.0d0/(LOG(WVAA(IWVSELECT(2,W),1)/
