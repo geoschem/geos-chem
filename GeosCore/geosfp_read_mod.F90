@@ -1729,6 +1729,9 @@ CONTAINS
 !----------------------------------------------------------------------------
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
+    ! Construct complete file path
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
 
@@ -1936,6 +1939,9 @@ CONTAINS
 #endif
 !----------------------------------------------------------------------------
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+    ! Construct complete file path
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
 
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
