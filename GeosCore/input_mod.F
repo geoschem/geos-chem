@@ -378,15 +378,12 @@
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root )
-
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
       CALL DO_GAMAP( DIAGINFO, TRACERINFO )
-
       ! Echo output
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       ENDIF
-
       END SUBROUTINE READ_INPUT_FILE
 !EOC
 !------------------------------------------------------------------------------
@@ -3486,7 +3483,7 @@
       USE LOGICAL_MOD,  ONLY : LBIOMASS,  LBIOFUEL,  LCARB, LCONV    
       USE LOGICAL_MOD,  ONLY : LDRYD,     LDUST,     LPRT,  LSULF    
       USE LOGICAL_MOD,  ONLY : LSSALT,    LTURB,     LWETD, LGFED2BB  
-      USE LOGICAL_MOD,  ONLY : LGFED3BB  
+      USE LOGICAL_MOD,  ONLY : LGFED3BB, LRAD 
       USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,        ITS_A_FULLCHEM_SIM

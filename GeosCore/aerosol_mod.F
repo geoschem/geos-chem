@@ -1041,31 +1041,33 @@
 !     in optics dat files (NWVAA-NWVAA0)
 !     if LRAD=false, calculation is for the wavelengths required for
 !     user-requested wavelength output. These are determined in CALC_AOD
-!     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to interpolate to the  
+!     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to 
+!     interpolate from the LUT wavelengths to the user-requested
+!     waveelenths (in CALC_AOD) are used here.
 
+      ! Select number of wavelengths required to loop over
       IF (ODSWITCH .EQ. 0) THEN
        NWVS   = 1
       ELSE
-       IF ( LRAD ) THEN !Loop over all RT wavelengths
+       IF ( LRAD ) THEN !Loop over all RT wavelengths (30)
         NWVS   = NWVAA-NWVAA0
-       ELSE
-        NWVS   = NWVREQUIRED !from RD_AOD, number of wavelengths needed
+       ELSE !Loop over wavelengths needed (from RD_AOD)
+        NWVS   = NWVREQUIRED
        ENDIF                 
       ENDIF
+
       DO IIWV = 1, NWVS
-       ! get current wavelength index
-       ! (specified by user or all wavelengths for RRTMG)
-       ! (1000nm always used for FAST-J and stored in first index)
-       
+       !now select the correct LUT wavelength
        IF (ODSWITCH .EQ. 0) THEN
         ! only doing for 1000nm (IWV1000 is set in RD_AOD)
         ! N.B. NWVS is fixed to 1 above - only one wavelength
         IWV=IWV1000
        ELSE
-        IF ( LRAD ) THEN !Loop over all RT wavelengths
+        IF ( LRAD ) THEN
+         ! RRTMG wavelengths begin after NWVAA0 standard wavelengths
          IWV = IIWV+NWVAA0
         ELSE
-         ! cycle through all requested wavelengths
+         ! IWVREQUIRED lists the index of requires standard wavelengths
          IWV = IWVREQUIRED(IIWV)
         ENDIF               
        ENDIF
@@ -1154,12 +1156,15 @@
             ! save the index of the relative humidity into array that is
             ! used by the photolysis to pull the right optics
             ! information from the jv_spec.dat
+            ! Previously the ODAER was organized by aerosol species and
+            ! each RH bin, but this leaves a lot of the array redundant
+            ! because only one RH bin is used at once
+            ! This becomes a waste of memory with multiple wavelengths
             IRHARR(I,J,L) = IRH
 
             ! For the NRHth bin, we don't have to interpolate
             ! For the other bins, we have to interpolate 
-
-            !Sometimes values can be zero, don't want to divide by 0...
+            ! Sometimes values can be zero, don't want to divide by 0...
             IF (AW(1).EQ.0.0) THEN
               AW0=1.0
             ELSE
@@ -1180,8 +1185,6 @@
             ELSE
               ASYW0=ASYW(1)
             ENDIF
-
-
 
             IF ( IRH == NRH ) THEN
                REFF   = RW(NRH)
@@ -1210,7 +1213,16 @@
             ODAER(I,J,L,IWV,N) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 
      &                        * WAERSL(I,J,L,N) * QQAA(IWV,1,N) / 
      &                        ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
-            
+
+            IF ((N.eq.2).or.(N.eq.3)) THEN
+            !now combine with hydrophilic OD as before
+            ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
+     &                           0.75d0 * BXHEIGHT(I,J,L) *
+     &                          DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
+     &                          ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+            ENDIF
+
+#if defined( RRTMG )            
             !SNA currently treated as one with optics but considered
             !separately for RT, so we split them by mass here
             IF (N.EQ.1) THEN
@@ -1235,13 +1247,8 @@
      &                          ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
             RTSSAER(I,J,L,IWV,NAER+NRT-1) = SSAA(IWV,1,N)
             RTASYMAER(I,J,L,IWV,NAER+NRT-1)=ASYMAA(IWV,1,N)
-
-            !now combine with hydrophilic OD as before
-            ODAER(I,J,L,IWV,N)=
-     &                              ODAER(I,J,L,IWV,N) +
-     &                              RTODAER(I,J,L,IWV,NAER+NRT-1)  
             ENDIF
-
+#endif
             !==============================================================
             ! ND21 Diagnostic: 
             !
@@ -1388,7 +1395,8 @@
             ! Aerosol Optical Depths [unitless]
             ! Scale of optical depths w/ RH
             !------------------------------------
-            DO W = 1, NWVSELECT !different to NWVSELECT if interp
+            DO W = 1, NWVSELECT 
+             !no interpolation required if these are the same
              IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
               LINTERP=.FALSE.
              ELSE
@@ -1429,17 +1437,6 @@
                ENDIF
              ENDIF
 
-               !--------------------------------------
-               ! ND21 tracer :  single scattering albedo (dar)
-               !--------------------------------------
-!               AD21(I,J,L,9+5*(N-1)) = AD21(I,J,L,9+5*(N-1)) +
-!     &                             RTSSAER(I,J,L,IWVSELECT(1),N)
-!
-               !--------------------------------------
-               ! ND21 tracer :  asymmetry parameter (dar)
-               !--------------------------------------
-!               AD21(I,J,L,10+5*(N-1)) = AD21(I,J,L,10+5*(N-1)) +
-!     &                             RTASYMAER(I,J,L,IWVSELECT(1),N)
             ENDDO
             ENDDO
             ENDDO

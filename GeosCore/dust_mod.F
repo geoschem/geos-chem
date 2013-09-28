@@ -1276,7 +1276,7 @@
             ODMDUST(I,J,L,IWV,N) = 0.75d0 * BXHEIGHT(I,J,L) * 
      &                         DUST(I,J,L,N) * QQAA(IWV,N,6)     / 
      &                        ( MSDENS(N) * RWAA(N,6) * 1.0D-6 )
-
+#if defined ( RRTMG )
             !add dust optics to the RT code arrays
             !SSA and ASYM copying seems a little redundant...
             !will keep this way for uniformity for now but
@@ -1284,7 +1284,7 @@
             RTODAER(I,J,L,IWV,NAER+4+N) = ODMDUST(I,J,L,IWV,N)
             RTSSAER(I,J,L,IWV,NAER+4+N) = SSAA(IWV,N,6)
             RTASYMAER(I,J,L,IWV,NAER+4+N) = ASYMAA(IWV,N,6)
-
+#endif
       ENDDO
       ENDDO
       ENDDO

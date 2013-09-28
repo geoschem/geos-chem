@@ -4052,6 +4052,8 @@
          MWT  (T,69) = 0e0
          SCALE(T,69) = 1e0
       ENDIF
+
+#if defined ( RRTMG )
       !-------------------------------------
       ! Radiation outputs (ND71)
       !-------------------------------------
@@ -4193,7 +4195,7 @@
 
           ENDDO
       ENDIF
-
+#endif
 
       END SUBROUTINE INIT_TRACERINFO
 !EOC

@@ -323,14 +323,14 @@
 !     now we're storing RH indices references ODAER can be smaller
       REAL*8  :: ODAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER)
       INTEGER  :: IRHARR(IIPAR,JJPAR,LLPAR)
-
+#if defined( RRTMG )
       !to pass to RT code
       !one for each hydrophilic/hydrophobic aerosol and optical dust bin
       !and also sulfate, nitrate and ammonia are separate too
       REAL*8  :: RTODAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+4+NDUST)
       REAL*8  :: RTSSAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+4+NDUST)
       REAL*8  :: RTASYMAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+4+NDUST)
-
+#endif
       REAL*8  :: jfacta(JPMAX),zpdep(NW,7)
       INTEGER :: npdep,jpdep(NS),jind(JPMAX)
 
