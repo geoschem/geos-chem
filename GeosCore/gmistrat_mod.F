@@ -2187,131 +2187,83 @@
 
          ! Now perform trapezoidal scheme for particulates
          ! Calculate maximum allowable timestep (seconds)
-         SEDSTEP = BXMIN/VFALLMAX
-         IF(DTCHEM.le.SEDSTEP)THEN
-            NUMSEDSTEPS = 1
-            SEDSTEP = DTCHEM
-         ELSE
-            ! Will need to run iteratively
-            ! Calculate minimum necessary number of steps, limiting to
-            ! 10 steps if excessive
-            TEMPREAL = DTCHEM/SEDSTEP 
-            NUMSEDSTEPS = CEILING(TEMPREAL)
-            NUMSEDSTEPS = MIN(10,NUMSEDSTEPS)
-            SEDSTEP = DTCHEM/(NUMSEDSTEPS*1.d0)
-            VFALLMAX = BXMIN/SEDSTEP
-         ENDIF
-
-         !-----SDE DEBUG
-!         WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Post-STS H2O sum. for I, J: ',
-!     &                      I,J, SUM(STT(I,J,:,IDTH2O))
-!         WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Max fall velocity for I, J: ',
-!     &                      I,J,VFALLMAX
-         !-----SDE DEBUG
-
-         SEDSTEPLOOP: DO ISED=1,NUMSEDSTEPS
-            STARTPT = MAX(1,MINALT-1)
-            ! XPSC is the number of molecules tied up in solid particles
-            ! per m3 in a grid box
-            L = STARTPT
-            IF (STATE_PSC(I,J,L).lt.2) THEN
-               XNO3_0 = 0d0
-               XNAT_0 = 0d0
-               XICE_0 = 0d0
+         IF (VFALLMAX.gt.TINY(1d0)) THEN
+            SEDSTEP = BXMIN/VFALLMAX
+            IF(DTCHEM.le.SEDSTEP)THEN
+               NUMSEDSTEPS = 1
+               SEDSTEP = DTCHEM
             ELSE
-               XNO3_0 = STT(I,J,L,IDTNIT) * AIRMW / 
-     &                      (TRACER_MW_G(IDTNIT)*AD(I,J,L))
-               XNAT_0 = XNO3_0! * 4.d0
-               XICE_0 = (KG_AER(I,J,L,I_SPA)-
-     &              ((NATMW/TRACER_MW_G(IDTNIT))*
-     &             STT(I,J,L,IDTNIT)))*AIRMW/(ICEMW*AD(I,J,L))
+               ! Will need to run iteratively
+               ! Calculate minimum necessary number of steps, limiting to
+               ! 10 steps if excessive
+               TEMPREAL = DTCHEM/SEDSTEP 
+               NUMSEDSTEPS = CEILING(TEMPREAL)
+               NUMSEDSTEPS = MIN(10,NUMSEDSTEPS)
+               SEDSTEP = DTCHEM/(NUMSEDSTEPS*1.d0)
+               VFALLMAX = BXMIN/SEDSTEP
             ENDIF
+
             !-----SDE DEBUG
-            IF (XICE_0 .lt. 0d0) THEN
-               WRITE(6,'(a)') 'ERROR! L,XNO3 XNAT XICE KG AER:'
-               WRITE(6,'(I3,1x,4(E10.4,1x))') L,XNO3_0,XNAT_0,XICE_0,
-     &               KG_AER(I,J,L,I_SPA)
-               CALL ERROR_STOP('Negative mixing ratio!',
-     &                            'gmistrat_mod.F')
-            ENDIF
+!            WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Post-STS H2O sum. for I, J: ',
+!     &                         I,J, SUM(STT(I,J,:,IDTH2O))
+!            WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Max fall velocity for I, J: ',
+!     &                         I,J,VFALLMAX
             !-----SDE DEBUG
-            XPSC_0 = XNAT_0 + XICE_0
-            P_0 = 100.0d0 * GET_PCENTER(I,J,L)
-            INVAIR_0 = AIRMW/AD(I,J,L)
-            IF (L .lt. (LLPAR-1)) THEN
-               INVAIR_ABOVE = AIRMW/AD(I,J,L+1)
-               IF (STATE_PSC(I,J,L+1).lt.2) THEN
-                  XNO3_ABOVE = 0d0
-                  XNAT_ABOVE = 0d0
-                  XICE_ABOVE = 0d0
+
+            SEDSTEPLOOP: DO ISED=1,NUMSEDSTEPS
+               STARTPT = MAX(1,MINALT-1)
+               ! XPSC is the number of molecules tied up in solid particles
+               ! per m3 in a grid box
+               L = STARTPT
+               IF (STATE_PSC(I,J,L).lt.2) THEN
+                  XNO3_0 = 0d0
+                  XNAT_0 = 0d0
+                  XICE_0 = 0d0
                ELSE
-                  XNO3_ABOVE = STT(I,J,L+1,IDTNIT) * INVAIR_ABOVE / 
-     &                                (TRACER_MW_G(IDTNIT))
-                  ! NAT = HNO3.3H2O = 4 molecules
-                  XNAT_ABOVE = XNO3_ABOVE! * 4.d0
-!                  XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-STT(I,J,L+1,IDTNIT))
-!     &                                       *INVAIR_ABOVE/ICEMW
-                  XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-
-     &                ((NATMW/TRACER_MW_G(IDTNIT))*
-     &                STT(I,J,L+1,IDTNIT)))*INVAIR_ABOVE/ICEMW
+                  XNO3_0 = STT(I,J,L,IDTNIT) * AIRMW / 
+     &                         (TRACER_MW_G(IDTNIT)*AD(I,J,L))
+                  XNAT_0 = XNO3_0! * 4.d0
+                  XICE_0 = (KG_AER(I,J,L,I_SPA)-
+     &                 ((NATMW/TRACER_MW_G(IDTNIT))*
+     &                STT(I,J,L,IDTNIT)))*AIRMW/(ICEMW*AD(I,J,L))
                ENDIF
-               XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
-               P_ABOVE = 100.0d0 * GET_PCENTER(I,J,L+1)
-               PSEDABOVE = VNAT(L+1)*SEDSTEP*1.d2*
-     &      (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))/BXHEIGHT(I,J,L+1)
-!               PSEDABOVE=g0 * (1.0d3*AIRMW) * P_ABOVE * 
-!     &            VNAT(L+1) / (Rd * T(I,J,L+1))*SEDSTEP
-            ELSE
-               INVAIR_ABOVE = 1.0d0
-               XNO3_ABOVE = 0.0d0
-               XNAT_ABOVE = 0.0d0
-               XICE_ABOVE = 0.0d0
-               XPSC_ABOVE = 0.0d0
-               P_ABOVE = GET_PEDGE(I,J,L+2) * 100.0d0
-               PSEDABOVE = 0.0d0
-            ENDIF
-            ABOVEGRAD = (XPSC_ABOVE-XPSC_0)/(P_0-P_ABOVE)
-            SED_LLOOP: DO L=STARTPT,MAXALT
-               ! Actually calculating sedimentation for the box above this
-               ! one. By the time we get around to processing a given
-               ! box, it is actually the (i-1)th box
-               ! We are therefore concerned with calculating
-               ! sedimentation *out* of the box above us and *into* this
-               ! one
-               XNO3_BELOW = XNO3_0
-               XNAT_BELOW = XNAT_0
-               XICE_BELOW = XICE_0
-               XPSC_BELOW = XPSC_0
-               XNO3_0 = XNO3_ABOVE
-               XNAT_0 = XNAT_ABOVE
-               XICE_0 = XICE_ABOVE
-               XPSC_0 = XPSC_ABOVE
-               P_0 = P_ABOVE
-               PSED0 = PSEDABOVE
-               INVAIR_0 = INVAIR_ABOVE
-               
-               IF (L.lt.(LLPAR-1)) THEN
-                  INVAIR_ABOVE = AIRMW/AD(I,J,L+2)
-                  IF (STATE_PSC(I,J,L+2).ge.2) THEN
-                     XNO3_ABOVE = STT(I,J,L+2,IDTNIT) * INVAIR_ABOVE / 
-     &                             TRACER_MW_G(IDTNIT)
-                     XNAT_ABOVE = XNO3_ABOVE! * 4.d0
-                     XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)-
-     &                   ((NATMW/TRACER_MW_G(IDTNIT))*
-     &                   STT(I,J,L+2,IDTNIT)))*INVAIR_ABOVE/ICEMW
-                  ELSE
+               !-----SDE DEBUG
+               IF (XICE_0 .lt. 0d0) THEN
+                  WRITE(6,'(a)') 'ERROR! L,XNO3 XNAT XICE KG AER:'
+                  WRITE(6,'(I3,1x,4(E10.4,1x))') L,XNO3_0,XNAT_0,XICE_0,
+     &                  KG_AER(I,J,L,I_SPA)
+                  CALL ERROR_STOP('Negative mixing ratio!',
+     &                               'gmistrat_mod.F')
+               ENDIF
+               !-----SDE DEBUG
+               XPSC_0 = XNAT_0 + XICE_0
+               P_0 = 100.0d0 * GET_PCENTER(I,J,L)
+               INVAIR_0 = AIRMW/AD(I,J,L)
+               IF (L .lt. (LLPAR-1)) THEN
+                  INVAIR_ABOVE = AIRMW/AD(I,J,L+1)
+                  IF (STATE_PSC(I,J,L+1).lt.2) THEN
                      XNO3_ABOVE = 0d0
                      XNAT_ABOVE = 0d0
                      XICE_ABOVE = 0d0
+                  ELSE
+                     XNO3_ABOVE = STT(I,J,L+1,IDTNIT) * INVAIR_ABOVE / 
+     &                                   (TRACER_MW_G(IDTNIT))
+                     ! NAT = HNO3.3H2O = 4 molecules
+                     XNAT_ABOVE = XNO3_ABOVE! * 4.d0
+!                     XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-STT(I,J,L+1,IDTNIT))
+!     &                                          *INVAIR_ABOVE/ICEMW
+                     XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-
+     &                   ((NATMW/TRACER_MW_G(IDTNIT))*
+     &                   STT(I,J,L+1,IDTNIT)))*INVAIR_ABOVE/ICEMW
                   ENDIF
                   XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
-                  P_ABOVE = GET_PCENTER(I,J,L+2) * 100.0d0
-                  PSEDABOVE=VNAT(L+2)*SEDSTEP*1.d2*(GET_PEDGE(I,J,L+2)-
-     &               GET_PEDGE(I,J,L+3))/BXHEIGHT(I,J,L+2)
-!                  PSEDABOVE = g0 * (1.0d3*AIRMW) * P_ABOVE *
-!     &               VNAT(L+2)/(Rd * T(I,J,L+2))*SEDSTEP
+                  P_ABOVE = 100.0d0 * GET_PCENTER(I,J,L+1)
+                  PSEDABOVE = VNAT(L+1)*SEDSTEP*1.d2*
+     &         (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))/BXHEIGHT(I,J,L+1)
+!                  PSEDABOVE=g0 * (1.0d3*AIRMW) * P_ABOVE * 
+!     &               VNAT(L+1) / (Rd * T(I,J,L+1))*SEDSTEP
                ELSE
-                  INVAIR_ABOVE = 0.0d0
+                  INVAIR_ABOVE = 1.0d0
                   XNO3_ABOVE = 0.0d0
                   XNAT_ABOVE = 0.0d0
                   XICE_ABOVE = 0.0d0
@@ -2319,135 +2271,188 @@
                   P_ABOVE = GET_PEDGE(I,J,L+2) * 100.0d0
                   PSEDABOVE = 0.0d0
                ENDIF
-               ! Note reversal of pressure values as pressure falls with
-               ! height. If a value is positive, PSC particle substance
-               ! mixing ratios are increasing with height, and vice versa
-               BELOWGRAD = ABOVEGRAD
                ABOVEGRAD = (XPSC_ABOVE-XPSC_0)/(P_0-P_ABOVE)
-
-               ! NB: Order of following conditionals is important! Could
-               ! theoretically do without localprofile as a variable, but
-               ! should be sure to check for the possible (but phenomenally
-               ! unlikely) condition that the gradients are both zero
-               IF ((ABOVEGRAD .eq. 0d0) .and. (BELOWGRAD .eq. 0d0)) THEN
-                  ! Extremelely unlikely case, but use standard scheme
-                  ! for flat vertical profile
-                  LOCALPROFILE = 0
-               ELSEIF ((ABOVEGRAD .le. 0d0) .and.
-     &                  (BELOWGRAD .le. 0d0)) THEN
-                  ! Consistently decreasing with height - above a peak
-                  LOCALPROFILE = -1
-               ELSEIF ((ABOVEGRAD .ge. 0d0) .and. 
-     &                  (BELOWGRAD .ge. 0d0)) THEN
-                  ! Consistently increasing with height - below a peak
-                  LOCALPROFILE = +1
-               ELSE
-                  ! Local minmum or maximum
-                  LOCALPROFILE = 0
-               ENDIF
-
-               IF (LOCALPROFILE.eq.0) THEN
-                  ! Standard sedimentation scheme
-                  SEDQUANT = XPSC_0 * PSED0
-                  SEDNO3   = XNO3_0 * PSED0
-                  SEDICE   = XICE_0 * PSED0
-               ELSEIF (LOCALPROFILE.eq.1) THEN
-                  ! Currently below a peak
-                  ! Use gradient of bottom and centre boxes
-                  IF (XPSC_0 .le. (0.5d0 * XPSC_ABOVE)) THEN
-                     ! Interpret as nearing peak; use lower gradient
-                     SEDQUANT = (XPSC_0+XPSC_BELOW)*0.5d0*PSED0
-                     SEDNO3   = (XNO3_BELOW+XNO3_0)*0.50*PSED0
-                     SEDICE   = (XICE_BELOW+XICE_0)*0.50*PSED0
+               SED_LLOOP: DO L=STARTPT,MAXALT
+                  ! Actually calculating sedimentation for the box above this
+                  ! one. By the time we get around to processing a given
+                  ! box, it is actually the (i-1)th box
+                  ! We are therefore concerned with calculating
+                  ! sedimentation *out* of the box above us and *into* this
+                  ! one
+                  XNO3_BELOW = XNO3_0
+                  XNAT_BELOW = XNAT_0
+                  XICE_BELOW = XICE_0
+                  XPSC_BELOW = XPSC_0
+                  XNO3_0 = XNO3_ABOVE
+                  XNAT_0 = XNAT_ABOVE
+                  XICE_0 = XICE_ABOVE
+                  XPSC_0 = XPSC_ABOVE
+                  P_0 = P_ABOVE
+                  PSED0 = PSEDABOVE
+                  INVAIR_0 = INVAIR_ABOVE
+                  
+                  IF (L.lt.(LLPAR-1)) THEN
+                     INVAIR_ABOVE = AIRMW/AD(I,J,L+2)
+                     IF (STATE_PSC(I,J,L+2).ge.2) THEN
+                        XNO3_ABOVE = STT(I,J,L+2,IDTNIT)*INVAIR_ABOVE/ 
+     &                                TRACER_MW_G(IDTNIT)
+                        XNAT_ABOVE = XNO3_ABOVE! * 4.d0
+                        XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)-
+     &                      ((NATMW/TRACER_MW_G(IDTNIT))*
+     &                      STT(I,J,L+2,IDTNIT)))*INVAIR_ABOVE/ICEMW
+                     ELSE
+                        XNO3_ABOVE = 0d0
+                        XNAT_ABOVE = 0d0
+                        XICE_ABOVE = 0d0
+                     ENDIF
+                     XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
+                     P_ABOVE = GET_PCENTER(I,J,L+2) * 100.0d0
+                     PSEDABOVE=VNAT(L+2)*SEDSTEP*1.d2*
+     &                  (GET_PEDGE(I,J,L+2)-GET_PEDGE(I,J,L+3))/
+     &                  BXHEIGHT(I,J,L+2)
+!                     PSEDABOVE = g0 * (1.0d3*AIRMW) * P_ABOVE *
+!     &                  VNAT(L+2)/(Rd * T(I,J,L+2))*SEDSTEP
                   ELSE
-                     SEDQUANT = (XPSC_ABOVE+XPSC_0)*0.50*PSED0
-                     SEDNO3   = (XNO3_ABOVE+XNO3_0)*0.50*PSED0
-                     SEDICE   = (XICE_ABOVE+XICE_0)*0.50*PSED0
+                     INVAIR_ABOVE = 0.0d0
+                     XNO3_ABOVE = 0.0d0
+                     XNAT_ABOVE = 0.0d0
+                     XICE_ABOVE = 0.0d0
+                     XPSC_ABOVE = 0.0d0
+                     P_ABOVE = GET_PEDGE(I,J,L+2) * 100.0d0
+                     PSEDABOVE = 0.0d0
                   ENDIF
-               ELSE
-                  ! Above a peak
-                  SEDQUANT = (XPSC_0+XPSC_BELOW)*0.5d0*PSED0
-                  SEDNO3   = (XNO3_0+XNO3_BELOW)*0.5d0*PSED0
-                  SEDICE   = (XICE_0+XICE_BELOW)*0.5d0*PSED0
-               ENDIF
-               ! Divide sedimenting quantity by the pressure difference
-               ! across the box being sedimented from
-               ! Note conversion from hPa to Pa for denominator, ie
-               ! multiply numerator by (1/100)
-               IF (L .ne. LLPAR) THEN
-                  SEDQUANT = (1.d-2) * SEDQUANT /
-     &               (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
-                  SEDNO3 = (1.d-2) * SEDNO3 / 
-     &               (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
-                  SEDICE = (1.d-2) * SEDICE / 
-     &               (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
-               ELSE
-                  ! This shouldn't be possible?
-                  CALL ERROR_STOP('Unknown sedimentation error',
-     &                            'gmistrat_mod.F')
-               ENDIF
-         
-               ! Apply limits so that sedimented quantity is:
-               ! Greater than or equal to zero
-               ! Less than or equal to the total available quantity
+                  ! Note reversal of pressure values as pressure falls with
+                  ! height. If a value is positive, PSC particle substance
+                  ! mixing ratios are increasing with height, and vice versa
+                  BELOWGRAD = ABOVEGRAD
+                  ABOVEGRAD = (XPSC_ABOVE-XPSC_0)/(P_0-P_ABOVE)
 
-               ! Note that we are calculating sedimentation using
-               ! the total ice and NAT, but are only actually
-               ! transporting the local NO3
-               SEDQUANT = MAX(0.0d0,SEDQUANT)
-               SEDNO3 = MAX(0.0d0,SEDNO3)
-               SEDICE = MAX(0.0d0,SEDICE)
-               
-               !-----SDE DEBUG
-               ! Convert v/v to kg/box
-               SEDNO3 = SEDNO3*TRACER_MW_G(IDTNIT)/INVAIR_0
-               SEDICE = SEDICE*ICEMW/INVAIR_0
-               
-               SEDNO3 = MIN(SEDNO3,STT(I,J,L+1,IDTNIT))
-               STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) + SEDNO3
-               STT(I,J,L+1,IDTNIT)=STT(I,J,L+1,IDTNIT)-SEDNO3
+                  ! NB: Order of following conditionals is important! Could
+                  ! theoretically do without localprofile as a variable, but
+                  ! should be sure to check for the possible (but phenomenally
+                  ! unlikely) condition that the gradients are both zero
+                  IF ((ABOVEGRAD .eq. 0d0) .and. 
+     &                            (BELOWGRAD .eq. 0d0)) THEN
+                     ! Extremelely unlikely case, but use standard scheme
+                     ! for flat vertical profile
+                     LOCALPROFILE = 0
+                  ELSEIF ((ABOVEGRAD .le. 0d0) .and.
+     &                     (BELOWGRAD .le. 0d0)) THEN
+                     ! Consistently decreasing with height - above a peak
+                     LOCALPROFILE = -1
+                  ELSEIF ((ABOVEGRAD .ge. 0d0) .and. 
+     &                     (BELOWGRAD .ge. 0d0)) THEN
+                     ! Consistently increasing with height - below a peak
+                     LOCALPROFILE = +1
+                  ELSE
+                     ! Local minmum or maximum
+                     LOCALPROFILE = 0
+                  ENDIF
 
-               ! Settle the ice out too
-               SEDH2O = MIN(SEDICE,STT(I,J,L+1,IDTH2O))
-               STT(I,J,L,IDTH2O) = STT(I,J,L,IDTH2O) + SEDH2O
-               STT(I,J,L+1,IDTH2O)=STT(I,J,L+1,IDTH2O)-SEDH2O
+                  IF (LOCALPROFILE.eq.0) THEN
+                     ! Standard sedimentation scheme
+                     SEDQUANT = XPSC_0 * PSED0
+                     SEDNO3   = XNO3_0 * PSED0
+                     SEDICE   = XICE_0 * PSED0
+                  ELSEIF (LOCALPROFILE.eq.1) THEN
+                     ! Currently below a peak
+                     ! Use gradient of bottom and centre boxes
+                     IF (XPSC_0 .le. (0.5d0 * XPSC_ABOVE)) THEN
+                        ! Interpret as nearing peak; use lower gradient
+                        SEDQUANT = (XPSC_0+XPSC_BELOW)*0.5d0*PSED0
+                        SEDNO3   = (XNO3_BELOW+XNO3_0)*0.50*PSED0
+                        SEDICE   = (XICE_BELOW+XICE_0)*0.50*PSED0
+                     ELSE
+                        SEDQUANT = (XPSC_ABOVE+XPSC_0)*0.50*PSED0
+                        SEDNO3   = (XNO3_ABOVE+XNO3_0)*0.50*PSED0
+                        SEDICE   = (XICE_ABOVE+XICE_0)*0.50*PSED0
+                     ENDIF
+                  ELSE
+                     ! Above a peak
+                     SEDQUANT = (XPSC_0+XPSC_BELOW)*0.5d0*PSED0
+                     SEDNO3   = (XNO3_0+XNO3_BELOW)*0.5d0*PSED0
+                     SEDICE   = (XICE_0+XICE_BELOW)*0.5d0*PSED0
+                  ENDIF
+                  ! Divide sedimenting quantity by the pressure difference
+                  ! across the box being sedimented from
+                  ! Note conversion from hPa to Pa for denominator, ie
+                  ! multiply numerator by (1/100)
+                  IF (L .ne. LLPAR) THEN
+                     SEDQUANT = (1.d-2) * SEDQUANT /
+     &                  (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+                     SEDNO3 = (1.d-2) * SEDNO3 / 
+     &                  (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+                     SEDICE = (1.d-2) * SEDICE / 
+     &                  (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+                  ELSE
+                     ! This shouldn't be possible?
+                     CALL ERROR_STOP('Unknown sedimentation error',
+     &                               'gmistrat_mod.F')
+                  ENDIF
+            
+                  ! Apply limits so that sedimented quantity is:
+                  ! Greater than or equal to zero
+                  ! Less than or equal to the total available quantity
 
-               ! Now correct aerosol totals
-               SEDNAT = SEDNO3*NATMW/TRACER_MW_G(IDTNIT)
-               SEDPSC = SEDNAT + SEDICE
-               SEDPSC = MIN(SEDPSC,KG_AER(I,J,L+1,I_SPA))
-               KG_AER(I,J,L,I_SPA) = KG_AER(I,J,L,I_SPA) + SEDPSC
-               KG_AER(I,J,L+1,I_SPA)=KG_AER(I,J,L+1,I_SPA)-SEDPSC
-               !-----SDE DEBUG
-               
-               ! Store for debug
-               FRACLOSS = SEDH2O/STT(I,J,L+1,IDTH2O)
-               IF (FRACLOSS .gt. MAXLOSS) THEN
-                  MAXLOSS = FRACLOSS
-                  D_ICE0 = XICE_0*ICEMW/INVAIR_0
-                  D_ICE1 = D_ICE0 - SEDICE
-                  D_H2O1 = STT(I,J,L+1,IDTH2O)
-                  D_H2O0 = D_H2O1 + SEDH2O
-                  D_NAT1 = STT(I,J,L+1,IDTNIT)*NATMW/TRACER_MW_G(IDTNIT)
-                  D_NAT0 = D_NAT1 + SEDNAT
-                  D_HNO3 = STT(I,J,L+1,IDTHNO3)
-                  D_RMAX = RAD_AER(I,J,L+1,I_SPA)
-                  D_VMAX = VNAT(L+1)
-                  D_SEDQ = SEDQUANT
-                  D_PSED = PSED0
-                  D_XH2O = D_H2O0*INVAIR_0/ICEMW
-                  D_XHNO3= D_HNO3*INVAIR_0/TRACER_MW_G(IDTHNO3)
-                  D_XNAT = D_NAT0*INVAIR_0/NATMW
-                  D_PPA  = P_0
-                  D_TK   = TEMP
-               ENDIF
+                  ! Note that we are calculating sedimentation using
+                  ! the total ice and NAT, but are only actually
+                  ! transporting the local NO3
+                  SEDQUANT = MAX(0.0d0,SEDQUANT)
+                  SEDNO3 = MAX(0.0d0,SEDNO3)
+                  SEDICE = MAX(0.0d0,SEDICE)
+                  
+                  !-----SDE DEBUG
+                  ! Convert v/v to kg/box
+                  SEDNO3 = SEDNO3*TRACER_MW_G(IDTNIT)/INVAIR_0
+                  SEDICE = SEDICE*ICEMW/INVAIR_0
+                  
+                  SEDNO3 = MIN(SEDNO3,STT(I,J,L+1,IDTNIT))
+                  STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) + SEDNO3
+                  STT(I,J,L+1,IDTNIT)=STT(I,J,L+1,IDTNIT)-SEDNO3
 
-            ENDDO SED_LLOOP
-         ENDDO SEDSTEPLOOP
+                  ! Settle the ice out too
+                  SEDH2O = MIN(SEDICE,STT(I,J,L+1,IDTH2O))
+                  STT(I,J,L,IDTH2O) = STT(I,J,L,IDTH2O) + SEDH2O
+                  STT(I,J,L+1,IDTH2O)=STT(I,J,L+1,IDTH2O)-SEDH2O
+
+                  ! Now correct aerosol totals
+                  SEDNAT = SEDNO3*NATMW/TRACER_MW_G(IDTNIT)
+                  SEDPSC = SEDNAT + SEDICE
+                  SEDPSC = MIN(SEDPSC,KG_AER(I,J,L+1,I_SPA))
+                  KG_AER(I,J,L,I_SPA) = KG_AER(I,J,L,I_SPA) + SEDPSC
+                  KG_AER(I,J,L+1,I_SPA)=KG_AER(I,J,L+1,I_SPA)-SEDPSC
+                  !-----SDE DEBUG
+                  
+                  ! Store for debug
+                  FRACLOSS = SEDH2O/STT(I,J,L+1,IDTH2O)
+                  IF (FRACLOSS .gt. MAXLOSS) THEN
+                     MAXLOSS = FRACLOSS
+                     D_ICE0 = XICE_0*ICEMW/INVAIR_0
+                     D_ICE1 = D_ICE0 - SEDICE
+                     D_H2O1 = STT(I,J,L+1,IDTH2O)
+                     D_H2O0 = D_H2O1 + SEDH2O
+                     D_NAT1 = STT(I,J,L+1,IDTNIT)*NATMW/
+     &                                   TRACER_MW_G(IDTNIT)
+                     D_NAT0 = D_NAT1 + SEDNAT
+                     D_HNO3 = STT(I,J,L+1,IDTHNO3)
+                     D_RMAX = RAD_AER(I,J,L+1,I_SPA)
+                     D_VMAX = VNAT(L+1)
+                     D_SEDQ = SEDQUANT
+                     D_PSED = PSED0
+                     D_XH2O = D_H2O0*INVAIR_0/ICEMW
+                     D_XHNO3= D_HNO3*INVAIR_0/TRACER_MW_G(IDTHNO3)
+                     D_XNAT = D_NAT0*INVAIR_0/NATMW
+                     D_PPA  = P_0
+                     D_TK   = TEMP
+                  ENDIF
+
+               ENDDO SED_LLOOP
+            ENDDO SEDSTEPLOOP
          !-----SDE DEBUG
 !         WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Post-PSC H2O sum. for I, J: ',
 !     &                      I,J, SUM(STT(I,J,:,IDTH2O))
          !-----SDE DEBUG
+         ENDIF ! VFALLMAX > 0
 
       ENDDO
       ENDDO
