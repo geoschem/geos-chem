@@ -685,7 +685,15 @@
       var_array(3) = o3 / dens * 1.E9                 ! [O3] in ppbv
       var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))    ! alfa0
       var_array(5) = ASIND(SUNCOS_MID(IJLOOP))        ! alfa5
-      var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% THIS BUG FIX WAS APPLIED IN GEOS-CHEM v9-02 (bmy, 10/2/13)
+!%%% Prevent a div-by-zero condition
+      IF ( jvalues(I,J,1) > 0e0 ) THEN 
+         var_array(6) = jvalues(I,J,2) / jvalues(I,J,1) ! J(O1D)/J(NO2)
+      ELSE
+         var_array(6) = 0d0
+      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       var_array(7) = (no + no2) / dens * 1.E12        ! [NOx] in pptv
       
       ! prevent NaN when jvalues are 0.
