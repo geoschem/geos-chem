@@ -121,6 +121,21 @@
       iwc = CLDF * ( QI * 1d3 * dens_ice )
 #endif
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% THIS FIX WAS ADDED IN GEOS-Chem v9-02p.  It prevents div-by-zero.
+!%%% (bmy, 10/2/13)
+!%%%
+      !%%% ERROR CHECK!  Do not let IWC<=0 because it will cause the
+      !%%% LOG10 statement in the upcoming section (bmy, 10/23/12)
+      IF ( .not. ( IWC > 0d0 ) ) THEN
+         gamma  = 0.d0
+         k_hbr  = 0.d0
+         k_hobr = 0.d0
+         RETURN
+      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
       ! ----------------------------------------------
       ! calculate the temperature dependent reactive
       ! uptake coefficient for HBr + HOBr + ice.

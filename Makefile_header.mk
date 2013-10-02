@@ -233,6 +233,15 @@ ifneq ($(UNAME),Darwin)
 FFLAGS    += -mcmodel=medium -i-dynamic
 endif
 
+#------------------------------------------------------------------------------
+# Bob Y. added this for debugging (bmy, 10/2/13)
+# Turn on checking for floating-point exceptions
+REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
+FFLAGS         += -fpe0 -ftrapuv
+endif
+#------------------------------------------------------------------------------
+
 # Prevent any optimizations that would change numerical results
 # This is needed to prevent numerical noise from ISORROPIA (bmy, 8/25/11)
 ifeq ($(PRECISE),yes)

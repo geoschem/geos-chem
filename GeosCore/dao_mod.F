@@ -604,7 +604,9 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2      = GET_AREA_M2( I, J, L )
+!%%% FIX FROM v9-02
+!%%%         AREA_M2      = GET_AREA_M2( I, J, L )
+         AREA_M2      = GET_AREA_M2( I, J, 1 )
 
          ! Pressure at bottom edge of grid box [hPa]
          P1           = GET_PEDGE_FULLGRID( I, J, L )

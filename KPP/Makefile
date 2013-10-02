@@ -130,7 +130,7 @@ realclean:
 	@$(MAKE) -C SOA clean
 	@$(MAKE) -C isoprene clean
 	@$(MAKE) -C gcu clean
-	@$(MAKE) -C gcu_h2 clean
+#	@$(MAKE) -C gcu_h2 clean
 
 help:
 	@$(MAKE) -C $(HELP) 

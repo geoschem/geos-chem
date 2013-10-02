@@ -294,8 +294,13 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_M2 )
-      DO J = 1, IIPAR
-      DO I = 1, JJPAR
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: THIS WAS FIXED POST v9-01-03.  Loop limits were out-of-bounds
+!%%%      !DO J = 1, IIPAR
+!%%%      !DO I = 1, JJPAR
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! store the surface area of the box
          AREA_M2 = GET_AREA_M2( I, J, 1 )
