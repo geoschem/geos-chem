@@ -1560,8 +1560,10 @@
          DO L = 1, LD21
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD21(I,J,L,25+(3*ISTRAT)) = ODAER(I,J,L,IRHN)
-            AD21(I,J,L,27+(3*ISTRAT)) = NDENS_AER(I,J,L,ISTRAT)*1.d-6
+            AD21(I,J,L,25+(3*ISTRAT)) = AD21(I,J,L,25+(3*ISTRAT)) + 
+     &                               ODAER(I,J,L,IRHN)
+            AD21(I,J,L,27+(3*ISTRAT)) = AD21(I,J,L,27+(3*ISTRAT)) + 
+     &                               NDENS_AER(I,J,L,ISTRAT)*1.d-6
          ENDDO
          ENDDO
          ENDDO
@@ -1574,7 +1576,8 @@
 
                ! Add aerosol surface areas 
                IF ( L <= LD21 ) THEN
-                  AD21(I,J,L,26+(3*ISTRAT)) = TAREA(JLOOP,N+NDUST)
+                  AD21(I,J,L,26+(3*ISTRAT)) = AD21(I,J,L,26+(3*ISTRAT))+
+     &                               TAREA(JLOOP,N+NDUST)
                ENDIF 
          ENDDO
 

@@ -1300,6 +1300,19 @@ CONTAINS
 
           ! Some species names don't exactly match GEOS-Chem names
           !IF ( TRIM(GMI_TrName(NN)) .eq. 'BrONO2' ) sname = 'BrNO3'
+          ! Need to line up CFCs correctly
+          IF ( TRIM(GMI_TrName(NN)) .eq. 'CF2Br2' ) THEN
+              sname = 'H1202'
+          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CF2Cl2' ) THEN
+              sname = 'CFC12'
+          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CF2ClBr' ) THEN
+              sname = 'H1211'
+          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CF3Br' ) THEN
+              sname = 'H1311'
+          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CFCl3' ) THEN
+              sname = 'CFC11'
+          ENDIF
+ 
 
           DO N = 1, N_TRACERS
 
