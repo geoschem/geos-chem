@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Tue Mar 26 18:15:39 2013
-! Working directory    : /net/d03/data/seb_data/GEOS-Chem/simulations/StratChem/Strat_v1.01/chemEdit/KPP_Compile
+! Time                 : Tue Sep  3 18:25:31 2013
+! Working directory    : /net/d08/data/seastham/GEOS-Chem/simulations/StratChem/Strat_v1.01/KPP_Compile
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -39,7 +39,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
-!      EQUIVALENCE( C(139),FIX(1) )
+!      EQUIVALENCE( C(173),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
