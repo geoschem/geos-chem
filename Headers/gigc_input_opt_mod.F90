@@ -220,7 +220,6 @@ MODULE GIGC_Input_Opt_Mod
      ! CHEMISTRY MENU fields
      !----------------------------------------
      LOGICAL                     :: LTRAN
-     LOGICAL                     :: LMFCT
      LOGICAL                     :: LFILL
      LOGICAL                     :: TPCORE_IORD
      LOGICAL                     :: TPCORE_JORD
@@ -593,7 +592,7 @@ MODULE GIGC_Input_Opt_Mod
 !                              remove LAIRNOX field
 !  13 Aug 2013 - M. Sulprizio- Add extra fields for semivolatile POA (H. Pye)
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
-
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -879,7 +878,6 @@ CONTAINS
     ! CHEMISTRY MENU fields
     !----------------------------------------
     Input_Opt%LTRAN                  = .FALSE.
-    Input_Opt%LMFCT                  = .FALSE.
     Input_Opt%LFILL                  = .FALSE.
     Input_Opt%TPCORE_IORD            = .FALSE.
     Input_Opt%TPCORE_JORD            = .FALSE.

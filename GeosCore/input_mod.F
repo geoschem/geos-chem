@@ -3684,7 +3684,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE LOGICAL_MOD,        ONLY : LFILL
-      USE LOGICAL_MOD,        ONLY : LMFCT
       USE LOGICAL_MOD,        ONLY : LTRAN
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
@@ -3725,6 +3724,8 @@
 !                              we are connecting to the GEOS-5 GCM
 !  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
 !                              to ACCEPT_EXTERNAL_DATE_TIME
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete option for flux correction. This
+!                              was used for GEOS-3, which has been retired.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3750,10 +3751,6 @@
       ! Turn on transport?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:1' )
       READ( SUBSTRS(1:N), * ) LTRAN
-
-      ! Do flux-corrected transport?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:2' )
-      READ( SUBSTRS(1:N), * ) LMFCT
 
       ! Fill negative values
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:3' )
@@ -3801,7 +3798,6 @@
       ! Set fields of Input Options object
       !=================================================================
       Input_Opt%LTRAN       = LTRAN
-      Input_Opt%LMFCT       = LMFCT
       Input_Opt%LFILL       = LFILL
       Input_Opt%TPCORE_IORD = IORD
       Input_Opt%TPCORE_JORD = JORD
@@ -3867,7 +3863,6 @@
          WRITE( 6, '(/,a)' ) 'TRANSPORT MENU'
          WRITE( 6, '(  a)' ) '--------------'
          WRITE( 6, 100     ) 'Turn on transport?          : ', LTRAN
-         WRITE( 6, 100     ) 'Use TPCORE flux-correction? : ', LMFCT
          WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ', LFILL
          WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
      &                                                   JORD, KORD
@@ -8617,7 +8612,6 @@
       LTOMSAI        = .FALSE.
       LWOODCO        = .FALSE.
       LFILL          = .FALSE.
-      LMFCT          = .FALSE.
       LTRAN          = .FALSE.
       LTPFV          = .FALSE.
       LWINDO         = .FALSE.

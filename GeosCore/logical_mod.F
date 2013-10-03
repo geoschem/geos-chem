@@ -77,6 +77,7 @@
 !                              simulation to Headers/gigc_input_opt_mod.F90
 !  13 Aug 2013 - M. Sulprizio- Added LSVPOA switch for semivolatile POA (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -179,7 +180,6 @@
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
-      LOGICAL :: LMFCT           ! Turns TPCORE MFCT option on/off
       LOGICAL :: LTRAN           ! Turns advection on/off
       LOGICAL :: LTPFV           ! Are we using the GEOS-4 
       LOGICAL :: LWINDO          ! Use nested-grid simulation?
