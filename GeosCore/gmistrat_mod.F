@@ -37,6 +37,7 @@
       REAL*8,             PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
                           PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
                           PUBLIC :: NDENS_AER ! See below
+      INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
       REAL*8,             PUBLIC :: GE_TGS ! TgS/year to deliver
       REAL*8,             PUBLIC :: GE_PBASE ! Geoengineering delivery base (hPa)
       REAL*8,             PUBLIC :: GE_PCEIL ! Geoengineering delivery ceiling (hPa)
@@ -114,6 +115,7 @@
       ! N_EMIT             : Number of tracers to emit
       ! MAX_EMIT           : Limit on tracer emission count
       ! SFC_MONTH          : Current month
+      ! OFFSETYEAR         : Number of year-ends since simulation start
       ! SLA_VA             : SLA volume-area conversion
       ! SLA_RR             : SLA effective-liquid radius conversion
       ! SLA_VR             : SLA volume-effective radius conversion
@@ -166,6 +168,7 @@
       INTEGER                           :: N_EMIT
       INTEGER, PARAMETER                :: MAX_EMIT=50
       INTEGER                           :: SFC_MONTH
+      INTEGER                           :: OFFSETYEAR
       REAL*8                            :: SLA_VA
       REAL*8                            :: SLA_RR
       REAL*8                            :: SLA_VR
@@ -1421,6 +1424,7 @@
       USE TIME_MOD,     ONLY : GET_MONTH
       USE TRACER_MOD,   ONLY : STT, TCVV
       USE DAO_MOD,      ONLY : AD
+      USE LOGICAL_MOD,  ONLY : LFUTURECFC
 !
 ! !INPUT PARAMETERS:
 !
@@ -1442,6 +1446,7 @@
       INTEGER            :: I, J, N
       REAL*8             :: N2O_MULT,OCS_MULT,CFC_MULT,HCFC_MULT
       REAL*8             :: DT_YR
+      CHARACTER(LEN=255) :: OUTMSG
 
       !=================================================================
       ! EMISS_BASIC begins here!
@@ -1450,7 +1455,15 @@
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
           CALL READ_SFC
+          IF (GET_MONTH().lt.SFC_MONTH) THEN
+             OFFSETYEAR = OFFSETYEAR + 1
+          ENDIF
           SFC_MONTH    = GET_MONTH()
+          IF (LPRT) THEN
+             WRITE(OUTMSG,'(a,a,1x,I4)') ' ### GMISTRAT: ',
+     &          'Using Montreal reference year', (CFCYEAR+OFFSETYEAR)
+             CALL DEBUG_MSG( OUTMSG )
+          ENDIF
        END IF
   
       ! Loop over surface grid boxes
@@ -1600,6 +1613,8 @@
       ENDIF
 
       ! Simply apply the precalculated matrix
+      ! SDE DEBUG
+      GE_GLOBALVOL = SUM(SUM(SUM(STT(:,:,:,IDTSO2),3),2),1)
       DO J=JMIN,JMAX
       DO I=1,IIPAR
       DO L=GE_LMIN(I,J),GE_LMAX(I,J)
@@ -1607,6 +1622,12 @@
       ENDDO
       ENDDO
       ENDDO
+      IF (LPRT) THEN
+          WRITE(OUTMSG,'(a,1x,E10.4,1x,a)') 'Geoengineering emission: ',
+     &   (0.5d0*(SUM(SUM(SUM(STT(:,:,:,IDTSO2),3),2),1)-GE_GLOBALVOL)),
+     &          ' TgS'
+          CALL DEBUG_MSG(TRIM(OUTMSG))
+      ENDIF
 
       END SUBROUTINE EMIT_GEOENG
 !
@@ -1630,6 +1651,7 @@
 !
       USE TIME_MOD,       ONLY : GET_MONTH,GET_YEAR
       USE TRACERID_MOD,   ONLY : IDTHCFCX
+      USE LOGICAL_MOD,    ONLY : LFUTURECFC
 !
 ! !INPUT PARAMETERS:
 !
@@ -1657,7 +1679,11 @@
       GRID_EMIT = 0d0
 
       ! Determine which line needs to be read in
-      TARG_LINE = (12*(GET_YEAR()-1959)) + GET_MONTH()
+      IF (LFUTURECFC) THEN
+         TARG_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + GET_MONTH()
+      ELSE
+         TARG_LINE = (12*(GET_YEAR()-1959)) + GET_MONTH()
+      ENDIF
 
       ! Loop over tracer IDs pegged for emissions
       DO N=1,N_EMIT
@@ -1685,7 +1711,12 @@
             CASE ('H2402')
                ! Limited data available for H2402
                LOCAL_NAME = TRIM('C2BR2F4')
-               CALL GET_MONTREAL(LOCAL_NAME,GET_YEAR()-1949,N)
+               IF (LFUTURECFC) THEN
+                  CALL GET_MONTREAL(LOCAL_NAME,
+     &                         CFCYEAR+OFFSETYEAR-1949,N)
+               ELSE
+                  CALL GET_MONTREAL(LOCAL_NAME,GET_YEAR()-1949,N)
+               ENDIF
             CASE ('OCS')
                ! Simple boundary condition
                GRID_EMIT(:,N) = OCS_MR
@@ -5046,6 +5077,7 @@
 
       ! Set "current" month to impossible value
       SFC_MONTH = 0
+      OFFSETYEAR = 0
 
       ! Determine which tracers are to be emitted
       N_EMIT = 0

@@ -95,6 +95,7 @@
       LOGICAL :: LLINOZ          ! T = Linoz O3; F = Synoz O3
       LOGICAL :: LCH4CHEM        ! Online CH4 chemistry
       LOGICAL :: LGMISTRAT       ! GMI stratopsheric chemistry
+      LOGICAL :: LFUTURECFC      ! Use future CFC+ emissions
       LOGICAL :: LACTIVEH2O      ! Allow active H2O?
 
       !%%%% Cloud convection %%%%

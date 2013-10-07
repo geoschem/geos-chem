@@ -1650,7 +1650,7 @@
       USE CMN_O3_MOD        ! FSCALYR
       USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFCX
       USE TRACERID_MOD,  ONLY : IDTCl, IDTN2O, IDTBr2, IDTH2O
-      USE GMISTRAT_MOD,  ONLY : TRAC_FILE_ROOT
+      USE GMISTRAT_MOD,  ONLY : TRAC_FILE_ROOT, CFCYEAR
       ! SDE 2013-07-28
       USE GMISTRAT_MOD,  ONLY : GE_TGS, GE_PCEIL, GE_PBASE
       USE GMISTRAT_MOD,  ONLY : GE_MINLAT, GE_MAXLAT
@@ -2116,38 +2116,45 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
       READ( SUBSTRS(1:N), * ) LSETH2SO4
 
-      ! Directory containing 2D data
+      ! Starting year for CFC emissions
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
+      READ( SUBSTRS(1:N), '(i)') CFCYEAR
+
+      ! Do we apply an offset?
+      LFUTURECFC = (CFCYEAR .gt. 1950)
+
+      ! Directory containing 2D data
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
       READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
 
       TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
 
       ! Apply geoengineering emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:96' )
       READ( SUBSTRS(1:N), * ) LGEOENG
 
       ! Total geoeongeering emissions (TgS/yr)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:96' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:97' )
       READ( SUBSTRS(1:N), * ) GE_TGS
 
       ! Geoengineering pressure base (hPa)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:97' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:98' )
       READ( SUBSTRS(1:N), * ) GE_PBASE
 
       ! Geoengineering pressure ceiling (hPa)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:98' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:99' )
       READ( SUBSTRS(1:N), * ) GE_PCEIL
 
       ! Lower latitude edge (deg)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:99' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:100' )
       READ( SUBSTRS(1:N), * ) GE_MINLAT
 
       ! Upper latitude edge (deg)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:100' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:101' )
       READ( SUBSTRS(1:N), * ) GE_MAXLAT
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:101' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:102' )
 
       !=================================================================
       ! Error check logical flags
@@ -2681,6 +2688,7 @@
         WRITE( 6, 100 ) '      --> strat. NOx/HNO3?  : ', LSETNOYSTRAT
         WRITE( 6, 100 ) '      --> N2O?              : ', LSETN2O
         WRITE( 6, 100 ) '      --> strat. H2SO4?     : ', LSETH2SO4
+        WRITE( 6, 110 ) 'CFC emissions read for year : ', CFCYEAR
         WRITE( 6, 130 ) ' Directory for 2D data      : ',
      &                                        TRIM(TRAC_FILE_ROOT)
         WRITE( 6, 100 ) 'Emit geoengineering SO2?    : ', LGEOENG
@@ -7304,6 +7312,7 @@
       LSOLIDPSC      = .FALSE.
       LHOMNUCNAT     = .FALSE.
       LPSCCHEM       = .FALSE.
+      LFUTURECFC     = .FALSE.
       LGEOENG        = .FALSE.
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)

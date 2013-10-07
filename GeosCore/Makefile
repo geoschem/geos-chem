@@ -425,7 +425,8 @@ cleanup.o                   : cleanup.F                                      \
                               icoads_ship_mod.o       tpcore_fvdas_mod.o     \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geos57_window_mod.o                     \
-                              retro_mod.o             strat_chem_mod.o
+                              retro_mod.o             strat_chem_mod.o       \
+                              diag53_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
