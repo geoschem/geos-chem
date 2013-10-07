@@ -115,8 +115,7 @@ c
 !dust (idx=6 in optics arrays)
       do I=4,10
        IR=I-3
-       QXMIE(I) = QQAA(KM,IR,6)/QQAA(10,IR,6)
-!       write(6,*) 'QDUST:',IR,QQAA(KM,IR,6),QQAA(10,IR,6)
+       QXMIE(I) = QQAA(KM,IR,6)/QQAA(IWV1000,IR,6)
        SSALB(I) = SSAA(KM,IR,6)
        do IP=1,8
         PHMIE(IP,I)=PHAA(KM,IR,6,IP)
@@ -128,9 +127,8 @@ c
        !loop over RH bins (skips 95% and 99%)
        do IR=1,5
         I=(IS-1)*NRH+IR+10        
-        QXMIE(I) = QQAA(KM,IR,IS)/QQAA(10,IR,IS)
+        QXMIE(I) = QQAA(KM,IR,IS)/QQAA(IWV1000,IR,IS)
         SSALB(I) = SSAA(KM,IR,IS)
-!        write(6,*) 'QAER:',IS,IR,QQAA(KM,IR,IS),QQAA(10,IR,IS)
         do IP=1,8
          PHMIE(IP,I)=PHAA(KM,IR,IS,IP)
         enddo
@@ -154,7 +152,6 @@ c  Zero absorption for testing purposes
 c       call NOABS(XLO3,XLO2,XLRAY,AER(1,j),RFLECT)
         do I=1,MX
           XLAER(I)=AER(I,J)*QXMIE(I)
-!          write(6,*),'OPMIE:',J, I,AER(I,J),QXMIE(I),SSALB(I)
         enddo
 c  Total optical depth from all elements
         DTAUX(J)=XLO3+XLO2+XLRAY

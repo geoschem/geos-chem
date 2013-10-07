@@ -1188,7 +1188,6 @@
       INTEGER            :: I, J, JLOOP, L, N, NOUT, W
       INTEGER            :: IWV, IIWV, NWVS
       REAL*8             :: MSDENS(NDUST), XTAU
-      REAL*8             :: DENOM,NUMER !for AOD interpolation
 
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
       ! (tmf, 3/6/09)
@@ -1394,8 +1393,6 @@
                ! AOD sometimes zero (if Q zero), must catch this
                IF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).EQ.0).OR.
      &             (ODMDUST(I,J,L,IWVSELECT(2,W),N).EQ.0)) THEN
-                !DENOM=1.0
-                !NUMER=1.0
                 !Dont add anything to diagnostic
                ELSE
 
@@ -1417,18 +1414,6 @@
 
                ENDIF
                ENDIF
-!               !--------------------------------------
-!               ! ND21 tracer #38-44: Dust single scattering albedo (dar)
-!               !--------------------------------------
-!               AD21(I,J,L,38+(N-1)) = AD21(I,J,L,38+(N-1)) +
-!     &                         RTSSAER(I,J,L,IWVSELECT(1,W),NAER+4+N)
-!
-!               !--------------------------------------
-!               ! ND21 tracer #45-51: Dust asymmetry parameters (clh)
-!               !--------------------------------------
-!               AD21(I,J,L,45+(N-1)) = AD21(I,J,L,45+(N-1)) +
-!     &                         RTASYMAER(I,J,L,IWVSELECT(1,W),NAER+4+N)
-
 
                !--------------------------------------
                ! ND21 tracer #5: Dust surface areas
@@ -1484,11 +1469,13 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
+      USE LOGICAL_MOD,   ONLY : LRAD
 
 #     include "define.h"
 
       USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
+      USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
+                              ! ACOEF_WV, BCOEF_WV, CCOEF_WV
       USE COMODE_LOOP_MOD     ! NTTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
 
@@ -1566,7 +1553,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, JLOOP, L, N
+      LOGICAL            :: LINTERP
+
+      INTEGER             :: I, J, JLOOP, L, N, NOUT, W
+      INTEGER             :: IWV, IIWV, NWVS
       INTEGER, SAVE       :: MONTH_LAST = -999
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL*8              :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
@@ -1643,6 +1633,58 @@
       ! Critical RH, above which heteorogeneous chem takes place (tmf, 6/14/07)
       CRITRH = 35.0d0   ! [%]
 
+! DAR 09/2013
+! There are two ways RDUST_ can be called:
+! (1) When Fast-J requires aerosol optics at 1000nm (ODSWITCH=0)
+! (2) Before diags are accumulated, from RECOMPUTE_AOD (ODSWITCH=1)
+! for (1) we just need the optics stored at a single wavelength
+!     not for all user specified wavelengths, hence NWVS=1, IWV=IWV1000
+! for (2) we need to determine if RRTMG is switched on
+!     if LRAD=true, calculation is over total minus standard wavelengths
+!     in optics dat files (NWVAA-NWVAA0)
+!     if LRAD=false, calculation is for the wavelengths required for
+!     user-requested wavelength output. These are determined in CALC_AOD
+!     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to
+!     interpolate from the LUT wavelengths to the user-requested
+!     waveelenths (in CALC_AOD) are used here.
+
+      ! Select number of wavelengths required to loop over
+      IF (ODSWITCH .EQ. 0) THEN
+       NWVS   = 1
+      ELSE
+       IF ( LRAD ) THEN !Loop over all RT wavelengths (30)
+        ! plus any required for calculating the AOD
+        NWVS   = NWVAA-NWVAA0+NWVREQUIRED
+       ELSE !Loop over wavelengths needed (from RD_AOD)
+        NWVS   = NWVREQUIRED
+       ENDIF
+      ENDIF
+
+      DO IIWV = 1, NWVS
+       !now select the correct LUT wavelength
+       IF (ODSWITCH .EQ. 0) THEN
+        ! only doing for 1000nm (IWV1000 is set in RD_AOD)
+        ! N.B. NWVS is fixed to 1 above - only one wavelength
+        IWV=IWV1000
+       ELSE
+        IF ( LRAD ) THEN
+         ! RRTMG wavelengths begin after NWVAA0 standard wavelengths
+         ! but add on any others required
+         IF (IIWV.LE.30) THEN
+          !index of RRTMG wavelengths starts after the standard NWVAA0
+          !(currently NWVAA0=12, set in jv_cmn_mod based on the .dat
+          !LUT)
+          IWV = IIWV+NWVAA0
+         ELSE
+          !now we calculate at wvs for the requested AOD
+          IWV = IWVREQUIRED(IIWV-30)
+         ENDIF
+        ELSE
+         ! IWVREQUIRED lists the index of requires standard wavelengths
+         IWV = IWVREQUIRED(IIWV)
+        ENDIF
+       ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -1651,28 +1693,27 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-!            IF ( WAVELENGTH > 0 ) THEN
-               !this needs fixing properly in case someone uses offline dust
-               !DAR
-               ODMDUST(I,J,L,IWV1000,N) = 0.75d0   * BXHEIGHT(I,J,L) * 
-     &                           DUST(I,J,L,N) * QQAA(IWV1000,N,6)     /
-     &                           ( MSDENS(N) * RWAA(N,6) * 1.0D-6 )
 
-!            ELSE
-!
-!               ODMDUST(I,J,L,IWV,N) = 0.75d0   * BXHEIGHT(I,J,L) * 
-
-!     &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
-!     &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
-
-!            ENDIF
+            ! dust stored in the 6th species bin of LUT variables
+            ODMDUST(I,J,L,IWV,N) = 0.75d0 * BXHEIGHT(I,J,L) *
+     &                         DUST(I,J,L,N) * QQAA(IWV,N,6)     /
+     &                        ( MSDENS(N) * RWAA(N,6) * 1.0D-6 )
+#if defined ( RRTMG )
+            !add dust optics to the RT code arrays
+            !SSA and ASYM copying seems a little redundant...
+            !will keep this way for uniformity for now but
+            !possibly could deal with SSA and ASYM in RT module
+            RTODAER(I,J,L,IWV,NAER+4+N) = ODMDUST(I,J,L,IWV,N)
+            RTSSAER(I,J,L,IWV,NAER+4+N) = SSAA(IWV,N,6)
+            RTASYMAER(I,J,L,IWV,NAER+4+N) = ASYMAA(IWV,N,6)
+#endif
 
          ENDDO
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
+      ENDDO !wavelength loop
          ! Echo information
          IF ( am_I_Root ) THEN
             WRITE( 6, 110 )
@@ -1742,53 +1783,94 @@
          ! Tracer #4: Dust optical depths at  (from all size bins)
          ! Tracer #5: Dust surface areas (from all size bins)
          !==============================================================
-         IF ( ND21 > 0 .and. ODSWITCH > 0 ) THEN
-            DO N = 1, NDUST
-
+      IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L ) 
-               DO L = 1, LD21
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
+!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT )
+         DO N=1, NDUST
+            DO W = 1, NWVSELECT !different to NWVSELECT if interp
+             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
+              LINTERP=.FALSE.
+             ELSE
+              LINTERP=.TRUE.
+             ENDIF
+            SELECT CASE(W)
+              CASE(1)
+               NOUT=21+(N-1)
+              CASE(2)
+               NOUT=21+NAER+NDUST+(N-1)
+              CASE(3)
+               NOUT=21+2*(NAER+NDUST)+(N-1)
+              CASE DEFAULT
+               NOUT=21+(N-1)
+             END SELECT
 
-                  !--------------------------------------
-                  ! ND21 tracer #4: Dust optical depths
-                  !--------------------------------------
-                  AD21(I,J,L,4) = AD21(I,J,L,4) + ODMDUST(I,J,L,14,N)
+            DO L = 1, LD21
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               IF(LINTERP.EQ..FALSE.) THEN
+               !--------------------------------------
+               ! ND21 tracer #4: Dust optical depths (clh, dar)
+               !--------------------------------------
+               AD21(I,J,L,4) = AD21(I,J,L,4) +
+     &                         ODMDUST(I,J,L,IWVSELECT(1,W),N)
+
+               !--------------------------------------
+               ! ND21 tracer #21-27: size-resolved dust optical depths
+               !--------------------------------------
+               AD21(I,J,L,NOUT) = AD21(I,J,L,NOUT) +
+     &                            ODMDUST(I,J,L,IWVSELECT(1,W),N)
+               ELSE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               ! AOD sometimes zero (if Q zero), must catch this
+               IF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).EQ.0).OR.
+     &             (ODMDUST(I,J,L,IWVSELECT(2,W),N).EQ.0)) THEN
+                !Dont add anything to diagnostic
+               ELSE
+
+               !--------------------------------------
+               ! ND21 tracer #4: Dust optical depths (clh, dar)
+               !--------------------------------------
+                AD21(I,J,L,4) = AD21(I,J,L,4) +
+     &                         ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                         ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                         ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                         ODMDUST(I,J,L,IWVSELECT(2,W),N)))
+
+                AD21(I,J,L,NOUT) = AD21(I,J,L,NOUT) +
+     &                         ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                         ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                         ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                         ODMDUST(I,J,L,IWVSELECT(2,W),N)))
 
 
-                  !--------------------------------------
-                  ! ND21 tracer #21-27: size-resolved dust optical depths
-                  !--------------------------------------
+               ENDIF
+               ENDIF
+               !--------------------------------------
+               ! ND21 tracer #5: Dust surface areas
+               !--------------------------------------
+               IF ( L <= LLTROP ) THEN
 
-                  ! Added the optical depths for each size bin
-                  ! (skim, 02/03/11)
+                  ! Convert 3-D indices to 1-D index
+                  ! JLOP is only defined in the tropopause
+                  JLOOP = JLOP(I,J,L)
 
-                  AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
-     &                                   ODMDUST(I,J,L,14,N)
-  
-                  !--------------------------------------
-                  ! ND21 tracer #5: Dust surface areas
-                  !--------------------------------------
-                  IF ( L <= LLTROP ) THEN
-
-                     ! Convert 3-D indices to 1-D index
-                     ! JLOP is only defined in the tropopause
-                     JLOOP = JLOP(I,J,L)
-             
-                     ! Add to AD21
-                     IF ( JLOOP > 0 ) THEN
-                        AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
-                     ENDIF
+                  ! Add to AD21
+                  IF ( JLOOP > 0 ) THEN
+                     AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
                   ENDIF
-               ENDDO
-               ENDDO
-               ENDDO
-!$OMP END PARALLEL DO
+
+               ENDIF
             ENDDO
-         ENDIF 
-      ENDIF
+            ENDDO
+            ENDDO
+            ENDDO
+           ENDDO
+!$OMP END PARALLEL DO
+       ENDIF
+      ENDIF !(this_month check)
 
       END SUBROUTINE RDUST_OFFLINE
 !EOC

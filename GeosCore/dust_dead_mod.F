@@ -305,9 +305,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,   ONLY : USTAR, Z0, W10MLSD,W10ML
-      USE GRID_MOD,  ONLY : GET_AREA_M2
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE DAO_MOD,     ONLY : USTAR, Z0, W10MLSD,W10ML
+      USE GRID_MOD,    ONLY : GET_AREA_M2
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE LOGICAL_MOD, ONLY : LSUBGRIDWINDS
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -336,8 +337,9 @@
 
       ! Global mass flux tuning factor (a posteriori) [frc]
       ! Default value (x2.5 DAR for Sept 2010 CALIPSO comparison)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 1.5*3.38d-4
-
+!      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 1.5*3.38d-4
+      ! Standard GEOS-5 @ 2x2.5 factor
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
       ! Reference height for mobilization processes [m]
       REAL*8,  PARAMETER     :: HGT_RFR         = 10.0d0
 
@@ -433,6 +435,7 @@
       REAL*8 RGH_MMN(IIPAR)        ! [m] Roughness length momentum
       REAL*8 W10M
       REAL*8 W10MSD_SLICE(IIPAR)   ! [m/s] std dev of 0.5x0.67 wind in 4x5
+
       ! GCM diagnostics
       ! Dust tendency due to gravitational settling [kg/kg/s]
       REAL*8 Q_DST_TND_MBL(IIPAR,NDSTBIN)
@@ -589,7 +592,20 @@ ctdf        print *,' no mobilisation candidates'
       !=================================================================
       ! Get reference wind at 10m
       !=================================================================
-#if defined( MERRA ) 
+      ! Ideally we want wind sub-grid statistics but these may not
+      ! always be available. Change the flag to false for standard dust.
+      IF (LSUBGRIDWINDS .EQ. .FALSE.) THEN
+      DO I = 1, IIPAR
+         W10M = SQRT( SFCWINDSQR( I, LAT_IDX ) )
+         W10MSD_SLICE(I) = 0.0
+         ! add mobilisation criterion flag
+         IF ( FLG_MBL_SLICE(I) ) THEN
+            WND_RFR(I) = W10M
+         ENDIF
+      ENDDO
+      ELSE
+#if defined( MERRA )
+      !We have wind stats for 1980-2008 in MERRA
       DO I = 1, IIPAR
          W10M = W10ML(I,LAT_IDX)
          W10MSD_SLICE(I) = W10MLSD(I, LAT_IDX)
@@ -610,6 +626,7 @@ ctdf        print *,' no mobilisation candidates'
          ENDIF
       ENDDO
 #endif
+      ENDIF
       !=================================================================
       ! Compute standard roughness length.   This call is probably
       ! unnecessary, because we are only concerned with mobilisation
@@ -3331,6 +3348,7 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
       USE CMN_SIZE_MOD      ! Size parameters
+      USE LOGICAL_MOD, ONLY : LSUBGRIDWINDS
 
       !------------------
       ! Arguments
@@ -3375,10 +3393,12 @@ ctdf        print *,' no mobilisation candidates'
 
       ! Initialize
       QS_TTL(:) = 0.0D0
-      QS_TTL0(:) = 0.0D0
 
+      !Can only do this if we have aux wind files (set flag at top of
+      !dust_dead_mod.F code)
+      IF (LSUBGRIDWINDS .EQ. .TRUE.) THEN
       ! Loop over longitudes
-      DO LON_IDX = 1, IIPAR
+       DO LON_IDX = 1, IIPAR
 
          WND_RFR_THR = U_ST(LON_IDX)/CNV_10M_THR
          !write(6,*) 'THRESH:',WND_RFR_THR,WND_RFR(LON_IDX)
@@ -3423,6 +3443,27 @@ ctdf        print *,' no mobilisation candidates'
          ENDDO
         ENDIF
        ENDDO
+      ELSE
+       ! Loop over longitudes
+       DO LON_IDX = 1, IIPAR
+
+         ! If this is a mobilization candidate and the friction
+         ! velocity is above the threshold for saltation...
+         IF ( FLG_MBL(LON_IDX) .AND.
+     &        U_S(LON_IDX) > U_ST(LON_IDX) ) THEN
+
+            ! Ratio of wind friction threshold to wind friction
+            U_S_RAT = U_ST(LON_IDX) / U_S(LON_IDX)
+
+            ! Whi79 p. 4648 (19), MaB97 p. 16422 (28)
+            QS_TTL(LON_IDX) =   ! [kg m-1 s-1]
+     &           CST_SLT * DNS_MDP(LON_IDX) * (U_S(LON_IDX)**3.0D0)
+     &           * (1.0D0-U_S_RAT) * (1.0D0+U_S_RAT)
+     &            * (1.0D0+U_S_RAT) / GRV_SFC
+
+         ENDIF
+       ENDDO
+      ENDIF
       ! Return to calling program
       END SUBROUTINE FLX_MSS_HRZ_SLT_TTL_WHI79_GET
 
@@ -3461,6 +3502,14 @@ ctdf        print *,' no mobilisation candidates'
       REAL*8               :: K,X,GMA
       REAL*8               :: SCL_WND(N_U)
       REAL*8               :: U_SD1
+
+      ! KLUDGE: the standard deviation of winds calculated may be quite
+      ! low and not actually represent the gribox well when we use
+      ! 0.5x0.67 for stats (i.e. MERRA) therefore we set a lower limit
+      ! of 0.5 to prevent unrealistic weibull distributions (DAR)
+      ! Ideally we need to create a scaling factor, based on s.d.
+      ! calculated at the highest resolution possible, and adjust using
+      ! that. 
       U_SD1=MAX(U_SD,0.5)
 
       K = (0.9874D0/(U_SD1/U_MN))**1.0983

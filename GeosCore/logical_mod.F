@@ -183,6 +183,7 @@
       !%%%% Met fields %%%%
       LOGICAL :: LUNZIP          ! Unzip met fields on-the-fly?
       LOGICAL :: LWAIT           ! Wait for met fields to be unzipped?
+      LOGICAL :: LSUBGRIDWINDS   ! Read in subgrid wind files (for dust, DAR)
 
       !%%%% PBL mixing %%%%
       LOGICAL :: LTURB           ! Use PBL mixing?

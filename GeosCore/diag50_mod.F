@@ -276,16 +276,16 @@
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_NOx, IS_Ox,   IS_SEASALT
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
+      LOGICAL             :: LINTERP
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
-      INTEGER             :: IWV
+      INTEGER             :: ISPC
       REAL*8              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16)   :: STAMP
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER             :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
       
-      IWV = 7 !fixed for 550nm initially (DAR)
       !=================================================================
       ! ACCUMULATE_DIAG50 begins here!
       !=================================================================
@@ -318,6 +318,17 @@
 
       ! Increment counter
       COUNT = COUNT + 1
+
+       !Determine if optical properties need interpolating
+       !The LUT wavelengths in IWVSELECT will match if no interpolation
+       !is needed. (output is only for the first requested wavelength)
+       !(DAR 10/2013)
+       IF(IWVSELECT(1,1).EQ.IWVSELECT(2,1)) THEN
+        LINTERP=.FALSE.
+       ELSE
+        LINTERP=.TRUE.
+       ENDIF
+
 
       ! Also increment 3-D counter for boxes in the tropopause
       IF ( IS_FULLCHEM ) THEN
@@ -524,13 +535,24 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                   
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1) 
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0
-
-                  ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,1)*SCALEAODnm
+                 ISPC=1
+                 IF (LINTERP.EQ..FALSE.) THEN
+                      ! Accumulate
+                      Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                 ODAER(I,J,L,IWVSELECT(1,1),ISPC)
+                 ELSE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                   ENDIF
+                 ENDIF
 
             ELSE IF ( N == 85 ) THEN
 
@@ -539,13 +561,24 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                   
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0
-
-                  ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,2)*SCALEAODnm
+                 ISPC=2
+                 IF (LINTERP.EQ..FALSE.) THEN
+                      ! Accumulate
+                      Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                 ODAER(I,J,L,IWVSELECT(1,1),ISPC)
+                 ELSE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                   ENDIF
+                 ENDIF
 
             ELSE IF ( N == 86 ) THEN
 
@@ -554,13 +587,24 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
 
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1) 
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0
-
-                  ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,3)*SCALEAODnm
+                 ISPC=3
+                 IF (LINTERP.EQ..FALSE.) THEN
+                      ! Accumulate
+                      Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                 ODAER(I,J,L,IWVSELECT(1,1),ISPC)
+                 ELSE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                   ENDIF
+                 ENDIF
 
             ELSE IF ( N == 87 ) THEN
 
@@ -569,13 +613,24 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
 
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0                 
-
-                  ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) +ODAER(I,J,L,IWV,4)*SCALEAODnm
+                 ISPC=4
+                 IF (LINTERP.EQ..FALSE.) THEN
+                      ! Accumulate
+                      Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                 ODAER(I,J,L,IWVSELECT(1,1),ISPC)
+                 ELSE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                   ENDIF
+                 ENDIF
 
             ELSE IF ( N == 88 ) THEN
 
@@ -584,13 +639,24 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
 
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0                  
-
-                  ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,5)*SCALEAODnm
+                 ISPC=5
+                 IF (LINTERP.EQ..FALSE.) THEN
+                      ! Accumulate
+                      Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                 ODAER(I,J,L,IWVSELECT(1,1),ISPC)
+                 ELSE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                   ENDIF
+                 ENDIF
 
             ELSE IF ( N == 89 ) THEN
                
@@ -598,15 +664,26 @@
                ! TOTAL DUST OPTD @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               DO R = 1, NDUST
+               DO ISPC = 1, NDUST
+                 
+                 IF (LINTERP.EQ..FALSE.) THEN
+                      ! Accumulate
+                      Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                 ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
+                 ELSE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                   IF ((ODMDUST(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODMDUST(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &              (ODMDUST(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                             ODMDUST(I,J,L,IWVSELECT(2,1),ISPC))))
+                   ENDIF
+                 ENDIF
 
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0
-
-                  ! Accumulate
-                  Q(X,Y,K,W) =Q(X,Y,K,W)+ODMDUST(I,J,L,IWV,R)*SCALEAODnm
                ENDDO
 
             ELSE IF (N > 114) THEN
@@ -615,15 +692,25 @@
                ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               R = N - 114
+               ISPC = N - 114
 
-               ! Scaling factor to AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-
-               ! Accumulate
-               Q(X,Y,K,W) =Q(X,Y,K,W)+ODMDUST(I,J,L,IWV,R)*SCALEAODnm
+                 IF (LINTERP.EQ..FALSE.) THEN
+                      ! Accumulate
+                      Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                 ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
+                 ELSE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                   IF ((ODMDUST(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODMDUST(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &              (ODMDUST(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                             ODMDUST(I,J,L,IWVSELECT(2,1),ISPC))))
+                   ENDIF
+                 ENDIF
 
             ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
 

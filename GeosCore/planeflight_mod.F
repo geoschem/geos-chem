@@ -1167,9 +1167,9 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      LOGICAL             :: PCHEM
+      LOGICAL             :: PCHEM, LINTERP
       INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
-      INTEGER             :: LPLANE,IWV
+      INTEGER             :: LPLANE,IWV, ISPC, LL, K
       REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL*8              :: VARI(NPVAR)
 
@@ -1182,13 +1182,22 @@
       REAL*8,  PARAMETER  :: TINY    = 1.d-36           ! arbitary small # to 
                                                         !  avoid faulty output
 
-      IWV = 7 !fixed for 550nm at the moment (DAR)
       !=================================================================
       ! PLANEFLIGHT begins here!
       !=================================================================
 
       ! Return if there is no flighttrack data for today
       IF ( .not. DO_PF ) RETURN
+
+      !Determine if optical properties need interpolating
+      !The LUT wavelengths in IWVSELECT will match if no interpolation
+      !is needed. (output is only for the first requested wavelength)
+      !(DAR 10/2013)
+      IF(IWVSELECT(1,1).EQ.IWVSELECT(2,1)) THEN
+       LINTERP=.FALSE.
+      ELSE
+       LINTERP=.TRUE.
+      ENDIF
 
       ! Loop over all the locations that have not yet been found
       DO M = PPOINT, NPOINTS
@@ -1414,33 +1423,65 @@
                   !--------------------------
                   CASE ( 2001:2005 )
                   
-                     ! Only archive where SMVGEAR chem is done
+                   ! Only archive where SMVGEAR chem is done
                   
-                        ! Remove MISSING flag
-                        VARI(V) = 0d0
+                   ! Remove MISSING flag
+                   VARI(V) = 0d0
                   
-                        ! Aerosol number
-                        N = PVAR(V) - 2000
+                   ! Aerosol number
+                   N = PVAR(V) - 2000
                   
-                        ! Loop over RH bins
-                        DO RH = 1, NRH
-                        
-                           ! Scaling factor for wavelength specified in
-                           ! jv_spec_aod.dat
-    !                       SAODnm  = QAA_AOD(IND(N)+RH-1) / 
-    ! &                               QAA(4,IND(N)+RH-1)
-                           ! We no longer need to scale by wavelength
-                           ! (skim, 02/03/11)
-                           SAODnm = 1.0
+                   ! Loop over RH bins
+                   DO  ISPC= 1, NAER
+                    IF (LINTERP.EQ..FALSE.) THEN
+                     DO LL = 1, LLPAR
+                      ! Accumulate
+                      VARI(V) = VARI(V) +
+     &                ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
+                     ENDDO
+                    ELSE
+                     DO LL = 1, LLPAR
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                           VARI(V) = VARI(V) +
+     &              (ODAER(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,LL,IWVSELECT(1,1),ISPC)/
+     &                              ODAER(I,J,LL,IWVSELECT(2,1),ISPC))))
+                      ENDIF
+                     ENDDO
+                    ENDIF
+                   ENDDO
+                   !now add in the dust
+                    IF (LINTERP.EQ..FALSE.) THEN
+                     DO LL = 1, LLPAR
+                      DO ISPC = 1, NDUST
+                      ! Accumulate
+                      VARI(V) = VARI(V) +
+     &                   ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
+                      ENDDO
+                     ENDDO
+                    ELSE
+                     DO LL = 1, LLPAR
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                      DO ISPC = 1, NDUST
+                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                           VARI(V) = VARI(V) +
+     &              (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &           (BCOEF_WV(1)*LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/
+     &                            ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
+                      ENDIF
+                      ENDDO
+                     ENDDO
+                    ENDIF
 
-                           ! Index for type of aerosol and RH value
-                           IRHN    = ( (N-1) * NRH ) + RH
-                        
-                           ! Sum AOD over all RH bins and store in VARI(V)
-                           ! Sum over all vertical levels (bmy, 10/24/05)
-                           VARI(V) = VARI(V) + 
-     &                               SUM(SAODnm*ODAER(I,J,:,IWV,IRHN))
-                        ENDDO
 
                   !--------------------------
                   ! Aerosol optical depths
@@ -1448,41 +1489,75 @@
                   !--------------------------
                   CASE ( 3001:3005 )
                   
-                     IF ( PCHEM ) THEN
+                   IF ( PCHEM ) THEN
 
-                       ! Remove MISSING flag
-                        VARI(V) = 0d0
+                   ! Remove MISSING flag
+                   VARI(V) = 0d0
                   
-                        ! Aerosol number
-                        N = PVAR(V) - 3000
-                  
-                        ! Loop over RH bins
-                        DO RH = 1, NRH
-                        
-                           ! Scaling factor for wavelength specified in
-                           ! jv_spec_aod.dat
-    !                       SAODnm  = QAA_AOD(IND(N)+RH-1) / 
-    ! &                               QAA(4,IND(N)+RH-1)
-                           ! We no longer need to scale by wavelength
-                           ! (skim, 02/03/11)
-                           SAODnm = 1.0 
+                   ! Aerosol number
+                   N = PVAR(V) - 3000
 
-                           ! Index for type of aerosol and RH value
-                           IRHN    = ( (N-1) * NRH ) + RH
-                          
-                           ! Level of the plane.  AOD's are only computed
-                           ! up to the tropopause, so if the plane goes into
-                           ! the stratosphere, the AOD below plane will be
-                           ! the same as the trop column at that point.
-                           ! (bmy, 10/24/05)
-                           LPLANE  = MIN( L, LLTROP )
 
-                           ! Sum AOD over all RH bins and store in VARI(V)
-                           ! Sum from surface to level where the plane is
-                           VARI(V) = VARI(V) + 
-     &                          SUM(SAODnm*ODAER(I,J,1:LPLANE,IWV,IRHN))
-                        ENDDO
-                     ENDIF
+                   ! Level of the plane.  AOD's are only computed
+                   ! up to the tropopause, so if the plane goes into
+                   ! the stratosphere, the AOD below plane will be
+                   ! the same as the trop column at that point.
+                   ! (bmy, 10/24/05)
+                   LPLANE  = MIN( L, LLTROP )
+
+                   ! Loop over RH bins
+                   DO  ISPC= 1, NAER
+
+                    IF (LINTERP.EQ..FALSE.) THEN
+                     DO LL = 1, LPLANE
+                      ! Accumulate
+                      VARI(V) = VARI(V) +
+     &                ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
+                     ENDDO
+                    ELSE
+                     DO LL = 1, LPLANE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                           VARI(V) = VARI(V) +
+     &              (ODAER(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,LL,IWVSELECT(1,1),ISPC)/
+     &                              ODAER(I,J,LL,IWVSELECT(2,1),ISPC))))
+                      ENDIF
+                     ENDDO
+                    ENDIF
+                   ENDDO
+                   !now add in the dust
+                    IF (LINTERP.EQ..FALSE.) THEN
+                     DO LL = 1, LPLANE
+                      DO ISPC = 1, NDUST
+                      ! Accumulate
+                      VARI(V) = VARI(V) +
+     &                   ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
+                      ENDDO
+                     ENDDO
+                    ELSE
+                     DO LL = 1, LPLANE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+                      DO ISPC = 1, NDUST
+                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                           VARI(V) = VARI(V) +
+     &              (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &           (BCOEF_WV(1)*LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/
+     &                            ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
+                      ENDIF
+                      ENDDO
+                     ENDDO
+                    ENDIF
+
+                   ENDIF
 
                   !--------------------------
                   ! SMVGEAR reaction rates

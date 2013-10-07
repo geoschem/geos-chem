@@ -35,19 +35,21 @@
 
 !
 ! !REMARKS:
-!  The jv_spec_aod.dat file contains the optical properties for aerosols 
-!  at a single wavelength to be used in the online calculation of the aerosol 
-!  optical depth diagnostics.  The default properties are provided at 550 nm. 
+!  The .dat files for each species contain the optical properties 
+!  at multiple wavelengths to be used in the online calculation of the aerosol 
+!  optical depth diagnostics. 
 !  These properties have been calculated using the same size and optical 
 !  properties as the jv_spec.dat file used for the FAST-J photolysis 
-!  calculations.  The user can exchange this set of properties with those at 
-!  another wavelength.  We recommend that the wavelength used be included 
-!  in the first line of the header for traceability (this line is output to 
-!  the GEOS-Chem log file during run time). A complete set of optical 
-!  properties from 250-2000 nm for aerosols is available at:  
+!  calculations (which is now redundant for aerosols, the values in the .dat 
+!  files here are now used). The file currently contains 11 wavelengths
+!  for Fast-J and other commonly used wavelengths for satellite and
+!  AERONET retrievals. 30 wavelengths follow that map onto RRTMG
+!  wavebands for radiaitive flux calculations (not used if RRTMG is off).  
+!  A complete set of optical properties from 250-2000 nm for aerosols is available at:  
 !  ftp://ftp.as.harvard.edu/geos-chem/data/aerosol_optics/hi_spectral_res
 !                                                                             .
 !     -- Colette L. Heald, 05/10/10)
+!     -- David A. Ridley, 05/10/13 (update for new optics files)
 !
 !  Important variables:
 !                                                                             .
@@ -125,9 +127,6 @@
        ENDDO
        ! Echo info to stdout
        IF ( am_I_Root ) THEN 
-!        WRITE( 6, '(a)' ) 'Aerosol for AOD calculations'
-!        WRITE( 6, * ) 'WV(nm)=',WVAA(2,k),
-!     &  ' Q=',(QQAA(2,1,k)),'P1=',PHAA(2,i,k,2)
        ENDIF
        ! Close file
        CLOSE( NJ1 )
@@ -147,7 +146,7 @@
 !
 ! !DESCRIPTION: Subroutine CALC\_AOD works out the closest tie points
 ! in the optics LUT wavelengths and the coefficients required to
-! calculate the angstrom exponent for interpolating to the requested
+! calculate the angstrom exponent for interpolating optics to the requested
 ! wavelength. If the wavelength requested matches a standard wavelength
 ! in the LUT then we skip the interpolation (DAR 09/2013)
 !\\
@@ -177,25 +176,15 @@
       !look-up table. 
       !The standard lookup table currently has values for
       !11 common wavelengths followed by 30 that are required by RRTMG.
-      !If RRTMG=no, only those required to interpolate to user requested
-      !values are selected from the standard wavelengths. 
-      !If RRTMG=yes then the 30 wavelengths required by RRTMG are used 
-      !to interpolate to the user requested wavelengths to minimize the 
-      !number of wavelengths for which optics are calculated. (DAR)
+      !Only those required to interpolate to user requested
+      !wavelengths are selected from the standard wavelengths. RRTMG
+      !wavelengths are not used in the interpolation for AOD output
+      !(DAR 10/2013)
 
-      !look for closest WV in LUT to the requested WV
-      !If LRAD set then only looking at RT wavelengths so that we can output
-      !combined optics direct from RT
-      IF (LRAD) THEN
-       N0=NWVAA0+1
-       N1=NWVAA
-       NSTEP=1
-      ELSE
-       !cycle over standard wavelengths
-       N0=1
-       N1=NWVAA0
-       NSTEP=1
-      ENDIF
+      !cycle over standard wavelengths
+      N0=1
+      N1=NWVAA0
+      NSTEP=1
       NWVREQUIRED=0
       DO W=1,NWVSELECT
        MINWV     = -999
@@ -234,9 +223,9 @@
        ! requested wavelength is shorter than min wv in LUT
        ! set to min
        write(6,*) 'ERROR requested wavelength is too short!!'
-       write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA,1)
-       IWVSELECT(1,W)=NWVAA
-       IWVSELECT(2,W)=NWVAA !229.8nm
+       write(6,*) 'Defaulting to LUT min: ',WVAA(1,1)
+       IWVSELECT(1,W)=1
+       IWVSELECT(2,W)=1 !300nm
        NWVREQUIRED=NWVREQUIRED-1
        IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
       ENDIF
@@ -244,9 +233,9 @@
        ! requested wavelength is longer than min wv in LUT
        ! set to max
        write(6,*) 'ERROR requested wavelength is too long!!'
-       write(6,*) 'Defaulting to LUT min: ',WVAA(8,1)
-       IWVSELECT(1,W)=8
-       IWVSELECT(2,W)=8 !
+       write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA0,1)
+       IWVSELECT(1,W)=NWVAA0
+       IWVSELECT(2,W)=NWVAA0 !1020nm
        NWVREQUIRED=NWVREQUIRED-1
        IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
       ENDIF
@@ -263,12 +252,12 @@
        CCOEF_WV(W) =(WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/
      &              (WVAA(IWVSELECT(2,W),1)-WVAA(IWVSELECT(1,W),1))
       ENDIF
-      write(6,*) 'WAVELENGTHS: ',NWVSELECT
+      write(6,*) 'N WAVELENGTHS: ',NWVSELECT
       write(6,*) 'WAVELENGTH REQUESTED:',WVSELECT(W)
       write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
-      write(6,*) IWVSELECT(1,W),WVAA(IWVSELECT(1,W),1)
-      write(6,*) IWVSELECT(2,W),WVAA(IWVSELECT(2,W),1)
-      write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
+      !write(6,*) IWVSELECT(1,W),WVAA(IWVSELECT(1,W),1)
+      !write(6,*) IWVSELECT(2,W),WVAA(IWVSELECT(2,W),1)
+      !write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
       write(6,*) '*********************************'
       ENDDO !NWVSELECT
       END SUBROUTINE CALC_AOD

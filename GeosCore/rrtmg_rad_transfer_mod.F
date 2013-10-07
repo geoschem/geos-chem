@@ -309,14 +309,6 @@
       REAL(KIND=RB)         ::         ASMCLD0(NBNDSW,1,LLPAR)
       REAL(KIND=RB)         ::         FSFCLD0(NBNDSW,1,LLPAR)
 
-
-! LOCAL AEROSOL ARRAYS AND VARIABLES FOR INTERPOLATING TO RRTMG BANDS ! AND COMBINING SPECIES
-!      REAL*8    :: OD_AER(NDUST+NAER+2)
-!      REAL*8    :: SSA_AER(NDUST+NAER+2)
-!      REAL*8    :: ASYM_AER(NDUST+NAER+2)
-!      REAL*8    :: ANGST
-
-
       !=================================================================
       ! PREPARE INPUTS FOR RAD_DRIVER
       !=================================================================
@@ -343,9 +335,9 @@
        IF (SPECMASK(N).GT.0) THEN
         DOAERAD = .TRUE.
         NASPECRAD_ON = NASPECRAD_ON +1
+        !create list of species required and tag with index
         IASPECRAD_ON(NASPECRAD_ON) = N
         IDIAGOUT = MAX(IDIAGOUT,SPECMASK(N))
-        
        ENDIF
       ENDDO
       
@@ -433,9 +425,8 @@
       ENDDO
       ENDDO
       ENDDO
-!OMP END PARALLEL DO
-      !I DONT THINK FUNCTION CALLS CAN BE PARALLELIZED
-      !GET PCENTER, PEDGE AND DETERMINE IF IN TROP BEFORE PARALLEL LOOP
+
+      !GET PCENTER, PEDGE AND DETERMINE IF IN TROP
       DO I = 1, IIPAR
       DO J = 1, JJPAR
       IJLOOP         = (J-1)*IIPAR+I
@@ -448,8 +439,6 @@
       ENDDO
       TSFC   (IJLOOP)   = TSKIN(I,J)
 
-!         O3COL(I,J) = GET_OVERHEAD_O3(I,J)
-!         CALL SET_PROF_O3 (I,J,YLAT,THISMONTH,THISDAY,T(I,J,:),O3COL)
       ENDDO
       ENDDO
 !OMP PARALLEL DO
@@ -465,21 +454,11 @@
        ! 1-D INDEX
        IJLOOP         = (J-1)*IIPAR+I
 
-       ! NOT SURE IF THESE NEED TO BE IN TROPOSPHERE-ONLY LOOP...
-       ! TRYING TO FIND CAUSE OF 2X2.5 BANDING OF CLOUDS...
             !-----------------------------
             ! GET CLOUD PROPERTIES BY SETTING REASONABLE VALUES FOR REL
             ! AND REI IN MICRONS AND CALCULATING LWP AND IWP FROM
             ! VISIBLE OPTICAL DEPTH  (IN G/M2)
-            ! THIS IS A DIFERENT APPROACH THAN THAT USED UP THROUGH
-            ! OCTOBER, WHERE WE TRIED TO USED THE CLOUD LIQUID AND ICE
-            ! MIXING RATIOS TO GET LWP AND IWP. NOTE THAT RHO IN G/CM3
-            ! AND RE IN MICRONS MAKE THE CXXXWP VARIABLES COME OUT IN
-            ! G/M2.
             !-----------------------------
-
-            !-----------------------------
-            ! SET RE VALUES TO AVOID PROBLEMS IN CLOUD CODE
 
             IF (ICLD.NE.0) THEN
              ! LIQUID
@@ -489,7 +468,6 @@
              CICEWP(IJLOOP,L) = 0.667*TAUCLI(I,J,L)*RHOICE*REI_DEF
              REICE(IJLOOP,L) = REI_DEF
              !TAUCLD DERIVED IN MCICA SUB, NOT NEEDED
-             !TAUCLD(IJLOOP,L) = TAUCLI(I,J,L)+TAUCLW(I,J,L)
              CLDFR(IJLOOP,L)   = CLDF(L,I,J)
             ENDIF !CLOUDS
 
@@ -503,9 +481,9 @@
             ! THEREFORE CSPEC WILL ONLY BE DEFINED IN THE TROP
             ! 1-D INDEX FOR CSPEC ARRAY
             JLOOP = JLOP(I,J,L)
-            !IF OZONE REQUESTED THEN SPECMASK WILL BE SET TO ZERO
-            !SO THAT IT WILL BE REMOVED RELATIVE TO THE BASELINE
-            !CASE (WHEN SPECMASK DEFAULTS TO 1)
+            !IF O3 REQUESTED THEN SPECMASK WILL BE SET TO ZERO
+            !SO THAT O3 WILL BE REMOVED RELATIVE TO THE BASELINE CASE
+            !(WHEN SPECMASK DEFAULTS TO 1)
             !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
             !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
@@ -521,8 +499,6 @@
             CFC12VMR(IJLOOP,L) = CFC12CLIM(I,J,L)/1E9
             CCL4VMR(IJLOOP,L)  = CCL4CLIM(I,J,L)/1E9
             CFC22VMR(IJLOOP,L) = CFC22CLIM(I,J,L)/1E9
-
-
        ELSE
            !-----------------------------
            ! WE ARE IN THE STRATOSPHERE
@@ -569,11 +545,14 @@
          !THE AEROSOL SPECIES WE ARE CURRENTLY CALCULATING FOR WILL BE
          !SET TO THE LSPECRADMENU VALUE FOR THAT SPECIES.
          !THIS MEANS THAT RRTMG REQUIRES *ALL OTHER* SPECIES SO THAT THE
-         !FLUX IN ABSENCE OF THE SPECIES CAN BE CALCULATED
+         !FLUX IN ABSENCE OF THE SPECIES CAN BE CALCULATED (THE
+         !DIFFERENCE OF THIS WITH THE BASELINE GIVES THE FLUX CHANGE FOR
+         !THAT SPECIES).
+         !
          !THEREFORE WE COMPILE TWO SETS OF AEROSOL PROPERTIES:
          !(1) ALL BUT THE CURRENT SPECIES TO SEND TO RRTMG
          !(2) THE CURRENT SPECIES FOR OUTPUT TO THE RT DIAGNOSTICS
-         ! WE MUST MERGE AEROSOL PROPERTIES FOR THE SPECIES TO BE OUTPUT
+         ! ALSO, WE MUST MERGE AEROSOL PROPERTIES FOR THE SPECIES TO BE OUTPUT
          ! (I.E. COMBINE HYDROPHILIC/PHOBIC AND MULTIPLE SIZES) 
 !OMP PARALLEL DO
 !OMP+DEFAULT( SHARED )
@@ -656,13 +635,6 @@
               SSAAERDIAG(IJLOOP,L,IB_SW) = SSAAERDIAG(IJLOOP,L,IB_SW) /
      &                                     TAUAERDIAG(IJLOOP,L,IB_SW)
            ENDIF
-!              TAUAER_SW(IJLOOP,L,IB_SW) = 0.10D0
-!              ASMAER(IJLOOP,L,IB_SW)    = 0.02D0
-!              SSAAER(IJLOOP,L,IB_SW)    = 0.99D0
-!              TAUAERDIAG(IJLOOP,L,IB_SW) = 0.10D0
-!              ASMAERDIAG(IJLOOP,L,IB_SW) = 0.02D0
-!              SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99D0
-
           ENDIF
          ENDDO
          ENDDO
@@ -762,12 +734,7 @@
           LIQFLGSW = 1       !HU AND STAMNES
           RELIQ(:,:) = REL_DEF
           REICE(:,:) = REI_DEF
-
-!          PRINT *,'MCICA'
       END SELECT
-
-! SET THE MAX NUMBER OF OMP THREADS TO CHECK FOR MEMORY ISSUES
-!      OMP_SET_NUM_THREADS(1)
 
 ! WE ONLY NEED TO CALC CLOUDS ONCE PER RT TIMESTEP
 ! DO THIS ON BASELINE CALL IF ALL-SKY IS REQUESTED
@@ -799,10 +766,6 @@
          CIWPMCL_LW(:,IL,:)   = CIWPMCL_LW0(:,1,:)
          CLWPMCL_LW(:,IL,:)   = CLWPMCL_LW0(:,1,:)
          TAUCMCL_LW(:,IL,:)   = TAUCMCL_LW0(:,1,:)
-
-!         OMPID = OMP_GET_THREAD_NUM()
-!         write(6,*) 'MCICALW ',OMPID,IL,NCOL
-!         write(6,*) MAXVAL(CIWPMCL_LW),MAXVAL(RELQMCL0)
         ENDIF
         IF (LSWRAD) THEN
          CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL,
@@ -814,8 +777,6 @@
      &        CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0,
      &        REICMCL0, RELQMCL0, TAUCMCL_SW0, SSACMCL0,
      &        ASMCMCL0, FSFCMCL0)
-!         OMPID = OMP_GET_THREAD_NUM()
-!
          CLDFMCL_SW(:,IL,:)   = CLDFMCL_SW0(:,1,:)
          CIWPMCL_SW(:,IL,:)   = CIWPMCL_SW0(:,1,:)
          CLWPMCL_SW(:,IL,:)   = CLWPMCL_SW0(:,1,:)
@@ -823,14 +784,11 @@
          SSACMCL(:,IL,:)    = SSACMCL0(:,1,:)
          ASMCMCL(:,IL,:)    = ASMCMCL0(:,1,:)
          FSFCMCL(:,IL,:)    = FSFCMCL0(:,1,:)
-!         OMPID = OMP_GET_THREAD_NUM()
-
         ENDIF
 ! these should be independent of LW and SW
 ! simply rearranged by the MCICA routine
         REICMCL(IL,:) = REICMCL0(1,:)
         RELQMCL(IL,:) = RELQMCL0(1,:)
-
        ENDDO
 !$OMP END PARALLEL DO
       ENDIF !DO MCICA CLOUDS
@@ -857,7 +815,6 @@
      &        CLWPMCL_LW(:,IL,:),REICMCL(IL,:),RELQMCL(IL,:), 
      &        TAUAER_LW(IL,:,:),UFLX,DFLX,HR,UFLXC,DFLXC,HRC, 
      &        DUFLX_DT,DUFLXC_DT)
-!        OMPID = OMP_GET_THREAD_NUM()
         LW_UFLUX(IL,:) = UFLX(1,:)
         LW_DFLUX(IL,:) = DFLX(1,:)
         LW_UFLUXC(IL,:) = UFLXC(1,:)
@@ -888,6 +845,7 @@
       ENDIF !SW
       ENDDO !NCOL
 !$OMP END PARALLEL DO
+      
       ! OUTPUT RADIATION VARIABLES TO DIAGNOSTIC
       ! IF CALC WITH AEROSOLS AND GASES COMPLETED
       ! USE ISPECMENU (REFERENCES THE INPUT.GEOS.RAD LIST)
@@ -946,10 +904,8 @@
         AD71(I,J,OUTIDX+7*NAD71) = AD71(I,J,OUTIDX+7*NAD71) +
      &                     SNGL(LW_DFLUX(IJLOOP,1))
        ENDIF
-       !OUTPUT OPTICS FOR EACH
+       !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 
-       !IF OUTIDX=1 THEN IT IS THE BASELINE WHICH NOW CONTAINS ALL
-       !AEROSOL - IDEALLY THIS NEEDS DUMPING INTO THE PM TRACER
        !SKIP OUTIDX=1,2,3 (BASELINE, OZONE AND CH4)
        IF ((OUTIDX.GE.4).AND.(LOUTPUTAERO)) THEN
        !INTERPOLATE TO THE REQUESTED WAVELENGTH       
@@ -961,8 +917,7 @@
         AODOUT  = 0.0D0
         SSAOUT  = 0.0D0
         ASYMOUT = 0.0D0
-        !! TEST IMPACT ON RTAOD OF ONLY GOING TO LEV=30
-        DO LL=1,30 !!LLPAR
+        DO LL=1,LLPAR
          !CHECK AOD IS NON-ZERO BEFORE LOG...
          IF((TAUAERDIAG(IJLOOP,LL,IRTWVSELECT(2,W)).GT.0).AND.
      &      (TAUAERDIAG(IJLOOP,LL,IRTWVSELECT(1,W)).GT.0)) THEN
@@ -1014,6 +969,7 @@
 !     THIS WAY THE CONTRIBUTION OF SULFATE CAN BE INFERRED. THEREFORE,
 !     ALL SPECIES ARE INITIALLY SET TO 1 AND THEIR INCLUSION RESULTS IN
 !     SPECMASK FOR THE PARTICULAR SPECIES BEING SET TO ZERO.
+!     (DAR 10/2013)
 
       USE JV_CMN_MOD,   ONLY :  SPECMASK,NASPECRAD,
      &                          LSPECRADMENU,NSPECRADMENU
@@ -1167,8 +1123,6 @@
 !     THIS GETS CALLED EVERY TIMESTEP ON THE CORRECT DAY
 !     SO WE NEED A CTACH TO ONLY READ THE FIRST TIME THAT DAY      
       IF ( THISDOFY == LASTDAY ) THEN
-!       WRITE(6,*) 'SURFACE RAD ALREADY READ', 
-!     &            THISDAY,THISMONTH,THISYEAR
        RETURN
       ENDIF
       WRITE(STHISDOFY,101) THISDOFY
@@ -1182,20 +1136,21 @@
       FILENAME  = TRIM( DATA_DIR )         //
      &            'modis_surf_201210/' //
 ! the 02-07 file contains our regridded and filled emissivity
-! and albedo climatology for 2002-2007 direct from MODIS products (DAR)
-     &            'modis_surf_02-07_' //
+! and albedo climatology for 2002-2007 direct from MODIS products
+! N.B. this does NOT contain snow cover so gives flux in absence of snow
+! (DAR 10/2013)
+!     &            'modis_surf_02-07_' //
 
 ! the 01-04 file contains our regridded and filled emissivity
 ! for 2002-2007 and eco-type filled albedo produced by MODIS averaged over
 ! 2001-2004 data. This is the preferred data (DAR)
-!     &            'modis_surf_01-04_' //
+     &            'modis_surf_01-04_' //
 
      &            STHISDOFY//'.'// GET_RES_EXT()
 
       ! ECHO INFO
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - GET_SURFACE_RAD_DATA: READING ', A )
-      !WRITE( 6,*) 'XTAU: ',XTAU
       !-----------------------
       ! DIRECT SURFACE ALBEDO (VIS)
       !-----------------------
@@ -1210,7 +1165,6 @@
       ENDDO
       ENDDO
 
-      !WRITE(6,*) 'ALBDIR1 READ'
       !-----------------------
       ! DIFFUSE SURFACE ALBEDO (VIS)
       !-----------------------
@@ -1225,7 +1179,6 @@
       ENDDO
       ENDDO
 
-      !WRITE(6,*) 'ALBDIF1 READ'
       !-----------------------
       ! DIRECT SURFACE ALBEDO (NIR)
       !-----------------------
@@ -1240,7 +1193,6 @@
       ENDDO
       ENDDO
 
-      !WRITE(6,*) 'ALBDIR2 READ'
       !-----------------------
       ! DIFFUSE SURFACE ALBEDO (NIR)
       !-----------------------
@@ -1255,7 +1207,6 @@
       ENDDO
       ENDDO
 
-      !WRITE(6,*) 'ALBDIF2 READ'
       !-----------------------
       ! SURFACE EMISSIVITY
       !-----------------------

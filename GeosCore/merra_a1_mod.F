@@ -25,7 +25,7 @@
 ! 
       PUBLIC  :: GET_MERRA_A1_FIELDS
       PUBLIC  :: OPEN_MERRA_A1_FIELDS
-      PUBLIC  :: GET_GEOS572_W1_FIELDS
+      PUBLIC  :: GET_W1_FIELDS
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
@@ -1191,7 +1191,7 @@
 
 !------------------------------------------------------------
 
-      SUBROUTINE GET_GEOS572_W1_FIELDS(NYMD, NHMS)
+      SUBROUTINE GET_W1_FIELDS(NYMD, NHMS)
 
 !
 ! !USES:
@@ -1240,6 +1240,7 @@
       LOGICAL            :: DO_OPEN  ! =T if it's time to open file
       LOGICAL            :: DO_RESET
       LOGICAL            :: IT_EXISTS
+      LOGICAL, PARAMETER :: FLG_USE_CLIM = .TRUE.
       CHARACTER(LEN=2)   :: DUM
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: W1_FILE
@@ -1284,29 +1285,48 @@
       IF ( DO_OPEN ) THEN
          IU_W1 = FINDFREELUN()
          write(6,*) IU_W1
-         ! Strings for directory & filename
-!         WIND_DIR = TRIM( DATA_DIR ) // 'MERRA/YYYY/' //
-!     &              SMONTH // '/'
-         !For MERRA we have all 30 years processed at 0.5x0.667
-         !For GEOS-5 we only have 2012 at 0.25x0.3125
-         !Can either fix the year of the file to 2012 or
-         !use the potentially lower quality MERRA data...
-         !Makes more sense to do the latter for now (DAR)
-!         W1_FILE  = 'YYYYMMDD' // SHOUR // '.w1.' // GET_RES_EXT()
 
-         !Fix for GEOS-5 (we only have a full year for 2012 at
-         !0.25x0.3125)
-!         WIND_DIR = TRIM( DATA_DIR ) // 'MERRA/2012/' //
-!     &              SMONTH // '/'
-!         W1_FILE  = '2012MMDD' // SHOUR // '.w1.' // GET_RES_EXT()
+         !choose the correct wind statistics file:
+         !(1) Use hourly-monthly climatology based on MERRA 1980-2008
+         !    N.B. untested at present, created for testing to see if
+         !    effective when actual stats unavailable
+         !(2) Use MERRA 0.5x0.67 stats
+         !    NB .w1. files must be available for the run years in
+         !    /MERRA/YYYY/MM/DD/ folders.
+         !(3) Use GEOS5 0.25x0.3125 stats - only for 2012 and select
+         !    months currently
+         !    Climatology is default (i.e. FLG_USE_CLIM.EQ..TRUE.)
+         IF (FLG_USE_CLIM.EQ..TRUE.) THEN
+          ! Strings for directory & filename
+          WIND_DIR = TRIM( DATA_DIR ) // 'MERRA/climatology/' //
+     &               SMONTH // '/'
+          W1_FILE  = 'MM' // SHOUR // '.w1.' // GET_RES_EXT()
+         ELSE
+#if defined ( MERRA )         
+          ! Strings for directory & filename
+          WRITE(6,*) 'WARNING: USING WIND STATISTICS FROM MERRA' //
+     &               '.W1. FILES MUST BE IN /MERRA/YYYY/MM/'
+          WIND_DIR = TRIM( DATA_DIR ) // 'MERRA/YYYY/' //
+     &               SMONTH // '/'
+          W1_FILE  = 'YYYYMMDD' // SHOUR // '.w1.' // GET_RES_EXT()
+#endif
 
+#if defined (GEOS_5)
+          !Fix for GEOS-5 (we only have a full year of stats for 2012
+          !created from 0.25x0.3125)
+          WRITE(6,*) 'WARNING: USING WIND STATISTICS FROM GEOS_5' //
+     &               ' 2012 FOR ALL YEARS'
+          WIND_DIR = TRIM( DATA_DIR ) // 'GEOS_5/2012/' //
+     &               SMONTH // '/'
+          W1_FILE  = '2012MMDD' // SHOUR // '.w1.' // GET_RES_EXT()
+ 
          
-         !Use available GEOS-5 (e.g. have 03/13 to 05/13 at 0.25x0.3125)
-         WIND_DIR = TRIM( DATA_DIR ) // 'GEOS_5/2013/' //
-     &              SMONTH // '/'
-         W1_FILE  = '2013MMDD' // SHOUR // '.w1.' // GET_RES_EXT()
-
-
+!          !Use available GEOS-5 (e.g. have 03/13 to 05/13 at 0.25x0.3125)
+!          WIND_DIR = TRIM( DATA_DIR ) // 'GEOS_5/2013/' //
+!     &               SMONTH // '/'
+!          W1_FILE  = '2013MMDD' // SHOUR // '.w1.' // GET_RES_EXT()
+#endif
+         ENDIF
          ! Replace date tokens
          CALL EXPAND_DATE( W1_FILE,  NYMD, NHMS )
          CALL EXPAND_DATE( WIND_DIR, NYMD, NHMS )
@@ -1319,7 +1339,7 @@
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_W1 ) ) THEN
             CALL ERROR_STOP( 'Could not find file!',
-     &                       'OPEN_GEOS572_W1_FIELDS (merra_w1_mod.f)' )
+     &                       'OPEN_W1_FIELDS (merra_w1_mod.f)' )
          ENDIF
 
          !---------------------------

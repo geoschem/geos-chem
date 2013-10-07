@@ -1022,7 +1022,7 @@
       ! Scaling is sufficient for the surface area calculation
       !=================================================================
       MSDENS(1) = 1700.0d0    !SO4
-      MSDENS(2) = 1800.0d0    !BC 
+      MSDENS(2) = 1800.0d0    !BC (updated to 1800 DAR 09/2013)
       MSDENS(3) = 1800.0d0    !OC 
       MSDENS(4) = 2200.0d0    !SS (accum)
       MSDENS(5) = 2200.0d0    !SS (coarse)
@@ -1050,7 +1050,8 @@
        NWVS   = 1
       ELSE
        IF ( LRAD ) THEN !Loop over all RT wavelengths (30)
-        NWVS   = NWVAA-NWVAA0
+        ! plus any required for calculating the AOD
+        NWVS   = NWVAA-NWVAA0+NWVREQUIRED
        ELSE !Loop over wavelengths needed (from RD_AOD)
         NWVS   = NWVREQUIRED
        ENDIF                 
@@ -1065,7 +1066,15 @@
        ELSE
         IF ( LRAD ) THEN
          ! RRTMG wavelengths begin after NWVAA0 standard wavelengths
-         IWV = IIWV+NWVAA0
+         ! but add on any others required 
+         IF (IIWV.LE.30) THEN
+          !index of RRTMG wavelengths starts after the standard NWVAA0
+          !(currently NWVAA0=12, set in jv_cmn_mod based on the .dat LUT)
+          IWV = IIWV+NWVAA0
+         ELSE
+          !now we calculate at wvs for the requested AOD
+          IWV = IWVREQUIRED(IIWV-30)
+         ENDIF
         ELSE
          ! IWVREQUIRED lists the index of requires standard wavelengths
          IWV = IWVREQUIRED(IIWV)
@@ -1074,6 +1083,7 @@
        ! loop over types of aerosol
          DO N = 1, NAER
           !NRT is subscript for RT arrays that contain SNA separately
+          !so their optics can be treated separately in future
           IF (N.GT.1) THEN
            NRT=N+2
           ELSE
@@ -1107,7 +1117,7 @@
          !==============================================================
          ! We loop over all selected wavelengths, referenced by IWV
          ! if FAST_J is calling then IWV will be for 1000nm only
-         ! if RRTMG is on then IWV will be all 61 wavelengths
+         ! if RRTMG is on then IWV will be 30 wavelengths + AOD wavs,
          ! otherwise IWV will be at user input specified wavelengths
 
          ! Loop over relative humidity bins

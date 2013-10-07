@@ -247,9 +247,10 @@
 
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
-
+#if defined (RRTMG)
       ! FOR ND71 -- Radiation output diagnostic
       REAL*4,  ALLOCATABLE :: AD71(:,:,:)
+#endif
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version

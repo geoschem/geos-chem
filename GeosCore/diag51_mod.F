@@ -549,9 +549,10 @@
       ! Accumulate quantities
       !------------------------
       IF ( IS_DIAG ) THEN
-       !determine if optical properties need interpolating
-       !the LUT wavelengths in IWVSELECT will match if no interpolation
+       !Determine if optical properties need interpolating
+       !The LUT wavelengths in IWVSELECT will match if no interpolation
        !is needed. (output is only for the first requested wavelength)
+       !(DAR 10/2013)
        IF(IWVSELECT(1,1).EQ.IWVSELECT(2,1)) THEN
         LINTERP=.FALSE.
        ELSE
@@ -738,10 +739,7 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                   
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(1)+H-1) / QAA(4,IND(1)+H-1) 
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0
+
                  ISPC=1
                  IF (LINTERP.EQ..FALSE.) THEN
                       ! Accumulate
@@ -768,10 +766,6 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
 
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0
                  ISPC=2
                  IF (LINTERP.EQ..FALSE.) THEN
                       ! Accumulate
@@ -798,11 +792,6 @@
                ! ORG CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0
-
                  ISPC=3
                  IF (LINTERP.EQ..FALSE.) THEN
                       ! Accumulate
@@ -828,10 +817,6 @@
                ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0
                  ISPC=4
                  IF (LINTERP.EQ..FALSE.) THEN
                       ! Accumulate
@@ -859,10 +844,6 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
 
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0
                  ISPC=5
                  IF (LINTERP.EQ..FALSE.) THEN
                       ! Accumulate
@@ -891,10 +872,6 @@
                !--------------------------------------
                DO R = 1, NDUST 
 
-                  ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
-                  ! We no longer need to scale by wavelength (skim, 02/03/11)
-                  SCALEAODnm = 1.0
                 IF(LINTERP.EQ..FALSE.) THEN
                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
      &                         ODMDUST(I,J,L,IWVSELECT(1,1),R)
@@ -922,11 +899,6 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                R = N - 114 
-
-               ! Scaling factor to AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
 
                ! Accumulate
                 IF(LINTERP.EQ..FALSE.) THEN

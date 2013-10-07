@@ -1546,12 +1546,18 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      USE LOGICAL_MOD,        ONLY : LSUBGRIDWINDS
+
       !=================================================================
       !    *****  R E A D   G E O S -- 5 . 7 , x  F I E L D S  *****
       !    *****  At the start of the GEOS-Chem simulation     *****
       !
       !    Handle GEOS-5.7.2 met fields separately from other met 
       !=================================================================
+      ! set whether to read the subgrid wind data or not (DAR)
+  
+      LSUBGRIDWINDS = .FALSE. !sub-grid winds usage flag
+
 #if   defined( GEOS_57 )
 
       ! Read time-invariant data
@@ -1588,8 +1594,10 @@
       DATE = GET_FIRST_A1_TIME()
       CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
       CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
-      ! READ IN AUX WIND DATA (DAR)
-      CALL GET_GEOS572_W1_FIELDS(DATE(1), DATE(2) )
+      IF (LSUBGRIDWINDS .EQ. .TRUE.) THEN
+       ! READ IN AUX WIND DATA (DAR)
+       CALL GET_W1_FIELDS(DATE(1), DATE(2) )
+      ENDIF
       
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
 
@@ -1664,8 +1672,10 @@
       DATE = GET_FIRST_A3_TIME()
       CALL OPEN_A3_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
       CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
-      ! READ IN AUX WIND DATA (DAR)
-      CALL GET_GEOS572_W1_FIELDS(DATE(1), DATE(2) )
+      IF (LSUBGRIDWINDS .EQ. .TRUE.) THEN
+       ! READ IN AUX WIND DATA (DAR)
+       CALL GET_W1_FIELDS(DATE(1), DATE(2) )
+      ENDIF
 
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
 
@@ -1809,8 +1819,10 @@
          ! Open & read A-3 fields
          CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
          CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2) )
-         ! READ IN AUX WIND DATA (DAR)
-         CALL GET_GEOS572_W1_FIELDS(DATE(1), DATE(2) )
+         IF (LSUBGRIDWINDS .EQ. .TRUE.) THEN
+          ! READ IN AUX WIND DATA (DAR)
+          CALL GET_W1_FIELDS(DATE(1), DATE(2) )
+         ENDIF
 
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
@@ -1910,9 +1922,10 @@
          ! Open & read A-3 fields
          CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
          CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
-         ! READ IN AUX WIND DATA (DAR)
-         CALL GET_GEOS572_W1_FIELDS(DATE(1), DATE(2) )
-
+         IF (LSUBGRIDWINDS .EQ. .TRUE.) THEN 
+          ! READ IN AUX WIND DATA (DAR)
+          CALL GET_W1_FIELDS(DATE(1), DATE(2) )
+         ENDIF
          ! Update daily mean temperature archive for MEGAN biogenics
          IF ( LMEGAN ) CALL UPDATE_T_DAY 
 

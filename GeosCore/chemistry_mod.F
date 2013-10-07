@@ -810,6 +810,7 @@
                ! in GEOS-CHEM...so read monthly-mean dust files from disk.
                ! (rjp, tdf, bmy, 4/1/04)
                !===============================================================
+
                IF ( LDUST ) THEN
                   CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
                ELSE
