@@ -4309,6 +4309,9 @@
 !                              semivolatile POA simulations (H. Pye)
 !  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
 !                              aerosols (T.D. Fairlie)
+!  27 Sep 2013 - M. Sulprizio- DST2-DST4 are now considered coarse mode aerosol
+!                              following the recommendation of T.D. Fairlie.
+!                              NITd, SO4d, and DALK are similarly updated.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4572,12 +4575,13 @@
       ! Dust Nitrate (aerosol)
       ! tdf
       !------------------------------
-      ELSE IF ( N == IDTNITd1 .or. N == IDTNITd2 .or.
-     &          N == IDTNITd3  ) THEN
+      ELSE IF ( N == IDTNITd1 ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
       !!coarse mode aerosols
-      ELSE IF ( N == IDTNITd4 ) THEN
+      ! NITd2-NITd4 are now considered coarse mode (mps, 9/27/13)
+      ELSE IF ( N == IDTNITd2 .or. N == IDTNITd3 .or.
+     &          N == IDTNITd4  ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 
@@ -4585,12 +4589,13 @@
       ! Dust Sulfate (aerosol)
       ! tdf
       !------------------------------
-      ELSE IF ( N == IDTSO4d1 .or. N == IDTSO4d2 .or.
-     &          N == IDTSO4d3  ) THEN
+      ELSE IF ( N == IDTSO4d1 ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
       !!coarse mode aerosols
-      ELSE IF ( N == IDTSO4d4 ) THEN
+      ! SO4d2-SO4d4 are now considered coarse mode (mps, 9/27/13)
+      ELSE IF ( N == IDTSO4d2 .or. N == IDTSO4d3 .or.
+     &          N == IDTSO4d4  ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 
@@ -4611,12 +4616,13 @@
       !------------------------------
       ! DUST all size bins (aerosol)
       !------------------------------
-      ELSE IF ( N == IDTDST1 .or. N == IDTDST2  .or.
-     &          N == IDTDST3  ) THEN
+      ELSE IF ( N == IDTDST1 ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
       !!coarse mode aerosols (qq,10/11/2011)
-      ELSE IF ( N == IDTDST4 ) THEN
+      ! DST2-DST4 are now considered coarse mode (mps, 9/27/13)
+      ELSE IF ( N == IDTDST2 .or. N == IDTDST3 .or.
+     &          N == IDTDST4  ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 
@@ -4624,12 +4630,13 @@
       ! DUST alkalinity size bins (aerosol)
       ! tdf
       !------------------------------
-      ELSE IF ( N == IDTDAL1 .or. N == IDTDAL2  .or.
-     &          N == IDTDAL3  ) THEN
+      ELSE IF ( N == IDTDAL1 ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
       !!coarse mode aerosols
-      ELSE IF ( N == IDTDAL4 ) THEN
+      ! DAL2-DAL4 are now considered coarse mode (mps, 9/27/13)
+      ELSE IF ( N == IDTDAL2 .or. N == IDTDAL3 .or.
+     &          N == IDTDAL4  ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 
