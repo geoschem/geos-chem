@@ -97,15 +97,14 @@ c
 !     if( WAVEL .gt. 800.d0 ) KM=4  !drop the 1000 nm wavelength
 c
 !---For Mie code scale extinction at 1000 nm to wavelength WAVEL (QXMIE)
-!---first for the total BC (not used, water and ice parameters
-!---linked to the jv_spec.dat values using set_aer.F (DAR)
       do I=1,3
         QXMIE(I) = QAA(KM,MIEDX(I))/QAA(4,MIEDX(I))
         SSALB(I) = SSA(KM,MIEDX(I))
-       do IP=1,8
-        PHMIE(IP,I) = PAA(IP,KM,MIEDX(I))
-       enddo
+        do IP=1,8
+         PHMIE(IP,I) = PAA(IP,KM,MIEDX(I))
+        enddo
       enddo
+
 !   Now read aerosol optics from the new mie lut
 !   we have more spectral resolution in the lut now
                               KM=1
@@ -126,7 +125,7 @@ c
       do IS=1,5
        !loop over RH bins (skips 95% and 99%)
        do IR=1,5
-        I=(IS-1)*NRH+IR+10        
+        I=(IS-1)*NRH+IR+10
         QXMIE(I) = QQAA(KM,IR,IS)/QQAA(IWV1000,IR,IS)
         SSALB(I) = SSAA(KM,IR,IS)
         do IP=1,8
@@ -134,6 +133,7 @@ c
         enddo
        enddo
       enddo
+
 
 c
 !---Reinitialize arrays
@@ -149,7 +149,7 @@ c
         XLO2=DM(J)*XQO2(J)*0.20948d0
         XLRAY=DM(J)*QRAYL(KW)
 c  Zero absorption for testing purposes
-c       call NOABS(XLO3,XLO2,XLRAY,AER(1,j),RFLECT)
+c        call NOABS(XLO3,XLO2,XLRAY,AER(1,j),RFLECT)
         do I=1,MX
           XLAER(I)=AER(I,J)*QXMIE(I)
         enddo
@@ -171,7 +171,7 @@ c
       MFIT = 2*M__
       do j=j1,NB
         do i=1,MFIT
-          pomegaj(i,j) = PIRAY(J)*PHMIE(I,1)
+          pomegaj(i,j) = PIRAY(J)*PAA(I,KM,1)
           do k=1,MX
             pomegaj(i,j) = pomegaj(i,j) + PIAER(K,J)*PHMIE(I,K)
           enddo

@@ -147,7 +147,6 @@
       INTEGER, PARAMETER :: PD68=4            
       INTEGER, PARAMETER :: PD69=1
       INTEGER, PARAMETER :: PD70=0
-#if   defined( RRTMG )
       !number of rad flux and optics output types
       !8 flux and 3*3=9 optics
       INTEGER, PARAMETER :: PD71R=17
@@ -161,6 +160,7 @@
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output
       !=================================================================
+#if   defined( RRTMG )
       INTEGER, PARAMETER :: MAX_DIAG   = 187
 #else
       INTEGER, PARAMETER :: MAX_DIAG   = 71

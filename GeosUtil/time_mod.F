@@ -2415,9 +2415,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_ct_chem
+! !IROUTINE: get_ct_rad
 !
-! !DESCRIPTION: Function GET\_CT\_CHEM returns the chemistry timestep
+! !DESCRIPTION: Function GET\_CT\_RAD returns the chemistry timestep
 ! counter
 !  to the calling program.
 !\\
