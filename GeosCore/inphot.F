@@ -121,7 +121,7 @@
       LUN      = findFreeLUN()
 
       ! Name of file to read
-      FILENAME = 'jv_spec_noaero.dat'
+      FILENAME = 'jv_spec.dat'
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc

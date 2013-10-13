@@ -79,7 +79,7 @@
 ! !LOCAL VARIABLES:
 !
       integer jndlev(LLPAR),jaddlv(nc),jaddto(nc+1)
-      integer km,i,j,k,l,ix,j1,is,ir,ip
+      integer KM,KM2,I,J,K,L,IX,J1,IS,IR,IP
       real*8 QXMIE(MX),XLAER(MX),SSALB(MX),PHMIE(8,MX)
       real*8 xlo2,xlo3,xlray,xltau,zk,taudn,tauup,zk2
       real*8 POMEGAJ(2*M__,NC+1)
@@ -107,17 +107,17 @@ c
 
 !   Now read aerosol optics from the new mie lut
 !   we have more spectral resolution in the lut now
-                              KM=1
-      if( WAVEL .gt. 350.d0 ) KM=2
-      if( WAVEL .gt. 500.d0 ) KM=6
+                              KM2=1
+      if( WAVEL .gt. 350.d0 ) KM2=2
+      if( WAVEL .gt. 500.d0 ) KM2=6
 
 !dust (idx=6 in optics arrays)
       do I=4,10
        IR=I-3
-       QXMIE(I) = QQAA(KM,IR,6)/QQAA(IWV1000,IR,6)
-       SSALB(I) = SSAA(KM,IR,6)
+       QXMIE(I) = QQAA(KM2,IR,6)/QQAA(IWV1000,IR,6)
+       SSALB(I) = SSAA(KM2,IR,6)
        do IP=1,8
-        PHMIE(IP,I)=PHAA(KM,IR,6,IP)
+        PHMIE(IP,I)=PHAA(KM2,IR,6,IP)
        enddo
       enddo
 
@@ -126,10 +126,10 @@ c
        !loop over RH bins (skips 95% and 99%)
        do IR=1,5
         I=(IS-1)*NRH+IR+10
-        QXMIE(I) = QQAA(KM,IR,IS)/QQAA(IWV1000,IR,IS)
-        SSALB(I) = SSAA(KM,IR,IS)
+        QXMIE(I) = QQAA(KM2,IR,IS)/QQAA(IWV1000,IR,IS)
+        SSALB(I) = SSAA(KM2,IR,IS)
         do IP=1,8
-         PHMIE(IP,I)=PHAA(KM,IR,IS,IP)
+         PHMIE(IP,I)=PHAA(KM2,IR,IS,IP)
         enddo
        enddo
       enddo
