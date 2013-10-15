@@ -206,6 +206,8 @@
 !  26 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  27 Mar 2013 - R. Yantosca - Now remove DEVEL tags; pass objects to routines
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
+!  15 Oct 2013 - R. Yantosca - Remove calls to PARANOX for simulations other
+!                              than full-chemistry (they don't carry NO, O3)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -338,6 +340,7 @@
 
          !--------------------
          ! NOx-Ox-HC-aerosol
+         ! (aka "fullchem")
          !--------------------
 
          ! Read David Streets' emisisons over China / SE ASia
@@ -565,11 +568,16 @@
      &         ( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
-         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-         IF ( ( LICOADSSHIP .or.  LEDGARSHIP .or. 
-     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
-            CALL READ_PARANOX_LUT
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 10/15/13:
+! PARANOX is not needed for offline aerosol simulations, which do not
+! carry NO or O3.  Remove this subroutine call. (bmy, 10/15/13)
+!         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
+!        IF ( ( LICOADSSHIP .or.  LEDGARSHIP .or. 
+!     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
+!            CALL READ_PARANOX_LUT
+!         ENDIF
+!-----------------------------------------------------------------------------
 
          ! Seasalt aerosol emission
          IF ( LSSALT ) THEN 
@@ -699,11 +707,16 @@
      &                              State_Chm, RC         )
          ENDIF
 
-         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
-     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
-            CALL READ_PARANOX_LUT
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 10/15/13:
+! NOTE: PARANOX does not apply to tagged CO simulations, which do not carry
+! NO or O3 tracers.  Disable this subroutine call (bmy, 10/15/13)
+!         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
+!         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
+!     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
+!            CALL READ_PARANOX_LUT
+!         ENDIF
+!-----------------------------------------------------------------------------
 
          ! Now call EMISSDR for Tagged CO fossil fuel emissions, 
          ! so that we get the same emissions for Tagged CO as 
@@ -868,11 +881,16 @@
      &         ( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
-         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
-     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
-            CALL READ_PARANOX_LUT
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 10/15/13:
+! NOTE: PARANOX does not apply to tagged CO simulations, which do not carry
+! NO or O3 tracers.  Disable this subroutine call (bmy, 10/15/13)
+!         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
+!         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
+!     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
+!            CALL READ_PARANOX_LUT
+!         ENDIF
+!-----------------------------------------------------------------------------
 
          ! Emit H2/HD
          CALL EMISS_H2_HD
