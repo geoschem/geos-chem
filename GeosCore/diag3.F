@@ -50,6 +50,7 @@
 #endif
 
 #if   defined( APM )
+      USE TRACER_MOD,   ONLY : N_APMTRA
       ! Modules from GeosApm directory
       USE APM_DRIV_MOD, ONLY : IFTEMPOUT
       USE APM_DRIV_MOD, ONLY : TEMPOUT

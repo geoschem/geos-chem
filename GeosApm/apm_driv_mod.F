@@ -177,14 +177,13 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
       USE TIME_MOD,           ONLY : GET_DAY,GET_HOUR,GET_MINUTE
-      USE TRACER_MOD,         ONLY : STT
       USE TRACER_MOD,         ONLY : TRACER_MW_KG
       USE TRACERID_MOD,       ONLY : IDTNH4,  IDTNIT,  IDTSO4, IDTNH3
       USE TRACERID_MOD,       ONLY : IDTBCPO, IDTBCPI, IDTOCPO, IDTOCPI
       USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2
       USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
       USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTASOA1  IDTASOA2, IDTASOA3
+      USE TRACERID_MOD,       ONLY : IDTASOA1,  IDTASOA2, IDTASOA3
       USE TRACERID_MOD,       ONLY : IDTMSA
       USE TRACERID_MOD,       ONLY : IDTDST1,IDTDST2,IDTDST3,IDTDST4
       USE TRACERID_MOD,       ONLY : IDTSO2
@@ -197,7 +196,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry Stae object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
@@ -506,7 +505,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERONUM( State_Met )
+      SUBROUTINE AERONUM( State_Met, State_Chm )
 !
 ! !USES:
 !
@@ -515,14 +514,15 @@
       USE APM_INIT_MOD,       ONLY : VDRY
       USE APM_INIT_MOD,       ONLY : DENSULF
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACER_MOD,         ONLY : N_TRACERS
-      USE TRACER_MOD,         ONLY : STT
                         
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  28 Aug 2008 - F. Yu       - Initial version  
@@ -537,8 +537,14 @@
 !
       INTEGER :: I,J,L,N,SIZENUM
       REAL*8  :: XMATEMP
+
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: STT(:,:,:,:)
 !
 !******************************************************************************
+      ! Point to STT
+      STT => State_Chm%TRACERS
+
       XN4D = 0.D0
 
 !$OMP PARALLEL DO
@@ -565,6 +571,9 @@
       ENDDO
 
 !$OMP END PARALLEL DO
+
+      ! Clear the pointer
+      NULLIFY( STT )
 
       END SUBROUTINE AERONUM
 !EOC

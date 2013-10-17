@@ -602,6 +602,8 @@
 !
 !  NOTES:
 !  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
+!  05 Sep 2013 - R. Yantosca - Prevent an out-of-bounds error in the call
+!                              to GET_AREA_CM2.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -624,7 +626,15 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( I, J, L )
+!----------------------------------------------------------------------------
+! Prior to 9/5/13:
+! AREA_M2 is defined on the reduced grid, so L > LLPAR will cause an 
+! out-of-bounds error.  In the "traditional" GEOS-Chem, all of the grid box
+! areas in a column are identical, so we can replace this with (I,J,1).
+! This bug was found by the GEOS-Chem unit tester. (bmy, 9/5/13)
+!         AREA_M2 = GET_AREA_M2( I, J, L )
+!----------------------------------------------------------------------------
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
                
          ! Pressure at bottom edge of grid box [hPa]
          P1          = GET_PEDGE_FULLGRID(I,J,L)
@@ -3772,6 +3782,10 @@
 !
       SUBROUTINE INIT_DAO
 !
+! !USES:
+!
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+!
 ! !REVISION HISTORY: 
 !  26 Jun 2000 - R. Yantosca - Initial version
 !  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
@@ -3813,6 +3827,9 @@
 !  06 Feb 2012 - R. Yantosca - Now split off array initializations into
 !                              separate routines, for clarity
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  14 Mar 2013 - M. Payer    - Now allocate AIRDEN_FULLGRID and T_FULLGRID
+!                              arrays used to correct vertical regridding of OH
+!                              for offline simulations (C. Holmes)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3856,6 +3873,16 @@
       ! Initialize derived fields (used by all met data types)
       CALL INIT_DAO_DERIVED()
 
+      ! Temperature on full vertical grid 
+      ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
+      T_FULLGRID = 0d0
+
+      ! Number density of air on full vertical grid
+      ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
+      AIRDEN_FULLGRID = 0d0
+
       END SUBROUTINE INIT_DAO
 !EOC
 !------------------------------------------------------------------------------
@@ -3898,6 +3925,9 @@
 !  05 Oct 2011 - R. Yantosca - Now deallocate SUNCOS_MID
 !  06 Feb 2012 - R. Yantosca - Cosmetic changes
 !  24 Feb 2012 - R. Yantosca - Now deallocate SUNCOS_MID_5hr; cosmetic changes
+!  14 Mar 2013 - M. Payer    - Now deallocate AIRDEN_FULLGRID and T_FULLGRID
+!                              arrays used to correct vertical regridding of OH
+!                              for offline simulations (C. Holmes)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4012,6 +4042,9 @@
       IF ( ALLOCATED( ZMMU0      ) ) DEALLOCATE( ZMMU0      )
       IF ( ALLOCATED( ZMMU0a     ) ) DEALLOCATE( ZMMU0a     )
       IF ( ALLOCATED( ZMMU0b     ) ) DEALLOCATE( ZMMU0b     )
+
+      IF ( ALLOCATED( AIRDEN_FULLGRID ) ) DEALLOCATE( AIRDEN_FULLGRID )
+      IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
 
       END SUBROUTINE CLEANUP_DAO
 !EOC

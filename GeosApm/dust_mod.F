@@ -38,6 +38,10 @@
       PRIVATE :: DRY_DEPOSITION
       PRIVATE :: SRC_DUST_DEAD
       PRIVATE :: SRC_DUST_GINOUX
+#if   defined( APM )
+      PRIVATE :: DRY_SETTLINGBIN
+      PRIVATE :: DRY_DEPOSITIONBIN
+#endif
 !
 !  !REVISION HISTORY:
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -195,11 +199,12 @@
 #if   defined( APM )
 
       ! Call APM size-resolved settling algorithm
-      CALL DRY_SETTLINGBIN( State_Met )
+      CALL DRY_SETTLINGBIN( am_I_Root, Input_Opt, State_Met,
+     &                      State_Chm, RC )
 
       ! Call APM size-resolved drydep algorithm
       IF ( LDRYD ) THEN
-         CALL DRY_DEPOSITIONBIN
+         CALL DRY_DEPOSITIONBIN( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
 
 #else
@@ -993,7 +998,12 @@
       IF ( LDEAD ) THEN
 
          ! Use Zender's DEAD dust source function
+#if   defined( APM )
+         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), State_Met,
+     &                       State_Chm )
+#else
          CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), State_Met )
+#endif
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
@@ -1037,7 +1047,11 @@
 !\\
 ! !INTERFACE:
 !
+#if   defined( APM )
+      SUBROUTINE SRC_DUST_DEAD( TC, State_Met, State_Chm )
+#else
       SUBROUTINE SRC_DUST_DEAD( TC, State_Met )
+#endif
 !
 ! !USES:
 !
@@ -1054,7 +1068,7 @@
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 #if   defined( APM )
-      USE TRACER_MOD,         ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE APM_INIT_MOD,       ONLY : NDSTB
       USE APM_INIT_MOD,       ONLY : IDTDSTBIN1
 #endif
@@ -1072,6 +1086,9 @@
 ! 
       ! Dust mass [kg]
       REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
+#if   defined( APM )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REMARKS:
 !  Input:
@@ -1148,6 +1165,9 @@
       REAL*8                 :: SNW_HGT_LQD(IIPAR)   ! equivalent snow ht.
 #if   defined( APM )     
       REAL*8                 :: DSRC(IIPAR,NDSTBIN+NDSTB) ! dust mixing ratio incr
+
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER        :: STT(:,:,:,:)
 #else                    
       REAL*8                 :: DSRC(IIPAR,NDSTBIN)  ! dust mixing ratio incr.
 #endif
@@ -1172,6 +1192,11 @@
       N_DST_BIN = NDSTBIN + NDSTB   ! With APM
 #else 
       N_DST_BIN = NDSTBIN           ! Without APM
+#endif
+
+#if   defined( APM )
+      ! Point to STT
+      STT => State_Chm%TRACERS
 #endif
 
       ! DTSRCE is the emission timestep in seconds
@@ -1308,10 +1333,16 @@
      &                                   + DSRC(I,N+4)
          ENDDO
          ENDDO
+
 #endif
 
       ENDDO  
 !$OMP END PARALLEL DO
+
+#if   defined( APM )
+      ! Clear the pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE SRC_DUST_DEAD
 !EOC
@@ -2218,47 +2249,75 @@
       ENDIF
 
       END SUBROUTINE RDUST_OFFLINE
-!------------------------------------------------------------------------------
-!APM_GanLuo+
+!EOC
 #if   defined( APM )
-      SUBROUTINE DRY_SETTLINGBIN( State_Met )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-! Modified for APM simulation
+! !IROUTINE: dry_settlingbin
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Dust tracer array 
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!******************************************************************************
-! 
+! !DESCRIPTION: Subroutine DRY\_SETTLINGBIN computes the dry settling of 
+!  dust tracers. Modified for APM simulation. (G. Luo)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DRY_SETTLINGBIN( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, RC )
+!
+! !USES:
+!
       USE DIAG_MOD,           ONLY : AD44
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTDST1
-      USE TRACER_MOD,         ONLY : STT
-      USE TRACER_MOD,         ONLY : N_TRACERS, N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
       USE APM_INIT_MOD,       ONLY : NCTDST,NDSTB,DENDST,RDST
       USE APM_INIT_MOD,       ONLY : IDTCTDST,IDTDSTBIN1
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_GCTM_MOD             ! g0
       USE CMN_DIAG_MOD             ! ND44
-
-      ! Input Parameters 
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
-      ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  17 Oct 2013 - M. Sulprizio- Now pass STT via the State_Chm object
+!  17 Oct 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*8, DIMENSION(IIPAR,JJPAR,LLPAR) :: MASS0, MASS1
       REAL*8, DIMENSION(IIPAR,JJPAR,LLPAR,NDSTBIN+NDSTB) :: MASS
 
       ! Local variables
-      INTEGER               :: I, J, L, N
+      INTEGER               :: I, J, L, N, N_TRACERS
       INTEGER               :: IDTEMP
       REAL*8                :: DT_SETTL, DELZ,  DELZ1
       REAL*8                :: REFF,     DEN,   CONST   
@@ -2286,20 +2345,42 @@
 
       ! Settling velocity of particle (m/s)
       REAL*8                :: VTS(LLPAR)  
-      
-      ! Parameters
+
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: STT(:,:,:,:)
+
+      ! Molecules tracer / kg tracer, from Input Options
+      REAL*8                :: XNUMOL(Input_Opt%N_TRACERS)
+!
+! !DEFINED PARAMETERS:
+!
       REAL*8,  PARAMETER    :: C1 =  0.7674D0
       REAL*8,  PARAMETER    :: C2 =  3.079d0 
       REAL*8,  PARAMETER    :: C3 =  2.573D-11
       REAL*8,  PARAMETER    :: C4 = -1.424d0
 
+      !=================================================================
+      ! DRY_SETTLINGBIN begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Point to STT
+      STT => State_Chm%TRACERS
+
       ! Dust settling timestep [s]
       DT_SETTL = GET_TS_CHEM() * 60d0
 
-      MASS0=0.D0
-      MASS=0.D0
-      MASS1=0.D0
-      IDTEMP=IDTDSTBIN1+NDSTB-1
+      MASS0  = 0.D0
+      MASS   = 0.D0
+      MASS1  = 0.D0
+      IDTEMP = IDTDSTBIN1+NDSTB-1
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -2327,8 +2408,8 @@
 
          ! Initialize
          IF(N<=NDSTBIN)THEN
-           DEN   = DUSTDEN(N)
-           REFF  = DUSTREFF(N)
+           DEN   = Input_Opt%DUSTDEN(N)
+           REFF  = Input_Opt%DUSTREFF(N)
          ELSE
            DEN   = DENDST(N-NDSTBIN)*1.d3
            REFF  = RDST(N-NDSTBIN)
@@ -2419,7 +2500,8 @@
                   FLUX = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
 
                   ! Save in AD44
-                  AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
+                  AD44(I,J,Input_Opt%IDDEP(N),1) =
+     &            AD44(I,J,Input_Opt%IDDEP(N),1) + FLUX
 
                  ENDIF
                ENDIF
@@ -2458,55 +2540,103 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
+      ! Clear the pointer
+      NULLIFY( STT )
+
       END SUBROUTINE DRY_SETTLINGBIN
-
+!EOC
 !------------------------------------------------------------------------------
-!APM_GanLuo+
-
-      SUBROUTINE DRY_DEPOSITIONBIN
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-! Modified for APM simulation
+! !IROUTINE: dry_depositionbin
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Dust tracer array   
+! !DESCRIPTION: Subroutine DRY\_DEPOSITIONBIN computes the loss of dust due to 
+!  dry deposition at the surface using an implicit method. Modified for APM
+!  simulation. (G. Luo)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DRY_DEPOSITIONBIN( am_I_Root, Input_Opt, State_Chm,
+     &                              RC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD44
+      USE DRYDEP_MOD,         ONLY : DEPSAV 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACERID_MOD,       ONLY : IDTDST1
+      USE APM_INIT_MOD,       ONLY : NCTDST,NSO4,NSEA,NDSTB
+      USE APM_INIT_MOD,       ONLY : IDTCTDST,IDTDSTBIN1
+      USE DRYDEP_MOD,         ONLY : DEPSAVSIZE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!******************************************************************************
+!  17 Oct 2013 - M. Sulprizio- Now pass STT via the State_Chm object
+!  17 Oct 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV 
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTDST1
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACER_MOD,   ONLY : N_TRACERS, N_APMTRA
-      USE APM_INIT_MOD, ONLY : NCTDST,NSO4,NSEA,NDSTB
-      USE APM_INIT_MOD, ONLY : IDTCTDST,IDTDSTBIN1
-      USE DRYDEP_MOD,   ONLY : DEPSAVSIZE
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_GCTM_MOD       ! g0
-      USE CMN_DIAG_MOD       ! ND44
-
-      ! Arguments
+! !LOCAL VARIABLES:
+!
       REAL*8, DIMENSION(IIPAR,JJPAR) :: MASS0, MASS
 
-      ! local variables
-      INTEGER               :: I,   J,   L,      N
-      INTEGER               :: IDTEMP
-      REAL*8                :: OLD, NEW, DTCHEM, FLUX, AREA_CM2
-      REAL*8                :: OLD1, NEW1
+      ! Scalars
+      INTEGER :: I,   J,   L,      N,    N_TRACERS
+      INTEGER :: IDTEMP
+      REAL*8  :: OLD, NEW, DTCHEM, FLUX, AREA_CM2
+      REAL*8  :: OLD1, NEW1
+
+      ! Arrays
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: STT(:,:,:,:)
+
+      !=================================================================
+      ! DRY_DEPOSITIONBIN begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Point to STT
+      STT => State_Chm%TRACERS
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-      MASS0=0.D0
-      MASS=0.D0
-      IDTEMP=IDTDSTBIN1+NDSTB-1
+      MASS0  = 0.D0
+      MASS   = 0.D0
+      IDTEMP = IDTDSTBIN1+NDSTB-1
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
@@ -2548,7 +2678,8 @@
 
                ! Dust left after dry deposition
                IF(N<=NDSTBIN)THEN
-                NEW1 = OLD1 * EXP( -DEPSAV(I,J,IDDEP(N)) * DTCHEM  )
+                NEW1 = OLD1 * EXP( -DEPSAV(I,J,Input_Opt%IDDEP(N)) *
+     &                 DTCHEM  )
                ELSE
                  NEW1 = OLD1 *
      &           EXP( -DEPSAVSIZE(I,J,(NSO4+NSEA+N-NDSTBIN)) * DTCHEM )
@@ -2562,7 +2693,8 @@
                   FLUX     = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
                
                   ! Store in AD44
-                  AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
+                  AD44(I,J,Input_Opt%IDDEP(N),1) =
+     &            AD44(I,J,Input_Opt%IDDEP(N),1) + FLUX
 
                  ENDIF
                ENDIF
@@ -2603,9 +2735,12 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Clear the pointer
+      NULLIFY( STT )
+
       END SUBROUTINE DRY_DEPOSITIONBIN
-#endif
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
