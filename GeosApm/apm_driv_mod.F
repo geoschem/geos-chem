@@ -179,14 +179,15 @@
       USE TIME_MOD,           ONLY : GET_DAY,GET_HOUR,GET_MINUTE
       USE TRACER_MOD,         ONLY : STT
       USE TRACER_MOD,         ONLY : TRACER_MW_KG
-      USE TRACERID_MOD,       ONLY : IDTNH4,  IDTNIT, IDTSO4, IDTNH3
-      USE TRACERID_MOD,       ONLY : IDTBCPO,IDTBCPI,IDTOCPO, IDTOCPI
-      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
+      USE TRACERID_MOD,       ONLY : IDTNH4,  IDTNIT,  IDTSO4, IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTBCPO, IDTBCPI, IDTOCPO, IDTOCPI
+      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2
+      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
+      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      USE TRACERID_MOD,       ONLY : IDTASOA1  IDTASOA2, IDTASOA3
       USE TRACERID_MOD,       ONLY : IDTMSA
       USE TRACERID_MOD,       ONLY : IDTDST1,IDTDST2,IDTDST3,IDTDST4
       USE TRACERID_MOD,       ONLY : IDTSO2
-      USE TRACERID_MOD,       ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -203,6 +204,8 @@
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  17 Oct 2013 - M. Sulprizio- Update SOAT so that it is consistent with tracers
+!                              in Havala Pye's updated SOA simulation (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -367,8 +370,18 @@
           MSALTLV = 0.
         ENDIF
 
-        SOAT= (STT(I,J,L,IDTSOA1)+STT(I,J,L,IDTSOA2)+STT(I,J,L,IDTSOA3)
-     &         + STT(I,J,L,IDTSOA4) + STT(I,J,L,IDTSOA5))/VOL   ! Total SV-&MV-SOA
+!------------------------------------------------------------------------------
+! Prior to 10/17/13:
+!        SOAT= (STT(I,J,L,IDTSOA1)+STT(I,J,L,IDTSOA2)+STT(I,J,L,IDTSOA3)
+!     &         + STT(I,J,L,IDTSOA4) + STT(I,J,L,IDTSOA5))/VOL   ! Total SV-&MV-SOA
+!------------------------------------------------------------------------------
+        SOAT= (STT(I,J,L,IDTTSOA1)+STT(I,J,L,IDTTSOA2)+
+     &         STT(I,J,L,IDTTSOA3)+STT(I,J,L,IDTTSOA0)+
+     &         STT(I,J,L,IDTISOA1)+STT(I,J,L,IDTISOA2)+
+     &         STT(I,J,L,IDTISOA3)+STT(I,J,L,IDTASOA1)+
+     &         STT(I,J,L,IDTASOA2)+STT(I,J,L,IDTASOA3) )/VOL ! Total SV-&MV-SOA
+
+
 
         MSO4 = 0.d0
         DO N=1,NSO4
