@@ -334,7 +334,6 @@
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
-      LOGICAL          :: LMFCT
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
@@ -349,7 +348,6 @@
 
       ! Copy values from Input_Opt
       LFILL     = Input_Opt%LFILL
-      LMFCT     = Input_Opt%LMFCT
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
@@ -637,7 +635,6 @@
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
-      LOGICAL          :: LMFCT
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
@@ -655,7 +652,6 @@
 
       ! Copy values from Input_Opt
       LFILL     = Input_Opt%LFILL
-      LMFCT     = Input_Opt%LMFCT
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
@@ -952,7 +948,6 @@
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
-      LOGICAL          :: LMFCT
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
@@ -970,7 +965,6 @@
 
       ! Copy values from Input_Opt
       LFILL     = Input_Opt%LFILL
-      LMFCT     = Input_Opt%LMFCT
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
@@ -1212,7 +1206,6 @@
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
-      LOGICAL          :: LMFCT
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
@@ -1227,7 +1220,6 @@
 
       ! Copy values from Input_Opt
       LFILL     = Input_Opt%LFILL
-      LMFCT     = Input_Opt%LMFCT
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS

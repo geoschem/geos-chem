@@ -159,8 +159,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSHIPSO2
      LOGICAL                     :: LARCSHIP
      LOGICAL                     :: LCOOKE
-     LOGICAL                     :: LAVHRRLAI
-     LOGICAL                     :: LMODISLAI
      LOGICAL                     :: LHIST
      LOGICAL                     :: HISTYR
      LOGICAL                     :: LWARWICK_VSLS
@@ -221,7 +219,6 @@ MODULE GIGC_Input_Opt_Mod
      ! CHEMISTRY MENU fields
      !----------------------------------------
      LOGICAL                     :: LTRAN
-     LOGICAL                     :: LMFCT
      LOGICAL                     :: LFILL
      LOGICAL                     :: TPCORE_IORD
      LOGICAL                     :: TPCORE_JORD
@@ -595,6 +592,8 @@ MODULE GIGC_Input_Opt_Mod
 !  13 Aug 2013 - M. Sulprizio- Add extra fields for semivolatile POA (H. Pye)
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -819,8 +818,6 @@ CONTAINS
     Input_Opt%LSHIPSO2               = .FALSE.
     Input_Opt%LARCSHIP               = .FALSE.
     Input_Opt%LCOOKE                 = .FALSE.
-    Input_Opt%LAVHRRLAI              = .FALSE.
-    Input_Opt%LMODISLAI              = .FALSE.
     Input_Opt%LHIST                  = .FALSE.
     Input_Opt%HISTYR                 = .FALSE.
     Input_Opt%LWARWICK_VSLS          = .FALSE.
@@ -882,7 +879,6 @@ CONTAINS
     ! CHEMISTRY MENU fields
     !----------------------------------------
     Input_Opt%LTRAN                  = .FALSE.
-    Input_Opt%LMFCT                  = .FALSE.
     Input_Opt%LFILL                  = .FALSE.
     Input_Opt%TPCORE_IORD            = .FALSE.
     Input_Opt%TPCORE_JORD            = .FALSE.

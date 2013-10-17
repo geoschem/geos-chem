@@ -5585,22 +5585,10 @@
                   NAME(T,43) = 'OH'
                   UNIT(T,43) = 'molec/cm3'
                   MWT (T,43) = 17e-3
-               CASE( 2 )
-                  NAME(T,43) = 'NO'
-                  UNIT(T,43) = 'v/v'
-                  MWT (T,43) = 30e-3
                CASE( 3 )
                   NAME(T,43) = 'HO2'
                   UNIT(T,43) = 'v/v'
                   MWT (T,43) = 33e-3
-               CASE( 4 )
-                  NAME(T,43) = 'NO2'
-                  UNIT(T,43) = 'v/v'
-                  MWT (T,43) = 46e-3
-               CASE( 5 )
-                  NAME(T,43) = 'NO3'
-                  UNIT(T,43) = 'v/v'
-                  MWT (T,43) = 62e-3
                ! update for arom (dkh, 06/22/07)  
                CASE( 6 )
                   NAME(T,43) = 'LBRO2H'

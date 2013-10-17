@@ -2229,6 +2229,9 @@
 !                              make sure LAEIC and LRCPAIR are not both on
 !  22 Aug 2013 - R. Yantosca - Now read path for soil NOx restart file
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete options for LAVHRRLAI and
+!                              LMODISLAI. MODIS LAI data are now read from
+!                              netCDF files.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2457,14 +2460,6 @@
       ! Use COOKE over North AMerica for BC/OC?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
       READ( SUBSTRS(1:N), * ) LCOOKE
-
-      ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
-      READ( SUBSTRS(1:N), * ) LAVHRRLAI
-
-      ! Use MODIS-derived LAI fields? (mpb,2009)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
-      READ( SUBSTRS(1:N), * ) LMODISLAI
 
       ! Use historical emissions (EDGAR NOx/SO2 and Bond BC/OC) for 
       ! 1890-2000?
@@ -2804,27 +2799,9 @@
          LGFED2BB = .FALSE.
       ENDIF
 
-#if   !defined( GCAP)
-      ! Force to use MODIS LAI if we use MEGAN. (ccc, 2/23/10)
-      IF ( LMEGAN .OR. LMEGANMONO ) THEN
-         LMODISLAI = .TRUE.
-         LAVHRRLAI = .FALSE.
-         IF ( am_I_Root ) THEN
-            WRITE(6,'(/,a,/)') 
-     &         'Force to use MODIS LAI for MEGAN.' //
-     &         ' AVHRR LAI will not be used'
-         ENDIF
-      ENDIF
-#endif
-
       !=================================================================
       ! Error checks
       !=================================================================
-      IF ( LAVHRRLAI .AND. LMODISLAI ) THEN
-            CALL ERROR_STOP( 
-     &         ' AVHRR LAI &  MODIS LAI cannot both be turned on!', 
-     &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
-      ENDIF
 
 #if    defined( GCAP )
 
@@ -2905,8 +2882,6 @@
       Input_Opt%LSHIPSO2       = LSHIPSO2
       Input_Opt%LARCSHIP       = LARCSHIP
       Input_Opt%LCOOKE         = LCOOKE
-      Input_Opt%LAVHRRLAI      = LAVHRRLAI
-      Input_Opt%LMODISLAI      = LMODISLAI
       Input_Opt%LHIST          = LHIST
       Input_Opt%HISTYR         = HISTYR
       Input_Opt%LWARWICK_VSLS  = LWARWICK_VSLS
@@ -2927,8 +2902,6 @@
       ! Initialization
       !=================================================================
 
-      !%%% NOTE: For now turn on INIT_MODIS_LAI regardless of whether
-      !%%% MODIS or LAVHRRLAI is used.  The
       CALL INIT_MODIS_LAI()
 
       !=================================================================
@@ -2991,8 +2964,6 @@
         WRITE( 6, 100 ) 'Turn on Corbett SHIP SO2 ?  : ', LSHIPSO2
         WRITE( 6, 100 ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
         WRITE( 6, 100 ) 'Use COOKE for OC/BC N.-Amer.: ', LCOOKE
-        WRITE( 6, 100 ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
-        WRITE( 6, 100 ) 'Turn on MODIS-derived LAI?  : ', LMODISLAI
         WRITE( 6, 100 ) 'Turn on historical emiss?   : ', LHIST
         WRITE( 6, 100 ) 'Turn on the Warwick VSLs?   : ', LWARWICK_VSLS
         WRITE( 6, 100 ) 'Use seasalt Br2 emissions?  : ', LSSABr2
@@ -3682,7 +3653,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE LOGICAL_MOD,        ONLY : LFILL
-      USE LOGICAL_MOD,        ONLY : LMFCT
       USE LOGICAL_MOD,        ONLY : LTRAN
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
@@ -3723,6 +3693,8 @@
 !                              we are connecting to the GEOS-5 GCM
 !  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
 !                              to ACCEPT_EXTERNAL_DATE_TIME
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete option for flux correction. This
+!                              was used for GEOS-3, which has been retired.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3748,10 +3720,6 @@
       ! Turn on transport?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:1' )
       READ( SUBSTRS(1:N), * ) LTRAN
-
-      ! Do flux-corrected transport?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:2' )
-      READ( SUBSTRS(1:N), * ) LMFCT
 
       ! Fill negative values
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:3' )
@@ -3799,7 +3767,6 @@
       ! Set fields of Input Options object
       !=================================================================
       Input_Opt%LTRAN       = LTRAN
-      Input_Opt%LMFCT       = LMFCT
       Input_Opt%LFILL       = LFILL
       Input_Opt%TPCORE_IORD = IORD
       Input_Opt%TPCORE_JORD = JORD
@@ -3865,7 +3832,6 @@
          WRITE( 6, '(/,a)' ) 'TRANSPORT MENU'
          WRITE( 6, '(  a)' ) '--------------'
          WRITE( 6, 100     ) 'Turn on transport?          : ', LTRAN
-         WRITE( 6, 100     ) 'Use TPCORE flux-correction? : ', LMFCT
          WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ', LFILL
          WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
      &                                                   JORD, KORD
@@ -8564,7 +8530,6 @@
 
       ! Initialize logicals
       LATEQ          = .FALSE.
-      LAVHRRLAI      = .FALSE.
       LCARB          = .FALSE.
       LDEAD          = .FALSE.
       LDUST          = .FALSE.
@@ -8610,7 +8575,6 @@
       LTOMSAI        = .FALSE.
       LWOODCO        = .FALSE.
       LFILL          = .FALSE.
-      LMFCT          = .FALSE.
       LTRAN          = .FALSE.
       LTPFV          = .FALSE.
       LWINDO         = .FALSE.

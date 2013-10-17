@@ -193,14 +193,6 @@
       ! OM/OC=2.1 for OPOA, OCPI, OCPO (hotp 7/26/10)
       REAL*8,  PARAMETER  :: OCFOPOA    = 1.4d0 * 1.5d0
 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      !INTEGER, PARAMETER  :: MHC      = 6
-!      !INTEGER, PARAMETER  :: NPROD    = 3  
-!      INTEGER, PARAMETER  :: MHC       = 9  ! (dkh, 10/29/06)
-!      INTEGER, PARAMETER  :: MPROD            = 3
-!      INTEGER, PARAMETER  :: MNOX             = 2  ! (dkh, 11/05/06)
-!------------------------------------------------------------------------------
       ! SOAupdate:(hotp 5/20/10) new mtp
       ! one parent HC removed (only 3 instead of 4 monoterps)
       ! all monoterp and sesquiterp SOA lumped together 
@@ -6422,10 +6414,6 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-!      !USE MEGAN_MOD,          ONLY : GET_EMMONOG_MEGAN renamed EMTERP
-!------------------------------------------------------------------------------
       ! Speciated MEGAN monoterpenes (hotp 3/10/10)
       USE MEGAN_MOD,          ONLY : GET_EMTERP_MEGAN
       USE MEGANUT_MOD,        ONLY : XLTMMP
