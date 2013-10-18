@@ -105,8 +105,7 @@ CMN_DIAG_mod.o       : CMN_DIAG_mod.F           \
                        CMN_SIZE_mod.o           \
                        gigc_errcode_mod.o
 
-CMN_GCTM_mod.o       : CMN_GCTM_mod.F	        \
-                       gigc_errcode_mod.o
+CMN_GCTM_mod.o       : CMN_GCTM_mod.F
 
 CMN_NOX_mod.o        : CMN_NOX_mod.F            \
                        CMN_SIZE_mod.o           \
@@ -120,7 +119,8 @@ CMN_SIZE_mod.o       : CMN_SIZE_mod.F           \
                        gigc_errcode_mod.o
 
 CMN_mod.o            : CMN_mod.F                \
-                       CMN_SIZE_mod.o
+                       CMN_SIZE_mod.o           \
+                       gigc_errcode_mod.o
 
 cmn_fj_mod.o         : cmn_fj_mod.F             \
                        CMN_SIZE_mod.o           \
@@ -164,10 +164,8 @@ jv_cmn_mod.o         : jv_cmn_mod.F             \
 jv_mie_mod.o         : jv_mie_mod.F             \
                        gigc_errcode_mod.o
 
-smv_dimension_mod.o  : smv_dimension_mod.F      \
-                       gigc_errcode_mod.o
+smv_dimension_mod.o  : smv_dimension_mod.F
 
-smv_physconst_mod.o  : smv_physconst_mod.F      \
-                       gigc_errcode_mod.o
+smv_physconst_mod.o  : smv_physconst_mod.F
 
 #EOC
