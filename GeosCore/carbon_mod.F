@@ -5353,6 +5353,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  18 Oct 2013 - M. Sulprizio- Do not call ANTHRO_CARB_TBOND when LRCP is true.
+!                              RCP emissions include biofuel. (C. Heald)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5486,8 +5488,12 @@
 
          ! Read in monthly emissions from T Bond [2007], with imposed
          ! seasonality over North America by R. Park [2003]
-         CALL ANTHRO_CARB_TBOND( MONTH, Input_Opt )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+         ! Do not call ANTHRO_CARB_TBOND when RCP is used. RCP emissions
+         ! include biofuel emissions (C. Heald, mpayer)
+         IF ( .not. RCP ) THEN
+            CALL ANTHRO_CARB_TBOND( MONTH, Input_Opt )
+            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+         ENDIF
 
          ! Read in RCP emissions. 
          ! Seasonality included for ships, but none included or imposed
