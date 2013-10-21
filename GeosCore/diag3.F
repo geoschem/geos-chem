@@ -2896,7 +2896,7 @@
             ! MACRN above.  Therefore, also write the drydep velocities
             ! for the second species (ISOPNB and MVKN) here.
             !-----------------------------------------------------------
-            SELECT CASE( DEPNAME( N ) )
+            SELECT CASE( TRIM( DEPNAME( N ) ) )
                CASE( 'ISOPND' ) 
                   !ISOPNB is the next deposition tracer
                   ! Save into ARRAY
@@ -2928,6 +2928,10 @@
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                        IIPAR,     JJPAR,     1,        IFIRST,     
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+
+                CASE DEFAULT
+                   ! Do Nothing
 
             END SELECT
                   
@@ -2993,7 +2997,7 @@
             ! for the second species (ISOPNB and MVKN) here.
             ! (ccc, bmy, 9/4/13)
             !-----------------------------------------------------------
-            SELECT CASE( DEPNAME( N ) )
+            SELECT CASE( TRIM( DEPNAME( N ) ) )
 
                CASE( 'ISOPND' ) 
                   !ISOPNB is the next deposition tracer
@@ -3026,6 +3030,9 @@
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                        IIPAR,     JJPAR,     1,        IFIRST,     
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+               CASE DEFAULT
+                  ! Do nothing
 
             END SELECT
 
