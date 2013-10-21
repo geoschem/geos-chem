@@ -5490,7 +5490,7 @@
          ! seasonality over North America by R. Park [2003]
          ! Do not call ANTHRO_CARB_TBOND when RCP is used. RCP emissions
          ! include biofuel emissions (C. Heald, mpayer)
-         IF ( .not. RCP ) THEN
+         IF ( .not. LRCP ) THEN
             CALL ANTHRO_CARB_TBOND( MONTH, Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
          ENDIF
