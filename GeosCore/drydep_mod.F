@@ -511,11 +511,6 @@
             IF ( NN == IDTACET ) THEN
 
                IF ( IS_LAND( I, J, State_Met ) ) THEN
-                  !---------------------------------------
-                  ! Prior to 9/16/13:
-                  ! Use double precision (bmy, 9/16/13)
-                  !DVZ = 0.1
-                  !---------------------------------------
                   DVZ = 0.1d0
                ELSE
                   DVZ = 0d0
@@ -718,6 +713,7 @@
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Add SUNCOS_MID to the argument list and 
 !                              populate that with State_Met%SUNCOSmid
+!  21 Oct 2013 - R. Yantosca - Bug fix: need to hold SP private in OMP loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -745,7 +741,7 @@
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, SP )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
