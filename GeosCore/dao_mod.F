@@ -75,6 +75,8 @@
       !-----------------------------------------------------------------
       REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID_1   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID_2   (:,:,:)
 #endif
 !
 ! !REVISION HISTORY:
@@ -464,12 +466,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AIRQNT_FULLGRID
+      SUBROUTINE AIRQNT_FULLGRID( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_PEDGE_FULLGRID
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE_FULLGRID
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT_FULLGRID:
@@ -480,19 +493,30 @@
 !  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
 !  05 Sep 2013 - R. Yantosca - Prevent an out-of-bounds error in the call
 !                              to GET_AREA_CM2.
+!  23 Oct 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I,  J,  L
-      REAL*8              :: P1, P2, AREA_M2, DELP_TMP
-      REAL*8              :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
+      INTEGER :: I,  J,  L
+      REAL*8  :: P1, P2, AREA_M2, DELP_TMP
+      REAL*8  :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
 
       !=================================================================
       ! AIRQNT_FULLGRID begins here! 
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Exit if it's not a fullchem simulation
+      IF ( .not. Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+         RC = GIGC_FAILURE
+         RETURN
+      ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
@@ -502,15 +526,12 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-!----------------------------------------------------------------------------
-! Prior to 9/5/13:
-! AREA_M2 is defined on the reduced grid, so L > LLPAR will cause an 
-! out-of-bounds error.  In the "traditional" GEOS-Chem, all of the grid box
-! areas in a column are identical, so we can replace this with (I,J,1).
-! This bug was found by the GEOS-Chem unit tester. (bmy, 9/5/13)
-!         AREA_M2 = GET_AREA_M2( I, J, L )
-!----------------------------------------------------------------------------
-         AREA_M2 = GET_AREA_M2( I, J, 1 )
+         ! NOTE: AREA_M2 is defined on the reduced grid, so L > LLPAR will 
+         ! cause an out-of-bounds error.  In the "traditional" GEOS-Chem, 
+         ! all of the grid box areas in a column are identical, so we can 
+         ! replace this with (I,J,1).  This bug was found by the GEOS-Chem 
+         ! unit tester. (bmy, 9/5/13)
+         AREA_M2     = GET_AREA_M2( I, J, 1 )
                
          ! Pressure at bottom edge of grid box [hPa]
          P1          = GET_PEDGE_FULLGRID(I,J,L)
@@ -519,7 +540,7 @@
          P2          = GET_PEDGE_FULLGRID(I,J,L+1)
 
          ! Pressure difference between top & bottom edges [hPa]
-         DELP_TMP = P1 - P2
+         DELP_TMP    = P1 - P2
             
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
@@ -2129,11 +2150,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DAO
+      SUBROUTINE INIT_DAO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
+!     
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  26 Jun 2000 - R. Yantosca - Initial version
@@ -2175,27 +2207,54 @@
 !  14 Mar 2013 - M. Payer    - Now allocate AIRDEN_FULLGRID and T_FULLGRID
 !                              arrays used to correct vertical regridding of OH
 !                              for offline simulations (C. Holmes)
+!  23 Oct 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  23 Oct 2013 - R. Yantosca - Now only allocate T_FULLGRID and AIRDEN_FULLGRID
+!                              if we are using an offline (non-fullchem) sim
+!  23 Oct 2013 - R. Yantosca - Also allocate T_FULLGRID_1 and T_FULLGRID_2
+!                              which are needed for GEOS-FP met only
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: AS
-
       !=================================================================
       ! INIT_DAO begins here!
       !=================================================================
+ 
+      ! Assume success 
+      RC = GIGC_SUCCESS
 
-      ! Temperature on full vertical grid 
-      ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
-      T_FULLGRID = 0d0
+      ! Only allocate arrays for non-fullchem simulations
+      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN 
 
-      ! Number density of air on full vertical grid
-      ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
-      AIRDEN_FULLGRID = 0d0
+         ! Number density of air on full vertical grid
+         ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=RC ) 
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
+         AIRDEN_FULLGRID = 0d0
+
+         ! Temperature on full vertical grid 
+         ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
+         T_FULLGRID = 0d0
+
+#if defined( GEOS_FP )
+
+         !--------------------------------------------------------------
+         ! For GEOS-FP, temperature is an I3 field.  Therefore, we must
+         ! interpolate T_FULLGRID from the time=T and time=T+3hrs.
+         !--------------------------------------------------------------
+
+         ! Temperature on full vertical grid 
+         ALLOCATE( T_FULLGRID_1( IIPAR, JJPAR, LGLOB ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID_1' )
+         T_FULLGRID_1 = 0d0
+
+         ! Temperature on full vertical grid 
+         ALLOCATE( T_FULLGRID_2( IIPAR, JJPAR, LGLOB ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID_2' )
+         T_FULLGRID_2 = 0d0
+
+#endif
+
+      ENDIF
 
       END SUBROUTINE INIT_DAO
 !EOC

@@ -252,11 +252,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS, State_Met )
+      SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -273,6 +274,8 @@
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_met
+!  23 Oct 2013 - R. Yantosca - Now accept Input_Opt as an argument
+!  23 Oct 2013 - R. Yantosca - Now read T_FULLGRID for specialty (offline) sims
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -297,33 +300,74 @@
       !=================================================================      
       ! Read data from disk
       !=================================================================
-      CALL READ_A3( NYMD     = NYMD,          
-     &              NHMS     = NHMS,       
-     &              CLOUD    = State_Met%CLDF,          
-     &              CLDTOPS  = State_Met%CLDTOPS, 
-     &              CMFMC    = State_Met%CMFMC, 
-     &              DQRCU    = State_Met%DQRCU, 
-     &              DQRLSAN  = State_Met%DQRLSAN,       
-     &              DQIDTMST = State_Met%DQIDTMST, 
-     &              DQLDTMST = State_Met%DQLDTMST,  
-     &              DQVDTMST = State_Met%DQVDTMST,  
-     &              DTRAIN   = State_Met%DTRAIN,     
-     &              MOISTQ   = State_Met%MOISTQ,     
-     &              OPTDEPTH = State_Met%OPTDEP, 
-     &              PFICU    = State_Met%PFICU,             
-     &              PFILSAN  = State_Met%PFILSAN,             
-     &              PFLCU    = State_Met%PFLCU,
-     &              PFLLSAN  = State_Met%PFLLSAN,
-     &              QI       = State_Met%QI,             
-     &              QL       = State_Met%QL,             
-     &              QV       = State_Met%SPHU,
-     &              REEVAPCN = State_Met%REEVAPCN,
-     &              REEVAPLS = State_Met%REEVAPLS,
-     &              T        = State_Met%T,               
-     &              TAUCLI   = State_Met%TAUCLI,     
-     &              TAUCLW   = State_Met%TAUCLW,     
-     &              U        = State_Met%U,            
-     &              V        = State_Met%V        )   
+      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+
+         !--------------------------------------------------------------
+         ! SPECIALTY SIMULATIONS: Make sure to read T_FULLGRID
+         !--------------------------------------------------------------
+         CALL READ_A3( NYMD       = NYMD,          
+     &                 NHMS       = NHMS,       
+     &                 CLOUD      = State_Met%CLDF,          
+     &                 CLDTOPS    = State_Met%CLDTOPS, 
+     &                 CMFMC      = State_Met%CMFMC, 
+     &                 DQRCU      = State_Met%DQRCU, 
+     &                 DQRLSAN    = State_Met%DQRLSAN,       
+     &                 DQIDTMST   = State_Met%DQIDTMST, 
+     &                 DQLDTMST   = State_Met%DQLDTMST,  
+     &                 DQVDTMST   = State_Met%DQVDTMST,  
+     &                 DTRAIN     = State_Met%DTRAIN,     
+     &                 MOISTQ     = State_Met%MOISTQ,     
+     &                 OPTDEPTH   = State_Met%OPTDEP, 
+     &                 PFICU      = State_Met%PFICU,             
+     &                 PFILSAN    = State_Met%PFILSAN,             
+     &                 PFLCU      = State_Met%PFLCU,
+     &                 PFLLSAN    = State_Met%PFLLSAN,
+     &                 QI         = State_Met%QI,             
+     &                 QL         = State_Met%QL,             
+     &                 QV         = State_Met%SPHU,
+     &                 REEVAPCN   = State_Met%REEVAPCN,
+     &                 REEVAPLS   = State_Met%REEVAPLS,
+     &                 T          = State_Met%T,               
+     &                 TAUCLI     = State_Met%TAUCLI,     
+     &                 TAUCLW     = State_Met%TAUCLW,     
+     &                 U          = State_Met%U,            
+     &                 V          = State_Met%V,
+     &                 T_FULLGRID = T_FULLGRID         )  
+
+      ELSE
+
+         !--------------------------------------------------------------
+         ! FULL-CHEMISTRY SIMULATIONS: Do not read T_FULLGRID
+         !--------------------------------------------------------------
+         CALL READ_A3( NYMD       = NYMD,          
+     &                 NHMS       = NHMS,       
+     &                 CLOUD      = State_Met%CLDF,          
+     &                 CLDTOPS    = State_Met%CLDTOPS, 
+     &                 CMFMC      = State_Met%CMFMC, 
+     &                 DQRCU      = State_Met%DQRCU, 
+     &                 DQRLSAN    = State_Met%DQRLSAN,       
+     &                 DQIDTMST   = State_Met%DQIDTMST, 
+     &                 DQLDTMST   = State_Met%DQLDTMST,  
+     &                 DQVDTMST   = State_Met%DQVDTMST,  
+     &                 DTRAIN     = State_Met%DTRAIN,     
+     &                 MOISTQ     = State_Met%MOISTQ,     
+     &                 OPTDEPTH   = State_Met%OPTDEP, 
+     &                 PFICU      = State_Met%PFICU,             
+     &                 PFILSAN    = State_Met%PFILSAN,             
+     &                 PFLCU      = State_Met%PFLCU,
+     &                 PFLLSAN    = State_Met%PFLLSAN,
+     &                 QI         = State_Met%QI,             
+     &                 QL         = State_Met%QL,             
+     &                 QV         = State_Met%SPHU,
+     &                 REEVAPCN   = State_Met%REEVAPCN,
+     &                 REEVAPLS   = State_Met%REEVAPLS,
+     &                 T          = State_Met%T,               
+     &                 TAUCLI     = State_Met%TAUCLI,     
+     &                 TAUCLW     = State_Met%TAUCLW,     
+     &                 U          = State_Met%U,            
+     &                 V          = State_Met%V        )   
+
+      ENDIF
 
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD

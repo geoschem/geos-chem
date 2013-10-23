@@ -224,6 +224,7 @@
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object to STDRUN routine
 !  03 Jun 2013 - R. Yantosca - Use routines from updated mercury_mod.F
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  23 Oct 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, RC to INIT_DAO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -404,7 +405,7 @@
       ! correct vertical regridding of OH for offline simulations
       ! (mpayer, 3/14/13)
       !-----------------------------------------------------------------
-      CALL INIT_DAO
+      CALL INIT_DAO( am_I_Root, Input_Opt, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
 #endif
 
@@ -1700,6 +1701,8 @@
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
+!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_MERRA_A3_FIELDS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1750,14 +1753,14 @@
 
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
-      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2), Input_Opt )
-      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2), State_Met )
+      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2), Input_Opt           )
+      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2), Input_Opt, State_Met)
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
 
       ! Open & read I-6 fields
       DATE = GET_FIRST_I6_TIME()
       CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2), Input_Opt )
-      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2), State_Met )
+      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2), State_Met)
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
 
 #else
@@ -1829,8 +1832,8 @@
 
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
-      CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt ) 
-      CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
+      CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt            )
+      CALL GET_A6_FIELDS(  DATE(1), DATE(2), Input_Opt, State_Met )      
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
@@ -1889,6 +1892,7 @@
 !  07 Feb 2012 - R. Yantosca - Initial version
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  04 Jan 2013 - M. Payer    - Call UPDATE_T_DAY for MERRA and GEOS-5.7.2 (tmf)
+!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2068,8 +2072,8 @@
          DATE = GET_A6_TIME()
 
          ! Open and read A-6 fields
-         CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt )
-         CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
+         CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt            )
+         CALL GET_A6_FIELDS(  DATE(1), DATE(2), Input_Opt, State_Met )      
 
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]

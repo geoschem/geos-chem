@@ -432,6 +432,7 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -647,9 +648,14 @@
             THISMONTH = GET_MONTH()
 
             IF ( ITS_A_NEW_MONTH() ) THEN
-               CALL GET_GLOBAL_OH(  THISMONTH, State_Met )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!               CALL GET_GLOBAL_OH(  THISMONTH, State_Met )
+!-----------------------------------------------------------------------------
+               CALL GET_GLOBAL_OH ( am_I_Root, Input_Opt, 
+     &                              State_Met, THISMONTH, RC )
                CALL GET_GLOBAL_NO3( THISMONTH )
-               CALL GET_GLOBAL_O3(  THISMONTH )
+               CALL GET_GLOBAL_O3 ( THISMONTH )
             ENDIF
 
             ! Compute time scaling arrays for offline OH, NO3

@@ -903,6 +903,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOX
 !  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -985,7 +986,12 @@
          MONTH = GET_MONTH()
 
          ! Global OH 
-         CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!         CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+         CALL GET_GLOBAL_OH
+     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
 
          ! Global NOx -- need this to determine 
          ! ALPHA_ISOP which is a function of NOx
