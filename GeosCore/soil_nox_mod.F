@@ -777,7 +777,7 @@
 !            PFACTOR = 13.01 * LOG( DRYPERIOD ) - 53.6
 !-----------------------------------------------------------------------------
             ! Initialize new pulse factor (dry period hours)
-            IF ( DRYFACTOR > 0 ) THEN
+            IF ( DRYPERIOD > 0 ) THEN
                PFACTOR = 13.01 * LOG( DRYPERIOD ) - 53.6
             ELSE
                PFACTOR = -53.6
