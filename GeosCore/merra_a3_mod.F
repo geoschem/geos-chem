@@ -257,13 +257,15 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE DAO_MOD,            ONLY : T_FULLGRID
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD and
-      INTEGER,        INTENT(IN)    :: NHMS   !  hhmmss of desired data fields
+      INTEGER,        INTENT(IN)    :: NYMD        ! YYYYMMDD and
+      INTEGER,        INTENT(IN)    :: NHMS        !  hhmmss of desired data
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -338,6 +340,9 @@
 
          !--------------------------------------------------------------
          ! FULL-CHEMISTRY SIMULATIONS: Do not read T_FULLGRID
+         !
+         ! NOTE: If you are running GEOS-Chem in an ESMF environment,
+         ! then we will avoid reading T_FULLGRID. (bmy, 10/28/13)
          !--------------------------------------------------------------
          CALL READ_A3( NYMD       = NYMD,          
      &                 NHMS       = NHMS,       
@@ -389,16 +394,18 @@
 ! !INTERFACE:
 !
       SUBROUTINE READ_A3( NYMD,     NHMS,
-     &                    CLOUD,    CLDTOPS,  CMFMC,    DQRCU,    
-     &                    DQRLSAN,  DQIDTMST, DQLDTMST, DQVDTMST, 
-     &                    DTRAIN,   MOISTQ,   OPTDEPTH, PFICU,    
-     &                    PFILSAN,  PFLCU,    PFLLSAN,  QI,       
-     &                    QL,       QV,       REEVAPCN, REEVAPLS, 
-     &                    T,        TAUCLI,   TAUCLW,   U,        
-     &                    V                                       )
+     &                    CLOUD,    CLDTOPS,   CMFMC,    DQRCU,
+     &                    DQRLSAN,  DQIDTMST,  DQLDTMST, DQVDTMST,
+     &                    DTRAIN,   MOISTQ,    OPTDEPTH, PFICU,
+     &                    PFILSAN,  PFLCU,     PFLLSAN,  QI,
+     &                    QL,       QV,        REEVAPCN, REEVAPLS,
+     &                    T,        TAUCLI,    TAUCLW,   U,
+     &                    V,        T_FULLGRID                     )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,     ONLY : AD66
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
@@ -408,9 +415,7 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
       USE TRANSFER_MOD, ONLY : TRANSFER_G5_PLE
-
-      USE CMN_SIZE_MOD                                    ! Size parameters
-      USE CMN_DIAG_MOD                                    ! ND66, LD66, ND67
+      USE TRANSFER_MOD, ONLY : TRANSFER_3D_NOLUMP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -420,35 +425,38 @@
 ! !OUTPUT PARAMETERS:
 !
       ! Fields dimensioed as (I,J)
-      INTEGER, INTENT(OUT) :: CLDTOPS (IIPAR,JJPAR        )   
+      INTEGER, INTENT(OUT) :: CLDTOPS   (IIPAR,JJPAR        )
 
       ! Fields dimensioned as (I,J,L)
-      REAL*8,  INTENT(OUT) :: CMFMC   (IIPAR,JJPAR,LLPAR+1)
-      REAL*8,  INTENT(OUT) :: DQRCU   (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: DQRLSAN (IIPAR,JJPAR,LLPAR  )     
-      REAL*8,  INTENT(OUT) :: DQIDTMST(IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: DQLDTMST(IIPAR,JJPAR,LLPAR  ) 
-      REAL*8,  INTENT(OUT) :: DQVDTMST(IIPAR,JJPAR,LLPAR  ) 
-      REAL*8,  INTENT(OUT) :: DTRAIN  (IIPAR,JJPAR,LLPAR  )  
-      REAL*8,  INTENT(OUT) :: PFICU   (IIPAR,JJPAR,LLPAR  )         
-      REAL*8,  INTENT(OUT) :: PFILSAN (IIPAR,JJPAR,LLPAR  )           
-      REAL*8,  INTENT(OUT) :: PFLCU   (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: PFLLSAN (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: QI      (IIPAR,JJPAR,LLPAR  )      
-      REAL*8,  INTENT(OUT) :: QL      (IIPAR,JJPAR,LLPAR  )      
-      REAL*8,  INTENT(OUT) :: QV      (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: REEVAPCN(IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: REEVAPLS(IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: T       (IIPAR,JJPAR,LLPAR  )          
-      REAL*8,  INTENT(OUT) :: TAUCLI  (IIPAR,JJPAR,LLPAR  )  
-      REAL*8,  INTENT(OUT) :: TAUCLW  (IIPAR,JJPAR,LLPAR  )  
-      REAL*8,  INTENT(OUT) :: U       (IIPAR,JJPAR,LLPAR  )       
-      REAL*8,  INTENT(OUT) :: V       (IIPAR,JJPAR,LLPAR  )   
+      REAL*8,  INTENT(OUT) :: CMFMC     (IIPAR,JJPAR,LLPAR+1)
+      REAL*8,  INTENT(OUT) :: DQRCU     (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: DQRLSAN   (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: DQIDTMST  (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: DQLDTMST  (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: DQVDTMST  (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: DTRAIN    (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: PFICU     (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: PFILSAN   (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: PFLCU     (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: PFLLSAN   (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: QI        (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: QL        (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: QV        (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: REEVAPCN  (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: REEVAPLS  (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: T         (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: TAUCLI    (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: TAUCLW    (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: U         (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: V         (IIPAR,JJPAR,LLPAR  )
 
       ! Fields dimensioned as (L,I,J)
-      REAL*8,  INTENT(OUT) :: CLOUD   (LLPAR,IIPAR,JJPAR  )       
-      REAL*8,  INTENT(OUT) :: MOISTQ  (LLPAR,IIPAR,JJPAR  )    
-      REAL*8,  INTENT(OUT) :: OPTDEPTH(LLPAR,IIPAR,JJPAR  )  
+      REAL*8,  INTENT(OUT) :: CLOUD     (LLPAR,IIPAR,JJPAR  )
+      REAL*8,  INTENT(OUT) :: MOISTQ    (LLPAR,IIPAR,JJPAR  )
+      REAL*8,  INTENT(OUT) :: OPTDEPTH  (LLPAR,IIPAR,JJPAR  )
+
+      ! Optional arguments
+      REAL*8,  OPTIONAL    :: T_FULLGRID(IIPAR,JJPAR,LGLOB  )
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
@@ -456,6 +464,8 @@
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  05 Sep 2013 - R. Yantosca - Set negatives in QI, QL to zero
+!  28 Oct 2013 - R. Yantosca - Add optional T_FULLGRID argument for the
+!                              offline "specialty" simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -745,6 +755,12 @@
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_3D( D, T )
                   NFOUND = NFOUND + 1 
+
+                  ! For specialty simulations, make sure to also read 
+                  ! temperature on the full vertical grid (bmy, 10/28/13)
+                  IF ( PRESENT( T_FULLGRID ) ) THEN
+                     CALL TRANSFER_3D_NOLUMP( D, T_FULLGRID )
+                  ENDIF
                ENDIF
 
             !------------------------------------------------

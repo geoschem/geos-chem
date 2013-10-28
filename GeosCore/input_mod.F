@@ -1252,6 +1252,8 @@
 !  13 Aug 2012 - R. Yantosca - Now pass CHEM_STATE as an argument (DEVEL only)
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  07 Nov 2012 - R. Yantosca - Now define Input_Opt%ITS_A_*_SIM fields
+!  28 Oct 2013 - R. Yantosca - Set Input_Opt%ITS_A_SPECIALTY_SIM = .FALSE.
+!                              when running GEOS-Chem in an ESMF environment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1528,8 +1530,26 @@
       Input_Opt%ITS_A_CO2_SIM          = ( SIM_TYPE == 12 )
       Input_Opt%ITS_A_H2HD_SIM         = ( SIM_TYPE == 13 )
       Input_Opt%ITS_A_POPS_SIM         = ( SIM_TYPE == 14 )
-      
-      ! Determine if we are running a specialty (i.e. offline) simulation
+
+#if defined( ESMF_ ) 
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Set Input_Opt%ITS_A_SPECIALTY_SIM to FALSE, which will skip
+      ! reading/allocating T_FULLGRID and AIRDEN_FULLGRID arrays.
+      ! These are only needed for the offline "specialty" simulations
+      ! so that the OH fields can be regridded properly. (bmy, 10/28/13)
+      !-----------------------------------------------------------------
+      Input_Opt%ITS_A_SPECIALTY_SIM    = .FALSE.
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Set Input_Opt%ITS_A_SPECIALTY_SIM to TRUE if we are performing
+      ! any of the offline (non-full-chemistry) simulations.  This will
+      ! cause T_FULLGRID and AIRDEN_FULLGRID arrays to be allocated.
+      ! (bmy, 10/28/13)
+      !-----------------------------------------------------------------
       Input_Opt%ITS_A_SPECIALTY_SIM    =
      &     ( Input_Opt%ITS_A_RnPbBe_SIM    .or.
      &       Input_Opt%ITS_A_CH3I_SIM      .or.
@@ -1543,6 +1563,7 @@
      &       Input_Opt%ITS_A_CO2_SIM       .or.
      &       Input_Opt%ITS_A_H2HD_SIM      .or.
      &       Input_Opt%ITS_A_POPS_SIM           )
+#endif
 
       ! Print info about each tracer
       DO T = 1, N_TRACERS
