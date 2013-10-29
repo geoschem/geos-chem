@@ -236,11 +236,6 @@
       INTEGER            :: IOS
       CHARACTER(LEN=1)   :: TAB   = ACHAR(9)
       CHARACTER(LEN=1)   :: SPACE = ' '
-!-----------------------------------------------------------------------------
-! Prior to 9/17/13:
-! Increase length of line to be consistent w/ READ_ONE_LINE (bmy, 9/17/13)
-!      CHARACTER(LEN=255) :: LINE
-!-----------------------------------------------------------------------------
       CHARACTER(LEN=MAXDIM) :: LINE
 
       !=================================================================
@@ -1531,7 +1526,7 @@
       Input_Opt%ITS_A_H2HD_SIM         = ( SIM_TYPE == 13 )
       Input_Opt%ITS_A_POPS_SIM         = ( SIM_TYPE == 14 )
 
-#if defined( ESMF_ ) 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -1546,13 +1541,12 @@
       !                %%%%% TRADITIONAL GEOS-Chem %%%%%
       !
       ! Set Input_Opt%ITS_A_SPECIALTY_SIM to TRUE if we are performing
-      ! any of the offline (non-full-chemistry) simulations.  This will
-      ! cause T_FULLGRID and AIRDEN_FULLGRID arrays to be allocated.
-      ! (bmy, 10/28/13)
+      ! any of the offline (non-full-chemistry) simulations that use
+      ! offline OH fields.  This will cause both the T_FULLGRID and 
+      ! AIRDEN_FULLGRID arrays to be allocated. (bmy, 10/28/13)
       !-----------------------------------------------------------------
       Input_Opt%ITS_A_SPECIALTY_SIM    =
-     &     ( Input_Opt%ITS_A_RnPbBe_SIM    .or.
-     &       Input_Opt%ITS_A_CH3I_SIM      .or.
+     &     ( Input_Opt%ITS_A_CH3I_SIM      .or.
      &       Input_Opt%ITS_A_HCN_SIM       .or.
      &       Input_Opt%ITS_A_TAGOX_SIM     .or.
      &       Input_Opt%ITS_A_TAGCO_SIM     .or.

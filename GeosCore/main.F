@@ -390,24 +390,12 @@
       ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not initialize met field arrays from "dao_mod.F"
-      ! (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Initialize met field arrays from "dao_mod.F" used to
-      ! correct vertical regridding of OH for offline simulations
-      ! (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-      CALL INIT_DAO( am_I_Root, Input_Opt, RC )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
-#endif
+      ! For offline simulations that use archived OH: initialize T_FULLGRID
+      ! and AIRDEN_FULLGRID arrays for regridding OH fields (bmy, 10/29/13)
+      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+         CALL INIT_DAO( am_I_Root, Input_Opt, RC )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
+      ENDIF
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
@@ -913,7 +901,8 @@
          
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
-         CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN, State_Met )
+         CALL INTERP( NSECb, ELAPSED_TODAY,
+     &                N_DYN, Input_Opt,     State_Met )
 
          ! Case of variable tropopause:
          ! Check LLTROP and set LMIN, LMAX, and LPAUSE
@@ -1707,10 +1696,10 @@
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
-      !    *****  R E A D   G E O S -- 5 . 7 , x  F I E L D S  *****
-      !    *****  At the start of the GEOS-Chem simulation     *****
+      !    *****  R E A D   G E O S -- F P   F I E L D S    *****
+      !    *****  At the start of the GEOS-Chem simulation  *****
       !
-      !    Handle GEOS-5.7.2 met fields separately from other met 
+      !    Handle GEOS-FP met fields separately from other met 
       !=================================================================
 #if   defined( GEOS_FP )
 

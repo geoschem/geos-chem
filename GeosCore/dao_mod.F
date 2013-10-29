@@ -26,30 +26,14 @@
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use routines AIRQNT_FULLGRID, INIT_DAO, or CLEANUP_DAO when
-      ! we are connecting to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Routines AIRQNT_FULLGRID, INIT_DAO, and CLEANUP_DAO are used to
-      ! correct vertical regridding of OH for offline simulations
-      ! (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
       PUBLIC  :: AIRQNT_FULLGRID
       PUBLIC  :: CLEANUP_DAO
-      PUBLIC  :: INIT_DAO
-#endif
       PUBLIC  :: CONVERT_UNITS
       PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: GET_COSINE_SZA
       PUBLIC  :: GET_OBK
       PUBLIC  :: INTERP
+      PUBLIC  :: INIT_DAO
       PUBLIC  :: IS_LAND
       PUBLIC  :: IS_WATER
       PUBLIC  :: IS_ICE
@@ -59,25 +43,12 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use arrays AIRDEN_FULLGRID or T_FULLGRID when we are
-      ! connecting to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
       ! Arrays AIRDEN_FULLGRID and T_FULLGRID are used to correct vertical
       ! regridding of OH for offline simulations (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
       REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID_1   (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID_2   (:,:,:)
-#endif
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -445,14 +416,6 @@
 
       END SUBROUTINE AIRQNT
 !EOC
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use routine AIRQNT_FULLGRID when we are connecting to
-      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -598,7 +561,6 @@
 
       END SUBROUTINE AIRQNT_FULLGRID
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -613,21 +575,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INTERP( NTIME0, NTIME1, NTDT, State_Met )
+      SUBROUTINE INTERP( NTIME0, NTIME1, NTDT, Input_Opt, State_Met )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YEDGE
       USE LOGICAL_MOD,        ONLY : LVARTROP
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)    :: NTIME0   ! Elapsed time [s] at start of
-                                                !  6hr step
-      INTEGER,        INTENT(IN)    :: NTIME1   ! Elapsed time [s] at current
-                                                !  time
-      INTEGER,        INTENT(IN)    :: NTDT     ! Length of dynamic timestep [s]
+      INTEGER,        INTENT(IN)    :: NTIME0     ! Elapsed time [s] at 
+                                                  !  start of outer time step
+      INTEGER,        INTENT(IN)    :: NTIME1     ! Elapsed time [s] at 
+                                                  !  current time
+      INTEGER,        INTENT(IN)    :: NTDT       ! Dynamic timestep [s]
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -684,6 +648,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  29 Oct 2013 - R. Yantosca - Now interpolate T_FULLGRID field for GEOS-FP met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -904,6 +869,24 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      !-------------------------------------------------------
+      ! For offline simulations, we also need to interpolate
+      ! the T_FULLGRID field (temperature on full vertical
+      ! grid) from the values at time=T and time=T+3h.
+      ! (bmy, 10/29/13)
+      !-------------------------------------------------------
+      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+         DO L = 1, LGLOB
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            T_FULLGRID(I,J,L) =  T_FULLGRID_1(I,J,L)   +
+     &                         ( T_FULLGRID_2(I,J,L)   -
+     &                           T_FULLGRID_1(I,J,L) ) * TM
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDIF
 
 #endif
 
@@ -2129,14 +2112,6 @@
 
       END SUBROUTINE COPY_I3_I6_FIELDS
 !EOC
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use INIT_DAO or CLEANUP_DAO routines when we are connecting
-      ! to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -2310,8 +2285,9 @@
 
       IF ( ALLOCATED( AIRDEN_FULLGRID ) ) DEALLOCATE( AIRDEN_FULLGRID )
       IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
+      IF ( ALLOCATED( T_FULLGRID_1    ) ) DEALLOCATE( T_FULLGRID_1    )
+      IF ( ALLOCATED( T_FULLGRID_2    ) ) DEALLOCATE( T_FULLGRID_2    )
 
       END SUBROUTINE CLEANUP_DAO
 !EOC
-#endif
       END MODULE DAO_MOD

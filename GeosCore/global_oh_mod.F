@@ -69,30 +69,18 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT
       USE BPCH2_MOD,            ONLY : GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0
       USE BPCH2_MOD,            ONLY : READ_BPCH2
+      USE DAO_MOD,              ONLY : AIRDEN_FULLGRID
+      USE DAO_MOD,              ONLY : AIRQNT_FULLGRID
       USE DIRECTORY_MOD,        ONLY : OH_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE TRANSFER_MOD,         ONLY : TRANSFER_3D
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use routine AIRQNT_FULLGRID when we are connecting to
-      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !-----------------------------------------------------------------
-      USE DAO_MOD,              ONLY : AIRDEN_FULLGRID, AIRQNT_FULLGRID
-#endif
-
-      USE CMN_SIZE_MOD               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -124,9 +112,8 @@
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  23 Oct 2013 - R. Yantosca - Now accept Input_Opt argument
-!  23 Oct 2013 - R. Yantosca - Now call 
-
-
+!  29 Oct 2013 - R. Yantosca - Remove TRANSFER_3D_NOLUMP routine, we can just
+!                              instead do a direct cast assignment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -219,7 +206,7 @@
 #else
 
       ! Assign data from ARRAY to the module variable OH
-      CALL TRANSFER_3D_NOLUMP( ARRAY, OH )
+      OH = ARRAY
 
 #endif
 #endif
