@@ -415,7 +415,6 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
       USE TRANSFER_MOD, ONLY : TRANSFER_G5_PLE
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D_NOLUMP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -756,10 +755,10 @@
                   CALL TRANSFER_3D( D, T )
                   NFOUND = NFOUND + 1 
 
-                  ! For specialty simulations, make sure to also read 
+                  ! For specialty simulations, make sure to also archive
                   ! temperature on the full vertical grid (bmy, 10/28/13)
                   IF ( PRESENT( T_FULLGRID ) ) THEN
-                     CALL TRANSFER_3D_NOLUMP( D, T_FULLGRID )
+                     T_FULLGRID = D
                   ENDIF
                ENDIF
 

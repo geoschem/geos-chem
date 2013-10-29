@@ -955,34 +955,18 @@
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  14 Mar 2013 - M. Payer    - Added T_FULLGRID as optional argument
+!  29 Oct 2013 - R. Yantosca - Remove reference to TRANSFER_3D_NOLUMP
 !******************************************************************************
 !
       ! References to F90 modules
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_GCTM_MOD
       USE DIAG_MOD,     ONLY : AD66,        AD67
       USE FILE_MOD,     ONLY : IOERROR
       USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use routine TRANSFER_3D_NOLUMP when we are connecting to
-      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Routine TRANSFER_3D_NOLUMP is used to correct vertical regridding
-      ! of OH for offline simulations (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D_NOLUMP
-#endif
-
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE CMN_DIAG_MOD               ! ND66, ND67
-      USE CMN_GCTM_MOD               ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS
@@ -1024,22 +1008,7 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use array T_FULLGRID when we are connecting to the
-      ! GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Array T_FULLGRID is used to correct vertical regridding of OH
-      ! for offline simulations (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
       REAL*8,  INTENT(OUT), OPTIONAL :: T_FULLGRID(IIPAR,JJPAR,LGLOB)
-#endif
 
       ! Local variables
       INTEGER                        :: I, IJLOOP, J, K, L
@@ -1450,23 +1419,12 @@
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( T ) ) CALL TRANSFER_3D( D, T )
                   NFOUND = NFOUND + 1 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-                  !-----------------------------------------------------
-                  ! %%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%
-                  !
-                  ! Do not use array T_FULLGRID when we are connecting
-                  ! to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-                  !-----------------------------------------------------
-#else
-                  !-----------------------------------------------------
-                  !          %%%%% TRADITIONAL GEOS-Chem %%%%%
-                  !
-                  ! Array T_FULLGRID is used to correct vertical regridding
-                  ! of OH for offline simulations (mpayer, 3/14/13)
-                  !-----------------------------------------------------
-                  IF ( PRESENT( T_FULLGRID) ) 
-     &                 CALL TRANSFER_3D_NOLUMP( D, T_FULLGRID )
-#endif
+
+                  ! Also make sure to archive temperature on the full vertical
+                  ! grid for offline "specialty" simulations (bmy, 10/28/13)
+                  IF ( PRESENT( T_FULLGRID ) ) THEN
+                     T_FULLGRID = D
+                  ENDIF
                ENDIF
 
             !--------------------------------------
