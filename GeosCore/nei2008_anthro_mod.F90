@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
 #     include "netcdf.inc"
       PRIVATE
 !

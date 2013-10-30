@@ -1753,8 +1753,6 @@
 !-----------------------------------------------------------------------------
          ! SOAupdate: Can add BCARYO, OSQT, OMTP if desired (hotp 7/25/10)
 
-         ELSE
-
             ! Skip
             CYCLE
 

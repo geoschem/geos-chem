@@ -310,6 +310,9 @@
       INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
       INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
+      INTEGER            :: IDTALPH, IDTALCO, IDTSOG1, IDTSOG2 
+      INTEGER            :: IDTSOG3, IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3
+      INTEGER            :: IDTSOA4
       INTEGER            :: IDTHG0,  IDTHg2,  IDTHgP,  IDTAS
       INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
       INTEGER            :: IDTNITs
@@ -470,16 +473,8 @@
 # endif
 #endif
 
-      ! For H2/HD simulation
-      INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
-
       ! update for arom (dkh, 10/05/06)  
       INTEGER            :: IDTSOA5, IDTSOG5
-
-      !jpp, 6/5/09: bromine ids
-      INTEGER            :: IDTBr2,   IDTBr,   IDTBrO,  IDTHOBr, IDTHBr
-      INTEGER            :: IDTBrNO2, IDTBrNO3, IDTCHBr3, IDTCH2Br2
-      INTEGER            :: IDTCH3Br
 
       ! SEAC4RS tracers (jaf, 6/13/13)
       INTEGER            :: IDTPCOFNE, IDTPCOFSE, IDTPCOFW, IDTPCOFRW
@@ -980,114 +975,158 @@
             CASE ( 'OCPO' )
                IDTOCPO  = N
 
-            ! SOAupdate (hotp 6/15/09)
-            ! semivolpoa: add POA (hotp 2/17/09)
-            CASE ( 'POA1' )
-               IDTPOA1   = N
-               COUNT_BB = COUNT_BB + 1
-               IDBOC    = COUNT_BB
-
-            CASE ( 'POA2' )
-               IDTPOA2   = N
-
-            ! SOAudpate: semivol2: add POG (hotp 2/27/09)
-            CASE ( 'POG1' )
-               IDTPOG1   = N
-
-            CASE ( 'POG2' )
-               IDTPOG2   = N
-
-            ! SOAupdate: semivolpoa4opoa: add OPOA OPOG (hotp 3/17/09)
-            CASE ( 'OPOA1' )
-               IDTOPOA1  = N
-
-            CASE ( 'OPOA2' )
-               IDTOPOA2  = N
-
-            CASE ( 'OPOG1' )
-               IDTOPOG1  = N
-
-            CASE ( 'OPOG2' )
-               IDTOPOG2  = N
-
-            ! SOAupdate: remove old and add new mtp (hotp 5/20/10)
-            ! Gas-phase precursors (hotp 5/20/10)
-            CASE ( 'MTPA' )
-               IDTMTPA  = N
+            CASE ( 'ALPH' )
+               IDTALPH  = N
 
             CASE ( 'LIMO' )
                IDTLIMO  = N
 
-            CASE ( 'MTPO' )
-               IDTMTPO  = N
+            CASE ( 'ALCO' )
+               IDTALCO  = N
 
-            ! new mtp gas-phase semivols (hotp 5/20/10)
-            CASE ( 'TSOG1' )
-               IDTTSOG1  = N
+            CASE ( 'SOG1' )
+               IDTSOG1  = N
 
-            CASE ( 'TSOG2' )
-               IDTTSOG2  = N
+            CASE ( 'SOG2' )
+               IDTSOG2  = N
 
-            CASE ( 'TSOG3' )
-               IDTTSOG3  = N
+            CASE ( 'SOG3' )
+               IDTSOG3  = N
 
-            CASE ( 'TSOG0' )
-               IDTTSOG0  = N
+            CASE ( 'SOG4' )
+               IDTSOG4  = N
 
-            ! new mtp aerosol-phase semivols (hotp 5/20/10)
-            CASE ( 'TSOA1' )
-               IDTTSOA1  = N
+            !(hotp 5/25/09)
+            CASE ( 'SOG5' )
+               IDTSOG5  = N
 
-            CASE ( 'TSOA2' )
-               IDTTSOA2  = N
+            CASE ( 'SOA1' )
+               IDTSOA1  = N
 
-            CASE ( 'TSOA3' )
-               IDTTSOA3  = N
+            CASE ( 'SOA2' )
+               IDTSOA2  = N
 
-            CASE ( 'TSOA0' )
-               IDTTSOA0  = N
+            CASE ( 'SOA3' )
+               IDTSOA3  = N
 
-            ! new isoprene semivols
-            CASE ( 'ISOG1' )
-               IDTISOG1  = N
+            CASE ( 'SOA4' )
+               IDTSOA4  = N
 
-            CASE ( 'ISOG2' )
-               IDTISOG2  = N
+            !(hotp 5/25/09)
+            CASE ( 'SOA5' )
+               IDTSOA5  = N
 
-            CASE ( 'ISOG3' )
-               IDTISOG3  = N
-
-            CASE ( 'ISOA1' )
-               IDTISOA1  = N
-
-            CASE ( 'ISOA2' )
-               IDTISOA2  = N
-
-            CASE ( 'ISOA3' )
-               IDTISOA3  = N
-
-            ! replace SOG5 and SOG6 with lumped species (hotp 5/12/10)
-            CASE ( 'ASOG1' )
-               IDTASOG1 = N
-
-            CASE ( 'ASOG2' )
-               IDTASOG2 = N
-
-            CASE ( 'ASOG3' )
-               IDTASOG3 = N
-
-            CASE ( 'ASOAN' )
-               IDTASOAN = N
-
-            CASE ( 'ASOA1' )
-               IDTASOA1 = N
-
-            CASE ( 'ASOA2' )
-               IDTASOA2 = N
-
-            CASE ( 'ASOA3' )
-               IDTASOA3 = N
-            ! end hotp SOAupdate
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!            ! SOAupdate (hotp 6/15/09)
+!            ! semivolpoa: add POA (hotp 2/17/09)
+!            CASE ( 'POA1' )
+!               IDTPOA1   = N
+!               COUNT_BB = COUNT_BB + 1
+!               IDBOC    = COUNT_BB
+!
+!            CASE ( 'POA2' )
+!               IDTPOA2   = N
+!
+!            ! SOAudpate: semivol2: add POG (hotp 2/27/09)
+!            CASE ( 'POG1' )
+!               IDTPOG1   = N
+!
+!            CASE ( 'POG2' )
+!               IDTPOG2   = N
+!
+!            ! SOAupdate: semivolpoa4opoa: add OPOA OPOG (hotp 3/17/09)
+!            CASE ( 'OPOA1' )
+!               IDTOPOA1  = N
+!
+!            CASE ( 'OPOA2' )
+!               IDTOPOA2  = N
+!
+!            CASE ( 'OPOG1' )
+!               IDTOPOG1  = N
+!
+!            CASE ( 'OPOG2' )
+!               IDTOPOG2  = N
+!
+!            ! SOAupdate: remove old and add new mtp (hotp 5/20/10)
+!            ! Gas-phase precursors (hotp 5/20/10)
+!            CASE ( 'MTPA' )
+!               IDTMTPA  = N
+!
+!            CASE ( 'LIMO' )
+!               IDTLIMO  = N
+!
+!            CASE ( 'MTPO' )
+!               IDTMTPO  = N
+!
+!            ! new mtp gas-phase semivols (hotp 5/20/10)
+!            CASE ( 'TSOG1' )
+!               IDTTSOG1  = N
+!
+!            CASE ( 'TSOG2' )
+!               IDTTSOG2  = N
+!
+!            CASE ( 'TSOG3' )
+!               IDTTSOG3  = N
+!
+!            CASE ( 'TSOG0' )
+!               IDTTSOG0  = N
+!
+!            ! new mtp aerosol-phase semivols (hotp 5/20/10)
+!            CASE ( 'TSOA1' )
+!               IDTTSOA1  = N
+!
+!            CASE ( 'TSOA2' )
+!               IDTTSOA2  = N
+!
+!            CASE ( 'TSOA3' )
+!               IDTTSOA3  = N
+!
+!            CASE ( 'TSOA0' )
+!               IDTTSOA0  = N
+!
+!            ! new isoprene semivols
+!            CASE ( 'ISOG1' )
+!               IDTISOG1  = N
+!
+!            CASE ( 'ISOG2' )
+!               IDTISOG2  = N
+!
+!            CASE ( 'ISOG3' )
+!               IDTISOG3  = N
+!
+!            CASE ( 'ISOA1' )
+!               IDTISOA1  = N
+!
+!            CASE ( 'ISOA2' )
+!               IDTISOA2  = N
+!
+!            CASE ( 'ISOA3' )
+!               IDTISOA3  = N
+!
+!            ! replace SOG5 and SOG6 with lumped species (hotp 5/12/10)
+!            CASE ( 'ASOG1' )
+!               IDTASOG1 = N
+!
+!            CASE ( 'ASOG2' )
+!               IDTASOG2 = N
+!
+!            CASE ( 'ASOG3' )
+!               IDTASOG3 = N
+!
+!            CASE ( 'ASOAN' )
+!               IDTASOAN = N
+!
+!            CASE ( 'ASOA1' )
+!               IDTASOA1 = N
+!
+!            CASE ( 'ASOA2' )
+!               IDTASOA2 = N
+!
+!            CASE ( 'ASOA3' )
+!               IDTASOA3 = N
+!            ! end hotp SOAupdate
+!-----------------------------------------------------------------------------
 
             !--------------------------------
             ! Mineral dust aerosols

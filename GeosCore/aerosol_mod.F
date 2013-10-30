@@ -503,7 +503,7 @@
             BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / State_Met%AIRVOL(I,J,L)
 
             OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF /
-  &                       State_Met%AIRVOL(I,J,L)
+     &                    State_Met%AIRVOL(I,J,L)
 
 !----------------------------------------------------------------------------
 ! This is in the std code (bmy, 10/30/13)

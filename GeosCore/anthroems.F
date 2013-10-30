@@ -653,9 +653,9 @@
 !            ! Print total in Tg C 
 !            CALL TOTAL_FOSSIL_TG( EMIST(:,:,IDENAP), IIPAR, JJPAR, 
 !     &                            1,                 12d-3, 'NAP' )
+!
+!         ENDIF
 !-----------------------------------------------------------------------------
-
-         ENDIF
 
          !==============================================================
          ! Convert CO and hydrocarbon emissions from [molec (C)/cm2/s] 

@@ -794,12 +794,15 @@
       IF ( IDBNH3   /= 0 ) BIOTRCE(IDBNH3)  = IDTNH3 
       IF ( IDBBC    /= 0 ) BIOTRCE(IDBBC)   = IDTBCPI
 
-      ! IDBOC may be associated with either OCPI or POA 
-      ! depending on if POA is semivolatile (hotp 8/23/09)
-      IF ( IDBOC    /= 0 ) THEN 
-         IF ( IDTOCPI  /= 0 ) BIOTRCE(IDBOC) = IDTOCPI
-         IF ( IDTPOA1  /= 0 ) BIOTRCE(IDBOC) = IDTPOA1
-      ENDIF
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! IDBOC may be associated with either OCPI or POA 
+!      ! depending on if POA is semivolatile (hotp 8/23/09)
+!      IF ( IDBOC    /= 0 ) THEN 
+!         IF ( IDTOCPI  /= 0 ) BIOTRCE(IDBOC) = IDTOCPI
+!         IF ( IDTPOA1  /= 0 ) BIOTRCE(IDBOC) = IDTPOA1
+!     ENDIF
+!------------------------------------------------------------------------------
 
       IF ( IDBXYLE  /= 0 ) BIOTRCE(IDBXYLE) = IDTXYLE 
       IF ( IDBTOLU  /= 0 ) BIOTRCE(IDBTOLU) = IDTTOLU
@@ -819,8 +822,11 @@
       IF ( IDBPCOBW  /= 0 ) BIOTRCE(IDBPCOBW)  = IDTPCOBW
       IF ( IDBPCOBRW /= 0 ) BIOTRCE(IDBPCOBRW) = IDTPCOBRW
 
-      ! SOAupdate: Add NAP (hotp 8/23/09)
-      IF ( IDBNAP   /= 0 ) BIOTRCE(IDBNAP)  = IDTNAP
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: Add NAP (hotp 8/23/09)
+!      IF ( IDBNAP   /= 0 ) BIOTRCE(IDBNAP)  = IDTNAP
+!------------------------------------------------------------------------------
 
       ! Set T/F of BIOBGAS() (hotp 8/3/09)
       ! BIOBGAS(IDBxx) is true if IDBxx should be handled by

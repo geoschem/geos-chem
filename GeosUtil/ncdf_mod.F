@@ -27,7 +27,6 @@
       USE m_netcdf_io_write
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -42,6 +41,7 @@
 !
 ! !REVISION HISTORY:
 !  27 Jul 2012 - C. Keller - Initial version
+!  30 Oct 2013 - R. Yantosca - Removed define.h 
 !EOP
 !------------------------------------------------------------------------------
 !BOC

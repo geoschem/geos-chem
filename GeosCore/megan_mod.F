@@ -44,7 +44,6 @@
       USE ERROR_MOD                                    ! Error trapping
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:

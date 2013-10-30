@@ -316,7 +316,10 @@
       IF ( ALLOCATED( EMISTXYLE  ) ) DEALLOCATE( EMISTXYLE  )
       IF ( ALLOCATED( EMISTC2H4  ) ) DEALLOCATE( EMISTC2H4  )
       IF ( ALLOCATED( EMISTC2H2  ) ) DEALLOCATE( EMISTC2H2  )
-      IF ( ALLOCATED( EMISTNAP   ) ) DEALLOCATE( EMISTNAP   )
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      IF ( ALLOCATED( EMISTNAP   ) ) DEALLOCATE( EMISTNAP   )
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( FTOTCO2    ) ) DEALLOCATE( FTOTCO2    )
       IF ( ALLOCATED( FLIQCO2    ) ) DEALLOCATE( FLIQCO2    )
       IF ( ALLOCATED( SAVEOH     ) ) DEALLOCATE( SAVEOH     )
