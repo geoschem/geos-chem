@@ -51,6 +51,7 @@
 !        = 1d-60 to avoid problems (bmy, 12/19/06)
 !  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  28 Oct 2013 - R. Yantosca - Now avoid array temporaries
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -215,6 +216,9 @@
 !  (4 ) Rewrote parallel loops so that we pass entire arrays to the various
 !        subroutines instead of array slices such as (:,J,:).  This can cause
 !        problems with OpenMP for some compilers. (bmy, 12/13/05)
+!  28 Oct 2013 - R. Yantosca - Now accept pointer-valued arguments into this
+!                              routine via assumed-shape dummy arguments.
+!                              This will eliminate array temporaries.
 !******************************************************************************
 
       USE GIGC_State_Met_Mod, ONLY   : MetState
@@ -227,11 +231,21 @@
       REAL*8,         INTENT(IN)    :: TDT                
       REAL*8,         INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
       REAL*8,         INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)  
-      REAL*8,         INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)    
-      REAL*8,         INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)   
-      REAL*8,         INTENT(IN)    :: MU(IIPAR,JJPAR,LLPAR)     
-      REAL*8,         INTENT(IN)    :: MD(IIPAR,JJPAR,LLPAR)     
-      REAL*8,         INTENT(IN)    :: EU(IIPAR,JJPAR,LLPAR)     
+!-----------------------------------------------------------------------------
+! Prior to 10/28/13:
+! Eliminate array temporary by accepting pointer variables into this routine
+! via assumed-shape arguments.  This is more efficient. (bmy, 10/28/13)
+!      REAL*8,         INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)
+!      REAL*8,         INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)
+!      REAL*8,         INTENT(IN)    :: MU(IIPAR,JJPAR,LLPAR)
+!      REAL*8,         INTENT(IN)    :: MD(IIPAR,JJPAR,LLPAR)
+!      REAL*8,         INTENT(IN)    :: EU(IIPAR,JJPAR,LLPAR)
+!-----------------------------------------------------------------------------
+      REAL*8,         INTENT(IN)    :: ETA (:,:,:)
+      REAL*8,         INTENT(IN)    :: BETA(:,:,:)
+      REAL*8,         INTENT(IN)    :: MU  (:,:,:)
+      REAL*8,         INTENT(IN)    :: MD  (:,:,:)
+      REAL*8,         INTENT(IN)    :: EU  (:,:,:)
       REAL*8,         INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
       REAL*8,         INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       REAL*8,         INTENT(IN)    :: TCVV(NTRACE)
@@ -356,8 +370,15 @@
       INTEGER, INTENT(IN)    :: J, NTRACE
       REAL*8,  INTENT(IN)    :: TDT
       REAL*8,  INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)
+!-----------------------------------------------------------------------------
+! Prior to 10/28/13:
+! Eliminate array temporary by accepting pointer variables into this routine
+! via assumed-shape arguments.  This is more efficient. (bmy, 10/28/13)
+!      REAL*8,  INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)
+!-----------------------------------------------------------------------------
+      REAL*8,  INTENT(IN)    :: ETA (:,:,:)
+      REAL*8,  INTENT(IN)    :: BETA(:,:,:)
       REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
 
       ! Local variables
@@ -544,6 +565,7 @@
 !        the argument list. (bmy, 12/13/05)
 !  (3 ) Now treat "negative detrainment" as entrainment, which will better 
 !        conserve mixing ratio (swu, bmy, 6/27/06)
+!  28 Oct 2013 - R. Yantosca - Eliminate array temporaries
 !******************************************************************************
 !
       USE CMN_SIZE_MOD    ! Size parameters
@@ -551,9 +573,17 @@
       ! Arguments
       INTEGER, INTENT(IN)  :: J 
       REAL*8,  INTENT(IN)  :: DP(IIPAR,JJPAR,LLPAR) 
-      REAL*8,  INTENT(IN)  :: MU(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: MD(IIPAR,JJPAR,LLPAR) 
-      REAL*8,  INTENT(IN)  :: EU(IIPAR,JJPAR,LLPAR) 
+!------------------------------------------------------------------------------
+! Prior to 10/28/13:
+! Eliminate array temporary by accepting pointer variables into this routine
+! via assumed-shape arguments.  This is more efficient. (bmy, 10/28/13)
+!      REAL*8,  INTENT(IN)  :: MU(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)  :: MD(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)  :: EU(IIPAR,JJPAR,LLPAR)
+!------------------------------------------------------------------------------
+      REAL*8,  INTENT(IN)  :: MU (:,:,:)
+      REAL*8,  INTENT(IN)  :: MD (:,:,:)
+      REAL*8,  INTENT(IN)  :: EU (:,:,:)
       REAL*8,  INTENT(OUT) :: MUG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: MDG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: DUG(IIPAR,LLPAR)      

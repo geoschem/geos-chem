@@ -370,6 +370,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -413,7 +414,7 @@
 #if   defined( GEOS_4 )
       PBLTOP = 5
       MTTOP  = 10
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       PBLTOP = 5
       MTTOP  = 10
 #endif

@@ -38,7 +38,7 @@
 ! !REMARKS:
 !  This module reads GEOS-4, GEOS-5, and GCAP met fields
 !  MERRA met fields are read in routines merra_*_mod.F
-!  GEOS-5.7.2 met fields are read in geos572_read_mod.F
+!  GEOS-FP met fields are read in geosfp_read_mod.F
 !
 ! !REVISION HISTORY:
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -106,7 +106,7 @@
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION    ! Unzip option
       INTEGER, OPTIONAL, INTENT(IN) :: NYMD      ! YYYY/MM/DD of file to unzip
       TYPE(OptInput),    INTENT(IN) :: Input_Opt ! Input Options object
-! 
+!     
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/23/03)
@@ -533,6 +533,10 @@
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  02 Jul 2013 - R. Yantosca - For GCAP, PBL is now State_Met%PBLH (similarly
+!                              for State_Met%PRECCON and State_Met%PRECTOT)
+!  13 Aug 2013 - R. Yantosca - For GEOS-4, PBL is now State_Met%PBLH (similarly
+!                              for State_Met%PRECCON and State_Met%PRECTOT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -577,9 +581,9 @@
      &              GWETTOP = State_Met%GWETTOP, 
      &              PARDF   = State_Met%PARDF,   
      &              PARDR   = State_Met%PARDR,  
-     &              PBL     = State_Met%PBL,         
-     &              PREACC  = State_Met%PREACC, 
-     &              PRECON  = State_Met%PRECON, 
+     &              PBL     = State_Met%PBLH,         
+     &              PREACC  = State_Met%PRECTOT, 
+     &              PRECON  = State_Met%PRECCON, 
      &              RADLWG  = State_Met%RADLWG,   
      &              RADSWG  = State_Met%RADSWG, 
      &              SNOW    = State_Met%SNOW,  
@@ -654,9 +658,9 @@
      &              OICE     = State_Met%OICE,     
      &              PARDF    = State_Met%PARDF,       
      &              PARDR    = State_Met%PARDR,
-     &              PBL      = State_Met%PBL,       
-     &              PREACC   = State_Met%PREACC,     
-     &              PRECON   = State_Met%PRECON,
+     &              PBL      = State_Met%PBLH,
+     &              PREACC   = State_Met%PRECTOT,
+     &              PRECON   = State_Met%PRECCON,
      &              RADSWG   = State_Met%RADSWG, 
      &              SNICE    = State_Met%SNICE,
      &              SNOW     = State_Met%SNOW, 

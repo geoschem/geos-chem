@@ -15,7 +15,6 @@
 !
 ! !USES:
 !
-      USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE AEIC_MOD,                ONLY : CLEANUP_AEIC
       USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
@@ -28,6 +27,7 @@
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE COMODE_MOD,              ONLY : CLEANUP_COMODE
       USE GCKPP_COMODE_MOD,        ONLY : CLEANUP_GCKPP_COMODE
+      USE DAO_MOD,                 ONLY : CLEANUP_DAO
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
@@ -47,7 +47,6 @@
       USE GC_BIOMASS_MOD,          ONLY : CLEANUP_GC_BIOMASS
       USE GFED2_BIOMASS_MOD,       ONLY : CLEANUP_GFED2_BIOMASS
       USE GFED3_BIOMASS_MOD,       ONLY : CLEANUP_GFED3_BIOMASS
-      USE FINN_BIOMASS_MOD,        ONLY : CLEANUP_FINN_BIOMASS
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
@@ -85,7 +84,7 @@
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
-      USE TPCORE_GEOS57_WINDOW_MOD,ONLY : EXIT_GEOS57_TPCORE_WINDOW !clb
+      USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : EXIT_GEOSFP_TPCORE_WINDOW !clb
       USE TRACER_MOD,              ONLY : CLEANUP_TRACER
       USE TROPOPAUSE_MOD,          ONLY : CLEANUP_TROPOPAUSE
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
@@ -97,25 +96,6 @@
       USE RCP_MOD,                 ONLY : CLEANUP_RCP !(cdh, 10/14/11)
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
-#endif
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not deallocate met field arrays from "dao_mod.F"
-      ! (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Deallocate met field arrays from "dao_mod.F" used to
-      ! correct vertical regridding of OH for offline simulations
-      ! (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-      USE DAO_MOD,                 ONLY : CLEANUP_DAO
-# if !defined( TOMAS )
-# endif
 #endif
 
 #if ! defined( ESMF_ )
@@ -247,6 +227,10 @@
 !                              the vertical regridding of OH for offline
 !                              simulations.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  26 Sep 2013 - R. Yantosca - Now reference EXIT_GEOSFP_TPCORE_WINDOW
+!  29 Oct 2013 - R. Yantosca - Now call CLEANUP_DAO for all simulations (if
+!                              arrays are not allocated it'll exit gracefully)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -259,7 +243,6 @@
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! Call cleanup routines from individual F90 modules
-      CALL CLEANUP_ACETONE
       CALL CLEANUP_AEROSOL
       CALL CLEANUP_AEIC
       CALL CLEANUP_ARCTAS_SHIP
@@ -273,6 +256,7 @@
       CALL CLEANUP_CO2
       CALL CLEANUP_COMODE
       CALL CLEANUP_GCKPP_COMODE
+      CALL CLEANUP_DAO
       CALL CLEANUP_DIAG
       CALL CLEANUP_DIAG03
       CALL CLEANUP_DIAG04
@@ -291,7 +275,6 @@
       CALL CLEANUP_GC_BIOMASS
       CALL CLEANUP_GFED2_BIOMASS
       CALL CLEANUP_GFED3_BIOMASS
-      CALL CLEANUP_FINN_BIOMASS
       CALL CLEANUP_GLOBAL_CH4
       CALL CLEANUP_GLOBAL_HNO3
       CALL CLEANUP_GLOBAL_NO3
@@ -341,35 +324,15 @@
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
 #endif
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not deallocate met field arrays from "dao_mod.F"
-      ! (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Deallocate met field arrays from "dao_mod.F" used to
-      ! correct vertical regridding of OH for offline simulations
-      ! (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-      CALL CLEANUP_DAO
-# if !defined( TOMAS )
-      CALL CLEANUP_DAO         ! Clean up met fields for APM
-# endif
-#endif
 
 #if   defined( TOMAS )
       CALL CLEANUP_TOMAS
 #endif
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
-#elif defined( GEOS_57) && defined( GRID025x03125)
+#elif defined( GEOS_FP) && defined( GRID025x03125)
       ! clb
-      CALL EXIT_GEOS57_TPCORE_WINDOW
+      CALL EXIT_GEOSFP_TPCORE_WINDOW
 #else
       CALL EXIT_TPCORE
 #endif

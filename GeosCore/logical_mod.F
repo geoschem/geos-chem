@@ -78,6 +78,8 @@
 !                              simulation to Headers/gigc_input_opt_mod.F90
 !  13 Aug 2013 - M. Sulprizio- Added LSVPOA switch for semivolatile POA (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,14 +149,12 @@
       LOGICAL :: LMONOT          ! Use old 
       LOGICAL :: LNEI99          ! Use EPA 1999 regional emissions?
       LOGICAL :: LNEI05          ! Use EPA 2005 regional emissions?
-      LOGICAL :: LNEI08          ! Use EPA 2008 regional emissions?
       LOGICAL :: LSHIPSO2        ! Use SO2 from ship emissions?
       LOGICAL :: LSOILNOX        ! Use soil NOx emissions
       !FP_ISOP (6/2009) LFERTILIZERNOX
       LOGICAL :: LFERTILIZERNOX  ! Use fertilizer NOx emissions
       LOGICAL :: LTOMSAI         ! Scale biomass burning to TOMS AI index?
       LOGICAL :: LWOODCO         ! <-- deprecated: replace w/ LBIOFUEL soon
-      LOGICAL :: LAVHRRLAI       ! Use AVHRR leaf-area-indices?
       LOGICAL :: LGFED2BB        ! Use GFED2 biomass burning?
       LOGICAL :: LGFED3BB        ! Use GFED3 biomass burning?
       LOGICAL :: LFUTURE         ! Use future-years emission scaling (GCAP)?
@@ -166,7 +166,6 @@
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
       LOGICAL :: LDAYBB3         ! Use GFED3 daily biomass burning?
       LOGICAL :: L3HRBB3         ! Use GFED3 3-hr biomass burning?
-      LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)
 ![eml
@@ -181,7 +180,6 @@
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
-      LOGICAL :: LMFCT           ! Turns TPCORE MFCT option on/off
       LOGICAL :: LTRAN           ! Turns advection on/off
       LOGICAL :: LTPFV           ! Are we using the GEOS-4 
       LOGICAL :: LWINDO          ! Use nested-grid simulation?

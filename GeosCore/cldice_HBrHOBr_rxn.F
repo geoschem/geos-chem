@@ -71,6 +71,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  05 Sep 2013 - R. Yantosca - Now exit if IWC <= 0, this will cause the
 !                              logarithm to choke
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,7 +119,7 @@
       ! ----------------------------------------------
 
       ! IWC in [g/cm3]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       iwc = State_Met%CLDF(L,I,J) * QI * State_Met%AD(I,J,L) /
      &      State_Met%AIRVOL(I,J,L)
       iwc = iwc / 1.d3
@@ -268,7 +269,7 @@
       ! store the volume of air [cm3]
       XAIRCM3 = State_Met%AIRVOL(I,J,L) * (100.d0)**3
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       ! get the volume of cloud ice [cm3]
       Vc = State_Met%CLDF(L,I,J) * QI * State_Met%AD(I,J,L) / dens_ice
 #else

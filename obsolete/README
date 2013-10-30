@@ -1,0 +1,17 @@
+README -- describes contents of obsolete directory
+26 Sep 2013
+GEOS-Chem Support Team
+geos-chem-support@as.harvard.edu
+
+
+NOTE: The following files were used specifically in the SEAC4RS code, but
+are not yet needed in the standard code.  We have "parked" them here for
+the time being.  At some point in the future we may restore these:
+
+(1) finn_biomass_mod.F
+(2) flambe_biomass_mod.F
+(3) ncdf_mod.F
+(4) nei2008_anthro_mod.F
+
+Everything else in this directory is really, truly obsolete and has been
+removed from the code at some point in the past.

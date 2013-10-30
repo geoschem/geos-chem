@@ -37,6 +37,7 @@
       USE TRACER_MOD, ONLY : N_MEMBERS
       USE TRACER_MOD, ONLY : CHECK_STT
       USE TRACER_MOD, ONLY : CHECK_STT_05x0666
+      USE TRACER_MOD, ONLY : CHECK_STT_025x03125
 
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -49,11 +50,6 @@
       USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAupdate: remove all APROD/GPROD references (hotp 7/25/10)
-!      USE SOAPROD_MOD           ! For SOA simulation
-!------------------------------------------------------------------------------
       USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
@@ -108,7 +104,7 @@
       !-----------------------------------------------------------------
       USE DAO_MOD               ! Met field definitions
       USE GCAP_READ_MOD         ! For reading GCAP met data
-      USE GEOS57_READ_MOD       ! For reading GEOS-5.7.x data
+      USE GEOSFP_READ_MOD       ! For reading GEOS-FP data
       USE MERRA_A1_MOD          ! For reading MERRA A1 data
       USE MERRA_A3_MOD          ! For reading MERRA A3 data
       USE MERRA_CN_MOD          ! For reading MERRA CN data
@@ -620,29 +616,13 @@
 
       ! Read soil NOx initial conditions
       IF ( LSOILNOX ) THEN
-         CALL READ_SOIL_RESTART( NYMDb , NHMSb )
-         IF ( prtDebug ) 
-     &      CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
-      ENDIF
+         CALL READ_SOIL_RESTART
+     &      ( am_I_Root, Input_Opt, NYMDb , NHMSb, RC )
 
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAudpate: APROD GPROD removed (hotp 7/25/10)
-!      ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)
-!      IF ( LSOA ) THEN
-!
-!         !! use this to make initial soaprod files  
-!         !CALL SET_SOAPROD
-!         !CALL FIRST_APRODGPROD()
-!         !CALL MAKE_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
-!         !goto 9999
-!         !!
-!
-!         CALL SET_SOAPROD
-!         CALL READ_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
-!
-!      ENDIF
-!------------------------------------------------------------------------------
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+         ENDIF
+      ENDIF
 
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
@@ -669,7 +649,7 @@
       WRITE( 6, '(a)' ) 
 
       ! NSTEP is the number of dynamic timesteps w/in the outer loop
-#if   defined( GEOS_57 ) 
+#if   defined( GEOS_FP ) 
       N_DYN_STEPS = 180 / GET_TS_DYN()     ! GEOS-5.7.x has a 3-hr interval
 #else
       N_DYN_STEPS = 360 / GET_TS_DYN()     ! All other met has a 6hr interval
@@ -752,7 +732,9 @@
                   
                ! Make soil restart file
                IF ( LSOILNOX ) THEN
-                  CALL MAKE_SOILNOx_RESTART( NYMD, NHMS, TAU )
+                  CALL MAKE_SOILNOx_RESTART
+     &               ( am_I_Root, Input_Opt, NYMD, 
+     &                 NHMS,      TAU,       RC    )
                ENDIF
 
                ! Make ocean mercury restart file
@@ -760,25 +742,6 @@
                   CALL MAKE_OCEAN_Hg_RESTART
      &               ( NYMD, NHMS, TAU, Input_Opt )
                ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 8/13/13:
-! SOAudpate: removed APROD GPROD (hotp 7/25/10)
-!               ! (dkh, 11/09/06)  
-!               ! Save SOA quantities GPROD & APROD
-!               IF ( LSOA .and. LCHEM ) THEN 
-!                  CALL WRITE_GPROD_APROD( NYMD, NHMS, TAU )
-!               ENDIF
-!
-!               IF ( LSOA .and. LCHEM ) THEN
-!                  CALL MAKE_SOAPROD_FILE( GET_NYMD(), GET_NHMS() )
-!
-!                  !### Debug
-!                  IF ( prtDebug ) THEN
-!                     CALL DEBUG_MSG('### MAIN: a MAKE_SOAPROD_FILE')
-!                  ENDIF
-!               ENDIF
-!------------------------------------------------------------------------------
 
                ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)
                IF ( LCHEM .and. LSVCSPEC ) THEN 
@@ -868,6 +831,8 @@
                   CALL ANTHROEMS( SEASON, Input_Opt )              
                ENDIF
             ENDIF
+
+
          ENDIF
 
          ! Read data required for Hg2 gas-particle partitioning 
@@ -1036,6 +1001,7 @@
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
             ENDIF
+            
          ENDIF
 
          !==============================================================
@@ -1059,7 +1025,7 @@
             ! Reset air mass quantities
             CALL AIRQNT( State_Met )
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
             ! Get relative humidity (after recomputing pressures)
             ! NOTE: for GEOS-5 we'll read this from disk instead
             CALL MAKE_RH( State_Met )
@@ -1269,7 +1235,7 @@
 #if   defined( APM )
             ! Record aerosol number before aquaous chem which adds mass but 
             ! not number, do MOVEBIN when call APM_DRIV after DO_CHEMISTRY
-            CALL AERONUM( State_Met )
+            CALL AERONUM( State_Met, State_Chm )
 #endif
 
             ! Do GEOS-Chem chemistry
@@ -1287,6 +1253,10 @@
          CALL CHECK_STT_05x0666( State_Chm, 
      &                           'end of chem section, before wetdep' )
 #endif 
+#if   defined( GEOS_FP) && defined( GRID025x03125)
+         CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
+#endif 
+
 
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
@@ -1300,7 +1270,7 @@
 #if   defined( APM )
             ! Do size-resolved wet deposition for APM microphysics
             IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN 
-               CALL DO_WETDEPBIN( State_Met )
+               CALL DO_WETDEPBIN( State_Met, State_Chm )
             ENDIF
 #endif
          ENDIF
@@ -1459,6 +1429,10 @@
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
             CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
 #endif
+#if   defined( GEOS_FP) && defined( GRID025x03125)
+         CALL CHECK_STT_025x03125( State_Chm, 'after dynamics step' )
+#endif 
+
 
             CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
          ENDIF
@@ -1656,8 +1630,8 @@
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-4 met fields'
 #elif defined( GEOS_5 )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-5 met fields'
-#elif defined( GEOS_57 )
-      WRITE( 6, '(a)' ) 'Using GMAO GEOS-5.7.x met fields'
+#elif defined( GEOS_FP )
+      WRITE( 6, '(a)' ) 'Using GMAO GEOS-FP met fields'
 #elif defined( MERRA )
       WRITE( 6, '(a)' ) 'Using GMAO MERRA met fields'
 #elif defined( GCAP  )
@@ -1803,22 +1777,22 @@
       !
       !    Handle GEOS-5.7.2 met fields separately from other met 
       !=================================================================
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
 
       ! Read time-invariant data
-      CALL GEOS57_READ_CN( Input_Opt, State_Met )
+      CALL GEOSFP_READ_CN( Input_Opt, State_Met )
 
       ! Read 1-hr time-averaged data
       DATE = GET_FIRST_A1_TIME()
-      CALL GEOS57_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
+      CALL GEOSFP_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
 
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_A3_TIME()
-      CALL GEOS57_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
+      CALL GEOSFP_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
 
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_I3_TIME()
-      CALL GEOS57_READ_I3_1( DATE(1), DATE(2), Input_Opt, State_Met )
+      CALL GEOSFP_READ_I3_1( DATE(1), DATE(2), Input_Opt, State_Met )
 
 #elif defined( MERRA )
 
@@ -1990,7 +1964,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
 
       !==============================================================
       !  ****** R E A D   G E O S -- 5 . 7 . x   F I E L D S  *****
@@ -2001,7 +1975,7 @@
       !---------------------------------
       IF ( ITS_TIME_FOR_A1() ) THEN
          DATE = GET_A1_TIME()
-         CALL GEOS57_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
+         CALL GEOSFP_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
 
          ! Update daily mean temperature archive for MEGAN biogenics
          ! (tmf, 1/4/2012) This should be turned on!
@@ -2013,7 +1987,7 @@
       !----------------------------------
       IF ( ITS_TIME_FOR_A3() ) THEN
          DATE = GET_A3_TIME()
-         CALL GEOS57_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
+         CALL GEOSFP_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
@@ -2025,7 +1999,7 @@
       !----------------------------------
       IF ( ITS_TIME_ FOR_I3() ) THEN
          DATE = GET_I3_TIME()
-         CALL GEOS57_READ_I3_2( DATE(1), DATE(2), Input_Opt, State_Met )
+         CALL GEOSFP_READ_I3_2( DATE(1), DATE(2), Input_Opt, State_Met )
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )

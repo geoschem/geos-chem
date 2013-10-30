@@ -28,7 +28,7 @@
       PRIVATE :: INIT_DAO_GCAP
       PRIVATE :: INIT_DAO_GEOS4
       PRIVATE :: INIT_DAO_GEOS5
-      PRIVATE :: INIT_DAO_GEOS57
+      PRIVATE :: INIT_DAO_GEOSFP
       PRIVATE :: INIT_DAO_MERRA
       PRIVATE :: INIT_DAO_DERIVED
 #endif
@@ -287,6 +287,7 @@
 !                              T_FULLGRID. They are required to correct vertical
 !                              regridding of OH for offline simulations.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Oct 2013 - M. Sulprizio- Renamed INIT_DAO_GEOS57 to INIT_DAO_GEOSFP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -333,6 +334,7 @@
 !        (mpb, bmy, 12/18/09)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -347,8 +349,8 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if   defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
-#if   defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU     ) || defined ( SEAC4RS )
+#if defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
+#if defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU     )
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
       RETURN
@@ -602,6 +604,8 @@
 !
 !  NOTES:
 !  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
+!  05 Sep 2013 - R. Yantosca - Prevent an out-of-bounds error in the call
+!                              to GET_AREA_CM2.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -624,7 +628,15 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( I, J, L )
+!----------------------------------------------------------------------------
+! Prior to 9/5/13:
+! AREA_M2 is defined on the reduced grid, so L > LLPAR will cause an 
+! out-of-bounds error.  In the "traditional" GEOS-Chem, all of the grid box
+! areas in a column are identical, so we can replace this with (I,J,1).
+! This bug was found by the GEOS-Chem unit tester. (bmy, 9/5/13)
+!         AREA_M2 = GET_AREA_M2( I, J, L )
+!----------------------------------------------------------------------------
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
                
          ! Pressure at bottom edge of grid box [hPa]
          P1          = GET_PEDGE_FULLGRID(I,J,L)
@@ -777,6 +789,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YEDGE(I,J,L) from new grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -800,7 +813,7 @@
       D_NTIME1 = DBLE( NTIME1 )
       D_NTDT   = DBLE( NTDT   )
 
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
       D_NDT    = 10800d0              ! For 3-hr instantaneous fields
 #else
       D_NDT    = 21600d0              ! For 6-hr instantaneous fields
@@ -1239,7 +1252,7 @@
 #elif defined( MERRA )
 
       !=================================================================
-      ! Do the interpolation for MERRA or GEOS-5.7.x met fields 
+      ! Do the interpolation for MERRA or GEOS-FP met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1397,10 +1410,10 @@
 
 #endif
 
-#elif defined( GEOS_57 )
+#elif defined( GEOS_FP )
 
       !=================================================================
-      ! Do the interpolation for GEOS-5.7.x met fields 
+      ! Do the interpolation for GEOS-FP met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1488,7 +1501,7 @@
          State_Met%V(I,J,L)     = VWND0a(I,J,L)
      &                   + ( VWND0b(I,J,L)     - VWND0a(I,J,L)     )*TM
 
-         ! %%% GEOS-5.7-specific fields %%%
+         ! %%% GEOS-FP-specific fields %%%
 
          State_Met%CMFMC(I,J,L)    = CMFMC0a(I,J,L)
      &                   + ( CMFMC0b(I,J,L)    - CMFMC0a(I,J,L)    )*TM
@@ -1903,7 +1916,7 @@
                GOTO 999
             ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
             !---------------------------------------------------
             ! GEOS-4 / GEOS-5 / MERRA met fields
@@ -2717,6 +2730,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2752,10 +2766,10 @@
       !------------------
       State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa] 
 
-#elif defined( GEOS_57 )
+#elif defined( GEOS_FP )
 
       !------------------
-      ! GEOS-5.7.x met
+      ! GEOS-FP met
       !------------------
       State_Met%PS1    = State_Met%PS2     ! I3 surface pressure    [hPa]
       State_Met%SPHU1  = State_Met%SPHU2   ! I3 specific humidity   [g/kg]
@@ -3193,15 +3207,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_dao_geos57
+! !IROUTINE: init_dao_geosfp
 !
-! !DESCRIPTION: Subroutine INIT\_DAO\_GEOS57 allocates memory for all 
-!  allocatable module arrays required when using the GEOS-5.7.x met fields.
+! !DESCRIPTION: Subroutine INIT\_DAO\_GEOSFP allocates memory for all 
+!  allocatable module arrays required when using the GEOS-FP met fields.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DAO_GEOS57
+      SUBROUTINE INIT_DAO_GEOSFP
 !
 ! !USES:
 !
@@ -3209,6 +3223,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Split off GEOS-5.7.x init from routine INIT_DAO
+!  17 Oct 2013 - M. Sulprizio- Renamed routine to INIT_DAO_GEOSFP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3218,7 +3233,7 @@
       INTEGER :: AS
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x fields for APM microphysics code
+      ! GEOS-FP fields for APM microphysics code
       !-----------------------------------------------------------------
 
       ALLOCATE( CMFMC0( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
@@ -3375,7 +3390,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0b' )
       TAUCLW0b = 0d0
 
-      END SUBROUTINE INIT_DAO_GEOS57
+      END SUBROUTINE INIT_DAO_GEOSFP
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -3772,6 +3787,10 @@
 !
       SUBROUTINE INIT_DAO
 !
+! !USES:
+!
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+!
 ! !REVISION HISTORY: 
 !  26 Jun 2000 - R. Yantosca - Initial version
 !  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
@@ -3813,6 +3832,9 @@
 !  06 Feb 2012 - R. Yantosca - Now split off array initializations into
 !                              separate routines, for clarity
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  14 Mar 2013 - M. Payer    - Now allocate AIRDEN_FULLGRID and T_FULLGRID
+!                              arrays used to correct vertical regridding of OH
+!                              for offline simulations (C. Holmes)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3841,10 +3863,10 @@
       ! GEOS-5.2.0 met arrays
       CALL INIT_DAO_GEOS5()
 
-#elif defined( GEOS_57 )
+#elif defined( GEOS_FP )
 
-      ! GEOS-5.7.x met arrays
-      CALL INIT_DAO_GEOS57()
+      ! GEOS-FP met arrays
+      CALL INIT_DAO_GEOSFP()
 
 #elif defined( MERRA )
 
@@ -3855,6 +3877,16 @@
 
       ! Initialize derived fields (used by all met data types)
       CALL INIT_DAO_DERIVED()
+
+      ! Temperature on full vertical grid 
+      ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
+      T_FULLGRID = 0d0
+
+      ! Number density of air on full vertical grid
+      ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
+      AIRDEN_FULLGRID = 0d0
 
       END SUBROUTINE INIT_DAO
 !EOC
@@ -3898,6 +3930,9 @@
 !  05 Oct 2011 - R. Yantosca - Now deallocate SUNCOS_MID
 !  06 Feb 2012 - R. Yantosca - Cosmetic changes
 !  24 Feb 2012 - R. Yantosca - Now deallocate SUNCOS_MID_5hr; cosmetic changes
+!  14 Mar 2013 - M. Payer    - Now deallocate AIRDEN_FULLGRID and T_FULLGRID
+!                              arrays used to correct vertical regridding of OH
+!                              for offline simulations (C. Holmes)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4012,6 +4047,9 @@
       IF ( ALLOCATED( ZMMU0      ) ) DEALLOCATE( ZMMU0      )
       IF ( ALLOCATED( ZMMU0a     ) ) DEALLOCATE( ZMMU0a     )
       IF ( ALLOCATED( ZMMU0b     ) ) DEALLOCATE( ZMMU0b     )
+
+      IF ( ALLOCATED( AIRDEN_FULLGRID ) ) DEALLOCATE( AIRDEN_FULLGRID )
+      IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
 
       END SUBROUTINE CLEANUP_DAO
 !EOC

@@ -117,6 +117,7 @@
 !        (bmy, 9/5/06)
 !  (2 ) Now scale AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,7 +153,7 @@
       RESERVED  = ''
 #if   defined( MERRA )
       SCALE     = DBLE( GET_CT_A3() ) + 1d-32
-#elif defined( GEOS_57 )
+#elif defined( GEOS_FP )
       SCALE     = DBLE( GET_CT_I3() ) + 1d-32
 #else
       SCALE     = DBLE( GET_CT_A6() ) + 1d-32

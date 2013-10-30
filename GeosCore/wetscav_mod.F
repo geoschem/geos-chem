@@ -264,6 +264,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  02 Jul 2013 - R. Yantosca - Bug fix: add State_Chm to WETDEP calls for
 !                              met other than MERRA, GEOS-5.7 or GEOS-5
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -291,7 +292,7 @@
       ! Only print output on the root CPU
       doPrt = ( LPRT .and. am_I_Root )
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
 
       !=================================================================
       ! MERRA: Only do wet deposition for large-scale + anvil precip
@@ -382,7 +383,7 @@
 ! 
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%%%          FOR MERRA and GEOS-5.7.x MET FIELDS ONLY         %%%%%
+!  %%%%%           FOR MERRA and GEOS-FP MET FIELDS ONLY           %%%%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
 !  Now construct QQ and PDOWN directly from MERRA met fields.
@@ -422,7 +423,7 @@
 !  = [ (PFILSAN/1000) * 100 ] + [ (PFILSAN/1000) * 100]
 !                                                                             .
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-!  %%%%%    FOR ALL OTHER MET FIELDS EXCEPT MERRA and GEOS-5.7.x   %%%%%
+!  %%%%%     FOR ALL OTHER MET FIELDS EXCEPT MERRA and GEOS-FP     %%%%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
 !  If there is total precipitation in the (I,J) column, then:
@@ -489,6 +490,7 @@
 !  09 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -529,12 +531,12 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
 
          !==============================================================
-         ! %%%%% FOR GEOS-5.7.x MET FIELDS ONLY %%%%%  
+         ! %%%%% FOR GEOS-FP MET FIELDS ONLY %%%%%  
          !
-         ! In GEOS-5.7.x, the PFILSAN and PFLLSAN fields are defined
+         ! In GEOS-FP, the PFILSAN and PFLLSAN fields are defined
          ! on level edges.  Therefore, we must use L+1 to index them.
          !==============================================================
 
@@ -868,9 +870,6 @@
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
 !------------------------------------------------------------------------------
-
-      ! SEAC4RS SOA tracers (jaf, 6/24/13)
-      USE TRACERID_MOD,       ONLY : IDTASOA,   IDTBBSOA,  IDTBGSOA
 
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
@@ -2059,25 +2058,6 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
-      !------------------------------------------
-      ! SEAC4RS SOA (aerosol)
-      ! Treat like standard SOA (jaf, 6/24/13)
-      ! Scavenging efficiency for SOA is 0.8
-      !------------------------------------------
-      ELSE IF ( N == IDTASOA .or. N == IDTBBSOA .or.
-     &          N == IDTBGSOA ) THEN
-         CALL F_AEROSOL( KC, N, F, State_Met )
-
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            F(I,J,L) = 0.8d0 * F(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! ND38 index
-         ISOL = GET_ISOL( N )
       !-------------------------------
       ! Hg2 (liquid phase only)
       !-------------------------------
@@ -3001,9 +2981,6 @@
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
 
-      ! SEAC4RS SOA tracers (jaf, 6/24/13)
-      USE TRACERID_MOD,       ONLY : IDTASOA,   IDTBBSOA,  IDTBGSOA
-
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4,IDTNK1,   IDTSF1,  IDTSS1
       USE TRACERID_MOD, ONLY : IDTECIL1,IDTOCIL1, IDTOCOB1,IDTDUST1
@@ -3068,6 +3045,7 @@
 !                              derived type object
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3863,7 +3841,7 @@
         
       ELSE
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
          !------------------------------------------------------------------
          ! Suppress scavenging at cold temperatures for most aerosol simulation
          ! Allow scavenging at cold temperatures for BCPO,DUST and HNO3 (qq,
@@ -4021,16 +3999,6 @@
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             RAINFRAC = RAINFRAC * 0.8d0
   
-         !--------------------------------------
-         ! SEAC4RS SOA (aerosol)
-         ! Treat like standard SOA (jaf, 6/24/13)
-         ! Scavenging efficiency for SOA is 0.8
-         !--------------------------------------
-         ELSE IF ( N == IDTASOA .or. N == IDTBBSOA .or.
-     &             N == IDTBGSOA ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-            RAINFRAC = RAINFRAC * 0.8d0
-
          !------------------------------
          ! Hg2 (liquid phase only)
          !------------------------------
@@ -4765,15 +4733,6 @@
       ! SOAG and SOAM (aerosol)
       !------------------------------
       ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-
-      !------------------------------
-      ! SEAC4RS SOA (aerosol)
-      ! Treat like standard SOA (jaf, 6/24/13)
-      !------------------------------
-      ELSE IF ( N == IDTASOA .or. N == IDTBBSOA .or.
-     &          N == IDTBGSOA ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
@@ -7039,6 +6998,7 @@
 !                              or an equilibrium process
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7103,7 +7063,7 @@
      &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC,  KIN, State_Met, State_Chm )
 
-#if    defined( MERRA ) || defined( GEOS_57 )
+#if    defined( MERRA ) || defined( GEOS_FP )
          !%%% BUG FIX: Only apply this section of when running
          !%%% GEOS-Chem with MERRA met fields.  (bmy, hamos, 5/26/11)
          !
@@ -8211,21 +8171,6 @@
             IDWETD(NSOL) = IDTSOAM
 
          !-----------------------------
-         ! SEAC4RS SOA tracers (jaf, 6/24/13)
-         !-----------------------------
-         ELSE IF ( N == IDTASOA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOA
-
-         ELSE IF ( N == IDTBBSOA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTBBSOA
-
-         ELSE IF ( N == IDTBGSOA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTBGSOA
-
-         !-----------------------------
          ! Dust aerosol tracers
          !-----------------------------
          ELSE IF ( N == IDTDST1 ) THEN
@@ -8410,8 +8355,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
-      ! SEAC4RS SOA tracers (jaf, 6/24/13)
-      USE TRACERID_MOD,       ONLY : IDTASOA,   IDTBBSOA,  IDTBGSOA
 #if defined( TOMAS )
       USE TRACERID_MOD,       ONLY : IDTNK1
       USE TOMAS_MOD,          ONLY : IBINS, IDIAG, ICOMP
@@ -8506,9 +8449,6 @@
             IF ( IDTSOAM /= 0 ) NMAX = NMAX + 1      ! plus SOAM deposition
          ELSE                                        !%% non-SOA SIMULATION %%
             IF ( LCARB ) NMAX = NMAX + 4             ! BCPI, BCPO, OCPI, OCPO
-            IF ( IDTASOA  /= 0 ) NMAX = NMAX + 1     ! SEAC4RS SOA tracers
-            IF ( IDTBBSOA /= 0 ) NMAX = NMAX + 1     ! SEAC4RS SOA tracers
-            IF ( IDTBGSOA /= 0 ) NMAX = NMAX + 1     ! SEAC4RS SOA tracers
          ENDIF
 
 #if defined( TOMAS )

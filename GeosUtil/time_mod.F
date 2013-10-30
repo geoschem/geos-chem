@@ -139,7 +139,7 @@
       PUBLIC  :: ITS_TIME_FOR_A6UPDATE
 #endif
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       PUBLIC  :: Accept_External_Date_Time
 #endif
 !
@@ -226,6 +226,7 @@
 !  14 Jun 2013 - R. Yantosca - Now compute day of week in SET_CURRENT_TIME
 !  14 Jun 2013 - R. Yantosca - Added comments to module variable declarations
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2822,11 +2823,12 @@
 !  19 Aug 2010 - R. Yantosca - Initial version
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
 
       ! MERRA and GEOS-5.7.x met fields are 1-hour time-averages, timestamped 
       ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
@@ -5058,7 +5060,7 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -5130,7 +5132,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4 :: A. B. JD, THISDAY, TMP
+      REAL*8 :: A, B, JD, THISDAY, TMP
 
       !=================================================================
       ! Set time/date values of time_mod.F from the ESMF inputs 

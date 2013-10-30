@@ -30,7 +30,7 @@
       PUBLIC  :: GET_PEDGE_FULLGRID
       PUBLIC  :: INIT_PRESSURE
       PUBLIC  :: SET_FLOATING_PRESSURE
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       PUBLIC  :: Accept_External_Pedge
 #endif
 !
@@ -100,6 +100,7 @@
 !  11 Dec 2012 - R. Yantosca - Add new routine ACCEPT_PEDGE_FROM_ESMF to set
 !                              EXTERNAL_PEDGE from the ESMF environment
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,7 +113,7 @@
       REAL*8, ALLOCATABLE :: PFLT(:,:)              ! "Floating" sfc pressure
       REAL*8, ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
       REAL*8, ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
                                                     !  external grid
 #endif
@@ -308,17 +309,18 @@
 !                              EXTERNAL_FORCING to use the GCM pressures.
 !                              This prevents problems when compiling G-C with
 !                              the DEVEL tag when using traditional main.F.
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
       !-----------------------------
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -334,7 +336,7 @@
       ! GEOS-3 & GCAP met fields
       !-----------------------------
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -381,6 +383,7 @@
 ! !REVISION HISTORY:
 !  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
 !  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -388,7 +391,7 @@
       ! GET_PEDGE_FULLGRID begins here!
       !=================================================================
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -505,6 +508,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -540,13 +544,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
       EXTERNAL_PEDGE = 0d0
 #endif
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !=================================================================
       ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)
@@ -916,13 +920,14 @@
       IF ( ALLOCATED( AP_FULLGRID ) ) DEALLOCATE( AP_FULLGRID )
       IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
       IF ( ALLOCATED( PFLT        ) ) DEALLOCATE( PFLT        )
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
 #endif
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 ! $Id: pjc_pfix_geos5_window_mod.f,v 1.1 2009/09/16 14:06:15 bmy Exp $
-      MODULE PJC_PFIX_GEOS57_WINDOW_MOD
+      MODULE PJC_PFIX_GEOSFP_WINDOW_MOD
 !
 !******************************************************************************
 !  Module PJC_PFIX_GEOS5_WINDOW_MOD contains routines which implements the 
@@ -86,6 +86,7 @@
 !       (lzh, ccc, 8/3/10)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed to pjc_pfix_geosfp_window_mod.F
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -99,8 +100,8 @@
       PRIVATE
 
       ! ... except these routines
-      PUBLIC :: CLEANUP_PJC_PFIX_GEOS57_WINDOW
-      PUBLIC :: DO_PJC_PFIX_GEOS57_WINDOW
+      PUBLIC :: CLEANUP_PJC_PFIX_GEOSFP_WINDOW
+      PUBLIC :: DO_PJC_PFIX_GEOSFP_WINDOW
 
       !=================================================================
       ! MODULE VARIABLES
@@ -152,7 +153,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_PJC_PFIX_GEOS57_WINDOW( D_DYN, P1,   P2, 
+      SUBROUTINE DO_PJC_PFIX_GEOSFP_WINDOW( D_DYN, P1,   P2, 
      &                                     UWND,  VWND, XMASS, YMASS )
 !
 !******************************************************************************
@@ -182,6 +183,7 @@
 !        routine. (bmy, 10/27/03)
 !  (2 ) Now define P2_TMP array for passing to ADJUST_PRESS (yxw, bmy, 3/5/07)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed to DO_PJC_PFIX_GEOSFP_WINDOW
 !******************************************************************************
 !
       USE CMN_SIZE_MOD    ! Size parameters
@@ -245,7 +247,7 @@
      &                   XMASS,              YMASS )
 
       ! Return to calling program
-      END SUBROUTINE DO_PJC_PFIX_GEOS57_WINDOW
+      END SUBROUTINE DO_PJC_PFIX_GEOSFP_WINDOW
 
 !------------------------------------------------------------------------------
 
@@ -1925,12 +1927,13 @@ c     --------------------------------------
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CLEANUP_PJC_PFIX_GEOS57_WINDOW
+      SUBROUTINE CLEANUP_PJC_PFIX_GEOSFP_WINDOW
 !
 !******************************************************************************
 !  Subroutine CLEANUP_PJC_PFIX deallocates all module arrays (bmy, 5/8/03)
 !  
 !  NOTES:
+!  26 Sep 2013 - R. Yantosca - Renamed to CLEANUP_PJC_PFIX_GEOSFP_WINDOW
 !******************************************************************************
 !
       !=================================================================
@@ -1954,8 +1957,8 @@ c     --------------------------------------
 
 
       ! Return to calling program
-      END SUBROUTINE CLEANUP_PJC_PFIX_GEOS57_WINDOW
+      END SUBROUTINE CLEANUP_PJC_PFIX_GEOSFP_WINDOW
 
 !------------------------------------------------------------------------------
 
-      END MODULE PJC_PFIX_GEOS57_WINDOW_MOD
+      END MODULE PJC_PFIX_GEOSFP_WINDOW_MOD

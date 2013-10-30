@@ -340,18 +340,17 @@
       USE TRACERID_MOD,       ONLY : IDTSO4,   IDTSOAG, IDTSOAM
 !-----------------------------------------------------------------------------
 ! These are in the std code (bmy, 10/30/13)
-      ! SOAupdate: update SOA tracers (hotp 7/25/10)
-      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
-      ! SOAupdate: new mtp replaces SOA1-4 (hotp 5/20/10
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2 
-      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      ! SOAupdate: replace SOA5 with lumped aromatic (hotp 5/12/10)
-      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
+!      ! SOAupdate: update SOA tracers (hotp 7/25/10)
+!      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
+!      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
+!      ! SOAupdate: new mtp replaces SOA1-4 (hotp 5/20/10
+!      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2 
+!      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
+!      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+!      ! SOAupdate: replace SOA5 with lumped aromatic (hotp 5/12/10)
+!      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
+!      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
 !-----------------------------------------------------------------------------
-!
 !
 ! !INPUT PARAMETERS:
 !

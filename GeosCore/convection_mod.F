@@ -155,8 +155,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  31 May 2013 - R. Yantosca - Now pass objects to NFCLDMX
 !  03 Jun 2013 - R. Yantosca - Bug fix: pass State_Chm to DO_MERRA_CONVECTION
-!  20 Jun 2013 - R. Yantosca - Now pass pointers to DO_MERRA_CONVECTION:
-!                              p_H2O2s, p_SO2s, p_STT.
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -237,7 +236,7 @@
      &              State_Chm, 
      &              RC                               )
 
-#elif defined( MERRA ) || defined( GEOS_57 )
+#elif defined( MERRA ) || defined( GEOS_FP )
 
       !=================================================================
       ! MERRA met fields
@@ -339,13 +338,13 @@
       !-----------------------------------------------------------------
       ! Do convection column by column
       !-----------------------------------------------------------------
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( J,          AREA_M2,  I,       IDENT,      L       )
-!!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14,     DIAG38  )
-!!$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
-!!$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
-!!$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J,          AREA_M2,  I,       IDENT,      L       )
+!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14,     DIAG38  )
+!$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
+!$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
+!$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -377,7 +376,7 @@
          ENDDO
          ENDDO
 
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
 
          ! For GEOS-5.7, PFICU and PFLCU are defined on level edges
          p_PFICU           => State_Met%PFICU   ( I, J, 2:LLPAR+1   )
@@ -392,8 +391,6 @@
 #endif
 
          ! Pointers to slices of larger arrays
-         ! Remove State_Met for variables not in the structure
-         !    (skim, 1/31/13)
          p_AD              => State_Met%AD      ( I, J,  :          )
          p_BXHEIGHT        => State_Met%BXHEIGHT( I, J,  :          )
          p_CMFMC           => State_Met%CMFMC   ( I, J, 2:LLPAR+1   )
@@ -408,7 +405,6 @@
          !--------------------------
          ! Do the cloud convection
          !--------------------------
-         ! Change so that pointers are passed to do_merra_convection
          CALL DO_MERRA_CONVECTION( IDENT     = IDENT,
      &                             DIMINFO   = DIMINFO,
      &                             COEF      = COEF,
@@ -478,7 +474,7 @@
          ENDIF
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       ! Free the memory
       DEALLOCATE( COEF%MOLWT_KG )
@@ -579,9 +575,12 @@
       REAL*8          :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER :: STT     (:,:,:,:)   ! Ptr to Tracer concentrations
+      REAL*8, POINTER :: p_HKETA (:,:,:  )   ! Ptr to HKETA  met field
+      REAL*8, POINTER :: p_HKBETA(:,:,:  )   ! Ptr to HKBETA met field
+      REAL*8, POINTER :: p_ZMMU  (:,:,:  )   ! Ptr to ZMMU   met field
+      REAL*8, POINTER :: p_ZMMD  (:,:,:  )   ! Ptr to ZMMD   met field
+      REAL*8, POINTER :: p_ZMEU  (:,:,:  )   ! Ptr to ZMEU   met field
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
@@ -701,24 +700,42 @@
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      STT      => State_Chm%Tracers
+
+      ! Point to met fields and flip in vertical
+      p_HKETA  => State_Met%HKETA (:,:,LLPAR:1:-1  )
+      p_HKBETA => State_Met%HKBETA(:,:,LLPAR:1:-1  )
+      p_ZMMU   => State_Met%ZMMU  (:,:,LLPAR:1:-1  )
+      p_ZMMD   => State_Met%ZMMD  (:,:,LLPAR:1:-1  )
+      p_ZMEU   => State_Met%ZMEU  (:,:,LLPAR:1:-1  )
 
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,   
      &                    N_TOT_TRC, 
      &                    STT   (:,:,LLPAR:1:-1,:),    
      &                    RPDEL,         
-     &                    State_Met%HKETA (:,:,LLPAR:1:-1  ),
-     &                    State_Met%HKBETA(:,:,LLPAR:1:-1  ), 
-     &                    State_Met%ZMMU  (:,:,LLPAR:1:-1  ),    
-     &                    State_Met%ZMMD  (:,:,LLPAR:1:-1  ),  
-     &                    State_Met%ZMEU  (:,:,LLPAR:1:-1  ),  
+!-----------------------------------------------------------------------------
+! Prior to 10/28/13:
+! Now use pointer variables to flip in the vertical (bmy, 10/28/13)
+!     &                    State_Met%HKETA (:,:,LLPAR:1:-1  ),
+!     &                    State_Met%HKBETA(:,:,LLPAR:1:-1  ), 
+!     &                    State_Met%ZMMU  (:,:,LLPAR:1:-1  ),    
+!     &                    State_Met%ZMMD  (:,:,LLPAR:1:-1  ),  
+!     &                    State_Met%ZMEU  (:,:,LLPAR:1:-1  ),  
+!-----------------------------------------------------------------------------
+     &                    p_HKETA,
+     &                    p_HKBETA,
+     &                    p_ZMMU,
+     &                    p_ZMMD,
+     &                    p_ZMEU,
      &                    DP,     
      &                    NSTEP,    
      &                    F     (:,:,LLPAR:1:-1,:),         
      &                    TCVV,   
      &                    INDEXSOL,
      &                    State_Met )
+
+      
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
@@ -736,8 +753,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Free pointer
-      NULLIFY( STT )
+      ! Free pointers
+      NULLIFY( STT                                       )
+      NULLIFY( p_HKETA, p_HKBETA, p_ZMMU, p_ZMMD, p_ZMEU )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a FVDAS_CONVECT' )
@@ -1212,6 +1230,7 @@
 !  31 May 2013 - R. Yantosca - Now pass State_Chm and then have Q point to 
 !                              State_Chm%Tracers.  This is for TOMAS.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1300,7 +1319,7 @@
          WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-#if defined( GEOS_5 ) || defined( GEOS_57 ) || defined( MERRA )
+#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
          ! Do nothing, these are all hybrid grids
 #else
          ! NOTE: We don't need to do this for GEOS-5 (bmy, 6/27/07)
@@ -1980,7 +1999,7 @@
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
       !========================================================================
-
+      
       ! Put this routine name on error trace stack
       IDENT%LEV               = IDENT%LEV + 1
       IDENT%I_AM( IDENT%LEV ) = 'DO_MERRA_CONVECTION'

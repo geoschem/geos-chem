@@ -319,6 +319,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -352,7 +353,7 @@
       ! overwritten (jaf, 4/25/11)
       FRAC_SNOW_OR_ICE = 1d0
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
       ! Don't let fraction be greater than 1
       FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
      &                        State_Met%FRSEAICE(I,J)  + 

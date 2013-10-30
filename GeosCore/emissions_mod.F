@@ -115,8 +115,6 @@
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
-      USE NEI2008_ANTHRO_MOD,     ONLY : EMISS_NEI2008_ANTHRO
-      USE NEI2008_ANTHRO_MOD,     ONLY : EMISS_NEI2008_ANTHRO_NATIVE
       USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
       USE POPS_MOD,               ONLY : EMISSPOPS  !(clf, 2/1/2011)
       USE RCP_MOD,                ONLY : LOAD_RCP_EMISSIONS !cdh
@@ -128,13 +126,10 @@
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO_05x0666
       USE SULFATE_MOD,            ONLY : EMISSSULFATE 
       USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
-      ! Need to add for FLAMBE biomass burning emissions (skim, 6/21/13)
-      USE TIME_MOD,               ONLY : GET_HOUR
-      USE TIME_MOD,               ONLY : GET_DAY
       USE TIME_MOD,               ONLY : GET_MONTH
       USE TIME_MOD,               ONLY : GET_YEAR
       USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH
-      USE TIME_MOD,               ONLY : ITS_A_NEW_YEAR, ITS_A_NEW_DAY
+      USE TIME_MOD,               ONLY : ITS_A_NEW_YEAR
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
 
@@ -212,16 +207,14 @@
 !  26 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  27 Mar 2013 - R. Yantosca - Now remove DEVEL tags; pass objects to routines
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
+!  15 Oct 2013 - R. Yantosca - Remove calls to PARANOX for simulations other
+!                              than full-chemistry (they don't carry NO, O3)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Add time information for FLAMBE biomass burning emissions
-      ! (skim, 6/21/13)
-      INTEGER :: HOUR
-      INTEGER :: DAY
       INTEGER :: MONTH
       INTEGER :: YEAR
       REAL*8  :: SSA_Br2(IIPAR,JJPAR)
@@ -248,7 +241,6 @@
       LOGICAL :: LEMEP
       LOGICAL :: LCAC
       LOGICAL :: LNEI05
-      LOGICAL :: LNEI08
       LOGICAL :: LARCSHIP
       LOGICAL :: LEDGARSHIP
       LOGICAL :: LEMEPSHIP
@@ -294,7 +286,6 @@
       LEMEP              = Input_Opt%LEMEP
       LCAC               = Input_Opt%LCAC
       LNEI05             = Input_Opt%LNEI05
-      LNEI08             = Input_Opt%LNEI08
       LARCSHIP           = Input_Opt%LARCSHIP
       LEDGARSHIP         = Input_Opt%LEDGARSHIP
       LEMEPSHIP          = Input_Opt%LEMEPSHIP
@@ -321,10 +312,8 @@
      &                              .and. ( IDTOCOB1 > 0 ) )
 #endif
 
-      ! Get year and month, and day and hour (skim, 6/21/13)
+      ! Get year and month
       MONTH              = GET_MONTH()
-      DAY                = GET_DAY()
-      HOUR               = GET_HOUR()
 
       ! check if emissions year differs from met field year
       IF ( FSCALYR < 0 ) THEN
@@ -343,8 +332,8 @@
 !                                         State_Chm, RC         )  
 !----------------------------------------------------------------------------
          CALL COMPUTE_BIOMASS_EMISSIONS
-     &      ( am_I_Root, GET_YEAR(), MONTH, DAY, HOUR,
-     &        Input_Opt, State_Chm,  RC                )  
+     &      ( am_I_Root, GET_YEAR(), MONTH,     
+     &        Input_Opt, State_Chm, RC      )  
       ENDIF
          
       ! Test by simulation type
@@ -352,6 +341,7 @@
 
          !--------------------
          ! NOx-Ox-HC-aerosol
+         ! (aka "fullchem")
          !--------------------
 
          ! Read David Streets' emisisons over China / SE ASia
@@ -441,17 +431,6 @@
          IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() ) THEN
             CALL EMISS_ARCTAS_SHIP
      &         ( am_I_Root, YEAR, Input_Opt, State_Chm, RC )
-         ENDIF
-
-         ! Read NEI2008 (USA) emissions every month
-         IF ( LNEI08 .AND. ITS_A_NEW_MONTH() ) THEN
-#if   defined( GRID05x0666 ) .or. defined( GRID025x03125 )
-            CALL EMISS_NEI2008_ANTHRO_NATIVE(   ! Use NEI08 anthro,  nested
-     &           am_I_Root, Input_Opt, State_Chm, RC )
-#else
-            CALL EMISS_NEI2008_ANTHRO(           ! Use NEI08 anthro,  global
-     &            am_I_Root, Input_Opt, State_Chm, RC )
-#endif
          ENDIF
             
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
@@ -567,20 +546,6 @@
             CALL EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
-         ! Read NEI2008 emissions once per month
-         IF ( LNEI08 .AND. ITS_A_NEW_MONTH() ) THEN
-#if   defined( GRID05x0666 ) .or. defined( GRID025x03125 )
-
-            CALL EMISS_NEI2008_ANTHRO_NATIVE(   ! Use NEI08 anthro,  nested
-     &           am_I_Root, Input_Opt, State_Chm, RC  )
-#else
-  
-            CALL EMISS_NEI2008_ANTHRO(           ! Use NEI08 anthro,  global
-     &           am_I_Root, Input_Opt, State_Chm, RC )
-
-#endif
-         ENDIF
-
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
 #if   defined( GRID05x0666 )
@@ -604,11 +569,16 @@
      &         ( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
-         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-         IF ( ( LICOADSSHIP .or.  LEDGARSHIP .or. 
-     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
-            CALL READ_PARANOX_LUT
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 10/15/13:
+! PARANOX is not needed for offline aerosol simulations, which do not
+! carry NO or O3.  Remove this subroutine call. (bmy, 10/15/13)
+!         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
+!        IF ( ( LICOADSSHIP .or.  LEDGARSHIP .or. 
+!     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
+!            CALL READ_PARANOX_LUT
+!         ENDIF
+!-----------------------------------------------------------------------------
 
          ! Seasalt aerosol emission
          IF ( LSSALT ) THEN 
@@ -721,17 +691,6 @@
             CALL EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
-         ! Read NEI2008 (USA) emissions once per month
-         IF ( LNEI08  .AND. ITS_A_NEW_MONTH() ) THEN
-#if   defined( GRID05x0666 ) .or. defined ( GRID025x03125 )
-         CALL EMISS_NEI2008_ANTHRO_NATIVE(   ! Use NEI08 anthro,  nested
-     &           am_I_Root, Input_Opt, State_Chm, RC )
-#else
-            CALL EMISS_NEI2008_ANTHRO(           ! Use NEI08 anthro,  global
-     &           am_I_Root, Input_Opt, State_Chm, RC )
-#endif
-         ENDIF
-
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
 #if   defined(GRID05x0666)
@@ -749,11 +708,16 @@
      &                              State_Chm, RC         )
          ENDIF
 
-         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
-     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
-            CALL READ_PARANOX_LUT
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 10/15/13:
+! NOTE: PARANOX does not apply to tagged CO simulations, which do not carry
+! NO or O3 tracers.  Disable this subroutine call (bmy, 10/15/13)
+!         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
+!         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
+!     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
+!            CALL READ_PARANOX_LUT
+!         ENDIF
+!-----------------------------------------------------------------------------
 
          ! Now call EMISSDR for Tagged CO fossil fuel emissions, 
          ! so that we get the same emissions for Tagged CO as 
@@ -901,18 +865,6 @@
             CALL EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
-         ! Read NEI2008 (USA) emissions
-         IF ( LNEI08 .AND. ITS_A_NEW_MONTH() ) THEN
-#if   defined( GRID05x0666 ) .or. defined( GRID025x03125 )
-            CALL EMISS_NEI2008_ANTHRO_NATIVE(   ! Use NEI08 anthro,  nested
-     &          am_I_Root, Input_Opt, State_Chm, RC )
-#else
-
-            CALL EMISS_NEI2008_ANTHRO(           ! Use NEI08 anthro,  global
-     &          am_I_Root, Input_Opt, State_Chm, RC )
-#endif
-         ENDIF
-
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
 #if   defined( GRID05x0666 )
@@ -930,11 +882,16 @@
      &         ( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
-         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
-     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
-            CALL READ_PARANOX_LUT
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 10/15/13:
+! NOTE: PARANOX does not apply to tagged CO simulations, which do not carry
+! NO or O3 tracers.  Disable this subroutine call (bmy, 10/15/13)
+!         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
+!         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
+!     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
+!            CALL READ_PARANOX_LUT
+!         ENDIF
+!-----------------------------------------------------------------------------
 
          ! Emit H2/HD
          CALL EMISS_H2_HD

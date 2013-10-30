@@ -189,6 +189,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  05 Sep 2013 - M. Sulprizio- Added ProTeX headers
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -227,7 +228,7 @@
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-------------------------------------------------------
       ! GEOS-3 / GEOS-4 data come from the 30 level model run

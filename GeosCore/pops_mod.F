@@ -125,6 +125,7 @@
 ! !REVISION HISTORY: 
 !  20 September 2010 - N.E. Selin - Initial Version based on CHEMMERCURY
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,7 +164,13 @@
          YEAR = GET_YEAR()
 
          ! Read monthly mean OH from disk [molecule/cm3]
-         CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!         CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+         CALL GET_GLOBAL_OH
+     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OH' )
 
          ! Read monthly mean O3 from disk [molecule/cm3]
@@ -1734,7 +1741,7 @@
 !
       USE BPCH2_MOD,         ONLY : READ_BPCH2, GET_TAU0
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1, POP_EMISDIR
-      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
       USE TIME_MOD,          ONLY : EXPAND_DATE
       USE GET_POPSINFO_MOD,  ONLY : GET_EMISSFILE
 
@@ -1747,20 +1754,23 @@
 !  of polycyclic aromatic hydrocarbons (PAHs) for 2004. Atm Env. 43:812-819.
 !
 ! !REVISION HISTORY: 
-!  3 February 2011 - CL Friedman - Initial Version based on MERCURY_READYR
-!
+!  03 Feb 2011 - CL Friedman - Initial Version based on MERCURY_READYR
+!  01 Oct 2013 - M. Sulprizio- Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4               :: ARRAY(I1x1,J1x1,1) 
+      REAL*4               :: ARRAY(I1x1,J1x1-1,1) 
+      REAL*8, TARGET       :: GEN_1x1(I1x1,J1x1-1)
       REAL*8               :: XTAU, MAX_A, MIN_A
       REAL*8               :: MAX_B, MIN_B
       REAL*8, PARAMETER    :: SEC_PER_YR = 365.35d0 * 86400d0  
       CHARACTER(LEN=225)   :: FILENAME 
       INTEGER              :: NYMD
+      CHARACTER(LEN=255)   :: LLFILENAME
+      REAL*8, POINTER      :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! POP_READYR begins here!
@@ -1779,18 +1789,28 @@
 
       ! Echo info
       WRITE( 6, 100 )
-100        FORMAT( '     - POPS_READYR: Reading ', a )
+ 100  FORMAT( '     - POPS_READYR: Reading ', a )
 
-       ! Read data in [Mg/yr]
-       CALL READ_BPCH2( FILENAME, 'PG-SRCE', 1, 
-     &           XTAU,      I1x1,     J1x1,    
-     &           1,         ARRAY,   QUIET=.FALSE. )
+      ! Read data in [Mg/yr]
+      CALL READ_BPCH2( FILENAME, 'PG-SRCE', 1, 
+     &                 XTAU,      I1x1,     J1x1-1,    
+     &                 1,         ARRAY,    QUIET=.FALSE. )
 
-       ! Cast to REAL*8 and resize       
-       CALL DO_REGRID_1x1( 'kg', ARRAY, POP_TOT_EM )  
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
-       ! Convert from [Mg/yr] to [kg/s]
-       POP_TOT_EM = POP_TOT_EM * 1000d0 / SEC_PER_YR
+      ! Cast to REAL*8 before regridding
+      GEN_1x1(:,:) = ARRAY(:,:,1)
+
+      ! Regrid from GENERIC 1x1 to the current grid
+      INGRID  => GEN_1x1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1,
+     &                    INGRID,     POP_TOT_EM, IS_MASS=1,
+     &                    netCDF=.TRUE.                      )
+
+      ! Convert from [Mg/yr] to [kg/s]
+      POP_TOT_EM = POP_TOT_EM * 1000d0 / SEC_PER_YR
       
       END SUBROUTINE POPS_READYR
 !EOC

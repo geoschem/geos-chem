@@ -372,7 +372,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE MEGAN_MOD,          ONLY : GET_MEGAN_EMISSIONS
+      USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
+      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
       USE MEGANUT_MOD,        ONLY : XLTMMP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
       USE TIME_MOD,           ONLY : GET_MONTH,     GET_TAU 
@@ -710,7 +711,9 @@
       IF ( LBIOGENIC ) THEN
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, EMIS, EMMO, EMAC )
+!$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMIS, EMMO, EMAC )
+! Add some private declarations for use with MEGAN
+!$OMP+PRIVATE( SC, PDR, PDF )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -722,6 +725,9 @@
          EMMO = 0d0
          EMAC = 0d0
 
+         ! 1-D array index 
+         IJLOOP = ( (J-1) * IIPAR ) + I
+
          !===========================================================
          ! The CO yields from ISOP, MONOTERPENES, and CH3OH will be
          ! computed in subroutine CHEM_TAGGED_CO.  P(CO) from CH3OH
@@ -729,25 +735,29 @@
          ! CHEM_TAGGED_CO (bnd, bmy, 6/14/01)
          !===========================================================
 
+         ! Surface air temperature [K]
+         TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
+      
          ! Add MEGAN biogenics (jaf, 3/10/09)
          IF ( LMEGAN ) THEN
-
             !------------------
             ! MEGAN biogenics
             !------------------
 
-            ! Isoprene [atoms C/box/timestep]
-            EMIS = GET_MEGAN_EMISSIONS( I, J, State_Met, 'ISOP')
+            ! Cosine of solar zenith angle
+            SC  = State_Met%SUNCOS(I,J)
 
-            ! Monoterpene [atoms C/box/timestep]; add up individual terpenes
-            EMMO = GET_MEGAN_EMISSIONS( I, J, State_Met, 'APIN' )
-     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'BPIN' )
-     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'LIMO' )
-     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'SABI' )
-     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'MYRC' )
-     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'CARE' )
-     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'OCIM' )
-     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'OMON' )
+            ! Diffuse and direct PAR
+            PDR = State_Met%PARDR(I,J)
+            PDF = State_Met%PARDF(I,J)
+
+            ! Isoprene [atoms C/box/timestep]
+            EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
+     &                                PDR, PDF, XNUMOL_ISOP )
+
+            ! Monoterpene [atoms C/box/timestep]
+            EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
+     &                                PDR, PDF, XNUMOL_MONO )
 
          ENDIF
 
@@ -894,6 +904,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOX
 !  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -976,7 +987,12 @@
          MONTH = GET_MONTH()
 
          ! Global OH 
-         CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!         CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+         CALL GET_GLOBAL_OH
+     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
 
          ! Global NOx -- need this to determine 
          ! ALPHA_ISOP which is a function of NOx

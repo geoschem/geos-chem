@@ -523,6 +523,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !******************************************************************************
 ! 
 ! !USES:
@@ -602,7 +603,13 @@
 
       ! Read offline OH fields once per month
       IF ( ITS_A_NEW_MONTH() ) THEN 
-         CALL GET_GLOBAL_OH( GET_MONTH(), State_Met )
+!----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!         CALL GET_GLOBAL_OH( GET_MONTH(), State_Met )
+!----------------------------------------------------------------------------
+         CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, 
+     &                       State_Met, GET_MONTH(), RC )
+
       ENDIF
      
       ! Compute number of tracers to process

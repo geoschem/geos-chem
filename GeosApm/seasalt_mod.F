@@ -277,13 +277,15 @@
       !-------------------
       ! APM microphysics
       !-------------------
-      CALL WET_SETTLINGBIN( STT(:,:,:,IDTSEA1:IDTSEA2), State_Met )
+      CALL WET_SETTLINGBIN( STT(:,:,:,IDTSEA1:IDTSEA2),
+     &                      State_Met, State_Chm )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Bins' )
       ENDIF
 
       IF ( LDRYD ) THEN
-         CALL DRY_DEPOSITIONBIN( STT(:,:,:,IDTSEA1:IDTSEA2) )
+         CALL DRY_DEPOSITIONBIN( STT(:,:,:,IDTSEA1:IDTSEA2),
+     &                           State_Chm )
          IF (  prtDebug ) THEN
             CALL DEBUG_MSG('### CHEMSEASALT: DRY_DEP, Bins')
          ENDIF
@@ -2086,7 +2088,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WET_SETTLINGBIN( TC, State_Met )
+      SUBROUTINE WET_SETTLINGBIN( TC, State_Met, State_Chm )
 !
 ! !USES:
 !
@@ -2096,9 +2098,9 @@
       USE APM_INIT_MOD,       ONLY : IDTCTSEA
       USE DRYDEP_MOD,         ONLY : DEPSAVSIZE
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT
       USE TRACER_MOD,         ONLY : N_TRACERS, N_APMTRA
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -2112,11 +2114,13 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NSALTBIN)
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !   9 Feb 2012 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  17 Oct 2013 - M. Sulprizio- Now pass STT via the State_Chm object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2134,6 +2138,11 @@
       REAL*8,DIMENSION(IIPAR,JJPAR,LLPAR) :: MASS0, MASS1
       REAL*8,DIMENSION(IIPAR,JJPAR,LLPAR,NSALTBIN) :: MASS
 
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: STT(:,:,:,:)
+
+      ! Point to STT
+      STT => State_Chm%TRACERS
       
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -2272,6 +2281,9 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+      ! Clear the pointer
+      NULLIFY( STT )
+
       END SUBROUTINE WET_SETTLINGBIN
 !EOC
 !------------------------------------------------------------------------------
@@ -2286,27 +2298,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRY_DEPOSITIONBIN( TC )
+      SUBROUTINE DRY_DEPOSITIONBIN( TC, State_Chm )
 !
 ! !USES:
 !
-      USE DRYDEP_MOD,   ONLY : DEPSAVSIZE 
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACER_MOD,   ONLY : N_TRACERS, N_APMTRA
-      USE APM_INIT_MOD, ONLY : NSO4,NCTSEA
-      USE APM_INIT_MOD, ONLY : IDTCTSEA
+      USE DRYDEP_MOD,         ONLY : DEPSAVSIZE 
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : N_TRACERS, N_APMTRA
+      USE APM_INIT_MOD,       ONLY : NSO4,NCTSEA
+      USE APM_INIT_MOD,       ONLY : IDTCTSEA
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_GCTM_MOD       ! g0
-      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_GCTM_MOD             ! g0
+      USE CMN_DIAG_MOD             ! ND44
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NSALTBIN)
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NSALTBIN)
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !   9 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  17 Oct 2013 - M. Sulprizio- Now pass STT via the State_Chm object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2319,6 +2333,12 @@
       INTEGER                :: N, IDTEMP
       INTEGER                :: I,        J,     L,      DTCHEM
       REAL*8                 :: OLD, NEW, NAREA, TAREA
+
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: STT(:,:,:,:)
+
+      ! Point to STT
+      STT => State_Chm%TRACERS
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -2395,6 +2415,9 @@
         ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+
+      ! Clear the pointer
+      NULLIFY( STT )
 
       END SUBROUTINE DRY_DEPOSITIONBIN
 !EOC

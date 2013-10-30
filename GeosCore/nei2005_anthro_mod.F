@@ -441,7 +441,8 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time).
-!  13 Aug 2013 - M. Sulprizio- Re-define SPECIES_ID for semivolatile POA (H.Pye)
+!  13 Aug 2013 - M. Sulprizio- Re-define SPECIES_ID for semivolatile POA (H.Pye
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -498,7 +499,7 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       SNAME = 'GEOS5'
 #elif defined( GCAP  )
       SNAME = 'GEOS4'
@@ -1385,6 +1386,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  13 Aug 2013 - M. Sulprizio- Re-define SPECIES_ID for semivolatile POA (H.Pye)
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1438,7 +1440,7 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       SNAME = 'GEOS5'
 #elif defined( GCAP   )
       SNAME = 'GEOS4'

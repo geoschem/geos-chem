@@ -284,7 +284,7 @@ CONTAINS
              ! Lat centers (radians)
              YMID_R(I,J,L)   = ( PI_180 * YMID(I,J,L)  )
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
 
              !-------------------------------------------------------------
              !              %%%%% FOR NESTED GRIDS ONLY %%%%%
@@ -917,11 +917,12 @@ CONTAINS
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
 !  01 Mar 2012 - R. Yantosca - Bracket with #ifdef for nested grids
+!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
 
     ! For nested grids, return the latitude center of the window
     ! region (in radians)
@@ -1248,6 +1249,7 @@ CONTAINS
 !  04 Dec 2012 - R. Yantosca - Now dimension arrays with IM, JM, LM instead 
 !                              of I1, J1, L1, I2, J2, L2.  
 !  18 Apr 2013 - R. Yantosca - Bug fix: in nested block, use STAT=RC
+!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1298,7 +1300,7 @@ CONTAINS
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
     AREA_M2 = 0d0
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
 
     !======================================================================
     ! Special settings for nested-grid simulations only

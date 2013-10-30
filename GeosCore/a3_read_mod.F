@@ -38,7 +38,7 @@
 ! !REMARKS:
 !  This module reads GEOS-4, GEOS-5, and GCAP met fields
 !  MERRA met fields are read in routines merra_*_mod.F
-!  GEOS-5.7.2 met fields are read in geos572_read_mod.F
+!  GEOS-FP met fields are read in geosfp_read_mod.F
 !
 ! !REVISION HISTORY:
 !  23 Jun 2003 - R. Yantosca - Initial version

@@ -391,6 +391,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: LSPLIT, LPRT
+      INTEGER             :: N_TRACERS
       INTEGER             :: I, IOS, IU_RST, J, L, N
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4              :: TRACER(IIPAR,JJPAR,LLPAR)
@@ -429,12 +430,13 @@
       ! Get fields from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
       LPRT      = Input_Opt%LPRT
+      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Pick the proper # of tracers
 #if   defined( APM )
-      N_TOT_TRC     = Input_Opt%N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
 #else
-      N_TOT_TRC     = Input_Opt%N_TRACERS              ! G-C tracers only
+      N_TOT_TRC = N_TRACERS              ! G-C tracers only
 #endif
 
       ! Initialize some variables
@@ -576,7 +578,8 @@
       IF(NTRACER==IDTBCPIFF+6)TRACER=0.1 * OCORST
       IF(NTRACER==IDTBCPIFF+7)TRACER=0.9 * OCORST
 
-      CALL COPY_STT( NTRACER, TRACER, NCOUNT, State_Met )
+      CALL COPY_STT( NTRACER,   TRACER,    NCOUNT,
+     &               Input_Opt, State_Met, State_Chm )
 
       WRITE(6,*)'APM #',NTRACER,MAXVAL(TRACER)
 
@@ -1052,8 +1055,6 @@
       INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
       INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
       CHARACTER(LEN=255)   :: FILENAME
-      CHARACTER(LEN=255)   :: OUTPUT_CHECKPT_FILE
-
 
       ! Temporary storage arrays for checkpointed variables
       REAL*4               :: TMP(ILONG, ILAT, IPVERT)
@@ -1087,13 +1088,10 @@
       !=================================================================
 
       ! Assume success
-      RC                  =  GIGC_SUCCESS
+      RC       =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      LPRT                = Input_Opt%LPRT
-
-      ! Hardwire output file for now
-      OUTPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+      LPRT     = ( am_I_Root .and. Input_Opt%LPRT )
 
       ! Clear some arrays 
       ! use minimum value instead of zero hotp 2/25/09
@@ -1128,8 +1126,8 @@
       ! Find a free file LUN
       IU_RST   = findFreeLUN()
 
-      ! Copy the output checkpoint file name into a local variable
-      FILENAME = TRIM( OUTPUT_CHECKPT_FILE )
+      ! Copy the output restart filename template into a local variable
+      FILENAME = TRIM( Input_Opt%SPEC_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
@@ -1285,9 +1283,7 @@
 
       REAL*8              :: SUMTC
       CHARACTER(LEN=255)  :: FILENAME
-      CHARACTER(LEN=255)  :: INPUT_CHECKPT_FILE
       CHARACTER(LEN=255)  :: MSG
-     
 
       ! For binary punch file, version 2.0
       INTEGER             :: NI,     NJ,     NL
@@ -1329,7 +1325,7 @@
       ! Find a free file LUN
       IU_RST   = findFreeLUN()
      
-      ! Copy input file name to a local variable
+      ! Copy the output restart file name into a local variable
       FILENAME = TRIM( Input_Opt%SPEC_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values

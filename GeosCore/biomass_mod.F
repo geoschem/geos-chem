@@ -130,8 +130,6 @@
       ! ... and these routines
       PUBLIC :: CLEANUP_BIOMASS
       PUBLIC :: COMPUTE_BIOMASS_EMISSIONS
-      ! Indicate that we are using FLAMBE emissions (skim, 6/21/13)
-      PUBLIC :: FLAMBE_IN_USE
       !FP_ISOP
       ! FP SET_BIOTRCE is a new routine for setting the IDBxxx in BIOTRCE (hotp 7/30/09)
       PUBLIC :: SET_BIOTRCE
@@ -159,32 +157,9 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
-      
-      FUNCTION FLAMBE_IN_USE( ) RESULT( USE_FLAMBE )
-!
-!******************************************************************************
-! Function FLAMBE_IN_USE returns TRUE always when we use FLAMBE (jaf, 7/30/09)
-!
-! NOTES:
-!    For FLAMBE, need to pass day and hour (bmy, 5/30/08).
-!
-!******************************************************************************
-!
-      ! Function value
-      LOGICAL  :: USE_FLAMBE
-
-      ! Hardcoded for the SEAC4RS campaign (skim, 6/21/13)
-      ! Switch off to use FINN (skim, 7/27/13)
-      USE_FLAMBE = .FALSE.
-
-      ! Return to calling program
-      END FUNCTION FLAMBE_IN_USE
-
-!------------------------------------------------------------------------------
 
       SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( am_I_Root, YEAR,      
-     &                                      MONTH,     DAY,
-     &                                      HOUR,      Input_Opt, 
+     &                                      MONTH,     Input_Opt, 
      &                                      State_Chm, RC         )
 !
 !******************************************************************************
@@ -200,10 +175,6 @@
 !  ============================================================================
 !  (1 ) YEAR  (INTEGER) : Current year  
 !  (2 ) MONTH (INTEGER) : Current month (1-12)
-!  (3 ) DAY   (INTEGER) : Current day
-!  (4 ) HOUR  (INTEGER) : Current hour
-!
-!  The last two arguments are necessary for FLAMBE emissions (skim, 6/21/13)
 !
 !  References (see above for full citations):
 !  ===========================================================================
@@ -232,10 +203,6 @@
 !
       ! References to F90 modules
       USE DIAG_MOD,           ONLY : AD28, AD29, AD32_bb
-      ! Needed for the SEAC4RS campaign (skim, 7/27/13)
-      USE FINN_BIOMASS_MOD,   ONLY : FINN_COMPUTE_BIOMASS
-      ! Needed for the SEAC4RS campagin (skim, 6/21/13)
-      USE FLAMBE_BIOMASS_MOD, ONLY : FLAMBE_COMPUTE_BIOMASS
       USE GC_BIOMASS_MOD,     ONLY : GC_COMPUTE_BIOMASS
       USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_BCOC
       USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_CO2
@@ -248,10 +215,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      ! Need to know for FINN emissions (skim, 7/27/13)
-      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
-      ! Need to know for FLAMBE emissions (skim, 6/21/13)
-      USE TIME_MOD,           ONLY : ITS_A_NEW_HOUR
       USE TRACERID_MOD,       ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
       USE TRACERID_MOD,       ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
       USE TRACERID_MOD,       ONLY : IDBCO, IDBNO
@@ -265,11 +228,6 @@
 !      USE TRACERID_MOD,       ONLY : IDBNAP
 !------------------------------------------------------------------------------
 
-      ! SEAC4RS passive tracers (jaf, 6/14/13)
-      USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
-      USE TRACERID_MOD,       ONLY : IDBPCOBCN, IDBPCOBSE
-      USE TRACERID_MOD,       ONLY : IDBPCOBW,  IDBPCOBRW
-
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic flags
 !
@@ -278,8 +236,6 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       INTEGER,        INTENT(IN)    :: YEAR
       INTEGER,        INTENT(IN)    :: MONTH
-      INTEGER,        INTENT(IN)    :: DAY
-      INTEGER,        INTENT(IN)    :: HOUR
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -305,7 +261,6 @@
       LOGICAL, SAVE       :: USE_GFED3
       INTEGER             :: I,       J,       N,      N_BIOB
       REAL*8              :: BXHT_CM, DTSRCE
-      REAL*8              :: X,       Y
       
       ! For fields from Input_Opt
       LOGICAL             :: ITS_A_CO2_SIM
@@ -359,9 +314,7 @@
          !==============================================================
          ! GFED2 updates BIOMASS if needed (phs, 12/17/08)
          !==============================================================
-         ! Make sure we do not use this segment of code for SEAC4RS
-         ! (skim, 6/21/13)
-         IF ( USE_GFED2 .AND. .FALSE. ) THEN
+         IF ( USE_GFED2 ) THEN
 
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED2_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
@@ -385,9 +338,7 @@
          !==============================================================
          ! GFED3 updates BIOMASS if needed (psk, 1/5/11)
          !==============================================================
-         ! Make sure we do not use this segment of code for SEAC4RS
-         ! (skim, 6/21/13)
-         ELSE IF ( USE_GFED3 .AND. .FALSE. ) THEN
+         ELSE IF ( USE_GFED3 ) THEN
 
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED3_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
@@ -406,9 +357,7 @@
          !==============================================================
          ! Read GC biomass emissions at the start of a new month
          !==============================================================
-         ! Make sure we do not use this segment of code for SEAC4RS
-         ! (skim, 6/21/13)
-         ELSE IF ( ITS_A_NEW_MONTH() .AND. .FALSE. ) THEN
+         ELSE IF ( ITS_A_NEW_MONTH() ) THEN
 
             ! Zero the array for biomass burning
             BIOMASS = 0d0
@@ -703,10 +652,6 @@
 !      USE TRACERID_MOD, ONLY : IDBNAP
 !------------------------------------------------------------------------------
 
-      ! SEAC4RS tracers (jaf, 6/14/13)
-      USE TRACERID_MOD, ONLY : IDBPCOBCN, IDBPCOBSE
-      USE TRACERID_MOD, ONLY : IDBPCOBW, IDBPCOBRW
-
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTACET 
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
@@ -720,10 +665,6 @@
 !      ! SOAupdate: Add NAP emissions (hotp 8/23/09)
 !      USE TRACERID_MOD, ONLY : IDTNAP,  IDTPOA1
 !------------------------------------------------------------------------------
-
-      ! SEAC4RS tracers (jaf, 6/14/13)
-      USE TRACERID_MOD, ONLY : IDTPCOBCN, IDTPCOBSE
-      USE TRACERID_MOD, ONLY : IDTPCOBW, IDTPCOBRW
 
       USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
 
@@ -770,12 +711,6 @@
 !      ! SOAupdate: Add NAP (hotp 8/23/09)
 !      IF ( IDBNAP   /= 0 ) NBIOTRCE = NBIOTRCE + 1
 !------------------------------------------------------------------------------
-
-      ! SEAC4RS tracers (jaf, 6/14/13)
-      IF ( IDBPCOBCN /= 0 ) NBIOTRCE = NBIOTRCE + 1 
-      IF ( IDBPCOBSE /= 0 ) NBIOTRCE = NBIOTRCE + 1 
-      IF ( IDBPCOBW  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
-      IF ( IDBPCOBRW /= 0 ) NBIOTRCE = NBIOTRCE + 1 
 
       ! Fill BIOTRCE w/ appropriate TRACER ID #'s
       ! Replaced NOx with NO (mpayer, 3/14/13)
@@ -869,11 +804,6 @@
       IF ( IDBGLYC  /= 0 ) BIOBGAS(IDBGLYC) = .TRUE.
       IF ( IDBHAC   /= 0 ) BIOBGAS(IDBHAC ) = .TRUE.
 
-      ! SEAC4RS tracers (jaf, 6/14/13)
-      IF ( IDBPCOBCN /= 0 ) BIOBGAS(IDBPCOBCN) = .TRUE.
-      IF ( IDBPCOBSE /= 0 ) BIOBGAS(IDBPCOBSE) = .TRUE.
-      IF ( IDBPCOBW  /= 0 ) BIOBGAS(IDBPCOBW)  = .TRUE.
-      IF ( IDBPCOBRW /= 0 ) BIOBGAS(IDBPCOBRW) = .TRUE.
 
       !FP_ISOP
       !FOR CO2
