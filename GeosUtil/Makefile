@@ -154,6 +154,9 @@ julday_mod.o      : julday_mod.F
 
 linux_err.o       : linux_err.c
 
+ncdf_mod.o        : ncdf_mod.F                       \
+                    bpch2_mod.o         error_mod.o
+
 pressure_mod.o    : pressure_mod.F                   \
                     error_mod.o
 

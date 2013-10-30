@@ -47,6 +47,9 @@
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_SOAGM(:,:,:,:)
+      ! SEAC4RS SOA tracers (6/25/13)
+      REAL*4,  ALLOCATABLE :: AD07_ASOA(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD07_BBSOA(:,:,:)
 
 #if   defined( APM )
       REAL*4,  ALLOCATABLE :: AD07_OM(:,:)

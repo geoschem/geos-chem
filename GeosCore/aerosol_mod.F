@@ -401,10 +401,10 @@
 ! This is in the std code (bmy, 10/30/13)
 !      ! SOAupdate: semivolpoa: reduce OCF to 1.4 for POA (hotp 2/17/09)
 !      REAL*8,  PARAMETER :: OCF     = 1.4d0
+!
+!      ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
+!      REAL*8,  PARAMETER :: OCFOPOA = 2.1d0  ! = 1.4*1.5
 !-----------------------------------------------------------------------------
-
-      ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
-      REAL*8,  PARAMETER :: OCFOPOA = 2.1d0  ! = 1.4*1.5
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
@@ -501,67 +501,25 @@
             ! Hydrophobic BC [kg/m3]
             BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / State_Met%AIRVOL(I,J,L)
 
+            ! Hydrophobic OC [kg/m3] 
             OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF /
      &                    State_Met%AIRVOL(I,J,L)
 
-!----------------------------------------------------------------------------
-! This is in the std code (bmy, 10/30/13)
-!            ! Hydrophobic OC [kg/m3]
-!            ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
-!            ! POA now 1 and 2 (hotp 10/11/09)
-!            IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 ) THEN
-!               OCPO(I,J,L) = STT(I,J,L,IDTPOA1) * OCF /
-!     &                       State_Met%AIRVOL(I,J,L)     +
-!     &                       STT(I,J,L,IDTPOA2) * OCF /
-!     &                       State_Met%AIRVOL(I,J,L)
-!            ELSE
-!               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCFOPOA /
-!     &                       State_Met%AIRVOL(I,J,L)
-!            ENDIF
-!----------------------------------------------------------------------------
-
             IF ( LSOA ) THEN
 
-               ! Hydrophilic primary OC plus SOA [kg/m3].  We need
+               ! Hydrophilic primary OC plus SOA [kg/m3A.  We need
                ! to multiply by OCF to account for the mass of other 
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
-               ! SOAupdate: Update traditional SOA (hotp 7/21/10)
-               ! for new mtp and isop (hotp 5/20/10)
-               OCPI(I,J,L) = ( STT(I,J,L,IDTTSOA1)
-     &                      +  STT(I,J,L,IDTTSOA2)
-     &                      +  STT(I,J,L,IDTTSOA3)
-     &                      +  STT(I,J,L,IDTTSOA0)
-     &                      +  STT(I,J,L,IDTISOA1)
-     &                      +  STT(I,J,L,IDTISOA2)
-     &                      +  STT(I,J,L,IDTISOA3) )
-     &                      /  State_Met%AIRVOL(I,J,L) 
-
-!------------------------------------------------------------------------------
-! This is in the std code (bmy, 10/30/13)
-!               IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 ) THEN  ! hotp 7/28/10
-!                  OCPI(I,J,L) = OCPI(I,J,L) 
-!     &                        + ( STT(I,J,L,IDTOPOA1) * OCFOPOA
-!     &                        / State_Met%AIRVOL(I,J,L) )
-!     &                        + ( STT(I,J,L,IDTOPOA2) * OCFOPOA
-!     &                        / State_Met%AIRVOL(I,J,L) )
-!               ENDIF
-!
-!               IF ( IDTOCPI > 0 ) THEN  ! hotp 7/28/10
-!                  OCPI(I,J,L) = OCPI(I,J,L)                                  
-!     &                        + ( STT(I,J,L,IDTOCPI) * OCFOPOA
-!     &                        / State_Met%AIRVOL(I,J,L) )
-!               ENDIF
-!
-!               ! LUMPAROMIVOC (always present) hotp 7/28/10
-!               OCPI(I,J,L) = OCPI(I,J,L) +
-!     &                  ( (  STT(I,J,L,IDTASOAN) 
-!     &                     + STT(I,J,L,IDTASOA1)
-!     &                     + STT(I,J,L,IDTASOA2)
-!     &                     + STT(I,J,L,IDTASOA3) )
-!     &                     / State_Met%AIRVOL(I,J,L) )
-!------------------------------------------------------------------------------
-
+               ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
+               OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
+     &                     +   STT(I,J,L,IDTSOA1)
+     &                     +   STT(I,J,L,IDTSOA2)
+     &                     +   STT(I,J,L,IDTSOA3)
+     &                     +   STT(I,J,L,IDTSOA4)
+     &                     +   STT(I,J,L,IDTSOA5) )
+     &                     /   State_Met%AIRVOL(I,J,L)
+ 
                ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
                IF ( IDTSOAG > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
@@ -574,7 +532,6 @@
      &                         STT(I,J,L,IDTSOAM) * OCFM /
      &                         State_Met%AIRVOL(I,J,L)
                ENDIF
-
             ELSE
 
                ! Hydrophilic primary and SOA OC [kg/m3].   We need
@@ -602,14 +559,8 @@
 
                OCPI(I,J,L) = OCPI(I,J,L) * OCF / State_Met%AIRVOL(I,J,L)
 !-----------
-
-!---------------------------------------------------------------------------
-! This is in the std code (bmy, 10/30/13)
-!               ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
-!               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCFOPOA /
-!     &                       State_Met%AIRVOL(I,J,L)
-!---------------------------------------------------------------------------
-            ENDIF ! LSOA
+                  
+            ENDIF
 
             ! Now avoid division by zero (bmy, 4/20/04)
             BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
@@ -617,7 +568,7 @@
             BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
             OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
          
-         ENDIF ! LCARB
+         ENDIF
             
          !===========================================================
          ! M I N E R A L   D U S T   A E R O S O L S

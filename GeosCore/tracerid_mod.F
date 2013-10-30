@@ -293,6 +293,10 @@
 
       INTEGER            :: IDH2SO4   !(win, 6/23/09)
       !sfarina - leaving IDH2SO4 defined regardless of sim.
+      ! SEAC4RS tracers (jaf, 6/13/13)
+      INTEGER            :: IDPCOFNE, IDPCOFSE, IDPCOFW, IDPCOFRW
+      INTEGER            :: IDPCOBCN, IDPCOBSE, IDPCOBW, IDPCOBRW
+      INTEGER            :: IDPISOP
 
       ! GEOS-CHEM tracer ID's
       INTEGER            :: IDTNO,   IDTNO2,   IDTNO3,  IDTHNO2, IDTO3

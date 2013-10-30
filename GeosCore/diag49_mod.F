@@ -207,15 +207,18 @@
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TRACERID_MOD,       ONLY : NEMANTHRO
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
+      USE DIAG_MOD,           ONLY : EMISS_ANTHR
 
       USE CMN_FJ_MOD,         ONLY : JPMAX,   JPPJ     ! FAST-J stuff
       USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD (clh)
       USE CMN_O3_MOD	           ! SAVEOH
       USE CMN_GCTM_MOD             ! XTRA2
       USE COMMSOIL_MOD
+      USE COMODE_LOOP_MOD                    ! IDEMS
 !
 ! !INPUT PARAMETERS:
 !
@@ -287,6 +290,7 @@
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER                  :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
+      INTEGER                  :: NE, NN
 
       ! For fields from Input_Opt
       LOGICAL                  :: LSOILNOX

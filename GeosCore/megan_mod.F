@@ -44,13 +44,12 @@
       USE ERROR_MOD                                    ! Error trapping
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
 ! 
       ! Scalar
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
       INTEGER, PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
 #else
       INTEGER, PARAMETER  :: DAY_DIM        = 8        ! # of 3-hr periods/day
@@ -1245,7 +1244,7 @@
       ! By default gamma_sm is 1.0
       GAMMA_SM = 1d0
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       IF ( TRIM( CMPD ) == 'ALD2' .OR. TRIM ( CMPD ) == 'ETOH' ) THEN
          
@@ -2206,7 +2205,7 @@ c$$$      AEF_MYRC = ARRAY(:,:,1)
 ! !USES:
 !
       USE A3_READ_MOD
-      USE GEOS57_READ_MOD,    ONLY : GEOS57_READ_A1
+      USE GEOSFP_READ_MOD,    ONLY : GEOSFP_READ_A1
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE inquireMod,         ONLY : findFreeLUN
@@ -2422,7 +2421,7 @@ c$$$      AEF_MYRC = ARRAY(:,:,1)
       ! Astronomical Julian Date of the A3 file at start of run
       JD_T15b   = GET_JD( NYMD_T15b, NHMS_T15b )
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
 
       ! For MERRA and GEOS-5.7.x, the A1 fields are timestamped
       ! on the half-hours: 00:30, 01:30, 02:30, ... 23:30
@@ -2488,13 +2487,13 @@ c$$$      AEF_MYRC = ARRAY(:,:,1)
         ! Loop over 3h periods during day
          DO J = 0, DAY_DIM-1  
 
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
 
             !-----------------------------
-            ! GEOS-5.7.x met fields
+            ! GEOS-FP met fields
             ! Sfc temp is hourly data
             !-----------------------------
-            CALL GEOS57_READ_A1( NYMD_T15, 
+            CALL GEOSFP_READ_A1( NYMD_T15, 
      &                           010000*J + G4AHEAD,
      &                           Input_Opt, 
      &                           State_Met           ) 
@@ -2552,7 +2551,7 @@ c$$$      AEF_MYRC = ARRAY(:,:,1)
 
       ENDDO
 
-#if   !defined( GEOS_57 ) 
+#if   !defined( GEOS_FP ) 
       ! Close any open files
       CLOSE( IUNIT )
 #endif
