@@ -4790,6 +4790,7 @@ c
 !                              derived type object
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4880,6 +4881,7 @@ c
       LOGICAL         :: LCOOKE
       LOGICAL         :: LPRT
       LOGICAL         :: LSOA
+      LOGICAL         :: LRCP
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -4902,6 +4904,7 @@ c
       LCOOKE    = Input_Opt%LCOOKE
       LPRT      = Input_Opt%LPRT
       LSOA      = Input_Opt%LSOA
+      LRCP      = Input_Opt%LRCP
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -4970,6 +4973,14 @@ c
          ! seasonality over North America by R. Park [2003]
          CALL ANTHRO_CARB_TBOND( MONTH, Input_Opt )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+
+         ! Read in RCP emissions. 
+         ! Seasonality included for ships, but none included or imposed
+         ! for land-based anthropogenic emissions
+         IF ( LRCP ) THEN
+            CALL ANTHRO_CARB_RCP( MONTH )
+            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_RCP' )
+         ENDIF
 
          IF ( LCOOKE ) THEN
          ! Overwrite the T. Bond [2004] emissions over North America
@@ -5442,7 +5453,7 @@ c
       REAL*8                      :: MDIST(IBINS,ICOMP)
       REAL*8                      :: NDIST2(IBINS)
       REAL*8                      :: MDIST2(IBINS,ICOMP)
-      REAL*8                      :: TSCALE, BOXVOL, TEMP, PRES
+      REAL*4                      :: TSCALE, BOXVOL, TEMP, PRES
       INTEGER                     :: I, J, L, K, C, PBL_MAX
       REAL*8                      :: F_OF_PBL
       LOGICAL                     :: ERRORSWITCH, PDBUG
@@ -5722,47 +5733,63 @@ ccc
 
       ! Local variables
       INTEGER             :: I, J, K
-      REAL*8              :: ECSCALE30(IBINS), ECSCALE100(IBINS) 
-      REAL*8              :: OCSCALE30(IBINS), OCSCALE100(IBINS) 
+      REAL*8              :: ECSCALE30(IBINS), ECSCALE100(IBINS)
+      REAL*8              :: OCSCALE30(IBINS), OCSCALE100(IBINS)
+
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+
+      data OCSCALE30/
+# if  defined( TOMAS15)
+     & 0.0d0     , 0.0d0     , 0.0d0     ,
+# endif
+     & 1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02,
+     & 1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01,
+     & 9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
+
+      data OCSCALE100/
+# if  defined( TOMAS15)
+     & 0.0d0     , 0.0d0     , 0.0d0     ,
+# endif
+     & 1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03,
+     & 2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01,
+     & 2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/! use for biomass burning
+
+      data ECSCALE30/
+# if  defined( TOMAS15)
+     & 0.0d0     , 0.0d0     , 0.0d0     ,
+# endif
+     & 1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02,
+     & 1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01,
+     & 9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
+
+      data ECSCALE100/
+# if  defined( TOMAS15)
+     & 0.0d0     , 0.0d0     , 0.0d0     ,
+# endif
+     & 1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03,
+     & 2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01,
+     & 2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/  ! use for biomass burning
+
+
+#else
 
       DATA OCSCALE30/      ! use for fossil fuel
-#if  defined( TOMAS40)
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
-#endif
+# if  defined( TOMAS40)
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+# endif
      &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
      &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
      &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
      &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
      &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
      &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
+
       DATA OCSCALE100/     ! use for biomass burning
-#if  defined( TOMAS40)
+# if  defined( TOMAS40)
      &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
      &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-#endif
-     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
-     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
-     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
-     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
-     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
-     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
-      DATA ECSCALE30/      ! use for fossil fuel
-#if  defined( TOMAS40)
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
-#endif
-     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
-     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
-     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
-     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
-     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
-     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
-      DATA ECSCALE100/     ! use for biomass burning
-#if  defined( TOMAS40)
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-#endif
+# endif
      &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
      &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
      &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
@@ -5770,7 +5797,31 @@ ccc
      &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
      &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
 
- 
+      DATA ECSCALE30/      ! use for fossil fuel
+# if  defined( TOMAS40)
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+# endif
+     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
+     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
+     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
+     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
+     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
+     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
+
+      DATA ECSCALE100/     ! use for biomass burning
+# if  defined( TOMAS40)
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+# endif
+     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
+     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
+     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
+     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
+     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
+     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
+#endif
+
       DO K = 1, IBINS
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -5781,7 +5832,7 @@ ccc
          ELSE  ! for STYPE 2 and 3
             VALUE(I,J,K) = BULKEMIS(I,J)*ECSCALE100(K)
          ENDIF
-      ELSE 
+      ELSE
          IF ( STYPE == 1 ) THEN
             VALUE(I,J,K) = BULKEMIS(I,J)*OCSCALE30(K)
          ELSE  ! for STYPE 2 and 3
@@ -5944,9 +5995,9 @@ ccc
 
       !=================================================================
       ! If secondary organic aerosols are turned on ...
-      ! Then use CALTECH algorithm 
+      ! Then use CALTECH algorithm
       !=================================================================
-      ELSE 
+      ELSE
 
          ! Current month
          THISMONTH     = GET_MONTH()
@@ -6850,6 +6901,101 @@ ccc
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE ANTHRO_CARB_RCP( THISMONTH )
+!
+!******************************************************************************
+!  Subroutine ANTHRO_CARB_RCP reads monthly mean anthropogenic and biofuel
+!  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.
+!  (cdh, 1/2/2013)
+!
+!  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions using 
+!  the same fractions as the Bond et al. (2007) global inventory.
+!
+!  We also assume that 20% of BC and 50% of OC from anthropogenic 
+!  emissions are hydrophilic (soluble) and the rest are hydrophobic.
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE TIME_MOD,             ONLY : GET_TS_EMIS
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE TRACERID_MOD,         ONLY : IDTBCPO, IDTOCPO
+      USE TRACER_MOD,           ONLY : XNUMOL
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
+
+      USE CMN_SIZE_MOD             ! Size parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN)           :: THISMONTH
+
+      ! Local variables
+      INTEGER                       :: I, J
+      REAL*8                        :: AREA_CM2, BC, OC
+
+      ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
+      REAL*8, PARAMETER             :: FHB = 0.2d0
+
+      ! Hydrophilic fraction of ORGANIC CARBON 
+      REAL*8, PARAMETER             :: FHO = 0.5d0 
+
+      !=================================================================
+      ! ANTHRO_CARB_RCP begins here!
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, BC, OC, AREA_CM2 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+            ! Grid box area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+         
+            !-----------------------------------------------------------
+            ! Anthropogenic Black Carbon from fossil fuel and biofuel
+            !-----------------------------------------------------------
+
+            ! RCP emissions, atoms C/cm2/s
+            BC = GET_RCP_EMISSION( I, J, IDTBCPO, 
+     &           LAND=.TRUE., SHIP=.TRUE. )
+
+            ! Convert atoms C/cm2/s -> kg/timestep
+            BC = BC * AREA_CM2 / XNUMOL(IDTBCPO) * GET_TS_EMIS() * 60D0
+
+            ! Hydrophilic BLACK CARBON from anthropogenics [kg C/timestep]
+            ANTH_BLKC(I,J,1) =          FHB   * BC
+         
+            ! Hydrophobic BLACK CARBON from anthropogenics [kg C/timestep]
+            ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * BC
+
+
+            !-----------------------------------------------------------
+            ! Anthropogenic Organic Carbon from fossil fuel and biofuel
+            !-----------------------------------------------------------
+
+            ! RCP emissions, atoms C/cm2/s
+            OC = GET_RCP_EMISSION( I, J, IDTOCPO, 
+     &           LAND=.TRUE., SHIP=.TRUE. )
+
+            ! Convert atoms C/cm2/s -> kg/timestep
+            OC = OC * AREA_CM2 / XNUMOL(IDTOCPO) * GET_TS_EMIS() * 60D0
+
+            ! Hydrophilic ORGANIC CARBON from anthropogenics [kg C/timestep]
+            ANTH_ORGC(I,J,1) =          FHO *   OC
+
+            ! Hydrophobic ORGANIC CARBON from anthropogenics [kgC/timestep]
+            ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * OC
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE ANTHRO_CARB_RCP
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE BIOMASS_CARB_TBOND( Input_Opt )
 !
 !******************************************************************************
@@ -7543,11 +7689,11 @@ ccc
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_OF_PBL )
-      DO K = 1, IBINS
+!$OMP+PRIVATE( I, J, L, K, F_OF_PBL )
       DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+      DO K = 1, IBINS
 
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
          F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )

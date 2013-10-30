@@ -694,11 +694,11 @@
       IF ( LDUST ) THEN
          CALL RDUST_ONLINE(  SOILDUST,    WAVELENGTH, State_Met )
       ELSE
-#if defined( TOMAS )
+
+#if !defined( TOMAS )
             ! Don't read dust emissions from disk when using TOMAS,
             ! because TOMAS uses a different set of dust tracers than the 
             ! std code (win, bmy, 1/25/10)
-#else
             CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, am_I_Root,
      &                          State_Met )
 #endif

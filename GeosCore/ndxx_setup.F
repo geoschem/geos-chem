@@ -774,7 +774,7 @@
       IF ( ND32 > 0 ) THEN
 
          ! For aircraft NOx
-         ALLOCATE( AD32_ac( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( AD32_ac( IIPAR, JJPAR, LLPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ac' )
          
          ! For anthropogenic NOx
@@ -809,9 +809,6 @@
          ALLOCATE( AD32_ship( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship' ) 
 
-         ! For ship NOx counter
-         ALLOCATE( AD32_ship_count, STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship_count' ) 
       ENDIF
 
       !=================================================================

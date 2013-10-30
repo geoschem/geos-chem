@@ -119,6 +119,7 @@
       USE NEI2008_ANTHRO_MOD,     ONLY : EMISS_NEI2008_ANTHRO_NATIVE
       USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
       USE POPS_MOD,               ONLY : EMISSPOPS  !(clf, 2/1/2011)
+      USE RCP_MOD,                ONLY : LOAD_RCP_EMISSIONS !cdh
       USE RETRO_MOD,              ONLY : EMISS_RETRO
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
@@ -136,6 +137,7 @@
       USE TIME_MOD,               ONLY : ITS_A_NEW_YEAR, ITS_A_NEW_DAY
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
+
 #if   defined( TOMAS )
       USE TRACERID_MOD,           ONLY : IDTSS1           ! (win, 1/25/10)
       USE TRACERID_MOD,           ONLY : IDTSF1           ! (win, 1/25/10)
@@ -209,6 +211,7 @@
 !  15 Nov 2012 - M. Payer    - Now pass all met fields via State_Met object
 !  26 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  27 Mar 2013 - R. Yantosca - Now remove DEVEL tags; pass objects to routines
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -257,6 +260,9 @@
       LOGICAL :: LDUST
       LOGICAL :: LSSABr2
       LOGICAL :: LPRT
+      LOGICAL :: LRCP
+      LOGICAL :: LRCPSHIP
+      LOGICAL :: LRCPAIR
       INTEGER :: N_TRACERS
 
       !=================================================================
@@ -300,6 +306,9 @@
       LDUST              = Input_Opt%LDUST
       LSSABr2            = Input_Opt%LSSABr2
       LPRT               = Input_Opt%LPRT
+      LRCP               = Input_Opt%LRCP
+      LRCPSHIP           = Input_Opt%LRCPSHIP
+      LRCPAIR            = Input_Opt%LRCPAIR
       N_TRACERS          = Input_Opt%N_TRACERS
 
 #if defined( TOMAS )
@@ -368,6 +377,12 @@
          IF ( LRETRO .and. ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_RETRO( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
+
+         ! Read RCP emissions once per month (cdh, 10/14/11)
+         ! We read all emissions (for land, ship, air) even if only
+         ! one is needed
+         IF ( (LRCP .OR. LRCPSHIP .OR. LRCPAIR) .and. 
+     &        ITS_A_NEW_MONTH() ) CALL LOAD_RCP_EMISSIONS( Input_Opt )
 
          ! Read EPA/NEI99 (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) THEN
@@ -744,6 +759,7 @@
          ! so that we get the same emissions for Tagged CO as 
          ! we do for the full-chemistry (jaf, mak, bmy, 2/14/08)
          CALL EMISSDR 
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          
          ! Emit tagged CO
          CALL EMISS_TAGGED_CO

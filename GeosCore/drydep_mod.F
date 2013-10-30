@@ -194,7 +194,7 @@
 ! !DEFINED PARAMETERS:
 !
 #if   defined( TOMAS )
-      INTEGER, PARAMETER :: MAXDEP    = 81      ! Max # of depositing species
+      INTEGER, PARAMETER :: MAXDEP    = 100     ! Max # of depositing species
 #else
       ! +3 for SEAC4RS SOA tracers (jaf, 6/24/13)
       !INTEGER, PARAMETER :: MAXDEP    = 55      ! Max # of depositing species
@@ -5501,6 +5501,7 @@
             XMW(NUMDEP)     = 1.d0
             AIROSOL(NUMDEP) = .TRUE. 
 
+# if  !defined( TOMAS12 )
          ! NK13 (aerosol)
          ELSE IF  ( N == IDTNK13) THEN
             NUMDEP          = NUMDEP + 1
@@ -5534,6 +5535,7 @@
             XMW(NUMDEP)     = 1.d0
             AIROSOL(NUMDEP) = .TRUE.
  
+#  if !defined( TOMAS15 )
          ! NK16 (aerosol)
          ELSE IF  ( N == IDTNK16) THEN
             NUMDEP          = NUMDEP + 1
@@ -5698,6 +5700,10 @@
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 1.d0
             AIROSOL(NUMDEP) = .TRUE.
+#  endif
+!  endif not 15
+# endif
+! endif not 12
 
 # if  defined( TOMAS40 )
          ! NK31 (aerosol)

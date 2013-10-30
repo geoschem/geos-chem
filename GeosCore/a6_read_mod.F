@@ -497,11 +497,14 @@
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  14 Mar 2013 - M. Payer    - Now read T_FULLGRID for vertical regridding of
 !                              OH for offline simulations (C. Holmes)
+!  02 Jul 2013 - R. Yantosca - Now use State_Met%U and State_Met%V to hold
+!                              the GCAP U and V wind fields
 !******************************************************************************
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
+
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -713,10 +716,10 @@
      &              OPTDEPTH   = State_Met%OPTDEP,    
      &              Q          = State_Met%SPHU,            
      &              T          = State_Met%T,                
-     &              U          = State_Met%UWND,            
+     &              U          = State_Met%U,
      &              UPDE       = State_Met%UPDE,          
      &              UPDN       = State_Met%UPDN,  
-     &              V          = State_Met%VWND,
+     &              V          = State_Met%V,
      &              T_FULLGRID = T_FULLGRID )
      
       ! Create 2-D CLDFRC field from 3-D CLDF field

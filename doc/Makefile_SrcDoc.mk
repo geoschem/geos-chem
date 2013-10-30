@@ -70,6 +70,8 @@
 #  27 Nov 2012 - M. Payer    - Added modules for POPs simulation
 #  13 Dec 2012 - R. Yantosca - Added biofit, sunparam, and removed some 
 #                              obsolete functions
+#  22 Jul 2013 - M. Sulprizio- Added rcp_mod
+#  01 Aug 2013 - M. Sulprizio- Added aeic_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -80,7 +82,6 @@ SRC1 :=                               \
 ./headers.geos-chem                   \
 $(HDR)/define.h                       \
 $(HDR)/CMN_SIZE_mod.F                 \
-$(HDR)/CMN_DEP_mod.F                  \
 $(HDR)/CMN_DIAG_mod.F                 \
 $(HDR)/CMN_GCTM_mod.F                 \
 $(HDR)/CMN_NOX_mod.F                  \
@@ -98,6 +99,7 @@ $(HDR)/smv_dimension_mod.F            \
 $(HDR)/smv_physconst_mod.F            \
 $(CORE)/main.F                        \
 $(CORE)/acetone_mod.F                 \
+$(CORE)/aeic_mod.F                    \
 $(CORE)/aerosol_mod.F                 \
 $(CORE)/arctas_ship_emiss_mod.F	      \
 $(CORE)/benchmark_mod.F               \
@@ -171,6 +173,7 @@ $(CORE)/pbl_mix_mod.F                 \
 $(CORE)/pjc_pfix_mod.F                \
 $(CORE)/planeflight_mod.F             \
 $(CORE)/pops_mod.F                    \
+$(CORE)/rcp_mod.F                     \
 $(CORE)/retro_mod.F                   \
 $(CORE)/RnPbBe_mod.F                  \
 $(CORE)/scale_anthro_mod.F            \
@@ -220,7 +223,6 @@ $(CORE)/physproc.F                    \
 $(CORE)/RD_AOD.F                      \
 $(CORE)/rd_js.F                       \
 $(CORE)/RD_TJPL.F                     \
-$(CORE)/rdsoil.F                      \
 $(CORE)/read_jv_atms_dat.F90          \
 $(CORE)/set_aer.F                     \
 $(CORE)/setemdep.F                    \

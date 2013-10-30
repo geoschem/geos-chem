@@ -18,8 +18,7 @@
 ! \item Initialize met. field derived type.
 ! \item Initialize Chemistry, Metorology, Emissions, and Physics States
 ! \end{itemize}
-!\\
-!\\
+!
 ! !INTERFACE: 
 !
 MODULE GIGC_Environment_Mod
@@ -382,9 +381,9 @@ CONTAINS
 !
 ! !IROUTINE: get_nSchm_nSchmBry
 !
-! !DESCRIPTION: Subroutine Get\_nSchm\_nSchmBry finds out the # of 
+! !DESCRIPTION: Subroutine Get\_nSchm\_nSchmBry finds out the \# of 
 !  stratospheric chemistry tracers and bromine tracers so that we can
-!  allocate the various Schm_* fields in the Chemistry State object.
+!  allocate the various Schm\_* fields in the Chemistry State object.
 !\\
 !\\
 ! !INTERFACE:

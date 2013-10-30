@@ -168,6 +168,8 @@
 !                              corrects a problem over Botswana/S. Africa
 !  25 Apr 2012 - M. Payer    - Add kludge to set TARG_YEAR=1985 for 1986 thru
 !                              1989 (B. Yantosca)
+!  02 Jul 2013 - M. Payer    - Extend scale factors to 2010 for USA and Canada
+!                              (A. van Donkelaar)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,18 +188,14 @@
       ! GET_ANNUAL_SCALAR_1x1 begins here!
       !=================================================================
 
-      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_201111/'
+      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_201207/'
 
       ! limit scaling between available years
+      ! Scale factors extended to 2010 for USA and Canada.
+      ! Note that these factors remain fixed past 2006 for other regions unless
+      ! overwritten by other emission inventory data (e.g. EMEP and Streets).
       BASE_YEAR = MAX( MIN( B_YEAR, 2010 ), 1985 )
       TARG_YEAR = MAX( MIN( T_YEAR, 2010 ), 1985 )
-
-      !### KLUDGE: Set years properly for 1986 thru 1989
-      !### which have no data in the file.  Use 1985
-      IF ( T_YEAR == 1986 ) TARG_YEAR = 1985
-      IF ( T_YEAR == 1987 ) TARG_YEAR = 1985
-      IF ( T_YEAR == 1988 ) TARG_YEAR = 1985
-      IF ( T_YEAR == 1989 ) TARG_YEAR = 1985
 
       WRITE( BASE_YYYY_STR, '(i4.4)' ) BASE_YEAR
       WRITE( TARG_YYYY_STR, '(i4.4)' ) TARG_YEAR
@@ -228,12 +226,8 @@
 
          ENDIF
 
-         ! Get Tau. Only NOx scaling exists after 2006   
-         IF ( BASE_YEAR >=2006 .and. TRACER.ne.71) THEN
-             TAU = GET_TAU0(1,1,2006)
-         ELSE 
-             TAU = GET_TAU0(1,1,BASE_YEAR)
-         ENDIF
+         ! Get Tau    
+         TAU = GET_TAU0(1,1,BASE_YEAR)
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -273,12 +267,8 @@
 
          ENDIF
 
-         ! Calc Tau. Only NOx scaling exists after 2006 
-         IF ( TARG_YEAR >=2006 .and. TRACER.ne.71 ) THEN
-             TAU = GET_TAU0(1,1,2006)
-         ELSE 
-             TAU = GET_TAU0(1,1,TARG_YEAR)
-         ENDIF
+         ! Calc Tau
+         TAU = GET_TAU0(1,1,TARG_YEAR)
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )

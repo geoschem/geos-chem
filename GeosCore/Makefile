@@ -166,8 +166,16 @@ tomas:
 	@$(MAKE) TOMAS=yes tomexe
 
 tomas40:
-	@$(MAKE) TOMAS=yes TOMAS40=yes lib              #  and the executable
-	@$(MAKE) TOMAS=yes TOMAS40=yes tomexe
+	@$(MAKE) TOMAS40=yes lib              #  and the executable
+	@$(MAKE) TOMAS40=yes tomexe
+
+tomas12:
+	@$(MAKE) TOMAS12=yes lib              #  and the executable
+	@$(MAKE) TOMAS12=yes tomexe
+
+tomas15:
+	@$(MAKE) TOMAS15=yes lib              #  and the executable
+	@$(MAKE) TOMAS15=yes tomexe
 
 lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
@@ -283,9 +291,9 @@ aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               logical_mod.o           tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o  
 
-aircraft_nox_mod.o          : aircraft_nox_mod.F                             \
+aeic_mod.o                  : aeic_mod.F              tropopause_mod.o       \
                               dao_mod.o               diag_mod.o             \
-                              tracerid_mod.o          tropopause_mod.o
+                              tracerid_mod.o
 
 airmas.o                    : airmas.F
 
@@ -408,7 +416,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
 
 cleanup.o                   : cleanup.F                                      \
                               acetone_mod.o           aerosol_mod.o          \
-                              arctas_ship_emiss_mod.o aircraft_nox_mod.o     \
+                              arctas_ship_emiss_mod.o aeic_mod.o             \
                               biomass_mod.o           biofuel_mod.o          \
                               bravo_mod.o             c2h6_mod.o             \
                               cac_anthro_mod.o        carbon_mod.o           \
@@ -445,6 +453,7 @@ cleanup.o                   : cleanup.F                                      \
                               global_bc_mod.o         global_oc_mod.o        \
                               diag53_mod.o            tomas_mod.o            \
                               finn_biomass_mod.o
+                              rcp_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -590,9 +599,10 @@ emfossil.o                  : emfossil.F                                     \
                               tracerid_mod.o          vistas_anthro_mod.o    \
 			      retro_mod.o             c2h6_mod.o             \
                               nei2008_anthro_mod.o
+                              rcp_mod.o
 
 emissdr.o                   : emissdr.F                                      \
-                              acetone_mod.o           aircraft_nox_mod.o     \
+                              acetone_mod.o           aeic_mod.o             \
                               biofuel_mod.o           dao_mod.o              \
                               diag_mod.o              emissions_mod.o        \
 			      lightning_nox_mod.o     logical_mod.o          \
@@ -617,6 +627,7 @@ emissions_mod.o             : emissions_mod.F                                \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tracer_mod.o            vistas_anthro_mod.o    \
                               pops_mod.o              nei2008_anthro_mod.o
+                              rcp_mod.o
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
                               future_emissions_mod.o  logical_mod.o          \
@@ -982,6 +993,9 @@ RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F
 
+rcp_mod.o                   : rcp_mod.F               diag_mod.o             \
+                              tracer_mod.o            tracerid_mod.o
+
 readsoil.o		    : readsoil.F
 
 readfert.o		    : readfert.F
@@ -1038,7 +1052,7 @@ setemdep.o                  : setemdep.F              drydep_mod.o           \
                               tracer_mod.o            tracerid_mod.o
 
 setemis.o                   : setemis.F                                      \
-                              aircraft_nox_mod.o      biofuel_mod.o          \
+                                                      biofuel_mod.o          \
                               biomass_mod.o           comode_mod.o           \
                               diag_mod.o              emissions_mod.o        \
                               lightning_nox_mod.o     logical_mod.o          \
@@ -1097,7 +1111,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               uvalbedo_mod.o          vdiff_pre_mod.o        \
                               wetscav_mod.o           get_ndep_mod.o         \
                               tomas_mod.o             nei2008_anthro_mod.o   \
-			      finn_biomass_mod.o
+			      finn_biomass_mod.o      rcp_mod.o
 
 sunparam.o                  : sunparam.F
 

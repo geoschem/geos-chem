@@ -4696,6 +4696,8 @@
 !        the TOMAS aerosol from tracerid_mod  (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_SULFATE
+!  31 Jul 2013 - M. Sulprizio- Now set SO2 aircraft emissions to zero if using
+!                              AEIC aircraft emissions (S. Eastham)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4718,6 +4720,7 @@
       LOGICAL       :: LBIOMASS
       LOGICAL       :: LPRT
       LOGICAL       :: LSHIPSO2
+      LOGICAL       :: LAEIC
       LOGICAL       :: ITS_AN_AEROSOL_SIM
       INTEGER       :: N_TRACERS
 
@@ -4739,6 +4742,7 @@
       LBIOMASS           = Input_Opt%LBIOMASS
       LPRT               = Input_Opt%LPRT
       LSHIPSO2           = Input_Opt%LSHIPSO2
+      LAEIC              = Input_Opt%LAEIC
       ITS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       N_TRACERS          = Input_Opt%N_TRACERS
 
@@ -4826,18 +4830,26 @@
          ! Add LANTHRO switch to turn off anthropogenic emissions.
          ! (ccc, 4/15/09)
          IF ( LANTHRO ) THEN
-            CALL READ_AIRCRAFT_SO2( MONTH, State_Met )
+
+            IF ( LAEIC) THEN
+               ESO2_ac = 0d0
+            ELSE
+               CALL READ_AIRCRAFT_SO2( MONTH, State_Met )
+            ENDIF
 #if defined( TOMAS )
             ! Scale anthro SO2 for TOMAS
             ESO2_ac = ESO2_ac * scaleanthso2
 #endif
-            CALL READ_ANTHRO_SOx( MONTH, NSEASON )
+
+            CALL READ_ANTHRO_SOx( Input_Opt, MONTH, NSEASON )
 #if defined( TOMAS )
             ! Scale anthro SO2 for TOMAS
             ESO2_an  = ESO2_an * scaleanthso2
             ESO4_an  = ESO4_an * scaleanthso2
 #endif
-            CALL READ_ANTHRO_NH3( MONTH )
+
+            CALL READ_ANTHRO_NH3( Input_Opt, MONTH )
+
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 
@@ -6475,6 +6487,7 @@
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
       USE TOMAS_MOD,          ONLY : Xk,  SUBGRIDCOAG, MNFIX
       USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
@@ -6546,23 +6559,38 @@
       REAL*8                 :: SO4bf(IIPAR,JJPAR)
       REAL*8                 :: SO4anbf(IIPAR,JJPAR,2)
       REAL*8 BFRAC(IBINS)     ! Mass fraction emitted to each bin
+
+#if  defined( TOMAS12) || defined( TOMAS15)
       DATA BFRAC/
-#if  defined( TOMAS40)
+# if  defined( TOMAS15)
+     &           0.0d0     , 0.0d0     , 0.0d0, 
+# endif
+     &           4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
+     &           4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
+     &           1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/
+
+#else
+!else we are using 30 or 40 bin model
+
+      DATA BFRAC/
+# if  defined( TOMAS40)
      &           0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00,
      &           0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00,
-#endif
+# endif
      &           1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02,
      &           1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02,
      &           4.529d-02, 6.722d-02, 8.932d-02, 1.062d-01, 1.130d-01,
      &           1.076d-01, 9.168d-02, 6.990d-02, 4.769d-02, 2.912d-02,
      &           1.591d-02, 7.776d-03, 3.401d-03, 1.331d-03, 4.664d-04,
      &           1.462d-04, 4.100d-05, 1.029d-05, 2.311d-06, 4.645d-07/
+#endif
+
       REAL*8                 :: NDISTINIT(IBINS) 
       REAL*8                 :: NDISTFINAL(IBINS) 
       REAL*8                 :: MADDFINAL(IBINS) 
       REAL*8                 :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
       REAL*8                 :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
-      REAL*8                 :: TSCALE, BOXVOL, TEMP, PRES
+      REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
 
       REAL*8                 :: N0(LLPAR,IBINS), M0(LLPAR,IBINS)
 
@@ -7053,6 +7081,7 @@
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
 !  26 Jun 2013 - K. Travis   - Added NEI08 emissions
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7071,7 +7100,8 @@
       REAL*8                 :: TEMPEMISS(NOXLEVELS)
       
       ! For fields from Input_Opt
-      LOGICAL                :: LNEI99, LCAC, LNEI05, LNEI08,LNLPBL
+      LOGICAL                :: LNEI99, LCAC, LNEI05, LNEI08, LNLPBL
+      LOGICAL                :: LRCP
       INTEGER                :: N_TRACERS
       REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -7093,6 +7123,7 @@
       LCAC      = Input_Opt%LCAC
       LNEI05    = Input_Opt%LNEI05
       LNEI08    = Input_Opt%LNEI08
+      LRCP      = Input_Opt%LRCP
       N_TRACERS = Input_Opt%N_TRACERS
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
@@ -7182,6 +7213,11 @@
             ! regular ENH3_an and ENH3_bf to local arrays. (bmy, 11/16/04)
             NH3an(I,J,1) = ENH3_an(I,J)
             NH3bf(I,J)   = ENH3_bf(I,J)
+            
+            ! The RCP anthropogenic emission inventory already includes
+            ! biofuel emissions, so we turn off the additional biofuel 
+            ! inventory (cdh, 8/31/12)
+            IF ( LRCP ) NH3bf(I,J) = 0d0 
             
             !-----------------------------------------------------------------
             ! NOTE: There seems to be some problems with the EPA/NEI NH3 
@@ -8679,7 +8715,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ANTHRO_SOx( THISMONTH, NSEASON )
+      SUBROUTINE READ_ANTHRO_SOx( Input_Opt, THISMONTH, NSEASON )
 !
 ! !USES:
 !
@@ -8690,10 +8726,10 @@
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GRID_MOD,             ONLY : GET_XMID,        GET_YMID
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LFUTURE,         LEDGARSOx
-      USE LOGICAL_MOD,          ONLY : LSTREETS,        LEMEP
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,             ONLY : GET_YEAR
@@ -8713,8 +8749,9 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: THISMONTH ! Current month number (1-12)
-      INTEGER, INTENT(IN)           :: NSEASON   ! Season #: 1=DJF; 2=MAM; 
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
+      INTEGER,        INTENT(IN)    :: THISMONTH ! Current month number (1-12)
+      INTEGER,        INTENT(IN)    :: NSEASON   ! Season #: 1=DJF; 2=MAM; 
                                                  !           3=JJA; 4=SON
 
 !  
@@ -8745,6 +8782,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  30 May 2013 - S. Farina   - Merge in TOMAS updates
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8761,9 +8799,23 @@
       CHARACTER(LEN=4)              :: SYEAR
       CHARACTER(LEN=255)            :: FILENAME
 
+      ! For fields from Input_Opt
+      LOGICAL                       :: LFUTURE
+      LOGICAL                       :: LEDGARSOx
+      LOGICAL                       :: LSTREETS
+      LOGICAL                       :: LEMEP
+      LOGICAL                       :: LRCP
+
       !=================================================================
       ! READ_ANTHRO_SOx begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LFUTURE        = Input_Opt%LFUTURE
+      LEDGARSOx      = Input_Opt%LEDGARSOx
+      LSTREETS       = Input_Opt%LSTREETS
+      LEMEP          = Input_Opt%LEMEP
+      LRCP           = Input_Opt%LRCP
          
       IF ( FSCALYR < 0 ) THEN
          SCALEYEAR = GET_YEAR()
@@ -8772,7 +8824,7 @@
       ENDIF
 
 
-      IF ( LEDGARSOx ) THEN
+      IF ( LEDGARSOx .OR. LRCP ) THEN
 
          !==============================================================
          ! Use EDGAR SOx emissions
@@ -8800,7 +8852,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y, EDG_SO2, Fe, LL ) 
+!$OMP+PRIVATE( I, J, X, Y, AREA_CM2, EDG_SO2, Fe, LL ) 
 
          ! Loop over latitudes
          DO J = 1, JJPAR
@@ -8815,6 +8867,25 @@
                ! Get EDGAR SO2 emissions [kg/s]
                ! NOTE: Future emissions are already applied!
                EDG_SO2 = GET_EDGAR_ANTH_SO2( I, J, KG_S=.TRUE. ) 
+
+               ! Use RCP SO2 emissions
+               IF ( LRCP ) THEN
+
+                  ! Get RCP SO2 emissions, molec/cm2/s
+                  ! NOTE: Future emissions assumed to already be included
+                  EDG_SO2 = GET_RCP_EMISSION( I, J, IDTSO2, 
+     &                 LAND=.TRUE., SHIP=.FALSE. )
+
+                  ! Convert molec/cm2/s -> kg/s
+                  EDG_SO2 = EDG_SO2 * AREA_CM2 / XNUMOL(IDTSO2) 
+
+                  ! RCP includes biofuels
+                  ! However, if regional inventories without biofuels 
+                  ! are used, then there will be no biofuel emissions 
+                  ! from that region
+                  ESO2_bf(I,J) = 0d0
+
+               ENDIF
 
                ! If we are using David Streets' emissions ...
 ![eml Not if historical
@@ -9716,6 +9787,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
@@ -9740,6 +9812,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  17 Jun 2013 - R. Yantosca - Now take values from Input_Opt
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCPSHIP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9760,6 +9833,7 @@
       LOGICAL                       :: LARCSHIP
       LOGICAL                       :: LSHIPSO2
       LOGICAL                       :: LICOADSSHIP
+      LOGICAL                       :: LRCPSHIP
 
       !=================================================================
       ! READ_SHIP_SO2 begins here!
@@ -9773,6 +9847,7 @@
       LARCSHIP    = Input_Opt%LARCSHIP
       LSHIPSO2    = Input_Opt%LSHIPSO2
       LICOADSSHIP = Input_Opt%LICOADSSHIP
+      LRCPSHIP    = Input_Opt%LRCPSHIP
 
       ! Reset
       ESO2_sh = 0D0
@@ -9804,6 +9879,39 @@
             ENDIF
 
          ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+
+      !-----------------------------------------------------------
+      ! Or RCP SHIP emissions 
+      ! (cdh, 10/14/11)
+      !-----------------------------------------------------------
+      ELSE IF ( LRCPSHIP ) THEN
+            
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+               ! Grid box surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
+               ! Read RCP SO2 emissions in [molec/cm2/s]
+               ESO2_sh(I,J) = GET_RCP_EMISSION( I, J, IDTSO2,  
+     &                                          SHIP=.TRUE. )
+               
+               ! Convert molec/cm2/s -> kg SO2/BOX/s
+               ESO2_sh(I,J) = ESO2_sh(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
+
+               IF ( LEMEPSHIP ) THEN
+                  IF ( GET_EUROPE_MASK(I,J) > 0d0 )
+     $                 ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2, 
+     &                 KG_S=.TRUE.,
+     $                 SHIP=.TRUE.)
+               ENDIF
+
+            ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
 
@@ -9930,7 +10038,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ANTHRO_NH3( THISMONTH )
+      SUBROUTINE READ_ANTHRO_NH3( Input_Opt, THISMONTH )
 !
 ! !USES:
 !
@@ -9941,8 +10049,9 @@
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an
-      USE LOGICAL_MOD,          ONLY : LFUTURE,         LSTREETS
-      USE LOGICAL_MOD,          ONLY : LEMEP
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TRACERID_MOD,         ONLY : IDTNH3
@@ -9950,6 +10059,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
       INTEGER, INTENT(IN)           :: THISMONTH ! Current month number (1-12)
 !
 ! !REVISION HISTORY:
@@ -9972,6 +10082,7 @@
 !  (10) Bug fix -- STREETS needs to be PRIVATE (dkh, bmy, 3/5/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  26 Jun 2013 - K. Travis   - Added NEI08 emissions
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9982,6 +10093,7 @@
       INTEGER                       :: I, J
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: AREA_CM2, EPA_NEI, XTAU
+      REAL*8                        :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Days per month
       REAL*8              :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0,
@@ -9991,29 +10103,77 @@
       CHARACTER(LEN=255)            :: FILENAME
       REAL*8                        :: STREETS
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LFUTURE
+      LOGICAL                :: LSTREETS
+      LOGICAL                :: LEMEP
+      LOGICAL                :: LRCP
+
       !=================================================================
       ! READ_ANTHRO_NH3 begins here!
       !=================================================================
 
-      ! File name
-      FILENAME = TRIM( DATA_DIR )                         //
-     &           'sulfate_sim_200508/NH3_anthsrce.'       //
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LFUTURE       = Input_Opt%LFUTURE
+      LSTREETS      = Input_Opt%LSTREETS
+      LEMEP         = Input_Opt%LEMEP
+      LRCP          = Input_Opt%LRCP
+      XNUMOL        = Input_Opt%XNUMOL
 
-      ! Echo output
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_ANTHRO_NH3: Reading ', a )
+      !-----------------------------------------------------------
+      ! Use RCP NH3 emissions 
+      ! (mpayer, cdh, 6/28/12)
+      !-----------------------------------------------------------   
+      IF ( LRCP ) THEN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_CM2 )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+               ! Grid box surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
+               ! Read RCP NH3 emissions in [molec/cm2/s]
+               ENH3_an(I,J) = GET_RCP_EMISSION( I, J, IDTNH3,  
+     &                                          LAND=.TRUE. )
+               
+               ! Convert molec/cm2/s -> kg NH3/BOX/s
+               ENH3_an(I,J) = ENH3_an(I,J) * AREA_CM2 / XNUMOL(IDTNH3)
+               
+            ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ELSE
+
+         ! File name
+         FILENAME = TRIM( DATA_DIR )                         //
+     &              'sulfate_sim_200508/NH3_anthsrce.'       //
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
+         ! Echo output
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_ANTHRO_NH3: Reading ', a )
       
-      ! Get TAU value (use year 1990, the year of the data!)
-      XTAU = GET_TAU0( THISMONTH, 1, 1990 )
+         ! Get TAU value (use year 1990, the year of the data!)
+         XTAU = GET_TAU0( THISMONTH, 1, 1990 )
 	
-      ! Read 1990 NH3 emissions [kg N/box/mon]
-      CALL READ_BPCH2( FILENAME, 'NH3-ANTH',    29,  
-     &                 XTAU,      IIPAR,        JJPAR,       
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+         ! Read 1990 NH3 emissions [kg N/box/mon]
+         CALL READ_BPCH2( FILENAME, 'NH3-ANTH',    29,  
+     &                    XTAU,      IIPAR,        JJPAR,       
+     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
+         ! Cast from REAL*4 to REAL*8
+         CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
+
+         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
+         ENH3_an = ENH3_an * ( 17.d0 / 14.d0 ) 
+     &             / ( NMDAY(THISMONTH) * 86400.d0 )
+
+
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -10021,15 +10181,12 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
-         ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
-     &                / ( NMDAY(THISMONTH) * 86400.d0 )
-
          ! Compute future NH3an emissions, if necessary
          ! Moved here since Streets and EMEP should have already
          ! applied FUTURE scale factors if needed 
          IF ( LFUTURE ) THEN
-            ENH3_an(I,J) = ENH3_an(I,J) * GET_FUTURE_SCALE_NH3an( I, J )
+            ENH3_an(I,J) = ENH3_an(I,J) *
+     &                     GET_FUTURE_SCALE_NH3an( I, J )
          ENDIF
 
          ! If we are using David Streets' emissions ...
@@ -10038,7 +10195,8 @@
             ! If we are over the SE Asia region ...
             IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
 
-               ! Overwrite with David Streets emissions if available [kg NH3/s]
+               ! Overwrite with David Streets emissions if available
+               ! [kg NH3/s]
                STREETS = GET_STREETS_ANTHRO( I,      J, 
      &                                       IDTNH3, KG_S=.TRUE.)
 

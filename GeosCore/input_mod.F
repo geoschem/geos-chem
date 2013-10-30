@@ -1041,6 +1041,7 @@
 !  26 Feb 2013 - R. Yantosca - Now pass I_LO, J_LO to COMPUTE_GRID
 !  28 Feb 2013 - R. Yantosca - Bug fix for GEOS-5 interface: Now call 
 !                              Compute_Grid with 1..IIPAR, I..JJPAR
+!  01 Jul 2013 - R. Yantosca - Don't use 1/2 sized polar boxes for GCAP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1061,8 +1062,10 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 5.0d0              ! Delta-longitude array [degrees]
       DLAT          = 4.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
       DLAT(:,JSP,:) = 2.0d0              !  Half-sized S Pole boxes
       DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID2x25 )
 
@@ -1073,8 +1076,10 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 2.5d0              ! Delta-longitude array [degrees]
       DLAT          = 2.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
       DLAT(:,JSP,:) = 1.0d0              !  Half-sized S Pole boxes
       DLAT(:,JNP,:) = 1.0d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID1x125 )
 
@@ -1085,8 +1090,10 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 1.25d0             ! Delta-longitude array [degrees]
       DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
       DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
       DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID1x1 )
 
@@ -1097,8 +1104,10 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 1.0d0              ! Delta-longitude array [degrees]
       DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
       DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
       DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID05x0666 )
 
@@ -1923,10 +1932,9 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TOMAS_MOD,          ONLY : INIT_TOMAS
-      USE TRACERID_MOD,       ONLY : IDTNK1,   IDTNK10,  IDTNK20
-      USE TRACERID_MOD,       ONLY : IDTNK30,  IDTSF1,   IDTSF10
-      USE TRACERID_MOD,       ONLY : IDTSF20,  IDTSF30,  IDTSS1
-      USE TRACERID_MOD,       ONLY : IDTSS10,  IDTSS20,  IDTSS30
+      USE TRACERID_MOD,       ONLY : IDTNK1
+      USE TRACERID_MOD,       ONLY : IDTSF1
+      USE TRACERID_MOD,       ONLY : IDTSS1
       USE TRACERID_MOD,       ONLY : IDTECOB1, IDTECIL1, IDTOCOB1
       USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTH2SO4, IDTDUST1
 !
@@ -2073,18 +2081,19 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD
-      USE MODIS_LAI_MOD, ONLY : INIT_MODIS_LAI
-      USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
-      USE EMISSIONS_MOD, ONLY : NOx_SCALING
-      USE BROMOCARB_MOD, ONLY : Br_SCALING
-      USE TIME_MOD,      ONLY : SET_HISTYR
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_O3_MOD        ! FSCALYR
+      USE BROMOCARB_MOD,      ONLY : Br_SCALING
+      USE CMN_O3_MOD               ! FSCALYR
+      USE CMN_SIZE_MOD             ! Size parameters
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE EMISSIONS_MOD,      ONLY : ISOP_SCALING 
+      USE EMISSIONS_MOD,      ONLY : NOx_SCALING
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE LOGICAL_MOD
+      USE MODIS_LAI_MOD,      ONLY : INIT_MODIS_LAI
+      USE RCP_MOD,            ONLY : RCPNAME, RCPYEAR
+      USE TIME_MOD,           ONLY : SET_HISTYR
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
 !
 ! !INPUT PARAMETERS:
 !
@@ -2158,6 +2167,9 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  05 May 2013 - K. Travis   - Now accounts for NEI08.  Added switch to turn 
 !                               off NEI05 and NEI99 if NEI08 is on.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR to Input_Opt
+!  31 Jul 2013 - M. Sulprizio- Now copy LAEIC to Input_Opt; Add check to
+!                              make sure LAEIC and LRCPAIR are not both on
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2229,6 +2241,22 @@
       ! Use RETRO emissions? (wfr, 3/8/11)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
       READ( SUBSTRS(1:N), * ) LRETRO
+
+      ! AEIC aircraft emissions
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
+      READ( SUBSTRS(1:N), * ) LAEIC
+
+      ! Use RCP emissions? (cdh, 10/18/11)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12b' )
+      READ( SUBSTRS(1:N), * ) LRCP
+
+      ! Which RCP scenario? (cdh, 10/18/11)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12c' )
+      READ( SUBSTRS(1:N), * ) RCPNAME
+
+      ! Which RCP year? (cdh, 10/18/11)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12d' )
+      READ( SUBSTRS(1:N), * ) RCPYEAR
 
       ! Use EPA/NEI99 emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
@@ -2315,9 +2343,9 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
 
-      ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
-      READ( SUBSTRS(1:N), * ) LAIRNOX
+      ! Use aircraft NOx from RCP
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34b' )
+      READ( SUBSTRS(1:N), * ) LRCPAIR
 
       ! Use lightning NOx
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
@@ -2350,6 +2378,10 @@
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
+
+      ! Use RCP (NOx, SO2, CO) ship  emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42b' )
+      READ( SUBSTRS(1:N), * ) LRCPSHIP
 
       ! Use ship EMEP emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
@@ -2385,26 +2417,26 @@
       CALL SET_HISTYR( HISTYR )
 
       ! Separator line (start of bromine emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
 
       ! Use the Warwick(2006), scenario 3? (400Gg/yr of CHBr3)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
       READ( SUBSTRS(1:N), * ) LWARWICK_VSLS
 
       ! Use sea-salt Br2 emissions? Currently Monahan w/ Yang et al. 2005
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
       READ( SUBSTRS(1:N), * ) LSSABr2
 
       ! Set PBL BrO concentrations equal to 1ppt during the day?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
       READ( SUBSTRS(1:N), * ) LFIX_PBL_BRO
 
       ! Bromine Emissions scaling
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
       READ( SUBSTRS(1:N), * ) Br_SCALING
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
 
       !=================================================================
       ! Error check logical flags
@@ -2423,7 +2455,7 @@
       LBIOMASS          = ( LBIOMASS       .and. LEMIS     )
 
       ! Anthro
-      LAIRNOX           = ( LAIRNOX        .and. LANTHRO   )
+      LAEIC             = ( LAEIC          .and. LANTHRO   )
       LEMEP             = ( LEMEP          .and. LANTHRO   )
       LBRAVO            = ( LBRAVO         .and. LANTHRO   )
       LEDGAR            = ( LEDGAR         .and. LANTHRO   )
@@ -2473,7 +2505,7 @@
       ! Turn off full-chem only switches 
       IF ( .not. ITS_A_FULLCHEM_SIM() ) THEN
          LLIGHTNOX      = .FALSE.
-         LAIRNOX        = .FALSE.
+         LAEIC          = .FALSE.
          LSOILNOX       = .FALSE.
          LFERTILIZERNOX = .FALSE.  
       ENDIF
@@ -2489,6 +2521,47 @@
       IF ( LHIST ) THEN
          LEDGARNOx = .TRUE.
          LEDGARSOx = .TRUE.
+      ENDIF
+      
+      ! RCP: Test for conflicts with other switches (cdh, 6/14/12) 
+      IF ( LRCP ) THEN
+         
+         ! Force user to choose just 1 global inventory
+         IF ( LEDGAR ) 
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose either RCP or EDGAR for global emissions', 
+     &           'READ_EMISSIONS_MENU' )
+
+         ! Force user to choose just 1 global inventory
+         IF ( LRETRO ) 
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose either RCP or RETRO for global emissions', 
+     &           'READ_EMISSIONS_MENU' )
+
+         ! Force user to choose just 1 global ship inventory
+         IF ( LEDGARSHIP .OR. LICOADSSHIP ) 
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose only 1 global ship emissions: '//
+     &           'RCP, EDGAR, or ICOADS',
+     &           'READ_EMISSIONS_MENU' )
+
+         ! Force user to choose just 1 global aircraft inventory
+         IF ( LAEIC )
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose either RCP or AEIC for global aircraft' //
+     &           ' emissions', 'READ_EMISSIONS_MENU' )
+
+         ! Avoid double fertilizer NOx emissions
+         IF ( LFERTILIZERNOX ) THEN
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+            WRITE( 6, '(a)' ) 'WARNING! RCP inventory already includes,'
+            WRITE( 6, '(a)' ) '~0.7 Tg(N) from agriculture for y2010.'
+            WRITE( 6, '(a)' ) 'Turning off "Fertilizer NOx"'
+            WRITE( 6, '(a)' ) 'to avoid duplicate emissions!'
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+            LFERTILIZERNOX = .FALSE.
+         ENDIF
+
       ENDIF
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2786,7 +2859,7 @@
       Input_Opt%LGFED3BB       = LGFED3BB
       Input_Opt%LDAYBB3        = LDAYBB3
       Input_Opt%L3HRBB3        = L3HRBB3
-      Input_Opt%LAIRNOX        = LAIRNOX
+      Input_Opt%LAEIC          = LAEIC
       Input_Opt%LLIGHTNOX      = LLIGHTNOX
       Input_Opt%LOTDLOC        = LOTDLOC
       Input_Opt%LSOILNOX       = LSOILNOX
@@ -2809,6 +2882,9 @@
       Input_Opt%LEDGARNOx      = LEDGARNOx
       Input_Opt%LEDGARCO       = LEDGARCO
       Input_Opt%LEDGARSOx      = LEDGARSOx
+      Input_Opt%LRCP           = LRCP
+      Input_Opt%LRCPSHIP       = LRCPSHIP
+      Input_Opt%LRCPAIR        = LRCPAIR
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -2839,6 +2915,10 @@
         WRITE( 6, 100 ) '  Use EPA/NEI 2005          : ', LNEI05
         WRITE( 6, 100 ) '  Use EPA/NEI 2008          : ', LNEI08
         WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
+        WRITE( 6, 100 ) '  Use AEIC emissions        : ', LAEIC
+        WRITE( 6, 100 ) '  Use RCP emissions         : ', LRCP
+        WRITE( 6, 130 ) '      RCP scenario?         : ', TRIM(RCPNAME)
+        WRITE( 6, 110 ) '      RCP year?             : ', RCPYEAR
         WRITE( 6, 100 ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
         WRITE( 6, 100 ) '      --> with NOx VISTAS?  : ', LVISTAS
         WRITE( 6, 100 ) '      --> with ICARTT modif?: ', LICARTT
@@ -2862,15 +2942,16 @@
         WRITE( 6, 100 ) '    monthly GFED3 emissions?: ', LGFED3BB
         WRITE( 6, 100 ) '    daily GFED3 emission?   : ', LDAYBB3
         WRITE( 6, 100 ) '    3hr GFED3 emission?     : ', L3HRBB3
+        WRITE( 6, 100 ) 'Use AIRCRAFT NOx from RCP?  : ', LRCPAIR
         WRITE( 6, 100 ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
         WRITE( 6, 100 ) 'Use OTD-LIS local redist?   : ', LOTDLOC
-        WRITE( 6, 100 ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
         WRITE( 6, 100 ) 'Turn on SOIL NOx?           : ', LSOILNOX
         WRITE( 6, 100 ) 'Turn on Fertilizer NOx?     : ', 
      &                                                  LFERTILIZERNOX
         WRITE( 6, 120 ) 'NOx scaling                 : ', NOx_SCALING
         WRITE( 6, 100 ) 'Turn on EDGAR   SHIP emiss.?: ', LEDGARSHIP
         WRITE( 6, 100 ) 'Turn on ICOADS  SHIP emiss.?: ', LICOADSSHIP
+        WRITE( 6, 100 ) 'Turn on RCP     SHIP emiss.?: ', LRCPSHIP
         WRITE( 6, 100 ) 'Turn on  EMEP   SHIP emiss.?: ', LEMEPSHIP
         WRITE( 6, 100 ) 'Turn on Corbett SHIP SO2 ?  : ', LSHIPSO2
         WRITE( 6, 100 ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
@@ -2889,6 +2970,7 @@
  110  FORMAT( A, I5 )
       ! add formatting for ISOP_SCALING and NOx_scaling (hotp 8/4/09)
  120  FORMAT( A, f6.2 )
+ 130  FORMAT( A, A   )
 
       END SUBROUTINE READ_EMISSIONS_MENU
 !EOC
@@ -3446,11 +3528,11 @@
       READ( SUBSTRS(1:N), * ) LKPP
 
       ! GAMMA HO2 ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
       READ( SUBSTRS(1:N), * ) Input_Opt%GAMMA_HO2
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
 
       !=================================================================
       ! Set fields of Input Options object
@@ -8270,8 +8352,8 @@
 ! !IROUTINE: gigc_init_extra
 !
 ! !DESCRIPTION: Suborutine GIGC\_INIT\_EXTRA initializes other GEOS-Chem 
-!  modules that have not been initialized in either GIGC_Allocate_All or
-!  GIGC_Init_all.
+!  modules that have not been initialized in either GIGC\_Allocate\_All or
+!  GIGC\_Init\_all.
 !\\
 !\\
 ! !INTERFACE:
@@ -8466,7 +8548,7 @@
       LPRT           = .FALSE.
       LSTDRUN        = .FALSE.
       LDRYD          = .FALSE.
-      LAIRNOX        = .FALSE.
+      LAEIC          = .FALSE.
       LANTHRO        = .FALSE.
       LBIONOX        = .FALSE.
       LBIOMASS       = .FALSE.
@@ -8515,7 +8597,14 @@
       LLINOZ         = .FALSE.
       LPREINDHG      = .FALSE.
       USE_OLSON_2001 = .FALSE.
-
+      LRETRO         = .FALSE.  !(wfr, 3/8/11)
+      LRCP           = .FALSE.  !(cdh, 10/18/11)
+      LRCPSHIP       = .FALSE.  !(cdh, 10/18/11)
+      LRCPAIR        = .FALSE.  !(cdh, 10/18/11)
+      LWARWICK_VSLS  = .FALSE.
+      LSSABr2        = .FALSE.
+      LFIX_PBL_BRO   = .FALSE.
+      
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.
       LANNFF         = .FALSE.
@@ -8540,12 +8629,6 @@
       LPLANETAG      = .FALSE.
       LCHEMCO2       = .FALSE.
                      
-      LRETRO         = .FALSE.  !(wfr, 3/8/11)
-
-      LWARWICK_VSLS  = .FALSE.
-      LSSABr2        = .FALSE.
-      LFIX_PBL_BRO   = .FALSE.
-      
       ! Initialize counters
       CT1            = 0
       CT2            = 0

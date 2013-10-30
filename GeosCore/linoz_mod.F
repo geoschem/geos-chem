@@ -747,7 +747,7 @@
 !
 ! !DESCRIPTION: Subroutine LINOZ\_STRT2M interpolates quantities from the
 !  LINOZ vertical grid to the GEOS-Chem vertical grid.  It also computes
-!  the 1st & 2nd moments of the distribution.
+!  the 1st \& 2nd moments of the distribution.
 !\\
 !\\
 ! !INTERFACE:

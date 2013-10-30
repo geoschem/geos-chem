@@ -310,6 +310,20 @@
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
+#if defined ( TOMAS40 )
+      !(sfarina, 6/19/2013) It may seem strange, but this welcome message
+      !                     fixes an issue where geoschem crashes with a
+      !                     sigsegv immediately after starting.
+      !                     This happens on ace-net's glooscap cluster with
+      !                     ifort (IFORT) 11.1 20101201
+      !                     this issue does not appear when running inside
+      !                     a debugger, and is probably related to
+      !                     some initialization garbage in memory
+      !                     when using -O2 optimization
+      print *, 'welcome to geoschem'
+      call flush()
+#endif
+
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !

@@ -5091,8 +5091,8 @@
 ! !IROUTINE: accept_external_date_time
 !
 ! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_DATE\_TIME sets the date and
-!  time variables in time_mod.F with the values obtained from an external
-!  GCM (such as NASA's GEOS-5 GCM).  The various date & time values from 
+!  time variables in time\_mod.F with the values obtained from an external
+!  GCM (such as NASA's GEOS-5 GCM).  The various date \& time values from 
 !  the GCM are passed as arguments.
 !\\
 !\\

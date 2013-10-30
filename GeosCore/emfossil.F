@@ -34,6 +34,7 @@
       USE NEI2008_ANTHRO_MOD, ONLY : GET_NEI2008_ANTHRO
       USE NEI2008_ANTHRO_MOD, ONLY : NEI08_MASK => USA_MASK
       USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
+      USE RCP_MOD,            ONLY : GET_RCP_EMISSION
                               
       USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
@@ -168,6 +169,7 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP and LRCPSHIP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -189,6 +191,7 @@
       INTEGER :: NOXHOUR
       ! 06/26/13, skim: Passive Tracers implemented by jaf
       REAL*8  :: X, Y
+      REAL*8  :: RCP
 
       ! For fields from Input_Opt
       LOGICAL :: LBRAVO
@@ -207,6 +210,8 @@
       LOGICAL :: LNEI08
       LOGICAL :: LRETRO
       LOGICAL :: LHIST
+      LOGICAL :: LRCP
+      LOGICAL :: LRCPSHIP
       LOGICAL :: ITS_A_TAGCO_SIM
       INTEGER :: N_TRACERS
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
@@ -232,6 +237,8 @@
       LNEI08          = Input_Opt%LNEI08
       LRETRO          = Input_Opt%LRETRO
       LHIST           = Input_Opt%LHIST
+      LRCP            = Input_Opt%LRCP
+      LRCPSHIP        = Input_Opt%LRCPSHIP
       ITS_A_TAGCO_SIM = Input_Opt%ITS_A_TAGCO_SIM
       N_TRACERS       = Input_Opt%N_TRACERS
       XNUMOL          = Input_Opt%XNUMOL(1:N_TRACERS)
@@ -285,13 +292,12 @@
          ! from EDGAR (amv, phs, 3/10/08)
 !         TODX = GET_EDGAR_TODN(I,J,HOUR)
 
-         
          ! Loop over all of the emission levels for NOx (e.g. surface, 100m)
          DO LL = 1, NOXLEVELS
             EMX(LL)  = TODX * EMISRN(IREF,JREF,LL)
 
             !-----------------------------------------------------------
-            ! Get NOx from the EDGAR inventory (global)
+            ! Get NOx from the EDGAR or RCP inventory (global)
             !-----------------------------------------------------------
 
             ! If we are using EDGAR emissions
@@ -316,6 +322,29 @@
                   EMX(LL) = 0d0                   
                   
                ENDIF
+
+            ! If we are using RCP emissions (cdh, 10/14/11)
+            ELSEIF ( LRCP ) THEN
+
+               ! Put all emissions into 1st level
+               IF ( LL == 1 ) THEN
+                  
+                  ! Get RCP emissions for NOx [molec/cm2/s]
+                  RCP   = GET_RCP_EMISSION( I, J, NN, 
+     &                                      LAND=.TRUE., SHIP=.FALSE. )
+
+                  ! Apply EDGAR time-of-day factor
+                  RCP   = RCP * TODX
+
+                  ! Replace GEIA with RCP emissions at surface
+                  EMX(LL) = RCP * ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2) 
+
+               ELSE 
+            
+                  ! Zero RCP emissions in the 2nd level 
+                  EMX(LL) = 0d0                   
+                  
+               ENDIF                  
             ENDIF
 
             !-----------------------------------------------------------
@@ -669,7 +698,6 @@
 !            ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
             !-----------------------------------------------------------
             ! Store in EMISRRN array and archive diagnostics
             !-----------------------------------------------------------
@@ -773,7 +801,7 @@
          ENDIF
 
          !--------------------------------------------------------------
-         ! Get CO emissions from RETRO inventory
+         ! Get hydrocarbon emissions from RETRO inventory
          !--------------------------------------------------------------
         
          ! If we are using RETRO emissions ...
@@ -813,6 +841,38 @@
 
          ENDIF
   
+         !--------------------------------------------------------------
+         ! Get CO & hydrocarbons emissions from RCP inventory
+         ! (cdh, 10/14/11)
+         !--------------------------------------------------------------
+
+         IF ( LRCP ) THEN
+
+	    ! Get RCP emissions
+            IF (NN==IDTCO) THEN
+               ! Ship CO emissions are handled separately below
+               RCP = GET_RCP_EMISSION( I, J, NN, 
+     &              LAND=.TRUE., SHIP=.FALSE. )
+            ELSE
+               ! Land and ship emissions for all hydrocarbons
+               RCP = GET_RCP_EMISSION( I, J, NN, 
+     &              LAND=.TRUE., SHIP=.TRUE. )
+            ENDIF
+
+	    ! -1 means tracer NN does not have RCP emissions
+            IF ( RCP >= 0d0 ) THEN
+
+	       ! Apply time-of-day factor
+	       RCP = RCP * TODX
+
+               ! Convert from molec/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+               EMX(1) = RCP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
+
+	    ENDIF  
+
+         ENDIF
+
          !--------------------------------------------------------------
          ! Get CO & Hydrocarbons from EMEP inventory over Europe
          !--------------------------------------------------------------
@@ -1098,6 +1158,11 @@
             ELSE IF ( LICOADSSHIP ) THEN
 
                SHIP = GET_ICOADS_SHIP( I, J, NN, MOLEC_CM2_S=.TRUE. )
+
+            ELSE IF ( LRCPSHIP ) THEN
+
+               SHIP = GET_RCP_EMISSION( I, J, NN, 
+     &              LAND=.FALSE., SHIP=.TRUE. )
 
             ENDIF
 

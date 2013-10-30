@@ -210,7 +210,7 @@ CONTAINS
 ! !IROUTINE: register_species
 !
 ! !DESCRIPTION: Routine REGISTER\_SPECIES stores the names of GEOS-Chem 
-!  chemical species in fields of the Chemistry State (aka State_Chm) object.
+!  chemical species in fields of the Chemistry State (aka State\_Chm) object.
 !\\
 !\\
 ! !INTERFACE:
@@ -272,7 +272,7 @@ CONTAINS
 ! !IROUTINE: Register_Tracer
 !
 ! !DESCRIPTION: Routine REGISTER\_TRACER stores the names of GEOS-Chem
-!  advected tracers in fields of the Chemistry State (aka State_Chm) object.
+!  advected tracers in fields of the Chemistry State (aka State\_Chm) object.
 !\\
 !\\
 ! !INTERFACE:

@@ -17,7 +17,7 @@
 !
       USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
-      USE AIRCRAFT_NOX_MOD,        ONLY : CLEANUP_AIRCRAFT_NOX
+      USE AEIC_MOD,                ONLY : CLEANUP_AEIC
       USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
       USE BIOMASS_MOD,             ONLY : CLEANUP_BIOMASS
       USE BIOFUEL_MOD,             ONLY : CLEANUP_BIOFUEL
@@ -94,6 +94,7 @@
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
       USE RETRO_MOD,               ONLY : CLEANUP_RETRO
       USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
+      USE RCP_MOD,                 ONLY : CLEANUP_RCP !(cdh, 10/14/11)
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
@@ -260,7 +261,7 @@
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_ACETONE
       CALL CLEANUP_AEROSOL
-      CALL CLEANUP_AIRCRAFT_NOX
+      CALL CLEANUP_AEIC
       CALL CLEANUP_ARCTAS_SHIP
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
@@ -334,9 +335,10 @@
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
       CALL CLEANUP_RETRO
+      CALL CLEANUP_RCP !(cdh, 10/14/11)
+
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
-<<<<<<< HEAD
 #endif
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
