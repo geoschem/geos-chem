@@ -670,7 +670,8 @@
 
             ! Write bpch file
             IF ( DO_DIAG_WRITE ) THEN
-               CALL DIAG3( am_I_Root, Input_Opt, State_Chm, RC )
+               CALL DIAG3
+     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Flush file units
                CALL CTM_FLUSH

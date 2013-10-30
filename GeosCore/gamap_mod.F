@@ -1722,15 +1722,6 @@
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
 #endif
 
-      ! SEAC4RS tracers (jaf, 6/14/13)
-      USE TRACERID_MOD, ONLY : IDTPCOBCN, IDBPCOBCN
-      USE TRACERID_MOD, ONLY : IDTPCOBSE, IDBPCOBSE
-      USE TRACERID_MOD, ONLY : IDTPCOBW,  IDBPCOBW
-      USE TRACERID_MOD, ONLY : IDTPCOBRW, IDBPCOBRW
-      USE TRACERID_MOD, ONLY : IDTAVOC,   IDTBBVOC
-      USE TRACERID_MOD, ONLY : IDTASOA,   IDTBBSOA, IDTBGSOA
-
-      USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
 !
 ! !INPUT PARAMETERS:
@@ -6248,13 +6239,6 @@
                CASE( 19)
                   NAME(T,46) = 'ETOH'
                   MOLC(T,46) = 2
-               !jpp, 9/6/07
-               CASE( 20 )
-                  NAME  (T,46) = 'CHBr3'
-                  FNAME (T,46) = 'Ocean bromoform emissions'
-                  UNIT  (T,46) = 'kg/m2/s'
-                  MWT   (T,46) = 2.53e-1   !in [kg/mol]
-                  SCALE(T,46) = 1e0
                !jpp, 9/6/07
                CASE( 20 )
                   NAME  (T,46) = 'CHBr3'

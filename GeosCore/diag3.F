@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG3( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE DIAG3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -24,6 +24,7 @@
       USE FILE_MOD                           
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
@@ -63,6 +64,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Met state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2704,7 +2706,9 @@
 !  ND42: SOA concentrations [ug/m3]
 !******************************************************************************
 !
-      IF ( ND42 > 0 ) CALL WRITE_DIAG42( Input_Opt )
+      IF ( ND42 > 0 ) THEN
+         CALL WRITE_DIAG42()
+      ENDIF
 !
 !******************************************************************************
 !  ND42: Free diagnostic as of 11/24/99

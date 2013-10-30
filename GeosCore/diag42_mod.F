@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
@@ -72,10 +71,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG42( State_Met, State_Chm )
+      SUBROUTINE DIAG42( Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
@@ -92,6 +92,7 @@
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -375,7 +376,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG42
+      SUBROUTINE WRITE_DIAG42()
 !
 ! !USES:
 !
