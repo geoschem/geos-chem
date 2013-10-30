@@ -881,6 +881,7 @@
 !  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOILNOX and Input_Opt%NUMDEP
+!  30 Oct 2013 - M. Sulprizio- Bug fix: Hold AREA_CM2 private in !$OMP loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -916,7 +917,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX )
+!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX, AREA_CM2 )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, Input_Opt%NUMDEP
 
