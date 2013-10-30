@@ -18,7 +18,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 
 !
@@ -87,6 +86,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1499,8 +1499,6 @@
       USE ERROR_MOD, ONLY : ERROR_STOP
       USE FILE_MOD,  ONLY : IOERROR
       USE BPCH2_MOD, ONLY : OPEN_BPCH2_FOR_READ
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1517,6 +1515,7 @@
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Adapted from READ_BPCH2 to facilitate reading of 0.5x0.5 GFED3 files (psk, 2/7/12)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -19,7 +19,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -104,6 +103,7 @@
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -999,7 +999,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
 
       USE DAO_MOD,            ONLY : IS_ICE
       USE DAO_MOD,            ONLY : IS_LAND
@@ -1026,6 +1025,7 @@
 !  (3  ) Remove the near-land formulation (i.e. use function IS_LAND 
 !         instead of IS_NEAR).(ltm, bmy, 9/24/07)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1440,8 +1440,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE BPCH2_MOD,   ONLY : GET_TAU0
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,    ONLY : GET_TAU, GET_MONTH, GET_YEAR
@@ -1472,6 +1470,7 @@
 !  02 Feb 2012 - R. Yantosca - Compute BETA for MERRA 2 x 2.5
 !  02 Feb 2012 - R. Yantosca - Compute BETA for GEOS-5.7.x
 !  18 Apr 2013 - R. Yantosca - Bug fix, use GRID025x03125 (was 0325)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

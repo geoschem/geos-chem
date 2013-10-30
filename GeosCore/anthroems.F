@@ -47,20 +47,23 @@
       USE EDGAR_MOD,           ONLY : READ_AROMATICS_05x0666
       USE EDGAR_MOD,           ONLY : READ_C2H4_05x0666
       USE EDGAR_MOD,           ONLY : READ_C2H2_05x0666
+!---------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
+!      ! get location of NAP emissions in array
+!      USE TRACERID_MOD,        ONLY : IDENAP
+!---------------------------------------------------------------------------
 
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE COMODE_LOOP_MOD               ! IDEMS
-      USE CMN_O3_MOD                 ! EMIST, EMISR, EMISRR, etc.
+      USE CMN_SIZE_MOD              ! Size parameters
+      USE COMODE_LOOP_MOD           ! IDEMS
+      USE CMN_O3_MOD                ! EMIST, EMISR, EMISRR, etc.
 
       IMPLICIT NONE
-#     include "define.h"
-
-
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: NSEASON   ! Current season (1-4)
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN) :: NSEASON     ! Current season (1-4)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REMARKS:
 !  NSEASON:  is the seasonal index for NOx emissions:
@@ -76,6 +79,12 @@
 !                      EMISTMEK,  EMISTSOX
 !                                                                             .
 !  Emissions arrays:   EMIST, EMISTN, EMISR, EMISRN, EMISRR, EMISRRN
+!                                                                             .
+!  REFERENCES:
+!  ===========================================================================
+!  (1 ) Zhang, Y.X., and S. Tao, "Global atmospheric emission inventory of
+!        polycyclic aromatic hydrocarbons (PAHs) for 2004", Atmos. Environ., 
+!        Vol 43, 812-819, doi:10.1016/J.ATMOSENV.2008.10.050, 2009.
 ! 
 ! !REVISION HISTORY: 
 !  04 Jun 1998 - R. Yantosca - Initial version
@@ -145,6 +154,9 @@
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add NAP emissions for SOA + semivolatile POA
+!                              simulation (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,10 +176,27 @@
       REAL*8 :: GEOS1x1(I1x1,J1x1,1)
       REAL*8 :: TEMP(IIPAR,JJPAR)
 
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate hotp
+!      ! for gas phase NAP chemistry (hotp 6/24/09)
+!      ! Get anthropogenic (FF) NAP emissions by scaling BENZ emissions with the
+!      ! following factor. Factor is ratio of TgC NAP to TgC BENZ emissions
+!      ! or equivalently, molec C NAP to molec C BENZ. Scaling should produce
+!      ! about 0.09 TgC NAP/year, consistent with non-BB,BF emissions predicted
+!      ! by Zhang and Tao 2009 Atm Env
+!      ! Based on year 2000 1x1 inv  (hotp 11/14/09)
+!      REAL*8, PARAMETER    :: NAPTOBENZSCALE = 0.06861d0
+!
+!      ! NAPSOA: factor to scale total NAP emissions to POA (hotp 7/24/09)
+!      REAL*8, PARAMETER    :: NAPTOTALSCALE = 66.09027d0
+!------------------------------------------------------------------------------
+
       ! For values from Input_Opt
       LOGICAL :: LFUTURE
       INTEGER :: N_TRACERS
       REAL*8  :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL*8  :: NAPEMISS
 
       !=================================================================
       ! ANTHROEMS begins here!
@@ -177,6 +206,7 @@
       LFUTURE      = Input_Opt%LFUTURE
       N_TRACERS    = Input_Opt%N_TRACERS
       TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
+      NAPEMISS     = Input_Opt%NAPEMISS
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
@@ -252,6 +282,12 @@
          EMISTXYLE = 0e0
          EMISTC2H4 = 0e0
          EMISTC2H2 = 0e0
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!         ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
+!         ! zero the NAP emission array
+!         EMISTNAP  = 0e0
+!------------------------------------------------------------------------------
 
          ! Zero arrays for holding CO & Hydrocarbons
          EMIST = 0d0
@@ -286,6 +322,18 @@
             EMISTTOLU = E_TOLU
             EMISTXYLE = E_XYLE
          ENDIF
+
+!-----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/10)
+!         ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
+!         ! Get NAP FF emissions by scaling BENZ
+!         EMISTNAP  = E_BENZ * NAPTOBENZSCALE
+!         ! NAPSOA: scale up global total (hotp 7/24/09)
+!         EMISTNAP = EMISTNAP * NAPTOTALSCALE
+!         ! Now set according to input.geos (hopt 8/9/09)
+!         EMISTNAP = EMISTNAP * NAPEMISS
+!-----------------------------------------------------------------------------
+
          !================================================================
          ! Read EDGARv2 C2H4 emission for 1985   (tmf, 7/30/08)
          !================================================================
@@ -585,6 +633,28 @@
             ! Print total in Tg C
             CALL TOTAL_FOSSIL_TG( EMIST(:,:,IDEC2H2), IIPAR, JJPAR, 
      &                            1,                  12d-3, 'C2H2' )
+         ENDIF
+
+!-----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!         ! SOAupdate: for gas phase NAP chemsitry (hotp 6/24/09)
+!         ! NAP 
+!         IF ( IDENAP /= 0 ) THEN
+!            DO J = 1, JJPAR
+!               JREF = J + J0
+!               DO I = 1, IIPAR
+!                  IREF = I + I0
+!                  ! scale this now since BENZ is also 1985 (hotp 7/28/10)
+!                  EMIST(I,J,IDENAP) = EMISTNAP(IREF,JREF) *
+!     &               FLIQCO2(IREF, JREF)
+!               ENDDO
+!            ENDDO
+!            
+!            ! Print total in Tg C 
+!            CALL TOTAL_FOSSIL_TG( EMIST(:,:,IDENAP), IIPAR, JJPAR, 
+!     &                            1,                 12d-3, 'NAP' )
+!-----------------------------------------------------------------------------
+
          ENDIF
 
          !==============================================================

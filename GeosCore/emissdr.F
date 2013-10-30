@@ -98,6 +98,9 @@
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCPAIR from Input_Opt
 !  31 Jul 2013 - M. Sulprizio- Now use aircraft emissions from the AEIC
 !                              inventory (S. Eastham)
+!  13 Aug 2013 - M. Sulprizio- Update MEGAN biogenics to include sesquiterpenes
+!                              for updated SOA simulation (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -156,7 +159,6 @@
       USE COMMSOIL_MOD             ! Soil wetness variables
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -200,6 +202,8 @@
       REAL*8                 :: DEP_FERT, TEMP_FERT
       REAL*8                 :: X, Y
 
+      ! Add biogenic emission scale factor for ethene (tmf, 1/13/06)
+      REAL*8                 :: BIOSCALEC2H4
 
       ! Molecules C / kg C
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
@@ -215,12 +219,13 @@
       ! Add in new monoterpene species (mpb,2009)
       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
       REAL*8                 :: MYRCN  , CAREN , OCIMN
-      ! Add in gamma activity factors for isoprene ONLY (mpb,2009)
-      REAL*8                 :: GAMMA_LAI
-      REAL*8                 :: GAMMA_LEAF_AGE
-      REAL*8                 :: GAMMA_P
-      REAL*8                 :: GAMMA_T
-      REAL*8                 :: GAMMA_SM
+
+!----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: Sesquiterpenes (hotp 3/1/10)
+!      REAL*8                 :: FARN, BCAR, OSQT
+!      REAL*8                 :: OMTP ! other monoterpenes 3/5/10
+!----------------------------------------------------------------------------
 
       ! For fields from Input_Opt
       LOGICAL                :: LANTHRO
@@ -587,6 +592,29 @@
      &                        EMIS_SABI + EMIS_MYRC + EMIS_CARE + 
      &                        EMIS_OCIM + EMIS_OMON
 
+!----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!                  ! SOAupdate: Sesquiterpenes, OMTP (hotp 3/1/10) 
+!                  ! (not actually used here)
+!                  ! ------------------------------------------
+!                  ! a-Farnesene emissions
+!                  FARN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
+!     &                      PDR , PDF , XNUMOL_C , 'FARNE' )
+!                  ! ------------------------------------------
+!                  ! b-Caryophyllene emissions
+!                  BCAR = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
+!     &                      PDR , PDF , XNUMOL_C , 'BCARE' )
+!                  ! ------------------------------------------
+!                  ! Other sesquiterpene emissions
+!                  OSQT = GET_EMTERP_MEGAN( I , J , SC, TMMP ,   
+!     &                      PDR , PDF , XNUMOL_C , 'OSQTE' )
+!                  ! ------------------------------------------
+!                  ! Other monoterpene emissions
+!                  OMTP = GET_EMTERP_MEGAN( I , J , SC, TMMP ,   
+!     &                      PDR , PDF , XNUMOL_C , 'OMTPE' )
+!                  ! ------------------------------------------
+!----------------------------------------------------------------------------
+
                ENDIF
 
                !------------------
@@ -644,6 +672,20 @@
 !               ! Uncomment this to compute biogenic acetic acid emissions
 !               EMIS_AAXX = GET_MEGAN_EMISSIONS( I,          J,
 !     &                                          State_Met, 'AAXX' )
+               ! Isoprene           = 1
+               ! Total Monoterpenes = 2 
+               ! MBO                = 3 
+               ! Alpha-Pinene       = 4
+               ! Beta-Pinene        = 5
+               ! Limonene           = 6
+               ! Sabinene           = 7
+               ! Mycrene            = 8
+               ! 3-Carene           = 9
+               ! Ocimene            = 10
+               ! a-Farnesene        = 11
+               ! b-Caryophyllene    = 12
+               ! Other sesquiterp.  = 13
+               ! Other monoterpenes = 14
 
 !-----------------------------------------------------------------------------
 ! BIOGENIC ACETONE EMISSIONS
@@ -849,6 +891,15 @@
 !     AD46(:,:,20) = Total biogenic CHBr3    emissions [kg/m2/s]
 !     AD46(:,:,21) = Total biogenic CH2Br2   emissions [kg/m2/s]
 !     AD46(:,:,22) = Total biogenic SSBr2    emissions [kg/m2/s]
+!--------- These are in std code---------------------------------------------
+!     AD46(:,:,14) = Total biogenic FARN     emissions [atoms C/cm2/s]
+!     AD46(:,:,15) = Total biogenic BCAR     emissions [atoms C/cm2/s]
+!     AD46(:,:,16) = Total biogenic OSQT     emissions [atoms C/cm2/s]
+!     AD46(:,:,17) = Total biogenic OMTP     emissions [atoms C/cm2/s]
+!     AD46(:,:,18) = Total biogenic CHBr3    emissions [kg/m2/s]
+!     AD46(:,:,19) = Total biogenic CH2Br2   emissions [kg/m2/s]
+!     AD46(:,:,20) = Total biogenic SSBr2    emissions [kg/m2/s]
+!---------------------------------------------------------------------------
 !
 !  NOTES: 
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
@@ -857,6 +908,7 @@
 !  22 Oct 2012 - R. Yantosca - Prevent out-of-bounds errors in ND46 if bromine
 !                              emissions are turned off (e.g. for tagged CO)
 !  01 Dec 2012 - D. Millet   - Updated tracers (dbm, 12/2012)
+!  13 Aug 2013 - M. Sulprizio- Add sesquiterpenes for updated SOA (H.Pye)
 !******************************************************************************
 !
                IF ( ND46 > 0 ) THEN
@@ -928,6 +980,62 @@
                   AD46(I,J,17) = AD46(I,J,17) + 
      &                 ( EMIS_OMON / AREA_CM2 / DTSRCE ) 
 
+!------------------------------------------------------------------------------
+! These are in the std code (bmy, 10/30/13)
+!                 ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
+!                 !              MEGAN v2.1 - (mpb,2009)               !
+!                 ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+!                 ! Aplha Pinene emissions [atoms C/cm2/s] -- tracer #7
+!                 AD46(I,J,7)  = AD46(I,J,7)  +
+!    &                         ( APINE        / AREA_CM2 / DTSRCE ) 
+!
+!                 ! Beta Pinene emissions [atoms C/cm2/s] -- tracer #8
+!                 AD46(I,J,8)  = AD46(I,J,8)  +
+!    &                         ( BPINE        / AREA_CM2 / DTSRCE ) 
+!
+!                 ! Limonene emissions [atoms C/cm2/s] -- tracer #9
+!                 AD46(I,J,9)  = AD46(I,J,9)  +
+!    &                         ( LIMON        / AREA_CM2 / DTSRCE ) 
+!
+!                 ! Sabinene emissions [atoms C/cm2/s] -- tracer #10
+!                 AD46(I,J,10) = AD46(I,J,10) + 
+!    &                         ( SABIN        / AREA_CM2 / DTSRCE) 
+!
+!                 ! Mycrene emissions [atoms C/cm2/s] -- tracer #11
+!                 AD46(I,J,11) = AD46(I,J,11) +
+!    &                         ( MYRCN        / AREA_CM2 / DTSRCE) 
+!
+!                 ! 3-Carene emissions [atoms C/cm2/s] -- tracer #12
+!                 AD46(I,J,12) = AD46(I,J,12) +
+!    &                         ( CAREN        / AREA_CM2 / DTSRCE) 
+!
+!                 ! Ocimene emissions [atoms C/cm2/s] -- tracer #13
+!                 AD46(I,J,13) = AD46(I,J,13) +
+!    &                         ( OCIMN        / AREA_CM2 / DTSRCE) 
+!
+!                 ! SOAupdate (hotp 7/29/10)
+!                 ! Sesquiterpenes: 14-16 (hotp 3/1/10)
+!                 ! Farnesene emissions [atoms C/cm2/s] -- tracer #14
+!                 AD46(I,J,14) = AD46(I,J,14) + 
+!    &                         ( FARN         / AREA_CM2 / DTSRCE)
+!
+!                 ! b-caryophyllene emissions [atoms C/cm2/s] -- tracer #15
+!                 AD46(I,J,15) = AD46(I,J,15) + 
+!    &                         ( BCAR         / AREA_CM2 / DTSRCE)
+!
+!                 ! Other SQT emissions [atoms C/cm2/s] -- tracer #16
+!                 AD46(I,J,16) = AD46(I,J,16) + 
+!    &                         ( OSQT         / AREA_CM2 / DTSRCE)
+!
+!                 ! Other MTP emissions [atoms C/cm2/s] -- tracer #17
+!                 AD46(I,J,17) = AD46(I,J,17) + 
+!    &                         ( OMTP         / AREA_CM2 / DTSRCE)
+!                 ! end hotp
+!
+!                 ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
+!------------------------------------------------------------------------------
+
                   ! Methanol [molec/cm2/s] -- tracer #18
                   AD46(I,J,18) = AD46(I,J,18) + 
      &                 ( EMIS_MOHX / AREA_CM2 / DTSRCE ) 
@@ -949,9 +1057,7 @@
      &                            + ( EMISRR(I,J,IDECH2Br2) / AREA_M2 ) 
      &                            * ( MWT_CH2Br2            / AVG     )
                   ENDIF
-
-                  ! Note: IDEBr2 is added to AD46(I,J,22) in ssa_bromine_mod.F
-               
+   
                ENDIF  
 
                ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

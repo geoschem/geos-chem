@@ -124,10 +124,10 @@
 !  (23) Bug fixes in COMPUTE_F (bmy, 7/26/06)
 !  (24) Resize DSTT array in WETDEPBIN to save memory.  Added fixes for GEOS-5
 !        wet deposition per Hongyu Liu's suggestions. (bmy, 3/5/08)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS

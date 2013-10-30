@@ -59,7 +59,6 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -243,6 +242,8 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  31 May 2013 - R. Yantosca - Now pass State_Met to DO_DIAG_PL, for TOMAS
 !  06 Jun 2013 - M. Payer    - Move SETEMIS to after FAST_J (C. Holmes)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -458,6 +459,14 @@
      &                       'chemdr.f' )
          ENDIF
 
+         !---------------------------------------------------
+         ! SOAupdate: Check ILISOPNO3 for SOA (hotp 6/1/10)
+         !---------------------------------------------------
+         IF ( LSOA .and. ILISOPNO3 == 0 ) THEN
+            CALL ERROR_STOP( 'IDLISOPNO3 needs to be defined for SOA!',
+     &                       'chemdr.f' )
+         ENDIF
+
          !---------------------------------
          ! Set global concentration of CH4
          !---------------------------------
@@ -513,6 +522,7 @@
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
          ENDIF
+
       ENDIF
 #endif
 
@@ -617,8 +627,8 @@
 
          ! Read the CSPEC restart file.  If not found, then 
          ! return IT_EXISTS = .FALSE.
-         CALL READ_CSPEC_FILE( am_I_Root, GET_NYMD(), GET_NHMS(),
-     &                         IT_EXISTS, State_Chm   )
+         CALL READ_CSPEC_FILE( am_I_Root,  Input_Opt, GET_NYMD(), 
+     &                         GET_NHMS(), IT_EXISTS, State_Chm,  RC  )
    
          IF ( .not. IT_EXISTS ) THEN 
 
@@ -664,7 +674,7 @@
 
       !### Debug
       IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after READ_CSPEC_FILEC' )
+         CALL DEBUG_MSG( '### CHEMDR: after READ_CSPEC_FILE' )
       ENDIF
 #endif
 

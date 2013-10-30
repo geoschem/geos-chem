@@ -22,8 +22,6 @@ MODULE VDIFF_MOD
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR
 
   IMPLICIT NONE
-# include "define.h"
-  
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -120,6 +118,7 @@ MODULE VDIFF_MOD
 !  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 
@@ -1776,7 +1775,7 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR( as2, State_Met )
+  SUBROUTINE VDIFFDR( as2, Input_Opt, State_Met )
 !
 ! !USES:
 ! 
@@ -1789,39 +1788,33 @@ contains
                                    SHIPO3DEP
     USE DRYDEP_MOD,         ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GRID_MOD,           ONLY : GET_AREA_M2
-    USE LOGICAL_MOD,        ONLY : LDYNOCEAN, LGTMM !cdh
-    USE LOGICAL_MOD,        ONLY : LSOILNOX
     USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
-    USE TRACER_MOD,         ONLY : N_TRACERS,  TRACER_MW_KG, TCVV, &
-                                   ID_EMITTED, TRACER_COEFF, TRACER_COEFF, &
-                                   TRACER_NAME
-    USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM, ITS_A_TAGCO_SIM
-    USE TRACER_MOD,         ONLY : ITS_A_CH4_SIM
-    USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM ! (cdh 8/28/09)
-    USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM  !bmy
-    USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+    USE TRACER_MOD,         ONLY : N_MEMBERS
     USE TRACERID_MOD,       ONLY : IS_Hg0, IS_Hg2, IS_HgP
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
                                    NDRYDEP, emis_save
-
-#   include "define.h"
 
     implicit none
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+    ! Input options object
+    TYPE(OptInput), INTENT(IN)            :: Input_Opt
+    
     ! Meteorology State object
     TYPE(MetState), INTENT(INOUT)         :: State_Met   
 
     ! Advected species
-    REAL*8,         intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) 
+    REAL*8,         intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,&
+                                                 Input_Opt%N_TRACERS) 
 !
 ! !REMARKS:
 !  Need to declare the Meteorology State object (State_MET) with
@@ -1853,6 +1846,9 @@ contains
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  18 Jun 2013 - M. Payer    - Add emissions for offline aerosol simulation
+!  01 Aug 2013 - R. Yantosca - Now pass Input_Opt via the arg list
+!  01 Aug 2013 - J. Lin      - Modified for Rn-Pb-Be simulation
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1867,14 +1863,14 @@ contains
 
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: pmid, rpdel, rpdeli, zm
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: pint
-    real*8, TARGET, dimension(IIPAR,JJPAR,N_TRACERS) :: sflx
-    real*8, TARGET, dimension(IIPAR,JJPAR,N_TRACERS) :: eflx, dflx ! surface flux
+    real*8, TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: sflx
+    real*8, TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: eflx, dflx ! surface flux
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: cgs, kvh, kvm
     real*8, TARGET, dimension(IIPAR,JJPAR) :: pblh, tpert, qpert
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: thp         ! potential temperature
     real*8, TARGET, dimension(IIPAR,JJPAR) :: shflx    ! water vapor flux
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: t1
-    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR,N_TRACERS) :: as ! save tracer MR 
+    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) :: as ! save tracer MR 
                                                          ! before vdiffdr
     real*8 :: vtemp
     real*8 :: p0 = 1.d5
@@ -1887,10 +1883,7 @@ contains
 
     ! Array to store a single level of the AS2 array,
     ! so as not to blow up the parallelization (ccc, 12/22.10)
-    REAL*8, dimension(IIPAR, JJPAR, N_TRACERS)  :: as2_scal
-
-    ! Add flags
-    LOGICAL :: IS_CH4, IS_FULLCHEM, IS_Hg, IS_TAGOx, IS_TAGCO, IS_AEROSOL
+    REAL*8, dimension(IIPAR, JJPAR, Input_Opt%N_TRACERS)  :: as2_scal
 
     ! Pointers 
     REAL*8,  POINTER :: p_um1   (:,:,:  )
@@ -1910,6 +1903,17 @@ contains
     REAL*8,  POINTER :: p_shp   (:,:,:  )
     REAL*8,  POINTER :: p_t1    (:,:,:  )
     REAL*8,  POINTER :: p_as2   (:,:,:,:)
+
+    ! For values from Input_Opt
+    LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg,     IS_TAGOx
+    LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
+    LOGICAL            :: LGTMM,     LSOILNOX
+    INTEGER            :: N_TRACERS 
+    INTEGER            :: ID_EMITTED  (Input_Opt%N_TRACERS)
+    REAL*8             :: TRACER_COEFF(Input_Opt%N_TRACERS, Input_Opt%MAX_MEMB)
+    REAL*8             :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+    CHARACTER(LEN=255) :: TRACER_NAME (Input_Opt%N_TRACERS)
+    REAL*8             :: TCVV        (Input_Opt%N_TRACERS)
 
     !=================================================================
     ! vdiffdr begins here!
@@ -1939,14 +1943,23 @@ contains
     t1      = 0d0
     as2_scal= 0d0
 
-    ! Test for different types of simulations and save in local variables/
-    ! These are used in the parallel DO loops below (bmy, 12/21/10)
-    IS_CH4      = ITS_A_CH4_SIM()
-    IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
-    IS_Hg       = ITS_A_MERCURY_SIM()
-    IS_TAGCO    = ITS_A_TAGCO_SIM()
-    IS_TAGOX    = ITS_A_TAGOX_SIM()
-    IS_AEROSOL  = ITS_AN_AEROSOL_SIM()
+    ! Copy values from Input_Opt (bmy, 8/1/13)
+    IS_CH4       = Input_Opt%ITS_A_CH4_SIM
+    IS_FULLCHEM  = Input_Opt%ITS_A_FULLCHEM_SIM
+    IS_Hg        = Input_Opt%ITS_A_MERCURY_SIM
+    IS_TAGCO     = Input_Opt%ITS_A_TAGCO_SIM
+    IS_TAGOX     = Input_Opt%ITS_A_TAGOX_SIM
+    IS_AEROSOL   = Input_Opt%ITS_AN_AEROSOL_SIM
+    IS_RnPbBe    = Input_Opt%ITS_A_RnPbBe_SIM
+    LDYNOCEAN    = Input_Opt%LDYNOCEAN
+    LGTMM        = Input_Opt%LGTMM
+    LSOILNOX     = Input_Opt%LSOILNOX
+    N_TRACERS    = Input_Opt%N_TRACERS
+    ID_EMITTED   = Input_Opt%ID_EMITTED  (1:N_TRACERS             )
+    TRACER_COEFF = Input_Opt%TRACER_COEFF(1:N_TRACERS, 1:N_MEMBERS)
+    TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS             )
+    TRACER_NAME  = Input_Opt%TRACER_NAME (1:N_TRACERS             )
+    TCVV         = Input_Opt%TCVV        (1:N_TRACERS             )
 
     dtime = GET_TS_CONV()*60d0 ! min -> second
     
@@ -2057,6 +2070,15 @@ contains
                                        / GET_TS_EMIS() / 60.d0
           enddo
 
+       ENDIF
+
+       !----------------------------------------------------------------
+       ! Add emissions for Rn-Pb-Be simulation
+       !----------------------------------------------------------------
+       IF ( IS_RnPbBe ) THEN
+          do N = 1, N_TRACERS
+             eflx(I,J,N) = emis_save(I,J,N) / GET_AREA_M2(I,J,1)
+          enddo
        ENDIF
 
        !----------------------------------------------------------------
@@ -2636,7 +2658,6 @@ contains
     USE VDIFF_PRE_MOD,      ONLY : EMISRR, EMISRRN
 
     IMPLICIT NONE
-#   include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -2662,6 +2683,8 @@ contains
 !  05 Mar 2013 - R. Yantosca - Now call SETEMIS with am_I_Root, Input_Opt, RC
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_A_FULLCHEM_SIM
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  01 Aug 2013 - R. Yantosca - Now pass the Input_Opt object to VDIFFDR
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2720,7 +2743,7 @@ contains
 
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_TURBDAY ) THEN
-       CALL VDIFFDR( STT, State_Met )
+       CALL VDIFFDR( STT, Input_Opt, State_Met )
        IF( LPRT .and. am_I_Root ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF

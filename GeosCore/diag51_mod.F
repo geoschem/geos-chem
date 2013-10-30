@@ -18,7 +18,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -118,6 +117,7 @@
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND51 a local module variable
 !  18 Jan 2013 - D. Millet   - Updated tracer numbers for EMISS_BVOC
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

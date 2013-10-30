@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -40,6 +39,7 @@
 !  18 Dec 2009 - Aaron van D - Updated routine GET_ANNUAL_SCALAR_05x0666_NESTED
 !  10 Aug 2011 - D. Millet   - Now use updated scale factor file for CO, which
 !                              corrects a problem over Botswana/S. Africa
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

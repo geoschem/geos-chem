@@ -22,7 +22,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
 
       IMPLICIT NONE
-#include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -69,9 +68,12 @@
 !  23 Oct 2012 - R. Yantosca - Add better error checks to prevent div-by-zero
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  05 Sep 2013 - R. Yantosca - Now exit if IWC <= 0, this will cause the
+!                              logarithm to choke
 !EOP
 !------------------------------------------------------------------------------
-c!BOC
+!BOC
 !
 ! !DEFINED PARAMETERS:
 !
@@ -126,9 +128,15 @@ c!BOC
       iwc = State_Met%CLDF(L,I,J) * ( QI * 1d3 * dens_ice )
 #endif
 
-      !%%% ERROR CHECK!  Do not let IWC=0 because it will cause the
+      !%%% ERROR CHECK!  Do not let IWC<=0 because it will cause the
       !%%% LOG10 statement in the upcoming section (bmy, 10/23/12)
-      IF ( ( .not. ( ABS( IWC ) > 0d0 ) ) ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 9/5/13:
+! Amend error trap, IWC < 0 will also choke because it's an argument in
+! a logarithm.  Now exit unless IWC is a positive number. (bmy, 9/5/13)
+!      IF ( ( .not. ( ABS( IWC ) > 0d0 ) ) ) THEN
+!-----------------------------------------------------------------------------
+      IF ( .not. ( IWC > 0d0 ) ) THEN
          gamma  = 0.d0
          k_hbr  = 0.d0
          k_hobr = 0.d0

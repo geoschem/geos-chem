@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"     
       PRIVATE
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -115,6 +114,7 @@
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  23 Oct 2012 - R. Yantosca - Update prod/loss for new GMI strat chem
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -380,7 +380,6 @@
       USE TRACERID_MOD,       ONLY : IDBFCO, IDECO, IDBCO
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -461,6 +460,7 @@
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  01 Feb 2013 - R. Yantosca - Now use updated MEGAN 2.1 driver (D. Millet)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -64,6 +64,12 @@
       !     Methanol           = 18
       !     Ethanol            = 19
       !     ---------------------------	
+      !     SOAupdate: Sesquiterpenes (hotp 3/1/10):
+      !     Farnesene          = 11
+      !     b-Caryophyllene    = 12
+      !     Other sesquiterp   = 13
+      !     Other monoterpenes = 14
+      !     ---------------------------	
 
       ! Define common block	
       REAL*8, ALLOCATABLE  :: EMISS_BVOC(:,:,:)
@@ -75,11 +81,6 @@
       !       it below...but it is emitted in EMEP.  It will be saved
       !       into the EMISRR array for SMVGEAR. (bdf, bmy, 11/1/05)
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      ! Arrays to read emissions from updated merge file : 
-      !        NOx, CO, PRPE, C3H8, ALK4, C2H6, ACET, MEK
-      ! NOTE: ALD2 is not emitted in GEIA so we don't need an array for
-      !       it below...but it is emitted in EMEP.  It will be saved
-
       REAL*4, ALLOCATABLE  :: EMISTNOX (:,:,:,:)
       REAL*4, ALLOCATABLE  :: EMISTETHE(:,:)
       REAL*4, ALLOCATABLE  :: EMISTCO  (:,:)
@@ -95,6 +96,11 @@
       REAL*4, ALLOCATABLE  :: EMISTXYLE(:,:)
       REAL*4, ALLOCATABLE  :: EMISTC2H4(:,:)
       REAL*4, ALLOCATABLE  :: EMISTC2H2(:,:)
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/10)
+!      ! SOAupdate: Add EMISTNAP (hotp 7/21/10)
+!      REAL*4, ALLOCATABLE  :: EMISTNAP (:,:)
+!------------------------------------------------------------------------------
 
       ! Time of day and weekday/weekend scale factors
       ! NOTE: Now SCNR89 is (3,3) because of the weekday scale factor!!!
@@ -133,6 +139,9 @@
 !  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
 !                              and SAVENO3. They are no longer needed because
 !                              O3, NO, NO2, and NO3 are now tracers.
+!  13 Aug 2013 - M. Sulprizio- Increase last dimension of EMISS_BVOC to include
+!                              sesquiterpenes and add EMISTNAP for SOA +
+!                              semivolatile POA simulation (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -170,6 +179,9 @@
 !  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
 !                              and SAVENO3. They are no longer needed because
 !                              O3, NO, NO2, and NO3 are now tracers.
+!  13 Aug 2013 - M. Sulprizio- Increase last dimension of EMISS_BVOC to include
+!                              sesquiterpenes and add EMISTNAP for SOA +
+!                              semivolatile POA simulation (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,6 +196,11 @@
       ALLOCATE( EMISRR    ( IIPAR, JJPAR, NEMPARA+NEMPARB ), STAT=RC )
       ALLOCATE( EMISRRN   ( IIPAR, JJPAR, NOXEXTENT       ), STAT=RC )
       ALLOCATE( EMISS_BVOC( IIPAR, JJPAR, 19              ), STAT=RC )
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: Now 14 (hotp 3/5/10)
+!      ALLOCATE( EMISS_BVOC( IIPAR, JJPAR, 14              ), STAT=RC )
+!------------------------------------------------------------------------------
       ALLOCATE( EMISTNOX  ( IIPAR, JJPAR, 4, 2            ), STAT=RC )
       ALLOCATE( EMISTETHE ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( EMISTCO   ( IIPAR, JJPAR                  ), STAT=RC )
@@ -199,6 +216,11 @@
       ALLOCATE( EMISTXYLE ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( EMISTC2H4 ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( EMISTC2H2 ( IIPAR, JJPAR                  ), STAT=RC )
+!-----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: Add EMISTNAP (hotp 7/21/10)
+!      ALLOCATE( EMISTNAP  ( IIPAR, JJPAR                  ), STAT=RC )
+!-----------------------------------------------------------------------------
       ALLOCATE( FTOTCO2   ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( FLIQCO2   ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( SAVEOH    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
@@ -294,6 +316,7 @@
       IF ( ALLOCATED( EMISTXYLE  ) ) DEALLOCATE( EMISTXYLE  )
       IF ( ALLOCATED( EMISTC2H4  ) ) DEALLOCATE( EMISTC2H4  )
       IF ( ALLOCATED( EMISTC2H2  ) ) DEALLOCATE( EMISTC2H2  )
+      IF ( ALLOCATED( EMISTNAP   ) ) DEALLOCATE( EMISTNAP   )
       IF ( ALLOCATED( FTOTCO2    ) ) DEALLOCATE( FTOTCO2    )
       IF ( ALLOCATED( FLIQCO2    ) ) DEALLOCATE( FLIQCO2    )
       IF ( ALLOCATED( SAVEOH     ) ) DEALLOCATE( SAVEOH     )

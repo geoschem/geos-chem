@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
@@ -82,6 +81,7 @@
 !  (7 ) Added mercury tagged tracers (eds 9/2/10)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  07 Feb 2012 - E. Corbitt  - Added new diagnostics for tagged simulation.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

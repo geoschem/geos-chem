@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -338,6 +337,7 @@
 !                              diagnostic. These are no longer needed because
 !                              NO, NO2, and NO3 are now tracers.
 !  26 Jun 2013 - R. Yantosca - Added extra arrays for ship diagnostics + NEI08
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

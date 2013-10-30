@@ -145,7 +145,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APM_DRIV( State_Met )
+      SUBROUTINE APM_DRIV( State_Met, State_Chm )
 !
 ! !USES:
 !
@@ -170,6 +170,7 @@
       USE APM_COAG_MOD,       ONLY : READCK6DTABLE
       USE APM_PHYS_MOD,       ONLY : APM_PHYS
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,GET_PBL_TOP_hPa
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
@@ -191,7 +192,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry Stae object
 !
 ! !REVISION HISTORY: 
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
@@ -241,7 +246,13 @@
       LOGICAL, SAVE    :: FIRST = .TRUE.
       LOGICAL, SAVE    :: FIRST1 = .TRUE.
 
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       WRITE(6,*)'    - APM calculation '
+
+      ! Point to STT
+      STT => State_Chm%TRACERS
 
       ! Chemistry timestep [s]
       DT = GET_TS_CHEM() * 60d0
@@ -463,6 +474,9 @@
 !$OMP END PARALLEL DO
 
       NPOUTSTEPS = NPOUTSTEPS + 1
+
+      ! Clear the pointer
+      NULLIFY( STT )
 
       END SUBROUTINE APM_DRIV
 !EOC

@@ -101,7 +101,6 @@
 #endif
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -258,6 +257,8 @@
 !  02 Apr 2013 - M. Payer    - Remove allocation of *NO, *NO2, and *NO3 arrays
 !                              for ND43. These are no longer needed because NO,
 !                              NO2, and NO3 are now tracers.
+!  13 Aug 2013 - M. Sulprizio- Modify AD07_HC for updated SOA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -395,7 +396,13 @@
          ALLOCATE( AD07_OC( IIPAR, JJPAR, LD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OC' )
 
-         ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 5 ), STAT=AS )
+         ! SOAupdate (hotp 6/15/09)
+         ! semivolpoa2: increase dimension for POA (hotp 3/3/09)
+         ! semivolpoa4: increase dimension for OPOA(hotp 3/27/09)
+         ! semivolpoa4: add dimension for POG ox to OPOG (hotp 3/28/09)
+         ! NAPSOA: increase AD07_HC dimension by one to 9 for production
+         ! of SOA from IVOCs (hotp 7/22/09)
+         ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 9 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
 
          ALLOCATE( AD07_SOAGM( IIPAR, JJPAR, LD07, 4 ), STAT=AS )

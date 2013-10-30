@@ -18,7 +18,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -99,7 +98,9 @@
 !  10 Aug 2012 - R. Yantosca - Remove DEVEL from #ifdef for EXTERNAL_PEDGE
 !  11 Dec 2012 - R. Yantosca - Now make EXTERNAL_PEDGE private
 !  11 Dec 2012 - R. Yantosca - Add new routine ACCEPT_PEDGE_FROM_ESMF to set
-!                              EXTERNAL_PEDGE from the ESMF environment!EOP
+!                              EXTERNAL_PEDGE from the ESMF environment
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 !

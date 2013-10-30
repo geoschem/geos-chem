@@ -335,12 +335,6 @@ CONTAINS
        
           ! Find the NATIVE GRID longitude index for use below.  Account for 
           ! the first GEOS-CHEM GRID box, which straddles the date line.
-          !------------------------------------------------------------------
-          ! Prior to 12/7/12:
-          ! I==1 happens on each CPU (when running in the ESMF environment)
-          ! but IG==1 uniquely denotes the date line. (bmy, 12/7/12)
-          !IF ( isGlobal .and.  I == 1 ) THEN
-          !------------------------------------------------------------------
           IF ( isGlobal .and.  IG == 1 ) THEN
              II      = shiftLon(III)
           ELSE
@@ -357,12 +351,6 @@ CONTAINS
           ! we have to adjust the W and E edges of the NATIVE GRID BOX to
           ! be in monotonically increasing order.  This will prevent
           ! erronous results from being returned by GET_MAP_WT below.
-          !------------------------------------------------------------------
-          ! Prior to 12/7/12:
-          ! I==1 happens on each CPU (when running in the ESMF environment)
-          ! but IG==1 uniquely denotes the date line. (bmy, 12/7/12)
-          !IF ( isGlobal .and. I == 1 .and. II >= shiftLon(1) )  THEN
-          !------------------------------------------------------------------
           IF ( isGlobal .and. IG == 1 .and. II >= shiftLon(1) )  THEN
              xedge_w = xedge_w - 360e0
              xedge_e = xedge_e - 360e0

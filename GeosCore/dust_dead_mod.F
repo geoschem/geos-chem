@@ -145,10 +145,10 @@
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables

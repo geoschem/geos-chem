@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -36,6 +35,7 @@
 !  31 Aug 2010 - R. Yantosca - Updated comments
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use the new function
 !                              GET_AREA_CM2( I, J, L ) from grid_mod.F90 
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !
 ! !REMARKS:
 !  (1) Part of the ARCTAS pre-campaign composite inventory distributed by

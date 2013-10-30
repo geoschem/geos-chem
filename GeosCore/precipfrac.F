@@ -40,6 +40,7 @@
 !  (7 ) Now use function GET_YOFFSET from "grid_mod.f" (bmy, 2/11/03)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !*****************************************************************************
 !
       ! Reference to F90 modules
@@ -49,7 +50,6 @@
       USE CMN_SIZE_MOD             ! JJPAR
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       INTEGER,        INTENT(IN)  :: I, J

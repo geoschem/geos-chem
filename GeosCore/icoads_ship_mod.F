@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -44,6 +43,7 @@
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

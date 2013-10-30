@@ -13,7 +13,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -35,12 +35,13 @@
 #  24 Jan 2012 - R. Yantosca - Also add libnc target to build netCDF utils
 #  11 May 2012 - R. Yantosca - Now make sure that all targets of the 
 #                              GeosCore/Makefile are pointed to properly
+#  20 Aug 2013 - R. Yantosca - Make sure Makefile names are consistent
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Get the Unix shell definition
-include ./Makefile_header.mk
+#include ./Makefile_header.mk
 
 # Define variables
 GEOSAPM = GeosApm
@@ -119,24 +120,6 @@ ligbtmm:
 
 exehg:
 	@$(MAKE) -C $(GEOSDIR) exehg
-
-#=============================================================================
-# Targets for TOMAS aerosol microphysics code (win, bmy, 1/25/10)
-#=============================================================================
-
-.PHONY: tomas libtomas exetomas cleantomas
-
-tomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes all
-
-libtomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes lib
-
-exetomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes exe
-
-cleantomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes clean
 
 #=============================================================================
 # Targets for APM aerosol microphysics code (bmy, 2/16/11)

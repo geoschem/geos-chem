@@ -18,8 +18,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH,  LLPAR
       USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL, ZPJ
       USE JV_CMN_MOD,   ONLY : ZJ,    U0,   SZA,  SZAMAX
@@ -77,6 +75,7 @@
 !  06 Mar 2012 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

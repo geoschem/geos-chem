@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PRIVATE DATA MEMBERS:
@@ -96,6 +95,7 @@
 !  15 Mar 2013 - R. Yantosca - Now use fields from Input_Opt and made other
 !                              modifications for GIGC interface to GEOS-5 GCM
 !  18 Mar 2013 - R. Yantosca - Comment out STRAT_INIT, it's not called
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -18,7 +18,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -72,6 +71,7 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2104,7 +2104,6 @@
       USE CMN_SIZE_MOD        ! Size parameters
 
       IMPLICIT NONE
-#     include "define.h"
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
@@ -2120,6 +2119,7 @@
 !  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2226,7 +2226,6 @@
       USE CMN_SIZE_MOD        ! Size parameters
 
       IMPLICIT NONE
-#     include "define.h"
 ! 
 ! !REVISION HISTORY:!
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
@@ -2241,6 +2240,7 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3446,7 +3446,6 @@
       USE ERROR_MOD,          ONLY : SAFE_DIV
    
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3460,6 +3459,7 @@
 ! !REVISION HISTORY:
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm args
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

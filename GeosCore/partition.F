@@ -23,8 +23,6 @@
       USE TRACERID_MOD,       ONLY : IDTRMB
       USE TRACERID_MOD,       ONLY : IDO3,      IDNO,       IDHNO2
       USE TRACERID_MOD,       ONLY : CTRMB,     NMEMBER
-
-#     include "define.h"
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
 
@@ -75,6 +73,7 @@
 !  14 Mar 2013 - M. Payer    - Remove partitioning of NOx and Ox. Family tracers
 !                              NOx and Ox have now been replaced with tracers
 !                              NO, NO2, NO3, HNO3, and O3.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

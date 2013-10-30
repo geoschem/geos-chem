@@ -86,16 +86,13 @@ CONTAINS
 !
   FUNCTION Get_Resolution_String() RESULT( resString )
 !
-! !USES:
-!
-#   include "define.h"
-!
 ! !RETURN VALUE:
 !
     CHARACTER(LEN=255) :: resString
 ! 
 ! !REVISION HISTORY:
 !  10 Feb 2012 - R. Yantosca - Initial version
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1610,6 +1607,9 @@ CONTAINS
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
+!  06 Sep 2013 - R. Yantosca - Bug fix: we need to initialize State_Met%T
+!                              with State_Met%TMPU1 to avoid errors.  The
+!                              State_Met%T field will be set again in INTERP.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1758,6 +1758,11 @@ CONTAINS
        State_Met%SPHU1 = State_Met%SPHU1 * 1000d0
 
     ENDWHERE
+
+    ! For now, copy State_Met%TMPU1 to State_Met%T.  At the next met field 
+    ! read, we will State_Met%T from the values of State_Met%TMPU1 and
+    ! State_Met%TMPU2. (bmy, 9/6/13)
+    State_Met%T = State_Met%TMPU1
 
     !======================================================================
     ! Diagnostics, cleanup, and quit

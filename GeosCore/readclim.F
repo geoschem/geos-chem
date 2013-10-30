@@ -28,12 +28,12 @@
       USE COMMSOIL_MOD		! Soil variables
 
       IMPLICIT NONE
-#     include "define.h"
 #     include "netcdf.inc"
       
 ! !REVISION HISTORY:
 !  24 Aug 2012 - J.D. Maasakkers - Initial version
 !  03 Jan 2013 - M. Payer        - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

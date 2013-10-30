@@ -33,10 +33,9 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
 !                              ".rc" to input.geos (instead of ___.rc)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
-#     include "define.h"
-
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,   ONLY : GET_TS_CHEM
       USE inquireMod, ONLY : findFreeLUN

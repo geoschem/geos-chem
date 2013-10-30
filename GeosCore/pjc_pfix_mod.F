@@ -18,7 +18,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -51,6 +50,7 @@
 !        INIT_PRESS_FIX. (bmy, 6/23/03)
 !  (2 ) Now make P1, P2 true surface pressure in DO_PJC_PFIX (bmy, 10/27/03)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

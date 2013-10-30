@@ -22,7 +22,6 @@
       USE TRACERID_MOD,    ONLY : IDOH, IDHO2
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -58,6 +57,7 @@
 !                              because O3, NO, and NO2 are now tracers.
 !  29 Mar 2013 - M. Payer    - Removed SAVENO, SAVENO2, SAVENO3.
 !  31 May 2013 - R. Yantosca - Extra cleanup, remove N_TRACERS, XNUMOL, STT
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

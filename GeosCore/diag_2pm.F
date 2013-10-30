@@ -50,7 +50,6 @@
       USE CMN_DIAG_MOD             ! HR_OH1, HR_OH2, etc.
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -82,6 +81,7 @@
 !  02 Apr 2013 - M. Payer    - Remove code for LTNO, LTNO2, and LTNO3. These
 !                              are no onger needed because NO, NO2, and NO3
 !                              are now tracers.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

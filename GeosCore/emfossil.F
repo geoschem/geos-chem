@@ -65,7 +65,6 @@
       USE TIME_MOD,           ONLY : GET_LOCALTIME
  
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -170,6 +169,7 @@
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP and LRCPSHIP from Input_Opt
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

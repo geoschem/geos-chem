@@ -16,7 +16,13 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS NOW OBSOLETE AND IS SLATED TO BE REMOVED!   %%%
+!  %%%  WE NOW USE THE LOGICALS FROM Input_Opt INSTEAD OF FROM HERE.     %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  05 Nov 2004 - R. Yantosca - Added LNEI99 switch to toggle EPA/NEI emissions 
@@ -68,6 +74,10 @@
 !                              newer Olson 2001 land map & drydep inputs
 !  26 Apr 2013 - R. Yantosca - Remove LTOMAS; we now use #if defined( TOMAS )
 !  06 Jun 2013 - K. Travis - Added NEI08
+!  07 Aug 2013 - M. Sulprizio- Move NAPEMISS and POAEMISSSCALE for SOA + SVPOA
+!                              simulation to Headers/gigc_input_opt_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Added LSVPOA switch for semivolatile POA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,6 +96,7 @@
       LOGICAL :: LSOA            ! Use secondary organic aerosol tracers?
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
       LOGICAL :: LDICARB         ! Use dicarbonyl chemistry mechanism?
+      LOGICAL :: LSVPOA          ! Switch for semi-volatile POA (hotp 8/9/09)
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?

@@ -36,6 +36,16 @@
 !  (9 ) tracerid_mod.f     : Module w/ pointers to tracers & emissions 
 !  (10) transfer_mod.f     : Module w/ routines to cast & resize arrays
 !
+!  References:
+!  ============================================================================
+!
+!  (1 ) Andreae, M.O., and P. Merlet, "Emissions of trace gases and aerosols
+!        from biomass burning", Global Biogeochemical Cycles, Vol 15, pp
+!        955-966, 2001.
+!  (2 ) Hays, M.D., C.D. Geron, K.J. Linna, N.D. Smith, and J.J. Schauer, 
+!        "Speciation of gas-phase and fine particle emissions from burning of
+!        foliar fuels", Environ. Sci. Technol., Vol 36, pp 2281-2295, 2002.
+!
 !  NOTES:
 !  (1 ) Now account for extra production of CO from VOC's for Tagged CO
 !        and CO-OH simulations (bmy, 1/3/01)
@@ -82,10 +92,12 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
+!  13 Aug 2013 - M. Sulprizio- Add NAP biofuel emissions for SOA + semivolatile
+!                              POA simulation (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -111,6 +123,11 @@
       ! MODULE VARIABLES
       !=================================================================
       INTEGER, PARAMETER          :: NBFMAX = 19
+!--------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: increase NBFMAX for NAP (hotp 6/25/09)
+!      INTEGER, PARAMETER          :: NBFMAX = 20
+!--------------------------------------------------------------------------
 
       INTEGER                     :: NBFTRACE
       INTEGER                     :: BFTRACE(NBFMAX) 
@@ -135,6 +152,11 @@
 !
 !  Biofuel emissions are based on estimates by Rose Yevich and Jennifer
 !  Logan (reference TBA).
+!
+!  References (see above for full citations):
+!  ===========================================================================
+!  (1 ) Hayes et al, 2002
+!  (2 ) Andreae & Merlet, 2001
 !
 !  NOTES:
 !  (1 ) Renamed array that held biofuel emissions from TWOODIJ to BIOFUEL,
@@ -220,6 +242,8 @@
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -256,6 +280,15 @@
       USE BRAVO_MOD,            ONLY : GET_BRAVO_MASK
       USE CAC_ANTHRO_MOD,       ONLY : GET_CANADA_MASK
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
+!--------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
+!     ! add NAP biofuel emissions 
+!      USE TRACERID_MOD,         ONLY : IDTNAP
+!     USE TRACERID_MOD,         ONLY : IDBFNAP
+!--------------------------------------------------------------------------
+      USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM 
+      USE TRACER_MOD,           ONLY : ITS_A_TAGCO_SIM
 
       ! SEAC4RS tracers (jaf, 6/13/13)
       USE GRID_MOD,             ONLY : GET_XMID,   GET_YMID
@@ -269,7 +302,6 @@
       USE CMN_DIAG_MOD               ! ND29, ND32, ND34
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -312,6 +344,16 @@
       REAL*8,  EXTERNAL             :: BOXVL
 
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
+ 
+!------------------------------------------------------------------------------
+! Prior to 10/30/13:
+!      ! SOAupdate: to scale CO down and remove effect of VOC ox (hotp 6/25/09)
+!      ! for gas phase NAP chemistry simulation 
+!      REAL*8                        :: COSCALEDOWN
+!
+!      ! SOAupdate: NAPSOA: scale up NAP emiss (hotp 7/24/09)
+!      REAL*8, PARAMETER             :: NAPTOTALSCALE = 66.09027d0
+!------------------------------------------------------------------------------
 
       ! For fields from Input_Opt
       LOGICAL                       :: LFUTURE
@@ -322,6 +364,7 @@
       LOGICAL                       :: LHIST
       LOGICAL                       :: LRCP
       LOGICAL                       :: ITS_A_H2HD_SIM
+      REAL*8                        :: NAPEMISS
 
       !=================================================================
       !   B i o f u e l   B u r n i n g   B e g i n s   H e r e !!
@@ -339,6 +382,7 @@
       LHIST          = Input_Opt%LHIST
       LRCP           = Input_Opt%LRCP
       ITS_A_H2HD_SIM = Input_Opt%ITS_A_H2HD_SIM
+      NAPEMISS       = Input_Opt%NAPEMISS
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -370,12 +414,22 @@
          !      C3H8      8          19        [kg C   /box/year]
          !      CH2O      9          20        [kg CH2O/box/year]
          !      C2H6      10         21        [kg C   /box/year]
+         !      GLYX      11                   [kg     /box/year]
+         !      MGLY      12                   [kg     /box/year]
+         !      BENZ      13                   [kg C   /box/year]
+         !      TOLU      14                   [kg C   /box/year]
+         !      XYLE      15                   [kg C   /box/year]
+         !      C2H4      16                   [kg C   /box/year]
+         !      C2H2      17                   [kg C   /box/year]
+         !      GLYC      18                   [kg     /box/year]
+         !      HAC       19                   [kg     /box/year]
+         !      NAP       20                   [kg C   /box/year]
          !
          ! These emissions are converted to [molec/cm3/s] (or 
          ! [molec C/cm3/s] for hydrocarbons), since the chemistry
          ! requires these units.
          !
-         ! There are NBFMAX=10 maximum allowed biofuel species, but 
+         ! There are NBFMAX=20 maximum allowed biofuel species, but 
          ! only NBFTRACE of these are actually emitted.  Species are 
          ! turned off/on with the switches in the "tracer.dat" file.
          !
@@ -867,6 +921,58 @@
                ! Define MOLWT for use below
                MOLWT(N) = 74d-3
 
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!            ! SOAupdate: for NAP gas phase chemistry (hotp 6/24/09)
+!            ! NAP biofuel emissions scaled from CO
+!            ELSE IF ( NN == IDTNAP ) THEN
+!
+!               !------------------------
+!               ! Biofuel NAP
+!               !------------------------
+!
+!               ! Remove extra CO to account for VOC oxidation
+!               ! default value
+!               COSCALEDOWN = 1d0
+!
+!               ! Adjust based on simulation type
+!               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+!                   COSCALEDOWN = 1d0/1.086d0
+!               ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+!                   COSCALEDOWN = 1d0/1.189d0
+!               ENDIF
+!
+!               ! = CO emissions * emissions ratio of mol NAP / mol CO 
+!               ! * kg C / mol NAP * mol CO / kg CO 
+!               ! mmol NAP / mol CO = 0.025 g NAP/ kg DM / 
+!               !              ( 78 g CO/ kg DM ) * 28 g CO / mol CO
+!               !            / ( 128 g NAP / mol NAP ) *1000 mmol/mol
+!               ! scale emissions down if appropriate to remove the
+!               ! effect of VOC ox on CO emission
+!               ! EF for NAP from Andreae and Merlet 2001 Glob Biog Cyc
+!               ! EF for CO  from Andreae and Merlet 2001 Glob Biog Cyc
+!               BIOFUEL_KG(N,:,:) = BIOFUEL_KG(IDBFCO,:,:) * 0.0701d-3 
+!     &                              * 120d0 / 28d0 * COSCALEDOWN
+!
+!               ! NAPSOA: scale up NAP emiss (hotp 7/24/09)
+!               BIOFUEL_KG(N,:,:) = BIOFUEL_KG(N,:,:) * NAPTOTALSCALE
+!
+!               ! Set according to input.geos (hotp 8/9/09)
+!               BIOFUEL_KG(N,:,:) = BIOFUEL_KG(N,:,:) * NAPEMISS
+!
+!               ! Compute future NAP emissions (if necessary)
+!               IF ( LFUTURE ) THEN
+!                  CALL SCALE_FUTURE( 'CO', BIOFUEL_KG(N,:,:) )
+!               ENDIF 
+!
+!               ! Compute total NAP
+!               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+!               WRITE( 6, 120 ) 'NAP ', TOTAL, '[Tg C/yr]'
+!               
+!               ! Define MOLWT for use below
+!               MOLWT(N) = 12d-3
+!------------------------------------------------------------------------------
+
             ENDIF
          ENDDO
 
@@ -994,10 +1100,15 @@
                      ! We do not have EPA/NEI biofuel emission.  
                      ! Use default emission for the newly added species. 
                      ! (tmf, 1/8/08) 
+                     ! SOAupdate: add NAP too (hotp 7/25/10)
                      IF ( (NN /= IDTGLYX) .and. (NN /= IDTMGLY) .and. 
      &                    (NN /= IDTBENZ) .and. (NN /= IDTTOLU) .and.
      &                    (NN /= IDTXYLE) .and. (NN /= IDTC2H4) .and.
      &                    (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.          
+!----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!     &                    (NN /= IDTHAC ) .and. (NN /= IDTNAP ) ) THEN
+!----------------------------------------------------------------------------
      &                    (NN /= IDTHAC ) ) THEN
 
                ! Determine if we should use weekday or weekend NEI
@@ -1231,6 +1342,17 @@
      &                  BIOFUEL(IDBFCO,I,J) * 3.31d-3             
                   ENDIF
 
+!----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)                 
+!                  ! SOAupdate: add NAP (hotp 7/25/10)
+!                  IF ( IDBFNAP > 0 ) THEN
+!                  !also needs scaling
+!                  BIOFUEL(IDBFNAP,I,J) = 
+!     &                 BIOFUEL(IDBFCO,I,J) * 0.0701d-3 * 10.d0 *
+!     &                  NAPTOTALSCALE * NAPEMISS
+!                  ENDIF
+!----------------------------------------------------------------------------
+
                ENDIF ! USA_MASK
 
             ENDIF ! LNEI99
@@ -1454,6 +1576,7 @@
 !                              running with the traditional driver main.F
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1469,6 +1592,12 @@
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTBENZ,  IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE,  IDTC2H4,  IDTC2H2,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTHAC
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: for gas phase NAP chemistry, NAP biofuel emis (hotp 6/24/09)
+!      USE TRACERID_MOD, ONLY : IDTNAP
+!      USE TRACERID_MOD, ONLY : IDBFNAP
+!------------------------------------------------------------------------------
 
       ! SEAC4RS tracers (jaf, 6/13/13)
       USE TRACERID_MOD, ONLY : IDBFPCOFNE, IDBFPCOFSE
@@ -1506,6 +1635,11 @@
       IF ( IDBFC2H2 /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFGLYC /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFHAC  /= 0 ) NBFTRACE = NBFTRACE + 1 
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: for gas phase NAP chemistry, NAP bf emiss (hotp 6/24/09)
+!      IF ( IDBFNAP  /= 0 ) NBFTRACE = NBFTRACE + 1
+!------------------------------------------------------------------------------
 
       ! SEAC4RS tracers (jaf, 6/13/13)
       IF ( IDBFPCOFNE /= 0 ) NBFTRACE = NBFTRACE + 1 
@@ -1534,6 +1668,11 @@
       IF ( IDBFC2H2 /= 0 ) BFTRACE(IDBFC2H2) = IDTC2H2
       IF ( IDBFGLYC /= 0 ) BFTRACE(IDBFGLYC) = IDTGLYC
       IF ( IDBFHAC  /= 0 ) BFTRACE(IDBFHAC ) = IDTHAC
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: for gas phase NAP chemistry, NAP bf emiss (hotp 6/24/09)
+!      IF ( IDBFNAP  /= 0 ) BFTRACE(IDBFNAP ) = IDTNAP
+!------------------------------------------------------------------------------
 
       ! SEAC4RS passive tracers (jaf, 6/13/13)
       IF ( IDBFPCOFNE /= 0 ) BFTRACE(IDBFPCOFNE) = IDTPCOFNE

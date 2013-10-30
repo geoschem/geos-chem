@@ -18,7 +18,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -31,6 +30,7 @@
 !
 ! !REVISION HISTORY:
 !  (1 ) Remove code for obsolete CO-OH simulation (bmy, 6/24/05)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

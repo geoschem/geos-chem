@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -147,6 +146,7 @@
 !  06 Aug 2012 - R. Yantosca - Now make IU_BC, IU_BC_NA, IU_BC_EU, IU_BC_CH,
 !                              and IU_BC_SE local variables for findFreeLUN
 !  07 Sep 2012 - R. Yantosca - Minor fixes for numerical stability
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -268,8 +268,6 @@
       USE inquireMod,    ONLY : findFreeLUN
       USE TIME_MOD,      ONLY : EXPAND_DATE,  GET_NYMD
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -298,6 +296,7 @@
 !  06 Aug 2012 - R. Yantosca - Cleaned up IF statement, added comments
 !  06 Aug 2012 - R. Yantosca - Close existing files before opening new files
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -976,8 +975,6 @@
       USE CMN_SIZE_MOD  
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -996,6 +993,7 @@
 !  07 Sep 2012 - R. Yantosca - Simplify coding, remove parallel loops
 !  07 Sep 2012 - R. Yantosca - Now use 0d0 instead of 0e0 to zero BC arrays
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1619,8 +1617,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
       USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1642,6 +1638,7 @@
 !                              even if LWINDO_CH or LWINDO_SE = False to
 !                              avoid out-of-bounds errors in array BC
 !  05 Jun 2013 - K. Yu       - Define BC boundaries for GEOS_57 0.25 NA grid
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

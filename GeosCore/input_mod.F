@@ -19,7 +19,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -120,8 +119,8 @@
 !  (33) Remove depreciated lightning options (ltm, bmy, 1/24/11)
 !  25 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  29 Jul 2011 - R. Yantosca - Bug fix in READ_EMISSIONS_MENU for nested NA
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  29 Jul 2011 - R. Yantosca - Bug fix in READ_EMISSIONS_MENU for nested NA
 !  07 Sep 2011 - P. Kasibhatla - Modified to include monthly GFED3
 !  17 Jan 2012 - P. Kasibhatla - Modified to include daily and 3-hourly GFED3
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met data
@@ -139,6 +138,9 @@
 !                              calls out of the run stage when using ESMF
 !  23 Apr 2013 - R. Yantosca - For TOMAS, rename READ_MICROPHYSICS_MENU to 
 !                              INIT_TOMAS_MICROPHYSICS
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1559,7 +1561,7 @@
 ! !USES:
 !
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
+      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA,   LSVPOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
       USE LOGICAL_MOD,  ONLY : LDICARB
       USE TRACER_MOD,   ONLY : N_TRACERS
@@ -1569,14 +1571,24 @@
       USE TRACERID_MOD, ONLY : IDTMSA,   IDTNH3,   IDTNH4,  IDTNITs 
       USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTNH4aq 
       USE TRACERID_MOD, ONLY : IDTSO4aq, IDTBCPO,  IDTBCPI, IDTOCPO 
-      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTALPH,  IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
-      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IDTOCPI
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
       USE TRACERID_MOD, ONLY : IDTASOA,  IDTBBSOA, IDTBGSOA
       USE TRACERID_MOD, ONLY : IDTAVOC,  IDTBBVOC
+      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
+      ! SOAupdate: remove old tracers and add new mtp (hotp 5/24/10)
+      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
+      USE TRACERID_MOD, ONLY : IDTBENZ,  IDTTOLU,  IDTXYLE
+      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3, IDTASOAN
+      ! semivolpoa : add POA (hotp 8/23/09)
+      ! POA now 1 and 2 (hotp 10/11/09), and NAP (hotp 7/28/10)
+      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
+      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
+      USE TRACERID_MOD, ONLY : IDTNAP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -1609,6 +1621,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1647,37 +1661,48 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
       READ( SUBSTRS(1:N), * ) LSOA
 
-      ! Use online dust aerosols 
+      ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
+      READ( SUBSTRS(1:N), * ) LSVPOA
+
+      ! SOAupdate: Add NAP/IVOC surrogate emissions (hotp 8/9/09)
+      ! SOAupdate: set NAP emissions (in Tg/yr)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%NAPEMISS
+
+      ! SOAupdate: Add scaling for POA emiss (hotp 9/21/09)
+      ! Fractional scaling, recommended value: 1.27
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%POAEMISSSCALE
+
+      ! Use online dust aerosols 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
       READ( SUBSTRS(1:N), * ) LDUST
 
       ! Use DEAD dust mobilization (=T) or GINOUX (=F)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
       READ( SUBSTRS(1:N), * ) LDEAD      
 
       ! Use online sea-salt aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
       READ( SUBSTRS(1:N), * ) LSSALT      
 
       ! Accum mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:11' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) SALA_REDGE_um(T)
       ENDDO
 
       ! Coarse mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:12' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) SALC_REDGE_um(T)
       ENDDO
 
       ! Switch to comment the SOG condensation in carbon_mod.f (ccc, 3/10/09)
       ! Use online dicarbonyl chemistry 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
       READ( SUBSTRS(1:N), * ) LDICARB
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
 
       !=================================================================
       ! Error checks
@@ -1699,6 +1724,7 @@
          LDUST  = .FALSE.
          LDEAD  = .FALSE.
          LSSALT = .FALSE.
+         LSVPOA = .FALSE.
       ENDIF
 
       !%%% The cryst/aq code is currently under development so make
@@ -1774,7 +1800,8 @@
       !---------------------------------
       ! Error check CARBON AEROSOLS
       !---------------------------------
-      I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI
+      ! SOAupdate: Add POA (hotp 10/11/09)
+      I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI + IDTPOA1
 
       IF ( LCARB ) THEN
          IF ( I == 0 ) THEN
@@ -1788,15 +1815,59 @@
          ENDIF
       ENDIF
 
+      IF ( LSVPOA .and. ( .NOT. LSOA ) ) THEN
+         MSG = 'Semivolatile POA requires LSOA=T'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! SOAupdate: Error check (hotp 8/24/09)
+      ! OCPI and OCPO are the non-volatile POA tracers
+      ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA tracers
+      ! You can't have both!
+      I = IDTOCPI + IDTOCPO
+      IF ( IDTPOA1 > 0 ) THEN
+         IF ( I > 0 ) THEN
+            MSG = 'Semivolatile POA tracer is defined in addition to
+     &             Nonvolatile POA'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+         IF ( ( .NOT. LSOA ) .or. (.NOT. LSVPOA ) ) THEN
+            MSG = 'Semivolatile POA requires LSOA=T and LSVPOA=T'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      ! SOAupdate
+      ! Options for organic aerosol tracers:
+      ! IF LSOA = F: only OCPI and OCPO
+      ! IF LSOA = T:
+      !   OCPI OCPO SOA (non-vol + original traditional)
+      !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
+      ! NAP emissions are set in input.geos
+      ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
+      I = IDTPOA1  + IDTPOA2  + IDTPOG1  + IDTPOG2  + 
+     &    IDTOPOA1 + IDTOPOA2 + IDTOPOG1 + IDTOPOG2
+      IF ( LSVPOA ) THEN
+         IF ( I < 8 ) THEN
+            MSG = 'Not enough semivolatile POA tracers!'
+                     CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+         IF ( IDTNAP == 0 ) THEN
+            MSG = 'Semivolatile POA requires IVOCs/NAP!'
+                     CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
       !---------------------------------
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
-      ! Add SOA5 in the check. (ccc, 2/4/10)
-      I = IDTALPH + IDTLIMO + IDTALCO + 
-     &    IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
-     &    IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4 + 
-     &    IDTSOAG + IDTSOAM + IDTSOA5
-
+      ! SOAupdate: update for new mtp (hotp 5/24/10)
+      I = IDTMTPA  + IDTLIMO  + IDTMTPO  + 
+     &    IDTBENZ  + IDTTOLU  + IDTXYLE  +
+     &    IDTTSOA1 + IDTTSOA2 + IDTTSOA3 +
+     &    IDTISOA1 + IDTISOA2 + IDTISOA3 +
+     &    IDTASOA1 + IDTASOA2 + IDTASOA3 + IDTASOAN +
+     &    IDTSOAG  + IDTSOAM
 
       IF ( LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -1876,6 +1947,7 @@
       Input_Opt%LCRYST             = LCRYST
       Input_Opt%LCARB              = LCARB
       Input_Opt%LSOA               = LSOA 
+      Input_Opt%LSVPOA             = LSVPOA
       Input_Opt%LDUST              = LDUST 
       Input_Opt%LDEAD              = LDEAD
       Input_Opt%LSSALT             = LSSALT
@@ -1896,6 +1968,11 @@
          WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
          WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
+         WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
+         WRITE( 6, 105     ) 'Annual NAP emiss [TgC/yr]   : ',
+     &                        Input_Opt%NAPEMISS
+         WRITE( 6, 105     ) 'POA emission scale [dimless]: ', 
+     &                        Input_Opt%POAEMISSSCALE
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
@@ -1907,6 +1984,7 @@
 
  100  FORMAT( A, L5     )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
+ 105  FORMAT( A, f6.2 )
 
       END SUBROUTINE READ_AEROSOL_MENU
 !EOC
@@ -2170,6 +2248,7 @@
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR to Input_Opt
 !  31 Jul 2013 - M. Sulprizio- Now copy LAEIC to Input_Opt; Add check to
 !                              make sure LAEIC and LRCPAIR are not both on
+!  22 Aug 2013 - R. Yantosca - Now read path for soil NOx restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2177,7 +2256,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC, SOIL_RST_FILE
 ![eml
       INTEGER            :: HISTYR
 !eml]
@@ -2360,10 +2439,14 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
+      ! Soil NOx restart file name
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37a' )
+      READ( SUBSTRS(1:N), '(a)' ) SOIL_RST_FILE
+
       ! separate use fertilizer and soil NOx (fp, 06/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) LFERTILIZERNOX
-
+      
       !(FP, 15/12/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
       READ( SUBSTRS(1:N), * ) NOx_SCALING
@@ -2863,6 +2946,7 @@
       Input_Opt%LLIGHTNOX      = LLIGHTNOX
       Input_Opt%LOTDLOC        = LOTDLOC
       Input_Opt%LSOILNOX       = LSOILNOX
+      Input_Opt%SOIL_RST_FILE  = SOIL_RST_FILE
       Input_Opt%LFERTILIZERNOX = LFERTILIZERNOX
       Input_Opt%NOx_SCALING    = NOx_SCALING
       Input_Opt%LEDGARSHIP     = LEDGARSHIP
@@ -2946,6 +3030,8 @@
         WRITE( 6, 100 ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
         WRITE( 6, 100 ) 'Use OTD-LIS local redist?   : ', LOTDLOC
         WRITE( 6, 100 ) 'Turn on SOIL NOx?           : ', LSOILNOX
+        WRITE( 6, 130 ) 'Soil NOx restart file name? : ', 
+     &       TRIM( SOIL_RST_FILE )
         WRITE( 6, 100 ) 'Turn on Fertilizer NOx?     : ', 
      &                                                  LFERTILIZERNOX
         WRITE( 6, 120 ) 'NOx scaling                 : ', NOx_SCALING
@@ -3330,8 +3416,6 @@
  
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-#     include "define.h"             ! C-preprocessor switches
 !
 ! !INPUT PARAMETERS:
 !
@@ -3351,6 +3435,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3484,6 +3569,7 @@
 !                              to ACCEPT_EXTERNAL_DATE_TIME
 !  22 May 2013 - M. Payer    - Now read in GAMMA_HO2. Recommended value is 0.2
 !                              based on Jacon et al (2000) and Mao et al (2013).
+!  22 Aug 2013 - R. Yantosca - Now read in path for species restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3491,7 +3577,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, SPEC_RST_FILE
 
       !=================================================================
       ! READ_CHEMISTRY_MENU begins here!
@@ -3523,16 +3609,20 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
-      ! Use KPP solver ?
+      ! Read and save CSPEC ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      READ( SUBSTRS(1:N), '(a)' ) SPEC_RST_FILE
+
+      ! Use KPP solver ?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
       READ( SUBSTRS(1:N), * ) LKPP
 
       ! GAMMA HO2 ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
       READ( SUBSTRS(1:N), * ) Input_Opt%GAMMA_HO2
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
 
       !=================================================================
       ! Set fields of Input Options object
@@ -3567,7 +3657,7 @@
       !-----------------------------------------------------------------
       
       ! Save to local variables for printing below
-      TS_CHEM            = Input_Opt%TS_CHEM
+      TS_CHEM                 = Input_Opt%TS_CHEM
 
       ! Pass chemistry timestep to time_mod.F
       CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
@@ -3583,17 +3673,18 @@
       ! the field Input_OPt%TS_CHEM with the value read in from 
       ! input.geos. (bmy, 12/6/12)
       !-----------------------------------------------------------------
-      Input_Opt%TS_CHEM  = TS_CHEM
+      Input_Opt%TS_CHEM       = TS_CHEM
 
 #endif
-      Input_Opt%LCHEM    = LCHEM
-      Input_Opt%LSCHEM   = LSCHEM
-      Input_Opt%LLINOZ   = LLINOZ
-      Input_Opt%LSVCSPEC = LSVCSPEC
-      Input_Opt%LKPP     = LKPP
+      Input_Opt%LCHEM         = LCHEM
+      Input_Opt%LSCHEM        = LSCHEM
+      Input_Opt%LLINOZ        = LLINOZ
+      Input_Opt%LSVCSPEC      = LSVCSPEC
+      Input_Opt%SPEC_RST_FILE = TRIM( SPEC_RST_FILE )
+      Input_Opt%LKPP          = LKPP
 
       ! Return success
-      RC = GIGC_SUCCESS
+      RC                      = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3606,6 +3697,8 @@
          WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', LLINOZ
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
+         WRITE( 6, 130     ) ' => CSPEC restart file?     : ', 
+     &        TRIM( SPEC_RST_FILE )
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
          WRITE( 6, 100     ) 'GAMMA HO2                   : ',
      &      Input_Opt%GAMMA_HO2
@@ -3615,6 +3708,7 @@
  100  FORMAT( A, L5  )
  110  FORMAT( A, I5  )
  120  FORMAT( A, 2I5 )
+ 130  FORMAT( A, A   )
 
       END SUBROUTINE READ_CHEMISTRY_MENU  
 !EOC
@@ -7358,11 +7452,6 @@
       IF ( ITS_A_MERCURY_SIM() ) THEN 
 
          ! Initialize "mercury_mod.f"
-!----------------------------------------------------------------------------
-! Prior to 6/3/13:
-! Now pass fields via Input_Opt instead of directly (bmy, 6/3/13)
-!         CALL INIT_MERCURY( ANTHRO_Hg_YEAR, HG_SCENARIO ) !eds 5/17/12
-!----------------------------------------------------------------------------
          CALL INIT_MERCURY( am_I_Root, Input_Opt, RC )
          CALL INIT_LAND_MERCURY()
          CALL INIT_DEPO_MERCURY(TRIM( GTMM_RST_FILE ))
@@ -7406,8 +7495,6 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-#     include "define.h"             ! C-preprocessor switches
 !
 ! !INPUT PARAMETERS:
 !
@@ -7427,6 +7514,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7873,8 +7961,6 @@
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,    LWINDO_CH
       USE LOGICAL_MOD,   ONLY : LWINDO_SE
       USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMDb,    GET_NYMDe
-
-#     include "define.h" 
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -7888,6 +7974,7 @@
 !  08 Feb 2012 - R. Yantosca - Now check GEOS-5.7.x directory
 !  09 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8044,8 +8131,6 @@
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE FILE_MOD,      ONLY : FILE_EXISTS
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR
-
-#     include "define.h"                        ! C-preprocessor flags
 !
 ! !INPUT PARAMETERS: 
 !
@@ -8055,6 +8140,7 @@
 !  20 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8513,6 +8599,8 @@
 !  26 Mar 2012 - R. Yantosca - Now turn off switch USE_OLSON_2001 by default
 !                              (except for GEOS-5.7.2 met)
 !  27 Mar 2012 - R. Yantosca - Cosmetic changes
+!  13 Aug 2013 - M. Sulprizio- Add modifications for SOA + semivolatile POA
+!                              simulation (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8604,6 +8692,8 @@
       LWARWICK_VSLS  = .FALSE.
       LSSABr2        = .FALSE.
       LFIX_PBL_BRO   = .FALSE.
+      ! SOAupdate stuff for semivol POA (hotp 10/1/09)
+      LSVPOA         = .FALSE.
       
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.

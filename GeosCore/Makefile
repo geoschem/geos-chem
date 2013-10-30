@@ -14,7 +14,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -109,6 +109,9 @@
 #  30 Oct 2012 - R. Yantosca - Remove reference to rdsoil.F
 #  27 Nov 2012 - R. Yantosca - Remove reference to getifsun.F
 #  30 May 2013 - R. Yantosca - Remove reference to GEOS-3 TPCORE routines 
+#  13 Aug 2013 - M. Sulprizio- Remove reference to soaprod_mod.F (no longer
+#                              needed) (SOAupdate, hotp 7/25/10)
+#  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -162,19 +165,19 @@ endif
 	@$(MAKE) exe
 
 tomas:
-	@$(MAKE) TOMAS=yes lib                          #  and the executable
+	@$(MAKE) TOMAS=yes lib                     # TOMAS, 30 bins (default)
 	@$(MAKE) TOMAS=yes tomexe
 
 tomas40:
-	@$(MAKE) TOMAS40=yes lib              #  and the executable
+	@$(MAKE) TOMAS40=yes lib                   # TOMAS, 40 bins
 	@$(MAKE) TOMAS40=yes tomexe
 
 tomas12:
-	@$(MAKE) TOMAS12=yes lib              #  and the executable
+	@$(MAKE) TOMAS12=yes lib                   # TOMAS, 12 bins
 	@$(MAKE) TOMAS12=yes tomexe
 
 tomas15:
-	@$(MAKE) TOMAS15=yes lib              #  and the executable
+	@$(MAKE) TOMAS15=yes lib                   # TOMAS, 15 bins
 	@$(MAKE) TOMAS15=yes tomexe
 
 lib:                                               # Build all G-C libraries
@@ -194,11 +197,11 @@ libkpp:                                            # Build code in KPP/
 	@$(MAKE) -C $(KPP)			  
 
 libnc:                                             # Build code in NcdfUtil/
-	@$(MAKE) -C $(NCDF) lib
+	@$(MAKE) -C $(NCDF) libnc
 
 ncdfcheck:                                         # Check netCDF library
 	@$(MAKE) libnc
-	@$(MAKE) -C $(NCDF) check
+	@$(MAKE) -C $(NCDF) ncdfcheck
 
 libutil:                                           # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)			  
@@ -215,7 +218,7 @@ tomexe:                                               # Build executable
 	cp -f $(TOM) $(BIN)
 
 clean:                                             # Remove files here
-	rm -f *.o *.mod geos geosapm geostomas
+	rm -f *.o *.mod geos geosapm
 
 distclean:                                         # Synonym for "realclean"
 	@$(MAKE) realclean
@@ -226,7 +229,6 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(APM) clean
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
-#	@$(MAKE) -C $(TOM) clean
 	@$(MAKE) -C $(GTMM) clean
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) -C $(HDR) clean
@@ -234,15 +236,17 @@ realclean:                                         # Remove files everywhere
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
-
 doc:                                               # Build documentation
-	@$(MAKE) -C $(DOC) all
+	@$(MAKE) -C $(DOC) doc
 
 docclean:                                          # Remove documentation
 	@$(MAKE) -C $(DOC) clean
 
 help:                                              # Show help screen
-	@$(MAKE) -C $(HELP)
+	@$(MAKE) -C $(HELP) help
+
+debug:
+	@@echo "targets: $(MAKECMDGOALS)"
 
 #=============================================================================
 # Targets for mercury simulation (ccc, 6/7/10)
@@ -373,7 +377,7 @@ carbon_mod.o                : carbon_mod.F                                   \
                               dao_mod.o               diag_mod.o             \
                               drydep_mod.o            future_emissions_mod.o \
                               gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
-                              global_no3_mod.o                               \
+                              global_no3_mod.o        rcp_mod.o              \
                               global_o3_mod.o         global_oh_mod.o        \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           tracerid_mod.o         \
@@ -505,7 +509,8 @@ diag41_mod.o                : diag41_mod.F            pbl_mix_mod.o
 
 diag42_mod.o                : diag42_mod.F                                   \
                               dao_mod.o               logical_mod.o          \
-                              tracerid_mod.o          tracer_mod.o  
+                              tracerid_mod.o          tracer_mod.o           \
+                              carbon_mod.o  
 
 diag48_mod.o                : diag48_mod.F                                   \
                               dao_mod.o               pbl_mix_mod.o          \
@@ -857,7 +862,7 @@ main.o                      : main.F                                         \
                               lightning_nox_mod.o     linoz_mod.o            \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           ocean_mercury_mod.o    \
-                              planeflight_mod.o       soaprod_mod.o          \
+                              planeflight_mod.o                              \
                               tpcore_bc_mod.o         tracer_mod.o           \
                               transport_mod.o         tropopause_mod.o       \
                               restart_mod.o           uvalbedo_mod.o         \
@@ -1055,17 +1060,13 @@ setemis.o                   : setemis.F                                      \
                               diag_mod.o              emissions_mod.o        \
                               lightning_nox_mod.o     logical_mod.o          \
                               pbl_mix_mod.o           tracerid_mod.o         \
-                              tropopause_mod.o    
+                              tropopause_mod.o        diag63_mod.o
 
 setmodel.o                  : setmodel.F
 
 sfcwindsqr.o                : sfcwindsqr.F            dao_mod.o
 
 smvgear.o                   : smvgear.F               comode_mod.o
-
-soaprod_mod.o               : soaprod_mod.F                                  \
-                              carbon_mod.o            dao_mod.o              \
-                              logical_mod.o           tracer_mod.o
 
 soil_nox_mod.o              : soil_nox_mod.F
 

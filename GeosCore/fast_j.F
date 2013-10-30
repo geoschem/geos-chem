@@ -28,8 +28,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_SIZE_MOD,       ONLY : IIPAR
       USE CMN_SIZE_MOD,       ONLY : JJPAR
       USE CMN_SIZE_MOD,       ONLY : LLPAR
@@ -136,6 +134,7 @@
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Cosmetic changes
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid field
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

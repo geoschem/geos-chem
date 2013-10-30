@@ -85,10 +85,10 @@
 !       all directions) because edges mass fluxes and divergence not known.
 !       (lzh, ccc, 8/3/10)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -181,13 +181,13 @@
 !        this P-fixer w/ GEOS-3 winds, pass true surface pressure to this
 !        routine. (bmy, 10/27/03)
 !  (2 ) Now define P2_TMP array for passing to ADJUST_PRESS (yxw, bmy, 3/5/07)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE CMN_SIZE_MOD    ! Size parameters
       USE CMN_GCTM_MOD    ! Physical constants
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*8,  INTENT(IN)  :: D_DYN
@@ -268,14 +268,13 @@
 !  (5 ) PS_AFTER (REAL*8) : Surface pressure - PTOP adjusted by P-fixer
 !
 !  NOTES:
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_MOD       ! NTRACE, LPRT, LWINDO
 
       IMPLICIT NONE
-#     include "define.h"
-#     include "define.h"
 
 
       ! Arguments

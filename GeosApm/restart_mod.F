@@ -20,7 +20,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS
@@ -62,6 +61,7 @@
 !                              CSPEC restart file
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,31 +91,41 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS, TAU, State_Met )
+      SUBROUTINE MAKE_RESTART_FILE( am_I_Root, Input_Opt, 
+     &                              YYYYMMDD,  HHMMSS,   
+     &                              TAU,       State_Met, 
+     &                              State_Chm, RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : BPCH2,         GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE LOGICAL_MOD,        ONLY : LPRT
       USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TRACER_MOD,         ONLY : STT,           N_TRACERS,  TCVV
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN)  :: HHMMSS     ! hh:mm:ss GMT time
-      REAL*8,         INTENT(IN)  :: TAU        ! TAU value (hrs from 1/1/1985)
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
+      REAL*8,         INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  27 May 1999 - R. Yantosca - Initial version
@@ -149,6 +159,8 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -173,15 +185,25 @@
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE 
 
+      ! For fields from Input_Opt
+      LOGICAL              :: LPRT
+      INTEGER              :: N_TRACERS
+      REAL*8               :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER      :: STT(:,:,:,:)
+
       !=================================================================
       ! MAKE_RESTART_FILE begins here!
       !=================================================================
 
       ! Pick the proper # of tracers
 #if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
+      N_TOT_TRC = Input_Opt%N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
 #else
-      N_TOT_TRC = N_TRACERS              ! G-C tracers only
+      N_TOT_TRC = Input_Opt%N_TRACERS              ! G-C tracers only
 #endif
    
       ! Define variables for BINARY PUNCH FILE OUTPUT
@@ -203,6 +225,10 @@
       ! Get the nested-grid offsets
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
       J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       !=================================================================
       ! Open the restart file for output -- binary punch format
@@ -253,6 +279,9 @@
       ! Close file
       CLOSE( IU_RST )
 
+      ! Free pointer
+      NULLIFY( STT )
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_RESTART_FILE: wrote file' )
 
@@ -271,21 +300,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_RESTART_FILE( YYYYMMDD, HHMMSS, State_Met ) 
+      SUBROUTINE READ_RESTART_FILE( YYYYMMDD,  HHMMSS,
+     &                              Input_Opt, State_Met, State_Chm ) 
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LSPLIT
-      USE LOGICAL_MOD,        ONLY : LPRT
       USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TRACER_MOD,         ONLY : N_TRACERS
-      USE TRACER_MOD,         ONLY : STT
-      USE TRACER_MOD,         ONLY : TRACER_NAME
-      USE TRACER_MOD,         ONLY : TRACER_MW_G
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
       USE APM_INIT_MOD,       ONLY : NGCOND,    NSO4,       NSEA
@@ -313,9 +339,14 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
-      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)    :: HHMMSS     ! hh:mm:ss   GMT time
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  27 May 1999 - R. Yantosca - Initial version
@@ -352,12 +383,14 @@
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL             :: LSPLIT, LPRT
       INTEGER             :: I, IOS, IU_RST, J, L, N
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4              :: TRACER(IIPAR,JJPAR,LLPAR)
@@ -376,6 +409,11 @@
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
 #if   defined( APM )
       REAL*4              :: SO4RST(IIPAR,JJPAR,LLPAR)
       REAL*4              :: BCIRST(IIPAR,JJPAR,LLPAR)
@@ -388,16 +426,24 @@
       ! READ_RESTART_FILE begins here!
       !=================================================================
 
+      ! Get fields from Input_Opt
+      LSPLIT    = Input_Opt%LSPLIT
+      LPRT      = Input_Opt%LPRT
+
       ! Pick the proper # of tracers
 #if   defined( APM )
-      N_TOT_TRC     = N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
+      N_TOT_TRC     = Input_Opt%N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
 #else
-      N_TOT_TRC     = N_TRACERS              ! G-C tracers only
+      N_TOT_TRC     = Input_Opt%N_TRACERS              ! G-C tracers only
 #endif
 
       ! Initialize some variables
       NCOUNT(:)     = 0
       TRACER(:,:,:) = 0e0
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       !=================================================================
       ! Open restart file and read top-of-file header
@@ -466,7 +512,8 @@
             CALL CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
 
             ! Convert TRACER from [v/v] to [kg] and copy into STT array
-            CALL COPY_STT( NTRACER, TRACER, NCOUNT, State_Met )
+            CALL COPY_STT( NTRACER,   TRACER,   NCOUNT,
+     &                     Input_Opt, State_Met, State_Chm )
 
 #if   defined( APM )
             ! Initialize APM arrays w/ info from the restart file
@@ -553,23 +600,26 @@
       WRITE( 6, 120 )
  120  FORMAT( /, 'Total atmospheric masses for each tracer: ' ) 
 
-      DO N = 1, N_TRACERS
+      DO N = 1, Input_Opt%N_TRACERS
 
          ! For tracers in kg C, be sure to use correct unit string
-         IF ( INT( TRACER_MW_G(N) + 0.5 ) == 12 ) THEN
+         IF ( INT( Input_Opt%TRACER_MW_G(N) + 0.5 ) == 12 ) THEN
             UNIT = 'kg C'
          ELSE
             UNIT = 'kg  '
          ENDIF
 
          ! Print totals
-         WRITE( 6, 130 ) N,                   TRACER_NAME(N), 
+         WRITE( 6, 130 ) N,                   Input_Opt%TRACER_NAME(N), 
      &                   SUM( STT(:,:,:,N) ), ADJUSTL( UNIT )
  130     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a4)
       ENDDO
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+      ! Free pointer
+      NULLIFY( STT )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_RESTART_FILE: read file' )
@@ -740,29 +790,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_STT( NTRACER, TRACER, NCOUNT, State_Met )
+      SUBROUTINE COPY_STT( NTRACER,   TRACER,    NCOUNT,
+     &                     Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
-      
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)    :: NTRACER                   ! Tracer #
       REAL*4,         INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR) ! Tracers from 
                                                                  !rst file [v/v]
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(INOUT) :: NCOUNT(NNPAR)      ! # of data blocks
+      INTEGER,        INTENT(INOUT) :: NCOUNT(NNPAR)       ! # of data blocks
 !                                                          !  for each tracer
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Added to "restart_mod.f".  Also added parallel loops. (bmy, 6/25/02)
@@ -774,6 +827,7 @@
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now pass State_Chm, Input_Opt as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -781,7 +835,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, L, N
-      
+
       !=================================================================
       ! COPY_STT begins here!
       !=================================================================
@@ -791,10 +845,10 @@
 
 #if   defined( APM )
       ! Exit if N is out of range: G-C + APM simulation
-      IF ( N < 1 .or. N > N_TRACERS+N_APMTRA ) RETURN
+      IF ( N < 1 .or. N > Input_Opt%N_TRACERS+N_APMTRA ) RETURN
 #else
       ! Exit if N is out of range: G-C simulation
-      IF ( N < 1 .or. N > N_TRACERS ) RETURN
+      IF ( N < 1 .or. N > Input_Opt%N_TRACERS ) RETURN
 #endif
 
       ! Convert from [v/v] to [kg] and store in STT
@@ -804,7 +858,9 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         STT(I,J,L,N) = TRACER(I,J,L) * State_Met%AD(I,J,L) / TCVV(N) 
+         State_Chm%Tracers(I,J,L,N) = TRACER(I,J,L) 
+     &                              * State_Met%AD(I,J,L) 
+     &                              / Input_Opt%TCVV(N) 
       ENDDO
       ENDDO
       ENDDO
@@ -940,31 +996,40 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_CSPEC_FILE( YYYYMMDD, HHMMSS )
+      SUBROUTINE MAKE_CSPEC_FILE( am_I_Root, Input_Opt, YYYYMMDD, 
+     &                            HHMMSS,    State_Chm, RC        )
 !
 ! !USES:
 !
       USE BPCH2_MOD
-      USE COMODE_MOD,  ONLY : CSPEC
-      USE COMODE_MOD,  ONLY : CSPEC_FULL
-      USE COMODE_MOD,  ONLY : JLOP
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE FILE_MOD,    ONLY : IOERROR
-      USE GRID_MOD,    ONLY : GET_XOFFSET
-      USE GRID_MOD,    ONLY : GET_YOFFSET
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TIME_MOD,    ONLY : GET_TAU
-
-      USE CMN_SIZE_MOD                   ! Size parameters
-      USE COMODE_LOOP_MOD                ! IGAS
-      USE CMN_MOD                        ! TAU , NSRCX, LSOILNOX
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE COMODE_MOD,         ONLY : JLOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GRID_MOD,           ONLY : GET_XOFFSET
+      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_TAU
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER, INTENT(IN)  :: HHMMSS     ! hh:mm:ss   GMT time
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)    :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)    :: HHMMSS      ! hh:mm:ss   GMT time
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  27 Aug 2004 - D. Henze    - Initial version, based on MAKE_RESTART
@@ -976,6 +1041,7 @@
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1008,10 +1074,23 @@
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE 
 
+      ! For fields from Input_Opt
+      LOGICAL              :: LPRT
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER      :: CSPEC_FULL(:,:,:,:)
 
       !=================================================================
       ! MAKE_CSPEC_FILE begins here!
       !=================================================================
+
+      ! Assume success
+      RC                  =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LPRT                = Input_Opt%LPRT
 
       ! Hardwire output file for now
       OUTPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
@@ -1021,6 +1100,9 @@
       !TMP(:,:,:)   = 0e0
       TMP(:,:,:)   = 1e-30
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
 
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
@@ -1116,6 +1198,9 @@
       ! Close file
       CLOSE( IU_RST )
 
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_CSPEC_FILE: wrote file' )
 
@@ -1136,30 +1221,42 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CSPEC_FILE( am_I_Root, YYYYMMDD,  
-     &                            HHMMSS,    IT_EXISTS ) 
+      SUBROUTINE READ_CSPEC_FILE( am_I_Root, Input_Opt, YYYYMMDD, 
+     &                            HHMMSS,    IT_EXISTS, State_Chm, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
-      USE COMODE_MOD,  ONLY : CSPEC_FULL
-      USE COMODE_MOD,  ONLY : JLOP
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE FILE_MOD,    ONLY : IOERROR
-      USE FILE_MOD,    ONLY : FILE_EXISTS
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE COMODE_LOOP_MOD               ! ITLOOP, IGAS
-      USE CMN_MOD	                ! LPRT, NSRCX, LSOILNOX
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
+      USE CMN_MOD
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE COMODE_MOD,         ONLY : JLOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE LOGICAL_MOD,        ONLY : LPRT
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN) :: am_I_Root  ! Is this the root CPU?
-      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)    :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)    :: HHMMSS      ! hh:mm:ss   GMT time
+!     
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!     
+! !OUTPUT PARAMETERS: 
+!
+
+      LOGICAL,        INTENT(OUT)   :: IT_EXISTS   ! Does CSPEC restart exist?
+      INTEGER,        INTENT(OUT)   :: RC 
 ! 
 ! !REVISION HISTORY: 
 !  30 Aug 2004 - D. Henze    - Initial version, based on READ_RESTART  
@@ -1173,6 +1270,9 @@
 !                              running with the traditional driver main.F
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  04 Apr 2013 - R. Yantosca - Now declare State_Chm INTENT(INOUT)
+!  22 Aug 2013 - R. Yantosca - Add Input_Opt, RC arguments
+!  22 Aug 2013 - R. Yantosca - Now get species restart filename from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1182,7 +1282,6 @@
       INTEGER             :: I, IOS, IU_RST, J, L, N, JLOOP, NN, NTL
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4		  :: TMP(ILONG,ILAT,IPVERT)
-      LOGICAL             :: IT_EXISTS 
 
       REAL*8              :: SUMTC
       CHARACTER(LEN=255)  :: FILENAME
@@ -1202,17 +1301,26 @@
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+
       !=================================================================
       ! READ_CSPEC_FILE begins here!
       !=================================================================
 
-      ! Hardwire output file for now
-      INPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+      ! Assume success
+      RC         = GIGC_SUCCESS
 
       ! Initialize some variables
       !TMP(:,:,:) = 0e0
       ! use 1e-30 as min (hotp 2/25/09)
       TMP(:,:,:) = 1e-30
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
 
       !=================================================================
       ! Open checkpoint file and read top-of-file header
@@ -1222,7 +1330,7 @@
       IU_RST   = findFreeLUN()
      
       ! Copy input file name to a local variable
-      FILENAME = TRIM( INPUT_CHECKPT_FILE )
+      FILENAME = TRIM( Input_Opt%SPEC_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
@@ -1320,6 +1428,9 @@
 
       ! Close file
       CLOSE( IU_RST )      
+
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_CSPEC_FILE: read file' )

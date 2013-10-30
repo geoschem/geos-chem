@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -51,6 +50,7 @@
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
 !  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm to several routines
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -493,8 +493,11 @@
             CALL CHEMRnPbBe 
      &         (  am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-            CALL DRYFLXRnPbBe
-     &         ( am_I_Root, Input_Opt, State_Chm, RC )
+            ! Modified for non-local PBL mixing (jintai, bmy, 8/1/13)
+            IF ( .not. Input_Opt%LNLPBL ) THEN
+               CALL DRYFLXRnPbBe
+     &            ( am_I_Root, Input_Opt, State_Chm, RC )
+            ENDIF
 
          !---------------------------------
          ! CH3I

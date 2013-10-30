@@ -24,7 +24,6 @@
       USE TRACERID_MOD,       ONLY : IDTRMB, NMEMBER, CTRMB
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -48,7 +47,8 @@
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC\
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

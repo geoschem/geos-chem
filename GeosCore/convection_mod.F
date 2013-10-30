@@ -21,7 +21,6 @@
       USE SMV_PHYSCONST_MOD
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 
 !
@@ -65,6 +64,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1046,7 +1046,6 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
 
       IMPLICIT NONE
-#     include "define.h"
 
 !
 ! !INPUT PARAMETERS: 
@@ -1212,6 +1211,7 @@
 !  29 May 2013 - R. Yantosca - Now set TINY = 1d-60 only for TOMAS code
 !  31 May 2013 - R. Yantosca - Now pass State_Chm and then have Q point to 
 !                              State_Chm%Tracers.  This is for TOMAS.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1943,6 +1943,9 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  31 May 2013 - R. Yantosca - Now pass State_Chm to WASHOUT
+!  05 Sep 2013 - R. Yantosca - Bug fix: DT is apparently undefined, but still
+!                              passed to WASHOUT.  Use SDT instead.  This
+!                              avoids a floating-point error.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2502,7 +2505,14 @@
                   ! Call WASHOUT to compute the fraction of tracer lost
                   ! to washout in grid box (I,J,K)
                   CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 
-     &                          T(K),      QDOWN,    DT,   
+!-----------------------------------------------------------------------------
+! Prior to 9/4/13:
+! Bug fix: need to call WASHOUT with SDT instead of DT, since DT is a typo.
+! There is no variable DT defined in this routine.  This error was found by
+! compiling with FPE=yes. (bmy, 9/4/13)
+!     &                          T(K),      QDOWN,    DT,   
+!-----------------------------------------------------------------------------
+     &                          T(K),      QDOWN,    SDT,   
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
      &                          WASHFRAC,  AER,      State_Met,
      &                          State_Chm                         )

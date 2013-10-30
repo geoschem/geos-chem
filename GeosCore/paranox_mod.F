@@ -601,6 +601,7 @@
 !
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD
 !
@@ -627,6 +628,9 @@
 !  17 Jun 2013 - R. Yantosca   - Bug fix: declare all REAL variables with
 !                                REAL*4 in order to avoid numerical precision
 !                                errors when compiling with OMP=yes.
+!  23 Aug 2013 - R. Yantosca   - Avoid numerical instability when computing
+!                                the ratio JO1D/JNO2.  J-values go to zero
+!                                at night, which can lead to a div-by-zero.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -735,7 +739,12 @@
       var_array(3) = o3 / dens * 1.E9                 ! [O3] in ppbv
       var_array(4) = ASIND(State_Met%SUNCOSmid5(I,J)) ! alfa0
       var_array(5) = ASIND(State_Met%SUNCOSmid(I,J))  ! alfa5
-      var_array(6) = JO1D / JNO2                      ! J(O1D)/J(NO2)
+      !--------------------------------------------------------------------
+      ! Bug fix!  Make sure JNO2 is not zero so that it is safe to divide
+      ! This was found by compiling with FPE=yes. (bmy, 8/23/13)
+      !var_array(6) = JO1D / JNO2                      ! J(O1D)/J(NO2)
+      !--------------------------------------------------------------------
+      var_array(6) = SAFE_DIV( JO1D, JNO2, 0d0 )      ! J(O1D)/J(NO2)
       var_array(7) = (no + no2) / dens * 1.E12        ! [NOx] in pptv
       
       ! prevent NaN when jvalues are 0.

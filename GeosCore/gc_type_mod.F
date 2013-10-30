@@ -25,7 +25,6 @@
 ! USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC TYPES:
@@ -183,6 +182,7 @@
 !  02 Jun 2010 - R. Yantosca - Added DQ*DTMST fields to GC_MET_LOCAL
 !  02 Jun 2010 - R. Yantosca - Moved type SCOX_1d here from schem_mod.F
 !  22 Oct 2012 - R. Yantosca - Comment out obsolete type definitions
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

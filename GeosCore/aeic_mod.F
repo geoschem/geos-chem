@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
 #     include "netcdf.inc" ! Needed for netCDF libraries
       PRIVATE
 !
@@ -40,6 +39,7 @@
 !  14 Dec 2012 - S. Eastham  - Adapted from AIRCRAFT_NOX_MOD. Now emits
 !                              aircraft NOx, CO, HC, SO2, SO4, OC and BC
 !  01 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,6 +151,7 @@
 !                              created by Christoph Keller. He combined original
 !                              monthly files into one file and made file
 !                              COARDS compliant.
+!  26 Aug 2013 - R. Yantosca - Avoid array temporaries in call to NcRd
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,6 +175,7 @@
       REAL*8               :: FRAC_AEIC,AEIC_CEIL,AEIC_BASE,ACTIVEDEPTH
       REAL*8               :: DEPTHLVLAEIC
       LOGICAL              :: AEIC_DONE
+      INTEGER              :: st4d(4), ct4d(4)
 
       !=================================================================
       ! READ_AEIC begins here!
@@ -210,9 +212,11 @@
                CALL ERROR_STOP( 'Unrecognized aircraft emission!',
      &               'READ_AEIC (aeic_mod.F90)' )
          END SELECT
-  
-         CALL NcRd(AEIC_1x1(:,:,:,EMIT_INDEX),AEIC_FID,TRIM(EMIT_NAME),
-     &       (/ 1, 1, 1 , INMONTH /),(/360, 180, NLVLAEIC, 1 /))
+ 
+         st4d = (/   1,   1,        1 , INMONTH /)
+         ct4d = (/ 360, 180, NLVLAEIC,        1 /)
+         CALL NcRd( AEIC_1x1(:,:,:,EMIT_INDEX),
+     &              AEIC_FID,TRIM(EMIT_NAME), st4d, ct4d )
  
       ENDDO
 

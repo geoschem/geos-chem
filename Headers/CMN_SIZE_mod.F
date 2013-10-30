@@ -16,8 +16,6 @@
 !
       IMPLICIT NONE
       PUBLIC
-
-#     include "define.h"
 !
 ! !DEFINED PARAMETERS:
 !
@@ -459,6 +457,10 @@
       ! +5 for SEAC4RS SOA tracers (jaf, 6/20/13)
       !INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS simulations
       INTEGER, PARAMETER :: NNPAR   = 114   ! For non-TOMAS simulations
+      !------------------------------------------------------------------------
+      ! This is in the std code (bmy, 10/30/13)
+      !INTEGER, PARAMETER :: NNPAR   = 125   ! For non-TOMAS simulations
+      !------------------------------------------------------------------------
 #endif
 
       ! Nempara increased to 26. (fp, 2/8/10)
@@ -549,7 +551,11 @@
       ! increase NBIOMAX to 25 fpr CH4 (kjw)
       ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
       INTEGER, PARAMETER :: NBIOMAX = 29
-
+      !------------------------------------------------------------------------
+      ! This is in the std code (bmy, 10/30/13)
+      !! SOAupdate: add 1 for naphthalene, now 26 (hotp 7/21/10)
+      !INTEGER, PARAMETER :: NBIOMAX = 26
+      !------------------------------------------------------------------------
 
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: TOMASSPEC = 8
@@ -659,6 +665,9 @@
 !                              adopted GEOS-Chem naming convention
 !  27 Nov 2012 - R. Yantosca - Removed commented out code
 !  05 Jun 2013 - R. Yantosca - Now define GEOS-5 0.25x0.3125 nested NA grid
+!  13 Aug 2013 - M. Sulprizio- Increase NNPAR & NBIOMAX for updated SOA and
+!                              SOA + semivolatile POA simulations (H. Pye) 
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

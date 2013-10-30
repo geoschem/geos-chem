@@ -21,10 +21,7 @@
       USE inquireMod, ONLY : findFreeLUN   ! Routine to find free LUNs
 
       IMPLICIT NONE
-#     include "define.h"
-
       PRIVATE
-
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
@@ -44,6 +41,7 @@
 !  20 Aug 2010 - R. Yantosca - Moved include files to top of module
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
 !  09 Nov 2012 - R. Yantosca - Now get met fields from State_Met object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

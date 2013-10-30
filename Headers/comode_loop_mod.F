@@ -19,8 +19,6 @@
 
       IMPLICIT NONE
       PUBLIC
-
-#     include "define.h"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -133,6 +131,8 @@
 !  24 Oct 2012 - R. Yantosca - Rewrite GIGC #ifdef blocks for clarity
 !  19 Nov 2012 - R. Yantosca - Now use funcitions INIT_COMODE_LOOP and
 !                              CLEANUP_COMODE_LOOP to allocate/free arrays
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -434,12 +434,14 @@
       REAL*8  ::         C3090S,      C0030S,    C0030N,   C3090N
 
       ! Added for tracking oxidation of ISOP by OH (dkh, bmy, 6/1/06)
-      INTEGER ::         ILISOPOH
+      ! SOAupdate: Added for tracking oxidation of ISOP by NO3 (hotp 6/11/10)
+      INTEGER ::         ILISOPOH, ILISOPNO3
 
       ! Added for tracking oxidation of aromatic RO2s (dkh, 10/06/06)  
       ! bug fix: change to INTEGER (dbm, dkh, 06/26/07)  
+      ! SOAupdate: added ILNRO2H/N (hotp 7/21/10)
       INTEGER ::         ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N
-      INTEGER ::         ILXRO2H,    ILXRO2N
+      INTEGER ::         ILXRO2H,    ILXRO2N,   ILNRO2H,  ILNRO2N
 
       ! Added option for zeroing CHBr3 and CH2Br2 inside calcrate,
       ! since zeroing their emissions doesn't prevent small

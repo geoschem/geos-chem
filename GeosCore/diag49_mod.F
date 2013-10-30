@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -84,6 +83,11 @@
 !  114           : Ocimene emissions                        [atomC/cm2/s]
 !  115-121       : size resolved dust optical depth         [unitless   ]
 !  122-142       : Anthropogenic emissions from ANTHSRCE    [molec/cm2/s]
+!-----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!  115           : Farnesene emissions                      [atomC/cm2/s]
+!  116-122       : size resolved dust optical depth         [unitless   ]
+!-----------------------------------------------------------------------------
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -110,6 +114,8 @@
 !                              level edges) instead of Psurface-PTOP.
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  05 May 2013 - K. Travis - Added ANTHSRCE
+!  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -263,6 +269,7 @@
 !  18 Jan 2013 - D. Millet   - Updated tracer numbers for EMISS_BVOC
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
 !                              of removal of NOx-Ox partitioning
+!  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -982,6 +989,10 @@
             ENDDO
 
          ELSE IF (N .gt. 114 .and. N .lt. 121) THEN
+!-----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!         ELSE IF (N > 115 ) THEN
+!-----------------------------------------------------------------------------
 
             !--------------------------------------
             ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
@@ -990,9 +1001,9 @@
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
             GMNL      = ND49_NL
-            GMTRC     = 21+(N-115)
+            GMTRC     = 21+(N-116)
 
-            R = N - 114
+            R = N - 115
 
             ! Scaling factor for AOD wavelength (clh, 05/09)
             ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
@@ -1682,6 +1693,7 @@
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
          !-----------------------------------
          ! Add Anthropgenic NOX to ND49
          !(paulot,5/27/13)
@@ -1713,6 +1725,36 @@
                ENDIF
            ENDDO
         ELSE
+
+!-----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!         ELSE IF ( N == 115 ) THEN ! SOAupdate
+!            
+!            !-----------------------------------
+!            ! Farnesene EMISSIONS  (hotp 3/5/10)
+!            ! [atom C/cm2/s]
+!            !-----------------------------------
+!            CATEGORY = 'BIOGSRCE'
+!            UNIT     = 'atomC/cm2/s'     
+!            GMNL     = ND49_NL
+!            GMTRC    = 14
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!               Q(X,Y,1) = EMISS_BVOC( I , J , 11 )
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!-----------------------------------------------------------------------------
+         ! SOAupdate: Can add BCARYO, OSQT, OMTP if desired (hotp 7/25/10)
+
+         ELSE
+
             ! Skip
             CYCLE
 

@@ -69,6 +69,7 @@
       ! Now set PD46 to 16 (jpp, 6/7/09)
       ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
       ! Changed PD46 to 22 (dbm, 12/2012)
+      ! SOAupdate: PD46 increased from 16 to 20 (hotp 3/1/10)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -115,6 +116,10 @@
       ! +1 for SEAC4RS passive tracer (jaf, 6/14/13)
       !INTEGER, PARAMETER :: PD46=22      !dbm replaced 16
       INTEGER, PARAMETER :: PD46=23      !dbm replaced 16
+      !---------------------------------------------------------------------
+      ! This is in the std code (bmy, 10/30/13)
+      !INTEGER, PARAMETER :: PD46=20
+      !---------------------------------------------------------------------
       INTEGER, PARAMETER :: PD47=NNPAR+1
       INTEGER, PARAMETER :: PD48=2            
       INTEGER, PARAMETER :: PD49=0                

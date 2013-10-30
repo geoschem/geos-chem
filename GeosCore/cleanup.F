@@ -132,7 +132,6 @@
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -247,6 +246,7 @@
 !                              have been restored to dao_mod.F for use in
 !                              the vertical regridding of OH for offline
 !                              simulations.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

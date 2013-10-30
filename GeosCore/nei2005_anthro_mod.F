@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -74,6 +73,7 @@
 !  24 May 2012 - R. Yantosca - Make all module arrays targets for pointers
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -404,7 +404,8 @@
       USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD,       ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
       USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+      ! added POA (jje 8/19/10)
+      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI, IDTPOA1
 #if defined( DEVEL )
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
 #endif
@@ -440,6 +441,7 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time).
+!  13 Aug 2013 - M. Sulprizio- Re-define SPECIES_ID for semivolatile POA (H.Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -504,12 +506,21 @@
       SNAME = 'GEOS4'
 #endif
 
-      ! list of ID of available species
-      SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
-     &                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
-     &                IDTOCPI, IDTBCPI,
-     &                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-     &     /)
+      ! List of ID of available species
+      ! For non-volatile POA
+      IF ( IDTOCPI > 0 ) THEN
+         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, 
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+      ENDIF
+      ! For semi-volatile POA (jje 8/19/10)
+      IF ( IDTPOA1 > 0 ) THEN
+         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4,  
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+      ENDIF
 
       ! ID #'s for that are not tied to IDTxxxx flags
       OFFLINE_ID = (/ 1,       4,       26,      27,      30,
@@ -812,7 +823,7 @@
             DO L = 1, 5
 
                !-----------------
-               ! OC
+               ! OC or POA1
                !-----------------
 
                ! Point to array slices
@@ -1343,7 +1354,8 @@
       USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD,       ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
       USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+      ! added POA (jje 8/19/10)
+      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI, IDTPOA1
 #if defined( DEVEL )
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
 #endif
@@ -1372,6 +1384,7 @@
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x like MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  13 Aug 2013 - M. Sulprizio- Re-define SPECIES_ID for semivolatile POA (H.Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1433,12 +1446,22 @@
       SNAME = 'GEOS4'
 #endif
 
-      ! list of ID of available species
-      SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
-     &                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
-     &                IDTOCPI, IDTBCPI,
-     &                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-     &     /)
+      ! List of ID of available species
+      ! For non-volatile POA
+      IF ( IDTOCPI > 0 ) THEN
+         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, 
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+
+      ENDIF
+      ! For semi-volatile POA (jje 8/19/10)
+      IF ( IDTPOA1 > 0 ) THEN
+         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4,  
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+      ENDIF
 
       ! ID #'s for that are not tied to IDTxxxx flags
       OFFLINE_ID = (/ 1,       4,       26,      27,      30,

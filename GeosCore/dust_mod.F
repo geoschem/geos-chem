@@ -18,7 +18,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -67,6 +66,7 @@
 !  14 Nov 2012 - R. Yantosca - Add modifications for GIGC
 !  04 Mar 2013 - R. Yantosca - Now call INIT_DUST from the init stage
 !                              which facilitates connection to GEOS-5 GCM
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1876,8 +1876,6 @@
       USE JV_CMN_MOD,         ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
-#     include "define.h"
-
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
@@ -1949,6 +1947,7 @@
 !                              running with the traditional driver main.F
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

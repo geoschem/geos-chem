@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -73,6 +72,7 @@
 !                              Removed obsolete code.
 !  19 Mar 2012 - M. Payer    - Removed obsolete subroutines READ_JO1D and
 !                              READ_RESP (E. Fischer)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

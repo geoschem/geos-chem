@@ -21,8 +21,6 @@
 
       IMPLICIT NONE
       PRIVATE
-
-#     include "define.h"
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -39,16 +37,29 @@
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
-#if   defined( APM )
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not use routines AIRQNT_FULLGRID, INIT_DAO, or CLEANUP_DAO when
+      ! we are connecting to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Routines AIRQNT_FULLGRID, INIT_DAO, and CLEANUP_DAO are used to
+      ! correct vertical regridding of OH for offline simulations
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      PUBLIC  :: AIRQNT_FULLGRID
       PUBLIC  :: CLEANUP_DAO
+      PUBLIC  :: INIT_DAO
 #endif
       PUBLIC  :: CONVERT_UNITS
       PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: GET_COSINE_SZA
       PUBLIC  :: GET_OBK
-#if   defined( APM )
-      PUBLIC  :: INIT_DAO
-#endif
       PUBLIC  :: INTERP
       PUBLIC  :: IS_LAND
       PUBLIC  :: IS_WATER
@@ -59,6 +70,23 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not use arrays AIRDEN_FULLGRID or T_FULLGRID when we are
+      ! connecting to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Arrays AIRDEN_FULLGRID and T_FULLGRID are used to correct vertical
+      ! regridding of OH for offline simulations (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
+#endif
 #if   defined( APM ) 
       !=================================================================
       ! Met field arrays needed only for APM microphysics
@@ -254,6 +282,11 @@
 !  28 Nov 2012 - R. Yantosca - Removed SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr
 !  28 Nov 2012 - R. Yantosca - Removed routines INIT_DAO, INIT_DAO_DERIVED, and
 !                              CLEANUP_DAO; we have no more allocatable arrays
+!  14 Mar 2013 - M. Payer    - Restored routines AIRQNT_FULLGRID, INIT_DAO,
+!                              CLEANUP_DAO and arrays AIRDEN_FULLGRID and
+!                              T_FULLGRID. They are required to correct vertical
+!                              regridding of OH for offline simulations.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -534,6 +567,131 @@
 
       END SUBROUTINE AIRQNT
 !EOC
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not use routine AIRQNT_FULLGRID when we are connecting to
+      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: airqnt_fullgrid
+!
+! !DESCRIPTION: Subroutine AIRQNT\_FULLGRID calculates the same quantities as 
+!  AIRQNT, but for the full, unlumped vertical grid of the GEOS GCM.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE AIRQNT_FULLGRID
+!
+! !USES:
+!
+      USE GRID_MOD,     ONLY : GET_AREA_M2
+      USE PRESSURE_MOD, ONLY : GET_PEDGE_FULLGRID
+!
+! !REMARKS:
+!  DAO met fields updated by AIRQNT_FULLGRID:
+!  ========================================================================
+!  (1 ) AIRDEN_FULLGRID (REAL*8 ) : Density of air  in a grid box   [kg/m^3  ]
+!
+!  NOTES:
+!  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I,  J,  L
+      REAL*8              :: P1, P2, AREA_M2, DELP_TMP
+      REAL*8              :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
+
+      !=================================================================
+      ! AIRQNT_FULLGRID begins here! 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
+!$OMP+PRIVATE( DELP_TMP, BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP )
+      DO L = 1, LGLOB
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Grid box surface area [m2]
+         AREA_M2 = GET_AREA_M2( I, J, L )
+               
+         ! Pressure at bottom edge of grid box [hPa]
+         P1          = GET_PEDGE_FULLGRID(I,J,L)
+
+         ! Pressure at top edge of grid box [hPa]
+         P2          = GET_PEDGE_FULLGRID(I,J,L+1)
+
+         ! Pressure difference between top & bottom edges [hPa]
+         DELP_TMP = P1 - P2
+            
+         !===========================================================
+         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
+         ! in meters. 
+         !
+         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
+         ! Rd = 287 J/K/kg is the value for the ideal gas constant
+         ! R for air (M.W = 0.02897 kg/mol),  or 
+         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
+         !===========================================================
+         BXHEIGHT_TMP = Rdg0 * T_FULLGRID(I,J,L) * LOG( P1 / P2 )
+
+         !===========================================================
+         ! AIRVOL is the volume of grid box (I,J,L) in meters^3
+         !
+         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
+         ! boxes (I,J,L=1), that is, at the earth's surface.
+         !
+         ! Since the thickness of the atmosphere is much smaller 
+         ! than the radius of the earth, we can make the "thin 
+         ! atmosphere" approximation, namely:
+         !
+         !               (Rearth + h) ~ Rearth
+         !
+         ! Therefore, the Delta-X * Delta-Y surface area of grid
+         ! boxes that are above the earth's surface will be 
+         ! approx. the same as AREA_M2.  Thus we are justified 
+         ! in using AREA_M2 for grid boxes (I, J, L > 1)
+         !===========================================================
+         AIRVOL_TMP = BXHEIGHT_TMP * AREA_M2
+
+         !===========================================================
+         ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
+         ! given by:        
+         !
+         !  Mass    Pressure        100      1        Surface area 
+         !        = difference   *  ---  *  ---   *   of grid box 
+         !          in grid box      1       g          AREA_M2
+         !
+         !   kg         mb          Pa      s^2           m^2
+         !  ----  =    ----      * ----  * -----  *      -----
+         !    1          1          mb       m             1
+         !===========================================================
+         AD_TMP = DELP_TMP * G0_100 * AREA_M2
+
+         !===========================================================
+         ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
+         !===========================================================
+         AIRDEN_FULLGRID(L,I,J) = AD_TMP / AIRVOL_TMP
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE AIRQNT_FULLGRID
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1288,7 +1446,7 @@
 
          State_Met%SPHU(I,J,L) = State_Met%SPHU1(I,J,L)   +
      &                         ( State_Met%SPHU2(I,J,L)   -
-     &                           State_Met%SPHU1(I,J,L)t ) * TM 
+     &                           State_Met%SPHU1(I,J,L) ) * TM 
 
       ENDDO
       ENDDO
@@ -3589,7 +3747,16 @@
       PBL0b  = 0.d0
 
       END SUBROUTINE INIT_DAO_DERIVED
+#endif
 !EOC
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not use INIT_DAO or CLEANUP_DAO routines when we are connecting
+      ! to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -3848,5 +4015,5 @@
 
       END SUBROUTINE CLEANUP_DAO
 !EOC
-#endif ! APM
+#endif
       END MODULE DAO_MOD

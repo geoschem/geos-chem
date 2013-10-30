@@ -42,6 +42,7 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
       !-----------------------------------------------------------------
+      USE CARBON_MOD            ! For SOA simulation
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
       USE COMODE_MOD            ! Allocatable arrays for SMVGEAR solver
       USE COMODE_LOOP_MOD       ! Formerly common-block arrays for SMVGEAR
@@ -49,7 +50,6 @@
       USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
-      USE SOAPROD_MOD           ! For SOA simulation
       USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
@@ -123,8 +123,6 @@
       USE GIGC_State_Met_Mod    ! Derived type for Meteorology State object
 
       IMPLICIT NONE
-
-#     include "define.h"
 !
 ! !REMARKS:
 !                                                                             .
@@ -225,6 +223,7 @@
 !  29 Mar 2013 - R. Yantosca - Bring code out of DEVEL blocks
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object to STDRUN routine
 !  03 Jun 2013 - R. Yantosca - Use routines from updated mercury_mod.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -577,24 +576,12 @@
 
       ! Read soil NOx initial conditions
       IF ( LSOILNOX ) THEN
-         CALL READ_SOIL_RESTART( NYMDb , NHMSb )
-         IF ( prtDebug ) 
-     &      CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
-      ENDIF
+         CALL READ_SOIL_RESTART
+     &      ( am_I_Root, Input_Opt, NYMDb , NHMSb, RC )
 
-      ! add support for making restart files of APROD and GPROD (dkh, 11/09/06) 
-      IF ( LSOA ) THEN
-
-         !! use this to make initial soaprod files  
-         !CALL SET_SOAPROD
-         !CALL FIRST_APRODGPROD()
-         !CALL MAKE_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
-         !goto 9999
-         !!
-
-         CALL SET_SOAPROD
-         CALL READ_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
-
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+         ENDIF
       ENDIF
 
       ! Read ocean Hg initial conditions (if necessary)
@@ -705,28 +692,15 @@
                   
                ! Make soil restart file
                IF ( LSOILNOX ) THEN
-                  CALL MAKE_SOILNOx_RESTART( NYMD, NHMS, TAU )
+                  CALL MAKE_SOILNOx_RESTART
+     &               ( am_I_Root, Input_Opt, NYMD, 
+     &                 NHMS,      TAU,       RC    )
                ENDIF
 
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
                   CALL MAKE_OCEAN_Hg_RESTART
      &               ( NYMD, NHMS, TAU, Input_Opt )
-               ENDIF
-
-               ! (dkh, 11/09/06)  
-!               ! Save SOA quantities GPROD & APROD
-!               IF ( LSOA .and. LCHEM ) THEN 
-!                  CALL WRITE_GPROD_APROD( NYMD, NHMS, TAU )
-!               ENDIF
-
-               IF ( LSOA .and. LCHEM ) THEN
-                  CALL MAKE_SOAPROD_FILE( GET_NYMD(), GET_NHMS() )
-
-                  !### Debug
-                  IF ( prtDebug ) THEN
-                     CALL DEBUG_MSG( '### MAIN: a MAKE_SOAPROD_FILE' )
-                  ENDIF
                ENDIF
 
                ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)
@@ -1303,7 +1277,7 @@
 
             ! ND42: SOA concentrations [ug/m3]
             IF ( ND42 > 0 ) THEN
-               CALL DIAG42( State_Met, State_Chm )
+               CALL DIAG42( Input_Opt, State_Met, State_Chm )
             ENDIF
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 

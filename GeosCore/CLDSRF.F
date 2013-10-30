@@ -16,9 +16,8 @@ c     odcol    Optical depth at each model level
 c     odsum    Column optical depth
 c     nlbatm   Level of lower photolysis boundary - usually surface
 !  10 Aug 2012 - R. Yantosca - Replace LPAR with LLPAR
-
+!  20 Aug 2013 - R. Yantosca - Remove "define.h", it's now obsolete
 !-----------------------------------------------------------------------
-#     include "define.h"
 
       USE CMN_FJ_MOD, ONLY : LLPAR, JPMAX, JPPJ
       USE JV_CMN_MOD
