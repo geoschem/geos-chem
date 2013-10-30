@@ -236,11 +236,6 @@
       INTEGER            :: IOS
       CHARACTER(LEN=1)   :: TAB   = ACHAR(9)
       CHARACTER(LEN=1)   :: SPACE = ' '
-!-----------------------------------------------------------------------------
-! Prior to 9/17/13:
-! Increase length of line to be consistent w/ READ_ONE_LINE (bmy, 9/17/13)
-!      CHARACTER(LEN=255) :: LINE
-!-----------------------------------------------------------------------------
       CHARACTER(LEN=MAXDIM) :: LINE
 
       !=================================================================
@@ -1252,6 +1247,8 @@
 !  13 Aug 2012 - R. Yantosca - Now pass CHEM_STATE as an argument (DEVEL only)
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  07 Nov 2012 - R. Yantosca - Now define Input_Opt%ITS_A_*_SIM fields
+!  28 Oct 2013 - R. Yantosca - Set Input_Opt%ITS_A_SPECIALTY_SIM = .FALSE.
+!                              when running GEOS-Chem in an ESMF environment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1528,7 +1525,40 @@
       Input_Opt%ITS_A_CO2_SIM          = ( SIM_TYPE == 12 )
       Input_Opt%ITS_A_H2HD_SIM         = ( SIM_TYPE == 13 )
       Input_Opt%ITS_A_POPS_SIM         = ( SIM_TYPE == 14 )
-      
+
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Set Input_Opt%ITS_A_SPECIALTY_SIM to FALSE, which will skip
+      ! reading/allocating T_FULLGRID and AIRDEN_FULLGRID arrays.
+      ! These are only needed for the offline "specialty" simulations
+      ! so that the OH fields can be regridded properly. (bmy, 10/28/13)
+      !-----------------------------------------------------------------
+      Input_Opt%ITS_A_SPECIALTY_SIM    = .FALSE.
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Set Input_Opt%ITS_A_SPECIALTY_SIM to TRUE if we are performing
+      ! any of the offline (non-full-chemistry) simulations that use
+      ! offline OH fields.  This will cause both the T_FULLGRID and 
+      ! AIRDEN_FULLGRID arrays to be allocated. (bmy, 10/28/13)
+      !-----------------------------------------------------------------
+      Input_Opt%ITS_A_SPECIALTY_SIM    =
+     &     ( Input_Opt%ITS_A_CH3I_SIM      .or.
+     &       Input_Opt%ITS_A_HCN_SIM       .or.
+     &       Input_Opt%ITS_A_TAGOX_SIM     .or.
+     &       Input_Opt%ITS_A_TAGCO_SIM     .or.
+     &       Input_Opt%ITS_A_C2H6_SIM      .or.
+     &       Input_Opt%ITS_A_CH4_SIM       .or.
+     &       Input_Opt%ITS_AN_AEROSOL_SIM  .or.
+     &       Input_Opt%ITS_A_MERCURY_SIM   .or.
+     &       Input_Opt%ITS_A_CO2_SIM       .or.
+     &       Input_Opt%ITS_A_H2HD_SIM      .or.
+     &       Input_Opt%ITS_A_POPS_SIM           )
+#endif
+
       ! Print info about each tracer
       DO T = 1, N_TRACERS
          Input_Opt%ID_EMITTED(T)       = ID_EMITTED(T)

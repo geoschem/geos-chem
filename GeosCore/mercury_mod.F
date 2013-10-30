@@ -463,6 +463,7 @@
 !  03 Jun 2013 - R. Yantosca - Now use fields from Input_OPt instead of from
 !                              logical_mod.F and tracer_mod.F
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -577,7 +578,12 @@
          MONTH = GET_MONTH()
 
          ! Read monthly mean OH and O3 from disk
-         CALL GET_GLOBAL_OH( MONTH, State_Met  )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!         CALL GET_GLOBAL_OH( MONTH, State_Met  )
+!-----------------------------------------------------------------------------
+         CALL GET_GLOBAL_OH
+     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_OH' )
 
          CALL GET_GLOBAL_O3( MONTH )

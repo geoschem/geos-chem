@@ -33,22 +33,6 @@
       PUBLIC  :: TRANSFER_3D_Bry
       PUBLIC  :: TRANSFER_3D_Lp1
       PUBLIC  :: TRANSFER_3D_TROP
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use routine TRANSFER_3D_NOLUMP when we are connecting to
-      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Include fix for vertical regridding of OH for offline simulations
-      ! provided by Chris Holmes (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-      PUBLIC  :: TRANSFER_3D_NOLUMP
-#endif
       PUBLIC  :: TRANSFER_G5_PLE
       PUBLIC  :: TRANSFER_ZONAL
       PUBLIC  :: TRANSFER_TO_1D
@@ -171,6 +155,8 @@
 !  20 Jul 2012 - R. Yantosca - Add routine TRANSFER_3D_Bry, which takes
 !                              data sized (144,91,:) as inputs & outputs
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  29 Oct 2013 - R. Yantosca - Remove TRANSFER_3D_NOLUMP routine, we can just
+!                              instead do a direct cast assignment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -451,56 +437,6 @@
 
       END SUBROUTINE TRANSFER_3D
 !EOC
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use routine TRANSFER_3D_NOLUMP when we are connecting to
-      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_3d_nolump
-!
-! !DESCRIPTION: Subroutine TRANSFER\_3D\_NOLUMP transfers 3-dimensional data
-!  from a REAL*4 array to a REAL*8 array.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_3D_NOLUMP( IN, OUT )
-!
-! !INPUT PARAMETERS:
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB)    ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LGLOB)   ! Output data
-!
-! !REVISION HISTORY:
-!  04 Aug 2011 - C. Holmes - Initial version, copied from TRANSFER_3D
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-
-      !================================================================
-      ! TRANSFER_3D begins here!
-      !================================================================
-
-      ! Copy the first L_COPY levels
-      OUT(:,:,:) = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0, : )
-
-      END SUBROUTINE TRANSFER_3D_NOLUMP
-!EOC
-#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------

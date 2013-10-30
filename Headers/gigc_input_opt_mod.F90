@@ -93,6 +93,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_H2HD_SIM
      LOGICAL                     :: ITS_A_POPS_SIM
+     LOGICAL                     :: ITS_A_SPECIALTY_SIM
      LOGICAL                     :: ITS_NOT_COPARAM_OR_CH4
 
      !----------------------------------------
@@ -749,6 +750,7 @@ CONTAINS
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_H2HD_SIM         = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
+    Input_Opt%ITS_A_SPECIALTY_SIM    = .FALSE.
     Input_Opt%ITS_NOT_COPARAM_OR_CH4 = .FALSE.
 
     !----------------------------------------

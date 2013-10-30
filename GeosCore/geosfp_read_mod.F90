@@ -1646,6 +1646,8 @@ CONTAINS
 !
 ! !USES:
 !
+    USE DAO_MOD,            ONLY : T_FULLGRID
+    USE DAO_MOD,            ONLY : T_FULLGRID_1
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
@@ -1681,6 +1683,7 @@ CONTAINS
 !                              with State_Met%TMPU1 to avoid errors.  The
 !                              State_Met%T field will be set again in INTERP.
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_I3_1
+!  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_1 for offline simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1799,6 +1802,12 @@ CONTAINS
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q3, State_Met%TMPU1 )
 
+    ! Also archive T_FULLGRID_1 for offline "specialty" simulations
+    IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+       T_FULLGRID_1 = Q3
+       T_FULLGRID   = Q3   ! Also need to initialize T_FULLGRID
+    ENDIF
+
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
@@ -1860,6 +1869,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE DAO_MOD,            ONLY : T_FULLGRID_2
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
@@ -1892,6 +1902,7 @@ CONTAINS
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !  26 Sep 2013 - R. Yantosca - Rename to GeosFp_Read_I3_2
+!  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_2 for offline simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2009,6 +2020,11 @@ CONTAINS
     v_name = "T"
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q3, State_Met%TMPU2 )
+
+    ! Also archive T_FULLGRID_1 for offline "specialty" simulations
+    IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+       T_FULLGRID_2 = Q3
+    ENDIF
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )

@@ -551,6 +551,7 @@
 !                              with either TOMAS=yes or TOMAS40=yes
 !  31 May 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, State_Chm
 !                              and RC to TOMAS routine CHEM_SO4_AQ
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -611,7 +612,12 @@
 
          ! Then read monthly data files ...
          IF ( ITS_A_NEW_MONTH() ) THEN 
-            CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!            CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+            CALL GET_GLOBAL_OH
+     &           ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
             CALL GET_GLOBAL_NO3( MONTH )
          ENDIF
 

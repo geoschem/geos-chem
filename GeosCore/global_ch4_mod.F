@@ -1807,6 +1807,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1948,7 +1949,13 @@
                DO M=1,12
 
                   ! Global OH 
-                  CALL GET_GLOBAL_OH( M, State_Met )
+!------------------------------------------------------------------------------
+! Prior to 10/23/13:
+!                  CALL GET_GLOBAL_OH( M, State_Met )
+!------------------------------------------------------------------------------
+                  CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, 
+     &                                State_Met, M,         RC )
+
 
                   ! Assign to module variable BOH
                   BOH(:,:,:,M) = OH(:,:,:)
