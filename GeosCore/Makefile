@@ -452,8 +452,7 @@ cleanup.o                   : cleanup.F                                      \
                               retro_mod.o             strat_chem_mod.o       \
                               global_bc_mod.o         global_oc_mod.o        \
                               diag53_mod.o            tomas_mod.o            \
-                              finn_biomass_mod.o
-                              rcp_mod.o
+                              finn_biomass_mod.o      rcp_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -598,8 +597,7 @@ emfossil.o                  : emfossil.F                                     \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    \
 			      retro_mod.o             c2h6_mod.o             \
-                              nei2008_anthro_mod.o
-                              rcp_mod.o
+                              nei2008_anthro_mod.o    rcp_mod.o
 
 emissdr.o                   : emissdr.F                                      \
                               acetone_mod.o           aeic_mod.o             \
@@ -626,7 +624,7 @@ emissions_mod.o             : emissions_mod.F                                \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tracer_mod.o            vistas_anthro_mod.o    \
-                              pops_mod.o              nei2008_anthro_mod.o
+                              pops_mod.o              nei2008_anthro_mod.o   \
                               rcp_mod.o
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
