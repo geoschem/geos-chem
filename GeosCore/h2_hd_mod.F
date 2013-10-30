@@ -131,9 +131,8 @@
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET  
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE MEGANUT_MOD,        ONLY : XLTMMP
-      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
-      USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
       USE TRACERID_MOD,       ONLY : IDBCO
+      USE MEGAN_MOD,          ONLY : GET_MEGAN_EMISSIONS
       USE TIME_MOD,           ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,           ONLY : GET_YEAR,    GET_TS_EMIS  
       USE TRACERID_MOD,       ONLY : IDBFCO,      IDTH2,        IDTHD
@@ -609,24 +608,24 @@
             ! CHEM_H2_HD 
             !===========================================================
 
-            ! Surface air temperature [K]
-            TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
 
             ! MEGAN biogenic emissions (mpayer,12/8/11)
             IF ( LMEGAN ) THEN
 
-               ! Cosine of solar zenith angle
-               SC   = State_Met%SUNCOSmid(I,J)
-
-               ! Diffuse and direct PAR
-               PDR  = State_Met%PARDR(I,J)
-               PDF  = State_Met%PARDF(I,J)
-
                ! ISOP and MONOTERPENE emissions in [atoms C/box/time step]
-               EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
-     &                                   PDR, PDF, XNUMOL_ISOP )
-               EMMO = GET_EMMONOT_MEGAN( I,   J,   SC,    TMMP,
-     &                                   PDR, PDF, XNUMOL_MONO )
+               ! Updated to new MEGAN routine (dbm, 12/2012)
+               EMXX = GET_MEGAN_EMISSIONS( I, J, State_Met, 'ISOP' )
+
+               ! Updated to new MEGAN routine (dbm, 12/2012)
+               ! Now add up individual terpene emissions
+               EMMO = GET_MEGAN_EMISSIONS( I, J, State_Met, 'APIN' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'BPIN' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'LIMO' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'SABI' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'MYRC' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'CARE' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'OCIM' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'OMON' )
 
             ENDIF
 

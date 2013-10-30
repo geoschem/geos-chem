@@ -215,6 +215,10 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Add time information for FLAMBE biomass burning emissions
+      ! (skim, 6/21/13)
+      INTEGER :: HOUR
+      INTEGER :: DAY
       INTEGER :: MONTH
       INTEGER :: YEAR
       REAL*8  :: SSA_Br2(IIPAR,JJPAR)
@@ -332,8 +336,8 @@
 !                                         State_Chm, RC         )  
 !----------------------------------------------------------------------------
          CALL COMPUTE_BIOMASS_EMISSIONS
-     &      ( am_I_Root, GET_YEAR(), MONTH,     
-     &        Input_Opt, State_Chm, RC      )  
+     &      ( am_I_Root, GET_YEAR(), MONTH, DAY, HOUR,
+     &        Input_Opt, State_Chm,  RC                )  
       ENDIF
          
       ! Test by simulation type

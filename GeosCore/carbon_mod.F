@@ -267,6 +267,11 @@
       REAL*8, ALLOCATABLE :: APROD(:,:,:,:,:,:)
       REAL*8, ALLOCATABLE :: ISOP_PRIOR(:,:,:)  ! (dkh, 10/09/05)  
 
+      ! SEAC4RS SOA tracers (jaf, 6/25/13)
+      REAL*8, ALLOCATABLE :: BBVOC_EMIS(:,:)
+      REAL*8, ALLOCATABLE :: AVOC_EMIS(:,:)
+      REAL*8, ALLOCATABLE :: BGSOA_EMIS(:,:)
+
       REAL*8, ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
       ! Cloud fraction - for cloud droplet uptake of dicarbonyls 
       ! (tmf, 12/07/07) 
@@ -4801,6 +4806,7 @@ c
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
+      USE FINN_BIOMASS_MOD,   ONLY : FINN_IS_NEW
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -4918,6 +4924,7 @@ c
       LOGICAL         :: LCOOKE
       LOGICAL         :: LPRT
       LOGICAL         :: LSOA
+      LOGICAL         :: LRCP
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -4940,6 +4947,7 @@ c
       LCOOKE    = Input_Opt%LCOOKE
       LPRT      = Input_Opt%LPRT
       LSOA      = Input_Opt%LSOA
+      LRCP      = Input_Opt%LRCP
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -5878,19 +5886,6 @@ ccc
       ! Arguments
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-      REAL*8, PARAMETER           :: FC1 = 136.2364D0 / 120.11D0
-      REAL*8, PARAMETER           :: FC2 = 154.2516D0 / 120.11D0
-      REAL*8, PARAMETER           :: FC3 = 204.3546D0 / 180.165D0
-      REAL*8, PARAMETER           :: FC4 = 152.D0     / 120.11D0
 
       ! Local variables
       LOGICAL, SAVE               :: FIRST = .TRUE.
@@ -5920,6 +5915,7 @@ ccc
       ! For fields from Input_Opt
       LOGICAL         :: LMEGANMONO
       LOGICAL         :: LSOA
+      LOGICAL         :: ISOP_SCALE
 
       !=================================================================
       ! BIOGENIC_OC begins here!
@@ -5928,6 +5924,10 @@ ccc
       ! Copy values from Input_Opt
       LMEGANMONO = Input_Opt%LMEGANMONO
       LSOA       = Input_Opt%LSOA
+      ISOP_SCALE = Input_Opt%ISOP_SCALING
+      ! We can't just use the saved value in emissions_mod.F because
+      ! emissions_mod.F already depends on carbon_mod.F, so just pull it
+      ! from input_opt here (jaf, 6/25/13)
 
       !=================================================================
       ! If secondary organic aerosols are turned off ...
@@ -6028,31 +6028,29 @@ ccc
          !------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, TMMP, SC, PDR, PDF )
+!$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! 1-D loop index
-            IJLOOP         = ( (J-1) * IIPAR ) + I
-
-            ! Surface temperature [K]
-            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
-
-            ! Monoterpene emission [kg C/box/timestep]
-
-            ! +++++++++++++++++++++++++++++++++++++++++
-            ! ** MEGAN v2.1 **
-            ! Cosine of solar zenith angle   (mpb,2009) 
-            ! Diffuse and direct PAR         (mpb,2009)
-            SC   = State_Met%SUNCOSmid(I,J)
-            PDR  = State_Met%PARDR(I,J)
-            PDF  = State_Met%PARDF(I,J)
-            ! +++++++++++++++++++++++++++++++++++++++++
-
             ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0 )               
+
+               ! Use updated MEGAN 2.1 driver (D. Millet)
+               ! Add up individual terpene emissions
+               TERP_ORGC(I,J) = 
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'APIN' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'BPIN' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'LIMO' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'SABI' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'MYRC' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'CARE' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'OCIM' ) +
+     &              GET_MEGAN_EMISSIONS( I, J, State_Met, 'OMON' )
+
+               ! Now need to convert this from atomsC to kgC
+               ! dbm (11/2012)
+               TERP_ORGC(I,J) = TERP_ORGC(I,J) * 12d-3/6.02d23
+
             ENDIF
 
             !---------------------------------------------------
@@ -6225,97 +6223,6 @@ ccc
                BIOG_SESQ(I,J) = DIUR_ORVC(I,J) * FC3 * 0.05D0
 
             ENDIF 
-!------------------------------------------------------------------------------
-! This is in the std code (bmy, 10/30/13)
-!               ! MEGAN emission update for SESQ and other monoterps
-!               ! (hotp 3/10/10)
-!               ! terpenoid ketones no longer lumped into ALPH
-!               ! terpenoid alcohols no longer lumped in ALCO
-!               ! Other monoterpenes (OMTP from MEGAN) all placed in TERP
-!               ! All sesq lumped together into SESQ
-!
-!               ! new mtp lumping (as of 5/20/10) hotp
-!               ! GEOS-Chem   MEGAN
-!               ! =========   ==========================================
-!               ! MTPA        a-pinene, b-pinene, sabinene, carene
-!               ! LIMO        limonene
-!               ! MTPO        myrcene, ocimene, other monot (OMTP)
-!               ! SESQ        farnesene (FARN), b-caryoph (BCAR), OSQT
-!               ! =========   ==========================================
-!
-!               !----------------------------------------
-!               ! MTPA in kg compound
-!               !----------------------------------------
-!               ! rename EMMONOG to EMTERP (hotp 7/29/10)
-!               ! New lumping: MTPA=a-,b-pinene,sabinene,carene (hotp 5/20/10)
-!               ! a-pinene
-!               BIOG_MTPA(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP, 
-!     &                                   PDR, PDF, 1d0, 'APINE') * FC1
-!               ! b-pinene
-!               BIOG_MTPA(I,J) = BIOG_MTPA(I,J) +
-!     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
-!     &                                   PDR, PDF, 1d0, 'BPINE') * FC1
-!               ! sabinene
-!               BIOG_MTPA(I,J) = BIOG_MTPA(I,J) +
-!     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
-!     &                                   PDR, PDF, 1d0, 'SABIN') * FC1
-!               ! d3-carene
-!               BIOG_MTPA(I,J) = BIOG_MTPA(I,J) +
-!     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
-!     &                                   PDR, PDF, 1d0, 'CAREN') * FC1
-!               ! no more terpenoid ketones here (hotp 3/10/10)
-!
-!               !----------------------------------------
-!               ! LIMO in kg compound (no change)
-!               !----------------------------------------
-!               ! limonene
-!               BIOG_LIMO(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP, 
-!     &                                   PDR, PDF, 1d0, 'LIMON') * FC1 
-!
-!               !----------------------------------------
-!               ! MTPO in kg compound
-!               !----------------------------------------
-!               ! MTPO is all other monoterpenes (MEGAN categories:
-!               ! myrcene, ocimene, OMTP) (hotp 5/20/10)
-!               ! All other monoterpenes (mostly camphene, linalool,
-!               ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
-!               ! 14-18% of OMTP is terpinene and terpinolene
-!               BIOG_MTPO(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
-!     &                          PDR, PDF, 1d0, 'OMTPE') * FC1 
-!
-!               ! ALCO in kg compound (no more)
-!
-!               ! myrcene
-!               BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
-!     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
-!     &                                   PDR, PDF, 1d0, 'MYRCN') * FC1
-!               ! ocimene
-!               BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
-!     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
-!     &                                   PDR, PDF, 1d0, 'OCIMN') * FC1
-!
-!               ! Other reactive volatile organic carbon emissions
-!               ! (terpenoid alcohols)
-!               ! terpenoid alchohols moved to TERP (hotp 3/10/10)
-!
-!               !----------------------------------------
-!               ! SESQ updated
-!               !----------------------------------------
-!               ! Sesquiterpenes from MEGAN (hotp 3/10/10)
-!               ! Farnesene
-!               BIOG_SESQ(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
-!     &                          PDR, PDF, 1d0, 'FARNE' ) * FC3
-!               ! beta-caryophyllene
-!               BIOG_SESQ(I,J) = BIOG_SESQ(I,J) +
-!     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
-!     &                                   PDR, PDF, 1d0, 'BCARE' ) * FC3
-!               ! other sesquiterpenes
-!               BIOG_SESQ(I,J) = BIOG_SESQ(I,J) +
-!     &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
-!     &                                   PDR, PDF, 1d0, 'OSQTE' ) * FC3
-!
-!            ENDIF ! end speciated MEGAN (hotp)
-!------------------------------------------------------------------------------
 
          ENDDO
          ENDDO
@@ -7515,7 +7422,6 @@ ccc
             IF ( IS_BBVOC ) EMIS_SAVE(I,J,IDTBBVOC) = BBVOC_EMIS(I,J)
             IF ( IS_BGSOA ) EMIS_SAVE(I,J,IDTBGSOA) = BGSOA_EMIS(I,J)
    
-         ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -9271,6 +9177,25 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_DARO2' )
          GLOB_DARO2 = 0d0
 
+      ENDIF
+
+      !=================================================================
+      ! SEAC4RS SOA TRACERS (jaf, 6/25/13)
+      !=================================================================
+      IF ( IDTAVOC > 0 ) THEN
+         ALLOCATE( AVOC_EMIS( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVOC_EMIS' )
+         AVOC_EMIS = 0d0
+      ENDIF
+      IF ( IDTBBVOC > 0 ) THEN
+         ALLOCATE( BBVOC_EMIS( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BBVOC_EMIS' )
+         BBVOC_EMIS = 0d0
+      ENDIF
+      IF ( IDTBGSOA > 0 ) THEN
+         ALLOCATE( BGSOA_EMIS( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BGSOA_EMIS' )
+         BGSOA_EMIS = 0d0
       ENDIF
 
       !=================================================================
