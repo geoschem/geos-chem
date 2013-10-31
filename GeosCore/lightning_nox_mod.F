@@ -1258,7 +1258,7 @@
 #if   defined( MERRA )
       MODELNAME = 'merra'
 #elif defined( GEOS_FP )
-         MODELNAME = 'geos5.7.2'
+      MODELNAME = 'geos5.7.2'
 #elif defined( GEOS_5 )
       ! GEOS-5 convection scheme changed in GCM post 9/1/2008
       IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
@@ -1272,15 +1272,22 @@
 
       ! Get file name
       ! OTD-LIS Local file for CTH parameterization
-      FILENAME = 
-     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' // 
-     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS: Hardwire to Patrick's OTD-LIS file (bmy, 10/31/13)
+!%%%      FILENAME = 
+!%%%     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' // 
+!%%%     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
+
+      FILENAME = '/as/home/skim/Code_Development/'                //
+     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' //
+     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()           //
+     &        '.temp'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Prefix directory to file name
 #if !defined( GEOS_FP )
-
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-#endif      
+#endif
 
       ! For GEOS-57 nested grids, append a suffix to denote either
       ! SEAC4RS or the China domain (skim, 5/29/12)
@@ -1546,9 +1553,9 @@
       !---------------------------------------
 
       ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+      !IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
          BETA = 0.63453405d0
-      ENDIF
+      !ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
 

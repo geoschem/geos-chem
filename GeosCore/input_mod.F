@@ -1600,7 +1600,7 @@
 ! !USES:
 !
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
+      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA,   LSVPOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
       USE LOGICAL_MOD,  ONLY : LDICARB
       USE TRACER_MOD,   ONLY : N_TRACERS
@@ -1687,6 +1687,20 @@
       ! Use secondary organic aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
       READ( SUBSTRS(1:N), * ) LSOA
+
+      ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
+      READ( SUBSTRS(1:N), * ) LSVPOA
+
+      ! SOAupdate: Add NAP/IVOC surrogate emissions (hotp 8/9/09)
+      ! SOAupdate: set NAP emissions (in Tg/yr)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%NAPEMISS
+
+      ! SOAupdate: Add scaling for POA emiss (hotp 9/21/09)
+      ! Fractional scaling, recommended value: 1.27
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%POAEMISSSCALE
 
       ! Use online dust aerosols 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
@@ -2280,6 +2294,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
       READ( SUBSTRS(1:N), * ) LNEI05
 
+      ! Include NEI2008 emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
+      READ( SUBSTRS(1:N), * ) LNEI08
+
       ! Use RETRO emissions? (wfr, 3/8/11)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
       READ( SUBSTRS(1:N), * ) LRETRO
@@ -2500,6 +2518,7 @@
       LSTREETS          = ( LSTREETS       .and. LANTHRO   )
       LCAC              = ( LCAC           .and. LANTHRO   )
       LNEI05            = ( LNEI05         .and. LANTHRO   )
+      LNEI08            = ( LNEI08         .and. LANTHRO   )
       LRETRO            = ( LRETRO         .and. LANTHRO   )
       LNEI99            = ( LNEI99         .and. LANTHRO   )
       LICARTT           = ( LICARTT        .and. LANTHRO   )
@@ -2833,6 +2852,7 @@
       Input_Opt%LSTREETS       = LSTREETS
       Input_Opt%LCAC           = LCAC
       Input_Opt%LNEI05         = LNEI05
+      Input_Opt%LNEI08         = LNEI08
       Input_Opt%LRETRO         = LRETRO
       Input_Opt%LNEI99         = LNEI99
       Input_Opt%LICARTT        = LICARTT
