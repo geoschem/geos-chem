@@ -605,10 +605,10 @@
      &                 OPTDEPTH   = State_Met%OPTDEP,    
      &                 Q          = State_Met%SPHU,            
      &                 T          = State_Met%T,                
-     &                 U          = State_Met%UWND,            
+     &                 U          = State_Met%U,            
      &                 UPDE       = State_Met%UPDE,          
      &                 UPDN       = State_Met%UPDN,  
-     &                 V          = State_Met%VWND
+     &                 V          = State_Met%V,
      &                 T_FULLGRID = T_FULLGRID ) 
 
          ! Create 2-D CLDFRC field from 3-D CLDF field
