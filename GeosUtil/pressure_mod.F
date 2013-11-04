@@ -219,8 +219,15 @@
 !
 ! !INPUT PARAMETERS: 
 !
+!------------------------------------------------------------------------------
+! Prior to 11/4/13:
+! Eliminate array temporary by accepting assumed-shape argument into this
+! routine. (mpayer, 11/4/13)
+!      ! Array containing pressure with which to initialize PFLT [hPa]
+!      REAL*8, INTENT(IN) :: PS(IIPAR,JJPAR)  
+!------------------------------------------------------------------------------
       ! Array containing pressure with which to initialize PFLT [hPa]
-      REAL*8, INTENT(IN) :: PS(IIPAR,JJPAR)  
+      REAL*8, INTENT(IN) :: PS(:,:)  
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, B. Field,  R. Yantosca - Initial version  
@@ -228,6 +235,8 @@
 !  (2 ) Added parallel DO-loop (bmy, 4/14/04)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
+!  04 Nov 2013 - M. Sulprizio- Eliminate array temporary by accepting assumed-
+!                              shape dummy argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

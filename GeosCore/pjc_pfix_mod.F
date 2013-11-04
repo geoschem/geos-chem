@@ -185,11 +185,21 @@
       ! Dynamic timestep [s]
       REAL*8,  INTENT(IN)  :: D_DYN
 
+!------------------------------------------------------------------------------
+! Prior to 11/4/13:
+! Eliminate array temporaries by accepting assumed-shape arguments into this
+! routine. (mpayer, 11/4/13)
+!      ! True PSurface at middle of dynamic timestep [hPa]
+!      REAL*8,  INTENT(IN)  :: P1(IIPAR,JJPAR)
+!
+!      ! True PSurface at end    of dynamic timestep [hPa]
+!      REAL*8,  INTENT(IN)  :: P2(IIPAR,JJPAR)
+!------------------------------------------------------------------------------
       ! True PSurface at middle of dynamic timestep [hPa]
-      REAL*8,  INTENT(IN)  :: P1(IIPAR,JJPAR)
+      REAL*8,  INTENT(IN)  :: P1(:,:)
 
       ! True PSurface at end    of dynamic timestep [hPa]
-      REAL*8,  INTENT(IN)  :: P2(IIPAR,JJPAR)
+      REAL*8,  INTENT(IN)  :: P2(:,:)
 
       ! Zonal (E-W) wind [m/s]
       REAL*8,  INTENT(IN)  :: UWND(IIPAR,JJPAR,LLPAR)
@@ -215,8 +225,10 @@
 !  (2 ) Now define P2_TMP array for passing to ADJUST_PRESS (yxw, bmy, 3/5/07)
 !
 ! !REVISION HISTORY: 
-!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.
+!  02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                              Declare all REAL variables as REAL*8.
+!  04 Nov 2013 - M. Sulprizio- Eliminate array temporaries by accepting assumed-
+!                              shape dummy arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC

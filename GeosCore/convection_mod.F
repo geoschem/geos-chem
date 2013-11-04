@@ -823,6 +823,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  04 Nov 2013 - M. Sulprizio- Now use pointer variables to flip met fields in
+!                              the vertical
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -854,9 +856,14 @@
       REAL*8        :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER :: STT        (:,:,:,:)   ! Ptr to Tracer concentrations
+      REAL*8, POINTER :: p_UPDE     (:,:,:  )   ! Ptr to UPDE     met field
+      REAL*8, POINTER :: p_DNDE     (:,:,:  )   ! Ptr to DNDE     met field
+      REAL*8, POINTER :: p_ENTRAIN  (:,:,:  )   ! Ptr to ENTRAIN  met field
+      REAL*8, POINTER :: p_DETRAINE (:,:,:  )   ! Ptr to DETRAINE met field
+      REAL*8, POINTER :: p_UPDN     (:,:,:  )   ! Ptr to UPDN     met field
+      REAL*8, POINTER :: p_DNDN     (:,:,:  )   ! Ptr to DNDN     met field
+      REAL*8, POINTER :: p_DETRAINN (:,:,:  )   ! Ptr to DETRAINN met field
 
       !=================================================================
       ! DO_GCAP_CONVECT begins here!
@@ -976,6 +983,15 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
+      ! Point to met fields and flip in vertical
+      p_UPDE     => State_Met%UPDE     (:,:,LLPAR:1:-1  )
+      p_DNDE     => State_Met%DNDE     (:,:,LLPAR:1:-1  )
+      p_ENTRAIN  => State_Met%ENTRAIN  (:,:,LLPAR:1:-1  )
+      p_DETRAINE => State_Met%DETRAINE (:,:,LLPAR:1:-1  )
+      p_UPDN     => State_Met%UPDN     (:,:,LLPAR:1:-1  )
+      p_DNDN     => State_Met%DNDN     (:,:,LLPAR:1:-1  )
+      p_DETRAINN => State_Met%DETRAINN (:,:,LLPAR:1:-1  )
+
       ! Call the GCAP convection routines 
       CALL GCAP_CONVECT( TDT, 
      &                   STT      (:,:,LLPAR:1:-1,:), 
@@ -985,13 +1001,24 @@
      &                   F        (:,:,LLPAR:1:-1,:),     
      &                   TCVV,   
      &                   INDEXSOL, 
-     &                   State_Met%UPDE     (:,:,LLPAR:1:-1  ),
-     &                   State_Met%DNDE     (:,:,LLPAR:1:-1  ), 
-     &                   State_Met%ENTRAIN  (:,:,LLPAR:1:-1  ), 
-     &                   State_Met%DETRAINE (:,:,LLPAR:1:-1  ), 
-     &                   State_Met%UPDN     (:,:,LLPAR:1:-1  ),  
-     &                   State_Met%DNDN     (:,:,LLPAR:1:-1  ),
-     &                   State_Met%DETRAINN (:,:,LLPAR:1:-1  )  )
+!------------------------------------------------------------------------------
+! Prior to 11/4/13:
+! Now use pointer variables to flip in the vertical (mpayer, 11/4/13)
+!     &                   State_Met%UPDE     (:,:,LLPAR:1:-1  ),
+!     &                   State_Met%DNDE     (:,:,LLPAR:1:-1  ), 
+!     &                   State_Met%ENTRAIN  (:,:,LLPAR:1:-1  ), 
+!     &                   State_Met%DETRAINE (:,:,LLPAR:1:-1  ), 
+!     &                   State_Met%UPDN     (:,:,LLPAR:1:-1  ),  
+!     &                   State_Met%DNDN     (:,:,LLPAR:1:-1  ),
+!     &                   State_Met%DETRAINN (:,:,LLPAR:1:-1  )  )
+!------------------------------------------------------------------------------
+     &                   p_UPDE,
+     &                   p_DNDE,
+     &                   p_ENTRAIN,
+     &                   p_DETRAINE,
+     &                   p_UPDN,
+     &                   p_DNDN,
+     &                   p_DETRAINN )
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
@@ -1010,7 +1037,9 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( STT                                   )
+      NULLIFY( p_UPDE, p_DNDE, p_ENTRAIN, p_DETRAINE )
+      NULLIFY( p_UPDN, p_DNDN, p_DETRAINN            )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a GCAP_CONVECT' )

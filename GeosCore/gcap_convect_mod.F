@@ -108,6 +108,9 @@
 !        subroutines instead of array slices such as (:,J,:).  This can cause
 !        problems with OpenMP for some compilers. (bmy, 12/13/05)
 !  (2 ) Now don't call CONVTRAN if LENGATH=0 (bmy, 12/19/06)
+!  04 Nov 2013 - M. Sulprizio- Eliminate array temporaries by accepting
+!                              pointer-valued arguments via assumed-shape dummy
+!                              arguments
 !******************************************************************************
 !
 
@@ -122,13 +125,25 @@
       REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
       INTEGER, INTENT(IN)    :: INDEXSOL(NTRACE) 
-      REAL*8,  INTENT(IN)    :: UPDE(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: DNDE(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: ENTRAIN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: DETRAINE(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: UPDN(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: DNDN(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: DETRAINN(IIPAR,JJPAR,LLPAR)
+!------------------------------------------------------------------------------
+! Prior to 11/4/13:
+! Eliminate array temporary by accepting pointer variables into this routine
+! via assumed-shape arguments. (mpayer, 11/4/13)
+!      REAL*8,  INTENT(IN)    :: UPDE(IIPAR,JJPAR,LLPAR)     
+!      REAL*8,  INTENT(IN)    :: DNDE(IIPAR,JJPAR,LLPAR)     
+!      REAL*8,  INTENT(IN)    :: ENTRAIN(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)    :: DETRAINE(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)    :: UPDN(IIPAR,JJPAR,LLPAR)     
+!      REAL*8,  INTENT(IN)    :: DNDN(IIPAR,JJPAR,LLPAR)     
+!      REAL*8,  INTENT(IN)    :: DETRAINN(IIPAR,JJPAR,LLPAR)
+!------------------------------------------------------------------------------
+      REAL*8,  INTENT(IN)    :: UPDE(:,:,:)
+      REAL*8,  INTENT(IN)    :: DNDE(:,:,:)
+      REAL*8,  INTENT(IN)    :: ENTRAIN(:,:,:)
+      REAL*8,  INTENT(IN)    :: DETRAINE(:,:,:)
+      REAL*8,  INTENT(IN)    :: UPDN(:,:,:)
+      REAL*8,  INTENT(IN)    :: DNDN(:,:,:)
+      REAL*8,  INTENT(IN)    :: DETRAINN(:,:,:)
 
       ! Local variables
       INTEGER                :: I, J, L, N, LENGATH, ISTEP
@@ -267,6 +282,9 @@
 !  (1 ) Now dimension DP, MU, MD, DU, EU as (IIPAR,JJPAR,LLPAR) to avoid seg 
 !        fault error in OpenMP.  Also now pass the GEOS-CHEM latitude index J 
 !        via the argument list.  Add comments. (bmy, 12/13/05)
+!  04 Nov 2013 - M. Sulprizio- Eliminate array temporaries by accepting
+!                              pointer-valued arguments via assumed-shape dummy
+!                              arguments
 !******************************************************************************
 !
       USE CMN_SIZE_MOD    ! Size parameters
@@ -275,10 +293,19 @@
       INTEGER, INTENT(IN)  :: J
       INTEGER, INTENT(IN)  :: NSTEP
       REAL*8,  INTENT(IN)  :: DP(IIPAR,JJPAR,LLPAR) 
-      REAL*8,  INTENT(IN)  :: MU(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: MD(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: DU(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: EU(IIPAR,JJPAR,LLPAR) 
+!------------------------------------------------------------------------------
+! Prior to 11/4/13:
+! Eliminate array temporary by accepting pointer variables into this routine
+! via assumed-shape arguments. (mpayer, 11/4/13)
+!      REAL*8,  INTENT(IN)  :: MU(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)  :: MD(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)  :: DU(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)  :: EU(IIPAR,JJPAR,LLPAR) 
+!------------------------------------------------------------------------------
+      REAL*8,  INTENT(IN)  :: MU(:,:,:)
+      REAL*8,  INTENT(IN)  :: MD(:,:,:)
+      REAL*8,  INTENT(IN)  :: DU(:,:,:)
+      REAL*8,  INTENT(IN)  :: EU(:,:,:)
       REAL*8,  INTENT(OUT) :: MUG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: MDG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: DUG(IIPAR,LLPAR)      
