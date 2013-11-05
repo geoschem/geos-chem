@@ -1171,6 +1171,8 @@ CONTAINS
     !----------------------------------------
     ! ND63 MENU fields
     !----------------------------------------
+    ALLOCATE( Input_Opt%ND63_TRACERS( MAX_TRCS ), STAT=RC )
+
     Input_Opt%DO_ND63                = .FALSE.
     Input_Opt%ND63_FILE              = ''
     Input_Opt%ND63_TRACERS           = 0
@@ -1411,6 +1413,10 @@ CONTAINS
        DEALLOCATE( Input_Opt%TRACER_N_CONST )
     ENDIF
 
+    IF ( ASSOCIATED (Input_Opt%TRACER_CONST ) ) THEN
+       DEALLOCATE( Input_Opt%TRACER_CONST )
+    ENDIF
+
     IF ( ASSOCIATED( Input_Opt%TRACER_COEFF ) ) THEN
        DEALLOCATE( Input_Opt%TRACER_COEFF )
     ENDIF
@@ -1431,6 +1437,18 @@ CONTAINS
        DEALLOCATE( Input_Opt%NJDAY )
     ENDIF
     
+    IF ( ASSOCIATED( Input_Opt%TINDEX ) ) THEN
+       DEALLOCATE( Input_Opt%TINDEX )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%TCOUNT ) ) THEN
+       DEALLOCATE( Input_Opt%TCOUNT )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%TMAX ) ) THEN
+       DEALLOCATE( Input_Opt%TMAX )
+    ENDIF
+
     IF ( ASSOCIATED( Input_Opt%ND48_IARR ) ) THEN
        DEALLOCATE( Input_Opt%ND48_IARR )
     ENDIF
