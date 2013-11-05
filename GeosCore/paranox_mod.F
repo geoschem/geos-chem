@@ -299,7 +299,7 @@
 !!      PRINT*,"USA: ", State_Met%TS(32,64)
 !
 !      ! Tracer concentrations in v/v
-!!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX3)/ State_Met%AD(I,J,1) * TCVV(IDTO3)
+!!      PRINT*,"[O3] is: ",STT(I,J,1,IDTO3)/ State_Met%AD(I,J,1) * TCVV(IDTO3)
 !!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ State_Met%AD(I,J,1) * TCVV(IDTCO)
 !!      PRINT*,"IDTO3 is: ", IDTO3
 !!      PRINT*,"IDO3 is: ", IDO3

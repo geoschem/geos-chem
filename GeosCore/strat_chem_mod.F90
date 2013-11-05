@@ -1466,6 +1466,7 @@ CONTAINS
 !                              running with the traditional driver main.F
 !  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
 !  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
+!  05 Nov 2013 - R. Yantosca - Now update tracer flags for tagOx simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1637,8 +1638,9 @@ CONTAINS
           ENDIF
        ENDIF
        DO N = 1, N_TRACERS
-          IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' .or. &
-               TRIM(TRACER_NAME(N)) .eq. 'OxStrt' ) THEN
+          IF ( TRIM(TRACER_NAME(N)) .eq. 'O3'        .or. &
+               TRIM(TRACER_NAME(N)) .eq. 'O3Strt'    .or. &
+               TRIM(TRACER_NAME(N)) .eq. 'O3Strat' ) THEN
              NSCHEM = NSCHEM + 1
              Strat_TrID_GC(NSCHEM) = N
              IF ( am_I_Root ) THEN
@@ -1761,7 +1763,7 @@ CONTAINS
     USE LOGICAL_MOD,        ONLY : LVARTROP 
     USE PRESSURE_MOD,       ONLY : GET_PEDGE,   GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
-    USE TRACERID_MOD,       ONLY : IDTO3,       IDTOxStrt
+    USE TRACERID_MOD,       ONLY : IDTO3,       IDTO3Strt
     USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
 
     USE CMN_SIZE_MOD             ! Size parameters
@@ -1868,6 +1870,7 @@ CONTAINS
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2126,7 +2129,7 @@ CONTAINS
                 STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + PO3 
 
                 ! Store O3 flux for strat Ox tracer (Tagged Ox only)
-                STT(I,J,L,IDTOxStrt) = STT(I,J,L,IDTOxStrt) + PO3
+                STT(I,J,L,IDTO3Strt) = STT(I,J,L,IDTO3Strt) + PO3
              ELSE
                 ! Store O3 flux in the proper tracer number
                 STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + PO3 

@@ -97,10 +97,10 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD, ONLY : IDTOxStrt
+      USE TRACERID_MOD,       ONLY : IDTO3Strt
 
-      USE CMN_SIZE_MOD           ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -118,29 +118,20 @@
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  10 Jun 2012 - L. Murray - Enable tagged Ox for Synoz.
+!  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
+!  05 Nov 2013 - R. Yantosca - Remove STT pointer for simplicity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
-
       !=================================================================
       ! GET_STRAT_POX begins here!
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
-      STT(I,J,L,IDTOxStrt) = STT(I,J,L,IDTOxStrt) + POx
-
-      ! Free pointer
-      NULLIFY( STT )
+      State_Chm%Tracers(I,J,L,IDTO3Strt) = 
+     &State_Chm%Tracers(I,J,L,IDTO3Strt) + POx
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC
@@ -162,6 +153,7 @@
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE BPCH2_MOD,     ONLY : GET_TAU0
       USE DIRECTORY_MOD, ONLY : O3PL_DIR 
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TIME_MOD,      ONLY : GET_NYMD
@@ -173,6 +165,8 @@
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
       USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,      ONLY : GET_YEAR
+      USE TIME_MOD,      ONLY : GET_MONTH
+      USE TIME_MOD,      ONLY : GET_DAY
       USE TIME_MOD,      ONLY : GET_HOUR
       USE DIAG_PL_MOD                                      !dbj
       USE JULDAY_MOD,    ONLY : JULDAY                     !dbj
@@ -192,6 +186,8 @@
 !        save diag20 (phs, 11/17/08)
 !  (7 ) Updates for LINOZ (dbj, jliu, bmy, 10/16/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  05 Nov 2013 - R. Yantosca - Add Kludge to read rate files for a different
+!                              year than the met field year
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -203,19 +199,40 @@
       CHARACTER(LEN=255) :: FILENAME
       !JLIU, 2008/10/01
       INTEGER            :: YYYY, MM, DD, FIRST_DATE
-      INTEGER            :: DAY_OF_YEAR
+      INTEGER            :: DAY_OF_YEAR,  NYMD
       CHARACTER(LEN=2)   :: MM_STR, DD_STR
 
       !=================================================================
       ! READ_POX_LOX begins here!
       !=================================================================
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR READING RATE FILES FOR A DIFFERENT YEAR (bmy, 11/5/13) 
+!%%%
+!%%% Original code here:
+!%%%
       ! Filename string
       FILENAME = 'rate.YYYYMMDD'
       CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
 
       ! Get the TAU0 value for today
       XTAU = GET_TAU()
+!%%%
+!%%% Kludge begins here (uncomment if you want to activate):
+!%%%
+!%%%    ! Read 2004 rate files
+!%%%    YYYY  = 2004
+!%%%    MM    = GET_MONTH()
+!%%%    DD    = GET_DAY()
+!%%%    NYMD  = YYYY*10000 + MM*100 + DD 
+!%%%
+!%%%    ! Filename string
+!%%%    FILENAME = 'rate.YYYYMMDD'
+!%%%    CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+!%%%
+!%%%    ! Get the TAU value
+!%%%    XTAU = GET_TAU0( MM, DD, YYYY )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !------------------------------------------------------------------------------
 ! Comment out for now (bmy, 2/4/11)
@@ -549,7 +566,7 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRACERID_MOD,       ONLY : IDTOX
+      USE TRACERID_MOD,       ONLY : IDTO3
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
       IMPLICIT NONE
@@ -656,7 +673,7 @@
 
       ! Read P(Ox) and L(Ox) if it's a new day
       IF ( ITS_A_NEW_DAY() ) THEN
-         CALL READ_POX_LOX
+         CALL READ_POX_LOX()
       ENDIF
 
       ! Maximum extent of the PBL [model layers]
@@ -780,7 +797,7 @@
                      IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
 
                         ! Convert from [kg] to [molec/cm2/s]
-                        FLUX = Ox_LOST             * XNUMOL(IDTOX) / 
+                        FLUX = Ox_LOST             * XNUMOL(IDTO3) / 
      &                         GET_AREA_CM2(I,J,L) / DTCHEM 
                      
                         ! Store dryd flx in ND44_TMP as a placeholder

@@ -324,7 +324,7 @@
       INTEGER            :: IDTMPN
 
       ! For tagged Ox simulation
-      INTEGER            :: IDTOxStrt, IDTOX
+      INTEGER            :: IDTO3Strt
 
       INTEGER            :: IDTHCOOH, IDTACTA  ! (mjc, 4/13/11)
 
@@ -1284,11 +1284,8 @@
             ! Tagged Ox Tracers
             !--------------------------------
              
-            CASE ( 'OX' )
-               IDTOX    = N
-
-            CASE ( 'OXSTRT' )
-               IDTOxStrt = N
+            CASE ( 'O3STRT', 'O3STRAT' )
+               IDTO3Strt = N
 
             !--------------------------------
             ! Rn-Pb-Be tracers
@@ -4192,8 +4189,7 @@
       IDTOCPI   = 0
       IDTBCPO   = 0
       IDTOCPO   = 0
-      IDTOxStrt = 0
-      IDTOX     = 0  
+      IDTO3Strt = 0
       IDTDST1   = 0
       IDTDST2   = 0
       IDTDST3   = 0

@@ -1867,9 +1867,9 @@
 !******************************************************************************
 !
 #if   !defined( GEOS_4 ) 
-      IF ( ND27 > 0 .and. ( IDTO3 > 0 .or. IDTOx > 0 )) THEN
+      IF ( ND27 > 0 .and. ( IDTO3 > 0 )) THEN
          IF ( ( IDTO3 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM )  .OR.
-     &        ( IDTOx > 0 .and. Input_Opt%ITS_A_TAGOX_SIM    )  .OR. 
+     &        ( IDTO3 > 0 .and. Input_Opt%ITS_A_TAGOX_SIM    )  .OR. 
      &        (                 Input_Opt%ITS_A_H2HD_SIM    )) THEN
 
             CATEGORY = 'STRT-FLX'
