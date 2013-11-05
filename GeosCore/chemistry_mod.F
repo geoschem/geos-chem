@@ -435,21 +435,23 @@
      &                  MONTH,     YEAR,      WAVELENGTH      )
 
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
-            IF ( LSSALT ) THEN
+            IF ( LSULF ) THEN
+               IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
-               ! ISOROPIA takes Na+, Cl- into account
-               CALL DO_ISOROPIAII
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+                  ! ISOROPIA takes Na+, Cl- into account
+                  CALL DO_ISOROPIAII
+     &               ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
 
-            ELSE
+               ELSE
 
-               ! RPMARES does not take Na+, Cl- into account
-               ! (skip for crystalline & aqueous offline run)
-               IF ( .not. LCRYST ) THEN
-                  CALL DO_RPMARES( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
+                  ! RPMARES does not take Na+, Cl- into account
+                  ! (skip for crystalline & aqueous offline run)
+                  IF ( .not. LCRYST ) THEN
+                     CALL DO_RPMARES( am_I_Root, Input_Opt, 
+     &                                State_Met, State_Chm, RC )
+                  ENDIF
                ENDIF
             ENDIF
 
