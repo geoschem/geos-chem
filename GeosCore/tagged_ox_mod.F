@@ -173,6 +173,13 @@
            
       USE CMN_SIZE_MOD ! Size parameters
       USE CMN_DIAG_MOD ! LD65
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% If you want to read archived O3 prod/loss data from a different year
+!%%% than the met field dates, then use this #ifdef.  Otherwise, just
+!%%% comment this flag out. (bmy, 11/6/13)
+#define USE_THIS_O3_YEAR 2004
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
@@ -186,8 +193,8 @@
 !        save diag20 (phs, 11/17/08)
 !  (7 ) Updates for LINOZ (dbj, jliu, bmy, 10/16/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  05 Nov 2013 - R. Yantosca - Add Kludge to read rate files for a different
-!                              year than the met field year
+!  06 Nov 2013 - R. Yantosca - Use an #ifdef to decide if we are reading O3
+!                              P/L data from a different year than the met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,33 +213,25 @@
       ! READ_POX_LOX begins here!
       !=================================================================
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% KLUDGE FOR READING RATE FILES FOR A DIFFERENT YEAR (bmy, 11/5/13) 
-!%%%
-!%%% Original code here:
-!%%%
-      ! Filename string
-      FILENAME = 'rate.YYYYMMDD'
-      CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+      ! Get year of archived O3 prod/loss data.  This can be the
+      ! current simulation year (or more likely, a previous year). 
+#if defined( USE_THIS_O3_YEAR )
+      YYYY  = USE_THIS_O3_YEAR
+#else
+      YYYY  = GET_YEAR()
+#endif
+      
+      ! Get date of archived ozone prod/loss data to read
+      MM    = GET_MONTH()
+      DD    = GET_DAY()
+      NYMD  = YYYY*10000 + MM*100 + DD 
 
-      ! Get the TAU0 value for today
-      XTAU = GET_TAU()
-!%%%
-!%%% Kludge begins here (uncomment if you want to activate):
-!%%%
-!%%%    ! Read 2004 rate files
-!%%%    YYYY  = 2004
-!%%%    MM    = GET_MONTH()
-!%%%    DD    = GET_DAY()
-!%%%    NYMD  = YYYY*10000 + MM*100 + DD 
-!%%%
-!%%%    ! Filename string
-!%%%    FILENAME = 'rate.YYYYMMDD'
-!%%%    CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!%%%
-!%%%    ! Get the TAU value
-!%%%    XTAU = GET_TAU0( MM, DD, YYYY )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Create filename string
+      FILENAME = 'rate.YYYYMMDD'
+      CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+      ! Get the TAU value corresponding to the date
+      XTAU = GET_TAU0( MM, DD, YYYY )
 
 !------------------------------------------------------------------------------
 ! Comment out for now (bmy, 2/4/11)
