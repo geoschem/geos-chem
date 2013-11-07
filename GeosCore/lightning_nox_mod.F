@@ -42,7 +42,9 @@
       REAL*8, ALLOCATABLE, PUBLIC :: EMIS_LI_NOx(:,:,:)
 !
 ! !REMARKS:
-!  %%% NOTE: MFLUX and PRECON methods are now deprecated (ltm, bmy, 7/9/09)
+!  (1) MFLUX and PRECON methods are now deprecated (ltm, bmy, 7/9/09)
+!  (2) Starting w/ GEOS-Chem v9-02, we read OTD-LIS local redistribution
+!       data files contained in subdirectory lightning_NOx_201311/.
 !                                                                             .
 !  References:
 !  ============================================================================
@@ -1239,6 +1241,7 @@
 !  18 Apr 2013 - R. Yantosca - Bug fix, prefix DATA_DIR to GEOS-5.7.x file
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  07 Nov 2013 - R. Yantosca - Now read files from lightning_NOx_201311 dir
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1258,7 +1261,7 @@
 #if   defined( MERRA )
       MODELNAME = 'merra'
 #elif defined( GEOS_FP )
-         MODELNAME = 'geos5.7.2'
+      MODELNAME = 'geosfp'
 #elif defined( GEOS_5 )
       ! GEOS-5 convection scheme changed in GCM post 9/1/2008
       IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
@@ -1270,31 +1273,27 @@
       MODELNAME = GET_NAME_EXT()
 #endif
 
-      ! Get file name
-      ! OTD-LIS Local file for CTH parameterization
+      ! OTD-LIS local redist filename for CTH parameterization
+      ! Now read from lightning_NOx_201301 for GEOS-Chem v9-02+ (bmy, 11/7/13)
       FILENAME = 
-     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' // 
+     &        'lightning_NOx_201311/OTD-LIS-Local-Redist.CTH.v5.' // 
      &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 
       ! Prefix directory to file name
-#if !defined( GEOS_FP )
-
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-#endif      
 
-      ! For GEOS-57 nested grids, append a suffix to denote either
-      ! SEAC4RS or the China domain (skim, 5/29/12)
+      ! Append suffix for GEOS-FP nested grids
 #if   defined( GEOS_FP ) && defined( NESTED_CH )
       FILENAME = TRIM( FILENAME ) // '.CH'
-      ! Add a switch for the nested North American domain
 #elif defined( GEOS_FP ) && defined( NESTED_NA )
       FILENAME = TRIM( FILENAME ) // '.NA'
-#elif defined( GEOS_5 ) && defined( NESTED_EU ) 
+#elif defined( GEOS_FP ) && defined( NESTED_EU ) 
       FILENAME = TRIM( FILENAME ) // '.EU'
+#elif defined( GEOS_FP ) && defined( NESTED_SE ) 
+      FILENAME = TRIM( FILENAME ) // '.SE'
 #endif
 
-      ! For GEOS-5 nested grids, append the a suffix to denote either 
-      ! CHINA or NORTH AMERICA nested regions (ltm, bmy, 11/14/08)
+      ! Append suffix for GEOS-5 nested grids
 #if   defined( GEOS_5 ) && defined( NESTED_CH ) 
       FILENAME = TRIM( FILENAME ) // '.CH'
 #elif defined( GEOS_5 ) && defined( NESTED_NA ) 
@@ -1450,7 +1449,7 @@
       REAL*8 :: BETA    ! Scale factor
 !
 ! !REMARKS:
-! 
+!  (1) Starting in G-C v9-02, we now read data from lightning_NOx_201311.
 ! 
 ! !REVISION HISTORY: 
 !  24 Sep 2007 - L. Murray - Initial version
@@ -1499,7 +1498,7 @@
 #if   defined( GEOS_5 )
 
       ! Are we using GEOS 5.2.0 or GEOS 5.1.0?
-      LOGICAL :: GEOS_520
+      LOGICAL               :: GEOS_520
 
       ! Lightning is sensitive to which convection scheme
       ! is used in the GCM used for the data assimilation.
@@ -1544,9 +1543,12 @@
       ! GEOS-FP: 4 x 5 global simulation
       !---------------------------------------
 
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.63453405d0
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 11/07/13).
+      IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or.
+     &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN
+         BETA = ANN_AVG_FLASHRATE / 82.003230d0
       ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1555,10 +1557,7 @@
       ! GEOS-FP: 2 x 2.5 global simulation
       !---------------------------------------
       
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
-      ENDIF
+      ! ltm: Will need to be determined when met fields become available.
 
 #elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
 
@@ -1566,10 +1565,7 @@
       ! GEOS-FP: Nested China simulation
       !---------------------------------------
       
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
-      ENDIF
+      ! ltm: Will need to be determined when met fields become available.
 
 ! Copy the same beta for the other nested grids for now (skim, 6/27/13)
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
@@ -1590,7 +1586,7 @@
       !---------------------------------------
       BETA = ANN_AVG_FLASHRATE / 253.55888d0
 
-#elif   defined( MERRA ) && defined( GRID4x5 )
+#elif defined( MERRA ) && defined( GRID4x5 )
 
       !---------------------------------------
       ! MERRA: 4 x 5 global simulation
@@ -1604,10 +1600,18 @@
       ! Nested grid simulation: North America
       !---------------------------------------
       if ( GEOS_520 ) then
-         BETA = 1d0
+         ! Constrained with simulated climatology for
+         ! Sept 2009 - May 2013 (ltm, 11/07/13)
+         BETA = ANN_AVG_FLASHRATE / 170.05559d0
       else
          BETA = ANN_AVG_FLASHRATE / 160.51908d0
       endif
+
+      ! Discourage users from using lightning outside the constraint period.
+      ! You may comment out these lines, but should verify that lightning
+      ! doesn't become unreasonably high anywere in the domain. (ltm, 11/07/13)
+      IF (   GET_YEAR() .ge. 2014 .or.
+     &    ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .gt. 5 ) ) BETA = 1d0
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
 
