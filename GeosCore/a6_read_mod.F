@@ -856,19 +856,6 @@
 
 !-----------------------------------------------------------------------------
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE READ_A6( NYMD,      NHMS,   
-     &                    CLDF,      CLDMAS,    CLDTOPS,   CMFMC, 
-     &                    DETRAINE,  DETRAINN,  DNDE,      DNDN,     
-     &                    DQIDTMST,  DQLDTMST,  DQRCON,    DQRLSC,      
-     &                    DQVDTMST,  DTRAIN,    ENTRAIN,   HKBETA,    
-     &                    HKETA,     MFXC,      MFYC,      MFZ,
-     &                    MOISTQ,    OPTDEPTH,  PLE,       PV,
-     &                    Q,         QI,        QL,        RH,        
-     &                    T,         TAUCLI,    TAUCLW,    U,         
-     &                    UPDE,      UPDN,      V,         ZMEU,      
-     &                    ZMMD,      ZMMU )
-#else
       SUBROUTINE READ_A6( NYMD,      NHMS,   
      &                    CLDF,      CLDMAS,    CLDTOPS,   CMFMC, 
      &                    DETRAINE,  DETRAINN,  DNDE,      DNDN,     
@@ -880,7 +867,6 @@
      &                    T,         TAUCLI,    TAUCLW,    U,         
      &                    UPDE,      UPDN,      V,         ZMEU,      
      &                    ZMMD,      ZMMU,      T_FULLGRID )
-#endif
 !
 !******************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
@@ -956,6 +942,8 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  14 Mar 2013 - M. Payer    - Added T_FULLGRID as optional argument
 !  29 Oct 2013 - R. Yantosca - Remove reference to TRANSFER_3D_NOLUMP
+!  07 Nov 2013 - R. Yantosca - Now replace any NaN's in the MOISTQ field
+!                              with zeroes.  NaN's have occured near t-pause.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1688,7 +1676,18 @@
       ! positives, and then divide by 8.64d7 to convert to units of
       ! [kg H2O/kg air/s].  (bmy, 4/5/99)
       !=================================================================
-      IF ( PRESENT( MOISTQ ) ) MOISTQ = -MOISTQ / 8.64d7
+      IF ( PRESENT( MOISTQ ) ) THEN
+
+         ! First replace any NaN values with zeroes.  Most NaN's in MOISTQ 
+         ! have been shown to occur near the tropopause, where there are 
+         ! no clouds, and no cloud or ice precip. (bmy, 11/7/13)
+         WHERE( MOISTQ .ne. MOISTQ ) 
+            MOISTQ = 0d0
+         ENDWHERE
+
+         ! Then convert to [kg H2O/kg air/s]
+         MOISTQ = -MOISTQ / 8.64d7
+      ENDIF
 
       !=================================================================
       ! ND66 diagnostic: A-6 fields
