@@ -132,6 +132,7 @@
 #                              EXTERNAL_GRID=yes or EXTERNAL_FORCING=yes.
 #  18 Sep 2013 - M. Long     - Add edits for HPC Grid-Indpendent GEOS-Chem
 #  26 Sep 2013 - R. Yantosca - MET=geosfp now sets Cpp switch w/ -DGEOS_FP
+#  07 Nov 2013 - R. Yantosca - NEST=se to now sets CPP switch w/ -DNESTED_SE
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -427,6 +428,12 @@ endif
 REGEXP         :=(^[Nn][Aa])
 ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS      += -DNESTED_NA
+endif
+
+# %%%%% SE Asia (SE) %%%%%
+REGEXP         :=(^[Ss][Ee])
+ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS      += -DNESTED_SE
 endif
 
 # %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
