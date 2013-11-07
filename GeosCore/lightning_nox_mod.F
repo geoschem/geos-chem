@@ -1258,7 +1258,7 @@
 #if   defined( MERRA )
       MODELNAME = 'merra'
 #elif defined( GEOS_FP )
-         MODELNAME = 'geos5.7.2'
+      MODELNAME = 'geosfp'
 #elif defined( GEOS_5 )
       ! GEOS-5 convection scheme changed in GCM post 9/1/2008
       IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
@@ -1278,19 +1278,21 @@
 
       ! Prefix directory to file name
 #if !defined( GEOS_FP )
-
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
 #endif      
 
       ! For GEOS-57 nested grids, append a suffix to denote either
       ! SEAC4RS or the China domain (skim, 5/29/12)
+      ! Add version of redistribution file to indicate beta product.
+      ! (ltm, 11/07/13).
 #if   defined( GEOS_FP ) && defined( NESTED_CH )
-      FILENAME = TRIM( FILENAME ) // '.CH'
-      ! Add a switch for the nested North American domain
+      FILENAME = TRIM( FILENAME ) // '.v20131107.CH'
 #elif defined( GEOS_FP ) && defined( NESTED_NA )
-      FILENAME = TRIM( FILENAME ) // '.NA'
-#elif defined( GEOS_5 ) && defined( NESTED_EU ) 
-      FILENAME = TRIM( FILENAME ) // '.EU'
+      FILENAME = TRIM( FILENAME ) // '.v20131107.NA'
+#elif defined( GEOS_FP ) && defined( NESTED_EU ) 
+      FILENAME = TRIM( FILENAME ) // '.v20131107.EU'
+#elif defined( GEOS_FP )
+      FILENAME = TRIM( FILENAME ) // '.v20131107'
 #endif
 
       ! For GEOS-5 nested grids, append the a suffix to denote either 
@@ -1298,7 +1300,7 @@
 #if   defined( GEOS_5 ) && defined( NESTED_CH ) 
       FILENAME = TRIM( FILENAME ) // '.CH'
 #elif defined( GEOS_5 ) && defined( NESTED_NA ) 
-      FILENAME = TRIM( FILENAME ) // '.NA'
+      FILENAME = TRIM( FILENAME ) // '.v20131107.NA'
 #elif defined( GEOS_5 ) && defined( NESTED_EU ) 
       FILENAME = TRIM( FILENAME ) // '.EU'
 #endif
@@ -1544,9 +1546,12 @@
       ! GEOS-FP: 4 x 5 global simulation
       !---------------------------------------
 
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.63453405d0
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 11/07/13).
+      IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or.
+     &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN
+         BETA = ANN_AVERAGE_FLASHRATE / 82.003230d0
       ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1555,10 +1560,7 @@
       ! GEOS-FP: 2 x 2.5 global simulation
       !---------------------------------------
       
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
-      ENDIF
+      ! ltm: Will need to be determined when met fields become available.
 
 #elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
 
@@ -1566,10 +1568,7 @@
       ! GEOS-FP: Nested China simulation
       !---------------------------------------
       
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
-      ENDIF
+      ! ltm: Will need to be determined when met fields become available.
 
 ! Copy the same beta for the other nested grids for now (skim, 6/27/13)
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
@@ -1604,10 +1603,18 @@
       ! Nested grid simulation: North America
       !---------------------------------------
       if ( GEOS_520 ) then
-         BETA = 1d0
+         ! Constrained with simulated climatology for
+         ! Sept 2009 - May 2013 (ltm, 11/07/13)
+         BETA = ANN_AVG_FLASHRATE / 170.05559d0
       else
          BETA = ANN_AVG_FLASHRATE / 160.51908d0
       endif
+
+      ! Discourage users from using lightning outside the constraint period.
+      ! You may comment out these lines, but should verify that lightning
+      ! doesn't become unreasonably high anywere in the domain. (ltm, 11/07/13)
+      IF (   GET_YEAR() .ge. 2014 .or.
+     &    ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .gt. 5 ) ) BETA = 1d0
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
 
