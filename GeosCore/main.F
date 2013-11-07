@@ -1961,8 +1961,9 @@
          DATE = GET_A3_TIME()
 
          ! Open and read A-6 fields
-         CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2), Input_Opt )
-         CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2), State_Met )
+         CALL OPEN_MERRA_A3_FIELDS( DATE(1),   DATE(2), Input_Opt )
+         CALL GET_MERRA_A3_FIELDS ( DATE(1),   DATE(2), 
+     &                              Input_Opt, State_Met )
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
