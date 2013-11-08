@@ -133,6 +133,8 @@
 #  18 Sep 2013 - M. Long     - Add edits for HPC Grid-Indpendent GEOS-Chem
 #  26 Sep 2013 - R. Yantosca - MET=geosfp now sets Cpp switch w/ -DGEOS_FP
 #  07 Nov 2013 - R. Yantosca - NEST=se to now sets CPP switch w/ -DNESTED_SE
+#  08 Nov 2013 - R. Yantosca - Add FPEX flag to avoid conflicting with the
+#                              ESMF/MAPL environment variable FPE
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -570,6 +572,9 @@ endif
 # Turn on checking for floating-point exceptions
 REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
+FFLAGS         += -fpe0 -ftrapuv
+endif
+ifeq ($(shell [[ "$(FPEX)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS         += -fpe0 -ftrapuv
 endif
 
