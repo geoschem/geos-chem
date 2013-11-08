@@ -198,8 +198,6 @@
       REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)      
       INTEGER, ALLOCATABLE :: LTOTH(:,:)
       INTEGER, ALLOCATABLE :: CTOTH(:,:)
-      INTEGER, ALLOCATABLE :: CTO3(:,:,:)
-      INTEGER, ALLOCATABLE :: LTO3(:,:)
 
       ! For ND46 -- Tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD46(:,:,:)      
@@ -333,6 +331,8 @@
 !                              diagnostic. These are no longer needed because
 !                              NO, NO2, and NO3 are now tracers.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  08 Nov 2013 - M. Sulprizio- Removed CTO3 and LTO3. They are no longer used
+!                              because O3 is now a tracer.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -477,7 +477,6 @@
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )
       IF ( ALLOCATED( CT18        ) ) DEALLOCATE( CT18        )
       IF ( ALLOCATED( CTJV        ) ) DEALLOCATE( CTJV        )
-      IF ( ALLOCATED( CTO3        ) ) DEALLOCATE( CTO3        )
       IF ( ALLOCATED( CTO3_24h    ) ) DEALLOCATE( CTO3_24h    )
       IF ( ALLOCATED( CTOH        ) ) DEALLOCATE( CTOH        )
       ! update for arom (dkh, 06/21/07)  
@@ -500,7 +499,6 @@
       IF ( ALLOCATED( LTOH        ) ) DEALLOCATE( LTOH        )
       IF ( ALLOCATED( LTHO2       ) ) DEALLOCATE( LTHO2       )
       IF ( ALLOCATED( LTOTH       ) ) DEALLOCATE( LTOTH       )
-      IF ( ALLOCATED( LTO3        ) ) DEALLOCATE( LTO3        )
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )

@@ -129,6 +129,8 @@
 !                              are no onger needed because NO, NO2, and NO3
 !                              are now tracers.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  08 Nov 2013 - M. Sulprizio- Removed CTO3. It is no longer used because O3
+!                              is now a tracer.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,7 +359,6 @@
          IF ( ND22 >               0 ) CTJV       = 0
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND45 >               0 ) CTOTH      = 0
-         IF ( ND45 >               0 ) CTO3       = 0
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
          IF ( ND43 >               0 ) CTHO2      = 0
          ! update for arom (dkh, 06/21/07)  

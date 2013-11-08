@@ -12,13 +12,12 @@
 ! \item LTOH: OH concentrations  (ND43)
 ! \item LTHO2: HO2 concentrations (ND43)
 ! \item LTOTH: used for tracers (ND45)
-! \item LTO3: for O3 (ND45)
 ! \end{itemize}
 !
 !  These arrays are either 1 (if it is within a certain time interval)   
 !  or 0 (if it is not within a certain time interval).  The limits of
 !  the time intervals for CTOTH and CTJV are now defined in input.geos
-!  The arrays CTOTH, CTOH, CTNO, CTJV count the number of times the 
+!  The arrays CTOTH, CTOH, CTJV count the number of times the 
 !  diagnostics are accumulated for each grid box (i.e LTOTH is 1)
 !\\
 !\\
@@ -28,10 +27,10 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,           ONLY : LTJV,  CTJV,  CTO3
+      USE DIAG_MOD,           ONLY : LTJV,  CTJV
       USE DIAG_MOD,           ONLY : LTOH,  CTOH,  LTOTH, CTOTH
       USE DIAG_MOD,           ONLY : LTHO2, CTHO2
-      USE DIAG_MOD,           ONLY : CTO3_24h, LTO3
+      USE DIAG_MOD,           ONLY : CTO3_24h
       USE DIAG_MOD,           ONLY : LTLBRO2H, LTLBRO2N
       USE DIAG_MOD,           ONLY : LTLTRO2H, LTLTRO2N
       USE DIAG_MOD,           ONLY : LTLXRO2H, LTLXRO2N
@@ -79,9 +78,11 @@
 !        chemistry (ccc, 7/17/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !  02 Apr 2013 - M. Payer    - Remove code for LTNO, LTNO2, and LTNO3. These
-!                              are no onger needed because NO, NO2, and NO3
+!                              are no longer needed because NO, NO2, and NO3
 !                              are now tracers.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  08 Nov 2013 - M. Sulprizio- Removed CTO3 and LTO3. They are no longer used
+!                              because O3 is now a tracer.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,11 +137,6 @@
                LTOTH(I,J) = 0
             ENDIF
 
-            ! Reinitialise LTO3 at each chemistry step
-            IF ( IS_CHEM ) THEN
-               LTO3(I,J)  = 0
-            ENDIF
-
             ! Archive if we fall w/in the local time limits
             IF ( LT(I) >= HR1_OTH .and. LT(I) <= HR2_OTH ) THEN
 
@@ -151,17 +147,7 @@
                   CTOTH(I,J) = CTOTH(I,J) + 1
 	       ENDIF
                LTOTH(I,J) = 1
-               
-               ! Counter for # of O3 boxes in the troposphere 
-               ! (phs, 1/24/07)
-               IF ( IS_CHEM ) THEN
-                  LTO3(I,J) = 1
-                  DO L = 1, LD45
-                     IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
-                        CTO3(I,J,L) = CTO3(I,J,L) + 1
-                     ENDIF
-                  ENDDO
-               ENDIF
+
             ENDIF
          ENDIF
 
@@ -198,31 +184,9 @@
          ! ND43 -- OH, HO2
          !-----------------------------
          IF ( IS_ND43 ) THEN
-               
-            IF ( LT(I) >= HR1_NO .and. LT(I) <= HR2_NO ) THEN 
-               ! update for arom (dkh, 06/22/07)  
-               LTLBRO2N(I,J) = 1
-               LTLTRO2N(I,J) = 1
-               LTLXRO2N(I,J) = 1               
 
-               ! Counters for # of boxes in the trop (phs, 1/24/07)
-               DO L = 1, LD43
-                  IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
-                     ! update for arom (dkh, 06/22/07)  
-                     CTLBRO2N(I,J,L) = CTLBRO2N(I,J,L) + 1
-                     CTLTRO2N(I,J,L) = CTLTRO2N(I,J,L) + 1
-                     CTLXRO2N(I,J,L) = CTLXRO2N(I,J,L) + 1
-                  ENDIF
-               ENDDO
-
-            ELSE
-               ! update for arom (dkh, 06/22/07)  
-               LTLBRO2N(I,J) = 0
-               LTLTRO2N(I,J) = 0
-               LTLXRO2N(I,J) = 0 
-            ENDIF
-
-            ! CTNO counts the times when LT was between HR1_OH and HR2_OH
+            ! LTOH denotes where LT is between HR1_OH and HR2_OH
+            ! CTOH counts the times when LT was between HR1_OH and HR2_OH
             ! Now set LTHO2, CTHO2 based on the OH times (rvm, bmy, 2/27/02)
             IF ( LT(I) >= HR1_OH .and. LT(I) <= HR2_OH ) THEN  
                LTOH(I,J)  = 1
@@ -232,7 +196,7 @@
                LTLTRO2H(I,J) = 1
                LTLXRO2H(I,J) = 1
 
-               ! Counters for # of OH,HO2,NO3 boxes in the trop (phs, 1/24/07)
+               ! Counters for # of OH, HO2 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43 
                   IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                      CTOH(I,J,L)  = CTOH(I,J,L)  + 1

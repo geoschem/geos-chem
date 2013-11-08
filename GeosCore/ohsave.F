@@ -5,9 +5,8 @@
 !
 ! !ROUTINE: ohsave
 !
-! !DESCRIPTION: Subroutine OHSAVE stores the concentrations of OH, HO2, 
-!  NO, NO2, and NO3 for the ND43 diagnostic.  Also the O3/Ox, NO/NOx and 
-!  NO2/NOx fractions are computed and returned to the calling program. 
+! !DESCRIPTION: Subroutine OHSAVE stores the concentrations of OH and HO2 
+!  for the ND43 diagnostic.
 !\\
 !\\
 ! !INTERFACE:

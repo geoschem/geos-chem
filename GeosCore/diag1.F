@@ -19,7 +19,7 @@
       ! References to F90 modules
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
       USE DIAG_MOD,           ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
-      USE DIAG_MOD,           ONLY : AD47, AD67, AD68, AD69, LTOTH, LTO3
+      USE DIAG_MOD,           ONLY : AD47, AD67, AD68, AD69, LTOTH
       USE DIAG_MOD,           ONLY : AD57
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput

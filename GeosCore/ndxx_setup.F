@@ -73,10 +73,9 @@
 #endif
 
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
-      USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
+      USE DIAG_MOD,        ONLY : AD68,        AD69
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
-      USE DIAG_MOD,        ONLY : LTO3
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
@@ -256,6 +255,8 @@
 !                              NO2, and NO3 are now tracers.
 !  13 Aug 2013 - M. Sulprizio- Modify AD07_HC for updated SOA (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  08 Nov 2013 - M. Sulprizio- Removed CTO3 and LTO3. They are no longer used
+!                              because O3 is now a tracer.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1064,14 +1065,6 @@
          ALLOCATE( CTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
 
-         ! Locations for O3 in ND45 (ccc, 7/17/09)
-         ALLOCATE( LTO3( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS > 0 ) CALL ALLOC_ERR( 'LTO3' )
-    
-         ! Number of times LT is between HR1_OTH and HR2_OTH
-         ! and box is in the troposphere 
-         ALLOCATE( CTO3( IIPAR, JJPAR, LD45 ), STAT=AS )
-         IF ( AS > 0 ) CALL ALLOC_ERR( 'CTO3' )
       ENDIF
 
       !=================================================================
