@@ -28,8 +28,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_SIZE_MOD,       ONLY : IIPAR
       USE CMN_SIZE_MOD,       ONLY : JJPAR
       USE CMN_SIZE_MOD,       ONLY : LLPAR
@@ -136,6 +134,8 @@
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Cosmetic changes
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid field
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -275,7 +275,7 @@
             !===========================================================
             IF ( OVERLAP == 1 ) then
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
                ! Column cloud fraction (not less than zero)
                CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
@@ -306,7 +306,7 @@
                CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                ! optical depth & cloud fractions regridded with RegridTau)
@@ -410,7 +410,7 @@
                   ! Max cloud fraction
                   FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
                   ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                   ! optical depth & cloud fractions regridded with RegridTau)

@@ -1,5 +1,5 @@
 ! $Id: tpcore_geos5_window_mod.f90,v 1.2 2009/10/15 17:46:23 bmy Exp $
-module TPCORE_GEOS57_WINDOW_MOD
+module TPCORE_GEOSFP_WINDOW_MOD
 !
 !******************************************************************************
 !  Module TPCORE_GES5_WINDOW_MOD contains routines for the GEOS-4/fvDAS 
@@ -61,6 +61,7 @@ module TPCORE_GEOS57_WINDOW_MOD
 !        instead of JM.  (Xiaoguang Gu, bmy, 1/20/09)
 !  09 Sep 2010 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and
 !                              MASSFLUP to save memory space.
+!  26 Sep 2013 - R. Yantosca - Renamed to tpcore_geosfp_window_mod.F90
 !******************************************************************************
 !
 ! The original module documentation header is listed here:
@@ -114,9 +115,9 @@ module TPCORE_GEOS57_WINDOW_MOD
   !%%% TPCORE_FVDAS, which need to be seen outside.  (bdf, bmy, 5/7/03)
   !%%%
   PRIVATE
-  PUBLIC :: TPCORE_GEOS57_WINDOW 
-  PUBLIC :: INIT_GEOS57_WINDOW
-  PUBLIC :: EXIT_GEOS57_TPCORE_WINDOW
+  PUBLIC :: TPCORE_GEOSFP_WINDOW 
+  PUBLIC :: INIT_GEOSFP_WINDOW
+  PUBLIC :: EXIT_GEOSFP_TPCORE_WINDOW
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
 #if defined(SPMD)
@@ -164,7 +165,7 @@ module TPCORE_GEOS57_WINDOW_MOD
 CONTAINS
 
 !-------------------------------------------------------------------------
- subroutine INIT_GEOS57_WINDOW(im,jm,km,jfirst,jlast,ng, mg, dt, ae, clat)
+ subroutine INIT_GEOSFP_WINDOW(im,jm,km,jfirst,jlast,ng, mg, dt, ae, clat)
 !-------------------------------------------------------------------------
 
 #if defined(SPMD)
@@ -368,10 +369,10 @@ CONTAINS
  !%%%PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
- end subroutine INIT_GEOS57_WINDOW
+ end subroutine INIT_GEOSFP_WINDOW
 
 !-------------------------------------------------------------------------
- subroutine EXIT_GEOS57_TPCORE_WINDOW
+ subroutine EXIT_GEOSFP_TPCORE_WINDOW
 !-------------------------------------------------------------------------
 
 #if defined(SPMD) && defined(PILGRIM)
@@ -415,11 +416,11 @@ CONTAINS
  IF ( ALLOCATED( SINE_25) ) DEALLOCATE( SINE_25)  !(dan 0803)
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
- end subroutine EXIT_GEOS57_TPCORE_WINDOW
+ end subroutine EXIT_GEOSFP_TPCORE_WINDOW
 
 
 !----------------------------------------------------------------------------
- subroutine TPCORE_GEOS57_WINDOW( dt,    ae, im, jm, km, jfirst,         &
+ subroutine TPCORE_GEOSFP_WINDOW( dt,    ae, im, jm, km, jfirst,         &
                                  jlast, ng, mg,                         &
                                  nq,    ak, bk, u, v, ps1, ps2, ps,  q, &   
                                  iord, jord, kord, n_adj,               &
@@ -480,12 +481,6 @@ CONTAINS
 
  real, intent(in):: ak(km+1)              ! See below
  real, intent(in):: bk(km+1)              ! See below
-!------------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Now use assumed shape declarations for U, V (bmy, 6/4/13)
-! real, intent(in):: u(im,jfirst:jlast,km) ! u-wind (m/s) at mid-time-level (t=t+dt/2)
-! real, intent(inout):: v(im,jfirst-mg:jlast+mg,km) ! v-wind (m/s) at mid-time-level (t=t+dt/2)
-!------------------------------------------------------------------------------
  real, intent(in):: u(:,:,:)    ! u-wind (m/s) at mid-time-level (t=t+dt/2)
  real, intent(inout):: v(:,:,:) ! v-wind (m/s) at mid-time-level (t=t+dt/2)
 
@@ -532,11 +527,6 @@ CONTAINS
  real, intent(in):: dt                    ! Transport time step in seconds
  real, intent(in):: ae                    ! Earth's radius (m)
 
-!------------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Now use assumed-shape declaration for Q (bmy, 6/4/13)
-! real, intent(inout):: q(im,jfirst-ng:jlast+ng,km,nq)  ! Tracer "mixing ratios"
-!------------------------------------------------------------------------------
  real, intent(inout):: q(:,:,:,:)
                                           ! q could easily be re-dimensioned
  real, intent(out):: ps(im,jfirst:jlast)  ! "predicted" surface pressure
@@ -552,11 +542,6 @@ CONTAINS
  !%%%
  !%%% Added XMASS, YMASS for the PJC pressure-fixer (bdf, bmy, 5/7/03)
  !%%%
-!------------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Now use assumed-shape declaration for XMASS, YMASS (bmy, 6/4/13)
-! REAL,    INTENT(IN)    :: XMASS(IM,JM,KM), YMASS(IM,JM,KM)
-!------------------------------------------------------------------------------
  REAL,    INTENT(IN)    :: XMASS(:,:,:), YMASS(:,:,:)
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -640,22 +625,10 @@ CONTAINS
      enddo
   enddo
   if ( jfirst == 1 ) then
-!-----------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Use psg(:,1,1) and psg(:,1,2) to pass a longitude slice (bmy, 6/4/13)
-!       call xpavg(psg(1,1,1), im)
-!       call xpavg(psg(1,1,2), im)
-!-----------------------------------------------------------------------------
        call xpavg(psg(:,1,1), im)
        call xpavg(psg(:,1,2), im)
   endif
   if ( jlast == jm ) then
-!-----------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Use psg(:,jm,1) and psg(:,jm,2) to pass a longitude slice (bmy, 6/4/13)
-!       call xpavg(psg(1,jm,1), im)
-!       call xpavg(psg(1,jm,2), im)
-!-----------------------------------------------------------------------------
        call xpavg(psg(:,jm,1), im)
        call xpavg(psg(:,jm,2), im)
   endif
@@ -676,19 +649,9 @@ CONTAINS
 !$omp private(k)
      do k=1,km
         if ( jfirst == 1 ) then
-!-----------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Use q(:,1,k,iq) to pass a longitude slice (bmy, 6/4/13)
-!             call xpavg(q(1,1,k,iq), im)
-!-----------------------------------------------------------------------------
              call xpavg(q(:,1,k,iq), im)
         endif
         if ( jlast == jm ) then
-!-----------------------------------------------------------------------------
-! Prior to 6/4/13:
-! Use q(:,1,k,iq) to pass a longitude slice (bmy, 6/4/13)
-!             call xpavg(q(1,jm,k,iq), im)
-!-----------------------------------------------------------------------------
              call xpavg(q(:,jm,k,iq), im)
 
         endif
@@ -922,7 +885,7 @@ CONTAINS
     ENDDO
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     ENDIF
- END subroutine TPCORE_GEOS57_WINDOW
+ END subroutine TPCORE_GEOSFP_WINDOW
 
 
  subroutine air_mass_flux(im, jm, km, jfirst, jlast, iord, jord,    &
@@ -3446,4 +3409,4 @@ CONTAINS
 
  end subroutine adj_fx
 
-end module TPCORE_GEOS57_WINDOW_MOD
+end module TPCORE_GEOSFP_WINDOW_MOD

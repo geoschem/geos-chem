@@ -17,8 +17,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ, JPNL
       USE CMN_SIZE_MOD,       ONLY : LLPAR
@@ -59,6 +57,7 @@
 !  26 Feb 2013 - M. Long     - Now accept Input_Opt as an argument
 !  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
 !                              ".rc" to filenames (instead of ___.rc)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -44,6 +43,7 @@
 !                              GET_AREA_CM2( I, J, L ) from grid_mod.F90 
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -296,6 +296,8 @@
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  16 Jul 2013 - M. Payer    - Bug fix: Prevent negative emissions when scaling
+!                              between 2002 and 2005 (C. Keller)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -553,6 +555,12 @@
      &                   + ( THISYEAR - 2005.) / 2. *
      &                   ( GEOS_1x1_2005(:,:,1) - GEOS_1x1_2002(:,:,1) )
             ENDIF
+
+            ! Prevent negative emissions (ckeller, mpayer, 7/16/13)
+            WHERE ( GEOS_1x1 < 0d0 )
+               GEOS_1x1 = 0d0
+            END WHERE
+
          ENDIF
 
          ! Regrid from GEOS 1x1 --> current model resolution [kg/yr]
@@ -682,6 +690,8 @@
 !        (except NH3) between 1985-2003 if needed (phs, 3/10/08)
 !  (2 ) Now accounts for FSCALYR (phs, 3/17/08)
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  16 Jul 2013 - M. Payer    - Bug fix: Prevent negative emissions when scaling
+!                              between 2002 and 2005 (C. Keller)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -916,6 +926,11 @@
      &              ( GEOS_05x0666_2005(:,:,1)
      &                - GEOS_05x0666_2002(:,:,1) )
             ENDIF
+
+            ! Prevent negative emissions (ckeller, mpayer, 7/16/13)
+            WHERE ( GEOS_05x0666 < 0d0 )
+               GEOS_05x0666 = 0d0
+            END WHERE
 
          ENDIF
 

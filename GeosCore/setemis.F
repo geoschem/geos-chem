@@ -22,7 +22,6 @@
 !
 ! !USES:
 !
-      USE AIRCRAFT_NOX_MOD,   ONLY : EMIS_AC_NOx
       USE BIOFUEL_MOD,        ONLY : BIOFUEL,   BFTRACE, NBFTRACE
       USE BIOMASS_MOD,        ONLY : BIOMASS,   BIOTRCE
       USE BIOMASS_MOD,        ONLY : BIOBGAS
@@ -56,8 +55,7 @@
       USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
       USE PARANOX_MOD,        ONLY : INTERPOLATE_LUT2
       USE COMODE_MOD,         ONLY : CSPEC, AIRDENS
-
-#     include "define.h"
+      USE RCP_MOD,            ONLY : GET_RCP_EMISSION, RCP_AC_NOx
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! IDEMS, NEMIS
       USE CMN_DIAG_MOD             ! Diagnostic flags
@@ -182,6 +180,12 @@
 !                              compiling with OMP=no vs. OMP=yes.
 !  18 Jun 2013 - R. Yantosca - Remove COEF11 variable, that is always =1 for
 !                              O3, HNO3, and NO.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCPSHIP from Input_Opt
+!  31 Jul 2013 - M. Sulprizio- Now only add aircraft emissions to REMIS if using
+!                              RCP aircraft emissions. Emissions are added
+!                              directly to STT in aeic_mod.F when using AEIC
+!                              aircraft emissions.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -207,6 +211,7 @@
       ! For fields from Input_Opt
       LOGICAL          :: LDRYD,       LNLPBL,     LPRT
       LOGICAL          :: LICOADSSHIP, LEDGARSHIP, LEMEPSHIP     
+      LOGICAL          :: LRCPSHIP,    LRCPAIR
 
       !%%% BMY KLUDGE to only print out warning message about 
       !%%% non-emitted tracers on the first timestep (bmy, 5/28/13)
@@ -229,9 +234,8 @@
          RETURN
       ENDIF
 
-      ! Test if the EMIS_LI_NOx and EMIS_AC_NOx arrays are allocated
+      ! Test if the EMIS_LI_NOx array is allocated
       IS_LI_NOx   = ALLOCATED( EMIS_LI_NOx )
-      IS_AC_NOX   = ALLOCATED( EMIS_AC_NOX )
       
       ! Now use logical fields from Input_Opt
       LDRYD       = Input_Opt%LDRYD
@@ -240,6 +244,8 @@
       LICOADSSHIP = Input_Opt%LICOADSSHIP
       LEDGARSHIP  = Input_Opt%LEDGARSHIP 
       LEMEPSHIP   = Input_Opt%LEMEPSHIP
+      LRCPSHIP    = Input_Opt%LRCPSHIP
+      LRCPAIR     = Input_Opt%LRCPAIR
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -467,12 +473,20 @@
                      !-----------------
                      ! Aircraft NOx
                      !-----------------
-                     IF ( IS_AC_NOx ) THEN
+
+                     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                     !% NOTE: Aircraft emissions from the AEIC     %
+                     !% inventory are added directly into the STT  %
+                     !% array in aeic_mod.F (mpayer, 7/31/13)      %
+                     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                     ! If using aircraft emissions from RCP scenarios
+                     IF ( LRCPAIR ) THEN
 
                         ! Divide aircraft NOx by COEF1 to convert
                         ! from [molec NOx/cm3/s] to [molec NO/cm3/s], since
                         ! NO is the actual emission species for NOx.
-                        EMIS_BL        = EMIS_AC_NOx(I,J,L) / COEF1 
+                        EMIS_BL        = RCP_AC_NOx(I,J,L) / COEF1 
 
                         ! Save aircraft NOx [molec NO/cm3/s] in REMIS
                         REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
@@ -516,6 +530,13 @@
                      SHIP = GET_ICOADS_SHIP( I, J, IDTNO, 
      &                      MOLEC_CM2_S=.TRUE. )
                   
+                  ! RCP ship emissions (cdh, 10/14/11)
+                  ELSE IF ( LRCPSHIP ) THEN
+
+                     ! Get SHIP RCP emissions for NOx [molec/cm2/s]
+                     SHIP = GET_RCP_EMISSION( I, J, IDTNO,  
+     &                      LAND=.FALSE., SHIP=.TRUE.)
+
                   ENDIF
 
                   ! Overwrite Europe
@@ -833,16 +854,6 @@
 
                      ! Convert emissions from [molec species/box/s] to 
                      ! [molec species/cm3/s] and store in the REMIS array
-!-----------------------------------------------------------------------------
-! Prior to 6/18/13:
-! NOTE: We should be adding into REMIS here.  This line of code causes
-! setemis.F as written to not generate the same results when OMP=no.  This
-! may be because the optimizer may execute this section of code before
-! the ship NOx code when OMP=yes but not when OMP=no.  In any case, this
-! fixes the problem.  REMIS is always set to zero at the top of the routine,
-! so it's OK to add into it. (bmy, 6/18/13)
-!                     REMIS(JLOOP,N) = EMIS_BL / VOLUME(JLOOP)    
-!-----------------------------------------------------------------------------
                      REMIS(JLOOP,N) = REMIS(JLOOP,N) 
      &                              + ( EMIS_BL / VOLUME(JLOOP) )
 

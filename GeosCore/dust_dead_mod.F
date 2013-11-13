@@ -145,10 +145,10 @@
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
@@ -305,6 +305,7 @@
 !                              derived type object
 !   5 Jun 2013 - K. Yu       - Use 0.5 x 0.666 NA scale factor for the
 !                              0.25 x 0.3125 NA nested simulation
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !******************************************************************************
 !
       ! References to F90 modules
@@ -339,7 +340,7 @@
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if   defined( GEOS_57 ) && defined( GRID025x03125 )
+#if   defined( GEOS_FP ) && defined( GRID025x03125 )
 
       ! Copy the 05x0666 scale factors for now
       ! (skim, 5/20/12)
@@ -347,9 +348,14 @@
 #if defined(NESTED_CH)  
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(SEAC4RS)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
+!----------------------------------------------------------------------------
+! Prior to 9/26/13:
+! NOTE: The original SEAC4RS grid definition was for SE Asia.  Not sure if
+! this value is correct anymore.  Consult w/ SEAC4RS team. (bmy, 9/26/13)
+!#elif defined(SEAC4RS)
+!      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
 ! added NA, copied 05x0666 scale factor (kyu, 22 April 2013)
+!----------------------------------------------------------------------------
 #elif defined(NESTED_NA)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.16d-4
 #endif
@@ -400,14 +406,14 @@
       !----------------------------------------------------------------
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
 
-#elif defined( GEOS_57 ) && defined( GRID2x25 )
+#elif defined( GEOS_FP ) && defined( GRID2x25 )
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: NEED TO SCALE THIS FOR GEOS-5.7.x 2x25!                 %%%
+      !%%%         NOTE: NEED TO SCALE THIS FOR GEOS-FP 2x25!            %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
 
-#elif defined( GEOS_57 ) && defined( GRID4x5 )
+#elif defined( GEOS_FP ) && defined( GRID4x5 )
 
       ! Based on results from GEOS 5.7 for September 2011
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.272d0

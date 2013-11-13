@@ -19,7 +19,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE 
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -38,6 +37,7 @@
 !  (1 ) Adapted from the obsolete "phis_read_mod.f" (bmy, 2/1/06)
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  06 Aug 2012 - R. Yantosca - Now make IU_PH a local variable
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -330,11 +330,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GCAP_FIELDS( State_Met )
+      SUBROUTINE GET_GCAP_FIELDS( Input_Opt, State_Met )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !

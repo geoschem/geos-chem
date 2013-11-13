@@ -48,10 +48,10 @@
 !  (6 ) Added routines for regridding to 0.5 x 0.666 GEOS-5 nested grid
 !        (yxw, dan, bmy, 11/6/08)
 !  (7 ) Updated nested grid parameters for EU & NA grids (amv, bmy, 12/18/09)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 

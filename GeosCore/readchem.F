@@ -44,13 +44,13 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
 !                              ".rc" to input.geos (instead of ___.rc)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
 ! !USES:
 !
-#     include "define.h"
-
-      ! References to F90 modules
       USE DRYDEP_MOD,         ONLY : MAXDEP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD,        ONLY : SETJFAM, SETPL
@@ -526,19 +526,24 @@
       IH2O     = 0
       ICH4     = 0
       ILISOPOH = 0
+      ILISOPNO3= 0 ! SOAupdate hotp 6/11/10
       ! add these as well (dkh, 10/06/06)  
-      ILBRO2H = 0
-      ILBRO2N = 0
-      ILTRO2H = 0
-      ILTRO2N = 0
-      ILXRO2H = 0
-      ILXRO2N = 0
+      ILBRO2H  = 0
+      ILBRO2N  = 0
+      ILTRO2H  = 0
+      ILTRO2N  = 0
+      ILXRO2H  = 0
+      ILXRO2N  = 0
       ! and for the new VSL index holders (jpp, 4/15/10)
       ICH2Br2  = 0
       ICHBr3   = 0
+      ! SOAupdate: add NAP (hotp 6/25/09)
+      ILNRO2H  = 0 
+      ILNRO2N  = 0 
 
       ! Locate positions of O2, H2O, CH4, LISOPOH in CSPEC array
       DO I = 1, NTSPECGAS
+
          SELECT CASE ( TRIM( NAMEGAS(I) ) )
             CASE( 'O2'      )
                IOXYGEN  = I
@@ -548,6 +553,8 @@
                ICH4     = I
             CASE( 'LISOPOH' )
                ILISOPOH = I
+            CASE( 'LISOPNO3' )  ! SOAupdate: hotp 6/11/10
+               ILISOPNO3= I
             ! Add definitions (dkh, 10/06/06)  
             CASE( 'LBRO2H' )
                ILBRO2H = I
@@ -565,9 +572,15 @@
                ICHBr3   = I
             CASE( 'CH2Br2'  ) ! adding selection of CH2Br2
                ICH2Br2  = I
+            ! SOAupdate: add NAP (hotp 6/25/09)
+            CASE( 'LNRO2H' )
+               ILNRO2H   = I
+            CASE( 'LNRO2N' )
+               ILNRO2N   = I
             CASE DEFAULT
                ! Nothing
          END SELECT
+
       ENDDO
 !
 ! *********************************************************************
@@ -1428,6 +1441,20 @@
                      ENDIF
                   ENDIF
 
+                  ! SOAupdate: add NAP (hotp 6/25/09)
+                  IF ( ILNRO2H > 0 ) THEN 
+                     IF ( J == MAPPL(ILNRO2H,NCS) ) THEN
+                        ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                        EXIT
+                     ENDIF
+                  ENDIF
+
+                  IF ( ILNRO2N > 0 ) THEN 
+                     IF ( J == MAPPL(ILNRO2N,NCS) ) THEN
+                        ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                        EXIT
+                     ENDIF
+                  ENDIF
 
                ENDDO  
             ENDDO

@@ -16,8 +16,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
 
@@ -70,6 +68,7 @@
 !  30 Jul 2012 - R. Yantosca - AddedoTeX headers
 !  01 Aug 2012 - R. Yantosca - Now restore NJ1 to INTENT(IN) status
 !  01 Mar 2013 - R. Yantosca - Block some extra print statements w/ am_I_Root
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

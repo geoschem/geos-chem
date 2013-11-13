@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -150,7 +149,7 @@
       REAL*4,  ALLOCATABLE :: AD32_so(:,:)
       REAL*4,  ALLOCATABLE :: AD32_ub(:,:)
       REAL*4,  ALLOCATABLE :: AD32_ship(:,:)
-      INTEGER, ALLOCATABLE :: AD32_ship_count
+      INTEGER              :: AD32_ship_count
 
       ! For ND33 -- tropopsheric sum of tracer
       REAL*4,  ALLOCATABLE :: AD33(:,:,:)
@@ -338,6 +337,7 @@
 !                              diagnostic. These are no longer needed because
 !                              NO, NO2, and NO3 are now tracers.
 !  26 Jun 2013 - R. Yantosca - Added extra arrays for ship diagnostics + NEI08
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -392,8 +392,6 @@
       IF ( ALLOCATED( AD07_OC     ) ) DEALLOCATE( AD07_OC     )
       IF ( ALLOCATED( AD07_HC     ) ) DEALLOCATE( AD07_HC     )
       IF ( ALLOCATED( AD07_SOAGM  ) ) DEALLOCATE( AD07_SOAGM  )
-      IF ( ALLOCATED( AD07_ASOA   ) ) DEALLOCATE( AD07_ASOA   )
-      IF ( ALLOCATED( AD07_BBSOA  ) ) DEALLOCATE( AD07_BBSOA  )
       IF ( ALLOCATED( AD08        ) ) DEALLOCATE( AD08        )
       IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
       IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )
@@ -434,13 +432,11 @@
       IF ( ALLOCATED( AD32_so     ) ) DEALLOCATE( AD32_so     )
       IF ( ALLOCATED( AD32_ub     ) ) DEALLOCATE( AD32_ub     )
       IF ( ALLOCATED( AD32_ship   ) ) DEALLOCATE( AD32_ship   )
-      IF ( ALLOCATED( AD32_ship_count) ) DEALLOCATE( AD32_ship_count)
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD34        ) ) DEALLOCATE( AD34        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD36        ) ) DEALLOCATE( AD36        )
       IF ( ALLOCATED( AD36_SHIP   ) ) DEALLOCATE( AD36_SHIP   )
-      IF ( ALLOCATED( AD36_SHIP_COUNT ) ) DEALLOCATE( AD36_SHIP_COUNT )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
@@ -489,7 +485,6 @@
       IF ( ALLOCATED( CTO3        ) ) DEALLOCATE( CTO3        )
       IF ( ALLOCATED( CTO3_24h    ) ) DEALLOCATE( CTO3_24h    )
       IF ( ALLOCATED( CTOH        ) ) DEALLOCATE( CTOH        )
-      IF ( ALLOCATED( EMISS_ANTHR ) ) DEALLOCATE( EMISS_ANTHR )
       ! update for arom (dkh, 06/21/07)  
       IF ( ALLOCATED( CTLBRO2H    ) ) DEALLOCATE( CTLBRO2H    )
       IF ( ALLOCATED( CTLBRO2N    ) ) DEALLOCATE( CTLBRO2N    )

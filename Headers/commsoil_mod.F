@@ -20,8 +20,6 @@
 
       IMPLICIT NONE
       PRIVATE
-
-#     include "define.h"
 !
 ! !DEFINED PARAMETERS: 
 !      
@@ -126,6 +124,7 @@
 !                              be used with the Grid-Independent GEOS-Chem
 !  30 Oct 2012 - R. Yantosca - Now make all arrays that depend on lon &
 !                              lat into ALLOCATABLE arrays (for GIGC code)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,7 +137,7 @@
 !
 ! !IROUTINE: set_commsoil_mod
 !
-! !DESCRIPTION: Routine SET_COMMSOIL_MOD allocates all module arrays
+! !DESCRIPTION: Routine SET\_COMMSOIL\_MOD allocates all module arrays
 !  with the longitude and latitude values IIPAR and JJPAR.
 !\\
 !\\

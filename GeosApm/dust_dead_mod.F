@@ -146,10 +146,10 @@
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
@@ -306,6 +306,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!   5 Jun 2013 - K. Yu       - Use 0.5 x 0.666 NA scale factor for the
+!                              0.25 x 0.3125 NA nested simulation
 !******************************************************************************
 !
       ! References to F90 modules
@@ -357,6 +359,9 @@
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
 #elif defined(SEAC4RS)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
+! added NA, copied 05x0666 scale factor (kyu, 22 April 2013)
+#elif defined(NESTED_NA)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.16d-4
 #endif
 
       ! Global mass flux tuning factor (a posteriori) [frc]

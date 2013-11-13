@@ -16,8 +16,6 @@
 !
       IMPLICIT NONE
       PUBLIC
-
-#     include "define.h"
 !
 ! !DEFINED PARAMETERS:
 !
@@ -290,31 +288,10 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( SEAC4RS )
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: SEA4CRS Grid
-      !-----------------------------------------------------------------
-      INTEGER            :: IGLOB      = 177
-      INTEGER            :: JGLOB      = 161
-      INTEGER            :: LGLOB      = 72
-      INTEGER            :: IIPAR
-      INTEGER            :: JJPAR
-#if   defined( GRIDREDUCED )
-      INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
-      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
-      INTEGER, PARAMETER :: LLTROP     = 38  
-#else 
-      INTEGER            :: LLPAR                  ! Full vertical grid
-      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
-      INTEGER, PARAMETER :: LLTROP     = 40  
-#endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
-
-#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_CH )
-
-      !-----------------------------------------------------------------
-      ! GEOS-5.7.x: Nested China Grid
+      ! GEOS-FP: Nested China Grid
       !-----------------------------------------------------------------
       INTEGER            :: IGLOB      = 225
       INTEGER            :: JGLOB      = 161
@@ -332,10 +309,10 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_NA)
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA)
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: Nested NA Grid
+      ! GEOS-FP Nested NA Grid
       !-----------------------------------------------------------------
       INTEGER            :: IGLOB      = 225
       INTEGER            :: JGLOB      = 202
@@ -353,10 +330,10 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined( GEOS_57 ) && defined( GRID2x25 )
+#elif defined( GEOS_FP ) && defined( GRID2x25 )
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: 2 x 2.5
+      ! GEOS-FP: 2 x 2.5
       !-----------------------------------------------------------------
       INTEGER            :: IGLOB      = 144
       INTEGER            :: JGLOB      = 91
@@ -374,10 +351,10 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined( GEOS_57 ) && defined( GRID4x5 )
+#elif defined( GEOS_FP ) && defined( GRID4x5 )
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: 4 x 5
+      ! GEOS-FP: 4 x 5
       !-----------------------------------------------------------------
       INTEGER            :: IGLOB      = 72
       INTEGER            :: JGLOB      = 46
@@ -441,10 +418,14 @@
       !=================================================================
       ! increase NNPAR and NEMPARA an extra amount (hotp 7/31/09)
 #if   defined( TOMAS )
-# if  defined( TOMAS40 )
-      INTEGER, PARAMETER :: NNPAR   = 410   ! For TOMAS40 (jeff 2/25/10)
+# if    defined( TOMAS40 )
+      INTEGER, PARAMETER :: NNPAR   = 430   ! For TOMAS40 (sfarina 6/11/13)
+# elif  defined( TOMAS15 )
+      INTEGER, PARAMETER :: NNPAR   = 205   ! For TOMAS15 (sfarina 6/11/13)
+# elif  defined( TOMAS12 )
+      INTEGER, PARAMETER :: NNPAR   = 178   ! For TOMAS12 (sfarina 6/11/13)
 # else
-      INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
+      INTEGER, PARAMETER :: NNPAR   = 340   ! For TOMAS (win, bmy, sfarina 6/11/13)
 # endif
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
@@ -455,6 +436,10 @@
       ! +5 for SEAC4RS SOA tracers (jaf, 6/20/13)
       !INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS simulations
       INTEGER, PARAMETER :: NNPAR   = 114   ! For non-TOMAS simulations
+      !------------------------------------------------------------------------
+      ! This is in the std code (bmy, 10/30/13)
+      !INTEGER, PARAMETER :: NNPAR   = 125   ! For non-TOMAS simulations
+      !------------------------------------------------------------------------
 #endif
 
       ! Nempara increased to 26. (fp, 2/8/10)
@@ -464,13 +449,8 @@
       !INTEGER, PARAMETER :: NEMPARA = 21 
       !  Add RCHO, HCOOH, ACTA
       !INTEGER, PARAMETER :: NEMPARA = 26 
-      ! +4 for SEAC4RS FF passive tracers (jaf, 6/13/13)
-      ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
-      !INTEGER, PARAMETER :: NEMPARA = 29
-      INTEGER, PARAMETER :: NEMPARA = 37
-      ! +1 for SEAC4RS ISOP passive tracers (jaf, 6/14/13)
-      !INTEGER, PARAMETER :: NEMPARB = 20
-      INTEGER, PARAMETER :: NEMPARB = 21
+      INTEGER, PARAMETER :: NEMPARA = 29
+      INTEGER, PARAMETER :: NEMPARB = 20
 
       !=================================================================
       ! OTHER PARAMETERS 
@@ -512,9 +492,8 @@
       ! NOXLEVELS = Number of levels of anthro NOx emission 
       !             (e.g. surface and 100m)
       ! NOXEXTENT = Highest sigma level that receives anthro NOx emission 
-      ! Need to set NOXLEVELS to 5 for NEI05 and 3 for NEI08 (krt)
-      INTEGER, PARAMETER :: NOXLEVELS = 5
-      INTEGER, PARAMETER :: NOXEXTENT = 5 
+      INTEGER, PARAMETER :: NOXLEVELS = 2
+      INTEGER, PARAMETER :: NOXEXTENT = 2 
 
       ! MAXFAM -- Max number of families for prod and loss output
       INTEGER, PARAMETER :: MAXFAM = 40
@@ -545,7 +524,11 @@
       ! increase NBIOMAX to 25 fpr CH4 (kjw)
       ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
       INTEGER, PARAMETER :: NBIOMAX = 29
-
+      !------------------------------------------------------------------------
+      ! This is in the std code (bmy, 10/30/13)
+      !! SOAupdate: add 1 for naphthalene, now 26 (hotp 7/21/10)
+      !INTEGER, PARAMETER :: NBIOMAX = 26
+      !------------------------------------------------------------------------
 
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: TOMASSPEC = 8
@@ -553,6 +536,12 @@
 # if  defined( TOMAS40 )
       INTEGER, PARAMETER :: NDSTBIN   = 40
       INTEGER, PARAMETER :: TOMASBIN  = 40
+# elif  defined( TOMAS15 )
+      INTEGER, PARAMETER :: NDSTBIN   = 15
+      INTEGER, PARAMETER :: TOMASBIN  = 15
+# elif  defined( TOMAS12 )
+      INTEGER, PARAMETER :: NDSTBIN   = 12
+      INTEGER, PARAMETER :: TOMASBIN  = 12
 # else
       ! NDSTBIN -- redimensioned for TOMAS (dwest, bmy, 2/1/10)
       INTEGER, PARAMETER :: NDSTBIN   = 30
@@ -649,6 +638,10 @@
 !                              adopted GEOS-Chem naming convention
 !  27 Nov 2012 - R. Yantosca - Removed commented out code
 !  05 Jun 2013 - R. Yantosca - Now define GEOS-5 0.25x0.3125 nested NA grid
+!  13 Aug 2013 - M. Sulprizio- Increase NNPAR & NBIOMAX for updated SOA and
+!                              SOA + semivolatile POA simulations (H. Pye) 
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -662,7 +655,7 @@
 ! !IROUTINE: init_cmn_size
 !
 ! !DESCRIPTION: Routine INIT\_CMN\_SIZE initializes the grid dimension values
-!  in module CMN_SIZE_mod.F.
+!  in module CMN\_SIZE\_mod.F.
 !\\
 !\\
 ! !INTERFACE:

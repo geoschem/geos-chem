@@ -56,12 +56,12 @@
 !  (12) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE CMN_SIZE_MOD  ! Size parameters
 
       IMPLICIT NONE
-#     include "define.h"
 
       REAL*8, ALLOCATABLE :: OCDATA(:,:) ! ocean field for emiss. flux
       REAL*8, ALLOCATABLE :: EFCH4R(:,:) ! emission flux from rice

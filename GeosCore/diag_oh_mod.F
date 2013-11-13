@@ -18,7 +18,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -31,6 +30,7 @@
 !
 ! !REVISION HISTORY:
 !  (1 ) Remove code for obsolete CO-OH simulation (bmy, 6/24/05)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -44,6 +44,10 @@
       REAL*8, ALLOCATABLE :: OH_MASS(:,:,:)
       REAL*8, ALLOCATABLE :: AIR_MASS(:,:,:)
       REAL*8, ALLOCATABLE :: OH_LOSS(:,:,:)
+      REAL*8, ALLOCATABLE :: OHCH4_LOSS(:,:,:)
+      REAL*8, ALLOCATABLE :: CH4_MASS(:,:,:)
+      REAL*8, ALLOCATABLE :: CH4_TROPMASS(:,:,:)
+      REAL*8, ALLOCATABLE :: CH4_EMIS(:,:,:)
       
       CONTAINS
 !EOC
@@ -133,7 +137,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_OH_CH4( I, J, L, XOHMASS, XAIRMASS, XLOSS )
+      SUBROUTINE DO_DIAG_OH_CH4( I, J, L, XOHMASS, XAIRMASS, XLOSS,
+     &                   XCH4LOSS, XCH4TROPMASS, XCH4EMIS, XCH4MASS )
 !
 ! !USES:
 !
@@ -146,7 +151,11 @@
       INTEGER, INTENT(IN) :: L          ! Level index
       REAL*8,  INTENT(IN) :: XOHMASS    ! OH Mass  (from global_ch4_mod.f)
       REAL*8,  INTENT(IN) :: XAIRMASS   ! Air mass (from global_ch4_mod.f)
-      REAL*8,  INTENT(IN) :: XLOSS      ! OH loss  (from global_ch4_mod.f)
+      REAL*8,  INTENT(IN) :: XLOSS      ! Loss of ch3ccl3 by OH
+      REAL*8,  INTENT(IN) :: XCH4LOSS   ! Loss of ch4 by OH
+      REAL*8,  INTENT(IN) :: XCH4MASS   ! CH4 Mass  (from global_ch4_mod.f)
+      REAL*8,  INTENT(IN) :: XCH4TROPMASS   ! CH4 Mass  (from global_ch4_mod.f)
+      REAL*8,  INTENT(IN) :: XCH4EMIS   ! CH4 emissions
 ! 
 ! !REVISION HISTORY:
 !  07 Jul 2004 - R. Yantosca - Initial version
@@ -159,9 +168,13 @@
       !=================================================================
 
       ! Sum air mass & OH mass into arrays
-      AIR_MASS(I,J,L) = AIR_MASS(I,J,L) + XAIRMASS
-      OH_MASS(I,J,L)  = OH_MASS(I,J,L)  + XOHMASS
-      OH_LOSS(I,J,L)  = OH_LOSS(I,J,L)  + XLOSS
+      AIR_MASS(I,J,L)     = AIR_MASS(I,J,L)     + XAIRMASS
+      OH_MASS(I,J,L)      = OH_MASS(I,J,L)      + XOHMASS
+      OH_LOSS(I,J,L)      = OH_LOSS(I,J,L)      + XLOSS
+      OHCH4_LOSS(I,J,L)   = OHCH4_LOSS(I,J,L)   + XCH4LOSS
+      CH4_MASS(I,J,L)     = CH4_MASS(I,J,L)     + XCH4MASS
+      CH4_TROPMASS(I,J,L) = CH4_TROPMASS(I,J,L) + XCH4TROPMASS
+      CH4_EMIS(I,J,L)     = CH4_EMIS(I,J,L)     + XCH4EMIS
 
       END SUBROUTINE DO_DIAG_OH_CH4
 !EOC
@@ -194,6 +207,7 @@
 ! !LOCAL VARIABLES:
 !
       REAL*8 :: SUM_OHMASS, SUM_MASS, SUM_OHLOSS, OHCONC, LIFETIME
+      REAL*8 :: SUM_OHCH4LOSS, SUM_CH4MASS, SUM_CH4EMIS, SUM_CH4TROPMASS
      
       !=================================================================
       ! PRINT_DIAG_OH begins here!
@@ -210,6 +224,18 @@
 
       ! OH Loss from CH3CCl3 + OH [molec / box / s]
       SUM_OHLOSS = SUM( OH_LOSS )
+
+      ! OH Loss from CH4 + OH [molec / box / s]
+      SUM_OHCH4LOSS = SUM( OHCH4_LOSS )
+
+      ! Atmospheric mass of CH4
+      SUM_CH4MASS = SUM( CH4_MASS )
+
+      ! Atmospheric mass of tropospheric CH4
+      SUM_CH4TROPMASS = SUM( CH4_TROPMASS )
+
+      ! Atmospheric ch4 emissions
+      SUM_CH4EMIS = SUM( CH4_EMIS )
          
       ! Avoid divide-by-zero errors 
       IF ( SUM_MASS > 0d0 ) THEN 
@@ -227,6 +253,11 @@
          IF ( ITS_A_CH4_SIM() ) THEN
             IF ( SUM_OHLOSS > 0 ) THEN
 
+               ! Mass weighted lifetimes printed below
+               WRITE( 6, * ) 'All lifetimes printed below ' //
+     &                       'are mass-weighted'
+               WRITE( 6, '(  a)' ) REPEAT( '-', 79 )
+
                ! Calculate CH3CCl3 Lifetime [years]
                LIFETIME = ( SUM_MASS / SUM_OHLOSS ) / 
      &                    ( 3600d0*365d0*24d0 )
@@ -234,6 +265,33 @@
                ! Write value to log file
                WRITE( 6, *       ) 'Methyl Chloroform (CH3CCl3)'
                WRITE( 6, *       ) 'Tropospheric Lifetime     = ', 
+     &                                 LIFETIME, ' [years]'
+               WRITE( 6, '(  a)' ) REPEAT( '=', 79 )
+
+               ! Calculate CH4 lifetime w/r/t OH loss [years]
+               LIFETIME = ( SUM_MASS / SUM_OHCH4LOSS ) / 
+     &                    ( 3600d0*365d0*24d0 )
+               ! Write value to log file
+               WRITE( 6, *       ) 'Methane (CH4)'
+               WRITE( 6, *       ) 'Tropospheric Lifetime w/r/t OH  = ', 
+     &                                 LIFETIME, ' [years]'
+               WRITE( 6, '(  a)' ) REPEAT( '=', 79 )
+
+               ! Calculate CH4 lifetime  [years]
+               LIFETIME = ( SUM_CH4TROPMASS / SUM_CH4EMIS ) / 
+     &                    ( 3600d0*365d0*24d0 )
+               ! Write value to log file
+               WRITE( 6, *       ) 'Methane (CH4)'
+               WRITE( 6, *       ) 'Tropospheric Lifetime (total)  = ', 
+     &                                 LIFETIME, ' [years]'
+               WRITE( 6, '(  a)' ) REPEAT( '=', 79 )
+
+               ! Calculate CH4 lifetime  [years]
+               LIFETIME = ( SUM_CH4MASS / SUM_CH4EMIS ) / 
+     &                    ( 3600d0*365d0*24d0 )
+               ! Write value to log file
+               WRITE( 6, *       ) 'Methane (CH4)'
+               WRITE( 6, *       ) 'Global Lifetime (total)  = ', 
      &                                 LIFETIME, ' [years]'
                WRITE( 6, '(  a)' ) REPEAT( '=', 79 )
 
@@ -335,17 +393,33 @@
 
       ! Air mass array
       ALLOCATE( AIR_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_LOSS' )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIR_MASS' )
       AIR_MASS = 0d0
 
       ! OH mass array
       ALLOCATE( OH_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_LOSS' )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_MASS' )
       OH_MASS = 0d0
 
       ALLOCATE( OH_LOSS( IIPAR, JJPAR, LMAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_LOSS' )
       OH_LOSS = 0d0
+
+      ALLOCATE( OHCH4_LOSS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OHCH4_LOSS' )
+      OHCH4_LOSS = 0d0
+
+      ALLOCATE( CH4_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_MASS' )
+      CH4_MASS = 0d0
+
+      ALLOCATE( CH4_TROPMASS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_TROPMASS' )
+      CH4_TROPMASS = 0d0
+
+      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
+      CH4_EMIS = 0d0
 
       END SUBROUTINE INIT_DIAG_OH
 !EOC
@@ -375,6 +449,10 @@
       IF ( ALLOCATED( OH_MASS  ) ) DEALLOCATE( OH_MASS  )
       IF ( ALLOCATED( AIR_MASS ) ) DEALLOCATE( AIR_MASS )
       IF ( ALLOCATED( OH_LOSS  ) ) DEALLOCATE( OH_LOSS  )
+      IF ( ALLOCATED( OHCH4_LOSS  ) ) DEALLOCATE( OHCH4_LOSS  )
+      IF ( ALLOCATED( CH4_MASS  ) ) DEALLOCATE( CH4_MASS  )
+      IF ( ALLOCATED( CH4_TROPMASS  ) ) DEALLOCATE( CH4_TROPMASS  )
+      IF ( ALLOCATED( CH4_EMIS  ) ) DEALLOCATE( CH4_EMIS  )
 
       END SUBROUTINE CLEANUP_DIAG_OH
 !EOC

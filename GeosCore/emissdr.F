@@ -95,11 +95,17 @@
 !  13 Dec 2012 - R. Yantosca - Now remove reference to obsolete CMN_DEP_mod.F
 !  01 Feb 2013 - R. Yantosca - Added updates to MEGAN 2.1 (D. Millet)
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCPAIR from Input_Opt
+!  31 Jul 2013 - M. Sulprizio- Now use aircraft emissions from the AEIC
+!                              inventory (S. Eastham)
+!  13 Aug 2013 - M. Sulprizio- Update MEGAN biogenics to include sesquiterpenes
+!                              for updated SOA simulation (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
       USE ACETONE_MOD,        ONLY : EMISS_BIOACET, OCEAN_SOURCE_ACET
-      USE AIRCRAFT_NOX_MOD,   ONLY : AIREMISS
+      USE AEIC_MOD,           ONLY : EMIT_AEIC
       USE BIOFUEL_MOD,        ONLY : BIOFUEL_BURN
       USE BROMOCARB_MOD,      ONLY : EMIS_CHBr3, EMIS_CH2Br2
       USE BROMOCARB_MOD,      ONLY : Br_SCALING
@@ -126,6 +132,7 @@
       USE MEGAN_MOD,          ONLY : GET_MEGAN_EMISSIONS 
       USE MEGANUT_MOD,        ONLY : XLTMMP
       USE MODIS_LAI_MOD
+      USE RCP_MOD,            ONLY : RCP_AIREMISS! (cdh, 10/14/11)
       USE SOIL_NOX_MOD,       ONLY : SOIL_NOX_EMISSION   
       USE TIME_MOD,           ONLY : GET_MONTH,     GET_TAU
       USE TIME_MOD,           ONLY : GET_TS_EMIS,   GET_LOCALTIME
@@ -152,7 +159,6 @@
       USE COMMSOIL_MOD             ! Soil wetness variables
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -176,7 +182,7 @@
       INTEGER                :: I0, J0, IOFF, JOFF, IREF, JREF
       INTEGER                :: NDAY,JSCEN,NN
       INTEGER, SAVE          :: LASTMONTH = -99
-      REAL*8                 :: DTSRCE,  XLOCTM,   TMMP
+      REAL*8                 :: DTSRCE,    XLOCTM,    TMMP
       REAL*8                 :: EMIS_ISOP, EMIS_PRPE
       REAL*8                 :: EMIS_MONO, EMIS_MBOX, EMIS_C2H4
       REAL*8                 :: EMIS_APIN, EMIS_BPIN, EMIS_LIMO
@@ -196,6 +202,8 @@
       REAL*8                 :: DEP_FERT, TEMP_FERT
       REAL*8                 :: X, Y
 
+      ! Add biogenic emission scale factor for ethene (tmf, 1/13/06)
+      REAL*8                 :: BIOSCALEC2H4
 
       ! Molecules C / kg C
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
@@ -211,19 +219,19 @@
       ! Add in new monoterpene species (mpb,2009)
       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
       REAL*8                 :: MYRCN  , CAREN , OCIMN
-      ! Add in gamma activity factors for isoprene ONLY (mpb,2009)
-      REAL*8                 :: GAMMA_LAI
-      REAL*8                 :: GAMMA_LEAF_AGE
-      REAL*8                 :: GAMMA_P
-      REAL*8                 :: GAMMA_T
-      REAL*8                 :: GAMMA_SM
+
+!----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: Sesquiterpenes (hotp 3/1/10)
+!      REAL*8                 :: FARN, BCAR, OSQT
+!      REAL*8                 :: OMTP ! other monoterpenes 3/5/10
+!----------------------------------------------------------------------------
 
       ! For fields from Input_Opt
       LOGICAL                :: LANTHRO
       LOGICAL                :: LLIGHTNOX
       LOGICAL                :: LSOILNOX
       LOGICAL                :: LFERTILIZERNOX
-      LOGICAL                :: LAIRNOX
       LOGICAL                :: LBIOMASS
       LOGICAL                :: LBIONOX
       LOGICAL                :: LBIOFUEL
@@ -232,6 +240,8 @@
       LOGICAL                :: LMEGANMONO
       LOGICAL                :: LBIOGENIC
       LOGICAL                :: LNLPBL
+      LOGICAL                :: LRCPAIR
+      LOGICAL                :: LAEIC
       LOGICAL                :: ITS_A_TAGCO_SIM
       INTEGER                :: N_TRACERS
 !
@@ -252,7 +262,6 @@
       LLIGHTNOX        = Input_Opt%LLIGHTNOX
       LSOILNOX         = Input_Opt%LSOILNOX
       LFERTILIZERNOX   = Input_Opt%LFERTILIZERNOX
-      LAIRNOX          = Input_Opt%LAIRNOX
       LBIOMASS         = Input_Opt%LBIOMASS
       LBIONOX          = Input_Opt%LBIOMASS
       LBIOFUEL         = Input_Opt%LBIOFUEL
@@ -261,6 +270,8 @@
       LMEGANMONO       = Input_Opt%LMEGANMONO
       LBIOGENIC        = Input_Opt%LBIOGENIC
       LNLPBL           = Input_Opt%LNLPBL
+      LRCPAIR          = Input_Opt%LRCPAIR
+      LAEIC            = Input_Opt%LAEIC
       ITS_A_TAGCO_SIM  = Input_Opt%ITS_A_TAGCO_SIM
       N_TRACERS        = Input_Opt%N_TRACERS
 
@@ -488,10 +499,16 @@
                CALL EMLIGHTNING( State_Met, State_Chm )
             ENDIF
 !-----------------------------------------------------------------------------
-! AIRCRAFT emissions NOx [molecules/cm3/s]
+! AIRCRAFT emissions [kg/box]
 !
-            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) THEN
-               CALL AIREMISS( State_Met, State_Chm )
+            IF ( LAEIC .AND. I == 1 .AND. J == 1 ) THEN
+               ! Choose between RCP inventory and default
+               ! (cdh, 6/14/12)
+               IF (LRCPAIR) THEN
+                  CALL RCP_AIREMISS( State_Met )
+               ELSE
+                  CALL EMIT_AEIC( Input_Opt, State_Met, State_Chm )
+               ENDIF
             ENDIF
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
@@ -633,11 +650,13 @@
 !               EMIS_AAXX = GET_MEGAN_EMISSIONS( I,          J,
 !     &                                          State_Met, 'AAXX' )
 
+
 !-----------------------------------------------------------------------------
 ! BIOGENIC ACETONE EMISSIONS
 !
                IF ( IDEACET /= 0 ) THEN
 
+                  ! evf, edits to use MEGAN biogenic acetone emiss (5/25/2011)
                   ! Compute biogenic acetone emissions [atoms C/box/s]
                   ! NOTE: GRASS is not used anymore (bmy, 2/1/13)
                   CALL EMISS_BIOACET( I,         J,         State_Met, 
@@ -653,7 +672,6 @@
                   IF ( NO_TAGCO ) THEN
                     EMISRR(I,J,IDEACET) = EMISRR(I,J,IDEACET) + BIO_ACET
                   ENDIF
-
                ENDIF
 !-----------------------------------------------------------------------------
 
@@ -837,6 +855,15 @@
 !     AD46(:,:,20) = Total biogenic CHBr3    emissions [kg/m2/s]
 !     AD46(:,:,21) = Total biogenic CH2Br2   emissions [kg/m2/s]
 !     AD46(:,:,22) = Total biogenic SSBr2    emissions [kg/m2/s]
+!--------- These are in std code---------------------------------------------
+!     AD46(:,:,14) = Total biogenic FARN     emissions [atoms C/cm2/s]
+!     AD46(:,:,15) = Total biogenic BCAR     emissions [atoms C/cm2/s]
+!     AD46(:,:,16) = Total biogenic OSQT     emissions [atoms C/cm2/s]
+!     AD46(:,:,17) = Total biogenic OMTP     emissions [atoms C/cm2/s]
+!     AD46(:,:,18) = Total biogenic CHBr3    emissions [kg/m2/s]
+!     AD46(:,:,19) = Total biogenic CH2Br2   emissions [kg/m2/s]
+!     AD46(:,:,20) = Total biogenic SSBr2    emissions [kg/m2/s]
+!---------------------------------------------------------------------------
 !
 !  NOTES: 
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
@@ -845,6 +872,7 @@
 !  22 Oct 2012 - R. Yantosca - Prevent out-of-bounds errors in ND46 if bromine
 !                              emissions are turned off (e.g. for tagged CO)
 !  01 Dec 2012 - D. Millet   - Updated tracers (dbm, 12/2012)
+!  13 Aug 2013 - M. Sulprizio- Add sesquiterpenes for updated SOA (H.Pye)
 !******************************************************************************
 !
                IF ( ND46 > 0 ) THEN

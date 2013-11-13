@@ -115,12 +115,12 @@
 !  19 Apr 2012 - E. Corbitt  - Added LGCBROMINE to use GEOS-Chem bromine.
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -380,14 +380,13 @@
       ! ratio of aerosol molecular weight / air molecular weight
       CU = AERO_MW / AIR_MW   !  [kg aerosol / kg air]
 
-#if defined( GRID4x5 )
+#if defined( GRID4x5 ) || defined( GRID2x25 )
       ! tropospheric aerosols (v8-02-03, GEOS5, 4x5)
       FILENAME = TRIM( DATA_DIR )   //
      &           'mercury_201007/Hg_partitioning/' //
-     &           'aero.IJ_AVG.2007.geos5.4x5'
-#elif defined( GRID2x25 )
-      FILENAME = '/home/hamos/GC/input_files/aerosols/' //
-     &           'GEOS5/aero.IJ_AVG.2007.geos5.2x25'
+     &           'aero.IJ_AVG.2007.'               //
+     &           GET_NAME_EXT()     // '.'         //
+     &           GET_RES_EXT()
 #else
       CALL ERROR_STOP( "You need to make an aerosols file. ", 
      &                 "PARTITION_Hg2")
@@ -708,6 +707,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !******************************************************************************
 !
       ! References to F90 modules
@@ -908,7 +908,7 @@
          ! Use fractional land type information in MERRA (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction.
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
      &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
          A_ocean = A_ocean + A_M2 * 
@@ -989,7 +989,7 @@
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction. Don't let the fraction
          ! be less than zero (jaf, 4/26/11)
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
          FRAC_L       = State_Met%FRLAND(I,J)
          FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
      &                       State_Met%FRSEAICE(I,J), 0d0 )
@@ -2176,6 +2176,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -2232,7 +2233,7 @@
       ! Use fractional land type information in MERRA (jaf, 4/26/11)
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
       FRAC_O     = MAX( State_Met%FROCEAN(I,J) - 
      &                  State_Met%FRSEAICE(I,J), 0d0)
 #else

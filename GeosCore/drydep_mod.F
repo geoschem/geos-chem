@@ -37,8 +37,6 @@
 #endif
 
       IMPLICIT NONE
-
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -187,6 +185,9 @@
 !  11 Dec 2012 - R. Yantosca - Now call INIT_WEIGHTSS from INIT_DRYDEP
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
 !  26 Feb 2013 - R. Yantosca - Now use Input_Opt fields where possible
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,11 +195,16 @@
 ! !DEFINED PARAMETERS:
 !
 #if   defined( TOMAS )
-      INTEGER, PARAMETER :: MAXDEP    = 81      ! Max # of depositing species
+      INTEGER, PARAMETER :: MAXDEP    = 100     ! Max # of depositing species
 #else
       ! +3 for SEAC4RS SOA tracers (jaf, 6/24/13)
       !INTEGER, PARAMETER :: MAXDEP    = 55      ! Max # of depositing species
       INTEGER, PARAMETER :: MAXDEP    = 58      ! Max # of depositing species
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: 55 to 105 jje (8/19/2010)
+!      INTEGER, PARAMETER :: MAXDEP    = 105     ! Max # of depositing species
+!------------------------------------------------------------------------------
 #endif
       REAL*8,  PARAMETER :: XCKMAN    = 0.4d0   ! Von Karman's constant
       INTEGER, PARAMETER :: NR_MAX    = 200     ! # of seasalt bins 
@@ -511,7 +517,7 @@
             IF ( NN == IDTACET ) THEN
 
                IF ( IS_LAND( I, J, State_Met ) ) THEN
-                  DVZ = 0.1 
+                  DVZ = 0.1d0
                ELSE
                   DVZ = 0d0
                ENDIF
@@ -713,6 +719,7 @@
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Add SUNCOS_MID to the argument list and 
 !                              populate that with State_Met%SUNCOSmid
+!  21 Oct 2013 - R. Yantosca - Bug fix: need to hold SP private in OMP loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -740,7 +747,7 @@
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, SP )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -880,6 +887,7 @@
 !  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOILNOX and Input_Opt%NUMDEP
+!  30 Oct 2013 - M. Sulprizio- Bug fix: Hold AREA_CM2 private in !$OMP loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -915,7 +923,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX )
+!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX, AREA_CM2 )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, Input_Opt%NUMDEP
 
@@ -1611,6 +1619,9 @@
 !  13 Dec 2012 - R. Yantosca - Now get XLAI from State_Met
 !  31 May 2013 - R. Yantosca - Now pass State_Chm, for TOMAS
 !  14 Jun 2013 - R. Yantosca - Now use Input_Opt%ITS_A_POPS_SIM
+!  29 Aug 2013 - R. Yantosca - Bug fix: Skip to the next species if unless
+!                              HSTAR>0 and XMW>0, or AIROSOL=t.  This avoids
+!                              a floating-point invalid condition.
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1695,12 +1706,21 @@
 !
 !** If LDEP(K)=F, species does not deposit.
 !** Deposition is applied only to species with LDEP=T.
-
       DO K = 1,NUMDEP
-         LDEP(K) = (HSTAR(K).GT.0.D0 .OR. F0(K).GT.0.D0 
-     &              .OR. AIROSOL(K)) 
+
+         ! Better test for depositing species K: We need both HSTAR and XMW
+         ! to be nonzero, OR the value of AIROSOL to be true.  This should
+         ! avoid any futher floating point invalid issues caused by putting
+         ! a zero value in a denominator. (bmy, 8/29/13)
+         ! (bmy, 8/29/13)
+         IF ( ( HSTAR(K) > 0d0   .and. 
+     &          XMW  (K) > 0d0 ) .or.  AIROSOL(K) ) THEN
+            LDEP(K) = .TRUE.
+         ELSE
+            LDEP(K) = .FALSE.
+         ENDIF
       ENDDO
-                                   
+
       DO K = 1,NUMDEP    
          DO IJLOOP =1,NPTS
             DVEL(IJLOOP,K) = 0.0D0
@@ -1740,7 +1760,11 @@
 !$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
 !$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
-!$OMP+PRIVATE( C1X,    VK,     I,      J                      )
+!$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
+#if defined( GCAP )
+!$OMP+PRIVATE( ZO                                             )
+#endif
+
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -1903,6 +1927,7 @@
             DO 160  K = 1,NUMDEP
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
+
                XMWH2O = 18.D-3
                RIXX = RIX*DIFFG(TEMPK,PRESSU(IJLOOP),XMWH2O)/
      C              DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K))
@@ -1927,12 +1952,6 @@
 !* was introduced by J.Y. Liang on 7/9/95.
 !*
 
-               !-----------------------------------------------------------
-               ! Prior to 7/21/03:
-               ! Remove the cap of surface resistance (rjp, bmy, 7/21/03)
-               !IF(RLUXX.LT. 50.D0) RLUXX= 50.D0
-               !-----------------------------------------------------------
-!     
                RGSX = 1.D0/(HSTAR(K)/1.0D+05/RGSS(LDT) + 
      1              F0(K)/RGSO(LDT))
                RCLX = 1.D0/(HSTAR(K)/1.0D+05/RCLS(LDT) + 
@@ -2371,7 +2390,9 @@
                PRINT*, 'CFRAC    = ', CFRAC(IJLOOP)
                PRINT*, 'ZH       = ', ZH(IJLOOP)
                PRINT*, 'LRGERA   = ', LRGERA(IJLOOP)
+#if !defined( GCAP )
                PRINT*, 'ZO       = ', ZO(IJLOOP)
+#endif
                PRINT*, 'STOP in depvel.f!'
                CALL CLEANUP
                STOP
@@ -2396,7 +2417,9 @@
                PRINT*, 'CFRAC    = ', CFRAC(IJLOOP)
                PRINT*, 'ZH       = ', ZH(IJLOOP)
                PRINT*, 'LRGERA   = ', LRGERA(IJLOOP)
+#if !defined( GCAP )
                PRINT*, 'ZO       = ', ZO(IJLOOP)
+#endif
                CALL CLEANUP
                STOP
 !$OMP END CRITICAL
@@ -4310,6 +4333,12 @@
 !                              Input_Opt%NDVZIND and Input_Opt%DEPNAME
 !  14 Jun 2013 - R. Yantosca - Now replace fields from tracer_mod.F
 !                              with fields from Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  29 Aug 2013 - R. Yantosca - Assign XMW=118d-3 to RIP and IEPOX.  This now
+!                              prevents XMW=0d0 from being passed to function
+!                              DIFFG, where it is in the denominator.
+!  04 Sep 2013 - R. Yantosca - Improve printout of drydep species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4324,6 +4353,8 @@
       REAL*8, SAVE :: POP_K_POPP_O3A, POP_K_POPP_O3B
       REAL*8, SAVE :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
       REAL*8       :: DUM
+
+      CHARACTER(LEN=255) :: MSG
 
       !=================================================================
       ! INIT_DRYDEP begins here!
@@ -4721,21 +4752,21 @@
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 160.d-3
             AIROSOL(NUMDEP) = .FALSE.
-         !--------------------------------------------
 
-         !FP_ISOP
-         ! !ISOPN=ISOPNDISOPNB
+         ! NOTE: ISOPN is composed of 2 species (ISOPND + ISOPNB)
          ELSE IF ( N == IDTISOPN ) THEN
-         !ISOPNNR
+
+            ! First species; ISOPND
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTISOPN
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'ISOPND'
             HSTAR(NUMDEP)   = 17d3 !ITO 2007
             F0(NUMDEP)      = 1d0  !Karl et al. 2010(science)
-             XMW(NUMDEP)     = 147d-3
+            XMW(NUMDEP)     = 147d-3
             AIROSOL(NUMDEP) = .FALSE.
 
+            ! Second species: ISOPNB
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTISOPN
             NDVZIND(NUMDEP) = NUMDEP
@@ -4745,8 +4776,10 @@
             XMW(NUMDEP)     = 147d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-         !MMN=MACRN+MVKN
+         ! NOTE: MMN is composed of 2 species (MACRN + MVKN)
          ELSE IF ( N == IDTMMN ) THEN
+
+            ! First species; MACRN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTMMN
             NDVZIND(NUMDEP) = NUMDEP
@@ -4756,6 +4789,7 @@
             XMW(NUMDEP)     = 149d-3
             AIROSOL(NUMDEP) = .FALSE.
        
+            ! Second species: MVKN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTMMN
             NDVZIND(NUMDEP) = NUMDEP
@@ -4772,7 +4806,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'PROPNN'  !NITROOXYACETONE IN SANDER TABLE
             HSTAR(NUMDEP)   = 1d3       
-            F0(NUMDEP)      = 1d0  !Karl et al. 2010(science)
+            F0(NUMDEP)      = 1d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 119d-3
             AIROSOL(NUMDEP) = .FALSE.   
 
@@ -4782,20 +4816,20 @@
             NTRAIND(NUMDEP) = IDTRIP
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'RIP'
-            HSTAR(NUMDEP)   = 1.70d6
-            F0(NUMDEP)      = 1.0d0!Karl et al. 2010(science)
-            XMW(NUMDEP)     = 0d0
+            HSTAR(NUMDEP)   = 1.70d6    ! US EPA 2011
+            F0(NUMDEP)      = 1.0d0     ! Karl et al. 2010(science)
+            XMW(NUMDEP)     = 118d-3
             AIROSOL(NUMDEP) = .FALSE.
 
          !IEPOX
          ELSE IF ( N == IDTIEPOX ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTIEPOX
-            NDVZIND(NUMDEP) = NUMDEP !USE H2O2
+            NDVZIND(NUMDEP) = NUMDEP    !USE H2O2
             DEPNAME(NUMDEP) = 'IEPOX'
             HSTAR(NUMDEP)   = 1.30d8
-            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
-            XMW(NUMDEP)     = 0d0
+            F0(NUMDEP)      = 1.0d0     ! Karl et al. 2010(science)
+            XMW(NUMDEP)     = 118d-3    ! (Eddingsaas et al., 2010)
             AIROSOL(NUMDEP) = .FALSE.
 
          !MAP
@@ -5058,16 +5092,40 @@
             XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .TRUE.
 
-         ! ALPH (Alpha-pinene)
-         ELSE IF ( N == IDTALPH ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTALPH
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ALPH'
-            HSTAR(NUMDEP)   = 0.023d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 136.23d-3
-            AIROSOL(NUMDEP) = .FALSE.
+!--------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!         ! SOAupdate (hotp 6/12/09)
+!         ! semivolpoa: add POA (hotp 2/17/09)
+!         ELSE IF ( N == IDTPOA1 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTPOA1
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'POA1'
+!            HSTAR(NUMDEP)   = 0.0d0
+!            F0(NUMDEP)      = 0.0d0
+!            XMW(NUMDEP)     = 12d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ELSE IF ( N == IDTPOA2 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTPOA2
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'POA2'
+!            HSTAR(NUMDEP)   = 0.0d0
+!            F0(NUMDEP)      = 0.0d0
+!            XMW(NUMDEP)     = 12d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!
+!         ! SOAupdate: MTPA, MTPO use H-law = 0.049 (hotp 5/22/10)
+!         ELSE IF ( N == IDTMTPA ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTMTPA
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'MTPA'
+!            HSTAR(NUMDEP)   = 0.049d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 136.23d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!--------------------------------------------------------------------------
 
          ! LIMO (Limonene)
          ELSE IF ( N == IDTLIMO ) THEN
@@ -5080,129 +5138,282 @@
             XMW(NUMDEP)     = 136.23d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-         ! ALCO (Alcohols)
-         ELSE IF ( N == IDTALCO ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTALCO
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ALCO'
-            HSTAR(NUMDEP)   = 54.d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 142d-3
-            AIROSOL(NUMDEP) = .FALSE.
+!--------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!         ! SOAupdate: now MTPO for new mtp (hotp 5/22/10)
+!         ELSE IF ( N == IDTMTPO ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTMTPO
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'MTPO'
+!            HSTAR(NUMDEP)   = 0.049d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 136d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!
+!         ! SOAupdate: mono+sesq terpene in new mtp (hotp 5/22/10)
+!         ELSE IF ( N == IDTTSOG1 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTTSOG1
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'TSOG1'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTTSOG2 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTTSOG2
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'TSOG2'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTTSOG3 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTTSOG3
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'TSOG3'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTTSOG0 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTTSOG0
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'TSOG0'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTTSOA0 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTTSOA0
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'TSOA0'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ELSE IF ( N == IDTTSOA1 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTTSOA1
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'TSOA1'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ELSE IF ( N == IDTTSOA2 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTTSOA2
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'TSOA2'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ELSE IF ( N == IDTTSOA3 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTTSOA3
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'TSOA3'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!
+!         ! SOAupdate: isoprene in net mtp formulation (hotp 5/22/10)
+!         ELSE IF ( N == IDTISOG1 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTISOG1
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ISOG1'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTISOG2 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTISOG2
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ISOG2'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTISOG3 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTISOG3
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ISOG3'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTISOA1 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTISOA1
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ISOA1'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ELSE IF ( N == IDTISOA2 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTISOA2
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ISOA2'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ELSE IF ( N == IDTISOA3 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTISOA3
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ISOA3'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!
+!         ! SOAupdate: lumped aromatic/IVOC aerosol (hotp 5/12/10)
+!         ! LUMPAROMIVOC
+!         ELSE IF ( N == IDTASOG1 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTASOG1
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ASOG1'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTASOG2 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTASOG2
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ASOG2'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTASOG3 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTASOG3
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ASOG3'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTASOAN ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTASOAN
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ASOAN'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ELSE IF ( N == IDTASOA1 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTASOA1
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ASOA1'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ELSE IF ( N == IDTASOA2 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTASOA2
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ASOA2'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ELSE IF ( N == IDTASOA3 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTASOA3
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'ASOA3'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 150d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!
+!         ! SOAupdate: (hotp 6/12/09)
+!         ! semivolpoa2: POG (hotp 3/2/09)  
+!         ELSE IF ( N == IDTPOG1 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTPOG1
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'POG1'
+!            ! make POG hydrophobic (hotp 9/24/09)
+!            !HSTAR(NUMDEP)   = 1d5
+!            HSTAR(NUMDEP)   = 9.5d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 12d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTPOG2 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTPOG2
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'POG2'
+!            HSTAR(NUMDEP)   = 9.5d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 12d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!
+!         ! SOAupdate: (hotp 6/12/09)
+!         ! semivolpoa4opoa: OPOG (hotp 3/18/09)  
+!         ELSE IF ( N == IDTOPOG1 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTOPOG1
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'OPOG1'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 12d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!         ELSE IF ( N == IDTOPOG2 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTOPOG2
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'OPOG2'
+!            HSTAR(NUMDEP)   = 1d5
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 12d-3
+!            AIROSOL(NUMDEP) = .FALSE.
+!
+!         ! SOAupdate: (hotp 6/12/09)
+!         ! semivolpoa4opoa: add OPOA (hotp 3/18/09)
+!         ELSE IF ( N == IDTOPOA1 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTOPOA1
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'OPOA1'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 12d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ELSE IF ( N == IDTOPOA2 ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTOPOA2
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'OPOA2'
+!            HSTAR(NUMDEP)   = 0d0
+!            F0(NUMDEP)      = 0d0
+!            XMW(NUMDEP)     = 12d-3
+!            AIROSOL(NUMDEP) = .TRUE.
+!         ! End SOAupdate
+!------------------------------------------------------------------------------
 
-         ! SOG1
-         ELSE IF ( N == IDTSOG1 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOG1
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SOG1'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .FALSE.
-
-         ! SOG2
-         ELSE IF ( N == IDTSOG2 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOG2
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SOG2'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 160d-3
-            AIROSOL(NUMDEP) = .FALSE.
-
-         ! SOG3
-         ELSE IF ( N == IDTSOG3 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOG3
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SOG3'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 220d-3
-            AIROSOL(NUMDEP) = .FALSE.
-
-         ! SOG4
-         ELSE IF ( N == IDTSOG4 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOG4
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SOG4'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 130d-3
-            AIROSOL(NUMDEP) = .FALSE.
-
-        ! SOG5  (dkh, 03/27/07)  
-         ELSE IF ( N == IDTSOG5 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOG5
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SOG5'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            ! MWT is 150 not 130 hotp
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .FALSE.
-
-         ! SOA1
-         ELSE IF ( N == IDTSOA1 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOA1
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SOA1'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! SOA2
-         ELSE IF ( N == IDTSOA2 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOA2
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SOA2'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 160d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! SOA3
-         ELSE IF ( N == IDTSOA3 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOA3
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SOA3'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 220d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! SOA4
-         ELSE IF ( N == IDTSOA4 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOA4
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SOA4'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 130d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! SOA5 (dkh, 03/27/07)  
-         ELSE IF ( N == IDTSOA5 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOA5
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SOA5'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            ! hotp 5/24/09 MWT fix
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .TRUE.
- 
          ! SOAG
          ELSE IF ( N == IDTSOAG ) THEN
             NUMDEP          = NUMDEP + 1
@@ -5223,43 +5434,6 @@
             HSTAR(NUMDEP)   = 0d0
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 72d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         !----------------------------------
-         ! SEAC4RS SOA tracers (jaf, 6/24/13)
-         !----------------------------------
-
-         ! ASOA
-         ELSE IF ( N == IDTASOA ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTASOA
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ASOA'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 12d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! BBSOA
-         ELSE IF ( N == IDTBBSOA ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTBBSOA
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'BBSOA'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 12d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! BGSOA
-         ELSE IF ( N == IDTBGSOA ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTBGSOA
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'BGSOA'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .TRUE.
 
          !----------------------------------
@@ -5501,6 +5675,7 @@
             XMW(NUMDEP)     = 1.d0
             AIROSOL(NUMDEP) = .TRUE. 
 
+# if  !defined( TOMAS12 )
          ! NK13 (aerosol)
          ELSE IF  ( N == IDTNK13) THEN
             NUMDEP          = NUMDEP + 1
@@ -5534,6 +5709,7 @@
             XMW(NUMDEP)     = 1.d0
             AIROSOL(NUMDEP) = .TRUE.
  
+#  if !defined( TOMAS15 )
          ! NK16 (aerosol)
          ELSE IF  ( N == IDTNK16) THEN
             NUMDEP          = NUMDEP + 1
@@ -5698,6 +5874,10 @@
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 1.d0
             AIROSOL(NUMDEP) = .TRUE.
+#  endif
+!  endif not 15
+# endif
+! endif not 12
 
 # if  defined( TOMAS40 )
          ! NK31 (aerosol)
@@ -6062,12 +6242,7 @@
       SHIPO3DEP = 0d0
 
       IF ( am_I_Root ) THEN
-         Input_Opt%NUMDEP  = NUMDEP
-         !-------------------------------------------------------
-         ! Prior to 6/12/13:
-         !Input_Opt%NDVZIND = NDVZIND
-         !Input_Opt%DEPNAME = DEPNAME
-         !-------------------------------------------------------
+         Input_Opt%NUMDEP            = NUMDEP
          Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
          Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
       ENDIF
@@ -6076,18 +6251,33 @@
       ! Echo information to stdout
       !=================================================================
       IF ( am_I_Root ) THEN
-      WRITE( 6, '(/,a)' ) 'INIT_DRYDEP: List of dry deposition species:'
-      WRITE( 6, '(/,a)'   )
-     & '  #   Name  Tracer DEPVEL Henry''s    React.   Molec.  Aerosol?'
-      WRITE( 6, '(a)'   )
-     & '            Number Index  Law Const  Factor   Weight  (T or F)'
-      WRITE( 6, '(a)'   ) REPEAT( '-', 65 )
 
-      DO N = 1, NUMDEP
-         WRITE( 6, 100 ) N, TRIM( DEPNAME(N) ), NTRAIND(N), NDVZIND(N), 
-     &                   HSTAR(N),  F0(N),      XMW(N),     AIROSOL(N)
-      ENDDO
- 100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
+         ! Line 1
+         MSG = 'INIT_DRYDEP: List of dry deposition species:'
+         WRITE( 6, '(/,a)' ) TRIM( MSG )
+
+         ! Line 2
+         MSG =  '  #   Name      Tracer DEPVEL Henry''s    React.'
+     &       // '   Molec.   Aerosol?'
+         WRITE( 6, '(/,a)'   ) TRIM( MSG )
+
+         ! Line 3
+         MSG =  '                Number Index  Law Const  Factor'
+     &       // '   Weight   (T or F)'
+         WRITE( 6, '(a)'   ) TRIM( MSG )
+
+         ! Separator
+         WRITE( 6, '(a)'   ) REPEAT( '-', 70 )
+
+         ! Output
+         DO N = 1, NUMDEP
+            WRITE( 6, 100 ) N,          ADJUSTL( DEPNAME(N) ), 
+     &                      NTRAIND(N), NDVZIND(N), 
+     &                      HSTAR(N),   F0(N),      
+     &                      XMW(N),     AIROSOL(N)
+
+         ENDDO
+ 100     FORMAT( i3, 3x, a8, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
       ENDIF
 
       !=================================================================

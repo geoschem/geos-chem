@@ -42,6 +42,7 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
       !-----------------------------------------------------------------
+      USE CARBON_MOD            ! For SOA simulation
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
       USE COMODE_MOD            ! Allocatable arrays for SMVGEAR solver
       USE COMODE_LOOP_MOD       ! Formerly common-block arrays for SMVGEAR
@@ -49,7 +50,6 @@
       USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
-      USE SOAPROD_MOD           ! For SOA simulation
       USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
@@ -104,7 +104,7 @@
       !-----------------------------------------------------------------
       USE DAO_MOD               ! Met field definitions
       USE GCAP_READ_MOD         ! For reading GCAP met data
-      USE GEOS57_READ_MOD       ! For reading GEOS-5.7.x data
+      USE GEOSFP_READ_MOD       ! For reading GEOS-FP data
       USE MERRA_A1_MOD          ! For reading MERRA A1 data
       USE MERRA_A3_MOD          ! For reading MERRA A3 data
       USE MERRA_CN_MOD          ! For reading MERRA CN data
@@ -123,8 +123,6 @@
       USE GIGC_State_Met_Mod    ! Derived type for Meteorology State object
 
       IMPLICIT NONE
-
-#     include "define.h"
 !
 ! !REMARKS:
 !                                                                             .
@@ -225,6 +223,8 @@
 !  29 Mar 2013 - R. Yantosca - Bring code out of DEVEL blocks
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object to STDRUN routine
 !  03 Jun 2013 - R. Yantosca - Use routines from updated mercury_mod.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  23 Oct 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, RC to INIT_DAO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -310,6 +310,20 @@
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
+#if defined ( TOMAS40 )
+      !(sfarina, 6/19/2013) It may seem strange, but this welcome message
+      !                     fixes an issue where geoschem crashes with a
+      !                     sigsegv immediately after starting.
+      !                     This happens on ace-net's glooscap cluster with
+      !                     ifort (IFORT) 11.1 20101201
+      !                     this issue does not appear when running inside
+      !                     a debugger, and is probably related to
+      !                     some initialization garbage in memory
+      !                     when using -O2 optimization
+      print *, 'welcome to geoschem'
+      call flush()
+#endif
+
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
@@ -376,24 +390,12 @@
       ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not initialize met field arrays from "dao_mod.F"
-      ! (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Initialize met field arrays from "dao_mod.F" used to
-      ! correct vertical regridding of OH for offline simulations
-      ! (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-      CALL INIT_DAO
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
-#endif
+      ! For offline simulations that use archived OH: initialize T_FULLGRID
+      ! and AIRDEN_FULLGRID arrays for regridding OH fields (bmy, 10/29/13)
+      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+         CALL INIT_DAO( am_I_Root, Input_Opt, RC )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
+      ENDIF
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
@@ -563,24 +565,12 @@
 
       ! Read soil NOx initial conditions
       IF ( LSOILNOX ) THEN
-         CALL READ_SOIL_RESTART( NYMDb , NHMSb )
-         IF ( prtDebug ) 
-     &      CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
-      ENDIF
+         CALL READ_SOIL_RESTART
+     &      ( am_I_Root, Input_Opt, NYMDb , NHMSb, RC )
 
-      ! add support for making restart files of APROD and GPROD (dkh, 11/09/06) 
-      IF ( LSOA ) THEN
-
-         !! use this to make initial soaprod files  
-         !CALL SET_SOAPROD
-         !CALL FIRST_APRODGPROD()
-         !CALL MAKE_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
-         !goto 9999
-         !!
-
-         CALL SET_SOAPROD
-         CALL READ_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
-
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+         ENDIF
       ENDIF
 
       ! Read ocean Hg initial conditions (if necessary)
@@ -608,7 +598,7 @@
       WRITE( 6, '(a)' ) 
 
       ! NSTEP is the number of dynamic timesteps w/in the outer loop
-#if   defined( GEOS_57 ) 
+#if   defined( GEOS_FP ) 
       N_DYN_STEPS = 180 / GET_TS_DYN()     ! GEOS-5.7.x has a 3-hr interval
 #else
       N_DYN_STEPS = 360 / GET_TS_DYN()     ! All other met has a 6hr interval
@@ -669,7 +659,8 @@
 
             ! Write bpch file
             IF ( DO_DIAG_WRITE ) THEN
-               CALL DIAG3( am_I_Root, Input_Opt, State_Chm, RC )
+               CALL DIAG3
+     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Flush file units
                CALL CTM_FLUSH
@@ -691,28 +682,15 @@
                   
                ! Make soil restart file
                IF ( LSOILNOX ) THEN
-                  CALL MAKE_SOILNOx_RESTART( NYMD, NHMS, TAU )
+                  CALL MAKE_SOILNOx_RESTART
+     &               ( am_I_Root, Input_Opt, NYMD, 
+     &                 NHMS,      TAU,       RC    )
                ENDIF
 
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
                   CALL MAKE_OCEAN_Hg_RESTART
      &               ( NYMD, NHMS, TAU, Input_Opt )
-               ENDIF
-
-               ! (dkh, 11/09/06)  
-!               ! Save SOA quantities GPROD & APROD
-!               IF ( LSOA .and. LCHEM ) THEN 
-!                  CALL WRITE_GPROD_APROD( NYMD, NHMS, TAU )
-!               ENDIF
-
-               IF ( LSOA .and. LCHEM ) THEN
-                  CALL MAKE_SOAPROD_FILE( GET_NYMD(), GET_NHMS() )
-
-                  !### Debug
-                  IF ( prtDebug ) THEN
-                     CALL DEBUG_MSG( '### MAIN: a MAKE_SOAPROD_FILE' )
-                  ENDIF
                ENDIF
 
                ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)
@@ -924,7 +902,8 @@
          
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
-         CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN, State_Met )
+         CALL INTERP( NSECb, ELAPSED_TODAY,
+     &                N_DYN, Input_Opt,     State_Met )
 
          ! Case of variable tropopause:
          ! Check LLTROP and set LMIN, LMAX, and LPAUSE
@@ -996,7 +975,7 @@
             ! Reset air mass quantities
             CALL AIRQNT( State_Met )
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
             ! Get relative humidity (after recomputing pressures)
             ! NOTE: for GEOS-5 we'll read this from disk instead
             CALL MAKE_RH( State_Met )
@@ -1209,7 +1188,7 @@
          CALL CHECK_STT_05x0666( State_Chm, 
      &                           'end of chem section, before wetdep' )
 #endif 
-#if   defined( GEOS_57) && defined( GRID025x03125)
+#if   defined( GEOS_FP) && defined( GRID025x03125)
          CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
 #endif 
 
@@ -1289,7 +1268,7 @@
 
             ! ND42: SOA concentrations [ug/m3]
             IF ( ND42 > 0 ) THEN
-               CALL DIAG42( State_Met, State_Chm )
+               CALL DIAG42( Input_Opt, State_Met, State_Chm )
             ENDIF
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
@@ -1379,7 +1358,7 @@
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
             CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
 #endif
-#if   defined( GEOS_57) && defined( GRID025x03125)
+#if   defined( GEOS_FP) && defined( GRID025x03125)
          CALL CHECK_STT_025x03125( State_Chm, 'after dynamics step' )
 #endif 
 
@@ -1574,8 +1553,8 @@
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-4 met fields'
 #elif defined( GEOS_5 )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-5 met fields'
-#elif defined( GEOS_57 )
-      WRITE( 6, '(a)' ) 'Using GMAO GEOS-5.7.x met fields'
+#elif defined( GEOS_FP )
+      WRITE( 6, '(a)' ) 'Using GMAO GEOS-FP met fields'
 #elif defined( MERRA )
       WRITE( 6, '(a)' ) 'Using GMAO MERRA met fields'
 #elif defined( GCAP  )
@@ -1712,31 +1691,33 @@
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
+!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_MERRA_A3_FIELDS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
-      !    *****  R E A D   G E O S -- 5 . 7 , x  F I E L D S  *****
-      !    *****  At the start of the GEOS-Chem simulation     *****
+      !    *****  R E A D   G E O S -- F P   F I E L D S    *****
+      !    *****  At the start of the GEOS-Chem simulation  *****
       !
-      !    Handle GEOS-5.7.2 met fields separately from other met 
+      !    Handle GEOS-FP met fields separately from other met 
       !=================================================================
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
 
       ! Read time-invariant data
-      CALL GEOS57_READ_CN( Input_Opt, State_Met )
+      CALL GEOSFP_READ_CN( Input_Opt, State_Met )
 
       ! Read 1-hr time-averaged data
       DATE = GET_FIRST_A1_TIME()
-      CALL GEOS57_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
+      CALL GEOSFP_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
 
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_A3_TIME()
-      CALL GEOS57_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
+      CALL GEOSFP_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
 
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_I3_TIME()
-      CALL GEOS57_READ_I3_1( DATE(1), DATE(2), Input_Opt, State_Met )
+      CALL GEOSFP_READ_I3_1( DATE(1), DATE(2), Input_Opt, State_Met )
 
 #elif defined( MERRA )
 
@@ -1762,14 +1743,14 @@
 
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
-      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2), Input_Opt )
-      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2), State_Met )
+      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2), Input_Opt           )
+      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2), Input_Opt, State_Met)
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
 
       ! Open & read I-6 fields
       DATE = GET_FIRST_I6_TIME()
       CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2), Input_Opt )
-      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2), State_Met )
+      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2), State_Met)
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
 
 #else
@@ -1841,8 +1822,8 @@
 
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
-      CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt ) 
-      CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
+      CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt            )
+      CALL GET_A6_FIELDS(  DATE(1), DATE(2), Input_Opt, State_Met )      
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
@@ -1901,11 +1882,12 @@
 !  07 Feb 2012 - R. Yantosca - Initial version
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  04 Jan 2013 - M. Payer    - Call UPDATE_T_DAY for MERRA and GEOS-5.7.2 (tmf)
+!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_57 )
+#if   defined( GEOS_FP )
 
       !==============================================================
       !  ****** R E A D   G E O S -- 5 . 7 . x   F I E L D S  *****
@@ -1916,7 +1898,7 @@
       !---------------------------------
       IF ( ITS_TIME_FOR_A1() ) THEN
          DATE = GET_A1_TIME()
-         CALL GEOS57_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
+         CALL GEOSFP_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
 
          ! Update daily mean temperature archive for MEGAN biogenics
          ! (tmf, 1/4/2012) This should be turned on!
@@ -1928,7 +1910,7 @@
       !----------------------------------
       IF ( ITS_TIME_FOR_A3() ) THEN
          DATE = GET_A3_TIME()
-         CALL GEOS57_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
+         CALL GEOSFP_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
@@ -1940,7 +1922,7 @@
       !----------------------------------
       IF ( ITS_TIME_ FOR_I3() ) THEN
          DATE = GET_I3_TIME()
-         CALL GEOS57_READ_I3_2( DATE(1), DATE(2), Input_Opt, State_Met )
+         CALL GEOSFP_READ_I3_2( DATE(1), DATE(2), Input_Opt, State_Met )
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )
@@ -2080,8 +2062,8 @@
          DATE = GET_A6_TIME()
 
          ! Open and read A-6 fields
-         CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt )
-         CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
+         CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt            )
+         CALL GET_A6_FIELDS(  DATE(1), DATE(2), Input_Opt, State_Met )      
 
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]

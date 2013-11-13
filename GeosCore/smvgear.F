@@ -30,6 +30,7 @@
 !        with smaller timestep.  Now stop at the end of the code if negative 
 !        values are encountered in CNEW.  Do not reset negative CNEW values
 !        to zero.  (tmf, 11/1/07)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
 ! !USES:
@@ -40,8 +41,6 @@
       USE ERROR_MOD,          ONLY  : IT_IS_NAN, GEOS_CHEM_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-#     include "define.h"
 
       IMPLICIT NONE
 !

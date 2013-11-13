@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -51,6 +50,7 @@
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
 !  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm to several routines
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -407,7 +407,8 @@
                ! Init chem mechanism and photolysis
                CALL READER  ( FIRST,     am_I_Root            )
                CALL READCHEM( am_I_Root, Input_Opt, RC        )
-               CALL INPHOT  ( LLTROP,    NPHOT,     am_I_Root )
+               CALL INPHOT  ( LLTROP,    NPHOT,     Input_Opt,
+     &                        am_I_Root )
  
                ! Reset NCS with NCSURBAN
                NCS     = NCSURBAN
@@ -492,8 +493,11 @@
             CALL CHEMRnPbBe 
      &         (  am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-            CALL DRYFLXRnPbBe
-     &         ( am_I_Root, Input_Opt, State_Chm, RC )
+            ! Modified for non-local PBL mixing (jintai, bmy, 8/1/13)
+            IF ( .not. Input_Opt%LNLPBL ) THEN
+               CALL DRYFLXRnPbBe
+     &            ( am_I_Root, Input_Opt, State_Chm, RC )
+            ENDIF
 
          !---------------------------------
          ! CH3I
@@ -719,8 +723,12 @@
 
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
-!         RTOL(i) = 2.d-1
-         RTOL(i) = 5.d-2
+         RTOL(i) = 2.d-1
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: This update was made in the SEAC4RS code.  Leave here in case we
+!%%% need to restore this. (bmy, 9/25/13)
+!         RTOL(i) = 5.d-2
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ATOL(i) = 1.d-2
       END DO
       
@@ -1050,10 +1058,12 @@
                !===============================================================
                IF ( LDUST ) THEN
                   CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
+#if  !defined( TOMAS )
                ELSE
                   CALL RDUST_OFFLINE( MONTH,      YEAR,
      &                                WAVELENGTH, am_I_Root,
      &                                State_Met   )
+#endif
                ENDIF
 
                !### Debug

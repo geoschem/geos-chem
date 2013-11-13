@@ -14,10 +14,10 @@
 !
 !  NOTES:
 !  (1 ) Updated comments, cosmetic changes (bmy, 4/4/03)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 ! 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*8, INTENT(IN) :: G, H

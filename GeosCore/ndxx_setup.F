@@ -26,7 +26,7 @@
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
       USE DIAG_MOD,        ONLY : AD06,        AD07,        AD07_BC
       USE DIAG_MOD,        ONLY : AD07_OC,     AD07_HC,     AD08
-      USE DIAG_MOD,        ONLY : AD07_SOAGM,  AD07_ASOA,   AD07_BBSOA
+      USE DIAG_MOD,        ONLY : AD07_SOAGM
       USE DIAG_MOD,        ONLY : AD09,        AD09_em,     AD11
       USE DIAG_MOD,        ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
       USE DIAG_MOD,        ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
@@ -45,7 +45,7 @@
       USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
       USE DIAG_MOD,        ONLY : AD32_SHIP,   AD32_SHIP_COUNT
-      USE DIAG_MOD,        ONLY : EMISS_ANTHR
+
       USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
       USE DIAG_MOD,        ONLY : AD36_SHIP,   AD36_SHIP_COUNT
       USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
@@ -63,7 +63,7 @@
       USE DIAG_MOD,        ONLY : AD52,        AD54,        AD63
       USE DIAG_MOD,        ONLY : AD63_COUNT
       USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
-
+      USE DIAG_MOD,        ONLY : EMISS_ANTHR
 #if   defined( TOMAS )
       USE DIAG_MOD,        ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT  !(win, 7/9/09)
       USE DIAG_MOD,        ONLY : AD59_ECIL,   AD59_ECOB               !(win, 7/9/09)
@@ -77,8 +77,8 @@
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
-      USE DIAG_MOD,        ONLY : LTO3
       USE DIAG49_MOD,      ONLY : DO_SAVE_DIAG49
+      USE DIAG_MOD,        ONLY : LTO3
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
@@ -87,7 +87,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TRACERID_MOD,    ONLY : NEMANTHRO
-      USE TRACERID_MOD,    ONLY : IDTASOA, IDTBBSOA
       USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
 
 #if   defined( TOMAS )
@@ -101,7 +100,6 @@
 #endif
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -258,6 +256,8 @@
 !  02 Apr 2013 - M. Payer    - Remove allocation of *NO, *NO2, and *NO3 arrays
 !                              for ND43. These are no longer needed because NO,
 !                              NO2, and NO3 are now tracers.
+!  13 Aug 2013 - M. Sulprizio- Modify AD07_HC for updated SOA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -395,20 +395,17 @@
          ALLOCATE( AD07_OC( IIPAR, JJPAR, LD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OC' )
 
-         ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 5 ), STAT=AS )
+         ! SOAupdate (hotp 6/15/09)
+         ! semivolpoa2: increase dimension for POA (hotp 3/3/09)
+         ! semivolpoa4: increase dimension for OPOA(hotp 3/27/09)
+         ! semivolpoa4: add dimension for POG ox to OPOG (hotp 3/28/09)
+         ! NAPSOA: increase AD07_HC dimension by one to 9 for production
+         ! of SOA from IVOCs (hotp 7/22/09)
+         ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 9 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
 
          ALLOCATE( AD07_SOAGM( IIPAR, JJPAR, LD07, 4 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_SOAGM' )
-
-         IF ( IDTASOA > 0 ) THEN
-            ALLOCATE( AD07_ASOA( IIPAR, JJPAR, LD07 ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_ASOA' )
-         ENDIF
-         IF ( IDTBBSOA > 0 ) THEN
-            ALLOCATE( AD07_BBSOA( IIPAR, JJPAR, LD07 ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_BBSOA' )
-         ENDIF
 
 #if   defined( APM )
          ALLOCATE( AD07_OM( IIPAR, JJPAR ), STAT=AS )
@@ -774,7 +771,7 @@
       IF ( ND32 > 0 ) THEN
 
          ! For aircraft NOx
-         ALLOCATE( AD32_ac( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( AD32_ac( IIPAR, JJPAR, LLPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ac' )
          
          ! For anthropogenic NOx
@@ -809,9 +806,6 @@
          ALLOCATE( AD32_ship( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship' ) 
 
-         ! For ship NOx counter
-         ALLOCATE( AD32_ship_count, STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship_count' ) 
       ENDIF
 
       !=================================================================

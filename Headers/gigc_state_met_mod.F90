@@ -23,7 +23,6 @@ MODULE GIGC_State_Met_Mod
 ! USES:
 !
   IMPLICIT NONE
-# include "define.h"
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -187,6 +186,7 @@ MODULE GIGC_State_Met_Mod
 !  15 Nov 2012 - M. Payer    - Added all remaining met fields
 !  12 Dec 2012 - R. Yantosca - Add IREG, ILAND, IUSE fields for dry deposition
 !  13 Dec 2012 - R. Yantosca - Add XLAI, XLAI2 fields for dry deposition
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -242,6 +242,7 @@ CONTAINS
 !  13 Dec 2012 - R. Yantosca - Now allocate the XLAI, XLAI2 fields
 !  07 Mar 2013 - R. Yantosca - Now allocate PF*LSAN, PF*CU fields properly
 !                              for GEOS-5.7.x met (they are edged)
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -499,7 +500,7 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%TTO3     = 0d0
 
-#elif defined( GEOS_57 ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA )
 
     !=======================================================================
     ! GEOS-5.7.x / MERRA met fields
@@ -744,14 +745,14 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%ZMMU     = 0d0
 
-#elif defined( GEOS_57 ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA )
 
     !=======================================================================
     ! GEOS-5.7.x / MERRA met fields
     !=======================================================================
 
     ! Pick the proper vertical dimension
-#if defined( GEOS_57 )
+#if defined( GEOS_FP )
     LX = LM + 1           ! For fields that are on level edges
 #else
     LX = LM               ! For fields that are on level centers
@@ -871,6 +872,7 @@ CONTAINS
 !                              for each met field data product type
 !  27 Nov 2012 - R. Yantosca - Now deallocate the SUNCOS fields
 !  12 Dec 2012 - R. Yantosca - Now deallocate the IREG, ILAND, IUSE fields
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1010,7 +1012,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%TO32       )) DEALLOCATE( State_Met%TO32       )
     IF ( ASSOCIATED( State_Met%TTO3       )) DEALLOCATE( State_Met%TTO3       )
 
-#elif defined( GEOS_57 ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA )
     !========================================================================
     ! Fields specific to the GMAO MERRA and GEOS-5.7.x met data products
     !========================================================================

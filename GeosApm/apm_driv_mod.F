@@ -145,7 +145,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APM_DRIV( State_Met )
+      SUBROUTINE APM_DRIV( State_Met, State_Chm )
 !
 ! !USES:
 !
@@ -170,34 +170,41 @@
       USE APM_COAG_MOD,       ONLY : READCK6DTABLE
       USE APM_PHYS_MOD,       ONLY : APM_PHYS
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,GET_PBL_TOP_hPa
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
       USE TIME_MOD,           ONLY : GET_DAY,GET_HOUR,GET_MINUTE
-      USE TRACER_MOD,         ONLY : STT
       USE TRACER_MOD,         ONLY : TRACER_MW_KG
-      USE TRACERID_MOD,       ONLY : IDTNH4,  IDTNIT, IDTSO4, IDTNH3
-      USE TRACERID_MOD,       ONLY : IDTBCPO,IDTBCPI,IDTOCPO, IDTOCPI
-      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
+      USE TRACERID_MOD,       ONLY : IDTNH4,  IDTNIT,  IDTSO4, IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTBCPO, IDTBCPI, IDTOCPO, IDTOCPI
+      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2
+      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
+      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      USE TRACERID_MOD,       ONLY : IDTASOA1,  IDTASOA2, IDTASOA3
       USE TRACERID_MOD,       ONLY : IDTMSA
       USE TRACERID_MOD,       ONLY : IDTDST1,IDTDST2,IDTDST3,IDTDST4
       USE TRACERID_MOD,       ONLY : IDTSO2
-      USE TRACERID_MOD,       ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  17 Oct 2013 - M. Sulprizio- Update SOAT so that it is consistent with tracers
+!                              in Havala Pye's updated SOA simulation (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -241,7 +248,13 @@
       LOGICAL, SAVE    :: FIRST = .TRUE.
       LOGICAL, SAVE    :: FIRST1 = .TRUE.
 
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       WRITE(6,*)'    - APM calculation '
+
+      ! Point to STT
+      STT => State_Chm%TRACERS
 
       ! Chemistry timestep [s]
       DT = GET_TS_CHEM() * 60d0
@@ -356,8 +369,18 @@
           MSALTLV = 0.
         ENDIF
 
-        SOAT= (STT(I,J,L,IDTSOA1)+STT(I,J,L,IDTSOA2)+STT(I,J,L,IDTSOA3)
-     &         + STT(I,J,L,IDTSOA4) + STT(I,J,L,IDTSOA5))/VOL   ! Total SV-&MV-SOA
+!------------------------------------------------------------------------------
+! Prior to 10/17/13:
+!        SOAT= (STT(I,J,L,IDTSOA1)+STT(I,J,L,IDTSOA2)+STT(I,J,L,IDTSOA3)
+!     &         + STT(I,J,L,IDTSOA4) + STT(I,J,L,IDTSOA5))/VOL   ! Total SV-&MV-SOA
+!------------------------------------------------------------------------------
+        SOAT= (STT(I,J,L,IDTTSOA1)+STT(I,J,L,IDTTSOA2)+
+     &         STT(I,J,L,IDTTSOA3)+STT(I,J,L,IDTTSOA0)+
+     &         STT(I,J,L,IDTISOA1)+STT(I,J,L,IDTISOA2)+
+     &         STT(I,J,L,IDTISOA3)+STT(I,J,L,IDTASOA1)+
+     &         STT(I,J,L,IDTASOA2)+STT(I,J,L,IDTASOA3) )/VOL ! Total SV-&MV-SOA
+
+
 
         MSO4 = 0.d0
         DO N=1,NSO4
@@ -464,6 +487,9 @@
 
       NPOUTSTEPS = NPOUTSTEPS + 1
 
+      ! Clear the pointer
+      NULLIFY( STT )
+
       END SUBROUTINE APM_DRIV
 !EOC
 !------------------------------------------------------------------------------
@@ -479,7 +505,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERONUM( State_Met )
+      SUBROUTINE AERONUM( State_Met, State_Chm )
 !
 ! !USES:
 !
@@ -488,14 +514,15 @@
       USE APM_INIT_MOD,       ONLY : VDRY
       USE APM_INIT_MOD,       ONLY : DENSULF
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACER_MOD,         ONLY : N_TRACERS
-      USE TRACER_MOD,         ONLY : STT
                         
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  28 Aug 2008 - F. Yu       - Initial version  
@@ -510,8 +537,14 @@
 !
       INTEGER :: I,J,L,N,SIZENUM
       REAL*8  :: XMATEMP
+
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: STT(:,:,:,:)
 !
 !******************************************************************************
+      ! Point to STT
+      STT => State_Chm%TRACERS
+
       XN4D = 0.D0
 
 !$OMP PARALLEL DO
@@ -538,6 +571,9 @@
       ENDDO
 
 !$OMP END PARALLEL DO
+
+      ! Clear the pointer
+      NULLIFY( STT )
 
       END SUBROUTINE AERONUM
 !EOC

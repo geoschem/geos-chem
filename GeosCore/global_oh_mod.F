@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -45,6 +44,7 @@
 !  (9 ) Bug fix: OH should be (IIPAR,JJPAR,LLPAR) (bmy, 5/4/04)
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -64,37 +64,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_OH( THISMONTH, State_Met )
+      SUBROUTINE GET_GLOBAL_OH( am_I_Root, Input_Opt, 
+     &                          State_Met, THISMONTH, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT
       USE BPCH2_MOD,            ONLY : GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0
       USE BPCH2_MOD,            ONLY : READ_BPCH2
+      USE DAO_MOD,              ONLY : AIRDEN_FULLGRID
+      USE DAO_MOD,              ONLY : AIRQNT_FULLGRID
       USE DIRECTORY_MOD,        ONLY : OH_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE TRANSFER_MOD,         ONLY : TRANSFER_3D
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use routine AIRQNT_FULLGRID when we are connecting to
-      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !-----------------------------------------------------------------
-      USE DAO_MOD,              ONLY : AIRDEN_FULLGRID, AIRQNT_FULLGRID
-#endif
-
-      USE CMN_SIZE_MOD               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Obj for input options
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Obj for met fields
+      INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  28 Jul 2000 - R. Yantosca - Initial version
@@ -114,6 +111,9 @@
 !  (8 ) Now use OH_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  23 Oct 2013 - R. Yantosca - Now accept Input_Opt argument
+!  29 Oct 2013 - R. Yantosca - Remove TRANSFER_3D_NOLUMP routine, we can just
+!                              instead do a direct cast assignment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -131,6 +131,9 @@
       !=================================================================
       ! GET_GLOBAL_OH begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Allocate OH array, if this is the first call
       IF ( FIRST ) THEN
@@ -182,7 +185,7 @@
 #if defined( GRIDREDUCED )
 
       ! Calculate the number density of air on the full vertical grid
-      CALL AIRQNT_FULLGRID
+      CALL AIRQNT_FULLGRID( am_I_Root, Input_Opt, RC )
 
       ! Convert molec/cm3 -> mixing ratio (molec m3 kg-1 cm-3)
       ! because regridding requires mixing ratio quantity
@@ -203,7 +206,7 @@
 #else
 
       ! Assign data from ARRAY to the module variable OH
-      CALL TRANSFER_3D_NOLUMP( ARRAY, OH )
+      OH = ARRAY
 
 #endif
 #endif

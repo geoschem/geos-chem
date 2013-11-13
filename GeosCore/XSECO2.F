@@ -3,7 +3,6 @@
 !-----------------------------------------------------------------------
 c  Cross-sections for O2 interpolated across 3 temps; No S_R Bands yet!
 !-----------------------------------------------------------------------
-#     include "define.h"
       
       USE JV_CMN_MOD
 

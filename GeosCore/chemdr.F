@@ -8,7 +8,7 @@
 ! !DESCRIPTION: Subroutine CHEMDR is the driver subroutine for full chemistry 
 !  with SMVGEAR or KPP.
 !\\
-!\\
+!\\}
 ! !INTERFACE:
 !
       SUBROUTINE CHEMDR( am_I_Root, Input_Opt, 
@@ -53,13 +53,8 @@
       USE TRACERID_MOD,         ONLY : IDTO3
       USE TRACERID_MOD,         ONLY : SETTRACE
       USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% KLUDGE FOR SEAC4RS:
-      USE GAMAP_MOD,            ONLY : DO_GAMAP
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -243,6 +238,8 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  31 May 2013 - R. Yantosca - Now pass State_Met to DO_DIAG_PL, for TOMAS
 !  06 Jun 2013 - M. Payer    - Move SETEMIS to after FAST_J (C. Holmes)
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -440,21 +437,19 @@
             CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )
          ENDIF
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% KLUDGE FOR SEAC4RS:
-!%%% Move the call to DO_GAMAP after the call to READCHEM etc.
-!%%% so that we can write out the CSPEC restart species names
-!%%% (bmy, 6/24/13)
-!%%%
-         ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
-         CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          !---------------------------------
          ! Check for LISOPOH for SOA
          !---------------------------------
          IF ( LSOA .and. ILISOPOH == 0 ) THEN
             CALL ERROR_STOP( 'LISOPOH needs to be defined for SOA!',
+     &                       'chemdr.f' )
+         ENDIF
+
+         !---------------------------------------------------
+         ! SOAupdate: Check ILISOPNO3 for SOA (hotp 6/1/10)
+         !---------------------------------------------------
+         IF ( LSOA .and. ILISOPNO3 == 0 ) THEN
+            CALL ERROR_STOP( 'IDLISOPNO3 needs to be defined for SOA!',
      &                       'chemdr.f' )
          ENDIF
 
@@ -513,6 +508,7 @@
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
          ENDIF
+
       ENDIF
 #endif
 
@@ -617,8 +613,8 @@
 
          ! Read the CSPEC restart file.  If not found, then 
          ! return IT_EXISTS = .FALSE.
-         CALL READ_CSPEC_FILE( am_I_Root, GET_NYMD(), GET_NHMS(),
-     &                         IT_EXISTS, State_Chm   )
+         CALL READ_CSPEC_FILE( am_I_Root,  Input_Opt, GET_NYMD(), 
+     &                         GET_NHMS(), IT_EXISTS, State_Chm,  RC  )
    
          IF ( .not. IT_EXISTS ) THEN 
 
@@ -664,7 +660,7 @@
 
       !### Debug
       IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after READ_CSPEC_FILEC' )
+         CALL DEBUG_MSG( '### CHEMDR: after READ_CSPEC_FILE' )
       ENDIF
 #endif
 
@@ -694,11 +690,11 @@
       IF ( LDUST ) THEN
          CALL RDUST_ONLINE(  SOILDUST,    WAVELENGTH, State_Met )
       ELSE
-#if defined( TOMAS )
+
+#if !defined( TOMAS )
             ! Don't read dust emissions from disk when using TOMAS,
             ! because TOMAS uses a different set of dust tracers than the 
             ! std code (win, bmy, 1/25/10)
-#else
             CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, am_I_Root,
      &                          State_Met )
 #endif

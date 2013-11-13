@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -53,6 +52,7 @@
 !  (6 ) Bug fix: make ITS_IN_THE_STRAT more robust. (phs, 11/14/08)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  29 Mar 2013 - R. Yantosca - Now make INIT_TROPOPAUSE a public function
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -806,11 +806,12 @@
 !                              tropopause_mod.f
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 !
 ! !LOCAL VARIABLES:
 ! 

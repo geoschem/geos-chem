@@ -27,7 +27,6 @@
       USE m_netcdf_io_write
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:

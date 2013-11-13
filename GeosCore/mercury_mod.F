@@ -37,7 +37,6 @@
       USE OCEAN_MERCURY_MOD, ONLY : LInPlume    
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -171,8 +170,9 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !  19 Apr 2012 - E. Corbitt  - Added LGCBROMINE to use GEOS-Chem bromine.
-!  03 Jun 2013  - C. Holmes   - Extensively rewritten for simplicity
+!  03 Jun 2013 - C. Holmes   - Extensively rewritten for simplicity
 !  03 Jun 2013 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,15 +208,6 @@
       ! (24) TRANSP   : Plant transpiration rate [m/s]
       ! (25) SMALLNUM : A small number to prevent underflow
       !=================================================================
-
-      ! Scalars 
-      !-----------------------------------------------------------------
-      ! Prior to 6/6/13:
-      ! These are now local variables in MERCURY_READYR (bmy, 6/6/13)
-      !INTEGER              :: ANTHRO_Hg_YEAR
-      !
-      !CHARACTER(LEN=255)   :: SCENARIO !eds 5/17/12
-      !-----------------------------------------------------------------
 
       ! Parameters
       REAL*8,  PARAMETER   :: SMALLNUM = 1D-20
@@ -471,6 +462,8 @@
 !  04 Apr 2013 - C. Holmes   - Use State_Met for met fields.
 !  03 Jun 2013 - R. Yantosca - Now use fields from Input_OPt instead of from
 !                              logical_mod.F and tracer_mod.F
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -585,7 +578,12 @@
          MONTH = GET_MONTH()
 
          ! Read monthly mean OH and O3 from disk
-         CALL GET_GLOBAL_OH( MONTH, State_Met  )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!         CALL GET_GLOBAL_OH( MONTH, State_Met  )
+!-----------------------------------------------------------------------------
+         CALL GET_GLOBAL_OH
+     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_OH' )
 
          CALL GET_GLOBAL_O3( MONTH )
@@ -698,7 +696,7 @@
 
          ! Area fraction of box with Hg0 dep. Default is dep everywhere
          F_Hg0_Dep = 1d0
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
          ! Deposition occurs over areas that are not ocean, snow or ice
          ! (jaf, 4/26/11)
          F_Hg0_Dep = 1d0 - MAX( 0d0, MIN( 1D0, 
@@ -783,7 +781,7 @@
          ! Reduction rate (requires liquid water content)
          !---------------------------------------------
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -3108,6 +3106,8 @@
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  13 Jan 2013 - M. Payer    - Update soil Hg files for v9-02c (Y. Zhang)
 !  06 Jun 2013 - R. Yantosca - Get ANTHRO_Hg_YEAR, Hg_SCENARIO from Input_Opt
+!  06 Sep 2013 - R. Yantosca - Kludge: use MERRA soil file for GEOS-FP testing
+!                              and debugging.  Worry about this later.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5690,6 +5690,14 @@
 #elif defined( MERRA ) && defined( GRID4x5 )
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.preind.bpch'
+#elif defined( GEOS_FP ) && defined( GRID4x5 )
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%   KLUDGE: For unit-testing, use the MERRA soil file!     %%%
+         !%%%   Ask Team Hg to produce a new GEOS-FP soil file later.  %%%
+         !%%%   (bmy, 9/6/13)                                          %%%
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201110/soilHg.merra.preind.bpch'
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
          ! Need to read nested-grid files, yzh
          FILENAME= TRIM( DATA_DIR )           //
@@ -5714,6 +5722,14 @@
      &             'mercury_201203/soilhg.presentday.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #elif defined( MERRA ) && defined( GRID4x5 )
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201110/soilHg.merra.presentday.bpch'
+#elif defined( GEOS_FP ) && defined( GRID4x5 )
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%   KLUDGE: For unit-testing, use the MERRA soil file!     %%%
+         !%%%   Ask Team Hg to produce a new GEOS-FP soil file later.  %%%
+         !%%%   (bmy, 9/6/13)                                          %%%
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.presentday.bpch'
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
@@ -6657,7 +6673,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6665,6 +6680,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  25 Nov 2009 - C. Holmes   - Initial version
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7172,12 +7188,6 @@
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
       INTEGER             :: N_TRACERS
-!----------------------------------------------------------------------------
-! Prior to 6/6/13:
-! These area now local variables in MERCURY_READYR (bmy, 6/6/13)
-!      INTEGER             :: ANTHRO_Hg_YEAR
-!      CHARACTER(LEN=255)  :: HG_SCENARIO
-!----------------------------------------------------------------------------
 
       !=================================================================
       ! INIT_MERCURY begins here!
@@ -7195,12 +7205,6 @@
       LNLPBL         = Input_Opt%LNLPBL           ! Use non-local PBL?
       LSPLIT         = Input_Opt%LSPLIT           ! Tagged simulation?
       N_TRACERS      = Input_Opt%N_TRACERS        ! # of Hg tracers
-!----------------------------------------------------------------------------
-! Prior to 6/6/13:
-! These area now local variables in MERCURY_READYR (bmy, 6/6/13)
-!      ANTHRO_Hg_YEAR = Input_Opt%ANTHRO_Hg_YEAR   ! Hg emissions year
-!      SCENARIO       = Input_Opt%HG_SCENARIO      ! Future emiss scenario
-!----------------------------------------------------------------------------
 
       ! Location string for ERROR_STOP
       LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'

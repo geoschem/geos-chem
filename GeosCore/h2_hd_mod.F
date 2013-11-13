@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -36,6 +35,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3 (psk, 1/5/11)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -131,8 +131,8 @@
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET  
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE MEGANUT_MOD,        ONLY : XLTMMP
-      USE MEGAN_MOD,          ONLY : GET_MEGAN_EMISSIONS
       USE TRACERID_MOD,       ONLY : IDBCO
+      USE MEGAN_MOD,          ONLY : GET_MEGAN_EMISSIONS
       USE TIME_MOD,           ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,           ONLY : GET_YEAR,    GET_TS_EMIS  
       USE TRACERID_MOD,       ONLY : IDBFCO,      IDTH2,        IDTHD
@@ -590,7 +590,7 @@
       !=================================================================
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, EMXX, EMMO, EMAC, EMOC )
+!$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMXX, EMMO, EMAC, EMOC )
 !$OMP+PRIVATE( E_H2, E_HD )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -598,12 +598,16 @@
             ! Grid box surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
+            ! 1-D array index 
+            IJLOOP = ( (J-1) * IIPAR ) + I
+
             !===========================================================
             ! The CO and H2 yields from ISOP, MONOTERPENES, and CH3OH will be
             ! computed in subroutine CHEM_H2_HD.  P(CO) from CH3OH
             ! will be scaled to isoprene emissions within subroutine
             ! CHEM_H2_HD 
             !===========================================================
+
 
             ! MEGAN biogenic emissions (mpayer,12/8/11)
             IF ( LMEGAN ) THEN
@@ -842,7 +846,12 @@
          MONTH = GET_MONTH()
 
          ! Global OH 
-         CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!         CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+         CALL GET_GLOBAL_OH
+     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
 
 	 ! Global O1D
 	 CALL GET_GLOBAL_O1D( MONTH )

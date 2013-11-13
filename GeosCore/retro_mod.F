@@ -672,6 +672,13 @@
 
       IF ( N == IDTALK4 )      THEN
          RETRO = RETRO_ALK4(I,J)
+!------------------------------------------------------------------------------
+!      ! Partition RETRO ketones into 75% acetone and 25% MEK (dbm, 8/18/2011)
+!      ELSE IF ( N == IDTACET ) THEN
+!         RETRO = RETRO_ACET(I,J)
+!      ELSE IF ( N == IDTMEK )  THEN
+!         RETRO = RETRO_MEK(I,J)
+!------------------------------------------------------------------------------
       ELSE IF ( N == IDTACET ) THEN
          RETRO = 0.75d0*RETRO_MEK(I,J)   ! RETRO ketones --> 75% ACET
       ELSE IF ( N == IDTMEK )  THEN

@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -26,7 +25,7 @@
       PUBLIC  :: DO_TRANSPORT
       PUBLIC  :: INIT_TRANSPORT
       PUBLIC  :: INIT_GEOS5_WINDOW_TRANSPORT
-      PUBLIC  :: INIT_GEOS57_WINDOW_TRANSPORT
+      PUBLIC  :: INIT_GEOSFP_WINDOW_TRANSPORT
       PUBLIC  :: SET_TRANSPORT
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -34,7 +33,7 @@
       PRIVATE :: GEOS4_GEOS5_GLOBAL_ADV      
       PRIVATE :: GCAP_GLOBAL_ADV             
       PRIVATE :: DO_GEOS5_WINDOW_TRANSPORT
-      PRIVATE :: DO_GEOS57_WINDOW_TRANSPORT      
+      PRIVATE :: DO_GEOSFP_WINDOW_TRANSPORT      
       PRIVATE :: GET_AIR_MASS                
 !
 ! !REVISION HISTORY:
@@ -69,6 +68,8 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
 !  21 Jun 2012 - R. Yantosca - Comment out GEOS-3 window subroutine
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed "GEOS57" to "GEOSFP" in routine names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,7 +176,7 @@
 #elif defined( GRID025x03125 )
 
       ! GEOS-5.7.2 (aka "FP") nested grids
-      CALL INIT_GEOS57_WINDOW_TRANSPORT
+      CALL INIT_GEOSFP_WINDOW_TRANSPORT
      &     ( am_I_Root, Input_Opt, RC )    
 #else
 
@@ -196,7 +197,7 @@
 #if defined(  GRID025x03125 )
 
          ! Nested-grid simulation with GEOS 5.7-x met
-         CALL DO_GEOS57_WINDOW_TRANSPORT
+         CALL DO_GEOSFP_WINDOW_TRANSPORT
      &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #elif defined( GRID05x0666 )
@@ -333,7 +334,6 @@
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
-      LOGICAL          :: LMFCT
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
@@ -348,7 +348,6 @@
 
       ! Copy values from Input_Opt
       LFILL     = Input_Opt%LFILL
-      LMFCT     = Input_Opt%LMFCT
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
@@ -636,7 +635,6 @@
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
-      LOGICAL          :: LMFCT
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
@@ -654,7 +652,6 @@
 
       ! Copy values from Input_Opt
       LFILL     = Input_Opt%LFILL
-      LMFCT     = Input_Opt%LMFCT
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
@@ -951,7 +948,6 @@
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
-      LOGICAL          :: LMFCT
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
@@ -969,7 +965,6 @@
 
       ! Copy values from Input_Opt
       LFILL     = Input_Opt%LFILL
-      LMFCT     = Input_Opt%LMFCT
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
@@ -1118,15 +1113,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_geos57_window_transport
+! !IROUTINE: do_geosfp_window_transport
 !
-! !DESCRIPTION: Subroutine DO\_GEOS57\_WINDOW\_TRANSPORT is the driver program 
+! !DESCRIPTION: Subroutine DO\_GEOSFP\_WINDOW\_TRANSPORT is the driver program 
 !  for the proper TPCORE program for the GEOS-5 nested-grid simulations. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GEOS57_WINDOW_TRANSPORT( am_I_Root, Input_Opt,
+      SUBROUTINE DO_GEOSFP_WINDOW_TRANSPORT( am_I_Root, Input_Opt,
      &                                       State_Met, State_Chm, RC )
 !
 ! !USES:
@@ -1139,14 +1134,14 @@
       USE GIGC_Input_Opt_Mod,        ONLY : OptInput
       USE GIGC_State_Chm_Mod,        ONLY : ChmState
       USE GIGC_State_Met_Mod,        ONLY : MetState
-      USE PJC_PFIX_GEOS57_WINDOW_MOD,ONLY : DO_PJC_PFIX_GEOS57_WINDOW
+      USE PJC_PFIX_GEOSFP_WINDOW_MOD,ONLY : DO_PJC_PFIX_GEOSFP_WINDOW
       USE PRESSURE_MOD,              ONLY : GET_PEDGE
       USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
       USE TIME_MOD,                  ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC 
-      USE TPCORE_GEOS57_WINDOW_MOD,  ONLY : TPCORE_GEOS57_WINDOW
+      USE TPCORE_GEOSFP_WINDOW_MOD,  ONLY : TPCORE_GEOSFP_WINDOW
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
@@ -1211,14 +1206,13 @@
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
-      LOGICAL          :: LMFCT
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
       REAL*8           :: TCVV(Input_Opt%N_TRACERS)
 
       !=================================================================
-      ! DO_GEOS57_FVDAS_WINDOW_TRANSPORT begins here!
+      ! DO_GEOSFP_FVDAS_WINDOW_TRANSPORT begins here!
       !=================================================================
 
       ! Assume success
@@ -1226,7 +1220,6 @@
 
       ! Copy values from Input_Opt
       LFILL     = Input_Opt%LFILL
-      LMFCT     = Input_Opt%LMFCT
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
@@ -1317,7 +1310,7 @@
       XMASS = 0d0 !(dan)
       YMASS = 0d0
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!  
-      CALL DO_PJC_PFIX_GEOS57_WINDOW( D_DYN,
+      CALL DO_PJC_PFIX_GEOSFP_WINDOW( D_DYN,
      &                                P_TP1,        P_TP2,
      &                                State_Met%U,  State_Met%V,
      &                                XMASS,        YMASS )
@@ -1339,7 +1332,7 @@
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
       ! Do the advection
-      CALL TPCORE_GEOS57_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
+      CALL TPCORE_GEOSFP_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
      &                           LLPAR,    JFIRST,    JLAST,    NG,
      &                           MG,       N_TOT_TRC, Ap,       Bp,
      &                           p_UWND,   p_VWND,    P_TP1,    P_TP2,
@@ -1361,7 +1354,7 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
 
-      END SUBROUTINE DO_GEOS57_WINDOW_TRANSPORT
+      END SUBROUTINE DO_GEOSFP_WINDOW_TRANSPORT
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1734,10 +1727,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_geos57_window_transport
+! !IROUTINE: init_geosfp_window_transport
 
 !
-! !DESCRIPTION: Subroutine INIT\_GEOS57\_WINDOW\_TRANSPORT initializes all 
+! !DESCRIPTION: Subroutine INIT\_GEOSFP\_WINDOW\_TRANSPORT initializes all 
 !  module variables and arrays for the GEOS-57 nested grid simulation.  
 !  This routine is only called if we are using the GEOS-57 nested grid 
 !  simulation.
@@ -1745,7 +1738,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GEOS57_WINDOW_TRANSPORT( am_I_Root,Input_Opt,RC )
+      SUBROUTINE INIT_GEOSFP_WINDOW_TRANSPORT( am_I_Root,Input_Opt,RC )
 !
 ! !USES:    
 !
@@ -1760,7 +1753,7 @@
       USE TPCORE_BC_MOD,           ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,           ONLY : I2_W, J2_W, IM_W, JM_W
       USE TPCORE_BC_MOD,           ONLY : IGZD, INIT_TPCORE_BC
-      USE TPCORE_GEOS57_WINDOW_MOD,ONLY : INIT_GEOS57_WINDOW
+      USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : INIT_GEOSFP_WINDOW
 
       USE CMN_SIZE_MOD                ! Size parameters
       USE CMN_GCTM_MOD                ! Re
@@ -1782,6 +1775,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  26 Sep 2013 - R. Yantosca - Renamed to INIT_GEOSFP_WINDOW_TRANSPORT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1860,13 +1854,13 @@
          YMID_R_W(J) = GET_YMID_R_W( 1, J, 1 )
       ENDDO
 
-      ! Call INIT routine from "tpcore_geos57_fvdas_window_mod.f"
-      ! subroutine "init_geos57_windows" is in "tpcore_geos57_window_mod.F90"
-      CALL INIT_GEOS57_WINDOW( IIPAR, JJPAR,    LLPAR, JFIRST, 
+      ! Call INIT routine from "tpcore_geosfp_fvdas_window_mod.f"
+      ! subroutine "init_geosfp_windows" is in "tpcore_geosfp_window_mod.F90"
+      CALL INIT_GEOSFP_WINDOW( IIPAR, JJPAR,    LLPAR, JFIRST, 
      &                         JLAST, NG,       MG,    DBLE( N_DYN ),
      &                         Re,    YMID_R_W )
 
-      END SUBROUTINE INIT_GEOS57_WINDOW_TRANSPORT
+      END SUBROUTINE INIT_GEOSFP_WINDOW_TRANSPORT
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

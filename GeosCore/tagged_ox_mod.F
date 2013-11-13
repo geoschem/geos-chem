@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -52,6 +51,7 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
 !                              partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -370,6 +370,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -413,7 +414,7 @@
 #if   defined( GEOS_4 )
       PBLTOP = 5
       MTTOP  = 10
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       PBLTOP = 5
       MTTOP  = 10
 #endif
@@ -552,7 +553,6 @@
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -594,6 +594,7 @@
 !  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
 !                              partitioning
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

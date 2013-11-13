@@ -17,12 +17,10 @@
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
       USE inquireMod,    ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS: 
@@ -34,6 +32,7 @@
       PUBLIC :: CHEMSULFATE       
       PUBLIC :: EMISSSULFATE      
       PUBLIC :: CLEANUP_SULFATE   
+      PUBLIC :: INIT_SULFATE
 !
 ! 
 ! !REMARKS:
@@ -121,11 +120,14 @@
 !  (48) Now accounts for NEI 2005 emissions, and multilevels SOxan emissions
 !        (amv, phs, 10/15/2009) 
 !  (49) Fixes in SRCSO2 for SunStudio compiler (bmy, 12/3/09)
-!  (50) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
-!  (51) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
-!  (52) Add module parameters MNYEAR_VOLC and MXYEAR_VOLC to define the 1st 
+!  (50) Add new subroutine SRCSF30 for emission to 30bin sulfate (win, 1/25/10)
+!  (51) Add new array PSO4_SO2AQ for SO4 produced via aqueous chemistry of SO2 
+!        excluding that from heterogeous reaction on sea-salt. (win, 1/25/10)
+!  (52) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
+!  (53) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
+!  (54) Add module parameters MNYEAR_VOLC and MXYEAR_VOLC to define the 1st 
 !       and last year with data for volcanic emissions. (ccc, 9/30/10)
-!  (53) Use updated volcanic emissions from 1979 to 2009
+!  (55) Use updated volcanic emissions from 1979 to 2009
 !  26 Aug 2010 - R. Yantosca   - Add modifications for MERRA
 !  12 Nov 2010 - R. Yantosca   - Avoid div-by-zero when computing L2S, L3S
 !  16 Feb 2011 - R. Yantosca   - Updated 40 bins of new sulfate for APM (G.Luo)
@@ -135,6 +137,14 @@
 !  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !  13 Mar 2012 - M. Cooper     - Changed regrid algorithm to map_a2a
 !  28 Nov 2012 - R. Yantosca   - Use SUNCOS fields from the State_Met object
+!  04 Mar 2013 - R. Yantosca   - Now call INIT_SULFATE from the init stage
+!                                which facilitates connection to GEOS-5 GCM
+!  05 Mar 2013 - R. Yantosca   - Now use Input_Opt%LNLPBL instead of LNLPBL
+!                                from logical_mod.F
+!  13 Mar 2013 - R. Yantosca   - Bug fix: make sure we pass values to the
+!                                SOIL_DRYDEP routine even when ND44 is off
+!  30 May 2013 - S. Farina     - Merged TOMAS code into sulfate_mod.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -154,6 +164,13 @@
       REAL*8,  PARAMETER   :: XNUMOL_NO3 = 6.022d23 / 62d-3
       REAL*8,  PARAMETER   :: TCVV_S     = 28.97d0  / 32d0 
       REAL*8,  PARAMETER   :: SMALLNUM   = 1d-20
+
+#if defined( TOMAS )
+      !---------------------------------------------------------------
+      ! For TOMAS microphysics: Add parameter for scaling anthro SO2
+      !---------------------------------------------------------------
+      REAL*8,  PARAMETER   :: scaleanthso2 = 1.0d0
+#endif
 !
 ! !PRIVATE TYPES:
 !
@@ -237,6 +254,13 @@
       REAL*8,  ALLOCATABLE :: TTDAY(:,:)
       REAL*8,  ALLOCATABLE :: VCLDF(:,:,:)
       REAL*8,  ALLOCATABLE :: COSZM(:,:)
+
+#if   defined( TOMAS )
+      !---------------------------------------------------------------
+      ! For TOMAS microphysics: Define PSO4_SO2aq array
+      !---------------------------------------------------------------
+      REAL*8,  ALLOCATABLE :: PSO4_SO2AQ(:,:,:)
+#endif
 
       ! Volcanic emissions parameters (ccc, 9/30/10)
       INTEGER, PARAMETER   :: LVOLC=20            ! Volcano levels
@@ -435,7 +459,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CHEMSULFATE( am_I_Root, Input_Opt, 
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -445,6 +470,7 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
       USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
@@ -452,7 +478,6 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTSO4s
 #if   defined( APM )
@@ -462,13 +487,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference all arguments except FIRSTCHEM and RH from either F90 
@@ -493,6 +522,8 @@
 !  (6 ) Now handle gravitational settling of SO4s, NITs (bec, bmy, 4/13/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Remove reference to MAKE_RH, it's not needed here (bmy, 3/16/06)
+!  (9 ) Reference to LTOMAS and add call CHEM_SO4_AQ using aqueous oxidation
+!        which is one of the TOMAS microphysics subroutine  (win, 1/25/10)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  05 Oct 2011 - R. Yantosca - SUNCOS is no longer needed here
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
@@ -501,6 +532,13 @@
 !  14 Nov 2012 - R. Yantosca - Add Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  04 Mar 2013 - R. Yantosca - Remove call to INIT_SULFATE
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS)
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  23 Apr 2013 - R. Yantosca - Remove LTOMAS logical, since we now invoke TOMAS
+!                              with either TOMAS=yes or TOMAS40=yes
+!  31 May 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, State_Chm
+!                              and RC to TOMAS routine CHEM_SO4_AQ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -514,15 +552,19 @@
       ! Non-SAVEd scalars
       LOGICAL           :: IT_IS_AN_AEROSOL_SIM
       LOGICAL           :: prtDebug
-      INTEGER           :: I, J, L, N, MONTH
+      INTEGER           :: I, J, L, N, MONTH, N_TOT_TRC
       REAL*8            :: DTCHEM
+
+      ! For fields from Input_Opt
       LOGICAL           :: LCRYST
       LOGICAL           :: LPRT
       INTEGER           :: N_TRACERS
-      INTEGER           :: N_TOT_TRC
-
-      ! Arrays
       REAL*8            :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -539,8 +581,12 @@
       LCRYST               = Input_Opt%LCRYST
       LPRT                 = Input_Opt%LPRT
       N_TRACERS            = Input_Opt%N_TRACERS
-      TCVV                 = Input_Opt%TCVV
+      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Should we print debug output?
       prtDebug             = ( LPRT .and. am_I_Root )
@@ -555,22 +601,12 @@
       ! Get current month
       MONTH                = GET_MONTH()
 
-      ! Establish indices w/in DEPSAV array
-      IF ( FIRSTCHEM ) THEN
-
-         ! Initialize arrays (if not already done before)
-         CALL INIT_SULFATE
-
-         ! Reset first-time flag
-         FIRSTCHEM = .FALSE.
-      ENDIF
-
       ! If it's an offline simulation ...
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
          ! Then read monthly data files ...
          IF ( ITS_A_NEW_MONTH() ) THEN 
-            CALL GET_GLOBAL_OH( MONTH )
+            CALL GET_GLOBAL_OH( MONTH, State_Met )
             CALL GET_GLOBAL_NO3( MONTH )
          ENDIF
 
@@ -591,6 +627,9 @@
       PSO4_SO2 = 0d0
       PSO4_SS  = 0d0
       PNITs    = 0d0
+#if   defined( TOMAS )
+      PSO4_SO2AQ = 0d0     ! For TOMAS microphysics
+#endif
                   
       !================================================================= 
       ! Call individual chemistry routines for sulfate/aerosol tracers
@@ -611,7 +650,7 @@
       ENDIF
 
       ! Convert all tracers in STT from [kg] -> [v/v]
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )
+      CALL CONVERT_UNITS( 1, N_TOT_TRC, TCVV, State_Met%AD, STT )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
       ENDIF
@@ -620,13 +659,14 @@
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
          ! DMS (offline only)
-         CALL CHEM_DMS( am_I_Root, Input_Opt, State_Met, RC )
+         CALL CHEM_DMS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_DMS' )
          ENDIF
 
          ! H2O2 (offline only)
-         CALL CHEM_H2O2( am_I_Root, Input_Opt, State_Met, RC )
+         CALL CHEM_H2O2( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                   RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
          ENDIF
@@ -639,43 +679,61 @@
          CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
       ENDIF
 
-      CALL CHEM_SO2( am_I_Root, Input_Opt, State_Met, RC )
+      CALL CHEM_SO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
       ENDIF
 
       ! SO4
-      CALL CHEM_SO4( am_I_Root, Input_Opt, State_Met, RC )
+      CALL CHEM_SO4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
       ENDIF
 
+#if   defined( TOMAS )
+      !-----------------------------------------------------------------
+      ! For TOMAS microphysics:
+      !
+      ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)
+      !
+      ! SO4 produced via aqueous chemistry is distributed onto 30-bin
+      ! aerosol by TOMAS subroutine AQOXID.   NOTE: This may be moved
+      ! to tomas_mod.f in the future, but for now it still needs to get
+      ! the PSO4_SO2AQ value while CHEMSULFATE is called
+      !-----------------------------------------------------------------
+      CALL CHEM_SO4_AQ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
+#endif
+
       ! MSA
-      CALL CHEM_MSA( am_I_Root, Input_Opt, State_Met, RC )
+      CALL CHEM_MSA( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
       ENDIF
 
       ! NH3
-      CALL CHEM_NH3( am_I_Root, Input_Opt, State_Met, RC )
+      CALL CHEM_NH3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
       ENDIF
 
       ! NH4 (gas-phase)
-      CALL CHEM_NH4( am_I_Root, Input_Opt, State_Met, RC )
+      CALL CHEM_NH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
       ENDIF
 
       ! Sulfur Nitrate
-      CALL CHEM_NIT( am_I_Root, Input_Opt, State_Met, RC )
+      CALL CHEM_NIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
       ENDIF
 
       ! Convert STT from [v/v] -> [kg]
       CALL CONVERT_UNITS( 2, N_TOT_TRC, TCVV, State_Met%AD, STT )
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! We have already gone thru one chemistry iteration
       FIRSTCHEM = .FALSE. 
@@ -1012,7 +1070,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_DMS( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CHEM_DMS( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1023,21 +1082,25 @@
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTDMS
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !             
 ! !REMARKS:
 !  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
@@ -1106,15 +1169,20 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL           :: IS_FULLCHEM
       INTEGER           :: I,   J,    L
       REAL*8            :: TK,  O2,   RK1,    RK2,    RK3,   F  
       REAL*8            :: DMS, DMS0, DMS_OH, DTCHEM, XOH,   XN3 
       REAL*8            :: XX,  OH,   OH0,    XNO3,   XNO30, LOH
       REAL*8            :: LNO3
                         
-      ! Arrays          
+      ! For fields from Input_Opt
+      LOGICAL           :: IS_FULLCHEM
       REAL*8            :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -1131,6 +1199,10 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
       XNUMOL      = Input_Opt%XNUMOL
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM      = GET_TS_CHEM() * 60d0
@@ -1159,8 +1231,8 @@
          ! Get O2 [molec/cm3], DMS [v/v], OH [molec/cm3], NO3 [molec/cm3]
          O2     = State_Met%AIRDEN(L,I,J) * f * 0.21d0
          DMS0   = STT(I,J,L,IDTDMS)
-         OH     = GET_OH(  I, J, L, State_Met )
-         XNO3   = GET_NO3( I, J, L, State_Met )
+         OH     = GET_OH(  I, J, L, Input_Opt, State_Met )
+         XNO3   = GET_NO3( I, J, L, Input_Opt, State_Met )
 
          !==============================================================
          ! (1) DMS + OH:  RK1 - addition channel  
@@ -1298,6 +1370,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CHEM_DMS
 !EOC
 !------------------------------------------------------------------------------
@@ -1314,7 +1389,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_H2O2( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CHEM_H2O2( am_I_Root, Input_Opt, 
+     &                      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1331,26 +1407,30 @@
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTH2O2
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D_TROP
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -1388,6 +1468,10 @@
 !                              derived type object
 !  26 Nov 2012 - R. Yantosca - Dimension ND44_TMP array with LLPAR, not LLTROP
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1399,9 +1483,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: LNLPBL
       LOGICAL            :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
-      INTEGER            :: I, J, L, JLOOP
+      INTEGER            :: I, J, L, JLOOP, N_TRACERS
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
       REAL*8             :: DT,    Koh,  DH2O2, M,    F ,   XTAU   
       REAL*8             :: H2O20, H2O2, ALPHA, FLUX, FREQ, PHOTJ
@@ -1412,23 +1497,34 @@
       REAL*8             :: XNUMOL(Input_Opt%N_TRACERS)
       REAL*8             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEM_H2O2 begins here!
       !=================================================================
       IF ( IDTH2O2 == 0 .or. DRYH2O2 == 0 ) RETURN 
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      TCVV   = Input_Opt%TCVV
-      XNUMOL = Input_Opt%XNUMOL
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      LNLPBL    = Input_Opt%LNLPBL
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT    => State_Chm%Tracers
 
       ! Chemistry timestep [s]
-      DT     = GET_TS_CHEM() * 60d0
+      DT        = GET_TS_CHEM() * 60d0
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
-      F      = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
+      F         = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
       
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
@@ -1453,7 +1549,7 @@
 
          ! Get TAU0 value for this month in "generic" year 1985
          XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
-	
+
          ! Read J(H2O2) [s-1]  from disk (only up to tropopause)
          ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
          ! tropopause. This is backward compatibility with 
@@ -1461,10 +1557,6 @@
          CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      
      &     XTAU,        IIPAR,                    JJPAR,      
      &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
-!     &                    XTAU,      IIPAR,     JJPAR,      
-!     &                    LLTROP,    ARRAY,     QUIET=.TRUE. )
-
-
 
          ! Cast to REAL*8 and resize if necessary
          CALL TRANSFER_3D_TROP( ARRAY, JH2O2 )
@@ -1500,14 +1592,14 @@
 
          ! Loss frequenty due to OH oxidation [s-1]
          KOH   = A * EXP( -160.d0 / State_Met%T(I,J,L) ) * 
-     &           GET_OH( I, J, L, State_Met )
+     &           GET_OH( I, J, L, Input_Opt, State_Met )
 
          ! H2O2 drydep frequency [1/s].  Account for the fraction
          ! of grid box (I,J,L) that is located beneath the PBL top.
          FREQ  = DEPSAV(I,J,DRYH2O2) * GET_FRAC_UNDER_PBLTOP( I, J, L ) 
 
          ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) FREQ = 0.D0
+         IF ( LNLPBL ) FREQ = 0.D0
 
          ! 1-D grid box index for SUNCOS
          JLOOP = ( (J-1) * IIPAR ) + I
@@ -1572,6 +1664,9 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CHEM_H2O2
 !EOC
 !------------------------------------------------------------------------------
@@ -1587,13 +1682,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SO2( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CHEM_SO2( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+      USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD05
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV
@@ -1602,16 +1699,20 @@
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
+      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_VV
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTH2O2
       USE TRACERID_MOD,       ONLY : IDTSO2
+      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTNH3,  IDTNH4,  IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDTNIT,  IDTDST1, IDTDST2, IDTDST3
+      USE TRACERID_MOD,       ONLY : IDTDST4, IDTSALA, IDTSALC
       USE SEASALT_MOD,        ONLY : GET_ALK
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
@@ -1622,13 +1723,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Reaction List (by Rokjin Park, rjp@io.harvard.edu)                      
@@ -1677,8 +1782,10 @@
 !  (12) Updated to match JPL 2006 + full chem (jaf, bmy, 10/15/09)
 !  (13) Now prevent floating-point exceptions when taking the exponential
 !        terms. (win, bmy, 1/4/10)
-!  (14) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
-!  (15) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
+!  (14) Save aqueous production rate to PSO4_SO2AQ for TOMAS microphyics
+!        (win, 1/25/10)
+!  (15) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
+!  (16) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
 !  26 Aug 2010 - R. Yantosca - Use liquid water content from MERRA
 !  12 Nov 2010 - R. Yantosca - Prevent div-by-zero when computing L2S and L3S
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
@@ -1692,21 +1799,33 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  05 Sep 2013 - M. Sulprizio- Add modifications for cloud pH (B. Alexander)
+!   6 Sep 2013 - M. Sulprizio- Bug fix: Prevent divide-by-zero if LWC=0. Only
+!                              do aqueous SO2 chemistry when LWC>0.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8,  PARAMETER    :: HPLUS  = 3.16227766016837953d-5  !pH = 4.5
+!      REAL*8,  PARAMETER    :: HPLUS  = 3.16227766016837953d-5  !pH = 4.5
+      REAL*8,  PARAMETER    :: HPLUS_45  = 3.16227766016837953d-5  !pH = 4.5
+      REAL*8,  PARAMETER    :: HPLUS_50  = 1.0d-5  !pH = 5.0
       REAL*8,  PARAMETER    :: MINDAT = 1.d-20
 !
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL               :: LNLPBL
       LOGICAL               :: IS_OFFLINE
+      LOGICAL               :: IS_FULLCHEM
       INTEGER               :: I,      J,       L       !,      I1,   I2
-      INTEGER               :: II,     NSTEP
+      INTEGER               :: II,     NSTEP,   N_TRACERS
+      INTEGER               :: BULK,   SIZE_RES 
       REAL*8                :: K0,     Ki,      KK,     M,    L1
       REAL*8                :: L2,     L3,      Ld,     F,    Fc
       REAL*8                :: RK,     RKT,     DTCHEM, DT_T, TK
@@ -1717,11 +1836,19 @@
       REAL*8                :: Kt1,    Kt2,     AREASS1, AREASS2
       REAL*8                :: PSO4E,  PSO4F,   Kt1N,    Kt2N
       REAL*8                :: XX,     AREA_CM2
+      REAL*8                :: HPLUS,  SO4nss, TNH3,   TNO3,  GNO3, ANIT
+      REAL*8                :: LSTOT,  ALKdst, ALKss,  ALKds, NH3
+      REAL*8                :: SSCvv,  aSO4,   SO2_sr, SR,    TANIT
 
       ! Arrays
       REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLPAR)
       REAL*8                :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8                :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEM_SO2 begins here!
@@ -1730,12 +1857,19 @@
       IF ( IDTH2O2 == 0 .or. IDTSO2 == 0 .or. DRYSO2 == 0 ) RETURN
 
       ! Assume success
-      RC         = GIGC_SUCCESS
+      RC          = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      IS_OFFLINE = Input_Opt%ITS_AN_AEROSOL_SIM
-      TCVV       = Input_Opt%TCVV
-      XNUMOL     = Input_Opt%XNUMOL
+      IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
+      IS_OFFLINE  = Input_Opt%ITS_AN_AEROSOL_SIM
+      N_TRACERS   = Input_Opt%N_TRACERS
+      TCVV        = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL      = Input_Opt%XNUMOL(1:N_TRACERS)
+      LNLPBL      = Input_Opt%LNLPBL
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Read HNO3 for offline simulation
       IF ( IS_OFFLINE ) THEN
@@ -1761,6 +1895,9 @@
 !$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX, ALK, ALK1, ALK2         )
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
+!$OMP+PRIVATE( HPLUS, SO4nss, TNH3, TNO3,  GNO3, ANIT,   LSTOT, ALKdst )
+!$OMP+PRIVATE( ALKds, ALKss,  NH3,  SSCvv, aSO4, SO2_sr, SR,    TANIT  )
+!$OMP+PRIVATE( BULK,  SIZE_RES                                         )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR 
       DO J = 1, JJPAR
@@ -1777,7 +1914,7 @@
          ! Initial SO2, H2O2 and O3 [v/v]
          SO20   = STT(I,J,L,IDTSO2)         
          H2O20  = STT(I,J,L,IDTH2O2)
-         O3     = GET_O3( I, J, L, State_Met )
+         O3     = GET_O3( I, J, L, Input_Opt, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
          PATM   = GET_PCENTER( I, J, L ) / 1013.25d0
@@ -1795,7 +1932,7 @@
             KK  = K0 * M / Ki
             F1  = ( 1.d0 + ( LOG10( KK ) )**2 )**( -1 )
             RK1 = ( K0 * M / ( 1.d0 + KK ) ) * 0.6d0**F1 * 
-     &            GET_OH( I, J, L, State_Met )
+     &            GET_OH( I, J, L, Input_Opt, State_Met )
 
          ELSE 
 
@@ -1814,7 +1951,7 @@
          RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) RK2 = 0.D0
+         IF ( LNLPBL ) RK2 = 0.D0
 
          ! RK: total reaction rate [1/s]
          RK     = ( RK1 + RK2 )
@@ -1861,7 +1998,7 @@
      &                         ALK2,      SO2_cd,    Kt1,      Kt2,   
      &                         Kt1N,      Kt2N,      SO2_ss,   PSO4E,     
      &                         PSO4F,     am_I_Root, Input_Opt, 
-     &                         State_Met, RC                          )
+     &                         State_Met, State_Chm, RC               )
 
          ELSE
 
@@ -1928,9 +2065,11 @@
          
          ! If (1) there is cloud, (2) there is SO2 present, and 
          ! (3) the T > -15 C, then compute aqueous SO2 chemistry
+         ! Prevent divide-by-zero if LWC=0 (mpayer, 9/6/13)
          IF ( ( FC     > 0.d0   )  .AND. 
      &        ( SO2_ss > MINDAT )  .AND. 
-     &        ( TK     > 258.0  ) ) THEN
+     &        ( TK     > 258.0  )  .AND.
+     &        ( LWC    > 0.d0   ) ) THEN
 
             !===========================================================
             ! NOTE...Sulfate production from aquatic reactions of SO2 
@@ -2005,6 +2144,36 @@
             ! in aqueous phase with different rate constants. 
             !===========================================================
 
+	    ! Get concentrations for cloud pH calculation (bec, 12/23/11)
+
+	    ! Get sulfate concentration and convert from [v/v] to
+            ! [moles/liter]
+	    ! Use a cloud scavenging ratio of 0.7 
+	    SO4nss  =  STT(I,J,L,IDTSO4) * State_Met%AIRDEN(L,I,J) *
+     &                 0.7d0 / ( 28.97d0 * LWC )
+
+	    ! Get total ammonia (NH3 + NH4+) concentration [v/v]
+	    ! Use a cloud scavenging ratio of 0.7 for NH4+
+            TNH3     = ( STT(I,J,L,IDTNH4) * 0.7d0 ) + 
+     &                   STT(I,J,L,IDTNH3)
+
+	    ! Get total nitrate (HNO3 + NIT) concentrations [v/v] 
+     	    ! Use a cloud scavenging ratio of 0.7 for NIT
+	    IF ( IS_FULLCHEM ) THEN
+               TNO3 = STT(I,J,L,IDTHNO3) + 
+     &              ( STT(I,J,L,IDTNIT) * 0.7d0 )
+	       GNO3 = STT(I,J,L,IDTHNO3) !For Fahey & Pandis decision algorithm
+            ELSE IF ( IS_OFFLINE ) THEN
+               TANIT = STT(I,J,L,IDTNIT) !aerosol nitrate [v/v]
+	       GNO3  = GET_HNO3_VV(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
+   	       ANIT  = TANIT * 0.7d0 ! aerosol nitrate in the cloud drops [v/v]
+	       TNO3  = GNO3 + ANIT   ! total nitrate for cloud pH calculations
+	    ENDIF
+		
+            ! Calculate cloud pH
+	    CALL GET_HPLUS( SO4nss, TNH3, TNO3,     SO2_ss, TK, 
+     &                        PATM,   LWC,  HPLUS_45, HPLUS )
+
             ! Compute aqueous rxn rates for SO2
             CALL AQCHEM_SO2( LWC, TK,    PATM,    SO2_ss, H2O20, 
      &                       O3,  HPLUS, KaqH2O2, KaqO3 ) 
@@ -2072,6 +2241,177 @@
                ENDIF
             ENDIF
 
+            ! Decide whether or not it is necessary to use heterogeneous cloud
+            ! pH calculations based on the Fahey and Pandis, 2001 decision
+            ! algorithm (bec, 12/23/11)
+
+            ! Add up total seasalt and dust and convert to ug/m3
+            ! Note that it is better to use dust and sea-salt alkalinity
+            ! tracers if these are being transported (bec, 12/23/11)
+            ALKdst = ( STT(I,J,L,IDTDST1) + STT(I,J,L,IDTDST2) +
+     &                 STT(I,J,L,IDTDST3) + STT(I,J,L,IDTDST4) ) *
+     &                 1.D9 * State_Met%AD(I,J,L) / TCVV(IDTDST1) /
+     &                 State_Met%AIRVOL(I,J,L)
+
+            ALKss  = ( STT(I,J,L,IDTSALA  ) + STT(I,J,L,IDTSALC) ) *
+     &                 1.D9 * State_Met%AD(I,J,L) / TCVV(IDTSALA) /
+     &                 State_Met%AIRVOL(I,J,L)
+
+            ALKds = ALKdst + ALKss
+
+            ! Get NH3 concentrations (v/v)
+            NH3 = STT(I,J,L,IDTNH3) 
+
+            ! Initialize
+            BULK = 0
+	    SIZE_RES = 0
+
+            ! Fahey and Seinfeld decision algorithm
+	    IF ( H2O20 > SO2_ss + 1D-9 ) THEN
+               BULK = 1
+            ELSEIF( LWC < 0.1D6 ) THEN !10^6 coversion from m3/m3 --> g/m3
+               SIZE_RES = 1
+            ELSEIF( gno3 > NH3 ) THEN
+               IF ( SO2_ss >= 5.D-9          .and. 
+     &              H2O20  >= SO20   ) 
+     &              BULK    = 1
+               IF ( LWC    >= 0.3D6          .and. 
+     &              SO2_ss >= 3.D-9          .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+               IF ( ALKds  >= 5.D0           .and. 
+     &              LWC    >= 0.5D6          .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+               IF ( LWC    >= 0.1D6          .and. 
+     &              gno3   <= (NH3 + 2.D-9) ) 
+     &              BULK    = 1
+            ELSEIF( LWC    >= 0.1d6 ) THEN
+               IF ( NH3    <= 1.d-9          .and. 
+     &              ALKds  >= 5.d0   ) 
+     &              BULK    = 1
+               IF ( NH3    <= 5.d-9          .and. 
+     &              ALKds  >= 10.d0  ) 
+     &              BULK    = 1
+               IF ( gno3   <= 1.d-9          .and. 
+     &              NH3    >= (gno3 + 2.d-9) .and. 
+     &              SO2_ss <= 7.d-9 )
+     &              BULK    = 1
+               IF ( gno3   <= 1.d-9          .and. 
+     &              NH3    >= (gno3 + 2.d-9) .and. 
+     &              ALKds  >= 2.d0 )  BULK = 1
+               IF ( gno3   <= 3.d-9          .and. 
+     &              NH3    >= (gno3 + 4.d-9) )
+     &              BULK    = 1
+               IF ( gno3   <= 7.d-9          .and. 
+     &              NH3    >= (gno3 + 3.d-9) .and. 
+     &              SO2_ss <= 5.d-9 )
+     &              BULK    = 1
+               IF ( gno3   <= 7.d-9          .and. 
+     &              NH3    >= (gno3 + 3.d-9) .and. 
+     &		    ALKds  >= 4.d0           .and. 
+     &              SO2_ss <= 9.d-9  ) 
+     &              BULK    = 1
+               IF ( ALKds  >= 3.d0           .and. 
+     &              NH3    <= 3.d-9          .and. 
+     &              SO2_ss <= 4.d-9 ) 
+     &              BULK    = 1
+               IF ( ALKds  >= 5.d0           .and. 
+     &              SO2_ss <= 5.d-9          .and. 
+     &              NH3    <= 7.d-9 )  
+     &              BULK    = 1
+               IF ( NH3    >= (gno3 + 2.d-9) .and. 
+     &              SO2_ss <= 5.d-9 )  
+     &              BULK    = 1
+               IF ( NH3    >= (gno3 + 4.d-9) .and. 
+     &              SO2_ss <= 10.d-9 )
+     &              BULK    = 1
+               IF ( ALKds  >= 2.d0           .and. 
+     &              NH3    <= 10.d-9         .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+               IF ( NH3    <= 1.d-9          .and. 
+     &              SO2_ss >= 3.d-9          .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+            ELSEIF ( LWC   >= 0.3d6 ) THEN
+               IF ( NH3    >= (gno3 + 5.d-9) .and. 
+     &              SO2_ss <= 10.d-9 )
+     &              BULK    = 1
+               IF ( gno3   <= 1.d-9          .and. 
+     &              NH3    >= (gno3 + 2.d-9) )
+     &              BULK    = 1
+               IF ( gno3   <= 7.d-9          .and. 
+     &              NH3    >= (gno3 + 3.d-9) )
+     &              BULK    = 1
+               IF ( ALKds  >= 3.d0           .and. 
+     &              NH3 <= 10d-9             .and. 
+     &              SO2_ss <= 5d-9 ) 
+     &              BULK    = 1
+               IF ( ALKds  >= 5.d0           .and. 
+     &              NH3    <= 10.d-9         .and. 
+     &              SO2_ss <= 5.d-9 ) 
+     &              BULK    = 1
+               IF ( SO2_ss >= 1.5d-9         .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+               IF ( NH3    <= 12.d-9         .and. 
+     &              ALKds  >=10.d0 ) 
+     &              BULK    = 1
+               IF ( NH3    <= 1.d-9          .and. 
+     &              ALKds  >= 4.d0           .and. 
+     &              SO2_ss <= 10.d-9 ) 
+     &              BULK    = 1
+               IF ( NH3    <= 5.d-9          .and. 
+     &              ALKds  >= 6.d0           .and. 
+     &              SO2_ss <= 10.d-9 ) 
+     &              BULK    = 1
+               IF ( NH3    <= 7.d-9          .and. 
+     &              ALKds   >-8.d0           .and. 
+     &              SO2_ss <= 10.d-9 ) 
+     &              BULK    = 1
+            ELSEIF ( LWC   >= 0.5d6 ) THEN
+               IF ( H2O20  >= (0.9d0 * SO2_ss) ) 
+     &              BULK    = 1
+               IF ( NH3    <= 1.d-9          .and. 
+     &              ALKds  >= 5.d0           .and. 
+     &              SO2_ss <= 10.d-9 ) 
+     &              BULK    = 1
+            ELSE
+               SIZE_RES = 1
+            ENDIF
+
+            ! Decide whether or not to perform sulfate production rate
+            ! enhancement due to cloud drop heterogenity in pH over the oceans
+            ! (bec, 12/23/11)
+            IF ( SIZE_RES == 1 .AND. IS_WATER( I, J, State_MEt) .AND. 
+     &           TK > 268.15 ) THEN
+
+	       ! Get total in-cloud sulfate production based on bulk cloud pH
+               ! calculations for use in HET_DROP_CHEM
+               LSTOT = L2S + L3S
+
+	       ! Get coarse-mode sea-salt concentration for use in
+               ! HET_DROP_CHEM [v/v]
+               ! Note that it is better to use coarse sea salt alkalinity
+               ! tracer if it is being transported (bec, 12/23/11)
+               SSCvv  = STT(I,J,L,IDTSALC)
+
+	       ! Get sulfate concentrations for use in HET_DROP_CHEM [v/v]
+               aSO4  =  STT(I,J,L,IDTSO4) 
+
+               ! This is to make sure HET_DROP_CHEM does not compute more
+               ! sulfate then there is SO2
+               SO2_sr = MAX( SO2_ss - ( ( L2S + L3S ) * FC ), MINDAT )
+
+               CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, 
+     &                             aSO4, NH3, SO2_sr, H2O20, GNO3,  SR,
+     &                             State_Met )
+
+	    ELSE
+		SR = 0.d0
+	    ENDIF
+
             ! We have used the in-cloud LWC to compute the sulfate
             ! aqueous chemistry.  We get the appropriate grid-box averaged 
             ! mass of SO2 and sulfate by multiplying the reaction rates
@@ -2079,10 +2419,12 @@
             ! has been done.  (lzh, jaf, bmy, 5/27/11)
             L2S =  L2S * FC
             L3S =  L3S * FC    
+	    SR  =  SR  * FC
 
             ! Make sure SO2_ss and H2O20 are in the proper range
-            SO2_ss = MAX( SO2_ss - ( L2S + L3S ), MINDAT )
-            H2O20  = MAX( H2O20  - L2S,           MINDAT )
+!            SO2_ss = MAX( SO2_ss - ( L2S + L3S ), MINDAT )
+            SO2_ss = MAX( SO2_ss - ( L2S + L3S + SR ), MINDAT )
+            H2O20  = MAX( H2O20  - L2S,                MINDAT )
 
             ! Update SO2 level, save SO2[ppv], H2O2[ppv] for WETDEP
             SO2s( I,J,L) = SO2_ss
@@ -2096,6 +2438,7 @@
             SO2s(I,J,L ) = MAX( SO2_ss, 1.0d-32 )
             L2S          = 0.d0
             L3S          = 0.d0
+	    SR		 = 0.d0
 
          ENDIF
 
@@ -2104,8 +2447,13 @@
          STT(I,J,L,IDTH2O2) = H2O2s(I,J,L)
 
          ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
-         PSO4_SO2(I,J,L) = L1 + L2S + L3S + PSO4E
+!         PSO4_SO2(I,J,L) = L1 + L2S + L3S + PSO4E
+         PSO4_SO2(I,J,L) = L1 + L2S + L3S + PSO4E + SR
          PSO4_ss (I,J,L) = PSO4F
+
+#if   defined( TOMAS )
+         PSO4_SO2AQ(I,J,L) = L2S + L3S  ! For TOMAS microphysics
+#endif
 
          !=================================================================
          ! ND05 Diagnostics [kg S/timestep]
@@ -2133,8 +2481,10 @@
      &                      ( L2S * State_Met%AD(I,J,L) / TCVV_S )
 
             ! P(SO4) from aqueous-phase oxidation with O3 [kg S/timestep]
+!            AD05(I,J,L,7) = AD05(I,J,L,7) +
+!     &                      ( L3S * State_Met%AD(I,J,L) / TCVV_S )
             AD05(I,J,L,7) = AD05(I,J,L,7) +
-     &                      ( L3S * State_Met%AD(I,J,L) / TCVV_S )
+     &                  ( ( L3S + SR ) * State_Met%AD(I,J,L) / TCVV_S )
 
             ! P(SO4) from O3 oxidation in sea-salt aerosols [kg S/timestep]
             AD05(I,J,L,8) = AD05(I,J,L,8) +
@@ -2181,6 +2531,9 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CHEM_SO2
 !EOC
 !------------------------------------------------------------------------------
@@ -2197,11 +2550,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SEASALT_CHEM ( I,     J,         L,         ALK1, 
-     &                          ALK2,  SO2_cd,    Kt1,       Kt2, 
-     &                          Kt1N,  Kt2N,      SO2_ss,    PSO4E, 
-     &                          PSO4F, am_I_Root, Input_Opt, State_Met, 
-     &                          RC )
+      SUBROUTINE SEASALT_CHEM ( I,         J,         L,
+     &                          ALK1,      ALK2,      SO2_cd,
+     &                          Kt1,       Kt2,       Kt1N,
+     &                          Kt2N,      SO2_ss,    PSO4E,
+     &                          PSO4F,     am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -2219,13 +2573,13 @@
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_MONTH 
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : STT
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNITs
@@ -2236,31 +2590,35 @@
 ! !INPUT PARAMETERS: 
 !
 
-      INTEGER,        INTENT(IN)  :: I, J, L     ! Grid box indices
-      REAL*8,         INTENT(IN)  :: SO2_cd      ! SO2 mixing ratio [v/v] after 
+      INTEGER,        INTENT(IN)   :: I, J, L    ! Grid box indices
+      REAL*8,         INTENT(IN)   :: SO2_cd     ! SO2 mixing ratio [v/v] after 
                                                  !  gas phase chemistry and 
                                                  !  dry deposition
-      REAL*8,         INTENT(IN)  :: Kt1, Kt2    ! Rate constant [s-1] for 
+      REAL*8,         INTENT(IN)   :: Kt1, Kt2   ! Rate constant [s-1] for 
                                                  !  sulfate formation on sea
                                                  !  salt aerosols from GET_ALK 
                                                  !  (1=fine; 2=coarse)
-      REAL*8,         INTENT(IN)  :: Kt1N, Kt2N 
-      REAL*8,         INTENT(IN)  :: ALK1, ALK2  ! Alkalinity [kg] from 
+      REAL*8,         INTENT(IN)   :: Kt1N, Kt2N 
+      REAL*8,         INTENT(IN)   :: ALK1, ALK2 ! Alkalinity [kg] from 
                                                  !  seasalt_mod
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(MetState), INTENT(IN)   :: State_Met  ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)   :: Input_Opt  ! Input Options object
+      LOGICAL,        INTENT(IN)   :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL*8,         INTENT(OUT) :: SO2_ss      ! SO2 mixing ratio [v/v] 
+      REAL*8,         INTENT(OUT)   :: SO2_ss    ! SO2 mixing ratio [v/v] 
                                                  !  after sea salt chemistry
-      REAL*8,         INTENT(OUT) :: PSO4E       ! SO4E (sulfate produced by 
+      REAL*8,         INTENT(OUT)   :: PSO4E     ! SO4E (sulfate produced by 
                                                  !  S(IV)+O3 on fine seasalt) 
                                                  !  mixing ratio [v/v]
-      REAL*8,         INTENT(OUT) :: PSO4F       ! SO4F (sulfate produced by 
+      REAL*8,         INTENT(OUT)   :: PSO4F     ! SO4F (sulfate produced by 
                                                  !  S(IV)+O3 on coarse seasalt)
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC        ! Success or failure?
 !
 ! !REMARKS:
 !  Chemical reactions:
@@ -2281,6 +2639,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2294,7 +2653,7 @@
 !
       ! Scalars
       LOGICAL            :: IT_IS_A_FULLCHEM_SIM
-      INTEGER            :: JLOOP
+      INTEGER            :: JLOOP,       N_TRACERS
       REAL*8             :: SO2_chem,    DTCHEM
       REAL*8             :: O3_cspec,    O3_lost
       REAL*8             :: EQ_1_C,      EQ_2_C
@@ -2319,6 +2678,11 @@
       ! Arrays
       REAL*8             :: TCVV(Input_Opt%N_TRACERS)
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SEASALT_CHEM begins here!
       !=================================================================
@@ -2327,8 +2691,13 @@
       RC                   = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      TCVV                 = Input_Opt%TCVV
+      N_TRACERS            = Input_Opt%N_TRACERS
+      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -2603,7 +2972,751 @@
       !IF ( ND09 > 0 ) AD09(I,J,L,4) = AD09(I,J,L,4) + END_ALK
       !------------------------------------------------------------------------
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE SEASALT_CHEM
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_hplus
+!
+! !DESCRIPTION: Subroutine GET\_HPLUS computes H+ concentrations in cloud
+!  liquid water for pH dependent cloud chemistry. (bec, 4/11/11)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_HPLUS( SO4nss, TNH3, TNO3, SO2,
+     &                      T,      PRES, LWC,  iHPLUS, HPLUS )
+!
+! !USES:
+!
+      USE ERROR_MOD,       ONLY : IT_IS_NAN, GEOS_CHEM_STOP
+
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN)    :: SO4nss ! Total nss sulfate mixing ratio [M]
+      REAL*8,  INTENT(IN)    :: TNO3   ! Total nitrate (gas+particulate) mixing
+                                       ! ratio [v/v]
+      REAL*8,  INTENT(IN)    :: TNH3   ! NH3 mixing ratio [v/v]
+      REAL*8,  INTENT(IN)    :: SO2    ! SO2 mixing ratio [v/v] 
+      REAL*8,  INTENT(IN)    :: T      ! Temperature [K]
+      REAL*8,  INTENT(IN)    :: PRES   ! Pressure [atm]
+      REAL*8,  INTENT(IN)    :: LWC    ! Cloud liquid water content [m3/m3]
+      REAL*8,  INTENT(IN)    :: iHPLUS ! Initial [H+] [M]
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(OUT)   :: HPLUS  ! Calculated [H+] [M]
+! !REMARKS:
+!  Calculation:
+!  ============================================================================
+!  Solve the following electroneutrality equation:
+!  [H+] = 2[SO4]nss + [Cl] + [OH] + [HCO3] + 2[CO3] + [HSO3] + 2[SO3] + [NO3]
+!        - [Na] - 2[Ca] - [K] - 2[Mg] - [NH4]
+!
+!  Aqueous concentrations of [Cl], [Na], [Ca], [K], and [Mg] come from 
+!  ISORROPIA II
+!
+!  Let concentrations of [HCO3], [CO3], [HSO3], [SO3], [NO3] and [NH4] evolve
+!  according to Henry's law equilibrium.
+!
+!  Assume [S(VI)] = [SO4]nss (this applies for pH > 3)
+!            
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+
+      ! Water dissociation constants
+      REAL*8,  PARAMETER     :: Kw   = 1.0d-14
+      REAL*8,  PARAMETER     :: DhrKw = -6710.d0
+      REAL*8,  PARAMETER     :: MINVAL = 0.01
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8                 :: D, Kw_T, ipH, newpH, nHPLUS
+      REAL*8                 :: kCO2p, kCO2p2
+      REAL*8                 :: kSO2p, kSO2p2
+      REAL*8                 :: kHNO3p, kNH3p, kHClp
+      INTEGER                :: count
+      REAL*8                 :: E, F, G, H, P, Q, R, A, B
+      REAL*8                 :: A2, A1, A0, X, Y
+      REAL*8                 :: CRUTES( 3 ) ! Coeff and roots of cubic equation
+      INTEGER                :: NR          ! Number of roots to cubic equation
+
+      !=================================================================
+      ! GET_HPLUS begins here!
+      !=================================================================
+
+      ! Initial pH guess 
+      ipH = -log10(iHPLUS)
+
+      ! Non-volatile aerosol concentration [M] 
+      ! For now sulfate is the only non-volatile species
+      D = (2.d0*SO4nss) 
+
+      ! Temperature dependent water equilibrium constant
+      Kw_T = Kw*exp(DhrKw*((1.d0/T)-(1.d0/298.d0)))
+
+      ! Initialize
+      newpH   = 0.0 
+      COUNT = 0
+
+      DO WHILE ( ABS(ipH-newpH) .gt. MINVAL )
+
+      COUNT = COUNT+1
+ 
+         IF ( COUNT .EQ. 1 ) THEN
+            ipH = ipH
+	 ELSE
+            ipH = newpH
+	 ENDIF
+
+         nHPLUS = 10.d0**(-ipH)
+
+         kCO2p  = kCO21 ( PRES, T, LWC, nHPLUS ) 
+
+	 kCO2p2 = kCO22 ( PRES, T, LWC, nHPLUS ) 
+
+	 kSO2p  = kSO21 ( PRES, T, LWC, nHPLUS, SO2 )
+
+	 kSO2p2 = kSO22 ( PRES, T, LWC, nHPLUS, SO2 )
+
+	 kHNO3p = kHNO3 ( PRES, T, LWC, nHPLUS, TNO3 )
+
+	 kNH3p  = kNH3  ( PRES, T, LWC, nHPLUS, TNH3, Kw_T )
+
+         ! Save this for later in case we want to include HCl in cloud pH
+         ! calculations
+         !kHClp  = kHCl  ( PRES, T, LWC, nHPLUS, CL  ) 
+
+         !E = KHClp + Kw_T + KCO2p + KSO2p + KHNO3p !This would be used if HCl is included
+	 E = Kw_T + KCO2p + KSO2p + KHNO3p 
+
+	 F = KCO2p2 + KSO2p2
+
+	 G = KNH3p
+
+	 H = 1 + G
+
+	 P = -(D/H)
+
+	 Q = -E/H
+
+	 R = F/H
+
+	 A = (1.d0/3.d0)*((3.d0*Q)-(P*P))
+
+  	 B = (1.d0/27.d0)*((2.0d0*P*P*P)-(9.0d0*P*Q)+(27.0d0*R))
+
+ 	 A2 = 0.
+ 	 A1 = A
+ 	 A0 = B
+
+	 !write(6,*) 'calling CUBIC'
+         CALL CUBIC ( A2, A1, A0, NR, CRUTES )
+	 !write(6,*) 'after CUBIC'
+
+         ! Code assumes the smallest positive root is in CRUTES(1)
+         X = CRUTES( 1 )
+
+	 ! Y = [H+]
+ 	 Y = X - (P/3.0d0)
+
+  	 ! Set minimum [H+] = 1.d-14 (pH = 14)
+    	 Y = MAX(Y,1.0d-14)
+
+  	 ! Set maximum [H+] = 1.d-1 (pH = 1)
+    	 Y = MIN(Y,1.0d-1)
+
+  	 ! If solution does not converge after 5 iterations
+  	 ! average last 2 pH calculations
+  	 IF (count > 5) THEN
+	    newpH = ((-log10(Y)) + (-log10(nHPLUS))) / 2.0d0
+
+            IF (IT_IS_NAN( newpH )) THEN
+               write(6,*) 'newpH = ', newpH
+               write(6,*) 'Y = ', Y
+               write(6,*) 'nHPLUS = ', nHPLUS
+               CALL GEOS_CHEM_STOP
+            ENDIF
+
+            EXIT
+         ELSE 
+            newpH = -log10(Y)
+
+            IF (IT_IS_NAN( newpH )) THEN
+               write(6,*) 'newpH = ', newpH
+               write(6,*) 'Y = ', Y
+               CALL GEOS_CHEM_STOP
+            ENDIF
+
+         ENDIF
+
+      ENDDO
+
+      HPLUS = 10.0d0**(-newpH)
+
+      END SUBROUTINE GET_HPLUS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kCO21
+!
+! !DESCRIPTION: Function kCO21
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION kCO21 ( P, T, LWC, HPLUS ) RESULT ( KCO2p )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KCO2p, KCO2p2
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! CO2 dissociation constants
+      REAL*8,  PARAMETER  :: Kc1 = 4.3e-7
+      REAL*8,  PARAMETER  :: Kc2 =4.68e-11
+      REAL*8,  PARAMETER  :: DhrKc1 = -1000.
+      REAL*8,  PARAMETER  :: DhrKc2 = -1760.
+      REAL*8,  PARAMETER  :: Hco2 = 3.4e-2
+      REAL*8,  PARAMETER  :: Dhco2 = -4.85/0.04
+      ! CO2 concentration [v/v]
+      REAL*8,  PARAMETER  :: CO2 = 380.0d-6 !380 ppmv
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hco2_T, Kc1_T, Kc2_T
+      REAL*8              :: Hco2eff, xCO2, pCO2
+
+      !=================================================================
+      ! kCO2 begins here!
+      !=================================================================
+
+      !CO2 dissolution constants
+      Hco2_T = Hco2*exp(Dhco2*((1.d0/T)-(1.d0/298.d0)))
+      Kc1_T = Kc1*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
+      Kc2_T = Kc2*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
+
+      !CO2 dissolution  
+      Hco2eff = Hco2_T*(1.d0+(Kc1_T/HPLUS)+((Kc1_T*Kc2_T)/
+     &         (HPLUS*HPLUS)))
+      xCO2 = 1.d0 / ( 1.d0 + ( Hco2eff * 0.08205d0 * T * LWC ) )
+      pCO2 = CO2 * P * xCO2
+
+      KCO2p  = Hco2_T * Kc1_T * pCO2
+
+      END FUNCTION kCO21
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kCO22
+!
+! !DESCRIPTION: Function kCO22
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION kCO22 ( P, T, LWC, HPLUS ) RESULT ( KCO2p2 )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KCO2p, KCO2p2
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! CO2 dissociation constants
+      REAL*8,  PARAMETER  :: Kc1 = 4.3e-7
+      REAL*8,  PARAMETER  :: Kc2 =4.68e-11
+      REAL*8,  PARAMETER  :: DhrKc1 = -1000.
+      REAL*8,  PARAMETER  :: DhrKc2 = -1760.
+      REAL*8,  PARAMETER  :: Hco2 = 3.4e-2
+      REAL*8,  PARAMETER  :: Dhco2 = -4.85/0.04
+      ! CO2 concentration [v/v]
+      REAL*8,  PARAMETER  :: CO2 = 380.0d-6 
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hco2_T, Kc1_T, Kc2_T
+      REAL*8              :: Hco2eff, xCO2, pCO2
+
+      !=================================================================
+      ! kCO2 begins here!
+      !=================================================================
+
+      !CO2 dissolution constants
+      Hco2_T = Hco2*exp(Dhco2*((1.d0/T)-(1.d0/298.d0)))
+      Kc1_T = Kc1*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
+      Kc2_T = Kc2*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
+
+      !CO2 dissolution  
+      Hco2eff = Hco2_T*(1.d0+(Kc1_T/HPLUS)+((Kc1_T*Kc2_T)/
+     &         (HPLUS*HPLUS)))
+      xCO2 = 1.d0 / ( 1.d0 + ( Hco2eff * 0.08205d0 * T * LWC ) )
+      pCO2 = CO2 * P * xCO2
+
+      KCO2p  = Hco2_T * Kc1_T * pCO2
+      KCO2p2 = 2.d0 * KCO2p *  Kc2_T
+
+      END FUNCTION kCO22
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kSO21
+!
+! !DESCRIPTION: Function kSO21
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION kSO21 ( P, T, LWC, HPLUS, SO2 ) RESULT ( KSO2p )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS, SO2
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KSO2p, KSO2p2
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! SO2 dissociation constants
+      REAL*8,  PARAMETER  :: Ks1 = 1.3e-2
+      REAL*8,  PARAMETER  :: Ks2 = 6.6e-8
+      REAL*8,  PARAMETER  :: Hso2 = 1.23
+      REAL*8,  PARAMETER  :: Dhso2 = -6.25/0.04
+      REAL*8,  PARAMETER  :: DhrKso21 = 1960.
+      REAL*8,  PARAMETER  :: DhrKso22 = 1500.
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hso2_T, Ks1_T, Ks2_T
+      REAL*8              :: Hso2eff, xSO2, pSO2
+
+      !=================================================================
+      ! kSO2 begins here!
+      !=================================================================
+
+
+      ! SO2 dissolution constants
+      Hso2_T = Hso2*exp(Dhso2*((1.d0/T)-(1.d0/298.d0)))
+      Ks1_T = Ks1*exp(DhrKso21*((1.d0/T)-(1.d0/298.d0)))
+      Ks2_T = Ks2*exp(DhrKso22*((1.d0/T)-(1.d0/298.d0)))
+
+      ! SO2 dissolution
+      Hso2eff = Hso2_T*(1.d0+(Ks1_T/HPLUS)+((Ks1_T*Ks2_T)/
+     &         (HPLUS*HPLUS)))
+      xSO2 = 1.d0 / ( 1.d0 + ( Hso2eff * 0.08205d0 * T * LWC ) )
+      pSO2 = SO2 * P * xSO2
+
+      KSO2p  = Hso2_T * Ks1_T * pSO2
+
+      END FUNCTION kSO21
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kSO22
+!
+! !DESCRIPTION: Function kSO22
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION kSO22 ( P, T, LWC, HPLUS, SO2 ) RESULT ( KSO2p2 )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS, SO2
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KSO2p, KSO2p2
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! SO2 dissociation constants
+      REAL*8,  PARAMETER  :: Ks1 = 1.3e-2
+      REAL*8,  PARAMETER  :: Ks2 = 6.6e-8
+      REAL*8,  PARAMETER  :: Hso2 = 1.23
+      REAL*8,  PARAMETER  :: Dhso2 = -6.25/0.04
+      REAL*8,  PARAMETER  :: DhrKso21 = 1960.
+      REAL*8,  PARAMETER  :: DhrKso22 = 1500.
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hso2_T, Ks1_T, Ks2_T
+      REAL*8              :: Hso2eff, xSO2, pSO2
+
+      !=================================================================
+      ! kSO2 begins here!
+      !=================================================================
+
+
+      ! SO2 dissolution constants
+      Hso2_T = Hso2*exp(Dhso2*((1.d0/T)-(1.d0/298.d0)))
+      Ks1_T  = Ks1 *exp(DhrKso21*((1.d0/T)-(1.d0/298.d0)))
+      Ks2_T  = Ks2 *exp(DhrKso22*((1.d0/T)-(1.d0/298.d0)))
+
+      !SO2 dissolution
+      Hso2eff = Hso2_T*(1.d0+(Ks1_T/HPLUS)+((Ks1_T*Ks2_T)/
+     &         (HPLUS*HPLUS)))
+      xSO2 = 1.d0 / ( 1.d0 + ( Hso2eff * 0.08205d0 * T * LWC ) )
+      pSO2 = SO2 * P * xSO2
+
+      KSO2p  = Hso2_T * Ks1_T * pSO2
+      KSO2p2 = 2.d0 * KSO2p * Ks2_T
+
+      END FUNCTION kSO22
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kHNO3
+!
+! !DESCRIPTION: Function kNO3
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION kHNO3 ( P, T, LWC, HPLUS, HNO3 ) RESULT ( KHNO3p )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS, HNO3
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KHNO3p
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! HNO3 dissociation constants
+      REAL*8,  PARAMETER  :: Kn1 = 15.4
+      REAL*8,  PARAMETER  :: Hhno3 = 2.1e5
+      REAL*8,  PARAMETER  :: Dhhno3 = 0.
+      REAL*8,  PARAMETER  :: DhrKn1 = 8700.
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hhno3_T, Kn1_T
+      REAL*8              :: Hhno3eff, xHNO3, pHNO3
+
+      !=================================================================
+      ! kHNO3 begins here!
+      !=================================================================
+
+      ! HNO3 dissolution constants
+      Hhno3_T = Hhno3*exp(Dhhno3*((1.d0/T)-(1.d0/298.d0)))
+      Kn1_T = Kn1*exp(DhrKn1*((1.d0/T)-(1.d0/298.d0)))
+
+      !HNO3 dissolution
+      Hhno3eff = 3.2e6/HPLUS
+      xHNO3 = 1.d0 / ( 1.d0 + ( Hhno3eff * 0.08205d0 * T * LWC ) )
+      pHNO3 = HNO3 * P * xHNO3
+
+      kHNO3p = Hhno3_T * Kn1_T * pHNO3
+
+      END FUNCTION kHNO3
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kHCl
+!
+! !DESCRIPTION: Function kHCl
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION kHCl ( P, T, LWC, HPLUS, Cl ) RESULT ( KHClp )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS, Cl
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KHClp
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! HNO3 dissociation constants
+      REAL*8,  PARAMETER  :: Kcl = 1.74d6
+      REAL*8,  PARAMETER  :: Hcl = 1.1d0
+      REAL*8,  PARAMETER  :: Dhcl = -2.3158d0
+      REAL*8,  PARAMETER  :: DhrKcl = 6900.d0
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hcl_T, Kcl_T
+      REAL*8              :: Hcleff, xCl, pHCl
+
+      !=================================================================
+      ! kHCl begins here!
+      !=================================================================
+
+      ! HNO3 dissolution constants
+      HCl_T = Hcl*exp(Dhcl*((1.0d0/T)-(1.0d0/298.0d0)))
+      Kcl_T = Kcl*exp(DhrKcl*((1.0d0/T)-(1.0d0/298.0d0)))
+
+      !HCl dissolution
+      Hcleff = Hcl_T*(1.0d0+(Kcl_T/HPLUS))
+      xCl = 1.0d0 / ( 1.0d0 + ( Hcleff * 0.08205d0 * T * LWC ) )
+      pHCl = Cl * P * xCl
+
+      kHClp = Hcl_T * Kcl_T * pHCl
+
+      END FUNCTION kHCl
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kNH3
+!
+! !DESCRIPTION: Function kNH3
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION kNH3 ( P, T, LWC, HPLUS, NH3, Kw ) RESULT ( KNH3p )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS, NH3, Kw
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KNH3p
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! NH3 dissociation contants
+      REAL*8,  PARAMETER  :: Ka1 = 1.7e-5
+      REAL*8,  PARAMETER  :: Hnh3 = 62.
+      REAL*8,  PARAMETER  :: Dhnh3 = -8.17/0.04
+      REAL*8,  PARAMETER  :: DhrKa1 = -450.
+
+      ! Variables
+      REAL*8              :: Hnh3_T, Ka1_T
+      REAL*8              :: Hnh3eff, xNH3, pNH3
+
+      !=================================================================
+      ! kNH3 begins here!
+      !=================================================================
+
+      !NH3 dissolution constants
+      Hnh3_T = Hnh3*exp(Dhnh3*((1.d0/T)-(1.d0/298.d0)))
+      Ka1_T = Ka1*exp(DhrKa1*((1.d0/T)-(1.d0/298.d0)))
+
+      !NH3 dissolution
+      Hnh3eff = Hnh3_T*(1.d0+((Ka1_T* HPLUS) / Kw))
+      xNH3 = 1.d0 / ( 1.d0 + ( Hnh3eff * 0.08205d0 * T * LWC ) )
+      pNH3 = NH3 * P * xNH3
+
+      KNH3p = Hnh3_T * Ka1_T * pNH3 / Kw
+
+      END FUNCTION kNH3
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cubic
+!
+! !DESCRIPTION: Subroutine CUBIC finds the roots of a cubic equation / 3rd 
+! order polynomial
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CUBIC( A2, A1, A0, NR, CRUTES )
+!
+! !USES:
+!
+!      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP !ERROR_STOP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER           :: NR
+      REAL*8            :: A2, A1, A0
+      REAL*8            :: CRUTES(3)
+!
+! !REMARKS:
+! Formulae can be found in numer. recip.  on page 145
+!   kiran  developed  this version on 25/4/1990
+!   Dr. Francis S. Binkowski modified the routine on 6/24/91, 8/7/97
+! ***
+! *** modified 2/23/98 by fsb to incorporate Dr. Ingmar Ackermann's
+!     recommendations for setting a0, a1,a2 as real*8 variables.
+!
+! Modified by Bob Yantosca (10/15/02) 
+! - Now use upper case / white space
+! - force double precision with "D" exponents
+! - updated comments / cosmetic changes
+! - now call ERROR_STOP from "error_mod.f" to stop the run safely
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: ONE    = 1.0d0
+      REAL*8, PARAMETER :: SQRT3  = 1.732050808d0
+      REAL*8, PARAMETER :: ONE3RD = 0.333333333d0
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8            :: QQ,    RR,    A2SQ,  THETA, DUM1, DUM2
+      REAL*8            :: PART1, PART2, PART3, RRSQ,  PHI,  YY1
+      REAL*8            :: YY2,   YY3,   COSTH, SINTH
+
+      !=================================================================
+      ! CUBIC begins here!
+      !=================================================================
+      A2SQ = A2 * A2
+      QQ   = ( A2SQ - 3.d0*A1 ) / 9.d0
+      RR   = ( A2*( 2.d0*A2SQ - 9.d0*A1 ) + 27.d0*A0 ) / 54.d0
+
+      ! CASE 1 THREE REAL ROOTS or  CASE 2 ONLY ONE REAL ROOT
+      DUM1 = QQ * QQ * QQ
+      RRSQ = RR * RR
+      DUM2 = DUM1 - RRSQ
+
+      IF ( DUM2 .GE. 0.d0 ) THEN
+
+         ! Now we have three real roots
+         PHI = SQRT( DUM1 )
+
+         IF ( ABS( PHI ) .LT. 1.d-20 ) THEN
+            CRUTES(1) = 0.0d0
+            CRUTES(2) = 0.0d0
+            CRUTES(3) = 0.0d0
+            NR        = 0
+         ENDIF
+         
+         THETA = ACOS( RR / PHI ) / 3.0d0
+         COSTH = COS( THETA )
+         SINTH = SIN( THETA )
+
+         ! Use trig identities to simplify the expressions
+         ! Binkowski's modification
+         PART1     = SQRT( QQ )
+         YY1       = PART1 * COSTH
+         YY2       = YY1 - A2/3.0d0
+         YY3       = SQRT3 * PART1 * SINTH
+         CRUTES(3) = -2.0d0*YY1 - A2/3.0d0
+         CRUTES(2) = YY2 + YY3
+         CRUTES(1) = YY2 - YY3
+
+         ! Set negative roots to a large positive value
+         IF ( CRUTES(1) .LT. 0.0d0 ) CRUTES(1) = 1.0d9
+         IF ( CRUTES(2) .LT. 0.0d0 ) CRUTES(2) = 1.0d9
+         IF ( CRUTES(3) .LT. 0.0d0 ) CRUTES(3) = 1.0d9
+
+         ! Put smallest positive root in crutes(1)
+         CRUTES(1) = MIN( CRUTES(1), CRUTES(2), CRUTES(3) )
+         NR        = 3
+
+      ELSE  
+
+         ! Now here we have only one real root
+         PART1     = SQRT( RRSQ - DUM1 )
+         PART2     = ABS( RR )
+         PART3     = ( PART1 + PART2 )**ONE3RD
+         CRUTES(1) = -SIGN(ONE,RR) * ( PART3 + (QQ/PART3) ) - A2/3.D0
+         CRUTES(2) = 0.D0
+         CRUTES(3) = 0.D0
+         NR        = 1
+
+      ENDIF
+      
+      ! Return to calling program
+      END SUBROUTINE CUBIC
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2824,6 +3937,185 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: het_drop_chem
+!
+! !DESCRIPTION: Subroutine HET\_DROP\_CHEM estimates the in-cloud sulfate
+!  production rate in heterogeneous cloud droplets based on the Yuen et al.,
+!  1996 parameterization. (bec, 6/16/11)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HET_DROP_CHEM( I, J, L, LSTOT, SSCvv, aSO4, GNH3,
+     &                          SO2_sr, H2O20, GNO3, SR, State_Met )
+!
+! !USES:
+!
+      USE ERROR_MOD,          ONLY : IT_IS_FINITE, GEOS_CHEM_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : TCVV
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTSALC
+      USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3, IDTDST4
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)  :: I, J, L
+      REAL*8,         INTENT(IN)  :: LSTOT
+      REAL*8,         INTENT(IN)  :: SSCvv
+      REAL*8,         INTENT(IN)  :: aSO4
+      REAL*8,         INTENT(IN)  :: GNH3
+      REAL*8,         INTENT(IN)  :: SO2_sr
+      REAL*8,         INTENT(IN)  :: H2O20
+      REAL*8,         INTENT(IN)  :: GNO3
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8,         INTENT(OUT) :: SR ! Sulfate production rate
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  05 Sep 2013 - M. Sulprizio- Now pass met fields using the State_Met object
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER   :: PI    = 3.14159D0
+      REAL*8, PARAMETER   :: SS_DEN = 2200.d0 !dry sea-salt density [kg/m3]
+      ! sigma of the size distribution for sea-salt (Jaegle et al., 2011)
+      REAL*8, PARAMETER   :: SIG_S = 1.8d0
+      ! geometric dry mean diameters [m] for computing lognormal size distribution
+      REAL*8, PARAMETER   :: RG_S = 0.4d-6 !(Jaegle et a., 2011)
+      REAL*8, PARAMETER   :: RG_D2 = 1.5d-6!(Ginoux et al., 2001)
+      REAL*8, PARAMETER   :: RG_D3 = 2.5d-6
+      REAL*8, PARAMETER   :: RG_D4 = 4.d-6
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: alpha_NH3, alpha_SO2, alpha_H2O2
+      REAL*8              :: alpha_HNO3, alpha_B, alpha_CN
+      REAL*8              :: alpha_W, alpha_SO4, sum_gas, H
+      REAL*8              :: NDss, NDd2, NDd3, NDd4, CN, DEN, REFF, W
+      REAL*8              :: DTCHEM, APV, DSVI
+      REAL*8              :: B, NH3, SO2, H2O2, HNO3, SO4
+      REAL*8              :: CNss, CNd2, CNd3, CNd4
+
+      !=================================================================
+      ! HET_DROP_CHEM begins here!
+      !=================================================================
+
+      ! Convert gas phase concentrations from [v/v] to [pptv]
+      NH3  = GNH3  * 1.0d12
+      SO2  = SO2_sr  * 1.0d12
+      H2O2 = H2O20 * 1.0d12
+      HNO3 = GNO3 * 1.0d12
+
+      ! Convert sulfate aerosol concentrations from [v/v] to [ug/m3]
+      SO4 = ( aSO4         * State_Met%AD(I,J,L)     * 1.0d9 ) / 
+     &      ( TCVV(IDTSO4) * State_Met%AIRVOL(I,J,L) )
+
+      ! Convert in cloud sulfate production rate from [v/v/timestep] to
+      ! [ug/m3/timestep]
+      B  = ( LSTOT        * State_Met%AD(I,J,L)     * 1.0d9 ) / 
+     &     ( TCVV(IDTSO4) * State_Met%AIRVOL(I,J,L) )
+
+      ! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
+      ! based on equation in Hofmann, Science, 1990.
+      ! First convert from [v/v] to [kg/m3 air]
+      CNss = SSCvv         * State_Met%AD(I,J,L)     /
+     &     ( TCVV(IDTSALC) * State_Met%AIRVOL(I,J,L) )
+
+      ! Now convert from [kg/m3 air] to [#/cm3 air]
+      ! Sea-salt
+      NDss = ( (3.d0/4.d0) * CNss ) / 
+     &       (PI * SS_DEN * RG_S**3.d0 * exp( (9.d0/2.d0) * 
+     &       (LOG(SIG_S)) ** 2.d0 ) )
+
+      ! Total coarse mode number concentration [#/cm3]
+      CN = NDss ! sea-salt 
+
+      ! Determine regression coefficients based on the local SO2 concentration
+      IF ( SO2 <= 200.0d0 ) THEN
+         alpha_B    = 0.5318d0
+         alpha_NH3  = -1.67d-7
+         alpha_SO2  = 2.59d-6
+         alpha_H2O2 = -1.77d-7
+         alpha_HNO3 = -1.72d-7
+         alpha_W    = 1.22d-6
+         alpha_CN   = 4.58d-6
+         alpha_SO4  = -1.00d-5
+      ELSE IF ( SO2 > 200.0d0 .AND. SO2 <= 500.0d0 ) THEN
+         alpha_B    = 0.5591d0
+         alpha_NH3  = 3.62d-6
+         alpha_SO2  = 1.66d-6
+         alpha_H2O2 = 1.06d-7
+         alpha_HNO3 = -5.45d-7
+         alpha_W    = -5.79d-7
+         alpha_CN   = 1.63d-5
+         alpha_SO4  = -7.40d-6
+      ELSE IF ( SO2 > 500.0d0 .AND. SO2 < 1000.0d0 ) THEN
+         alpha_B    = 1.1547d0
+         alpha_NH3  = -4.28d-8
+         alpha_SO2  = -1.23d-7
+         alpha_H2O2 = -9.05d-7
+         alpha_HNO3 = 1.73d-7
+         alpha_W    = 7.22d-6
+         alpha_CN   = 2.44d-5
+         alpha_SO4  = 3.25d-5
+      ELSE IF ( SO2 >= 1000.0d0 ) THEN
+         alpha_B    = 1.1795d0
+         alpha_NH3  = 2.57d-7
+         alpha_SO2  = -5.54d-7
+         alpha_H2O2 = -1.08d-6
+         alpha_HNO3 = 1.95d-6
+         alpha_W    = 6.14d-6
+         alpha_CN   = 1.64d-5
+         alpha_SO4  = 2.48d-6
+      ENDIF
+
+      ! Updraft velocity over the oceans [cm/s]
+      W = 500d0
+
+      ! Compute H (integration time interval * air parcel velocity) [m]
+      ! DTCHEM is the chemistry timestep in seconds
+      DTCHEM = GET_TS_CHEM() * 60d0
+
+      ! Compute air parcel velocity [m/s]
+      APV = SQRT( (State_Met%U(I,J,L) * State_Met%U(I,J,L)) + 
+     &            (State_Met%V(I,J,L) * State_Met%V(I,J,L)) )
+
+      H   = DTCHEM * APV          ![m]
+
+      sum_gas = (alpha_NH3 * NH3) + (alpha_SO2 * SO2) +
+     &          (alpha_H2O2 * H2O2) + (alpha_HNO3 * HNO3)
+
+      DSVI = ( alpha_B * B ) +
+     &       ( ( (alpha_CN * CN) + (alpha_W * W) + (alpha_SO4 * SO4) +
+     &           sum_gas ) * H )
+
+      ! additional sulfate production that can be attributed to
+      ! ozone [ug/m3/timestep]
+      SR = DSVI - B 
+
+      ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
+      SR = SR *TCVV(IDTSO4) * 1.D-9 / State_Met%AIRDEN(L,I,J)
+	
+      ! Don't allow SR to be negative
+      SR = MAX( SR, 0.d0 )
+
+      ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
+      SR = MIN( SR, SO2_sr )
+
+      END SUBROUTINE HET_DROP_CHEM
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: chem_so4
 !
 ! !DESCRIPTION: Subroutine CHEM\_SO4 is the SO4 chemistry subroutine from Mian
@@ -2834,7 +4126,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SO4( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CHEM_SO4( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -2844,11 +4137,11 @@
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IDTSO4s
       USE TRACERID_MOD,       ONLY : IDTAS
@@ -2858,7 +4151,6 @@
       USE TRACERID_MOD,       ONLY : IDTNH4aq
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 #if   defined( APM )
-      USE TRACER_MOD,         ONLY : N_TRACERS
       USE APM_INIT_MOD,       ONLY : NGCOND,   NSO4,      NSEA
       USE APM_INIT_MOD,       ONLY : NCTSO4,   NCTBCOC,   NCTDST, NCTSEA
       USE APM_INIT_MOD,       ONLY : IDTSO4G,  IDTSO4BIN1
@@ -2872,13 +4164,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !                                                                           
 ! !REMARKS:
 !  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
@@ -2919,13 +4215,18 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL               :: LCRYST, LSSALT
+      LOGICAL               :: LNLPBL, LCRYST, LSSALT
+      INTEGER               :: N_TRACERS
       INTEGER               :: I,      J,      L,        N,     N_ND44
       REAL*8                :: AS,     AS0,    AHS,      AHS0,  LET   
       REAL*8                :: LET0,   SO4,    SO40,     SO4aq, SO4aq0
@@ -2940,6 +4241,11 @@
       REAL*8                :: MASS0, MASS, PMASS
 #endif
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEM_SO4 begins here!
       !=================================================================
@@ -2949,19 +4255,25 @@
       IF ( DRYSO4 == 0 .or. DRYSO4s == 0 ) RETURN
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LCRYST = Input_Opt%LCRYST
-      LSSALT = Input_Opt%LSSALT
-      TCVV   = Input_Opt%TCVV 
-      XNUMOL = Input_Opt%XNUMOL
+      LCRYST    = Input_Opt%LCRYST
+      LNLPBL    = Input_Opt%LNLPBL
+      LSSALT    = Input_Opt%LSSALT
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS) 
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60d0
 
       ! Number of drydep tracers to save
-      N_ND44 = 2
+      N_ND44    = 2
 
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 4/13/05)
@@ -3056,7 +4368,7 @@
          RKT  = DEPSAV(I,J,DRYSO4)  * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Add option for non-local PBL (Lin, 03/31/09) 
-         IF (LNLPBL) RKT = 0.D0
+         IF ( LNLPBL ) RKT = 0.D0
 
          ! RKT > 0 denotes that we have SO4 drydep occurring
          IF ( RKT > 0d0 ) THEN
@@ -3137,7 +4449,7 @@
          RKTs = DEPSAV(I,J,DRYSO4s) * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) RKTs = 0.D0
+         IF ( LNLPBL ) RKTs = 0.D0
         
          ! RKTs > 0 indicates that SO4s drydep occurs
          IF ( RKTs > 0d0 ) THEN
@@ -3471,8 +4783,146 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CHEM_SO4
 !EOC
+#if   defined( TOMAS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_so4_aq
+!
+! !DESCRIPTION: Subroutine CHEM\_SO4\_AQ takes the SO4 produced via aqueous 
+!  chemistry of SO2 and distribute onto the size-resolved aerosol number and 
+!  sulfate mass as a part of the TOMAS aerosol microphysics module 
+!  (win, 1/25/10)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_SO4_AQ( am_I_Root, Input_Opt, 
+     &                        State_Met, State_Chm, RC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE DAO_MOD,            ONLY : CONVERT_UNITS 
+      USE GIGC_Input_Opt_Mod, ONLY : OptINput 
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK10
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  NOTE: This subroutine is ignored unless we compile for TOMAS microphysics.
+!
+! !REVISION HISTORY:
+!  (1 ) As of now the SO4 produced via heterogeneous reaction on the 2-mode
+!        seasalt is not include in this treatment (win, 7/23/07)
+!  (2 ) Change a fixed kmin = 8 (corresponding to the assumed activation dia. 
+!        of 55nm to be varying with current chemical composition.  Take average
+!        of the activating bin for LS and CONV rains. (win, 9/25/07)
+!  16 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  31 May 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm
+!                              and RC arguments
+!  31 May 2013 - R. Yantosca - Now pass State_Chm to TOMAS routines
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L
+      integer :: k, binact1, binact2
+      INTEGER :: KMIN
+      REAL*8  :: SO4OXID
+
+      ! For values from Input_Opt
+      INTEGER :: N_TRACERS
+      REAL*8  :: TCVV(Input_Opt%N_TRACERS)
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
+      !=================================================================
+      ! CHEM_SO4_AQ begins here!
+      !=================================================================
+ 
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Convert STT from [v/v] -> [kg] 
+      CALL CONVERT_UNITS( 2, 
+     &                    N_TRACERS, 
+     &                    TCVV, 
+     &                    State_Met%AD, 
+     &                    State_Chm%Tracers )
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLTROP
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+                  
+         ! Skip stratospheric boxes
+         IF (ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
+
+         SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)/ TCVV(IDTSO4)
+
+         IF ( SO4OXID > 0d0 ) THEN
+
+            ! The activating bin of the composition of BIN10
+            ! is, in most any case, the same as activating bin of other bins.
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK10, .TRUE. , BINACT1, State_Chm )
+
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK10, .FALSE., BINACT2, State_Chm )
+
+            KMIN = ( BINACT1 + BINACT2 )/ 2.
+
+            CALL AQOXID( SO4OXID, KMIN, I, J, L, State_Met, State_Chm )
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+       ! Convert STT from [kg] -> [v/v] 
+      CALL CONVERT_UNITS( 1, 
+     &                    N_TRACERS, 
+     &                    TCVV,
+     &                    State_Met%AD, 
+     &                    State_Chm%Tracers )
+      
+      END SUBROUTINE CHEM_SO4_AQ
+!EOC
+#endif
 !------------------------------------------------------------------------------
 
       !SUBROUTINE PHASE_SO4
@@ -3503,7 +4953,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_MSA( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CHEM_MSA( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -3514,24 +4965,28 @@
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTMSA
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
@@ -3570,6 +5025,10 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3577,6 +5036,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL               :: LNLPBL
+      INTEGER               :: N_TRACERS
       INTEGER               :: I,      J,    L,        PBL_MAX
       REAL*8                :: DTCHEM, MSA0, MSA,      RK       
       REAL*8                :: RKT,    FLUX, AREA_CM2, F_UNDER_TOP
@@ -3586,17 +5047,28 @@
       REAL*8                :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8                :: XNUMOL(Input_Opt%N_TRACERS)
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEM_MSA begins here!
       !=================================================================
       IF ( IDTMSA == 0 .or. DRYMSA == 0 ) RETURN
 
       ! Assume success
-      RC      = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      TCVV    = Input_Opt%TCVV
-      XNUMOL  = Input_Opt%XNUMOL
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      LNLPBL    = Input_Opt%LNLPBL
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0 
@@ -3673,7 +5145,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
       
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
@@ -3693,6 +5164,9 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CHEM_MSA
 !EOC
 !------------------------------------------------------------------------------
@@ -3708,7 +5182,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_NH3( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CHEM_NH3( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -3719,25 +5194,35 @@
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTNH3
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !                                                                          
 ! !REMARKS:
+!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
+!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
+!                                                                             .
+!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
+!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!                                                                             .
 !  Reaction List:
 !  ============================================================================
 !  (1 ) NH3 = NH3_0 * EXP( -dt )  where d = dry deposition rate [s-1]
@@ -3767,6 +5252,13 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
+!                              SOIL_DRYDEP routine even when ND44 is off
+!                              (this happens when LNLPBL = F)
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3774,15 +5266,20 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: LSOILNOX
-      INTEGER :: I,        J,        L
-      REAL*8  :: DTCHEM,   NH30,     NH3
-      REAL*8  :: FREQ,     AREA_CM2, FLUX, F_UNDER_TOP
+      LOGICAL :: LNLPBL, LSOILNOX
+      INTEGER :: I,      J,        L,    N_TRACERS
+      REAL*8  :: DTCHEM, NH30,     NH3
+      REAL*8  :: FREQ,   AREA_CM2, FLUX, F_UNDER_TOP
 
       ! Arrays
-      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
       REAL*8  :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEM_NH3 begins here!
@@ -3790,20 +5287,25 @@
       IF ( IDTNH3 == 0 .or. DRYNH3 == 0 ) RETURN
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LSOILNOX = Input_Opt%LSOILNOX
-      TCVV     = Input_Opt%TCVV
-      XNUMOL   = Input_Opt%XNUMOL
+      LNLPBL    = Input_Opt%LNLPBL
+      LSOILNOX  = Input_Opt%LSOILNOX
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTCHEM is the chemistry interval in seconds
-      DTCHEM  = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60d0
 
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-         ND44_TMP = 0d0
-      ENDIF
+      ! Zero DRYD_FLX array.  This will store drydep values even if 
+      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
+      DRYD_FLX  = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3842,10 +5344,10 @@
                STT(I,J,L,IDTNH3) = NH30 - NH3
 
                !========================================================
-               ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
+               ! Archive drydep flux of NH3 [molec/cm2/s]
+               ! This is needed for SOIL_DRYDEP and the ND44 diagnostic
                !========================================================
-               IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
-               !IF ( NH3 > 0d0 ) THEN
+               IF ( NH3 > 0d0 ) THEN
 
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -3854,8 +5356,8 @@
                   FLUX = NH3  * State_Met%AD(I,J,L) / TCVV(IDTNH3)
                   FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
 
-                  ! Store dryd flx in ND44_TMP as a placeholder
-                  ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+                  ! Store dryd flx in DRYD_TMP for use below                  
+                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
                ENDIF
             ENDIF
          ENDIF
@@ -3865,30 +5367,47 @@
 !$OMP END PARALLEL DO
 
       !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
+      ! If we are not using the non-local PBL scheme, then:
       !===============================================================
-      IF ( ND44 > 0 .or. LSOILNOX) THEN 
+      IF ( .not. LNLPBL ) THEN 
+
+         !------------------------------------------------------------
+         ! (1) Call SOIL_DRYDEP to archive the NH3 drydep fluxes.
+         !------------------------------------------------------------
+         IF ( LSOILNOX ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, IDTNH3 )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               CALL SOIL_DRYDEP( I, J, L, IDTNH3, DRYD_FLX(I,J,L) )
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
+
+         !------------------------------------------------------------
+         ! (2) Save archived NH3 drydep fluxes into the AD44 array
+         !------------------------------------------------------------
+         IF ( ND44 > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-
-            IF (ND44 > 0) THEN            
-               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
-            ENDIF
-
-            IF (LSOILNOX) THEN
-               CALL SOIL_DRYDEP ( I, J, L, IDTNH3, ND44_TMP(I,J,L) )
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+            DO L = 1, LLPAR
+               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + DRYD_FLX(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDIF
       ENDIF
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE CHEM_NH3
 !EOC
@@ -3905,7 +5424,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_NH4( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CHEM_NH4( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -3915,26 +5435,36 @@
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTNH4
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !   
 ! !REMARKS:
+!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
+!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
+!                                                                             .
+!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
+!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!                                                                             .
 !  Reaction List:
 !  ============================================================================
 !  (1 ) NH4 = NH4_0 * EXP( -dt )  where d = dry deposition rate [s-1]
@@ -3964,6 +5494,13 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
+!                              SOIL_DRYDEP routine even when ND44 is off
+!                              (this happens when LNLPBL = F)
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3971,15 +5508,20 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: LSOILNOX
-      INTEGER :: I,        J,    L
-      REAL*8  :: DTCHEM,   NH4,  NH40
-      REAL*8  :: FREQ,     FLUX, AREA_CM2, F_UNDER_TOP
+      LOGICAL :: LNLPBL, LSOILNOX
+      INTEGER :: I,      J,    L,        N_TRACERS
+      REAL*8  :: DTCHEM, NH4,  NH40
+      REAL*8  :: FREQ,   FLUX, AREA_CM2, F_UNDER_TOP
 
       ! Arrays
-      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
       REAL*8  :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEM_NH4 begins here!
@@ -3987,20 +5529,25 @@
       IF ( IDTNH4 == 0 .or. DRYNH4 == 0 ) RETURN
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LSOILNOX = Input_Opt%LSOILNOX
-      TCVV     = Input_Opt%TCVV
-      XNUMOL   = Input_Opt%XNUMOL
+      LNLPBL    = Input_Opt%LNLPBL
+      LSOILNOX  = Input_Opt%LSOILNOX
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTCHEM is the chemistry interval in seconds
-      DTCHEM   = GET_TS_CHEM() * 60d0 
+      DTCHEM    = GET_TS_CHEM() * 60d0 
 
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-         ND44_TMP = 0d0
-      ENDIF
+      ! Zero DRYD_FLX array.  This will store drydep values even if 
+      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
+      DRYD_FLX = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4039,9 +5586,9 @@
                STT(I,J,L,IDTNH4) = NH40 - NH4
 
                !========================================================
-               ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
+               ! Archive drydep flux of NH4 [molec/cm2/s]
                !========================================================
-               IF ( ND44 > 0 .and. NH4 > 0d0 ) THEN
+               IF ( NH4 > 0d0 ) THEN
          
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -4050,8 +5597,8 @@
                   FLUX = NH4  * State_Met%AD(I,J,L) / TCVV(IDTNH4)
                   FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
 
-                  ! Store dryd flx in ND44_TMP as a placeholder
-                  ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+                  ! Store dryd flx in DRYD_FLX as a placeholder
+                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
                ENDIF
             ENDIF
          ENDIF
@@ -4061,203 +5608,50 @@
 !$OMP END PARALLEL DO
 
       !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
+      ! If we are not using the non-local PBL scheme, then:
       !===============================================================
-      IF ( ND44 > 0 .or. LSOILNOX) THEN 
+      IF ( .not. LNLPBL ) THEN 
+
+         !------------------------------------------------------------
+         ! (1) Call SOIL_DRYDEP to archive the NH4 drydep fluxes.
+         !------------------------------------------------------------
+         IF ( LSOILNOX ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, IDTNH4 )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               CALL SOIL_DRYDEP( I, J, L, IDTNH4, DRYD_FLX(I,J,L) )
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
+
+         !------------------------------------------------------------
+         ! (2) Save archived NH4 drydep fluxes into the AD44 array
+         !------------------------------------------------------------
+         IF ( ND44 > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-
-            IF (ND44 > 0 ) THEN
-            AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
-            ENDIF
-
-            IF (LSOILNOX) THEN
-            CALL SOIL_DRYDEP ( I, J, L, IDTNH4, ND44_TMP(I,J,L) )
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+            DO L = 1, LLPAR
+               AD44(I,J,DRYNH4,1) = 
+     &         AD44(I,J,DRYNH4,1) + DRYD_FLX(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDIF
       ENDIF
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE CHEM_NH4
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_nh4aq
-!
-! !DESCRIPTION: Subroutine CHEM\_NH4aq removes NH4aq from the surface via dry
-!  deposition. (cas, bmy, 1/6/05, 10/25/05) 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CHEM_NH4aq( State_Met )
-!
-! !USES:
-!
-      USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LSOILNOX  
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT, TCVV, XNUMOL
-      USE TRACERID_MOD,       ONLY : IDTNH4aq
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44
-!
-! !INPUT PARAMETERS: 
-!
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!   
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% NOTE: THIS ROUTINE DOES NOT SEEM TO GET CALLED FROM ANYWHERE %%%
-!  %%%       WITHIN SULFATE MOD (bmy, 11/14/12)                     %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!                                                                             .
-!  Reaction List:
-!  ============================================================================
-!  (1 ) NH4aq = NH4_0aq * EXP( -dt )  where d = dry deposition rate [s-1]
-!        
-! !REVISION HISTORY:
-!  (1 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
-!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
-!  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
-!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,      J,     L,        PBL_MAX
-      REAL*8  :: DTCHEM, NH4aq, NH4aq0
-      REAL*8  :: FREQ,   FLUX,  AREA_CM2, F_UNDER_TOP
-      REAL*8  :: T44(IIPAR,JJPAR,LLPAR)
-
-      !=================================================================
-      ! CHEM_NH4 begins here!
-      !=================================================================
-      IF ( IDTNH4aq == 0 .or. DRYNH4aq == 0 ) RETURN
-
-      ! DTCHEM is the chemistry interval in seconds
-      DTCHEM  = GET_TS_CHEM() * 60d0 
-
-      ! Model level where maximum PBL height occurs 
-      PBL_MAX = GET_PBL_MAX_L()      
-
-      ! Zero T44 array
-      IF ( ND44 > 0 ) THEN
-         T44 = 0d0
-      ENDIF
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,      J,     L,        F_UNDER_TOP, FREQ  )
-!$OMP+PRIVATE( NH4aq0, NH4aq, AREA_CM2, FLUX               )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( F_UNDER_TOP > 0d0 ) THEN
-
-            ! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH4aq) * F_UNDER_TOP
-
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.D0
-
-            ! Only apply drydep loss if FREQ is nonzero
-            IF ( FREQ > 0d0 ) THEN
-
-               ! Initial NH4 [v/v]
-               NH4aq0 = STT(I,J,L,IDTNH4aq)
-         
-               ! Amount of NH4 lost to drydep [v/v]
-               NH4aq = NH4aq0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
-
-               ! Prevent underflow condition
-               IF ( NH4aq < SMALLNUM ) NH4aq = 0d0
-
-               ! Subtract NH4 lost to drydep from initial NH4 [v/v]
-               STT(I,J,L,IDTNH4aq) = NH4aq0 - NH4aq
-
-               !========================================================
-               ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
-               !========================================================
-               IF ( ND44 > 0 .and. NH4aq > 0d0 ) THEN
-         
-                  ! Surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( I, J, L )
-                  
-                  ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
-                  FLUX = NH4aq * State_Met%AD(I,J,L) / TCVV(IDTNH4aq)
-                  FLUX = FLUX  * XNUMOL(IDTNH4aq) / AREA_CM2 / DTCHEM
-
-                  ! Store dryd flx in ND44_TMP as a placeholder
-                  T44(I,J,L) = T44(I,J,L) + FLUX
-               ENDIF
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 .or. LSOILNOX ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-
-            IF ( ND44 > 0 ) THEN
-            AD44(I,J,DRYNH4aq,1) = AD44(I,J,DRYNH4aq,1) + T44(I,J,L)
-            ENDIF
-
-            IF (LSOILNOX) THEN
-            CALL SOIL_DRYDEP ( I, J, L, IDTNH4aq, T44(I,J,L) )
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-
-      END SUBROUTINE CHEM_NH4aq
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -4272,7 +5666,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_NIT( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CHEM_NIT( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -4283,26 +5678,36 @@
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTNIT
       USE TRACERID_MOD,       ONLY : IDTNITs
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !#endif
 !  
+!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
+!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
+!                                                                             .
+!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
+!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!                                                                             .
 ! !REMARKS:
 !  Reaction List:
 !  ============================================================================
@@ -4333,6 +5738,13 @@
 !  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
+!                              SOIL_DRYDEP routine even when ND44 is off
+!                              (this happens when LNLPBL = F)
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4340,16 +5752,21 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: LSOILNOX, LSSALT
-      INTEGER :: I,        J,      L,    N,     N_ND44
+      LOGICAL :: LNLPBL,   LSOILNOX,     LSSALT
+      INTEGER :: I,        J,      L,    N,     N_TRACERS
       REAL*8  :: DTCHEM,   NIT,    NITs, NIT0,  NIT0s,  E_RKT
       REAL*8  :: E_RKTs,   FLUX,   FREQ, FREQs, RKT,    RKTs   
       REAL*8  :: AREA_CM2, F_UNDER_TOP
 
       ! Arrays
-      REAL*8  :: T44(IIPAR,JJPAR,LLPAR,2)
+      REAL*8  :: DRYD_FLX(IIPAR,JJPAR,LLPAR,2)
       REAL*8  :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEM_NIT begins here!
@@ -4360,24 +5777,26 @@
       IF ( DRYNIT == 0 .or. DRYNITs == 0 ) RETURN
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LSOILNOX = Input_Opt%LSOILNOX
-      LSSALT   = Input_Opt%LSSALT
-      TCVV     = Input_Opt%TCVV
-      XNUMOL   = Input_Opt%XNUMOL
+      LNLPBL    = Input_Opt%LNLPBL
+      LSOILNOX  = Input_Opt%LSOILNOX
+      LSSALT    = Input_Opt%LSSALT
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTCHEM is the chemistry interval in seconds
-      DTCHEM   = GET_TS_CHEM() * 60d0 
+      DTCHEM    = GET_TS_CHEM() * 60d0 
 
-      ! Number of tracers for ND44
-      N_ND44   = 2 
-
-      ! Zero ND44 array
-      IF ( ND44 > 0 ) THEN
-         T44 = 0d0
-      ENDIF
+      ! Zero DRYD_FLX array.  This will store drydep values even if 
+      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
+      DRYD_FLX  = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4450,7 +5869,7 @@
             ! NITs drydep frequency [1/s].  Also accounts for the fraction
             ! of each vertical level that is located below the PBL top
             FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
-
+               
             ! Add option for non-local PBL (Lin, 03/31/09)
             IF ( LNLPBL ) FREQs = 0.D0
 
@@ -4479,45 +5898,43 @@
             STT(I,J,L,IDTNITs) = NITs
             
             !========================================================
-            ! ND44 Diagnostic: Drydep flux of NIT [molec/cm2/s]
+            ! Archive drydep flux of NIT and NITs [molec/cm2/s]
             !========================================================
-            IF ( ND44 > 0 ) THEN
          
-               ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
-                  
-               !-------------
-               ! NIT drydep
-               !-------------
-               
-               ! If NIT drydep occurs ...
-               IF ( FREQ > 0d0 ) THEN
-
-                  ! Convert from [v/v/timestep] to [molec/cm2/s]
-                  FLUX = NIT * State_Met%AD(I,J,L) / TCVV(IDTNIT)
-                  FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
- 
-                  ! Store dryd flx in ND44_TMP as a placeholder
-                  T44(I,J,L,1) = T44(I,J,L,1) + FLUX
-
-               ENDIF
-                  
-               !-------------
-               ! NITs drydep
-               !-------------
-
-               ! NOTE: if drydep doesn't occur then we still have
-               ! production from seasalt (bec, bmy, 4/13/05)
+            ! Surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, L )
+            
+            !-------------------
+            ! NIT drydep flux
+            !-------------------
+             
+            ! If NIT drydep occurs ...
+            IF ( FREQ > 0d0 ) THEN
 
                ! Convert from [v/v/timestep] to [molec/cm2/s]
-               FLUX = NIT0s - NITs + PNITs(I,J,L) 
-               FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTNITs)
-               FLUX = FLUX * XNUMOL(IDTNITs) / AREA_CM2 / DTCHEM
-
-               ! Store dryd flx in ND44_TMP as a placeholder
-               T44(I,J,L,2) = T44(I,J,L,2) + FLUX
+               FLUX = NIT * State_Met%AD(I,J,L) / TCVV(IDTNIT)
+               FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
+ 
+               ! Store NITs drydep flx [molec/cm2/s] for use below
+               DRYD_FLX(I,J,L,1) = DRYD_FLX(I,J,L,1) + FLUX
 
             ENDIF
+                  
+            !-------------------
+            ! NITs drydep flux
+            !-------------------
+            
+            ! NOTE: if drydep doesn't occur then we still have
+            ! production from seasalt (bec, bmy, 4/13/05)
+
+            ! Convert from [v/v/timestep] to [molec/cm2/s]
+            FLUX = NIT0s - NITs + PNITs(I,J,L) 
+            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTNITs)
+            FLUX = FLUX * XNUMOL(IDTNITs) / AREA_CM2 / DTCHEM
+
+            ! Store NITs drydep flx [molec/cm2/s] for use below
+            DRYD_FLX(I,J,L,2) = DRYD_FLX(I,J,L,2) + FLUX
+
          ENDIF
       ENDDO
       ENDDO
@@ -4525,32 +5942,52 @@
 !$OMP END PARALLEL DO
 
       !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
+      ! If we are not using the non-local PBL scheme, then:
       !===============================================================
-      IF ( ND44 > 0 .or. LSOILNOX ) THEN 
+      IF ( .not. LNLPBL ) THEN 
+
+         !------------------------------------------------------------
+         ! (1) Call SOIL_DRYDEP to archive NIT & NITs drydep fluxes
+         !------------------------------------------------------------
+         IF ( LSOILNOX ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, IDTNIT, IDTNITs )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               CALL SOIL_DRYDEP( I, J, L, IDTNIT,  DRYD_FLX(I,J,L,1) )
+               CALL SOIL_DRYDEP( I, J, L, IDTNITs, DRYD_FLX(I,J,L,2) )
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
+
+         !------------------------------------------------------------
+         ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
+         !------------------------------------------------------------
+         IF ( ND44 > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+            DO L = 1, LLPAR
+               AD44(I,J,DRYNIT, 1) = 
+     &         AD44(I,J,DRYNIT, 1) + DRYD_FLX(I,J,L,1)
 
-            IF ( ND44 > 0) THEN
-            AD44(I,J,DRYNIT, 1) = AD44(I,J,DRYNIT, 1) + T44(I,J,L,1)
-            AD44(I,J,DRYNITs,1) = AD44(I,J,DRYNITs,1) + T44(I,J,L,2)
-            ENDIF
-
-            IF (LSOILNOX) THEN
-            CALL SOIL_DRYDEP ( I, J, L, IDTNIT,  T44(I,J,L,1) )
-            CALL SOIL_DRYDEP ( I, J, L, IDTNITs, T44(I,J,L,2) )
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
+               AD44(I,J,DRYNITs,1) = 
+     &         AD44(I,J,DRYNITs,1) + DRYD_FLX(I,J,L,2)
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDIF         
       ENDIF
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE CHEM_NIT
 !EOC
@@ -4568,49 +6005,54 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISSSULFATE( State_Met, EMISSIONS )
-#else
-      SUBROUTINE EMISSSULFATE( State_Met )
-#endif
+      SUBROUTINE EMISSSULFATE( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LANTHRO, LBIOFUEL
-      USE LOGICAL_MOD,        ONLY : LSHIPSO2,   LPRT,   LBIOMASS !(win,5/1/09)
       USE TIME_MOD,           ONLY : GET_SEASON, GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR,   ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_DAY,    ITS_A_NEW_DAY
-      USE TRACER_MOD,         ONLY : STT,        ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,       ONLY : IDTNITs,    IDTSO4s
       USE TRACERID_MOD,       ONLY : IDTDMS,     IDTSO2 
       USE TRACERID_MOD,       ONLY : IDTSO4,     IDTNH3
-#if defined( DEVEL )
-      USE TRACER_MOD,         ONLY : N_TRACERS 
+#if   defined( TOMAS )
+      USE TRACERID_MOD,       ONLY : IDTSF1,     IDTAW1,  IDTNH4
+      USE TRACERID_MOD,       ONLY : IDTNK1
+      USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
+      USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
+      USE TOMAS_MOD,          ONLY : SRTNH4
 #endif
 #if   defined( APM )
-      USE TRACER_MOD,         ONLY : N_TRACERS,  N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
       USE APM_INIT_MOD,       ONLY : NCTSO4,     NSO4
       USE APM_INIT_MOD,       ONLY : IDTSO4BIN1, IDTCTBCOC, IDTCTSO4
       USE APM_INIT_MOD,       ONLY : CEMITSULF,  FEMTBCOCS, IFEMITBCOCS
       USE TRACERID_MOD,       ONLY : IDTBCPI,    IDTBCPO
       USE TRACERID_MOD,       ONLY : IDTOCPI,    IDTOCPO
 #endif
-
-      USE CMN_SIZE_MOD             ! Size parameters
-
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
-      REAL*8,         INTENT(INOUT) :: 
-     &            EMISSIONS(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
-#endif
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) BXHEIGHT is now dimensioned IIPAR,JJPAR,LLPAR (bmy, 9/26/01)
@@ -4641,28 +6083,70 @@
 !  (13) Now read new volcanic SO2 emissions daily (jaf, bmy, 10/15/09)
 !  (14) Add LBIOFUEL switch to properly turn off the biofuel emissions,
 !       READ_BIOFUEL_SO2, READ_BIOFUEL_NH3. (ccc, 7/16/10)
+!  (14a) Now call SRCSF30 to emit sulfate mass and aerosol number into the 
+!        size-resolved TOMAS aerosol tracers. Reference to tracer IDs of 
+!        the TOMAS aerosol from tracerid_mod  (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  04 Mar 2013 - R. Yantosca - Remove call to INIT_SULFATE
+!  31 Jul 2013 - M. Sulprizio- Now set SO2 aircraft emissions to zero if using
+!                              AEIC aircraft emissions (S. Eastham)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
-      INTEGER            :: NSEASON, DAY, MONTH, YEAR   
+      LOGICAL, SAVE :: FIRSTEMISS = .TRUE. 
+      INTEGER       :: NSEASON, DAY, MONTH, YEAR   
 
-#if defined( DEVEL )
-!      REAL*8            :: STT_TMP(IIPAR,JJPAR,
+#if   defined( TOMAS )
+      ! Fields for TOMAS simulation
+      REAL*8        :: BINMASS(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+      REAL*8        :: tempnh4(ibins)
+      INTEGER       :: TID, I, J, L
 #endif
+
 #if   defined( APM )
       INTEGER            :: I,J,L,N !luogan newbin
       REAL*8             :: SO4BIN(IIPAR,JJPAR,LLPAR)
       REAL*8             :: MASS1, MASS2, RKTS, E_RKTs
 #endif
 
+      ! For fields from Input_Opt
+      LOGICAL       :: LANTHRO
+      LOGICAL       :: LBIOFUEL
+      LOGICAL       :: LBIOMASS
+      LOGICAL       :: LPRT
+      LOGICAL       :: LSHIPSO2
+      LOGICAL       :: LAEIC
+      LOGICAL       :: ITS_AN_AEROSOL_SIM
+      INTEGER       :: N_TRACERS
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! EMISSSULFATE begins here!
       !=================================================================
+
+      ! Assume success
+      RC                 = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LANTHRO            = Input_Opt%LANTHRO
+      LBIOFUEL           = Input_Opt%LBIOFUEL
+      LBIOMASS           = Input_Opt%LBIOMASS
+      LPRT               = Input_Opt%LPRT
+      LSHIPSO2           = Input_Opt%LSHIPSO2
+      LAEIC              = Input_Opt%LAEIC
+      ITS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+      N_TRACERS          = Input_Opt%N_TRACERS
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Do only on the first timestep
       IF ( FIRSTEMISS ) THEN
@@ -4680,9 +6164,6 @@
  110     FORMAT( 'Routines originally by Mian Chin''s GOCART model'    )
  120     FORMAT( 'Modified for GEOS-CHEM by R. Park and R. Yantosca'   ) 
  130     FORMAT( 'Last Modification Date: 4/6/04'                      )
-
-         ! Initialize arrays
-         CALL INIT_SULFATE
 
          ! We have now gone thru the first timestep
          FIRSTEMISS  = .FALSE.
@@ -4723,22 +6204,48 @@
          !(ccc, 7/16/10)
          IF ( LBIOFUEL ) THEN
             CALL READ_BIOFUEL_SO2( MONTH )
+#if defined( TOMAS )
+            ! Scale anthro SO2 for TOMAS
+            ESO2_bf = ESO2_bf * scaleanthso2
+#endif
             CALL READ_BIOFUEL_NH3( MONTH )
          ENDIF
 
          ! Add LANTHRO switch to turn off anthropogenic emissions.
          ! (ccc, 4/15/09)
          IF ( LANTHRO ) THEN
-            CALL READ_AIRCRAFT_SO2( MONTH, State_Met )
-            CALL READ_ANTHRO_SOx( MONTH, NSEASON )
-            CALL READ_ANTHRO_NH3( MONTH )
+
+            IF ( LAEIC) THEN
+               ESO2_ac = 0d0
+            ELSE
+               CALL READ_AIRCRAFT_SO2( MONTH, State_Met )
+            ENDIF
+#if defined( TOMAS )
+            ! Scale anthro SO2 for TOMAS
+            ESO2_ac = ESO2_ac * scaleanthso2
+#endif
+
+            CALL READ_ANTHRO_SOx( Input_Opt, MONTH, NSEASON )
+#if defined( TOMAS )
+            ! Scale anthro SO2 for TOMAS
+            ESO2_an  = ESO2_an * scaleanthso2
+            ESO4_an  = ESO4_an * scaleanthso2
+#endif
+
+            CALL READ_ANTHRO_NH3( Input_Opt, MONTH )
+
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 
-         CALL READ_SHIP_SO2( MONTH )
+         !CALL READ_SHIP_SO2( MONTH )
+         CALL READ_SHIP_SO2( Input_Opt, MONTH )
+#if defined( TOMAS )
+         ! Scale anthro SO2 for TOMAS
+         ESO2_sh  = ESO2_sh * scaleanthso2
+#endif
 
          ! Read oxidants for the offline simulation only
-         IF ( ITS_AN_AEROSOL_SIM() ) CALL READ_OXIDANT( MONTH )
+         IF ( ITS_AN_AEROSOL_SIM ) CALL READ_OXIDANT( MONTH )
 
       ENDIF
 
@@ -4755,24 +6262,77 @@
       !=================================================================
       ! Add emissions into the STT tracer array
       !=================================================================
-#if defined( DEVEL )
-      IF ( IDTDMS /= 0 ) CALL SRCDMS( STT(:,:,:,IDTDMS),         
-     &                    EMISSIONS(:,:,1,IDTDMS), State_Met )
-      IF ( IDTSO2 /= 0 ) CALL SRCSO2( STT(:,:,:,IDTSO2), NSEASON,         
-     &                    EMISSIONS(:,:,:,IDTSO2))
-      IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4),                  
-     &                    EMISSIONS(:,:,:,IDTSO4))
-      IF ( IDTNH3 /= 0 ) CALL SRCNH3( STT(:,:,:,IDTNH3),
-     &                    EMISSIONS(:,:,:,IDTNH3))
-#else
-      IF ( IDTDMS /= 0 ) CALL SRCDMS( STT(:,:,:,IDTDMS), State_Met )
-      IF ( IDTSO2 /= 0 ) CALL SRCSO2( STT(:,:,:,IDTSO2), NSEASON   )
+      IF ( IDTDMS /= 0 ) THEN
+         CALL SRCDMS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      ENDIF
+
+      IF ( IDTSO2 /= 0 ) THEN
+         CALL SRCSO2( am_I_Root, NSEASON, Input_Opt, State_Chm, RC )
+      ENDIF
+
 #if   defined( APM )
-      IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4), SO4BIN    )
+      IF ( IDTSO4 /= 0 ) THEN 
+         CALL SRCSO4( am_I_Root, Input_Opt, State_Chm, RC, SO4BIN ) 
+      ENDIF
 #else
-      IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4)            )
+      IF ( IDTSO4 /= 0 ) THEN 
+         CALL SRCSO4( am_I_Root, Input_Opt, State_Chm, RC ) 
+      ENDIF
 #endif
-      IF ( IDTNH3 /= 0 ) CALL SRCNH3( STT(:,:,:,IDTNH3)            )
+
+      IF ( IDTNH3 /= 0 ) THEN
+         CALL SRCNH3( am_I_Root, Input_Opt, State_Chm, RC ) 
+      ENDIF
+
+#if   defined( TOMAS )
+      !=================================================================
+      ! For TOMAS microphysics
+      !
+      ! To emit size-resolved sulfate, need to bring the NH4 amount
+      ! as one of the aerosol mass component (win, 1/25/10)
+      !=================================================================
+      IF (IDTSF1 > 0 .and. IDTNK1 > 0 ) THEN
+
+      !!!  Get NH4 and aerosol water into the same array 
+         BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG)) = 
+     &        STT(:,:,:,IDTSF1:IDTSF1+IBINS*(ICOMP-IDIAG) - 1)
+
+         IF ( SRTNH4 > 0 ) THEN
+            TID = IBINS*(ICOMP-IDIAG) + 1
+
+!%%%OMP PARALLEL DO
+!%%%OMP+DEFAULT( SHARED )
+!%%%OMP+PRIVATE( I, J, L, TMPNH4 )
+!%%%OMP+SCHEDULE( DYNAMIC )
+            DO L=1,LLPAR
+            DO J=1,JJPAR
+            DO I=1,IIPAR
+         
+               CALL NH4BULKTOBIN( STT(I,J,L,IDTSF1:IDTSF1-1+IBINS), 
+     &              STT(I,J,L,IDTNH4), TEMPNH4(1:IBINS) )
+
+               BINMASS(I,J,L,TID:TID+IBINS-1) = TEMPNH4(1:IBINS)
+            ENDDO
+            ENDDO
+            ENDDO
+!%%%OMP END PARALLEL DO
+
+         ENDIF
+
+         TID = IBINS*(ICOMP-1) +1
+         BINMASS(:,:,:,TID:TID+IBINS-1) = 
+     &           STT(:,:,:,IDTAW1:IDTAW1+IBINS-1)
+
+
+      !IF ( IDTSF1 > 0 ) THEN
+         CALL SRCSF30(  STT(:,:,:,IDTNK1:IDTNK1+IBINS-1), 
+     &                  BINMASS(:,:,:,:), Input_Opt, State_Met )
+
+         ! Return the aerosol mass after emission subroutine to STT
+         ! excluding the NH4 aerosol and aerosol water (win, 9/27/08) 
+         STT(:,:,:,IDTSF1:IDTSF1+IBINS*(ICOMP-IDIAG)-1) = 
+     &        BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG))
+      ENDIF
 #endif
 
 !APM_GanLuo+
@@ -4880,6 +6440,9 @@
       ENDIF
 #endif
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE EMISSSULFATE
 !EOC
 !------------------------------------------------------------------------------
@@ -4905,7 +6468,6 @@
 !                 
       USE ERROR_MOD,    ONLY : ERROR_STOP
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !             
@@ -4920,6 +6482,7 @@
 !
 ! !REVISION HISTORY: 
 !  27 Oct 2009 - P. Le Sager - initial
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4984,16 +6547,17 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL)
-      SUBROUTINE SRCDMS( TC, SFLX, State_Met )
-#else
-      SUBROUTINE SRCDMS( TC, State_Met )
-#endif
+
+      SUBROUTINE SRCDMS( am_I_Root, Input_Opt,
+     &                   State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : AD13_DMS
       USE DAO_MOD,            ONLY : IS_WATER
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
@@ -5004,18 +6568,19 @@
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Initial tracer
-                                                             !  mass [kg], plus
-                                                             !  DMS emiss
-#if defined( DEVEL )
-      REAL*8,         INTENT(INOUT) :: SFLX(IIPAR,JJPAR)
-#endif
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  (1 ) Now reference NSRCE, LWI, DXYP, XTRA2 from either header files or
@@ -5034,6 +6599,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5051,6 +6617,14 @@
       INTEGER                :: I,      J,    L,     NTOP
       REAL*8                 :: DTSRCE, SST,  Sc,    CONC,   W10 
       REAL*8                 :: ScCO2,  AKw,  ERATE, DMSSRC, FEMIS
+
+      ! For fields from Input_Opt
+      LOGICAL                :: LNLPBL
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8,  POINTER       :: TC(:,:,:)
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -5060,8 +6634,17 @@
       ! SRCDMS begins here!
       !=================================================================
 
+      ! Assume success
+      RC     =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LNLPBL = Input_Opt%LNLPBL
+
       ! Chemistry timestep in seconds
       DTSRCE = GET_TS_EMIS() * 60d0
+
+      ! Point to the DMS tracer slice
+      TC     => State_Chm%TRACERS(:,:,:,IDTDMS)
 
       !=================================================================      
       ! Compute DMS emissions = seawater DMS * transfer velocity
@@ -5104,7 +6687,7 @@
             IF ( I == 1     ) CONC = DMSo(2,      J)
             IF ( I == IIPAR ) CONC = DMSo(IIPAR-1,J)
 #endif
-            W10  = SQRT( SFCWINDSQR(I,J,
+            W10  = SQRT( SFCWINDSQR( I, J,
      &                               State_Met%U10M,
      &                               State_Met%V10M  ) )
 
@@ -5172,7 +6755,8 @@
             DMSSRC = ERATE * GET_AREA_M2( I, J, 1 )
 
 #if defined( DEVEL )
-            SFLX(I,J) = SFLX(I,J) + DMSSRC/DTSRCE ! kg DMS/grid/s
+            State_Chm%TRAC_TEND(I,J,1,IDTDMS) = 
+     &      State_Chm%TRAC_TEND(I,J,1,IDTDMS) + DMSSRC/DTSRCE ! kg DMS/grid/s
 #endif
             !===========================================================
             ! Add DMS emissions [kg DMS/box] into the tracer array
@@ -5188,7 +6772,7 @@
                FEMIS     = GET_FRAC_OF_PBL( I, J, L )
 
                ! Add option for non-local PBL (Lin, 03/31/09)
-               IF (LNLPBL) FEMIS = 0.D0
+               IF ( LNLPBL ) FEMIS = 0.D0
 
                ! DMS in box (I,J,L) plus emissions [kg]
                TC(I,J,L) = TC(I,J,L) + ( FEMIS * DMSSRC )
@@ -5204,7 +6788,7 @@
  
          ! Save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
          ! (Lin, 06/09/08)
-         if (LNLPBL) emis_save(I,J,IDTDMS) = DMSSRC
+         if ( LNLPBL ) emis_save(I,J,IDTDMS) = DMSSRC
 
          !==============================================================
          ! ND13 diagnostic:  DMS emissions [kg S/box/timestep]
@@ -5215,6 +6799,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( TC )
 
       END SUBROUTINE SRCDMS 
 !EOC
@@ -5232,11 +6819,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE SRCSO2( TC, NSEASON, SFLX )
-#else
-      SUBROUTINE SRCSO2( TC, NSEASON )
-#endif
+      SUBROUTINE SRCSO2( am_I_Root, NSEASON, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -5250,21 +6833,18 @@
       USE EPA_NEI_MOD,    ONLY     : GET_USA_MASK
       USE ERROR_MOD,      ONLY     : ERROR_STOP,       GEOS_CHEM_STOP
       USE ERROR_MOD,      ONLY     : IS_SAFE_DIV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,       ONLY     : GET_AREA_CM2
       USE GRID_MOD,       ONLY     : GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,    ONLY     : LBRAVO, LNEI99,   LSHIPSO2
-      USE LOGICAL_MOD,    ONLY     : LCAC, LNEI05
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE PBL_MIX_MOD,    ONLY     : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
       USE PRESSURE_MOD,   ONLY     : GET_PEDGE
       USE TIME_MOD,       ONLY     : GET_TS_EMIS,      GET_DAY_OF_YEAR 
-      USE TIME_MOD,       ONLY     : GET_DAY_OF_WEEK
-      USE TRACER_MOD,     ONLY     : XNUMOL
+      USE TIME_MOD,       ONLY     : GET_DAY_OF_WEEK_LT
       USE TRACERID_MOD,   ONLY     : IDTSO2
-![eml
-      USE LOGICAL_MOD,    ONLY     : LHIST
-!eml]
 #if   defined( APM )
       USE APM_INIT_MOD,   ONLY     : FE0
 #endif
@@ -5273,17 +6853,20 @@
       USE CMN_DIAG_MOD             ! ND13, LD13 (for now)
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: NSEASON ! Season #: 1=DJF; 2=MAM; 3=JJA; 4=SON
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: NSEASON     ! Season #: 1=DJF; 2=MAM; 
+                                                   !           3=JJA; 4=SON
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! SO2 tracer mass [kg]
-#if defined( DEVEL )
-      REAL*8                 :: SFLX(IIPAR,JJPAR,LLPAR)
-#endif
-
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now reference NSRCE, JDAY, PBL, XTRA2, BXHEIGHT from either header
@@ -5322,6 +6905,9 @@
 !        compiler. Also avoid division by zero. (bmy, 12/3/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5335,7 +6921,7 @@
 !
       LOGICAL                :: WEEKDAY, IS_LOCAL
       INTEGER                :: I, J, K, L, NTOP
-      INTEGER                :: DAY_NUM
+      INTEGER                :: DOW_LT
       REAL*8                 :: SO2(LLPAR)
       REAL*8                 :: DTSRCE,      SO2SRC
       REAL*8                 :: TSO2,        FEMIS(LLPAR)
@@ -5349,30 +6935,52 @@
       INTEGER                :: IREF, JREF, I0, J0
       REAL*8                 :: PLOW, PHIGH, PVOLCLOW, PVOLCHIGH, FRAC
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LHIST,    LNLPBL, LBRAVO, LNEI99  
+      LOGICAL                :: LSHIPSO2, LCAC,   LNEI05
+      INTEGER                :: N_TRACERS
+      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
+
       ! Pressure edges of volcanic 0.5-km grid. Edges come from
       ! converting 500 m increments to pressure using the U.S. standard
       ! atmosphere since volcanic emissions are provided as meters above
       ! sea level (jaf, 10/15/09)
       REAL*8                 :: VOLCPRESS(LVOLC+1) = (/
-     &  1013.25, 954.61, 898.74, 845.56, 747.95, 746.83, 701.08,
+     &  1013.25, 954.61, 898.74, 845.56, 794.95, 746.83, 701.08,
      &   657.64, 616.40, 577.28, 540.20, 505.07, 471.81, 440.35,
      &   410.61, 382.52, 356.00, 330.99, 307.42, 285.24, 264.36 /)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: TC(:,:,:)
 
       !=================================================================
       ! SRCSO2 begins here!
       !================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LHIST     = Input_Opt%LHIST
+      LNLPBL    = Input_Opt%LNLPBL
+      LBRAVO    = Input_Opt%LBRAVO
+      LNEI99    = Input_Opt%LNEI99
+      LSHIPSO2  = Input_Opt%LSHIPSO2
+      LCAC      = Input_Opt%LCAC
+      LNEI05    = Input_Opt%LNEI05
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Point to the SO2 tracer slice
+      TC        => State_Chm%TRACERS(:,:,:,IDTSO2)
+
       ! DTSRCE is the emission timestep in seconds
-      DTSRCE  = GET_TS_EMIS() * 60d0
-
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+      DTSRCE    = GET_TS_EMIS() * 60d0
 
       ! is it local PBL mixing scheme?
-      IS_LOCAL = .NOT. LNLPBL      
+      IS_LOCAL  = ( .NOT. LNLPBL )
       
       !=================================================================
       ! SO2 emissions from volcanoes [kg SO2/box/s].
@@ -5402,6 +7010,10 @@
       J0 = GET_YOFFSET()
     
       ! Loop over surface grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, K )
+!$OMP+PRIVATE( PLOW, PHIGH, PVOLCLOW, PVOLCHIGH, FRAC, T_SUM, T_DIFF )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
     
@@ -5510,6 +7122,7 @@
 
       ENDDO       ! I
       ENDDO       ! J
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! Overwrite USA    w/ EPA/NEI99 (anthro+biofuel) SO2 emissions 
@@ -5533,7 +7146,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_CM2, AN, BF )
+!$OMP+PRIVATE( I, J, L, AREA_CM2, AN, BF, DOW_LT, WEEKDAY )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
 
@@ -5554,6 +7167,12 @@
             !
             !   ! If we are over the USA ...
             !   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+            !
+            !      ! Determine if we should use weekday or weekend NEI
+            !      ! emissions at grid box (I,J,L).  Since NEI is over
+            !      ! the US, then weekend is Sat/Sun.
+            !      DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+            !      WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
             !
             !      ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
             !      AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
@@ -5638,6 +7257,12 @@
             IF ( LNEI99 .and. .not. LHIST ) THEN
 !eml]
             IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
             
                ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
                AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
@@ -5651,13 +7276,20 @@
      &                        AN * AREA_CM2 / XNUMOL(IDTSO2)
 #else
                SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+#if defined( TOMAS )
+     &                      * scaleanthso2
 #endif
+#endif
+
                DO L = 2, NOXLEVELS
                   SO2an(I,J,L) = 0d0
                ENDDO
                
                ! Convert biofuel SO2 from [molec/cm2/s] to [kg/box/s] 
                SO2bf(I,J)   = BF * AREA_CM2 / XNUMOL(IDTSO2)
+#if defined( TOMAS )
+     &                      * scaleanthso2
+#endif
 
             ENDIF
             ENDIF
@@ -5686,6 +7318,9 @@
 #else                  
                   SO2an(I,J,1) = SO2an(I,J,1) + 
      &                           AN * AREA_CM2 / XNUMOL(IDTSO2)
+#if defined( TOMAS )
+     &                           *scaleanthso2
+#endif
 #endif
                  ENDIF 
                ELSE
@@ -5695,6 +7330,9 @@
      &                           XNUMOL(IDTSO2)
 #else
                   SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+#if defined( TOMAS )
+     &                           *scaleanthso2
+#endif
 #endif
                ENDIF
 
@@ -5731,6 +7369,9 @@
 #else
                      SO2an(I,J,1) = SO2an(I,J,1) + 
      &                    AN * AREA_CM2 / XNUMOL(IDTSO2)
+#if defined( TOMAS )
+     &                           *scaleanthso2
+#endif
 #endif
                   endif
                ELSE
@@ -5739,6 +7380,9 @@
      &                           XNUMOL(IDTSO2)
 #else
                   SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+#if defined( TOMAS )
+     &                           *scaleanthso2
+#endif
 #endif
                ENDIF
 
@@ -5760,8 +7404,15 @@
 !eml]
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
 
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
                ! Read USA SO2 emissions in [molec/cm2/s]
                DO L = 1, NOXLEVELS
+
                   AN = GET_NEI2005_ANTHRO( I, J, L, IDTSO2, WEEKDAY,
      &                            MOLEC_CM2_s=.TRUE. )
 
@@ -5778,12 +7429,16 @@
             ENDIF
 
          ENDDO
+
 #if defined( DEVEL )
          ! kg/m2/s
-         SFLX(:,J,1) = SFLX(:,J,1) + (SO2an(:,J,1) + Eso2_bb(:,J) +
-     &                                 SO2bf(:,J)   + ESO2_sh(:,J))
+         State_Chm%TRAC_TEND(:,J,1,IDTSO2) = 
+     &   State_Chm%TRAC_TEND(:,J,1,IDTSO2) + 
+     &       ( SO2an(:,J,1) + Eso2_bb(:,J) +
+     &         SO2bf(:,J)   + ESO2_sh(:,J) )
 
-         SFLX(:,J,2:NOXLEVELS) = SFLX(:,J,2:NOXLEVELS) + SO2an(:,J,2:)
+         State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTSO2) = 
+     &   State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTSO2) + SO2an(:,J,2:)
 
 #endif
       ENDDO
@@ -5891,6 +7546,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( TC )
+
       END SUBROUTINE SRCSO2
 !EOC
 !------------------------------------------------------------------------------
@@ -5906,16 +7564,11 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE SRCSO4( TC, SFLX )
-#else
 #if   defined( APM )
-      SUBROUTINE SRCSO4( TC, SO4EMIT )
+      SUBROUTINE SRCSO4( am_I_Root, Input_Opt, State_Chm, RC, SO4EMIT )
 #else
-      SUBROUTINE SRCSO4( TC )
+      SUBROUTINE SRCSO4( am_I_Root, Input_Opt, State_Chm, RC )
 #endif
-#endif
-
 !
 ! !USES:
 !
@@ -5927,15 +7580,14 @@
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LNEI99, LCAC, LBRAVO, LNEI05
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
-![eml
-      USE LOGICAL_MOD,        ONLY : LHIST
-!eml]
 #if   defined( APM )
       USE APM_INIT_MOD, ONLY : FE0
 #endif
@@ -5944,16 +7596,22 @@
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)      ! SO4 mass [kg]
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 #if   defined( APM )
-      REAL*8,  INTENT(INOUT) :: SO4EMIT(IIPAR,JJPAR,LLPAR)
+      REAL*8,         INTENT(INOUT) :: SO4EMIT(IIPAR,JJPAR,LLPAR)
 #endif
-#if defined( DEVEL )
-      REAL*8,  INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR)
-#endif
-
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Emission of SO4 is read in SULFATE_READYR, in [kg/box/s]. 
@@ -5981,6 +7639,10 @@
 !        emissions (phs, 10/27/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5993,7 +7655,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                :: WEEKDAY, IS_LOCAL
-      INTEGER                :: I, J, K, L, DAY_NUM, NTOP
+      INTEGER                :: I, J, K, L, DOW_LT, NTOP
       REAL*8                 :: SO4(LLPAR), DTSRCE  
       REAL*8                 :: TSO4,       FEMIS(LLPAR)
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
@@ -6002,19 +7664,41 @@
       REAL*8                 :: SO4bf(IIPAR,JJPAR)
       REAL*8                 :: TEMPEMISS(NOXLEVELS)
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LHIST,  LNLPBL, LBRAVO  
+      LOGICAL                :: LNEI99, LCAC,   LNEI05
+      INTEGER                :: N_TRACERS
+      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: TC(:,:,:)
+
       !=================================================================
       ! SRCSO4 begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LHIST     = Input_Opt%LHIST
+      LNLPBL    = Input_Opt%LNLPBL
+      LBRAVO    = Input_Opt%LBRAVO
+      LNEI99    = Input_Opt%LNEI99
+      LCAC      = Input_Opt%LCAC
+      LNEI05    = Input_Opt%LNEI05
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Point to the SO4 tracer slice
+      TC        => State_Chm%TRACERS(:,:,:,IDTSO4)
 
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0
 
       ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       ! is it local PBL mixing scheme?
       IS_LOCAL = .NOT. LNLPBL
 
@@ -6027,7 +7711,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, AREA_CM2, EPA_AN, EPA_BF, AN )
-!$OMP+PRIVATE( NTOP, FEMIS, SO4, TEMPEMISS )
+!$OMP+PRIVATE( NTOP, FEMIS, SO4, TEMPEMISS, DOW_LT, WEEKDAY )
       DO J = 1, JJPAR
          
          DO I = 1, IIPAR
@@ -6060,7 +7744,13 @@
             IF ( LNEI99 .and. .not. LHIST ) THEN
 !eml]
             IF ( GET_USA_MASK( I, J ) > 0d0 )  THEN
-            
+
+                  ! Determine if we should use weekday or weekend NEI
+                  ! emissions at grid box (I,J,L).  Since NEI is over
+                  ! the US, then weekend is Sat/Sun.
+                  DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                  WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
                   ! Read SO4 emissions in [molec/cm2/s]
 #if   defined( APM )
                   EPA_AN       = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
@@ -6076,6 +7766,9 @@
      &                           (96.d0/64.d0) / XNUMOL(IDTSO2)
 #else
                   SO4an(I,J,1) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO4)
+#if defined( TOMAS )
+     &                           *scaleanthso2
+#endif
 #endif
                   DO L = 2,NOXLEVELS
                      SO4an(I,J,L) = 0d0
@@ -6083,7 +7776,9 @@
                
                   ! Convert biofuel SO4 from [molec/cm2/s] to [kg/box/s]
                   SO4bf(I,J)   = EPA_BF * AREA_CM2 / XNUMOL(IDTSO4)
-
+#if defined( TOMAS )
+     &                           *scaleanthso2
+#endif
             ENDIF
             ENDIF
 
@@ -6108,6 +7803,9 @@
 #else
                      SO4an(I,J,1) = SO4an(I,J,1) + AN * 0.014/ 0.986 
      &                    * AREA_CM2 / XNUMOL(IDTSO4)
+#if defined( TOMAS )
+     &                           *scaleanthso2
+#endif
 #endif
                   endif
                ELSE
@@ -6117,6 +7815,9 @@
 #else
                   SO4an(I,J,1) = AN * 0.014 / 0.986 * AREA_CM2 
      &                           / XNUMOL(IDTSO4)
+#if defined( TOMAS )
+     &                           *scaleanthso2
+#endif
 #endif
                   SO4bf(I,J)   = 0d0
                ENDIF
@@ -6177,6 +7878,12 @@
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
                IF ( NEI05_MASK( I, J) < 0d0 ) THEN
+
+                  ! Determine if we should use weekday or weekend NEI
+                  ! emissions at grid box (I,J,L).  Since NEI is over
+                  ! the US, then weekend is Sat/Sun.
+                  DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                  WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
                   ! Read SO4 emissions in [molec/cm2/s]
                   DO L = 1, NOXLEVELS
@@ -6242,14 +7949,557 @@
             
          ENDDO
 #if defined( DEVEL )
-         SFLX(:,J,1) = SFLX(:,J,1) + (SO4an(:,J,1) + SO4bf(:,J))
-         SFLX(:,J,2:NOXLEVELS) = SFLX(:,J,2:NOXLEVELS) + SO4an(:,J,2:)
+         State_Chm%TRAC_TEND(:,J,1,IDTSO4)           = 
+     &   State_Chm%TRAC_TEND(:,J,1,IDTSO4)           + 
+     &        ( SO4an(:,J,1) + SO4bf(:,J) )
+
+         State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTSO4) = 
+     &   State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTSO4) + SO4an(:,J,2:)
 #endif
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( TC )
+
       END SUBROUTINE SRCSO4
 !EOC
+
+#if   defined( TOMAS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: srcsf30
+!
+! !DESCRIPTION: !  Subroutine SRCSF30 handles 30bin sulfate SF1-SF30 and
+!  number NK1-NK30 emissions into the GEOS-CHEM tracer array.(win, 1/25/10)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SRCSF30( TC1, TC2, Input_Opt, State_Met )
+!
+! !USES:
+!
+      USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK
+      USE CAC_ANTHRO_MOD,     ONLY : GET_CAC_ANTHRO
+      USE DIAG_MOD,           ONLY : AD59_SULF,     AD59_NUMB
+      USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
+      USE ERROR_MOD,          ONLY : ERROR_STOP,  IT_IS_NAN
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
+      USE TOMAS_MOD,          ONLY : Xk,  SUBGRIDCOAG, MNFIX
+      USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACERID_MOD        
+
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND13 (for now)
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      ! TC1 (REAL*8 ) : Array for 30-bin NK1-NK30 tracer number [no.]
+      ! TC2 (REAL*8)  : Array for 30-bin SF1-SF30 tracer mass [kg] 
+      REAL*8,  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL*8,  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+!
+! !REMARKS:
+!  NOTE: This subroutine is ignored unless you compile for TOMAS microphysics.
+!                                                                             .
+!  Variable comments
+!  ============================================================================
+!  NdistInit(IBINS)    : Initial size dist of emission
+!  NdistFinal(IBINS)   : Final size dist of emissions after subgrid coag 
+!  Ndist(IBINS)        : Number size dist of grid cell  
+!  Mdist(IBINS,ICOMP)  : Mass size dist of grid cell
+!  MaddFinal(NBINS)    : madd added to bins due to coagulation
+!  tscale              : mixing time (s) currently assumed 10 hr. (win, 10/4/07)
+!
+! !REVISION HISTORY:
+!  (1 ) For now use the call subroutine SRCSO4 as the source of bulk mass
+!        emitted (win, 7/17/07) ---> did not work.  I need the SO4an and SO4bf
+!  (2 ) Copy the subroutine SRCSO4 to use here. It may seem unwise to have the
+!        same code in two subroutine (if have to modify in the future, have to
+!        do at both places), but let's have it this way for now in case I can
+!        run the microphysics run without needing to have bulk SO4 tracer
+!        (win, 7/18/07)
+!  (3 ) Overwrite SO4 emission of EPA/NEI99 inventory with a calculation using
+!        an assumption that EPA/NEI99 SO2 emission is 99% of total S emission
+!        (by mole) then calculate SO4 to be 1% of the total (win, 10/4/07)
+!  (4 ) Add subgrid coagulation calculation (win, 10/4/07)
+!  (5 ) Import SRCSF30 from geoschem v.7-04-11 to v.8-02-02 and update the code
+!        for CAC emissions and Lin's PBL scheme (win, 1/25/10)
+!  16 Feb 2012 - R. Yantosca - Added ProTeX headers 
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL                :: WEEKDAY
+      INTEGER                :: I, J, K, L, DOW_LT, NTOP, C
+      REAL*8                 :: SO4(LLPAR), DTSRCE  , EFRAC(LLPAR)
+      REAL*8                 :: TSO4,       FEMIS
+      REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
+      REAL*8                 :: CAC_AN
+      REAL*8                 :: SO4an(IIPAR,JJPAR,2)
+      REAL*8                 :: SO4bf(IIPAR,JJPAR)
+      REAL*8                 :: SO4anbf(IIPAR,JJPAR,2)
+      REAL*8 BFRAC(IBINS)     ! Mass fraction emitted to each bin
+
+#if  defined( TOMAS12) || defined( TOMAS15)
+      DATA BFRAC/
+# if  defined( TOMAS15)
+     &           0.0d0     , 0.0d0     , 0.0d0, 
+# endif
+     &           4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
+     &           4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
+     &           1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/
+
+#else
+!else we are using 30 or 40 bin model
+
+      DATA BFRAC/
+# if  defined( TOMAS40)
+     &           0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 ,
+     &           0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 ,
+# endif
+     &           1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02,
+     &           1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02,
+     &           4.529d-02, 6.722d-02, 8.932d-02, 1.062d-01, 1.130d-01,
+     &           1.076d-01, 9.168d-02, 6.990d-02, 4.769d-02, 2.912d-02,
+     &           1.591d-02, 7.776d-03, 3.401d-03, 1.331d-03, 4.664d-04,
+     &           1.462d-04, 4.100d-05, 1.029d-05, 2.311d-06, 4.645d-07/
+#endif
+
+      REAL*8                 :: NDISTINIT(IBINS) 
+      REAL*8                 :: NDISTFINAL(IBINS) 
+      REAL*8                 :: MADDFINAL(IBINS) 
+      REAL*8                 :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
+      REAL*8                 :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
+      REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
+
+      REAL*8                 :: N0(LLPAR,IBINS), M0(LLPAR,IBINS)
+
+      LOGICAL                :: ERRORSWITCH, SGCOAG = .TRUE.
+      logical                :: pdbug !(temporary) win, 10/24/07
+      integer                :: ii, jj, ll
+      data ii, jj, ll / 61, 1, 7 /
+
+      ! Ratio of molecular weights: S/SO4
+      REAL*8,  PARAMETER     :: S_SO4 = 32d0 / 96d0
+
+      ! debugging 
+      real*8   dummy
+
+      ! For fields from Input_Opt
+      LOGICAL :: LNEI99,  LPRT, LCAC, LNLPBL
+
+      !=================================================================
+      ! SRCSF30 begins here!
+      !=================================================================
+
+      ! COpy values from Input_Opt
+      LNEI99  = Input_Opt%LNEI99
+      LPRT    = Input_Opt%LPRT
+      LCAC    = Input_Opt%LCAC
+      LNLPBL  = Input_Opt%LNLPBL
+
+      ! DTSRCE is the emission timestep in seconds
+      DTSRCE  = GET_TS_EMIS() * 60d0
+
+      !=================================================================
+      ! Overwrite USA w/ EPA/NEI99 SO4 emissions (if necessary)
+      ! Overwrite CANADA w/ CAC       SO2-fraction emiss. (if necessary)
+      ! Store emissions into local arrays SO4an, SO4bf
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN, DOW_LT, WEEKDAY )
+      DO J = 1, JJPAR
+         
+         DO I = 1, IIPAR
+
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
+            !-----------------------------------------------------------
+            ! Default SO4 from GEIA, or (as a fraction of SO2) from 
+            ! EDGAR w/ optional STREETS for S.E.-ASIA, and optional
+            ! EMEP for Europe
+            !-----------------------------------------------------------
+            SO4an(I,J,1) = ESO4_an(I,J,1)
+            SO4an(I,J,2) = ESO4_an(I,J,2)
+            SO4bf(I,J)   = 0d0
+
+            ! If we are using EPA/NEI99 emissions
+            IF ( LNEI99 ) THEN
+            IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
+               ! Calculate SO4 emissions from assuming the SO2 emitted
+               ! is 99% of total mass (win, 10/4/07)
+               EPA_AN = GET_EPA_ANTHRO(I,J,IDTSO2, WEEKDAY)/  
+     &                  0.99d0*0.01d0
+               EPA_BF = GET_EPA_BIOFUEL(I,J,IDTSO2, WEEKDAY)/
+     &                  0.990*0.01d0
+
+               ! Convert anthro SO4 from [molec/cm2/s] to [kg/box/s] 
+               ! Place all EPA/NEI99 anthro SO4 into surface layer
+               SO4an(I,J,1) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO4)
+               SO4an(I,J,2) = 0d0
+               
+               ! Convert biofuel SO4 from [molec/cm2/s] to [kg/box/s]
+               SO4bf(I,J)   = EPA_BF * AREA_CM2 / XNUMOL(IDTSO4)
+
+            ENDIF
+            ENDIF
+
+            ! If we are using CAC emissions and over CANADA ...
+            IF ( LCAC ) THEN
+            IF ( GET_CANADA_MASK( I, J) < 0d0 ) THEN
+
+               ! Read SO4 emissions in [molec/cm2/s]
+               CAC_AN       = GET_CAC_ANTHRO( I, J, IDTSO2, 
+     &                                        MOLEC_CM2_S=.TRUE. )
+
+               ! Calculate SO4 emissions from assuming the SO2 emitted
+               ! is 99% of total mass
+               CAC_AN  = CAC_AN / 0.99d0*0.01d0
+
+               ! Convert anthro SO2 to SO4 and from [molec/cm2/s] to 
+               ! [kg/box/s]
+               ! Place all CAC anthro SO4 into surface layer
+               IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
+                  SO4an(I,J,1) = SO4an(I,J,1) + CAC_AN * 0.014/ 0.986 
+     &                           * AREA_CM2 / XNUMOL(IDTSO4)
+               ELSE
+                  SO4an(I,J,1) = CAC_AN * 0.014 / 0.986 * AREA_CM2 
+     &                           / XNUMOL(IDTSO4)
+                  SO4bf(I,J)   = 0d0
+               ENDIF
+
+               SO4an(I,J,2) = 0d0
+
+            ENDIF
+            ENDIF 
+
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
+      ! Compute SO4 emissions 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, N0, M0, K )
+!$OMP+PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL )
+!$OMP+PRIVATE( NDIST2, MDIST2, C )
+!$OMP+PRIVATE( BOXVOL, TEMP, PRES, TSCALE, pdbug )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Top level of boundary layer at (I,J)
+         NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+
+         ! Zero SO4 array at all levels 
+         DO L = 1, LLPAR
+            SO4(L) = 0.0
+         ENDDO
+
+         ! Compute total anthro SO4 (surface + 100m) plus biofuel SO4
+         TSO4 = 0.d0
+         TSO4 = SUM( SO4an(I,J,:) ) + SO4bf(I,J)
+         IF ( TSO4 == 0d0 ) CYCLE
+
+
+!debug         if(i==60.and.j==35) print *,'TSO4',TSO4
+         !=============================================================
+         ! First calculate emission distribution vertically within PBL
+         !=============================================================
+         ! EFRAC(30) = fraction of total emission splitted for each
+         !             level until reaching PBL top.
+         EFRAC = 0d0
+
+         !==============================================================
+         ! Partition the total anthro SO4 emissions thru the entire 
+         ! boundary layer (if PBL top is higher than level 2)
+         !==============================================================
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (.NOT. LNLPBL) THEN
+         IF ( NTOP > 2 ) THEN
+
+            ! Loop thru boundary layer
+            DO L = 1, NTOP
+                 
+               ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+               EFRAC(L)  = GET_FRAC_OF_PBL( I, J, L )
+!               print *, 'L, EFRAC(L)',L, EFRAC(L)
+            
+            ENDDO
+         ELSE
+            EFRAC(1) = ( SO4an(I,J,1) + SO4bf(I,J) ) / TSO4
+            EFRAC(2) = SO4an(I,J,2) / TSO4
+         ENDIF
+
+         IF ( ABS( SUM( EFRAC(:)) - 1.d0 ) > 1.D-5 ) THEN
+            PRINT*, '### ERROR in SRCSF30!'
+            PRINT*, '### I, J : ', I, J
+            print*, 'EFRAC',EFRAC(:)
+            PRINT*, '### SUM(EFRAC) : ', SUM( EFRAC(:) )
+            PRINT*, '### This should exactly 1.00'
+            CALL ERROR_STOP( 'Check SO4 redistribution',
+     &                       'SRCSF30 (sulfate_mod.f)' )
+         ENDIF
+
+         ELSE 
+            ! stop the program for now since I don't totally implement
+            ! the subgrid coagulation option w/ Lin's new PBL scheme (win, 1/25/10)
+            print *,'If the program stops here, that means you are ',
+     &           'running TOMAS simulation with the new PBL scheme ',
+     &           'implemented since GEOS-Chem v.8-02-01.', 
+     &           '-----> Try not using the non-local PBL option'
+            CALL ERROR_STOP( 'Code does not support new PBL scheme',
+     &                       'SRCSF30 (sulfate_mod.f)')
+         
+         ENDIF  ! .not. LNLPBL
+
+         !=============================================================
+         ! Add the size-resolved SO4 emission to tracer array
+         ! Having the options to do sub-grid coagulation or simply 
+         ! emit.  
+         ! Sub-grid coagulation reduces the number being emitted
+         ! and modifies the mass size distribution of existing particle
+         ! as well as the size distribution being emitted.
+         ! (win, 10/4/07)
+         !=============================================================
+         IF ( SGCOAG ) THEN
+
+            N0(:,:) = TC1(I,J,:,:)
+            M0(:,:) = TC2(I,J,:,1:IBINS)
+
+          DO L = 1, LLPAR
+            SO4(L) = TSO4 * EFRAC(L) * DTSRCE
+            IF ( SO4(L) == 0.d0 ) CYCLE
+            DO K = 1, IBINS
+               NDISTINIT(K) = SO4(L) * BFRAC(K) /
+     &                                ( SQRT( XK(K)*XK(K+1) ) )
+               NDIST(K) = TC1(I,J,L,K)
+               DO C = 1, ICOMP
+                  MDIST(K,C) = TC2(I,J,L,K+(C-1)*IBINS)
+                  IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
+                     PRINT *,'+++++++ Found NaN in SRCSF30  +++++++'
+                     PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
+                     CALL  ERROR_STOP('SRCSF30 SGCCOAG','sulfate_mod.f')
+                  ENDIF
+               ENDDO
+               NDISTFINAL(K) = 0
+               MADDFINAL(K)  = 0
+            ENDDO  
+
+!      print *, 'mnfix in sulfate_mod:6346'
+            CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
+            IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
+     &              'before SUBGRIDCOAG at ',I,J,L
+            ERRORSWITCH = .FALSE.
+
+            ! Overwrite number and mass before emission for diagnostic 
+            ! just in case there was any change by MNFIX (win, 10/27/08)
+            N0(L,:) = NDIST(:)
+            M0(L,:) = MDIST(:,SRTSO4)
+
+!debug            if (I== ii .and. J==jj .and. L==ll)  
+!     &           CALL DEBUGPRINT(NDIST,MDIST,I,J,L,
+!     &           'SRCSF30 Before SUBGRIDCOAG ')
+
+
+      ! Define subgrid coagulation timescale (win, 10/28/08)
+#if   defined( GRID4x5   ) 
+            TSCALE = 10.*3600.  ! 10 hours
+#elif defined( GRID2x25  )
+            TSCALE = 5.*3600.    
+#elif defined( GRID1x125 )
+            TSCALE = 2.*3600.    
+#elif defined( GRID1x1   ) 
+            TSCALE = 2.*3600.    
+#elif defined( GRID05x0666 ) 
+            TSCALE = 1.*3600.    
+#elif defined( GRID025x03125 )
+            !%%% KLUDGE, just copied the 0.5 x 0.666 value
+            !%%% Someone needs to add the right value (bmy, 2/16/12)
+            TSCALE = 1.*3600.    
+#endif
+            !Prior to 10/28/08 (win)     
+            !TSCALE = 10.*3600.
+            BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
+            TEMP    = State_Met%T(I,J,L)
+            PRES    = GET_PCENTER(i,j,l)*100.0 ! in Pa
+
+!            print *, 'Now doing subgrid coag with timescale ',
+!     &           TSCALE/3600.,'hr'
+
+            pdbug=.false.
+!debug            if (I.eq.II.and.J.eq.JJ .and. L==LL) pdbug=.true.
+                             
+            CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP,
+     &                        PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug) 
+
+!debug            if (I== ii .and. J==jj .and. L==ll)then
+!               print*,'PS'
+!               print*,'SO4 emis',SO4(L)
+!               print*,'Mdistnit',SO4(L)*BFRAC(:)
+!               print*,'tscale=',tscale
+!               print*,'ndistinit=',ndistinit
+!               print*,'ndistfinal=',ndistfinal
+!               print*,'maddfinal=',maddfinal
+!            endif
+!debug---
+            DO K = 1, IBINS
+               NDIST(K) = NDIST(K) + NDISTFINAL(K)
+               MDIST(K,SRTSO4) = MDIST(K,SRTSO4) +
+     &                           NDISTFINAL(K) * (SQRT(XK(K)*XK(K+1)))+
+     &                           MADDFINAL(K)   
+
+!debug               if (I.eq.II.and.J.eq.JJ .and. L==ll) then
+!                  print *,(NDISTFINAL(K) * (SQRT(XK(K)*XK(K+1)))+
+!     &                 MADDFINAL(K) )
+!               endif
+!debug---
+            ENDDO
+            DO K= 1, IBINS
+               NDIST2(K) = NDIST(K)
+               DO C = 1, ICOMP
+                  MDIST2(K,C) = MDIST(K,C)
+               ENDDO
+            ENDDO
+!debug            if(i==ii.and.j==jj.and.l==ll  ) 
+!     &          CALL DEBUGPRINT(NDIST2,MDIST2,I,J,L, 
+!     &                         'SRCSF30 : After SUBGRIDCOAG')
+
+ 
+            ERRORSWITCH = .FALSE.
+!debug            if(i==ii.and.j==ii.and.l==ll) errorswitch=.true.
+!      print *, 'mnfix in sulfate_mod:6430'
+            CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
+
+            IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
+     &           'after SUBGRIDCOAG at ',I,J,L
+
+!debug            if(i==ii .and.j==jj .and.l==ll) 
+!     &          CALL DEBUGPRINT(NDIST2,MDIST2,I,J,L, 
+!     &                         'SRCSF30 : After MNFIX')
+
+            DO K = 1, IBINS
+               TC1(I,J,L,K) = NDIST2(K)
+               DO C=1,ICOMP
+                  TC2(I,J,L,K+(C-1)*IBINS) = MDIST2(K,C)
+               ENDDO
+            ENDDO
+
+         ENDDO ! L loop
+
+
+           !==============================================================
+           ! ND59 Diagnostic: Size-resolved primary sulfate emission in 
+           !                 [kg S/box/timestep] and the corresponding
+           !                  number emission [no./box/timestep]
+           !==============================================================
+            IF ( ND59 > 0 ) THEN 
+               DO L = 1, LLPAR
+               DO K = 1, IBINS
+                  if(TC2(I,J,L,K)-M0(L,K) < 0d0) 
+     &              print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K),
+     &                 'at',I,J,L,K
+                  if(TC1(I,J,L,K)-N0(L,K) < 0d0) 
+     &              print *,'Negative NK emis ',TC1(I,J,L,K)-N0(L,K),
+     &                 'at',I,J,L,K
+                  AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + 
+     &                                  (TC2(I,J,L,K)-M0(L,K))*S_SO4
+                  AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
+     &                                  TC1(I,J,L,K)-N0(L,K)
+               ENDDO
+               ENDDO
+            ENDIF
+           
+         ELSE
+
+         ! Distributing primary emission without sub-grid coagulation
+         !=============================================================
+         ! Add SO4 emissions to tracer array 
+         ! For SF: Convert from [kg SO4/box/s] -> [kg SO4/box/timestep]
+         ! For NK: Convert from [kg SO4/box/s] -> [No.   /box/timestep]
+         !=============================================================
+            DO L = 1, LLPAR
+               SO4(L) = TSO4 * EFRAC(L)
+               DO K = 1, IBINS
+                  TC1(I,J,L,K) = TC1(I,J,L,K) + 
+     &                    ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
+                  TC2(I,J,L,K) = TC2(I,J,L,K) + 
+     &                    ( SO4(L) * DTSRCE * BFRAC(K)               )
+               ENDDO
+            ENDDO
+
+           !==============================================================
+           ! ND59 Diagnostic: Size-resolved primary sulfate emission in 
+           !                 [kg S/box/timestep] and the corresponding
+           !                  number emission [no./box/timestep]
+           !==============================================================
+            IF ( ND59 > 0 ) THEN 
+               SO4anbf(:,:,1) = SO4an(:,:,1) + SO4bf(:,:)
+               SO4anbf(:,:,2) = SO4an(:,:,2)
+            
+               DO L = 1, 2
+               DO K = 1, IBINS
+                  AD59_SULF(I,J,L,K) = AD59_SULF(I,J,L,K) + 
+     &                                ( SO4anbf(I,J,L) * BFRAC(K) 
+     &                                    * S_SO4 * DTSRCE         )
+                  AD59_NUMB(I,J,L,K) = AD59_NUMB(I,J,L,K) + 
+     &                                ( SO4anbf(I,J,L) * BFRAC(K) 
+     &                                    / AVGMASS(K) * DTSRCE   )
+               ENDDO
+               ENDDO
+
+            ENDIF
+
+         ENDIF !SGCOAG
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      IF ( LPRT ) print *,'   ### Finish SRCSF30'
+
+      END SUBROUTINE SRCSF30
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -6263,11 +8513,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE SRCNH3( TC, SFLX )
-#else
-      SUBROUTINE SRCNH3( TC )
-#endif
+      SUBROUTINE SRCNH3( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -6277,26 +8523,34 @@
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE DIAG_MOD,           ONLY : AD13_NH3_an, AD13_NH3_bb
       USE DIAG_MOD,           ONLY : AD13_NH3_bf, AD13_NH3_na
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE LOGICAL_MOD,        ONLY : LNEI99, LCAC, LNEI05
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TRACERID_MOD,       ONLY : IDTNH3
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! NH3 tracer mass [kg]
-#if defined( DEVEL )
-      REAL*8,  INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR)
-#endif
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now save NH3 emissions to ND13 diagnostic (bmy, 12/13/02)
@@ -6325,6 +8579,11 @@
 !       emissions, and allows for emissions above the PBL (phs, 10/27/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6332,7 +8591,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                :: WEEKDAY,  IS_LOCAL
-      INTEGER                :: I, J, L,  K, NTOP, DAY_NUM
+      INTEGER                :: I, J, L,  K, NTOP, DOW_LT
       REAL*8                 :: DTSRCE,   AREA_CM2    
       REAL*8                 :: CAC_AN,   EPA_AN,  EPA_BF
       REAL*8                 :: FEMIS(LLPAR), NH3(LLPAR)
@@ -6341,19 +8600,38 @@
       REAL*8                 :: NH3bf(IIPAR,JJPAR)
       REAL*8                 :: TEMPEMISS(NOXLEVELS)
       
+      ! For fields from Input_Opt
+      LOGICAL                :: LNEI99, LCAC, LNEI05, LNLPBL, LRCP
+      INTEGER                :: N_TRACERS
+      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: TC(:,:,:)
+
       !=================================================================
       ! SRCNH3 begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LNLPBL    = Input_Opt%LNLPBL
+      LNEI99    = Input_Opt%LNEI99
+      LCAC      = Input_Opt%LCAC
+      LNEI05    = Input_Opt%LNEI05
+      LRCP      = Input_Opt%LRCP
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Point to the NH3 tracer slice
+      TC        => State_Chm%TRACERS(:,:,:,IDTNH3)
+
       ! Emission timestep [s]
       DTSRCE  = GET_TS_EMIS() * 60d0
  
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       ! init
       NH3an = 0D0
       
@@ -6367,7 +8645,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN, L )
-!$OMP+PRIVATE( NTOP, FEMIS, NH3, TEMPEMISS )
+!$OMP+PRIVATE( NTOP, FEMIS, NH3, TEMPEMISS, DOW_LT, WEEKDAY )
       DO J = 1, JJPAR
 
          DO I = 1, IIPAR
@@ -6401,6 +8679,12 @@
             !   ! If we are over the USA ...
             !   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
             !
+            !      ! Determine if we should use weekday or weekend NEI
+            !      ! emissions at grid box (I,J,L).  Since NEI is over
+            !      ! the US, then weekend is Sat/Sun.
+            !      DOW_LT     = GET_DAY_OF_WEEK_LT( I, J, 1 )
+            !      WEEKDAY    = ( DOW_LT > 0 .and. DOW_LT < 6 )
+            !
             !      ! Read NH3 anthro emissions in [molec NH3/cm2/s]
             !      EPA_AN     = GET_EPA_ANTHRO(  I, J, IDTNH3, WEEKDAY )
             !      EPA_BF     = GET_EPA_BIOFUEL( I, J, IDTNH3, WEEKDAY )
@@ -6425,6 +8709,11 @@
             ! regular ENH3_an and ENH3_bf to local arrays. (bmy, 11/16/04)
             NH3an(I,J,1) = ENH3_an(I,J)
             NH3bf(I,J)   = ENH3_bf(I,J)
+            
+            ! The RCP anthropogenic emission inventory already includes
+            ! biofuel emissions, so we turn off the additional biofuel 
+            ! inventory (cdh, 8/31/12)
+            IF ( LRCP ) NH3bf(I,J) = 0d0 
             
             !-----------------------------------------------------------------
             ! NOTE: There seems to be some problems with the EPA/NEI NH3 
@@ -6454,6 +8743,12 @@
             IF ( LNEI05 ) THEN
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
              
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
                DO L = 1, NOXLEVELS 
 
                   ! Read NH3 anthro emissions in [molec NH3/cm2/s]                  
@@ -6521,13 +8816,19 @@
             
          ENDDO
 #if defined( DEVEL )
-         SFLX(:,J,1) = SFLX(:,J,1) + (NH3an(:,J,1) + ENH3_bb(:,J) + 
-     &                                NH3bf(:,J)   + ENH3_na(:,J))
+         State_Chm%TRAC_TEND(:,J,1,IDTNH3) = 
+     &   State_Chm%TRAC_TEND(:,J,1,IDTNH3) + 
+     &        ( NH3an(:,J,1) + ENH3_bb(:,J) + 
+     &          NH3bf(:,J)   + ENH3_na(:,J) )
 
-         SFLX(:,J,2:NOXLEVELS) = SFLX(:,J,2:NOXLEVELS) + NH3an(:,J,2:)
+         State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTNH3) = 
+     &   State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTNH3) + NH3an(:,J,2:)
 #endif
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( TC )
 
       END SUBROUTINE SRCNH3
 !EOC
@@ -6545,23 +8846,24 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
+      FUNCTION GET_OH( I, J, L, Input_Opt, State_Met ) 
+     &         RESULT( OH_MOLEC_CM3 )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : OH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,       ONLY : IDOH
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN) :: I, J, L     ! Lon, lat, level indices
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
@@ -6573,6 +8875,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  28 Nov 2012 - R. Yantosca - Add State_Met to argument list
+!  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
+!                              Input_Opt%ITS_AN_AEROSOL_SIM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6586,7 +8890,7 @@
       ! GET_OH begins here!
       !=================================================================
 
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !---------------------
          ! Coupled simulation
@@ -6603,7 +8907,7 @@
             OH_MOLEC_CM3 = 0d0
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !---------------------
          ! Offline simulation
@@ -6659,16 +8963,14 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
       USE TRACERID_MOD, ONLY : IDOH
- 
-      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
       REAL*8,  INTENT(IN) :: OH      ! OH at (I,J,L) to be saved into CSPEC
-
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 12/16/02)
@@ -6709,23 +9011,24 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NO3( I, J, L, State_Met ) RESULT( NO3_MOLEC_CM3 ) 
+      FUNCTION GET_NO3( I, J, L, Input_Opt, State_Met ) 
+     &         RESULT( NO3_MOLEC_CM3 ) 
 !
 ! !USES:
 !
+
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_NO3_MOD,     ONLY : NO3
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,       ONLY : IDNO3
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
@@ -6739,6 +9042,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
+!                              Input_Opt%ITS_AN_AEROSOL_SIM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6756,7 +9061,7 @@
       ! GET_NO3 begins here!
       !=================================================================
 
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !--------------------
          ! Coupled simulation
@@ -6773,7 +9078,7 @@
             NO3_MOLEC_CM3 = 0d0
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !==============================================================  
          ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
@@ -6852,16 +9157,14 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
       USE TRACERID_MOD, ONLY : IDNO3
-      
-      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
       REAL*8,  INTENT(IN) :: NO3     ! NO3 at (I,J,L) to be saved into CSPEC
-
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDNO3. (bmy, 12/16/02)
@@ -6902,23 +9205,22 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_O3( I, J, L, State_Met ) RESULT( O3_VV )
+      FUNCTION GET_O3( I, J, L, Input_Opt, State_Met ) RESULT( O3_VV )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_MOd, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM  
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
@@ -6929,6 +9231,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
+!                              Input_Opt%ITS_AN_AEROSOL_SIM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6942,7 +9246,7 @@
       ! GET_O3 begins here!
       !=================================================================
 
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !--------------------
          ! Coupled simulation
@@ -6960,7 +9264,7 @@
             O3_VV = 0d0
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
          
          !--------------------
          ! Offline simulation
@@ -6979,7 +9283,7 @@
          !--------------------
          ! Invalid simulation
          !--------------------         
-         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_O3 (sulfate_mod.f)')
 
       ENDIF
 
@@ -7003,18 +9307,16 @@
 ! !USES:
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)     :: INDAY   ! Current 2-digit day 
       INTEGER, INTENT(IN)     :: INMONTH ! Current month number (1-12)
       INTEGER, INTENT(IN)     :: INYEAR  ! Current 4-digit year
-
 !
 ! !REVISION HISTORY: 
 !  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
@@ -7046,7 +9348,6 @@
       CHARACTER(LEN=255)   :: LLFILENAME
       REAL*8, POINTER      :: OUTGRID(:,:) => NULL()
       REAL*8, POINTER      :: INGRID(:,:)  => NULL()
-
 
       !=================================================================
       ! READ_NONERUP_VOLC begins here!
@@ -7134,18 +9435,16 @@
 ! !USES:
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : EXPAND_DATE
-      
-      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)     :: INDAY   ! Current 2-digit day
       INTEGER, INTENT(IN)     :: INMONTH ! Current month number (1-12)
       INTEGER, INTENT(IN)     :: INYEAR  ! Current 4-digit year
-
 !
 ! !REVISION HISTORY: 
 !  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
@@ -7273,7 +9572,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ANTHRO_SOx( THISMONTH, NSEASON )
+      SUBROUTINE READ_ANTHRO_SOx( Input_Opt, THISMONTH, NSEASON )
 !
 ! !USES:
 !
@@ -7284,10 +9583,10 @@
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GRID_MOD,             ONLY : GET_XMID,        GET_YMID
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LFUTURE,         LEDGARSOx
-      USE LOGICAL_MOD,          ONLY : LSTREETS,        LEMEP
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,             ONLY : GET_YEAR
@@ -7298,6 +9597,9 @@
 ![eml
       USE LOGICAL_MOD,          ONLY : LHIST
 !eml]
+#if   defined( TOMAS )
+      USE TRACERID_MOD,         ONLY : IDTNK1    ! For TOMAS microphysics
+#endif
 #if   defined( APM )
       USE APM_INIT_MOD,         ONLY : FE0
 #endif
@@ -7307,8 +9609,9 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: THISMONTH ! Current month number (1-12)
-      INTEGER, INTENT(IN)           :: NSEASON   ! Season #: 1=DJF; 2=MAM; 
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
+      INTEGER,        INTENT(IN)    :: THISMONTH ! Current month number (1-12)
+      INTEGER,        INTENT(IN)    :: NSEASON   ! Season #: 1=DJF; 2=MAM; 
                                                  !           3=JJA; 4=SON
 
 !  
@@ -7332,11 +9635,15 @@
 !        problems when adding or removing species.  Replace w/ IDTNH3.
 !        (dkh, 10/31/08)
 !  (10) Account for multilevels emissions (amv, 10/07/2009)
+!  (11 ) Use 1% SO4 fraction (out of total SOx) everywhere when running
+!         with TOMAS aerosols. (win, 1/25/10)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  30 May 2013 - S. Farina   - Merge in TOMAS updates
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7353,9 +9660,23 @@
       CHARACTER(LEN=4)              :: SYEAR
       CHARACTER(LEN=255)            :: FILENAME
 
+      ! For fields from Input_Opt
+      LOGICAL                       :: LFUTURE
+      LOGICAL                       :: LEDGARSOx
+      LOGICAL                       :: LSTREETS
+      LOGICAL                       :: LEMEP
+      LOGICAL                       :: LRCP
+
       !=================================================================
       ! READ_ANTHRO_SOx begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LFUTURE        = Input_Opt%LFUTURE
+      LEDGARSOx      = Input_Opt%LEDGARSOx
+      LSTREETS       = Input_Opt%LSTREETS
+      LEMEP          = Input_Opt%LEMEP
+      LRCP           = Input_Opt%LRCP
          
       IF ( FSCALYR < 0 ) THEN
          SCALEYEAR = GET_YEAR()
@@ -7364,13 +9685,21 @@
       ENDIF
 
 
-      IF ( LEDGARSOx ) THEN
+      IF ( LEDGARSOx .OR. LRCP ) THEN
 
          !==============================================================
          ! Use EDGAR SOx emissions
+
+         ! NOTE: When TOMAS is being used, then do this: 
+         !   Accoroding to a recent finding from GISS GCM-II', emitting 
+         !   3% of SOx as primary SO4 results in overprediction of 
+         !   aerosol number even in sulfate-seasalt simulation, which 
+         !   should be rather lower estimate in absence of carbonaceous
+         !   aerosols.  So try this 1% for now. (win, 1/25/10)
          !
-         ! Partition SOx into SO2 and SO4, according to the following
-         ! fractions (cf Chin et al, 2000):
+         ! Otherwise, if TOMAS is not used, then partition SOx into 
+         ! SO2 and SO4, according to the following fractions
+         ! (cf Chin et al, 2000):
          ! 
          ! Europe     [ 36N-78N,  12.5W-60.0E ]:  5.0% of SOx is SO4
          !                                       95.0% of SOx is SO2   
@@ -7384,7 +9713,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y, EDG_SO2, Fe, LL ) 
+!$OMP+PRIVATE( I, J, X, Y, AREA_CM2, EDG_SO2, Fe, LL ) 
 
          ! Loop over latitudes
          DO J = 1, JJPAR
@@ -7399,6 +9728,25 @@
                ! Get EDGAR SO2 emissions [kg/s]
                ! NOTE: Future emissions are already applied!
                EDG_SO2 = GET_EDGAR_ANTH_SO2( I, J, KG_S=.TRUE. ) 
+
+               ! Use RCP SO2 emissions
+               IF ( LRCP ) THEN
+
+                  ! Get RCP SO2 emissions, molec/cm2/s
+                  ! NOTE: Future emissions assumed to already be included
+                  EDG_SO2 = GET_RCP_EMISSION( I, J, IDTSO2, 
+     &                 LAND=.TRUE., SHIP=.FALSE. )
+
+                  ! Convert molec/cm2/s -> kg/s
+                  EDG_SO2 = EDG_SO2 * AREA_CM2 / XNUMOL(IDTSO2) 
+
+                  ! RCP includes biofuels
+                  ! However, if regional inventories without biofuels 
+                  ! are used, then there will be no biofuel emissions 
+                  ! from that region
+                  ESO2_bf(I,J) = 0d0
+
+               ENDIF
 
                ! If we are using David Streets' emissions ...
 ![eml Not if historical
@@ -7431,12 +9779,21 @@
 
                ENDIF
 
-#if   defined( APM )
-
-               ! You specify the SO4/SOx fractionation with APM
+           
+#if   defined( TOMAS )
+               !--------------------------------------------------------
+               ! For TOMAS microphysics: use 1% SO4 fraction
+               !--------------------------------------------------------
+               Fe = 0.01d0
+#elif defined( APM )
+               !--------------------------------------------------------
+               ! For APM: You specify the SO4/SOx fractionation
+               !--------------------------------------------------------
                Fe = FE0
-
 #else
+               !--------------------------------------------------------
+               ! For std GEOS-Chem: preserve existing code
+               !--------------------------------------------------------
 
                ! Compute SO4/SOx fraction for EUROPE
                IF ( ( X >= -12.5 .and. X <= 60.0 )  .and.
@@ -7453,7 +9810,6 @@
                   Fe = 0.03d0
 
                ENDIF
-
 #endif
 
 #if   defined( APM )
@@ -7662,17 +10018,15 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD        ! Size parameters 
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: THISMONTH ! Current month number (1-12)
-
 !
 ! !REVISION HISTORY:
 !  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
@@ -7737,12 +10091,11 @@
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,      ONLY : DATA_DIR,        DATA_DIR_1x1
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7767,7 +10120,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7819,8 +10172,8 @@
 
          ! Regrid from 1x1 and cast to REAL*8
          INGRID = ARRAY1(:,:,1)
-         CALL DO_REGRID_A2A( LLFILENAME, I1x1,   J1x1,
-     &                       INGRID,     SSTEMP, IS_MASS=0,
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                       INGRID,     SSTEMP,  IS_MASS=0,
      &                       netCDF=.TRUE.                   )
 
       ELSE
@@ -8082,16 +10435,13 @@
 !
 ! !USES:
 !
-      !IDBSO2 now in tracerid_mod (fp, 6/2009)
-      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
       USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE CMN_SIZE_MOD
       USE TRACERID_MOD,         ONLY : IDBSO2
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-      
-      USE CMN_SIZE_MOD               ! Size parameters
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Extracted from old module subroutine READ_BIOMASS_SO2
@@ -8154,11 +10504,10 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,      ONLY : DATA_DIR 
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -8320,7 +10669,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_SHIP_SO2( THISMONTH )
+      SUBROUTINE READ_SHIP_SO2( Input_Opt, THISMONTH )
 !
 ! !USES:
 !
@@ -8328,25 +10677,21 @@
       USE ICOADS_SHIP_MOD,      ONLY : GET_ICOADS_SHIP   !(cklee, 7/09/09)
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR 
+      USE CMN_SIZE_MOD
       USE EDGAR_MOD,            ONLY : GET_EDGAR_SHIP_SO2
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LEDGARSHIP,      LFUTURE, 
-     &                                 LARCSHIP,        LSHIPSO2,
-     $                                 LEMEPSHIP
-      USE LOGICAL_MOD,          ONLY : LICOADSSHIP  !(cklee, 6/30/09)
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: THISMONTH ! Current month (1-12)
-
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
+      INTEGER,        INTENT(IN) :: THISMONTH ! Current month (1-12)
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -8362,6 +10707,8 @@
 !  (7 ) Now get ICOADS ship SO2 if necessary (phs, cklee, 6/30/09) 
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  17 Jun 2013 - R. Yantosca - Now take values from Input_Opt
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCPSHIP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8374,13 +10721,32 @@
       REAL*8                        :: XTAU, AREA_CM2
       CHARACTER (LEN=255)           :: FILENAME
 
+      ! For fields from Input_Opt
+      CHARACTER(LEN=255)            :: DATA_DIR
+      LOGICAL                       :: LEDGARSHIP
+      LOGICAL                       :: LEMEPSHIP
+      LOGICAL                       :: LFUTURE
+      LOGICAL                       :: LARCSHIP
+      LOGICAL                       :: LSHIPSO2
+      LOGICAL                       :: LICOADSSHIP
+      LOGICAL                       :: LRCPSHIP
+
       !=================================================================
       ! READ_SHIP_SO2 begins here!
       !=================================================================
 
+      ! Copy values from Input_Opt
+      DATA_DIR    = Input_Opt%DATA_DIR
+      LEDGARSHIP  = Input_Opt%LEDGARSHIP
+      LEMEPSHIP   = Input_Opt%LEMEPSHIP
+      LFUTURE     = Input_Opt%LFUTURE
+      LARCSHIP    = Input_Opt%LARCSHIP
+      LSHIPSO2    = Input_Opt%LSHIPSO2
+      LICOADSSHIP = Input_Opt%LICOADSSHIP
+      LRCPSHIP    = Input_Opt%LRCPSHIP
+
       ! Reset
       ESO2_sh = 0D0
-
 
       ! Test for EDAGR last, since this is default inventory by design.
       ! So we can still use EDGAR SHIP to get ship-NOX and CO, and
@@ -8409,6 +10775,39 @@
             ENDIF
 
          ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+
+      !-----------------------------------------------------------
+      ! Or RCP SHIP emissions 
+      ! (cdh, 10/14/11)
+      !-----------------------------------------------------------
+      ELSE IF ( LRCPSHIP ) THEN
+            
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+               ! Grid box surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
+               ! Read RCP SO2 emissions in [molec/cm2/s]
+               ESO2_sh(I,J) = GET_RCP_EMISSION( I, J, IDTSO2,  
+     &                                          SHIP=.TRUE. )
+               
+               ! Convert molec/cm2/s -> kg SO2/BOX/s
+               ESO2_sh(I,J) = ESO2_sh(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
+
+               IF ( LEMEPSHIP ) THEN
+                  IF ( GET_EUROPE_MASK(I,J) > 0d0 )
+     $                 ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2, 
+     &                 KG_S=.TRUE.,
+     $                 SHIP=.TRUE.)
+               ENDIF
+
+            ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
 
@@ -8535,29 +10934,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ANTHRO_NH3( THISMONTH )
+      SUBROUTINE READ_ANTHRO_NH3( Input_Opt, THISMONTH )
 !
 ! !USES:
 !
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an
-      USE LOGICAL_MOD,          ONLY : LFUTURE,         LSTREETS
-      USE LOGICAL_MOD,          ONLY : LEMEP
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
       INTEGER, INTENT(IN)           :: THISMONTH ! Current month number (1-12)
-
 !
 ! !REVISION HISTORY:
 !  (1 ) Renamed from NH3_READ to READ_ANTHRO_NH3.  Also updated comments,
@@ -8578,16 +10977,17 @@
 !  (9 ) Now check if NH3 Streets is available (phs, 12/10/08)  
 !  (10) Bug fix -- STREETS needs to be PRIVATE (dkh, bmy, 3/5/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                       :: WEEKDAY
       INTEGER                       :: I, J, DAY_NUM
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: AREA_CM2, EPA_NEI, XTAU
+      REAL*8                        :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Days per month
       REAL*8              :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0,
@@ -8597,29 +10997,77 @@
       CHARACTER(LEN=255)            :: FILENAME
       REAL*8                        :: STREETS
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LFUTURE
+      LOGICAL                :: LSTREETS
+      LOGICAL                :: LEMEP
+      LOGICAL                :: LRCP
+
       !=================================================================
       ! READ_ANTHRO_NH3 begins here!
       !=================================================================
 
-      ! File name
-      FILENAME = TRIM( DATA_DIR )                         //
-     &           'sulfate_sim_200508/NH3_anthsrce.'       //
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LFUTURE       = Input_Opt%LFUTURE
+      LSTREETS      = Input_Opt%LSTREETS
+      LEMEP         = Input_Opt%LEMEP
+      LRCP          = Input_Opt%LRCP
+      XNUMOL        = Input_Opt%XNUMOL
 
-      ! Echo output
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_ANTHRO_NH3: Reading ', a )
+      !-----------------------------------------------------------
+      ! Use RCP NH3 emissions 
+      ! (mpayer, cdh, 6/28/12)
+      !-----------------------------------------------------------   
+      IF ( LRCP ) THEN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_CM2 )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+               ! Grid box surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
+               ! Read RCP NH3 emissions in [molec/cm2/s]
+               ENH3_an(I,J) = GET_RCP_EMISSION( I, J, IDTNH3,  
+     &                                          LAND=.TRUE. )
+               
+               ! Convert molec/cm2/s -> kg NH3/BOX/s
+               ENH3_an(I,J) = ENH3_an(I,J) * AREA_CM2 / XNUMOL(IDTNH3)
+               
+            ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ELSE
+
+         ! File name
+         FILENAME = TRIM( DATA_DIR )                         //
+     &              'sulfate_sim_200508/NH3_anthsrce.'       //
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
+         ! Echo output
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_ANTHRO_NH3: Reading ', a )
       
-      ! Get TAU value (use year 1990, the year of the data!)
-      XTAU = GET_TAU0( THISMONTH, 1, 1990 )
+         ! Get TAU value (use year 1990, the year of the data!)
+         XTAU = GET_TAU0( THISMONTH, 1, 1990 )
 	
-      ! Read 1990 NH3 emissions [kg N/box/mon]
-      CALL READ_BPCH2( FILENAME, 'NH3-ANTH',    29,  
-     &                 XTAU,      IIPAR,        JJPAR,       
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+         ! Read 1990 NH3 emissions [kg N/box/mon]
+         CALL READ_BPCH2( FILENAME, 'NH3-ANTH',    29,  
+     &                    XTAU,      IIPAR,        JJPAR,       
+     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
+         ! Cast from REAL*4 to REAL*8
+         CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
+
+         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
+         ENH3_an = ENH3_an * ( 17.d0 / 14.d0 ) 
+     &             / ( NMDAY(THISMONTH) * 86400.d0 )
+
+
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -8627,15 +11075,12 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
-         ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
-     &                / ( NMDAY(THISMONTH) * 86400.d0 )
-
          ! Compute future NH3an emissions, if necessary
          ! Moved here since Streets and EMEP should have already
          ! applied FUTURE scale factors if needed 
          IF ( LFUTURE ) THEN
-            ENH3_an(I,J) = ENH3_an(I,J) * GET_FUTURE_SCALE_NH3an( I, J )
+            ENH3_an(I,J) = ENH3_an(I,J) *
+     &                     GET_FUTURE_SCALE_NH3an( I, J )
          ENDIF
 
          ! If we are using David Streets' emissions ...
@@ -8644,7 +11089,8 @@
             ! If we are over the SE Asia region ...
             IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
 
-               ! Overwrite with David Streets emissions if available [kg NH3/s]
+               ! Overwrite with David Streets emissions if available
+               ! [kg NH3/s]
                STREETS = GET_STREETS_ANTHRO( I,      J, 
      &                                       IDTNH3, KG_S=.TRUE.)
 
@@ -8686,15 +11132,13 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: THISMONTH ! Current month number (1-12)
-
 !
 ! !REVISION HISTORY: 
 !  (1 ) Updated FORMAT string.  Now also call READ_BPCH2 with QUIET=.TRUE.
@@ -8765,10 +11209,10 @@
 !
 ! !USES:
 !
-      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBNH3
       USE BIOMASS_MOD,          ONLY : BIOMASS
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bf
       USE LOGICAL_MOD,          ONLY : LBIOMASS,        LFUTURE
@@ -8777,7 +11221,6 @@
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -8905,15 +11348,11 @@
 !
 ! !USES:
 !
-      ! IDBNH3 now in tracerid_mod (fp, 6/2009)
-      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBNH3
       USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE CMN_SIZE_MOD
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTNH3, IDBNH3
-
-      USE CMN_SIZE_MOD               ! Size parameters
-
 !
 ! !REVISION HISTORY: 
 !  (1 ) Extracted from old module subroutine READ_BIOMASS_NH3
@@ -8974,15 +11413,13 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
-
-      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)    :: MONTH ! Emission timestep in minutes
-
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
@@ -9082,12 +11519,11 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
-
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_GCTM_MOD
 !
 ! !REVISION HISTORY: 
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN
@@ -9244,16 +11680,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SULFATE
+      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE DRYDEP_MOD,    ONLY : DEPNAME, NUMDEP
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,   ONLY : LDRYD
-      USE TRACER_MOD,    ONLY : ITS_AN_AEROSOL_SIM
-
-      USE CMN_SIZE_MOD        ! Size parameters 
+      USE CMN_SIZE_MOD
+      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) Only allocate some arrays for the standalone simulation (NSRCX==10).
@@ -9275,23 +11719,26 @@
 !  (10) Now redimension EEV & NEV arrays for new SO2 volcanic emissions
 !        inventory.  Deleted obsolete arrays from older SO2 volcanic
 !        emissions inventory. (jaf, bmy, 10/15/09)
+!  (11) Now alllocate PSO4_SO2AQ (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  04 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_AN_AEROSOL_SIM
+!  30 May 2013 - S. Farina   - Allocate PSO4_SO2AQ for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE      :: IS_INIT = .FALSE.
       INTEGER            :: AS, I, J, N
 
       !=================================================================
       ! INIT_SULFATE begins here!
       !=================================================================
 
-      ! Return if we have already initialized
-      IF ( IS_INIT ) RETURN
-      
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Allocate arrays
       ALLOCATE( SSTEMP( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSTEMP' )
@@ -9389,10 +11836,17 @@
       VCLDF = 0d0
 #endif
 
+#if   defined( TOMAS )
+      ! Allocate for TOMAS microphysics
+      ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_SO2AQ' )
+      PSO4_SO2AQ = 0d0
+#endif
+
       !=================================================================
       ! Only initialize the following for offline aerosol simulations
       !=================================================================
-      IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          ALLOCATE( PH2O2m( IIPAR, JJPAR, LLTROP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH2O2m' )
@@ -9439,11 +11893,10 @@
       DRYSO4aq = 0
       DRYNH4aq = 0  
 
-      IF ( LDRYD ) THEN
-         
-         ! Locate position of each tracer in DEPSAV
-         DO N = 1, NUMDEP
-            SELECT CASE ( TRIM( DEPNAME(N) ) )
+      ! Locate position of each tracer in DEPSAV
+      IF ( Input_Opt%LDRYD ) THEN
+         DO N = 1, Input_Opt%NUMDEP
+            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
                CASE ( 'H2O2'   )
                   DRYH2O2  = N
                CASE ( 'SO2'   )
@@ -9476,11 +11929,7 @@
                   ! Nothing
             END SELECT        
          ENDDO
-
       ENDIF
-
-      ! Reset IS_INIT so we do not allocate arrays again
-      IS_INIT = .TRUE.
 
       END SUBROUTINE INIT_SULFATE
 !EOC
@@ -9509,7 +11958,9 @@
 !  (6 ) Bug fix: now deallocate PSO4_ss, PNITs (bmy, 5/3/06)
 !  (7 ) Deleted obsolete arrays from older SO2 volcanic emissions 
 !        inventory (jaf, bmy, 10/15/09)
+!  (8 ) Deallocate PSO4_SO2AQ (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 May 2013 - S. Farina   - Deallocate PSO4_SO2AQ for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9518,36 +11969,38 @@
       !=================================================================
       ! CLEANUP_SULFATE begins here!
       !=================================================================
-
-      IF ( ALLOCATED( DMSo      ) ) DEALLOCATE( DMSo      )
-      IF ( ALLOCATED( EEV       ) ) DEALLOCATE( EEV       )
-      IF ( ALLOCATED( ENV       ) ) DEALLOCATE( ENV       )
-      IF ( ALLOCATED( ENH3_an   ) ) DEALLOCATE( ENH3_an   )
-      IF ( ALLOCATED( ENH3_bb   ) ) DEALLOCATE( ENH3_bb   )
-      IF ( ALLOCATED( ENH3_bf   ) ) DEALLOCATE( ENH3_bf   )
-      IF ( ALLOCATED( ENH3_na   ) ) DEALLOCATE( ENH3_na   )
-      IF ( ALLOCATED( ESO2_ac   ) ) DEALLOCATE( ESO2_ac   )
-      IF ( ALLOCATED( ESO2_an   ) ) DEALLOCATE( ESO2_an   )
-      IF ( ALLOCATED( ESO2_nv   ) ) DEALLOCATE( ESO2_nv   )
-      IF ( ALLOCATED( ESO2_ev   ) ) DEALLOCATE( ESO2_ev   )
-      IF ( ALLOCATED( ESO2_bb   ) ) DEALLOCATE( ESO2_bb   )
-      IF ( ALLOCATED( ESO2_bf   ) ) DEALLOCATE( ESO2_bf   )
-      IF ( ALLOCATED( ESO2_sh   ) ) DEALLOCATE( ESO2_sh   )
-      IF ( ALLOCATED( ESO4_an   ) ) DEALLOCATE( ESO4_an   )
-      IF ( ALLOCATED( JH2O2     ) ) DEALLOCATE( JH2O2     )
-      IF ( ALLOCATED( O3m       ) ) DEALLOCATE( O3m       )
-      IF ( ALLOCATED( PH2O2m    ) ) DEALLOCATE( PH2O2m    )
-      IF ( ALLOCATED( PMSA_DMS  ) ) DEALLOCATE( PMSA_DMS  )
-      IF ( ALLOCATED( PNITs     ) ) DEALLOCATE( PNITs     )
-      IF ( ALLOCATED( PSO2_DMS  ) ) DEALLOCATE( PSO2_DMS  )
-      IF ( ALLOCATED( PSO4_SO2  ) ) DEALLOCATE( PSO4_SO2  )
-      IF ( ALLOCATED( PSO4_ss   ) ) DEALLOCATE( PSO4_ss   )
-      IF ( ALLOCATED( SOx_SCALE ) ) DEALLOCATE( SOx_SCALE )
-      IF ( ALLOCATED( SSTEMP    ) ) DEALLOCATE( SSTEMP    )
-      IF ( ALLOCATED( TCOSZ     ) ) DEALLOCATE( TCOSZ     )
-      IF ( ALLOCATED( TTDAY     ) ) DEALLOCATE( TTDAY     )          
-      IF ( ALLOCATED( VCLDF     ) ) DEALLOCATE( VCLDF     )
-      IF ( ALLOCATED( COSZM     ) ) DEALLOCATE( COSZM     )
+      IF ( ALLOCATED( DMSo       ) ) DEALLOCATE( DMSo       )
+      IF ( ALLOCATED( EEV        ) ) DEALLOCATE( EEV        )
+      IF ( ALLOCATED( ENV        ) ) DEALLOCATE( ENV        )
+      IF ( ALLOCATED( ENH3_an    ) ) DEALLOCATE( ENH3_an    )
+      IF ( ALLOCATED( ENH3_bb    ) ) DEALLOCATE( ENH3_bb    )
+      IF ( ALLOCATED( ENH3_bf    ) ) DEALLOCATE( ENH3_bf    )
+      IF ( ALLOCATED( ENH3_na    ) ) DEALLOCATE( ENH3_na    )
+      IF ( ALLOCATED( ESO2_ac    ) ) DEALLOCATE( ESO2_ac    )
+      IF ( ALLOCATED( ESO2_an    ) ) DEALLOCATE( ESO2_an    )
+      IF ( ALLOCATED( ESO2_nv    ) ) DEALLOCATE( ESO2_nv    )
+      IF ( ALLOCATED( ESO2_ev    ) ) DEALLOCATE( ESO2_ev    )
+      IF ( ALLOCATED( ESO2_bb    ) ) DEALLOCATE( ESO2_bb    )
+      IF ( ALLOCATED( ESO2_bf    ) ) DEALLOCATE( ESO2_bf    )
+      IF ( ALLOCATED( ESO2_sh    ) ) DEALLOCATE( ESO2_sh    )
+      IF ( ALLOCATED( ESO4_an    ) ) DEALLOCATE( ESO4_an    )
+      IF ( ALLOCATED( JH2O2      ) ) DEALLOCATE( JH2O2      )
+      IF ( ALLOCATED( O3m        ) ) DEALLOCATE( O3m        )
+      IF ( ALLOCATED( PH2O2m     ) ) DEALLOCATE( PH2O2m     )
+      IF ( ALLOCATED( PMSA_DMS   ) ) DEALLOCATE( PMSA_DMS   )
+      IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
+      IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
+      IF ( ALLOCATED( PSO4_SO2   ) ) DEALLOCATE( PSO4_SO2   )
+#if   defined( TOMAS )
+      IF ( ALLOCATED( PSO4_SO2AQ ) ) DEALLOCATE( PSO4_SO2AQ ) 
+#endif
+      IF ( ALLOCATED( PSO4_ss    ) ) DEALLOCATE( PSO4_ss    )
+      IF ( ALLOCATED( SOx_SCALE  ) ) DEALLOCATE( SOx_SCALE  )
+      IF ( ALLOCATED( SSTEMP     ) ) DEALLOCATE( SSTEMP     )
+      IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
+      IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )          
+      IF ( ALLOCATED( VCLDF      ) ) DEALLOCATE( VCLDF      )
+      IF ( ALLOCATED( COSZM      ) ) DEALLOCATE( COSZM      )
 
       END SUBROUTINE CLEANUP_SULFATE
 !EOC

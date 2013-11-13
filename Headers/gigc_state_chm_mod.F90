@@ -23,7 +23,6 @@ MODULE GIGC_State_Chm_Mod
 ! USES:
 !
   IMPLICIT NONE
-# include "define.h"
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -146,6 +145,7 @@ MODULE GIGC_State_Chm_Mod
 !  26 Feb 2013 - M. Long     - Add DEPSAV to derived type ChmState
 !  07 Mar 2013 - R. Yantosca - Add Register_Tracer subroutine
 !  07 Mar 2013 - R. Yantosca - Now make POSITION a locally SAVEd variable
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,7 +210,7 @@ CONTAINS
 ! !IROUTINE: register_species
 !
 ! !DESCRIPTION: Routine REGISTER\_SPECIES stores the names of GEOS-Chem 
-!  chemical species in fields of the Chemistry State (aka State_Chm) object.
+!  chemical species in fields of the Chemistry State (aka State\_Chm) object.
 !\\
 !\\
 ! !INTERFACE:
@@ -272,7 +272,7 @@ CONTAINS
 ! !IROUTINE: Register_Tracer
 !
 ! !DESCRIPTION: Routine REGISTER\_TRACER stores the names of GEOS-Chem
-!  advected tracers in fields of the Chemistry State (aka State_Chm) object.
+!  advected tracers in fields of the Chemistry State (aka State\_Chm) object.
 !\\
 !\\
 ! !INTERFACE:

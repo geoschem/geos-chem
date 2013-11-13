@@ -18,7 +18,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -32,6 +31,13 @@
 ! !PUBLIC DATA MEMBERS:
 !
       PUBLIC :: SOILDUST
+!
+! !REMARKS:
+!  References:
+!  ============================================================================
+!  (1 ) Pye, H.O.T., and J.H. Seinfeld, "A global perspective on aerosol from
+!        low-volatility organic compounds", Atmos. Chem. & Phys., Vol 10, pp
+!        4377-4401, 2010.
 !
 ! !REVISION HISTORY:
 !  (1 ) Added AEROSOL_RURALBOX routine (bmy, 9/28/04)
@@ -54,6 +60,7 @@
 !       (clh, 05/07/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now make INIT_AEROSOL a public routine
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -330,6 +337,20 @@
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
       USE TRACERID_MOD,       ONLY : IDTASOA, IDTBBSOA, IDTBGSOA
+      USE TRACERID_MOD,       ONLY : IDTSO4,   IDTSOAG, IDTSOAM
+!-----------------------------------------------------------------------------
+! These are in the std code (bmy, 10/30/13)
+!      ! SOAupdate: update SOA tracers (hotp 7/25/10)
+!      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
+!      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
+!      ! SOAupdate: new mtp replaces SOA1-4 (hotp 5/20/10
+!      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2 
+!      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
+!      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+!      ! SOAupdate: replace SOA5 with lumped aromatic (hotp 5/12/10)
+!      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
+!      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
+!-----------------------------------------------------------------------------
 !
 ! !INPUT PARAMETERS:
 !
@@ -364,6 +385,8 @@
 !  05 Mar 2013 - R. Yantosca - Remove call to INIT_AEROSOL, this is now done
 !                              in the initialization stage
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -373,7 +396,15 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      REAL*8,  PARAMETER :: OCF = 2.1d0
+      REAL*8,  PARAMETER :: OCF     = 2.1d0
+!-----------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      ! SOAupdate: semivolpoa: reduce OCF to 1.4 for POA (hotp 2/17/09)
+!      REAL*8,  PARAMETER :: OCF     = 1.4d0
+!
+!      ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
+!      REAL*8,  PARAMETER :: OCFOPOA = 2.1d0  ! = 1.4*1.5
+!-----------------------------------------------------------------------------
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
@@ -658,7 +689,6 @@
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -719,6 +749,7 @@
 !  13 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC arguments for GIGC
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

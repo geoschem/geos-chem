@@ -30,7 +30,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -43,6 +42,7 @@
 !
 ! !REVISION HISTORY:
 !  (1 ) Branching ratio calculation (tmf, 2/6/05).
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

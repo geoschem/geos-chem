@@ -38,8 +38,6 @@
       USE LOGICAL_MOD
 
       IMPLICIT NONE
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -130,6 +128,7 @@
 !  02 Apr 2013 - M. Payer    - Remove code for CTNO, CTNO2, and CTNO3. These
 !                              are no onger needed because NO, NO2, and NO3
 !                              are now tracers.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -218,8 +217,6 @@
             AD07_OC    = 0e0
             AD07_HC    = 0e0
             AD07_SOAGM = 0e0
-            AD07_ASOA  = 0e0
-            AD07_BBSOA = 0e0
 #if   defined( APM )
             AD07_OM    = 0e0
 #endif

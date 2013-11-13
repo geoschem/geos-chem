@@ -191,23 +191,23 @@ CONTAINS
     !=========================================================================
     ! Define the dimensions
     !=========================================================================
-    
-    ! Longitude dimension                      
-    WRITE( 6, '(a)' ) 'Writing lon   (dim     ) to netCDF file'    
-    CALL NcDef_Dimension( fId, 'lon',      ILONG,  idLon )
-    
-    ! Latitude dimension
-    WRITE( 6, '(a)' ) 'Writing lat   (dim     ) to netCDF file'    
-    CALL NcDef_Dimension( fId, 'lat',      ILAT ,  idLat )
-    
+
+    ! Time dimension
+    WRITE( 6, '(a)' ) 'Writing time  (dim     ) to netCDF file'    
+    CALL NcDef_Dimension( fId, 'time',     ITIME,  idTime )
+
     ! Altitude dimension
     WRITE( 6, '(a)' ) 'Writing lev   (dim     ) to netCDF file'    
     CALL NcDef_Dimension( fId, 'lev',      IVERT,  idLev )
 
-    ! Altitude dimension
-    WRITE( 6, '(a)' ) 'Writing time  (dim     ) to netCDF file'    
-    CALL NcDef_Dimension( fId, 'time',     ITIME,  idTime )
-
+    ! Latitude dimension
+    WRITE( 6, '(a)' ) 'Writing lat   (dim     ) to netCDF file'    
+    CALL NcDef_Dimension( fId, 'lat',      ILAT ,  idLat )
+        
+    ! Longitude dimension                      
+    WRITE( 6, '(a)' ) 'Writing lon   (dim     ) to netCDF file'    
+    CALL NcDef_Dimension( fId, 'lon',      ILONG,  idLon )
+    
     ! Character dimension 1
     WRITE( 6, '(a)' ) 'Writing cdim1 (dim     ) to netCDF file'    
     CALL NcDef_Dimension( fId, 'cdim1', ICHAR1, idChar1 )
@@ -220,49 +220,28 @@ CONTAINS
     ! Define the variables and variable attributes 
     ! for COARDS compliance and GAMAP compliance
     !=========================================================================
-    CALL NcDef_Glob_Attributes( fId, 'title',       'NcdfUtilities test file' )
-    CALL NcDef_Glob_Attributes( fId, 'history',     'test file - 24 Jan 2011' )
-    CALL NcDef_Glob_Attributes( fId, 'conventions', 'COARDS'                  )
-    CALL NcDef_Glob_Attributes( fId, 'model',       'GEOS4'                   )
-    CALL NcDef_Glob_Attributes( fId, 'nlayers',     '55'                      )
-    CALL NcDef_Glob_Attributes( fId, 'start_date',  '20110101'                )
-    CALL NcDef_Glob_Attributes( fId, 'start_time',  '00:00:00.0'              )
-    CALL NcDef_Glob_Attributes( fId, 'end_date',    '20110101'                )
-    CALL NcDef_Glob_Attributes( fId, 'end_time',    '23:59:59.0'              )
-    CALL NcDef_Glob_Attributes( fId, 'delta_lon',   '5'                       )
-    CALL NcDef_Glob_Attributes( fId, 'delta_lat',   '4'                       )
-    CALL NcDef_Glob_Attributes( fId, 'delta_time',  '000000'                  )
-    CALL NcDef_Glob_Attributes( fId, 'format',      'netCDF-3'                )
+    CALL NcDef_Glob_Attributes( fId, 'Title',       'NcdfUtilities test file' )
+    CALL NcDef_Glob_Attributes( fId, 'History',     'test file - 24 Jan 2011' )
+    CALL NcDef_Glob_Attributes( fId, 'Conventions', 'COARDS'                  )
+    CALL NcDef_Glob_Attributes( fId, 'Model',       'GEOS4'                   )
+    CALL NcDef_Glob_Attributes( fId, 'Nlayers',     '55'                      )
+    CALL NcDef_Glob_Attributes( fId, 'Start_Date',  '20110101'                )
+    CALL NcDef_Glob_Attributes( fId, 'Start_Time',  '00:00:00.0'              )
+    CALL NcDef_Glob_Attributes( fId, 'End_Date',    '20110101'                )
+    CALL NcDef_Glob_Attributes( fId, 'End_Time',    '23:59:59.0'              )
+    CALL NcDef_Glob_Attributes( fId, 'Delta_Lon',   '5'                       )
+    CALL NcDef_Glob_Attributes( fId, 'Delta_Lat',   '4'                       )
+    CALL NcDef_Glob_Attributes( fId, 'Delta_time',  '000000'                  )
+    CALL NcDef_Glob_Attributes( fId, 'Format',      'netCDF-3'                )
+    CALL NcDef_Glob_Attributes( fId, 'valid_range', (/ -1e15, +1e15 /)        )
 
     !=========================================================================
     ! Define the variables and variable attributes
     !=========================================================================
 
-    ! Define longitude variable
-    vId  = 0
-    var1 = (/ idLon /)
-    CALL NcDef_Variable( fId, 'lon', NF_DOUBLE, 1, var1, vId )
-    CALL NcDef_Var_Attributes( fId, vId,  'long_name', 'Longitude'    )
-    CALL NcDef_Var_Attributes( fId, vId,  'units',     'degrees_east' )
-  
-    ! Define latitude variable
-    vId  = vId + 1
-    var1 = (/ idLat /)
-    CALL NcDef_Variable( fId, 'lat', NF_DOUBLE, 1, var1, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Latitude'      )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_north' )
-    
-    ! Define vertical (pressure) variable
-    vId  = vId + 1
-    var1 = (/ idLev /)
-    CALL NcDef_Variable( fId, 'lev', NF_DOUBLE, 1, var1, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Pressure' )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'hPa'      )
-    
     ! Time index array (hardwire date to 2011/01/01)
-    vId     = vId + 1
     var1    = (/ idTime /)
-    vId     = vId + 1
+    vId     = 0
     units   = 'minutes since 2011-01-01 00:00:00 GMT'
     delta_t = '0000-00-00 00:00:00'
     begin_d = '20110101'
@@ -276,6 +255,27 @@ CONTAINS
     CALL NcDef_Var_Attributes( fId, vId, 'begin_time',     TRIM( begin_t )  )
     CALL NcDef_Var_Attributes( fId, vId, 'time_increment', TRIM( incr    )  )
 
+    ! Define vertical (pressure) variable
+    vId  = vId + 1
+    var1 = (/ idLev /)
+    CALL NcDef_Variable( fId, 'lev', NF_DOUBLE, 1, var1, vId )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Pressure' )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'hPa'      )
+
+    ! Define latitude variable
+    vId  = vId + 1
+    var1 = (/ idLat /)
+    CALL NcDef_Variable( fId, 'lat', NF_DOUBLE, 1, var1, vId )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Latitude'      )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_north' )
+
+    ! Define longitude variable
+    var1 = (/ idLon /)
+    vId  = vId + 1
+    CALL NcDef_Variable( fId, 'lon', NF_DOUBLE, 1, var1, vId )
+    CALL NcDef_Var_Attributes( fId, vId,  'long_name', 'Longitude'    )
+    CALL NcDef_Var_Attributes( fId, vId,  'units',     'degrees_east' )
+      
     ! Define surface pressure variable
     vId  = vId + 1
     var3 = (/ idLon, idLat, idTime /)
@@ -283,6 +283,9 @@ CONTAINS
     CALL NcDef_Var_Attributes( fId, vId, 'long_name',      'Surface Pressure' )
     CALL NcDef_Var_Attributes( fId, vId, 'units',          'hPa'              )
     CALL NcDef_Var_Attributes( fId, vId, 'gamap_category', 'GMAO-2D'          )
+    CALL NcDef_Var_Attributes( fId, vId, 'missing_value',   1e15              )
+    CALL NcDef_Var_Attributes( fId, vId, '_FillValue',      1e15              )
+    CALL NcDef_Var_Attributes( fId, vId, 'valid_range',     (/-1e15, +1e15/)  )
     
     ! Define temperature variable
     vId  = vId + 1
@@ -291,7 +294,11 @@ CONTAINS
     CALL NcDef_Var_Attributes( fId, vId, 'long_name',      'Temperature'      )
     CALL NcDef_Var_Attributes( fId, vId, 'units',          'K'                )
     CALL NcDef_Var_Attributes( fId, vId, 'gamap_category', 'GMAO-3D$'         )
-    
+    CALL NcDef_Var_Attributes( fId, vId, 'missing_value',   1e15              )
+    CALL NcDef_Var_Attributes( fId, vId, '_FillValue',      1e15              )
+    CALL NcDef_Var_Attributes( fId, vId, 'valid_range',     (/-1e15, +1e15/)  )
+
+
     ! Define description variable
     vId  = vId + 1
     var2 = (/ idChar1, idChar2 /)
@@ -406,8 +413,10 @@ CONTAINS
     INTEGER                :: ct1d(1), ct2d(2), ct3d(3), ct4d(4)
     INTEGER                :: st1d(1), st2d(2), st3d(3), st4d(4)
     CHARACTER(LEN=255)     :: attValue
+    REAL*4                 :: attValR4
 
     ! Arrays
+    REAL*4                 :: valid(2)
     REAL*8,    ALLOCATABLE :: lon(:),  lat(:),  lev(:)
     INTEGER,   ALLOCATABLE :: time(:)
     REAL*4,    ALLOCATABLE :: PS(:,:,:)
@@ -539,6 +548,24 @@ CONTAINS
     ENDIF
     CALL Check( 'Reading PS:long_name   back from netCDF file', rc, pCt, tCt )
 
+    ! Read _FillValue attribute
+    CALL NcGet_Var_Attributes( fId, 'PS', '_FillValue', attValR4 )
+    IF ( attValR4 == 1e15 ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
+    CALL Check( 'Reading PS:_FillValue  back from netCDF file', rc, pCt, tCt )
+
+    ! Read valid_range attribute
+    CALL NcGet_Var_Attributes( fId, 'PS', 'valid_range', valid )
+    IF ( valid(1) == -1e15 .and. valid(2) == 1e15 ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
+    CALL Check( 'Reading PS:valid_range back from netCDF file', rc, pCt, tCt )
+
     !=========================================================================
     ! Read the T variable
     !=========================================================================
@@ -562,7 +589,7 @@ CONTAINS
     ENDIF
     CALL Check( 'Reading T:units        back from netCDF file', rc, pCt, tCt )
 
-    ! Read long_name attribute
+    ! Read long_name
     CALL NcGet_Var_Attributes( fId, 'T', 'long_name', attValue )
     IF ( TRIM( attValue ) == 'Temperature' ) THEN
        rc = 0
@@ -570,6 +597,24 @@ CONTAINS
        rc = -1
     ENDIF
     CALL Check( 'Reading T:long_name    back from netCDF file', rc, pCt, tCt )
+
+    ! Read _FillValue attribute
+    CALL NcGet_Var_Attributes( fId, 'T', '_FillValue', attValR4 )
+    IF ( attValR4 == 1e15 ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
+    CALL Check( 'Reading T:_FillValue   back from netCDF file', rc, pCt, tCt )
+
+    ! Read valid_range attribute
+    CALL NcGet_Var_Attributes( fId, 'T', 'valid_range', valid )
+    IF ( valid(1) == -1e15 .and. valid(2) == 1e15 ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
+    CALL Check( 'Reading T:valid_range  back from netCDF file', rc, pCt, tCt )
 
     !=========================================================================
     ! Read the DESC variable
@@ -613,7 +658,7 @@ CONTAINS
     !=========================================================================
 
     ! Read title attribute
-    CALL NcGet_Glob_Attributes( fId, 'title', attValue )
+    CALL NcGet_Glob_Attributes( fId, 'Title', attValue )
     IF ( TRIM( attValue ) == 'NcdfUtilities test file' ) THEN
        rc = 0
     ELSE
@@ -622,7 +667,7 @@ CONTAINS
     CALL Check( 'Reading title          back from netCDF file', rc, pCt, tCt )
 
     ! Read start_date
-    CALL NcGet_Glob_Attributes( fId, 'start_date', attValue )
+    CALL NcGet_Glob_Attributes( fId, 'Start_Date', attValue )
     IF ( TRIM( attValue ) == '20110101' ) THEN
        rc = 0
     ELSE
@@ -631,7 +676,7 @@ CONTAINS
     CALL Check( 'Reading start_date     back from netCDF file', rc, pCt, tCt )
 
     ! Read start_time
-    CALL NcGet_Glob_Attributes( fId, 'start_time', attValue )
+    CALL NcGet_Glob_Attributes( fId, 'Start_Time', attValue )
     IF ( TRIM( attValue ) == '00:00:00.0' ) THEN
        rc = 0
     ELSE

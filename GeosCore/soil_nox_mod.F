@@ -17,7 +17,6 @@
       USE CMN_SIZE_MOD
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -95,7 +94,8 @@
 !                                  regridded) landfraction, climate and
 !                                  fertilizer data
 !  29 Aug 2012 - J.D. Maasakkers - Removed all unused Wang et al. code
-!                                  (comments)  
+!                                  (comments)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -744,6 +744,7 @@
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
 !  31 Jan 2011 - R. Hudman   - Rewrote pulsing scheme
 !  31 Jan 2011 - R. Hudman   - Updated ProTex header
+!  28 Oct 2013 - R. Yantosca - Bug fix: prevent log(0) from happening 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -768,8 +769,19 @@
          ! If change in soil moisture is > 0.01 (rains)
          IF ( GDIFF > 0.01 ) THEN
 
-            !Initialize new pulse factor (dry period hours)
-            PFACTOR = 13.01 * LOG( DRYPERIOD ) - 53.6
+!-----------------------------------------------------------------------------
+! Prior to 10/28/13:
+! Now add a numerical trap to prevent log(0) from occurring, which would
+! cause a floating-point error. (mpayer, bmy, 10/28/13)
+!            !Initialize new pulse factor (dry period hours)
+!            PFACTOR = 13.01 * LOG( DRYPERIOD ) - 53.6
+!-----------------------------------------------------------------------------
+            ! Initialize new pulse factor (dry period hours)
+            IF ( DRYPERIOD > 0 ) THEN
+               PFACTOR = 13.01 * LOG( DRYPERIOD ) - 53.6
+            ELSE
+               PFACTOR = -53.6
+            ENDIF
 
             ! If dry period < ~3 days then no pulse
             IF ( PFACTOR < 1.0 ) PFACTOR = 1.0

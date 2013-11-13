@@ -27,7 +27,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -59,6 +59,9 @@
 #  20 Nov 2009 - P. Le Sager - Added CHEM option
 #  23 Nov 2009 - R. Yantosca - Added realclean target
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
+#  16 Oct 2013 - M. Sulprizio- Remove isoprene directory from realclean target.
+#                              This directory has been removed because it is
+#                              obsolete.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -128,7 +131,6 @@ clean:
 realclean:
 	@$(MAKE) -C standard clean
 	@$(MAKE) -C SOA clean
-	@$(MAKE) -C isoprene clean
 
 help:
 	@$(MAKE) -C $(HELP) 

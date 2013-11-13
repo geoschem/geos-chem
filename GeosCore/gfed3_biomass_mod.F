@@ -18,7 +18,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 
 !
@@ -87,6 +86,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -408,6 +408,7 @@
 !                                will maintain grid-independent functionality.
 !  06 Jun 2013 - M. Payer      - Set TAU0 to first of month for 3-hr emissions
 !                                to match time stamp of data file (C. Keller)
+!  02 Jul 2013 - M. Payer      - Update GFED3 emissions to 2011 (P. Kasibhatla)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -540,7 +541,7 @@
       ! Availability of MONTHLY data
       !-------------------------------
          
-      CALL GFED3_AVAILABLE( YYYY, 1997, 2010 )
+      CALL GFED3_AVAILABLE( YYYY, 1997, 2011 )
 
       ! Create YYYYMMDD integer values
       YYYYMMDD = YYYY*10000 + MM*100 + 01
@@ -573,17 +574,17 @@
 
       ! File name with GFED3 DM emissions
       FILENAME1 = TRIM( DATA_DIR_NATIVE ) //
-     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_AGW_YYYYMM'
+     &            'GFED3_201212/YYYY/Monthly/GFED3_DM_AGW_YYYYMM'
       FILENAME2 = TRIM( DATA_DIR_NATIVE ) //
-     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_DEF_YYYYMM'
+     &            'GFED3_201212/YYYY/Monthly/GFED3_DM_DEF_YYYYMM'
       FILENAME3 = TRIM( DATA_DIR_NATIVE ) //
-     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_FOR_YYYYMM'
+     &            'GFED3_201212/YYYY/Monthly/GFED3_DM_FOR_YYYYMM'
       FILENAME4 = TRIM( DATA_DIR_NATIVE ) //
-     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_PET_YYYYMM'
+     &            'GFED3_201212/YYYY/Monthly/GFED3_DM_PET_YYYYMM'
       FILENAME5 = TRIM( DATA_DIR_NATIVE ) //
-     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_SAV_YYYYMM'
+     &            'GFED3_201212/YYYY/Monthly/GFED3_DM_SAV_YYYYMM'
       FILENAME6 = TRIM( DATA_DIR_NATIVE ) //
-     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_WDL_YYYYMM'
+     &            'GFED3_201212/YYYY/Monthly/GFED3_DM_WDL_YYYYMM'
 
       !=================================================================
       ! Read GFED3 DM burnt [g/m2/month]
@@ -672,7 +673,7 @@
             TAU0 = GET_TAU0( MM, 1, YYYY, IT3H )
 
             FILENAME7 = TRIM( DATA_DIR_NATIVE ) //
-     &         'GFED3_201203/YYYY/3hourly/GFED3_FR_3HR_YYYYMMDDhh'
+     &         'GFED3_201212/YYYY/3hourly/GFED3_FR_3HR_YYYYMMDDhh'
 
             ! Replace YYYY/MM/HH in the file name
             CALL EXPAND_DATE( FILENAME7, YYYYMMDD, HHMMSS )
@@ -732,7 +733,7 @@
          YYYYMMDD = YYYY*10000 + MM*100 + DD
 
          FILENAME8 = TRIM( DATA_DIR_NATIVE ) //
-     &               'GFED3_201203/YYYY/Daily/GFED3_FR_DAY_YYYYMMDD'
+     &               'GFED3_201212/YYYY/Daily/GFED3_FR_DAY_YYYYMMDD'
 
          ! Replace YYYY/MM in the file name
          CALL EXPAND_DATE( FILENAME8, YYYYMMDD, 000000 )
@@ -1219,7 +1220,7 @@
      
       ! File name
       FILENAME = TRIM( DATA_DIR_NATIVE) // 
-     &           'GFED3_201203/GFED3_emission_factors.txt'
+     &           'GFED3_201212/GFED3_emission_factors.txt'
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -1260,7 +1261,7 @@
 
       ! File name
       FILENAME = TRIM( DATA_DIR_NATIVE ) //
-     &           'GFED3_201203/GFED3_humtropmap'
+     &           'GFED3_201212/GFED3_humtropmap'
 
       ! Read GFED3 veg map
       CALL READ_BPCH2_GFED3( FILENAME, 'LANDMAP',     1,
@@ -1498,8 +1499,6 @@
       USE ERROR_MOD, ONLY : ERROR_STOP
       USE FILE_MOD,  ONLY : IOERROR
       USE BPCH2_MOD, ONLY : OPEN_BPCH2_FOR_READ
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1516,6 +1515,7 @@
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Adapted from READ_BPCH2 to facilitate reading of 0.5x0.5 GFED3 files (psk, 2/7/12)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

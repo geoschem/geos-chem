@@ -16,8 +16,9 @@
 ! !USES:
 !
       IMPLICIT NONE
-
-#     include "define.h"
+!
+! !PRIVATE TYPES:
+!
       PRIVATE
       PRIVATE :: HG2_DIAG !hma, 25 Oct 2011
 !
@@ -138,7 +139,7 @@
       PUBLIC  :: ITS_TIME_FOR_A6UPDATE
 #endif
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       PUBLIC  :: Accept_External_Date_Time
 #endif
 !
@@ -224,6 +225,8 @@
 !  01 Mar 2012 - R. Yantosca - GET_LOCALTIME now takes (I,J,L,GMT) as args
 !  14 Jun 2013 - R. Yantosca - Now compute day of week in SET_CURRENT_TIME
 !  14 Jun 2013 - R. Yantosca - Added comments to module variable declarations
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -329,8 +332,6 @@
 ! !USES:
 !
       USE JULDAY_MOD, ONLY : JULDAY, CALDATE
-
-#     include "define.h"
 !
 ! !REMARKS:
 !  The GEOS met fields are assimilated data, and therefore contain data on
@@ -354,6 +355,7 @@
 !                              # of leap-year-days that have already occurred
 !                              when going from Julian date to Y/M/D date
 !  14 Jun 2013 - R. Yantosca - Now move the day of week computation here
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1561,8 +1563,6 @@
 ! !USES:
 !
       USE JULDAY_MOD, ONLY : CALDATE
-
-#     include "define.h"   ! C-preprocessor flags
 !
 ! !INPUT PARAMETERS:
 !
@@ -1577,6 +1577,7 @@
 !  (1 ) Bug fix for GCAP leap year case (phs, bmy, 12/8/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  17 Dec 2010 - R. Yantosca - Added fix in case HHMMSS is returned as 240000
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2814,10 +2815,6 @@
 !
       FUNCTION GET_A1_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -2825,11 +2822,13 @@
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
 
       ! MERRA and GEOS-5.7.x met fields are 1-hour time-averages, timestamped 
       ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
@@ -2859,10 +2858,6 @@
 !
       FUNCTION GET_A3_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -2875,6 +2870,7 @@
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3108,10 +3104,6 @@
 !
       FUNCTION GET_FIRST_A1_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -3121,6 +3113,7 @@
 !  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3145,10 +3138,6 @@
 !
       FUNCTION GET_FIRST_A3_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -3160,6 +3149,7 @@
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3202,10 +3192,6 @@
 !
       FUNCTION GET_FIRST_A6_TIME() RESULT( DATE )
 !
-! !USES:
-! 
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
@@ -3216,6 +3202,7 @@
 !  (2 ) Modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3652,10 +3639,6 @@
 !
       FUNCTION ITS_TIME_FOR_A6() RESULT( FLAG )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       LOGICAL :: FLAG 
@@ -3667,6 +3650,7 @@
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3733,9 +3717,6 @@
 !
       FUNCTION ITS_TIME_FOR_A6UPDATE() RESULT( FLAG )
 !
-! !USES:
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       LOGICAL :: FLAG 
@@ -3750,6 +3731,7 @@
 !  (2 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4711,10 +4693,6 @@
 !
       FUNCTION TIMESTAMP_STRING( YYYYMMDD, HHMMSS ) RESULT( TIME_STR )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN), OPTIONAL :: YYYYMMDD   ! YYYY/MM/DD date
@@ -4730,6 +4708,7 @@
 !  (2 ) Now add optional arguments YYYYMMDD and HHMMSS (bmy, 10/27/03)
 !  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4845,8 +4824,6 @@
 ! !USES:
 !
       USE CHARPAK_MOD, ONLY : STRREPL
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4866,6 +4843,7 @@
 !  (4 ) Now do not replace "ss" with seconds, as the smallest GEOS-Chem
 !        timestep is in minutes. (bmy, 7/20/04)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5082,7 +5060,7 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -5091,8 +5069,8 @@
 ! !IROUTINE: accept_external_date_time
 !
 ! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_DATE\_TIME sets the date and
-!  time variables in time_mod.F with the values obtained from an external
-!  GCM (such as NASA's GEOS-5 GCM).  The various date & time values from 
+!  time variables in time\_mod.F with the values obtained from an external
+!  GCM (such as NASA's GEOS-5 GCM).  The various date \& time values from 
 !  the GCM are passed as arguments.
 !\\
 !\\
@@ -5154,7 +5132,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4 :: A. B. JD, THISDAY, TMP
+      REAL*8 :: A, B, JD, THISDAY, TMP
 
       !=================================================================
       ! Set time/date values of time_mod.F from the ESMF inputs 

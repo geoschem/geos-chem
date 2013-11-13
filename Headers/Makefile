@@ -11,7 +11,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -35,6 +35,8 @@
 #
 # !REVISION HISTORY: 
 #  23 Aug 2011 - M. Long     - Initial version
+#  19 Mar 2012 - M. Payer    - Added EF_MGN20_mod for SOA + semivolatile POA
+#                              simulation (H. Pye)
 #  09 Apr 2012 - R. Yantosca - Removed CMN_VEL_mod.F; it's obsolete
 #  19 Oct 2012 - R. Yantosca - Add modules for Grid-Independent GEOS-Chem
 #  01 Nov 2012 - R. Yantosca - Added gigc_input_opt_mod.F90
@@ -103,8 +105,7 @@ CMN_DIAG_mod.o       : CMN_DIAG_mod.F           \
                        CMN_SIZE_mod.o           \
                        gigc_errcode_mod.o
 
-CMN_GCTM_mod.o       : CMN_GCTM_mod.F	        \
-                       gigc_errcode_mod.o
+CMN_GCTM_mod.o       : CMN_GCTM_mod.F
 
 CMN_NOX_mod.o        : CMN_NOX_mod.F            \
                        CMN_SIZE_mod.o           \
@@ -118,7 +119,8 @@ CMN_SIZE_mod.o       : CMN_SIZE_mod.F           \
                        gigc_errcode_mod.o
 
 CMN_mod.o            : CMN_mod.F                \
-                       CMN_SIZE_mod.o
+                       CMN_SIZE_mod.o           \
+                       gigc_errcode_mod.o
 
 cmn_fj_mod.o         : cmn_fj_mod.F             \
                        CMN_SIZE_mod.o           \
@@ -133,10 +135,14 @@ comode_loop_mod.o    : comode_loop_mod.F        \
                        gigc_errcode_mod.o       \
                        gigc_input_opt_mod.o
 
+EF_MGN20_mod.o       : EF_MGN20_mod.F
+
 gigc_errcode_mod.o   : gigc_errcode_mod.F90
 
 gigc_input_opt_mod.o : gigc_input_opt_mod.F90   \
-                       gigc_errcode_mod.o
+                       gigc_errcode_mod.o       \
+                       CMN_SIZE_mod.o
+
 
 gigc_state_chm_mod.o : gigc_state_chm_mod.F90   \
                        gigc_errcode_mod.o       \
@@ -158,10 +164,8 @@ jv_cmn_mod.o         : jv_cmn_mod.F             \
 jv_mie_mod.o         : jv_mie_mod.F             \
                        gigc_errcode_mod.o
 
-smv_dimension_mod.o  : smv_dimension_mod.F      \
-                       gigc_errcode_mod.o
+smv_dimension_mod.o  : smv_dimension_mod.F
 
-smv_physconst_mod.o  : smv_physconst_mod.F      \
-                       gigc_errcode_mod.o
+smv_physconst_mod.o  : smv_physconst_mod.F
 
 #EOC

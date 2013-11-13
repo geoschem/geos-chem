@@ -18,7 +18,6 @@
       USE CMN_SIZE_MOD     ! Size parameters
 
       IMPLICIT NONE
-#     include "define.h"
 !  
 ! !INPUT PARAMETERS: 
 !
@@ -53,6 +52,7 @@
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields.  Also remove
 !        call to CHECK_VALUE. (bmy, 8/4/06)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

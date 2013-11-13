@@ -21,7 +21,6 @@ MODULE Grid_Mod
   USE Error_Mod                ! Error-handling routines
 
   IMPLICIT NONE
-# include "define.h"
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -46,11 +45,6 @@ MODULE Grid_Mod
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
 
-! Comment out for now (bmy, 12/11/12)
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!      PUBLIC  :: YMID, XMID, YEDGE, XEDGE, AREA_M2
-!#endif
-!
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !  01 Mar 2012 - R. Yantosca - Validated for nested grids
@@ -58,6 +52,7 @@ MODULE Grid_Mod
 !  04 Dec 2012 - R. Yantosca - Modified for GIGC running in ESMF environment
 !  26 Feb 2013 - R. Yantosca - Fixed bug in computation of lons & lats when
 !                              connecting GEOS-Chem to the GEOS-5 GCM
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -162,6 +157,8 @@ CONTAINS
 !  21 Mar 2013 - R. Yantosca - Rename loop indices to prevent confusion
 !  06 Jun 2013 - M. Payer    - Add fix to compute sine of last latitude edge
 !                              for MAP_A2A regridding (C. Keller)
+!  02 Jul 2013 - R. Yantosca - Now compute lon centers properly for GCAP,
+!                              which does not have any half-sized polar boxes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -238,8 +235,8 @@ CONTAINS
              !%%%%%%   LATITUDE CENTERS   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-             ! Lat centers (degrees)
-             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+!             ! Lat centers (degrees)
+!             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
           
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
              !-------------------------------------------------------------
@@ -248,24 +245,46 @@ CONTAINS
              ! Do not define half-sized polar boxes (bmy, 3/21/13)
              !-------------------------------------------------------------
 #else
+
+# if defined( GCAP )
+
+             !-------------------------------------------------------------
+             !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+             !
+             ! For the GCAP model, there are no half-size polar boxes.
+             ! Compute the latitude centers accordingly.  (bmy, 7/2/13)
+             !-------------------------------------------------------------
+
+             ! Lat centers (degrees)
+             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 88d0
+
+# else
+
              !-------------------------------------------------------------
              !             %%%%% TRADITIONAL GEOS-Chem %%%%%
              !
              ! Current practice in the standard GEOS-Chem is to make
-             ! the polar grid boxes (for global grids only) be half the
-             ! size of other grid boxes.  This lets us make +90 degrees
-             ! and -90 degrees be the edges of the grid. (bmy, 3/21/13)
+             ! the polar grid boxes (for non-GCAP global grids only) be
+             ! half the size of other grid boxes.  This lets us make +90
+             ! degrees and -90 degrees be the edges of the grid.
+             ! (bmy, 7/2/13)
              !-------------------------------------------------------------
+
+             ! Lat centers (degrees)
+             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+
              IF ( JG == JSP ) THEN
                 YMID(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
              ELSE IF ( JG == JNP ) THEN
                 YMID(I,J,L)  = +90d0 - ( 0.5d0 * DLAT(I,J,L) )   ! N pole
              ENDIF
+
+# endif
 #endif
              ! Lat centers (radians)
              YMID_R(I,J,L)   = ( PI_180 * YMID(I,J,L)  )
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
 
              !-------------------------------------------------------------
              !              %%%%% FOR NESTED GRIDS ONLY %%%%%
@@ -898,11 +917,12 @@ CONTAINS
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
 !  01 Mar 2012 - R. Yantosca - Bracket with #ifdef for nested grids
+!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
 
     ! For nested grids, return the latitude center of the window
     ! region (in radians)
@@ -1192,114 +1212,6 @@ CONTAINS
     
   END FUNCTION ITS_A_NESTED_GRID
 !EOC
-!-------------------------------------------------------------------------------
-! Prior to 12/4/12:
-! Dimension arrays with 
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: init_grid
-!!
-!! !DESCRIPTION: Subroutine INIT\_GRID initializes variables and allocates
-!!  module arrays.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE Init_Grid( am_I_Root, I1, I2, J1, J2, L1, L2, RC )
-!!
-!! !USES:
-!!
-!    USE GIGC_ErrCode_Mod
-!!
-!! !INPUT PARAMETERS:
-!!
-!    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU 
-!    INTEGER, INTENT(IN)  :: I1, I2      ! Local CPU lon index bounds
-!    INTEGER, INTENT(IN)  :: J1, J2      ! Local CPU lat index bounds
-!    INTEGER, INTENT(IN)  :: L1, L2      ! Local CPU lev index bounds
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
-!!
-!! !REVISION HISTORY:
-!!  24 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
-!!  01 Mar 2012 - R. Yantosca - Now define IS_NESTED based on Cpp flags
-!!  03 Dec 2012 - R. Yantosca - Add am_I_Root, RC to argument list
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!! 
-!    INTEGER :: AS
-!
-!    !======================================================================
-!    ! Initialize module variables
-!    !======================================================================
-!
-!    ! First assume that we are doing a global simulation
-!    IS_NESTED = .FALSE.
-!
-!   !ALLOCATE( XMID( I1:I2, J1:J2, L1:L2 ), STAT=AS )
-!    ALLOCATE( XMID( I2-I1+1, J2-J1+1, L2-L1+1 ), STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'XMID' )
-!    XMID = 0
-!    
-!   !ALLOCATE( XEDGE( I1:I2+1, J1:J2, L1:L2 ), STAT=AS )
-!    ALLOCATE( XEDGE( I2-I1+2, J2-J1+1, L2-L1+1 ), STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'XEDGE' )
-!    XEDGE = 0d0
-!    
-!    ALLOCATE( YMID( I1:I2, J1:J2, L1:L2 ), STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID' )
-!    YMID = 0d0
-!    
-!    ALLOCATE( YEDGE( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
-!    YEDGE = 0d0
-!
-!    ALLOCATE( YSIN( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YSIN' )
-!    YSIN = 0d0
-!
-!    ALLOCATE( YMID_R( I1:I2, J1:J2, L1:L2 ), STAT=AS )               
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
-!    YMID_R = 0d0
-!   
-!    ALLOCATE( YEDGE_R( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
-!    YEDGE_R = 0d0
-!
-!    ALLOCATE( AREA_M2( I1:I2, J1:J2, L1:L2 ), STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
-!    AREA_M2 = 0d0
-!
-!#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
-!
-!    !======================================================================
-!    ! Special settings for nested-grid simulations only
-!    !======================================================================
-!
-!    ! Denote that this is a nested-grid simulation
-!    IS_NESTED = .TRUE.
-!    
-!    ! Allocate nested-grid window array of lat centers (radians)
-!    ALLOCATE( YMID_R_W( I1:I2, 0:J2+1, L1:L2 ), STAT=AS ) 
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
-!    YMID_R_W = 0d0
-!
-!#endif
-!
-!    ! Return successfully
-!    RC = GIGC_SUCCESS
-!
-!  END SUBROUTINE Init_Grid
-!EOC
-!------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1337,6 +1249,7 @@ CONTAINS
 !  04 Dec 2012 - R. Yantosca - Now dimension arrays with IM, JM, LM instead 
 !                              of I1, J1, L1, I2, J2, L2.  
 !  18 Apr 2013 - R. Yantosca - Bug fix: in nested block, use STAT=RC
+!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1387,7 +1300,7 @@ CONTAINS
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
     AREA_M2 = 0d0
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
 
     !======================================================================
     ! Special settings for nested-grid simulations only

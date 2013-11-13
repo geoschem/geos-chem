@@ -18,7 +18,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -67,6 +66,7 @@
 !  14 Nov 2012 - R. Yantosca - Add modifications for GIGC
 !  04 Mar 2013 - R. Yantosca - Now call INIT_DUST from the init stage
 !                              which facilitates connection to GEOS-5 GCM
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -235,7 +235,7 @@
 ! !IROUTINE: settledust 
 !
 ! !DESCRIPTION: Subroutine SETTLEDUST is the interface between the 
-!  size-resolved dry deposition subroutine AERO_DRYDEP and the dust module. 
+!  size-resolved dry deposition subroutine AERO\_DRYDEP and the dust module. 
 !  This is to call only gravitational settling and deals with removal of 
 !  aerosol number with the dust mass.  (win, 7/17/09)
 !\\
@@ -1097,6 +1097,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1232,7 +1233,7 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
             SNW_HGT_LQD(I) = State_Met%SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = State_Met%SNOW(I,J) / 1000d0
@@ -1400,6 +1401,10 @@
 !      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
 !#endif
 
+      REAL*8, PARAMETER      :: G        = G0 * 1.d2
+      REAL*8, PARAMETER      :: RHOA     = 1.25d-3
+
+
       ! Transfer coeff for type natural source  (kg*s2/m5)
 !Prior 4/27/08
 !      REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10
@@ -1413,15 +1418,16 @@
       !       Thus applying 1/2  factor to correct the emission.
 #else
 
-#if   defined( TOMAS )
-      CALL ERROR_STOP('Adjust dust transfer coeff for your model res.?',
-     &                'SRC_DUST_GINOUX: dust_mod.f')
-#else
+# if   defined( TOMAS )
+!      CALL ERROR_STOP('Adjust dust transfer coeff for your model res.?',
+!     &                'SRC_DUST_GINOUX: dust_mod.f')
+
+!KLUDGE - sfarina, using .75 for 2x2.5
+      REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10 * 0.75d0
+# else
       REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10 
+# endif
 #endif
-#endif
-      REAL*8, PARAMETER      :: G        = G0 * 1.d2
-      REAL*8, PARAMETER      :: RHOA     = 1.25d-3
 
       ! External functions
       REAL*8,  EXTERNAL      :: SFCWINDSQR
@@ -1871,8 +1877,6 @@
       USE JV_CMN_MOD,         ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
-#     include "define.h"
-
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
@@ -1944,6 +1948,7 @@
 !                              running with the traditional driver main.F
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2232,8 +2237,17 @@
 #if   defined( TOMAS )
       INTEGER            :: I
       INTEGER            :: BIN
-      INTEGER            :: ACTMODEBINS
       REAL*8,  PARAMETER :: PI = 3.14159265d0  !(win, 7/17/09)
+      INTEGER            :: ACTMODEBINS        !(scf, 2/27/13)
+
+# if   defined( TOMAS40 )
+      ACTMODEBINS = 10  !10 activation mode size bins
+# elif defined( TOMAS15 )
+      ACTMODEBINS = 3   !3  activation mode size bins
+# else
+      ACTMODEBINS = 0   !no bins < 10nm
+# endif
+
 #endif
 
       !=================================================================
@@ -2251,38 +2265,6 @@
       ! INITIALIZATION SECTION FOR TOMAS MICROPHYSICS
       !=================================================================
 
-#if defined( TOMAS40 )
-
-      !---------------------------
-      ! 40 TOMAS bins
-      !---------------------------
-
-      ! Error check IBINS
-      IF ( IBINS /= 40 ) THEN
-         CALL ERROR_STOP( 'Current code compatible with 40-bin',
-     &                    'INIT_DUST ("dust_mod.f")' )
-      ENDIF
-
-      ! For 40-bin TOMAS: 10 activation mode size bins
-      ACTMODEBINS = 10  
-
-#else
-
-      !---------------------------
-      ! Default TOMAS simulation
-      !---------------------------
-
-      ! Error check IBINS
-      IF ( IBINS /= 30 ) THEN
-         CALL ERROR_STOP( 'Current code compatible with 30-bin',
-     &                    'INIT_DUST ("dust_mod.f")' )
-      ENDIF
-
-      ! For 30-bin TOMAS: no bins < 10nm
-      ACTMODEBINS = 0 
-
-#endif
-
       !-------------------------------
       ! Set up dust density
       !-------------------------------
@@ -2292,12 +2274,12 @@
 
       ELSE IF ( NDSTBIN == IBINS ) THEN
 
-         DO I = 1, 3 + ACTMODEBINS
-            Input_Opt%DUSTDEN(I)  = 2500.d0
-         ENDDO
-
-         DO I = ACTMODEBINS + 4, IBINS
-            Input_Opt%DUSTDEN(I)  = 2650.d0
+         DO I = 1, IBINS
+            IF (Xk(I) < 4.0D-15 ) THEN
+               Input_Opt%DUSTDEN(I)  = 2500.d0
+            ELSE
+               Input_Opt%DUSTDEN(I)  = 2650.d0
+            ENDIF
          ENDDO
 
       ENDIF
@@ -2341,10 +2323,28 @@
 
          ELSE IF ( NDSTBIN == IBINS ) THEN
 
-            DO I = 1, 10
-               FRAC_S( I )  = 0.00d-00 !scf for TOMAS40
-                                       !first 10 bins frac_s = 0.0d0
+            DO I = 1, IBINS
+               FRAC_S( I )  = 0.00d-00 !scf initialize
+                                       !first few bins in TOMAS15/40 frac_s = 0.0d0
             ENDDO
+
+# if  defined( TOMAS12 ) || defined( TOMAS15 )
+
+            FRAC_S(ACTMODEBINS + 1  )  = 7.33E-10
+            FRAC_S(ACTMODEBINS + 2  )  = 2.032E-08
+            FRAC_S(ACTMODEBINS + 3  )  = 3.849E-07
+            FRAC_S(ACTMODEBINS + 4  )  = 5.01E-06
+            FRAC_S(ACTMODEBINS + 5  )  = 4.45E-05
+            FRAC_S(ACTMODEBINS + 6  )  = 2.714E-04
+            FRAC_S(ACTMODEBINS + 7  )  = 1.133E-03
+            FRAC_S(ACTMODEBINS + 8  )  = 3.27E-03
+            FRAC_S(ACTMODEBINS + 9  )  = 6.81E-03
+            FRAC_S(ACTMODEBINS + 10 )  = 1.276E-02
+            FRAC_S(ACTMODEBINS + 11 )  = 2.155E-01
+            FRAC_S(ACTMODEBINS + 12 )  = 6.085E-01
+
+# else
+! else TOMAS30 or 40
 
             FRAC_S( ACTMODEBINS +  1 )  = 1.05d-10
             FRAC_S( ACTMODEBINS +  2 )  = 6.28d-10
@@ -2376,6 +2376,8 @@
             FRAC_S( ACTMODEBINS + 28 )  = 1.37d-01
             FRAC_S( ACTMODEBINS + 29 )  = 1.24d-01
             FRAC_S( ACTMODEBINS + 30 )  = 9.85d-02
+
+# endif
 
          ENDIF
 

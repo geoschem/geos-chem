@@ -124,10 +124,10 @@
 !  (23) Bug fixes in COMPUTE_F (bmy, 7/26/06)
 !  (24) Resize DSTT array in WETDEPBIN to save memory.  Added fixes for GEOS-5
 !        wet deposition per Hongyu Liu's suggestions. (bmy, 3/5/08)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS
@@ -170,7 +170,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_WETDEPBIN( State_Met )
+      SUBROUTINE DO_WETDEPBIN( State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine DO_WETDEPBIN is a driver for the wet deposition code, called
@@ -179,17 +179,24 @@
 !  NOTES:
 !  (1 ) Now references LPRT from "logical_mod.f" (bmy, 7/20/04)
 !  (2 ) Don't do rainout/washout for conv precip for GEOS-5 (hyl, bmy, 3/5/08)
+!  17 Oct 2013 - M. Sulprizio- Now pass State_Chm as argument
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE LOGICAL_MOD,        ONLY : LPRT
 
       USE CMN_SIZE_MOD             ! Size parameters
-
-      ! Arguments
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       !==================================================================
       ! DO_WETDEPBIN begins here!
@@ -198,7 +205,7 @@
       ! Wetdep by large-scale (stratiform) precip
       CALL MAKE_QQ( State_Met, .TRUE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEPBIN: before LS wetdep' )
-      CALL WETDEPBIN( State_Met, .TRUE. )
+      CALL WETDEPBIN( State_Met, State_Chm, .TRUE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEPBIN: after LS wetdep' )
 
 #if   !defined( GEOS_5 )
@@ -221,7 +228,7 @@
       CALL MAKE_QQ( State_Met, .FALSE. )
       IF ( LPRT ) CALL
      &DEBUG_MSG( '### DO_WETDEPBIN: before conv wetdep' )
-      CALL WETDEPBIN( State_Met, .FALSE. )
+      CALL WETDEPBIN( State_Met, State_Chm, .FALSE. )
       IF ( LPRT ) CALL
      &DEBUG_MSG( '### DO_WETDEPBIN: after conv wetdep' )
 
@@ -1052,7 +1059,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE WETDEPBIN( State_Met, LS )
+      SUBROUTINE WETDEPBIN( State_Met, State_Chm, LS )
 !
 !******************************************************************************
 !  Subroutine WETDEPBIN computes the downward mass flux of tracer due to washout 
@@ -1162,6 +1169,7 @@
 !        running at 2x25 or greater resolution. (bmy, 1/31/08)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  17 Oct 2013 - M. Sulprizio- Now pass STT via the State_Chm object
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1186,21 +1194,27 @@
       USE DIAG_MOD,           ONLY : CT16,  CT17,  CT18,    AD39 
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IT_IS_NAN
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE LOGICAL_MOD,        ONLY : LDYNOCEAN
       USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE TRACER_MOD,         ONLY : STT
       USE WETSCAV_MOD,        ONLY : SO2GAINED, SO2WETLOSS
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic arrays and switches 
 
       IMPLICIT NONE
-
-      ! Arguments
-      LOGICAL,        INTENT(IN)  :: LS          ! =T for Large-Scale precip
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
-      ! Local Variables
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: LS          ! =T for Large-Scale precip
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: AER
 
@@ -1218,11 +1232,17 @@
       REAL*8              :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
       REAL*8              :: MASS1, MASS2, MASS3, MASS4
  
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! WETDEPBIN begins here!
       !
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
+
+      ! Point to STT
+      STT => State_Chm%TRACERS
 
       ! Dynamic timestep [s]
       DT    = GET_TS_DYN() * 60d0
@@ -2417,6 +2437,9 @@
 #if   !defined( SGI_MIPS )
 !$OMP END PARALLEL DO
 #endif
+
+      ! Clear the pointer
+      NULLIFY( STT )
 
       ! Return to calling program
       END SUBROUTINE WETDEPBIN

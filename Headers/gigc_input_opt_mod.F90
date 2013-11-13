@@ -55,7 +55,7 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: GCAP_DIR           
      CHARACTER(LEN=255)          :: GEOS_4_DIR         
      CHARACTER(LEN=255)          :: GEOS_5_DIR         
-     CHARACTER(LEN=255)          :: GEOS_57_DIR        
+     CHARACTER(LEN=255)          :: GEOS_FP_DIR        
      CHARACTER(LEN=255)          :: MERRA_DIR          
      CHARACTER(LEN=255)          :: DATA_DIR_1x1       
      CHARACTER(LEN=255)          :: TEMP_DIR           
@@ -93,6 +93,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_H2HD_SIM
      LOGICAL                     :: ITS_A_POPS_SIM
+     LOGICAL                     :: ITS_A_SPECIALTY_SIM
      LOGICAL                     :: ITS_NOT_COPARAM_OR_CH4
 
      !----------------------------------------
@@ -102,6 +103,9 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCRYST             
      LOGICAL                     :: LCARB              
      LOGICAL                     :: LSOA               
+     LOGICAL                     :: LSVPOA
+     REAL*8                      :: NAPEMISS
+     REAL*8                      :: POAEMISSSCALE
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
@@ -143,10 +147,11 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LGFED3BB
      LOGICAL                     :: LDAYBB3
      LOGICAL                     :: L3HRBB3
-     LOGICAL                     :: LAIRNOX
+     LOGICAL                     :: LAEIC
      LOGICAL                     :: LLIGHTNOX
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
+     CHARACTER(LEN=255)          :: SOIL_RST_FILE
      LOGICAL                     :: LFERTILIZERNOX
      REAL*8                      :: NOx_SCALING
      LOGICAL                     :: LEDGARSHIP
@@ -155,8 +160,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSHIPSO2
      LOGICAL                     :: LARCSHIP
      LOGICAL                     :: LCOOKE
-     LOGICAL                     :: LAVHRRLAI
-     LOGICAL                     :: LMODISLAI
      LOGICAL                     :: LHIST
      LOGICAL                     :: HISTYR
      LOGICAL                     :: LWARWICK_VSLS
@@ -166,6 +169,9 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LEDGARNOx
      LOGICAL                     :: LEDGARCO
      LOGICAL                     :: LEDGARSOx
+     LOGICAL                     :: LRCP
+     LOGICAL                     :: LRCPSHIP
+     LOGICAL                     :: LRCPAIR
 
      !----------------------------------------
      ! CO2 MENU fields
@@ -206,6 +212,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LLINOZ
      INTEGER                     :: TS_CHEM
      LOGICAL                     :: LSVCSPEC
+     CHARACTER(LEN=255)          :: SPEC_RST_FILE
      LOGICAL                     :: LKPP
      REAL*8                      :: GAMMA_HO2
 
@@ -213,7 +220,6 @@ MODULE GIGC_Input_Opt_Mod
      ! CHEMISTRY MENU fields
      !----------------------------------------
      LOGICAL                     :: LTRAN
-     LOGICAL                     :: LMFCT
      LOGICAL                     :: LFILL
      LOGICAL                     :: TPCORE_IORD
      LOGICAL                     :: TPCORE_JORD
@@ -581,6 +587,14 @@ MODULE GIGC_Input_Opt_Mod
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged CO2
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged EDGAR
 !  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
+!  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
+!  31 Jul 2013 - M. Sulprizio- Add extra field for AEIC aircraft emissions and
+!                              remove LAIRNOX field
+!  13 Aug 2013 - M. Sulprizio- Add extra fields for semivolatile POA (H. Pye)
+!  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -648,6 +662,10 @@ CONTAINS
 !  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
 !  22 Apr 2013 - R. Yantosca - Now dimension ND48_*ARR to 1000 so that we are
 !                              consistent with the settings in diag48_mod.F
+!  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
+!  07 Aug 2013 - M. Sulprizio- Add extra fields for SOA + SVPOA simulation
+!  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -683,7 +701,7 @@ CONTAINS
     Input_Opt%GCAP_DIR               = ''
     Input_Opt%GEOS_4_DIR             = ''
     Input_Opt%GEOS_5_DIR             = ''
-    Input_Opt%GEOS_57_DIR            = ''
+    Input_Opt%GEOS_FP_DIR            = ''
     Input_Opt%MERRA_DIR              = ''
     Input_Opt%DATA_DIR_1x1           = ''
     Input_Opt%TEMP_DIR               = ''
@@ -732,6 +750,7 @@ CONTAINS
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_H2HD_SIM         = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
+    Input_Opt%ITS_A_SPECIALTY_SIM    = .FALSE.
     Input_Opt%ITS_NOT_COPARAM_OR_CH4 = .FALSE.
 
     !----------------------------------------
@@ -744,6 +763,9 @@ CONTAINS
     Input_Opt%LCRYST                 = .FALSE.
     Input_Opt%LCARB                  = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
+    Input_Opt%LSVPOA                 = .FALSE.
+    Input_Opt%NAPEMISS               = 0d0
+    Input_Opt%POAEMISSSCALE          = 0d0
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
@@ -785,10 +807,11 @@ CONTAINS
     Input_Opt%LGFED3BB               = .FALSE.
     Input_Opt%LDAYBB3                = .FALSE.
     Input_Opt%L3HRBB3                = .FALSE.
-    Input_Opt%LAIRNOX                = .FALSE.
+    Input_Opt%LAEIC                  = .FALSE.
     Input_Opt%LLIGHTNOX              = .FALSE.
     Input_Opt%LOTDLOC                = .FALSE.
     Input_Opt%LSOILNOX               = .FALSE.
+    Input_Opt%SOIL_RST_FILE          = ''
     Input_Opt%LFERTILIZERNOX         = .FALSE.
     Input_Opt%NOx_SCALING            = 0d0
     Input_Opt%LEDGARSHIP             = .FALSE.
@@ -797,8 +820,6 @@ CONTAINS
     Input_Opt%LSHIPSO2               = .FALSE.
     Input_Opt%LARCSHIP               = .FALSE.
     Input_Opt%LCOOKE                 = .FALSE.
-    Input_Opt%LAVHRRLAI              = .FALSE.
-    Input_Opt%LMODISLAI              = .FALSE.
     Input_Opt%LHIST                  = .FALSE.
     Input_Opt%HISTYR                 = .FALSE.
     Input_Opt%LWARWICK_VSLS          = .FALSE.
@@ -808,6 +829,9 @@ CONTAINS
     Input_Opt%LEDGARNOx              = .FALSE.
     Input_Opt%LEDGARCO               = .FALSE. 
     Input_Opt%LEDGARSOX              = .FALSE.
+    Input_Opt%LRCP                   = .FALSE.
+    Input_Opt%LRCPSHIP               = .FALSE.
+    Input_Opt%LRCPAIR                = .FALSE.
 
     !----------------------------------------
     ! CO2 MENU fields
@@ -849,6 +873,7 @@ CONTAINS
     Input_Opt%LLINOZ                 = .FALSE. 
     Input_Opt%TS_CHEM                = 0
     Input_Opt%LSVCSPEC               = .FALSE. 
+    Input_Opt%SPEC_RST_FILE          = ''
     Input_Opt%LKPP                   = .FALSE. 
     Input_Opt%GAMMA_HO2              = 0d0
 
@@ -856,7 +881,6 @@ CONTAINS
     ! CHEMISTRY MENU fields
     !----------------------------------------
     Input_Opt%LTRAN                  = .FALSE.
-    Input_Opt%LMFCT                  = .FALSE.
     Input_Opt%LFILL                  = .FALSE.
     Input_Opt%TPCORE_IORD            = .FALSE.
     Input_Opt%TPCORE_JORD            = .FALSE.

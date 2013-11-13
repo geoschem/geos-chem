@@ -95,6 +95,8 @@
 !                              that the plume parameterization calculates.
 !  06 Jun 2013 - M. Payer    - Move ship NOx plume emissions to routine
 !                              SETEMIS (C. Holmes)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !******************************************************************************
 !
 ! !USES:
@@ -126,7 +128,6 @@
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTNIT
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -375,7 +376,7 @@
             ! Vertical index
             IZ                = IZSAVE(JLOOP)
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
             
             ! GEOS-5 / MERRA / GEOS-5.7 have QI and QL defined as met fields
             ! so use these to define the QICE, QLIQ arrays.  Also, QICE and
@@ -1838,13 +1839,14 @@ c new OH+CO rate from JPL2006.
       !                              input.geos. Recommended value is 0.2
       !                              based on Jacob et al (2000) and Mao
       !                              et al. (2013).
+      !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is 
+      !                              now obsolete
       !=================================================================
       
       ! References to F90 modules 
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*8,  INTENT(IN) :: RADIUS, TEMP, DENAIR, HO2DENS, SQM
@@ -2118,7 +2120,7 @@ c new OH+CO rate from JPL2006.
       ! ----------------------------------------------
 
       ! continental or marine clouds only...
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       IF ( (State_Met%FRLAND (I,J) > 0)   .or. 
      &     (State_Met%FROCEAN(I,J) > 0) ) THEN
 #else
@@ -2196,7 +2198,7 @@ c new OH+CO rate from JPL2006.
       !     AREA =  -----------------
       !              AIRVOL x RADIUS      (in cm)
       ! ----------------------------------------------
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       IF ( State_Met%FRLAND(I,J) > State_Met%FROCEAN(I,J) ) THEN
 #else
       IF ( IS_LAND(I,J, State_Met) ) THEN
@@ -2214,7 +2216,7 @@ c new OH+CO rate from JPL2006.
       XAIRM3 = XAIRM3 * (100.d0)**3
 
       ! get the volume of cloud [cm3]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       ! QL is [g/g]
       Vc = State_Met%CLDF(L,I,J) * QL * State_Met%AD(I,J,L) / dens_h2o
 #else

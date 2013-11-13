@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 
 !
@@ -409,11 +408,13 @@
          TAU1     = GET_TAU0( MM1, DD1, YYYY1 )
 
          ! Directory with FINN emissions
-         ! FINN_DIR = 'FINN_201301/daily/'
-         !FINN_DIR = '/home/skim/FINN/FINN_files/daily/'
-         ! Move files to cache (jaf, skim, 08/20/13)
-         FINN_DIR ='/as/cache/2013-08/bmy/NRT_archive/' //
-     &             'FINN/FINN_files/daily/'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS: Moved FINN directory to /as/cache (bmy, 10/31/13)
+!%%%         ! FINN_DIR = 'FINN_201301/daily/'
+!%%%         !FINN_DIR = '/home/skim/FINN/FINN_files/daily/'
+         FINN_DIR  = '/as/cache/2013-09/bmy/NRT_archive/' //
+     &               'FINN/FINN_files/daily/'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          TIME_STR = 'daily'
 
       ! MONTHLY data

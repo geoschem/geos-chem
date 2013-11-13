@@ -44,7 +44,6 @@
       USE CMN_GCTM_MOD             ! Physical constants
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -120,6 +119,8 @@
 !  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of
 !                              NOx-Ox partitioning
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  29 Aug 2013 - R. Yantosca - In ND57, we need to make ND57 !$OMP PRIVATE
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -406,7 +407,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, P0 )
          DO L = 1, LD57
          DO J = 1, JJPAR
          DO I = 1, IIPAR

@@ -16,7 +16,13 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS NOW OBSOLETE AND IS SLATED TO BE REMOVED!   %%%
+!  %%%  WE NOW USE THE LOGICALS FROM Input_Opt INSTEAD OF FROM HERE.     %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  05 Nov 2004 - R. Yantosca - Added LNEI99 switch to toggle EPA/NEI emissions 
@@ -68,6 +74,12 @@
 !                              newer Olson 2001 land map & drydep inputs
 !  26 Apr 2013 - R. Yantosca - Remove LTOMAS; we now use #if defined( TOMAS )
 !  06 Jun 2013 - K. Travis - Added NEI08
+!  07 Aug 2013 - M. Sulprizio- Move NAPEMISS and POAEMISSSCALE for SOA + SVPOA
+!                              simulation to Headers/gigc_input_opt_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Added LSVPOA switch for semivolatile POA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,6 +98,7 @@
       LOGICAL :: LSOA            ! Use secondary organic aerosol tracers?
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
       LOGICAL :: LDICARB         ! Use dicarbonyl chemistry mechanism?
+      LOGICAL :: LSVPOA          ! Switch for semi-volatile POA (hotp 8/9/09)
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
@@ -108,7 +121,7 @@
       LOGICAL :: USE_OLSON_2001  ! Use the Olson 2001 land map & drydep info?
 
       !%%%% Emissions %%%%
-      LOGICAL :: LAIRNOX         ! Use aircraft NOx emissions?
+      LOGICAL :: LAEIC           ! Use aircraft emissions from AEIC?
       LOGICAL :: LANTHRO         ! Turns all anthropogenic emissions on/off
       LOGICAL :: LBBSEA          ! Use seasonal biomass burning emissions?
       LOGICAL :: LBIONOX         ! <-- deprecated: replace w/ LBIOMASS soon
@@ -136,14 +149,13 @@
       LOGICAL :: LMONOT          ! Use old 
       LOGICAL :: LNEI99          ! Use EPA 1999 regional emissions?
       LOGICAL :: LNEI05          ! Use EPA 2005 regional emissions?
-      LOGICAL :: LNEI08          ! Use EPA 2008 regional emissions?
+      LOGICAL :: LNEI08          ! Use EPA 2005 regional emissions?
       LOGICAL :: LSHIPSO2        ! Use SO2 from ship emissions?
       LOGICAL :: LSOILNOX        ! Use soil NOx emissions
       !FP_ISOP (6/2009) LFERTILIZERNOX
       LOGICAL :: LFERTILIZERNOX  ! Use fertilizer NOx emissions
       LOGICAL :: LTOMSAI         ! Scale biomass burning to TOMS AI index?
       LOGICAL :: LWOODCO         ! <-- deprecated: replace w/ LBIOFUEL soon
-      LOGICAL :: LAVHRRLAI       ! Use AVHRR leaf-area-indices?
       LOGICAL :: LGFED2BB        ! Use GFED2 biomass burning?
       LOGICAL :: LGFED3BB        ! Use GFED3 biomass burning?
       LOGICAL :: LFUTURE         ! Use future-years emission scaling (GCAP)?
@@ -155,7 +167,6 @@
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
       LOGICAL :: LDAYBB3         ! Use GFED3 daily biomass burning?
       LOGICAL :: L3HRBB3         ! Use GFED3 3-hr biomass burning?
-      LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)
 ![eml
@@ -164,10 +175,12 @@
       LOGICAL :: LWARWICK_VSLS   ! Use Warwick_s3 R(Br)n? (jpp 8/23/07)
       LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
       LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)
+      LOGICAL :: LRCP            ! RCP anthro emissions (cdh, 10/14/11)
+      LOGICAL :: LRCPSHIP        ! RCP anthro SHIP emissions (cdh, 10/14/11)
+      LOGICAL :: LRCPAIR         ! RCP anthro AIRCRAFT emissions (cdh, 10/14/11)
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
-      LOGICAL :: LMFCT           ! Turns TPCORE MFCT option on/off
       LOGICAL :: LTRAN           ! Turns advection on/off
       LOGICAL :: LTPFV           ! Are we using the GEOS-4 
       LOGICAL :: LWINDO          ! Use nested-grid simulation?

@@ -39,7 +39,6 @@
       USE TROPOPAUSE_MOD,     ONLY : SAVE_FULL_TROP
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -123,6 +122,9 @@
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA and Input_Opt%LVARTROP
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  25 Mar 2013 - R. Yantosca - Now get XNUMOL, N_TRACERS from Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -414,6 +416,20 @@
       ENDIF 
 !
 ! *********************************************************************
+! *         ZERO OUT ISOPRENE-NO3 OXIDATION COUNTER SPECIES
+! *                    SOAupdate (hotp 6/1/10)  
+! *********************************************************************
+! LISOPNO3  = Dummy species for tracking loss of isoprene due to rxn w/ NO3
+! ILISOPNO3 = Location of LISOPNO3 in CSPEC (tracerid_mod.f)
+! updated 6/11/10 hotp
+!
+      IF ( ILISOPNO3 > 0 ) THEN
+         DO JLOOP = 1, NTLOOP
+            CSPEC(JLOOP,ILISOPNO3) = 0d0
+         ENDDO
+      ENDIF 
+!
+! *********************************************************************
 ! *           zero out aromatic oxidation counter species
 ! *            (dkh, 10/06/06)  
 ! *********************************************************************
@@ -429,6 +445,10 @@
 ! ILTRO2N Location of LTRO2N in CSPEC
 ! ILXRO2H Location of LXRO2H in CSPEC
 ! ILXRO2N Location of LXRO2N in CSPEC
+!
+! SOAupdate: Now also zero out LNRO2H and LNRO2N in CPSEC for NAP (hotp 6/25/09)
+! ILNRO2H Location of LNRO2H in CSPEC
+! ILNRO2N Location of LNRO2N in CSPEC
 !
 
       ! Check if we have 2dy organic aerosols
@@ -451,6 +471,15 @@
                CSPEC(JLOOP,ILXRO2H) = 0d0
                CSPEC(JLOOP,ILXRO2N) = 0d0
             ENDDO
+
+            ! SOAupdate: allow NAP to be present or not in rxns (9/13/09)
+            IF ( ILNRO2H > 0 .and. ILNRO2N > 0  ) THEN
+               DO JLOOP = 1, NTLOOP
+                  ! add NAP species (hotp 6/25/09)
+                  CSPEC(JLOOP,ILNRO2H) = 0d0
+                  CSPEC(JLOOP,ILNRO2N) = 0d0
+               ENDDO
+            ENDIF
 
          ! Exit with an error message if it is not. 
          ELSE

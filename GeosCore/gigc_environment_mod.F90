@@ -18,8 +18,7 @@
 ! \item Initialize met. field derived type.
 ! \item Initialize Chemistry, Metorology, Emissions, and Physics States
 ! \end{itemize}
-!\\
-!\\
+!
 ! !INTERFACE: 
 !
 MODULE GIGC_Environment_Mod
@@ -27,8 +26,6 @@ MODULE GIGC_Environment_Mod
 ! !USES
 !        
   IMPLICIT NONE
-# include "define.h"
-
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -50,6 +47,7 @@ MODULE GIGC_Environment_Mod
 !  19 Oct 2012 - R. Yantosca - Removed routine INIT_LOCAL_MET, this is now
 !                              handled in Headers/gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed to gigc_environment_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,9 +380,9 @@ CONTAINS
 !
 ! !IROUTINE: get_nSchm_nSchmBry
 !
-! !DESCRIPTION: Subroutine Get\_nSchm\_nSchmBry finds out the # of 
+! !DESCRIPTION: Subroutine Get\_nSchm\_nSchmBry finds out the \# of 
 !  stratospheric chemistry tracers and bromine tracers so that we can
-!  allocate the various Schm_* fields in the Chemistry State object.
+!  allocate the various Schm\_* fields in the Chemistry State object.
 !\\
 !\\
 ! !INTERFACE:

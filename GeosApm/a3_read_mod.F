@@ -18,7 +18,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -39,7 +38,7 @@
 ! !REMARKS:
 !  This module reads GEOS-4, GEOS-5, and GCAP met fields
 !  MERRA met fields are read in routines merra_*_mod.F
-!  GEOS-5.7.2 met fields are read in geos572_read_mod.F
+!  GEOS-FP met fields are read in geosfp_read_mod.F
 !
 ! !REVISION HISTORY:
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -62,6 +61,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,25 +91,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UNZIP_A3_FIELDS( OPTION, NYMD )
+      SUBROUTINE UNZIP_A3_FIELDS( Input_Opt, OPTION, NYMD )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
-      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
-
-      USE CMN_SIZE_MOD                          ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*),  INTENT(IN) :: OPTION   ! Unzip option
-      INTEGER, OPTIONAL, INTENT(IN) :: NYMD     ! YYYY/MM/DD of file to unzip
-! 
+      CHARACTER(LEN=*),  INTENT(IN) :: OPTION    ! Unzip option
+      INTEGER, OPTIONAL, INTENT(IN) :: NYMD      ! YYYY/MM/DD of file to unzip
+      TYPE(OptInput),    INTENT(IN) :: Input_Opt ! Input Options object
+!     
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/23/03)
@@ -142,19 +139,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #endif
@@ -164,33 +161,42 @@
          CALL EXPAND_DATE( A3_STR,   NYMD, 000000 )
 
          ! Location of zipped A-3 file in data dir 
-         A3_FILE_GZ  = TRIM( DATA_DIR   ) // TRIM( GEOS_DIR   ) // 
-     &                 TRIM( A3_STR     ) // TRIM( ZIP_SUFFIX )
+         A3_FILE_GZ  = TRIM( Input_Opt%DATA_DIR   ) // 
+     &                 TRIM( GEOS_DIR             ) // 
+     &                 TRIM( A3_STR               ) // 
+     &                 TRIM( Input_Opt%ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir 
-         A3_FILE     = TRIM( TEMP_DIR   ) // TRIM( A3_STR     )
+         A3_FILE     = TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A3_STR               )
 
          ! Remove A-3 files for this date from temp dir
-         REMOVE_DATE = TRIM( REMOVE_CMD ) // ' '                // 
-     &                 TRIM( TEMP_DIR   ) // TRIM( A3_STR     )   
+         REMOVE_DATE = TRIM( Input_Opt%REMOVE_CMD ) // ' '    // 
+     &                 TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A3_STR               )   
 
          !==============================================================
          ! Define the foreground and background UNZIP commands
          !==============================================================
 
          ! Foreground unzip
-         UNZIP_FG = TRIM( UNZIP_CMD ) // ' ' // TRIM( A3_FILE_GZ ) // 
-     &              TRIM( REDIRECT  ) // ' ' // TRIM( A3_FILE    )  
+         UNZIP_FG = TRIM( Input_Opt%UNZIP_CMD     ) // ' '    // 
+     &              TRIM( A3_FILE_GZ              ) // 
+     &              TRIM( Input_Opt%REDIRECT      ) // ' '    //
+     &              TRIM( A3_FILE                 )  
 
          ! Background unzip
-         UNZIP_BG  = TRIM( UNZIP_FG ) // TRIM( BACKGROUND )
+         UNZIP_BG  = TRIM( UNZIP_FG               ) // 
+     &               TRIM( Input_Opt%BACKGROUND   )
       ENDIF
 
       !=================================================================
       ! Define command to remove all A-3 files from the TEMP dir
       !=================================================================
-      REMOVE_ALL = TRIM( REMOVE_CMD ) // ' '    // TRIM( TEMP_DIR   ) // 
-     &             TRIM( WILD_CARD  ) // '.a3.' // TRIM( WILD_CARD  ) 
+      REMOVE_ALL = TRIM( Input_Opt%REMOVE_CMD     ) // ' '    // 
+     &             TRIM( Input_Opt%TEMP_DIR       ) // 
+     &             TRIM( Input_Opt%WILD_CARD      ) // '.a3.' // 
+     &             TRIM( Input_Opt%WILD_CARD      ) 
 
       !=================================================================
       ! Perform an F90 system call to do the desired operation
@@ -320,29 +326,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, RESET, IUNIT )
+      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, Input_Opt, RESET, IUNIT )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : IOERROR,    FILE_EXISTS
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD                          ! Size parameters
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR,    FILE_EXISTS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)            :: NYMD    ! YYYY/MM/dd and 
-      INTEGER, INTENT(IN)            :: NHMS    !  hh:mm:ss of desired data
-      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time flag?
+      TYPE(OptInput), INTENT(IN)            :: Input_Opt  ! Input_Options
+      INTEGER,        INTENT(IN)            :: NYMD       ! YYYY/MM/dd and 
+      INTEGER,        INTENT(IN)            :: NHMS       !  hh:mm:ss of data
+      LOGICAL,        INTENT(IN),  OPTIONAL :: RESET      ! Reset first flag?
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT), OPTIONAL :: IUNIT   ! Returns IU_A1 to caller
+      INTEGER,        INTENT(OUT), OPTIONAL :: IUNIT      ! Returns IU_A1 
 ! 
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
@@ -365,6 +369,7 @@
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A3 locally
 !  06 Aug 2012 - R. Yantosca - Add IUNIT to pass IU_A3 to calling routine
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass Input_Opt object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -396,19 +401,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #endif
@@ -419,11 +424,13 @@
 
          ! If unzipping, open GEOS-4 file in TEMP dir
          ! If not unzipping, open GEOS-4 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // TRIM( A3_FILE )
+         IF ( Input_Opt%LUNZIP ) THEN
+            PATH = TRIM( Input_Opt%TEMP_DIR ) // 
+     &             TRIM( A3_FILE            )
          ELSE
-            PATH = TRIM( DATA_DIR ) // 
-     &             TRIM( GEOS_DIR ) // TRIM( A3_FILE )
+            PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &             TRIM( GEOS_DIR           ) // 
+     &             TRIM( A3_FILE            )
          ENDIF
 
          ! Close previously opened A-3 file
@@ -526,6 +533,10 @@
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  02 Jul 2013 - R. Yantosca - For GCAP, PBL is now State_Met%PBLH (similarly
+!                              for State_Met%PRECCON and State_Met%PRECTOT)
+!  13 Aug 2013 - R. Yantosca - For GEOS-4, PBL is now State_Met%PBLH (similarly
+!                              for State_Met%PRECCON and State_Met%PRECTOT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -570,9 +581,9 @@
      &              GWETTOP = State_Met%GWETTOP, 
      &              PARDF   = State_Met%PARDF,   
      &              PARDR   = State_Met%PARDR,  
-     &              PBL     = State_Met%PBL,         
-     &              PREACC  = State_Met%PREACC, 
-     &              PRECON  = State_Met%PRECON, 
+     &              PBL     = State_Met%PBLH,         
+     &              PREACC  = State_Met%PRECTOT, 
+     &              PRECON  = State_Met%PRECCON, 
      &              RADLWG  = State_Met%RADLWG,   
      &              RADSWG  = State_Met%RADSWG, 
      &              SNOW    = State_Met%SNOW,  
@@ -647,9 +658,9 @@
      &              OICE     = State_Met%OICE,     
      &              PARDF    = State_Met%PARDF,       
      &              PARDR    = State_Met%PARDR,
-     &              PBL      = State_Met%PBL,       
-     &              PREACC   = State_Met%PREACC,     
-     &              PRECON   = State_Met%PRECON,
+     &              PBL      = State_Met%PBLH,
+     &              PREACC   = State_Met%PRECTOT,
+     &              PRECON   = State_Met%PRECCON,
      &              RADSWG   = State_Met%RADSWG, 
      &              SNICE    = State_Met%SNICE,
      &              SNOW     = State_Met%SNOW, 

@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC DATA MEMBERS:
@@ -28,7 +27,7 @@
       CHARACTER(LEN=255) :: GEOS_S_DIR    ! !%%% OBSOLETE 
       CHARACTER(LEN=255) :: GEOS_4_DIR    ! Subdir for GEOS-4 met data
       CHARACTER(LEN=255) :: GEOS_5_DIR    ! Subdir for GEOS-5 met data
-      CHARACTER(LEN=255) :: GEOS_57_DIR   ! Subdir for GEOS-5.7.x met data
+      CHARACTER(LEN=255) :: GEOS_FP_DIR   ! Subdir for GEOS-FP met data
       CHARACTER(LEN=255) :: MERRA_DIR     ! Subdir for MERRA  met data
       CHARACTER(LEN=255) :: TEMP_DIR      ! Temp dir for unzipping met data
       CHARACTER(LEN=255) :: RUN_DIR       ! Run directory for GEOS-Chem
@@ -43,6 +42,13 @@
       CHARACTER(LEN=255) :: TPBC_DIR_SE   ! Dir w/ TPCORE BC's for SEAC4RS grid
       CHARACTER(LEN=255) :: POP_EMISDIR   ! Dir w/ POPS emissions files
 !
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS NOW OBSOLETE AND IS SLATED TO BE REMOVED!   %%%
+!  %%%  WE NOW USE THE DIR NAMES FROM Input_Opt INSTEAD OF FROM HERE.    %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  25 May 2005 - R. Yantosca - Added variables GCAP_DIR and GEOS_5_DIR
@@ -54,6 +60,8 @@
 !  01 Feb 2012 - R. Yantosca - Added GEOS_57_DIR for GEOS-5.7.x met fields
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  29 May 2012 - S. Kim      - Added directory for SEAC4RS BCs
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -2,6 +2,9 @@
       MODULE CARBON_MOD
 !
 !******************************************************************************
+!%%% NOTE: THIS IS THE VERSION FROM THE SEAC4RS CODE.  IT DOES NOT HAVE
+!%%% THE SOAUPDATE CODE IN IT. (bmy, 10/30/13
+!
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
 !  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 6/30/10)
@@ -185,7 +188,6 @@
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -321,6 +323,24 @@
       USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
       USE TRACERID_MOD,       ONLY : IDTASOA, IDTBBSOA
       USE TRACERID_MOD,       ONLY : IDTAVOC, IDTBBVOC
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
+!      ! Add lumped arom/IVOC (hotp 5/14/10)
+!      USE TRACERID_MOD,       ONLY : IDTASOAN
+!      USE TRACERID_MOD,       ONLY : IDTASOA1, IDTASOG1
+!      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOG2
+!      USE TRACERID_MOD,       ONLY : IDTASOA3, IDTASOG3
+!      ! 1 and 2 POA (hotp 10/11/09)
+!      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTOPOA1
+!      USE TRACERID_MOD,       ONLY : IDTPOA2,  IDTOPOA2
+!      USE TRACERID_MOD,       ONLY : IDTPOG1,  IDTOPOG1
+!      USE TRACERID_MOD,       ONLY : IDTPOG2,  IDTOPOG2
+!      ! need isoprene semivols for offline sim (hotp 5/20/10)
+!      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOG1
+!      USE TRACERID_MOD,       ONLY : IDTISOA2, IDTISOG2
+!      USE TRACERID_MOD,       ONLY : IDTISOA3, IDTISOG3
+!------------------------------------------------------------------------------
 #if   defined( TOMAS )
       USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1          !(win, 1/25/10)
       USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1  !(win, 1/25/10)
@@ -366,6 +386,9 @@
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_CHEMISTRY
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -486,26 +509,6 @@
       ENDIF
 #endif
 
-      !=================================================================
-      ! Do chemistry for SEAC4RS simplified SOA tracers (jaf, 6/24/13)
-      !=================================================================
-      ! Chemistry for anthropogenic SOA
-      IF ( IDTASOA > 0 ) THEN 
-         CALL CHEM_ASOA( am_I_Root, Input_Opt, State_Met, 
-     &                   STT(:,:,:,IDTASOA), STT(:,:,:,IDTAVOC), RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_ASOA' )
-         ENDIF
-      ENDIF
-      ! Chemistry for biomass burning SOA
-      IF ( IDTBBSOA > 0 ) THEN 
-         CALL CHEM_BBSOA( am_I_Root, Input_Opt, State_Met,
-     &                    STT(:,:,:,IDTBBSOA), STT(:,:,:,IDTBBVOC), RC )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BBSOA' )
-         ENDIF
-      ENDIF
-
       ! Free pointer
       NULLIFY( STT )
 
@@ -524,9 +527,14 @@
             THISMONTH = GET_MONTH()
 
             IF ( ITS_A_NEW_MONTH() ) THEN
-               CALL GET_GLOBAL_OH(  THISMONTH, State_Met )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!               CALL GET_GLOBAL_OH(  THISMONTH, State_Met )
+!-----------------------------------------------------------------------------
+               CALL GET_GLOBAL_OH ( am_I_Root, Input_Opt, 
+     &                              State_Met, THISMONTH, RC )
                CALL GET_GLOBAL_NO3( THISMONTH )
-               CALL GET_GLOBAL_O3(  THISMONTH )
+               CALL GET_GLOBAL_O3 ( THISMONTH )
             ENDIF
 
             ! Compute time scaling arrays for offline OH, NO3
@@ -1762,7 +1770,6 @@
       END SUBROUTINE CHEM_BBSOA
 !EOC
 !-------------------------------------------------------------------------------
-
 #if   defined( TOMAS )
       SUBROUTINE AGING_CARB( MIL, MOB )
 !
@@ -4793,8 +4800,6 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
-      ! Add for FLAMBE compatibility (jaf, 7/31/09)
-      USE BIOMASS_MOD,        ONLY : FLAMBE_IN_USE
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07
@@ -4818,10 +4823,6 @@ c
       USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
 #endif
       USE TRACERID_MOD,       ONLY : IDTAVOC, IDTBBVOC, IDTBGSOA
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND07
-
 #if defined( DEVEL )
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
 #endif
@@ -4839,6 +4840,49 @@ c
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  For  semivolpoa: do not distinguish between hyrophobic and 
+!  hydrophilic emissions  (hotp 2/13/09)
+! 
+! !REVISION HISTORY:
+!  (1 ) Now references LSOA from "CMN_SETUP".  Also now call OHNO3TIME since
+!        biogenic emissions also have a diurnal variation. (rjp, bmy, 7/15/04)
+!  (2 ) Now references LSOA and LPRT from "logical_mod.f".  Now references
+!        STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (3 ) Bug fix: removed "," from FORMAT 111.  Also added extra DEBUG_MSG
+!        output after calling emissions routines. (bmy, 11/19/04)
+!  (4 ) Now always call ANTHRO_CARB_TBOND and ANTHRO_CARB_COOKE.  This will
+!        read the T. Bond et al [2004] emissions but overwrite the North
+!        America region with monthly-mean emissions from Cooke et al [1999] 
+!        with imposed seasonality from R. Park [2003].  (bmy, 12/1/04)
+!  (5 ) Now remove THISMONTH from the arg list to BIOMASS_CARB_GEOS 
+!        (bmy, 9/25/06)
+!  (6 ) Now check that GFED2 has been updated if we do not use the annual
+!        Bond Biomass emission (phs, yc, 12/18/08)
+!  (7 ) Now reads monthly (eml, phs, 5/18/09)
+!  (8 ) New array for 30bin EC and OC source EC30SRC and OC30SRC and refer to 
+!        IBINS (size bin parameters) and refer to LCARB30 (win, 9/4/07)
+!  (9 ) Condensing SOA (when LSOA = F) onto existing aerosol by SOACOND 
+!        (win, 9/25/07)
+!  (10) Convert OC emitted to OM using a factor of 1.8 and note that now
+!        OCIL and OCOB are actually OM mass.  I might have to rename these 
+!        arrays later. (win, 2/26/08)
+!  (11) Correct the biogenic mass input to SOA condensation from mass OC to
+!        mass OM using the OC2OM factor. (win, 9/20/08)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  18 Oct 2013 - M. Sulprizio- Do not call ANTHRO_CARB_TBOND when LRCP is true.
+!                              RCP emissions include biofuel. (C. Heald)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -4880,6 +4924,7 @@ c
       LOGICAL         :: LCOOKE
       LOGICAL         :: LPRT
       LOGICAL         :: LSOA
+      LOGICAL         :: LRCP
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -4902,6 +4947,7 @@ c
       LCOOKE    = Input_Opt%LCOOKE
       LPRT      = Input_Opt%LPRT
       LSOA      = Input_Opt%LSOA
+      LRCP      = Input_Opt%LRCP
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -4968,8 +5014,12 @@ c
 
          ! Read in monthly emissions from T Bond [2007], with imposed
          ! seasonality over North America by R. Park [2003]
-         CALL ANTHRO_CARB_TBOND( MONTH, Input_Opt )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+         ! Do not call ANTHRO_CARB_TBOND when RCP is used. RCP emissions
+         ! include biofuel emissions (C. Heald, mpayer)
+         IF ( .not. LRCP ) THEN
+            CALL ANTHRO_CARB_TBOND( MONTH, Input_Opt )
+            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+         ENDIF
 
          IF ( LCOOKE ) THEN
          ! Overwrite the T. Bond [2004] emissions over North America
@@ -4986,12 +5036,8 @@ c
       !-----------------------------------
       IF ( .not. USE_BOND_BIOBURN ) THEN
 
-         ! Have to check if using FLAMBE so that it is called hourly
-         ! rather than whenever GFED2 is updated (generally monthly)
-         ! (jaf, 7/30/09)
-         IF ( GFED2_IS_NEW()    .or. GFED3_IS_NEW()  .or. 
-     &        ITS_A_NEW_MONTH() .or. FLAMBE_IN_USE() .or. 
-     &        FINN_IS_NEW() ) THEN 
+         IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
+     &        ITS_A_NEW_MONTH() ) THEN 
             CALL BIOMASS_CARB_GEOS( Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF
@@ -5004,12 +5050,6 @@ c
       !--------------------------
       CALL BIOGENIC_OC( Input_Opt, State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: after BIOGENIC_OC' )
-
-      !--------------------------
-      ! SEAC4RS SOA (jaf, 6/25/13)
-      !--------------------------
-      IF ( IDTAVOC > 0 .or. IDTBBVOC > 0 )
-     &    CALL EMISS_AVOC_BBVOC( Input_Opt, State_Met )
 
       !=================================================================
       ! Sum up BC and OC sources. 
@@ -6469,8 +6509,7 @@ ccc
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
-!clb XTAU
-            XTAU          = GET_TAU0( THISMONTH, 1, 2000 )
+
             ! Read data
             CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
      &                       XTAU,      IIPAR,     JJPAR,
@@ -7282,6 +7321,12 @@ ccc
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
       USE TRACERID_MOD,       ONLY : IDTALPH, IDTLIMO, IDTALCO
       USE TRACERID_MOD,       ONLY : IDTAVOC, IDTBBVOC, IDTBGSOA
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      USE TRACERID_MOD,       ONLY : IDTMTPA, IDTLIMO, IDTMTPO ! hotp 5/20/10
+!      ! Add POA treatment (hotp 8/24/09)
+!      USE TRACERID_MOD,       ONLY : IDTPOA1
+!------------------------------------------------------------------------------
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (Lin, 03/31/09)
 !
 ! !INPUT PARAMETERS:
@@ -7299,6 +7344,11 @@ ccc
       LOGICAL         :: IS_BCPO, IS_OCPO, IS_BCPI, IS_OCPI
       LOGICAL         :: IS_ALPH, IS_LIMO, IS_ALCO
       LOGICAL         :: IS_AVOC, IS_BBVOC, IS_BGSOA
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      LOGICAL         :: IS_MTPA, IS_LIMO, IS_MTPO ! hotp 5/20/10
+!      LOGICAL         :: IS_POA ! for poa (hotp 8/24/09)
+!------------------------------------------------------------------------------
       INTEGER         :: I,       J,       L,       PBL_MAX
       REAL*8          :: F_OF_PBL
 
@@ -7328,6 +7378,13 @@ ccc
       IS_AVOC = ( IDTAVOC > 0 )
       IS_BBVOC = ( IDTBBVOC > 0 )
       IS_BGSOA = ( IDTBGSOA > 0 )
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      IS_MTPO = ( IDTMTPO > 0 )
+!
+!      ! semivolpoa2: initialize POAEMISS (hotp 2/27/09)
+!      POAEMISS = 0d0
+!------------------------------------------------------------------------------
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -7453,6 +7510,19 @@ ccc
          IF ( IS_BGSOA ) THEN
             STT(I,J,L,IDTBGSOA) = STT(I,J,L,IDTBGSOA) +
      &                           ( F_OF_PBL * BGSOA_EMIS(I,J) )
+
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!         ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
+!         ! note that POA emissions do not go directly into the STT array
+!         IF ( IS_POA ) THEN
+!            ! semivolpoa2: store emission of OC into 
+!            ! POAEMISS array for use in CHEM_NVOC (hotp 2/27/09)
+!            ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
+!            ! add POAEMISSSCALE here (hotp 9/22/09)
+!            POAEMISS(I,J,L,1) = F_OF_PBL * OCSRC(I,J,1) * POAEMISSSCALE
+!            POAEMISS(I,J,L,2) = F_OF_PBL * OCSRC(I,J,2) * POAEMISSSCALE
+!------------------------------------------------------------------------------
          ENDIF
 
       ENDDO
@@ -8600,7 +8670,7 @@ ccc
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -8825,7 +8895,7 @@ ccc
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -8930,7 +9000,7 @@ ccc
 
       ! Return to calling program 
       END SUBROUTINE SOAM_CLOUD
-
+ 
 !------------------------------------------------------------------------------
 
       SUBROUTINE INIT_CARBON( am_I_Root, Input_Opt, RC )
@@ -8956,6 +9026,12 @@ ccc
 !  04 Mar 2013 - R. Yantosca - Now take am_I_Root, Input_Opt, RC as arguments
 !  04 Mar 2013 - R. Yantosca - Now search for drydep flags here
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS Cpp switch, this is supplanted
+!                              by NESTED_NA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !******************************************************************************
 !
 ! !USES:
@@ -9087,7 +9163,7 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0d0
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
          ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
          ! directly from the met fields.  (skim, bmy, 1/14/10)
          ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
@@ -9136,14 +9212,6 @@ ccc
 
 #elif defined( NESTED_CH )
       ! For China nested grids: we don't cover N. America region
-      ! Setting these to zero will turn off Cooke/RJP emissions
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#elif defined ( SEAC4RS )
-      ! For SEAC4RS nested grid: we don't cover N. America region
       ! Setting these to zero will turn off Cooke/RJP emissions
       I1_NA = 0
       J1_NA = 0
@@ -9215,6 +9283,43 @@ ccc
       DRYSOAM = 0
       DRYASOA = 0
       DRYBBSOA = 0
+!------------------------------------------------------------------------------
+! This is in the std code (bmy, 10/30/13)
+!      DRYPOA1  = 0
+!      DRYPOA2  = 0
+!      DRYPOG1  = 0
+!      DRYPOG2  = 0
+!      DRYOPOA1 = 0
+!      DRYOPOA2 = 0
+!      DRYOPOG1 = 0
+!      DRYOPOG2 = 0
+!      DRYMTPA  = 0
+!      DRYLIMO  = 0
+!      DRYMTPO  = 0
+!      DRYTSOA1 = 0
+!      DRYTSOG1 = 0
+!      DRYTSOA2 = 0
+!      DRYTSOG2 = 0
+!      DRYTSOA3 = 0
+!      DRYTSOG3 = 0
+!      DRYTSOA0 = 0
+!      DRYTSOG0 = 0
+!      DRYISOA1 = 0
+!      DRYISOG1 = 0
+!      DRYISOA2 = 0
+!      DRYISOG2 = 0
+!      DRYISOA3 = 0
+!      DRYISOG3 = 0
+!      DRYASOAN = 0
+!      DRYASOA1 = 0
+!      DRYASOG1 = 0
+!      DRYASOA2 = 0
+!      DRYASOG2 = 0
+!      DRYASOA3 = 0
+!      DRYASOG3 = 0
+!      DRYSOAG  = 0
+!      DRYSOAM  = 0
+!------------------------------------------------------------------------------
 
       ! Locate drydep indices for each carbon or SOA aerosol 
       ! in the list of dry depositing species.
@@ -9317,7 +9422,6 @@ ccc
       IF ( ALLOCATED( AVOC_EMIS  ) ) DEALLOCATE( AVOC_EMIS  )
       IF ( ALLOCATED( BGSOA_EMIS ) ) DEALLOCATE( BGSOA_EMIS )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_CARBON
 
 !------------------------------------------------------------------------------

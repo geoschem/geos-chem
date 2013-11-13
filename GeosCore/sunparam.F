@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !DEFINED PARAMETERS:
 !
@@ -37,6 +36,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  13 Dec 2012 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

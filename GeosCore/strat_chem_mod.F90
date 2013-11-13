@@ -161,7 +161,7 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Do Linoz only if Ox tracer is defined
-    IF ( Input_Opt%LLINOZ .and. IDTOX > 0 ) THEN
+    IF ( Input_Opt%LLINOZ .and. IDTO3 > 0 ) THEN
 
        ! Echo info
        IF ( am_I_Root ) THEN
@@ -225,8 +225,6 @@ CONTAINS
     USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
     IMPLICIT NONE
-
-#include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -263,6 +261,7 @@ CONTAINS
 !                              partitioning
 !  18 Mar 2013 - R. Yantosca - Now pass Input_Opt via the arg list
 !  19 Mar 2013 - R. Yantosca - Now only copy Input_Opt%TCVV(1:N_TRACERS)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -985,6 +984,7 @@ CONTAINS
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Aug 2013 - R. Yantosca - Avoid array temporaries
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1001,6 +1001,8 @@ CONTAINS
     ! Index arrays
     INTEGER            :: II(1)
     INTEGER            :: JJ(1)
+    INTEGER            :: st1d(1), st4d(4)
+    INTEGER            :: ct1d(1), ct4d(4)
 
     ! Arrays defined on the 2 x 2.5 grid
     REAL*4             :: XMID_COARSE ( 144                    )
@@ -1047,8 +1049,13 @@ CONTAINS
 
     ! Get the lat and lon centers of the 2x2.5 GMI climatology
     ! WARNING MAKE 2x25 after testing
-    call NcRd( XMID_COARSE, fileID, 'longitude', (/1/),  (/144/) )
-    call NcRd( YMID_COARSE, fileID, 'latitude',  (/1/),  (/91/) )
+    st1d = (/ 1   /)
+    ct1d = (/ 144 /)
+    call NcRd( XMID_COARSE, fileID, 'longitude', st1d, ct1d )
+
+    st1d = (/ 1   /)
+    ct1d = (/ 91  /)    
+    call NcRd( YMID_COARSE, fileID, 'latitude',  st1d, ct1d )
 
     ! For each fine grid index, determine the closest coarse (2x2.5) index
     ! Note: This doesn't do anything special for the date line, and may 
@@ -1076,9 +1083,9 @@ CONTAINS
     DO J = 1, JGLOB
     DO I = 1, IGLOB
 
-       call NcRd( column, fileID, 'species',           &
-                  (/ I_f2c(I), J_f2c(J),     1, m /),  & ! Start
-                  (/        1,        1, lglob, 1 /)  ) ! Count
+       st4d = (/ I_f2c(I), J_f2c(J),     1, m /)
+       ct4d  =(/        1,        1, lglob, 1 /)
+       call NcRd( column, fileID, 'species', st4d, ct4d )
        array( I, J, : ) = column
 
     ENDDO
@@ -1164,9 +1171,9 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'prod',                       &
-                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
-                             (/        1,        1, lglob,  1 /)  )  ! Count
+          st4d = (/ I_f2c(I), J_f2c(J),     1,  m /)
+          ct4d = (/        1,        1, lglob,  1 /) 
+          call NcRd( column, fileID, 'prod', st4d, ct4d )
           array( I, J, : ) = column
 
        ENDDO
@@ -1189,9 +1196,9 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'loss',                       &
-                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
-                             (/        1,        1, lglob,  1 /)  )  ! Count
+          st4d = (/ I_f2c(I), J_f2c(J),     1,  m /)
+          ct4d = (/        1,        1, lglob,  1 /)
+          call NcRd( column, fileID, 'loss', st4d, ct4d )
           array( I, J, : ) = column
 
        ENDDO
@@ -1238,8 +1245,6 @@ CONTAINS
     USE CMN_SIZE_MOD
 
     IMPLICIT NONE
-
-#include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1264,6 +1269,7 @@ CONTAINS
 !  05 Oct 2012 - R. Yantosca - Bug fix for IFORT 12: extend the #if statement
 !                              to avoid including code for nested-grid sims
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, RC arguments
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1501,7 +1507,7 @@ CONTAINS
     STT => State_Chm%Tracers
 
     ! Initialize counters, initial times, mapping arrays
-    TpauseL_Cnt              = 0.
+    TpauseL_Cnt              = 0.d0
     NSCHEM                   = 0
     TauInit                  = GET_TAU()
     NymdInit                 = GET_NYMD()
@@ -1762,7 +1768,6 @@ CONTAINS
     USE CMN_GCTM_MOD             ! Rdg0
 
     IMPLICIT NONE
-#include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1860,6 +1865,9 @@ CONTAINS
 !                              partitioning
 !  25 Mar 2013 - R. Yantosca - Now use explicit numbers for J30S, J30N
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1903,24 +1911,19 @@ CONTAINS
 
 #if defined( NESTED_CH )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% KLUDGE FOR SEAC4RS
-!%%% Add these parameters or else the code won't compile.  The values don't
-!%%% matter because we won't use DO_SYNOZ for SEAC4RS (bmy, 7/1/13)
 #elif defined( NESTED_NA )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #elif defined( SEAC4RS )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif
 
-!#elif defined( GRID1x1 ) 
-!
-!#if   defined( NESTED_CH ) || defined( NESTED_NA )
-!    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-!#else  
-!    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
-!#endif
+#elif defined( GRID1x1 ) 
+
+#if   defined( NESTED_CH ) || defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+#else  
+    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+#endif
 
 #elif defined( EXTERNAL_GRID )
     ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
@@ -1976,7 +1979,7 @@ CONTAINS
 #if   defined( GEOS_4 )
     PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
     ! For now assume GEOS-5 has same PO3_vmr value 
     ! as GEOS-4; we can redefine later (bmy, 5/25/05)
@@ -2224,6 +2227,8 @@ CONTAINS
 !  04 Feb 2013 - M. Payer    - Replace all JJPAR with values for nested grids
 !                              since JJPAR is no longer a parameter
 !  25 Mar 2013 - R. Yantosca - Now use explicit numbers for J30S, J30N
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2266,24 +2271,19 @@ CONTAINS
 
 #if defined( NESTED_CH )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% KLUDGE FOR SEAC4RS
-!%%% Add these parameters or else the code won't compile.  The values don't
-!%%% matter because we won't use DO_SYNOZ for SEAC4RS (bmy, 7/1/13)
 #elif defined( NESTED_NA )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #elif defined( SEAC4RS )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif
 
-!#elif defined( GRID1x1 ) 
-!
-!#if   defined( NESTED_CH ) || defined( NESTED_NA )
-!    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-!#else  
-!    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
-!#endif
+#elif defined( GRID1x1 ) 
+
+#if   defined( NESTED_CH ) || defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+#else  
+    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+#endif
 
 #elif defined( EXTERNAL_GRID )
     ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
@@ -2323,7 +2323,7 @@ CONTAINS
 
     PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
     ! For now assume GEOS-5 has same PO3_vmr value 
     ! as GEOS-4; we can redefine later (bmy, 5/25/05)

@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h" 
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -56,6 +55,7 @@
 !  (7 ) Now modified
 !  22 Mar 2012 - M. Payer    - Add function GET_C2H6_ANTHRO
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -425,6 +425,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -474,7 +475,12 @@
       ! OH data will be saved into the OH array of "global_oh_mod.f" 
       !=================================================================
       IF ( GET_MONTH() /= LASTMONTH ) THEN
-         CALL GET_GLOBAL_OH( GET_MONTH(), State_Met )
+!-------------------------------------------------------------------------
+! Prior to 10/23/13:
+!         CALL GET_GLOBAL_OH( GET_MONTH(), Input_Opt, State_Met )
+!-------------------------------------------------------------------------
+         CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, 
+     &                       State_Met, GET_MONTH(), RC )
          LASTMONTH = GET_MONTH()
       ENDIF
 

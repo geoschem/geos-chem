@@ -15,7 +15,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -59,6 +58,7 @@
 !  23 Apr 2010 - C. Carouge  - Initial version
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,8 +300,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : GET_Hg2_CAT, GET_HgP_CAT
       USE TRACERID_MOD,       ONLY : IS_Hg2,      IS_HgP
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -320,6 +318,8 @@
 !   8 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,7 +353,7 @@
       ! overwritten (jaf, 4/25/11)
       FRAC_SNOW_OR_ICE = 1d0
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
       ! Don't let fraction be greater than 1
       FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
      &                        State_Met%FRSEAICE(I,J)  + 
