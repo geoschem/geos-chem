@@ -2362,6 +2362,8 @@
 !  16 Sep 2013 - M. Sulprizio- Added ProTeX headers
 !  17 Sep 2013 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm
 !                              as arguments
+!  14 Nov 2013 - M. Sulprizio- Bug fix: Avoid div-by-zero in calculation of
+!                              gas-to-particle rate constants for SO2 and HNO3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2634,20 +2636,34 @@
             IF (IBIN .EQ. 1) THEN
                ! tdf Sum over the 1-4 sub-bins for bin 1      ! tdf 08/21/2K9
                DO ISBIN = 1, 4
-                  RD     = RD_sd1 (ISBIN)      ! effective radius [cm]
-                  AREA   = AREA_sd1 (ISBIN)    ! Dust Surface Area [cm^2/cm^3]
-                  CONST1 = 4.D0/(V*GAMS)       ! Collision [s/cm]
-                  CONST2 = RD/DG               ! Diffusion [s/cm]
-                  CONST  = CONST1 + CONST2
-                  KT1    = KT1 + AREA / CONST  ! [cm^2/cm^3] * [cm/s] = [1/s]
+                  RD     = RD_sd1 (ISBIN)        ! effective radius [cm]
+                  AREA   = AREA_sd1 (ISBIN)      ! Dust Surface Area [cm^2/cm^3]
+
+                  ! Prevent divide by zero if GAMS = 0 (tdf, mps, 11/14/13)
+                  IF ( GAMS > 0.d0 ) THEN
+                     CONST1 = 4.D0/(V*GAMS)      ! Collision [s/cm]
+                     CONST2 = RD/DG              ! Diffusion [s/cm]
+                     CONST  = CONST1 + CONST2
+                     KT1    = KT1 + AREA / CONST ! [cm^2/cm^3] * [cm/s] = [1/s]
+                  ELSE
+                     KT1    = KT1                ! [cm^2/cm^3] * [cm/s] = [1/s]
+                  ENDIF
+
                END DO
             ELSE
-               RD     = RD_d (IBIN)            ! effective radius [cm]
-               AREA   = AREA_d (IBIN)          ! Dust Surface Area [cm^2/cm^3]
-               CONST1 = 4.D0/(V*GAMS)          ! Collision [s/cm]
-               CONST2 = RD/DG                  ! Diffusion [s/cm]
-               CONST  = CONST1 + CONST2
-               KT1    = AREA / CONST           ! [cm^2/cm^3] * [cm/s] = [1/s]
+               RD     = RD_d (IBIN)              ! effective radius [cm]
+               AREA   = AREA_d (IBIN)            ! Dust Surface Area [cm^2/cm^3]
+
+               ! Prevent divide by zero if GAMS = 0 (tdf, mps, 11/14/13)
+               IF ( GAMS > 0.d0 ) THEN
+                  CONST1 = 4.D0/(V*GAMS)         ! Collision [s/cm]
+                  CONST2 = RD/DG                 ! Diffusion [s/cm]
+                  CONST  = CONST1 + CONST2
+                  KT1    = AREA / CONST          ! [cm^2/cm^3] * [cm/s] = [1/s]
+               ELSE
+                  KT1    = 0.d0                  ! [cm^2/cm^3] * [cm/s] = [1/s]
+               ENDIF
+
             ENDIF
 
             KTS(IBIN) = KT1
@@ -2678,7 +2694,7 @@
             GAMN = GAMMA_HNO3 * (0.19 + 0.255 *(IRH - 30.)/ 10.)
          ELSE IF (IRH >= 10 ) THEN  
             GAMN = GAMMA_HNO3 * (0.03 + 0.08 *(IRH - 10.)/ 10.)
-         ELSE                     
+         ELSE                        ! 0.0 below 10%
             GAMN = GAMMA_HNO3*0.0
          ENDIF
 
@@ -2693,18 +2709,34 @@
             IF (IBIN .EQ. 1) THEN
                ! tdf Sum over the 1-4 sub-bins for bin 1      ! tdf 08/21/2K9
                DO ISBIN = 1, 4
-                  RD = RD_sd1 (ISBIN)          ! effective radius [cm]
-                  AREA = AREA_sd1 (ISBIN)      ! Dust Surface Area [cm^2/cm^3]
-                  CONST1 = 4.D0/(V*GAMN)       ! Collision [s/cm]
-                  CONST2 = RD/DG               ! Diffusion [s/cm]
-                  CONST  = CONST1 + CONST2
-                  KT1    = KT1 + AREA / CONST  ! [cm^2/cm^3] * [cm/s] = [1/s]
+                  RD = RD_sd1 (ISBIN)            ! effective radius [cm]
+                  AREA = AREA_sd1 (ISBIN)        ! Dust Surface Area [cm^2/cm^3]
+
+                  ! Prevent divide by zero if GAMN = 0 (tdf, mps, 11/14/13)
+                  IF ( GAMN > 0.d0 ) THEN
+                     CONST1 = 4.D0/(V*GAMN)      ! Collision [s/cm]
+                     CONST2 = RD/DG              ! Diffusion [s/cm]
+                     CONST  = CONST1 + CONST2
+                     KT1    = KT1 + AREA / CONST ! [cm^2/cm^3] * [cm/s] = [1/s]
+                  ELSE
+                     KT1    = KT1                ! [cm^2/cm^3] * [cm/s] = [1/s]
+                  ENDIF
+
                END DO
             ELSE
-               CONST1 = 4.D0/(V*GAMN)          ! Collision [s/cm]
-               CONST2 = RD/DG                  ! Diffusion [s/cm]
-               CONST  = CONST1 + CONST2
-               KT1    = AREA / CONST           ! [cm^2/cm^3] * [cm/s] = [1/s]
+               RD     = RD_d (IBIN)              ! effective radius [cm]
+               AREA   = AREA_d (IBIN)            ! Dust Surface Area [cm^2/cm^3]
+
+               ! Prevent divide by zero if GAMN = 0 (tdf, mps, 11/14/13)
+               IF ( GAMN > 0.d0 ) THEN
+                  CONST1 = 4.D0/(V*GAMN)         ! Collision [s/cm]
+                  CONST2 = RD/DG                 ! Diffusion [s/cm]
+                  CONST  = CONST1 + CONST2
+                  KT1    = AREA / CONST          ! [cm^2/cm^3] * [cm/s] = [1/s]
+               ELSE
+                  KT1    = 0.d0                  ! [cm^2/cm^3] * [cm/s] = [1/s]
+               ENDIF
+
             ENDIF
 
             KTN(IBIN) = KT1
