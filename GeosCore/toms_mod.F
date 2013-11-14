@@ -328,7 +328,7 @@
       ! directly from the met fields
       LOGICAL, INTENT(IN)  :: USE_O3_FROM_MET
       
-      ! TO3 from the met fields
+      ! TO3 from the met fields [Dobsons]
       REAL*8,  INTENT(IN)  :: TO3(IIPAR,JJPAR)
 !
 ! !REMARKS:
@@ -423,10 +423,10 @@
          ! we won't overwrite this with TOMS/SBUV O3 columns
          !---------------------------------------------------------------
          IF ( FIRST ) THEN
-            WRITE(6,*) 'TOMS/SBUV data are not available for this year'
-            WRITE(6,*) 'We use the total O3 column given by GEOS-5.'
-            WRITE(6,*) 'The validation by GMAO of these O3 columns is ' 
-     &                 // 'in progress.'
+            WRITE( 6, '(a)' ) REPEAT( '%', 45 )
+            WRITE( 6, 100   )
+ 100        FORMAT( '%%% USING O3 COLUMNS FROM THE MET FIELDS! %%% ' )
+            WRITE( 6, '(a)' ) REPEAT( '%', 45 )
             FIRST = .FALSE.
          ENDIF
 

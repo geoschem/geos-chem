@@ -2113,7 +2113,8 @@
 !  split off to facilitate development of the grid-independent model.
 !
 ! !REVISION HISTORY: 
-!   7 Mar 2012 - R. Yantosca - Initial version
+!  07 Mar 2012 - R. Yantosca - Initial version
+!  14 Nov 2013 - R. Yantosca - For GEOS-FP, read O3 from met field files
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2142,6 +2143,13 @@
             ELSE
                USE_O3_FROM_MET = .FALSE.
             ENDIF
+
+#elif defined( GEOS_FP )
+
+            ! For GEOS-FP met, always use the O3 columns
+            ! from the A1 met field files (bmy, 11/14/13)
+            USE_O3_FROM_MET = .TRUE.
+
 #else
                
             ! When TOMS data is not available, then we will use

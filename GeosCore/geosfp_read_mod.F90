@@ -35,7 +35,7 @@ MODULE GeosFp_Read_Mod
   PRIVATE
 
 # include "netcdf.inc"                    ! Include file for netCDF library
-# define GEOS572_FILES "1"                ! Uncomment to read GEOS572* files
+!# define GEOS572_FILES "1"                ! Uncomment to read GEOS572* files
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
