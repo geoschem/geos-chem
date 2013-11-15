@@ -202,10 +202,11 @@
       INTEGER :: TMAX(MAX_DIAG)					
 
       !=================================================================
-      ! NO, J-Value, and 2-PM diagnostic arrays (bmy, 9/25/98)
+      ! OH, J-Value, and 2-PM diagnostic arrays (bmy, 9/25/98)
       ! Move this here for now (bmy, 7/20/04)
+      ! Removed HR1_NO and HR2_NO (mpayer, 11/8/13)
       !=================================================================
-      REAL*8  :: HR1_NO, HR2_NO, HR1_JV,  HR2_JV
+      REAL*8  :: HR1_JV, HR2_JV
       REAL*8  :: HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
 !
 ! !REMARKS:
@@ -255,6 +256,9 @@
 !                                              to match ND09 diagnostic
 !  09 Mar 2011 - R. Yantosca - Updated MAX_TRACER for APM (G. Luo)
 !  03 Aug 2011 - M. Long     - Converted from Header file to Module
+!  08 Nov 2013 - M. Sulprizio- Remove HR1_NO and HR2_NO. They are no longer
+!                              needed for ND43 because NO, NO2, and NO3 are now
+!                              tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

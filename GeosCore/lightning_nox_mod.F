@@ -42,7 +42,9 @@
       REAL*8, ALLOCATABLE, PUBLIC :: EMIS_LI_NOx(:,:,:)
 !
 ! !REMARKS:
-!  %%% NOTE: MFLUX and PRECON methods are now deprecated (ltm, bmy, 7/9/09)
+!  (1) MFLUX and PRECON methods are now deprecated (ltm, bmy, 7/9/09)
+!  (2) Starting w/ GEOS-Chem v9-02, we read OTD-LIS local redistribution
+!       data files contained in subdirectory lightning_NOx_201311/.
 !                                                                             .
 !  References:
 !  ============================================================================
@@ -1239,6 +1241,7 @@
 !  18 Apr 2013 - R. Yantosca - Bug fix, prefix DATA_DIR to GEOS-5.7.x file
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  07 Nov 2013 - R. Yantosca - Now read files from lightning_NOx_201311 dir
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1270,37 +1273,31 @@
       MODELNAME = GET_NAME_EXT()
 #endif
 
-      ! Get file name
-      ! OTD-LIS Local file for CTH parameterization
+      ! OTD-LIS local redist filename for CTH parameterization
+      ! Now read from lightning_NOx_201301 for GEOS-Chem v9-02+ (bmy, 11/7/13)
       FILENAME = 
-     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' // 
+     &        'lightning_NOx_201311/OTD-LIS-Local-Redist.CTH.v5.' // 
      &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 
       ! Prefix directory to file name
-#if !defined( GEOS_FP )
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-#endif      
 
-      ! For GEOS-57 nested grids, append a suffix to denote either
-      ! SEAC4RS or the China domain (skim, 5/29/12)
-      ! Add version of redistribution file to indicate beta product.
-      ! (ltm, 11/07/13).
+      ! Append suffix for GEOS-FP nested grids
 #if   defined( GEOS_FP ) && defined( NESTED_CH )
-      FILENAME = TRIM( FILENAME ) // '.v20131107.CH'
+      FILENAME = TRIM( FILENAME ) // '.CH'
 #elif defined( GEOS_FP ) && defined( NESTED_NA )
-      FILENAME = TRIM( FILENAME ) // '.v20131107.NA'
+      FILENAME = TRIM( FILENAME ) // '.NA'
 #elif defined( GEOS_FP ) && defined( NESTED_EU ) 
-      FILENAME = TRIM( FILENAME ) // '.v20131107.EU'
-#elif defined( GEOS_FP )
-      FILENAME = TRIM( FILENAME ) // '.v20131107'
+      FILENAME = TRIM( FILENAME ) // '.EU'
+#elif defined( GEOS_FP ) && defined( NESTED_SE ) 
+      FILENAME = TRIM( FILENAME ) // '.SE'
 #endif
 
-      ! For GEOS-5 nested grids, append the a suffix to denote either 
-      ! CHINA or NORTH AMERICA nested regions (ltm, bmy, 11/14/08)
+      ! Append suffix for GEOS-5 nested grids
 #if   defined( GEOS_5 ) && defined( NESTED_CH ) 
       FILENAME = TRIM( FILENAME ) // '.CH'
 #elif defined( GEOS_5 ) && defined( NESTED_NA ) 
-      FILENAME = TRIM( FILENAME ) // '.v20131107.NA'
+      FILENAME = TRIM( FILENAME ) // '.NA'
 #elif defined( GEOS_5 ) && defined( NESTED_EU ) 
       FILENAME = TRIM( FILENAME ) // '.EU'
 #endif
@@ -1452,7 +1449,7 @@
       REAL*8 :: BETA    ! Scale factor
 !
 ! !REMARKS:
-! 
+!  (1) Starting in G-C v9-02, we now read data from lightning_NOx_201311.
 ! 
 ! !REVISION HISTORY: 
 !  24 Sep 2007 - L. Murray - Initial version
@@ -1501,7 +1498,7 @@
 #if   defined( GEOS_5 )
 
       ! Are we using GEOS 5.2.0 or GEOS 5.1.0?
-      LOGICAL :: GEOS_520
+      LOGICAL               :: GEOS_520
 
       ! Lightning is sensitive to which convection scheme
       ! is used in the GCM used for the data assimilation.
@@ -1551,7 +1548,7 @@
       ! met fields become available (ltm, 11/07/13).
       IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or.
      &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN
-         BETA = ANN_AVERAGE_FLASHRATE / 82.003230d0
+         BETA = ANN_AVG_FLASHRATE / 82.003230d0
       ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1589,7 +1586,7 @@
       !---------------------------------------
       BETA = ANN_AVG_FLASHRATE / 253.55888d0
 
-#elif   defined( MERRA ) && defined( GRID4x5 )
+#elif defined( MERRA ) && defined( GRID4x5 )
 
       !---------------------------------------
       ! MERRA: 4 x 5 global simulation

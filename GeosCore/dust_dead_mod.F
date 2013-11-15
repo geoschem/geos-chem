@@ -306,6 +306,7 @@
 !   5 Jun 2013 - K. Yu       - Use 0.5 x 0.666 NA scale factor for the
 !                              0.25 x 0.3125 NA nested simulation
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  07 Nov 2013 - M. Sulprizio- Update FLX_MSS_FDG_FCT for 4x5 GEOS-FP
 !******************************************************************************
 !
       ! References to F90 modules
@@ -415,8 +416,21 @@
 
 #elif defined( GEOS_FP ) && defined( GRID4x5 )
 
-      ! Based on results from GEOS 5.7 for September 2011
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.272d0
+      !----------------------------------------------------------------
+      ! Based on results from GEOS-FP 4x5 for 04/2012-04/2013
+      !
+      !   (GEOS-5 - GEOS-FP)/GEOS-5 * 100 is 23.56% in each size bin.
+      !
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
+      ! dust emissions consistent.  Consequently, to bring GEOS-FP 4x5
+      ! dust emissions up to GEOS-5 levels, we need to MULTIPLY the
+      ! FLX_MSS_FDG_FCT used for GEOS-5 by:
+      !
+      !             1 / (1. - 0.2356) = 1 / 0.7644 = 1.3082
+      !
+      !    -- R. Yantosca, M. Sulprizio, 07 Nov 2013
+      !----------------------------------------------------------------
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.3082d0
 
 #else
 

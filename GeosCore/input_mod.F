@@ -4502,6 +4502,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  08 Nov 2013 - M. Sulprizio- Remove HR1_NO, and HR2_NO from ND43 diagnostic.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4845,7 +4846,7 @@
       CALL SET_TINDEX( am_I_Root, 42, ND42, SUBSTRS(2:N), N-1, PD42 )
 
       !--------------------------
-      ! ND43: OH, NO, etc.
+      ! ND43: OH, HO2
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:43' )
       READ( SUBSTRS(1), * ) ND43
@@ -4854,9 +4855,6 @@
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:44' )
       READ( SUBSTRS(1:N), * ) HR1_OH, HR2_OH
-
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:45' )
-      READ( SUBSTRS(1:N), * ) HR1_NO, HR2_NO
 
       !--------------------------
       ! ND44 drydep vel & flux

@@ -55,8 +55,7 @@
       !=================================================================
       ! DIAGOH begins here!
       !
-      ! ND43 diagnostic: Save OH, HO2, NO3  between HR1_OH and HR2_OH
-      !                  Save NO, NO2 between times HR1_NO and HR2_NO
+      ! ND43 diagnostic: Save OH, HO2 between HR1_OH and HR2_OH
       !
       ! Store the following chemical diagnostics into the AD43 array:
       !    AD43(:,:,:,1) = OH    [molec/cm3]

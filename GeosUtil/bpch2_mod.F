@@ -749,6 +749,10 @@
 
 #endif
 !
+! !REMARKS:
+!  NOTE: GEOS-FP and GEOS-5 met products use the same vertical grid, so we 
+!  can return the name extension "geos5" for both.
+!
 ! !REVISION HISTORY:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
 !  (2 ) Remove obsolete "geos2" model name strning (bmy, 11/3/03)

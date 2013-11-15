@@ -254,6 +254,8 @@
 !  18 Mar 2013 - R. Yantosca - Now accept Input_Opt, RC as arguments
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS)
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  06 Nov 2013 - R. Yantosca - Now activate the parallel loop.  Unit testing
+!                              revealed that this no longer causes errors.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -365,15 +367,11 @@
          ! Start at top layer and continue to lowest layer for strat. chem
          OUT_DATA = 0d0
 
-!------------------------------------------------------------------------------
-! Prior to 2/7/11:
-! Un-parallelize until further notice (ccarouge, bmy, 2/7/11)
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L    )
-!!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3 )
-!!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
-!------------------------------------------------------------------------------
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L    )
+!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3 )
+!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
          DO J = 1, JM
          DO I = 1, IM
 
@@ -480,11 +478,7 @@
          ENDDO          ! loop over I
 
       ENDDO             ! loop pver J
-!------------------------------------------------------------------------------
-! Prior to 2/7/11:
-! Un-parallelize until further notice (ccarouge, bmy, 2/7/11)
-!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
+!$OMP END PARALLEL DO
 
       !write our calculated column o3 maximum
       !write(6,*) 'max of columns= ',maxval(out_data)

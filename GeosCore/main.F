@@ -75,7 +75,7 @@
       USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
-      USE DIAG_OH_MOD           ! For ND43  (OH,NO2,etc. prod    ) diag
+      USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
 
       !-----------------------------------------------------------------
@@ -1961,8 +1961,9 @@
          DATE = GET_A3_TIME()
 
          ! Open and read A-6 fields
-         CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2), Input_Opt )
-         CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2), State_Met )
+         CALL OPEN_MERRA_A3_FIELDS( DATE(1),   DATE(2), Input_Opt )
+         CALL GET_MERRA_A3_FIELDS ( DATE(1),   DATE(2), 
+     &                              Input_Opt, State_Met )
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
