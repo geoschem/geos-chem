@@ -507,7 +507,8 @@
                !========================================================
                 
                ! Update only if ship emissions are turned on
-               IF ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) THEN
+               IF ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP .or. 
+     &              LRCPSHIP ) THEN
 
                   ! Surface area of grid box
                   AREA_CM2 = GET_AREA_CM2( I, J, 1 )
