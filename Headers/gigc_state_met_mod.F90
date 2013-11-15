@@ -149,9 +149,9 @@ MODULE GIGC_State_Met_Mod
      REAL*8,  POINTER :: QL        (:,:,:)  ! Water mixing ratio [kg/kg]
      REAL*8,  POINTER :: REEVAPCN  (:,:,:)  ! Evap of precip conv [kg/kg/s]
      REAL*8,  POINTER :: REEVAPLS  (:,:,:)  ! Evap of precip LS+anvil [kg/kg/s]
-     REAL*8,  POINTER :: RH        (:,:,:)  ! Relative humidity [1]
-     REAL*8,  POINTER :: RH1       (:,:,:)  ! RH at timestep start [1]
-     REAL*8,  POINTER :: RH2       (:,:,:)  ! RH at timestep end [1]
+     REAL*8,  POINTER :: RH        (:,:,:)  ! Relative humidity [%]
+     REAL*8,  POINTER :: RH1       (:,:,:)  ! RH at timestep start [%]
+     REAL*8,  POINTER :: RH2       (:,:,:)  ! RH at timestep end [%]
      REAL*8,  POINTER :: SPHU      (:,:,:)  ! Specific humidity [kg/kg]
      REAL*8,  POINTER :: SPHU1     (:,:,:)  ! Spec hum at timestep start [kg/kg]
      REAL*8,  POINTER :: SPHU2     (:,:,:)  ! Spec hum at timestep end [kg/kg]
@@ -187,6 +187,7 @@ MODULE GIGC_State_Met_Mod
 !  12 Dec 2012 - R. Yantosca - Add IREG, ILAND, IUSE fields for dry deposition
 !  13 Dec 2012 - R. Yantosca - Add XLAI, XLAI2 fields for dry deposition
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  15 Nov 2013 - R. Yantosca - Now denote that RH fields have units of [%]
 !EOP
 !------------------------------------------------------------------------------
 !BOC

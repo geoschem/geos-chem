@@ -1152,6 +1152,8 @@ CONTAINS
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  11 Apr 2013 - R. Yantosca - Now pass directories with Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3dyn
+!  15 Nov 2013 - R. Yantosca - Now convert RH from [1] to [%], in order
+!                              to be consistent with GEOS-Chem convention
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1283,9 +1285,12 @@ CONTAINS
  10 FORMAT( '     - Found all 6  GEOS-FP A3dyn  met fields for ', a )
 
     !======================================================================
-    ! Diagnostics, cleanup, and quit
+    ! Unit conversions, diagnostics, cleanup, and quit
     !======================================================================
     
+    ! Convert RH from [1] to [%]
+    State_Met%RH = State_Met%RH * 100d0
+
     ! CLDTOPS = highest location of CMFMC in the column (I,J)
     DO J = 1, JJPAR
     DO I = 1, IIPAR
