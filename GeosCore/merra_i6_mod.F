@@ -301,12 +301,14 @@
 ! !OUTPUT PARAMETERS:
 !
       REAL*8,  INTENT(OUT) :: PS(IIPAR,JJPAR      )  ! Surface pressure [hPa]
-      REAL*8,  INTENT(OUT) :: RH(IIPAR,JJPAR,LLPAR)  ! Rel. humidity [unitless]
+      REAL*8,  INTENT(OUT) :: RH(IIPAR,JJPAR,LLPAR)  ! Rel. humidity    [1]
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_I6 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  15 Nov 2013 - R. Yantosca - Now convert RH from [1] to [%], in order
+!                              to be consistent with GEOS-Chem convention
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -364,7 +366,8 @@
                ENDIF
 
             !------------------------------------
-            ! RH: Relative humidity [unitless]
+            ! RH: Relative humidity [1]
+            !     and converted to  [%]
             !------------------------------------
             CASE ( 'RH' )
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q3
@@ -373,6 +376,9 @@
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_3D( Q3, RH )
                   NFOUND = NFOUND + 1
+
+                  ! Convert RH from [1] to [%] 
+                  RH = RH * 100d0
                ENDIF
 
             !------------------------------------
