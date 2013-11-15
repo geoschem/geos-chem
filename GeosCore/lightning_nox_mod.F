@@ -1493,6 +1493,8 @@
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
+#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
 #endif
 
 #if   defined( GEOS_5 )
@@ -1567,16 +1569,18 @@
       
       ! ltm: Will need to be determined when met fields become available.
 
-! Copy the same beta for the other nested grids for now (skim, 6/27/13)
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
 
       !---------------------------------------
       ! GEOS-FP: Nested SEAC4RS simulation
       !---------------------------------------
-      
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
+
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 11/14/13).
+      IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or. 
+     &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN
+         BETA = ANN_AVG_FLASHRATE / 652.44105d0
       ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )
