@@ -26,6 +26,7 @@
 #     include "define.h"
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
+      USE CMN_FJX_MOD,  ONLY : O3GRID
 
       IMPLICIT NONE
 
@@ -99,6 +100,7 @@
       IDNUM         = 0
       CSAVEID(:)    = 0
       CSAVEID_JJ(:) = 0
+      O3GRID(:,:,:) = 0d0
 
       ! Loop over tracers
       DO N = 1, NTRACER
@@ -144,7 +146,7 @@
 
          ! 1-D index for SMVGEAR/KPP arrays corresponding to 
          ! grid box (I,J,L) @ previous chemistry timestep
-	 JLOOP_P = JLOP_PREVIOUS(I,J,L)
+         JLOOP_P = JLOP_PREVIOUS(I,J,L)
 
          ! If the grid box (I,J,L) was in the stratosphere 
          ! at the  previous timestep, then  ...
@@ -165,7 +167,7 @@
                IF ( LTEST == 0 ) THEN
 !$OMP CRITICAL
                   CALL ERROR_STOP( 'could no find trop box',
-     &				   'partition.f' )
+     &                               'partition.f' )
 !$OMP END CRITICAL
                ENDIF
 
@@ -178,7 +180,7 @@
             ENDDO
             
          ENDIF
-		    
+    
          ! Archive into the CSAVE array the concentration of each species
          ! in the CSPEC array at the previous chemistry timestep at index
          ! JLOOP_P.  JLOOP_P is guaranteed to be a tropopsheric box.  This
@@ -341,7 +343,15 @@
 
                   ! Store the concentration of member species KK
                   ! into the CSPEC array.  Do not allow underflow!
-                  CSPEC(JLOOP,JJ) = MAX( QTEMP*CONCTMP, SMAL2 )
+                  QTEMP = MAX(QTEMP*CONCTMP,SMAL2)
+                  CSPEC(JLOOP,JJ) = QTEMP
+
+                  ! -------------------- UCX --------------------
+                  ! Store ozone concentrations for FAST-JX
+                  IF (JJ == IDO3) THEN
+                     O3GRID(I,J,L) = QTEMP
+                  ENDIF
+                  ! -------------------- UCX --------------------
                ENDDO
 
                !---------------------------------------------------------

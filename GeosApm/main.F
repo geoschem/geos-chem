@@ -125,7 +125,7 @@
       !-----------------------------------------------------------------
       ! Modules in the stratospheric chemistry update (SDE)
       !-----------------------------------------------------------------
-      USE GMISTRAT_MOD          ! For initializing minor tracer fields
+      USE UCX_MOD               ! Unified chemistry extension
 
 #if defined( DEVEL )
       !-----------------------------------------------------------------
@@ -443,9 +443,9 @@
       ENDIF
 
       ! Initialize stratospheric routines
-      IF (LGMISTRAT) THEN
-         CALL INIT_GMISTRAT
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_GMISTRAT' )
+      IF (LUCX) THEN
+         CALL INIT_UCX
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
       ENDIF
 
       ! Set simple initial tracer conditions

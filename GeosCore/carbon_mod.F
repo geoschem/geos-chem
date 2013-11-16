@@ -4038,6 +4038,7 @@ c
       USE TRACER_MOD,        ONLY : STT
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
+      USE RCP_MOD,           ONLY : OPTIONS_RCP
       !USE TRACERID_MOD
 
       USE CMN_SIZE_MOD    ! Size parameters
@@ -4129,8 +4130,17 @@ c
 
          ! Read in monthly emissions from T Bond [2007], with imposed
          ! seasonality over North America by R. Park [2003]
-         CALL ANTHRO_CARB_TBOND( MONTH )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+         IF ( .not. OPTIONS_RCP%LRCP ) THEN
+             CALL ANTHRO_CARB_TBOND( MONTH )
+             IF ( LPRT ) THEN
+                 CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+             ENDIF
+         ELSE
+             CALL ANTHRO_CARB_RCP( MONTH )
+             IF ( LPRT ) THEN
+                 CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_RCP' )
+             ENDIF
+         ENDIF
 
          IF ( LCOOKE ) THEN
          ! Overwrite the T. Bond [2004] emissions over North America
@@ -5207,6 +5217,115 @@ c
       ! Return to calling program
       END SUBROUTINE ANTHRO_CARB_COOKE
 
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: anthro_carb_rcp
+!
+! !DESCRIPTION: Subroutine ANTHRO\_CARB\_RCP reads monthly mean anthropogenic
+!  and biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC
+!  CARBON. (cdh, 1/2/2013)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE ANTHRO_CARB_RCP( THISMONTH )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
+      USE TIME_MOD,             ONLY : GET_TS_EMIS
+      USE TRACERID_MOD,         ONLY : IDTBCPO, IDTOCPO
+      USE TRACER_MOD,           ONLY : XNUMOL
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)           :: THISMONTH   ! Current month
+!
+! !REMARKS:
+!  This function also separates these into HYDROPHILIC and HYDROPHOBIC
+!  fractions using the same fractions as the Bond et al. (2007) global
+!  inventory.
+!                                                                             .
+!  We also assume that 20% of BC and 50% of OC from anthropogenic 
+!  emissions are hydrophilic (soluble) and the rest are hydrophobic.
+!
+! !REVISION HISTORY:
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
+      REAL*8, PARAMETER             :: FHB = 0.2d0
+
+      ! Hydrophilic fraction of ORGANIC CARBON 
+      REAL*8, PARAMETER             :: FHO = 0.5d0 
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                       :: I, J
+      REAL*8                        :: AREA_CM2, BC, OC
+
+      !=================================================================
+      ! ANTHRO_CARB_RCP begins here!
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, BC, OC, AREA_CM2 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+            ! Grid box area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+         
+            !-----------------------------------------------------------
+            ! Anthropogenic Black Carbon from fossil fuel and biofuel
+            !-----------------------------------------------------------
+
+            ! RCP emissions, atoms C/cm2/s
+            BC = GET_RCP_EMISSION( I, J, IDTBCPO, 
+     &           LAND=.TRUE., SHIP=.TRUE. )
+
+            ! Convert atoms C/cm2/s -> kg/timestep
+            BC = BC * AREA_CM2 / XNUMOL(IDTBCPO) * GET_TS_EMIS() * 60D0
+
+            ! Hydrophilic BLACK CARBON from anthropogenics [kg C/timestep]
+            ANTH_BLKC(I,J,1) =          FHB   * BC
+         
+            ! Hydrophobic BLACK CARBON from anthropogenics [kg C/timestep]
+            ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * BC
+
+
+            !-----------------------------------------------------------
+            ! Anthropogenic Organic Carbon from fossil fuel and biofuel
+            !-----------------------------------------------------------
+
+            ! RCP emissions, atoms C/cm2/s
+            OC = GET_RCP_EMISSION( I, J, IDTOCPO, 
+     &           LAND=.TRUE., SHIP=.TRUE. )
+
+            ! Convert atoms C/cm2/s -> kg/timestep
+            OC = OC * AREA_CM2 / XNUMOL(IDTOCPO) * GET_TS_EMIS() * 60D0
+
+            ! Hydrophilic ORGANIC CARBON from anthropogenics [kg C/timestep]
+            ANTH_ORGC(I,J,1) =          FHO *   OC
+
+            ! Hydrophobic ORGANIC CARBON from anthropogenics [kgC/timestep]
+            ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * OC
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE ANTHRO_CARB_RCP
 !------------------------------------------------------------------------------
 
       SUBROUTINE BIOMASS_CARB_TBOND

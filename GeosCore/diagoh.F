@@ -99,7 +99,7 @@
             NO3           = SAVENO3(I,J,L) * LTNO3(I,J)
             AD43(I,J,L,5) = AD43(I,J,L,5)  + NO3
 
-#if defined( GMISTRAT )
+#if defined( UCX )
             ! Save O1D as AD43(:,:,:,6)
             O1D           = SAVEO1D(I,J,L) * LTO1D(I,J)
             AD43(I,J,L,6) = AD43(I,J,L,6)  + O1D

@@ -112,7 +112,8 @@
       !-----------------------------------------------------------------
       ! Modules added in the stratospheric chemistry update (SDE)
       !-----------------------------------------------------------------
-      USE GMISTRAT_MOD          ! For initalizing rare tracer fields
+      USE UCX_MOD               ! For unified trop-strat chemistry
+      USE GEOENG_MOD            ! For geoengineering emissions
 
 #if defined( DEVEL )
       !-----------------------------------------------------------------
@@ -210,6 +211,7 @@
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  26 Mar 2013 - S. D. Eastham - Added initialization of rare tracers
+!  15 Oct 2013 - S. D. Eastham - Added climate change options
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -360,11 +362,29 @@
       CALL SET_FLOATING_PRESSURE( PS1 )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
+      ! Apply T offset to met fields (if needed)
+#if defined(UCX)
+#if defined(GEOS_57)
+      CALL OFFSET_MET_FIELDS(4)
+      CALL OFFSET_MET_FIELDS(1)
+      CALL OFFSET_MET_FIELDS(5)
+#elif defined(MERRA)
+      CALL OFFSET_MET_FIELDS(4)
+      CALL OFFSET_MET_FIELDS(1)
+      CALL OFFSET_MET_FIELDS(3)
+#else
+      CALL OFFSET_MET_FIELDS(1)
+      CALL OFFSET_MET_FIELDS(2)
+      CALL OFFSET_MET_FIELDS(3)
+#endif
+#endif
+
 #if defined( DEVEL )
       CALL AIRQNT(State_Met)
 #else
       CALL AIRQNT
 #endif
+
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Compute lightning NOx emissions [molec/box/6h]
@@ -406,9 +426,15 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Initialize stratospheric routines
-      IF (LGMISTRAT) THEN
-         CALL INIT_GMISTRAT( am_I_Root, NYMDb, NHMSb )
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_GMISTRAT' )
+      IF (LUCX) THEN
+         CALL INIT_UCX( am_I_Root, NYMDb, NHMSb )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
+      ENDIF
+
+      ! Initialize geoengineering routines
+      IF (LGEOENG) THEN
+         CALL INIT_GEOENG( am_I_Root )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_GEOENG' )
       ENDIF
 
       ! Set simple initial tracer conditions
@@ -565,9 +591,9 @@
                   CALL MAKE_CSPEC_FILE( NYMD, NHMS )
                ENDIF 
 
-#if defined( GMISTRAT )
+#if defined( UCX )
                ! Write PSC data
-               IF ( LGMISTRAT ) THEN
+               IF ( LUCX ) THEN
                   CALL MAKE_PSC_FILE( NYMD, NHMS )
                ENDIF
 #endif
@@ -787,8 +813,8 @@
 
          ! SDE 05/28/13: Set H2O to STT if relevant
          IF (IDTH2O.ne.0) THEN
-            CALL SET_H2O_TRAC((.not.LGMISTRAT).or.LSETH2O)
-            ! Only force strat once if using GMI strat
+            CALL SET_H2O_TRAC((.not.LUCX).or.LSETH2O)
+            ! Only force strat once if using UCX
             IF (LSETH2O) LSETH2O = .FALSE.
          ENDIF
 
@@ -868,6 +894,11 @@
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
             IF ( LCONV .or. LWETD ) CALL INIT_WETSCAV
+         ENDIF
+
+         ! SDE 10/16/13: Set clock tracer if relevant
+         IF (IDTCLOCK.ne.0) THEN
+            CALL SET_CLOCK_TRAC(GET_TS_DYN())
          ENDIF
 
 
@@ -1056,7 +1087,7 @@
 
             ! SDE 05/28/13: Set H2O to STT if relevant
             IF (IDTH2O.ne.0) THEN
-               CALL SET_H2O_TRAC(.not.LGMISTRAT)
+               CALL SET_H2O_TRAC(.not.LUCX)
             ENDIF
 
             CALL DO_CHEMISTRY( am_I_Root, IIPAR,      JJPAR, 
@@ -1084,7 +1115,9 @@
             ENDIF            
      
             ! Do wet deposition
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: b WETDEP' )
             CALL DO_WETDEP
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a WETDEP' )
 
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer
             IF ( ITS_A_MERCURY_SIM() ) THEN
@@ -1742,6 +1775,10 @@
       IF ( ITS_TIME_FOR_A1() ) THEN
          DATE = GET_A1_TIME()
          CALL GEOS57_READ_A1( DATE(1), DATE(2) )
+
+         ! Offset A1 fields
+         CALL OFFSET_MET_FIELDS(4)
+
       ENDIF
 
       !----------------------------------
@@ -1750,6 +1787,9 @@
       IF ( ITS_TIME_FOR_A3() ) THEN
          DATE = GET_A3_TIME()
          CALL GEOS57_READ_A3( DATE(1), DATE(2) )
+
+         ! Offset A3 fields
+         CALL OFFSET_MET_FIELDS(1)
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
@@ -1762,6 +1802,9 @@
       IF ( ITS_TIME_ FOR_I3() ) THEN
          DATE = GET_I3_TIME()
          CALL GEOS57_READ_I3_2( DATE(1), DATE(2) )
+
+         ! Offset I3 fields
+         CALL OFFSET_MET_FIELDS(5)
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( PS2 )
@@ -1783,6 +1826,9 @@
          CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
          CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2) )
 
+         ! Offset A1 fields
+         CALL OFFSET_MET_FIELDS(4)
+
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
          !IF ( LMEGAN ) CALL UPDATE_T_DAY 
@@ -1802,6 +1848,9 @@
          CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
          CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2) )
 
+         ! Offset A3 fields
+         CALL OFFSET_MET_FIELDS(1)
+
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
          IF ( LLIGHTNOX ) CALL LIGHTNING
@@ -1820,6 +1869,9 @@
          ! Open and read files
          CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2) )
          CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2) )
+
+         ! Offset I6 fields
+         CALL OFFSET_MET_FIELDS(3)
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( PS2 )
@@ -1882,6 +1934,9 @@
          CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
          CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
 
+         ! Offset A3 fields
+         CALL OFFSET_MET_FIELDS(1)
+
          ! Update daily mean temperature archive for MEGAN biogenics
          IF ( LMEGAN ) CALL UPDATE_T_DAY 
 
@@ -1905,6 +1960,9 @@
          CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
 #endif
 
+         ! Offset A6 fields
+         CALL OFFSET_MET_FIELDS(2)
+
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]
          IF ( LLIGHTNOX ) CALL LIGHTNING
@@ -1921,6 +1979,9 @@
          ! Open and read files
          CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
          CALL GET_I6_FIELDS_2( DATE(1), DATE(2) )
+
+         ! Offset I6 fields
+         CALL OFFSET_MET_FIELDS(3)
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( PS2 )

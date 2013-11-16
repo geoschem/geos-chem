@@ -477,7 +477,7 @@
       ! and for the new VSL index holders (jpp, 4/15/10)
       ICH2Br2  = 0
       ICHBr3   = 0
-      ! SDE 05/14/13: For GMISTRAT
+      ! SDE 05/14/13: For UCX
       IO1D     = 0
       IO3P     = 0
       INATOM   = 0

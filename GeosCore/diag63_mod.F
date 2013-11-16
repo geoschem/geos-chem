@@ -128,10 +128,11 @@
       USE TRACER_MOD,   ONLY : STT,                TCVV
       USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE DIAG_MOD,     ONLY : AD63     
+!      USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
+!      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+!      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE DIAG_MOD,     ONLY : AD63, AD63_COUNT
+      USE ERROR_MOD,    ONLY : SAFE_DIV
 
       USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_O3_MOD	     ! Pure O3, SAVENO2
@@ -148,10 +149,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE            :: FIRST  = .TRUE.
-      LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,     IS_Ox 
-      LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
-      LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
+!      LOGICAL, SAVE            :: FIRST  = .TRUE.
+!      LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,     IS_Ox 
+!      LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
+!      LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
@@ -166,22 +167,22 @@
       ! DIAG63 begins here!
       !=================================================================
 
-      ! Set logical flags on first timestep
-      IF ( FIRST ) THEN
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_OPTD     = ALLOCATED( OPTD    )
-         IS_SLP      = ALLOCATED( SLP     )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
-         IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
-         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. 
-     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
-     &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
-     &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
-         FIRST       = .FALSE.
-      ENDIF
+!      ! Set logical flags on first timestep
+!      IF ( FIRST ) THEN
+!         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
+!         IS_OPTD     = ALLOCATED( OPTD    )
+!         IS_SLP      = ALLOCATED( SLP     )
+!         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+!         IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
+!         IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
+!         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
+!         IS_NOy      = ( IS_FULLCHEM .and. 
+!     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
+!     &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
+!     &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
+!     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
+!         FIRST       = .FALSE.
+!      ENDIF
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -245,7 +246,10 @@
                J = JOFF + Y
             DO X = 1, ND63_NI
                I = GET_I( X )
-               Q(X,Y,1) = AD63(I,J,W)
+               ! Normalize by AD63_COUNT, 
+               ! the number of times diagnostics are summed
+               Q(X,Y,1) = SAFE_DIV( DBLE(AD63(I,J,W)), DBLE(AD63_COUNT),
+     &                              0d0 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -262,6 +266,16 @@
      &               REAL( Q(1:ND63_NI, 1:ND63_NJ, 1) ) )
       ENDDO
             
+      !=================================================================
+      ! Reset the AD63 to zero
+      !=================================================================
+
+      ! Zero all elements
+      AD63(:,:,:) = 0d0
+
+      ! Reset the counter
+      AD63_COUNT = 0d0
+
       !=================================================================
       ! Close the file at the proper time
       !=================================================================

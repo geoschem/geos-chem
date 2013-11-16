@@ -501,7 +501,7 @@
       USE TRACERID_MOD, ONLY : IDTCH4 ! Online CH4
 
       USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
-      USE LOGICAL_MOD,  ONLY : LGMISTRAT
+      USE LOGICAL_MOD,  ONLY : LUCX
 
       LOGICAL, INTENT(IN) :: am_I_Root
 
@@ -621,8 +621,8 @@
 
       ! For CH4 (kjw)
       !  IDBCH4 is placed at end after all full chem tracers and CO2
-#if defined( GMISTRAT )
-      IF (LGMISTRAT) THEN
+#if defined( UCX )
+      IF (LUCX) THEN
          IF ( IDBCH4 /= 0 ) THEN
             NBIOTRCE = NBIOTRCE + 1
             BIOTRCE(IDBCH4)  = IDTCH4

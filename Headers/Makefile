@@ -96,7 +96,8 @@ help:
 #
 CMN_DEP_mod.o        : CMN_DEP_mod.F           CMN_SIZE_mod.o
 
-CMN_DIAG_mod.o       : CMN_DIAG_mod.F          CMN_SIZE_mod.o
+CMN_DIAG_mod.o       : CMN_DIAG_mod.F          CMN_SIZE_mod.o  \
+                       CMN_FJX_MOD.o
 
 CMN_GCTM_mod.o       : CMN_GCTM_mod.F	       
 

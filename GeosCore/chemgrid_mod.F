@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,  ONLY : LGMISTRAT
+      USE LOGICAL_MOD,  ONLY : LUCX
       USE CMN_SIZE_MOD, ONLY : LLSTRAT
 
       IMPLICIT NONE
@@ -539,14 +539,14 @@
       !=================================================================
       ! GET_MIN_CHEMGRID_LEVEL begins here!
       !=================================================================
-#if defined( GMISTRAT )
-      IF (LGMISTRAT) THEN
+#if defined( UCX )
+      IF (LUCX) THEN
          ! Minimum level is fixed at stratopause
          L_MIN = LLSTRAT
       ELSE
 #endif
       L_MIN = LMIN
-#if defined( GMISTRAT )
+#if defined( UCX )
       ENDIF
 #endif
 
@@ -581,14 +581,14 @@
       !=================================================================
       ! GET_MAX_CHEMGRID_LEVEL begins here!
       !=================================================================
-#if defined( GMISTRAT )
-      IF (LGMISTRAT) THEN
+#if defined( UCX )
+      IF (LUCX) THEN
          ! Maximum level is fixed at stratopause
          L_MAX = LLSTRAT
       ELSE
 #endif
       L_MAX = LMAX
-#if defined( GMISTRAT )
+#if defined( UCX )
       ENDIF
 #endif
 
@@ -635,8 +635,8 @@
       !=================================================================
       ! GET_TPAUSE_LEVEL begins here!
       !=================================================================
-#if defined( GMISTRAT )
-      IF (LGMISTRAT) THEN
+#if defined( UCX )
+      IF (LUCX) THEN
           ! Chemistry grid level is fixed at stratopause
           ! None of the vertical grids currently employed have terrain
           ! following coordinates at this altitude, so the level is fixed
@@ -645,7 +645,7 @@
 #endif
       ! Use GET_TPAUSE_LEVEL otherwise - no point in duplicating code
       L_CHEM = GET_TPAUSE_LEVEL(I,J)
-#if defined( GMISTRAT )
+#if defined( UCX )
       ENDIF
 #endif
       END FUNCTION GET_CHEMGRID_LEVEL
@@ -988,13 +988,13 @@
       ! ITS_IN_THE_CHEMGRID begins here
       !=================================================================
 
-#if defined( GMISTRAT )
-      IF (LGMISTRAT) THEN
+#if defined( UCX )
+      IF (LUCX) THEN
          IS_CHEM = (.not.ITS_IN_THE_MESO(I,J,L))
       ELSE
 #endif
       IS_CHEM = ITS_IN_THE_TROP(I,J,L)
-#if defined( GMISTRAT )
+#if defined( UCX )
       ENDIF
 #endif
 

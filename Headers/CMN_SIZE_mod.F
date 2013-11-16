@@ -518,7 +518,7 @@
       INTEGER, PARAMETER :: NRHAER = 5
 
       ! NSTRATAER -- Number of stratospheric aerosols (SDE 04/17/13)
-#if defined( GMISTRAT )
+#if defined( UCX )
       INTEGER, PARAMETER :: NSTRATAER = 2
 #else
       INTEGER, PARAMETER :: NSTRATAER = 0
@@ -639,7 +639,7 @@
       
       IMPLICIT NONE
 
-#if defined( GMISTRAT )
+#if defined( UCX )
       LLCHEM     = LLSTRAT
       LLCHEM_FIX = LLSTRAT
 #else
@@ -1229,7 +1229,7 @@
       !-----------------------------------------------------------------
       ! For stratospheric chemistry
       !-----------------------------------------------------------------
-#if defined( GMISTRAT )
+#if defined( UCX )
       INTEGER, PARAMETER :: LLCHEM     = LLSTRAT
       INTEGER, PARAMETER :: LLCHEM_FIX = LLSTRAT
 #else
@@ -1342,7 +1342,7 @@
       INTEGER, PARAMETER :: NRHAER = 5
 
       ! NSTRATAER -- Number of stratospheric aerosols (SDE 04/17/13)
-#if defined( GMISTRAT )
+#if defined( UCX )
       INTEGER, PARAMETER :: NSTRATAER = 2
 #else
       INTEGER, PARAMETER :: NSTRATAER = 0

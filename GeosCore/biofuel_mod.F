@@ -219,6 +219,8 @@
       USE TRACERID_MOD,         ONLY : IDTGLYX, IDTMGLY, IDTBENZ
       USE TRACERID_MOD,         ONLY : IDTTOLU, IDTXYLE, IDTC2H4
       USE TRACERID_MOD,         ONLY : IDTC2H2, IDTGLYC, IDTHAC
+      USE TRACERID_MOD,         ONLY : IDTBCPO, IDTOCPO, IDTSO2
+      USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       ! for US emission fix (hotp 11/20/09)
       USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
@@ -229,6 +231,7 @@
       USE TIME_MOD,             ONLY : GET_HISTYR
       USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 !eml]
+      USE RCP_MOD,              ONLY : OPTIONS_RCP
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCLYR
@@ -865,6 +868,29 @@
             IF ( LRETRO ) THEN
                IF ( (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
      &              (NN == IDTPRPE) .or.
+     &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
+     &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
+     &              (NN == IDTACET) .or. (NN == IDTMEK ) .or.
+     &              (NN == IDTBENZ) .or. (NN == IDTTOLU) .or.
+     &              (NN == IDTXYLE) ) THEN
+
+                  BIOFUEL(N,I,J) = 0.d0
+
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! RCP anthropogenic emissions include residential biofuel,
+            ! so set this to zero if we are using the RCP inventory
+            ! (cdh, 10/18/2011)
+            ! Adapted for UCX (SDE 2013-11-15)
+            !-----------------------------------------------------------
+            IF ( OPTIONS_RCP%LRCP ) THEN
+               IF ( (NN == IDTNOx ) .or. (NN == IDTCO  ) .or.
+     &              (NN == IDTBCPO) .or. (NN == IDTOCPO) .or.
+     &              (NN == IDTSO2 ) .or. (NN == IDTNH3 ) .or.
+     &              (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
+     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
      &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
      &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
      &              (NN == IDTACET) .or. (NN == IDTMEK ) .or.

@@ -43,12 +43,12 @@
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
-      USE TRACERID_MOD,         ONLY : IDTCH4 ! SDE 03/25/13
-      USE LOGICAL_MOD,          ONLY : LGMISTRAT ! SDE 04/11/13
+      USE TRACERID_MOD,         ONLY : IDTCH4, IDO3 ! SDE 03/25/13
+      USE LOGICAL_MOD,          ONLY : LUCX ! SDE 04/11/13
       USE LOGICAL_MOD,          ONLY : LGRAVSTRAT ! SDE 04/12/13
-      USE GMISTRAT_MOD,         ONLY : CALC_STRAT_AER ! SDE 04/18/13
-      USE GMISTRAT_MOD,         ONLY : GMISTRAT_NOX ! SDE 07/17/13
-      USE GMISTRAT_MOD,         ONLY : GMISTRAT_H2SO4PHOT ! SDE 08/17/13
+      USE UCX_MOD,              ONLY : CALC_STRAT_AER ! SDE 04/18/13
+      USE UCX_MOD,              ONLY : UCX_NOX ! SDE 07/17/13
+      USE UCX_MOD,              ONLY : UCX_H2SO4PHOT ! SDE 08/17/13
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE COMODE_LOOP_MOD            ! SMVGEAR variables
@@ -456,7 +456,7 @@
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
          ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-         IF (LGMISTRAT) THEN
+         IF (LUCX) THEN
             CALL CALC_STRAT_AER
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after CALC_PSC' )
@@ -634,14 +634,14 @@
       ! If using stratospheric chemistry, applying high-altitude
       ! active nitrogen partitioning and H2SO4 photolysis
       ! approximations  outside the chemgrid
-      IF ( LGMISTRAT ) THEN
-         CALL GMISTRAT_NOX
+      IF ( LUCX ) THEN
+         CALL UCX_NOX
          IF ( LPRT .and. am_I_Root ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after GMISTRAT_NOX' )
+            CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
          ENDIF
-         CALL GMISTRAT_H2SO4PHOT(SUNCOS_MID)
+         CALL UCX_H2SO4PHOT(SUNCOS_MID)
          IF ( LPRT .and. am_I_Root ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after GMISTRAT_H2SO4PHOT' )
+            CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
          ENDIF
       ENDIF
 

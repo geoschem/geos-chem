@@ -3,16 +3,17 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: gmistrat_mod
+! !MODULE: ucx_mod
 !     
-! !DESCRIPTION: Module GMISTRAT\_MOD contains routines and variables which
+! !DESCRIPTION: Module UCX\_MOD contains routines and variables which
 !  are associated with the addition of full stratospheric chemistry to
-!  GEOS-Chem (based on the NASA GMI implementation
+!  GEOS-Chem (based on the NASA GMI implementation, forming the Unified
+!  Chemistry eXtension (UCX).
 !\\   
 !\\   
 ! !INTERFACE: 
 !
-      MODULE GMISTRAT_MOD
+      MODULE UCX_MOD
 !
 ! !USES:
 !
@@ -38,30 +39,25 @@
                           PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
                           PUBLIC :: NDENS_AER ! See below
       INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
-      REAL*8,             PUBLIC :: GE_TGS ! TgS/year to deliver
-      REAL*8,             PUBLIC :: GE_PBASE ! Geoengineering delivery base (hPa)
-      REAL*8,             PUBLIC :: GE_PCEIL ! Geoengineering delivery ceiling (hPa)
-      REAL*8,             PUBLIC :: GE_MINLAT ! Lower latitude edge (deg)
-      REAL*8,             PUBLIC :: GE_MAXLAT ! Upper latitude edge (deg)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: SET_INITIAL_MIXRATIOS
       PUBLIC  :: SET_H2O_TRAC
+      PUBLIC  :: SET_CLOCK_TRAC
       PUBLIC  :: EMISS_BASIC
-      PUBLIC  :: EMIT_GEOENG
       PUBLIC  :: SETTLE_STRAT_AER
       PUBLIC  :: SO4_PHOTFRAC
-      PUBLIC  :: GMISTRAT_NOX
-      PUBLIC  :: GMISTRAT_H2SO4PHOT
+      PUBLIC  :: UCX_NOX
+      PUBLIC  :: UCX_H2SO4PHOT
       PUBLIC  :: CALC_STRAT_AER
       PUBLIC  :: GET_STRAT_OPT
       PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: RHO_STRAT_AER
       PUBLIC  :: CHECK_NAT
       PUBLIC  :: MAKE_PSC_FILE
-      PUBLIC  :: INIT_GMISTRAT
-      PUBLIC  :: CLEANUP_GMISTRAT
+      PUBLIC  :: INIT_UCX
+      PUBLIC  :: CLEANUP_UCX
 !
 ! PRIVATE MEMBER FUNCTIONS:
 !
@@ -93,6 +89,8 @@
       ! I_SPA           : Index of particulate PSCs
       ! AVOGADRO        : Avogadro's number (#/mole)
       ! R_UNIV          : Universal gas constant (J/mol K)
+      ! INITMR_BASIS    : Year for which the initializing mixing ratios
+      !                   were calculated (needed for future-scaling)
       !
       !=================================================================
 
@@ -102,6 +100,7 @@
       INTEGER, PARAMETER            :: I_SPA=2
       REAL*8,  PARAMETER            :: AVOGADRO=6.022d23
       REAL*8, PARAMETER             :: R_UNIV = 8.31448d0
+      INTEGER, PARAMETER            :: INITMR_BASIS = 2005
 
 !
 ! PRIVATE TYPES:
@@ -128,6 +127,7 @@
       ! ISR_N2O5           : N2O5 MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_HOCl           : HOCl MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_HOBr           : HOBr MW (inverse sqrt) (kg/kmol)^-0.5
+      ! CLOCKMR            : Current base MR for the clock tracer
       !
       ! Arrays
       !
@@ -181,6 +181,7 @@
       REAL*8, PARAMETER                 :: ISR_N2O5 =1.d0/sqrt(108.0d0)
       REAL*8, PARAMETER                 :: ISR_HOCl =1.d0/sqrt(52.46d0)
       REAL*8, PARAMETER                 :: ISR_HOBr =1.d0/sqrt(96.91d0)
+      REAL*8                            :: CLOCKMR
 
       ! Arrays
       REAL*8,DIMENSION(:,:),ALLOCATABLE     :: AER_MR
@@ -198,8 +199,6 @@
       INTEGER,DIMENSION(:),ALLOCATABLE      :: AERFRACIND
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NOX_O
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NOX_J
-      REAL*8,DIMENSION(:,:,:),ALLOCATABLE   :: GE_INJECT
-      INTEGER,DIMENSION(:,:),ALLOCATABLE    :: GE_LMIN, GE_LMAX
       REAL*8,DIMENSION(:,:),ALLOCATABLE     :: SO4_TOPPHOT
  
       ! Strings
@@ -276,7 +275,7 @@
 !
       USE LOGICAL_MOD,          ONLY : LSETCH4,  LSETOCS,  LSETCFC
       USE LOGICAL_MOD,          ONLY : LSETCL,   LSETBR,   LSETN2O
-      USE LOGICAL_MOD,          ONLY : LSETH2SO4,LGMISTRAT, LSETBRSTRAT
+      USE LOGICAL_MOD,          ONLY : LSETH2SO4,LUCX,     LSETBRSTRAT
       USE LOGICAL_MOD,          ONLY : LSETNOYSTRAT
       USE LOGICAL_MOD,          ONLY : LBASICEMIS
       USE TRACERID_MOD
@@ -287,7 +286,7 @@
       USE GRID_MOD,             ONLY : GET_YMID
       USE TIME_MOD,             ONLY : GET_YEAR
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE LOGICAL_MOD,          ONLY : LFUTURE, LFUTURECFC
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
@@ -305,6 +304,9 @@
       REAL*8             :: C3090S, C0030S, C0030N, C3090N
       INTEGER            :: CH4_YEAR
       LOGICAL,INTENT(IN) :: am_I_Root
+      REAL*8             :: SCALEFAC
+      INTEGER            :: FUTURE_LINE
+      INTEGER            :: BASIS_LINE
 
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   )
@@ -328,6 +330,10 @@
 
       IF (USE2DDATA) THEN
 
+         ! Calculate future scaling factor
+         FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + GET_MONTH()
+         BASIS_LINE = (12*(INITMR_BASIS-1959)) + GET_MONTH()
+
          ALLOCATE( AER_MR( JGLOB, AER_NLEVS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AER_MR' )
          AER_MR = 0d0
@@ -346,45 +352,51 @@
                WRITE(6,*) '|CH3Br    |         |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
+
+            ! Scaling data only available for CH3Br
+            SCALEFAC = 1.d0
+
             TRAC_IDX = IDTBr2
             TRAC_SET  = 'BR2'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
          
             TRAC_IDX = IDTBr
             TRAC_SET  = 'BR'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
          
             TRAC_IDX = IDTBrO
             TRAC_SET  = 'BRO'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
          
             TRAC_IDX = IDTHOBr
             TRAC_SET  = 'HOBR'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
          
             TRAC_IDX = IDTHBr
             TRAC_SET  = 'HBR'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTBrNO2
             TRAC_SET  = 'BRNO2'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTBrNO3
             TRAC_SET  = 'BRNO3'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTCHBr3 
             TRAC_SET  = 'CHBR3'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTCH2Br2
             TRAC_SET  = 'CH2BR2'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTCH3Br
             TRAC_SET  = 'CH3BR'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            SCALEFAC = GET_MONTREAL('CH3Br',FUTURE_LINE)/
+     &                    GET_MONTREAL('CH3Br',BASIS_LINE)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
          ENDIF
 
          ! Stratospheric NOy
@@ -394,13 +406,16 @@
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
 
+            ! No Montreal scaling
+            SCALEFAC = 1.d0
+
             TRAC_IDX = IDTHNO3
             TRAC_SET = 'HNO3'
-            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.,SCALEFAC)
 
             TRAC_IDX = IDTNOx
             TRAC_SET = 'NOX'
-            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.,SCALEFAC)
          ENDIF
 
          ! Br-Cl (special case)
@@ -409,9 +424,13 @@
                WRITE(6,*) '|BrCl     |         |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
+
+            ! No Montreal scaling
+            SCALEFAC = 1.d0
+
             TRAC_IDX = IDTBrCl
             TRAC_SET  = 'BRCL'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
      
          ENDIF
 
@@ -425,51 +444,61 @@
                WRITE(6,*) '|         |         |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
+
+            ! No Montreal scaling for non-long-lived-species
+            SCALEFAC = 1d0
+
             TRAC_IDX = IDTCl
             TRAC_SET  = 'CL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTClO
             TRAC_SET  = 'CLO'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTClNO2
             TRAC_SET  = 'CLNO2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTClNO3
             TRAC_SET  = 'CLNO3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTHOCl
             TRAC_SET  = 'HOCL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTOClO
             TRAC_SET  = 'OCLO'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTClOO
             TRAC_SET  = 'CLOO'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTCl2
             TRAC_SET  = 'CL2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTCl2O2
             TRAC_SET  = 'CL2O2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTHCl
             TRAC_SET  = 'HCL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
      
             ! Handle chloroalkanes      
             TRAC_IDX = IDTCH3Cl
             TRAC_SET  = 'CH3CL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('CH3Cl',FUTURE_LINE)/
+     &                    GET_MONTREAL('CH3Cl',BASIS_LINE)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTCH3CCl3
             TRAC_SET  = 'CH3CCL3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('CH3CCl3',FUTURE_LINE)/
+     &                    GET_MONTREAL('CH3CCl3',BASIS_LINE)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTCCl4
             TRAC_SET  = 'CCL4'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('CCl4',FUTURE_LINE)/
+     &                    GET_MONTREAL('CCl4',BASIS_LINE)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
          ENDIf
          
          ! CFCs, HCFCs and Halons
@@ -484,40 +513,70 @@
             ! H-1211, 1301 and 2402
             TRAC_IDX = IDTH1211
             TRAC_SET  = 'CBRCLF2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('H1211',FUTURE_LINE)/
+     &                    GET_MONTREAL('H1211',BASIS_LINE)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTH1301
             TRAC_SET  = 'CBRF3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('H1301',FUTURE_LINE)/
+     &                    GET_MONTREAL('H1301',BASIS_LINE)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTH2402
             TRAC_SET  = 'C2BR2F4'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+
+            SCALEFAC=GET_MONTREAL('C2BR2F4',CFCYEAR+OFFSETYEAR-1949)/
+     &               GET_MONTREAL('C2BR2F4',INITMR_BASIS-1949)
+
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
      
             ! CFC  11, 12, and [113/114/115]
             TRAC_IDX = IDTCFC11
             TRAC_SET  = 'CFCL3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('CFC11',FUTURE_LINE)/
+     &                    GET_MONTREAL('CFC11',BASIS_LINE)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+
             TRAC_IDX = IDTCFC12
             TRAC_SET  = 'CF2CL2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('CFC12',FUTURE_LINE)/
+     &                    GET_MONTREAL('CFC12',BASIS_LINE)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+
             TRAC_IDX = IDTCFCX
             TRAC_SET  = 'C2CL3F3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('CFC113',FUTURE_LINE)/
+     &                    GET_MONTREAL('CFC113',BASIS_LINE)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+
             TRAC_SET  = 'C2CL2F4'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('CFC114',FUTURE_LINE)/
+     &                    GET_MONTREAL('CFC114',BASIS_LINE)
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_SET  = 'C2CLF5'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('CFC115',FUTURE_LINE)/
+     &                    GET_MONTREAL('CFC115',BASIS_LINE)
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
      
             ! HCFC 22, 123, 141b and 142b
             TRAC_IDX = IDTHCFC22
             TRAC_SET  = 'CHCLF2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('HCFC22',FUTURE_LINE)/
+     &                    GET_MONTREAL('HCFC22',BASIS_LINE)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+
             TRAC_IDX = IDTHCFCX
             TRAC_SET  = 'C2HF3CL2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            ! Take scaling factor for HCFC22 (no data for 123)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_SET  = 'C2H3FCL2'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('HCFC141b',FUTURE_LINE)/
+     &                    GET_MONTREAL('HCFC141b',BASIS_LINE)
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
+
             TRAC_SET  = 'C2H3F2CL'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            SCALEFAC = GET_MONTREAL('HCFC142b',FUTURE_LINE)/
+     &                    GET_MONTREAL('HCFC142b',BASIS_LINE)
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
          ENDIF
 
          IF (LSETOCS) THEN
@@ -527,7 +586,11 @@
             ENDIF
             TRAC_IDX = IDTOCS
             TRAC_SET  = 'OCS'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+
+            ! No Montreal scaling
+            SCALEFAC = 1.d0
+
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
          ENDIF
 
          IF (LSETH2SO4) THEN
@@ -535,10 +598,13 @@
                WRITE(6,*) '|H2SO4    |         |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
+            ! No Montreal scaling
+            SCALEFAC = 1.d0
+
             TRAC_IDX = IDTSO4
             ! Actually H2SO4 aerosol
             TRAC_SET  = 'SO4'
-            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.,SCALEFAC)
          ENDIF
       ENDIF ! USE2DDATA
 
@@ -546,12 +612,14 @@
          IF ( am_I_Root ) THEN
             WRITE(6,*) '|N2O      |         |         |'
             WRITE(6,*) '|---------|---------|---------|'
-            IF ( LPRT ) CALL DEBUG_MSG( '### GMISTRAT: Forcing 2D N2O' )
+            IF ( LPRT ) CALL DEBUG_MSG( '### UCX: Forcing 2D N2O' )
          ENDIF
 
          TRAC_IDX = IDTN2O
          TRAC_SET  = 'N2O'
-         CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+         SCALEFAC = GET_MONTREAL('N2O',FUTURE_LINE)/
+     &                 GET_MONTREAL('N2O',BASIS_LINE)
+         CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
       ENDIF
 
       ! CH4 taken from the existing GEOS-Chem 3D input data,
@@ -610,10 +678,13 @@
             IF ( am_I_Root ) THEN
                WRITE(6,*) 'Setting stratospheric CH4 from 2D data.'
             ENDIF
+            ! No Montreal scaling
+            SCALEFAC = 1.d0
+
             ! Code to set strat using AER 2D data
             TRAC_IDX = IDTCH4
             TRAC_SET  = 'CH4'
-            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.,SCALEFAC)
          ENDIF
       ENDIF
  
@@ -624,16 +695,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gmistrat_nox
+! !IROUTINE: ucx_nox
 !
-! !DESCRIPTION: Subroutine GMISTRAT\_NOX calculates NOx and N2O loss  
+! !DESCRIPTION: Subroutine UCX\_NOX calculates NOx and N2O loss  
 !  rates above the chemistry grid, based on estimates of j-rates from 
 !  a 2D model and simple photochemical assumptiones.              
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GMISTRAT_NOX
+      SUBROUTINE UCX_NOX
 !
 ! !USES:
 !
@@ -732,7 +803,7 @@
       !-----SDE DEBUG
 
       !=================================================================
-      ! GMISTRAT_NOX begins here!
+      ! UCX_NOX begins here!
       !=================================================================
 
       ! Retrieve monthly mean data if necessary
@@ -807,7 +878,9 @@
          ZMID = ZBASE + (ZDEL/2.d0)
          ZBASE = ZBASE + ZDEL
          CYCLEBOX = .FALSE.
-         IF (ITS_IN_THE_CHEMGRID(I,J,L)) THEN
+         ! Are the pre-calculated J-rates zero (ie in darkness)?
+         CYCLEBOX = (ANY(NOX_J(I,J,L,:).lt.TINY(1d0)))
+         IF (ITS_IN_THE_CHEMGRID(I,J,L).or.CYCLEBOX) THEN
 !            !-----SDE DEBUG
 !            WRITE(IU_FILE,222) I,J,L,0.d0,0.d0,0.d0,0.d0,0.d0,
 !     &              0.d0,0.d0,0.d0,GMTSTART,DTCHEM_HR
@@ -834,7 +907,7 @@
             ! Determine how much of the current timestep is within daylight
             TMIN = 12.d0*(1.d0-DAYFRAC)
             TMAX = 12.d0*(1.d0+DAYFRAC)
-            IF ((TMIN.gt.TEND).or.(TMAX.lt.TSTART)) THEN
+            IF ((TMIN.ge.TEND).or.(TMAX.le.TSTART)) THEN
                ! In darkness
                DAYFRAC = 0.d0
                CYCLEBOX = .TRUE.
@@ -909,6 +982,7 @@
          RRATE(k_JN2O) = NOX_J(I,J,L,JN2OIDX)*DAYFRAC
 
          ! Partition NOx into N, NO, NO2 and NO3 based on PSSA
+         ! Two cases: Daytime/nighttime
          NO_ALPHA =          RRATE(k_JNO)/
      &                  (RRATE(9)*0.21d0*NDAIR)
          NO_BETA  = (RRATE(k_JNO2)+(RRATE(1)*LOCALO3P))/
@@ -992,7 +1066,7 @@
 
       IF (LPRT) THEN
          ! Print mean NOx tendency in mesosphere
-         DBGMSG = ' ### GMISTRAT_NOX: Mesospheric NOx processed'
+         DBGMSG = ' ### UCX_NOX: Mesospheric NOx processed'
          CALL DEBUG_MSG(TRIM(DBGMSG))
          WRITE(DBGMSG,'(a,2(1x,F10.5),a)') ' ### Time (start/step):',
      &       GMTSTART, DTCHEM_HR, ' hours'
@@ -1025,8 +1099,8 @@
      &          ACCESS=TRIM( STRATNOXACCESS ),
      &          STATUS=TRIM(STRATNOXSTAT),IOSTAT=IOS) 
          IF ( IOS /= 0 ) THEN
-           WRITE(6,*) 'GMISTRAT_MOD: Could not read ',TRIM(STRATNOXFILE)
-           CALL IOERROR( IOS, IU_FILE,'GMISTRAT_MOD:GMISTRAT_NOX')
+           WRITE(6,*) 'UCX_MOD: Could not read ',TRIM(STRATNOXFILE)
+           CALL IOERROR( IOS, IU_FILE,'UCX_MOD:UCX_NOX')
          ENDIF
          DO I=1,IIPAR
          DO J=1,JJPAR
@@ -1047,7 +1121,7 @@
       ENDIF
       !-----SDE DEBUG
 
-      END SUBROUTINE GMISTRAT_NOX
+      END SUBROUTINE UCX_NOX
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -1151,12 +1225,12 @@
          IOS = 1
          OPEN( IU_FILE, FILE=TRIM( NOX_FILE ),STATUS='OLD',IOSTAT=IOS) 
          IF ( IOS /= 0 ) THEN
-            WRITE(6,*) 'GMISTRAT_MOD: Could not read ', TRIM(NOX_FILE)
-            CALL IOERROR( IOS, IU_FILE,'GMISTRAT_MOD:GET_NOXCOEFF')
+            WRITE(6,*) 'UCX_MOD: Could not read ', TRIM(NOX_FILE)
+            CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
          ENDIF
   
         IF (LPRT) THEN
-            WRITE(DBGMSG,'(a,a)') ' ### GMISTRAT: Reading ', 
+            WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
      &        TRIM( NOX_FILE )
             CALL DEBUG_MSG( DBGMSG )
          ENDIF
@@ -1165,9 +1239,9 @@
          DO ILEV = 1,51
             READ(IU_FILE, 110, IOSTAT=IOS ) NOXDATA2D(:,ILEV,ITRAC)
             IF ( IOS /= 0 ) THEN
-               WRITE(6,'(a,a,I4,a,1x,a)') 'GMISTRAT_MOD: Error reading '
+               WRITE(6,'(a,a,I4,a,1x,a)') 'UCX_MOD: Error reading '
      & , 'line ', ILEV, ' in file ', TRIM( NOX_FILE )
-               CALL IOERROR( IOS, IU_FILE,'GMISTRAT_MOD:GET_NOXCOEFF')
+               CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
             ENDIF
          ENDDO
 
@@ -1254,7 +1328,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APPLY_2DTRAC( TRAC_ADD, STRAT_ONLY, SFC_ONLY )
+      SUBROUTINE APPLY_2DTRAC( TRAC_ADD, STRAT_ONLY, SFC_ONLY, SCALEFAC)
 !
 ! !USES:
 !
@@ -1269,7 +1343,9 @@
 !
       LOGICAL, INTENT(IN)              :: TRAC_ADD     ! Add (instead of overwrite) 
       LOGICAL, INTENT(IN)              :: STRAT_ONLY   ! Only write to stratosphere 
-      LOGICAL, INTENT(IN)              :: SFC_ONLY     ! Only write to surface 
+      LOGICAL, INTENT(IN)              :: SFC_ONLY     ! Only write to surface
+      REAL*8, INTENT(IN)               :: SCALEFAC     ! Future scaling factor
+      
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
@@ -1302,7 +1378,7 @@
       ! Error check
       IF ((STRAT_ONLY).and.(SFC_ONLY)) THEN
          CALL ERROR_STOP('Cannot have both SFC_ONLY and STRAT_ONLY!',
-     &                           'APPLY_2DTRAC(gmistrat_mod.F)')
+     &                           'APPLY_2DTRAC(UCX_mod.F)')
       ENDIF
 
       ! Get a free LUN
@@ -1311,12 +1387,12 @@
       IOS = 1
       OPEN( IU_FILE, FILE=TRIM( TRAC_FILE ),STATUS='OLD',IOSTAT=IOS) 
       IF ( IOS /= 0 ) THEN
-         WRITE(6,*) 'GMISTRAT_MOD: Could not read ', TRIM( TRAC_FILE )
-         CALL IOERROR( IOS, IU_FILE,'GMISTRAT_MOD:APPLY_2DTRAC')
+         WRITE(6,*) 'UCX_MOD: Could not read ', TRIM( TRAC_FILE )
+         CALL IOERROR( IOS, IU_FILE,'UCX_MOD:APPLY_2DTRAC')
       ENDIF
   
       IF (LPRT) THEN
-         WRITE(DBGMSG,'(a,a)') ' ### GMISTRAT: Reading ', 
+         WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
      &        TRIM( TRAC_FILE )
          CALL DEBUG_MSG( DBGMSG )
       ENDIF
@@ -1325,9 +1401,9 @@
       DO ILEV = 1,51
          READ(IU_FILE, 110, IOSTAT=IOS ) AER_MR(:,ILEV)
          IF ( IOS /= 0 ) THEN
-            WRITE(6,'(a,I4,a,1x,a)') 'GMISTRAT_MOD: Error reading line '
+            WRITE(6,'(a,I4,a,1x,a)') 'UCX_MOD: Error reading line '
      & , ILEV, ' in file ', TRIM( TRAC_FILE )
-            CALL IOERROR( IOS, IU_FILE,'GMISTRAT_MOD:APPLY_2DTRAC')
+            CALL IOERROR( IOS, IU_FILE,'UCX_MOD:APPLY_2DTRAC')
          ENDIF
       ENDDO
 
@@ -1390,7 +1466,7 @@
                ! Send to STT (currently kg/box)
                IF (SET_CELL) THEN
                   ! Convert from [ppbv] to [kg]
-                  TRACMASS = TRACMR * AD(I,J,L) / TCVV(TRAC_IDX)
+                  TRACMASS = SCALEFAC*TRACMR*AD(I,J,L)/TCVV(TRAC_IDX)
                   IF (TRAC_ADD) THEN
                      STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS
                   ELSE
@@ -1454,16 +1530,16 @@
 
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
-          CALL READ_SFC
           IF (GET_MONTH().lt.SFC_MONTH) THEN
              OFFSETYEAR = OFFSETYEAR + 1
           ENDIF
-          SFC_MONTH    = GET_MONTH()
+          SFC_MONTH = GET_MONTH()
           IF (LPRT) THEN
-             WRITE(OUTMSG,'(a,a,1x,I4)') ' ### GMISTRAT: ',
+             WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
      &          'Using Montreal reference year', (CFCYEAR+OFFSETYEAR)
              CALL DEBUG_MSG( OUTMSG )
           ENDIF
+          CALL READ_SFC
        END IF
   
       ! Loop over surface grid boxes
@@ -1479,157 +1555,9 @@
          ENDDO ! I
       ENDDO ! J
 
-      IF ( LPRT ) CALL DEBUG_MSG( '### GMISTRAT: Emissions complete' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### UCX: Emissions complete' )
 
       END SUBROUTINE EMISS_BASIC
-!
-!EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: emit\_geoeng
-!
-! !DESCRIPTION: Subroutine EMIT_GEOENG is used to model sulfate geoengineering
-!  using SO2.           
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE EMIT_GEOENG
-!
-! !USES:
-!
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTSO2
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE GRID_MOD,     ONLY : GET_YEDGE, GET_AREA_M2
-!
-! !REMARKS:
-! (1) A remark
-! 
-! !REVISION HISTORY: 
-!  28 Jul 2013 - S. D. Eastham - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8                   :: KG_PER_STEP
-      REAL*8                   :: DTEMIS
-      REAL*8                   :: CELL_AREA, CELL_VOL
-      REAL*8                   :: CELL_MINLAT, CELL_MAXLAT
-      REAL*8                   :: CELL_PCEIL, CELL_PBASE
-      REAL*8                   :: CELL_ALTFRAC, CELL_LATFRAC
-      REAL*8                   :: GE_GLOBALVOL
-      LOGICAL, SAVE            :: FIRST=.TRUE.
-      INTEGER, SAVE            :: JMIN, JMAX
-      INTEGER                  :: I, J, L
-      CHARACTER(LEN=255)       :: OUTMSG
-
-      !=================================================================
-      ! EMIT_GEOENG begins here!
-      !=================================================================
-
-      ! Timestep length in days
-      DTEMIS = GET_TS_EMIS() / (60d0 * 24d0)
-      IF (FIRST) THEN
-         IF (LPRT) THEN
-            CALL DEBUG_MSG( '### GMISTRAT: Initializing geoeng module')
-         ENDIF
-         ! Zero out injection mass and limits
-         GE_INJECT = 0d0
-         GE_LMIN = LLPAR
-         GE_LMAX = 1
-
-         ! Calculate how much we need to emit per timestep
-         ! Assume that we want to emit an average of X TgS per 365.25 days
-         KG_PER_STEP = 1.d9 * GE_TGS * DTEMIS / 365.25d0
-         ! Convert from TgS to TgSO2
-         KG_PER_STEP = KG_PER_STEP * 64d0 / 32d0
-         ! Calculate the total volume into which we are injecting
-         DO J=1,JJPAR
-         CELL_MINLAT = GET_YEDGE(1,J,1)
-         CELL_MAXLAT = GET_YEDGE(1,J+1,1)
-         IF (CELL_MAXLAT<GE_MINLAT) THEN
-            JMIN = MAX(J,JMIN)
-            CYCLE
-         ENDIF
-         IF (CELL_MINLAT>GE_MAXLAT) THEN
-            EXIT
-         ENDIF
-         JMAX = J
-         ! Calculate fraction of cell within limits
-         CELL_LATFRAC = MIN(CELL_MAXLAT,GE_MAXLAT) - 
-     &                       MAX(CELL_MINLAT,GE_MINLAT)
-         CELL_LATFRAC = CELL_LATFRAC/(CELL_MAXLAT-CELL_MINLAT)
-         CELL_AREA    = GET_AREA_M2(1,J,1)
-         DO I=1,IIPAR
-         DO L=1,LLPAR
-         CELL_PBASE = GET_PEDGE(I,J,L)
-         CELL_PCEIL = GET_PEDGE(I,J+1,L)
-         IF (CELL_PCEIL.gt.GE_PBASE) THEN
-            GE_LMIN(I,J) = L
-            CYCLE
-         ENDIF
-         IF (CELL_PBASE.lt.GE_PCEIL) THEN
-            GE_LMAX(I,J) = L
-            EXIT
-         ENDIF
-         ! As for latitude, calculate limits
-         ! Are we using the entire cell?
-         IF ((CELL_PBASE.gt.GE_PBASE).or.(CELL_PCEIL.lt.GE_PCEIL)) THEN
-            CELL_ALTFRAC = MIN(CELL_PBASE,GE_PBASE)/
-     &                     MAX(CELL_PCEIL,GE_PCEIL)
-            CELL_ALTFRAC = LOG(CELL_ALTFRAC)/LOG(CELL_PBASE/CELL_PCEIL)
-         ELSE
-            CELL_ALTFRAC = 1.d0
-         ENDIF
-         CELL_VOL = CELL_ALTFRAC*CELL_LATFRAC*CELL_AREA*BXHEIGHT(I,J,L)
-         GE_GLOBALVOL = GE_GLOBALVOL+CELL_VOL
-         GE_INJECT(I,J,L) = CELL_VOL
-         ENDDO
-         ENDDO
-         ENDDO
-         ! Divide cell volumes by global volume to get fraction
-         ! For each target cell, calculate the volume
-         DO J=JMIN,JMAX
-         DO I=1,IIPAR
-         DO L=GE_LMIN(I,J),GE_LMAX(I,J)
-         GE_INJECT(I,J,L) = KG_PER_STEP*GE_INJECT(I,J,L)/GE_GLOBALVOL
-         ENDDO
-         ENDDO
-         ENDDO
-         FIRST = .FALSE.
-         IF (LPRT) THEN
-            WRITE(OUTMSG,'(a,a,1x,E10.4)') 'GE_INJECT grid calculated.',
-     &          ' Annual mass: ', SUM(GE_INJECT)*365.25/DTEMIS
-            CALL DEBUG_MSG(TRIM(OUTMSG))
-         ENDIF
-      ENDIF
-
-      ! Simply apply the precalculated matrix
-      ! SDE DEBUG
-      GE_GLOBALVOL = SUM(SUM(SUM(STT(:,:,:,IDTSO2),3),2),1)
-      DO J=JMIN,JMAX
-      DO I=1,IIPAR
-      DO L=GE_LMIN(I,J),GE_LMAX(I,J)
-      STT(I,J,L,IDTSO2) = STT(I,J,L,IDTSO2) + GE_INJECT(I,J,L)
-      ENDDO
-      ENDDO
-      ENDDO
-      IF (LPRT) THEN
-          WRITE(OUTMSG,'(a,1x,E10.4,1x,a)') 'Geoengineering emission: ',
-     &   (0.5d0*(SUM(SUM(SUM(STT(:,:,:,IDTSO2),3),2),1)-GE_GLOBALVOL)),
-     &          ' TgS'
-          CALL DEBUG_MSG(TRIM(OUTMSG))
-      ENDIF
-
-      END SUBROUTINE EMIT_GEOENG
 !
 !EOC
 !------------------------------------------------------------------------------
@@ -1649,7 +1577,6 @@
 !
 ! !USES:
 !
-      USE TIME_MOD,       ONLY : GET_MONTH,GET_YEAR
       USE TRACERID_MOD,   ONLY : IDTHCFCX
       USE LOGICAL_MOD,    ONLY : LFUTURECFC
 !
@@ -1668,6 +1595,7 @@
 ! !LOCAL VARIABLES:
 !
       REAL*8,PARAMETER :: OCS_MR = 5.00d-10 ! OCS is fixed to 500 pptv
+      REAL*8,PARAMETER :: H2_MR = 5.00d-7  ! H2 is fixed to 500 ppbv
       INTEGER          :: N, TARG_LINE
       CHARACTER(LEN=20):: LOCAL_NAME
 
@@ -1679,11 +1607,7 @@
       GRID_EMIT = 0d0
 
       ! Determine which line needs to be read in
-      IF (LFUTURECFC) THEN
-         TARG_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + GET_MONTH()
-      ELSE
-         TARG_LINE = (12*(GET_YEAR()-1959)) + GET_MONTH()
-      ENDIF
+      TARG_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + SFC_MONTH
 
       ! Loop over tracer IDs pegged for emissions
       DO N=1,N_EMIT
@@ -1692,37 +1616,37 @@
             CASE ('CFCX')
                ! Add 3 CFCs
                LOCAL_NAME = TRIM('CFC113')
-               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                LOCAL_NAME = TRIM('CFC114')
-               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                LOCAL_NAME = TRIM('CFC115')
-               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
             CASE ('HCFCX')
                ! Add 2 HCFCs
                LOCAL_NAME = TRIM('HCFC141b')
-               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                LOCAL_NAME = TRIM('HCFC142b')
-               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                ! Also need HCFC123 - no Montreal data
                ! Use surface-level MR from 2D data instead
-               TRAC_IDX = IDTHCFCX
-               TRAC_SET  = 'C2HF3CL2'
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
+               !TRAC_IDX = IDTHCFCX
+               !TRAC_SET  = 'C2HF3CL2'
+               !CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
+               ! Ignore HCFC123 for the moment
             CASE ('H2402')
                ! Limited data available for H2402
                LOCAL_NAME = TRIM('C2BR2F4')
-               IF (LFUTURECFC) THEN
-                  CALL GET_MONTREAL(LOCAL_NAME,
-     &                         CFCYEAR+OFFSETYEAR-1949,N)
-               ELSE
-                  CALL GET_MONTREAL(LOCAL_NAME,GET_YEAR()-1949,N)
-               ENDIF
+               CALL SET_MONTREAL(LOCAL_NAME,
+     &                      CFCYEAR+OFFSETYEAR-1949,N)
             CASE ('OCS')
                ! Simple boundary condition
                GRID_EMIT(:,N) = OCS_MR
+            CASE ('H2')
+               ! Simple boundary condition
+               GRID_EMIT(:,N) = H2_MR
             CASE DEFAULT
                ! Standard 1:1
-               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
          END SELECT
       ENDDO
 
@@ -1734,21 +1658,17 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_montreal
+! !IROUTINE: set_montreal
 !
-! !DESCRIPTION: Subroutine GET\_MONTREAL sets mean surface mixing ratio of a 
-!  given species based on forecasts from WHO estimates. Values are
-!  interpolated between two monthly averages.
+! !DESCRIPTION: Subroutine SET\_MONTREAL calls GET\_MONTREAL for the surface 
+!  mixing ratio for a specific year, and applies it to GRID_EMIT.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MONTREAL (TRAC_NAME,TARG_LINE,N)
+      SUBROUTINE SET_MONTREAL (TRAC_NAME,TARG_LINE,N)
 !
 ! !USES:
-!
-      USE FILE_MOD,  ONLY : IOERROR
-      USE ERROR_MOD, ONLY : ERROR_STOP, ALLOC_ERR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1757,7 +1677,54 @@
       INTEGER,INTENT(IN)             :: N
 !
 ! !REVISION HISTORY: 
+!  10 Oct 2013 - S. D. Eastham - Wrapper built from edges of original GET
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+      !=================================================================
+      ! SET_MONTREAL begins here!
+      !=================================================================
+
+      GRID_EMIT(:,N) = GRID_EMIT(:,N)+GET_MONTREAL(TRAC_NAME,TARG_LINE)
+
+      ! Return to calling routine
+      END SUBROUTINE SET_MONTREAL
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_montreal
+!
+! !DESCRIPTION: Function GET\_MONTREAL gets mean surface mixing ratio of a 
+!  given species based on forecasts from WHO estimates. Values are
+!  interpolated between two monthly averages.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_MONTREAL (TRAC_NAME,TARG_LINE) RESULT (MEAN_MIXRATIO)
+!
+! !USES:
+!
+      USE FILE_MOD,  ONLY : IOERROR
+      USE ERROR_MOD, ONLY : ERROR_STOP, ALLOC_ERR
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8                         :: MEAN_MIXRATIO
+      CHARACTER*(*),INTENT(IN)       :: TRAC_NAME
+      INTEGER,INTENT(IN)             :: TARG_LINE
+!
+! !REVISION HISTORY: 
 !  04 Apr 2013 - S. D. Eastham - Initial version
+!  10 Oct 2013 - S. D. Eastham - Split into two routines (GET and SET)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1769,11 +1736,10 @@
       REAL*8                         :: SCALEFAC
       REAL*8                         :: TEMPMR,TEMPYR
       INTEGER                        :: ILINE
-      REAL*8                         :: MEAN_MIXRATIO
       INTEGER                        :: IU_FILE, IOS, AS
 
       !=================================================================
-      ! GET_MONTREAL begins here!
+      ! SET_MONTREAL begins here!
       !=================================================================
 
       FILENAME = TRIM(MONTREAL_FILE_ROOT) // TRIM(TRAC_NAME) // 
@@ -1786,15 +1752,15 @@
 
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), IOSTAT=IOS )
       IF ( IOS /= 0 ) THEN 
-         WRITE(6,*) 'GMISTRAT: FAILED TO FIND ', TRIM(FILENAME)
-          CALL IOERROR( IOS, IU_FILE, 'GMISTRAT_MOD:GET_MONTREAL')
+         WRITE(6,*) 'UCX: FAILED TO FIND ', TRIM(FILENAME)
+          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
       ENDIF
 
       ! First line not important
       READ(IU_FILE,*,IOSTAT=IOS)
       IF ( IOS /= 0 ) THEN
-         WRITE(6,*) 'GMISTRAT: READ ERROR IN ', TRIM(FILENAME)
-          CALL IOERROR( IOS, IU_FILE, 'GMISTRAT_MOD:GET_MONTREAL')
+         WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
       ENDIF
 
       ! Second line contains scaling factor
@@ -1806,8 +1772,8 @@
       DO ILINE=1,2
          READ(IU_FILE,*,IOSTAT=IOS)
          IF ( IOS /= 0 ) THEN
-            WRITE(6,*) 'GMISTRAT: READ ERROR IN ', TRIM(FILENAME)
-             CALL IOERROR( IOS, IU_FILE, 'GMISTRAT_MOD:GET_MONTREAL')
+            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
          ENDIF
       ENDDO
 
@@ -1815,8 +1781,8 @@
       DO ILINE=1,(TARG_LINE-1)
          READ(IU_FILE,*,IOSTAT=IOS) ! Skip line
          IF ( IOS /= 0 ) THEN 
-            WRITE(6,*) 'GMISTRAT: READ ERROR IN ', TRIM(FILENAME)
-             CALL IOERROR( IOS, IU_FILE, 'GMISTRAT_MOD:GET_MONTREAL')
+            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
          ENDIF
       ENDDO
 
@@ -1828,22 +1794,20 @@
          READ(IU_FILE,102,IOSTAT=IOS) TEMPYR,TEMPMR
       ENDIF
       IF ( IOS /= 0 ) THEN
-         WRITE(6,*) 'GMISTRAT: READ ERROR IN ', TRIM(FILENAME)
-          CALL IOERROR( IOS, IU_FILE, 'GMISTRAT_MOD:GET_MONTREAL')
+         WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
       ENDIF
 
       CLOSE(IU_FILE)
 
       MEAN_MIXRATIO = TEMPMR * SCALEFAC
 
-      GRID_EMIT(:,N) = GRID_EMIT(:,N) + MEAN_MIXRATIO
-
 102   FORMAT(F7.2,F11.2)
       ! C2Br2F4 only
 103   FORMAT(F7.2,F8.2)
 
       ! Return to calling program
-      END SUBROUTINE GET_MONTREAL
+      END FUNCTION GET_MONTREAL
 !
 !EOC
 !------------------------------------------------------------------------------
@@ -1870,7 +1834,7 @@
       USE TRACERID_MOD,  ONLY : IDTNIT,IDTBCPI,IDTH2O,IDTHNO3
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE COMODE_MOD,    ONLY : JLOP,WERADIUS,ERADIUS
-      USE LOGICAL_MOD,   ONLY : LGMISTRAT,LGRAVSTRAT
+      USE LOGICAL_MOD,   ONLY : LUCX,LGRAVSTRAT
       USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRATMESO
       USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_TROP,ITS_IN_THE_CHEMGRID
 
@@ -2264,7 +2228,7 @@
                   WRITE(6,'(I3,1x,4(E10.4,1x))') L,XNO3_0,XNAT_0,XICE_0,
      &                  KG_AER(I,J,L,I_SPA)
                   CALL ERROR_STOP('Negative mixing ratio!',
-     &                               'gmistrat_mod.F')
+     &                               'UCX_mod.F')
                ENDIF
                !-----SDE DEBUG
                XPSC_0 = XNAT_0 + XICE_0
@@ -2418,7 +2382,7 @@
                   ELSE
                      ! This shouldn't be possible?
                      CALL ERROR_STOP('Unknown sedimentation error',
-     &                               'gmistrat_mod.F')
+     &                               'UCX_mod.F')
                   ENDIF
             
                   ! Apply limits so that sedimented quantity is:
@@ -2490,7 +2454,7 @@
 !$OMP END PARALLEL DO
 
       IF (LPRT) THEN
-         CALL DEBUG_MSG( '### GMISTRAT: after SETTLE_STRAT_AER' )
+         CALL DEBUG_MSG( '### UCX: after SETTLE_STRAT_AER' )
          WRITE(6,'(a)') 'Max ice loss statistics:'
          WRITE(6,'(a,1x,2E12.4)') 'Source ice (before/after) (kg): ',
      &                         D_ICE0, D_ICE1
@@ -2622,7 +2586,7 @@
 
 !$OMP END PARALLEL DO
 
-      IF ( LPRT ) CALL DEBUG_MSG( '### GMISTRAT: H2SO4 partitioned' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### UCX: H2SO4 partitioned' )
 
       END SUBROUTINE CALC_H2SO4_GAS
 !
@@ -2800,7 +2764,7 @@
       !=================================================================
 
       IF (LPRT) THEN
-         CALL DEBUG_MSG( '### GMISTRAT: start CALC_STRAT_AER' )
+         CALL DEBUG_MSG( '### UCX: start CALC_STRAT_AER' )
       ENDIF
 
       ! Partition H2SO4 before proceeding
@@ -3355,7 +3319,7 @@
 !      !-----SDE DEBUG
 
       IF (LPRT) THEN
-         CALL DEBUG_MSG( '### GMISTRAT: after CALC_STRAT_AER' )
+         CALL DEBUG_MSG( '### UCX: after CALC_STRAT_AER' )
          WRITE(6,'(a)') 'Strat. aerosol diagnostics summary:'
          WRITE(6,'(a,1x,E12.4)') 'Peak particle # density (#/m3): ',
      &                               MAXVAL(NDENS_AER(:,:,:,I_SPA))
@@ -3594,6 +3558,9 @@
 ! !USES:
 !
       USE CMN_GCTM_MOD,      ONLY : PI
+
+      ! Temporary - for debug
+      USE ERROR_MOD,     ONLY : IT_IS_NAN,ERROR_STOP     ! Test for NaN
 !
 ! !INPUT PARAMETERS:
 !
@@ -3694,6 +3661,9 @@
       ! Derived parameters
       REAL*8 :: A,B,C,PHI
       
+      ! Debug message
+      CHARACTER(LEN=255)   :: DBGMSG
+
 ! ======================================================================
         DATA QN/14.5734d0,0.0615994d0,-1.14895d0,0.691693d0,-0.098863d0,
      &  0.0051579d0,0.123472d0,-0.115574d0,0.0110113d0,0.0097914d0/
@@ -3719,6 +3689,11 @@
       ! Calculate partial pressure of H2O & HNO3
       ! PCENTER is in hPa
       PATMH2O  = H2OSUM  * PCENTER / 1013.0d0
+
+      ! Carslaw only valid for 2e-5 < PPH2O < 2e-3 (hPa)
+      PATMH2O = MAX(PATMH2O,1.9738465d-8)
+      PATMH2O = MIN(PATMH2O,1.9738465e-6)
+
       PATMHNO3 = HNO3SUM * PCENTER / 1013.0d0
       PATMHCl  = HClSUM  * PCENTER / 1013.0d0
       PATMHOCl = HOClSUM * PCENTER / 1013.0d0
@@ -3819,6 +3794,31 @@
          W_HNO3 = 0.0d0
          PVAP_HNO3 = 0.0d0
          HNO3GASFRAC=1.0d0
+      ENDIF
+
+      ! SDE DEBUG
+      IF (W_H2SO4.gt.1.0d0) THEN
+         WRITE(DBGMSG,'(a,E10.4)') 'PATMH2O: ', PATMH2O
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,E10.4)') 'TCENTER: ', TCENTER
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,E10.4)') 'TCENTER_IN: ', TCENTER_IN
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,E10.4)') 'MOLDENS_H2SO4: ', MOLDENS_H2SO4
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,E10.4)') 'H2SO4SUM: ', H2SO4SUM
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,E10.4)') 'PATMH2O: ', PATMH2O
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,E10.4)') 'X_H2SO4_BIN: ', X_H2SO4_BIN
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,E10.4)') 'M_H2SO4_BIN: ', M_H2SO4_BIN
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,E10.4)') 'M_H2SO4: ', M_H2SO4
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,E10.4)') 'W_H2SO4:    ', W_H2SO4
+         CALL DEBUG_MSG( DBGMSG )
+         CALL ERROR_STOP('BAD WEIGHT FRAC','UCX_mod')
       ENDIF
 
       ! Handle HCl (Luo et al., Vapor pressures of
@@ -4041,7 +4041,7 @@
       ! Velocities should be of the order of 0.1 m/s
       IF (VEL.gt.10.d0) THEN
          CALL ERROR_STOP(' Excessive fall velocity? ', 
-     &                   ' CALC_FALLVEL, gmistrat_mod')
+     &                   ' CALC_FALLVEL, UCX_mod')
       ENDIF
 
       END FUNCTION CALC_FALLVEL
@@ -4068,6 +4068,8 @@
 ! !USES:
 !
       USE CMN_GCTM_MOD,       ONLY : PI
+      ! Temporary - for debug
+      USE ERROR_MOD,     ONLY : IT_IS_NAN,ERROR_STOP     ! Test for NaN
 !
 ! !INPUT PARAMETERS:
 !
@@ -4154,8 +4156,12 @@
       REAL*8               :: X,A,H,T_THRESHOLD,aH
       REAL*8, PARAMETER    :: MAX_T_DIFF = 6.0d0
 
-      ! Control whether to run HCl calculations
-      LOGICAL              :: HClOK
+      ! Control whether to run calculations
+      LOGICAL              :: HClOK, HOBrOK
+
+      ! Debug variables
+      INTEGER              :: I
+      CHARACTER(LEN=255)   :: DBGMSG
 
       !=================================================================
       ! CALC_SLA_GAMMA begins here!
@@ -4167,6 +4173,7 @@
       ACTH2O = MAX((H2OPP/PSATH2O),1.0d0) ! Water activity
 
       ! Calculate molality of solution
+      !WT = MIN(100.0d0,100.0d0*WT_FRC) ! Convert from fraction to %
       WT = 100.0d0*WT_FRC ! Convert from fraction to %
       MOLAL = 1000.0d0 * (WT/98.0d0/(100.0-WT))
 
@@ -4201,9 +4208,11 @@
       HClPP = HClSUM*P/1013.25d0 ! Note atm, not hPa
       ClNO3PP = ClNO3SUM*P/1013.25d0
       BrNO3PP = BrNO3SUM*P/1013.25d0
+      HOBrPP = HOBrSUM*P/1013.25 ! Note atm, not hPa
  
-      ! Should we bother running HCl calculations?
+      ! Should we bother running calculations?
       HClOK = (HClPP .gt. 1.d-30)
+      HOBrOK = (HOBrPP .gt. 1.d-30)
 
       ! Reaction 1. N2O5 + H2O (hydrolysis of N2O5)
       AK(1)=-25.5265-0.133188*WT+0.0093084*WT**2-9.0194E-5*WT**3
@@ -4229,7 +4238,12 @@
       MHCl        =  HHCl *HClPP
       kHCl        =  7.9D11*aH*DClNO3*MHCl
       lClNO3      =  SQRT(DClNO3/(khydr+kHCl))
-      fClNO3      =  1.D0/tanh(arad/lClNO3)- lClNO3/arad
+      if (lClNO3.gt.(1.d5*arad)) then
+         ! Limiting rate
+         fClNO3   =  arad/(3.d0*lClNO3)
+      else
+         fClNO3   =  1.D0/tanh(arad/lClNO3)- lClNO3/arad
+      endif
       GClNO3rxn   =  fClNO3*GbH2O *SQRT(1.D0+kHCl/khydr)
       GbHCl       =  GClNO3rxn* kHCl/(kHCl+ khydr)
       Gs          =  66.12D0*EXP(-1374.D0/T)*HClNO3*MHCl
@@ -4241,10 +4255,11 @@
       gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
       gClNO3_H2O  =  gClNO3 - gClNO3_HCl
 
-      RXNGAMMA(3) =  gClNO3_H2O
       IF (HClOK) THEN
+         RXNGAMMA(3) =  gClNO3_H2O
          RXNGAMMA(4) =  gClNO3_HCl
       ELSE
+         RXNGAMMA(3) = TINY(1d0)
          RXNGAMMA(4) = TINY(1d0)
       ENDIF
 
@@ -4260,9 +4275,7 @@
       RXNGAMMA(7) = 0.9d0 ! JPL 10-06
 
       ! Reaction 8. HOCl + HCl
-      !-----SDE DEBUG
-      !IF (HClOK) THEN
-      !-----SDE DEBUG
+      IF (HClOK) THEN
          c_HOCl    =  MOLEC_SPEED(T,52.46D0)
          SHOCl     =  0.0776D0+59.18D0/T
          HHOCl     =  1.91D-6*EXP(5862.4D0/T)*EXP(-SHOCl*M_H2SO4)
@@ -4281,11 +4294,9 @@
          ELSE
             gHOCl_HCl =  1.D0/(1.D0+1.D0/(fHOCl*GHOClrxn*FHCl))
          ENDIF
-      !-----SDE DEBUG
-      !ELSE
-      !   gHOCl_HCl = TINY(1d0)
-      !ENDIF
-      !-----SDE DEBUG
+      ELSE
+         gHOCl_HCl = TINY(1d0)
+      ENDIF
    
       RXNGAMMA(8) = gHOCl_HCl
 
@@ -4296,8 +4307,7 @@
       RXNGAMMA(9) = TINY(1d0)
 
       ! Reaction 10. HOBr + HCl
-      IF (HClOK) THEN
-         HOBrPP = HOBrSUM*P/1013.25 ! Note atm, not hPa
+      IF ((HClOK).and.(HOBrOK)) THEN
          c_HOBr    =  MOLEC_SPEED(T,96.91D0)
          SHOBr     =  0.0776D0+59.18D0/T
 !         HHOBr     =  30.D0
@@ -4324,6 +4334,39 @@
       ! Reaction 11. HOBr + HBr
       ! Data from JPL limited; ignore for now
       RXNGAMMA(11) = TINY(1d0)
+
+      ! SDE 2013-10-18: DEBUG
+      DO I=1,11
+         IF (IT_IS_NAN(RXNGAMMA(I))) THEN
+            WRITE(DBGMSG,'(a,I2)') 'RXNGAMMA NaN: ', I
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'NDENS: ', NDENS
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'T: ', T
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'P: ', P
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'WT_FRC: ', WT_FRC
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'H2OSUM: ', H2OSUM
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'HClSUM: ', HClSUM
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'HBrSUM: ', HBrSUM
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'HOBrSUM: ', HOBrSUM
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'ClNO3SUM: ', ClNO3SUM
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'BrNO3SUM: ', BrNO3SUM
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'RHO: ', RHO
+            CALL DEBUG_MSG( DBGMSG )
+            WRITE(DBGMSG,'(a,E10.4)') 'ARAD: ', ARAD
+            CALL DEBUG_MSG( DBGMSG )
+            CALL ERROR_STOP('BAD GAMMA','UCX_mod')
+         ENDIF
+      ENDDO
 
       ! Return to calling program
       END SUBROUTINE CALC_SLA_GAMMA
@@ -4369,7 +4412,8 @@
 !
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!               MIT Laboratory for Aviation and the Environment               !
+!               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4527,7 +4571,7 @@
 !
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4681,7 +4725,7 @@
 
       ELSE
          CALL ERROR_STOP(' Restart data is not correct ', 
-     &                   ' reading STATE_PSC, gmistrat_mod')
+     &                   ' reading STATE_PSC, UCX_mod')
 
       ENDIF
 
@@ -4694,6 +4738,73 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_PSC_FILE: read file' )
 
       END SUBROUTINE READ_PSC_FILE
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_clock_trac
+!
+! !DESCRIPTION: Subroutine SET\_CLOCK\_TRAC sets the clock tracer mixing 
+!  ratio within the bottom five grid levels, increasing by a fixed rate of
+!  0.5 ppbv/day
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_CLOCK_TRAC(STEPLEN)
+!
+! !USES:
+!
+      USE TRACERID_MOD, ONLY : IDTCLOCK
+      USE TRACER_MOD,   ONLY : STT
+      USE CMN_SIZE_MOD
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,INTENT(IN) :: STEPLEN ! Step length (min)
+!
+! !REVISION HISTORY: 
+!  16 Oct 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I,J,L,LCLOCK
+      REAL*8, PARAMETER :: INCRATE = 0.5d-9 ! vv/day increase
+      
+      !=================================================================
+      ! SET_CLOCK_TRAC begins here!
+      !=================================================================
+
+      IF (CLOCKMR.lt.TINY(1d0)) THEN
+         ! Reset clock tracer everywhere
+         LCLOCK = LLPAR
+      ELSE
+         ! Only set bottom 5 levels
+         LCLOCK = 5
+      ENDIF
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO J=1,JJPAR
+      DO I=1,IIPAR
+      DO L=1,LCLOCK
+         STT(I,J,L,IDTCLOCK) = CLOCKMR
+      ENDDO ! L
+      ENDDO ! I
+      ENDDO ! J
+!$OMP END PARALLEL DO
+
+      ! Increment clock mixing ratio for next step
+      CLOCKMR = CLOCKMR + (INCRATE*STEPLEN/(60d0*24d0))
+
+      END SUBROUTINE SET_CLOCK_TRAC
 !
 !EOC
 !------------------------------------------------------------------------------
@@ -4789,16 +4900,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gmistrat_h2so4phot
+! !IROUTINE: ucx_h2so4phot
 !
-! !DESCRIPTION: Subroutine GMISTRAT\_H2SO4PHOT propagates the calculated H2SO4
+! !DESCRIPTION: Subroutine UCX\_H2SO4PHOT propagates the calculated H2SO4
 !  photolysis (J) rate at the top of the chemistry grid through to the top
 !  of the transport grid, approximating H2SO4 photolysis in the mesosphere.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GMISTRAT_H2SO4PHOT( SUNCOS )
+      SUBROUTINE UCX_H2SO4PHOT( SUNCOS )
 !
 ! !USES:
 !
@@ -4839,7 +4950,7 @@
       INTEGER               :: ICS
 
       !=================================================================
-      ! GMISTRAT_H2SO4PHOT begins here!
+      ! UCX_H2SO4PHOT begins here!
       !=================================================================
 
       IF (FIRST) THEN
@@ -4889,7 +5000,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      END SUBROUTINE GMISTRAT_H2SO4PHOT
+      END SUBROUTINE UCX_H2SO4PHOT
 !
 !EOC
 !!------------------------------------------------------------------------------
@@ -4900,7 +5011,7 @@
 !! !IROUTINE: srtn
 !!
 !! !DESCRIPTION: Subroutine SRTN is a reference subroutine, with more than one
-!!  line of description.
+!!  line of description. Routine length is 51 lines.
 !!\\
 !!\\
 !! !INTERFACE:
@@ -4948,19 +5059,20 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_gmistrat
+! !IROUTINE: init_ucx
 !
-! !DESCRIPTION: Subroutine INIT\_GMISTRAT initializes module arrays.
+! !DESCRIPTION: Subroutine INIT\_UCX initializes module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GMISTRAT( am_I_Root, YYYYMMDD, HHMMSS )
+      SUBROUTINE INIT_UCX( am_I_Root, YYYYMMDD, HHMMSS )
 !
 ! !USES:
 !
       USE TRACERID_MOD
       USE LOGICAL_MOD
+      USE TIME_MOD,     ONLY : GET_YEAR
       USE ERROR_MOD,    ONLY : ALLOC_ERR
 !
 ! !INPUT PARAMETERS:
@@ -4985,13 +5097,12 @@
       CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC
 
       !=================================================================
-      ! INIT_GMISTRAT begins here!
+      ! INIT_UCX begins here!
       !=================================================================
 
       WRITE( 6,'(a)') REPEAT( '=', 79 )
       WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
       WRITE( 6,'(a)') 'Routines written by SEBASTIAN D. EASTHAM'
-      WRITE( 6,'(a)') 'Last Modification Date: 05/09/13'
       WRITE( 6,'(a)') REPEAT( '=', 79 )
 
       USE2DDATA = (LSETOCS.or.LSETCFC.or.LSETCL.or.LSETBR.or.LSETH2SO4)
@@ -5000,9 +5111,9 @@
       USE2DDATA = (USE2DDATA.or.LSETN2O.or.LBASICEMIS)
 
 #if !defined(GRID4x5) && !defined(GRID2x25)
-      IF (LGMISTRAT.and.USE2DDATA) THEN
+      IF (LUCX.and.USE2DDATA) THEN
        DBGMSG = 'Zonal means preprocessed only for 2x2.5 and 4x5 grid.'
-       CALL ERROR_STOP( DBGMSG, 'INIT_GMISTRAT (gmistrat_mod.f)!' )
+       CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
       ELSE
        AVG_FILE_ROOT = ''
       ENDIF
@@ -5029,13 +5140,13 @@
      &   '/Montreal/'
   
       IF ( LPRT ) THEN
-         WRITE(DBGMSG,'(a,a)') '### GMISTRAT: Reading O1D/O3P from ',
+         WRITE(DBGMSG,'(a,a)') '### UCX: Reading O1D/O3P from ',
      &     TRIM(NOON_FILE_ROOT)
          CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,a)') '### GMISTRAT: Initializing CFCs from ',
+         WRITE(DBGMSG,'(a,a)') '### UCX: Initializing CFCs from ',
      &     TRIM(AVG_FILE_ROOT)
          CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,a)') '### GMISTRAT: Projecting CFCs from ',
+         WRITE(DBGMSG,'(a,a)') '### UCX: Projecting CFCs from ',
      &     TRIM(MONTREAL_FILE_ROOT)
          CALL DEBUG_MSG( DBGMSG )
       ENDIF
@@ -5075,9 +5186,15 @@
       ! radius (m)
       SLA_VR = (0.357d-6)*(10.d0**(12.d0*0.249))
 
+      ! Set clock tracer mixing ratio to zero
+      CLOCKMR = 0d0
+
       ! Set "current" month to impossible value
       SFC_MONTH = 0
       OFFSETYEAR = 0
+      IF (.not.LFUTURECFC) THEN
+         CFCYEAR = GET_YEAR()
+      ENDIF
 
       ! Determine which tracers are to be emitted
       N_EMIT = 0
@@ -5153,6 +5270,12 @@
          N_EMIT = N_EMIT + 1
          IDT_EMIT( N_EMIT) = IDTCH3Br
          TRAC_EMIT(N_EMIT) = 'CH3Br'
+      ENDIF
+
+      IF (IDTH2.gt.0) THEN
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = IDTH2
+         TRAC_EMIT(N_EMIT) = 'H2'
       ENDIF
 
       IF (N_EMIT.gt.0) THEN
@@ -5234,29 +5357,15 @@
 
       IF ((am_I_Root).and.(.not.IT_EXISTS)) THEN
          WRITE(6,*) 
-     &  '    - GMISTRAT: PSC restart not found, initialize PSC-free'
+     &  '    - UCX: PSC restart not found, initialize PSC-free'
       ENDIF
-
-      ! Allocate geoengineering injection array
-      ALLOCATE( GE_INJECT( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GE_INJECT' )
-      GE_INJECT = 0d0
-
-      ! Allocate arrays of altitude limits
-      ALLOCATE( GE_LMIN( IIPAR,JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GE_LMIN' )
-      GE_LMIN = LLPAR
-
-      ALLOCATE( GE_LMAX( IIPAR,JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GE_LMAX' )
-      GE_LMAX = 1
 
       ! H2SO4 photolysis rate at the top of the chemgrid
       ALLOCATE( SO4_TOPPHOT( IIPAR,JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_TOPPHOT' )
       SO4_TOPPHOT = 0.d0
 
-      END SUBROUTINE INIT_GMISTRAT
+      END SUBROUTINE INIT_UCX
 !
 !EOC
 !------------------------------------------------------------------------------
@@ -5264,14 +5373,14 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_gmistrat
+! !IROUTINE: cleanup_ucx
 !
-! !DESCRIPTION: Subroutine CLEANUP\_GMISTRAT deallocates module variables.
+! !DESCRIPTION: Subroutine CLEANUP\_UCX deallocates module variables.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_GMISTRAT
+      SUBROUTINE CLEANUP_UCX
 !
 ! !REVISION HISTORY: 
 !  04 Apr 2013 - S. D. Eastham - Initial version
@@ -5281,7 +5390,7 @@
 !BOC
 
       !=================================================================
-      ! CLEANUP_GMISTRAT begins here!
+      ! CLEANUP_UCX begins here!
       !=================================================================
 
       IF ( ALLOCATED( GRID_EMIT  ) ) DEALLOCATE( GRID_EMIT  )
@@ -5298,12 +5407,9 @@
       IF ( ALLOCATED( AER_PLEVS  ) ) DEALLOCATE( AER_PLEVS  )
       IF ( ALLOCATED( NOX_O      ) ) DEALLOCATE( NOX_O      )
       IF ( ALLOCATED( NOX_J      ) ) DEALLOCATE( NOX_J      )
-      IF ( ALLOCATED( GE_INJECT  ) ) DEALLOCATE( GE_INJECT  )
-      IF ( ALLOCATED( GE_LMIN    ) ) DEALLOCATE( GE_LMIN    )
-      IF ( ALLOCATED( GE_LMAX    ) ) DEALLOCATE( GE_LMAX    )
       IF ( ALLOCATED( SO4_TOPPHOT) ) DEALLOCATE( SO4_TOPPHOT)
 
-      END SUBROUTINE CLEANUP_GMISTRAT
+      END SUBROUTINE CLEANUP_UCX
 !
 !EOC
-      END MODULE GMISTRAT_MOD
+      END MODULE UCX_MOD

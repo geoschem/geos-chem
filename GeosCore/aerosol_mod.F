@@ -320,7 +320,7 @@
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
       USE CHEMGRID_MOD, ONLY : ITS_IN_THE_TROP
-      USE GMISTRAT_MOD, ONLY : KG_STRAT_AER
+      USE UCX_MOD,      ONLY : KG_STRAT_AER
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -399,7 +399,7 @@
          ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
          !==============================================================
          IF ( LSULF ) THEN
-#if defined( GMISTRAT )
+#if defined( UCX )
             ! If we are using the full stratospheric chemistry mechanism,
             ! stratospheric NH4 is ignored, stratospheric NIT is taken
             ! as available for NAT formation and stratospheric SO4 is
@@ -583,7 +583,7 @@
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE GMISTRAT_MOD,  ONLY : GET_STRAT_OPT, RHO_STRAT_AER, NDENS_AER
+      USE UCX_MOD,       ONLY : GET_STRAT_OPT, RHO_STRAT_AER, NDENS_AER
 
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR
       USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
@@ -709,7 +709,7 @@
 
       ! Index to aerosol types in jv_spec.dat
       ! The following are ordered according to the mass densities below
-#if defined( GMISTRAT )
+#if defined( UCX )
       INTEGER, SAVE       :: IND(NAER) = (/22,29,36,43,50,4,14/)
 #else
       INTEGER, SAVE	  :: IND(NAER) = (/22, 29, 36, 43, 50/)
@@ -1002,7 +1002,7 @@
          ENDIF   
       ENDIF 
 
-#if defined( GMISTRAT )
+#if defined( UCX )
       ! SDE 04/17/13 - Transfer stratospheric aerosol data
       WAERSL(:,:,:,NRHAER+1) = SLA
       WAERSL(:,:,:,NRHAER+2) = SPA
@@ -1028,8 +1028,8 @@
       MSDENS(3) = 1800.0d0    !OC 
       MSDENS(4) = 2200.0d0    !SS (accum)
       MSDENS(5) = 2200.0d0    !SS (coarse)
-#if defined( GMISTRAT )
-      ! These default values unused (actively retrieved from gmistrat_mod)
+#if defined( UCX )
+      ! These default values unused (actively retrieved from ucx_mod)
       MSDENS(NRHAER+1) = 1700.0d0! SSA/STS
       MSDENS(NRHAER+2) = 1000.0d0! NAT/ice PSC
 #endif
@@ -1358,7 +1358,7 @@
 
       ENDDO
 
-#if defined( GMISTRAT )
+#if defined( UCX )
       !==============================================================
       ! Account for stratospheric aerosols (SDE 04/17/13)
       !==============================================================
@@ -1429,7 +1429,7 @@
             J = IYSAVE(JLOOP)
             L = IZSAVE(JLOOP)
 
-            ! Retrieve aerosol properties from gmistrat_mod
+            ! Retrieve aerosol properties from ucx_mod
             CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT)
 
             ! Add surface area to TAREA array
@@ -1546,7 +1546,7 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( GMISTRAT )
+#if defined( UCX )
       ! Add stratospheric aerosols      
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
@@ -1691,7 +1691,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
       SOILDUST = 0d0
 
-#if defined( GMISTRAT )
+#if defined( UCX )
       ALLOCATE( SLA( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLA' )
       SLA = 0d0

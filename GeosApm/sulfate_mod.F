@@ -437,7 +437,7 @@
       USE TRACER_MOD,     ONLY : N_APMTRA
 #endif
       ! Stratospheric settling
-      USE GMISTRAT_MOD,   ONLY : SETTLE_STRAT_AER
+      USE UCX_MOD,        ONLY : SETTLE_STRAT_AER
       USE LOGICAL_MOD,    ONLY : LGRAVSTRAT
 
       USE CMN_SIZE_MOD                   ! Size parameters 

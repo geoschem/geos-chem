@@ -146,6 +146,8 @@
       REAL*4,  ALLOCATABLE :: AD32_li(:,:,:)
       REAL*4,  ALLOCATABLE :: AD32_so(:,:)
       REAL*4,  ALLOCATABLE :: AD32_ub(:,:)
+      REAL*4,  ALLOCATABLE :: AD32_ship(:,:)
+      INTEGER              :: AD32_ship_count
 
       ! For ND33 -- tropopsheric sum of tracer
       REAL*4,  ALLOCATABLE :: AD33(:,:,:)
@@ -158,6 +160,8 @@
 
       ! For ND36 -- Anthropogenic source diagnostic
       REAL*4,  ALLOCATABLE :: AD36(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD36_SHIP(:,:,:)
+      INTEGER              :: AD36_SHIP_COUNT
 
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
       REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
@@ -240,6 +244,10 @@
 
       ! For ND63 -- fraction of NOx remaining and Integrated OPE
       REAL*4,  ALLOCATABLE :: AD63(:,:,:)
+      INTEGER, ALLOCATABLE :: AD63_COUNT
+
+      ! For ND64 -- radiative flux from FAST-JX
+      REAL*4,  ALLOCATABLE :: AD64(:,:,:,:)
 
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
@@ -400,10 +408,12 @@
       IF ( ALLOCATED( AD32_li     ) ) DEALLOCATE( AD32_li     )
       IF ( ALLOCATED( AD32_so     ) ) DEALLOCATE( AD32_so     )
       IF ( ALLOCATED( AD32_ub     ) ) DEALLOCATE( AD32_ub     )
+      IF ( ALLOCATED( AD32_ship   ) ) DEALLOCATE( AD32_ship   )
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD34        ) ) DEALLOCATE( AD34        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD36        ) ) DEALLOCATE( AD36        )
+      IF ( ALLOCATED( AD36_SHIP   ) ) DEALLOCATE( AD36_SHIP   )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
@@ -420,7 +430,9 @@
       IF ( ALLOCATED( AD19        ) ) DEALLOCATE( AD19        )
       IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        )
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
+      IF ( ALLOCATED( AD63_COUNT  ) ) DEALLOCATE( AD63_COUNT  )
       IF ( ALLOCATED( AD63        ) ) DEALLOCATE( AD63        )
+      IF ( ALLOCATED( AD64        ) ) DEALLOCATE( AD64        )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )

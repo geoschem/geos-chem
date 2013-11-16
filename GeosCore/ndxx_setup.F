@@ -46,7 +46,9 @@
       USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
+      USE DIAG_MOD,        ONLY : AD32_SHIP,   AD32_SHIP_COUNT
       USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
+      USE DIAG_MOD,        ONLY : AD36_SHIP,   AD36_SHIP_COUNT
       USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
       USE DIAG_MOD,        ONLY : AD43,        LTNO
       USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
@@ -65,10 +67,12 @@
       USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,        ONLY : AD52,        AD54,        AD63
+      USE DIAG_MOD,        ONLY : AD63_COUNT
       USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
+      USE DIAG_MOD,        ONLY : AD64
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       ! Add O3 for ND45 diag. (ccc, 8/12/09)
       USE DIAG_MOD,        ONLY : LTO3
@@ -277,7 +281,6 @@
       LD47 = 1
       LD52 = 1
       LD54 = 1
-      LD64 = 1
       LD66 = 1
       LD68 = 1
 
@@ -744,6 +747,11 @@
          ! For stratospheric NOx
          ALLOCATE( AD32_ub( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_st' ) 
+
+         ! For ship NOx
+         ALLOCATE( AD32_ship( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship' ) 
+
       ENDIF
 
       !=================================================================
@@ -786,6 +794,9 @@
       IF ( ND36 > 0 ) THEN
          ALLOCATE( AD36( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36' )
+
+         ALLOCATE( AD36_SHIP( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36_SHIP' )
       ENDIF
 
       !=================================================================
@@ -1161,7 +1172,22 @@
 
          ALLOCATE( AD63( IIPAR, JJPAR, 5), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63' )
+         AD63 = 0d0
 
+         ALLOCATE( AD63_COUNT, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63_COUNT' )
+         AD63_COUNT = 0d0
+
+      ENDIF
+
+      !=================================================================
+      ! ND64: Radiative flux from FAST-JX
+      !       --> Uses AD64 array (allocatable)
+      !=================================================================
+      IF ( ND64 > 0 ) THEN
+         LD64 = MIN( ND64, LLPAR )
+         ALLOCATE( AD64( IIPAR, JJPAR, LD64, PD64 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
       ENDIF
 
       !=================================================================

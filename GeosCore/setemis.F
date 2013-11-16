@@ -35,7 +35,32 @@
       USE TRACERID_MOD,      ONLY : CTRMB,     IDEMIS,  IDENOX
       USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
       USE LOGICAL_MOD,       ONLY : LNLPBL ! (Lin, 03/31/09)
-      USE LOGICAL_MOD, ONLY : LPRT
+      USE LOGICAL_MOD,       ONLY : LPRT
+
+      ! RCP upgrades (CDH/SDE 2013-11-15)
+      USE RCP_MOD,           ONLY : GET_RCP_EMISSION, RCP_AC_NOx
+      USE RCP_MOD,           ONLY : OPTIONS_RCP
+      USE DAO_MOD,           ONLY : SUNCOS_MID, BXHEIGHT
+
+      ! Ship plume emissions moved from calcrate.F (cdh, 4/24/2013)
+      USE DRYDEP_MOD,         ONLY : SHIPO3DEP
+      USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP 
+      USE EDGAR_MOD,          ONLY : GET_EDGAR_NOx
+      USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TRACERID_MOD,       ONLY : IDTNOx, IDTOx,  IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDNO,   IDO3,   IDHNO3, IDNO2
+      USE TRACERID_MOD,       ONLY : IDEOx,  IDEHNO3
+      USE DIAG_MOD,           ONLY : AD32_SHIP, AD32_SHIP_COUNT 
+      USE DIAG_MOD,           ONLY : AD36_SHIP, AD36_SHIP_COUNT
+      USE DIAG_MOD,           only : AD63,      AD63_COUNT
+      USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
+      USE PARANOX_MOD,        ONLY : INTERPOLATE_LUT2
+      USE COMODE_MOD,         ONLY : CSPEC, AIRDENS
+      USE FAST_JX_MOD,        ONLY : FJXFUNC
+      USE LOGICAL_MOD,        ONLY : LICOADSSHIP, LEDGARSHIP, LEMEPSHIP
+      USE LOGICAL_MOD,        ONLY : LDRYD
 
       ! NOx emissions scaling FP 15/12/09
       USE EMISSIONS_MOD,     ONLY : NOx_SCALING
@@ -156,6 +181,14 @@
       REAL*8  :: COEF1,   TOTPRES, DELTPRES
       REAL*8  :: EMIS_BL, NOXTOT,  TOTAL, A_CM2
 
+      ! Added by G. Vinken, C. Holmes
+      REAL*8           :: SHIP,   TOTO3
+      REAL*8           :: DTSRCE, AREA_CM2, JO1D, JNO2
+      REAL*4           :: FRACTION_NOX, INT_OPE 
+      INTEGER          :: NK
+      CHARACTER*8      :: SPECNAME
+      REAL*8, EXTERNAL :: FJFUNC
+      
       !=================================================================
       ! SETEMIS begins here!
       !=================================================================
@@ -389,13 +422,356 @@
                         REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
                      ENDIF
 
+                     ! RCP aircraft emissions
+                     IF ( OPTIONS_RCP%LRCPAIR ) THEN
+
+                        ! Divide aircraft NOx by COEF1 to convert
+                        ! from [molec NOx/cm3/s] to [molec NO/cm3/s], since
+                        ! NO is the actual emission species for NOx.
+                        EMIS_BL        = RCP_AC_NOx(I,J,L) / COEF1 
+
+                        ! Save aircraft NOx [molec NO/cm3/s] in REMIS
+                        REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
+
+                     ENDIF
+
                      ! NOx scaling moved here for optimisation. (ccc, 11/10/10)
                      ! Add possible scaling of NOx emissions
-                     REMIS(JLOOP,N) = NOx_SCALING * REMIS(JLOOP,N)             
+                     REMIS(JLOOP,N) = NOx_SCALING * REMIS(JLOOP,N)
 
                   ENDIF
                ENDDO
 
+               !========================================================
+               ! Ship NOx (emitted as NO, O3, HNO3 after plume evolution)
+               ! [molec/cm3/s]
+               ! Distribute emissions thru the entire boundary layer
+               !========================================================
+                
+               ! Update only if ship emissions are turned on
+               IF ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP .or. 
+     &                               OPTIONS_RCP%LRCPSHIP ) THEN
+
+                  ! Surface area of grid box
+                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+   
+                  ! Reset
+                  SHIP = 0D0
+                  
+                  ! handle global inventory first
+                  IF ( LEDGARSHIP ) THEN 
+
+                      ! Get SHIP EDGAR emissions for NOx [molec/cm2/s]
+                     SHIP = GET_EDGAR_NOx( I, J, 
+     &                      MOLEC_CM2_S=.TRUE., SHIP=.TRUE.)
+                         
+                  
+                  ! ICOADS ship emissions (cklee,7/09/09)
+                  ELSE IF ( LICOADSSHIP ) THEN
+
+                     ! Get ICOADS  emissions for NOx [molec/cm2/s]
+                     SHIP = GET_ICOADS_SHIP( I, J, IDTNOx, 
+     &                      MOLEC_CM2_S=.TRUE. )
+                  
+                  ! RCP ship emissions (cdh, 10/14/11)
+                  ELSE IF ( OPTIONS_RCP%LRCPSHIP ) THEN
+
+                     ! Get SHIP RCP emissions for NOx [molec/cm2/s]
+                     SHIP = GET_RCP_EMISSION( I, J, IDTNOx,  
+     &                      LAND=.FALSE., SHIP=.TRUE.)
+
+                  ENDIF
+
+                  ! Overwrite Europe
+                  IF ( LEMEPSHIP ) THEN
+                 
+                     ! Prevent overwriting ICOADS data with a 0 value from EMEP 
+                     IF (GET_EUROPE_MASK( I, J ) > 0d0) THEN
+           
+                        ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
+                        SHIP = GET_EMEP_ANTHRO( I, J, IDTNOx, 
+     &                         SHIP=.TRUE. )
+
+                     ENDIF
+
+                  ENDIF
+                  
+                  ! Add possible scaling of NOx emissions
+                  SHIP = SHIP * NOx_SCALING
+                  
+                  !----------------------------------
+                  ! Get J-Values for J(NO2) and J(O3)
+                  !----------------------------------
+
+                  ! Check if sun is up
+                  IF ( SUNCOS_MID(((J-1)*IIPAR) + I) > 0d0 ) THEN
+
+                     ! Loop over photolysis reactions to find NO2, O3
+                     DO L = 1, JPHOTRAT(NCS)
+                        
+                        ! Reaction number
+                        NK  = NRATES(NCS) + L
+                        
+                        ! Name of species being photolyzed
+                        SPECNAME = NAMEGAS(IRM(1,NK,NCS))
+
+                        ! Check if this is NO2 or O3, store values, 1/s
+                        SELECT CASE ( TRIM( SPECNAME ) )
+                        CASE ( 'NO2' )
+                           JNO2 = FJXFUNC(I,J,1,L,1,SPECNAME)
+                        CASE ( 'O3' )
+#if defined( UCX )      
+                           ! IMPORTANT: Need branch *2* for O1D
+                           ! Branch 1 is O3P!
+                           JO1D = FJXFUNC(I,J,1,L,2,SPECNAME)
+#else
+                           JO1D = FJXFUNC(I,J,1,L,1,SPECNAME)
+#endif
+                        CASE DEFAULT
+                        END SELECT
+                        
+                     ENDDO
+
+                  ELSE
+
+                     ! J-values are zero when sun is down
+                     JNO2 = 0d0
+                     JO1D = 0d0
+
+                  ENDIF
+
+                  ! Determine fraction of NOx remaining and integrated Ozone
+                  ! Production Efficiency for ship emiss (gvinken,mpayer,2/7/12)
+                  ! Uses surface-layer concentrations of O3, NO, NO2 (molec/cm3)
+                  ! from CSPEC and air density (molec/cm3)
+                  JLOOP   = JLOP(I,J,1)
+                  CALL INTERPOLATE_LUT2( I, J,  
+     &                 CSPEC(JLOOP,IDO3),  CSPEC(JLOOP,IDNO),
+     &                 CSPEC(JLOOP,IDNO2), AIRDENS(JLOOP),
+     &                 JO1D,               JNO2, 
+     &                 FRACTION_NOx,       INT_OPE)
+
+                  !-----------------
+                  ! Ship NO
+                  !-----------------
+ 
+                  ! Loop over the boundary layer
+                  DO L = 1, TOP
+                     JLOOP   = JLOP(I,J,L)
+                     EMIS_BL = 0d0
+
+                     IF ( JLOOP == 0 ) CYCLE
+                     
+                     ! Thickness of level L [mb]
+                     DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
+                     
+                     ! Add option for non-local PBL (Lin, 03/31/09)
+                     IF (LNLPBL) DELTPRES = TOTPRES
+
+                     ! Of the total ship NOx, the fraction FRACTION_NOX
+                     ! survives after plume dilution and chemistry. 
+                     ! The fraction DELTPRES/TOTPRES goes into level L,
+                     ! since that is the fraction of the boundary layer
+                     ! mass occupied by level L. 
+                     ! Final units: molec(NO)/cm2/s
+                     EMIS_BL = ( SHIP     * FRACTION_NOX )
+     &                       * ( DELTPRES / TOTPRES      )
+
+                     ! Convert anthro NOx emissions from [molec NO/cm2/s]
+                     ! to [molec NO/cm3/s] and store in the REMIS array
+                     REMIS(JLOOP,IDENOx) = REMIS(JLOOP,IDENOx) 
+     &                                  + ( EMIS_BL * AREA_CM2 ) 
+     &                                  / VOLUME(JLOOP)
+
+                  ENDDO
+
+                  !-----------------
+                  ! Ship HNO3
+                  !-----------------
+
+                  ! Loop over the boundary layer
+                  DO L = 1, TOP
+                     JLOOP   = JLOP(I,J,L)
+                     EMIS_BL = 0d0
+                  
+                     IF ( JLOOP == 0 ) CYCLE
+                     
+                     ! Thickness of level L [mb]
+                     DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
+                     
+                     ! Add option for non-local PBL (Lin, 03/31/09)
+                     IF (LNLPBL) DELTPRES = TOTPRES
+                     
+                     ! Of the total ship NOx, the fraction (1d0-FRACTION_NOX)
+                     ! is converted to HNO3 during plume dilution and chemistry. 
+                     ! The fraction DELTPRES/TOTPRES goes into level L,
+                     ! since that is the fraction of the boundary layer
+                     ! mass occupied by level L. Also, divide by COEF11 
+                     ! to convert from [molec tracer/cm2/s] to 
+                     ! [molec chem species/cm2/s].
+                     ! Final units: molec(HNO3)/cm2/s
+                     EMIS_BL = SHIP * ( 1D0      - FRACTION_NOX ) * 
+     &                                ( DELTPRES / TOTPRES      )
+
+                     ! Convert ship HNO3 emissions from [molec HNO3/cm2/s]
+                     ! to [molec HNO3/cm3/s] and store in the REMIS array
+                     REMIS(JLOOP,IDEHNO3) = REMIS(JLOOP,IDEHNO3) 
+     &                                    + ( EMIS_BL * AREA_CM2 ) 
+     &                                    / VOLUME(JLOOP)
+                        
+                  ENDDO
+
+                  !-----------------
+                  ! Ship O3
+                  !-----------------
+
+                  ! Total emissions over the boundary layer
+                  ! Of the total ship NOx, the fraction 
+                  ! (1d0-FRACTION_NOX)*INT_OPE is converted to O3 during 
+                  ! plume dilution and chemistry. 
+                  ! Final units: molec(O3)/cm2/s
+                  EMIS_BL = SHIP * (1D0 - FRACTION_NOX) * INT_OPE
+
+                  ! Ship plume chemistry can create or destroy net O3
+                  ! Treat positive O3 production as emissions 
+                  ! Treat O3 *destruction* in plume as dry deposition
+                  ! (cdh, 3/21/2013)
+                  IF (EMIS_BL >= 0d0) THEN
+
+                     ! No need for deposition when net O3 production from 
+                     ! ships is positive
+!$OMP CRITICAL
+                     IF (LDRYD) SHIPO3DEP(I,J) = 0d0
+!$OMP END CRITICAL
+
+                     ! Loop over the boundary layer
+                     DO L = 1, TOP
+                        JLOOP   = JLOP(I,J,L)
+                  
+                        IF ( JLOOP == 0 ) CYCLE
+                        
+                        ! Thickness of level L [mb]
+                        DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
+                     
+                        ! Add option for non-local PBL (Lin, 03/31/09)
+                        IF (LNLPBL) DELTPRES = TOTPRES
+
+                        ! The fraction DELTPRES/TOTPRES goes into level L,
+                        ! since that is the fraction of the boundary layer
+                        ! mass occupied by level L. 
+                        ! The ratio ( AREA_CM2 / VOLUME(JLOOP) ) converts
+                        ! molec/cm2 to molec/cm3
+                        ! Final units: molec(O3)/cm3/s
+                        REMIS(JLOOP,IDEOx) = REMIS(JLOOP,IDEOx) 
+     &                                     + EMIS_BL 
+     &                                     * ( DELTPRES / TOTPRES ) 
+     &                                     * AREA_CM2 / VOLUME(JLOOP) 
+         
+                     ENDDO
+                     
+                  ELSE
+
+                     ! No change in REMIS
+
+                     ! Initialize
+                     TOTO3 = 0d0
+
+                     ! Loop over the boundary layer
+                     ! If LNLPBL, then TOP=1
+                     DO L = 1, TOP
+                        JLOOP   = JLOP(I,J,L)
+
+                        IF ( JLOOP == 0 ) CYCLE
+
+                        ! Cumulative O3 in the PBL, molec(O3)/cm2
+                        TOTO3 = TOTO3 + ( BXHEIGHT(I,J,L) *
+     &                          1d2 ) * CSPEC(JLOOP,IDO3)
+                        
+                     ENDDO
+
+                     ! Effective O3 deposition frequency
+                     ! EMIS_BL (negative) is total O3 destruction in the 
+                     ! column, molec(O3)/cm2/s
+                     ! TOTO3 is the total O3 content of the PBL, molec(O3)/cm2
+                     ! Final units: 1/s
+!$OMP CRITICAL
+                     IF (LDRYD) SHIPO3DEP(I,J) = ABS( EMIS_BL / TOTO3 )
+!$OMP END CRITICAL
+
+                  ENDIF
+
+                  !-----------------
+                  ! Ship diagnostics
+                  !-----------------
+
+                  !ND36 = Anthro source diagnostic [molec/cm2/s]
+                  ! We need separate arrays for ship emissions because 
+                  ! other emissions are calculated at different model times
+                  IF ( ND36 > 0 ) THEN
+
+                     AD36_SHIP(I,J,IDEHNO3) = AD36_SHIP(I,J,IDEHNO3) + 
+     &                    SHIP * (1D0 - FRACTION_NOx)
+                     
+                     AD36_SHIP(I,J,IDEOx)  = AD36_SHIP(I,J,IDEOx) + 
+     &                    SHIP * (1D0 - FRACTION_NOx) * INT_OPE
+    
+                     AD36_SHIP(I,J,IDENOx) = AD36_SHIP(I,J,IDENOx) + 
+     &                    SHIP * FRACTION_NOx
+
+                     ! Increment counter, only once per time step
+                     IF ( (I == 1) .and. (J==1) ) THEN
+                        AD36_SHIP_COUNT = AD36_SHIP_COUNT + 1
+                     ENDIF
+
+                  ENDIF
+
+                  ! ND32 = save anthro NOx for levels L=1,NOXEXTENT
+                  ! [molec/cm2/s]
+                  IF ( ND32 > 0 ) THEN
+
+                     AD32_ship(I,J) = AD32_ship(I,J) + 
+     &                    ( SHIP * FRACTION_NOx )
+
+                     ! Increment counter, only once per time step
+                     IF ( (I == 1) .and. (J==1) ) THEN
+                        AD32_SHIP_COUNT = AD32_SHIP_COUNT + 1
+                     ENDIF
+
+                  ENDIF
+
+                  ! ND63 = save the fraction of NOx remaining, integrated OPE
+                  ! and total emissions of NOx and O3
+                  IF ( DO_SAVE_DIAG63 ) THEN
+
+                     ! Surviving fraction of emitted NOx, mol/mol
+                     AD63(I,J,1) = AD63(I,J,1) + FRACTION_NOx
+
+                     ! Integraed OPE, mol/mol
+                     AD63(I,J,2) = AD63(I,J,2) + INT_OPE
+
+                     ! Surviving NOx, molec/cm2 
+                     ! (converted to molec/cm2/s in diag63_mod)
+                     AD63(I,J,3) = AD63(I,J,3) + 
+     &                    SHIP * FRACTION_NOx 
+
+                     ! Ozone produced, molec/cm2
+                     ! (converted to molec/cm2/s in diag63_mod)
+                     AD63(I,J,4) = AD63(I,J,4) + 
+     &                    SHIP * (1D0 - FRACTION_NOx) * INT_OPE
+
+                     ! NOx emitted at ship stack, molec/cm2
+                     ! (converted to molec/cm2/s in diag63_mod)
+                     AD63(I,J,5) = AD63(I,J,5) + SHIP 
+
+                     ! Increment counter, only once per time step
+                     IF ( (I == 1) .and. (J==1) ) THEN
+                        AD63_COUNT = AD63_COUNT + 1d0
+                     ENDIF
+
+                  ENDIF
+
+               ENDIF
+              
             ELSE
 
                !========================================================

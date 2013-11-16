@@ -1215,7 +1215,7 @@ CONTAINS
     USE TRACER_MOD,    ONLY : N_TRACERS, TRACER_NAME, STT
     USE TRACERID_MOD,  ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
     USE TRACERID_MOD,  ONLY : IDTBr2,IDTBr,IDTBrO,IDTHOBr,IDTHBr,IDTBrNO3
-    USE LOGICAL_MOD,   ONLY : LGMISTRAT
+    USE LOGICAL_MOD,   ONLY : LUCX
     USE TIME_MOD,      ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
 
     USE m_netcdf_io_open
@@ -1330,7 +1330,7 @@ CONTAINS
                   TRIM(TRACER_NAME(N)) .eq.    'HOBr'        ) CYCLE
 
              ! SDE 08/28/13: Full strat. has its own mesospheric NOy handling
-             IF ( LGMISTRAT ) THEN
+             IF ( LUCX ) THEN
                 IF ( TRIM(TRACER_NAME(N)) .eq.    'NO' .or. &
                      TRIM(TRACER_NAME(N)) .eq.   'NO2' .or. &
                      TRIM(TRACER_NAME(N)) .eq.   'NO3' .or. &

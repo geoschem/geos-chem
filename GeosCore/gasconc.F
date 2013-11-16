@@ -319,9 +319,9 @@
  33      CONTINUE
       ENDIF
 
-! If H2O is active in the GMI strat-chem mechanism, we still need
+! If H2O is active in the UCX strat-chem mechanism, we still need
 ! ABSHUM to be set (e.g. for aerosol hygroscopic growth calcs)
-#if defined( GMISTRAT )
+#if defined( UCX )
       DO JLOOP = 1,NTTLOOP
          TK            = T3(JLOOP)
          CONSEXP       = 17.2693882D0 * (TK - 273.16D0) /

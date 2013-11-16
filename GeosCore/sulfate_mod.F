@@ -431,7 +431,7 @@
       USE TRACERID_MOD,   ONLY : IDTNITs,         IDTSO4s
 
       ! Stratospheric settling
-      USE GMISTRAT_MOD,   ONLY : SETTLE_STRAT_AER
+      USE UCX_MOD,        ONLY : SETTLE_STRAT_AER
       USE LOGICAL_MOD,    ONLY : LGRAVSTRAT
  
       USE CMN_SIZE_MOD                   ! Size parameters
@@ -5520,6 +5520,7 @@
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTNH3
+      USE RCP_MOD,            ONLY : OPTIONS_RCP
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13
@@ -5659,6 +5660,11 @@
             ! regular ENH3_an and ENH3_bf to local arrays. (bmy, 11/16/04)
             NH3an(I,J,1) = ENH3_an(I,J)
             NH3bf(I,J)   = ENH3_bf(I,J)
+            
+            ! The RCP anthropogenic emission inventory already includes
+            ! biofuel emissions, so we turn off the additional biofuel 
+            ! inventory (cdh, 8/31/12)
+            IF ( OPTIONS_RCP%LRCP ) NH3bf(I,J) = 0d0 
             
             !-----------------------------------------------------------------
             ! NOTE: There seems to be some problems with the EPA/NEI NH3 
@@ -6516,6 +6522,7 @@
       USE TRACERID_MOD,         ONLY : IDTSO2, IDTSO4
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
+      USE RCP_MOD,              ONLY : OPTIONS_RCP, GET_RCP_EMISSION
 ![eml
       USE LOGICAL_MOD,          ONLY : LHIST
 !eml]
@@ -6581,7 +6588,7 @@
       ENDIF
 
 
-      IF ( LEDGARSOx ) THEN
+      IF ( LEDGARSOx .OR. OPTIONS_RCP%LRCP ) THEN
 
          !==============================================================
          ! Use EDGAR SOx emissions
@@ -6616,6 +6623,25 @@
                ! Get EDGAR SO2 emissions [kg/s]
                ! NOTE: Future emissions are already applied!
                EDG_SO2 = GET_EDGAR_ANTH_SO2( I, J, KG_S=.TRUE. ) 
+
+               ! Use RCP SO2 emissions
+               IF ( OPTIONS_RCP%LRCP ) THEN
+
+                  ! Get RCP SO2 emissions, molec/cm2/s
+                  ! NOTE: Future emissions assumed to already be included
+                  EDG_SO2 = GET_RCP_EMISSION( I, J, IDTSO2, 
+     &                 LAND=.TRUE., SHIP=.FALSE. )
+
+                  ! Convert molec/cm2/s -> kg/s
+                  EDG_SO2 = EDG_SO2 * AREA_CM2 / XNUMOL(IDTSO2) 
+
+                  ! RCP includes biofuels
+                  ! However, if regional inventories without biofuels 
+                  ! are used, then there will be no biofuel emissions 
+                  ! from that region
+                  ESO2_bf(I,J) = 0d0
+
+               ENDIF
 
                ! If we are using David Streets' emissions ...
 ![eml Not if historical
@@ -7500,6 +7526,7 @@
       USE LOGICAL_MOD,          ONLY : LEDGARSHIP,      LFUTURE, 
      &                                 LARCSHIP,        LSHIPSO2,
      $                                 LEMEPSHIP
+      USE RCP_MOD,              ONLY : OPTIONS_RCP, GET_RCP_EMISSION
       USE LOGICAL_MOD,          ONLY : LICOADSSHIP  !(cklee, 6/30/09)
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
@@ -7573,6 +7600,39 @@
             ENDIF
 
          ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+
+      !-----------------------------------------------------------
+      ! Or RCP SHIP emissions 
+      ! (cdh, 10/14/11)
+      !-----------------------------------------------------------
+      ELSE IF ( OPTIONS_RCP%LRCPSHIP ) THEN
+            
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+               ! Grid box surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
+               ! Read RCP SO2 emissions in [molec/cm2/s]
+               ESO2_sh(I,J) = GET_RCP_EMISSION( I, J, IDTSO2,  
+     &                                          SHIP=.TRUE. )
+               
+               ! Convert molec/cm2/s -> kg SO2/BOX/s
+               ESO2_sh(I,J) = ESO2_sh(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
+
+               IF ( LEMEPSHIP ) THEN
+                  IF ( GET_EUROPE_MASK(I,J) > 0d0 )
+     $                 ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2, 
+     &                 KG_S=.TRUE.,
+     $                 SHIP=.TRUE.)
+               ENDIF
+
+            ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
 
@@ -7715,6 +7775,9 @@
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
+      USE RCP_MOD,              ONLY : OPTIONS_RCP, GET_RCP_EMISSION
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE TRACER_MOD,           ONLY : XNUMOL
 
       USE CMN_SIZE_MOD               ! Size parameters
 !
@@ -7765,35 +7828,59 @@
       ! READ_ANTHRO_NH3 begins here!
       !=================================================================
 
-      ! File name
-      FILENAME = TRIM( DATA_DIR )                         //
-     &           'sulfate_sim_200508/NH3_anthsrce.'       //
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+      IF ( OPTIONS_RCP%LRCP ) THEN
+         
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_CM2 )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-      ! Echo output
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_ANTHRO_NH3: Reading ', a )
-      
-      ! Get TAU value (use year 1990, the year of the data!)
-      XTAU = GET_TAU0( THISMONTH, 1, 1990 )
-	
-      ! Read 1990 NH3 emissions [kg N/box/mon]
-      CALL READ_BPCH2( FILENAME, 'NH3-ANTH',    29,  
-     &                 XTAU,      IIPAR,        JJPAR,       
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
+            ! Read RCP NH3 emissions in [molec/cm2/s]
+            ENH3_an(I,J) = GET_RCP_EMISSION( I, J, IDTNH3,  
+     &                                       LAND=.TRUE. )
+               
+            ! Convert molec/cm2/s -> kg NH3/BOX/s
+            ENH3_an(I,J) = ENH3_an(I,J) * AREA_CM2 / XNUMOL(IDTNH3)
+               
+         ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ELSE
+         ! File name
+         FILENAME = TRIM( DATA_DIR )                         //
+     &              'sulfate_sim_200508/NH3_anthsrce.'       //
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
+         ! Echo output
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_ANTHRO_NH3: Reading ', a )
+         
+         ! Get TAU value (use year 1990, the year of the data!)
+         XTAU = GET_TAU0( THISMONTH, 1, 1990 )
+           
+         ! Read 1990 NH3 emissions [kg N/box/mon]
+         CALL READ_BPCH2( FILENAME, 'NH3-ANTH',    29,  
+     &                    XTAU,      IIPAR,        JJPAR,       
+     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
+         ! Cast from REAL*4 to REAL*8
+         CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
+
+         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
+         ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
+     &                / ( NMDAY(THISMONTH) * 86400.d0 )
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, STREETS )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
-         ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
-     &                / ( NMDAY(THISMONTH) * 86400.d0 )
 
          ! Compute future NH3an emissions, if necessary
          ! Moved here since Streets and EMEP should have already

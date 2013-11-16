@@ -117,6 +117,7 @@
       USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMONOT_MEGAN
+      USE RCP_MOD,           ONLY : RCP_AIREMISS,OPTIONS_RCP! (cdh, 10/14/11)
       USE SOIL_NOX_MOD,      ONLY : SOIL_NOX_EMISSION   
       USE GET_NDEP_MOD,      ONLY : GET_DEP_N 
       USE TIME_MOD,          ONLY : GET_MONTH,     GET_TAU
@@ -148,7 +149,7 @@
       USE COMMSOIL_MOD            ! Soil wetness variables
       USE CMN_DEP_MOD
 
-      USE GMISTRAT_MOD,      ONLY : EMIT_GEOENG
+      USE GEOENG_MOD,        ONLY : EMIT_GEOENG
       USE LOGICAL_MOD,       ONLY : LGEOENG
 
 #if defined( DEVEL )
@@ -207,7 +208,7 @@
       REAL*8                 :: GAMMA_SM
 
       ! CH4 biogenic emissions (SDE 03/25/13 -- mpayer 01/24/12)
-      REAL*8                 :: CH4_BIOG
+      REAL*8                 :: CH4_BIOG, CH4_BIOGSUM
 
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT)  :: 
@@ -361,6 +362,8 @@
       EMISRR      = 0d0
       !GEMISNOX2   = 0d0
       EMISS_BVOC  = 0d0  ! Add BVOC emissions (mpb,2009)
+      ! SDE: Debug counter for CH4 biogenic emissions
+      CH4_BIOGSUM = 0d0
       
       ! Loop over latitudes
       IJLOOP = 0
@@ -439,6 +442,9 @@
 ! AIRCRAFT emissions [kg/box]
 !
             IF ( LAEIC .AND. I == 1 .AND. J == 1 ) CALL EMIT_AEIC
+            IF ( OPTIONS_RCP%LRCPAIR .AND. I == 1 .AND. J == 1 ) THEN
+               CALL RCP_AIREMISS
+            ENDIF
 !-----------------------------------------------------------------------------
 ! GEOENGINEERING emissions [kg/box]
 !
@@ -738,6 +744,7 @@
             IF ( IDECH4 > 0 ) THEN
 
                CH4_BIOG = GET_CH4_BIOG(I, J, IDTCH4)
+               CH4_BIOGSUM = CH4_BIOGSUM + (CH4_BIOG*AREA_CM2)
 
                ! Store in EMISRR [molec/box/s]
                EMISRR(I,J,IDECH4) = EMISRR(I,J,IDECH4)
@@ -849,6 +856,9 @@
             ENDIF
          ENDDO
       ENDDO
+
+      ! SDE DEBUG: Print CH4 biogenic emissions
+      WRITE(6,'(a,1x,E10.4)') 'CH4 biogenic emissions: ', CH4_BIOGSUM
 
       ! Return to calling program
       END SUBROUTINE EMISSDR                                                

@@ -57,7 +57,8 @@
       USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
       USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
       USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
-      USE GMISTRAT_MOD,            ONLY : CLEANUP_GMISTRAT
+      USE GEOENG_MOD,              ONLY : CLEANUP_GEOENG  
+      USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
@@ -92,6 +93,7 @@
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
       USE RETRO_MOD,               ONLY : CLEANUP_RETRO
       USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
+      USE RCP_MOD,                 ONLY : CLEANUP_RCP !(cdh, 10/14/11)
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
@@ -199,7 +201,8 @@
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
 !                              CLEANUP_GRID
 !  24 Mar 2013 - S. D. Eastham - Switched TROPOPAUSE_MOD to CHEMGRID_MOD
-!  04 Apr 2013 - S. D. Eastham - Added call for CLEANUP_GMISTRAT
+!  04 Apr 2013 - S. D. Eastham - Added call for CLEANUP_UCX
+!  11 Nov 2013 - S. D. Eastham - Added call for CLEANUP_GEOENG
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -255,7 +258,8 @@
       CALL CLEANUP_GLOBAL_OC
       CALL CLEANUP_GLOBAL_BC
       CALL CLEANUP_GLOBAL_GRID
-      CALL CLEANUP_GMISTRAT
+      CALL CLEANUP_UCX
+      CALL CLEANUP_GEOENG
       CALL CLEANUP_GRID
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
@@ -289,6 +293,7 @@
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
       CALL CLEANUP_RETRO
+      CALL CLEANUP_RCP !(cdh, 10/14/11)
 
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging

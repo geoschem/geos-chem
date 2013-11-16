@@ -173,7 +173,7 @@
          ! NO3 concentration [v/v]
          SAVENO3(I,J,L) = CSPEC(JLOOP,IDNO3) / AIRDENS(JLOOP)
 
-#if defined( GMISTRAT )
+#if defined( UCX )
          ! O1D concentration [molec/cm3]
          SAVEO1D(I,J,L) = CSPEC(JLOOP,IDO1D)
 

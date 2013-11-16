@@ -30,7 +30,7 @@
 !  LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
 !  SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
 !  GTMM_Hg     : Enables code for Hg simulation with GTMM
-!  GMISTRAT    : Enables code for full stratospheric chemistry
+!  UCX         : Enables code for unified chemistry extension
 !  FASTJX7     : Modifies photolysis code for compatibility with FJX 7.0
 !                                                                            .
 !  NOTES:
@@ -100,9 +100,8 @@
 !  10 Jun 2012 - L. Murray   - GRIDREDUCED no longer required for GEOS5.
 !  07 Sep 2012 - R. Yantosca - Removed EXTERNAL_GRID, EXTERNAL_FORCING, these
 !                              will now be set in the Makefile_header.mk
-!  24 Mar 2013 - S. D. Eastham - Added GMISTRAT switch
+!  24 Mar 2013 - S. D. Eastham - Added UCX switch
 !  01 Apr 2013 - S. D. Eastham - Added FASTJX7 switch (temporary)
-!  10 Apr 2013 - S. D. Eastham - Added FORCEO1D switch (temporary)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -132,9 +131,8 @@
 #undef LINUX_IFORT
 #undef SPARC
 #undef GTMM_Hg
-#undef GMISTRAT
+#undef UCX
 #undef FASTJX7
-#undef FORCEO1D
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
@@ -171,9 +169,8 @@
 
 !----- Simulation type -----
 !#define GTMM_Hg
-#define GMISTRAT
+#define UCX
 #define FASTJX7
-!#define FORCEO1D
 
 !==============================================================================
 ! Force a compile error if a model type is undefined

@@ -34,6 +34,7 @@
       PRIVATE :: READ_TRACER_MENU  
       PRIVATE :: READ_AEROSOL_MENU     
       PRIVATE :: READ_EMISSIONS_MENU
+      PRIVATE :: READ_GEOENG_MENU
       PRIVATE :: READ_FUTURE_MENU
       PRIVATE :: READ_CHEMISTRY_MENU
       PRIVATE :: READ_TRANSPORT_MENU
@@ -127,6 +128,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
+!  15 Oct 2013 - S. D. Eastham - Added READ_GEOENG_MENU option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,6 +355,9 @@
                                     
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
             CALL READ_CH4_MENU( am_I_Root )
+
+         ELSE IF ( INDEX( LINE, 'GEOENG MENU'      ) > 0 ) THEN
+            CALL READ_GEOENG_MENU( am_I_Root )
                                     
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
@@ -1286,7 +1291,7 @@
       USE LOGICAL_MOD,  ONLY : LDICARB, LGRAVSTRAT, LHOMNUCNAT
       USE LOGICAL_MOD,  ONLY : LSOLIDPSC, LPSCCHEM
       USE LOGICAL_MOD,  ONLY : LSTRATOD
-      USE GMISTRAT_MOD, ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
+      USE UCX_MOD,      ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
@@ -1650,10 +1655,12 @@
       USE CMN_O3_MOD        ! FSCALYR
       USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFCX
       USE TRACERID_MOD,  ONLY : IDTCl, IDTN2O, IDTBr2, IDTH2O
-      USE GMISTRAT_MOD,  ONLY : TRAC_FILE_ROOT, CFCYEAR
+      USE UCX_MOD,       ONLY : TRAC_FILE_ROOT, CFCYEAR
       ! SDE 2013-07-28
-      USE GMISTRAT_MOD,  ONLY : GE_TGS, GE_PCEIL, GE_PBASE
-      USE GMISTRAT_MOD,  ONLY : GE_MINLAT, GE_MAXLAT
+      USE GEOENG_MOD,    ONLY : GE_TGS, GE_PCEIL, GE_PBASE
+      USE GEOENG_MOD,    ONLY : GE_MINLAT, GE_MAXLAT
+      ! Adapted from C. Holmes' RCP module (SDE 2013-11-15)
+      USE RCP_MOD,       ONLY : RCPNAME, RCPYEAR, OPTIONS_RCP
 !
 ! !INPUT PARAMETERS:
 !
@@ -1882,6 +1889,39 @@
 
       ! Are we running aircraft at all?
       LAEIC = (OPTIONS_AEIC%LLTO_EMIS .or. OPTIONS_AEIC%LCRUISE_EMIS)
+      
+      ! Implement LTO and cruise switches
+      IF (.not.OPTIONS_AEIC%LLTO_EMIS) THEN
+          OPTIONS_AEIC%LTO_FB_MULT = 0d0
+      ENDIF
+
+      IF (.not.OPTIONS_AEIC%LCRUISE_EMIS) THEN
+          OPTIONS_AEIC%CRUISE_FB_MULT = 0d0
+      ENDIF
+
+      ! Use RCP emissions? (cdh, 2011-10-18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP1' )
+      READ( SUBSTRS(1:N), * ) OPTIONS_RCP%LRCP
+
+      ! Which RCP scenario? (cdh, 2011-10-18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP2' )
+      READ( SUBSTRS(1:N), * ) RCPNAME
+
+      ! Which RCP year? (cdh, 10/18/11)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP3' )
+      READ( SUBSTRS(1:N), * ) RCPYEAR
+
+      ! Fixed year? (SDE 2013-11-16)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP4' )
+      READ( SUBSTRS(1:N), * ) OPTIONS_RCP%LFIXEDYR
+
+      ! Use RCP aircraft NOx?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP5' )
+      READ( SUBSTRS(1:N), * ) OPTIONS_RCP%LRCPAIR
+
+      ! Use RCP (NOx, SO2, CO) ship  emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP6' )
+      READ( SUBSTRS(1:N), * ) OPTIONS_RCP%LRCPSHIP
 
       ! Use EPA/NEI99 emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
@@ -2129,30 +2169,6 @@
 
       TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
 
-      ! Apply geoengineering emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:96' )
-      READ( SUBSTRS(1:N), * ) LGEOENG
-
-      ! Total geoeongeering emissions (TgS/yr)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:97' )
-      READ( SUBSTRS(1:N), * ) GE_TGS
-
-      ! Geoengineering pressure base (hPa)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:98' )
-      READ( SUBSTRS(1:N), * ) GE_PBASE
-
-      ! Geoengineering pressure ceiling (hPa)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:99' )
-      READ( SUBSTRS(1:N), * ) GE_PCEIL
-
-      ! Lower latitude edge (deg)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:100' )
-      READ( SUBSTRS(1:N), * ) GE_MINLAT
-
-      ! Upper latitude edge (deg)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:101' )
-      READ( SUBSTRS(1:N), * ) GE_MAXLAT
-
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:102' )
 
@@ -2191,11 +2207,6 @@
       LSHIPSO2          = ( LSHIPSO2       .and. LANTHRO   )
       LARCSHIP          = ( LARCSHIP       .and. LANTHRO   )
       LCOOKE            = ( LCOOKE         .and. LANTHRO   )
-      ! SDE 2013-07-28
-      LGEOENG           = ( LGEOENG        .and. LANTHRO   )
-#if !defined( GMISTRAT )
-      LGEOENG           = .FALSE.
-#endif
 
       ! Biogenic
       LMEGAN            = ( LMEGAN         .and. LBIOGENIC )
@@ -2260,6 +2271,48 @@
       IF ( LHIST ) THEN
          LEDGARNOx = .TRUE.
          LEDGARSOx = .TRUE.
+      ENDIF
+
+      ! RCP: Test for conflicts with other switches (cdh, 6/14/12) 
+      IF ( OPTIONS_RCP%LRCP ) THEN
+         
+         ! Force user to choose just 1 global inventory
+         IF ( LEDGAR ) 
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose either RCP or EDGAR for global emissions', 
+     &           'READ_EMISSIONS_MENU' )
+
+         ! Force user to choose just 1 global inventory
+         IF ( LRETRO ) 
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose either RCP or RETRO for global emissions', 
+     &           'READ_EMISSIONS_MENU' )
+
+         ! Force user to choose just 1 global ship inventory
+         IF ( ( LEDGARSHIP .OR. LICOADSSHIP ) .and.
+     &                          (OPTIONS_RCP%LRCPSHIP ) )
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose only 1 global ship emissions: '//
+     &           'RCP, EDGAR, or ICOADS',
+     &           'READ_EMISSIONS_MENU' )
+
+         ! Force user to choose just 1 global aircraft inventory
+         IF ( ( LACSO2 .or. LAEIC ) .and. OPTIONS_RCP%LRCPAIR )
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose either RCP or AEIC for global aircraft' //
+     &           ' emissions', 'READ_EMISSIONS_MENU' )
+
+         ! Avoid double fertilizer NOx emissions
+         IF ( LFERTILIZERNOX ) THEN
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+            WRITE( 6, '(a)' ) 'WARNING! RCP inventory already includes,'
+            WRITE( 6, '(a)' ) '~0.7 Tg(N) from agriculture for y2010.'
+            WRITE( 6, '(a)' ) 'Turning off "Fertilizer NOx"'
+            WRITE( 6, '(a)' ) 'to avoid duplicate emissions!'
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+            LFERTILIZERNOX = .FALSE.
+         ENDIF
+
       ENDIF
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2506,7 +2559,7 @@
       !=================================================================
       ! Error check stratospheric H2O
       !=================================================================
-#if defined( GMISTRAT )
+#if defined( UCX )
       IF ( LSETH2O ) THEN
          IF (IDTH2O==0) THEN
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
@@ -2628,6 +2681,14 @@
         WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
         WRITE( 6, 100 ) '  Use old aircraft SO2      : ', LACSO2
         WRITE( 6, 100 ) '  Use AEIC emissions        : ', LAEIC
+        WRITE( 6, 100 ) '  Use RCP emissions         : ', 
+     &                                           OPTIONS_RCP%LRCP
+        WRITE( 6, 130 ) '      RCP scenario?         : ', TRIM(RCPNAME)
+        WRITE( 6, 110 ) '      RCP year?             : ', RCPYEAR
+        WRITE( 6, 100 ) '      RCP aircraft NOx?     : ', 
+     &                                           OPTIONS_RCP%LRCPAIR
+        WRITE( 6, 100 ) '      RCP ship emissions?   : ', 
+     &                                           OPTIONS_RCP%LRCPSHIP
         WRITE( 6, 100 ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
         WRITE( 6, 100 ) '      --> with NOx VISTAS?  : ', LVISTAS
         WRITE( 6, 100 ) '      --> with ICARTT modif?: ', LICARTT
@@ -2691,14 +2752,6 @@
         WRITE( 6, 110 ) 'CFC emissions read for year : ', CFCYEAR
         WRITE( 6, 130 ) ' Directory for 2D data      : ',
      &                                        TRIM(TRAC_FILE_ROOT)
-        WRITE( 6, 100 ) 'Emit geoengineering SO2?    : ', LGEOENG
-        IF (LGEOENG) THEN
-           WRITE( 6, 120 ) '      --> TgS per year      : ', GE_TGS
-           WRITE( 6, 120 ) '      --> Base P (hPa)      : ', GE_PBASE
-           WRITE( 6, 120 ) '      --> Ceiling P (hPa)   : ', GE_PCEIL
-           WRITE( 6, 120 ) '      --> Min. latitude     : ', GE_MINLAT
-           WRITE( 6, 120 ) '      --> Max. latitude     : ', GE_MAXLAT
-        ENDIF
       ENDIF
 
       ! FORMAT statements
@@ -2709,6 +2762,142 @@
  130  FORMAT( A, A  )
 
       END SUBROUTINE READ_EMISSIONS_MENU
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_emissions_menu
+!
+! !DESCRIPTION: Subroutine READ\_EMISSIONS\_MENU reads the EMISSIONS MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_GEOENG_MENU( am_I_Root )
+!
+! !USES:
+!
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE LOGICAL_MOD
+      ! SDE 2013-07-28
+      USE GEOENG_MOD,    ONLY : GE_TGS, GE_PCEIL, GE_PBASE
+      USE GEOENG_MOD,    ONLY : GE_MINLAT, GE_MAXLAT, GE_TSURF
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+! 
+! !REVISION HISTORY: 
+!  15 Oct 2013 - S. D. Eastham - Initial version (based on EMISSIONS)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
+
+      !=================================================================
+      ! READ_GEOENG_MENU begins here!
+      !=================================================================
+
+      ! Location for error messages
+      LOC = 'READ_GEOENG_MENU ("input_mod.f")'
+
+      ! Apply geoengineering emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:1' )
+      READ( SUBSTRS(1:N), * ) LGEOENG
+
+      ! Total geoeongeering emissions (TgS/yr)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:2' )
+      READ( SUBSTRS(1:N), * ) GE_TGS
+
+      ! Geoengineering pressure base (hPa)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:3' )
+      READ( SUBSTRS(1:N), * ) GE_PBASE
+
+      ! Geoengineering pressure ceiling (hPa)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:4' )
+      READ( SUBSTRS(1:N), * ) GE_PCEIL
+
+      ! Lower latitude edge (deg)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:5' )
+      READ( SUBSTRS(1:N), * ) GE_MINLAT
+
+      ! Upper latitude edge (deg)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:6' )
+      READ( SUBSTRS(1:N), * ) GE_MAXLAT
+
+      ! Global temperature offsets (K)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:7' )
+      READ( SUBSTRS(1:N), * ) GE_TSURF
+
+      ! Apply offset uniformly?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:8' )
+      READ( SUBSTRS(1:N), * ) LCC_UNIFORMT
+
+      ! Apply offset to the surface only?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:9' )
+      READ( SUBSTRS(1:N), * ) LCC_SFCT
+
+      ! Apply offset with AR5-based scaling?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:10' )
+      READ( SUBSTRS(1:N), * ) LCC_AR5T
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:11' )
+
+      !=================================================================
+      ! Error check
+      !=================================================================
+#if !defined( UCX )
+      LGEOENG           = .FALSE.
+#endif
+
+      ! Can only have one of the three temperature scalings
+      IF ((LCC_SFCT.AND.LCC_AR5T).OR.
+     &    (LCC_SFCT.AND.LCC_UNIFORMT).OR.
+     &    (LCC_UNIFORMT.AND.LCC_AR5T)) THEN
+         
+          MSG = 'Only 1 temperature offset scenario can be set.'
+          CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'GEOENGINEERING MENU'
+         WRITE( 6, '(  a)' ) '--------------'
+         WRITE( 6, 100 ) 'Emit geoengineering SO2?    : ', LGEOENG
+         IF (LGEOENG) THEN
+            WRITE( 6, 120 ) '      --> TgS per year      : ', GE_TGS
+            WRITE( 6, 120 ) '      --> Base P (hPa)      : ', GE_PBASE
+            WRITE( 6, 120 ) '      --> Ceiling P (hPa)   : ', GE_PCEIL
+            WRITE( 6, 120 ) '      --> Min. latitude     : ', GE_MINLAT
+            WRITE( 6, 120 ) '      --> Max. latitude     : ', GE_MAXLAT
+         ENDIF
+         IF (LCC_SFCT.or.LCC_UNIFORMT.or.LCC_AR5T) THEN
+            WRITE( 6, 120 ) 'Climate change T offset     : ', GE_TSURF
+            IF (LCC_SFCT) THEN
+               WRITE( 6, '(a)' ) '      --> applied at surface only'
+            ELSEIF (LCC_UNIFORMT) THEN
+               WRITE( 6, '(a)' ) '      --> applied at all altitudes'
+            ELSEIF (LCC_AR5T) THEN
+               WRITE( 6, '(a)' ) '      --> AR5 vertical scaling'
+            ENDIF
+         ENDIF
+
+      ENDIF
+
+ 100  FORMAT( A, L5 )
+ 120  FORMAT( A, f6.2 )
+
+      END SUBROUTINE READ_GEOENG_MENU
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -3117,7 +3306,8 @@
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP 
       USE LOGICAL_MOD, ONLY : LCHEM, LSCHEM, LLINOZ
-      USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP, LGMISTRAT
+      USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP, LUCX
+      USE LOGICAL_MOD, ONLY : LO3FJX
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
       USE LOGICAL_MOD, ONLY : LCH4CHEM, LACTIVEH2O
@@ -3174,7 +3364,7 @@
 
       ! Turn on unified strat-trop chemistry?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:4' )
-      READ( SUBSTRS(1:N), * ) LGMISTRAT
+      READ( SUBSTRS(1:N), * ) LUCX
 
       ! Turn on online methane chemistry?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
@@ -3196,34 +3386,33 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:10' )
       READ( SUBSTRS(1:N), * ) LKPP
 
-      ! Separator line
+      ! Use online ozone in extinction calculations for FAST-JX?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:11' )
+      READ( SUBSTRS(1:N), * ) LO3FJX
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:12' )
 
       !=================================================================
       ! Error check settings
       !=================================================================       
 
-      ! Use of GMI stratospheric chemistry necessitates recompilation 
-#if !defined( GMISTRAT )
-      IF ( LGMISTRAT ) THEN
-         MSG = 'LGMISTRAT=T but GMISTRAT not defined at compile time!'
+      ! Use of unified trop-strat chem necessitates recompilation 
+#if !defined( UCX )
+      IF ( LUCX ) THEN
+         MSG = 'LUCX=T but UCX not defined at compile time!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 #else
-      IF ( .not. LGMISTRAT ) THEN
-         MSG = 'LGMISTRAT=F but GMISTRAT defined at compile time!'
+      IF ( .not. LUCX ) THEN
+         MSG = 'LUCX=F but UCX defined at compile time!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 #endif
 !      !================
 !      ! SDE 08/28/13: Can have both now (linearized chem applies only
 !      ! above stratopause)
-!      ! Full GMiI stratospheric chemistry incompatible with other settings
-!      IF ( LGMISTRAT .and. LSCHEM ) THEN
-!         MSG = 'Cannot have both unified and linearized strat chem!'
-!         CALL ERROR_STOP( MSG, LOCATION )
-!      ENDIF
-      IF ( LGMISTRAT .and. LSCHEM ) THEN
+      IF ( LUCX .and. LSCHEM ) THEN
          ! However, cannot use synoz
          IF (.not.LLINOZ) THEN
             MSG = 'Cannot use Synoz with linearized meso. chem.!'
@@ -3233,7 +3422,7 @@
 !      !================
 
       ! Cannot have active H2O without stratospheric chemistry
-      IF ( (.not.LGMISTRAT) .and. LACTIVEH2O ) THEN
+      IF ( (.not.LUCX) .and. LACTIVEH2O ) THEN
          MSG = 'Cannot have active H2O without full strat chem!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
@@ -3247,12 +3436,13 @@
          WRITE( 6, 100     ) 'Turn on chemistry?          : ', LCHEM
          WRITE( 6, 100     ) 'Use linear. strat. chem?    : ', LSCHEM
          WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', LLINOZ
-         WRITE( 6, 100     ) 'Use GMI strat. chem?        : ', LGMISTRAT
+         WRITE( 6, 100     ) 'Enable UCX?                 : ', LUCX
          WRITE( 6, 100     ) 'Online CH4 chemistry?       : ', LCH4CHEM
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
+         WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX
       ENDIF
 
       ! FORMAT statements
@@ -4349,7 +4539,7 @@
       CALL SET_TINDEX( am_I_Root, 62, ND62, SUBSTRS(2:N), N-1, PD62 )
 
       !--------------------------
-      ! ND64: Free
+      ! ND64: Radiative flux
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:63' )
       READ( SUBSTRS(1), * ) ND64
@@ -7172,6 +7362,7 @@
 !
       USE DIRECTORY_MOD
       USE LOGICAL_MOD
+      USE GEOENG_MOD,    ONLY : GE_TSURF
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -7290,7 +7481,8 @@
       LSETCH4        = .FALSE.
 
       !Full strat-chem (SDE 03/26/13)
-      LGMISTRAT      = .FALSE.
+      LUCX           = .FALSE.
+      LO3FJX         = .FALSE.
       LACTIVEH2O     = .FALSE.
       LSETH2O        = .FALSE.
       LSETCFC        = .FALSE.
@@ -7314,6 +7506,10 @@
       LPSCCHEM       = .FALSE.
       LFUTURECFC     = .FALSE.
       LGEOENG        = .FALSE.
+      LCC_UNIFORMT   = .FALSE.
+      LCC_SFCT       = .FALSE.
+      LCC_AR5T       = .FALSE.
+      GE_TSURF       = 0d0
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.

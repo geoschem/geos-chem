@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG3                                                    
+      SUBROUTINE DIAG3                                                 
 !
 ! !USES:
 !
@@ -43,6 +43,7 @@
       USE TRACER_MOD                         ! For tracer array
       USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
+      USE RCP_MOD, ONLY : OPTIONS_RCP
 
 #if   defined( APM )
       ! Modules from GeosApm directory
@@ -1067,8 +1068,9 @@
          ! New test on logical flag (phs, 3/2/09)
          !==============================================================
          ! Add ICOADSSHIP (cklee, 6/30/09)
+         ! Add RCP
          IF ( LSHIPSO2 .OR. LEDGARSHIP .OR. LARCSHIP .OR.
-     $        LEMEPSHIP .OR. LICOADSSHIP ) THEN
+     $      LEMEPSHIP .OR. LICOADSSHIP .OR. OPTIONS_RCP%LRCPSHIP ) THEN
             
             CATEGORY     = 'SO2-SHIP'
             ARRAY(:,:,1) = AD13_SO2_sh(:,:)
@@ -3396,6 +3398,36 @@
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
+         ENDDO
+      ENDIF
+!
+!******************************************************************************
+!  ND64: Radiative flux (Category: "FJX-FLUX")
+!
+!   # : Field  : Description                    : Units      : Scale factor
+!  ----------------------------------------------------------------------------
+!  (W)  WL-X   : Radiative flux for bin X       : 1/cm2s     : 1        
+!******************************************************************************
+!
+      IF ( ND64 > 0 ) THEN
+         CATEGORY = 'FJX-FLUX-$'
+         UNIT     = 'cm-2s-1'
+
+         DO M = 1, TMAX(64)
+            N  = TINDEX(64,M)
+            NN = N
+            SCALEX = SCALECHEM
+                 
+            ! Divide by # of timesteps
+            DO L = 1, LD64
+               ARRAY(:,:,L) = AD64(:,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     LD64,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD64) )
          ENDDO
       ENDIF
 !

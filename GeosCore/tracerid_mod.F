@@ -295,7 +295,7 @@
       INTEGER            :: IDTH2O
 
       ! Reservoirs
-      INTEGER            :: IDTN2O, IDTOCS
+      INTEGER            :: IDTN2O, IDTOCS, IDTCLOCK
 
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
@@ -421,7 +421,7 @@
 !
       ! References to F90 modules
       USE CHARPAK_MOD, ONLY : TRANUC
-      USE LOGICAL_MOD, ONLY : LSPLIT, LGMISTRAT
+      USE LOGICAL_MOD, ONLY : LSPLIT, LUCX
       USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
       USE TRACER_MOD,  ONLY : ITS_A_POPS_SIM
@@ -533,6 +533,7 @@
                   EXIT
                ENDIF
 
+#if !defined( UCX )
             !-----------------------------------
             ! FEW ASSUMPTIONS FOR H2HD SIM:
             ! IDTH2=1, IDTHD=2, IDTCO=N('H2')
@@ -541,12 +542,6 @@
             !-----------------------------------
             CASE ( 'H2' )
               
-#if defined( GMISTRAT )
-               IF (LGMISTRAT) THEN
-                  ! No special treatment in strat-chem
-                  IDTH2 = N
-               ELSE
-#endif 
                COUNT    = COUNT + 1
                IDTCO    = N
                IDBFCO   = COUNT
@@ -558,9 +553,6 @@
                   IDECO     = 2
                   IDTISOP   = 1
 		  IDTH2     = 1 ! (hup 7/14/2004)
-
-               ENDIF
-#if defined( GMISTRAT )
                ENDIF
 #endif
             ! ... and HD
@@ -616,327 +608,335 @@
             CASE ( 'RCHO' )
                IDTRCHO  = N
 
-            CASE ( 'MVK' )
-               IDTMVK   = N
-
-            CASE ( 'MACR' )
-               IDTMACR  = N
-
-            CASE ( 'PMN' )
-               IDTPMN   = N
-
-            CASE ( 'PPN' )
-               IDTPPN   = N
-
-            CASE ( 'R4N2' )
-               IDTR4N2  = N
-
-            CASE ( 'PRPE' )
-               COUNT    = COUNT + 1
-               IDTPRPE  = N
-               IDBFPRPE = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBPRPE  = COUNT_BB
-
-            CASE ( 'C3H8' )
-               COUNT    = COUNT + 1
-               IDTC3H8  = N
-               IDBFC3H8 = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBC3H8  = COUNT_BB
-
-            CASE ( 'CH2O' )
-               COUNT    = COUNT + 1
-               IDTCH2O  = N
-               IDBFCH2O = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBCH2O  = COUNT_BB
-
-            CASE ( 'C2H6' )
-               COUNT    = COUNT + 1
-               IDTC2H6  = N
-               IDBFC2H6 = COUNT
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBC2H6  = COUNT_BB
-
-               ! Special case: tagged C2H6
-               ! Set emission flags and then exit
-               IF ( ITS_A_C2H6_SIM() ) THEN
-                  NEMANTHRO = 1
-                  IDEC2H6   = 1
-                  EXIT
-               ENDIF
-
-            CASE ( 'N2O5' )
-               IDTN2O5  = N
-
-            CASE ( 'HNO4' )
-               IDTHNO4  = N
-
-            CASE ( 'MP' )
-               IDTMP    = N
-
-            !--------------------------------
-            ! Sulfur & nitrate aerosols
-            !--------------------------------
-            CASE ( 'DMS' )
-               IDTDMS   = N
-
-            CASE ( 'SO2' )
-               IDTSO2   = N
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBSO2   = COUNT_BB
-
-            CASE ( 'SO4' )
-               IDTSO4   = N
-
-            CASE ( 'SO4S' )
-               IDTSO4s  = N
-
-            CASE ( 'MSA' )
-               IDTMSA   = N
-
-            CASE ( 'NH3' )
-               IDTNH3   = N
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBNH3   = COUNT_BB
-
-            CASE ( 'NH4' )
-               IDTNH4   = N
-
-            CASE ( 'NIT' )
-               IDTNIT   = N
-
-            CASE ( 'NITS' )
-               IDTNITs  = N
-
-            !--------------------------------
-            ! Crystalline & aqueous aerosols
-            !--------------------------------
-            CASE ( 'AS' ) 
-               IDTAS    = N
-
-            CASE ( 'AHS' ) 
-               IDTAHS   = N
-
-            CASE ( 'LET' )
-               IDTLET   = N
-
-            CASE ( 'NH4AQ' )
-               IDTNH4aq = N
-              
-            CASE ( 'SO4AQ' )
-               IDTSO4aq = N
-             
-            !--------------------------------
-            ! Carbon & 2dy organic aerosols
-            !--------------------------------
-            CASE ( 'BCPI' )
-               IDTBCPI  = N
-
-               !(fp) WEIRD BUT TO BE CONSISTENT CHECK
-               COUNT_BB = COUNT_BB + 1
-               IDBBC    = COUNT_BB
-
-            CASE ( 'OCPI' )
-               IDTOCPI  = N
-               !(fp) WEIRD BUT TO BE CONSISTENT CHECK
-               COUNT_BB = COUNT_BB + 1
-               IDBOC    = COUNT_BB
-
-            CASE ( 'BCPO' )
-               IDTBCPO  = N
-    
-            CASE ( 'OCPO' )
-               IDTOCPO  = N
-
-            CASE ( 'ALPH' )
-               IDTALPH  = N
-
-            CASE ( 'LIMO' )
-               IDTLIMO  = N
-
-            CASE ( 'ALCO' )
-               IDTALCO  = N
-
-            CASE ( 'SOG1' )
-               IDTSOG1  = N
-
-            CASE ( 'SOG2' )
-               IDTSOG2  = N
-
-            CASE ( 'SOG3' )
-               IDTSOG3  = N
-
-            CASE ( 'SOG4' )
-               IDTSOG4  = N
-
-            !(hotp 5/25/09)
-            CASE ( 'SOG5' )
-               IDTSOG5  = N
-
-            CASE ( 'SOA1' )
-               IDTSOA1  = N
-
-            CASE ( 'SOA2' )
-               IDTSOA2  = N
-
-            CASE ( 'SOA3' )
-               IDTSOA3  = N
-
-            CASE ( 'SOA4' )
-               IDTSOA4  = N
+               CASE ( 'MVK' )
+                  IDTMVK   = N
+
+               CASE ( 'MACR' )
+                  IDTMACR  = N
+
+               CASE ( 'PMN' )
+                  IDTPMN   = N
+
+               CASE ( 'PPN' )
+                  IDTPPN   = N
+
+               CASE ( 'R4N2' )
+                  IDTR4N2  = N
+
+               CASE ( 'PRPE' )
+                  COUNT    = COUNT + 1
+                  IDTPRPE  = N
+                  IDBFPRPE = COUNT
+
+                  !(fp)              
+                  COUNT_BB = COUNT_BB + 1
+                  IDBPRPE  = COUNT_BB
+
+               CASE ( 'C3H8' )
+                  COUNT    = COUNT + 1
+                  IDTC3H8  = N
+                  IDBFC3H8 = COUNT
+
+                  !(fp)              
+                  COUNT_BB = COUNT_BB + 1
+                  IDBC3H8  = COUNT_BB
+
+               CASE ( 'CH2O' )
+                  COUNT    = COUNT + 1
+                  IDTCH2O  = N
+                  IDBFCH2O = COUNT
+
+                  !(fp)              
+                  COUNT_BB = COUNT_BB + 1
+                  IDBCH2O  = COUNT_BB
+
+               CASE ( 'C2H6' )
+                  COUNT    = COUNT + 1
+                  IDTC2H6  = N
+                  IDBFC2H6 = COUNT
+                  !(fp)              
+                  COUNT_BB = COUNT_BB + 1
+                  IDBC2H6  = COUNT_BB
+
+                  ! Special case: tagged C2H6
+                  ! Set emission flags and then exit
+                  IF ( ITS_A_C2H6_SIM() ) THEN
+                     NEMANTHRO = 1
+                     IDEC2H6   = 1
+                     EXIT
+                  ENDIF
+
+               CASE ( 'N2O5' )
+                  IDTN2O5  = N
+
+               CASE ( 'HNO4' )
+                  IDTHNO4  = N
+
+               CASE ( 'MP' )
+                  IDTMP    = N
+
+               !--------------------------------
+               ! Sulfur & nitrate aerosols
+               !--------------------------------
+               CASE ( 'DMS' )
+                  IDTDMS   = N
+
+               CASE ( 'SO2' )
+                  IDTSO2   = N
+
+                  !(fp)              
+                  COUNT_BB = COUNT_BB + 1
+                  IDBSO2   = COUNT_BB
+
+               CASE ( 'SO4' )
+                  IDTSO4   = N
+
+               CASE ( 'SO4S' )
+                  IDTSO4s  = N
+
+               CASE ( 'MSA' )
+                  IDTMSA   = N
+
+               CASE ( 'NH3' )
+                  IDTNH3   = N
+                  !(fp)              
+                  COUNT_BB = COUNT_BB + 1
+                  IDBNH3   = COUNT_BB
+
+               CASE ( 'NH4' )
+                  IDTNH4   = N
+
+               CASE ( 'NIT' )
+                  IDTNIT   = N
+
+               CASE ( 'NITS' )
+                  IDTNITs  = N
+
+               !--------------------------------
+               ! Crystalline & aqueous aerosols
+               !--------------------------------
+               CASE ( 'AS' ) 
+                  IDTAS    = N
+
+               CASE ( 'AHS' ) 
+                  IDTAHS   = N
+
+               CASE ( 'LET' )
+                  IDTLET   = N
+
+               CASE ( 'NH4AQ' )
+                  IDTNH4aq = N
+                 
+               CASE ( 'SO4AQ' )
+                  IDTSO4aq = N
+                
+               !--------------------------------
+               ! Carbon & 2dy organic aerosols
+               !--------------------------------
+               CASE ( 'BCPI' )
+                  IDTBCPI  = N
+
+                  !(fp) WEIRD BUT TO BE CONSISTENT CHECK
+                  COUNT_BB = COUNT_BB + 1
+                  IDBBC    = COUNT_BB
+
+               CASE ( 'OCPI' )
+                  IDTOCPI  = N
+                  !(fp) WEIRD BUT TO BE CONSISTENT CHECK
+                  COUNT_BB = COUNT_BB + 1
+                  IDBOC    = COUNT_BB
+
+               CASE ( 'BCPO' )
+                  IDTBCPO  = N
+       
+               CASE ( 'OCPO' )
+                  IDTOCPO  = N
+
+               CASE ( 'ALPH' )
+                  IDTALPH  = N
+
+               CASE ( 'LIMO' )
+                  IDTLIMO  = N
+
+               CASE ( 'ALCO' )
+                  IDTALCO  = N
+
+               CASE ( 'SOG1' )
+                  IDTSOG1  = N
+
+               CASE ( 'SOG2' )
+                  IDTSOG2  = N
+
+               CASE ( 'SOG3' )
+                  IDTSOG3  = N
+
+               CASE ( 'SOG4' )
+                  IDTSOG4  = N
+
+               !(hotp 5/25/09)
+               CASE ( 'SOG5' )
+                  IDTSOG5  = N
+
+               CASE ( 'SOA1' )
+                  IDTSOA1  = N
+
+               CASE ( 'SOA2' )
+                  IDTSOA2  = N
+
+               CASE ( 'SOA3' )
+                  IDTSOA3  = N
+
+               CASE ( 'SOA4' )
+                  IDTSOA4  = N
 
-            !(hotp 5/25/09)
-            CASE ( 'SOA5' )
-               IDTSOA5  = N
+               !(hotp 5/25/09)
+               CASE ( 'SOA5' )
+                  IDTSOA5  = N
 
-            !--------------------------------
-            ! Mineral dust aerosols
-            !--------------------------------
-            CASE ( 'DST1' )
-               IDTDST1  = N
+               !--------------------------------
+               ! Mineral dust aerosols
+               !--------------------------------
+               CASE ( 'DST1' )
+                  IDTDST1  = N
 
-            CASE ( 'DST2' )
-               IDTDST2  = N
-        
-            CASE ( 'DST3' )
-               IDTDST3  = N
+               CASE ( 'DST2' )
+                  IDTDST2  = N
+           
+               CASE ( 'DST3' )
+                  IDTDST3  = N
 
-            CASE ( 'DST4' )
-               IDTDST4  = N
+               CASE ( 'DST4' )
+                  IDTDST4  = N
 
-            !--------------------------------
-            ! Seasalt aerosols
-            !--------------------------------
-            CASE ( 'SALA' )
-               IDTSALA  = N
+               !--------------------------------
+               ! Seasalt aerosols
+               !--------------------------------
+               CASE ( 'SALA' )
+                  IDTSALA  = N
 
-            CASE ( 'SALC' )
-               IDTSALC  = N
+               CASE ( 'SALC' )
+                  IDTSALC  = N
 
-            !--------------------------------
-            ! Bromine (jpp, 6/13/07)
-            !--------------------------------
+               !--------------------------------
+               ! Bromine (jpp, 6/13/07)
+               !--------------------------------
 
-            CASE ( 'BR2' )
-               IDTBr2     = N
-            
-            CASE ( 'BR' )
-               IDTBr      = N
+               CASE ( 'BR2' )
+                  IDTBr2     = N
+               
+               CASE ( 'BR' )
+                  IDTBr      = N
 
-            CASE ( 'BRO' )
-               IDTBrO     = N
-            
-            CASE ( 'HOBR' )
-               IDTHOBr    = N
+               CASE ( 'BRO' )
+                  IDTBrO     = N
+               
+               CASE ( 'HOBR' )
+                  IDTHOBr    = N
 
-            CASE ( 'HBR' )
-               IDTHBr     = N
+               CASE ( 'HBR' )
+                  IDTHBr     = N
 
-            CASE ( 'BRNO2' )
-               IDTBrNO2   = N
-                           
-            CASE ( 'BRNO3' )
-               IDTBrNO3   = N
+               CASE ( 'BRNO2' )
+                  IDTBrNO2   = N
+                              
+               CASE ( 'BRNO3' )
+                  IDTBrNO3   = N
 
-            CASE ( 'CHBR3' )
-               IDTCHBr3   = N
+               CASE ( 'CHBR3' )
+                  IDTCHBr3   = N
 
-            CASE ( 'CH2BR2' )
-               IDTCH2Br2   = N
+               CASE ( 'CH2BR2' )
+                  IDTCH2Br2   = N
 
-            CASE ( 'CH3BR' )
-               IDTCH3Br   = N
+               CASE ( 'CH3BR' )
+                  IDTCH3Br   = N
 
-            !--------------------------------
-            ! Strat-chem (SDE 07/11/12)
-            !--------------------------------
-            CASE ( 'BRCL' )
-               IDTBrCl = N
-             
-            CASE ( 'HCL' )
-               IDTHCL = N
+               !--------------------------------
+               ! Strat-chem (SDE 07/11/12)
+               !--------------------------------
+               CASE ( 'BRCL' )
+                  IDTBrCl = N
+                
+               CASE ( 'HCL' )
+                  IDTHCL = N
 
-            CASE ( 'CCL4' )
-               IDTCCl4 = N
+               CASE ( 'CCL4' )
+                  IDTCCl4 = N
 
-            CASE ( 'CH3CL' )
-               IDTCH3Cl = N
+               CASE ( 'CH3CL' )
+                  IDTCH3Cl = N
 
-            CASE ( 'CH3CCL3' )
-               IDTCH3CCl3 = N
+               CASE ( 'CH3CCL3' )
+                  IDTCH3CCl3 = N
 
-            CASE ( 'CL' )
-               IDTCl = N
+               CASE ( 'CL' )
+                  IDTCl = N
 
-            CASE ( 'CLO' )
-               IDTClO = N
+               CASE ( 'CLO' )
+                  IDTClO = N
 
-            CASE ( 'HOCL' )
-               IDTHOCl = N
+               CASE ( 'HOCL' )
+                  IDTHOCl = N
 
-            CASE ( 'CLNO3' )
-               IDTClNO3 = N
+               CASE ( 'CLNO3' )
+                  IDTClNO3 = N
 
-            CASE ( 'CLNO2' )
-               IDTClNO2 = N
+               CASE ( 'CLNO2' )
+                  IDTClNO2 = N
 
-            CASE ( 'CLOO' )
-               IDTClOO = N
+               CASE ( 'CLOO' )
+                  IDTClOO = N
 
-            CASE ( 'OCLO' )
-               IDTOClO = N
+               CASE ( 'OCLO' )
+                  IDTOClO = N
 
-            CASE ( 'CL2O2' )
-               IDTCl2O2 = N
+               CASE ( 'CL2O2' )
+                  IDTCl2O2 = N
 
-            CASE ( 'CL2' )
-               IDTCl2 = N
+               CASE ( 'CL2' )
+                  IDTCl2 = N
 
-            CASE ( 'CFCX' )
-               IDTCFCX = N
+               CASE ( 'CFCX' )
+                  IDTCFCX = N
 
-            CASE ( 'CFC11' )
-               IDTCFC11 = N
+               CASE ( 'CFC11' )
+                  IDTCFC11 = N
 
-            CASE ( 'CFC12' )
-               IDTCFC12 = N
+               CASE ( 'CFC12' )
+                  IDTCFC12 = N
 
-            CASE ( 'HCFCX' )
-               IDTHCFCX = N
+               CASE ( 'HCFCX' )
+                  IDTHCFCX = N
 
-            CASE ( 'HCFC22' )
-               IDTHCFC22 = N
+               CASE ( 'HCFC22' )
+                  IDTHCFC22 = N
 
-            CASE ( 'H1301' )
-               IDTH1301 = N
+               CASE ( 'H1301' )
+                  IDTH1301 = N
 
-            CASE ( 'H1211' )
-               IDTH1211 = N
+               CASE ( 'H1211' )
+                  IDTH1211 = N
 
-            CASE ( 'H2402' )
-               IDTH2402 = N
+               CASE ( 'H2402' )
+                  IDTH2402 = N
 
-            CASE ( 'H2O' )
-               IDTH2O = N
+               CASE ( 'H2O' )
+                  IDTH2O = N
 
-            CASE ( 'N2O' )
-               IDTN2O = N
+               CASE ( 'N2O' )
+                  IDTN2O = N
 
-            CASE ( 'OCS' )
-               IDTOCS = N
+               CASE ( 'OCS' )
+                  IDTOCS = N
 
+               CASE ( 'CLOCK' )
+                  IDTCLOCK = N
+
+#if defined( UCX )
+               CASE ( 'H2' )
+                  ! No special treatment in strat-chem
+                  IDTH2 = N
+#endif 
             !--------------------------------
             ! CH4 (mpayer, 1/24/12)
             !--------------------------------
@@ -3291,6 +3291,7 @@
       IDTH2O     = 0
       IDTN2O     = 0
       IDTOCS     = 0
+      IDTCLOCK   = 0
       ! +++++++++++++++++
       !(fp, 6/09)
       IDTISOPN   = 0

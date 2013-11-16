@@ -187,6 +187,7 @@
          IF ( ND57 > 0 ) AD57     = 0e0
          IF ( ND58 > 0 ) AD58     = 0e0
          IF ( ND60 > 0 ) AD60     = 0e0
+         IF ( ND64 > 0 ) AD64     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
          IF ( ND67 > 0 ) AD67     = 0e0
          IF ( ND68 > 0 ) AD68     = 0e0
@@ -265,6 +266,14 @@
             AD32_li = 0e0
             AD32_so = 0e0
             AD32_ub = 0e0
+            AD32_ship       = 0e0
+            AD32_ship_count = 0
+         ENDIF
+
+         IF ( ND36 > 0 ) THEN
+            AD36            = 0e0
+            AD36_SHIP       = 0e0
+            AD36_SHIP_COUNT = 0
          ENDIF
 
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)
@@ -322,6 +331,8 @@
          IF ( ND22 >               0 ) CTJV       = 0
          IF ( ND43 >               0 ) CTNO       = 0
          IF ( ND43 >               0 ) CTOH       = 0
+         IF ( ND43 >               0 ) CTO1D      = 0
+         IF ( ND43 >               0 ) CTO3P      = 0
          IF ( ND45 >               0 ) CTOTH      = 0
          IF ( ND45 >               0 ) CTO3       = 0
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0

@@ -844,6 +844,7 @@
       USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
+      USE ERROR_MOD,    ONLY : ERROR_STOP, IT_IS_NAN ! MOISTQ problem
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_DIAG_MOD               ! ND66, ND67
@@ -1562,7 +1563,13 @@
       ! positives, and then divide by 8.64d7 to convert to units of
       ! [kg H2O/kg air/s].  (bmy, 4/5/99)
       !=================================================================
-      IF ( PRESENT( MOISTQ ) ) MOISTQ = -MOISTQ / 8.64d7
+      IF ( PRESENT( MOISTQ ) ) THEN
+         ! Safety-check for NaNs
+         WHERE( MOISTQ .ne. MOISTQ )
+            MOISTQ = 0d0
+         ENDWHERE
+         MOISTQ = -MOISTQ / 8.64d7
+      ENDIF
 
       !=================================================================
       ! ND66 diagnostic: A-6 fields

@@ -124,7 +124,7 @@ global_br_mod.o          global_ch4_mod.o	 olson_landmap_mod.o         \
 global_hno3_mod.o        global_no3_mod.o        global_nox_mod.o	     \
 global_o1d_mod.o         global_o3_mod.o         global_oh_mod.o	     \
 global_oc_mod.o          global_bc_mod.o                                     \
-h2_hd_mod.o              hcn_ch3cn_mod.o	 gmistrat_mod.o              \
+h2_hd_mod.o              hcn_ch3cn_mod.o	 ucx_mod.o                   \
 i6_read_mod.o            icoads_ship_mod.o       initialize.o		     \
                          input_mod.o             isoropiaII_mod.o	     \
 jsparse.o                                        ksparse.o		     \
@@ -253,7 +253,7 @@ aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           tracerid_mod.o         \
                               tracer_mod.o            chemgrid_mod.o         \
-                              gmistrat_mod.o
+                              ucx_mod.o     
 
 aeic_mod.o                  : aeic_mod.F              chemgrid_mod.o         \
                               dao_mod.o               diag_mod.o              
@@ -419,7 +419,7 @@ cleanup.o                   : cleanup.F                                      \
                               edgar_mod.o             emep_mod.o             \
                               epa_nei_mod.o           gc_biomass_mod.o       \
                               isoropiaII_mod.o        gfed2_biomass_mod.o    \
-                              gfed3_biomass_mod.o     gmistrat_mod.o         \
+                              gfed3_biomass_mod.o     ucx_mod.o              \
                               global_ch4_mod.o        global_hno3_mod.o      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_o1d_mod.o        global_oh_mod.o        \
@@ -612,7 +612,7 @@ emissions_mod.o             : emissions_mod.F                                \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tracer_mod.o            vistas_anthro_mod.o    \
-                              gmistrat_mod.o
+                              ucx_mod.o     
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
                               future_emissions_mod.o  logical_mod.o          \
@@ -823,7 +823,7 @@ main.o                      : main.F                                         \
                               mapping_mod.o           toms_mod.o             \
                               soilnox_restart_mod.o   apm_init_mod.o         \
                               apm_driv_mod.o          apm_wets_mod.o         \
-                              gmistrat_mod.o
+                              ucx_mod.o     
 
 mapping_mod.o               : mapping_mod.F90                                \
                               logical_mod.o
@@ -978,7 +978,7 @@ setemis.o                   : setemis.F                                      \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               chemgrid_mod.o      
 
-gmistrat_mod.o              : gmistrat_mod.F          logical_mod.o          \
+ucx_mod.o                   : ucx_mod.F               logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o         \
                               global_ch4_mod.o        chemgrid_mod.o
 setmodel.o                  : setmodel.F
@@ -1021,7 +1021,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               edgar_mod.o             emep_mod.o             \
                               epa_nei_mod.o           future_emissions_mod.o \
                               gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
-                              global_hno3_mod.o       gmistrat_mod.o         \
+                              global_hno3_mod.o       ucx_mod.o              \
                               global_no3_mod.o        global_oh_mod.o        \
                               icoads_ship_mod.o       logical_mod.o          \
                               nei2005_anthro_mod.o    pbl_mix_mod.o          \

@@ -425,7 +425,7 @@
       INTEGER :: I, J, L, AS
       REAL*8  :: PTEMP, FRAC
       LOGICAL :: FIRST = .TRUE.
-
+ 
       !=================================================================
       ! MAKE_QQ begins here!
       !=================================================================
@@ -521,7 +521,7 @@
            IF ( FRAC > 1d0 ) FRAC = 1d0
            IF ( FRAC < 0d0 ) FRAC = 0d0 
            !##################################################################
-
+ 
             ! Start at the top of the atmosphere
             L = LLPAR
 
@@ -7261,7 +7261,7 @@
 ! !USES:
 !
       USE LOGICAL_MOD,  ONLY : LCARB,  LDUST, LSOA
-      USE LOGICAL_MOD,  ONLY : LSSALT, LSULF, LSPLIT, LCRYST, LGMISTRAT
+      USE LOGICAL_MOD,  ONLY : LSSALT, LSULF, LSPLIT, LCRYST, LUCX
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
       USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
@@ -7320,7 +7320,7 @@
          !                   be wet-deposited: HBr, HOBr, Br2 and BrNO3
          NMAX = NMAX + 4
          ! SDE 04/17/13: Also HCl
-         IF ( LGMISTRAT ) NMAX = NMAX + 1
+         IF ( LUCX ) NMAX = NMAX + 1
 
          IF ( LSOA ) THEN
             IF ( LCARB ) NMAX = NMAX + 17       ! carbon + SOA aerosols

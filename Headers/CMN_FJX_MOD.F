@@ -48,7 +48,7 @@
       INTEGER, PARAMETER :: JVL_=LLPAR ! Vertical levels for J-values
       INTEGER, PARAMETER :: JVN_=121   ! Max number of J-values
 
-#if defined( GMISTRAT )
+#if defined( UCX )
       INTEGER, PARAMETER :: AN_ =38    ! Including PSCs
 #else
       INTEGER, PARAMETER :: AN_ =35    ! Number of separate aerosols per layer
@@ -93,7 +93,7 @@
       ! A_   = dim = no. of Aerosol/cloud Mie sets (input data)
       INTEGER, PARAMETER ::  A_=56!A_=40
       ! W_   = dim = no. of Wavelength bins:  =18 std, =12 trop only
-#if defined( GMISTRAT )
+#if defined( UCX )
       INTEGER, PARAMETER ::  W_=18    ! W_=12 or 18
 #else
       INTEGER, PARAMETER ::  W_=12
@@ -125,6 +125,12 @@
       REAL*8, PARAMETER   :: ATAU0 = 0.010d0
       ! JTAUMX = maximum number of divisions (i.e., may not get to ATAUMN)
       INTEGER, PARAMETER  :: JTAUMX = (N_ - 4*JXL_)/2
+
+      ! Physical constants
+      REAL*8, PARAMETER      :: UVXPLANCK = 6.62606957e-34
+      REAL*8, PARAMETER      :: UVXCCONST = 2.99792458e8
+      ! Conversion factors from photons/cm2s to W/m2
+      REAL*8, DIMENSION(WX_) :: UVXFACTOR
 
 !---- Variables in file 'FJX_spec.dat' (RD_XXX)
 
@@ -196,6 +202,13 @@
 
       INTEGER NJX,NW1,NW2
 
+!---- New variable for O3 storage
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      REAL*8, ALLOCATABLE :: O3GRID(:,:,:)
+#else
+      REAL*8              :: O3GRID(IIPAR,JJPAR,LLPAR)
+#endif
+
 #if defined( DEVEL )
       CONTAINS
 
@@ -206,6 +219,7 @@
       INTEGER AS
 
       ALLOCATE(ZPJ(LLPAR,JVN_,IIPAR,JJPAR), STAT=AS)
+      ALLOCATE(O3GRID(IIPAR,JJPAR,LLPAR), STAT=AS)
 
 !EOC
       END SUBROUTINE SET_CMN_FJX_MOD

@@ -105,17 +105,19 @@
       USE EPA_NEI_MOD,            ONLY : EMISS_EPA_NEI
       USE ERROR_MOD,              ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,         ONLY : EMISSCH4
-      USE GMISTRAT_MOD,           ONLY : EMISS_BASIC
+      USE UCX_MOD,           ONLY : EMISS_BASIC
       USE H2_HD_MOD,              ONLY : EMISS_H2_HD
       USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
       USE LOGICAL_MOD                
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
-      ! Problems compiling APM + GMISTRAT with this...
+      ! Problems compiling APM + UCX with this...
 #if !defined( APM )
       USE POPS_MOD,               ONLY : EMISSPOPS  !(clf, 2/1/2011)
 #endif
+      ! SDE 2013-11-15: Adapted from CDH's RCP emissions module
+      USE RCP_MOD,                ONLY : LOAD_RCP_EMISSIONS, OPTIONS_RCP
       USE RETRO_MOD,              ONLY : EMISS_RETRO
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
@@ -272,6 +274,14 @@
 #else
          IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
 #endif
+ 
+         ! Read RCP emissions once per month (cdh, 10/14/11)
+         ! We read all emissions (for land, ship, air) even if only
+         ! one is needed
+         IF ( (OPTIONS_RCP%LRCP .OR. OPTIONS_RCP%LRCPSHIP .OR. 
+     &                               OPTIONS_RCP%LRCPAIR) .and. 
+     &        ITS_A_NEW_MONTH() ) CALL LOAD_RCP_EMISSIONS( )
+
 
          ! Read EPA/NEI99 (USA) emissions once per month
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )

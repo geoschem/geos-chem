@@ -94,9 +94,10 @@
       LOGICAL :: LSCHEM          ! Use linear strat chem?
       LOGICAL :: LLINOZ          ! T = Linoz O3; F = Synoz O3
       LOGICAL :: LCH4CHEM        ! Online CH4 chemistry
-      LOGICAL :: LGMISTRAT       ! GMI stratopsheric chemistry
+      LOGICAL :: LUCX            ! Unified trop-strat chemistry
       LOGICAL :: LFUTURECFC      ! Use future CFC+ emissions
       LOGICAL :: LACTIVEH2O      ! Allow active H2O?
+      LOGICAL :: LO3FJX          ! Use online ozone for FAST-JX?
 
       !%%%% Cloud convection %%%%
       LOGICAL :: LCONV           ! Use cloud convection?
@@ -188,6 +189,9 @@
       LOGICAL :: LSETH2SO4       ! Initialize H2SO4 to generic conditions?
       LOGICAL :: LSTRATOD        ! Add stratospheric aerosolsin OD calculation?
       LOGICAL :: LGEOENG         ! Apply geoengineering emissions?
+      LOGICAL :: LCC_UNIFORMT    ! Apply uniform temperature delta at all altitudes?
+      LOGICAL :: LCC_SFCT        ! Apply temperature delta at the surface only?
+      LOGICAL :: LCC_AR5T        ! Apply temperature delta scaled according to AR5 Fig 10.8?
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?

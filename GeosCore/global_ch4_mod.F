@@ -372,6 +372,8 @@
 !
       INTEGER                :: I, I0, IREF, J, J0, JREF, N
       REAL*8                 :: DTSRCE,       AREA_CM2
+      REAL*8,DIMENSION(7)    :: DBGANTHRO
+      REAL*8,DIMENSION(3)    :: DBGBIO
       LOGICAL, SAVE          :: FIRST = .TRUE.
 
       !=================================================================
@@ -577,6 +579,9 @@
       ! SUMBIOG   - Total biogenic      emissions [molec/cm2/s]
       !===============================================================
 
+      ! Debug counters
+      DBGANTHRO=0d0
+      DBGBIO=0d0
 
       DO J = 1,JJPAR
          JREF = J + J0
@@ -630,15 +635,72 @@
      &                     + CH4_EMIS(I,J,6) + CH4_EMIS(I,J,7) +
      &                     + CH4_EMIS(I,J,8)
 
+            ! Molec/s
+            DO N=1,7
+                DBGANTHRO(N) = DBGANTHRO(N) + 
+     &                          (CH4_EMIS(I,J,N+1)*AREA_CM2)
+            ENDDO
+
             ! Total biogenic emissions
             ! Wetlands, other natural, (-)soil absorption
             SUMBIOG(I,J) = CH4_EMIS(I,J,10) + CH4_EMIS(I,J,12)
      &                   - CH4_EMIS(I,J,11)
 
+            ! Molec/s
+            DO N=1,3
+                DBGBIO(N) = DBGBIO(N) + 
+     &              (CH4_EMIS(I,J,N+9)*AREA_CM2)
+            ENDDO
+
          ENDIF
 
       ENDDO
       ENDDO
+
+      ! Convert from molec/s to kg/yr
+      DBGBIO(2) = DBGBIO(2)*-1d0 ! Soil absorption
+      DBGANTHRO(:) = DBGANTHRO(:)*(3600.d-9*24d0*365.25d0)/XNUMOL_CH4
+      DBGBIO(:) = DBGBIO(:)*(3600.d-9*24d0*365.25d0)/XNUMOL_CH4
+
+      ! SDE - Output projected annual emissions based on last output
+      WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 anthrop. emissions rate:',
+     &         SUM(DBGANTHRO), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Gas & oil             :',
+     &         DBGANTHRO(1), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Mining                :',
+     &         DBGANTHRO(2), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Livestock             :',
+     &         DBGANTHRO(3), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Waste                 :',
+     &         DBGANTHRO(4), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Biofuel               :',
+     &         DBGANTHRO(5), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Rice                  :',
+     &         DBGANTHRO(6), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Other                 :',
+     &         DBGANTHRO(7), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 biogen. emissions rate: ',
+     &         SUM(DBGBIO), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Wetlands              :',
+     &         DBGBIO(1), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Other natural         :',
+     &         DBGBIO(3), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Soil absorption       :',
+     &         DBGBIO(2), 'Tg/yr'
+
+      WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 total emissions rate:   ',
+     &         (SUM(DBGBIO)+SUM(DBGANTHRO)), 'Tg/yr'
 
       IF ( ITS_A_CH4_SIM() ) THEN
          print*,'END SUBROUTINE: EMISSCH4'
@@ -684,7 +746,7 @@
       USE CMN_DIAG_MOD        ! Diagnostic switches
 ! 
 ! !REVISION HISTORY:
-!  (1 ) Adapted by Jérôme Drevet (3/06) from the BIOME-TG Wetland-Methane
+!  (1 ) Adapted by JÃ©rÃ´me Drevet (3/06) from the BIOME-TG Wetland-Methane
 !       scheme provided by Jed O. Kaplan.
 !  (2 ) CH4 Emissions from Wetland depend on:
 !		a - Soil Carbon content.
@@ -2374,7 +2436,7 @@
       USE TRACERID_MOD,ONLY : IDTCH4
       USE CHEMGRID_MOD,ONLY : GET_MIN_TPAUSE_LEVEL
       USE CHEMGRID_MOD,ONLY : ITS_IN_THE_NOCHEMGRID
-      USE LOGICAL_MOD, ONLY : LGMISTRAT
+      USE LOGICAL_MOD, ONLY : LUCX
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_MOD          ! STT, LPAUSE
@@ -2422,7 +2484,7 @@
       !=================================================================
 
       ! If unified chemistry is active, ignore all of this
-      IF ( .not. LGMISTRAT ) THEN
+      IF ( .not. LUCX ) THEN
 
          ! Chemistry timestep [s]
          DT  = GET_TS_CHEM() * 60d0
@@ -2507,7 +2569,7 @@
          ENDDO
          ENDDO
 
-      ENDIF ! LGMISTRAT (SDE 03/25/13)
+      ENDIF ! LUCX (SDE 03/25/13)
       FIRSTCHEM = .FALSE.
 
       ! Check STT for negatives and NaN

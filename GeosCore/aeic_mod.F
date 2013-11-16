@@ -447,7 +447,7 @@
       USE CHEMGRID_MOD, ONLY : GET_CHEMGRID_LEVEL
       USE TIME_MOD,     ONLY : GET_MONTH,GET_TS_EMIS
       USE DAO_MOD,      ONLY : T
-      USE LOGICAL_MOD,  ONLY : LGMISTRAT
+      USE LOGICAL_MOD,  ONLY : LUCX
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DIAG_MOD  ! Diagnostic switches
@@ -505,8 +505,8 @@
          END IF
          WRITE(6,*) 'Offset (km)        : ',OPTIONS_AEIC%ALT_OFFSET
          WRITE(6,*) 'Cutoff (km)        : ',OPTIONS_AEIC%ALT_FLR
-#if defined( GMISTRAT )
-         IF ((LGMISTRAT).and.(IDTH2O.ne.0)) THEN
+#if defined( UCX )
+         IF ((LUCX).and.(IDTH2O.ne.0)) THEN
             WRITE(6,*) ' - H2O EI          : ',1260.d0
          ELSE
             WRITE(6,*) 'Aircraft H2O emissions ignored.'
@@ -578,8 +578,8 @@
      &           (AEIC_EMIT(I,J,L,OC_INDEX)*DTSRCE)
              STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) +
      &           (AEIC_EMIT(I,J,L,BC_INDEX)*DTSRCE)
-#if defined( GMISTRAT )
-             IF ((LGMISTRAT).and.(IDTH2O.ne.0)) THEN
+#if defined( UCX )
+             IF ((LUCX).and.(IDTH2O.ne.0)) THEN
                 STT(I,J,L,IDTH2O) = STT(I,J,L,IDTH2O) +
      &              (1.26d0*AEIC_EMIT(I,J,L,FB_INDEX)*DTSRCE)
              ENDIF

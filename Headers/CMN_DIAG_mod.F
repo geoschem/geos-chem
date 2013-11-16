@@ -17,6 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE CMN_FJX_MOD, ONLY : W_
 
       IMPLICIT NONE
       PUBLIC
@@ -71,6 +72,7 @@
       ! Changed PD22 from 14 to 22 for strat-chem (SDE 04/13/13)
       ! Changed PD21 from 27 to 33 for strat aerosols (SDE 04/17/13)
       ! Changed PD43 from 5 to 7 for O1D/O3P (SDE 2013-07-15)
+      ! Added PD64 and set to W_ from FAST-JX (SDE 2013-10-25)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -138,7 +140,7 @@
 #endif
       INTEGER, PARAMETER :: PD62=NNPAR        
       INTEGER, PARAMETER :: PD63=0           
-      INTEGER, PARAMETER :: PD64=0
+      INTEGER, PARAMETER :: PD64=W_
 #if defined( DEVEL )
       INTEGER            :: PD65
 #else

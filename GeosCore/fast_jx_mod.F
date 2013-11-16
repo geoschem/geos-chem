@@ -17,6 +17,7 @@
 ! !USES:
 !
       USE CMN_FJX_MOD
+      USE LOGICAL_MOD, ONLY : LO3FJX
 
       IMPLICIT NONE
 #     include "define.h"
@@ -199,7 +200,8 @@
 !
       INTEGER, SAVE      :: LASTMONTH = -1
       INTEGER            :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
-      REAL*8             :: CSZA, PRES, SFCA, YLAT,  O3COL
+      REAL*8             :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
+      REAL*8             :: O3_CTM(LLPAR+1)
       REAL*8             :: T_CTM(LLPAR+1), OPTD(LLPAR)
       REAL*8             :: OPTDUST(LLPAR,NDUST)
       REAL*8             :: OPTAER(LLPAR,NALLAER)
@@ -281,8 +283,8 @@
 !$OMP+PRIVATE( PRES,  T_CTM,  OPTD,  SFCA,      OPTDUST )
 !$OMP+PRIVATE( FMAX,  CLDF1D, KK,    NUMB,      L       )
 !$OMP+PRIVATE( KBOT,  KTOP,   ODNEW, INDICATOR, INDIC   )
-!$OMP+PRIVATE( O3COL, P_CTM,  JLOOP, H2OFACTOR, CONSEXP )
-!$OMP+PRIVATE( TLOCAL                                   )
+!$OMP+PRIVATE( O3_TOMS,P_CTM, JLOOP, H2OFACTOR, CONSEXP )
+!$OMP+PRIVATE( TLOCAL,O3_CTM                            )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
@@ -322,7 +324,11 @@
             SFCA         = ALBD(NLON,NLAT)
 
             ! Overhead ozone column [DU] at (NLON, NLAT)
-            O3COL        = GET_OVERHEAD_O3( NLON, NLAT )
+            O3_TOMS      = GET_OVERHEAD_O3( NLON, NLAT )
+            
+            ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
+            O3_CTM(:) = 0d0
+            O3_CTM(1:LLPAR) = O3GRID(NLON,NLAT,:)
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
             OPTAER(:,:)  = ODAER(NLON,NLAT,:,:)
@@ -365,8 +371,8 @@
 #endif
 
                ! Call FAST-JX routines to compute J-values
-               CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3COL,AOD999,
-     &            OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
+               CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3_CTM,O3_TOMS,
+     &            AOD999,OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
      &            MONTH,DAY,am_I_Root)
 
             !===========================================================
@@ -401,8 +407,8 @@
 #endif
 
                ! Call FAST-JX routines to compute J-values
-               CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3COL,AOD999,
-     &            OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
+               CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3_CTM,O3_TOMS,
+     &            AOD999,OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
      &            MONTH,DAY,am_I_Root)
 
             !===========================================================
@@ -1611,6 +1617,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! !USES:
 !
       USE inquireMod,   ONLY : findFreeLUN
+      USE CMN_DIAG_MOD, ONLY : ND64
 !
 ! !INPUT PARAMETERS:
 !
@@ -1633,6 +1640,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       CHARACTER(LEN=255)          :: FILENAME
       INTEGER                     :: NJXX
       CHARACTER*6,DIMENSION(JVN_)  :: TITLEJXX
+      REAL*8                      :: ND64MULT
 
       !=================================================================
       ! INIT_FJX begins here!
@@ -1667,6 +1675,15 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ENDIF
 
       call RD_XXX(JXUNIT,TRIM( FILENAME ), am_I_Root)
+
+      ! If we are using ND64, calculate exposure factors
+      IF ( ND64 > 0 ) THEN
+         UVXFACTOR(:) = 0d0
+         ND64MULT = UVXPLANCK*UVXCCONST*1.0d13
+         DO  J=1,W_
+            UVXFACTOR(J) = ND64MULT/WL(J)
+         ENDDO
+      ENDIF
 
       ! Read in 5-wavelength scattering data
       FILENAME = 'jv_spec_mie.dat'
@@ -2408,12 +2425,14 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PHOTO_JX(U0,REFLB,P_COL,T_COL,O3_COL,AOD999,
+      SUBROUTINE PHOTO_JX(U0,REFLB,P_COL,T_COL,O3_COL,O3_TOMS,AOD999,
      &              ODAER_COL,ODMDUST_COL,ODCLOUD_COL_IN,ILON,ILAT,YLAT,
      &              DAY_OF_YR,MONTH,DAY,am_I_Root)
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD,   ONLY : LD64, ND64
+      USE DIAG_MOD,       ONLY : AD64
 !
 ! !INPUT PARAMETERS:
 !
@@ -2424,7 +2443,8 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       REAL*8,  INTENT(IN)                           :: U0,REFLB
       REAL*8,  INTENT(IN),DIMENSION(L1_+1)          :: P_COL
       REAL*8,  INTENT(IN),DIMENSION(L1_)            :: T_COL
-      REAL*8,  INTENT(IN)                           :: O3_COL
+      REAL*8,  INTENT(IN),DIMENSION(L1_)            :: O3_COL
+      REAL*8,  INTENT(IN)                           :: O3_TOMS
       REAL*8,  INTENT(IN),DIMENSION(L_,NALLAER)     :: ODAER_COL
       REAL*8,  INTENT(IN),DIMENSION(L_,NDUST)       :: ODMDUST_COL
       REAL*8,  INTENT(IN),DIMENSION(L_)             :: ODCLOUD_COL_IN
@@ -2506,10 +2526,11 @@ c                        or         99.0                 80 km
       ! Pressure      (PPJ)    [hPa]
       ! Temperature   (T_CLIm) [K]
       ! Path density  (DDJ)    [# molec/cm2]
+      ! New methodology for:
       ! Ozone density (OOJ)    [# O3 molec/cm2]
       CALL SET_PROF (YLAT,MONTH,DAY,T_COL,P_COL,
-     &               ODCLOUD_COL,ODMDUST_COL,ODAER_COL,AERX_COL,O3_COL,
-     &               T_CLIM,OOJ,ZZJ,DDJ)
+     &               ODCLOUD_COL,ODMDUST_COL,ODAER_COL,
+     &               O3_COL,O3_TOMS,AERX_COL,T_CLIM,OOJ,ZZJ,DDJ)
 
       ! Fill out PPJ and TTJ with CTM data to replace fixed climatology
       DO L=1,L1_
@@ -2517,19 +2538,6 @@ c                        or         99.0                 80 km
          T_INPUT(L) = T_COL(L)
       ENDDO
       
-      ! Option to use ozone from GEOS-Chem rather than climatology
-      ! Replace ozone with that taken from CTM levels when within
-      ! chemistry grid
-!      IF (LO3FJX) THEN
-!         DO L=1,LLCHEM
-!             JLOOP = JLOP(ILON,ILAT,L)
-!             IF ( JLOOP == 0 ) CYCLE
-!             O3CONC = CSPEC(JLOOP,IDO3)
-!             ! Convert from molec/cm3 to molec/cm2
-!             OOJ(L) = O3CONC*BXHEIGHT(ILON,ILAT,L)*1.0d2
-!         ENDDO
-!      ENDIF
-
       ! Ensure TOA pressure is zero
       PPJ(L1_+1) = 0.d0
       T_INPUT(L1_+1) = T_CLIM(L1_+1)
@@ -2669,6 +2677,11 @@ C-----------------------------------------------------------------------
 
         do L = 1,L_
            FFF(K,L) = FFF(K,L) + SOLF*FL(K)*AVGF(L,K)
+           ! New diagnostic (SDE 2013-10-25)
+           IF ( ND64 > 0 .and. L <= LD64 ) THEN
+              AD64(ILON,ILAT,L,K) = AD64(ILON,ILAT,L,K) + 
+     &                  (UVXFACTOR(K)*SOLF*FL(K)*AVGF(L,K))
+           ENDIF
         enddo
 
       enddo
@@ -3431,7 +3444,7 @@ C---Always does PL(2) = P[1]
 ! !INTERFACE:
 !
       SUBROUTINE SET_PROF (YLAT,MONTH,DAY,T_CTM,P_CTM,
-     &                     CLDOD,DSTOD,AEROD,AERCOL,O3_COL,
+     &                     CLDOD,DSTOD,AEROD,O3_CTM,O3_TOMS,AERCOL,
      &                     T_CLIM,O3_CLIM,Z_CLIM,AIR_CLIM)
 !
 ! !USES:
@@ -3443,11 +3456,12 @@ C---Always does PL(2) = P[1]
       INTEGER,INTENT(IN)    :: MONTH
       INTEGER,INTENT(IN)    :: DAY                   ! Day *of month*
       REAL*8, INTENT(IN)    :: T_CTM(L1_)            ! CTM temperatures (K)
-      REAL*8, INTENT(IN)    :: O3_COL                ! O3 column (DU)
+      REAL*8, INTENT(IN)    :: O3_TOMS               ! O3 column (DU)
       REAL*8, INTENT(IN)    :: P_CTM(L1_+1)          ! CTM edge pressures (hPa)
       REAL*8, INTENT(INOUT) :: CLDOD(L_)             ! Cloud optical depth
       REAL*8, INTENT(IN)    :: DSTOD(L_,NDUST)       ! Mineral dust OD
       REAL*8, INTENT(IN)    :: AEROD(L_,NALLAER)     ! Aerosol OD
+      REAL*8, INTENT(IN)    :: O3_CTM(L1_)           ! CTM ozone (molec/cm3)
 !
 ! !OUTPUT VARIABLES:
 !
@@ -3664,12 +3678,21 @@ C---Always does PL(2) = P[1]
       ! TOMS_200701 directory.
       !=================================================================
 
+      ! Updated with UCX
+      ! Since we now have stratospheric ozone calculated online, use
+      ! this instead of archived profiles for all chemistry-grid cells
+      ! The variable O3GRID is set in "partition.F", and will be 0
+      ! outside the chemgrid (in which case we use climatology)
+
       ! Scale monthly O3 profile to the daily O3 profile (if available)
-      IF ( O3_COL > 0d0 ) THEN 
-         DO I = 1, L1_    
-            O3_CLIM(I) = O3_CLIM(I) * ( O3_COL / PROFCOL )
-         ENDDO
-      ENDIF
+      DO I = 1, L1_
+         IF ((O3_CTM(I) > 0d0) .and. (LO3FJX)) THEN
+            ! Convert from molec/cm3 to molec/cm2
+            O3_CLIM(I) = O3_CTM(I) * (Z_CLIM(I+1)-Z_CLIM(I))
+         ELSEIF (O3_TOMS > 0d0) THEN
+            O3_CLIM(I) = O3_CLIM(I) * ( O3_TOMS / PROFCOL )
+         ENDIF
+      ENDDO
 
       END SUBROUTINE SET_PROF
 !
@@ -3748,7 +3771,7 @@ C---Always does PL(2) = P[1]
          ENDDO
       ENDDO
 
-#if defined( GMISTRAT )
+#if defined( UCX )
       ! Stratospheric aerosols - SSA, STS and solid PSCs
       MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA (liquid H2SO4)
       MIEDX(10+(NRHAER*NRH)+2) = 4  ! STS (approx. as SSA)

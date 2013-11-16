@@ -56,6 +56,7 @@
 !
       PUBLIC :: DEPNAME
       PUBLIC :: DEPSAV
+      PUBLIC :: SHIPO3DEP
       PUBLIC :: MAXDEP
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
@@ -277,6 +278,7 @@
       REAL*8,  ALLOCATABLE :: DEPSAV  (:,:,:    )   ! Drydep frequencies
       REAL*8,  ALLOCATABLE :: DMID    (:        )   ! 
       REAL*8,  ALLOCATABLE :: SALT_V  (:        )
+      REAL*8,  ALLOCATABLE :: SHIPO3DEP(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -5265,6 +5267,9 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0d0
 
+      ALLOCATE( SHIPO3DEP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SHIPO3DEP' )
+      SHIPO3DEP = 0d0
 
       !=================================================================
       ! Echo information to stdout
@@ -5314,6 +5319,7 @@
       IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
+      IF ( ALLOCATED( SHIPO3DEP) ) DEALLOCATE( SHIPO3DEP)
 
       END SUBROUTINE CLEANUP_DRYDEP
 !EOC

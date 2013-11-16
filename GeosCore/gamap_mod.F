@@ -1456,6 +1456,11 @@
       DESCRIPT(N) = 'POP partitioning/oxidation'
       OFFSET(N)   = SPACING * 53
 
+      N           = N + 1
+      CATEGORY(N) = 'FJX-FLUX-$'
+      DESCRIPT(N) = 'Radiative flux from FAST-JX'
+      OFFSET(N)   = SPACING * 54
+
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
 !      N           = N + 1
@@ -1533,7 +1538,8 @@
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE TRACERID_MOD, ONLY : IDBCH4, IDTCH4
       USE LOGICAL_MOD,  ONLY : LSPLIT
-      ! Bypassing for now - problems with GMISTRAT (SDE 04/27/13)
+      USE CMN_DIAG_MOD, ONLY : PD64
+      ! Bypassing for now - problems with UCX (SDE 04/27/13)
 #if !defined( APM )
       USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
 #endif
@@ -4935,7 +4941,7 @@
                      NAME(T,22) = 'JH2O2'
                   CASE( 4  )
                      NAME(T,22) = 'JCH2O'
-#if defined( GMISTRAT )
+#if defined( UCX )
                   CASE( 5  )
                      NAME(T,22) = 'JO3_O1D'
                   CASE( 6  )
@@ -5574,7 +5580,7 @@
                   MWT (T,43) = 62e-3
                ! update for arom (dkh, 06/22/07)  
                CASE( 6 )
-#if defined( GMISTRAT )
+#if defined( UCX )
                   NAME(T,43) = 'O1D'
                   UNIT(T,43) = 'molec/cm3'
                   MWT (T,43) = 16e-3
@@ -6301,6 +6307,28 @@
                   ! Nothing
             END SELECT
 
+         ENDDO
+      ENDIF
+
+      !-------------------------------------      
+      ! Radiative flux (ND63) (SDE 2013-10-25)
+      !-------------------------------------
+      IF ( ND64 > 0 ) THEN
+
+         ! Number of tracers
+         NTRAC(64) = PD64 ! Number of wavelength bins
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(64)
+            ! Define quantities
+            WRITE(NAME(T,64),'(a,I02)') 'WL', T
+            WRITE(FNAME(T,64),'(a,I2)') 
+     &                'UV exposure in bin ', T
+            UNIT (T,64) = 'Wm-2'
+            INDEX(T,64) = T + ( SPACING * 54 )
+            MOLC (T,64) = 1
+            MWT  (T,64) = 0e0
+            SCALE(T,64) = 1e0
          ENDDO
       ENDIF
 
