@@ -182,7 +182,7 @@
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  21 Aug 2013 - M. Sulprizio- Moved APM routines to end of module, which 
+!  18 Nov 2013 - M. Sulprizio- Moved APM routines to end of module, which 
 !                              facilitates comparison with GeosCore code
 !EOP
 !------------------------------------------------------------------------------
@@ -447,6 +447,7 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -716,9 +717,14 @@
             THISMONTH = GET_MONTH()
 
             IF ( ITS_A_NEW_MONTH() ) THEN
-               CALL GET_GLOBAL_OH(  THISMONTH, State_Met )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!               CALL GET_GLOBAL_OH(  THISMONTH, State_Met )
+!-----------------------------------------------------------------------------
+               CALL GET_GLOBAL_OH ( am_I_Root, Input_Opt, 
+     &                              State_Met, THISMONTH, RC )
                CALL GET_GLOBAL_NO3( THISMONTH )
-               CALL GET_GLOBAL_O3(  THISMONTH )
+               CALL GET_GLOBAL_O3 ( THISMONTH )
             ENDIF
 
             ! Compute time scaling arrays for offline OH, NO3
@@ -5565,6 +5571,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  18 Oct 2013 - M. Sulprizio- Do not call ANTHRO_CARB_TBOND when LRCP is true.
+!                              RCP emissions include biofuel. (C. Heald)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5724,8 +5732,12 @@
 
          ! Read in monthly emissions from T Bond [2007], with imposed
          ! seasonality over North America by R. Park [2003]
-         CALL ANTHRO_CARB_TBOND( MONTH, Input_Opt )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+         ! Do not call ANTHRO_CARB_TBOND when RCP is used. RCP emissions
+         ! include biofuel emissions (C. Heald, mpayer)
+         IF ( .not. LRCP ) THEN
+            CALL ANTHRO_CARB_TBOND( MONTH, Input_Opt )
+            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+         ENDIF
 
          ! Read in RCP emissions. 
          ! Seasonality included for ships, but none included or imposed
@@ -9662,6 +9674,7 @@ ccc
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9748,7 +9761,7 @@ ccc
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -9984,7 +9997,7 @@ ccc
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -11414,6 +11427,542 @@ ccc
 
       END FUNCTION GET_ISOPNO3
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_carbon
+!
+! !DESCRIPTION: Subroutine INIT\_CARBON initializes all module arrays. 
+!  (rjp, bmy, 4/1/04, 12/19/09)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_CARBON( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
+      USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
+!  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
+!  (3 ) Now reference LSOA from "logical_mod.f" not CMN_SETUP.  Now call
+!        GET_BOUNDING_BOX from "grid_mod.f" to compute the indices I1_NA,
+!        I2_NA, J1_NA, J2_NA which define the N. America region. (bmy, 12/1/04)
+!  (4 ) Now call READ_GPROD_APROD to read GPROD & APROD from disk. 
+!        (tmf, havala, bmy, 2/6/07)
+!  (5 ) Now set I1_NA, I2_NA, J1_NA, J2_NA appropriately for both 1 x 1 and
+!        0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
+!  (6 ) Now set parameters for NESTED_EU grid (amv, bmy, 12/19/09)
+!  14 Jan 2011 - R. Yantosca - If we are using GEOS-5 or MERRA met, then get
+!                              the cloud fraction directly from the met fields.
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  01 Mar 2012 - R. Yantosca - Now use GET_BOUNDING_BOX from grid_mod.F90
+!  04 Mar 2013 - R. Yantosca - Now take am_I_Root, Input_Opt, RC as arguments
+!  04 Mar 2013 - R. Yantosca - Now search for drydep flags here
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS Cpp switch, this is supplanted
+!                              by NESTED_NA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                     :: AS, INDICES(4), YYYYMMDD, HHMMSS, N
+      REAL*8                      :: COORDS(4), TAU
+
+      !=================================================================
+      ! INIT_CARBON begins here!
+      !=================================================================
+      
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Some parent hydrocarbons are lumped together into 1 or more
+      ! semivolatiles. Map the parent HC to lumped semivolatiles here
+      ! (hotp 5/13/10)
+      ! mono + sesq
+      IDSV(PARENTMTPA) = 1
+      IDSV(PARENTLIMO) = 1
+      IDSV(PARENTMTPO) = 1
+      IDSV(PARENTSESQ) = 1
+      ! isoprene
+      IDSV(PARENTISOP) = 2
+      ! Lumped arom/IVOC
+      IDSV(PARENTBENZ) = 3
+      IDSV(PARENTTOLU) = 3
+      IDSV(PARENTXYLE) = 3
+      IDSV(PARENTNAP ) = 3
+      ! More individuals
+      IDSV(PARENTPOA ) = 4
+      IDSV(PARENTOPOA) = 5
+
+      ! Define number of products per semivolatile (hotp 5/14/10)
+      NPROD(IDSV(PARENTMTPA)) = 4 ! 3 add C*=0.1 product (hotp 6/12/10)
+      NPROD(IDSV(PARENTISOP)) = 3
+      NPROD(IDSV(PARENTBENZ)) = 4
+      NPROD(IDSV(PARENTPOA )) = 2
+      NPROD(IDSV(PARENTOPOA)) = 2
+      ! Check to make sure NPROD doesn't exceed max
+      IF ( MAXVAL(NPROD(:)) > MPROD ) THEN
+         CALL ERROR_STOP('Too many PRODs per SV','carbon_mod.f')
+      ENDIF
+
+      ! Define number of NOx/Ox conditions per semivolatile 
+      ! (hotp 5/14/10)
+      NNOX(IDSV(PARENTMTPA)) = 3 ! high NOx, low NOx, NO3
+      NNOX(IDSV(PARENTISOP)) = 2 ! low  NOx, NO3
+      NNOX(IDSV(PARENTBENZ)) = 2 ! high NOx, low NOx
+      NNOX(IDSV(PARENTPOA )) = 1 ! just OH
+      NNOX(IDSV(PARENTOPOA)) = 1 ! just OH
+      ! Check to make sure NNOx doesn't exceed max
+      IF ( MAXVAL(NNOX(:)) > MNOX ) THEN
+         CALL ERROR_STOP('Too many NOx levels','carbon_mod.f')
+      ENDIF
+
+      ALLOCATE( ANTH_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_BLKC' )
+      ANTH_BLKC = 0d0
+
+      ALLOCATE( ANTH_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_ORGC' )
+      ANTH_ORGC = 0d0
+
+      ALLOCATE( BIOB_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOB_BLKC' )
+      BIOB_BLKC = 0d0
+
+      ALLOCATE( BIOB_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOB_ORGC' )
+      BIOB_ORGC = 0d0
+
+      ALLOCATE( BIOF_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOF_BLKC' )
+      BIOF_BLKC = 0d0
+
+      ALLOCATE( BIOF_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOF_ORGC' )
+      BIOF_ORGC = 0d0
+
+      ALLOCATE( TERP_ORGC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TERP_ORGC' )
+      TERP_ORGC = 0d0
+
+      ALLOCATE( BCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONV' )
+      BCCONV = 0d0
+
+      ALLOCATE( OCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
+      OCCONV = 0d0
+
+      ! semivolpoa2: for POA emissions (hotp 2/27/09)
+      ! semivolpoa3: separate BB,BF from ANTH (hotp 3/13/09)
+      ALLOCATE( POAEMISS( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
+      POAEMISS = 0d0
+
+#if   defined( APM )
+      ALLOCATE( BCCONVNEW( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONVNEW' )
+      BCCONVNEW = 0d0
+
+      ALLOCATE( OCCONVNEW( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONVNEW' )
+      OCCONVNEW = 0d0
+#endif
+
+      !=================================================================
+      ! These only have to be allocated if we are
+      ! reading in monthly/8-day/3-hr mean biomass burning
+      !=================================================================
+      IF ( .not. USE_BOND_BIOBURN ) THEN
+
+         ALLOCATE( EF_BLKC( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EF_BLKC' )
+         EF_BLKC = 0d0
+
+         ALLOCATE( EF_ORGC( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EF_ORGC' )
+         EF_ORGC = 0d0
+
+      ENDIF
+
+      !=================================================================
+      ! SOA arrays only have to be allocated if LSOA = T
+      !=================================================================
+      IF ( Input_Opt%LSOA ) THEN
+      
+         ! MTPA, LIMO, MTPO update for new mtp lumping (hotp 5/20/10)
+         ALLOCATE( BIOG_MTPA( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPA' )
+         BIOG_MTPA = 0d0
+
+         ALLOCATE( BIOG_LIMO( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_LIMO' )
+         BIOG_LIMO = 0d0
+
+         ALLOCATE( BIOG_MTPO( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPO' )
+         BIOG_MTPO = 0d0
+
+         ALLOCATE( BIOG_SESQ( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_SESQ' )
+         BIOG_SESQ = 0d0
+
+         ALLOCATE( DIUR_ORVC( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIUR_ORVC' )
+         DIUR_ORVC = 0d0
+
+         ALLOCATE( GEIA_ORVC( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GEIA_ORVC' )
+         GEIA_ORVC = 0d0
+
+         ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
+         TCOSZ = 0d0
+
+         ALLOCATE( ORVC_SESQ( IIPAR, JJPAR, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
+         ORVC_SESQ = 0d0
+
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+         ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
+         ! directly from the met fields.  (skim, bmy, 1/14/10)
+         ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
+         VCLDF = 0d0
+#endif
+
+         ! diagnostic  (dkh, 11/11/06) 
+         ! increase last dimension by 1 to add NAP (hotp 7/22/09)
+         ALLOCATE( GLOB_DARO2( IIPAR, JJPAR, LLPAR,2,4), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_DARO2' )
+         GLOB_DARO2 = 0d0
+
+         ! semivolpoa4: diagnostic (hotp 3/27/09)
+         ALLOCATE( GLOB_POGRXN( IIPAR, JJPAR, LLPAR,2 ), STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_POGRXN' )
+         GLOB_POGRXN = 0d0
+
+         ! Initial OA+OG diagnostic (hotp 5/17/10)
+         ALLOCATE( OAGINITSAVE( IIPAR, JJPAR, LLPAR, MPROD, MSV ),
+     &             STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OAGINITSAVE' )
+         OAGINITSAVE = 0d0
+
+         ! Change in OA+OG diagnostic (hotp 5/17/10)
+         ALLOCATE( DELTASOGSAVE( IIPAR, JJPAR, LLPAR, MNOX, MHC ),
+     &             STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELTASOGSAVE' )
+         DELTASOGSAVE = 0d0
+
+         ! Diagnostic for NO branching ratio (hotp 5/24/10)
+         ALLOCATE( BETANOSAVE( IIPAR, JJPAR, LLPAR), STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BETANOSAVE' )
+         BETANOSAVE = 0d0
+
+         ! Diagnostic (hotp 6/5/10)
+         ALLOCATE( SPECSOAPROD( IIPAR, JJPAR, LLPAR, MPROD, MSV), 
+     &      STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAPROD' )
+         SPECSOAPROD = 0d0
+
+         ! Diagnostic (hotp 6/5/10)
+         ALLOCATE( SPECSOAEVAP( IIPAR, JJPAR, LLPAR, MPROD, MSV), 
+     &      STAT = AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAEVAP' )
+         SPECSOAEVAP = 0d0
+
+      ENDIF
+
+      !=================================================================
+      ! Compute indices which define the N. America region so that we 
+      ! can overwrite T. Bond emissions w/ Cooke/RJP emissions 
+      !=================================================================
+
+#if   defined( NESTED_NA )
+      ! For 1x1 N. America nested grid: set indices to grid extent
+      I1_NA = 1
+      J1_NA = 1
+      I2_NA = IIPAR
+      J2_NA = JJPAR
+
+#elif defined( NESTED_CH )
+      ! For China nested grids: we don't cover N. America region
+      ! Setting these to zero will turn off Cooke/RJP emissions
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#elif defined( NESTED_EU )
+      ! For EU nested grid: we don't cover N. America region
+      ! Setting these to zero will turn off Cooke/RJP emissions
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#else
+
+      ! Definition of the N. American bounding box
+      ! with LL corner (10N,165W) and UR corner (90N,40W)
+      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
+#if defined( DEVEL )
+
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#else
+
+      ! Definition of the N. American bounding box
+      ! with LL corner (10N,165W) and UR corner (90N,40W)
+      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
+      COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
+      
+      ! Get the indices corresponding to the lon/lat values in COORDS
+      CALL GET_BOUNDING_BOX( 1, IIPAR, 1, JJPAR, 1, COORDS, INDICES )
+
+      ! Copy values from INDEX array to scalars
+      I1_NA = INDICES(1)
+      J1_NA = INDICES(2)
+      I2_NA = INDICES(3)
+      J2_NA = INDICES(4)
+
+#endif
+#endif
+          
+      !=================================================================
+      ! Find drydep species in DEPSAV
+      !=================================================================
+
+      ! Initialize flags
+      DRYBCPI  = 0
+      DRYOCPI  = 0
+      DRYBCPO  = 0
+      DRYOCPO  = 0
+      DRYPOA1  = 0
+      DRYPOA2  = 0
+      DRYPOG1  = 0
+      DRYPOG2  = 0
+      DRYOPOA1 = 0
+      DRYOPOA2 = 0
+      DRYOPOG1 = 0
+      DRYOPOG2 = 0
+      DRYMTPA  = 0
+      DRYLIMO  = 0
+      DRYMTPO  = 0
+      DRYTSOA1 = 0
+      DRYTSOG1 = 0
+      DRYTSOA2 = 0
+      DRYTSOG2 = 0
+      DRYTSOA3 = 0
+      DRYTSOG3 = 0
+      DRYTSOA0 = 0
+      DRYTSOG0 = 0
+      DRYISOA1 = 0
+      DRYISOG1 = 0
+      DRYISOA2 = 0
+      DRYISOG2 = 0
+      DRYISOA3 = 0
+      DRYISOG3 = 0
+      DRYASOAN = 0
+      DRYASOA1 = 0
+      DRYASOG1 = 0
+      DRYASOA2 = 0
+      DRYASOG2 = 0
+      DRYASOA3 = 0
+      DRYASOG3 = 0
+      DRYSOAG  = 0
+      DRYSOAM  = 0
+
+      ! Locate drydep indices for each carbon or SOA aerosol 
+      ! in the list of dry depositing species.
+      IF ( Input_Opt%LDRYD ) THEN
+         DO N = 1, Input_Opt%NUMDEP
+            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
+               CASE ( 'BCPI' )
+                  DRYBCPI = N
+               CASE ( 'OCPI' )
+                  DRYOCPI = N
+               CASE ( 'BCPO' )
+                  DRYBCPO = N
+               CASE ( 'OCPO' )
+                  DRYOCPO = N
+               ! semivolpoa: add POA (hotp 2/26/09)
+               CASE ( 'POA1'  )
+                  DRYPOA1  = N
+               CASE ( 'POA2'  )
+                  DRYPOA2  = N
+               ! semivolpoa2: add POG (hotp 3/2/09)
+               CASE ( 'POG1'  )
+                  DRYPOG1  = N
+               CASE ( 'POG2'  )
+                  DRYPOG2  = N
+               ! semivolpoa4opoa: add OPOA and OPOG (hotp 3/18/09)
+               CASE ( 'OPOA1' )
+                  DRYOPOA1 = N
+               CASE ( 'OPOA2' )
+                  DRYOPOA2 = N
+               CASE ( 'OPOG1' )
+                  DRYOPOG1 = N
+               CASE ( 'OPOG2' )
+                  DRYOPOG2 = N
+               ! Lumped arom/IVOC (hotp 5/13/10)
+               CASE ( 'ASOAN' )
+                  DRYASOAN = N 
+               CASE ( 'ASOA1' )
+                  DRYASOA1 = N 
+               CASE ( 'ASOA2' )
+                  DRYASOA2 = N 
+               CASE ( 'ASOA3' )
+                  DRYASOA3 = N 
+               CASE ( 'ASOG1' )
+                  DRYASOG1 = N 
+               CASE ( 'ASOG2' )
+                  DRYASOG2 = N 
+               CASE ( 'ASOG3' )
+                  DRYASOG3 = N
+               ! removed ALPH,LIMO,ALCO,SOA1-4,SOG1-4
+               ! and replaced with new mtp (hotp 5/20/10)
+               ! precursors
+               CASE ( 'MTPA' )
+                  DRYMTPA = N 
+               CASE ( 'LIMO' )
+                  DRYLIMO = N 
+               CASE ( 'MTPO' )
+                  DRYMTPO = N 
+               ! terpenes (hotp 7/29/10)
+               CASE ( 'TSOA1' )
+                  DRYTSOA1 = N 
+               CASE ( 'TSOA2' )
+                  DRYTSOA2 = N 
+               CASE ( 'TSOA3' )
+                  DRYTSOA3 = N 
+               CASE ( 'TSOA0' )
+                  DRYTSOA0 = N 
+               CASE ( 'TSOG1' )
+                  DRYTSOG1 = N 
+               CASE ( 'TSOG2' )
+                  DRYTSOG2 = N 
+               CASE ( 'TSOG3' )
+                  DRYTSOG3 = N 
+               CASE ( 'TSOG0' )
+                  DRYTSOG0 = N
+               ! isoprene (hotp 7/29/10)
+               CASE ( 'ISOA1' )
+                  DRYISOA1 = N 
+               CASE ( 'ISOA2' )
+                  DRYISOA2 = N 
+               CASE ( 'ISOA3' )
+                  DRYISOA3 = N 
+               CASE ( 'ISOG1' )
+                  DRYISOG1 = N 
+               CASE ( 'ISOG2' )
+                  DRYISOG2 = N 
+               CASE ( 'ISOG3' )
+                  DRYISOG3 = N
+               CASE ( 'SOAG' )
+                  DRYSOAG = N
+               CASE ( 'SOAM' )
+                  DRYSOAM = N
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT        
+         ENDDO
+      ENDIF
+
+      END SUBROUTINE INIT_CARBON
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_carbon
+!
+! !DESCRIPTION: Subroutine CLEANUP\_CARBON deallocates all module arrays 
+!  (rjp, bmy, 4/1/04, 7/8/04)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_CARBON
+!
+! !REVISION HISTORY:
+!  (1 ) Now deallocate arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !=================================================================
+      ! CLEANUP_CARBON begins here!
+      !=================================================================
+      IF ( ALLOCATED( ANTH_BLKC     ) ) DEALLOCATE( ANTH_BLKC     )
+      IF ( ALLOCATED( ANTH_ORGC     ) ) DEALLOCATE( ANTH_ORGC     )
+      IF ( ALLOCATED( BIOB_BLKC     ) ) DEALLOCATE( BIOB_BLKC     )
+      IF ( ALLOCATED( BIOB_ORGC     ) ) DEALLOCATE( BIOB_ORGC     )
+      IF ( ALLOCATED( BIOF_BLKC     ) ) DEALLOCATE( BIOF_BLKC     )
+      IF ( ALLOCATED( BIOF_ORGC     ) ) DEALLOCATE( BIOF_ORGC     )
+      IF ( ALLOCATED( TERP_ORGC     ) ) DEALLOCATE( TERP_ORGC     )
+      IF ( ALLOCATED( BCCONV        ) ) DEALLOCATE( BCCONV        )
+      IF ( ALLOCATED( OCCONV        ) ) DEALLOCATE( OCCONV        )
+      IF ( ALLOCATED( EF_BLKC       ) ) DEALLOCATE( EF_BLKC       )
+      IF ( ALLOCATED( EF_ORGC       ) ) DEALLOCATE( EF_ORGC       )
+      IF ( ALLOCATED( BIOG_MTPA     ) ) DEALLOCATE( BIOG_MTPA     )
+      IF ( ALLOCATED( BIOG_LIMO     ) ) DEALLOCATE( BIOG_LIMO     )
+      IF ( ALLOCATED( BIOG_MTPO     ) ) DEALLOCATE( BIOG_MTPO     )
+      IF ( ALLOCATED( BIOG_SESQ     ) ) DEALLOCATE( BIOG_SESQ     )
+      IF ( ALLOCATED( DIUR_ORVC     ) ) DEALLOCATE( DIUR_ORVC     )
+      IF ( ALLOCATED( GEIA_ORVC     ) ) DEALLOCATE( GEIA_ORVC     )
+      IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )
+      IF ( ALLOCATED( ORVC_SESQ     ) ) DEALLOCATE( ORVC_SESQ     )
+      IF ( ALLOCATED( VCLDF         ) ) DEALLOCATE( VCLDF         )
+      IF ( ALLOCATED( GLOB_DARO2    ) ) DEALLOCATE( GLOB_DARO2    )
+      IF ( ALLOCATED( POAEMISS      ) ) DEALLOCATE( POAEMISS      )
+      IF ( ALLOCATED( GLOB_POGRXN   ) ) DEALLOCATE( GLOB_POGRXN   )
+      IF ( ALLOCATED( OAGINITSAVE   ) ) DEALLOCATE( OAGINITSAVE   )
+      IF ( ALLOCATED( DELTASOGSAVE  ) ) DEALLOCATE( DELTASOGSAVE  )
+      IF ( ALLOCATED( BETANOSAVE    ) ) DEALLOCATE( BETANOSAVE    )
+      IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
+      IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
+
+#if   defined( APM )
+      IF ( ALLOCATED( BCCONVNEW ) ) DEALLOCATE( BCCONVNEW )
+      IF ( ALLOCATED( OCCONVNEW ) ) DEALLOCATE( OCCONVNEW )
+#endif
+
+      END SUBROUTINE CLEANUP_CARBON
+!EOC
 #if   defined( APM )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -12114,545 +12663,4 @@ ccc
       END SUBROUTINE EMITHIGHNEW
 !EOC
 #endif
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_carbon
-!
-! !DESCRIPTION: Subroutine INIT\_CARBON initializes all module arrays. 
-!  (rjp, bmy, 4/1/04, 12/19/09)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_CARBON( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
-      USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
-!
-! !REVISION HISTORY:
-!  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
-!  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
-!  (3 ) Now reference LSOA from "logical_mod.f" not CMN_SETUP.  Now call
-!        GET_BOUNDING_BOX from "grid_mod.f" to compute the indices I1_NA,
-!        I2_NA, J1_NA, J2_NA which define the N. America region. (bmy, 12/1/04)
-!  (4 ) Now call READ_GPROD_APROD to read GPROD & APROD from disk. 
-!        (tmf, havala, bmy, 2/6/07)
-!  (5 ) Now set I1_NA, I2_NA, J1_NA, J2_NA appropriately for both 1 x 1 and
-!        0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
-!  (6 ) Now set parameters for NESTED_EU grid (amv, bmy, 12/19/09)
-!  14 Jan 2011 - R. Yantosca - If we are using GEOS-5 or MERRA met, then get
-!                              the cloud fraction directly from the met fields.
-!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  01 Mar 2012 - R. Yantosca - Now use GET_BOUNDING_BOX from grid_mod.F90
-!  04 Mar 2013 - R. Yantosca - Now take am_I_Root, Input_Opt, RC as arguments
-!  04 Mar 2013 - R. Yantosca - Now search for drydep flags here
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
-!                              semivolatile POA simulations (H. Pye)
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                     :: AS, INDICES(4), YYYYMMDD, HHMMSS, N
-      REAL*8                      :: COORDS(4), TAU
-
-      !=================================================================
-      ! INIT_CARBON begins here!
-      !=================================================================
-      
-      ! Assume success
-      RC = GIGC_SUCCESS
-
-      ! Some parent hydrocarbons are lumped together into 1 or more
-      ! semivolatiles. Map the parent HC to lumped semivolatiles here
-      ! (hotp 5/13/10)
-      ! mono + sesq
-      IDSV(PARENTMTPA) = 1
-      IDSV(PARENTLIMO) = 1
-      IDSV(PARENTMTPO) = 1
-      IDSV(PARENTSESQ) = 1
-      ! isoprene
-      IDSV(PARENTISOP) = 2
-      ! Lumped arom/IVOC
-      IDSV(PARENTBENZ) = 3
-      IDSV(PARENTTOLU) = 3
-      IDSV(PARENTXYLE) = 3
-      IDSV(PARENTNAP ) = 3
-      ! More individuals
-      IDSV(PARENTPOA ) = 4
-      IDSV(PARENTOPOA) = 5
-
-      ! Define number of products per semivolatile (hotp 5/14/10)
-      NPROD(IDSV(PARENTMTPA)) = 4 ! 3 add C*=0.1 product (hotp 6/12/10)
-      NPROD(IDSV(PARENTISOP)) = 3
-      NPROD(IDSV(PARENTBENZ)) = 4
-      NPROD(IDSV(PARENTPOA )) = 2
-      NPROD(IDSV(PARENTOPOA)) = 2
-      ! Check to make sure NPROD doesn't exceed max
-      IF ( MAXVAL(NPROD(:)) > MPROD ) THEN
-         CALL ERROR_STOP('Too many PRODs per SV','carbon_mod.f')
-      ENDIF
-
-      ! Define number of NOx/Ox conditions per semivolatile 
-      ! (hotp 5/14/10)
-      NNOX(IDSV(PARENTMTPA)) = 3 ! high NOx, low NOx, NO3
-      NNOX(IDSV(PARENTISOP)) = 2 ! low  NOx, NO3
-      NNOX(IDSV(PARENTBENZ)) = 2 ! high NOx, low NOx
-      NNOX(IDSV(PARENTPOA )) = 1 ! just OH
-      NNOX(IDSV(PARENTOPOA)) = 1 ! just OH
-      ! Check to make sure NNOx doesn't exceed max
-      IF ( MAXVAL(NNOX(:)) > MNOX ) THEN
-         CALL ERROR_STOP('Too many NOx levels','carbon_mod.f')
-      ENDIF
-
-      ALLOCATE( ANTH_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_BLKC' )
-      ANTH_BLKC = 0d0
-
-      ALLOCATE( ANTH_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_ORGC' )
-      ANTH_ORGC = 0d0
-
-      ALLOCATE( BIOB_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOB_BLKC' )
-      BIOB_BLKC = 0d0
-
-      ALLOCATE( BIOB_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOB_ORGC' )
-      BIOB_ORGC = 0d0
-
-      ALLOCATE( BIOF_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOF_BLKC' )
-      BIOF_BLKC = 0d0
-
-      ALLOCATE( BIOF_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOF_ORGC' )
-      BIOF_ORGC = 0d0
-
-      ALLOCATE( TERP_ORGC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TERP_ORGC' )
-      TERP_ORGC = 0d0
-
-      ALLOCATE( BCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONV' )
-      BCCONV = 0d0
-
-      ALLOCATE( OCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
-      OCCONV = 0d0
-
-      ! semivolpoa2: for POA emissions (hotp 2/27/09)
-      ! semivolpoa3: separate BB,BF from ANTH (hotp 3/13/09)
-      ALLOCATE( POAEMISS( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
-      POAEMISS = 0d0
-
-#if   defined( APM )
-      ALLOCATE( BCCONVNEW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONVNEW' )
-      BCCONVNEW = 0d0
-
-      ALLOCATE( OCCONVNEW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONVNEW' )
-      OCCONVNEW = 0d0
-#endif
-
-      !=================================================================
-      ! These only have to be allocated if we are
-      ! reading in monthly/8-day/3-hr mean biomass burning
-      !=================================================================
-      IF ( .not. USE_BOND_BIOBURN ) THEN
-
-         ALLOCATE( EF_BLKC( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EF_BLKC' )
-         EF_BLKC = 0d0
-
-         ALLOCATE( EF_ORGC( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EF_ORGC' )
-         EF_ORGC = 0d0
-
-      ENDIF
-
-      !=================================================================
-      ! SOA arrays only have to be allocated if LSOA = T
-      !=================================================================
-      IF ( Input_Opt%LSOA ) THEN
-      
-         ! MTPA, LIMO, MTPO update for new mtp lumping (hotp 5/20/10)
-         ALLOCATE( BIOG_MTPA( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPA' )
-         BIOG_MTPA = 0d0
-
-         ALLOCATE( BIOG_LIMO( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_LIMO' )
-         BIOG_LIMO = 0d0
-
-         ALLOCATE( BIOG_MTPO( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPO' )
-         BIOG_MTPO = 0d0
-
-         ALLOCATE( BIOG_SESQ( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_SESQ' )
-         BIOG_SESQ = 0d0
-
-         ALLOCATE( DIUR_ORVC( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIUR_ORVC' )
-         DIUR_ORVC = 0d0
-
-         ALLOCATE( GEIA_ORVC( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GEIA_ORVC' )
-         GEIA_ORVC = 0d0
-
-         ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
-         TCOSZ = 0d0
-
-         ALLOCATE( ORVC_SESQ( IIPAR, JJPAR, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
-         ORVC_SESQ = 0d0
-
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
-         ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
-         ! directly from the met fields.  (skim, bmy, 1/14/10)
-         ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
-         VCLDF = 0d0
-#endif
-
-         ! diagnostic  (dkh, 11/11/06) 
-         ! increase last dimension by 1 to add NAP (hotp 7/22/09)
-         ALLOCATE( GLOB_DARO2( IIPAR, JJPAR, LLPAR,2,4), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_DARO2' )
-         GLOB_DARO2 = 0d0
-
-         ! semivolpoa4: diagnostic (hotp 3/27/09)
-         ALLOCATE( GLOB_POGRXN( IIPAR, JJPAR, LLPAR,2 ), STAT = AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_POGRXN' )
-         GLOB_POGRXN = 0d0
-
-         ! Initial OA+OG diagnostic (hotp 5/17/10)
-         ALLOCATE( OAGINITSAVE( IIPAR, JJPAR, LLPAR, MPROD, MSV ),
-     &             STAT = AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OAGINITSAVE' )
-         OAGINITSAVE = 0d0
-
-         ! Change in OA+OG diagnostic (hotp 5/17/10)
-         ALLOCATE( DELTASOGSAVE( IIPAR, JJPAR, LLPAR, MNOX, MHC ),
-     &             STAT = AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELTASOGSAVE' )
-         DELTASOGSAVE = 0d0
-
-         ! Diagnostic for NO branching ratio (hotp 5/24/10)
-         ALLOCATE( BETANOSAVE( IIPAR, JJPAR, LLPAR), STAT = AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BETANOSAVE' )
-         BETANOSAVE = 0d0
-
-         ! Diagnostic (hotp 6/5/10)
-         ALLOCATE( SPECSOAPROD( IIPAR, JJPAR, LLPAR, MPROD, MSV), 
-     &      STAT = AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAPROD' )
-         SPECSOAPROD = 0d0
-
-         ! Diagnostic (hotp 6/5/10)
-         ALLOCATE( SPECSOAEVAP( IIPAR, JJPAR, LLPAR, MPROD, MSV), 
-     &      STAT = AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAEVAP' )
-         SPECSOAEVAP = 0d0
-
-      ENDIF
-
-      !=================================================================
-      ! Compute indices which define the N. America region so that we 
-      ! can overwrite T. Bond emissions w/ Cooke/RJP emissions 
-      !=================================================================
-
-#if   defined( NESTED_NA )
-      ! For 1x1 N. America nested grid: set indices to grid extent
-      I1_NA = 1
-      J1_NA = 1
-      I2_NA = IIPAR
-      J2_NA = JJPAR
-
-#elif defined( NESTED_CH )
-      ! For China nested grids: we don't cover N. America region
-      ! Setting these to zero will turn off Cooke/RJP emissions
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#elif defined ( SEAC4RS )
-      ! For SEAC4RS nested grid: we don't cover N. America region
-      ! Setting these to zero will turn off Cooke/RJP emissions
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#elif defined( NESTED_EU )
-      ! For EU nested grid: we don't cover N. America region
-      ! Setting these to zero will turn off Cooke/RJP emissions
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#else
-
-      ! Definition of the N. American bounding box
-      ! with LL corner (10N,165W) and UR corner (90N,40W)
-      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
-#if defined( DEVEL )
-
-      I1_NA = 0
-      J1_NA = 0
-      I2_NA = 0
-      J2_NA = 0
-
-#else
-
-      ! Definition of the N. American bounding box
-      ! with LL corner (10N,165W) and UR corner (90N,40W)
-      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
-      COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
-      
-      ! Get the indices corresponding to the lon/lat values in COORDS
-      CALL GET_BOUNDING_BOX( 1, IIPAR, 1, JJPAR, 1, COORDS, INDICES )
-
-      ! Copy values from INDEX array to scalars
-      I1_NA = INDICES(1)
-      J1_NA = INDICES(2)
-      I2_NA = INDICES(3)
-      J2_NA = INDICES(4)
-
-#endif
-#endif
-          
-      !=================================================================
-      ! Find drydep species in DEPSAV
-      !=================================================================
-
-      ! Initialize flags
-      DRYBCPI  = 0
-      DRYOCPI  = 0
-      DRYBCPO  = 0
-      DRYOCPO  = 0
-      DRYPOA1  = 0
-      DRYPOA2  = 0
-      DRYPOG1  = 0
-      DRYPOG2  = 0
-      DRYOPOA1 = 0
-      DRYOPOA2 = 0
-      DRYOPOG1 = 0
-      DRYOPOG2 = 0
-      DRYMTPA  = 0
-      DRYLIMO  = 0
-      DRYMTPO  = 0
-      DRYTSOA1 = 0
-      DRYTSOG1 = 0
-      DRYTSOA2 = 0
-      DRYTSOG2 = 0
-      DRYTSOA3 = 0
-      DRYTSOG3 = 0
-      DRYTSOA0 = 0
-      DRYTSOG0 = 0
-      DRYISOA1 = 0
-      DRYISOG1 = 0
-      DRYISOA2 = 0
-      DRYISOG2 = 0
-      DRYISOA3 = 0
-      DRYISOG3 = 0
-      DRYASOAN = 0
-      DRYASOA1 = 0
-      DRYASOG1 = 0
-      DRYASOA2 = 0
-      DRYASOG2 = 0
-      DRYASOA3 = 0
-      DRYASOG3 = 0
-      DRYSOAG  = 0
-      DRYSOAM  = 0
-
-      ! Locate drydep indices for each carbon or SOA aerosol 
-      ! in the list of dry depositing species.
-      IF ( Input_Opt%LDRYD ) THEN
-         DO N = 1, Input_Opt%NUMDEP
-            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
-               CASE ( 'BCPI' )
-                  DRYBCPI = N
-               CASE ( 'OCPI' )
-                  DRYOCPI = N
-               CASE ( 'BCPO' )
-                  DRYBCPO = N
-               CASE ( 'OCPO' )
-                  DRYOCPO = N
-               ! semivolpoa: add POA (hotp 2/26/09)
-               CASE ( 'POA1'  )
-                  DRYPOA1  = N
-               CASE ( 'POA2'  )
-                  DRYPOA2  = N
-               ! semivolpoa2: add POG (hotp 3/2/09)
-               CASE ( 'POG1'  )
-                  DRYPOG1  = N
-               CASE ( 'POG2'  )
-                  DRYPOG2  = N
-               ! semivolpoa4opoa: add OPOA and OPOG (hotp 3/18/09)
-               CASE ( 'OPOA1' )
-                  DRYOPOA1 = N
-               CASE ( 'OPOA2' )
-                  DRYOPOA2 = N
-               CASE ( 'OPOG1' )
-                  DRYOPOG1 = N
-               CASE ( 'OPOG2' )
-                  DRYOPOG2 = N
-               ! Lumped arom/IVOC (hotp 5/13/10)
-               CASE ( 'ASOAN' )
-                  DRYASOAN = N 
-               CASE ( 'ASOA1' )
-                  DRYASOA1 = N 
-               CASE ( 'ASOA2' )
-                  DRYASOA2 = N 
-               CASE ( 'ASOA3' )
-                  DRYASOA3 = N 
-               CASE ( 'ASOG1' )
-                  DRYASOG1 = N 
-               CASE ( 'ASOG2' )
-                  DRYASOG2 = N 
-               CASE ( 'ASOG3' )
-                  DRYASOG3 = N
-               ! removed ALPH,LIMO,ALCO,SOA1-4,SOG1-4
-               ! and replaced with new mtp (hotp 5/20/10)
-               ! precursors
-               CASE ( 'MTPA' )
-                  DRYMTPA = N 
-               CASE ( 'LIMO' )
-                  DRYLIMO = N 
-               CASE ( 'MTPO' )
-                  DRYMTPO = N 
-               ! terpenes (hotp 7/29/10)
-               CASE ( 'TSOA1' )
-                  DRYTSOA1 = N 
-               CASE ( 'TSOA2' )
-                  DRYTSOA2 = N 
-               CASE ( 'TSOA3' )
-                  DRYTSOA3 = N 
-               CASE ( 'TSOA0' )
-                  DRYTSOA0 = N 
-               CASE ( 'TSOG1' )
-                  DRYTSOG1 = N 
-               CASE ( 'TSOG2' )
-                  DRYTSOG2 = N 
-               CASE ( 'TSOG3' )
-                  DRYTSOG3 = N 
-               CASE ( 'TSOG0' )
-                  DRYTSOG0 = N
-               ! isoprene (hotp 7/29/10)
-               CASE ( 'ISOA1' )
-                  DRYISOA1 = N 
-               CASE ( 'ISOA2' )
-                  DRYISOA2 = N 
-               CASE ( 'ISOA3' )
-                  DRYISOA3 = N 
-               CASE ( 'ISOG1' )
-                  DRYISOG1 = N 
-               CASE ( 'ISOG2' )
-                  DRYISOG2 = N 
-               CASE ( 'ISOG3' )
-                  DRYISOG3 = N
-               CASE ( 'SOAG' )
-                  DRYSOAG = N
-               CASE ( 'SOAM' )
-                  DRYSOAM = N
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT        
-         ENDDO
-      ENDIF
-
-      END SUBROUTINE INIT_CARBON
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_carbon
-!
-! !DESCRIPTION: Subroutine CLEANUP\_CARBON deallocates all module arrays 
-!  (rjp, bmy, 4/1/04, 7/8/04)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_CARBON
-!
-! !REVISION HISTORY:
-!  (1 ) Now deallocate arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
-!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
-!                              semivolatile POA simulations (H. Pye)
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      !=================================================================
-      ! CLEANUP_CARBON begins here!
-      !=================================================================
-      IF ( ALLOCATED( ANTH_BLKC     ) ) DEALLOCATE( ANTH_BLKC     )
-      IF ( ALLOCATED( ANTH_ORGC     ) ) DEALLOCATE( ANTH_ORGC     )
-      IF ( ALLOCATED( BIOB_BLKC     ) ) DEALLOCATE( BIOB_BLKC     )
-      IF ( ALLOCATED( BIOB_ORGC     ) ) DEALLOCATE( BIOB_ORGC     )
-      IF ( ALLOCATED( BIOF_BLKC     ) ) DEALLOCATE( BIOF_BLKC     )
-      IF ( ALLOCATED( BIOF_ORGC     ) ) DEALLOCATE( BIOF_ORGC     )
-      IF ( ALLOCATED( TERP_ORGC     ) ) DEALLOCATE( TERP_ORGC     )
-      IF ( ALLOCATED( BCCONV        ) ) DEALLOCATE( BCCONV        )
-      IF ( ALLOCATED( OCCONV        ) ) DEALLOCATE( OCCONV        )
-      IF ( ALLOCATED( EF_BLKC       ) ) DEALLOCATE( EF_BLKC       )
-      IF ( ALLOCATED( EF_ORGC       ) ) DEALLOCATE( EF_ORGC       )
-      IF ( ALLOCATED( BIOG_MTPA     ) ) DEALLOCATE( BIOG_MTPA     )
-      IF ( ALLOCATED( BIOG_LIMO     ) ) DEALLOCATE( BIOG_LIMO     )
-      IF ( ALLOCATED( BIOG_MTPO     ) ) DEALLOCATE( BIOG_MTPO     )
-      IF ( ALLOCATED( BIOG_SESQ     ) ) DEALLOCATE( BIOG_SESQ     )
-      IF ( ALLOCATED( DIUR_ORVC     ) ) DEALLOCATE( DIUR_ORVC     )
-      IF ( ALLOCATED( GEIA_ORVC     ) ) DEALLOCATE( GEIA_ORVC     )
-      IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )
-      IF ( ALLOCATED( ORVC_SESQ     ) ) DEALLOCATE( ORVC_SESQ     )
-      IF ( ALLOCATED( VCLDF         ) ) DEALLOCATE( VCLDF         )
-      IF ( ALLOCATED( GLOB_DARO2    ) ) DEALLOCATE( GLOB_DARO2    )
-      IF ( ALLOCATED( POAEMISS      ) ) DEALLOCATE( POAEMISS      )
-      IF ( ALLOCATED( GLOB_POGRXN   ) ) DEALLOCATE( GLOB_POGRXN   )
-      IF ( ALLOCATED( OAGINITSAVE   ) ) DEALLOCATE( OAGINITSAVE   )
-      IF ( ALLOCATED( DELTASOGSAVE  ) ) DEALLOCATE( DELTASOGSAVE  )
-      IF ( ALLOCATED( BETANOSAVE    ) ) DEALLOCATE( BETANOSAVE    )
-      IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
-      IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
-
-#if   defined( APM )
-      IF ( ALLOCATED( BCCONVNEW ) ) DEALLOCATE( BCCONVNEW )
-      IF ( ALLOCATED( OCCONVNEW ) ) DEALLOCATE( OCCONVNEW )
-#endif
-
-      END SUBROUTINE CLEANUP_CARBON
-!EOC
       END MODULE CARBON_MOD

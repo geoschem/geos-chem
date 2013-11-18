@@ -199,13 +199,21 @@
       ! MAKE_RESTART_FILE begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LPRT      = Input_Opt%LPRT
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+
       ! Pick the proper # of tracers
 #if   defined( APM )
-      N_TOT_TRC = Input_Opt%N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
 #else
-      N_TOT_TRC = Input_Opt%N_TRACERS              ! G-C tracers only
+      N_TOT_TRC = N_TRACERS              ! G-C tracers only
 #endif
-   
+
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Restart File: ' // 
      &           'Instantaneous Tracer Concentrations (v/v)'

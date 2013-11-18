@@ -674,7 +674,7 @@ geia_mod.o                  : geia_mod.F
 GEN.o                       : GEN.F
 
 geosfp_read_mod.o           : geosfp_read_mod.F90                            \
-                              diag_mod.o
+                              dao_mod.o               diag_mod.o
 
 get_global_ch4.o            : get_global_ch4.F                               \
                               future_emissions_mod.o
@@ -868,7 +868,7 @@ merra_a1_mod.o              : merra_a1_mod.F                                 \
                               diag_mod.o
 
 merra_a3_mod.o              : merra_a3_mod.F                                 \
-                              diag_mod.o
+                              dao_mod.o               diag_mod.o
 
 merra_cn_mod.o              : merra_cn_mod.F                                 \
                               diag_mod.o

@@ -765,7 +765,7 @@
 #elif defined( MERRA )
 
       !=================================================================
-      ! Do the interpolation for MERRA or GEOS-FP met fields 
+      ! Do the interpolation for MERRA met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

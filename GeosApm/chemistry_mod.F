@@ -453,21 +453,23 @@
      &                  MONTH,     YEAR,      WAVELENGTH      )
 
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
-            IF ( LSSALT ) THEN
+            IF ( LSULF ) THEN
+               IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
-               ! ISOROPIA takes Na+, Cl- into account
-               CALL DO_ISOROPIAII
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+                  ! ISOROPIA takes Na+, Cl- into account
+                  CALL DO_ISOROPIAII
+     &               ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
 
-            ELSE
+               ELSE
 
-               ! RPMARES does not take Na+, Cl- into account
-               ! (skip for crystalline & aqueous offline run)
-               IF ( .not. LCRYST ) THEN
-                  CALL DO_RPMARES( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
+                  ! RPMARES does not take Na+, Cl- into account
+                  ! (skip for crystalline & aqueous offline run)
+                  IF ( .not. LCRYST ) THEN
+                     CALL DO_RPMARES( am_I_Root, Input_Opt, 
+     &                                State_Met, State_Chm, RC )
+                  ENDIF
                ENDIF
             ENDIF
 
@@ -741,8 +743,12 @@
 
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
-!         RTOL(i) = 2.d-1
-         RTOL(i) = 1.d-1
+         RTOL(i) = 2.d-1
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: This update was made in the SEAC4RS code.  Leave here in case we
+!%%% need to restore this. (bmy, 9/25/13)
+!         RTOL(i) = 5.d-2
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ATOL(i) = 1.d-2
       END DO
       
@@ -847,7 +853,7 @@
          
          ! Try another time if it failed
          IF ( IERR < 0 ) THEN
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% For KPP tolerance fix (mlong, 4/12/13) %%%
             !%%% Re-entry point for non-convergence     %%%
@@ -872,7 +878,7 @@
             ! 1D grid box index on the global grid
             JLOOP = JLOOPLO+KLOOP
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
             !%%% Increase tolerances by factor of 2     %%%
@@ -884,7 +890,7 @@
             call Integrate( TIN,    TOUT,    ICNTRL, 
      &                      RCNTRL, ISTATUS, RSTATE, IERR )
             IF ( IERR < 0 ) THEN 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
                !%%% Try to solve again; don't quit the run %%%

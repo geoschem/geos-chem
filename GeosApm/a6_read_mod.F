@@ -471,7 +471,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, State_Met )
+      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine GET_A6_FIELDS is a wrapper for routine READ_A6.  GET_A6_FIELDS
@@ -508,24 +508,9 @@
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
-
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use array T_FULLGRID when we are connecting to the
-      ! GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Array T_FULLGRID is used to correct vertical regridding of OH
-      ! for offline simulations (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
       USE DAO_MOD,            ONLY : T_FULLGRID
-#endif
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
 #if   defined( APM )
       ! A-6 fields used by interpolation for APM simulation
@@ -565,12 +550,14 @@
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: NYMD, NHMS 
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt
       TYPE(MetState), INTENT(INOUT) :: State_Met
 
       ! Local variables
-      INTEGER, SAVE       :: LASTNYMD = -1, LASTNHMS = -1
+      INTEGER, SAVE                 :: LASTNYMD = -1
+      INTEGER, SAVE                 :: LASTNHMS = -1
 #if   defined( APM )
-      LOGICAL, SAVE       :: FIRST=.TRUE.
+      LOGICAL, SAVE                 :: FIRST=.TRUE.
 #endif
 
       !=================================================================
@@ -585,328 +572,315 @@
          RETURN
       ENDIF
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use array T_FULLGRID when we are connecting to the
-      ! GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
+      !=================================================================
+      ! SPECIALTY SIMULATIONS: Make sure to read T_FULLGRID
+      !=================================================================
+      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+
 #if   defined( GEOS_4 )
 
-      !=================================================================      
-      ! GEOS-4: get CLDF, CLDTOPS, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
-      !             TMPU, UWND,    VWND,  ZMEU,   ZMMD,   ZMMU
-      !=================================================================
+         !--------------------------------------------------------------
+         ! Read fields for GEOS-4 meteorology
+         !--------------------------------------------------------------
+
 #if   defined( APM )
-      CALL READ_A6( NYMD     = NYMD,
-     &              NHMS     = NHMS,
-     &              CLDTOPS  = CLDTOPS0,
-     &              CLDF     = CLDF0,
-     &              HKBETA   = HKBETA0,
-     &              HKETA    = HKETA0,   
-     &              MOISTQ   = MOISTQ0,
-     &              OPTDEPTH = OPTDEP0,
-     &              Q        = SPHU0,        
-     &              T        = T0,
-     &              U        = UWND0,
-     &              V        = VWND0,        
-     &              ZMEU     = ZMEU0,
-     &              ZMMD     = ZMMD0,
-     &              ZMMU     = ZMMU0 )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,
+     &                 CLDTOPS  = CLDTOPS0,
+     &                 CLDF     = CLDF0,
+     &                 HKBETA   = HKBETA0,
+     &                 HKETA    = HKETA0,   
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0,
+     &                 Q        = SPHU0,        
+     &                 T        = T0,
+     &                 U        = UWND0,
+     &                 V        = VWND0,        
+     &                 ZMEU     = ZMEU0,
+     &                 ZMMD     = ZMMD0,
+     &                 ZMMU     = ZMMU0 )
 #else
-      CALL READ_A6( NYMD     = NYMD,     
-     &              NHMS     = NHMS,       
-     &              CLDTOPS  = State_Met%CLDTOPS,
-     &              CLDF     = State_Met%CLDF,     
-     &              HKBETA   = State_Met%HKBETA,   
-     &              HKETA    = State_Met%HKETA,   
-     &              MOISTQ   = State_Met%MOISTQ, 
-     &              OPTDEPTH = State_Met%OPTDEP, 
-     &              Q        = State_Met%SPHU,        
-     &              T        = State_Met%T,           
-     &              U        = State_Met%UWND,          
-     &              V        = State_Met%VWND,        
-     &              ZMEU     = State_Met%ZMEU,     
-     &              ZMMD     = State_Met%ZMMD,       
-     &              ZMMU     = State_Met%ZMMU ) 
+         CALL READ_A6( NYMD       = NYMD,     
+     &                 NHMS       = NHMS,       
+     &                 CLDTOPS    = State_Met%CLDTOPS,
+     &                 CLDF       = State_Met%CLDF,     
+     &                 HKBETA     = State_Met%HKBETA,   
+     &                 HKETA      = State_Met%HKETA,   
+     &                 MOISTQ     = State_Met%MOISTQ, 
+     &                 OPTDEPTH   = State_Met%OPTDEP, 
+     &                 Q          = State_Met%SPHU,        
+     &                 T          = State_Met%T,           
+     &                 U          = State_Met%U,
+     &                 V          = State_Met%V,
+     &                 ZMEU       = State_Met%ZMEU,     
+     &                 ZMMD       = State_Met%ZMMD,       
+     &                 ZMMU       = State_Met%ZMMU,
+     &                 T_FULLGRID = T_FULLGRID ) 
 #endif
 
 #elif defined( GEOS_5 )
 
-      !=================================================================      
-      ! GEOS-5: get CLDF,   CLDTOPS, CMFMC,    DQIDTMST, DQLDTMST,
-      !             DQRCON, DQRLSC,  DQVDTMST, MFXC,     MFYC,
-      !             MFZ,    MOISTQ,  OPTDEPTH, PLE,      PV,
-      !             RH,     QV,      T,        TAUCLI,   TAUCLW,
-      !             U,      V    fields
-      !=================================================================
+         !--------------------------------------------------------------
+         ! Read fields for GEOS-5 meteorology
+         !--------------------------------------------------------------
+
 #if   defined( APM )
-      CALL READ_A6( NYMD     = NYMD,
-     &              NHMS     = NHMS,       
-     &              CLDF     = CLDF0,
-     &              CLDTOPS  = CLDTOPS0, 
-     &              CMFMC    = CMFMC0,
-     &              DQIDTMST = DQIDTMST0, 
-     &              DQLDTMST = DQLDTMST0,
-     &              DQRCON   = DQRCON0, 
-     &              DQRLSC   = DQRLSC0,
-     &              DQVDTMST = DQVDTMST0,
-     &              DTRAIN   = DTRAIN0,
-     &              MOISTQ   = MOISTQ0,
-     &              OPTDEPTH = OPTDEP0, 
-     &              PV       = PV0,
-     &              RH       = RH0,             
-     &              Q        = SPHU0,
-     &              QL       = QL0,             
-     &              QI       = QI0,
-     &              T        = T0,               
-     &              TAUCLI   = TAUCLI0,
-     &              TAUCLW   = TAUCLW0,     
-     &              U        = UWND0,
-     &              V        = VWND0 )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,       
+     &                 CLDF     = CLDF0,
+     &                 CLDTOPS  = CLDTOPS0, 
+     &                 CMFMC    = CMFMC0,
+     &                 DQIDTMST = DQIDTMST0, 
+     &                 DQLDTMST = DQLDTMST0,
+     &                 DQRCON   = DQRCON0, 
+     &                 DQRLSC   = DQRLSC0,
+     &                 DQVDTMST = DQVDTMST0,
+     &                 DTRAIN   = DTRAIN0,
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0, 
+     &                 PV       = PV0,
+     &                 RH       = RH0,             
+     &                 Q        = SPHU0,
+     &                 QL       = QL0,             
+     &                 QI       = QI0,
+     &                 T        = T0,               
+     &                 TAUCLI   = TAUCLI0,
+     &                 TAUCLW   = TAUCLW0,     
+     &                 U        = UWND0,
+     &                 V        = VWND0 )
 #else
-      CALL READ_A6( NYMD     = NYMD,          
-     &              NHMS     = NHMS,       
-     &              CLDF     = State_Met%CLDF,          
-     &              CLDTOPS  = State_Met%CLDTOPS, 
-     &              CMFMC    = State_Met%CMFMC,        
-     &              DQIDTMST = State_Met%DQIDTMST, 
-     &              DQLDTMST = State_Met%DQLDTMST,  
-     &              DQRCON   = State_Met%DQRCU, 
-     &              DQRLSC   = State_Met%DQRLSAN,      
-     &              DQVDTMST = State_Met%DQVDTMST,
-     &              DTRAIN   = State_Met%DTRAIN,     
-     &              MOISTQ   = State_Met%MOISTQ,      
-     &              OPTDEPTH = State_Met%OPTDEP, 
-     &              PV       = State_Met%PV,              
-     &              RH       = State_Met%RH,             
-     &              Q        = State_Met%SPHU,             
-     &              QL       = State_Met%QL,             
-     &              QI       = State_Met%QI,              
-     &              T        = State_Met%T,               
-     &              TAUCLI   = State_Met%TAUCLI,      
-     &              TAUCLW   = State_Met%TAUCLW,     
-     &              U        = State_Met%U,             
-     &              V        = State_Met%V          ) 
+         CALL READ_A6( NYMD       = NYMD,          
+     &                 NHMS       = NHMS,       
+     &                 CLDF       = State_Met%CLDF,          
+     &                 CLDTOPS    = State_Met%CLDTOPS, 
+     &                 CMFMC      = State_Met%CMFMC,        
+     &                 DQIDTMST   = State_Met%DQIDTMST, 
+     &                 DQLDTMST   = State_Met%DQLDTMST,  
+     &                 DQRCON     = State_Met%DQRCU, 
+     &                 DQRLSC     = State_Met%DQRLSAN,      
+     &                 DQVDTMST   = State_Met%DQVDTMST,
+     &                 DTRAIN     = State_Met%DTRAIN,     
+     &                 MOISTQ     = State_Met%MOISTQ,      
+     &                 OPTDEPTH   = State_Met%OPTDEP, 
+     &                 PV         = State_Met%PV,              
+     &                 RH         = State_Met%RH,             
+     &                 Q          = State_Met%SPHU,             
+     &                 QL         = State_Met%QL,             
+     &                 QI         = State_Met%QI,              
+     &                 T          = State_Met%T,               
+     &                 TAUCLI     = State_Met%TAUCLI,      
+     &                 TAUCLW     = State_Met%TAUCLW,     
+     &                 U          = State_Met%U,             
+     &                 V          = State_Met%V,
+     &                 T_FULLGRID = T_FULLGRID ) 
 #endif
 
 #elif defined( GCAP ) 
 
-      !=================================================================
-      ! GCAP: read CLDF,   DETRAINE, DETRAIN, DNDE, DNDN, ENTRAIN,   
-      !            MOISTQ, OPTDEPTH, SPHU,    T=T,  UWND, UPDE,
-      !            UPDN,   VWND, and compute CLDTOPS & CLDFRC
-      !=================================================================
+         !--------------------------------------------------------------
+         ! Read fields for GCAP meteorology
+         !--------------------------------------------------------------
+
 #if   defined( APM )
-      CALL READ_A6( NYMD     = NYMD,
-     &              NHMS     = NHMS,         
-     &              CLDF     = CLDF0,
-     &              CLDTOPS  = CLDTOPS0, 
-     &              DETRAINE = DETRAINE0,
-     &              DETRAINN = DETRAINN0, 
-     &              DNDE     = DNDE0,
-     &              DNDN     = DNDN0,         
-     &              ENTRAIN  = ENTRAIN0,
-     &              MOISTQ   = MOISTQ0,
-     &              OPTDEPTH = OPTDEP0,
-     &              Q        = SPHU0,            
-     &              T        = T0,
-     &              U        = UWND0,            
-     &              UPDE     = UPDE0,
-     &              UPDN     = UPDN0,  
-     &              V        = VWND0 )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,         
+     &                 CLDF     = CLDF0,
+     &                 CLDTOPS  = CLDTOPS0, 
+     &                 DETRAINE = DETRAINE0,
+     &                 DETRAINN = DETRAINN0, 
+     &                 DNDE     = DNDE0,
+     &                 DNDN     = DNDN0,         
+     &                 ENTRAIN  = ENTRAIN0,
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0,
+     &                 Q        = SPHU0,            
+     &                 T        = T0,
+     &                 U        = UWND0,            
+     &                 UPDE     = UPDE0,
+     &                 UPDN     = UPDN0,  
+     &                 V        = VWND0 )
           
-      ! Create 2-D CLDFRC field from 3-D CLDF field
-      CALL MAKE_GCAP_CLDFRC( CLDF0, CLDFRC0 )
+         ! Create 2-D CLDFRC field from 3-D CLDF field
+         CALL MAKE_GCAP_CLDFRC( CLDF0, CLDFRC0 )
 
 #else
-      CALL READ_A6( NYMD     = NYMD,          
-     &              NHMS     = NHMS,         
-     &              CLDF     = State_Met%CLDF,          
-     &              CLDTOPS  = State_Met%CLDTOPS, 
-     &              DETRAINE = State_Met%DETRAINE,  
-     &              DETRAINN = State_Met%DETRAINN, 
-     &              DNDE     = State_Met%DNDE,          
-     &              DNDN     = State_Met%DNDN,         
-     &              ENTRAIN  = State_Met%ENTRAIN,    
-     &              MOISTQ   = State_Met%MOISTQ,
-     &              OPTDEPTH = State_Met%OPTDEP,    
-     &              Q        = State_Met%SPHU,            
-     &              T        = State_Met%T,                
-     &              U        = State_Met%UWND,            
-     &              UPDE     = State_Met%UPDE,          
-     &              UPDN     = State_Met%UPDN,  
-     &              V        = State_Met%VWND )
-     
-      ! Create 2-D CLDFRC field from 3-D CLDF field
-      CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
+         CALL READ_A6( NYMD       = NYMD,          
+     &                 NHMS       = NHMS,         
+     &                 CLDF       = State_Met%CLDF,          
+     &                 CLDTOPS    = State_Met%CLDTOPS, 
+     &                 DETRAINE   = State_Met%DETRAINE,  
+     &                 DETRAINN   = State_Met%DETRAINN, 
+     &                 DNDE       = State_Met%DNDE,          
+     &                 DNDN       = State_Met%DNDN,         
+     &                 ENTRAIN    = State_Met%ENTRAIN,    
+     &                 MOISTQ     = State_Met%MOISTQ,
+     &                 OPTDEPTH   = State_Met%OPTDEP,    
+     &                 Q          = State_Met%SPHU,            
+     &                 T          = State_Met%T,                
+     &                 U          = State_Met%U,            
+     &                 UPDE       = State_Met%UPDE,          
+     &                 UPDN       = State_Met%UPDN,  
+     &                 V          = State_Met%V,
+     &                 T_FULLGRID = T_FULLGRID ) 
+
+         ! Create 2-D CLDFRC field from 3-D CLDF field
+         CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
+#endif
 #endif
 
-#endif
-#else
-      !-----------------------------------------------------------------
-      !     %%%%% TRADITIONAL GEOS-CHEM %%%%%
-      !
-      ! Array T_FULLGRID is used to correct vertical regridding of OH
-      ! for offline simulations (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
+      !=================================================================
+      ! FULL-CHEMISTRY SIMULATIONS: Do not read T_FULLGRID
+      !=================================================================
+      ELSE
+
 #if   defined( GEOS_4 )
 
-      !=================================================================      
-      ! GEOS-4: get CLDF, CLDTOPS, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
-      !             TMPU, UWND,    VWND,  ZMEU,   ZMMD,   ZMMU
-      !=================================================================
+         !--------------------------------------------------------------
+         ! Read fields for GEOS-4 meteorology
+         !--------------------------------------------------------------
+
 #if   defined( APM )
-      CALL READ_A6( NYMD     = NYMD,
-     &              NHMS     = NHMS,
-     &              CLDTOPS  = CLDTOPS0,
-     &              CLDF     = CLDF0,
-     &              HKBETA   = HKBETA0,
-     &              HKETA    = HKETA0,   
-     &              MOISTQ   = MOISTQ0,
-     &              OPTDEPTH = OPTDEP0,
-     &              Q        = SPHU0,        
-     &              T        = T0,
-     &              U        = UWND0,
-     &              V        = VWND0,        
-     &              ZMEU     = ZMEU0,
-     &              ZMMD     = ZMMD0,
-     &              ZMMU     = ZMMU0 )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,
+     &                 CLDTOPS  = CLDTOPS0,
+     &                 CLDF     = CLDF0,
+     &                 HKBETA   = HKBETA0,
+     &                 HKETA    = HKETA0,   
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0,
+     &                 Q        = SPHU0,        
+     &                 T        = T0,
+     &                 U        = UWND0,
+     &                 V        = VWND0,        
+     &                 ZMEU     = ZMEU0,
+     &                 ZMMD     = ZMMD0,
+     &                 ZMMU     = ZMMU0 )
 #else
-      CALL READ_A6( NYMD       = NYMD,     
-     &              NHMS       = NHMS,       
-     &              CLDTOPS    = State_Met%CLDTOPS,
-     &              CLDF       = State_Met%CLDF,     
-     &              HKBETA     = State_Met%HKBETA,   
-     &              HKETA      = State_Met%HKETA,   
-     &              MOISTQ     = State_Met%MOISTQ, 
-     &              OPTDEPTH   = State_Met%OPTDEP, 
-     &              Q          = State_Met%SPHU,        
-     &              T          = State_Met%T,           
-     &              U          = State_Met%U,          
-     &              V          = State_Met%V,        
-     &              ZMEU       = State_Met%ZMEU,     
-     &              ZMMD       = State_Met%ZMMD,       
-     &              ZMMU       = State_Met%ZMMU, 
-     &              T_FULLGRID = T_FULLGRID ) 
+         CALL READ_A6( NYMD     = NYMD,     
+     &                 NHMS     = NHMS,       
+     &                 CLDTOPS  = State_Met%CLDTOPS,
+     &                 CLDF     = State_Met%CLDF,     
+     &                 HKBETA   = State_Met%HKBETA,   
+     &                 HKETA    = State_Met%HKETA,   
+     &                 MOISTQ   = State_Met%MOISTQ, 
+     &                 OPTDEPTH = State_Met%OPTDEP, 
+     &                 Q        = State_Met%SPHU,        
+     &                 T        = State_Met%T,           
+     &                 U        = State_Met%U,          
+     &                 V        = State_Met%V,        
+     &                 ZMEU     = State_Met%ZMEU,     
+     &                 ZMMD     = State_Met%ZMMD,       
+     &                 ZMMU     = State_Met%ZMMU ) 
 #endif
 
 #elif defined( GEOS_5 )
 
-      !=================================================================      
-      ! GEOS-5: get CLDF,   CLDTOPS, CMFMC,    DQIDTMST, DQLDTMST,
-      !             DQRCON, DQRLSC,  DQVDTMST, MFXC,     MFYC,
-      !             MFZ,    MOISTQ,  OPTDEPTH, PLE,      PV,
-      !             RH,     QV,      T,        TAUCLI,   TAUCLW,
-      !             U,      V    fields
-      !=================================================================
+         !--------------------------------------------------------------
+         ! Read fields for GEOS-5 meteorology
+         !--------------------------------------------------------------
 #if   defined( APM )
-      CALL READ_A6( NYMD     = NYMD,
-     &              NHMS     = NHMS,       
-     &              CLDF     = CLDF0,
-     &              CLDTOPS  = CLDTOPS0, 
-     &              CMFMC    = CMFMC0,
-     &              DQIDTMST = DQIDTMST0, 
-     &              DQLDTMST = DQLDTMST0,
-     &              DQRCON   = DQRCON0, 
-     &              DQRLSC   = DQRLSC0,
-     &              DQVDTMST = DQVDTMST0,
-     &              DTRAIN   = DTRAIN0,
-     &              MOISTQ   = MOISTQ0,
-     &              OPTDEPTH = OPTDEP0, 
-     &              PV       = PV0,
-     &              RH       = RH0,             
-     &              Q        = SPHU0,
-     &              QL       = QL0,             
-     &              QI       = QI0,
-     &              T        = T0,               
-     &              TAUCLI   = TAUCLI0,
-     &              TAUCLW   = TAUCLW0,     
-     &              U        = UWND0,
-     &              V        = VWND0 )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,       
+     &                 CLDF     = CLDF0,
+     &                 CLDTOPS  = CLDTOPS0, 
+     &                 CMFMC    = CMFMC0,
+     &                 DQIDTMST = DQIDTMST0, 
+     &                 DQLDTMST = DQLDTMST0,
+     &                 DQRCON   = DQRCON0, 
+     &                 DQRLSC   = DQRLSC0,
+     &                 DQVDTMST = DQVDTMST0,
+     &                 DTRAIN   = DTRAIN0,
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0, 
+     &                 PV       = PV0,
+     &                 RH       = RH0,             
+     &                 Q        = SPHU0,
+     &                 QL       = QL0,             
+     &                 QI       = QI0,
+     &                 T        = T0,               
+     &                 TAUCLI   = TAUCLI0,
+     &                 TAUCLW   = TAUCLW0,     
+     &                 U        = UWND0,
+     &                 V        = VWND0 )
 #else
-      CALL READ_A6( NYMD       = NYMD,          
-     &              NHMS       = NHMS,       
-     &              CLDF       = State_Met%CLDF,          
-     &              CLDTOPS    = State_Met%CLDTOPS, 
-     &              CMFMC      = State_Met%CMFMC,        
-     &              DQIDTMST   = State_Met%DQIDTMST, 
-     &              DQLDTMST   = State_Met%DQLDTMST,  
-     &              DQRCON     = State_Met%DQRCU, 
-     &              DQRLSC     = State_Met%DQRLSAN,      
-     &              DQVDTMST   = State_Met%DQVDTMST,
-     &              DTRAIN     = State_Met%DTRAIN,     
-     &              MOISTQ     = State_Met%MOISTQ,      
-     &              OPTDEPTH   = State_Met%OPTDEP, 
-     &              PV         = State_Met%PV,              
-     &              RH         = State_Met%RH,             
-     &              Q          = State_Met%SPHU,             
-     &              QL         = State_Met%QL,             
-     &              QI         = State_Met%QI,              
-     &              T          = State_Met%T,               
-     &              TAUCLI     = State_Met%TAUCLI,      
-     &              TAUCLW     = State_Met%TAUCLW,     
-     &              U          = State_Met%U,             
-     &              V          = State_Met%V,
-     &              T_FULLGRID = T_FULLGRID          ) 
+         CALL READ_A6( NYMD     = NYMD,          
+     &                 NHMS     = NHMS,       
+     &                 CLDF     = State_Met%CLDF,          
+     &                 CLDTOPS  = State_Met%CLDTOPS, 
+     &                 CMFMC    = State_Met%CMFMC,        
+     &                 DQIDTMST = State_Met%DQIDTMST, 
+     &                 DQLDTMST = State_Met%DQLDTMST,  
+     &                 DQRCON   = State_Met%DQRCU, 
+     &                 DQRLSC   = State_Met%DQRLSAN,      
+     &                 DQVDTMST = State_Met%DQVDTMST,
+     &                 DTRAIN   = State_Met%DTRAIN,     
+     &                 MOISTQ   = State_Met%MOISTQ,      
+     &                 OPTDEPTH = State_Met%OPTDEP, 
+     &                 PV       = State_Met%PV,              
+     &                 RH       = State_Met%RH,             
+     &                 Q        = State_Met%SPHU,             
+     &                 QL       = State_Met%QL,             
+     &                 QI       = State_Met%QI,              
+     &                 T        = State_Met%T,               
+     &                 TAUCLI   = State_Met%TAUCLI,      
+     &                 TAUCLW   = State_Met%TAUCLW,     
+     &                 U        = State_Met%U,             
+     &                 V        = State_Met%V          ) 
 #endif
 
 #elif defined( GCAP ) 
 
-      !=================================================================
-      ! GCAP: read CLDF,   DETRAINE, DETRAIN, DNDE, DNDN, ENTRAIN,   
-      !            MOISTQ, OPTDEPTH, SPHU,    T=T,  UWND, UPDE,
-      !            UPDN,   VWND, and compute CLDTOPS & CLDFRC
-      !=================================================================
+         !--------------------------------------------------------------
+         ! Read fields for GCAP meteorology
+         !--------------------------------------------------------------
 #if   defined( APM )
-      CALL READ_A6( NYMD     = NYMD,
-     &              NHMS     = NHMS,         
-     &              CLDF     = CLDF0,
-     &              CLDTOPS  = CLDTOPS0, 
-     &              DETRAINE = DETRAINE0,
-     &              DETRAINN = DETRAINN0, 
-     &              DNDE     = DNDE0,
-     &              DNDN     = DNDN0,         
-     &              ENTRAIN  = ENTRAIN0,
-     &              MOISTQ   = MOISTQ0,
-     &              OPTDEPTH = OPTDEP0,
-     &              Q        = SPHU0,            
-     &              T        = T0,
-     &              U        = UWND0,            
-     &              UPDE     = UPDE0,
-     &              UPDN     = UPDN0,  
-     &              V        = VWND0 )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,         
+     &                 CLDF     = CLDF0,
+     &                 CLDTOPS  = CLDTOPS0, 
+     &                 DETRAINE = DETRAINE0,
+     &                 DETRAINN = DETRAINN0, 
+     &                 DNDE     = DNDE0,
+     &                 DNDN     = DNDN0,         
+     &                 ENTRAIN  = ENTRAIN0,
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0,
+     &                 Q        = SPHU0,            
+     &                 T        = T0,
+     &                 U        = UWND0,            
+     &                 UPDE     = UPDE0,
+     &                 UPDN     = UPDN0,  
+     &                 V        = VWND0 )
           
-      ! Create 2-D CLDFRC field from 3-D CLDF field
-      CALL MAKE_GCAP_CLDFRC( CLDF0, CLDFRC0 )
+         ! Create 2-D CLDFRC field from 3-D CLDF field
+         CALL MAKE_GCAP_CLDFRC( CLDF0, CLDFRC0 )
 
 #else
-      CALL READ_A6( NYMD       = NYMD,          
-     &              NHMS       = NHMS,         
-     &              CLDF       = State_Met%CLDF,          
-     &              CLDTOPS    = State_Met%CLDTOPS, 
-     &              DETRAINE   = State_Met%DETRAINE,  
-     &              DETRAINN   = State_Met%DETRAINN, 
-     &              DNDE       = State_Met%DNDE,          
-     &              DNDN       = State_Met%DNDN,         
-     &              ENTRAIN    = State_Met%ENTRAIN,    
-     &              MOISTQ     = State_Met%MOISTQ,
-     &              OPTDEPTH   = State_Met%OPTDEP,    
-     &              Q          = State_Met%SPHU,            
-     &              T          = State_Met%T,                
-     &              U          = State_Met%U,
-     &              UPDE       = State_Met%UPDE,          
-     &              UPDN       = State_Met%UPDN,  
-     &              V          = State_Met%V,
-     &              T_FULLGRID = T_FULLGRID )
+         CALL READ_A6( NYMD     = NYMD,          
+     &                 NHMS     = NHMS,         
+     &                 CLDF     = State_Met%CLDF,          
+     &                 CLDTOPS  = State_Met%CLDTOPS, 
+     &                 DETRAINE = State_Met%DETRAINE,  
+     &                 DETRAINN = State_Met%DETRAINN, 
+     &                 DNDE     = State_Met%DNDE,          
+     &                 DNDN     = State_Met%DNDN,         
+     &                 ENTRAIN  = State_Met%ENTRAIN,    
+     &                 MOISTQ   = State_Met%MOISTQ,
+     &                 OPTDEPTH = State_Met%OPTDEP,    
+     &                 Q        = State_Met%SPHU,            
+     &                 T        = State_Met%T,                
+     &                 U        = State_Met%U,            
+     &                 UPDE     = State_Met%UPDE,          
+     &                 UPDN     = State_Met%UPDN,  
+     &                 V        = State_Met%V )
      
-      ! Create 2-D CLDFRC field from 3-D CLDF field
-      CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
+         ! Create 2-D CLDFRC field from 3-D CLDF field
+         CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
 #endif
-      
+
 #endif
-#endif
+
+      ENDIF
 
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
@@ -1227,19 +1201,6 @@
 
 !-----------------------------------------------------------------------------
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE READ_A6( NYMD,      NHMS,   
-     &                    CLDF,      CLDMAS,    CLDTOPS,   CMFMC, 
-     &                    DETRAINE,  DETRAINN,  DNDE,      DNDN,     
-     &                    DQIDTMST,  DQLDTMST,  DQRCON,    DQRLSC,      
-     &                    DQVDTMST,  DTRAIN,    ENTRAIN,   HKBETA,    
-     &                    HKETA,     MFXC,      MFYC,      MFZ,
-     &                    MOISTQ,    OPTDEPTH,  PLE,       PV,
-     &                    Q,         QI,        QL,        RH,        
-     &                    T,         TAUCLI,    TAUCLW,    U,         
-     &                    UPDE,      UPDN,      V,         ZMEU,      
-     &                    ZMMD,      ZMMU )
-#else
       SUBROUTINE READ_A6( NYMD,      NHMS,   
      &                    CLDF,      CLDMAS,    CLDTOPS,   CMFMC, 
      &                    DETRAINE,  DETRAINN,  DNDE,      DNDN,     
@@ -1251,7 +1212,6 @@
      &                    T,         TAUCLI,    TAUCLW,    U,         
      &                    UPDE,      UPDN,      V,         ZMEU,      
      &                    ZMMD,      ZMMU,      T_FULLGRID )
-#endif
 !
 !******************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
@@ -1326,34 +1286,20 @@
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  14 Mar 2013 - M. Payer    - Added T_FULLGRID as optional argument
+!  29 Oct 2013 - R. Yantosca - Remove reference to TRANSFER_3D_NOLUMP
+!  07 Nov 2013 - R. Yantosca - Now replace any NaN's in the MOISTQ field
+!                              with zeroes.  NaN's have occured near t-pause.
 !******************************************************************************
 !
       ! References to F90 modules
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_GCTM_MOD
       USE DIAG_MOD,     ONLY : AD66,        AD67
       USE FILE_MOD,     ONLY : IOERROR
       USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use routine TRANSFER_3D_NOLUMP when we are connecting to
-      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Routine TRANSFER_3D_NOLUMP is used to correct vertical regridding
-      ! of OH for offline simulations (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D_NOLUMP
-#endif
-
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE CMN_DIAG_MOD               ! ND66, ND67
-      USE CMN_GCTM_MOD               ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS
@@ -1395,22 +1341,7 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use array T_FULLGRID when we are connecting to the
-      ! GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Array T_FULLGRID is used to correct vertical regridding of OH
-      ! for offline simulations (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
       REAL*8,  INTENT(OUT), OPTIONAL :: T_FULLGRID(IIPAR,JJPAR,LGLOB)
-#endif
 
       ! Local variables
       INTEGER                        :: I, IJLOOP, J, K, L
@@ -1821,23 +1752,12 @@
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( T ) ) CALL TRANSFER_3D( D, T )
                   NFOUND = NFOUND + 1 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-                  !-----------------------------------------------------
-                  ! %%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%
-                  !
-                  ! Do not use array T_FULLGRID when we are connecting
-                  ! to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-                  !-----------------------------------------------------
-#else
-                  !-----------------------------------------------------
-                  !          %%%%% TRADITIONAL GEOS-Chem %%%%%
-                  !
-                  ! Array T_FULLGRID is used to correct vertical regridding
-                  ! of OH for offline simulations (mpayer, 3/14/13)
-                  !-----------------------------------------------------
-                  IF ( PRESENT( T_FULLGRID) ) 
-     &                 CALL TRANSFER_3D_NOLUMP( D, T_FULLGRID )
-#endif
+
+                  ! Also make sure to archive temperature on the full vertical
+                  ! grid for offline "specialty" simulations (bmy, 10/28/13)
+                  IF ( PRESENT( T_FULLGRID ) ) THEN
+                     T_FULLGRID = D
+                  ENDIF
                ENDIF
 
             !--------------------------------------
@@ -2101,7 +2021,18 @@
       ! positives, and then divide by 8.64d7 to convert to units of
       ! [kg H2O/kg air/s].  (bmy, 4/5/99)
       !=================================================================
-      IF ( PRESENT( MOISTQ ) ) MOISTQ = -MOISTQ / 8.64d7
+      IF ( PRESENT( MOISTQ ) ) THEN
+
+         ! First replace any NaN values with zeroes.  Most NaN's in MOISTQ 
+         ! have been shown to occur near the tropopause, where there are 
+         ! no clouds, and no cloud or ice precip. (bmy, 11/7/13)
+         WHERE( MOISTQ .ne. MOISTQ ) 
+            MOISTQ = 0d0
+         ENDWHERE
+
+         ! Then convert to [kg H2O/kg air/s]
+         MOISTQ = -MOISTQ / 8.64d7
+      ENDIF
 
       !=================================================================
       ! ND66 diagnostic: A-6 fields

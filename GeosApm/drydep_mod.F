@@ -525,11 +525,6 @@
             IF ( NN == IDTACET ) THEN
 
                IF ( IS_LAND( I, J, State_Met ) ) THEN
-                  !---------------------------------------
-                  ! Prior to 9/16/13:
-                  ! Use double precision (bmy, 9/16/13)
-                  !DVZ = 0.1
-                  !---------------------------------------
                   DVZ = 0.1d0
                ELSE
                   DVZ = 0d0
@@ -786,6 +781,7 @@
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Add SUNCOS_MID to the argument list and 
 !                              populate that with State_Met%SUNCOSmid
+!  21 Oct 2013 - R. Yantosca - Bug fix: need to hold SP private in OMP loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -813,7 +809,7 @@
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, SP )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -953,6 +949,7 @@
 !  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOILNOX and Input_Opt%NUMDEP
+!  30 Oct 2013 - M. Sulprizio- Bug fix: Hold AREA_CM2 private in !$OMP loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -988,7 +985,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX )
+!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX, AREA_CM2 )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, Input_Opt%NUMDEP
 
@@ -4875,7 +4872,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'PROPNN'  !NITROOXYACETONE IN SANDER TABLE
             HSTAR(NUMDEP)   = 1d3       
-            F0(NUMDEP)      = 1d0  !Karl et al. 2010(science)
+            F0(NUMDEP)      = 1d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 119d-3
             AIROSOL(NUMDEP) = .FALSE.   
 
@@ -4885,8 +4882,8 @@
             NTRAIND(NUMDEP) = IDTRIP
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'RIP'
-            HSTAR(NUMDEP)   = 1.70d6
-            F0(NUMDEP)      = 1.0d0!Karl et al. 2010(science)
+            HSTAR(NUMDEP)   = 1.70d6    ! US EPA 2011
+            F0(NUMDEP)      = 1.0d0     ! Karl et al. 2010(science)
             XMW(NUMDEP)     = 118d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4894,11 +4891,11 @@
          ELSE IF ( N == IDTIEPOX ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTIEPOX
-            NDVZIND(NUMDEP) = NUMDEP !USE H2O2
+            NDVZIND(NUMDEP) = NUMDEP    !USE H2O2
             DEPNAME(NUMDEP) = 'IEPOX'
             HSTAR(NUMDEP)   = 1.30d8
-            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
-            XMW(NUMDEP)     = 118d-3
+            F0(NUMDEP)      = 1.0d0     ! Karl et al. 2010(science)
+            XMW(NUMDEP)     = 118d-3    ! (Eddingsaas et al., 2010)
             AIROSOL(NUMDEP) = .FALSE.
 
          !MAP

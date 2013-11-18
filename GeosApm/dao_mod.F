@@ -37,30 +37,14 @@
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use routines AIRQNT_FULLGRID, INIT_DAO, or CLEANUP_DAO when
-      ! we are connecting to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Routines AIRQNT_FULLGRID, INIT_DAO, and CLEANUP_DAO are used to
-      ! correct vertical regridding of OH for offline simulations
-      ! (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
       PUBLIC  :: AIRQNT_FULLGRID
       PUBLIC  :: CLEANUP_DAO
-      PUBLIC  :: INIT_DAO
-#endif
       PUBLIC  :: CONVERT_UNITS
       PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: GET_COSINE_SZA
       PUBLIC  :: GET_OBK
       PUBLIC  :: INTERP
+      PUBLIC  :: INIT_DAO
       PUBLIC  :: IS_LAND
       PUBLIC  :: IS_WATER
       PUBLIC  :: IS_ICE
@@ -70,23 +54,12 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use arrays AIRDEN_FULLGRID or T_FULLGRID when we are
-      ! connecting to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
       ! Arrays AIRDEN_FULLGRID and T_FULLGRID are used to correct vertical
       ! regridding of OH for offline simulations (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
       REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
-#endif
+      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID_1   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID_2   (:,:,:)
 #if   defined( APM ) 
       !=================================================================
       ! Met field arrays needed only for APM microphysics
@@ -271,7 +244,6 @@
 !                              the current time (for the PARANOX ship emissions
 !                              plume model) (R. Yantosca)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
 !  06 Mar 2012 - R. Yantosca - Now allocate TO3 for all met fields
 !  21 Nov 2012 - R. Yantosca - Removed met fields now contained in State_met
@@ -287,7 +259,6 @@
 !                              T_FULLGRID. They are required to correct vertical
 !                              regridding of OH for offline simulations.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  17 Oct 2013 - M. Sulprizio- Renamed INIT_DAO_GEOS57 to INIT_DAO_GEOSFP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -569,14 +540,6 @@
 
       END SUBROUTINE AIRQNT
 !EOC
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use routine AIRQNT_FULLGRID when we are connecting to
-      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -590,12 +553,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AIRQNT_FULLGRID
+      SUBROUTINE AIRQNT_FULLGRID( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_PEDGE_FULLGRID
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE_FULLGRID
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT_FULLGRID:
@@ -606,19 +580,30 @@
 !  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
 !  05 Sep 2013 - R. Yantosca - Prevent an out-of-bounds error in the call
 !                              to GET_AREA_CM2.
+!  23 Oct 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I,  J,  L
-      REAL*8              :: P1, P2, AREA_M2, DELP_TMP
-      REAL*8              :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
+      INTEGER :: I,  J,  L
+      REAL*8  :: P1, P2, AREA_M2, DELP_TMP
+      REAL*8  :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
 
       !=================================================================
       ! AIRQNT_FULLGRID begins here! 
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Exit if it's not a fullchem simulation
+      IF ( .not. Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+         RC = GIGC_FAILURE
+         RETURN
+      ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
@@ -628,15 +613,12 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-!----------------------------------------------------------------------------
-! Prior to 9/5/13:
-! AREA_M2 is defined on the reduced grid, so L > LLPAR will cause an 
-! out-of-bounds error.  In the "traditional" GEOS-Chem, all of the grid box
-! areas in a column are identical, so we can replace this with (I,J,1).
-! This bug was found by the GEOS-Chem unit tester. (bmy, 9/5/13)
-!         AREA_M2 = GET_AREA_M2( I, J, L )
-!----------------------------------------------------------------------------
-         AREA_M2 = GET_AREA_M2( I, J, 1 )
+         ! NOTE: AREA_M2 is defined on the reduced grid, so L > LLPAR will 
+         ! cause an out-of-bounds error.  In the "traditional" GEOS-Chem, 
+         ! all of the grid box areas in a column are identical, so we can 
+         ! replace this with (I,J,1).  This bug was found by the GEOS-Chem 
+         ! unit tester. (bmy, 9/5/13)
+         AREA_M2     = GET_AREA_M2( I, J, 1 )
                
          ! Pressure at bottom edge of grid box [hPa]
          P1          = GET_PEDGE_FULLGRID(I,J,L)
@@ -645,7 +627,7 @@
          P2          = GET_PEDGE_FULLGRID(I,J,L+1)
 
          ! Pressure difference between top & bottom edges [hPa]
-         DELP_TMP = P1 - P2
+         DELP_TMP    = P1 - P2
             
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
@@ -703,7 +685,6 @@
 
       END SUBROUTINE AIRQNT_FULLGRID
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -718,21 +699,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INTERP( NTIME0, NTIME1, NTDT, State_Met )
+      SUBROUTINE INTERP( NTIME0, NTIME1, NTDT, Input_Opt, State_Met )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YEDGE
       USE LOGICAL_MOD,        ONLY : LVARTROP
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)    :: NTIME0   ! Elapsed time [s] at start of
-                                                !  6hr step
-      INTEGER,        INTENT(IN)    :: NTIME1   ! Elapsed time [s] at current
-                                                !  time
-      INTEGER,        INTENT(IN)    :: NTDT     ! Length of dynamic timestep [s]
+      INTEGER,        INTENT(IN)    :: NTIME0     ! Elapsed time [s] at 
+                                                  !  start of outer time step
+      INTEGER,        INTENT(IN)    :: NTIME1     ! Elapsed time [s] at 
+                                                  !  current time
+      INTEGER,        INTENT(IN)    :: NTDT       ! Dynamic timestep [s]
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -790,6 +773,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  29 Oct 2013 - R. Yantosca - Now interpolate T_FULLGRID field for GEOS-FP met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -834,7 +818,7 @@
 #if   defined( GCAP )
 
       !=================================================================
-      ! Do the interpolation for GEOS-4 or GCAP met fields 
+      ! Do the interpolation for GCAP met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -971,7 +955,7 @@
 #elif defined( GEOS_4 )
 
       !=================================================================
-      ! Do the interpolation for GEOS-4 or GCAP met fields 
+      ! Do the interpolation for GEOS-4 met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1252,7 +1236,7 @@
 #elif defined( MERRA )
 
       !=================================================================
-      ! Do the interpolation for MERRA or GEOS-FP met fields 
+      ! Do the interpolation for MERRA met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1465,6 +1449,24 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      !-------------------------------------------------------
+      ! For offline simulations, we also need to interpolate
+      ! the T_FULLGRID field (temperature on full vertical
+      ! grid) from the values at time=T and time=T+3h.
+      ! (bmy, 10/29/13)
+      !-------------------------------------------------------
+      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+         DO L = 1, LGLOB
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            T_FULLGRID(I,J,L) =  T_FULLGRID_1(I,J,L)   +
+     &                         ( T_FULLGRID_2(I,J,L)   -
+     &                           T_FULLGRID_1(I,J,L) ) * TM
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDIF
 
 #if   defined( APM )
 
@@ -3764,14 +3766,6 @@
       END SUBROUTINE INIT_DAO_DERIVED
 #endif
 !EOC
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Do not use INIT_DAO or CLEANUP_DAO routines when we are connecting
-      ! to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
-      !-----------------------------------------------------------------
-#else
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -3785,11 +3779,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DAO
+      SUBROUTINE INIT_DAO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
+!     
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  26 Jun 2000 - R. Yantosca - Initial version
@@ -3828,24 +3833,23 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Now allocate met fields for MERRA
 !  20 Aug 2010 - R. Yantosca - Bug fix, now allocate REEVAPCN
-!  01 Feb 2012 - R. Yantosca - Now allocate met field arrays for GEOS-5.7.x
-!  06 Feb 2012 - R. Yantosca - Now split off array initializations into
-!                              separate routines, for clarity
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  14 Mar 2013 - M. Payer    - Now allocate AIRDEN_FULLGRID and T_FULLGRID
 !                              arrays used to correct vertical regridding of OH
 !                              for offline simulations (C. Holmes)
+!  23 Oct 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  23 Oct 2013 - R. Yantosca - Now only allocate T_FULLGRID and AIRDEN_FULLGRID
+!                              if we are using an offline (non-fullchem) sim
+!  23 Oct 2013 - R. Yantosca - Also allocate T_FULLGRID_1 and T_FULLGRID_2
+!                              which are needed for GEOS-FP met only
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: AS
-
       !=================================================================
       ! INIT_DAO begins here!
       !=================================================================
+ 
+      ! Assume success 
+      RC = GIGC_SUCCESS
 
       ! Initialze met field arrays for the given met field type
 #if   defined( GCAP )
@@ -3878,15 +3882,39 @@
       ! Initialize derived fields (used by all met data types)
       CALL INIT_DAO_DERIVED()
 
-      ! Temperature on full vertical grid 
-      ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
-      T_FULLGRID = 0d0
+      ! Only allocate arrays for non-fullchem simulations
+      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN 
 
-      ! Number density of air on full vertical grid
-      ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
-      AIRDEN_FULLGRID = 0d0
+         ! Number density of air on full vertical grid
+         ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=RC ) 
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
+         AIRDEN_FULLGRID = 0d0
+
+         ! Temperature on full vertical grid 
+         ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
+         T_FULLGRID = 0d0
+
+#if defined( GEOS_FP )
+
+         !--------------------------------------------------------------
+         ! For GEOS-FP, temperature is an I3 field.  Therefore, we must
+         ! interpolate T_FULLGRID from the time=T and time=T+3hrs.
+         !--------------------------------------------------------------
+
+         ! Temperature on full vertical grid 
+         ALLOCATE( T_FULLGRID_1( IIPAR, JJPAR, LGLOB ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID_1' )
+         T_FULLGRID_1 = 0d0
+
+         ! Temperature on full vertical grid 
+         ALLOCATE( T_FULLGRID_2( IIPAR, JJPAR, LGLOB ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID_2' )
+         T_FULLGRID_2 = 0d0
+
+#endif
+
+      ENDIF
 
       END SUBROUTINE INIT_DAO
 !EOC
@@ -3928,8 +3956,6 @@
 !  18 Aug 2010 - R. Yantosca - Now deallocate MERRA met field arrays
 !  15 Feb 2011 - R. Yantosca - Added modifications for APM from G. Luo
 !  05 Oct 2011 - R. Yantosca - Now deallocate SUNCOS_MID
-!  06 Feb 2012 - R. Yantosca - Cosmetic changes
-!  24 Feb 2012 - R. Yantosca - Now deallocate SUNCOS_MID_5hr; cosmetic changes
 !  14 Mar 2013 - M. Payer    - Now deallocate AIRDEN_FULLGRID and T_FULLGRID
 !                              arrays used to correct vertical regridding of OH
 !                              for offline simulations (C. Holmes)
@@ -3940,8 +3966,9 @@
 ! !LOCAL VARIABLES:
 !
       !=================================================================
-      ! Deallocate fields used for APM microphysics
+      ! CLEANUP_DAO begins here!
       !=================================================================
+      ! Deallocate fields used for APM microphysics
       IF ( ALLOCATED( CLDF0      ) ) DEALLOCATE( CLDF0      )
       IF ( ALLOCATED( CLDF0a     ) ) DEALLOCATE( CLDF0a     )
       IF ( ALLOCATED( CLDF0b     ) ) DEALLOCATE( CLDF0b     )
@@ -4050,8 +4077,9 @@
 
       IF ( ALLOCATED( AIRDEN_FULLGRID ) ) DEALLOCATE( AIRDEN_FULLGRID )
       IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
+      IF ( ALLOCATED( T_FULLGRID_1    ) ) DEALLOCATE( T_FULLGRID_1    )
+      IF ( ALLOCATED( T_FULLGRID_2    ) ) DEALLOCATE( T_FULLGRID_2    )
 
       END SUBROUTINE CLEANUP_DAO
 !EOC
-#endif
       END MODULE DAO_MOD

@@ -267,13 +267,35 @@
       INTEGER, PARAMETER   :: MNYEAR_VOLC = 1979  ! Min year of data
       INTEGER, PARAMETER   :: MXYEAR_VOLC = 2009  ! Max year of data
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
+!%%% out here so that we can restore it later. (bmy, 9/25/13)
+!
+!      ! Additional variables for volcano emissions (jaf, skim, 1/11/13)
+!      !    Includes extra info for eruptive & noneruptive volcanos
+!      INTEGER              :: VOLCYEAR            ! Year of data to use
+!      INTEGER              :: N_ERUP, N_NONERUP   ! # of each volc events
+!      LOGICAL              :: DO_ERUPTIVE
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Eruptive volcanoes
       REAL*8,  ALLOCATABLE :: EEV(:,:,:)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
+!%%% out here so that we can restore it later. (bmy, 9/25/13)
+!      REAL*8,  ALLOCATABLE :: VEV_ELEV(:), VEV_CLOUDTOP(:), VEV_SO2(:)
+!      INTEGER, ALLOCATABLE :: VEV_DATE(:), VEV_II(:), VEV_JJ(:)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Non-eruptive volcanoes 
       REAL*8,  ALLOCATABLE :: ENV(:,:,:)
-      
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
+!%%% out here so that we can restore it later. (bmy, 9/25/13)
+!      REAL*8,  ALLOCATABLE :: VNV_ELEV(:), VNV_SO2(:)
+!      INTEGER, ALLOCATABLE :: VNV_DATE(:), VNV_II(:), VNV_JJ(:)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ! Pointers to drydep species w/in DEPSAV
       INTEGER              :: DRYSO2,  DRYSO4,   DRYMSA,  DRYNH3  
       INTEGER              :: DRYNH4,  DRYNIT,   DRYSO4s, DRYNITs
@@ -539,6 +561,7 @@
 !                              with either TOMAS=yes or TOMAS40=yes
 !  31 May 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, State_Chm
 !                              and RC to TOMAS routine CHEM_SO4_AQ
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -606,7 +629,12 @@
 
          ! Then read monthly data files ...
          IF ( ITS_A_NEW_MONTH() ) THEN 
-            CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+! Prior to 10/23/13:
+!            CALL GET_GLOBAL_OH( MONTH, State_Met )
+!-----------------------------------------------------------------------------
+            CALL GET_GLOBAL_OH
+     &           ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
             CALL GET_GLOBAL_NO3( MONTH )
          ENDIF
 
@@ -1806,6 +1834,7 @@
 !  05 Sep 2013 - M. Sulprizio- Add modifications for cloud pH (B. Alexander)
 !   6 Sep 2013 - M. Sulprizio- Bug fix: Prevent divide-by-zero if LWC=0. Only
 !                              do aqueous SO2 chemistry when LWC>0.
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2014,7 +2043,7 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -6175,6 +6204,22 @@
       MONTH   = GET_MONTH()
       YEAR    = GET_YEAR()
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
+!%%% out here so that we can restore it later. (bmy, 9/25/13)
+!      ! Set year to use for noneruptive volcanic emissions
+!      ! (jaf, skim, 1/11/13)
+!      VOLCYEAR = YEAR
+!      VOLCYEAR = MAX( YEAR, MNYEAR_VOLC )
+!      VOLCYEAR = MIN( YEAR, MXYEAR_VOLC )
+!
+!      ! Only do eruptive emissions if current year data is available
+!      ! (jaf, skim, 1/11/13)
+!      DO_ERUPTIVE = .FALSE.
+!      IF ( ( YEAR .GE. MNYEAR_VOLC ) .AND.
+!     &     ( YEAR .LE. MXYEAR_VOLC ) ) DO_ERUPTIVE = .TRUE.
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       !=================================================================
       ! If this is a new day, read in the volcanic emissions 
       ! (jaf, bmy, 10/15/09)
@@ -6246,6 +6291,13 @@
 
          ! Read oxidants for the offline simulation only
          IF ( ITS_AN_AEROSOL_SIM ) CALL READ_OXIDANT( MONTH )
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
+!%%% out here so that we can restore it later. (bmy, 9/25/13)
+!         ! Read volcanic emission data (jaf, skim, 1/11/13)
+!         CALL READ_VOLC( MONTH, VOLCYEAR )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDIF
 
@@ -7696,11 +7748,11 @@
       TC        => State_Chm%TRACERS(:,:,:,IDTSO4)
 
       ! DTSRCE is the emission timestep in seconds
-      DTSRCE  = GET_TS_EMIS() * 60d0
+      DTSRCE    = GET_TS_EMIS() * 60d0
 
       ! Get current day of the week
       ! is it local PBL mixing scheme?
-      IS_LOCAL = .NOT. LNLPBL
+      IS_LOCAL  = .NOT. LNLPBL
 
       !=================================================================
       ! Overwrite USA    w/ EPA/NEI99 SO4 emissions       (if necessary)
@@ -8630,13 +8682,13 @@
       TC        => State_Chm%TRACERS(:,:,:,IDTNH3)
 
       ! Emission timestep [s]
-      DTSRCE  = GET_TS_EMIS() * 60d0
+      DTSRCE    = GET_TS_EMIS() * 60d0
  
       ! init
-      NH3an = 0D0
+      NH3an     = 0D0
       
       ! is it local PBL mixing scheme?
-      IS_LOCAL = .NOT. LNLPBL
+      IS_LOCAL   = .NOT. LNLPBL
 
       !=================================================================
       ! Overwrite USA with EPA/NEI NH3 emissions (if necessary)
@@ -9289,6 +9341,624 @@
 
       END FUNCTION GET_O3
 !EOC
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
+!!%%% out here so that we can restore it later. (bmy, 9/25/13)
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_volc
+!!
+!! !DESCRIPTION: Subroutine READ\_VOLC reads SO2 emissions from
+!!  volcanoes. (bmy, jaf, skim, 1/11/13)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_VOLC( INMONTH, INYEAR )
+!!
+!! !USES:
+!!
+!      ! Modules for netCDF read
+!      USE m_netcdf_io_open
+!      USE m_netcdf_io_get_dimlen
+!      USE m_netcdf_io_read
+!      USE m_netcdf_io_readattr
+!      USE m_netcdf_io_close
+!
+!      ! GEOS-Chem modules
+!      USE ERROR_MOD,     ONLY : ALLOC_ERR
+!      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
+!      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
+!      USE TIME_MOD,      ONLY : EXPAND_DATE
+!
+!      USE CMN_SIZE_MOD         ! Size parameters
+!
+!      IMPLICIT NONE
+!
+!#     include "netcdf.inc"
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER, INTENT(IN)     :: INMONTH ! Current month number (1-12)
+!      INTEGER, INTENT(IN)     :: INYEAR  ! Current 4-digit year
+!!
+!! !REMARKS:
+!!  1. Assumes that you have a netCDF library (either v3 or v4) installed on 
+!!  your system.
+!!  2. Uses most recent year of non-eruptive emissions. Eruptive emissions 
+!!  are only used if simulation year is within year of available data 
+!!
+!! !REVISION HISTORY: 
+!!  16 Jun 2012 - J. Fisher   - Initial version (replaces READ_ERUP_VOLC
+!!                              and READ_NONERUP_VOLC)
+!!  11 Jan 2013 - S. Kim      - Remove unneeded for loops
+!!                              Minor bug fixes for reading netCDF files
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      !=================================================================
+!      ! Variable declarations
+!      !=================================================================
+!
+!      ! Data arrays
+!      INTEGER              :: NEVENTS
+!      INTEGER, ALLOCATABLE :: v_date(:)
+!      INTEGER, ALLOCATABLE :: v_elevation(:)
+!      INTEGER, ALLOCATABLE :: v_cloud_column_height(:)
+!      REAL*4,  ALLOCATABLE :: v_lon(:),v_lat(:)
+!      REAL*4,  ALLOCATABLE :: v_so2(:)
+!
+!      ! Character strings
+!      CHARACTER(LEN=255) :: nc_dir             ! netCDF directory name
+!      CHARACTER(LEN=255) :: nc_file            ! netCDF file name
+!      CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
+!      CHARACTER(LEN=255) :: a_name             ! netCDF attribute name
+!      CHARACTER(LEN=255) :: a_val              ! netCDF attribute value
+!
+!      ! Arrays for netCDF start and count values
+!      INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
+!      INTEGER            :: st2d(2), ct2d(2)   ! For 2D arrays 
+!      INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
+!      INTEGER            :: st4d(4), ct4d(4)   ! For 4D arrays 
+!      INTEGER            :: st5d(5), ct5d(5)   ! For 5D arrays 
+!      INTEGER            :: st6d(6), ct6d(6)   ! For 6D arrays 
+!
+!      ! Variables for reading, etc.
+!      INTEGER            :: YYYYMMDD
+!      INTEGER            :: I0, J0
+!      INTEGER            :: AS, fId, N, n_nv, n_ev, I, J
+!      REAL*8             :: XEDGE(IIPAR+1), YEDGE(JJPAR+1)
+!
+!      !=================================================================
+!      ! Open and read data from the netCDF file
+!      !=================================================================
+!
+!      ! Set reading date
+!      YYYYMMDD = 10000 * InYear + 100 * InMonth + 1
+!
+!      ! Replace time & date tokens in the directory name
+!      nc_dir  = TRIM( DATA_DIR_1x1 ) // 'volcano_SO2_201206/YYYY'
+!      CALL Expand_Date( nc_dir, YYYYMMDD, 000000 )
+!
+!      ! Replace time & date tokens in the file name
+!      nc_file = '/Volcano_SO2_YYYYMM.nc'
+!      CALL Expand_Date( nc_file, YYYYMMDD, 000000 )
+!
+!      ! Construct complete file path
+!      nc_file = TRIM( nc_dir ) // TRIM( nc_file )
+!
+!      ! Echo output
+!      WRITE( 6, 150 ) TRIM( nc_file )
+! 150  FORMAT( '     - READ_VOLC: Reading ', a )
+!
+!      ! Open netCDF file
+!      CALL NcOp_Rd( fId, TRIM( nc_file ) )
+!
+!      ! Read the dimensions from the netCDF file
+!      CALL NcGet_DimLen( fId, 'nevents', NEVENTS )
+!
+!      ! Allocate arrays for reading
+!      ALLOCATE( v_date ( NEVENTS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_date' )
+!      v_date = 0d0
+!      
+!      ALLOCATE( v_elevation ( NEVENTS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_elevation' )
+!      v_elevation = 0d0
+!      
+!      ALLOCATE( v_cloud_column_height ( NEVENTS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_cloud_column_height' )
+!      v_cloud_column_height = 0d0
+!      
+!      ALLOCATE( v_lon ( NEVENTS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_lon' )
+!      v_lon = 0d0
+!      
+!      ALLOCATE( v_lat ( NEVENTS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_lat' )
+!      v_lat = 0d0
+!      
+!      ALLOCATE( v_so2 ( NEVENTS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_so2' )
+!      v_so2 = 0d0
+!      
+!      !----------------------------------------
+!      ! VARIABLE: date
+!      !----------------------------------------
+!
+!      ! Variable name
+!      v_name = "date"
+!
+!      ! Read date from file
+!      st1d   = (/ 1 /)
+!      ct1d   = (/ NEVENTS /)
+!      CALL NcRd( v_date, fId, TRIM(v_name), st1d, ct1d )
+!
+!      ! Read the date:long_name attribute
+!      a_name = "long_name"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Echo info to stdout
+!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+!
+!      !----------------------------------------
+!      ! VARIABLE: elevation
+!      !----------------------------------------
+!
+!      ! Variable name
+!      v_name = "elevation"
+!
+!      ! Read elevation from file
+!      st1d   = (/ 1 /)
+!      ct1d   = (/ NEVENTS /)
+!      CALL NcRd( v_elevation, fId, TRIM(v_name), st1d, ct1d )
+!
+!      ! Read the elevation:long_name attribute
+!      a_name = "long_name"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Read the elevation:units attribute
+!      a_name = "units"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Echo info to stdout
+!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+!
+!      !----------------------------------------
+!      ! VARIABLE: cloud_column_height
+!      !----------------------------------------
+!
+!      ! Variable name
+!      v_name = "cloud_column_height"
+!
+!      ! Read cloud_column_height from file
+!      st1d   = (/ 1 /)
+!      ct1d   = (/ NEVENTS /)
+!      CALL NcRd( v_cloud_column_height, fId, TRIM(v_name), st1d, ct1d )
+!
+!      ! Read the cloud_column_height:long_name attribute
+!      a_name = "long_name"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Read the cloud_column_height:units attribute
+!      a_name = "units"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Echo info to stdout
+!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+!
+!      !----------------------------------------
+!      ! VARIABLE: lon
+!      !----------------------------------------
+!
+!      ! Variable name
+!      v_name = "lon"
+!
+!      ! Read lon from file
+!      st1d   = (/ 1 /)
+!      ct1d   = (/ NEVENTS /)
+!      CALL NcRd( v_lon, fId, TRIM(v_name), st1d, ct1d )
+!
+!      ! Read the lon:long_name attribute
+!      a_name = "long_name"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Read the lon:units attribute
+!      a_name = "units"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Echo info to stdout
+!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+!
+!      !----------------------------------------
+!      ! VARIABLE: lat
+!      !----------------------------------------
+!
+!      ! Variable name
+!      v_name = "lat"
+!
+!      ! Read lat from file
+!      st1d   = (/ 1 /)
+!      ct1d   = (/ NEVENTS /)
+!      CALL NcRd( v_lat, fId, TRIM(v_name), st1d, ct1d )
+!
+!      ! Read the lat:long_name attribute
+!      a_name = "long_name"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Read the lat:units attribute
+!      a_name = "units"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Echo info to stdout
+!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+!
+!      !----------------------------------------
+!      ! VARIABLE: so2
+!      !----------------------------------------
+!
+!      ! Variable name
+!      v_name = "so2"
+!
+!      ! Read so2 from file
+!      st1d   = (/ 1 /)
+!      ct1d   = (/ NEVENTS /)
+!      CALL NcRd( v_so2, fId, TRIM(v_name), st1d, ct1d )
+!
+!      ! Read the so2:long_name attribute
+!      a_name = "long_name"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Read the so2:units attribute
+!      a_name = "units"
+!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!
+!      ! Echo info to stdout
+!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+!
+!      ! Close netCDF file
+!      CALL NcCl( fId )
+!
+!      ! Echo info to stdout
+!      WRITE( 6, 140 )
+!      WRITE( 6, 100 ) REPEAT( '%', 79 )
+!
+!      ! FORMAT statements
+! 100  FORMAT( a                                              )
+! 130  FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+! 140  FORMAT( '%% Successfully closed file!'                 )
+!
+!      !=================================================================
+!      ! Separate eruptive and non-eruptive events
+!      !=================================================================
+!
+!      ! Count event types
+!      N_NONERUP = 0
+!      N_ERUP = 0
+!      DO N = 1, NEVENTS
+!         IF ( v_elevation(N) == v_cloud_column_height(N) ) THEN
+!            N_NONERUP = N_NONERUP + 1
+!         ELSE
+!            N_ERUP = N_ERUP + 1
+!         ENDIF
+!      ENDDO
+!
+!      ! If already allocated from a previous month
+!      !    deallocate to prevent allocation error
+!      !    (skim, 1/14/13)
+!      IF ( ALLOCATED( VEV_ELEV     ) ) DEALLOCATE( VEV_ELEV     )
+!      IF ( ALLOCATED( VEV_SO2      ) ) DEALLOCATE( VEV_SO2      )
+!      IF ( ALLOCATED( VEV_DATE     ) ) DEALLOCATE( VEV_DATE     )
+!      IF ( ALLOCATED( VEV_II       ) ) DEALLOCATE( VEV_II       )
+!      IF ( ALLOCATED( VEV_JJ       ) ) DEALLOCATE( VEV_JJ       )
+!      IF ( ALLOCATED( VEV_CLOUDTOP ) ) DEALLOCATE( VEV_CLOUDTOP )
+!      IF ( ALLOCATED( VNV_ELEV     ) ) DEALLOCATE( VNV_ELEV     )
+!      IF ( ALLOCATED( VNV_SO2      ) ) DEALLOCATE( VNV_SO2      )
+!      IF ( ALLOCATED( VNV_DATE     ) ) DEALLOCATE( VNV_DATE     )
+!      IF ( ALLOCATED( VNV_II       ) ) DEALLOCATE( VNV_II       )
+!      IF ( ALLOCATED( VNV_JJ       ) ) DEALLOCATE( VNV_JJ       )
+!
+!      ! Allocate arrays for eruptive events
+!      ALLOCATE( vev_date ( N_ERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_date' )
+!      vev_date = 0d0
+!      ALLOCATE( vev_ii ( N_ERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_ii' )
+!      vev_ii = 0
+!      ALLOCATE( vev_jj ( N_ERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_jj' )
+!      vev_jj = 0
+!      ALLOCATE( vev_so2 ( N_ERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_so2' )
+!      vev_so2 = 0d0
+!      ALLOCATE( vev_elev ( N_ERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_elev' )
+!      vev_elev = 0d0
+!      ALLOCATE( vev_cloudtop ( N_ERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_cloudtop' )
+!      vev_cloudtop = 0d0
+!      
+!      ! Allocate arrays for non-eruptive events
+!      ALLOCATE( vnv_date ( N_NONERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vnv_date' )
+!      vnv_date = 0d0
+!      ALLOCATE( vnv_ii ( N_NONERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vnv_ii' )
+!      vnv_ii = 0
+!      ALLOCATE( vnv_jj ( N_NONERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vnv_jj' )
+!      vnv_jj = 0
+!      ALLOCATE( vnv_so2 ( N_NONERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vnv_so2' )
+!      vnv_so2 = 0d0
+!      ALLOCATE( vnv_elev ( N_NONERUP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vnv_elev' )
+!      vnv_elev = 0d0
+!
+!      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+!      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+!
+!      ! Re-assign values to eruptive or non-eruptive arrays
+!      ! Change the counters to start at zero (skim, 8/17/13)
+!      n_nv = 1
+!      n_ev = 1
+!      DO N = 1, NEVENTS
+!
+!         ! Determine which grid box to place the emissions
+!         I = INT( ( v_lon(N) + 180d0 - (I0 * DISIZE) )/DISIZE + 1.5d0 )
+!         J = INT( ( v_lat(N) +  90d0 - (J0 * DJSIZE) )/DJSIZE + 1.5d0 )
+!
+!         ! Only check for the date line for global simulations 
+!         ! (skim, 8/17/13)
+!#if defined( GRID4x5 ) || defined( GRID2x25 ) 
+!         ! Handle the date line correctly
+!         IF ( I > IIPAR ) I = I - IIPAR
+!#endif
+!
+!         ! Non-eruptive
+!         IF ( v_elevation(N) == v_cloud_column_height(N) ) THEN
+!            vnv_date(n_nv) = v_date(n)
+!            vnv_elev(n_nv) = v_elevation(n)
+!            vnv_so2(n_nv)  = v_so2(n)
+!            vnv_ii(n_nv)   = I
+!            vnv_jj(n_nv)   = J
+!            ! Augment non-eruptive counter
+!            n_nv = n_nv + 1
+!         ELSE
+!         ! Eruptive
+!         IF ( DO_ERUPTIVE ) THEN
+!            vev_date(n_ev)     = v_date(n)
+!            vev_elev(n_ev)     = v_elevation(n)
+!            vev_so2(n_ev)      = v_so2(n)
+!            vev_cloudtop(n_ev) = v_cloud_column_height(n)
+!            vev_ii(n_ev)       = I
+!            vev_jj(n_ev)       = J
+!            ! Augment eruptive counter
+!            n_ev = n_ev + 1
+!         ENDIF
+!         ENDIF
+!      ENDDO
+!
+!      !=================================================================
+!      ! Convert units (kt/event/day --> kg/event/s)
+!      !=================================================================
+!      IF ( DO_ERUPTIVE ) vev_so2 = vev_so2 * 1d6 / ( 24d0 * 3600d0 )
+!      vnv_so2 = vnv_so2 * 1d6 / ( 24d0 * 3600d0 )
+!
+!      END SUBROUTINE READ_VOLC
+!!EOC
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: grid_volc
+!!
+!! !DESCRIPTION: Subroutine GRID\_VOLC grids SO2 emissions from
+!!  volcanoes. (jaf, 6/17/12)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE GRID_VOLC( INDAY, INMONTH, INYEAR, State_Met )
+!!
+!! !USES:
+!!
+!      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IS_SAFE_DIV
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+!      USE CMN_SIZE_MOD         ! Size parameters
+!
+!      IMPLICIT NONE
+!
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER, INTENT(IN)        :: INDAY     ! Current day number (1-31)
+!      INTEGER, INTENT(IN)        :: INMONTH   ! Current month number (1-12)
+!      INTEGER, INTENT(IN)        :: INYEAR    ! Current 4-digit year
+!      TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology state object
+!!
+!! !REVISION HISTORY: 
+!!  17 Jun 2012 - J. Fisher   - Initial version (replaces READ_ERUP_VOLC
+!!                              and READ_NONERUP_VOLC)
+!!  11 Jan 2013 - S. Kim      - Update to use GIGC conventions
+!!  26 Jul 2013 - R. Yantosca - Add trap for OOB errors
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER            :: YYYYMMDD, N, L, L_BOT, L_TOP
+!      REAL*8             :: BOX_BOT, BOX_TOP
+!      REAL*8             :: PLUME_BOT, PLUME_TOP, DTHICK(LLPAR)
+!      REAL*8             :: CHECKSUM_NV, CHECKSUM_EV, T_DIFF
+!
+!      !=================================================================
+!      ! Set-up
+!      !=================================================================
+!
+!      ! Reset emissions to zero each day
+!      ESO2_nv = 0d0
+!      ESO2_ev = 0d0
+!      CHECKSUM_NV = 0d0
+!      CHECKSUM_EV = 0d0
+!
+!      ! Set date
+!      YYYYMMDD = 10000 * InYear + 100 * InMonth + InDay
+!
+!      !=================================================================
+!      ! Loop over non-eruptive events
+!      !=================================================================
+!
+!      DO N = 1, N_NONERUP
+!         IF ( vnv_date(N) < YYYYMMDD ) CYCLE
+!         IF ( vnv_date(N) > YYYYMMDD ) EXIT
+!
+!         ! Extra check to avoid OOB errors (bmy, 7/26/13)
+!         IF ( vnv_ii(N) < 1 .or. vnv_ii(N) > IIPAR ) CYCLE
+!         IF ( vnv_jj(N) < 1 .or. vnv_jj(N) > JJPAR ) CYCLE
+!
+!         ! For consistency check
+!         CHECKSUM_NV = CHECKSUM_NV + vnv_so2(N)
+!
+!         ! Loops over levels (non-eruptive emissions at crater elevation)
+!         BOX_BOT = 0d0
+!         DO L = 1, LLPAR
+!            BOX_TOP = State_Met%BXHEIGHT(vnv_ii(N),vnv_jj(N),L) 
+!     &                  + BOX_BOT
+!            IF ( ( vnv_elev(N) >= BOX_BOT ) .and. 
+!     &           ( vnv_elev(N)  < BOX_TOP ) ) THEN
+!               ESO2_nv(vnv_ii(N),vnv_jj(N),L) = 
+!     &            ESO2_nv(vnv_ii(N),vnv_jj(N),L) + vnv_so2(N)
+!               EXIT
+!            ENDIF
+!            BOX_BOT = BOX_TOP
+!         ENDDO 
+!         ! Above model top layer
+!         IF ( vnv_elev(N) >= BOX_TOP ) 
+!     &      ESO2_nv(vnv_ii(N),vnv_jj(N),LLPAR) = 
+!     &         ESO2_nv(vnv_ii(N),vnv_jj(N),LLPAR) + vnv_so2(N)
+!
+!      ENDDO
+!
+!      !=================================================================
+!      ! Loop over eruptive events
+!      !=================================================================
+!
+!      IF ( DO_ERUPTIVE ) THEN 
+!      DO N = 1, N_ERUP
+!         IF ( vev_date(N) < YYYYMMDD ) CYCLE
+!         IF ( vev_date(N) > YYYYMMDD ) EXIT
+!
+!         ! Extra check to avoid OOB erros (bmy, 7/26/13)
+!         IF ( vev_ii(N) < 1 .or. vev_ii(N) > IIPAR ) CYCLE
+!         IF ( vev_jj(N) < 1 .or. vev_jj(N) > JJPAR ) CYCLE
+!
+!         ! For consistency check
+!         CHECKSUM_EV = CHECKSUM_EV + vev_so2(N)
+!
+!         ! Define plume edges (eruptive emissions in top 1/3 of cloud)
+!         PLUME_TOP = vev_cloudtop(N)
+!         PLUME_BOT = PLUME_TOP - (PLUME_TOP - vev_elev(N))/3d0
+!
+!         ! Loop over levels
+!         L_BOT = 0
+!         L_TOP = 0
+!         BOX_BOT = 0d0
+!         DO L = 1, LLPAR
+!
+!            ! New box top
+!            BOX_TOP = State_Met%BXHEIGHT(vev_ii(N),vev_jj(N),L) 
+!     &                   + BOX_BOT
+!
+!            ! Default thickness (used for plumes that extend over
+!            ! multiple levels)
+!            DTHICK(L) = State_Met%BXHEIGHT(vev_ii(N),vev_jj(N),L)
+!
+!            ! Case 1: If top edge of level < bottom of plume, go to next
+!            ! level
+!            IF ( BOX_TOP <= PLUME_BOT ) THEN
+!               BOX_BOT = BOX_TOP
+!               CYCLE
+!            ENDIF
+!
+!            ! Case 2: If the plume is only in the current level
+!            IF ( BOX_BOT <= PLUME_BOT .and. BOX_TOP >= PLUME_TOP ) THEN
+!               L_BOT = L
+!               L_TOP = L
+!               DTHICK(L) = PLUME_TOP - PLUME_BOT ! Entire plume
+!               EXIT
+!            ENDIF
+!
+!            ! Case 3: The plume extends more than one level. Find the
+!            ! lowest (L_BOT) highest (L_TOP), and the thickness (DTHICK)
+!            ! in each level.
+!            IF (BOX_BOT <= PLUME_BOT .and. BOX_TOP > PLUME_BOT) THEN
+!               L_BOT = L
+!               DTHICK(L) = BOX_TOP - PLUME_BOT
+!            ELSE IF (BOX_BOT<PLUME_TOP .and. BOX_TOP>=PLUME_TOP) THEN
+!               L_TOP = L
+!               DTHICK(L) = PLUME_TOP - BOX_BOT
+!               EXIT
+!            ENDIF
+!
+!            ! New box bottom
+!            BOX_BOT = BOX_TOP
+!
+!         ENDDO
+!
+!         ! Above top model layer
+!         IF ( L_TOP == 0 ) L_TOP = LLPAR
+!
+!         ! Inject SO2 emissions into correct levels, distributed evenly
+!         ! with altitude across the plume (dthick/plume_thickness)
+!         DO L = L_BOT, L_TOP
+!            ESO2_ev(vev_ii(N),vev_jj(N),L) = 
+!     &         ESO2_ev(vev_ii(N),vev_jj(N),L) + 
+!     &         vev_so2(N) * DTHICK(L) / (PLUME_TOP-PLUME_BOT)
+!         ENDDO
+!
+!      ENDDO
+!      ENDIF
+!
+!      !=================================================================
+!      ! Consistency check
+!      !=================================================================
+!
+!      ! Non-eruptive volcanoes
+!      T_DIFF = ABS( SUM( ESO2_nv ) - CHECKSUM_NV )         
+!      IF ( IS_SAFE_DIV( T_DIFF, CHECKSUM_NV ) ) THEN
+!         IF ( T_DIFF / CHECKSUM_NV > 1d-5 ) THEN
+!            PRINT*, 'Non-eruptive volcanic SO2 emissions before ' //
+!     &              'and after regridding are not equivalent!'
+!            CALL FLUSH(6)
+!            CALL GEOS_CHEM_STOP
+!         ENDIF
+!      ENDIF
+!      IF ( DO_ERUPTIVE ) THEN 
+!      ! Non-eruptive volcanoes
+!      T_DIFF = ABS( SUM( ESO2_ev ) - CHECKSUM_EV )         
+!      IF ( IS_SAFE_DIV( T_DIFF, CHECKSUM_EV ) ) THEN
+!         IF ( T_DIFF / CHECKSUM_EV > 1d-5 ) THEN
+!            PRINT*, 'Eruptive volcanic SO2 emissions before ' //
+!     &              'and after regridding are not equivalent!'
+!            CALL FLUSH(6)
+!            CALL GEOS_CHEM_STOP
+!         ENDIF
+!      ENDIF
+!      ENDIF
+!
+!      END SUBROUTINE GRID_VOLC
+!!EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -11724,6 +12394,7 @@
 !  04 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_AN_AEROSOL_SIM
 !  30 May 2013 - S. Farina   - Allocate PSO4_SO2AQ for TOMAS
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -11828,7 +12499,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0d0
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
       ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
       ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
@@ -12001,6 +12672,20 @@
       IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )          
       IF ( ALLOCATED( VCLDF      ) ) DEALLOCATE( VCLDF      )
       IF ( ALLOCATED( COSZM      ) ) DEALLOCATE( COSZM      )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
+!%%% out here so that we can restore it later. (bmy, 9/25/13)
+!      IF ( ALLOCATED( VEV_ELEV  ) ) DEALLOCATE( VEV_ELEV  )
+!      IF ( ALLOCATED( VEV_SO2   ) ) DEALLOCATE( VEV_SO2   )
+!      IF ( ALLOCATED( VEV_DATE  ) ) DEALLOCATE( VEV_DATE  )
+!      IF ( ALLOCATED( VEV_II    ) ) DEALLOCATE( VEV_II    )
+!      IF ( ALLOCATED( VEV_JJ    ) ) DEALLOCATE( VEV_JJ    )
+!      IF ( ALLOCATED( VNV_ELEV  ) ) DEALLOCATE( VNV_ELEV  )
+!      IF ( ALLOCATED( VNV_SO2   ) ) DEALLOCATE( VNV_SO2   )
+!      IF ( ALLOCATED( VNV_DATE  ) ) DEALLOCATE( VNV_DATE  )
+!      IF ( ALLOCATED( VNV_II    ) ) DEALLOCATE( VNV_II    )
+!      IF ( ALLOCATED( VNV_JJ    ) ) DEALLOCATE( VNV_JJ    )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       END SUBROUTINE CLEANUP_SULFATE
 !EOC
