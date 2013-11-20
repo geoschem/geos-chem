@@ -351,7 +351,7 @@
       ! Copy the 05x0666 scale factors for now
       ! (skim, 5/20/12)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
-#if defined(NESTED_SE)  
+#elif defined(NESTED_SE)  
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%       NOTE: NEED TO SCALE THIS FOR GEOS-FP nested SE!         %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
