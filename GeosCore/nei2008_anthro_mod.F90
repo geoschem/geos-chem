@@ -2311,16 +2311,21 @@
 !     
       ! Reference to F90 modules
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
+      USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE LOGICAL_MOD,    ONLY : LCAC,            LBRAVO
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD         ! Size parameters
+
+      USE m_netcdf_io_open     
+      USE m_netcdf_io_read
+      USE m_netcdf_io_readattr
+      USE m_netcdf_io_close
+      USE m_netcdf_io_get_dimlen
 !
 ! !REMARKS:
-!     temporary mask: same as EPA 99
 !     
 ! !REVISION HISTORY: 
 !  20 Oct 2009 - P. Le Sager - init
@@ -2336,51 +2341,55 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4             :: ARRAY2(I1x1,J1x1,1)
-      REAL*8             :: XTAU
-      REAL*8, TARGET     :: GEOS_1x1(I1x1,J1x1,1)
-      CHARACTER(LEN=255) :: FILENAME, SNAME
+      REAL*4             :: ARRAY2(I1x1,J1x1)
+      REAL*8, TARGET     :: GEOS_1x1(I1x1,J1x1)
+      CHARACTER(LEN=255) :: FILENAME
       CHARACTER(LEN=255) :: LLFILENAME
       REAL*8, POINTER    :: INGRID(:,:) => NULL()
-
+      INTEGER            :: st2d(2), ct2d(2)
+      INTEGER            :: fId1
       !=================================================================
-      ! Mask specific to NEI2005 data
+      ! Mask specific to NEI2008 data
       !=================================================================
       
-      SNAME = 'usa.'
+      !SNAME = 'usa.'
 
       ! NEI2008 covers CANADA if we do not use CAC     
-      IF ( .NOT. LCAC ) SNAME = TRIM( SNAME ) // 'can.'
+      !IF ( .NOT. LCAC ) SNAME = TRIM( SNAME ) // 'can.'
 
       ! NEI2008 covers Mexico if we do not use BRAVO      
-      IF ( .NOT. LBRAVO ) SNAME = TRIM( SNAME ) // 'mex.'
+      !IF ( .NOT. LBRAVO ) SNAME = TRIM( SNAME ) // 'mex.'
 
       
-      FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NEI2005_200910/' // &     
-           TRIM( SNAME ) // 'mask.nei2005.geos.1x1'
+      FILENAME  = '/as/home/ktravis/' // &     
+           'usa.mask.nei2008.geos.1x1.nc'
 
       ! Echo info
       WRITE( 6, 200 ) TRIM( FILENAME )
 200   FORMAT( '     - READ_NEI2008_MASK: Reading ', a )
      
-
-      CALL READ_BPCH2( FILENAME, 'LANDMAP', 2, &
-                        0d0,      I1x1,      J1x1,     &
-                        1,        ARRAY2,    QUIET=.TRUE. ) 
-
+      ! Allocate start and count arrays
+      st2d = (/1, 1/)
+      ct2d = (/I1x1, J1x1/)
+      ! Open and read model_ready data from netCDF file - wkday
+      CALL Ncop_Rd(fId1, TRIM(FILENAME))
+      Call NcRd(ARRAY2, fId1, 'MASK',   &
+           st2d,  ct2d )        !Start andCount lat/lon
+      ! Close netCDF file
+      CALL NcCl( fId1 )
+     
       ! Cast to REAL*8 before regridding
-      GEOS_1x1(:,:,:) = ARRAY2(:,:,:)
-
+      GEOS_1x1(:,:) = ARRAY2(:,:)
+     
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) // &
-                   'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
-
+           'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
       ! Regrid from GEOS 1x1 --> current model resolution [unitless]
-      INGRID => GEOS_1x1(:,:,1)
-   
+      INGRID => GEOS_1x1(:,:)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1, &
-                          INGRID,     USA_MASK, IS_MASS=0, &
-                          netCDF=.TRUE.                   )
+           INGRID,     USA_MASK, IS_MASS=0, &
+           netCDF=.TRUE.                   )
+
       ! Free pointer
       NULLIFY( INGRID )
 
