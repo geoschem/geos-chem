@@ -104,7 +104,7 @@
       REAL*8,  ALLOCATABLE, TARGET :: BCPO_WKEND(:,:,:,:)
       REAL*8,  ALLOCATABLE, TARGET :: SO4_WKEND(:,:,:,:)
 
-  ! Shadow logical variables from Input_Opt
+      ! Shadow logical variables from Input_Opt
       LOGICAL                      :: LBRAVO
       LOGICAL                      :: LCAC
       LOGICAL                      :: LFUTURE
@@ -763,7 +763,8 @@
                  CASE ('NO','NO2','HNO2')
                    GEOS_1x1WD(:,:,L,HH) = GEOS_1x1WD(:,:,L,HH) * ScNOx  
                    GEOS_1x1WE(:,:,L,HH) = GEOS_1x1WE(:,:,L,HH) * ScNOx
-                CASE ('BENZ','TOLU','XYLE','RCHO','CH2O','ALD2','C2H6','PRPE','ALK4')
+                CASE ('BENZ','TOLU','XYLE','RCHO','CH2O','ALD2',       &
+                      'C2H6','PRPE','ALK4')
                    GEOS_1x1WD(:,:,L,HH) = GEOS_1x1WD(:,:,L,HH) * ScVOC  
                    GEOS_1x1WE(:,:,L,HH) = GEOS_1x1WE(:,:,L,HH) * ScVOC
                  CASE('BC','OC')
@@ -2188,7 +2189,8 @@
               CASE ('NO','NO2','HNO2')
                 GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScNOx  
                 GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScNOx
-             CASE ('BENZ','TOLU','XYLE','RCHO','CH2O','ALD2','C2H6','PRPE','ALK4')
+             CASE ('BENZ','TOLU','XYLE','RCHO','CH2O','ALD2','C2H6',   &
+                   'PRPE','ALK4')
                 GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScVOC  
                 GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScVOC
               CASE('BC','OC')
@@ -2273,7 +2275,7 @@
        !   CH4_WKEND(:,:,L,HH) = GEOS_NATIVEWE 
        ENDIF ! END LOOP THROUGH WKEND/WKDAY
 
-    ENDDO
+      ENDDO
     
 
       !--------------------------
