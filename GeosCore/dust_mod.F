@@ -2535,13 +2535,17 @@
 
          IF (IBIN .EQ. 1) THEN
             ! For Dust size bin 1, sum over the 4 size sub bins  tdf 8/21/09
-            AREA_d   (IBIN) = AREA_sd1(1) + AREA_sd1(1)        ! [cm^2/cm^3]
+!tdf 11/25/2013            AREA_d   (IBIN) = AREA_sd1(1) + AREA_sd1(1)        ! [cm^2/cm^3]
+            AREA_d   (IBIN) = AREA_sd1(1) + AREA_sd1(2)        ![cm^2/cm^3]
      &                      + AREA_sd1(3) + AREA_sd1(4) 
             DF_AREA_d(IBIN) = DF_AREA_sd1(1) + DF_AREA_sd1(3)  ! [1/s]
      &                      + DF_AREA_sd1(2) + DF_AREA_sd1(4)
          ELSE
             T1 = TAREA(JLOOP,3+IBIN)      ! [cm^2/cm^3]
             R1 = ERADIUS(JLOOP,3+IBIN)    ! [cm]
+!tdf 11/25/2013
+            RD_d     (IBIN) = R1
+!tdf 11/25/2013
             AREA_d   (IBIN) = T1          ! [cm^2/cm^3]
             DF_AREA_d(IBIN) = T1          ! [1/s]
      &                       / (R1/DG + 4.0D0/(V*GAMMA_H2SO4))
