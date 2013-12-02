@@ -445,6 +445,7 @@ CONTAINS
 !  04 Jan 2013 - M. Payer    - Bug fix: Use State_Met%TSKIN for ND67 surface
 !                              skin temperature diagnostic, not State_MET%TS
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
+!  02 Dec 2013 - S. Philip   - Correction for GEOS-FP boundary layer height
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -789,6 +790,17 @@ CONTAINS
     State_Met%PRECCON = State_Met%PRECCON * 86400d0
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
+
+    ! Correction for MERRA PBLH:
+    ! PBLH must be greater than a minimum mechanical mixing depth,
+    ! defined as 700*friction velocity
+    ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+       State_Met%PBLH(I,J) = max( State_Met%PBLH(I,J),          &
+                                  State_Met%USTAR(I,J) * 700d0 )
+    ENDDO
+    ENDDO
 
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
