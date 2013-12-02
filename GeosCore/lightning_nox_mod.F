@@ -1258,7 +1258,7 @@
 #if   defined( MERRA )
       MODELNAME = 'merra'
 #elif defined( GEOS_FP )
-      MODELNAME = 'geos5.7.2'
+      MODELNAME = 'geosfp'
 #elif defined( GEOS_5 )
       ! GEOS-5 convection scheme changed in GCM post 9/1/2008
       IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
@@ -1278,16 +1278,21 @@
 !%%%     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' // 
 !%%%     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 
-      FILENAME = '/as/home/skim/Code_Development/'                //
-     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' //
-     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()           //
-     &        '.temp'
+!%%%      FILENAME = '/as/home/skim/Code_Development/'                //
+!%%%     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' //
+!%%%     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()           //
+!%%%     &        '.temp'
+
+!%%% UPDATE FOR SEAC4RS RERUN (jaf, 12/2/13)
+      FILENAME = 
+     &        'lightning_NOx_201311/OTD-LIS-Local-Redist.CTH.v5.' // 
+     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Prefix directory to file name
-#if !defined( GEOS_FP )
+!%%%#if !defined( GEOS_FP )
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-#endif
+!%%%#endif
 
       ! For GEOS-57 nested grids, append a suffix to denote either
       ! SEAC4RS or the China domain (skim, 5/29/12)

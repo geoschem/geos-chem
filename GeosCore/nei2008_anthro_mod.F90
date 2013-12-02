@@ -2363,8 +2363,9 @@
       !IF ( .NOT. LBRAVO ) SNAME = TRIM( SNAME ) // 'mex.'
 
       
-      FILENAME  = '/as/home/ktravis/' // &     
-           'usa.mask.nei2008.geos.1x1.nc'
+!%%%      FILENAME  = '/as/home/ktravis/' // &     
+      FILENAME  = TRIM( DATA_DIR_1x1) // &
+           'NEI2008_201307/usa.mask.nei2008.geos.1x1.nc'
 
       ! Echo info
       WRITE( 6, 200 ) TRIM( FILENAME )
