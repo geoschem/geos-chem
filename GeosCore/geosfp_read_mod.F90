@@ -455,6 +455,7 @@ CONTAINS
     ! Scalars
     INTEGER            :: fId                ! netCDF file ID
     INTEGER            :: X, Y, T            ! netCDF file dimensions
+    INTEGER            :: I, J               ! Do-loop indices
     INTEGER            :: time_index         ! Read this time slice of data
     CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
     CHARACTER(LEN=255) :: nc_file            ! netCDF file name
