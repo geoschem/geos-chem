@@ -727,6 +727,13 @@ CONTAINS
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
     CALL Transfer_2d( Q, State_Met%RADSWG )
 
+#if !defined( GEOS572_FILES )
+    ! Read TO3
+    v_name = "TO3"
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, State_Met%TO3 )
+#endif
+
     ! Read TROPPT
     v_name = "TROPPT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )

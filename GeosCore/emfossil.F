@@ -20,6 +20,8 @@
       USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
       !USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD29,   AD32_an,  AD36
+      USE DIAG49_MOD,         ONLY : DO_SAVE_DIAG49
+      USE DIAG_MOD,           ONLY : EMISS_ANTHR
       USE EDGAR_MOD,          ONLY : GET_EDGAR_CO,     GET_EDGAR_NOx
       USE EDGAR_MOD,          ONLY : GET_EDGAR_TODN
       USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO,  GET_EUROPE_MASK
@@ -29,6 +31,8 @@
       USE C2H6_MOD,           ONLY : GET_C2H6_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
+      USE NEI2008_ANTHRO_MOD, ONLY : GET_NEI2008_ANTHRO
+      USE NEI2008_ANTHRO_MOD, ONLY : NEI08_MASK => USA_MASK
       USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
       USE RCP_MOD,            ONLY : GET_RCP_EMISSION
                               
@@ -39,7 +43,7 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TRACERID_MOD,       ONLY : IDENO,    IDEO3,    IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTCO,    IDTHNO3
-      USE TRACERID_MOD,       ONLY : IDTC2H6,  IDTNO2
+      USE TRACERID_MOD,       ONLY : IDTC2H6,  IDTNO2, IDTNO
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 
@@ -149,6 +153,9 @@
 !  18 Apr 2013 - M. Payer    - Convert NOx using XNUMOL for NO2 since original
 !                              NOx emissions are in mass units of NO2
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  24 Oct 2012 - C. Keller   - Use localtime instead of UTC to derive NOx 
+!                              diurnal scale factors.
+!  16 Feb 2013 - K. Travis   - Use NEI2008
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
@@ -161,13 +168,14 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: WEEKDAY
-      INTEGER :: L, LL, K, DOW_LT, HOUR
-      REAL*8  :: TODX, DTSRCE, AREA_CM2           
+      INTEGER :: L,     LL,      K        
+      INTEGER :: DOW,   DOW_LT,  HOUR,   HOURNEI
+      REAL*8  :: TODX,  DTSRCE,  AREA_CM2
       REAL*8  :: EMX(NOXLEVELS)  
       REAL*8  :: XEMISR
       REAL*8  :: XEMISRN(NOXLEVELS)
       REAL*8  :: BRAVO, EPA_NEI, EMEP,   EDGAR, STREETS
-      REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
+      REAL*8  :: CAC,   SHIP,    VISTAS, NEI05, NEI08
       REAL*8  :: RETRO
       REAL*8  :: C2H6_ANTHRO
       ! 10/24/12, ckeller: NOX diurnal scale factors fix:
@@ -190,6 +198,7 @@
       LOGICAL :: LVISTAS
       LOGICAL :: LICARTT
       LOGICAL :: LNEI05
+      LOGICAL :: LNEI08
       LOGICAL :: LRETRO
       LOGICAL :: LHIST
       LOGICAL :: LRCP
@@ -216,6 +225,7 @@
       LVISTAS         = Input_Opt%LVISTAS
       LICARTT         = Input_Opt%LICARTT
       LNEI05          = Input_Opt%LNEI05
+      LNEI08          = Input_Opt%LNEI08
       LRETRO          = Input_Opt%LRETRO
       LHIST           = Input_Opt%LHIST
       LRCP            = Input_Opt%LRCP
@@ -233,6 +243,9 @@
       ! GMT hour of day
       HOUR            = GET_HOUR()
 
+      ! GMT hour of day
+      HOURNEI         = GET_HOUR() + 1 ! to go from 1-24 (krt, 5/26/13)
+      
       ! Determine if we should use weekday or weekend NEI
       ! emissions at grid box (I,J,L).  Since NEI is over
       ! the US, then weekend is Sat/Sun.
@@ -372,7 +385,12 @@
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN 
             
                   IF ( LL == 1 ) THEN
-                  
+                  ! Determine if we should use weekday or weekend NEI
+                  ! emissions at grid box (I,J,L).  Since NEI is over
+                  ! the US, then weekend is Sat/Sun.
+                     DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                     WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
                      ! Get EPA emissions for NOx 
                      EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
 
@@ -400,6 +418,11 @@
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
 
                   IF ( LL == 1 ) THEN
+                  ! Determine if we should use weekday or weekend NEI
+                  ! emissions at grid box (I,J,L).  Since NEI is over
+                  ! the US, then weekend is Sat/Sun.
+                     DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                     WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
                      ! Get VISTAS emissions for NOx 
                      VISTAS = GET_VISTAS_ANTHRO( I, J, NN, WEEKDAY )
@@ -549,7 +572,12 @@
 
                ! If we are over the USA and CAN/MEX
                IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
-
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+                  DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                  WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+           
                   ! Get EPA emissions for NOx
                   NEI05 = GET_NEI2005_ANTHRO( I, J, LL, NN, WEEKDAY,
      &                                        MOLEC_CM2_s = .TRUE.)
@@ -564,7 +592,28 @@
                ENDIF
 
             ENDIF
-
+            
+            IF ( LNEI08 .and. .not. LHIST ) THEN
+               ! Flag for weekday or weekend for NEI/VISTAS emissions
+               ! If we are over the USA and CAN/MEX
+               IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+                  DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                  WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+               ! Get EPA emissions for NOx; emissions are already 
+               ! in MOLEC_CM2_s, so set to .FALSE.
+                  IF ( LL .le. 3 ) THEN 
+                     NEI08 = GET_NEI2008_ANTHRO( I, J, LL, HOURNEI, NN,
+     &                    WEEKDAY )
+               ! Replace GEIA with EPA/NEI emissions up to level 3
+                     EMX(LL) = NEI08 *
+     &                    ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                  ENDIF
+               ENDIF
+               
+            ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! Prior to 2/24/12:
 ! Comment this out and leave this here, in case we have to re-install it
@@ -652,8 +701,19 @@
             ! ND36 = save anthro emissions in [molec/cm2]
             ! and then convert to [molec/cm2/s] in DIAG3.F
             IF ( ND36 > 0 ) THEN
-               AD36(I,J,N) = AD36(I,J,N) +
-     &            ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
+               IF ( LNEI08 ) THEN
+                  AD36(I,J,N) = AD36(I,J,N) +
+     &              ( EMX(LL) * XNUMOL(IDTNO) / AREA_CM2 )
+               ELSE
+                  AD36(I,J,N) = AD36(I,J,N) +
+     &                 ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
+            
+               ENDIF
+            ENDIF
+            IF ( DO_SAVE_DIAG49 ) THEN               
+               EMISS_ANTHR(I,J,N) = EMISS_ANTHR(I,J,N) +
+     &            ( EMX(LL) * XNUMOL(NN) / (DTSRCE * AREA_CM2 ))
+
             ENDIF    
          ENDDO     
 
@@ -804,7 +864,11 @@
 
             ! If we are over the USA ...
             IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
-         
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )         
                ! Get EPA/NEI emissions (and apply time-of-day factor)
                EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
 
@@ -940,6 +1004,13 @@
                
                ! Loop over all of the emission levels
                ! For now lump levels together (phs, 10/20/09)
+               
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+               
                DO LL = 1, NOXLEVELS 
                
                   ! Get EPA/NEI emissions               
@@ -967,6 +1038,40 @@
             ENDIF              
          ENDIF
 
+       IF ( LNEI08 ) THEN
+
+            ! If we are over the USA ...
+            IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
+               ! Flag for weekday or weekend for NEI/VISTAS emissions
+
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+             
+               ! Loop over all of the emission levels
+               ! For now lump levels together (phs, 10/20/09)
+               DO LL = 1, NOXLEVELS 
+                  IF ( LL .le. 3 ) THEN !NEI08 has 3 levels
+                     ! Get EPA/NEI emissions               
+                     NEI08 = GET_NEI2008_ANTHRO( I, J, LL,HOURNEI,NN,
+     &                    WEEKDAY  )
+
+                     ! -1 indicates tracer NN does not have EPA/NEI emissions
+                     IF ( NEI08 < 0d0 )  EXIT
+
+                     ! Convert from molec/cm2/s to kg/box/timestep in order
+                     ! to be in the proper units for EMISRR array
+                     IF ( EPA_NEI > -1d0 ) THEN
+                        EMX(LL)  = NEI08 * ( DTSRCE * AREA_CM2 ) 
+     &                       / XNUMOL(NN)
+                     ENDIF
+                  ENDIF
+               ENDDO
+            ENDIF           
+         ENDIF
+
          ! Account for CO production from anthropogenic VOC's
          ! -> For Tagged CO, enhance CO production by 18.5%
          ! -> For full-chem, enhance CO production by 2%
@@ -979,15 +1084,15 @@
          IF ( ITS_A_TAGCO_SIM ) THEN           
             IF ( LICARTT ) THEN
                IF ( GET_USA_MASK(I,J) > 0.d0 ) THEN
-                  IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0
+                  IF ( NN == IDTCO ) EMX(:) = EMX(:) * 1.39d0
                ELSE
-                  IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.19d0
+                  IF ( NN == IDTCO ) EMX(:) = EMX(:) * 1.19d0
                ENDIF
             ELSE
-               IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.19d0
+               IF ( NN == IDTCO ) EMX(:) = EMX(:) * 1.19d0
             ENDIF
          ELSE
-            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
+            IF ( NN == IDTCO ) EMX(:) = EMX(:) * 1.02d0
          ENDIF
 
 
@@ -1036,22 +1141,47 @@
          !--------------------------------------------------------------
          ! Store in EMISRR array and archive diagnostics
          !--------------------------------------------------------------
-         EMISRR(I,J,N) = EMISRR(I,J,N) + EMX(1) * XNUMOL(NN) / DTSRCE
+!--- Prior to (gvinken, 11/16/10). Emissions already present in EMISRR
+!     no longer get overwritten.
+!         EMISRR(I,J,N) = EMX(1) * XNUMOL(NN) / DTSRCE
+!         EMISRR(I,J,N) = EMISRR(I,J,N) + EMX(1) * XNUMOL(NN) / DTSRCE
+
+         !fp
+         !with NEI08 we need to loop on all levels
+         !for now put all emissions in surface layer (should be ok since we are treated NOx, SOx separatly) 
+
+         DO LL = 1, NOXLEVELS
+            EMISRR(I,J,N) = EMISRR(I,J,N) + 
+     &                      EMX(LL) * XNUMOL(NN) / DTSRCE
+         ENDDO
+
+         !fp 
+         ! this need to be changed to account for injections above surface layer
 
          ! ND29 = CO source diagnostic... 
          ! store as [molec/cm2/s] in AD29(:,:,1)
          IF ( ND29 > 0 .and. NN == IDTCO ) THEN
-            AD29(I,J,1) = AD29(I,J,1) +
-     &           ( EMX(1) * XNUMOL(NN) / ( DTSRCE * AREA_CM2 ) ) 
+            DO LL = 1, NOXLEVELS
+               AD29(I,J,1) = AD29(I,J,1) +
+     &              ( EMX(LL) * XNUMOL(NN) / ( DTSRCE * AREA_CM2 ) ) 
+            ENDDO
          ENDIF
 
          ! ND36 = Anthro source diagnostic...store as [molec/cm2] 
          ! and convert to [molec/cm2/s] in DIAG3.F
          IF ( ND36 > 0 ) THEN
-            AD36(I,J,N) = AD36(I,J,N) + 
-     &           ( EMX(1) * XNUMOL(NN) / AREA_CM2 ) 
+            DO LL = 1, NOXLEVELS
+               AD36(I,J,N) = AD36(I,J,N) + 
+     &              ( EMX(LL) * XNUMOL(NN) / AREA_CM2 ) 
+            ENDDO
          ENDIF    
-
+         IF ( DO_SAVE_DIAG49 ) THEN
+            DO LL = 1, NOXLEVELS
+               EMISS_ANTHR(I,J,N) = EMISS_ANTHR(I,J,N) +
+     &              ( EMX(LL) * XNUMOL(NN) / (DTSRCE * AREA_CM2 ))
+            ENDDO
+         ENDIF
+         
       ENDIF
 
       !=================================================================

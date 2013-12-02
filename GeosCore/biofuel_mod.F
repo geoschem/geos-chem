@@ -1091,6 +1091,11 @@
 !     &                    (NN /= IDTHAC ) .and. (NN /= IDTNAP ) ) THEN
 !----------------------------------------------------------------------------
      &                    (NN /= IDTHAC ) ) THEN
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+                        DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                        WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
                         ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
                         EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )

@@ -6514,10 +6514,13 @@
       USE GRID_MOD,       ONLY     : GET_XOFFSET, GET_YOFFSET
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
+      USE NEI2008_ANTHRO_MOD, ONLY : GET_NEI2008_ANTHRO
+      USE NEI2008_ANTHRO_MOD, ONLY : NEI08_MASK => USA_MASK
       USE PBL_MIX_MOD,    ONLY     : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
       USE PRESSURE_MOD,   ONLY     : GET_PEDGE
       USE TIME_MOD,       ONLY     : GET_TS_EMIS,      GET_DAY_OF_YEAR 
       USE TIME_MOD,       ONLY     : GET_DAY_OF_WEEK_LT
+      USE TIME_MOD,           ONLY : GET_HOUR
       USE TRACERID_MOD,   ONLY     : IDTSO2
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6579,6 +6582,7 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
+!  26 Jun 2013 - K. Travis   - Added NEI08 emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6592,7 +6596,7 @@
 !
       LOGICAL                :: WEEKDAY, IS_LOCAL
       INTEGER                :: I, J, K, L, NTOP
-      INTEGER                :: DOW_LT
+      INTEGER                :: DOW_LT,  IH
       REAL*8                 :: SO2(LLPAR)
       REAL*8                 :: DTSRCE,      SO2SRC
       REAL*8                 :: TSO2,        FEMIS(LLPAR)
@@ -6608,7 +6612,7 @@
 
       ! For fields from Input_Opt
       LOGICAL                :: LHIST,    LNLPBL, LBRAVO, LNEI99  
-      LOGICAL                :: LSHIPSO2, LCAC,   LNEI05
+      LOGICAL                :: LSHIPSO2, LCAC,   LNEI05, LNEI08
       INTEGER                :: N_TRACERS
       REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -6641,6 +6645,7 @@
       LSHIPSO2  = Input_Opt%LSHIPSO2
       LCAC      = Input_Opt%LCAC
       LNEI05    = Input_Opt%LNEI05
+      LNEI08    = Input_Opt%LNEI08
       N_TRACERS = Input_Opt%N_TRACERS
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
@@ -6649,6 +6654,9 @@
 
       ! DTSRCE is the emission timestep in seconds
       DTSRCE    = GET_TS_EMIS() * 60d0
+
+      ! Get hour
+      IH        = GET_HOUR()+1 !to increment from 1-24
 
       ! is it local PBL mixing scheme?
       IS_LOCAL  = ( .NOT. LNLPBL )
@@ -7042,6 +7050,11 @@
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
                ! Determine if we should use weekday or weekend NEI
                ! emissions at grid box (I,J,L).  Since NEI is over
@@ -7062,8 +7075,29 @@
             ENDIF
             ENDIF
 
-         ENDDO
+           ! updated to NEI08
+            IF ( LNEI08 .and. .not. LHIST ) THEN
+!eml]
+            IF ( NEI08_MASK( I, J ) > 0d0  ) THEN
 
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
+               ! Read USA SO2 emissions in [molec/cm2/s]
+               DO L = 1, NOXLEVELS
+                  IF ( L .gt. 3 ) CYCLE
+                 AN = GET_NEI2008_ANTHRO( I, J, L, IH, IDTSO2, WEEKDAY )
+
+                 ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s]
+                 SO2an(I,J,L) =  AN * AREA_CM2 / XNUMOL(IDTSO2)
+               ENDDO
+            ENDIF
+            ENDIF
+
+         ENDDO
 #if defined( DEVEL )
          ! kg/m2/s
          State_Chm%TRAC_TEND(:,J,1,IDTSO2) = 
@@ -7206,6 +7240,8 @@
       USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
+      USE NEI2008_ANTHRO_MOD, ONLY : GET_NEI2008_ANTHRO
+      USE NEI2008_ANTHRO_MOD, ONLY : NEI08_MASK => USA_MASK
       USE DIAG_MOD,           ONLY : AD13_SO4_an,     AD13_SO4_bf
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
@@ -7217,6 +7253,7 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
+      USE TIME_MOD,           ONLY : GET_HOUR
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -7267,6 +7304,7 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
+!  26 Jun 2013 - K. Travis   - Added NEI08 emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7279,7 +7317,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                :: WEEKDAY, IS_LOCAL
-      INTEGER                :: I, J, K, L, DOW_LT, NTOP
+      INTEGER                :: I, J, K, L, IH, DOW_LT, NTOP
       REAL*8                 :: SO4(LLPAR), DTSRCE  
       REAL*8                 :: TSO4,       FEMIS(LLPAR)
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
@@ -7290,7 +7328,7 @@
 
       ! For fields from Input_Opt
       LOGICAL                :: LHIST,  LNLPBL, LBRAVO  
-      LOGICAL                :: LNEI99, LCAC,   LNEI05
+      LOGICAL                :: LNEI99, LCAC, LNEI05, LNEI08
       INTEGER                :: N_TRACERS
       REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -7312,7 +7350,8 @@
       LBRAVO    = Input_Opt%LBRAVO
       LNEI99    = Input_Opt%LNEI99
       LCAC      = Input_Opt%LCAC
-      LNEI05    = Input_Opt%LNEI05
+      LNEI05    = Input_Opt%LNEI05      
+      LNEI08    = Input_Opt%LNEI08
       N_TRACERS = Input_Opt%N_TRACERS
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
@@ -7322,7 +7361,9 @@
       ! DTSRCE is the emission timestep in seconds
       DTSRCE    = GET_TS_EMIS() * 60d0
 
-      ! Get current day of the week
+      ! Get hour
+      IH        = GET_HOUR() + 1 ! to increment from 1-24
+   
       ! is it local PBL mixing scheme?
       IS_LOCAL  = .NOT. LNLPBL
 
@@ -7492,6 +7533,31 @@
                ENDIF
             ENDIF
 
+             IF ( LNEI08 .and. .not. LHIST ) THEN
+!eml]          
+               IF ( NEI08_MASK( I, J) < 0d0 ) THEN
+
+                  ! Determine if we should use weekday or weekend NEI
+                  ! emissions at grid box (I,J,L).  Since NEI is over
+                  ! the US, then weekend is Sat/Sun.
+                  DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                  WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+                
+                  ! Read SO4 emissions in [g/cm2/s]
+                  DO L = 1, NOXLEVELS
+
+                     IF ( L .gt. 3 )  CYCLE
+
+                     EPA_AN    = GET_NEI2008_ANTHRO( I, J, L, IH, 
+     &                                               IDTSO4, WEEKDAY )
+
+                     ! convert to kg/box
+                     SO4an(I,J,L) = EPA_AN * AREA_CM2 / 1d3
+                  ENDDO
+                  SO4bf(I,J)   = 0d0
+                  
+               ENDIF
+            ENDIF
 
             !=============================================================
             ! Do PBL mixing of emissions
@@ -8106,6 +8172,8 @@
       USE CAC_ANTHRO_MOD,     ONLY : GET_CAC_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
+      USE NEI2008_ANTHRO_MOD, ONLY : GET_NEI2008_ANTHRO
+      USE NEI2008_ANTHRO_MOD, ONLY : NEI08_MASK => USA_MASK
       USE DIAG_MOD,           ONLY : AD13_NH3_an, AD13_NH3_bb
       USE DIAG_MOD,           ONLY : AD13_NH3_bf, AD13_NH3_na
       USE GIGC_ErrCode_Mod
@@ -8117,6 +8185,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
+      USE TIME_MOD,           ONLY : GET_HOUR
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TRACERID_MOD,       ONLY : IDTNH3
 
@@ -8177,12 +8246,13 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                :: WEEKDAY,  IS_LOCAL
-      INTEGER                :: I, J, L,  K, NTOP, DOW_LT
+      INTEGER                :: I, J, L, K, NTOP, DOW_LT, IH
       REAL*8                 :: DTSRCE,   AREA_CM2    
       REAL*8                 :: CAC_AN,   EPA_AN,  EPA_BF
       REAL*8                 :: FEMIS(LLPAR), NH3(LLPAR)
       REAL*8                 :: NH3an(IIPAR,JJPAR,NOXLEVELS)
       REAL*8                 :: NEI2005(IIPAR,JJPAR,NOXLEVELS)
+      REAL*8                 :: NEI2008(IIPAR,JJPAR,NOXLEVELS)
       REAL*8                 :: NH3bf(IIPAR,JJPAR)
       REAL*8                 :: TEMPEMISS(NOXLEVELS)
       
@@ -8219,7 +8289,10 @@
 
       ! Emission timestep [s]
       DTSRCE    = GET_TS_EMIS() * 60d0
- 
+      
+      ! Get hour
+      IH        = GET_HOUR() + 1 ! to increment form 1-24
+    
       ! init
       NH3an     = 0D0
       
@@ -8330,6 +8403,11 @@
             ! If we are using NEI 2005 over North America
             IF ( LNEI05 ) THEN
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
              
                ! Determine if we should use weekday or weekend NEI
                ! emissions at grid box (I,J,L).  Since NEI is over
@@ -8351,8 +8429,26 @@
             ENDIF
             ENDIF
 
-
-
+            ! If we are using NEI 2008 over North America
+            IF ( LNEI08 ) THEN
+            IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+               
+               DO L = 1, NOXLEVELS 
+                  IF ( L .gt. 3 ) CYCLE
+                  ! Read NH3 anthro emissions in [molec NH3/cm2/s]                  
+                  EPA_AN = GET_NEI2008_ANTHRO( I, J, L, IH, IDTNH3, 
+     &                                   WEEKDAY )
+     
+                  ! Convert from [molec NH3/cm2/s] to [kg NH3/box/sec]
+                  NH3an(I,J,L) = EPA_AN * AREA_CM2 / XNUMOL(IDTNH3)
+               ENDDO
+            ENDIF
+            ENDIF
             !=============================================================
             ! Do PBL mixing of all types of NH3 emission [kg/box/s]
             !=============================================================
@@ -11152,7 +11248,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                       :: I, J, DAY_NUM
+      INTEGER                       :: I, J, DAY_NUM, WEEKDAY
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: AREA_CM2, EPA_NEI, XTAU
       REAL*8                        :: XNUMOL(Input_Opt%N_TRACERS)

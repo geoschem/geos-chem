@@ -2788,7 +2788,15 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEC2H2   = NEMANTHRO
          ENDIF
-         
+         ! FOR NEI08, krt, 6/12/13
+         IF ( IDTNO2 > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDENO2    = NEMANTHRO
+         ENDIF
+         IF ( IDTHNO2 > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEHNO2   = NEMANTHRO
+         ENDIF
          !%%%%%%bmy add these here%%%%%%%%%%
 
          ! For now, comment this out, as RETRO does not have RCHO emissions
@@ -2864,6 +2872,8 @@
       ! an F90 module somehow.  Think about this later. (bmy, 11/12/02)
       !=================================================================
       IF ( IDENO   /= 0 ) IDEMS(IDENO  ) = IDTNO
+      IF ( IDENO2  /= 0 ) IDEMS(IDENO2 ) = IDTNO2
+      IF ( IDEHNO2 /= 0 ) IDEMS(IDEHNO2 ) = IDTHNO2
       IF ( IDECO   /= 0 ) IDEMS(IDECO  ) = IDTCO
       IF ( IDEPRPE /= 0 ) IDEMS(IDEPRPE) = IDTPRPE
       IF ( IDEC3H8 /= 0 ) IDEMS(IDEC3H8) = IDTC3H8
@@ -2923,6 +2933,8 @@
          WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
          WRITE( 6, 115 ) '-----------------------------------------'
          WRITE( 6, 120 ) 'IDENO   ', IDENO
+         WRITE( 6, 120 ) 'IDENO2  ', IDENO2
+         WRITE( 6, 120 ) 'IDEHNO2  ', IDEHNO2
          WRITE( 6, 120 ) 'IDECO   ', IDECO
          WRITE( 6, 120 ) 'IDEPRPE ', IDEPRPE
          WRITE( 6, 120 ) 'IDEC3H8 ', IDEC3H8
@@ -4829,6 +4841,8 @@
       NEMANTHRO = 0
       NEMBIOG   = 0
       IDENO     = 0
+      IDENO2    = 0 !krt, 6/12/13
+      IDEHNO2   = 0 !krt, 6/12/13
       IDEO3     = 0
       IDECO     = 0
       IDEPRPE   = 0
