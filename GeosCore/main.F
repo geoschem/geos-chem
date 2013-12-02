@@ -2142,6 +2142,12 @@
             ELSE
                USE_O3_FROM_MET = .FALSE.
             ENDIF
+#elif defined( GEOS_FP )
+ 
+            ! For GEOS-FP met, always use the O3 columns
+            ! from the A1 met field files (bmy, 11/14/13)
+            USE_O3_FROM_MET = .TRUE.
+ 
 #else
                
             ! When TOMS data is not available, then we will use
