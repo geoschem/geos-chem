@@ -446,6 +446,7 @@ CONTAINS
 !                              skin temperature diagnostic, not State_MET%TS
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !  02 Dec 2013 - S. Philip   - Correction for GEOS-FP boundary layer height
+!  04 Dec 2013 - R. Yantosca - Now comment out GEOS-FP BL height correction
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -791,17 +792,27 @@ CONTAINS
     State_Met%PRECCON = State_Met%PRECCON * 86400d0
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
-
-    ! Correction for MERRA PBLH:
-    ! PBLH must be greater than a minimum mechanical mixing depth,
-    ! defined as 700*friction velocity
-    ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
-       State_Met%PBLH(I,J) = max( State_Met%PBLH(I,J),          &
-                                  State_Met%USTAR(I,J) * 700d0 )
-    ENDDO
-    ENDDO
+    
+    !----------------------------------------------------------------------
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% NOTE: After further investigation, we don't really need the    %%%
+    !%%% PBL mixing height correction, as the GEOS-FP PBL heights are   %%%
+    !%%% already very high.  Also, adding this fix only changes the PBL %%%
+    !%%% heights over Antarctica by up to 300 meters.  Therefore we     %%%
+    !%%% shall comment out this fix.  If you wish to re-activate it,    %%%
+    !%%% then you may uncomment this code.  (bmy, 12/4/13)              %%%
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !! Correction for MERRA PBLH:
+    !! PBLH must be greater than a minimum mechanical mixing depth,
+    !! defined as 700*friction velocity
+    !! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
+    !DO J = 1, JJPAR
+    !DO I = 1, IIPAR
+    !   State_Met%PBLH(I,J) = max( State_Met%PBLH(I,J),          &
+    !                              State_Met%USTAR(I,J) * 700d0 )
+    !ENDDO
+    !ENDDO
+    !----------------------------------------------------------------------
 
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
