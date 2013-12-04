@@ -208,6 +208,9 @@
 !  04 Sep 2013 - R. Yantosca - Make ND44 output consistent w/ modifications in
 !                              GeosCore/gamap_mod.F.
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  03 Dec 2013 - R. Yantosca - Change unit of PBL height to meters, this used
+!                              to be hPa in GEOS-1, GEOS-STRAT, GEOS-3, which
+!                              are no longer supported.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4089,11 +4092,11 @@
 !  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_ND67
 !  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_ND67
 !  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_ND67
-!  (9 ) PBL    : GMAO PBL depth                   : mb       : SCALE_ND67
+!  (9 ) PBL    : GMAO PBL depth                   : m        : SCALE_ND67
 !  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_ND67
 !  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_ND67
 !  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_ND67
-!  (13) PS-PBL : GMAO Boundary Layer Top Pressure : mb       : SCALEDYN
+!  (13) PS-PBL : GMAO Boundary Layer Top Pressure : hPa      : SCALEDYN
 !  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_ND67
 !  (15) PHIS   : GMAO Geopotential Heights        : m        : SCALED 
 !  (16) CLTOP  : GMAO Cloud Top Height            : levels   : SCALE_A6
@@ -4117,6 +4120,9 @@
 !  03 Nov 2011 - M. Payer    - Fix SCALEX for SLP: use A1 for MERRA, otherwise
 !                              use I6
 !  08 Feb 2012 - R. Yantosca - Modified for GEOS-5.7.x
+!  03 Dec 2013 - R. Yantosca - Change unit of PBL height to meters, this used
+!                              to be hPa in GEOS-1, GEOS-STRAT, GEOS-3, which
+!                              are no longer supported.           
 !******************************************************************************
 !
       IF ( ND67 > 0 ) THEN
@@ -4153,7 +4159,7 @@
                   UNIT   = 'm'
                CASE ( 9 )
                   SCALEX = SCALE_ND67
-                  UNIT   = 'hPa'
+                  UNIT   = 'm'
                CASE ( 10 )
                   SCALEX = SCALE_ND67
                   UNIT   = 'unitless'
