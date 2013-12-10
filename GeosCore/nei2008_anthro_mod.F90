@@ -501,8 +501,8 @@
       INTEGER                    :: OFFLINE_ID(15)
       INTEGER                    :: st3d(3), ct3d(3), st4d(4)
       INTEGER                    :: ct4da(4), ct4db(4)
-      INTEGER                    :: fId1, fId1b, fId1c, fId1d
-      INTEGER                    :: fId2, fId2b, fId2c, fId2d ! netCDF file ID
+      INTEGER                    :: fId1, fId1b, fId1c, fId1d, fId1e
+      INTEGER                    :: fId2, fId2b, fId2c, fId2d, fId2e
       REAL*4                     :: ARRAYWD(I1x1,J1x1,24)
       REAL*4                     :: ARRAYWE(I1x1,J1x1,24) 
       REAL*4                     :: ARRAYWDPT(2,I1x1,J1x1,24)
@@ -511,8 +511,12 @@
       REAL*4                     :: ARRAYWEPTN(3,I1x1,J1x1,24)
       REAL*4                     :: ARRAYWDC3(I1x1,J1x1,24)
       REAL*4                     :: ARRAYWEC3(I1x1,J1x1,24)
+      REAL*4                     :: ARRAYWD_NH3ag(I1x1,J1x1,24)
+      REAL*4                     :: ARRAYWE_NH3ag(I1x1,J1x1,24)
       REAL*8, TARGET             :: GEOS_1x1WD(I1x1,J1x1,3,24)
       REAL*8, TARGET             :: GEOS_1x1WE(I1x1,J1x1,3,24)
+      REAL*8, TARGET             :: GEOS_1x1WD_NH3ag(I1x1,J1x1,24)
+      REAL*8, TARGET             :: GEOS_1x1WE_NH3ag(I1x1,J1x1,24)
       REAL*4                     :: ScCO, ScNOx, ScPM10, ScPM25
       REAL*4                     :: ScVOC, ScNH3, ScSO2
       CHARACTER(LEN=255)         :: DATA_DIR_NEI
@@ -528,6 +532,10 @@
       CHARACTER(LEN=24)          :: SPCLIST(18)
       REAL*8, POINTER            :: OUTGRID(:,:) => NULL()
       REAL*8, POINTER            :: INGRID(:,:) => NULL()
+
+      ! For scaling NH3 agricultural emissions (jaf, 12/10/13)
+      CHARACTER(LEN=255)         :: DATA_DIR_NH3_ag
+      CHARACTER(LEN=255)         :: FILENAMEWD_NH3ag, FILENAMEWE_NH3ag
 
       ! For fields from Input_Opt
       INTEGER            :: N_TRACERS
@@ -579,6 +587,10 @@
       ! model ready
       DATA_DIR_NEI = TRIM( Input_Opt%DATA_DIR_1x1 ) // &
                      'NEI2008_201307/NEI08_2010_1x1_'
+      ! For NH3 -- files with agricultural emissions only (jaf, 12/10/13)
+!!!      DATA_DIR_NH3_ag = TRIM( Input_Opt%DATA_DIR_1x1 ) // &
+!!!                        'NEI2008_201307/'
+      DATA_DIR_NH3_ag = '/home/jaf/emissions/NH3/NH3_NEI08/ag_only/'
      
       ! Loop over species
       DO KLM = 1, SIZE( SPCLIST )
@@ -645,114 +657,146 @@
          FILENAMEWEC3  = TRIM( DATA_DIR_NEI ) //  'c3marine_'         // & 
                          TRIM( TTMON        ) // '_wkend_regrid.nc'
 
+         ! For NH3 -- files with agricultural emissions only (jaf,
+         ! 12/10/13)
+         FILENAMEWD_NH3ag = TRIM(DATA_DIR_NH3_ag)//'NEI08_2010_1x1_'// &
+                            TRIM( TTMON        ) // '_wkday_regrid.nc'
+         FILENAMEWE_NH3ag = TRIM(DATA_DIR_NH3_ag)//'NEI08_2010_1x1_'// &
+                            TRIM( TTMON        ) // '_wkend_regrid.nc'
+
          ! Called once per month by emissions_mod.F
          ! Allocate start and count arrays
-         st3d = (/1, 1, 1/)
-         st4d = (/1, 1, 1, 1/)
-         ct3d = (/I1x1, J1x1, 24/)
-         ct4da = (/2, I1x1, J1x1, 24/)
-         ct4db= (/3, I1x1, J1x1, 24/)
-         WRITE( 6, 100 )  TRIM(FILENAMEWD    ), SID
-         
-               ! Open and read model_ready data from netCDF file - wkday
-               CALL Ncop_Rd(fId1, TRIM(FILENAMEWD))
-               ! Open and read ptipm data from netCDF file - wkday
-               CALL Ncop_Rd(fId1b, TRIM(FILENAMEWDPT))
-               ! Open and read ptnonipm data from netCDF file - wkday
-               CALL Ncop_Rd(fId1c, TRIM(FILENAMEWDPTN))
-               ! Open and read c3marine data from netCDF file - wkday
-               CALL Ncop_Rd(fId1d, TRIM(FILENAMEWDC3))
+         st3d = (/1, 1, 1/)            !Start lat/lon/time
+         st4d = (/1, 1, 1, 1/)         !Start lat/lon/time/lev
+         ct3d = (/I1x1, J1x1, 24/)     !Count lat/lon/time
+         ct4da= (/2, I1x1, J1x1, 24/)  !Count lat/lon/time/lev - pt
+         ct4db= (/3, I1x1, J1x1, 24/)  !Count lat/lon/time/lev - ptn
+
+         !----WEEKDAY-------
+
+         ! Open and read model_ready data from netCDF file - wkday
+         WRITE( 6, 100 )  TRIM( FILENAMEWD ), SID
+         CALL Ncop_Rd(fId1,  TRIM(FILENAMEWD))
+         CALL Ncop_Rd(fId1b, TRIM(FILENAMEWDPT))     ! ptipm
+         CALL Ncop_Rd(fId1c, TRIM(FILENAMEWDPTN))    ! ptnonipm
+         CALL Ncop_Rd(fId1d, TRIM(FILENAMEWDC3))     ! c3marine
                
-               !----WKDAY-------
-               Call NcRd(ARRAYWD, fId1, TRIM(SId),   &
-                         st3d,  ct3d )        !Start andCount lat/lon/time
-               Call NcRd(ARRAYWDPT, fId1b, TRIM(SId),   &
-                         st4d, ct4da )  !start and count lat/lon/time/lev
-               Call NcRd(ARRAYWDPTN, fId1c, TRIM(SId),   &
-                         st4d, ct4db )      !start and count lat/lon/time/lev
-               Call NcRd(ARRAYWDC3, fId1d, TRIM(SId),   &
-                         st3d, ct3d )    !Start and Count lat/lon/time
+         Call NcRd(ARRAYWD,       fId1,  TRIM(SId), st3d, ct3d )
+         Call NcRd(ARRAYWDPT,     fId1b, TRIM(SId), st4d, ct4da)
+         Call NcRd(ARRAYWDPTN,    fId1c, TRIM(SId), st4d, ct4db)
+         Call NcRd(ARRAYWDC3,     fId1d, TRIM(SId), st3d, ct3d )
 
-               ! Close netCDF file
-               CALL NcCl( fId1 )
-               CALL NcCl( fId1b )
-               CALL NcCl( fId1c )
-               CALL NcCl( fId1d )
+         ! Close netCDF file
+         CALL NcCl( fId1 )
+         CALL NcCl( fId1b )
+         CALL NcCl( fId1c )
+         CALL NcCl( fId1d )
 
-               ! Cast to REAL*8 before regridding
-               GEOS_1x1WD(:,:,1,:) = ARRAYWD(:,:,:)+ARRAYWDPT(1,:,:,:) + &
-                    ARRAYWDPTN(1,:,:,:)+ARRAYWDC3(:,:,:)
-               GEOS_1x1WD(:,:,2,:) = ARRAYWDPT(2,:,:,:) + ARRAYWDPTN(2,:,:,:)
-               GEOS_1x1WD(:,:,3,:) = ARRAYWDPTN(3,:,:,:)
-            !ELSE
-               ! Open and read data from netCDF file - wkend            
+         ! Cast to REAL*8 before regridding
+         GEOS_1x1WD(:,:,1,:) = ARRAYWD(:,:,:) + ARRAYWDPT(1,:,:,:) + &
+                               ARRAYWDPTN(1,:,:,:) + ARRAYWDC3(:,:,:)
+         GEOS_1x1WD(:,:,2,:) = ARRAYWDPT(2,:,:,:) + ARRAYWDPTN(2,:,:,:)
+         GEOS_1x1WD(:,:,3,:) = ARRAYWDPTN(3,:,:,:)
 
-            WRITE( 6, 100 ) TRIM( FILENAMEWE ), SId
+         !----WEEKEND-------
 
-               CALL Ncop_Rd(fId2, TRIM(FILENAMEWE))
-               CALL Ncop_Rd(fId2b, TRIM(FILENAMEWEPT))
-               CALL Ncop_Rd(fId2c, TRIM(FILENAMEWEPTN))
-               CALL Ncop_Rd(fId2d, TRIM(FILENAMEWEC3))
+         ! Open and read data from netCDF file - wkend
+         WRITE( 6, 100 ) TRIM( FILENAMEWE ), SId
+         CALL Ncop_Rd(fId2,  TRIM(FILENAMEWE))
+         CALL Ncop_Rd(fId2b, TRIM(FILENAMEWEPT))     ! ptipm
+         CALL Ncop_Rd(fId2c, TRIM(FILENAMEWEPTN))    ! ptnonipm
+         CALL Ncop_Rd(fId2d, TRIM(FILENAMEWEC3))     ! c3marine
 
-               ! Get variable / SNo  
-               !----WEEKEND-------
-               Call NcRd(ARRAYWE,fId2,TRIM(SId),     &
-                         (/1,  1,  1/),              &    !Start
-                        (/ I1x1, J1x1, 24 /) )           !Count
-               Call NcRd(ARRAYWEPT, fId2b, TRIM(SId),   &
-                         (/ 1,  1,  1, 1 /),            &    !Start
-                         (/ 2, I1x1, J1x1, 24 /) )      !Count lat/lon/time/lev
-               Call NcRd(ARRAYWEPTN, fId2c, TRIM(SId),   &
-                         (/ 1,  1,  1, 1 /),            &    !Start
-                         (/ 3, I1x1, J1x1, 24 /) )      !Count lat/lon/time/lev
-               Call NcRd(ARRAYWEC3, fId2d, TRIM(SId),   &
-                         (/ 1,  1,  1 /),            &    !Start
-                         (/ I1x1, J1x1, 24 /) )           !Count lat/lon/time
+         ! Get variable / SNo
+         Call NcRd(ARRAYWE,       fId2,  TRIM(SId), st3d, ct3d )
+         Call NcRd(ARRAYWEPT,     fId2b, TRIM(SId), st4d, ct4da)
+         Call NcRd(ARRAYWEPTN,    fId2c, TRIM(SId), st4d, ct4db)
+         Call NcRd(ARRAYWEC3,     fId2d, TRIM(SId), st3d, ct3d )
 
-               CALL NcCl( fId2 )
-               CALL NcCl( fId2b ) 
-               CALL NcCl( fId2c ) 
-               CALL NcCl( fId2d ) 
+         ! Close netCDF file
+         CALL NcCl( fId2 )
+         CALL NcCl( fId2b )
+         CALL NcCl( fId2c )
+         CALL NcCl( fId2d )
 
-               ! Cast to REAL*8 before regridding     
-               GEOS_1x1WE(:,:,1,:) = ARRAYWE(:,:,:)+ARRAYWEPT(1,:,:,:) + &
-                    ARRAYWEPTN(1,:,:,:)+ARRAYWEC3(:,:,:)
-               GEOS_1x1WE(:,:,2,:) = ARRAYWEPT(2,:,:,:) + ARRAYWEPTN(2,:,:,:)
-               GEOS_1x1WE(:,:,3,:) = ARRAYWEPTN(3,:,:,:)
-         
-            !ENDIF
+         ! Cast to REAL*8 before regridding
+         GEOS_1x1WE(:,:,1,:) = ARRAYWE(:,:,:) + ARRAYWEPT(1,:,:,:) + &
+                               ARRAYWEPTN(1,:,:,:) + ARRAYWEC3(:,:,:)
+         GEOS_1x1WE(:,:,2,:) = ARRAYWEPT(2,:,:,:) + ARRAYWEPTN(2,:,:,:)
+         GEOS_1x1WE(:,:,3,:) = ARRAYWEPTN(3,:,:,:)
 
- 100     FORMAT( '     - EMISS_NEI2008_ANTHRO_1x1:  &                                                                                               
-                         Reading : ', a , ' -> ', a )
-            
+ 100     FORMAT( '     - EMISS_NEI2008_ANTHRO_1x1:  Reading ', &
+                         a , ' -> ', a )
+
+         ! Special case for NH3 emissions -- scale agricultural
+         ! component based on MASAGE monthly gridded values from Paulot
+         ! et al., 2013 (jaf, 12/10/13)
+         IF ( SId == 'NH3' ) THEN
+
+            ! Open ag files
+            CALL Ncop_Rd(fId1e, TRIM(FILENAMEWD_NH3ag)) ! NH3ag
+            CALL Ncop_Rd(fId2e, TRIM(FILENAMEWE_NH3ag)) ! NH3ag
+
+            ! Read ag files
+            CALL NcRd(ARRAYWD_NH3ag, fId1e, TRIM(SId), st3d, ct3d )
+            CALL NcRd(ARRAYWE_NH3ag, fId2e, TRIM(SId), st3d, ct3d )
+
+            ! Close ag files
+            CALL NcCl( fId1e )
+            CALL NcCl( fId2e )
+
+            ! Cast to REAL*8
+            GEOS_1x1WD_NH3ag = ARRAYWD_NH3ag
+            GEOS_1x1WE_NH3ag = ARRAYWE_NH3ag
+
+            ! Subtract agricultural component from total
+            GEOS_1x1WD(:,:,1,:) = GEOS_1x1WD(:,:,1,:) -   &
+                                  GEOS_1x1WD_NH3ag(:,:,:)
+            GEOS_1x1WE(:,:,1,:) = GEOS_1x1WE(:,:,1,:) -   &
+                                  GEOS_1x1WE_NH3ag(:,:,:)
+
+            ! Scale agricultural component
+            DO HH = 1, 24
+               GEOS_1x1WD_NH3ag(:,:,HH) = GEOS_1x1WD_NH3ag(:,:,HH) !* ScAgNH3
+               GEOS_1x1WE_NH3ag(:,:,HH) = GEOS_1x1WE_NH3ag(:,:,HH) !* ScAgNH3
+            ENDDO
+
+            ! Add scaled agricultural component back to total
+            GEOS_1x1WD(:,:,1,:) = GEOS_1x1WD(:,:,1,:) +   &
+                                  GEOS_1x1WD_NH3ag(:,:,:)
+            GEOS_1x1WE(:,:,1,:) = GEOS_1x1WE(:,:,1,:) +   &
+                                  GEOS_1x1WE_NH3ag(:,:,:)
+
+         ENDIF
+
          ! Initialize scaling factors
-            ScCO = 1.0
-            ScNOx = 1.0
-            ScPM10 = 1.0
-            ScPM25 = 1.0
-            ScSO2 = 1.0
-            ScVOC = 1.0
-            ScNH3 = 1.0
+         ScCO = 1.0
+         ScNOx = 1.0
+         ScPM10 = 1.0
+         ScPM25 = 1.0
+         ScSO2 = 1.0
+         ScVOC = 1.0
+         ScNH3 = 1.0
             
          ! Apply annual scalar factor. 
          ! Using EPA's National Tier1 CAPS (http://www.epa.gov/ttnchie1/trends/)
-            IF (THISYEAR .eq. 2011) THEN  ! scale based on 2010
-               ScCO = 0.916
-               ScNOx = 0.897
-               ScPM10 = 0.998
-               ScPM25 = 0.990
-               ScSO2 = 0.905
-               ScVOC = 0.955
-               ScNH3 = 0.996
-            ELSEIF (THISYEAR .ge. 2012) THEN ! scale based on 2010
-               ScCO = 0.820
-               ScNOx = 0.773
-               ScPM10 = 0.995
-               ScPM25 = 0.979
-               ScSO2 = 0.725
-               ScVOC = 0.905
-               ScNH3 = 0.991
-            ENDIF
+         IF (THISYEAR .eq. 2011) THEN  ! scale based on 2010
+            ScCO = 0.916
+            ScNOx = 0.897
+            ScPM10 = 0.998
+            ScPM25 = 0.990
+            ScSO2 = 0.905
+            ScVOC = 0.955
+            ScNH3 = 0.996
+         ELSEIF (THISYEAR .ge. 2012) THEN ! scale based on 2010
+            ScCO = 0.820
+            ScNOx = 0.773
+            ScPM10 = 0.995
+            ScPM25 = 0.979
+            ScSO2 = 0.725
+            ScVOC = 0.905
+            ScNH3 = 0.991
+         ENDIF
          
              DO L=1,3
               DO HH=1,24  ! check on whether this is correct
