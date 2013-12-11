@@ -1059,8 +1059,8 @@
 
             ! Scale agricultural component
             DO HH = 1, 24
-               GEOS_1x1WD_NH3ag(:,:,HH) = GEOS_1x1WD_NH3ag(:,:,HH) !* ScAgNH3
-               GEOS_1x1WE_NH3ag(:,:,HH) = GEOS_1x1WE_NH3ag(:,:,HH) !* ScAgNH3
+               GEOS_1x1WD_NH3ag(:,:,HH) = GEOS_1x1WD_NH3ag(:,:,HH) * ScAgNH3
+               GEOS_1x1WE_NH3ag(:,:,HH) = GEOS_1x1WE_NH3ag(:,:,HH) * ScAgNH3
             ENDDO
 
             ! Add scaled agricultural component back to total
