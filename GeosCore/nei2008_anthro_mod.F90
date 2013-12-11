@@ -1059,8 +1059,8 @@
 
             ! Scale agricultural component
             DO HH = 1, 24
-               GEOS_1x1WD_NH3ag(:,:,HH) = GEOS_1x1WD_NH3ag(:,:,HH) * ScAgNH3
-               GEOS_1x1WE_NH3ag(:,:,HH) = GEOS_1x1WE_NH3ag(:,:,HH) * ScAgNH3
+               GEOS_1x1WD_NH3ag(:,:,HH)=GEOS_1x1WD_NH3ag(:,:,HH)*ScAgNH3
+               GEOS_1x1WE_NH3ag(:,:,HH)=GEOS_1x1WE_NH3ag(:,:,HH)*ScAgNH3
             ENDDO
 
             ! Add scaled agricultural component back to total
@@ -1578,54 +1578,6 @@
                ENDDO
             ENDDO
 
-! C2H4 not used currently
-!         ELSE IF ( TRIM(SId) == 'C2H4' ) THEN
-!            DO L=1,3
-!               DO HH=1,24
-!
-!                  !-----------------
-!                  ! C2H4
-!                  !-----------------
-!
-!                  ! No scaling factor
-!                  ! Point to array slices
-!                  INGRID  => GEOS_1x1WD(:,:,L,HH)
-!                  OUTGRID => C2H4(:,:,L,HH)
-!
-!                  ! Regrid
-!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,  &
-!                                     INGRID,     OUTGRID, IS_MASS=0, &
-!                                     netCDF=.TRUE.                   )
-!
-!                  ! Free pointers
-!                  NULLIFY( INGRID, OUTGRID )
-!
-!                  ! Apply masks
-!                  C2H4(:,:,L,HH)       = C2H4(:,:,L,HH)       * USA_MASK
-!
-!                  !-----------------
-!                  ! C2H4_WKEND
-!                  !-----------------
-!
-!                  ! No scaling factor
-!                  ! Point to array slices
-!                  INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                  OUTGRID => C2H4_WKEND(:,:,L,HH)
-!
-!                  ! Regrid
-!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
-!                                     INGRID,     OUTGRID, IS_MASS=0, &
-!                                     netCDF=.TRUE.                   )
-!
-!                  ! Free pointers
-!                  NULLIFY( INGRID, OUTGRID )
-!
-!                  ! Apply masks
-!                  C2H4_WKEND(:,:,L,HH) = C2H4_WKEND(:,:,L,HH) * USA_MASK
-!
-!               ENDDO
-!            ENDDO
-!
          ELSE IF ( TRIM(SId) == 'BC' ) THEN
             DO L=1,3
                DO HH=1,24
@@ -1775,621 +1727,202 @@
                ENDDO
             ENDDO
 
-           !ELSE IF ( TRIM(SId) == 'CH4' ) THEN
-           !  DO L=1,3
-           !     DO HH=1,24
-                !-----------------
-                ! CH4
-                !-----------------
-
-           !     INGRID  => GEOS_1x1WD(:,:,L,HH)
-           !     OUTGRID => CH4(:,:,L,HH)
-
-                ! Regrid
-           !     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-            !                        INGRID,     OUTGRID, IS_MASS=0,&
-            !                        netCDF=.TRUE.                   )
-
-                ! Free pointers
-             !   NULLIFY( INGRID, OUTGRID )
-
-                !-----------------
-                ! Apply masks
-                !-----------------
-              !  CH4(:,:,L,HH)       = CH4(:,:,L,HH)       * USA_MASK(:,:)
-              !  ENDDO
-              !ENDDO
-            ! ELSE IF ( TRIM(SId) == 'EOH' ) THEN
-
-                !-----------------
-                ! EOH
-                !-----------------
-            ! DO L=1,3
-            !    DO HH=1,24
-            !    INGRID  => GEOS_1x1WD(:,:,L,HH)
-            !    OUTGRID => EOH(:,:,L,HH)
-
-                ! Regrid
-               ! CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-               !                     INGRID,     OUTGRID, IS_MASS=0,&
-                !                    netCDF=.TRUE.                   )
-
-                ! Free pointers
-                !NULLIFY( INGRID, OUTGRID )
-                !ENDDO
-               !ENDDO
-            !ELSE IF ( TRIM(SId) == 'MOH' ) THEN
-            !  DO L=1,3
-             !    DO HH=1,24
-                !-----------------
-                ! MOH
-                !-----------------
-
-              !  INGRID  => GEOS_1x1WD(:,:,L,HH)
-               ! OUTGRID => MOH(:,:,L,HH)
-
-                ! Regrid
-                !CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-                 !                   INGRID,     OUTGRID, IS_MASS=0,&
-                  !                  netCDF=.TRUE.                   )
-
-                ! Free pointers
-                !NULLIFY( INGRID, OUTGRID )
-             !ENDDO
-            !ENDDO
-
-         ENDIF ! END loop through weekdays
-
-! Moved above to avoid duplicating all the loops (jaf, 12/11/13)
-!      ! BEGIN WEEKEND
- 
-!        IF ( SId .eq. 'CO' ) THEN
+! C2H4 not used currently
+!         ELSE IF ( TRIM(SId) == 'C2H4' ) THEN
 !            DO L=1,3
 !               DO HH=1,24
-!            !-----------------
-!            ! CO_WKEND
-!            !-----------------
 !
-!               ! Point to array slices
-!               INGRID  => GEOS_1x1WE(:,:,L,HH)
-!               OUTGRID => CO_WKEND(:,:,L,HH)
+!                  !-----------------
+!                  ! C2H4
+!                  !-----------------
 !
-!               ! Regrid
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
-!                                   INGRID,     OUTGRID, IS_MASS=0, &
-!                                   netCDF=.TRUE.                   )
+!                  ! No scaling factor
+!                  ! Point to array slices
+!                  INGRID  => GEOS_1x1WD(:,:,L,HH)
+!                  OUTGRID => C2H4(:,:,L,HH)
 !
-!               ! Free pointers
-!               NULLIFY( INGRID, OUTGRID )
+!                  ! Regrid
+!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,  &
+!                                     INGRID,     OUTGRID, IS_MASS=0, &
+!                                     netCDF=.TRUE.                   )
 !
-!               !-----------------
-!               ! Apply masks
-!               !-----------------
-!               CO_WKEND(:,:,L,HH) = CO_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!              ENDDO
+!                  ! Free pointers
+!                  NULLIFY( INGRID, OUTGRID )
+!
+!                  ! Apply masks
+!                  C2H4(:,:,L,HH)       = C2H4(:,:,L,HH)       * USA_MASK
+!
+!                  !-----------------
+!                  ! C2H4_WKEND
+!                  !-----------------
+!
+!                  ! No scaling factor
+!                  ! Point to array slices
+!                  INGRID  => GEOS_1x1WE(:,:,L,HH)
+!                  OUTGRID => C2H4_WKEND(:,:,L,HH)
+!
+!                  ! Regrid
+!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
+!                                     INGRID,     OUTGRID, IS_MASS=0, &
+!                                     netCDF=.TRUE.                   )
+!
+!                  ! Free pointers
+!                  NULLIFY( INGRID, OUTGRID )
+!
+!                  ! Apply masks
+!                  C2H4_WKEND(:,:,L,HH) = C2H4_WKEND(:,:,L,HH) * USA_MASK
+!
+!               ENDDO
 !            ENDDO
-!           ELSEIF ( SId .eq. 'NO' ) THEN
+!
+! CH4 not used currently
+!         ELSE IF ( TRIM(SId) == 'CH4' ) THEN
 !            DO L=1,3
 !               DO HH=1,24
-!               !-----------------
-!               ! NO_WKEND
-!               !-----------------
 !
-!               ! Point to array slices
-!               INGRID  => GEOS_1x1WE(:,:,L,HH)
-!               OUTGRID => NO_WKEND(:,:,L,HH)
+!                  !-----------------
+!                  ! CH4
+!                  !-----------------
 !
-!               ! Regrid
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
-!                                  INGRID,     OUTGRID, IS_MASS=0, &
-!                                  netCDF=.TRUE.                   )
+!                  ! No scaling factor
+!                  ! Point to array slices
+!                  INGRID  => GEOS_1x1WD(:,:,L,HH)
+!                  OUTGRID => CH4(:,:,L,HH)
 !
-!               ! Free pointers
-!               NULLIFY( INGRID, OUTGRID )
-!               !-----------------
-!               ! Apply masks
-!               !-----------------
-!               NO_WKEND(:,:,L,HH) = NO_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!             ENDDO
-!            ENDDO 
-!          ELSEIF ( TRIM(SId) .eq. 'NO2' ) THEN
-!             DO L=1,3
-!                DO HH=1,24
-!               !-----------------
-!               ! NO2_WKEND
-!               !-----------------
+!                  ! Regrid
+!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,  &
+!                                     INGRID,     OUTGRID, IS_MASS=0, &
+!                                     netCDF=.TRUE.                   )
 !
-!               INGRID  => GEOS_1x1WE(:,:,L,HH)
-!               OUTGRID => NO2_WKEND(:,:,L,HH)
-! 
-!               ! Regrid
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
-!                                   INGRID,     OUTGRID, IS_MASS=0,&
-!                                   netCDF=.TRUE.                   )
+!                  ! Free pointers
+!                  NULLIFY( INGRID, OUTGRID )
 !
-!               ! Free pointers
-!               NULLIFY( INGRID, OUTGRID )
+!                  ! Apply masks
+!                  CH4(:,:,L,HH)       = CH4(:,:,L,HH)       * USA_MASK
 !
-!               !-----------------
-!               ! Apply masks
-!               !-----------------
-!               NO2_WKEND(:,:,L,HH) = NO2_WKEND(:,:,L,HH) * USA_MASK(:,:)
+!                  !-----------------
+!                  ! CH4_WKEND
+!                  !-----------------
+!
+!                  ! No scaling factor
+!                  ! Point to array slices
+!                  INGRID  => GEOS_1x1WE(:,:,L,HH)
+!                  OUTGRID => CH4_WKEND(:,:,L,HH)
+!
+!                  ! Regrid
+!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
+!                                     INGRID,     OUTGRID, IS_MASS=0, &
+!                                     netCDF=.TRUE.                   )
+!
+!                  ! Free pointers
+!                  NULLIFY( INGRID, OUTGRID )
+!
+!                  ! Apply masks
+!                  CH4_WKEND(:,:,L,HH) = CH4_WKEND(:,:,L,HH) * USA_MASK
+!
 !               ENDDO
-!             ENDDO
-!            ELSEIF ( TRIM(SId) .eq. 'HNO2' ) THEN
-!              DO L=1,3
-!                 DO HH=1,24
-!               !-----------------
-!               ! HNO2_WKEND
-!               !-----------------
-!
-!               ! Point to array slices
-!               INGRID  => GEOS_1x1WE(:,:,L,HH)
-!               OUTGRID => HNO2_WKEND(:,:,L,HH)
-!
-!               ! Regrid
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
-!                                INGRID,     OUTGRID, IS_MASS=0, &
-!                                netCDF=.TRUE.                   )
-!
-!               ! Free pointers
-!               NULLIFY( INGRID, OUTGRID )
-!               !-----------------
-!               ! Apply masks
-!               !-----------------
-!               HNO2_WKEND(:,:,L,HH) = HNO2_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!              ENDDO
-!             ENDDO
-!            ELSEIF ( TRIM(SId) .eq. 'SO2') THEN
-!              DO L=1,3
-!                 DO HH=1,24
-!               !-----------------
-!               ! SO2_WKEND
-!               !-----------------
-!
-!               ! Point to array slices
-!               INGRID  => GEOS_1x1WE(:,:,L,HH) 
-!               OUTGRID => SO2_WKEND(:,:,L,HH)
-!
-!               ! Regrid
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
-!                                INGRID,     OUTGRID, IS_MASS=0, &
-!                                netCDF=.TRUE.                   )
-!
-!               ! Free pointers
-!               NULLIFY( INGRID, OUTGRID )
-!
-!               !-----------------
-!               ! Apply masks
-!               !-----------------
-!               SO2_WKEND(:,:,L,HH) = SO2_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!              ENDDO
-!             ENDDO
-!            ELSEIF ( TRIM(SId) .eq. 'NH3' ) THEN
-!              DO L=1,3
-!                 DO HH=1,24
-!                !-----------------
-!                ! NH3_WKEND
-!                !-----------------
-!
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => NH3_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-!                                    INGRID,     OUTGRID, IS_MASS=0,&
-!                                    netCDF=.TRUE.                   )
-!
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
-!
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                NH3_WKEND(:,:,L,HH) = NH3_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!               ENDDO
-!              ENDDO
-!             ELSEIF ( TRIM(SId) .eq. 'ALD2' ) THEN
-!              DO L=1,3
-!                 DO HH=1,24
-!                !-----------------
-!                ! ALD2_WKEND
-!                !-----------------
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => ALD2_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
-!                                    INGRID,     OUTGRID, IS_MASS=0, &
-!                                    netCDF=.TRUE.                   )
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                ALD2_WKEND(:,:,L,HH) = ALD2_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!                ENDDO
-!              ENDDO
-!            ELSEIF ( TRIM(SId) == 'RCHO' ) THEN
-!              DO L=1,3
-!                 DO HH=1,24
-!                !-----------------
-!                ! RCHO_WKEND
-!                !-----------------
-!
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => RCHO_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
-!                                    INGRID,     OUTGRID, IS_MASS=0, &
-!                                    netCDF=.TRUE.                   )
-!
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
-!
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                RCHO_WKEND(:,:,L,HH) = RCHO_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!              ENDDO
-!             ENDDO
-!      ELSE IF ( TRIM(SId) == 'BENZ' ) THEN
-!         DO L=1,3
-!            DO HH=1,24
-!            !-----------------
-!            ! BENZ_WKEND
-!            !-----------------
-!
-!            ! Point to array slices
-!            INGRID  => GEOS_1x1WE(:,:,L,HH)
-!            OUTGRID => BENZ_WKEND(:,:,L,HH)
-!
-!            ! Regrid
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,     &
-!                                INGRID,     OUTGRID, IS_MASS=0, &
-!                                netCDF=.TRUE.                   )
-!
-!            ! Free pointers
-!            NULLIFY( INGRID, OUTGRID )
-!
-!            !-----------------
-!            ! Apply masks
-!            !-----------------
-!            BENZ_WKEND(:,:,L,HH) = BENZ_WKEND(:,:,L,HH) * USA_MASK(:,:)
 !            ENDDO
-!          ENDDO
-!        ELSE IF ( TRIM(SId) == 'C2H6' ) THEN
-!              DO L=1,3
-!                 DO HH=1,24
-!                !-----------------
-!                ! C2H6_WKEND
-!                !-----------------
 !
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => C2H6_WKEND(:,:,L,HH)
+! EOH not used currently
+!         ELSE IF ( TRIM(SId) == 'EOH' ) THEN
+!            DO L=1,3
+!               DO HH=1,24
 !
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,  &
-!                                    INGRID,     OUTGRID, IS_MASS=0, &
-!                                    netCDF=.TRUE.                   )
+!                  !-----------------
+!                  ! EOH
+!                  !-----------------
 !
+!                  ! No scaling factor
+!                  ! Point to array slices
+!                  INGRID  => GEOS_1x1WD(:,:,L,HH)
+!                  OUTGRID => EOH(:,:,L,HH)
 !
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
+!                  ! Regrid
+!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,  &
+!                                     INGRID,     OUTGRID, IS_MASS=0, &
+!                                     netCDF=.TRUE.                   )
 !
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                 C2H6_WKEND(:,:,L,HH) = C2H6_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!                ENDDO
+!                  ! Free pointers
+!                  NULLIFY( INGRID, OUTGRID )
+!
+!                  ! Apply masks
+!                  EOH(:,:,L,HH)       = EOH(:,:,L,HH)       * USA_MASK
+!
+!                  !-----------------
+!                  ! EOH_WKEND
+!                  !-----------------
+!
+!                  ! No scaling factor
+!                  ! Point to array slices
+!                  INGRID  => GEOS_1x1WE(:,:,L,HH)
+!                  OUTGRID => EOH_WKEND(:,:,L,HH)
+!
+!                  ! Regrid
+!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
+!                                     INGRID,     OUTGRID, IS_MASS=0, &
+!                                     netCDF=.TRUE.                   )
+!
+!                  ! Free pointers
+!                  NULLIFY( INGRID, OUTGRID )
+!
+!                  ! Apply masks
+!                  EOH_WKEND(:,:,L,HH) = EOH_WKEND(:,:,L,HH) * USA_MASK
+!
 !               ENDDO
-!          ELSE IF ( TRIM(SId) == 'PRPE' ) THEN
-!              DO L=1,3   
-!                 DO HH=1,24
-!                !-----------------
-!                ! PRPE_WKEND
-!                !-----------------
-!
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => PRPE_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
-!                                    INGRID,     OUTGRID, IS_MASS=0, &
-!                                    netCDF=.TRUE.                   )
-!
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
-!
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                PRPE_WKEND(:,:,L,HH) = PRPE_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!              ENDDO
-!             ENDDO 
-!          ELSE IF ( TRIM(SId) == 'ALK4' ) THEN
-!              DO L=1,3  
-!                 DO HH=1,24
-!                !-----------------
-!                ! ALK4_WKEND
-!                !-----------------
-!
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => ALK4_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,  &
-!                                    INGRID,     OUTGRID, IS_MASS=0, &
-!                                    netCDF=.TRUE.                   )
-!
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
-!
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                ALK4_WKEND(:,:,L,HH) = ALK4_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!             ENDDO
 !            ENDDO
-!          ELSE IF ( TRIM(SId) == 'TOLU' ) THEN
-!             DO L=1,3
-!                DO HH=1,24
-!                !-----------------
-!                ! TOLU_WKEND
-!                !-----------------
 !
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => TOLU_WKEND(:,:,L,HH)
+! MOH not used currently
+!         ELSE IF ( TRIM(SId) == 'MOH' ) THEN
+!            DO L=1,3
+!               DO HH=1,24
 !
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-!                                    INGRID,     OUTGRID, IS_MASS=0,&
-!                                    netCDF=.TRUE.                   )
+!                  !-----------------
+!                  ! MOH
+!                  !-----------------
 !
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
+!                  ! No scaling factor
+!                  ! Point to array slices
+!                  INGRID  => GEOS_1x1WD(:,:,L,HH)
+!                  OUTGRID => MOH(:,:,L,HH)
 !
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                TOLU_WKEND(:,:,L,HH) = TOLU_WKEND(:,:,L,HH) * USA_MASK(:,:)
+!                  ! Regrid
+!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,  &
+!                                     INGRID,     OUTGRID, IS_MASS=0, &
+!                                     netCDF=.TRUE.                   )
+!
+!                  ! Free pointers
+!                  NULLIFY( INGRID, OUTGRID )
+!
+!                  ! Apply masks
+!                  MOH(:,:,L,HH)       = MOH(:,:,L,HH)       * USA_MASK
+!
+!                  !-----------------
+!                  ! MOH_WKEND
+!                  !-----------------
+!
+!                  ! No scaling factor
+!                  ! Point to array slices
+!                  INGRID  => GEOS_1x1WE(:,:,L,HH)
+!                  OUTGRID => MOH_WKEND(:,:,L,HH)
+!
+!                  ! Regrid
+!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
+!                                     INGRID,     OUTGRID, IS_MASS=0, &
+!                                     netCDF=.TRUE.                   )
+!
+!                  ! Free pointers
+!                  NULLIFY( INGRID, OUTGRID )
+!
+!                  ! Apply masks
+!                  MOH_WKEND(:,:,L,HH) = MOH_WKEND(:,:,L,HH) * USA_MASK
+!
 !               ENDDO
-!              ENDDO
-!          ELSE IF ( TRIM(SId) == 'XYLE' ) THEN
-!              DO L=1,3 
-!                 DO HH=1,24
-!                !-----------------
-!                ! XYLE_WKEND
-!                !-----------------
-!
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => XYLE_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-!                                    INGRID,     OUTGRID, IS_MASS=0,&
-!                                    netCDF=.TRUE.                   )
-!
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
-!
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                  XYLE_WKEND(:,:,L,HH) = XYLE_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!                ENDDO
-!              ENDDO
-!           !ELSE IF ( TRIM(SId) == 'C2H4' ) THEN
-!           !   DO L=1,3  
-!           !      DO HH=1,24
-!                !-----------------
-!                ! C2H4_WKEND
-!                !-----------------
-!
-!                ! Point to array slices
-!           !     INGRID  => GEOS_1x1WE(:,:,L,HH)
-!           !     OUTGRID => C2H4_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!            !    CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-!                        !            INGRID,     OUTGRID, IS_MASS=0,&
-!                        !            netCDF=.TRUE.                   )
-!
-!                ! Free pointers
-!             !   NULLIFY( INGRID, OUTGRID )
-!
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!              !  C2H4_WKEND(:,:,L,HH) = C2H4_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!              ! ENDDO
-!              !ENDDO 
-!             ELSE IF ( TRIM(SId) == 'CH2O' ) THEN
-!              DO L=1,3 
-!                 DO HH=1,24
-!                !-----------------
-!                ! CH2O_WKEND
-!                !-----------------
-!
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => CH2O_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-!                                    INGRID,     OUTGRID, IS_MASS=0,&
-!                                    netCDF=.TRUE.                   )
-!
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
-!
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                CH2O_WKEND(:,:,L,HH) = CH2O_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!               ENDDO
-!              ENDDO
-!           ELSE IF ( TRIM(SId) == 'BC' ) THEN
-!               DO L=1,3   
-!                  DO HH=1,24
-!                !-----------------
-!                ! BCPO_WKEND
-!                !-----------------
-!
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => BCPO_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, &
-!                                    INGRID,     OUTGRID, IS_MASS=0,&
-!                                    netCDF=.TRUE.                   )
-!
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
-!
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                BCPO_WKEND(:,:,L,HH) = BCPO_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!                BCPO(:,:,L,HH)       = BCPO(:,:,L,HH)       * USA_MASK(:,:)
-!
-!                 ENDDO
-!               ENDDO
-!             ELSE IF ( TRIM(SId) == 'OC' ) THEN
-!              DO L=1,3   
-!                 DO HH=1,24
-!                !-----------------
-!                ! OCPO_WKEND
-!                !-----------------
-!
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => OCPO_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-!                                    INGRID,     OUTGRID, IS_MASS=0,&
-!                                    netCDF=.TRUE.                   )
-!
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
-!
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                OCPO_WKEND(:,:,L,HH) = OCPO_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!               ENDDO
-!             ENDDO
-!           ELSE IF ( TRIM(SId) == 'SO4' ) THEN
-!              DO L=1,3   
-!                 DO HH=1,24
-!                !-----------------
-!                ! SO4_WKEND
-!                !-----------------
-!
-!                ! Point to array slices
-!                INGRID  => GEOS_1x1WE(:,:,L,HH)
-!                OUTGRID => SO4_WKEND(:,:,L,HH)
-!
-!                ! Regrid
-!                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,  &
-!                                    INGRID,     OUTGRID, IS_MASS=0, &
-!                                    netCDF=.TRUE.                   )
-!
-!                ! Free pointers
-!                NULLIFY( INGRID, OUTGRID )
-!
-!                !-----------------
-!                ! Apply masks
-!                !-----------------
-!                SO4_WKEND(:,:,L,HH) = SO4_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!              ENDDO
-!           ENDDO
-!!$             ELSE IF ( TRIM(SId) == 'CH4' ) THEN
-!!$                 DO L=1,3 
-!!$                    DO HH=1,24                
-!!$                   !-----------------
-!!$                   ! CH4_WKEND
-!!$                   !-----------------
-!!$
-!!$                   ! Point to array slices
-!!$                   INGRID  => GEOS_1x1WE(:,:,L,HH)
-!!$                   OUTGRID => CH4_WKEND(:,:,L,HH)
-!!$
-!!$                   ! Regrid
-!!$                   CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-!!$                                       INGRID,     OUTGRID, IS_MASS=0,&
-!!$                                       netCDF=.TRUE.                   )
-!!$
-!!$                   ! Free pointers
-!!$                   NULLIFY( INGRID, OUTGRID )
-!!$
-!!$                   !-----------------
-!!$                   ! Apply masks
-!!$                   !-----------------
-!!$                   CH4_WKEND(:,:,L,HH) = CH4_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!!$                  ENDDO
-!!$                 ENDDO
-!!$              ELSE IF ( TRIM(SId) == 'EOH' ) THEN
-!!$                 DO L=1,3   
-!!$                    DO HH=1,24
-!!$                   !-----------------
-!!$                   ! EOH_WKEND
-!!$                   !-----------------
-!!$
-!!$                   ! Point to array slices
-!!$                   INGRID  => GEOS_1x1WE(:,:,L,HH)
-!!$                   OUTGRID => EOH_WKEND(:,:,L,HH)
-!!$
-!!$                   ! Regrid
-!!$                   CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-!!$                                       INGRID,     OUTGRID, IS_MASS=0,&
-!!$                                       netCDF=.TRUE.                   )
-!!$
-!!$                   ! Free pointers
-!!$                   NULLIFY( INGRID, OUTGRID )
-!!$                   !-----------------
-!!$                   ! Apply masks
-!!$                   !-----------------
-!!$                   EOH_WKEND(:,:,L,HH) = EOH_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!!$                 ENDDO
-!!$               ENDDO
-!!$            ELSE IF ( TRIM(SId) == 'MOH' ) THEN
-!!$                DO L=1,3   
-!!$                   DO HH=1,24
-!!$                   !-----------------
-!!$                   ! MOH_WKEND
-!!$                   !-----------------
-!!$
-!!$                   ! Point to array slices
-!!$                   INGRID  => GEOS_1x1WE(:,:,L,HH)
-!!$                   OUTGRID => MOH_WKEND(:,:,L,HH)
-!!$
-!!$                   ! Regrid
-!!$                   CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,&
-!!$                                       INGRID,     OUTGRID, IS_MASS=0,&
-!!$                                       netCDF=.TRUE.                   )
-!!$
-!!$                   ! Free pointers
-!!$                   NULLIFY( INGRID, OUTGRID )
-!!$                   !-----------------
-!!$                   ! Apply masks
-!!$                   !-----------------
-!!$                   MOH_WKEND(:,:,L,HH) = MOH_WKEND(:,:,L,HH) * USA_MASK(:,:)
-!!$                  ENDDO
-!!$                 ENDDO
-!        ENDIF ! END LOOPTHROUGHS       
-      ENDDO
-            
+!            ENDDO
+         ENDIF
+      ENDDO ! END loop through species
+
+! Moved weekend section up to avoid duplicating all the loops (jaf, 12/11/13)
+
       ! Close netCDF files
       CALL NcCl( fId1  )
       CALL NcCl( fId1b )
