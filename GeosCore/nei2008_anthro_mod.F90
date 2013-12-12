@@ -563,6 +563,35 @@
 
       ! Get emissions year
       THISYEAR = GET_YEAR()
+
+      ! Initialize scaling factors
+      ScCO = 1.0
+      ScNOx = 1.0
+      ScPM10 = 1.0
+      ScPM25 = 1.0
+      ScSO2 = 1.0
+      ScVOC = 1.0
+      ScNH3 = 1.0
+
+      ! Apply annual scalar factor.
+      ! Using EPA's National Tier1 CAPS (http://www.epa.gov/ttnchie1/trends/)
+      IF ( THISYEAR == 2011 ) THEN  ! scale based on 2010
+         ScCO = 0.916
+         ScNOx = 0.897
+         ScPM10 = 0.998
+         ScPM25 = 0.990
+         ScSO2 = 0.905
+         ScVOC = 0.955
+         ScNH3 = 0.996
+      ELSEIF ( THISYEAR >= 2012 ) THEN ! scale based on 2010
+         ScCO = 0.820
+         ScNOx = 0.773
+         ScPM10 = 0.995
+         ScPM25 = 0.979
+         ScSO2 = 0.725
+         ScVOC = 0.905
+         ScNH3 = 0.991
+      ENDIF
       
       SPECIES_ID = (/ IDTCO,   IDTNO,  IDTNO2, IDTHNO2,           &
                       IDTSO2,  IDTNH3, IDTALD2, IDTRCHO, IDTC2H6, &
@@ -709,7 +738,7 @@
          GEOS_1x1WD(:,:,2,:) = ARRAYWDPT(2,:,:,:) + ARRAYWDPTN(2,:,:,:)
          GEOS_1x1WD(:,:,3,:) = ARRAYWDPTN(3,:,:,:)
 
-         ! Read variable from weekday netCDF files
+         ! Read variable from weekend netCDF files
          WRITE( 6, 100 ) TRIM( FILENAMEWE ), SId
          Call NcRd(ARRAYWE,       fId2,  TRIM(SId), st3d, ct3d )
          Call NcRd(ARRAYWEPT,     fId2b, TRIM(SId), st4d, ct4da)
@@ -721,35 +750,6 @@
                                ARRAYWEPTN(1,:,:,:) + ARRAYWEC3(:,:,:)
          GEOS_1x1WE(:,:,2,:) = ARRAYWEPT(2,:,:,:) + ARRAYWEPTN(2,:,:,:)
          GEOS_1x1WE(:,:,3,:) = ARRAYWEPTN(3,:,:,:)
-
-         ! Initialize scaling factors
-         ScCO = 1.0
-         ScNOx = 1.0
-         ScPM10 = 1.0
-         ScPM25 = 1.0
-         ScSO2 = 1.0
-         ScVOC = 1.0
-         ScNH3 = 1.0
-            
-         ! Apply annual scalar factor. 
-         ! Using EPA's National Tier1 CAPS (http://www.epa.gov/ttnchie1/trends/)
-         IF (THISYEAR .eq. 2011) THEN  ! scale based on 2010
-            ScCO = 0.916
-            ScNOx = 0.897
-            ScPM10 = 0.998
-            ScPM25 = 0.990
-            ScSO2 = 0.905
-            ScVOC = 0.955
-            ScNH3 = 0.996
-         ELSEIF (THISYEAR .ge. 2012) THEN ! scale based on 2010
-            ScCO = 0.820
-            ScNOx = 0.773
-            ScPM10 = 0.995
-            ScPM25 = 0.979
-            ScSO2 = 0.725
-            ScVOC = 0.905
-            ScNH3 = 0.991
-         ENDIF
  
 ! Moved into weekday section below to avoid duplicating all the loops
 ! (jaf, 12/11/13)
@@ -780,7 +780,7 @@
 !         ENDDO
           
          ! Regrid from GEOS 1x1 --> current model resolution [molec/cm2/2]
-         IF ( SId .eq. 'CO' ) THEN
+         IF ( SId == 'CO' ) THEN
             DO L=1,3
                DO HH=1,24
 
@@ -829,7 +829,7 @@
                ENDDO
             ENDDO
 
-         ELSEIF ( SId .eq. 'NO' ) THEN
+         ELSEIF ( SId == 'NO' ) THEN
             DO L=1,3
                DO HH=1,24
 
@@ -878,7 +878,7 @@
                ENDDO
             ENDDO
 
-         ELSEIF ( TRIM(SId) .eq. 'NO2' ) THEN
+         ELSEIF ( TRIM(SId) == 'NO2' ) THEN
             DO L=1,3
                DO HH=1,24
 
@@ -927,7 +927,7 @@
                ENDDO
             ENDDO
 
-         ELSEIF ( TRIM(SId) .eq. 'HNO2' ) THEN
+         ELSEIF ( TRIM(SId) == 'HNO2' ) THEN
             DO L=1,3
                DO HH=1,24
 
@@ -976,7 +976,7 @@
                ENDDO
             ENDDO
 
-         ELSEIF ( TRIM(SId) .eq. 'SO2') THEN
+         ELSEIF ( TRIM(SId) == 'SO2') THEN
             DO L=1,3
                DO HH=1,24
 
@@ -1025,7 +1025,7 @@
                ENDDO
             ENDDO
 
-         ELSEIF ( TRIM(SId) .eq. 'NH3' ) THEN
+         ELSEIF ( TRIM(SId) == 'NH3' ) THEN
 
             ! Special case for NH3 emissions -- scale agricultural
             ! component based on MASAGE monthly gridded values from Paulot
@@ -1119,7 +1119,7 @@
                ENDDO
             ENDDO
 
-         ELSEIF ( TRIM(SId) .eq. 'ALD2' ) THEN
+         ELSEIF ( TRIM(SId) == 'ALD2' ) THEN
             DO L=1,3
                DO HH=1,24
 
@@ -1980,6 +1980,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE NCDF_MOD,          ONLY : NC_READ
       !USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
       USE TRACERID_MOD,      ONLY : IDTCO, IDTNO, IDTHNO2, IDTNO2 
       USE TRACERID_MOD,      ONLY : IDTSO2, IDTNH3
@@ -2027,8 +2028,10 @@
       INTEGER                    :: WEEKDAY, DAY_NUM, DOYT
       INTEGER                    :: L, HH, KLM, SPECIES_ID(18), ID,  MN
       INTEGER                    :: OFFLINE_ID(15), SNo
-      INTEGER                    :: fId1, fId1b, fId1c, fId1d
-      INTEGER                    :: fId2, fId2b, fId2c, fId2d ! netCDF file ID
+      INTEGER                    :: st3d(3), ct3d(3), st4d(4)
+      INTEGER                    :: ct4da(4), ct4db(4)
+      INTEGER                    :: fId1, fId1b, fId1c, fId1d, fId1e
+      INTEGER                    :: fId2, fId2b, fId2c, fId2d, fId2e
       REAL*4                     :: ARRAYWD(IIPAR,JJPAR,24)
       REAL*4                     :: ARRAYWE(IIPAR,JJPAR,24)
       REAL*4                     :: ARRAYWDPT(2,IIPAR,JJPAR,24)
@@ -2037,8 +2040,12 @@
       REAL*4                     :: ARRAYWEPTN(3,IIPAR,JJPAR,24)
       REAL*4                     :: ARRAYWDC3(IIPAR,JJPAR,24)
       REAL*4                     :: ARRAYWEC3(IIPAR,JJPAR,24)
+      REAL*4                     :: ARRAYWD_NH3ag(IIPAR,JJPAR,24)
+      REAL*4                     :: ARRAYWE_NH3ag(IIPAR,JJPAR,24)
       REAL*8                     :: GEOS_NATIVEWD(IIPAR,JJPAR,3,24)
       REAL*8                     :: GEOS_NATIVEWE(IIPAR,JJPAR,3,24)
+      REAL*8, TARGET             :: GEOS_NATIVEWD_NH3ag(IIPAR,JJPAR,24)
+      REAL*8, TARGET             :: GEOS_NATIVEWE_NH3ag(IIPAR,JJPAR,24)
       REAL*4                     :: ScCO, ScNOx, ScSO2, ScNH3, ScPM10
       REAL*4                     :: ScPM25, ScVOC
       CHARACTER(LEN=255)         :: DATA_DIR_NEI
@@ -2053,6 +2060,15 @@
       CHARACTER(LEN=2)           :: SMN
       CHARACTER(LEN=3)           :: TTMON
 
+      ! For scaling NH3 agricultural emissions (jaf, 12/12/13)
+      REAL*4, POINTER            :: NCARR(:,:,:) => NULL()
+      REAL*8                     :: ScAgNH3(IIPAR,JJPAR)
+      LOGICAL                    :: SCALE_NH3_Ag
+      CHARACTER(LEN=255)         :: DATA_DIR_NH3_ag
+      CHARACTER(LEN=255)         :: FILENAMEWD_NH3ag, FILENAMEWE_NH3ag
+      CHARACTER(LEN=255)         :: FILENAME_ScAg
+
+      ! For fields from Input_Opt
 
       !=================================================================
       ! EMISS_NEI2008_ANTHRO begins here!
@@ -2066,21 +2082,47 @@
 
       ! Get emissions year
       THISYEAR = GET_YEAR()
-      
-      ! Get month
-      THISMONTH = GET_MONTH()
-      WRITE(*,*) 'MONTH', THISMONTH
 
-     SPECIES_ID = (/ IDTCO,   IDTNO,  IDTNO2, IDTHNO2,           &
-                   IDTSO2, IDTNH3, IDTALD2, IDTRCHO, IDTC2H6,   &
-                   IDTPRPE, IDTALK4, IDTSO4, IDTCH2O, IDTOCPO, & 
-                   IDTBCPO, IDTTOLU, IDTXYLE, IDTBENZ/)!, IDTC2H4/)
-               !    IDTMOH, IDTEOH,IDTCH4/)
+      ! Initialize scaling factors
+      ScCO = 1.0
+      ScNOx = 1.0
+      ScPM10 = 1.0
+      ScPM25 = 1.0
+      ScSO2 = 1.0
+      ScVOC = 1.0
+      ScNH3 = 1.0
 
-     SPCLIST =    (/ 'CO', 'NO', 'NO2', 'HNO2', 'SO2', 'NH3',     &
-                     'ALD2','RCHO', 'C2H6', 'PRPE', 'ALK4', 'SO4',        &
-                      'CH2O', 'OC', 'BC','TOLU','XYLE', 'BENZ'/)!,    &
-                   !   'C2H4'/)!,'MOH', 'EOH','CH4' /)
+      ! Apply annual scalar factor. Available for 1985-2005,
+      ! and NOx, CO and SO2 only.
+      ! Using EPA's National Tier1 CAPS (http://www.epa.gov/ttnchie1/trends/)
+      IF ( THISYEAR == 2011 ) THEN !Scale based on 2010
+         ScCO = 0.916
+         ScNOx = 0.897
+         ScPM10 = 0.998
+         ScPM25 = 0.990
+         ScSO2 = 0.905
+         ScVOC = 0.955
+         ScNH3 = 0.996
+      ELSEIF ( THISYEAR >= 2012 ) THEN !Scale based on 2010
+         ScCO = 0.820
+         ScNOx = 0.773
+         ScPM10 = 0.995
+         ScPM25 = 0.979
+         ScSO2 = 0.725
+         ScVOC = 0.905
+         ScNH3 = 0.991
+      ENDIF
+
+      SPECIES_ID = (/ IDTCO,   IDTNO,   IDTNO2,  IDTHNO2,          &
+                      IDTSO2,  IDTNH3,  IDTALD2, IDTRCHO, IDTC2H6, &
+                      IDTPRPE, IDTALK4, IDTSO4,  IDTCH2O, IDTOCPO, & 
+                      IDTBCPO, IDTTOLU, IDTXYLE, IDTBENZ /)!, IDTC2H4/)
+                      !IDTMOH, IDTEOH,IDTCH4/)
+
+      SPCLIST =    (/ 'CO',   'NO',   'NO2',  'HNO2', 'SO2',  'NH3',  &
+                      'ALD2', 'RCHO', 'C2H6', 'PRPE', 'ALK4', 'SO4',  &
+                      'CH2O', 'OC',   'BC',   'TOLU', 'XYLE', 'BENZ'/)!, &
+                      !'C2H4'/)!,'MOH', 'EOH','CH4' /)
 
      ! ID #'s for that are not tied to IDTxxxx flags
       OFFLINE_ID = (/ 2, 1, 64, 66, 26, 30, 11, 12, &
@@ -2096,6 +2138,109 @@
       DATA_DIR_NEI = TRIM( DATA_DIR_NEI ) // 'NEI08_2010_25x3125_' 
 #endif
 
+      ! For NH3 -- files with agricultural emissions only (jaf, 12/12/13)
+      ! Eventually these files will move to the data directory
+!!!      DATA_DIR_NH3_ag = TRIM( Input_Opt%DATA_DIR ) // &
+!!!                        'NEI2008_201307/'
+      DATA_DIR_NH3_ag = '/home/jaf/emissions/NH3/NH3_NEI08/ag_only/'
+
+      ! Get month
+      THISMONTH = GET_MONTH()
+
+      ! GET NEI2008 FILES! 1 for wday, 1 for wkend
+      IF (THISMONTH == 1)  THEN
+         TTMON = 'Jan'
+      ELSEIF (THISMONTH == 2)  THEN
+         TTMON = 'Feb'
+      ELSEIF (THISMONTH == 3)  THEN
+         TTMON = 'Mar'
+      ELSEIF (THISMONTH == 4)  THEN
+         TTMON = 'Apr'
+      ELSEIF (THISMONTH == 5)  THEN
+         TTMON = 'May'
+      ELSEIF (THISMONTH == 6)  THEN
+         TTMON = 'Jun'
+      ELSEIF (THISMONTH == 7)  THEN
+         TTMON = 'Jul'
+      ELSEIF (THISMONTH == 8)  THEN
+         TTMON = 'Aug'
+      ELSEIF (THISMONTH == 9)  THEN
+         TTMON = 'Sep'
+      ELSEIF (THISMONTH == 10) THEN
+         TTMON = 'Oct'
+      ELSEIF (THISMONTH == 11) THEN
+         TTMON = 'Nov'
+      ELSEIF (THISMONTH == 12) THEN
+         TTMON = 'Dec'
+      ENDIF
+
+      ! model ready
+      FILENAMEWD    = TRIM( DATA_DIR_NEI ) //                        &
+                      TRIM( TTMON        ) // '_wkday_regrid.nc'
+      FILENAMEWE    = TRIM( DATA_DIR_NEI ) //                        &
+                      TRIM( TTMON        ) // '_wkend_regrid.nc'
+
+      ! ptipm
+      FILENAMEWDPT  = TRIM( DATA_DIR_NEI ) //  'ptipm_'           // &
+                      TRIM( TTMON        ) // '_wkday_regrid.nc'
+      FILENAMEWEPT  = TRIM( DATA_DIR_NEI ) // 'ptipm_'            // &
+                      TRIM( TTMON        ) // '_wkend_regrid.nc'
+
+      ! ptnonipm
+      FILENAMEWDPTN = TRIM( DATA_DIR_NEI ) // 'ptnonipm_'         // &
+                      TRIM( TTMON        ) //  '_wkday_regrid.nc'
+      FILENAMEWEPTN = TRIM( DATA_DIR_NEI ) // 'ptnonipm_'         // &
+                      TRIM( TTMON        ) //  '_wkend_regrid.nc'
+
+      ! c3marine
+      FILENAMEWDC3  = TRIM( DATA_DIR_NEI ) // 'c3marine_'         // &
+                      TRIM( TTMON        ) //  '_wkday_regrid.nc'
+      FILENAMEWEC3  = TRIM( DATA_DIR_NEI ) //  'c3marine_'        // &
+                      TRIM( TTMON        ) // '_wkend_regrid.nc'
+
+      ! For NH3 -- files with agricultural emissions only, not available
+      ! at 05x0666 (jaf, 12/10/13)
+#if   defined( GRID05x0666 )
+      SCALE_NH3_Ag = .FALSE.
+#elif defined( GRID025x03125)
+      SCALE_NH3_Ag = .TRUE.
+      FILENAMEWD_NH3ag = TRIM(DATA_DIR_NH3_ag) // &
+                         'NEI08_2010_25x3125_' // &
+                         TRIM( TTMON        )  // '_wkday_regrid.nc'
+      FILENAMEWE_NH3ag = TRIM(DATA_DIR_NH3_ag) // &
+                         'NEI08_2010_25x3125_' // &
+                         TRIM( TTMON        )  // '_wkend_regrid.nc'
+      FILENAME_ScAg    = TRIM(DATA_DIR_NH3_ag) // &
+                         'MASAGE_NEI08_Ratio.geos.025x03125.nc'
+#endif
+
+      ! Allocate start and count arrays
+      st3d = (/1, 1, 1/)            !Start lat/lon/time
+      st4d = (/1, 1, 1, 1/)         !Start lat/lon/time/lev
+      ct3d = (/IIPAR, JJPAR, 24/)     !Count lat/lon/time
+      ct4da= (/2, IIPAR, JJPAR, 24/)  !Count lat/lon/time/lev - pt
+      ct4db= (/3, IIPAR, JJPAR, 24/)  !Count lat/lon/time/lev - ptn
+
+      ! Open weekday netCDF files for reading
+      CALL Ncop_Rd(fId1,  TRIM(FILENAMEWD))
+      CALL Ncop_Rd(fId1b, TRIM(FILENAMEWDPT))     ! ptipm
+      CALL Ncop_Rd(fId1c, TRIM(FILENAMEWDPTN))    ! ptnonipm
+      CALL Ncop_Rd(fId1d, TRIM(FILENAMEWDC3))     ! c3marine
+
+      ! Open weekend netCDF files for reading
+      CALL Ncop_Rd(fId2,  TRIM(FILENAMEWE))
+      CALL Ncop_Rd(fId2b, TRIM(FILENAMEWEPT))     ! ptipm
+      CALL Ncop_Rd(fId2c, TRIM(FILENAMEWEPTN))    ! ptnonipm
+      CALL Ncop_Rd(fId2d, TRIM(FILENAMEWEC3))     ! c3marine
+
+      ! Open NH3 ag files
+      IF ( SCALE_NH3_Ag ) THEN
+         CALL Ncop_Rd(fId1e, TRIM(FILENAMEWD_NH3ag)) ! NH3ag weekday
+         CALL Ncop_Rd(fId2e, TRIM(FILENAMEWE_NH3ag)) ! NH3ag weekend
+      ENDIF
+
+ 100  FORMAT( '     - EMISS_NEI2008_ANTHRO_NATIVE:  Reading ', a )
+
       ! Loop over species
       DO KLM = 1, SIZE( SPECIES_ID )
 
@@ -2108,259 +2253,190 @@
 
          ! Skip undefined tracers
          IF ( SNo == 0 ) CYCLE
-         
-         ! GET NEI2008 FILES! 1 for wday, 1 for wkend
-         IF (THISMONTH == 1)  THEN
-            TTMON = 'Jan'
-         ELSEIF (THISMONTH == 2)  THEN
-            TTMON = 'Feb'
-         ELSEIF (THISMONTH == 3)  THEN 
-            TTMON = 'Mar'
-         ELSEIF (THISMONTH == 4)  THEN 
-            TTMON = 'Apr'
-         ELSEIF (THISMONTH == 5)  THEN 
-            TTMON = 'May'
-         ELSEIF (THISMONTH == 6)  THEN 
-            TTMON = 'Jun'
-         ELSEIF (THISMONTH == 7)  THEN 
-            TTMON = 'Jul'
-         ELSEIF (THISMONTH == 8)  THEN 
-            TTMON = 'Aug'
-         ELSEIF (THISMONTH == 9)  THEN 
-            TTMON = 'Sep'
-         ELSEIF (THISMONTH == 10) THEN 
-            TTMON = 'Oct'
-         ELSEIF (THISMONTH == 11) THEN 
-            TTMON = 'Nov'
-         ELSEIF (THISMONTH == 12) THEN
-            TTMON = 'Dec'
+
+         ! Read variable from weekday netCDF files
+         WRITE( 6, 100 )  TRIM( FILENAMEWD ), SID
+         Call NcRd(ARRAYWD,       fId1,  TRIM(SId), st3d, ct3d )
+         Call NcRd(ARRAYWDPT,     fId1b, TRIM(SId), st4d, ct4da)
+         Call NcRd(ARRAYWDPTN,    fId1c, TRIM(SId), st4d, ct4db)
+         Call NcRd(ARRAYWDC3,     fId1d, TRIM(SId), st3d, ct3d )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_NATIVEWD(:,:,1,:) = ARRAYWD(:,:,:) + ARRAYWDPT(1,:,:,:)  &
+                                + ARRAYWDPTN(1,:,:,:) + ARRAYWDC3(:,:,:)
+         GEOS_NATIVEWD(:,:,2,:) = ARRAYWDPT(2,:,:,:)+ARRAYWDPTN(2,:,:,:)
+         GEOS_NATIVEWD(:,:,3,:) = ARRAYWDPTN(3,:,:,:)
+
+         ! Read variable from weekend netCDF files
+         WRITE( 6, 100 ) TRIM( FILENAMEWE ), SId
+         Call NcRd(ARRAYWE,       fId2,  TRIM(SId), st3d, ct3d )
+         Call NcRd(ARRAYWEPT,     fId2b, TRIM(SId), st4d, ct4da)
+         Call NcRd(ARRAYWEPTN,    fId2c, TRIM(SId), st4d, ct4db)
+         Call NcRd(ARRAYWEC3,     fId2d, TRIM(SId), st3d, ct3d )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_NATIVEWE(:,:,1,:) = ARRAYWE(:,:,:) + ARRAYWEPT(1,:,:,:)  &
+                                + ARRAYWEPTN(1,:,:,:) + ARRAYWEC3(:,:,:)
+         GEOS_NATIVEWE(:,:,2,:) = ARRAYWEPT(2,:,:,:)+ARRAYWEPTN(2,:,:,:)
+         GEOS_NATIVEWE(:,:,3,:) = ARRAYWEPTN(3,:,:,:)
+
+! Moved into section below to avoid all the loops
+!         DO L=1,3
+!           DO HH=1,24  ! check on whether this is correct
+!              SELECT CASE ( SId) 
+!              CASE ('CO')
+!                 GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScCO  
+!                 GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScCO
+!              CASE ('NO','NO2','HNO2')
+!                GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScNOx  
+!                GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScNOx
+!             CASE ('BENZ','TOLU','XYLE','RCHO','CH2O','ALD2','C2H6',   &
+!                   'PRPE','ALK4')
+!                GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScVOC  
+!                GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScVOC
+!              CASE('BC','OC')
+!                GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScPM25
+!                GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScPM25
+!              CASE('SO2')   
+!                GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScSO2 
+!                GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScSO2  
+!              CASE ('NH3')
+!                GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScNH3 
+!                GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScNH3
+!             END SELECT
+!          ENDDO
+!       ENDDO
+
+         ! Begin loopthrough tracers
+         IF ( TRIM(SId) == 'CO') THEN !CO
+            CO       = GEOS_NATIVEWD * ScCO
+            CO_WKEND = GEOS_NATIVEWE * ScCO
+         ELSEIF ( TRIM(SId) == 'NO') THEN !NO
+            NO       = GEOS_NATIVEWD * ScNOx
+            NO_WKEND = GEOS_NATIVEWE * ScNOx
+         ELSEIF ( TRIM(SId) == 'NO2') THEN !NO2
+            NO2       = GEOS_NATIVEWD * ScNOx
+            NO2_WKEND = GEOS_NATIVEWE * ScNOx
+         ELSEIF ( TRIM(SId) == 'HNO2') THEN !HNO2
+            HNO2       = GEOS_NATIVEWD * ScNOx
+            HNO2_WKEND = GEOS_NATIVEWE * ScNOx
+         ELSEIF ( TRIM(SId) == 'SO2') THEN !SO2
+            SO2       = GEOS_NATIVEWD * ScSO2
+            SO2_WKEND = GEOS_NATIVEWE * ScSO2
+         ELSEIF ( TRIM(SId) == 'NH3') THEN !NH3
+
+            ! Special case for NH3 emissions -- scale agricultural
+            ! component based on MASAGE monthly gridded values from Paulot
+            ! et al., 2013 (jaf, 12/10/13)
+            IF ( SCALE_NH3_Ag ) THEN
+
+               ! Read ag files
+               CALL NcRd(ARRAYWD_NH3ag, fId1e, TRIM(SId), st3d, ct3d )
+               CALL NcRd(ARRAYWE_NH3ag, fId2e, TRIM(SId), st3d, ct3d )
+
+               ! Cast to REAL*8
+               GEOS_NATIVEWD_NH3ag = ARRAYWD_NH3ag
+               GEOS_NATIVEWE_NH3ag = ARRAYWE_NH3ag
+
+               ! Subtract agricultural component from total
+               GEOS_NATIVEWD(:,:,1,:) = GEOS_NATIVEWD(:,:,1,:) -   &
+                                        GEOS_NATIVEWD_NH3ag(:,:,:)
+               GEOS_NATIVEWE(:,:,1,:) = GEOS_NATIVEWE(:,:,1,:) -   &
+                                        GEOS_NATIVEWE_NH3ag(:,:,:)
+
+               ! Read scaling factor (ratio of MASAGE to NEI08
+               CALL NC_READ( NC_PATH = TRIM(FILENAME_ScAg),     &
+                             PARA = 'ratio', ARRAY = NCARR,     &
+                             YEAR = 2010,    MONTH = THISMONTH, &
+                             DAY = 01,       VERBOSE = .FALSE.    )
+
+               ! Cast to REAL*8
+               ScAgNH3 = NCARR(:,:,1)
+
+               ! Deallocate ncdf-array
+               IF ( ASSOCIATED ( NCARR ) ) DEALLOCATE ( NCARR )
+
+               ! Scale agricultural component
+               DO HH = 1, 24
+                  GEOS_NATIVEWD_NH3ag(:,:,HH) =              &
+                     GEOS_NATIVEWD_NH3ag(:,:,HH) * ScAgNH3
+                  GEOS_NATIVEWE_NH3ag(:,:,HH) =              &
+                     GEOS_NATIVEWE_NH3ag(:,:,HH) * ScAgNH3
+               ENDDO
+
+               ! Add scaled agricultural component back to total
+               GEOS_NATIVEWD(:,:,1,:) = GEOS_NATIVEWD(:,:,1,:) +   &
+                                        GEOS_NATIVEWD_NH3ag(:,:,:)
+               GEOS_NATIVEWE(:,:,1,:) = GEOS_NATIVEWE(:,:,1,:) +   &
+                                        GEOS_NATIVEWE_NH3ag(:,:,:)
+
+            ENDIF
+
+            NH3       = GEOS_NATIVEWD * ScNH3
+            NH3_WKEND = GEOS_NATIVEWE * ScNH3
+
+         ELSEIF ( TRIM(SId) == 'ALD2') THEN !ALD2
+            ALD2       = GEOS_NATIVEWD * ScVOC
+            ALD2_WKEND = GEOS_NATIVEWE * ScVOC
+         ELSEIF ( TRIM(SId) == 'RCHO') THEN !RCHO
+            RCHO       = GEOS_NATIVEWD * ScVOC
+            RCHO_WKEND = GEOS_NATIVEWE * ScVOC
+         ELSEIF ( TRIM(SId) == 'C2H6') THEN !C2H6
+            C2H6       = GEOS_NATIVEWD * ScVOC
+            C2H6_WKEND = GEOS_NATIVEWE * ScVOC
+         ELSEIF ( TRIM(SId) == 'PRPE' ) THEN !PRPE
+            PRPE       = GEOS_NATIVEWD * ScVOC
+            PRPE_WKEND = GEOS_NATIVEWE * ScVOC
+         ELSEIF ( TRIM(SId) == 'ALK4' ) THEN !ALK4
+            ALK4       = GEOS_NATIVEWD * ScVOC
+            ALK4_WKEND = GEOS_NATIVEWE * ScVOC
+         ELSEIF ( TRIM(SId) == 'BENZ' ) THEN !BENZ
+            BENZ       = GEOS_NATIVEWD * ScVOC
+            BENZ_WKEND = GEOS_NATIVEWE * ScVOC
+         ELSEIF ( TRIM(SId) == 'TOLU' ) THEN !TOLU
+            TOLU       = GEOS_NATIVEWD * ScVOC
+            TOLU_WKEND = GEOS_NATIVEWE * ScVOC
+         ELSEIF ( TRIM(SId) == 'XYLE') THEN !XYLE
+            XYLE       = GEOS_NATIVEWD * ScVOC
+            XYLE_WKEND = GEOS_NATIVEWE * ScVOC
+         ELSEIF ( TRIM(SId) == 'CH2O') THEN !CH2O
+            CH2O       = GEOS_NATIVEWD * ScVOC
+            CH2O_WKEND = GEOS_NATIVEWE * ScVOC
+         ELSEIF ( TRIM(SId) == 'SO4') THEN !SO4 - no scaling
+            SO4       = GEOS_NATIVEWD
+            SO4_WKEND = GEOS_NATIVEWE
+         ELSEIF ( TRIM(SId) == 'OC') THEN !OCPO
+            OCPO       = GEOS_NATIVEWD * ScPM25
+            OCPO_WKEND = GEOS_NATIVEWE * ScPM25
+         ELSEIF ( TRIM(SId) == 'BC') THEN !BCPO
+            BCPO       = GEOS_NATIVEWD * ScPM25
+            BCPO_WKEND = GEOS_NATIVEWE * ScPM25
+! Species not currently used
+!         ELSEIF ( TRIM(SId) == 'C2H4') THEN !C2H4 - no scaling
+!            C2H4       = GEOS_NATIVEWD
+!            C2H4_WKEND = GEOS_NATIVEWE
+!         ELSEIF ( TRIM(SId) == 'MOH') THEN !MOH - no scaling
+!            MOH       = GEOS_NATIVEWD
+!            MOH_WKEND = GEOS_NATIVEWE
+!         ELSEIF ( TRIM(SId) == 'EOH') THEN !EOH - no scaling
+!            EOH       = GEOS_NATIVEWD
+!            EOH_WKEND = GEOS_NATIVEWE
+!         ELSEIF ( TRIM(SId) == 'CH4') THEN !CH4 - no scaling
+!            CH4       = GEOS_NATIVEWD
+!            CH4_WKEND = GEOS_NATIVEWE
          ENDIF
 
-         ! model ready
-         FILENAMEWD    = TRIM( DATA_DIR_NEI ) //                        &
-                         TRIM( TTMON        ) // '_wkday_regrid.nc'
-         FILENAMEWE    = TRIM( DATA_DIR_NEI ) //                        &
-                         TRIM( TTMON        ) // '_wkend_regrid.nc'
-
-         ! ptipm
-         FILENAMEWDPT  = TRIM( DATA_DIR_NEI ) //  'ptipm_'           // &
-                         TRIM( TTMON        ) // '_wkday_regrid.nc'
-         FILENAMEWEPT  = TRIM( DATA_DIR_NEI ) // 'ptipm_'            // & 
-                         TRIM( TTMON        ) // '_wkend_regrid.nc'
-
-         ! ptnonipm
-         FILENAMEWDPTN = TRIM( DATA_DIR_NEI ) // 'ptnonipm_'         // &
-                         TRIM( TTMON        ) //  '_wkday_regrid.nc'
-         FILENAMEWEPTN = TRIM( DATA_DIR_NEI ) // 'ptnonipm_'         // &
-                         TRIM( TTMON        ) //  '_wkend_regrid.nc'
-
-         ! c3marine
-         FILENAMEWDC3  = TRIM( DATA_DIR_NEI ) // 'c3marine_'         // &
-                         TRIM( TTMON        ) //  '_wkday_regrid.nc'
-         FILENAMEWEC3  = TRIM( DATA_DIR_NEI ) //  'c3marine_'        // & 
-                         TRIM( TTMON        ) // '_wkend_regrid.nc'
-
-         ! Echo info
-         WRITE( 6, 100 ) TRIM( FILENAMEWD )
-         WRITE( 6, 100 ) TRIM( FILENAMEWE )
- 100     FORMAT( '     - EMISS_NEI2008_ANTHRO_NATIVE:  &
-                         Reading ', a )
-     ! Called once per month by emissions_mod.F
-         
-          ! Open and read model_ready data from netCDF file - wkday
-          CALL Ncop_Rd(fId1, TRIM(FILENAMEWD))
-          ! Open and read ptipm data from netCDF file - wkday
-          CALL Ncop_Rd(fId1b, TRIM(FILENAMEWDPT))
-          ! Open and read ptnonipm data from netCDF file - wkday
-          CALL Ncop_Rd(fId1c, TRIM(FILENAMEWDPTN))
-          ! Open and read c3marine data from netCDF file - wkday
-          CALL Ncop_Rd(fId1d, TRIM(FILENAMEWDC3))
- 
-          !----WKDAY-------
-          Call NcRd(ARRAYWD, fId1, TRIM(SId),   &
-                    (/ 1,  1,  1 /),            &    !Start
-                    (/ IIPAR, JJPAR, 24 /) )           !Count lat/lon/time
-          Call NcRd(ARRAYWDPT, fId1b, TRIM(SId),   &
-                    (/ 1,  1,  1, 1 /),            &    !Start
-                    (/ 2, IIPAR, JJPAR, 24 /) )      !Count lat/lon/time/lev
-          Call NcRd(ARRAYWDPTN, fId1c, TRIM(SId),   &
-                   (/ 1,  1,  1, 1 /),            &    !Start
-                   (/ 3, IIPAR, JJPAR, 24 /) )      !Count lat/lon/time/lev
-          Call NcRd(ARRAYWDC3, fId1d, TRIM(SId),   &
-                    (/ 1,  1,  1 /),            &    !Start
-                    (/ IIPAR, JJPAR, 24 /) )           !Count lat/lon/time
-          ! Close netCDF file
-          CALL NcCl( fId1 )
-          CALL NcCl( fId1b )
-          CALL NcCl( fId1c )
-          CALL NcCl( fId1d )
-      
-          ! Cast to REAL*8 before regridding
-          GEOS_NATIVEWD(:,:,1,:) = ARRAYWD(:,:,:)+ARRAYWDPT(1,:,:,:) + &
-                    ARRAYWDPTN(1,:,:,:)+ARRAYWDC3(:,:,:)
-          GEOS_NATIVEWD(:,:,2,:) = ARRAYWDPT(2,:,:,:) + ARRAYWDPTN(2,:,:,:)
-          GEOS_NATIVEWD(:,:,3,:) = ARRAYWDPTN(3,:,:,:)
-
-       ! ELSE
-           ! Open and read data from netCDF file - wkend            
-           CALL Ncop_Rd(fId2, TRIM(FILENAMEWE))
-           CALL Ncop_Rd(fId2b, TRIM(FILENAMEWEPT))
-           CALL Ncop_Rd(fId2c, TRIM(FILENAMEWEPTN))
-           CALL Ncop_Rd(fId2d, TRIM(FILENAMEWEC3))
-           
-           ! Get variable / SNo  
-           !----WEEKEND-------
-           Call NcRd(ARRAYWE,fId2,TRIM(SId),     &
-                     (/1,  1,  1/),              &    !Start
-                     (/ IIPAR, JJPAR, 24 /) )           !Count
-           Call NcRd(ARRAYWEPT, fId2b, TRIM(SId),   &
-                     (/ 1,  1,  1, 1 /),            &    !Start
-                     (/ 2, IIPAR, JJPAR, 24 /) )      !Count lat/lon/time/lev
-           Call NcRd(ARRAYWEPTN, fId2c, TRIM(SId),   &
-                     (/ 1,  1,  1, 1 /),            &    !Start
-                     (/ 3, IIPAR, JJPAR, 24 /) )      !Count lat/lon/time/lev
-           Call NcRd(ARRAYWEC3, fId2d, TRIM(SId),   &
-                     (/ 1,  1,  1 /),            &    !Start
-                     (/ IIPAR, JJPAR, 24 /) )           !Count lat/lon/time
-           CALL NcCl( fId2 )
-           CALL NcCl( fId2b ) 
-           CALL NcCl( fId2c ) 
-           CALL NcCl( fId2d ) 
-          ! Cast to REAL*8 before regridding
-          GEOS_NATIVEWE(:,:,1,:) = ARRAYWE(:,:,:)+ARRAYWEPT(1,:,:,:) + &
-                    ARRAYWEPTN(1,:,:,:)+ARRAYWEC3(:,:,:)
-          GEOS_NATIVEWE(:,:,2,:) = ARRAYWEPT(2,:,:,:) + ARRAYWEPTN(2,:,:,:)
-          GEOS_NATIVEWE(:,:,3,:) = ARRAYWEPTN(3,:,:,:)
-       !ENDIF
-
-         ! Get variable / SNo  
-         ! Apply annual scalar factor. Available for 1985-2005,
-         ! and NOx, CO and SO2 only.
-            ! Initialize scaling factors
-            ScCO = 1.0
-            ScNOx = 1.0
-            ScPM10 = 1.0
-            ScPM25 = 1.0
-            ScSO2 = 1.0
-            ScVOC = 1.0
-            ScNH3 = 1.0
-         ! Apply annual scalar factor. 
-         ! Using EPA's National Tier1 CAPS (http://www.epa.gov/ttnchie1/trends/)
-            IF (THISYEAR .eq. 2011) THEN !Scale based on 2010
-               ScCO = 0.916
-               ScNOx = 0.897
-               ScPM10 = 0.998
-               ScPM25 = 0.990
-               ScSO2 = 0.905
-               ScVOC = 0.955
-               ScNH3 = 0.996
-            ELSEIF (THISYEAR .ge. 2012) THEN !Scale based on 2010
-               ScCO = 0.820
-               ScNOx = 0.773
-               ScPM10 = 0.995
-               ScPM25 = 0.979
-               ScSO2 = 0.725
-               ScVOC = 0.905
-               ScNH3 = 0.991
-            ENDIF
-         
-         DO L=1,3
-           DO HH=1,24  ! check on whether this is correct
-              SELECT CASE ( SId) 
-              CASE ('CO')
-                 GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScCO  
-                 GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScCO
-              CASE ('NO','NO2','HNO2')
-                GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScNOx  
-                GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScNOx
-             CASE ('BENZ','TOLU','XYLE','RCHO','CH2O','ALD2','C2H6',   &
-                   'PRPE','ALK4')
-                GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScVOC  
-                GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScVOC
-              CASE('BC','OC')
-                GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScPM25
-                GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScPM25
-              CASE('SO2')   
-                GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScSO2 
-                GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScSO2  
-              CASE ('NH3')
-                GEOS_NATIVEWD(:,:,L,HH) = GEOS_NATIVEWD(:,:,L,HH) * ScNH3 
-                GEOS_NATIVEWE(:,:,L,HH) = GEOS_NATIVEWE(:,:,L,HH) * ScNH3
-             END SELECT
-          ENDDO
-       ENDDO
-
-       ! Begin loopthrough tracers
-       IF ( SId .eq. 'CO') THEN !CO
-          CO_WKEND(:,:,:,:) = GEOS_NATIVEWE !CO
-          CO(:,:,:,:) = GEOS_NATIVEWD
-       ELSEIF ( SId .eq. 'NO') THEN !NO
-          NO(:,:,:,:) = GEOS_NATIVEWD
-          NO_WKEND(:,:,:,:) = GEOS_NATIVEWE !NO
-       ELSEIF ( SId .eq. 'NO2') THEN !NO2
-          NO2(:,:,:,:) = GEOS_NATIVEWD
-          NO2_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'HNO2') THEN !HNO2
-          HNO2(:,:,:,:) = GEOS_NATIVEWD
-          HNO2_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'SO2') THEN !SO2
-          SO2(:,:,:,:) = GEOS_NATIVEWD
-          SO2_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'NH3') THEN !NH3
-          NH3(:,:,:,:) = GEOS_NATIVEWD
-          NH3_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'ALD2') THEN !ALD2
-          ALD2(:,:,:,:) = GEOS_NATIVEWD
-          ALD2_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'RCHO') THEN !RCHO
-          RCHO(:,:,:,:) = GEOS_NATIVEWD
-          RCHO_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'C2H6') THEN !C2H6
-          C2H6(:,:,:,:) = GEOS_NATIVEWD
-          C2H6_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'PRPE' ) THEN !PRPE
-          PRPE(:,:,:,:) = GEOS_NATIVEWD
-          PRPE_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'ALK4' ) THEN !ALK4
-          ALK4(:,:,:,:) = GEOS_NATIVEWD
-          ALK4_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       !ELSEIF ( SId .eq. 'C2H4' ) THEN !C2H4
-       !   C2H4(:,:,:,:) = GEOS_NATIVEWD
-       !   C2H4_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'BENZ' ) THEN !BENZ
-          BENZ(:,:,:,:) = GEOS_NATIVEWD
-          BENZ_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'TOLU' ) THEN !TOLU
-          TOLU(:,:,:,:) = GEOS_NATIVEWD
-          TOLU_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'XYLE') THEN !XYLE
-          XYLE(:,:,:,:) = GEOS_NATIVEWD
-          XYLE_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'SO4') THEN !SO4
-          SO4(:,:,:,:) = GEOS_NATIVEWD
-          SO4_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'CH2O') THEN !CH2O
-          CH2O(:,:,:,:) = GEOS_NATIVEWD
-          CH2O_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'OCPO') THEN !OCPO
-          OCPO(:,:,:,:) = GEOS_NATIVEWD
-          OCPO_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       ELSEIF ( SId .eq. 'BCPO') THEN !BCPO
-          BCPO(:,:,:,:) = GEOS_NATIVEWD
-          BCPO_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       !ELSEIF ( SId .eq. 'MOH') THEN !MOH
-       !   MOH(:,:,:,:) = GEOS_NATIVEWD
-       !   MOH_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       !ELSEIF ( SId .eq. 'EOH') THEN !EOH
-       !   EOH(:,:,:,:) = GEOS_NATIVEWD
-       !   EOH_WKEND(:,:,:,:) = GEOS_NATIVEWE
-       !ELSEIF ( SId .eq. 'CH4') THEN !CH4
-       !   CH4(:,:,:,:) = GEOS_NATIVEWD
-       !   CH4_WKEND(:,:,L,HH) = GEOS_NATIVEWE 
-       ENDIF ! END LOOP THROUGH WKEND/WKDAY
-
       ENDDO
-    
+
+      ! Close netCDF file
+      CALL NcCl( fId1  )
+      CALL NcCl( fId1b )
+      CALL NcCl( fId1c )
+      CALL NcCl( fId1d )
+      CALL NcCl( fId2  )
+      CALL NcCl( fId2b ) 
+      CALL NcCl( fId2c ) 
+      CALL NcCl( fId2d ) 
 
       !--------------------------
       ! Compute future emissions
