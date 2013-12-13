@@ -566,6 +566,13 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                    :: LINOZ_NFIELDS
      REAL*8,            POINTER :: LINOZ_TPARM(:,:,:,:)
 
+     !----------------------------------------
+     ! Fields for overhead O3
+     ! This gets set in main.F based on met
+     ! field and year (mpayer, 12/13/13)
+     !----------------------------------------
+     LOGICAL                    :: USE_O3_FROM_MET
+
   END TYPE OptInput
 !
 ! !REMARKS:
@@ -595,6 +602,7 @@ MODULE GIGC_Input_Opt_Mod
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
+!  13 Dec 2013 - M. Sulprizio- Add USE_O3_FROM_MET logical flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1336,6 +1344,11 @@ CONTAINS
                                      Input_Opt%LINOZ_NFIELDS ), STAT=RC )
 
     Input_Opt%LINOZ_TPARM            = 0d0
+
+    !----------------------------------------
+    ! Fields for overhead O3
+    !----------------------------------------
+    Input_Opt%USE_O3_FROM_MET        = .FALSE.
 
   END SUBROUTINE Set_GIGC_Input_Opt
 !EOC

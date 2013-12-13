@@ -109,7 +109,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TOMS( THISMONTH, THISYEAR )
+      SUBROUTINE READ_TOMS( THISMONTH, THISYEAR, USE_O3_FROM_MET )
 !
 ! !USES:
 !
@@ -123,8 +123,9 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: THISMONTH   ! Current month
-      INTEGER, INTENT(IN)    :: THISYEAR    ! Current year
+      INTEGER, INTENT(IN)    :: THISMONTH       ! Current month
+      INTEGER, INTENT(IN)    :: THISYEAR        ! Current year
+      LOGICAL, INTENT(IN)    :: USE_O3_FROM_MET ! Use TO3 from met fields?
 !
 ! !REMARKS:
 !  TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 5.
@@ -181,6 +182,9 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
 !                              to GEOS-5.7.2 met data for the time being.
+!  13 Dec 2013 - M. Sulprizio- Now pass USE_O3_FROM_MET logical flag so that
+!                              we bypass reading TOMS O3 data when using TO3
+!                              from the met fields.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,6 +206,9 @@
          CALL INIT_TOMS
          FIRST = .FALSE.
       ENDIF
+
+      ! Only read TOMS if not using TO3 from the met fields (mpayer, 12/13/13)
+      IF ( USE_O3_FROM_MET ) RETURN
 
       ! Always use 2002 data for GCAP
 #if   defined ( GCAP )
