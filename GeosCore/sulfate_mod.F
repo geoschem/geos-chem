@@ -7518,7 +7518,7 @@
 ![eml
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
-               IF ( NEI05_MASK( I, J) < 0d0 ) THEN
+               IF ( NEI05_MASK( I, J) > 0d0 ) THEN
 
                   ! Determine if we should use weekday or weekend NEI
                   ! emissions at grid box (I,J,L).  Since NEI is over
@@ -7540,7 +7540,7 @@
 
              IF ( LNEI08 .and. .not. LHIST ) THEN
 !eml]          
-               IF ( NEI08_MASK( I, J) < 0d0 ) THEN
+               IF ( NEI08_MASK( I, J) > 0d0 ) THEN
 
                   ! Determine if we should use weekday or weekend NEI
                   ! emissions at grid box (I,J,L).  Since NEI is over
