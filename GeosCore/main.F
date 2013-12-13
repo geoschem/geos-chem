@@ -225,6 +225,8 @@
 !  03 Jun 2013 - R. Yantosca - Use routines from updated mercury_mod.F
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Oct 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, RC to INIT_DAO
+!  13 Dec 2013 - M. Sulprizio- Now set USE_O3_FROM_MET logical flag during
+!                              initialization stage
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -396,6 +398,32 @@
          CALL INIT_DAO( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
       ENDIF
+
+#if   defined( GEOS_5 )
+
+      ! When TOMS data is not available, then we will use
+      ! the O3 columns directly from the met fields.  
+      ! Currently, this is only done for GEOS-5 met.
+      IF ( YEAR > LAST_TOMS_YEAR ) THEN
+         Input_Opt%USE_O3_FROM_MET = .TRUE.
+      ELSE
+         Input_Opt%USE_O3_FROM_MET = .FALSE.
+      ENDIF
+
+#elif defined( GEOS_FP )
+
+      ! For GEOS-FP met, always use the O3 columns
+      ! from the A1 met field files (bmy, 11/14/13)
+      Input_Opt%USE_O3_FROM_MET = .TRUE.
+
+#else
+         
+      ! When TOMS data is not available, then we will use
+      ! the TOMS data from the last valid year.  This is
+      ! done for all met field products other than GEOS-5.
+      Input_Opt%USE_O3_FROM_MET = .FALSE.
+
+#endif
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
@@ -767,7 +795,7 @@
                CALL READ_UVALBEDO( MONTH, State_Met )
 
                ! Read TOMS overhead O3 columns for FAST-J
-               CALL READ_TOMS( MONTH, YEAR )
+               CALL READ_TOMS( MONTH, YEAR, Input_Opt%USE_O3_FROM_MET )
             ENDIF
          ENDIF
 
@@ -2113,15 +2141,16 @@
 !  split off to facilitate development of the grid-independent model.
 !
 ! !REVISION HISTORY: 
-!   7 Mar 2012 - R. Yantosca - Initial version
+!  07 Mar 2012 - R. Yantosca - Initial version
+!  14 Nov 2013 - R. Yantosca - For GEOS-FP, read O3 from met field files
+!  13 Dec 2013 - M. Sulprizio- Moved USE_O3_FROM_MET to the Input_Opt object and
+!                              set in initialization stage of GEOS_CHEM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: USE_O3_FROM_MET
-
       ! FAST-J is only used for fullchem, offline aerosol
       ! and CH3I simulations, so skip otherwise
       IF ( ITS_A_FULLCHEM_SIM  .or.
@@ -2132,28 +2161,11 @@
          ! and if it we are at a chemistry timestep
          IF ( LCHEM .and. ITS_TIME_FOR_CHEM() ) THEN
              
-#if   defined( GEOS_5 )
-
-            ! When TOMS data is not available, then we will use
-            ! the O3 columns directly from the met fields.  
-            ! Currently, this is only done for GEOS-5 met.
-            IF ( YEAR > LAST_TOMS_YEAR ) THEN
-               USE_O3_FROM_MET = .TRUE.
-            ELSE
-               USE_O3_FROM_MET = .FALSE.
-            ENDIF
-#else
-               
-            ! When TOMS data is not available, then we will use
-            ! the TOMS data from the last valid year.  This is
-            ! done for all met field products other than GEOS-5.
-            USE_O3_FROM_MET = .FALSE.
-
-#endif
-
+            !Don't read TOMS O3 data when using TO3 from met fields
             ! Get the overhead O3 column for FAST-J.  Take either the
             ! TOMS O3 data or the column O3 directly from the met fields
-            CALL COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, 
+            CALL COMPUTE_OVERHEAD_O3( DAY,
+     &                                Input_Opt%USE_O3_FROM_MET, 
      &                                State_Met%TO3 )
          ENDIF
       ENDIF
