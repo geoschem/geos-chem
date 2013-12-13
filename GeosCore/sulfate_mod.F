@@ -7305,6 +7305,8 @@
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
 !  26 Jun 2013 - K. Travis   - Added NEI08 emissions
+!  13 Dec 2013 - M. Sulprizio- Bug fix: Make sure we apply NEI05 emissions when
+!                              NEI05_MASK > 0, not NEI05_MASK < 0 (J. Fisher)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7513,7 +7515,7 @@
 ![eml
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
-               IF ( NEI05_MASK( I, J) < 0d0 ) THEN
+               IF ( NEI05_MASK( I, J) > 0d0 ) THEN
 
                   ! Determine if we should use weekday or weekend NEI
                   ! emissions at grid box (I,J,L).  Since NEI is over
