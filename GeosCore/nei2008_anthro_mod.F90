@@ -520,6 +520,7 @@
       REAL*8, TARGET             :: GEOS_1x1WE_NH3ag(I1x1,J1x1,24)
       REAL*4                     :: ScCO, ScNOx, ScPM10, ScPM25
       REAL*4                     :: ScVOC, ScNH3, ScSO2
+      REAL*4                     :: ScNH3_Ag, ScNH3_NonAg
       CHARACTER(LEN=255)         :: DATA_DIR_NEI
       CHARACTER(LEN=255)         :: FILENAMEWD, FILENAMEWE
       CHARACTER(LEN=255)         :: FILENAMEWDPT, FILENAMEWEPT
@@ -536,7 +537,7 @@
 
       ! For scaling NH3 agricultural emissions (jaf, 12/10/13)
       REAL*4, POINTER            :: NCARR(:,:,:) => NULL()
-      REAL*8                     :: ScAgNH3(I1x1,J1x1)
+      REAL*8                     :: ScAgNH3_MASAGE(I1x1,J1x1)
       CHARACTER(LEN=255)         :: DATA_DIR_NH3_ag
       CHARACTER(LEN=255)         :: FILENAMEWD_NH3ag, FILENAMEWE_NH3ag
       CHARACTER(LEN=255)         :: FILENAME_ScAg
@@ -565,34 +566,40 @@
       THISYEAR = GET_YEAR()
 
       ! Initialize scaling factors
-      ScCO = 1.0
-      ScNOx = 1.0
-      ScPM10 = 1.0
-      ScPM25 = 1.0
-      ScSO2 = 1.0
-      ScVOC = 1.0
-      ScNH3 = 1.0
+      ScCO        = 1.0
+      ScNOx       = 1.0
+      ScPM10      = 1.0
+      ScPM25      = 1.0
+      ScSO2       = 1.0
+      ScVOC       = 1.0
+      ScNH3       = 1.0
+      ScNH3_Ag    = 1.0
+      ScNH3_NonAg = 1.0
 
       ! Apply annual scalar factor.
       ! Using EPA's National Tier1 CAPS (http://www.epa.gov/ttnchie1/trends/)
       IF ( THISYEAR == 2011 ) THEN  ! scale based on 2010
-         ScCO = 0.916
-         ScNOx = 0.897
-         ScPM10 = 0.998
-         ScPM25 = 0.990
-         ScSO2 = 0.905
-         ScVOC = 0.955
-         ScNH3 = 0.996
+         ScCO        = 0.916
+         ScNOx       = 0.897
+         ScPM10      = 0.998
+         ScPM25      = 0.990
+         ScSO2       = 0.905
+         ScVOC       = 0.955
+         ScNH3       = 0.996
+         ScNH3_Ag    = 1d0
+         ScNH3_NonAg = 1d0
       ELSEIF ( THISYEAR >= 2012 ) THEN ! scale based on 2010
-         ScCO = 0.820
-         ScNOx = 0.773
-         ScPM10 = 0.995
-         ScPM25 = 0.979
-         ScSO2 = 0.725
-         ScVOC = 0.905
-         ScNH3 = 0.991
+         ScCO        = 0.820
+         ScNOx       = 0.773
+         ScPM10      = 0.995
+         ScPM25      = 0.979
+         ScSO2       = 0.725
+         ScVOC       = 0.905
+         ScNH3       = 0.991
+         ScNH3_Ag    = 1d0
+         ScNH3_NonAg = 1d0
       ENDIF
-      
+
       SPECIES_ID = (/ IDTCO,   IDTNO,  IDTNO2, IDTHNO2,           &
                       IDTSO2,  IDTNH3, IDTALD2, IDTRCHO, IDTC2H6, &
                       IDTPRPE, IDTALK4, IDTSO4, IDTCH2O, IDTOCPO, &
@@ -1052,22 +1059,25 @@
                           DAY = 01,       VERBOSE = .FALSE.    )
 
             ! Cast to REAL*8
-            ScAgNH3 = NCARR(:,:,1)
+            ScAgNH3_MASAGE = NCARR(:,:,1)
 
             ! Deallocate ncdf-array
             IF ( ASSOCIATED ( NCARR ) ) DEALLOCATE ( NCARR )
 
-            ! Scale agricultural component
+            ! Scale agricultural component to MASAGE monthly totals
             DO HH = 1, 24
-               GEOS_1x1WD_NH3ag(:,:,HH)=GEOS_1x1WD_NH3ag(:,:,HH)*ScAgNH3
-               GEOS_1x1WE_NH3ag(:,:,HH)=GEOS_1x1WE_NH3ag(:,:,HH)*ScAgNH3
+               GEOS_1x1WD_NH3ag(:,:,HH) = GEOS_1x1WD_NH3ag(:,:,HH) &
+                                        * ScAgNH3_MASAGE
+               GEOS_1x1WE_NH3ag(:,:,HH) = GEOS_1x1WE_NH3ag(:,:,HH) &
+                                        * ScAgNH3_MASAGE
             ENDDO
 
-            ! Add scaled agricultural component back to total
-            GEOS_1x1WD(:,:,1,:) = GEOS_1x1WD(:,:,1,:) +   &
-                                  GEOS_1x1WD_NH3ag(:,:,:)
-            GEOS_1x1WE(:,:,1,:) = GEOS_1x1WE(:,:,1,:) +   &
-                                  GEOS_1x1WE_NH3ag(:,:,:)
+            ! Add scaled agricultural component back to total and apply
+            ! interannual scaling factors
+            GEOS_1x1WD(:,:,1,:) = GEOS_1x1WD(:,:,1,:) * ScNH3_NonAg + &
+                                  GEOS_1x1WD_NH3ag(:,:,:) * ScNH3_Ag
+            GEOS_1x1WE(:,:,1,:) = GEOS_1x1WE(:,:,1,:) * ScNH3_NonAg + &
+                                  GEOS_1x1WE_NH3ag(:,:,:) * ScNH3_Ag
 
             DO L=1,3
                DO HH=1,24
@@ -1075,9 +1085,6 @@
                   !-----------------
                   ! NH3
                   !-----------------
-
-                  ! Apply scaling factor
-                  GEOS_1x1WD(:,:,L,HH) = GEOS_1x1WD(:,:,L,HH) * ScNH3  
 
                   ! Point to array slices
                   INGRID  => GEOS_1x1WD(:,:,L,HH)
@@ -1097,9 +1104,6 @@
                   !-----------------
                   ! NH3_WKEND
                   !-----------------
-
-                  ! Apply scaling factor
-                  GEOS_1x1WE(:,:,L,HH) = GEOS_1x1WE(:,:,L,HH) * ScNH3
 
                   ! Point to array slices
                   INGRID  => GEOS_1x1WE(:,:,L,HH)
@@ -1688,7 +1692,9 @@
                   ! SO4
                   !-----------------
 
-                  ! No scaling factor
+                  ! Apply scaling factor (peg to SO2)
+                  GEOS_1x1WD(:,:,L,HH) = GEOS_1x1WD(:,:,L,HH) * ScSO2
+
                   ! Point to array slices
                   INGRID  => GEOS_1x1WD(:,:,L,HH)
                   OUTGRID => SO4(:,:,L,HH)
@@ -1708,7 +1714,9 @@
                   ! SO4_WKEND
                   !-----------------
 
-                  ! No scaling factor
+                  ! Apply scaling factor (peg to SO2)
+                  GEOS_1x1WE(:,:,L,HH) = GEOS_1x1WE(:,:,L,HH) * ScSO2
+
                   ! Point to array slices
                   INGRID  => GEOS_1x1WE(:,:,L,HH)
                   OUTGRID => SO4_WKEND(:,:,L,HH)
@@ -2047,6 +2055,7 @@
       REAL*8, TARGET             :: GEOS_NATIVEWD_NH3ag(IIPAR,JJPAR,24)
       REAL*8, TARGET             :: GEOS_NATIVEWE_NH3ag(IIPAR,JJPAR,24)
       REAL*4                     :: ScCO, ScNOx, ScSO2, ScNH3, ScPM10
+      REAL*4                     :: ScNH3_Ag, ScNH3_NonAg
       REAL*4                     :: ScPM25, ScVOC
       CHARACTER(LEN=255)         :: DATA_DIR_NEI
       CHARACTER(LEN=255)         :: FILENAMEWD, FILENAMEWE
@@ -2062,7 +2071,7 @@
 
       ! For scaling NH3 agricultural emissions (jaf, 12/12/13)
       REAL*4, POINTER            :: NCARR(:,:,:) => NULL()
-      REAL*8                     :: ScAgNH3(IIPAR,JJPAR)
+      REAL*8                     :: ScAgNH3_MASAGE(IIPAR,JJPAR)
       LOGICAL                    :: SCALE_NH3_Ag
       CHARACTER(LEN=255)         :: DATA_DIR_NH3_ag
       CHARACTER(LEN=255)         :: FILENAMEWD_NH3ag, FILENAMEWE_NH3ag
@@ -2084,33 +2093,38 @@
       THISYEAR = GET_YEAR()
 
       ! Initialize scaling factors
-      ScCO = 1.0
-      ScNOx = 1.0
-      ScPM10 = 1.0
-      ScPM25 = 1.0
-      ScSO2 = 1.0
-      ScVOC = 1.0
-      ScNH3 = 1.0
+      ScCO        = 1.0
+      ScNOx       = 1.0
+      ScPM10      = 1.0
+      ScPM25      = 1.0
+      ScSO2       = 1.0
+      ScVOC       = 1.0
+      ScNH3       = 1.0
+      ScNH3_Ag    = 1.0
+      ScNH3_NonAg = 1.0
 
-      ! Apply annual scalar factor. Available for 1985-2005,
-      ! and NOx, CO and SO2 only.
+      ! Apply annual scalar factor.
       ! Using EPA's National Tier1 CAPS (http://www.epa.gov/ttnchie1/trends/)
-      IF ( THISYEAR == 2011 ) THEN !Scale based on 2010
-         ScCO = 0.916
-         ScNOx = 0.897
-         ScPM10 = 0.998
-         ScPM25 = 0.990
-         ScSO2 = 0.905
-         ScVOC = 0.955
-         ScNH3 = 0.996
-      ELSEIF ( THISYEAR >= 2012 ) THEN !Scale based on 2010
-         ScCO = 0.820
-         ScNOx = 0.773
-         ScPM10 = 0.995
-         ScPM25 = 0.979
-         ScSO2 = 0.725
-         ScVOC = 0.905
-         ScNH3 = 0.991
+      IF ( THISYEAR == 2011 ) THEN  ! scale based on 2010
+         ScCO        = 0.916
+         ScNOx       = 0.897
+         ScPM10      = 0.998
+         ScPM25      = 0.990
+         ScSO2       = 0.905
+         ScVOC       = 0.955
+         ScNH3       = 0.996
+         ScNH3_Ag    = 1d0
+         ScNH3_NonAg = 1d0
+      ELSEIF ( THISYEAR >= 2012 ) THEN ! scale based on 2010
+         ScCO        = 0.820
+         ScNOx       = 0.773
+         ScPM10      = 0.995
+         ScPM25      = 0.979
+         ScSO2       = 0.725
+         ScVOC       = 0.905
+         ScNH3       = 0.991
+         ScNH3_Ag    = 1d0
+         ScNH3_NonAg = 1d0
       ENDIF
 
       SPECIES_ID = (/ IDTCO,   IDTNO,   IDTNO2,  IDTHNO2,          &
@@ -2351,30 +2365,39 @@
                              DAY = 01,       VERBOSE = .FALSE.    )
 
                ! Cast to REAL*8
-               ScAgNH3 = NCARR(:,:,1)
+               ScAgNH3_MASAGE = NCARR(:,:,1)
 
                ! Deallocate ncdf-array
                IF ( ASSOCIATED ( NCARR ) ) DEALLOCATE ( NCARR )
 
-               ! Scale agricultural component
+               ! Scale agricultural component to MASAGE monthly totals
                DO HH = 1, 24
                   GEOS_NATIVEWD_NH3ag(:,:,HH) =              &
-                     GEOS_NATIVEWD_NH3ag(:,:,HH) * ScAgNH3
+                     GEOS_NATIVEWD_NH3ag(:,:,HH) * ScAgNH3_MASAGE
                   GEOS_NATIVEWE_NH3ag(:,:,HH) =              &
-                     GEOS_NATIVEWE_NH3ag(:,:,HH) * ScAgNH3
+                     GEOS_NATIVEWE_NH3ag(:,:,HH) * ScAgNH3_MASAGE
                ENDDO
 
-               ! Add scaled agricultural component back to total
-               GEOS_NATIVEWD(:,:,1,:) = GEOS_NATIVEWD(:,:,1,:) +   &
-                                        GEOS_NATIVEWD_NH3ag(:,:,:)
-               GEOS_NATIVEWE(:,:,1,:) = GEOS_NATIVEWE(:,:,1,:) +   &
-                                        GEOS_NATIVEWE_NH3ag(:,:,:)
+               ! Add scaled agricultural component back to total and
+               ! apply interannual scaling factors
+               GEOS_NATIVEWD(:,:,1,:) = GEOS_NATIVEWD(:,:,1,:) *     &
+                                        ScNH3_NonAg                  &
+                                      + GEOS_NATIVEWD_NH3ag(:,:,:) * &
+                                        ScNH3_Ag
+               GEOS_NATIVEWE(:,:,1,:) = GEOS_NATIVEWE(:,:,1,:) *     &
+                                        ScNH3_NonAg                  &
+                                      + GEOS_NATIVEWE_NH3ag(:,:,:) * &
+                                        ScNH3_Ag
+
+            ELSE
+
+               ! If we can't separate out the agricultural component
+               ! (e.g. for the 05x0667 grid), then just apply the single
+               ! annual scaling factor to NH3 emissions.
+               NH3       = GEOS_NATIVEWD * ScNH3
+               NH3_WKEND = GEOS_NATIVEWE * ScNH3
 
             ENDIF
-
-            NH3       = GEOS_NATIVEWD * ScNH3
-            NH3_WKEND = GEOS_NATIVEWE * ScNH3
-
          ELSEIF ( TRIM(SId) == 'ALD2') THEN !ALD2
             ALD2       = GEOS_NATIVEWD * ScVOC
             ALD2_WKEND = GEOS_NATIVEWE * ScVOC
@@ -2402,9 +2425,9 @@
          ELSEIF ( TRIM(SId) == 'CH2O') THEN !CH2O
             CH2O       = GEOS_NATIVEWD * ScVOC
             CH2O_WKEND = GEOS_NATIVEWE * ScVOC
-         ELSEIF ( TRIM(SId) == 'SO4') THEN !SO4 - no scaling
-            SO4       = GEOS_NATIVEWD
-            SO4_WKEND = GEOS_NATIVEWE
+         ELSEIF ( TRIM(SId) == 'SO4') THEN !SO4 - scale to SO2
+            SO4       = GEOS_NATIVEWD * ScSO2
+            SO4_WKEND = GEOS_NATIVEWE * ScSO2
          ELSEIF ( TRIM(SId) == 'OC') THEN !OCPO
             OCPO       = GEOS_NATIVEWD * ScPM25
             OCPO_WKEND = GEOS_NATIVEWE * ScPM25
