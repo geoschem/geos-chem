@@ -2666,6 +2666,7 @@
       ! Turn off emissions options that are
       ! not appropriate for the Nested CH grid
       LEMEP    = .FALSE.
+      LEMEPSHIP = .FALSE. ! JAF added 12/13/13
       LBRAVO   = .FALSE.
       LCAC     = .FALSE.
       LNEI99   = .FALSE.
@@ -2680,6 +2681,7 @@
       ! not appropriate for the Nested NA grid
       LSTREETS = .FALSE.
       LEMEP    = .FALSE.
+      LEMEPSHIP = .FALSE. ! JAF added 12/13/13
 
 #endif
 
