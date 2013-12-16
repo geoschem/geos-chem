@@ -543,7 +543,8 @@
          ENDIF
 
          ! ND13 -- SO2 aircraft emissions in [kg S/box/timestep]
-         IF ( ND13 > 0 ) THEN 
+         ! Only write to diagnostic if L <= LD13 (jaf, 12/14/13)
+         IF ( ND13 > 0 .and. L <= LD13 ) THEN 
             AD13_SO2_ac(I,J,L) = AD13_SO2_ac(I,J,L) +
      &                           ((AEIC_EMIT(I,J,L,FB_INDEX)*FSC*DTSRCE*
      &                           32.0d0/64.0d0)*(1.d0-SULFCONV))
