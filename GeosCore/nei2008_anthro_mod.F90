@@ -2253,7 +2253,8 @@
          CALL Ncop_Rd(fId2e, TRIM(FILENAMEWE_NH3ag)) ! NH3ag weekend
       ENDIF
 
- 100  FORMAT( '     - EMISS_NEI2008_ANTHRO_NATIVE:  Reading ', a )
+ 100  FORMAT( '     - EMISS_NEI2008_ANTHRO_NATIVE:  Reading ', &
+                      a, ' -> ', a )
 
       ! Loop over species
       DO KLM = 1, SIZE( SPECIES_ID )
@@ -2388,6 +2389,8 @@
                                         ScNH3_NonAg                  &
                                       + GEOS_NATIVEWE_NH3ag(:,:,:) * &
                                         ScNH3_Ag
+               NH3       = GEOS_NATIVEWD
+               NH3_WKEND = GEOS_NATIVEWE
 
             ELSE
 
