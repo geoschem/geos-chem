@@ -2670,6 +2670,8 @@
       LBRAVO   = .FALSE.
       LCAC     = .FALSE.
       LNEI99   = .FALSE.
+      LNEI05   = .FALSE.
+      LNEI08   = .FALSE.
       LVISTAS  = .FALSE.
       LICARTT  = .FALSE.
 
@@ -2694,6 +2696,8 @@
       LBRAVO   = .FALSE.
       LCAC     = .FALSE.
       LNEI99   = .FALSE.
+      LNEI05   = .FALSE.
+      LNEI08   = .FALSE.
       LVISTAS  = .FALSE.
       LICARTT  = .FALSE.
 
@@ -2761,7 +2765,29 @@
          ENDIF
       ENDIF
          
-      
+      ! NEI 2008 precedes NEI 1999
+      IF ( LNEI08 .AND. LNEI99 ) THEN
+         LNEI99  = .FALSE.
+         LVISTAS = .FALSE.
+         LICARTT = .FALSE.
+         IF ( am_I_Root ) THEN
+          WRITE( 6, '(/,a,/)' )
+     &       ' EPA/NEI99 (incl. VISTAS and ICARTT' //
+     &        'options) has been automatically ' //
+     &        'switched OFF to use NEI 2008.'
+         ENDIF
+      ENDIF
+
+      ! NEI 2008 precedes NEI 2005
+      IF ( LNEI08 .AND. LNEI05 ) THEN
+         LNEI05  = .FALSE.
+         IF ( am_I_Root ) THEN
+          WRITE( 6, '(/,a,/)' )
+     &       ' EPA/NEI05 has been automatically ' //
+     &        'switched OFF to use NEI 2008.'
+         ENDIF
+      ENDIF
+
       !=================================================================
       ! Error check GFED switches (mpayer, 11/7/11)
       !=================================================================
@@ -2926,6 +2952,7 @@
         WRITE( 6, 100 ) '  Use CAC anthro emissions  : ', LCAC
         WRITE( 6, 100 ) '  Use STREETS anthro emiss. : ', LSTREETS
         WRITE( 6, 100 ) '  Use EPA/NEI 2005          : ', LNEI05
+        WRITE( 6, 100 ) '  Use EPA/NEI 2008          : ', LNEI08
         WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
         WRITE( 6, 100 ) '  Use AEIC emissions        : ', LAEIC
         WRITE( 6, 100 ) '  Use RCP emissions         : ', LRCP
@@ -8575,6 +8602,7 @@
       LMONOT         = .FALSE.
       LNEI99         = .FALSE.
       LNEI05         = .FALSE.
+      LNEI08         = .FALSE.
       LOTDLOC        = .FALSE.
       LSHIPSO2       = .FALSE.
       LSOILNOX       = .FALSE.

@@ -2819,32 +2819,32 @@
               SEC_IN_HOUR *1d-9/XNUMOL(IDTCO) * WEFRAC
 
       IF ( IDTNO .NE. 0 ) &
-      ! Total NOX [Tg N]
+      ! Total NO [Tg N]
       T_NO =   SUM(SUM(NO, 4)*tmpArea ) * &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTNO)*14/30 * WDFRAC + &
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTNO)*14d0/30d0 * WDFRAC + &
                SUM(SUM(NO_WKEND, 4)*tmpArea ) * &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTNO)*14/30 * WEFRAC 
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTNO)*14d0/30d0 * WEFRAC
       
       IF ( IDTNO2 .NE. 0 ) &
       ! Total NO2 [Tg N]
       T_NO2 =  SUM(SUM( NO2, 4 ) * tmpArea) * &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTNO2)*14/46 * WDFRAC + &
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTNO2)*14d0/46d0 * WDFRAC + &
                SUM(SUM( NO2_WKEND, 4 ) * tmpArea) * &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTNO2)*14/46 * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTNO2)*14d0/46 * WEFRAC
 
       IF ( IDTHNO2 .NE. 0 ) &
       ! Total HNO2 [Tg N]
       T_HNO2 = SUM(SUM( HNO2,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTHNO2)*14/47 * WDFRAC + &
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTHNO2)*14d0/47d0 * WDFRAC + &
                SUM(SUM( HNO2_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTHNO2)*14/47 * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTHNO2)*14d0/47d0 * WEFRAC
      
       ! Total SO2 [Tg S]
       IF ( IDTSO2 .NE. 0 ) &
       T_SO2 =  SUM( SUM( SO2,4)  * tmpArea )* &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTSO2) * WDFRAC + &
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTSO2)*32d0/64d0 * WDFRAC + &
                SUM(SUM( SO2_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTSO2) * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTSO2)*32d0/64d0 * WEFRAC
 
       ! Total NH3 [Tg NH3]
       IF ( IDTNH3 .NE. 0 ) &
@@ -2909,13 +2909,7 @@
                SUM(SUM( XYLE_WKEND,4 )  * tmpArea) * &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTXYLE) * WEFRAC
 
-      ! Total C2H4 [Tg C]
-      !T_C2H4 = SUM( C2H4 * tmpArea )* &
-      !         SEC_IN_HOUR *1d-9/XNUMOL(IDTC2H4) * WDFRAC + &
-      !         SUM(SUM( C2H4_WKEND,4 )  * tmpArea) * &
-      !         SEC_IN_HOUR *1d-12/XNUMOL(C2H4)*14/47 * WEFRAC
-
-      ! Total CH2O [Tg C]
+      ! Total CH2O [Tg CH2O]
       IF ( IDTCH2O .NE. 0 ) &
       T_CH2O = SUM( SUM( CH2O,4)  * tmpArea) * &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTCH2O) * WDFRAC + &
@@ -2939,16 +2933,23 @@
       ! Total SO4 [Tg S]
       IF ( IDTSO4 .NE. 0 ) &
       T_SO4 =  SUM( SUM( SO4,4)  *  tmpArea) * &
-               SEC_IN_HOUR *1d-12 * WDFRAC + &
+               SEC_IN_HOUR *1d-12 * 32d0/96d0 * WDFRAC + &
                SUM(SUM( SO4_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12* WEFRAC
-      
+               SEC_IN_HOUR *1d-12 * 32d0/96d0 * WEFRAC
+
+      ! Total C2H4 [Tg C]
+      !T_C2H4 = SUM( C2H4 * tmpArea )* &
+      !         SEC_IN_HOUR *1d-9/XNUMOL(IDTC2H4) * WDFRAC + &
+      !         SUM(SUM( C2H4_WKEND,4 )  * tmpArea) * &
+      !         SEC_IN_HOUR *1d-12/XNUMOL(IDTC2H4) * WEFRAC
+
       ! Print totals in [Tg]
       WRITE( 6, 110 ) 'CO   ', MONTH, T_CO,   '[Tg CO ]'
       WRITE( 6, 110 ) 'NO   ', MONTH, T_NO,   '[Tg N ]'
       WRITE( 6, 110 ) 'NO2  ', MONTH, T_NO2,  '[Tg N ]'
       WRITE( 6, 110 ) 'HNO2 ', MONTH, T_HNO2, '[Tg N ]'
       WRITE( 6, 110 ) 'SO2  ', MONTH, T_SO2,  '[Tg S]'
+      WRITE( 6, 110 ) 'SO4  ', MONTH, T_SO4,  '[Tg S]'
       WRITE( 6, 110 ) 'NH3  ', MONTH, T_NH3,  '[Tg NH3]'
       WRITE( 6, 110 ) 'ALD2 ', MONTH, T_ALD2, '[Tg C]'
       WRITE( 6, 110 ) 'RCHO ', MONTH, T_RCHO, '[Tg C]'
@@ -2958,11 +2959,10 @@
       WRITE( 6, 110 ) 'ALK4 ', MONTH, T_ALK4, '[Tg C]'
       WRITE( 6, 110 ) 'TOLU ', MONTH, T_TOLU, '[Tg C]'
       WRITE( 6, 110 ) 'XYLE ', MONTH, T_XYLE, '[Tg C]'
-      !WRITE( 6, 110 ) 'C2H4 ', MONTH, T_C2H4, '[Tg C]'
-      WRITE( 6, 110 ) 'CH2O ', MONTH, T_CH2O, '[Tg C]'
+      WRITE( 6, 110 ) 'CH2O ', MONTH, T_CH2O, '[Tg CH2O]'
       WRITE( 6, 110 ) 'BC   ', MONTH, T_BC,   '[Tg ]'
       WRITE( 6, 110 ) 'OC   ', MONTH, T_OC,   '[Tg ]'
-      WRITE( 6, 110 ) 'SO4  ', MONTH, T_SO4,  '[Tg S]'
+      !WRITE( 6, 110 ) 'C2H4 ', MONTH, T_C2H4, '[Tg C]'
 
       ! Format statement
  110  FORMAT( 'NEI2008 anthro ', a5, &
