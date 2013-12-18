@@ -538,6 +538,7 @@
       ! For scaling NH3 agricultural emissions (jaf, 12/10/13)
       REAL*4, POINTER            :: NCARR(:,:,:) => NULL()
       REAL*8                     :: ScAgNH3_MASAGE(I1x1,J1x1)
+      LOGICAL                    :: LSCALE2MASAGE
       CHARACTER(LEN=255)         :: DATA_DIR_NH3_ag
       CHARACTER(LEN=255)         :: FILENAMEWD_NH3ag, FILENAMEWE_NH3ag
       CHARACTER(LEN=255)         :: FILENAME_ScAg
@@ -555,6 +556,7 @@
       LCAC      = Input_Opt%LCAC
       LFUTURE   = Input_Opt%LFUTURE
       N_TRACERS = Input_Opt%N_TRACERS
+      LSCALE2MASAGE = Input_Opt%LSCALE2MASAGE
       
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -694,15 +696,6 @@
       FILENAMEWEC3  = TRIM( DATA_DIR_NEI ) //  'c3marine_'         // &
                       TRIM( TTMON        ) // '_wkend_regrid.nc'
 
-      ! For NH3 -- files with agricultural emissions only (jaf,
-      ! 12/10/13)
-      FILENAMEWD_NH3ag = TRIM(DATA_DIR_NH3_ag) // 'NEI08_2010_1x1_' // &
-                         TRIM( TTMON        )  // '_wkday_regrid.nc'
-      FILENAMEWE_NH3ag = TRIM(DATA_DIR_NH3_ag) // 'NEI08_2010_1x1_' // &
-                         TRIM( TTMON        )  // '_wkend_regrid.nc'
-      FILENAME_ScAg    = TRIM(DATA_DIR_NH3_ag) // &
-                         'MASAGE_NEI08_Ratio.geos.1x1.nc'
-
       ! Allocate start and count arrays
       st3d = (/1, 1, 1/)            !Start lat/lon/time
       st4d = (/1, 1, 1, 1/)         !Start lat/lon/time/lev
@@ -723,8 +716,18 @@
       CALL Ncop_Rd(fId2d, TRIM(FILENAMEWEC3))     ! c3marine
 
       ! Open NH3 ag files
-      CALL Ncop_Rd(fId1e, TRIM(FILENAMEWD_NH3ag)) ! NH3ag weekday
-      CALL Ncop_Rd(fId2e, TRIM(FILENAMEWE_NH3ag)) ! NH3ag weekend
+      IF ( LSCALE2MASAGE ) THEN
+         FILENAMEWD_NH3ag = TRIM(DATA_DIR_NH3_ag) // &
+                            'NEI08_2010_1x1_'     // &
+                            TRIM( TTMON        )  // '_wkday_regrid.nc'
+         FILENAMEWE_NH3ag = TRIM(DATA_DIR_NH3_ag) // &
+                            'NEI08_2010_1x1_'     // &
+                            TRIM( TTMON        )  // '_wkend_regrid.nc'
+         FILENAME_ScAg    = TRIM(DATA_DIR_NH3_ag) // &
+                            'MASAGE_NEI08_Ratio.geos.1x1.nc'
+         CALL Ncop_Rd(fId1e, TRIM(FILENAMEWD_NH3ag)) ! NH3ag weekday
+         CALL Ncop_Rd(fId2e, TRIM(FILENAMEWE_NH3ag)) ! NH3ag weekend
+      ENDIF
 
  100  FORMAT( '     - EMISS_NEI2008_ANTHRO_1x1:  Reading ', &
                       a, ' -> ', a )
@@ -1047,6 +1050,7 @@
             ! Special case for NH3 emissions -- scale agricultural
             ! component based on MASAGE monthly gridded values from Paulot
             ! et al., 2013 (jaf, 12/10/13)
+            IF ( LSCALE2MASAGE ) THEN
 
             ! Read ag files
             CALL NcRd(ARRAYWD_NH3ag, fId1e, TRIM(SId), st3d, ct3d )
@@ -1088,6 +1092,7 @@
                                   GEOS_1x1WD_NH3ag(:,:,:) * ScNH3_Ag
             GEOS_1x1WE(:,:,1,:) = GEOS_1x1WE(:,:,1,:) * ScNH3_NonAg + &
                                   GEOS_1x1WE_NH3ag(:,:,:) * ScNH3_Ag
+            ENDIF  ! MASAGE scaling
 
             DO L=1,3
                DO HH=1,24
@@ -2082,12 +2087,10 @@
       ! For scaling NH3 agricultural emissions (jaf, 12/12/13)
       REAL*4, POINTER            :: NCARR(:,:,:) => NULL()
       REAL*8                     :: ScAgNH3_MASAGE(IIPAR,JJPAR)
-      LOGICAL                    :: SCALE_NH3_Ag
+      LOGICAL                    :: LSCALE2MASAGE
       CHARACTER(LEN=255)         :: DATA_DIR_NH3_ag
       CHARACTER(LEN=255)         :: FILENAMEWD_NH3ag, FILENAMEWE_NH3ag
       CHARACTER(LEN=255)         :: FILENAME_ScAg
-
-      ! For fields from Input_Opt
 
       !=================================================================
       ! EMISS_NEI2008_ANTHRO begins here!
@@ -2098,6 +2101,9 @@
          CALL INIT_NEI2008_ANTHRO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
+
+      ! Copy values from Input_Opt
+      LSCALE2MASAGE = Input_Opt%LSCALE2MASAGE
 
       ! Get emissions year
       THISYEAR = GET_YEAR()
@@ -2232,22 +2238,6 @@
       FILENAMEWEC3  = TRIM( DATA_DIR_NEI ) //  'c3marine_'        // &
                       TRIM( TTMON        ) // '_wkend_regrid.nc'
 
-      ! For NH3 -- files with agricultural emissions only, not available
-      ! at 05x0666 (jaf, 12/10/13)
-#if   defined( GRID05x0666 )
-      SCALE_NH3_Ag = .FALSE.
-#elif defined( GRID025x03125)
-      SCALE_NH3_Ag = .TRUE.
-      FILENAMEWD_NH3ag = TRIM(DATA_DIR_NH3_ag) // &
-                         'NEI08_2010_25x3125_' // &
-                         TRIM( TTMON        )  // '_wkday_regrid.nc'
-      FILENAMEWE_NH3ag = TRIM(DATA_DIR_NH3_ag) // &
-                         'NEI08_2010_25x3125_' // &
-                         TRIM( TTMON        )  // '_wkend_regrid.nc'
-      FILENAME_ScAg    = TRIM(DATA_DIR_NH3_ag) // &
-                         'MASAGE_NEI08_Ratio.geos.025x03125.nc'
-#endif
-
       ! Allocate start and count arrays
       st3d = (/1, 1, 1/)            !Start lat/lon/time
       st4d = (/1, 1, 1, 1/)         !Start lat/lon/time/lev
@@ -2267,8 +2257,16 @@
       CALL Ncop_Rd(fId2c, TRIM(FILENAMEWEPTN))    ! ptnonipm
       CALL Ncop_Rd(fId2d, TRIM(FILENAMEWEC3))     ! c3marine
 
-      ! Open NH3 ag files
-      IF ( SCALE_NH3_Ag ) THEN
+      ! Open NH3 ag files (only avail at 025x03125)
+      IF ( LSCALE2MASAGE ) THEN
+         FILENAMEWD_NH3ag = TRIM(DATA_DIR_NH3_ag) // &
+                            'NEI08_2010_25x3125_' // &
+                            TRIM( TTMON        )  // '_wkday_regrid.nc'
+         FILENAMEWE_NH3ag = TRIM(DATA_DIR_NH3_ag) // &
+                            'NEI08_2010_25x3125_' // &
+                            TRIM( TTMON        )  // '_wkend_regrid.nc'
+         FILENAME_ScAg    = TRIM(DATA_DIR_NH3_ag) // &
+                            'MASAGE_NEI08_Ratio.geos.025x03125.nc'
          CALL Ncop_Rd(fId1e, TRIM(FILENAMEWD_NH3ag)) ! NH3ag weekday
          CALL Ncop_Rd(fId2e, TRIM(FILENAMEWE_NH3ag)) ! NH3ag weekend
       ENDIF
@@ -2363,7 +2361,7 @@
             ! Special case for NH3 emissions -- scale agricultural
             ! component based on MASAGE monthly gridded values from Paulot
             ! et al., 2013 (jaf, 12/10/13)
-            IF ( SCALE_NH3_Ag ) THEN
+            IF ( LSCALE2MASAGE ) THEN
 
                ! Read ag files
                CALL NcRd(ARRAYWD_NH3ag, fId1e, TRIM(SId), st3d, ct3d )

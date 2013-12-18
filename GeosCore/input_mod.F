@@ -2303,6 +2303,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
       READ( SUBSTRS(1:N), * ) LNEI08CARB
 
+      ! Scale NEI2008 ag NH3 to MASAGE?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
+      READ( SUBSTRS(1:N), * ) LSCALE2MASAGE
+
       ! Use RETRO emissions? (wfr, 3/8/11)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
       READ( SUBSTRS(1:N), * ) LRETRO
@@ -2525,6 +2529,7 @@
       LNEI05            = ( LNEI05         .and. LANTHRO   )
       LNEI08            = ( LNEI08         .and. LANTHRO   )
       LNEI08CARB        = ( LNEI08CARB     .and. LANTHRO   )
+      LSCALE2MASAGE     = ( LSCALE2MASAGE  .and. LANTHRO   )
       LRETRO            = ( LRETRO         .and. LANTHRO   )
       LNEI99            = ( LNEI99         .and. LANTHRO   )
       LICARTT           = ( LICARTT        .and. LANTHRO   )
@@ -2679,6 +2684,17 @@
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          ENDIF
       ENDIF
+      ! Same story for LSCALE2MASAGE
+      IF ( LSCALE2MASAGE .and. ( .not. LNEI08 ) ) THEN
+         LSCALE2MASAGE = .FALSE.
+         IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, '(a)' ) 'WARNING! NEI08 emissions are turned off, so'
+         WRITE( 6, '(a)' ) 'we also turn off scaling to MASAGE NH3'
+         WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         ENDIF
+      ENDIF
 
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
@@ -2695,6 +2711,7 @@
       LNEI05   = .FALSE.
       LNEI08   = .FALSE.
       LNEI08CARB = .FALSE.
+      LSCALE2MASAGE = .FALSE.
       LVISTAS  = .FALSE.
       LICARTT  = .FALSE.
 
@@ -2722,6 +2739,7 @@
       LNEI05   = .FALSE.
       LNEI08   = .FALSE.
       LNEI08CARB = .FALSE.
+      LSCALE2MASAGE = .FALSE.
       LVISTAS  = .FALSE.
       LICARTT  = .FALSE.
 
@@ -2774,6 +2792,18 @@
          ENDIF
       ENDIF
          
+#endif
+
+! Scaling NEI08 NH3 to MASAGE only available for global or 0.25x0.3125
+#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID025x03125)
+      IF ( LSCALE2MASAGE ) THEN
+         LSCALE2MASAGE = .FALSE.
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(/,a,/)' ) 
+     &         ' Scaling NEI08 ag NH3 to MASAGE ' //
+     &         ' not available at this resolution.'
+         ENDIF
+      ENDIF
 #endif
 
       ! NEI 2005 precedes NEI 1999
@@ -2916,6 +2946,7 @@
       Input_Opt%LNEI05         = LNEI05
       Input_Opt%LNEI08         = LNEI08
       Input_Opt%LNEI08CARB     = LNEI08CARB
+      Input_Opt%LSCALE2MASAGE  = LSCALE2MASAGE
       Input_Opt%LRETRO         = LRETRO
       Input_Opt%LNEI99         = LNEI99
       Input_Opt%LICARTT        = LICARTT
@@ -2989,6 +3020,7 @@
         WRITE( 6, 100 ) '  Use EPA/NEI 2005          : ', LNEI05
         WRITE( 6, 100 ) '  Use EPA/NEI 2008          : ', LNEI08
         WRITE( 6, 100 ) '  Use EPA/NEI 2008 OC/BC    : ', LNEI08CARB
+        WRITE( 6, 100 ) '  Scale NEI Ag NH3 to MASAGE: ', LSCALE2MASAGE
         WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
         WRITE( 6, 100 ) '  Use AEIC emissions        : ', LAEIC
         WRITE( 6, 100 ) '  Use RCP emissions         : ', LRCP
@@ -8640,6 +8672,7 @@
       LNEI05         = .FALSE.
       LNEI08         = .FALSE.
       LNEI08CARB     = .FALSE.
+      LSCALE2MASAGE  = .FALSE.
       LOTDLOC        = .FALSE.
       LSHIPSO2       = .FALSE.
       LSOILNOX       = .FALSE.
