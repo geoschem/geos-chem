@@ -225,6 +225,7 @@
       REAL*8,  ALLOCATABLE :: ENH3_bb(:,:)
       REAL*8,  ALLOCATABLE :: ENH3_bf(:,:)
       REAL*8,  ALLOCATABLE :: ENH3_na(:,:)
+      REAL*8,  ALLOCATABLE :: ENH3_na_orig(:,:)
       REAL*8,  ALLOCATABLE :: ESO2_ac(:,:,:) 
       REAL*8,  ALLOCATABLE :: ESO2_an(:,:,:)
       REAL*8,  ALLOCATABLE :: ESO2_bb(:,:)     
@@ -5887,6 +5888,7 @@
       LOGICAL       :: LPRT
       LOGICAL       :: LSHIPSO2
       LOGICAL       :: LAEIC
+      LOGICAL       :: LNEI08
       LOGICAL       :: ITS_AN_AEROSOL_SIM
       INTEGER       :: N_TRACERS
 
@@ -5909,6 +5911,7 @@
       LPRT               = Input_Opt%LPRT
       LSHIPSO2           = Input_Opt%LSHIPSO2
       LAEIC              = Input_Opt%LAEIC
+      LNEI08             = Input_Opt%LNEI08
       ITS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       N_TRACERS          = Input_Opt%N_TRACERS
 
@@ -5980,6 +5983,8 @@
          CALL READ_SST( MONTH, YEAR, State_Met )
          CALL READ_OCEAN_DMS( MONTH )
          CALL READ_NATURAL_NH3( MONTH )
+         ! Read original version for NEI08 to avoid double-counting
+         IF ( LNEI08 ) CALL READ_NATURAL_NH3_ORIG( MONTH )
 
          ! Add LBIOFUEL szitch to turn off biofuel emissions.
          ! Warning: Streets 2006 inventory combines both anthropogenic
@@ -7537,7 +7542,7 @@
 
              IF ( LNEI08 .and. .not. LHIST ) THEN
 !eml]          
-               IF ( NEI08_MASK( I, J) < 0d0 ) THEN
+               IF ( NEI08_MASK( I, J) > 0d0 ) THEN
 
                   ! Determine if we should use weekday or weekend NEI
                   ! emissions at grid box (I,J,L).  Since NEI is over
@@ -8256,6 +8261,7 @@
       REAL*8                 :: NEI2005(IIPAR,JJPAR,NOXLEVELS)
       REAL*8                 :: NEI2008(IIPAR,JJPAR,NOXLEVELS)
       REAL*8                 :: NH3bf(IIPAR,JJPAR)
+      REAL*8                 :: NH3na(IIPAR,JJPAR)
       REAL*8                 :: TEMPEMISS(NOXLEVELS)
       
       ! For fields from Input_Opt
@@ -8297,6 +8303,7 @@
     
       ! init
       NH3an     = 0D0
+      NH3na     = 0D0
       
       ! is it local PBL mixing scheme?
       IS_LOCAL   = .NOT. LNLPBL
@@ -8372,6 +8379,11 @@
             ! regular ENH3_an and ENH3_bf to local arrays. (bmy, 11/16/04)
             NH3an(I,J,1) = ENH3_an(I,J)
             NH3bf(I,J)   = ENH3_bf(I,J)
+            
+            ! Also distinguish between original GEIA emissions and the
+            ! same with crops emitted to avoid double-counting these
+            ! when NEI08 emissions are used (jaf, 12/2/13)
+            NH3na(I,J) = ENH3_na(I,J)
             
             ! The RCP anthropogenic emission inventory already includes
             ! biofuel emissions, so we turn off the additional biofuel 
@@ -8449,13 +8461,21 @@
                   ! Convert from [molec NH3/cm2/s] to [kg NH3/box/sec]
                   NH3an(I,J,L) = EPA_AN * AREA_CM2 / XNUMOL(IDTNH3)
                ENDDO
+
+               ! Also overwrite natural emissions so that crop NH3
+               ! emissions aren't double-counted (jaf, 12/2/13)
+               NH3na(I,J) = ENH3_na_orig(I,J)
+
             ENDIF
             ENDIF
             !=============================================================
             ! Do PBL mixing of all types of NH3 emission [kg/box/s]
             !=============================================================
+            ! Now overwrite natural emissions when using NEI08 (jaf,
+            ! 12/2/13)
             TEMPEMISS(1) = NH3an(I,J,1) + ENH3_bb(I,J) + 
-     &                     NH3bf(I,J)   + ENH3_na(I,J)
+!     &                     NH3bf(I,J)   + ENH3_na(I,J)
+     &                     NH3bf(I,J)   + NH3na(I,J)
 
             TEMPEMISS(2:)= NH3an(I,J,2:)
             
@@ -8494,8 +8514,11 @@
      &                         ( NH3bf(I,J)   * DTSRCE )
 
                ! Natural source NH3
+               ! Now overwrite natural emissions when using NEI08 (jaf,
+               ! 12/2/13)
                AD13_NH3_na(I,J) = AD13_NH3_na(I,J) + 
-     &                         ( ENH3_na(I,J) * DTSRCE )
+!     &                         ( ENH3_na(I,J) * DTSRCE )
+     &                         ( NH3na(I,J) * DTSRCE )
 
 
             ENDIF
@@ -8505,7 +8528,8 @@
          State_Chm%TRAC_TEND(:,J,1,IDTNH3) = 
      &   State_Chm%TRAC_TEND(:,J,1,IDTNH3) + 
      &        ( NH3an(:,J,1) + ENH3_bb(:,J) + 
-     &          NH3bf(:,J)   + ENH3_na(:,J) )
+!     &          NH3bf(:,J)   + ENH3_na(:,J) )
+     &          NH3bf(:,J)   + NH3na(:,J) )
 
          State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTNH3) = 
      &   State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTNH3) + NH3an(:,J,2:)
@@ -11462,6 +11486,95 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: read_natural_nh3_orig
+!
+! !DESCRIPTION: Subroutine READ\_NATURAL\_NH3\_ORIG reads the original natural 
+!  NH3 emissions (soil, wild animals, and ocean only) from disk and converts to
+!  [kg NH3/box/s] if NEI08 emissions are being used. (jaf, 2 Dec 2013)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_NATURAL_NH3_ORIG( THISMONTH )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,  ONLY: DATA_DIR_NATIVE => DATA_DIR_1x1
+      USE NCDF_MOD,       ONLY: NC_READ
+      USE REGRID_A2A_MOD, ONLY: DO_REGRID_A2A
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISMONTH ! Current month number (1-12)
+!
+! !REVISION HISTORY: 
+!  02 Dec 2013 - J. Fisher   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0,
+     &                                      31d0, 30d0, 31d0, 31d0, 
+     &                                      30d0, 31d0, 30d0, 31d0 /)
+      CHARACTER(LEN=255)  :: FILENAME
+      CHARACTER(LEN=255)  :: LLFILENAME
+
+      REAL*8              :: GENERIC_1x1(I1x1,J1x1-1,1)
+      REAL*8              :: INGRID(I1x1,J1x1-1)
+      REAL*4, POINTER     :: NCARR(:,:,:) => NULL()
+
+      !=================================================================
+      ! READ_NATURAL_NH3_ORIG begins here!
+      !=================================================================
+
+      ! File name
+!###      FILENAME = TRIM( DATA_DIR )                         //
+      FILENAME = '/home/jaf/emissions/NH3/NH3_GEIA/' //
+     &           'NH3_natusrce.soil+wild+oc.generic.1x1.nc'
+
+      ! Echo output
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_NATURAL_NH3_ORIG: Reading ', a )
+
+      ! Open and read data from netCDF file
+      CALL NC_READ ( NC_PATH = TRIM(FILENAME) ,
+     &               PARA    = 'NH3'          ,
+     &               ARRAY   = NCARR          ,    
+     &               YEAR    = 1990           ,    
+     &               MONTH   = 01             ,    
+     &               DAY     = 01             ,
+     &               VERBOSE = .FALSE.         )    
+
+      GENERIC_1x1(:,:,1) = NCARR(:,:,1)
+
+      ! Deallocate ncdf-array
+      IF ( ASSOCIATED ( NCARR ) ) DEALLOCATE ( NCARR )
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_NATIVE) //
+     &             'MAP_A2A_Regrid_201203/' //
+     &             'MAP_A2A_latlon_generic1x1.nc'
+
+      ! Regrid to current model resolution
+      INGRID = GENERIC_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,         J1x1-1,
+     &                    INGRID,     ENH3_na_orig, IS_MASS=1,
+     &                    netCDF=.TRUE.                        )
+
+      ! Convert from [kg N/box/mon] to [kg NH3/box/s]
+      ENH3_na_orig = ENH3_na_orig * ( 17.d0 / 14.d0 ) /
+     &               ( NMDAY(THISMONTH) * 86400.d0 ) 
+ 
+      END SUBROUTINE READ_NATURAL_NH3_ORIG
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: read_biofuel_nh3
 !
 ! !DESCRIPTION: Subroutine READ\_BIOFUEL\_NH3 reads the monthly mean biomass
@@ -12039,6 +12152,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_na' )
       ENH3_na = 0d0
 
+      ALLOCATE( ENH3_na_orig( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_na_orig' )
+      ENH3_na_orig = 0d0
+
       ALLOCATE( ESO2_ac( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_ac' )
       ESO2_ac = 0d0
@@ -12243,6 +12360,7 @@
       IF ( ALLOCATED( ENH3_bb    ) ) DEALLOCATE( ENH3_bb    )
       IF ( ALLOCATED( ENH3_bf    ) ) DEALLOCATE( ENH3_bf    )
       IF ( ALLOCATED( ENH3_na    ) ) DEALLOCATE( ENH3_na    )
+      IF ( ALLOCATED( ENH3_na_orig ) ) DEALLOCATE( ENH3_na_orig )
       IF ( ALLOCATED( ESO2_ac    ) ) DEALLOCATE( ESO2_ac    )
       IF ( ALLOCATED( ESO2_an    ) ) DEALLOCATE( ESO2_an    )
       IF ( ALLOCATED( ESO2_nv    ) ) DEALLOCATE( ESO2_nv    )

@@ -2161,7 +2161,7 @@
          ! and if it we are at a chemistry timestep
          IF ( LCHEM .and. ITS_TIME_FOR_CHEM() ) THEN
              
-            !Don't read TOMS O3 data when using TO3 from met fields
+            ! Don't read TOMS O3 data when using TO3 from met fields
             ! Get the overhead O3 column for FAST-J.  Take either the
             ! TOMS O3 data or the column O3 directly from the met fields
             CALL COMPUTE_OVERHEAD_O3( DAY,

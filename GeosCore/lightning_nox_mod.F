@@ -1258,7 +1258,7 @@
 #if   defined( MERRA )
       MODELNAME = 'merra'
 #elif defined( GEOS_FP )
-      MODELNAME = 'geos5.7.2'
+      MODELNAME = 'geosfp'
 #elif defined( GEOS_5 )
       ! GEOS-5 convection scheme changed in GCM post 9/1/2008
       IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
@@ -1278,16 +1278,21 @@
 !%%%     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' // 
 !%%%     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 
-      FILENAME = '/as/home/skim/Code_Development/'                //
-     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' //
-     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()           //
-     &        '.temp'
+!%%%      FILENAME = '/as/home/skim/Code_Development/'                //
+!%%%     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' //
+!%%%     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()           //
+!%%%     &        '.temp'
+
+!%%% UPDATE FOR SEAC4RS RERUN (jaf, 12/2/13)
+      FILENAME = 
+     &        'lightning_NOx_201311/OTD-LIS-Local-Redist.CTH.v5.' // 
+     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Prefix directory to file name
-#if !defined( GEOS_FP )
+!%%%#if !defined( GEOS_FP )
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-#endif
+!%%%#endif
 
       ! For GEOS-57 nested grids, append a suffix to denote either
       ! SEAC4RS or the China domain (skim, 5/29/12)
@@ -1502,6 +1507,8 @@
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
+#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
 #endif
 
 #if   defined( GEOS_5 )
@@ -1586,10 +1593,18 @@
       ! GEOS-FP: Nested SEAC4RS simulation
       !---------------------------------------
       
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 11/14/13).
+      IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or. 
+     &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN 
+         BETA = ANN_AVG_FLASHRATE / 652.44105d0
       ENDIF
+!
+!      ! ltm: Will need to be updated when other months/years become available
+!      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+!         BETA = 0.20604515d0
+!      ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )
 

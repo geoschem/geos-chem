@@ -80,6 +80,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
+!  17 Dec 2013 - J. Fisher   - Added LNEI08CARB, LSCALE2MASAGE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -149,7 +150,9 @@
       LOGICAL :: LMONOT          ! Use old 
       LOGICAL :: LNEI99          ! Use EPA 1999 regional emissions?
       LOGICAL :: LNEI05          ! Use EPA 2005 regional emissions?
-      LOGICAL :: LNEI08          ! Use EPA 2005 regional emissions?
+      LOGICAL :: LNEI08          ! Use EPA 2008 regional emissions?
+      LOGICAL :: LNEI08CARB      ! Use EPA 2008 regional OC/BC emissions?
+      LOGICAL :: LSCALE2MASAGE   ! Scale NEI08 ag NH3 to MASAGE?
       LOGICAL :: LSHIPSO2        ! Use SO2 from ship emissions?
       LOGICAL :: LSOILNOX        ! Use soil NOx emissions
       !FP_ISOP (6/2009) LFERTILIZERNOX
