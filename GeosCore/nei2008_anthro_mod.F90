@@ -442,7 +442,6 @@
 ! !USES:
 ! 
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
-      USE BPCH2_MOD,         ONLY : READ_BPCH2 
       USE LOGICAL_MOD,       ONLY : LFUTURE
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
@@ -453,7 +452,6 @@
       USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH, GET_DAY
       USE TIME_MOD,          ONLY : GET_DAY_OF_WEEK, GET_HOUR
-      !USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
       USE TRACERID_MOD,      ONLY : IDTCO, IDTNO, IDTNO2, IDTHNO2
       USE TRACERID_MOD,      ONLY : IDTSO2, IDTNH3
       USE TRACERID_MOD,      ONLY : IDTALD2, IDTRCHO, IDTC2H6
@@ -495,13 +493,11 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE              :: FIRST = .TRUE.
-      LOGICAL                    :: WEEKDAY
-      INTEGER                    :: I, J, IH, THISMONTH, THISYEAR
-      INTEGER                    :: SNo,KLM2, DAY_NUM, DOYT
-      INTEGER                    :: L, HH, KLM, SPECIES_ID(18), ID,  MN
+      INTEGER                    :: I, J,  IH,  THISMONTH, THISYEAR, SNo
+      INTEGER                    :: L, HH, KLM, SPECIES_ID(18)
       INTEGER                    :: OFFLINE_ID(15)
-      INTEGER                    :: st3d(3), ct3d(3), st4d(4)
-      INTEGER                    :: ct4da(4), ct4db(4)
+      INTEGER                    :: st3d(3), ct3d(3)
+      INTEGER                    :: st4d(4), ct4da(4), ct4db(4)
       INTEGER                    :: fId1, fId1b, fId1c, fId1d, fId1e
       INTEGER                    :: fId2, fId2b, fId2c, fId2d, fId2e
       REAL*4                     :: ARRAYWD(I1x1,J1x1,24)
@@ -526,9 +522,7 @@
       CHARACTER(LEN=255)         :: FILENAMEWDPT, FILENAMEWEPT
       CHARACTER(LEN=255)         :: FILENAMEWDPTN, FILENAMEWEPTN
       CHARACTER(LEN=255)         :: FILENAMEWDC3, FILENAMEWEC3
-      CHARACTER(LEN=4)           :: SYEAR, SId
-      CHARACTER(LEN=1)           :: SSMN
-      CHARACTER(LEN=2)           :: SMN
+      CHARACTER(LEN=4)           :: SId
       CHARACTER(LEN=255)         :: LLFILENAME
       CHARACTER(LEN=3)           :: TTMON
       CHARACTER(LEN=24)          :: SPCLIST(18)
@@ -543,8 +537,6 @@
       CHARACTER(LEN=255)         :: FILENAMEWD_NH3ag, FILENAMEWE_NH3ag
       CHARACTER(LEN=255)         :: FILENAME_ScAg
 
-      ! For fields from Input_Opt
-      INTEGER            :: N_TRACERS
       !=================================================================
       ! EMISS_NEI2008_ANTHRO begins here!
       !=================================================================
@@ -552,10 +544,7 @@
       RC        =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      LBRAVO    = Input_Opt%LBRAVO
-      LCAC      = Input_Opt%LCAC
       LFUTURE   = Input_Opt%LFUTURE
-      N_TRACERS = Input_Opt%N_TRACERS
       LSCALE2MASAGE = Input_Opt%LSCALE2MASAGE
       
       ! First-time initialization
@@ -2004,7 +1993,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE NCDF_MOD,          ONLY : NC_READ
-      !USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
       USE TRACERID_MOD,      ONLY : IDTCO, IDTNO, IDTHNO2, IDTNO2 
       USE TRACERID_MOD,      ONLY : IDTSO2, IDTNH3
       USE TRACERID_MOD,      ONLY : IDTALD2, IDTRCHO, IDTC2H6
@@ -2047,12 +2035,11 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE              :: FIRST = .TRUE.
-      INTEGER                    :: I, J, IH,  THISYEAR, THISMONTH
-      INTEGER                    :: WEEKDAY, DAY_NUM, DOYT
-      INTEGER                    :: L, HH, KLM, SPECIES_ID(18), ID,  MN
-      INTEGER                    :: OFFLINE_ID(15), SNo
-      INTEGER                    :: st3d(3), ct3d(3), st4d(4)
-      INTEGER                    :: ct4da(4), ct4db(4)
+      INTEGER                    :: I, J,  IH,  THISYEAR, THISMONTH, SNo
+      INTEGER                    :: L, HH, KLM, SPECIES_ID(18)
+      INTEGER                    :: OFFLINE_ID(15)
+      INTEGER                    :: st3d(3), ct3d(3)
+      INTEGER                    :: st4d(4), ct4da(4), ct4db(4)
       INTEGER                    :: fId1, fId1b, fId1c, fId1d, fId1e
       INTEGER                    :: fId2, fId2b, fId2c, fId2d, fId2e
       REAL*4                     :: ARRAYWD(IIPAR,JJPAR,24)
@@ -2080,8 +2067,6 @@
       CHARACTER(LEN=24)          :: SPCLIST(18)
       CHARACTER(LEN=4)           :: SYEAR, SId
       CHARACTER(LEN=5)           :: SNAME
-      CHARACTER(LEN=1)           :: SSMN
-      CHARACTER(LEN=2)           :: SMN
       CHARACTER(LEN=3)           :: TTMON
 
       ! For scaling NH3 agricultural emissions (jaf, 12/12/13)
@@ -2103,6 +2088,7 @@
       ENDIF
 
       ! Copy values from Input_Opt
+      LFUTURE   = Input_Opt%LFUTURE
       LSCALE2MASAGE = Input_Opt%LSCALE2MASAGE
 
       ! Get emissions year
@@ -2517,7 +2503,6 @@
 !     
       ! Reference to F90 modules
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE LOGICAL_MOD,    ONLY : LCAC,            LBRAVO
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
@@ -2692,32 +2677,34 @@
       ! NEI2008_SCALE_FUTURE begins here!
       !=================================================================
 
-!$OMP PARALLEL DO
+!$OMP PARALLEL DO &
+!$OMP DEFAULT( SHARED ) &
+!$OMP PRIVATE( I, J, L, HH )
 
+      DO HH=1,24
+      DO L = 1,3
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         DO L = 1,3
-            DO HH=1,24
-             ! Future NO2 [molec/cm2/s]
-             NO2(I,J,L,HH) = NO2(I,J,L,HH) * GET_FUTURE_SCALE_NOxff( I, J )
+          ! Future NO2 [molec/cm2/s]
+          NO2(I,J,L,HH) = NO2(I,J,L,HH) * GET_FUTURE_SCALE_NOxff( I, J )
 
-             ! Future CO  [molec/cm2/s]
-             CO(I,J,L,HH) = CO(I,J,L,HH)  * GET_FUTURE_SCALE_COff(  I, J )
+          ! Future CO  [molec/cm2/s]
+          CO(I,J,L,HH) = CO(I,J,L,HH)  * GET_FUTURE_SCALE_COff(  I, J )
 
-             ! Future SO2 [molec/cm2/s] 
-             SO2(I,J,L,HH) = SO2(I,J,L,HH) * GET_FUTURE_SCALE_SO2ff( I, J )
+          ! Future SO2 [molec/cm2/s] 
+          SO2(I,J,L,HH) = SO2(I,J,L,HH) * GET_FUTURE_SCALE_SO2ff( I, J )
 
-             ! Future SO4 [molec/cm2/s]
-             SO4(I,J,L,HH)  = SO4(I,J,L,HH) * GET_FUTURE_SCALE_SO2ff( I, J )
+          ! Future SO4 [molec/cm2/s]
+          SO4(I,J,L,HH)  = SO4(I,J,L,HH) * GET_FUTURE_SCALE_SO2ff( I, J )
 
-             ! Future NH3 [molec/cm2/s] 
-             NH3(I,J,L,HH)  = NH3(I,J,L,HH) * GET_FUTURE_SCALE_NH3an( I, J )
+          ! Future NH3 [molec/cm2/s] 
+          NH3(I,J,L,HH)  = NH3(I,J,L,HH) * GET_FUTURE_SCALE_NH3an( I, J )
 
-             ! Future OC [molec/cm2/s]
-             OCPO(I,J,L,HH)  = OCPO(I,J,L,HH) * GET_FUTURE_SCALE_OCff( I, J )
+          ! Future OC [molec/cm2/s]
+          OCPO(I,J,L,HH)  = OCPO(I,J,L,HH) * GET_FUTURE_SCALE_OCff( I, J )
 
-             ! Future BC [molec/cm2/s]
-             BCPO(I,J,L,HH) = BCPO(I,J,L,HH) * GET_FUTURE_SCALE_BCff( I, J )
+          ! Future BC [molec/cm2/s]
+          BCPO(I,J,L,HH) = BCPO(I,J,L,HH) * GET_FUTURE_SCALE_BCff( I, J )
 
       ENDDO
       ENDDO
