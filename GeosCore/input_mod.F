@@ -2230,6 +2230,7 @@
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete options for LAVHRRLAI and
 !                              LMODISLAI. MODIS LAI data are now read from
 !                              netCDF files.
+!  17 Dec 2013 - J. Fisher   - Added NEI08 switch for carbon aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2297,6 +2298,10 @@
       ! Include NEI2008 emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
       READ( SUBSTRS(1:N), * ) LNEI08
+
+      ! Include NEI2008 OC/BC emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
+      READ( SUBSTRS(1:N), * ) LNEI08CARB
 
       ! Use RETRO emissions? (wfr, 3/8/11)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
@@ -2519,6 +2524,7 @@
       LCAC              = ( LCAC           .and. LANTHRO   )
       LNEI05            = ( LNEI05         .and. LANTHRO   )
       LNEI08            = ( LNEI08         .and. LANTHRO   )
+      LNEI08CARB        = ( LNEI08CARB     .and. LANTHRO   )
       LRETRO            = ( LRETRO         .and. LANTHRO   )
       LNEI99            = ( LNEI99         .and. LANTHRO   )
       LICARTT           = ( LICARTT        .and. LANTHRO   )
@@ -2658,6 +2664,22 @@
          ENDIF
       ENDIF
 
+      ! NEI08 safety swith. If LNEI08CARB is turned on but LNEI08 is
+      ! turned off, this will cause an error (because arrays are not
+      ! allocated, etc.). For now, just turn off LNEI08CARB and print a
+      ! warning message. Whoever wants to fix this in a more robust way
+      ! is welcome to do so. (jaf, 12/17/13)
+      IF ( LNEI08CARB .and. ( .not. LNEI08 ) ) THEN
+         LNEI08CARB = .FALSE.
+         IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, '(a)' ) 'WARNING! NEI08 emissions are turned off, so'
+         WRITE( 6, '(a)' ) 'we also turn off NEI08 OC/BC emissions'
+         WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         ENDIF
+      ENDIF
+
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
       !=================================================================
@@ -2672,6 +2694,7 @@
       LNEI99   = .FALSE.
       LNEI05   = .FALSE.
       LNEI08   = .FALSE.
+      LNEI08CARB = .FALSE.
       LVISTAS  = .FALSE.
       LICARTT  = .FALSE.
 
@@ -2698,6 +2721,7 @@
       LNEI99   = .FALSE.
       LNEI05   = .FALSE.
       LNEI08   = .FALSE.
+      LNEI08CARB = .FALSE.
       LVISTAS  = .FALSE.
       LICARTT  = .FALSE.
 
@@ -2785,6 +2809,16 @@
           WRITE( 6, '(/,a,/)' )
      &       ' EPA/NEI05 has been automatically ' //
      &        'switched OFF to use NEI 2008.'
+         ENDIF
+      ENDIF
+
+      ! NEI 2008 OC/BC precedes Cooke OC/BC
+      IF ( LNEI08CARB .AND. LCOOKE ) THEN
+         LCOOKE  = .FALSE.
+         IF ( am_I_Root ) THEN
+          WRITE( 6, '(/,a,/)' )
+     &       ' Cooke OC/BC has been automatically ' //
+     &        'switched OFF to use NEI 2008 OC/BC.'
          ENDIF
       ENDIF
 
@@ -2881,6 +2915,7 @@
       Input_Opt%LCAC           = LCAC
       Input_Opt%LNEI05         = LNEI05
       Input_Opt%LNEI08         = LNEI08
+      Input_Opt%LNEI08CARB     = LNEI08CARB
       Input_Opt%LRETRO         = LRETRO
       Input_Opt%LNEI99         = LNEI99
       Input_Opt%LICARTT        = LICARTT
@@ -2953,6 +2988,7 @@
         WRITE( 6, 100 ) '  Use STREETS anthro emiss. : ', LSTREETS
         WRITE( 6, 100 ) '  Use EPA/NEI 2005          : ', LNEI05
         WRITE( 6, 100 ) '  Use EPA/NEI 2008          : ', LNEI08
+        WRITE( 6, 100 ) '  Use EPA/NEI 2008 OC/BC    : ', LNEI08CARB
         WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
         WRITE( 6, 100 ) '  Use AEIC emissions        : ', LAEIC
         WRITE( 6, 100 ) '  Use RCP emissions         : ', LRCP
@@ -8603,6 +8639,7 @@
       LNEI99         = .FALSE.
       LNEI05         = .FALSE.
       LNEI08         = .FALSE.
+      LNEI08CARB     = .FALSE.
       LOTDLOC        = .FALSE.
       LSHIPSO2       = .FALSE.
       LSOILNOX       = .FALSE.

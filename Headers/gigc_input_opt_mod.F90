@@ -127,6 +127,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCAC
      LOGICAL                     :: LNEI05
      LOGICAL                     :: LNEI08
+     LOGICAL                     :: LNEI08CARB
      LOGICAL                     :: LRETRO
      LOGICAL                     :: LNEI99
      LOGICAL                     :: LICARTT
@@ -787,6 +788,7 @@ CONTAINS
     Input_Opt%LCAC                   = .FALSE.
     Input_Opt%LNEI05                 = .FALSE.
     Input_Opt%LNEI08                 = .FALSE.
+    Input_Opt%LNEI08CARB             = .FALSE.
     Input_Opt%LRETRO                 = .FALSE.
     Input_Opt%LNEI99                 = .FALSE.
     Input_Opt%LICARTT                = .FALSE.
