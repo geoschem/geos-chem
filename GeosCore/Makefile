@@ -396,7 +396,8 @@ carbon_mod.o                : carbon_mod.F                                   \
                               meganut_mod.o           pbl_mix_mod.o          \
                               rcp_mod.o               tomas_mod.o            \
                               tracerid_mod.o          tracer_mod.o           \
-                              tropopause_mod.o        vdiff_pre_mod.o
+                              tropopause_mod.o        vdiff_pre_mod.o        \
+                              nei2008_anthro_mod.o
 
 ch3i_mod.o                  : ch3i_mod.F                                     \
                               biofuel_mod.o           biomass_mod.o          \
