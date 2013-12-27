@@ -150,7 +150,7 @@
       USE CMN_DEP_MOD
 
       USE GEOENG_MOD,        ONLY : EMIT_GEOENG
-      USE LOGICAL_MOD,       ONLY : LGEOENG
+      USE LOGICAL_MOD,       ONLY : LGEOENG, LCH4EMIS
 
 #if defined( DEVEL )
       USE TRACERID_MOD,      ONLY : IDTNOX
@@ -743,12 +743,19 @@
 ! Biogenic emissions of methane [molec CH4/cm2/s] (mpayer, 1/24/12)
             IF ( IDECH4 > 0 ) THEN
 
-               CH4_BIOG = GET_CH4_BIOG(I, J, IDTCH4)
-               CH4_BIOGSUM = CH4_BIOGSUM + (CH4_BIOG*AREA_CM2)
+               IF (LCH4EMIS) THEN
+                  CH4_BIOG = GET_CH4_BIOG(I, J, IDTCH4)
+                  CH4_BIOGSUM = CH4_BIOGSUM + (CH4_BIOG*AREA_CM2)
 
-               ! Store in EMISRR [molec/box/s]
-               EMISRR(I,J,IDECH4) = EMISRR(I,J,IDECH4)
-     &                                  + CH4_BIOG * AREA_CM2
+                  ! Store in EMISRR [molec/box/s]
+                  EMISRR(I,J,IDECH4) = EMISRR(I,J,IDECH4)
+     &                                     + CH4_BIOG * AREA_CM2
+               ELSE
+                  ! Clear CH4 for safety's sake
+                  CH4_BIOG = 0.0d0
+                  CH4_BIOGSUM = 0.0d0
+                  EMISRR(I,J,IDECH4) = 0.0d0
+               ENDIF
             ENDIF
 
 !

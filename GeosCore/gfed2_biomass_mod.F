@@ -1130,9 +1130,12 @@
                GFED2_SPEC_MOLWT(N) = 44d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'CH4' )
-               BIO_SAVE(N)         = IDBCH4
-               GFED2_SPEC_MOLWT(N) = 16d-3
-               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
+               ! Only emit if we have LCH4EMIS
+               IF (LCH4EMIS) THEN
+                  BIO_SAVE(N)         = IDBCH4
+                  GFED2_SPEC_MOLWT(N) = 16d-3
+                  GFED2_SPEC_UNIT(N)  = '[Tg  ]'
+               ENDIF
             CASE DEFAULT
                ! Nothing
                BIO_SAVE(N)         = 0

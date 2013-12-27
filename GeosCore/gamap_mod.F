@@ -785,6 +785,11 @@
       OFFSET(N)   = SPACING * 0
 
       N           = N + 1
+      CATEGORY(N) = 'IJ-MAX-$'
+      DESCRIPT(N) = 'Surface peak concentration'
+      OFFSET(N)   = SPACING * 0
+
+      N           = N + 1
       CATEGORY(N) = 'ANTHSRCE'
       DESCRIPT(N) = 'Anthropogenic emissions'
       OFFSET(N)   = SPACING * 1
@@ -1461,6 +1466,11 @@
       DESCRIPT(N) = 'Radiative flux from FAST-JX'
       OFFSET(N)   = SPACING * 54
 
+      N           = N + 1
+      CATEGORY(N) = 'IJ_MAX-$'
+      DESCRIPT(N) = 'Maximum tracer concentration'
+      OFFSET(N)   = SPACING * 0
+
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
 !      N           = N + 1
@@ -1537,7 +1547,7 @@
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE TRACERID_MOD, ONLY : IDBCH4, IDTCH4
-      USE LOGICAL_MOD,  ONLY : LSPLIT
+      USE LOGICAL_MOD,  ONLY : LSPLIT, LCH4EMIS
       USE CMN_DIAG_MOD, ONLY : PD64
       ! Bypassing for now - problems with UCX (SDE 04/27/13)
 #if !defined( APM )
@@ -6316,14 +6326,31 @@
       IF ( ND64 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(64) = PD64 ! Number of wavelength bins
+         NTRAC(64) = PD64*3 ! Number of wavelength bins
+         NN = 0
+         N = 1
 
          ! Loop over tracers
          DO T = 1, NTRAC(64)
+            NN = NN + 1
+            IF (NN .gt. PD64) THEN
+                NN = 1
+                N = N + 1
+            ENDIF
             ! Define quantities
-            WRITE(NAME(T,64),'(a,I02)') 'WL', T
-            WRITE(FNAME(T,64),'(a,I2)') 
-     &                'UV exposure in bin ', T
+            IF (N .eq. 1) THEN
+                WRITE(NAME(T,64),'(a,I02)') 'NETWL', NN
+                WRITE(FNAME(T,64),'(a,I2)') 
+     &                'Net UV flux in bin ', NN
+            ELSEIF (N .eq. 2) THEN
+                WRITE(NAME(T,64),'(a,I02)') 'DIRWL', NN
+                WRITE(FNAME(T,64),'(a,I2)') 
+     &                'Direct UV flux in bin ', NN
+            ELSEIF (N .eq. 3) THEN
+                WRITE(NAME(T,64),'(a,I02)') 'DIFWL', NN
+                WRITE(FNAME(T,64),'(a,I2)') 
+     &                'Diffuse UV flux in bin ', NN
+            ENDIF
             UNIT (T,64) = 'Wm-2'
             INDEX(T,64) = T + ( SPACING * 54 )
             MOLC (T,64) = 1

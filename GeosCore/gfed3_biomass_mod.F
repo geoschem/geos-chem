@@ -1075,7 +1075,7 @@
       USE FILE_MOD,        ONLY : IOERROR
       USE LOGICAL_MOD,     ONLY : LDICARB
       USE LOGICAL_MOD,     ONLY : LDAYBB3
-      USE LOGICAL_MOD,     ONLY : L3HRBB3
+      USE LOGICAL_MOD,     ONLY : L3HRBB3, LCH4EMIS
       USE TRACERID_MOD,    ONLY : IDBNOx,  IDBCO,   IDBALK4
       USE TRACERID_MOD,    ONLY : IDBACET, IDBMEK,  IDBALD2
       USE TRACERID_MOD,    ONLY : IDBPRPE, IDBC3H8, IDBCH2O
@@ -1370,9 +1370,12 @@
                GFED3_SPEC_MOLWT(N) = 44d-3
                GFED3_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'CH4' )
-               BIO_SAVE(N)         = IDBCH4
-               GFED3_SPEC_MOLWT(N) = 16d-3
-               GFED3_SPEC_UNIT(N)  = '[Tg  ]'
+               ! Only emit if we have LCH4EMIS
+               IF (LCH4EMIS) THEN
+                  BIO_SAVE(N)         = IDBCH4
+                  GFED3_SPEC_MOLWT(N) = 16d-3
+                  GFED3_SPEC_UNIT(N)  = '[Tg  ]'
+               ENDIF
             CASE DEFAULT
                ! Nothing
                BIO_SAVE(N)         = 0

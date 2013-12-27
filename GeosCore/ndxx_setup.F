@@ -72,7 +72,9 @@
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
-      USE DIAG_MOD,        ONLY : AD64
+      USE DIAG_MOD,        ONLY : AD64,        AD71,        AD71_HR
+      USE DIAG_MOD,        ONLY : AD71_COUNT,  AD71_LDAY,   AD71_LHR
+      USE DIAG_MOD,        ONLY : AD71_DAY,    AD71_HRCT
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       ! Add O3 for ND45 diag. (ccc, 8/12/09)
       USE DIAG_MOD,        ONLY : LTO3
@@ -1185,8 +1187,8 @@
       !       --> Uses AD64 array (allocatable)
       !=================================================================
       IF ( ND64 > 0 ) THEN
-         LD64 = MIN( ND64, LLPAR )
-         ALLOCATE( AD64( IIPAR, JJPAR, LD64, PD64 ), STAT=AS )
+         LD64 = MIN( ND64, LLPAR+1 )
+         ALLOCATE( AD64( IIPAR, JJPAR, LD64, PD64, 3 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
       ENDIF
 
@@ -1228,6 +1230,36 @@
       IF ( ND69 > 0 ) THEN
          ALLOCATE( AD69( IIPAR, JJPAR, PD69 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD69' )
+      ENDIF
+
+      !=================================================================
+      ! ND71: Maximum tracer concentration [v/v]
+      !=================================================================
+      IF ( ND71 > 0 ) THEN
+         NMAX = MIN( N_TRACERS+1, NNPAR+1 )
+
+         ! Resize to NMAX to save memory (bmy, 10/18/00)
+         ALLOCATE( AD71( IIPAR, JJPAR, NMAX ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71' )
+
+         ALLOCATE( AD71_HR( IIPAR, JJPAR, NMAX ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_HR' )
+
+         ALLOCATE( AD71_DAY( IIPAR, JJPAR, NMAX ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_DAY' )
+
+         ALLOCATE( AD71_COUNT, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_COUNT' )
+
+         ALLOCATE( AD71_HRCT, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_HRCT' )
+
+         ALLOCATE( AD71_LDAY, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_LDAY' )
+
+         ALLOCATE( AD71_LHR, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_LHR' )
+
       ENDIF
 
       END SUBROUTINE NDXX_SETUP

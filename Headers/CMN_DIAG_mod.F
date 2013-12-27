@@ -151,11 +151,13 @@
       INTEGER, PARAMETER :: PD68=4            
       INTEGER, PARAMETER :: PD69=1
       INTEGER, PARAMETER :: PD70=0
+      INTEGER, PARAMETER :: PD71=NNPAR+1
 
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output
       !=================================================================
-      INTEGER, PARAMETER :: MAX_DIAG   = 70
+      ! SDE 2013-11-17: Increased to 80 for UCX
+      INTEGER, PARAMETER :: MAX_DIAG   = 80
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+1   ! For TOMAS (win, 1/25/10)
 #elif defined( APM ) 

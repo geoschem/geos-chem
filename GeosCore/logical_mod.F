@@ -171,6 +171,7 @@
       LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
       LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)
       LOGICAL :: LCH4EMIS        ! Use methane emissions? (SDE 03/25/13)
+      LOGICAL :: LCH4SBC         ! Use methane surface BC? (SDE 2013-12-18)
       LOGICAL :: LN2OEMIS        ! N2O emissions?
       LOGICAL :: LCFCEMIS        ! CFC emissions?
       LOGICAL :: LCLEMIS         ! Chlorine emissions?
@@ -192,6 +193,7 @@
       LOGICAL :: LCC_UNIFORMT    ! Apply uniform temperature delta at all altitudes?
       LOGICAL :: LCC_SFCT        ! Apply temperature delta at the surface only?
       LOGICAL :: LCC_AR5T        ! Apply temperature delta scaled according to AR5 Fig 10.8?
+      LOGICAL :: LCC_QQ          ! Apply a precipitation delta?
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?

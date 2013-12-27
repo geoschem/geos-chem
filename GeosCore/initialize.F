@@ -193,6 +193,17 @@
          IF ( ND68 > 0 ) AD68     = 0e0
          IF ( ND69 > 0 ) AD69     = 0e0
 
+         ! Daily max mean hourly surface v/v
+         IF ( ND71 > 0 ) THEN
+            AD71       = 0e0
+            AD71_HR    = 0e0
+            AD71_DAY   = 0e0
+            AD71_COUNT = 0
+            AD71_HRCT  = 0
+            AD71_LHR   = -1
+            AD71_LDAY  = -1
+         ENDIF
+
          ! For ND03 - mercury simulations (eck, sas, bmy, 1/20/05)
          IF ( ND03 > 0 ) THEN
             CALL ZERO_DIAG03
@@ -358,6 +369,17 @@
             IF ( ALLOCATED( CTLTRO2N ) ) CTLTRO2N   = 0
             IF ( ALLOCATED( CTLXRO2H ) ) CTLXRO2H   = 0
             IF ( ALLOCATED( CTLXRO2N ) ) CTLXRO2N   = 0
+         ENDIF
+
+         ! Daily max mean hourly surface v/v
+         IF ( ND71 > 0 ) THEN
+            AD71       = 0e0
+            AD71_HR    = 0e0
+            AD71_DAY   = 0e0
+            AD71_COUNT = 0
+            AD71_HRCT  = 0
+            AD71_LHR   = -1
+            AD71_LDAY  = -1
          ENDIF
 
          ! Echo output

@@ -5525,6 +5525,7 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -7871,9 +7872,16 @@
          ! Cast from REAL*4 to REAL*8
          CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
 
-         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
-         ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ! Convert from [kg N/box/mon] to [kg NH3/box/s]
+            ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
      &                / ( NMDAY(THISMONTH) * 86400.d0 )
+         ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
       ENDIF
 
 !$OMP PARALLEL DO

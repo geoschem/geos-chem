@@ -2092,85 +2092,89 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:77' )
       READ( SUBSTRS(1:N), * ) Br_SCALING
 
-      ! Use methane emissions?
+      ! Use variable methane emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:78' )
       READ( SUBSTRS(1:N), * ) LCH4EMIS
 
-      ! Use fixed OCS surface mixing ratio?
+      ! Use fixed methane surface mixing ratio?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:79' )
+      READ( SUBSTRS(1:N), * ) LCH4SBC
+
+      ! Use fixed OCS surface mixing ratio?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:80' )
       READ( SUBSTRS(1:N), * ) LOCSEMIS
 
       ! Use Montreal CFC emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:80' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:81' )
       READ( SUBSTRS(1:N), * ) LCFCEMIS
 
       ! Use chlorine emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:81' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:82' )
       READ( SUBSTRS(1:N), * ) LCLEMIS
 
       ! Use bromine emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:82' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:83' )
       READ( SUBSTRS(1:N), * ) LBREMIS
 
       ! Use fixed N2O surface mixing ratio?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:83' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:84' )
       READ( SUBSTRS(1:N), * ) LN2OEMIS
 
       ! Initialize strat H2O to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:84' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:85' )
       READ( SUBSTRS(1:N), * ) LSETH2O
 
       ! Initialize CH4 to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:85' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:86' )
       READ( SUBSTRS(1:N), * ) LSETCH4
 
       ! Initialize OCS to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:86' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:87' )
       READ( SUBSTRS(1:N), * ) LSETOCS
 
       ! Initialize CFCs to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:87' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:88' )
       READ( SUBSTRS(1:N), * ) LSETCFC
 
       ! Initialize chlorine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:88' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
       READ( SUBSTRS(1:N), * ) LSETCL
 
       ! Initialize bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
       READ( SUBSTRS(1:N), * ) LSETBR
 
       ! Initialize stratospheric bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
       READ( SUBSTRS(1:N), * ) LSETBRSTRAT
 
       ! Initialize stratospheric NOx/HNO3 to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
       READ( SUBSTRS(1:N), * ) LSETNOYSTRAT
 
       ! Initialize N2O to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
       READ( SUBSTRS(1:N), * ) LSETN2O
 
       ! Initialize stratospheric sulfates to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
       READ( SUBSTRS(1:N), * ) LSETH2SO4
 
       ! Starting year for CFC emissions
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
       READ( SUBSTRS(1:N), '(i)') CFCYEAR
 
       ! Do we apply an offset?
       LFUTURECFC = (CFCYEAR .gt. 1950)
 
       ! Directory containing 2D data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:96' )
       READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
 
       TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:102' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:97' )
 
       !=================================================================
       ! Error check logical flags
@@ -2311,6 +2315,22 @@
             WRITE( 6, '(a)' ) 'to avoid duplicate emissions!'
             WRITE( 6, '(a)' ) REPEAT( '=', 79 )
             LFERTILIZERNOX = .FALSE.
+         ENDIF
+
+         ! Issue a warning against using regional inventories
+         IF (LEMEP.or.LBRAVO.or.LSTREETS.or.
+     &                     LCAC.or.LNEI05.or.LNEI99) THEN
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+            WRITE( 6, '(a)' ) 'WARNING! RCP inventory should not be '
+            WRITE( 6, '(a)' ) 'used with regional inventories. The '
+            WRITE( 6, '(a)' ) 'following should be disabled:       '
+            IF (LBRAVO) WRITE(6,'(a)') ' --> BRAVO Mexican emissions'
+            IF (LEMEP) WRITE(6,'(a)') ' --> EMEP European emissions'
+            IF (LSTREETS) WRITE(6,'(a)') ' --> STREETS emissions'
+            IF (LCAC) WRITE(6,'(a)') ' --> CAC Canadian emissions'
+            IF (LNEI05) WRITE(6,'(a)') ' --> EPA/NEI 2005 emissions'
+            IF (LNEI99) WRITE(6,'(a)') ' --> EPA/NEI 1999 emissions'
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          ENDIF
 
       ENDIF
@@ -2611,10 +2631,17 @@
       !=================================================================
       ! Error check methane emissions
       !=================================================================
-      IF ( LCH4EMIS .or. LSETCH4 ) THEN
+      IF ( LCH4EMIS .AND. LCH4SBC ) THEN
+            CALL ERROR_STOP( 
+     &         ' CH4 surface BC & emissions cannot both be turned on!', 
+     &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
+      ENDIF
+
+      IF ( LCH4EMIS .or. LSETCH4 .or. LCH4SBC ) THEN
          IF ( IDTCH4 == 0 ) THEN
             LCH4EMIS = .FALSE.
             LSETCH4 = .FALSE.
+            LCH4SBC = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'CH4 is emitted but CH4 tracer is undefined.'
             WRITE( 6, '(a)' ) 'Turning off methane emissions.'
@@ -2731,8 +2758,9 @@
         WRITE( 6, 100 ) 'Use seasalt Br2 emissions?  : ', LSSABr2
         WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
         WRITE( 6, 100 ) 'Bromine emiss scale factor  : ', Br_SCALING
-        WRITE( 6, 100 ) 'Turn on basic emissions for : '
-        WRITE( 6, 100 ) '      --> methane?          : ', LCH4EMIS
+        WRITE( 6, 100 ) 'Use CH4 emissions inventory?: ', LCH4EMIS
+        WRITE( 6, 100 ) 'Turn on surface BC for      : '
+        WRITE( 6, 100 ) '      --> methane?          : ', LCH4SBC
         WRITE( 6, 100 ) '      --> OCS?              : ', LOCSEMIS
         WRITE( 6, 100 ) '      --> CFCs/HCFCs/halon? : ', LCFCEMIS
         WRITE( 6, 100 ) '      --> chlorine species? : ', LCLEMIS
@@ -2785,6 +2813,7 @@
       ! SDE 2013-07-28
       USE GEOENG_MOD,    ONLY : GE_TGS, GE_PCEIL, GE_PBASE
       USE GEOENG_MOD,    ONLY : GE_MINLAT, GE_MAXLAT, GE_TSURF
+      USE GEOENG_MOD,    ONLY : GE_QQCC, GE_QQGE
 !
 ! !INPUT PARAMETERS:
 !
@@ -2848,8 +2877,20 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:10' )
       READ( SUBSTRS(1:N), * ) LCC_AR5T
 
-      ! Separator line
+      ! Apply precipitation delta for climate change/geoeng?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:11' )
+      READ( SUBSTRS(1:N), * ) LCC_QQ
+
+      ! Climate change delta scaling factor (%)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:12' )
+      READ( SUBSTRS(1:N), * ) GE_QQCC
+
+      ! Geoengineering delta scaling factor (%)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:13' )
+      READ( SUBSTRS(1:N), * ) GE_QQGE
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:14' )
 
       !=================================================================
       ! Error check
@@ -2891,7 +2932,11 @@
                WRITE( 6, '(a)' ) '      --> AR5 vertical scaling'
             ENDIF
          ENDIF
-
+         WRITE( 6, 100 ) 'Emit geoengineering SO2?    : ', LCC_QQ   
+         IF (LCC_QQ) THEN
+            WRITE( 6, 120 ) '      --> Climate change %  : ', GE_QQCC
+            WRITE( 6, 120 ) '      --> Geoengineering %  : ', GE_QQGE
+         ENDIF
       ENDIF
 
  100  FORMAT( A, L5 )
@@ -4543,7 +4588,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:63' )
       READ( SUBSTRS(1), * ) ND64
-      CALL SET_TINDEX( am_I_Root, 64, ND64, SUBSTRS(2:N), N-1, PD64 )
+      CALL SET_TINDEX( am_I_Root, 64, ND64, SUBSTRS(2:N), N-1, PD64*3 )
 
       !--------------------------
       ! ND66: DAO 3-D fields
@@ -4581,8 +4626,16 @@
       LPRT = ( ND70 > 0 )
       CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, PD70 )
      
+      !--------------------------
+      ! ND71: Maximum tracer
+      !--------------------------
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:69' )
+      READ( SUBSTRS(1), * ) ND71
+      CALL SET_TINDEX( am_I_Root, 
+     &                 71, ND71, SUBSTRS(2:N), N-1, N_TRACERS )
+
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:69' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:70' )
 
       !=================================================================
       ! Call other setup routines
@@ -7362,7 +7415,7 @@
 !
       USE DIRECTORY_MOD
       USE LOGICAL_MOD
-      USE GEOENG_MOD,    ONLY : GE_TSURF
+      USE GEOENG_MOD,    ONLY : GE_TSURF, GE_QQGE, GE_QQCC
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -7477,6 +7530,7 @@
 
       !Online CH4 (SDE 03/26/13)
       LCH4EMIS       = .FALSE.
+      LCH4SBC        = .FALSE.
       LCH4CHEM       = .FALSE.
       LSETCH4        = .FALSE.
 
@@ -7509,7 +7563,10 @@
       LCC_UNIFORMT   = .FALSE.
       LCC_SFCT       = .FALSE.
       LCC_AR5T       = .FALSE.
+      LCC_QQ         = .TRUE.
       GE_TSURF       = 0d0
+      GE_QQCC        = 0d0
+      GE_QQGE        = 0d0
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.

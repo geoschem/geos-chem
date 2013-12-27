@@ -27,12 +27,16 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL*8,             PUBLIC :: GE_TGS ! TgS/year to deliver
+      REAL*8,             PUBLIC :: GE_TGS   ! TgS/year to deliver
       REAL*8,             PUBLIC :: GE_PBASE ! Geoengineering delivery base (hPa)
       REAL*8,             PUBLIC :: GE_PCEIL ! Geoengineering delivery ceiling (hPa)
-      REAL*8,             PUBLIC :: GE_MINLAT ! Lower latitude edge (deg)
-      REAL*8,             PUBLIC :: GE_MAXLAT ! Upper latitude edge (deg)
+      REAL*8,             PUBLIC :: GE_MINLAT! Lower latitude edge (deg)
+      REAL*8,             PUBLIC :: GE_MAXLAT! Upper latitude edge (deg)
       REAL*8,             PUBLIC :: GE_TSURF ! Surface temperature offsett (K)
+      REAL*8,             PUBLIC :: GE_QQCC  ! Scaling of the climate
+                                             ! change precipitation delta
+      REAL*8,             PUBLIC :: GE_QQGE  ! Scaling of the geoeng.
+                                             ! precipitation delta
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -70,6 +74,7 @@
       !
       ! GE_INJECT          : Injection mass (kg/box) 
       ! GE_TOFFSET         : Temperature offset (K)
+      ! GE_QQFACTOR        : Multiplying factor for precipitation
       ! GE_LMIN            : Minimum geoengineering height (level)
       ! GE_LMAX            : Maximum geoengineering height (level)
       ! 
@@ -78,6 +83,7 @@
       ! Arrays
       REAL*8,DIMENSION(:,:,:),ALLOCATABLE   :: GE_INJECT
       REAL*8,DIMENSION(:,:,:),ALLOCATABLE   :: GE_TOFFSET
+      REAL*8,DIMENSION(:,:,:),ALLOCATABLE   :: GE_QQFACTOR
       INTEGER,DIMENSION(:,:),ALLOCATABLE    :: GE_LMIN, GE_LMAX
 
       !=================================================================
@@ -259,9 +265,10 @@
 !
       USE DAO_MOD,     ONLY : T, TMPU1, TMPU2, TSKIN, TS, MOISTQ
       USE PRESSURE_MOD,ONLY : GET_PCENTER
-      USE LOGICAL_MOD, ONLY : LCC_AR5T, LCC_SFCT, LCC_UNIFORMT
+      USE LOGICAL_MOD, ONLY : LCC_AR5T, LCC_SFCT, LCC_UNIFORMT, LCC_QQ
       USE TIME_MOD,    ONLY : GET_ELAPSED_MIN
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE ERROR_MOD,   ONLY : ALLOC_ERR, ERROR_STOP
+      USE DAO_MOD,     ONLY : FROCEAN
 !
 ! !INPUT PARAMETERS:
 !
@@ -282,6 +289,8 @@
       LOGICAL,SAVE                :: FIRST=.TRUE.
       REAL*8, SAVE                :: INTERPFAC, TMAX, TMIN, LOGOFFSET
       REAL*8                      :: TLOCAL, PLOCAL
+      REAL*8                      :: QQLATLAND, QQLATOCEAN, QQLOCAL
+      REAL*8                      :: QQOCEAN
 
       !=================================================================
       ! OFFSET_MET_FIELDS begins here!
@@ -294,13 +303,35 @@
       ENDIF
 
       ! Do we need to recalculate GE_TOFFSET?
-      IF (FIRST.or.(LCC_AR5T.and.(GET_ELAPSED_MIN().gt.LASTMIN))) THEN
+      IF (FIRST.or.((LCC_AR5T.or.LCC_QQ).and.
+     &                 (GET_ELAPSED_MIN().gt.LASTMIN))) THEN
          ! Allocate temperature offset array
          IF (FIRST) THEN
             ALLOCATE( GE_TOFFSET( IIPAR, JJPAR, LLPAR ), STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'GE_TOFFSET' )
+
+            ALLOCATE( GE_QQFACTOR( IIPAR, JJPAR, LLPAR ), STAT=AS )
+            IF ( AS /= 0 ) CALL ALLOC_ERR( 'GE_QQFACTOR' )
          ENDIF
          GE_TOFFSET = 0d0
+         ! Calculate precipitation factor
+         GE_QQFACTOR = 0d0
+         IF (LCC_QQ) THEN
+            ! Latitudinally dependent
+            DO J=1,JJPAR
+               ! Different over land and ocean
+               ! HACK: Just use straight factor for now
+               QQLATLAND = GE_QQCC + GE_QQGE
+               QQLATOCEAN = GE_QQCC + GE_QQGE
+               DO I=1,IIPAR
+                  QQOCEAN = FROCEAN(I,J)
+                  QQLOCAL = (QQOCEAN*QQLATOCEAN) + 
+     &                      ((1.d0-QQOCEAN)*QQLATLAND)
+                  ! Convert from percentage to fraction
+                  GE_QQFACTOR(I,J,:) = 1.d0 + (QQLOCAL*1.d-2)
+               ENDDO
+            ENDDO
+         ENDIF
          IF (LCC_AR5T) THEN
             LASTMIN = GET_ELAPSED_MIN()
             IF (FIRST) THEN
@@ -340,6 +371,15 @@
          ENDIF
       ENDIF
 
+      ! Can't do precipitation with MERRA or GEOS-FP as they rely on
+      ! fields which cannot easily be co-perturbed
+#if defined( MERRA ) || defined( GEOS_57 )
+      IF (LCC_QQ) THEN
+         CALL ERROR_STOP('Cannot adjust MERRA or GEOS-FP precip!',
+     &                  'OFFSET_MET_FIELDS(geoeng_mod.F)')
+      ENDIF
+#endif
+
       ! Run through available field types
       SELECT CASE ( FIELDTYPE )
          CASE ( 1 )
@@ -356,6 +396,9 @@
 #if defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
             ! A6
             T(:,:,:) = T(:,:,:) + GE_TOFFSET(:,:,:)
+            IF (LCC_QQ) THEN
+               MOISTQ(:,:,:) = MOISTQ(:,:,:)*GE_QQFACTOR(:,:,:)
+            ENDIF
 #endif
          CASE ( 3 )
             ! I6
@@ -470,10 +513,11 @@
       ! CLEANUP_GEOENGAT begins here!
       !=================================================================
 
-      IF ( ALLOCATED( GE_INJECT  ) ) DEALLOCATE( GE_INJECT  )
-      IF ( ALLOCATED( GE_TOFFSET ) ) DEALLOCATE( GE_TOFFSET )
-      IF ( ALLOCATED( GE_LMIN    ) ) DEALLOCATE( GE_LMIN    )
-      IF ( ALLOCATED( GE_LMAX    ) ) DEALLOCATE( GE_LMAX    )
+      IF ( ALLOCATED( GE_INJECT   ) ) DEALLOCATE( GE_INJECT   )
+      IF ( ALLOCATED( GE_TOFFSET  ) ) DEALLOCATE( GE_TOFFSET  )
+      IF ( ALLOCATED( GE_QQFACTOR ) ) DEALLOCATE( GE_QQFACTOR )
+      IF ( ALLOCATED( GE_LMIN     ) ) DEALLOCATE( GE_LMIN     )
+      IF ( ALLOCATED( GE_LMAX     ) ) DEALLOCATE( GE_LMAX     )
       
       END SUBROUTINE CLEANUP_GEOENG
 !

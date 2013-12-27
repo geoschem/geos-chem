@@ -20,12 +20,14 @@
       USE DAO_MOD,        ONLY : PBL, IS_ICE, IS_WATER, IS_LAND, IS_NEAR
       USE DIAG_MOD,       ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
       USE DIAG_MOD,       ONLY : AD47, AD67, AD68, AD69, LTOTH, LTO3
-      USE DIAG_MOD,       ONLY : AD57
+      USE DIAG_MOD,       ONLY : AD57, AD71, AD71_DAY, AD71_HR
+      USE DIAG_MOD,       ONLY : AD71_COUNT, AD71_HRCT, AD71_LHR
+      USE DIAG_MOD,       ONLY : AD71_LDAY
       USE DAO_MOD,        ONLY : T
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TIME_MOD,       ONLY : ITS_TIME_FOR_CHEM
+      USE TIME_MOD,       ONLY : ITS_TIME_FOR_CHEM     
       USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,     ONLY : XNUMOLAIR
@@ -33,6 +35,11 @@
       USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_TROP
       USE DIAG03_MOD,        ONLY : AD03_RGM, AD03_PBM, ND03   
       USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp, PARTITION_Hg2
+
+      ! For ND71
+      USE TIME_MOD,       ONLY : GET_DAY
+      USE TIME_MOD,       ONLY : GET_HOUR
+      USE ERROR_MOD,      ONLY : SAFE_DIV
 
 #if   defined( APM )
       USE TRACER_MOD,     ONLY : N_APMTRA
@@ -141,7 +148,7 @@
       IS_CHEM     = ITS_TIME_FOR_CHEM()
       
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
-      IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 ) THEN
+      IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -333,9 +340,6 @@
             ENDDO
             ENDDO
             
-            ! With TS_DIAG, the diags are automatically calculated at the
-            ! right time (= same time done for all processes). (ccc, 5/21/09)
-!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
             IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
                DO L = 1, LD47
                DO J = 1, JJPAR
@@ -451,5 +455,71 @@
          ENDDO
       ENDIF
       
+      !================================================================= 
+      ! ND71: Tracer (V/V) at level 1, daily maximum hourly avg.
+      !================================================================= 
+      IF ( ND71 > 0 ) THEN
+         IF ((GET_DAY().ne.AD71_LDAY).and.(AD71_LDAY.ge.0)) THEN
+            ! It's a new day, with no diagnostics written
+            AD71(:,:,:) = AD71(:,:,:) + AD71_DAY(:,:,:)
+            AD71_DAY(:,:,:) = 0e0
+            AD71_COUNT = AD71_COUNT + 1
+         ENDIF
+         IF ((GET_HOUR().ne.AD71_LHR).and.(AD71_LHR.ge.0)) THEN
+            ! New hour - get average of last data
+!            AD71_HR = AD71_HR / AD71_HRCT
+            ! Set daily max
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+            DO N = 1, N_TRC
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  AD71_DAY(I,J,N) = MAX(AD71_DAY(I,J,N),
+     &                     (AD71_HR(I,J,N)/(AD71_HRCT)))
+               ENDDO   
+               ENDDO
+               
+               IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
+                  DO J = 1, JJPAR
+                  DO I = 1, IIPAR
+                     AD71_DAY(I,J,N_TRACERS+1) = 
+     &                  MAX(AD71_DAY(I,J,N_TRACERS+1),
+     &                  (AD71_HR(I,J,N_TRACERS+1)/
+     &                  (AD71_HRCT)))
+                  ENDDO
+                  ENDDO
+               ENDIF
+            ENDDO 
+!$OMP END PARALLEL DO
+            AD71_HR = 0e0
+            AD71_HRCT = 0
+         ENDIF
+         ! Set the tracking variables
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+         DO N = 1, N_TRC
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               AD71_HR(I,J,N) = AD71_HR(I,J,N) + STT_VV(I,J,1,N)
+            ENDDO   
+            ENDDO
+            
+            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  AD71_HR(I,J,N_TRACERS+1) = AD71_HR(I,J,N_TRACERS+1)
+     &               + ( STT_VV(I,J,1,N) * FRACO3(I,J,1) )
+               ENDDO
+               ENDDO
+            ENDIF
+         ENDDO
+!$OMP END PARALLEL DO   
+         AD71_LDAY = GET_DAY()
+         AD71_LHR = GET_HOUR()
+         AD71_HRCT = AD71_HRCT + 1
+      ENDIF
+
       END SUBROUTINE DIAG1
 !EOC

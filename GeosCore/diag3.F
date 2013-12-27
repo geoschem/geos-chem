@@ -53,6 +53,8 @@
       USE APM_DRIV_MOD, ONLY : NPOUTSTEPS
 #endif
 
+      ! Fast-JX flux diagnostics
+      USE CMN_FJX_MOD, ONLY : W_
 
       IMPLICIT NONE
 #     include "define.h"
@@ -3096,7 +3098,7 @@
             IF ( N == 14 .and. IDTCHBr3  == 0 ) CYCLE
             IF ( N == 15 .and. IDTCH2Br2 == 0 ) CYCLE
             IF ( N == 16 .and. IDTBr2    == 0 ) CYCLE
-            IF ( N == 17 .and. IDTCH4    == 0 ) CYCLE
+            IF ( N == 17 .and. (.not.LCH4EMIS)) CYCLE
 
             ARRAY(:,:,1) = AD46(:,:,N) / SCALESRCE
                
@@ -3406,28 +3408,34 @@
 !
 !   # : Field  : Description                    : Units      : Scale factor
 !  ----------------------------------------------------------------------------
-!  (W)  WL-X   : Radiative flux for bin X       : 1/cm2s     : 1        
+!  (W)  DIR-X  : Direct flux for bin X          : 1/cm2s     : 1        
+!  (W)  DIF-X  : Diffuse flux for bin X         : 1/cm2s     : 1
+!  (W)  NET-X  : Net flux for bin X             : 1/cm2s     : 1
 !******************************************************************************
 !
       IF ( ND64 > 0 ) THEN
          CATEGORY = 'FJX-FLUX-$'
          UNIT     = 'cm-2s-1'
 
-         DO M = 1, TMAX(64)
-            N  = TINDEX(64,M)
-            NN = N
-            SCALEX = SCALECHEM
-                 
-            ! Divide by # of timesteps
-            DO L = 1, LD64
-               ARRAY(:,:,L) = AD64(:,:,L,M) / SCALEX
-            ENDDO
+         !DO M = 1, TMAX(64)
+         DO MM = 1,3
+            DO MMB = 1,W_
+                M = ((MM-1)*W_) + MMB
+                N  = TINDEX(64,M)
+                NN = N
+                SCALEX = SCALECHEM
+   
+                ! Divide by # of timesteps
+                DO L = 1, LD64
+                   ARRAY(:,:,L) = AD64(:,:,L,MMB,MM) / SCALEX
+                ENDDO
 
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD64,     IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD64) )
+                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                      HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                      UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                      IIPAR,     JJPAR,     LD64,     IFIRST,     
+     &                      JFIRST,    LFIRST,    ARRAY(:,:,1:LD64) )
+            ENDDO
          ENDDO
       ENDIF
 !
@@ -3818,6 +3826,50 @@
          CALL UPDATE_DEP( N )
       ENDIF
             
+!
+!******************************************************************************
+!  ND71: Tracer Mixing Ratio (v/v) at surface, maximum value
+!
+!   # : Field   : Description                 : Units   : Scale Factor
+!  ---------------------------------------------------------------------------
+!  (1) IJ-MAX-$ : Peak Tracer mixing ratio    : v/v     : 1        
+!
+!  NOTES:
+!  (1) First written (SDE 2013-11-17)
+!******************************************************************************
+!
+      IF ( ND71 > 0 ) THEN
+         CATEGORY = 'IJ-MAX-$'
+         UNIT     = ''   
+
+         DO M = 1, TMAX(71)
+            N  = TINDEX(71,M)
+            IF ( N > N_TRACERS ) CYCLE
+            NN = N
+            
+            ARRAY(:,:,1) = AD71(:,:,N)/AD71_COUNT
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+            ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
+            IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
+
+               ARRAY(:,:,1) = AD71(:,:,N_TRACERS+1)/AD71_COUNT
+               
+               NN = N_TRACERS + 1
+
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     1,        IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            ENDIF
+         ENDDO
+      ENDIF
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
 

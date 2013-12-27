@@ -1072,6 +1072,12 @@
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
             ! Call the appropriate chemistry routine
+
+            ! SDE 05/28/13: Set H2O to STT if relevant
+            IF (IDTH2O.ne.0) THEN
+               CALL SET_H2O_TRAC(.not.LUCX)
+            ENDIF
+
 #if defined( DEVEL )
 ! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv!
 ! BELOW IS A TMP KLUGE TO TEST PASSING STT !
@@ -1084,11 +1090,6 @@
             State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
      &                     STT( :, :, :, 1:N_TRACERS )
 ! FIN DE KLUGE
-
-            ! SDE 05/28/13: Set H2O to STT if relevant
-            IF (IDTH2O.ne.0) THEN
-               CALL SET_H2O_TRAC(.not.LUCX)
-            ENDIF
 
             CALL DO_CHEMISTRY( am_I_Root, IIPAR,      JJPAR, 
      &                         LLPAR,     State_Chm, State_Met )

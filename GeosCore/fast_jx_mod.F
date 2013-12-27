@@ -7,7 +7,7 @@
 !
 ! !DESCRIPTION: Module FAST\_JX\_MOD contains routines and variables for 
 !  calculating photolysis rates using the Fast-JX scheme (Prather et al).
-!  Current implementation is version 6.2.
+!  Current implementation is version 7.0a.
 !\\
 !\\
 ! !INTERFACE: 
@@ -2498,6 +2498,9 @@ C-----------------------------------------------------------------------
       ! T_INPUT: Input temperature (K) with extra layer for compatibility
       REAL*8   T_INPUT(JXL1_+1)
 
+      ! AD64 diagnostics
+      REAL*8, DIMENSION(JXL1_) :: FDIRECT, FDIFFUSE
+
       !=================================================================
       ! PHOTO_JX begins here!
       !=================================================================
@@ -2677,11 +2680,6 @@ C-----------------------------------------------------------------------
 
         do L = 1,L_
            FFF(K,L) = FFF(K,L) + SOLF*FL(K)*AVGF(L,K)
-           ! New diagnostic (SDE 2013-10-25)
-           IF ( ND64 > 0 .and. L <= LD64 ) THEN
-              AD64(ILON,ILAT,L,K) = AD64(ILON,ILAT,L,K) + 
-     &                  (UVXFACTOR(K)*SOLF*FL(K)*AVGF(L,K))
-           ENDIF
         enddo
 
       enddo
@@ -2709,24 +2707,53 @@ C-----------------------------------------------------------------------
          ENDDO
       ENDIF
 
-        !---------------------------------------------------------------
-        ! Majority of heating code ignored by GEOS-Chem
-        ! Everything from here until statement number 99 is ignored
-        ! (SDE 03/31/13)
-        !---------------------------------------------------------------
+      !---------------------------------------------------------------
+      ! Majority of heating code ignored by GEOS-Chem
+      ! Everything from here until statement number 99 is ignored
+      ! (SDE 03/31/13)
+      !---------------------------------------------------------------
+      ! Use it to calculate fluxes for output if necessary
+      !---------------------------------------------------------------
+      ! New diagnostic (SDE 2013-10-25)
+      IF ( ND64 > 0) THEN! .and. L <= LD64 ) THEN
+         ! Get net direct and net diffuse fluxes separately
+         ! Order:
+         !    1 - Net flux
+         !    2 - Direct flux
+         !    3 - Diffuse flux
+         ! Convention: -ve is downwards
+         DO K=1,W_
+            ! Direct flux at the bottom
+            FDIRECT(:) = 0.0
+            FDIFFUSE(:) = 0.0
+            FDIRECT(1) = FSBOT(K)
+            FDIFFUSE(1) = FJBOT(K)
+            DO L=2,LD64
+               FDIRECT(L) = FDIRECT(L-1) + FLXD(L-1,K)
+               FDIFFUSE(L) = FJFLX(L-1,K)
+            ENDDO
+            DO L=1,L1_
+               AD64(ILON,ILAT,L,K,1) = AD64(ILON,ILAT,L,K,1) +
+     &            ((FDIRECT(L)+FDIFFUSE(L))*SOLF*FL(K)*UVXFACTOR(K))
+               AD64(ILON,ILAT,L,K,2) = AD64(ILON,ILAT,L,K,2) +
+     &            (FDIRECT(L)*SOLF*FL(K)*UVXFACTOR(K))
+               AD64(ILON,ILAT,L,K,3) = AD64(ILON,ILAT,L,K,3) +
+     &            (FDIFFUSE(L)*SOLF*FL(K)*UVXFACTOR(K))
+            ENDDO
+         ENDDO
+      ENDIF
+!      IF (LFJXDIAG) THEN
+!         DO K=1,W_
 !c----direct(DIR) and diffuse(FLX) fluxes at top(UP) (solar = negative by convention)
 !c----     also at bottom (DN), does not include diffuse reflected flux.
-!        FLXUP(K) =  FJTOP(K)
-!        DIRUP(K) = -FLXD0(K)
-!        FLXDN(K) = -FJBOT(K)
-!        DIRDN(K) = -FSBOT(K)
+!            FLXUP(K) =  FJTOP(K)
+!            DIRUP(K) = -FLXD0(K)
+!            FLXDN(K) = -FJBOT(K)
+!            DIRDN(K) = -FSBOT(K)
 !
-!        do L = 1,LU
-!          FFF(K,L) = FFF(K,L) + SOLF*FL(K)*AVGF(L,K)
-!        enddo
-!          FREFI = FREFI + SOLF*FL(K)*FLXD0(K)/WL(K)
-!          FREFL = FREFL + SOLF*FL(K)*FJTOP(K)/WL(K)
-!          FREFS = FREFS + SOLF*FL(K)/WL(K)
+!            FREFI = FREFI + SOLF*FL(K)*FLXD0(K)/WL(K)
+!            FREFL = FREFL + SOLF*FL(K)*FJTOP(K)/WL(K)
+!            FREFS = FREFS + SOLF*FL(K)/WL(K)
 !
 !c---for each wavelength calculate the flux budget/heating rates:
 !c  FLXD(L) = direct flux deposited in layer L  [approx = MU0*(F(L+1) -F(L))]
@@ -2736,19 +2763,19 @@ C-----------------------------------------------------------------------
 !c---calculate divergence of diffuse flux in each CTM layer (& t-o-a)
 !c---     need special fix at top and bottom:
 !c---FABOT = total abs at L.B. &  FXBOT = net diffusive flux at L.B.
-!         FABOT = (1.d0-RFL(K))*(FJBOT(K)+FSBOT(K))
-!         FXBOT = -FJBOT(K) + RFL(K)*(FJBOT(K)+FSBOT(K))
-!         FLXJ(1) = FJFLX(1,K) - FXBOT
-!       do L=2,LU
-!         FLXJ(L) = FJFLX(L,K) - FJFLX(L-1,K)
-!       enddo
-!         FLXJ(LU+1) = FJTOP(K) - FJFLX(LU,K)
+!            FABOT = (1.d0-RFL(K))*(FJBOT(K)+FSBOT(K))
+!            FXBOT = -FJBOT(K) + RFL(K)*(FJBOT(K)+FSBOT(K))
+!            FLXJ(1) = FJFLX(1,K) - FXBOT
+!            do L=2,LU
+!               FLXJ(L) = FJFLX(L,K) - FJFLX(L-1,K)
+!            enddo
+!            FLXJ(LU+1) = FJTOP(K) - FJFLX(LU,K)
 !c---calculate net flux deposited in each CTM layer (direct & diffuse):
-!         FFX0 = 0.d0
-!       do L=1,L1U
-!         FFX(K,L) = FLXD(L,K) - FLXJ(L)
-!         FFX0 = FFX0 + FFX(K,L)
-!      enddo
+!            FFX0 = 0.d0
+!            do L=1,L1U
+!               FFX(K,L) = FLXD(L,K) - FLXJ(L)
+!               FFX0 = FFX0 + FFX(K,L)
+!            enddo
 !
 !c  NB: the radiation level ABOVE the top CTM level is included in these budgets
 !c      these are the flux budget/heating terms for the column:
@@ -2762,20 +2789,20 @@ C-----------------------------------------------------------------------
 !c  FFXNET(K,7) = FSBOT        direct flux dep onto LB (surface) - for srf diags
 !c  FFXNET(K,8) = FJBOT        diffuse flux dep onto LB (surface)
 !
-!      FFXNET(K,1) = FLXD0(K)
-!      FFXNET(K,2) = FSBOT(K)
-!      FFXNET(K,3) = FLXD0(K) + FSBOT(K)
-!      FFXNET(K,4) = FJTOP(K)
-!      FFXNET(K,5) = FFX0
-!      FFXNET(K,6) = FABOT
-!      FFXNET(K,7) = FSBOT(K)
-!      FFXNET(K,8) = FJBOT(K)
+!            FFXNET(K,1) = FLXD0(K)
+!            FFXNET(K,2) = FSBOT(K)
+!            FFXNET(K,3) = FLXD0(K) + FSBOT(K)
+!            FFXNET(K,4) = FJTOP(K)
+!            FFXNET(K,5) = FFX0
+!            FFXNET(K,6) = FABOT
+!            FFXNET(K,7) = FSBOT(K)
+!            FFXNET(K,8) = FJBOT(K)
 !
 !c-----------------------------------------------------------------------
-!      enddo       ! end loop over wavelength K
+!         enddo       ! end loop over wavelength K
 !c-----------------------------------------------------------------------
-!          FREFL = FREFL/FREFS      !calculate reflected flux (energy weighted)
-!          FREFI = FREFI/FREFS
+!         FREFL = FREFL/FREFS      !calculate reflected flux (energy weighted)
+!         FREFI = FREFI/FREFS
 !
 !c---NB UVB = 280-320 = bins 12:15, UVA = 320-400 = bins 16:17, VIS = bin 18 (++)
 !
@@ -2783,76 +2810,90 @@ C-----------------------------------------------------------------------
 !c---mapping J-values from fast-JX onto CTM chemistry is done in main
 !
 !C-----------------------------------------------------------------------
-!      if ((am_I_Root).and.(LPRTJ)) then
+!         if ((am_I_Root).and.(LPRTJ)) then
 !c---diagnostics below are NOT returned to the CTM code
-!      write(6,*)'fast-JX-(7.0)---PHOTO_JX internal print: Atmosphere---'
+!            write(6,*)'fast-JX-(7.0)---PHOTO_JX internal print:',
+!     &               ' Atmosphere---'
 !c---used last called values of DTAUX and POMEGAX, should be 600 nm
-!      do L=1,L1U
-!        DTAU600(L) = DTAUX(L,W_)
-!       do I=1,8
-!        POMG600(I,L) = POMEGAX(I,L,W_)
-!       enddo
-!      enddo
+!         do L=1,L1U
+!            DTAU600(L) = DTAUX(L,W_)
+!            do I=1,8
+!               POMG600(I,L) = POMEGAX(I,L,W_)
+!            enddo
+!         enddo
 !
-!      call JP_ATM(PPJ,TTJ,DDJ,OOJ,ZZJ,DTAU600,POMG600,JXTRA, LU)
+!      !   call JP_ATM(PPJ,TTJ,DDJ,OOJ,ZZJ,DTAU600,POMG600,JXTRA, LU)
 !
 !C---PRINT SUMMARY of mean intensity, flux, heating rates:
-!      if (am_I_Root) then
-!      write(6,*)
-!      write(6,*)'fast-JX(7.0)---PHOTO_JX internal print: Mean Intens---'
-!      write(6,'(a,5f10.4)')
-!     & ' SUMMARY fast-JX: albedo/SZA/u0/F-incd/F-refl/',
-!     &  RFLECT,SZA,U0,FREFI,FREFL
+!         if (am_I_Root) then
+!            write(6,*)
+!            write(6,*)'fast-JX(7.0)---PHOTO_JX internal print:',
+!     &               ' Mean Intens---'
+!            write(6,'(a,5f10.4)')
+!     &       ' SUMMARY fast-JX: albedo/SZA/u0/F-incd/F-refl/',
+!     &        RFLECT,SZA,U0,FREFI,FREFL
 !
-!      write(6,'(a5,18i8)')   ' bin:',(K, K=NW2,NW1,-1)
-!      write(6,'(a5,18f8.1)') ' wvl:',(WL(K), K=NW2,NW1,-1)
-!      write(6,'(a)') ' ----  100000=Fsolar   MEAN INTENSITY per wvl bin'
-!      endif
-!      do L = LU,1,-1
-!       do K=NW1,NW2
-!        RATIO(K) = (1.d5*FFF(K,L)/FL(K))
-!       enddo
-!        if (am_I_Root) then
-!        write(6,'(i3,2x,18i8)') L,(RATIO(K),K=NW2,NW1,-1)
-!        endif
-!      enddo
+!            write(6,'(a5,18i8)')   ' bin:',(K, K=NW2,NW1,-1)
+!            write(6,'(a5,18f8.1)') ' wvl:',(WL(K), K=NW2,NW1,-1)
+!            write(6,'(a,a)') ' ----  100000=Fsolar   ',
+!     &                  'MEAN INTENSITY per wvl bin'
+!         endif
+!         do L = LU,1,-1
+!            do K=NW1,NW2
+!               RATIO(K) = (1.d5*FFF(K,L)/FL(K))
+!            enddo
+!            if (am_I_Root) then
+!               write(6,'(i3,2x,18i8)') L,(RATIO(K),K=NW2,NW1,-1)
+!            endif
+!         enddo
 !
-!      if (am_I_Root) then
-!      write(6,*)
-!      write(6,*)'fast-JX(7.0)---PHOTO_JX internal print: Net Fluxes---'
-!      write(6,'(a11,18i8)')   ' bin:',(K, K=NW2,NW1,-1)
-!      write(6,'(a11,18f8.1)') ' wvl:',(WL(K), K=NW2,NW1,-1)
-!c      write(6,'(a11,18f8.4)') ' sol in atm',(FFXNET(K,1), K=NW2,NW1,-1)
-!c      write(6,'(a11,18f8.4)') ' sol at srf',(FFXNET(K,2), K=NW2,NW1,-1)
-!      write(6,*) ' ---NET FLUXES--- '
-!      write(6,'(a11,18f8.4)') ' sol TOTAL ',(FFXNET(K,3), K=NW2,NW1,-1)
-!      write(6,'(a11,18f8.4)') ' dif outtop',(FFXNET(K,4), K=NW2,NW1,-1)
-!      write(6,'(a11,18f8.4)') ' abs in atm',(FFXNET(K,5), K=NW2,NW1,-1)
-!      write(6,'(a11,18f8.4)') ' abs at srf',(FFXNET(K,6), K=NW2,NW1,-1)
-!      write(6,*) ' ---SRF FLUXES--- '
-!      write(6,'(a11,18f8.4)') ' srf direct',(FFXNET(K,7), K=NW2,NW1,-1)
-!      write(6,'(a11,18f8.4)') ' srf diffus',(FFXNET(K,8), K=NW2,NW1,-1)
-!      write(6,'(2a)') '  ---NET ABS per layer:       10000=Fsolar',
-!     & '  [NB: values <0 = numerical error w/clouds or SZA>90, colm OK]'
-!      endif
-!      do L = LU,1,-1
-!       do K=NW1,NW2
-!        RATIO(K) = 1.d5*FFX(K,L)
-!       enddo
-!        if (am_I_Root) then
-!        write(6,'(i9,2x,18i8)') L,(RATIO(K),K=NW2,NW1,-1)
-!        endif
-!      enddo
-!      if (am_I_Root) then
-!      write(6,'(a)')
-!      write(6,'(a)') ' fast-JX (7.0)----J-values----'
-!      write(6,'(1x,a,72(a6,3x))') 'L=  ',(TITLEJX(K), K=1,NJX)
-!      do L = LU,1,-1
-!        write(6,'(i3,1p, 72e9.2)') L,(VALJXX(L,K),K=1,NJX)
-!      enddo
-!      endif
+!         if (am_I_Root) then
+!            write(6,*)
+!            write(6,*)'fast-JX(7.0)---PHOTO_JX internal print:',
+!                              ' Net Fluxes---'
+!            write(6,'(a11,18i8)')   ' bin:',(K, K=NW2,NW1,-1)
+!            write(6,'(a11,18f8.1)') ' wvl:',(WL(K), K=NW2,NW1,-1)
+!c            write(6,'(a11,18f8.4)') ' sol in atm',(FFXNET(K,1), 
+!c     &                        K=NW2,NW1,-1)
+!c            write(6,'(a11,18f8.4)') ' sol at srf',(FFXNET(K,2), 
+!c     &                        K=NW2,NW1,-1)
+!            write(6,*) ' ---NET FLUXES--- '
+!            write(6,'(a11,18f8.4)') ' sol TOTAL ',(FFXNET(K,3), 
+!     &                        K=NW2,NW1,-1)
+!            write(6,'(a11,18f8.4)') ' dif outtop',(FFXNET(K,4), 
+!     &                        K=NW2,NW1,-1)
+!            write(6,'(a11,18f8.4)') ' abs in atm',(FFXNET(K,5), 
+!     &                        K=NW2,NW1,-1)
+!            write(6,'(a11,18f8.4)') ' abs at srf',(FFXNET(K,6), 
+!     &                        K=NW2,NW1,-1)
+!            write(6,*) ' ---SRF FLUXES--- '
+!            write(6,'(a11,18f8.4)') ' srf direct',(FFXNET(K,7), 
+!     &                        K=NW2,NW1,-1)
+!            write(6,'(a11,18f8.4)') ' srf diffus',(FFXNET(K,8), 
+!     &                        K=NW2,NW1,-1)
+!            write(6,'(4a)') '  ---NET ABS per layer:',
+!     &         '       10000=Fsolar',
+!     &         '  [NB: values <0 = numerical error w/clouds',
+!     &         ' or SZA>90, colm OK]'
+!         endif
+!         do L = LU,1,-1
+!            do K=NW1,NW2
+!               RATIO(K) = 1.d5*FFX(K,L)
+!            enddo
+!            if (am_I_Root) then
+!               write(6,'(i9,2x,18i8)') L,(RATIO(K),K=NW2,NW1,-1)
+!            endif
+!         enddo
+!         if (am_I_Root) then
+!            write(6,'(a)')
+!            write(6,'(a)') ' fast-JX (7.0)----J-values----'
+!            write(6,'(1x,a,72(a6,3x))') 'L=  ',(TITLEJX(K), K=1,NJX)
+!            do L = LU,1,-1
+!              write(6,'(i3,1p, 72e9.2)') L,(VALJXX(L,K),K=1,NJX)
+!            enddo
+!         endif
 !
-!      endif
+!      ENDIF
 
    99 continue
 

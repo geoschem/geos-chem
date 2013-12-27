@@ -55,6 +55,8 @@
 ![eml
       USE LOGICAL_MOD,        ONLY : LHIST
 !eml]
+      ! CH4 emissions?
+      USE LOGICAL_MOD,        ONLY : LCH4EMIS
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! IHOUR
@@ -979,7 +981,7 @@
          !--------------------------------------------------------------
          ! Get CH4 emissions (SDE 03/25/13, taken from mpayer 01/24/12)
          !--------------------------------------------------------------
-         IF ( NN == IDTCH4 ) THEN
+         IF ( LCH4EMIS .and. ( NN == IDTCH4 )) THEN
 
             CH4_ANTHRO = GET_CH4_ANTHRO( I, J, NN )
 

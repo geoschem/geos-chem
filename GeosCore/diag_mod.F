@@ -247,7 +247,7 @@
       INTEGER, ALLOCATABLE :: AD63_COUNT
 
       ! For ND64 -- radiative flux from FAST-JX
-      REAL*4,  ALLOCATABLE :: AD64(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD64(:,:,:,:,:)
 
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
@@ -260,6 +260,15 @@
 
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
+
+      ! For ND71 -- Surface peak tracer conc. diagnostic
+      REAL*4,  ALLOCATABLE :: AD71(:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD71_HR(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD71_DAY(:,:,:)
+      INTEGER, ALLOCATABLE :: AD71_COUNT
+      INTEGER, ALLOCATABLE :: AD71_HRCT
+      INTEGER, ALLOCATABLE :: AD71_LHR
+      INTEGER, ALLOCATABLE :: AD71_LDAY
 
 !
 ! !REVISION HISTORY:
@@ -436,6 +445,13 @@
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
+      IF ( ALLOCATED( AD71        ) ) DEALLOCATE( AD71        )
+      IF ( ALLOCATED( AD71_HR     ) ) DEALLOCATE( AD71_HR     )
+      IF ( ALLOCATED( AD71_DAY    ) ) DEALLOCATE( AD71_DAY    )
+      IF ( ALLOCATED( AD71_COUNT  ) ) DEALLOCATE( AD71_COUNT  )
+      IF ( ALLOCATED( AD71_HRCT   ) ) DEALLOCATE( AD71_HRCT   )
+      IF ( ALLOCATED( AD71_LDAY   ) ) DEALLOCATE( AD71_LDAY   )
+      IF ( ALLOCATED( AD71_LHR    ) ) DEALLOCATE( AD71_LHR    )
       IF ( ALLOCATED( CONVFLUP    ) ) DEALLOCATE( CONVFLUP    )
       IF ( ALLOCATED( CT16        ) ) DEALLOCATE( CT16        )
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )

@@ -285,7 +285,6 @@
       USE ERROR_MOD,            ONLY : ALLOC_ERR,ERROR_STOP
       USE GRID_MOD,             ONLY : GET_YMID
       USE TIME_MOD,             ONLY : GET_YEAR
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
       USE LOGICAL_MOD,          ONLY : LFUTURE, LFUTURECFC
 !
 ! !REVISION HISTORY: 
@@ -622,7 +621,7 @@
          CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
       ENDIF
 
-      ! CH4 taken from the existing GEOS-Chem 3D input data,
+      ! CH4 taken from the existing GEOS-Chem input data,
       ! rather than from 2D data
 
       IF (LSETCH4) THEN
@@ -631,25 +630,15 @@
             WRITE(6,*) '|---------|---------|---------|'
          ENDIF
 
-         ! Adapted from GEOS-Chem routine
+         ! Retrieve 4 large-scale averages, scaled to target year
+         CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
+     &               C3090S,C0030S,C0030N,C3090N)
 
-         ! Pick the CH4 concentration [ppbv] for the proper lat bin
-         ! CH4 values are read in "chemdr.f"
-         IF ( LFUTURE ) THEN
-            CH4_YEAR = GET_FUTURE_YEAR()
-         ELSE
-            CH4_YEAR = GET_YEAR()
-         ENDIF
-
-         ! Get CH4 [ppbv] in 4 latitude bins for each year
-         CALL GET_GLOBAL_CH4( CH4_YEAR, .TRUE., C3090S,
-     &                        C0030S,   C0030N, C3090N, .FALSE. )
-
-         ! Convert from [ppbv] to [kg CH4/mol air]
-         C3090S = C3090S * (1.d-9) / TCVV(IDTCH4)
-         C0030S = C0030S * (1.d-9) / TCVV(IDTCH4)
-         C0030N = C0030N * (1.d-9) / TCVV(IDTCH4)
-         C3090N = C3090N * (1.d-9) / TCVV(IDTCH4)
+         ! Convert from [vv] to [kg CH4/mol air]
+         C3090S = C3090S / TCVV(IDTCH4)
+         C0030S = C0030S / TCVV(IDTCH4)
+         C0030N = C0030N / TCVV(IDTCH4)
+         C3090N = C3090N / TCVV(IDTCH4)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -678,7 +667,7 @@
             IF ( am_I_Root ) THEN
                WRITE(6,*) 'Setting stratospheric CH4 from 2D data.'
             ENDIF
-            ! No Montreal scaling
+            ! No Montreal scaling (already applied)
             SCALEFAC = 1.d0
 
             ! Code to set strat using AER 2D data
@@ -1579,6 +1568,7 @@
 !
       USE TRACERID_MOD,   ONLY : IDTHCFCX
       USE LOGICAL_MOD,    ONLY : LFUTURECFC
+      USE GRID_MOD,       ONLY : GET_YMID
 !
 ! !INPUT PARAMETERS:
 !
@@ -1596,7 +1586,9 @@
 !
       REAL*8,PARAMETER :: OCS_MR = 5.00d-10 ! OCS is fixed to 500 pptv
       REAL*8,PARAMETER :: H2_MR = 5.00d-7  ! H2 is fixed to 500 ppbv
-      INTEGER          :: N, TARG_LINE
+      REAL*8           :: YLAT
+      REAL*8           :: MR90S,MR30S,MR30N,MR90N
+      INTEGER          :: N, TARG_LINE, J
       CHARACTER(LEN=20):: LOCAL_NAME
 
       !=================================================================
@@ -1644,6 +1636,24 @@
             CASE ('H2')
                ! Simple boundary condition
                GRID_EMIT(:,N) = H2_MR
+            CASE ('CH4')
+               ! Get the 4 major mixing ratios
+               CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
+     &                     MR90S,MR30S,MR30N,MR90N)
+               ! Figure out which box each is in
+               DO J=1,JJPAR   
+                  ! Grid-box latitude index
+                  YLAT  = GET_YMID( 1,J,1 )
+                  IF ( YLAT < -30d0 ) THEN
+                     GRID_EMIT(J,N) = MR90S
+                  ELSE IF ( YLAT >= -30d0 .and. YLAT < 0d0  ) THEN
+                     GRID_EMIT(J,N) = MR30S
+                  ELSE IF ( YLAT >=   0d0 .and. YLAT < 30d0 ) THEN
+                     GRID_EMIT(J,N) = MR30N
+                  ELSE
+                     GRID_EMIT(J,N) = MR90N
+                  ENDIF
+               ENDDO
             CASE DEFAULT
                ! Standard 1:1
                CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
@@ -5003,6 +5013,105 @@
       END SUBROUTINE UCX_H2SO4PHOT
 !
 !EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ucx_ch4
+!
+! !DESCRIPTION: Subroutine GET\_UCX\_CH4 retrieves zonal mean surface mixing
+!  ratios for 4 equal-area regions (90S-30S,30S-0,0-30N,30N-90N)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_UCX_CH4(CH4_YEAR,MR90S,MR30S,MR30N,MR90N)
+!
+! !USES:
+!
+      USE TIME_MOD, ONLY : GET_YEAR, GET_MONTH
+      USE LOGICAL_MOD, ONLY : LFUTURE
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)         :: CH4_YEAR   ! Target year
+!
+! !OUTPUT VARIABLES:
+!
+      REAL*8, INTENT(OUT)         :: MR90S,MR30S,MR30N,MR90N
+!
+! !REVISION HISTORY: 
+!  18 Dec 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER               :: BASE_YEAR, CH4_TARG_YEAR
+      INTEGER, PARAMETER    :: REF_YEAR=2007
+      REAL*8                :: CH4_SCALE
+      INTEGER               :: FUTURE_LINE
+      INTEGER               :: BASIS_LINE
+      INTEGER, SAVE         :: LAST_YEAR=-1
+      REAL*8, SAVE          :: LAST_MR(4)
+
+      !=================================================================
+      ! GET_UCX_CH4 begins here!
+      !=================================================================
+
+      ! Adapted from GEOS-Chem routine
+
+      ! Pick the CH4 concentration [ppbv] for the proper lat bin
+      ! CH4 values are read in "chemdr.f"
+      IF ( LFUTURE ) THEN
+         CH4_TARG_YEAR = GET_FUTURE_YEAR()
+         BASE_YEAR = CH4_TARG_YEAR
+      ELSE
+         CH4_TARG_YEAR = CFCYEAR + OFFSETYEAR
+         BASE_YEAR = MIN(REF_YEAR,CH4_TARG_YEAR)
+      ENDIF
+
+      IF (LAST_YEAR .ne. CH4_TARG_YEAR) THEN
+         ! Get CH4 [ppbv] in 4 latitude bins for each year
+         CALL GET_GLOBAL_CH4( BASE_YEAR, .TRUE., MR90S,
+     &                                 MR30S,   MR30N, MR90N, .FALSE. )
+
+         ! Convert from [ppbv] to [vv] and scale by year
+         ! Using just one month's data to be consistent with
+         ! base GEOS-Chem approach to CH4 (1-yr resolution)
+         IF (CH4_YEAR > BASE_YEAR) THEN
+            FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + 1
+            BASIS_LINE = (12*(REF_YEAR-1959)) + 1
+            CH4_SCALE = (1.0d-9)*GET_MONTREAL('CH4',FUTURE_LINE)/
+     &                       GET_MONTREAL('CH4',BASIS_LINE)
+         ELSE
+            CH4_SCALE = 1.0d-9
+         ENDIF
+
+         MR90S = MR90S * CH4_SCALE
+         MR30S = MR30S * CH4_SCALE
+         MR30N = MR30N * CH4_SCALE
+         MR90N = MR90N * CH4_SCALE
+
+         ! Save for later calls
+         LAST_MR(1) = MR90S
+         LAST_MR(2) = MR30S
+         LAST_MR(3) = MR30N
+         LAST_MR(4) = MR90N
+      ELSE
+         ! Re-use data
+         MR90S = LAST_MR(1)
+         MR30S = LAST_MR(2)
+         MR30N = LAST_MR(3)
+         MR90N = LAST_MR(4)
+      ENDIF
+
+      END SUBROUTINE GET_UCX_CH4
+!
+!EOC
 !!------------------------------------------------------------------------------
 !!               MIT Laboratory for Aviation and the Environment               !
 !!------------------------------------------------------------------------------
@@ -5199,6 +5308,13 @@
       ! Determine which tracers are to be emitted
       N_EMIT = 0
       IDT_EMIT = 0
+
+      IF (LCH4SBC) THEN
+         ! Simple CH4 fixed surface emissions
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = IDTCH4
+         TRAC_EMIT(N_EMIT) = 'CH4'
+      ENDIF 
 
       IF (LCFCEMIS) THEN
          ! R-11/12/113/114/115
