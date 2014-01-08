@@ -139,7 +139,8 @@
       ! For specifying date/time
       INTEGER,           ALLOCATABLE :: PDATE(:)
       INTEGER,           ALLOCATABLE :: PTIME(:)
-      ! Change to REAL*8 for more precise times (skim, 7/24/13)              
+      ! Change to REAL*8 for more precise times (skim, 7/24/13)             
+      ! Necessary as we move to smaller timesteps 
       REAL*8,            ALLOCATABLE :: PTAU(:)               
 
       ! For specifying lat/lon/alt and ID type
@@ -177,6 +178,18 @@
       ! Logical unit numbers (formerly in file_mod.F)
       INTEGER                        :: IU_FILE
       INTEGER                        :: IU_PLANE
+
+      ! Save the aerosol extinction curtains along the flight track
+      ! For DIAL data (skim, 12/06/13)
+      REAL*8, ALLOCATABLE            :: P_CURTAIN     ( :,:    )
+      REAL*8, ALLOCATABLE            :: HEIGHT_CURTAIN( :,:    )
+      REAL*8, ALLOCATABLE            :: TRACER_CURTAIN( :,:, : )
+      REAL*8, ALLOCATABLE            :: SNA_CURTAIN   ( :,:    )
+      REAL*8, ALLOCATABLE            :: BC_CURTAIN    ( :,:    )
+      REAL*8, ALLOCATABLE            :: OC_CURTAIN    ( :,:    )
+      REAL*8, ALLOCATABLE            :: SSA_CURTAIN   ( :,:    )
+      REAL*8, ALLOCATABLE            :: SSC_CURTAIN   ( :,:    )
+      REAL*8, ALLOCATABLE            :: DUST_CURTAIN  ( :,:    )
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -563,6 +576,8 @@
                IF ( LINE == 'GMAO_ICE70' ) PVAR(N) = 1107
                IF ( LINE == 'GMAO_ICE80' ) PVAR(N) = 1108
                IF ( LINE == 'GMAO_ICE90' ) PVAR(N) = 1109
+               ! Save out the boundary layer (skim, 12/06/13)
+               IF ( LINE == 'GMAO_PBLH'  ) PVAR(N) = 1201
 
             !===========================================================
             ! Column aerosol optical depths (same order as for FAST-J)
@@ -574,7 +589,9 @@
                IF ( LINE == 'AODC_BLKC'  ) PVAR(N) = 2002
                IF ( LINE == 'AODC_ORGC'  ) PVAR(N) = 2003
                IF ( LINE == 'AODC_SALA'  ) PVAR(N) = 2004
-               IF ( LINE == 'AODC_SALC'  ) PVAR(N) = 2005   
+               IF ( LINE == 'AODC_SALC'  ) PVAR(N) = 2005
+               ! Add dust, lei, 12/03/13
+               IF ( LINE == 'AODC_DUST'  ) PVAR(N) = 2006   
 
             !===========================================================
             ! Aerosol optical depths below the plane
@@ -587,6 +604,8 @@
                IF ( LINE == 'AODB_ORGC'  ) PVAR(N) = 3003
                IF ( LINE == 'AODB_SALA'  ) PVAR(N) = 3004
                IF ( LINE == 'AODB_SALC'  ) PVAR(N) = 3005
+               ! Add dust, lei, 12/03/13
+               IF ( LINE == 'AODB_DUST'  ) PVAR(N) = 3006
  
             !===========================================================
             ! Hg(II) Partitioning - eds 10/27/11  PVAR offset: 4000
@@ -1169,6 +1188,7 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD !skim, 12/06/13
       USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
       USE COMODE_MOD,         ONLY : TAREA
@@ -1180,12 +1200,14 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER !skim, 12/06/13
       USE TIME_MOD,           ONLY : GET_TAU,        GET_TS_DIAG
       USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !eds 10/27/11
 
       USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD
+      USE DUST_MOD,           ONLY : ODMDUST !lei, 12/03/13
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m !skim, 12/06/13
 !
 ! !INPUT PARAMETERS:
 !
@@ -1237,14 +1259,16 @@
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: PCHEM
-      INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
+      INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V, H
       INTEGER             :: LL     !eds
       INTEGER             :: LPLANE
+      INTEGER             :: DUST_TYPE !lei, 12/03/13
       REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL*8              :: VARI(NPVAR)
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
+
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1274,6 +1298,13 @@
          PTAUE = GET_TAU()
          PTAUS = PTAUE - ( GET_TS_DIAG() / 60d0 )
 
+         ! Add extra modification specific to the SEAC4RS grid
+         ! (skim, 11/12/13)
+#if defined( GRID025x03125 )
+         PTAUE = PTAUE - ( 5d0 / 960d0 )
+         PTAUS = PTAUS - ( 5d0 / 960d0 )
+#endif
+
          ! Initialize VARI to missing value for this point
          DO V = 1, NPVAR
             VARI(V) = MISSING
@@ -1284,9 +1315,6 @@
          !==============================================================
          IF ( PTAU(M) < PTAUS ) THEN
 
-            PRINT*, 'BEGIN PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
-            PRINT*, PTAU(M), PTAUS
-
             ! Write all missing values to disk for point #M
             CALL WRITE_VARS_TO_FILE( M, VARI )      
 
@@ -1296,12 +1324,7 @@
          !==============================================================
          ! We have already found all of the plane points...
          !==============================================================
-         ! Ensure that a model comparison is made for this point
-         ! (skim, 7/24/13)
-         ELSE IF ( PTAU(M) > PTAUE ) THEN
-
-            PRINT*, 'END PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
-            PRINT*, PTAU(M), PTAUE
+         ELSE IF ( PTAU(M) >= PTAUE ) THEN
 
             ! Exit this loop and the subroutine
             EXIT
@@ -1494,6 +1517,12 @@
 #endif
 
                   !--------------------------
+                  ! GEOS-Chem PBL Height
+                  !--------------------------
+                  CASE ( 1201 )
+                     VARI(V) = GET_PBL_TOP_m(I, J)
+
+                  !--------------------------
                   ! Column aerosol optical 
                   ! depths [unitless]
                   !--------------------------
@@ -1525,7 +1554,54 @@
                            ! Sum over all vertical levels (bmy, 10/24/05)
                            VARI(V) = VARI(V) + 
      &                               SUM( SAODnm * ODAER(I,J,:,IRHN) )
+
+                           ! Save the curtain (skim, 12/06/13)
+                           IF ( N == 1 ) THEN
+                              SNA_CURTAIN(M,:) = SNA_CURTAIN(M,:)
+     &                                         + ODAER(I,J,:,IRHN)
+                           ENDIF
+
+                           IF ( N == 2 ) THEN
+                              BC_CURTAIN(M,:)  = BC_CURTAIN(M,:)
+     &                                         + ODAER(I,J,:,IRHN)
+                           ENDIF
+
+                           IF ( N == 3 ) THEN
+                              OC_CURTAIN(M,:)  = OC_CURTAIN(M,:)
+     &                                         + ODAER(I,J,:,IRHN)
+                           ENDIF
+
+                           IF ( N == 4 ) THEN
+                              SSA_CURTAIN(M,:) = SSA_CURTAIN(M,:)
+     &                                         + ODAER(I,J,:,IRHN)
+                           ENDIF
+
+                           IF ( N == 5 ) THEN
+                              SSC_CURTAIN(M,:) = SSC_CURTAIN(M,:)
+     &                                         + ODAER(I,J,:,IRHN)
+                           ENDIF                      
+
                         ENDDO
+
+                  !--------------------------
+                  ! Column aerosol optical
+                  ! depths of dust (total all size bins), lei, 12/03/13
+                  !--------------------------
+                  CASE ( 2006 )
+
+                        VARI(V) = 0d0
+
+                        ! Get total dust AOD
+                        DO DUST_TYPE = 1, NDUST
+
+                           VARI(V) = VARI(V) +
+     &                               SUM( ODMDUST(I,J,:,DUST_TYPE) )
+
+                           ! Also save the curtain, skim, 12/06/13
+                           DUST_CURTAIN(M,:) = DUST_CURTAIN(M,:)
+     &                                       + ODMDUST(I,J,:,DUST_TYPE)
+
+                        ENDDO                  
 
                   !--------------------------
                   ! Aerosol optical depths
@@ -1569,6 +1645,22 @@
                         ENDDO
                      ENDIF
 
+
+                  !--------------------------
+                  ! Dust AOD below the plane
+                  ! (total all size bins), lei, 12/03/13
+                  !--------------------------
+                  CASE ( 3006 )
+
+                     VARI(V) = 0d0
+
+                     ! Get the tropospheric dust AOD
+                     DO DUST_TYPE = 1, NDUST
+                         LPLANE  = MIN( L, LLTROP )
+                         VARI(V) = VARI(V) +
+     &                             SUM(ODMDUST(I,J,1:LPLANE,DUST_TYPE) )
+                     ENDDO
+
                   !--------------------------
                   ! Hg(II) partitioning eds 10/27/11
                   !--------------------------
@@ -1607,6 +1699,21 @@
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.d0
 
+                     ! Save the tracer curtains, (skim, 12/06/13)
+                     ! Only need to get the pressure and height once
+                     IF ( N == 1 ) THEN
+
+                        DO H = 1,LLPAR
+                           P_CURTAIN(M, H) = GET_PCENTER(I, J, H)
+                        ENDDO
+
+                        HEIGHT_CURTAIN(M,:) = State_Met%BXHEIGHT(I,J,:)
+
+                     ENDIF
+
+                     TRACER_CURTAIN(M, :, N) = STT(I, J, :, N) *
+     &                  Input_Opt%TCVV(N) / State_Met%AD(I,J,:)
+
                      ! Free pointer
                      NULLIFY( STT )
 
@@ -1642,6 +1749,12 @@
 
             ! Write data for the Mth plane point out to disk
             CALL WRITE_VARS_TO_FILE( M, VARI )
+
+            ! At the end of the flight, save the curtains to netCDF
+            ! [ skim, 12/06/13 ]
+            IF ( PPOINT == NPOINTS ) THEN
+               CALL SAVE_CURTAIN
+            ENDIF
 
             ! Increment the record pointer
             PPOINT = PPOINT + 1
@@ -1730,7 +1843,10 @@
       I = INT( ( PLON(IND) + 180d0 - (I0 * DISIZE) ) / DISIZE + 1.5d0 )
 
       ! Handle date line correctly (bmy, 4/23/04)
+      ! Only check for the date line for global simulations
+#if defined( GRID4x5 ) || defined( GRID2x25 )
       IF ( I > IIPAR ) I = I - IIPAR
+#endif
 
       ! Get J corresponding to PLAT(IND)
       J = INT( ( PLAT(IND) +  90d0 - (J0 * DJSIZE) ) / DJSIZE + 1.5d0 )
@@ -1837,6 +1953,478 @@
       CALL FLUSH( IU_PLANE )
 
       END SUBROUTINE WRITE_VARS_TO_FILE
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: save_curtain
+!
+! !DESCRIPTION: Routine to save planeflight curtains to ncdf files
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SAVE_CURTAIN
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE TIME_MOD,               ONLY : EXPAND_DATE, GET_NYMD
+      ! Modules for netCDF read
+      USE m_netcdf_io_open
+      USE m_netcdf_io_get_dimlen
+      USE m_netcdf_io_read
+      USE m_netcdf_io_readattr
+      USE m_netcdf_io_close
+      USE m_netcdf_io_create
+      USE m_netcdf_io_define
+      USE m_netcdf_io_write
+      USE m_netcdf_io_checks
+
+      IMPLICIT NONE
+   
+#     include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+! !REVISION HISTORY:
+!  06 Dec 2013 - S. Kim - Initial Version
+!                         Kludged from Christoph's ncdf_mod.F90
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Declare netCDF file and variable ID and fill mode
+      INTEGER            :: fId, vId, I, omode
+
+      ! Character strings
+      CHARACTER(LEN=255) :: v_name      ! netCDF variable name
+      CHARACTER(LEN=255) :: a_name      ! netCDF attribute name
+      CHARACTER(LEN=255) :: a_val       ! netCDF attribute value
+
+      ! Output file name
+      CHARACTER(LEN=255) :: ncFile
+
+      ! Variables for netCDF dimensions
+      INTEGER            :: id_lon
+      INTEGER            :: id_lat
+      INTEGER            :: id_levels
+      INTEGER            :: id_tracers
+
+      ! Arrays for netCDF dimension IDs
+      INTEGER            :: var1d(1)    ! For 1D arrays
+      INTEGER            :: var2d(2)    ! For 2D arrays
+      INTEGER            :: var3d(3)    ! For 3D arrays
+
+      ! Arrays for netCDF start and count values
+      INTEGER            :: st1d(1), ct1d(1)
+      INTEGER            :: st2d(2), ct2d(2)
+      INTEGER            :: st3d(3), ct3d(3), dummy(80)
+       
+      !=================================================================
+      ! SAVE_CURTAIN begins here!
+      !=================================================================
+
+      ! Set the netCDF filename
+      ncFile = 'model.curtain.' // TRIM( OUTFILENAME(19:26) ) 
+
+      CALL EXPAND_DATE( ncFile, GET_NYMD(), 000000 )
+
+      ! Initialize the variable ID counter
+      vId = 0
+
+      ! Open filename
+      CALL NcCr_Wr( fId, TRIM( ncFile ) )
+
+      ! Turn filling off
+      CALL NcSetFill( fId, NF_NOFILL, omode )
+
+      !--------------------------------
+      ! GLOBAL ATTRIBUTES
+      !--------------------------------
+
+      ! Define the title global attribute
+      a_name = "SEAC4RS Curtain"
+      a_val  = "Field generated by planeflight_mod.F"
+      CALL NcDef_Glob_Attributes( fId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the history global attribute
+      a_name = "History"
+      a_val  = "Initial version"
+      CALL NcDef_Glob_Attributes( fId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the conventions global attribute
+      a_name = "Conventions"
+      a_val  = "COARDS"
+      CALL NcDef_Glob_Attributes( fId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the format global attribute
+      a_name = "Format"
+      a_val  = "netCDF-3"
+      CALL NcDef_Glob_Attributes( fId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! DIMENSIONS
+      !--------------------------------
+
+      ! Define along track dimension
+      v_name = "lon"
+      CALL NcDef_Dimension( fId, TRIM(v_name), NPOINTS, id_lon )
+
+      v_name = 'lat'
+      CALL NcDef_Dimension( fid, TRIM(v_name), NPOINTS, id_lat )
+
+      ! Define the vertical dimension
+      v_name = "levels"
+      CALL NcDef_Dimension( fId, TRIM(v_name), LLPAR, id_levels )
+
+      ! Define the tracer number - currently hardwired for SEAC4RS
+      v_name = 'tracers'
+      CALL NcDef_Dimension( fId, TRIM(v_name), 80, id_tracers )
+
+      !--------------------------------
+      ! VARIABLE: lon
+      !--------------------------------
+
+      ! Define the "lon" variable
+      v_name = "lon"
+      vId    = vId + 1
+      var1d = (/ id_lon /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 1, var1d, vId )
+
+      ! Define the "lon:long_name" attribute
+      a_name = "long_name"
+      a_val  = "Longitude"
+      CALL NcDef_Var_Attributes( fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the "lon:units" attribute
+      a_name = "units"
+      a_val  = "degrees_east"
+      CALL NcDef_Var_Attributes( fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: lat
+      !--------------------------------
+
+      ! Define the "lat" variable
+      v_name = "lat"
+      vId    = vId + 1
+      var1d = (/ id_lat /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 1, var1d, vId )
+
+      ! Define the "lat:long_name" attribute
+      a_name = "long_name"
+      a_val  = "Latitude"
+      CALL NcDef_Var_Attributes( fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the "lat:units" attribute
+      a_name = "units"
+      a_val  = "degrees_north"
+      CALL NcDef_Var_Attributes( fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: levels
+      !--------------------------------
+
+      ! Define the "levels" variable
+      v_name = "levels"
+      vId    = vId + 1
+      var1d = (/ id_levels /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 1, var1d, vId )
+
+      ! Define the "levels:long_name" attribute
+      a_name = "long_name"
+      a_val  = "Levels"
+      CALL NcDef_Var_Attributes( fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the "levels:units" attribute
+      a_name = "units"
+      a_val  = "hPa"
+      CALL NcDef_Var_Attributes( fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: tracers
+      !--------------------------------
+
+      ! Define the "tracers" variable
+      v_name = "tracers"
+      vId    = vId + 1
+      var1d = (/ id_tracers /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 1, var1d, vId )
+
+      ! Define the "tracers:long_name" attribute
+      a_name = "long_name"
+      a_val  = "Tracer Number"
+      CALL NcDef_Var_Attributes( fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the "tracers:units" attribute
+      a_name = "units"
+      a_val  = "Unitless"
+      CALL NcDef_Var_Attributes( fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: P_CURTAIN
+      !--------------------------------
+
+      v_name = "pressure"
+      vId    = vId + 1
+      var2d  = (/ id_lon, id_levels /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 2, var2d, vId )
+
+      ! Define the long_name attribute
+      a_name = "long_name"
+      a_val  = "Pressure Curtain"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the units attribute
+      a_name = "units"
+      a_val  = "hPa"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: HEIGHT_CURTAIN
+      !--------------------------------
+
+      v_name = "height"
+      vId    = vId + 1
+      var2d  = (/ id_lon, id_levels /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 2, var2d, vId )
+
+      ! Define the long_name attribute
+      a_name = "long_name"
+      a_val  = "Height Curtain"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the units attribute
+      a_name = "units"
+      a_val  = "m"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: TRACER_CURTAIN
+      !--------------------------------      
+
+      v_name = "t_curtain"
+      vId    = vId + 1
+      var3d  = (/ id_lon, id_levels, id_tracers /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 3, var3d, vId )
+
+      ! Define the long_name attribute
+      a_name = "long_name"
+      a_val  = "Tracer Curtain"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the units attribute
+      a_name = "units"
+      a_val  = "Mixing Ratio (v/v)"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: SNA_CURTAIN
+      !--------------------------------
+
+      v_name = "sna_curtain"
+      vId    = vId + 1
+      var2d  = (/ id_lon, id_levels /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 2, var2d, vId )
+
+      ! Define the long_name attribute
+      a_name = "long_name"
+      a_val  = "SNA Curtain"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the units attribute
+      a_name = "units"
+      a_val  = "Unitless"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: BC_CURTAIN
+      !--------------------------------
+
+      v_name = "bc_curtain"
+      vId    = vId + 1
+      var2d  = (/ id_lon, id_levels /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 2, var2d, vId )
+
+      ! Define the long_name attribute
+      a_name = "long_name"
+      a_val  = "BC Curtain"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the units attribute
+      a_name = "units"
+      a_val  = "Unitless"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: OC_CURTAIN
+      !--------------------------------
+
+      v_name = "oc_curtain"
+      vId    = vId + 1
+      var2d  = (/ id_lon, id_levels /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 2, var2d, vId )
+
+      ! Define the long_name attribute
+      a_name = "long_name"
+      a_val  = "OC Curtain"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the units attribute
+      a_name = "units"
+      a_val  = "Unitless"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: SSA_CURTAIN
+      !--------------------------------
+
+      v_name = "ssa_curtain"
+      vId    = vId + 1
+      var2d  = (/ id_lon, id_levels /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 2, var2d, vId )
+
+      ! Define the long_name attribute
+      a_name = "long_name"
+      a_val  = "SSA Curtain"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the units attribute
+      a_name = "units"
+      a_val  = "Unitless"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: SSC_CURTAIN
+      !--------------------------------
+
+      v_name = "ssc_curtain"
+      vId    = vId + 1
+      var2d  = (/ id_lon, id_levels /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 2, var2d, vId )
+
+      ! Define the long_name attribute
+      a_name = "long_name"
+      a_val  = "SSC Curtain"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the units attribute
+      a_name = "units"
+      a_val  = "Unitless"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! VARIABLE: DUST_CURTAIN
+      !--------------------------------
+
+      v_name = "dust_curtain"
+      vId    = vId + 1
+      var2d  = (/ id_lon, id_levels /)
+      CALL NcDef_Variable( fId, TRIM(v_name), NF_DOUBLE, 2, var2d, vId )
+
+      ! Define the long_name attribute
+      a_name = "long_name"
+      a_val  = "DUST Curtain"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      ! Define the units attribute
+      a_name = "units"
+      a_val  = "Unitless"
+      CALL NcDef_Var_Attributes(fId, vId, TRIM(a_name), TRIM(a_val) )
+
+      !--------------------------------
+      ! END DEFINITION
+      !--------------------------------
+      CALL NcEnd_Def( fId )
+
+      !--------------------------------
+      ! WRITE TO FILE 
+      !--------------------------------
+
+      PRINT*, "WRITING VARIABLES TO FILE"
+
+      ! Write lon to netCDF file
+      st1d   = (/ 1 /)
+      ct1d   = (/ NPOINTS /)
+      v_name = "lon"
+      CALL NcWr( PLON, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Write lat to netCDF file
+      st1d   = (/ 1 /)
+      ct1d   = (/ NPOINTS /)
+      v_name = "lat"
+      CALL NcWr( PLAT, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Write the first pressure profile to netCDF file
+      st1d   = (/ 1 /)
+      ct1d   = (/ size(P_CURTAIN,2) /)
+      v_name = "levels"
+      CALL NcWr( P_CURTAIN(1,:), fId, TRIM(v_name), st1d, ct1d )  
+
+      ! Write dummy tracer number to netCDF file
+      st1d   = (/ 1  /)
+      ct1d   = (/ 80 /)
+      dummy  = (/( I, I = 1, 80 )/)
+      v_name = "tracers" 
+      CALL NcWr( dummy, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Write the curtains to the netCDF file
+      st2d   = (/ 1, 1 /)
+      ct2d   = (/ size( P_CURTAIN, 1 ), size( P_CURTAIN, 2 ) /)
+      v_name = "pressure"
+      CALL NcWr( P_CURTAIN, fId, TRIM(v_name), st2d, ct2d )
+
+      st2d   = (/ 1, 1 /)
+      ct2d   = (/ size(HEIGHT_CURTAIN, 1), size(HEIGHT_CURTAIN, 2) /)
+      v_name = "height"
+      CALL NcWr( HEIGHT_CURTAIN, fId, TRIM(v_name), st2d, ct2d )
+
+      st3d   = (/ 1, 1, 1 /)
+      ct3d   = (/ size(TRACER_CURTAIN,1), size(TRACER_CURTAIN,2), 80 /)
+      v_name = "t_curtain"
+      CALL NcWr( TRACER_CURTAIN, fId, TRIM(v_name), st3d, ct3d )
+
+      st2d   = (/ 1, 1 /)
+      ct2d   = (/ size(SNA_CURTAIN, 1), size(SNA_CURTAIN, 2) /)
+      v_name = "sna_curtain"
+      CALL NcWr( SNA_CURTAIN, fId, TRIM(v_name), st2d, ct2d )
+
+      st2d   = (/ 1, 1 /)
+      ct2d   = (/ size(BC_CURTAIN, 1), size(BC_CURTAIN, 2) /)
+      v_name = "bc_curtain"
+      CALL NcWr( BC_CURTAIN, fId, TRIM(v_name), st2d, ct2d )
+
+      st2d   = (/ 1, 1 /)
+      ct2d   = (/ size(OC_CURTAIN, 1), size(OC_CURTAIN, 2) /)
+      v_name = "oc_curtain"
+      CALL NcWr( OC_CURTAIN, fId, TRIM(v_name), st2d, ct2d )
+
+      st2d   = (/ 1, 1 /)
+      ct2d   = (/ size(SSA_CURTAIN, 1), size(SSA_CURTAIN, 2) /)
+      v_name = "ssa_curtain"
+      CALL NcWr( SSA_CURTAIN, fId, TRIM(v_name), st2d, ct2d )
+
+      st2d   = (/ 1, 1 /)
+      ct2d   = (/ size(SSC_CURTAIN, 1), size(SSC_CURTAIN, 2) /)
+      v_name = "ssa_curtain"
+      CALL NcWr( SSA_CURTAIN, fId, TRIM(v_name), st2d, ct2d )
+
+      st2d   = (/ 1, 1 /)
+      ct2d   = (/ size(DUST_CURTAIN, 1), size(DUST_CURTAIN, 2) /)
+      v_name = "dust_curtain"
+      CALL NcWr( DUST_CURTAIN, fId, TRIM(v_name), st2d, ct2d )
+
+      !--------------------------------
+      ! CLOSE THE FILE
+      !--------------------------------
+      CALL NcCl( fId )
+
+      END SUBROUTINE SAVE_CURTAIN
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2216,6 +2804,34 @@
          ALLOCATE( PPRESS( MAXPOINTS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
 
+         ! Allocate additional arrays for curtains (skim, 12/06/13)
+         ALLOCATE( P_CURTAIN( NPOINTS, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'P_CURTAIN' )
+
+         ALLOCATE( HEIGHT_CURTAIN( NPOINTS, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HEIGHT_CURTAIN' )
+
+         ALLOCATE( TRACER_CURTAIN( NPOINTS, LLPAR, 80 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_CURTAIN' )
+
+         ALLOCATE( SNA_CURTAIN ( NPOINTS, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNA_CURTAIN' )
+
+         ALLOCATE( BC_CURTAIN  ( NPOINTS, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CURTAIN' )
+
+         ALLOCATE( OC_CURTAIN  ( NPOINTS, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC_CURTAIN' )
+
+         ALLOCATE( SSA_CURTAIN ( NPOINTS, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSA_CURTAIN' )
+
+         ALLOCATE( SSC_CURTAIN ( NPOINTS, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSC_CURTAIN' )
+
+         ALLOCATE( DUST_CURTAIN( NPOINTS, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DUST_CURTAIN' )
+
          ! Reset IS_INIT flag
          IS_INIT = .TRUE.
       ENDIF
@@ -2234,6 +2850,16 @@
       PLAT   = 0e0
       PLON   = 0e0
       PPRESS = 0e0
+
+      P_CURTAIN      = 0e0
+      HEIGHT_CURTAIN = 0e0
+      TRACER_CURTAIN = 0e0
+      SNA_CURTAIN    = 0e0
+      BC_CURTAIN     = 0e0
+      OC_CURTAIN     = 0e0
+      SSA_CURTAIN    = 0e0
+      SSC_CURTAIN    = 0e0
+      DUST_CURTAIN   = 0e0
 
       END SUBROUTINE INIT_PLANEFLIGHT
 !EOC
@@ -2259,17 +2885,26 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( ALLOCATED( PVAR   ) ) DEALLOCATE( PVAR   )
-      IF ( ALLOCATED( PREAC  ) ) DEALLOCATE( PREAC  )
-      IF ( ALLOCATED( PNAME  ) ) DEALLOCATE( PNAME  )
-      IF ( ALLOCATED( PRRATE ) ) DEALLOCATE( PRRATE )
-      IF ( ALLOCATED( PTYPE  ) ) DEALLOCATE( PTYPE  ) 
-      IF ( ALLOCATED( PDATE  ) ) DEALLOCATE( PDATE  ) 
-      IF ( ALLOCATED( PTIME  ) ) DEALLOCATE( PTIME  ) 
-      IF ( ALLOCATED( PTAU   ) ) DEALLOCATE( PTAU   ) 
-      IF ( ALLOCATED( PLAT   ) ) DEALLOCATE( PLAT   )
-      IF ( ALLOCATED( PLON   ) ) DEALLOCATE( PLON   )
-      IF ( ALLOCATED( PPRESS ) ) DEALLOCATE( PPRESS )
+      IF ( ALLOCATED( PVAR           ) ) DEALLOCATE( PVAR           )
+      IF ( ALLOCATED( PREAC          ) ) DEALLOCATE( PREAC          )
+      IF ( ALLOCATED( PNAME          ) ) DEALLOCATE( PNAME          )
+      IF ( ALLOCATED( PRRATE         ) ) DEALLOCATE( PRRATE         )
+      IF ( ALLOCATED( PTYPE          ) ) DEALLOCATE( PTYPE          ) 
+      IF ( ALLOCATED( PDATE          ) ) DEALLOCATE( PDATE          ) 
+      IF ( ALLOCATED( PTIME          ) ) DEALLOCATE( PTIME          ) 
+      IF ( ALLOCATED( PTAU           ) ) DEALLOCATE( PTAU           ) 
+      IF ( ALLOCATED( PLAT           ) ) DEALLOCATE( PLAT           )
+      IF ( ALLOCATED( PLON           ) ) DEALLOCATE( PLON           )
+      IF ( ALLOCATED( PPRESS         ) ) DEALLOCATE( PPRESS         )
+      IF ( ALLOCATED( P_CURTAIN      ) ) DEALLOCATE( P_CURTAIN      )
+      IF ( ALLOCATED( HEIGHT_CURTAIN ) ) DEALLOCATE( HEIGHT_CURTAIN )
+      IF ( ALLOCATED( TRACER_CURTAIN ) ) DEALLOCATE( TRACER_CURTAIN )
+      IF ( ALLOCATED( SNA_CURTAIN    ) ) DEALLOCATE( SNA_CURTAIN    )
+      IF ( ALLOCATED( BC_CURTAIN     ) ) DEALLOCATE( BC_CURTAIN     )
+      IF ( ALLOCATED( OC_CURTAIN     ) ) DEALLOCATE( OC_CURTAIN     )
+      IF ( ALLOCATED( SSA_CURTAIN    ) ) DEALLOCATE( SSA_CURTAIN    )
+      IF ( ALLOCATED( SSC_CURTAIN    ) ) DEALLOCATE( SSC_CURTAIN    )
+      IF ( ALLOCATED( DUST_CURTAIN   ) ) DEALLOCATE( DUST_CURTAIN   )
 
       END SUBROUTINE CLEANUP_PLANEFLIGHT
 !EOC
