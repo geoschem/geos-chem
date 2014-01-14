@@ -436,20 +436,20 @@
 #elif defined( GEOS_FP ) && defined( GRID4x5 )
 
       !----------------------------------------------------------------
-      ! Based on results from GEOS-FP 4x5 for 04/2012-04/2013
+      ! Based on results from GEOS-FP 4x5 for 08/2012-08/2013
       !
-      !   (GEOS-FP - GEOS-5)/GEOS-5 * 100 is -23.56% in each size bin.
+      !   (GEOS-FP - GEOS-5)/GEOS-5 * 100 is -15.95% in each size bin.
       !
       ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
       ! dust emissions consistent.  Consequently, to bring GEOS-FP 4x5
       ! dust emissions up to GEOS-5 levels, we need to MULTIPLY the
       ! FLX_MSS_FDG_FCT used for GEOS-5 by:
       !
-      !             1 / (1. - 0.2356) = 1 / 0.7644 = 1.3082
+      !             1 / (1. - 0.1595) = 1 / 0.8405 = 1.1898
       !
-      !    -- R. Yantosca, M. Sulprizio, 07 Nov 2013
+      !    -- R. Yantosca, M. Sulprizio, 06 Jan 2014
       !----------------------------------------------------------------
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.3082d0
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.1898d0
 
 #else
 
