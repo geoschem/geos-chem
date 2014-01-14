@@ -35,7 +35,6 @@ MODULE GeosFp_Read_Mod
   PRIVATE
 
 # include "netcdf.inc"                    ! Include file for netCDF library
-# define GEOS572_FILES "1"                ! Uncomment to read GEOS572* files
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -67,6 +66,7 @@ MODULE GeosFp_Read_Mod
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields via Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed to geosfp_read_mod.F90
+!  14 Jan 2014 - R. Yantosca - Remove "define GEOS572_FILES #ifdef blocks
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,6 +96,7 @@ CONTAINS
 !  10 Feb 2012 - R. Yantosca - Initial version
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocssor switch
+!  14 Jan 2014 - R. Yantosca - Now add NESTED_SE option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -123,6 +124,9 @@ CONTAINS
 
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     resString = '025x03125.NA.nc'
+
+#elif defined( GRID025x03125 ) && defined( NESTED_SE )
+    resString = '025x03125.SE.nc'
 
 #elif defined( GRID025x03125 )
     resString = '025x03125.nc'
@@ -298,15 +302,7 @@ CONTAINS
 
     ! Replace time & date tokens in the file name
     nc_file = Get_Resolution_String() 
-!----------------------------------------------------------------------------
-! Temporary situation: allow code to read met with either GEOS572 or GEOSFP
-! filename prefix.  This will be removed later on. (bmy, 9/26/13).
-#if defined( GEOS572_FILES )
-    nc_file = 'GEOS572.YYYYMMDD.CN.' // TRIM( nc_file ) 
-#else
     nc_file = 'GEOSFP.YYYYMMDD.CN.' // TRIM( nc_file ) 
-#endif
-!----------------------------------------------------------------------------
     CALL Expand_Date( nc_file, 20110101, 000000 )
 
     ! Construct complete file path
@@ -495,15 +491,7 @@ CONTAINS
 
     ! Replace time & date tokens in the file name
     nc_file = Get_Resolution_String()
-!----------------------------------------------------------------------------
-! Temporary situation: allow code to read met with either GEOS572 or GEOSFP
-! filename prefix.  This will be removed later on. (bmy, 9/26/13).
-#if defined( GEOS572_FILES )
-    nc_file = 'GEOS572.YYYYMMDD.A1.' // TRIM( nc_file )
-#else
     nc_file = 'GEOSFP.YYYYMMDD.A1.' // TRIM( nc_file )
-#endif
-!----------------------------------------------------------------------------
     CALL Expand_Date( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -730,12 +718,10 @@ CONTAINS
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
     CALL Transfer_2d( Q, State_Met%RADSWG )
 
-#if !defined( GEOS572_FILES )
     ! Read TO3
     v_name = "TO3"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
     CALL Transfer_2d( Q, State_Met%TO3 )
-#endif
 
     ! Read TROPPT
     v_name = "TROPPT"
@@ -793,27 +779,6 @@ CONTAINS
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
     
-    !----------------------------------------------------------------------
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%% NOTE: After further investigation, we don't really need the    %%%
-    !%%% PBL mixing height correction, as the GEOS-FP PBL heights are   %%%
-    !%%% already very high.  Also, adding this fix only changes the PBL %%%
-    !%%% heights over Antarctica by up to 300 meters.  Therefore we     %%%
-    !%%% shall comment out this fix.  If you wish to re-activate it,    %%%
-    !%%% then you may uncomment this code.  (bmy, 12/4/13)              %%%
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !! Correction for MERRA PBLH:
-    !! PBLH must be greater than a minimum mechanical mixing depth,
-    !! defined as 700*friction velocity
-    !! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
-    !DO J = 1, JJPAR
-    !DO I = 1, IIPAR
-    !   State_Met%PBLH(I,J) = max( State_Met%PBLH(I,J),          &
-    !                              State_Met%USTAR(I,J) * 700d0 )
-    !ENDDO
-    !ENDDO
-    !----------------------------------------------------------------------
-
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
        AD67(:,:,1 ) = AD67(:,:,1 ) + State_Met%HFLUX    ! Sens heat flux [W/m2]
@@ -1015,15 +980,7 @@ CONTAINS
 
     ! Replace time & date tokens in the file name
     nc_file = Get_Resolution_String()
-!----------------------------------------------------------------------------
-! Temporary situation: allow code to read met with either GEOS572 or GEOSFP
-! filename prefix.  This will be removed later on. (bmy, 9/26/13).
-#if defined( GEOS572_FILES )
-    nc_file = 'GEOS572.YYYYMMDD.A3cld.' // TRIM( nc_file )
-#else
     nc_file = 'GEOSFP.YYYYMMDD.A3cld.' // TRIM( nc_file )
-#endif
-!----------------------------------------------------------------------------
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -1190,15 +1147,7 @@ CONTAINS
 
     ! Replace time & date tokens in the file name
     nc_file = Get_Resolution_String()
-!----------------------------------------------------------------------------
-! Temporary situation: allow code to read met with either GEOS572 or GEOSFP
-! filename prefix.  This will be removed later on. (bmy, 9/26/13).
-#if defined( GEOS572_FILES )
-    nc_file = 'GEOS572.YYYYMMDD.A3dyn.' // TRIM( nc_file )
-#else
     nc_file = 'GEOSFP.YYYYMMDD.A3dyn.' // TRIM( nc_file )
-#endif
-!----------------------------------------------------------------------------
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -1232,27 +1181,12 @@ CONTAINS
     ENDIF
 
     !--------------------------------
-    ! Read data on level edges
-    !--------------------------------
-
-    ! netCDF start & count indices
-    st4d      = (/ 1,     1,     1,       time_index /)      
-    ct4d      = (/ IIPAR, JJPAR, LGLOB+1, 1          /)
-
-#if defined( GEOS572_FILES )
-    ! Read CMFMC (only in GEOS572*.nc files)
-    v_name = "CMFMC"
-    CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%CMFMC )
-#endif
-
-    !--------------------------------
     ! Read data on level centers
     !--------------------------------
 
     ! netCDF start & count indices
-    st4d      = (/ 1,     1,     1,       time_index /)      
-    ct4d      = (/ IIPAR, JJPAR, LGLOB,   1          /)
+    st4d      = (/ 1,     1,     1,     time_index /)      
+    ct4d      = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     ! Read DTRAIN
     v_name = "DTRAIN"
@@ -1304,13 +1238,10 @@ CONTAINS
     ENDDO
     ENDDO
 
-    ! ND66 diagnostic: U, V, CMFMC, DTRAIN met fields
+    ! ND66 diagnostic: U, V, DTRAIN met fields
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + State_Met%U     (:,:,1:LD66)
        AD66(:,:,1:LD66,2) = AD66(:,:,1:LD66,2) + State_Met%V     (:,:,1:LD66)
-#if defined( GEOS572_FILES )
-       AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + State_Met%CMFMC (:,:,1:LD66)
-#endif
        AD66(:,:,1:LD66,6) = AD66(:,:,1:LD66,6) + State_Met%DTRAIN(:,:,1:LD66)
     ENDIF
 
@@ -1408,15 +1339,7 @@ CONTAINS
 
     ! Replace time & date tokens in the file name
     nc_file = Get_Resolution_String()
-!----------------------------------------------------------------------------
-! Temporary situation: allow code to read met with either GEOS572 or GEOSFP
-! filename prefix.  This will be removed later on. (bmy, 9/26/13).
-#if defined( GEOS572_FILES )
-    nc_file = 'GEOS572.YYYYMMDD.A3mstC.' // TRIM( nc_file )
-#else
     nc_file = 'GEOSFP.YYYYMMDD.A3mstC.' // TRIM( nc_file )
-#endif
-!----------------------------------------------------------------------------
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -1572,15 +1495,7 @@ CONTAINS
 
     ! Replace time & date tokens in the file name
     nc_file = Get_Resolution_String()
-!----------------------------------------------------------------------------
-! Temporary situation: allow code to read met with either GEOS572 or GEOSFP
-! filename prefix.  This will be removed later on. (bmy, 9/26/13).
-#if defined( GEOS572_FILES )
-    nc_file = 'GEOS572.YYYYMMDD.A3mstE.' // TRIM( nc_file )
-#else
     nc_file = 'GEOSFP.YYYYMMDD.A3mstE.' // TRIM( nc_file )
-#endif
-!----------------------------------------------------------------------------
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -1617,12 +1532,10 @@ CONTAINS
     st4d      = (/ 1,     1,     1,       time_index /)      
     ct4d      = (/ IIPAR, JJPAR, LGLOB+1, 1          /)
 
-#if !defined( GEOS572_FILES )
     ! Read CMFMC (only in GEOSFP*.nc files)
     v_name = "CMFMC"
     CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d_Lp1( Qe, State_Met%CMFMC )
-#endif
 
     ! Read PFICU
     v_name = "PFICU"
@@ -1653,12 +1566,10 @@ CONTAINS
     ! Diagnostics, cleanup and quit
     !=================================================================
 
-    ! ND66 diagnostic: U, V, CMFMC, DTRAIN met fields
-#if defined( GEOS572_FILES )
+    ! ND66 diagnostic: CMFMC met field
     IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + State_Met%CMFMC (:,:,1:LD66)
+       AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + State_Met%CMFMC(:,:,1:LD66)
     ENDIF
-#endif
 
     ! Close netCDF file
     CALL NcCl( fId )
@@ -1757,15 +1668,7 @@ CONTAINS
 
     ! Replace time & date tokens in the file name
     nc_file = Get_Resolution_String()
-!----------------------------------------------------------------------------
-! Temporary situation: allow code to read met with either GEOS572 or GEOSFP
-! filename prefix.  This will be removed later on. (bmy, 9/26/13).
-#if defined( GEOS572_FILES )
-    nc_file = 'GEOS572.YYYYMMDD.I3.' // TRIM( nc_file )
-#else
     nc_file = 'GEOSFP.YYYYMMDD.I3.' // TRIM( nc_file )
-#endif
-!----------------------------------------------------------------------------
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -1976,15 +1879,7 @@ CONTAINS
 
     ! Replace time & date tokens in the file name
     nc_file = Get_Resolution_String()
-!----------------------------------------------------------------------------
-! Temporary situation: allow code to read met with either GEOS572 or GEOSFP
-! filename prefix.  This will be removed later on. (bmy, 9/26/13).
-#if defined( GEOS572_FILES )
-    nc_file = 'GEOS572.YYYYMMDD.I3.' // TRIM( nc_file )
-#else
     nc_file = 'GEOSFP.YYYYMMDD.I3.' // TRIM( nc_file )
-#endif
-!----------------------------------------------------------------------------
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
