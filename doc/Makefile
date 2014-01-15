@@ -12,11 +12,11 @@
 #\\
 # !REMARKS:
 # To build the documentation, call "make" with the following syntax:
-#
+#                                                                             .
 #   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
-#
+#                                                                             .
 # To display a complete list of options, type "make help".
-#
+#                                                                             .
 # You must have the LaTeX utilities (latex, dvips, dvipdf) installed
 # on your system in order to build the documentation.
 #

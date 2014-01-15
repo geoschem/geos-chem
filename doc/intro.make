@@ -2,8 +2,8 @@
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
 #BOI
-# !TITLE: GEOS-Chem Reference, Vol. 1: Makefiles
+# !TITLE: GEOS-Chem Reference, Volume 1:\\Makefiles
 # !AUTHORS: GEOS-Chem Support Team
-# !DATE: 24 July 2012
+# !DATE: 15 Jan 2014
 #EOI
 #------------------------------------------------------------------------------

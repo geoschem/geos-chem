@@ -35,7 +35,7 @@
 # MOD        Specifies the directory where module files (*.mod) are stored
 # AR         Sys var w/ name of library creator program (i.e., "ar", "ranlib")
 # MAKE       Sys var w/ name of Make command (i.e, "make" or "gmake")
-# R8         Specifies the c
+# R8         Specifies the command to treat "REAL" as "REAL*8"
 #
 # !REVISION HISTORY: 
 #  21 Dec 2009 - C. Carouge  - Initial version

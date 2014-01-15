@@ -21,8 +21,9 @@
 #                                                                             .
 # Variable   Description
 # --------   -----------
+# GEOSAPM    Specifies the directory where GEOS-Chem + APM routines are found
 # GEOSDIR    Specifies the directory where GEOS-Chem "core" routines are found
-# GEOSTOM    Specifies the directory where GEOS-Chem + TOMAS routines are found
+# GTMM       Specifies the directory where the GTMM routines are found
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
@@ -38,6 +39,7 @@
 #  20 Aug 2013 - R. Yantosca - Make sure Makefile names are consistent
 #  18 Sep 2013 - R. Yantosca - Remove GeosTomas, that is now gone
 #  18 Sep 2013 - M. Long     - Add Makefile target "hpc"
+#  15 Jan 2014 - R. Yantosca - Updated comments
 #EOP
 #------------------------------------------------------------------------------
 #BOC

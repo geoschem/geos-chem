@@ -12,11 +12,11 @@
 #\\
 # !REMARKS:
 # To build the documentation, call "make" with the following syntax:
-#
+#                                                                             .
 #   make TARGET [ OPTIONAL-FLAGS ]
-#
+#                                                                             .
 # To display a complete list of options, type "make help".
-#
+#                                                                             .
 # You must have the LaTeX utilities (latex, dvips, dvipdf) installed
 # on your system in order to build the documentation.
 #
@@ -24,8 +24,9 @@
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
 #  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_2.*"
 #  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
-#   3 Apr 2012 - M. Payer    - Added *.F90 so that grid_mod.F90 and 
+#  03 Apr 2012 - M. Payer    - Added *.F90 so that grid_mod.F90 and 
 #                              regrid_a2a_mod.F90 are included
+#  15 Jan 2014 - R. Yantosca - Now only create *.pdf output
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -41,7 +42,6 @@ $(wildcard $(UTIL)/*.F90)
 TEX3 := GC_Ref_Vol_2.tex
 DVI3 := GC_Ref_Vol_2.dvi
 PDF3 := GC_Ref_Vol_2.pdf
-PS3  := GC_Ref_Vol_2.ps
 
 
 # Make commands
@@ -52,7 +52,6 @@ utildoc:
 	latex $(TEX3)
 	latex $(TEX3)
 	dvipdf $(DVI3) $(PDF3)
-	dvips $(DVI3) -o $(PS3)
 	rm -f *.aux *.dvi *.log *.toc
 
 #EOC

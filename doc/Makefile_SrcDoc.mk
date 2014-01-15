@@ -12,11 +12,11 @@
 #\\
 # !REMARKS:
 # To build the documentation, call "make" with the following syntax:
-#
+#                                                                             .
 #   make TARGET [ OPTIONAL-FLAGS ]
-#
+#                                                                             .
 # To display a complete list of options, type "make help".
-#
+#                                                                             .
 # You must have the LaTeX utilities (latex, dvips, dvipdf) installed
 # on your system in order to build the documentation.
 #
@@ -76,6 +76,7 @@
 #  20 Aug 2013 - M. Sulprizio- Added carbon_mod
 #  20 Aug 2013 - R. Yantosca - Remove reference to "define.h"
 #  05 Sep 2013 - M. Sulprizio- Added global_hno3_mod
+#  15 Jan 2014 - R. Yantosca - Now only create *.pdf file output
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -142,7 +143,7 @@ $(CORE)/gcap_read_mod.F               \
 $(CORE)/get_ndep_mod.F                \
 $(CORE)/gigc_environment_mod.F90      \
 $(CORE)/gc_type_mod.F                 \
-$(CORE)/geos57_read_mod.F90           \
+$(CORE)/geosfp_read_mod.F90           \
 $(CORE)/get_popsinfo_mod.F            \
 $(CORE)/gfed3_biomass_mod.F           \
 $(CORE)/global_bc_mod.F               \
@@ -238,17 +239,13 @@ $(CORE)/read_jv_atms_dat.F90          \
 $(CORE)/ruralbox.F                    \
 $(CORE)/setemis.F                     \
 $(CORE)/sfcwindsqr.F                  \
-$(CORE)/sunparam.F                    \
-$(ESMF)/gigc_chunk_mod.F90            \
-$(ESMF)/gigc_finalization_mod.F90     \
-$(ESMF)/gigc_initialization_mod.F90   \
-$(ESMF)/gigc_land_interface.F90  
+$(CORE)/sunparam.F
+
 
 # Output file names
 TEX1 := GC_Ref_Vol_3.tex
 DVI1 := GC_Ref_Vol_3.dvi
 PDF1 := GC_Ref_Vol_3.pdf
-PS1  := GC_Ref_Vol_3.ps
 
 
 # Make commands
@@ -259,7 +256,6 @@ srcdoc:
 	latex $(TEX1)
 	latex $(TEX1)
 	dvipdf $(DVI1) $(PDF1)
-	dvips $(DVI1) -o $(PS1)
 	rm -f *.aux *.dvi *.log *.toc
 
 #EOC
