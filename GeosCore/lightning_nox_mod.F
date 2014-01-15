@@ -1559,8 +1559,14 @@
       !---------------------------------------
       ! GEOS-FP: 2 x 2.5 global simulation
       !---------------------------------------
-      
-      ! ltm: Will need to be determined when met fields become available.
+
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 01/15/14).
+      IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or.
+     &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN
+         BETA = ANN_AVG_FLASHRATE / 257.93269d0
+      ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
 
