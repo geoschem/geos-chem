@@ -765,7 +765,7 @@
 
                   ! ND29: CO-source from monoterpenes [molec/cm2/s]
                   IF ( ND29 > 0 ) THEN
-                     AD29(I,J,5) = AD29(I,J,5) + ( TMPVAL / AREA_CM2 )
+                     AD29(I,J,1,5) = AD29(I,J,1,5) + ( TMPVAL/AREA_CM2 )
                   ENDIF
                ENDIF
 !

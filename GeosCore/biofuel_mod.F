@@ -1197,10 +1197,10 @@
          IF ( DO_ND29 ) THEN
 
             IF ( ITS_A_H2HD_SIM ) THEN
-               AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
+               AD29(I,J,1,3) = AD29(I,J,1,3) + ( BIOFUEL(IDBFCO,I,J) * 
      &                                       BXHEIGHT_CM ) * 1.189d0
             ELSE
-               AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
+               AD29(I,J,1,3) = AD29(I,J,1,3) + ( BIOFUEL(IDBFCO,I,J) * 
      &                                       BXHEIGHT_CM )
             ENDIF
 
