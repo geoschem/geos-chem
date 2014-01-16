@@ -1691,24 +1691,22 @@
       !-------------------------------
       ! BC HYDROPHILIC (aerosol) or
       ! BC HYDROPHOBIC (aerosol) or
-      ! OC HYDROPHILIC (aerosol)
+      ! OC HYDROPHILIC (aerosol) or 
+      ! OC HYDROPHOBIC (aerosol) or 
       !-------------------------------
       ELSE IF ( N == IDTBCPI .or. N == IDTOCPI .or.
-     &          N == IDTBCPO ) THEN
+     &          N == IDTBCPO .or. N == IDTOCPO) THEN
          CALL F_AEROSOL( KC, N, F, State_Met ) 
          ISOL = GET_ISOL( N )
 
       !-------------------------------
-      !
-      ! OC HYDROPHOBIC (aerosol)
-      !-------------------------------
       ! SOAupdate (hotp 6/15/09)
       ! treat POA as hydrophobic
-      ELSE IF ( N == IDTOCPO .or. 
-     &          N == IDTPOA1 .or. N == IDTPOA2  ) THEN
+      !-------------------------------
+      ELSE IF ( N == IDTPOA1 .or. N == IDTPOA2  ) THEN
 
          ! Force not to be lost in convective updraft for now
-         F    = 0d0
+         CALL F_AEROSOL( KC, N, F, State_Met ) 
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -2335,7 +2333,7 @@
       ELSE IF (N == IDTPOPPOC ) THEN
 
          ! Force not to be lost in convective updraft for now
-         F    = 0d0
+         CALL F_AEROSOL( KC, N, F, State_Met ) 
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -2344,7 +2342,7 @@
       ELSE IF (N == IDTPOPPBC ) THEN
 
          ! Force not to be lost in convective updraft for now
-         F    = 0d0
+         CALL F_AEROSOL( KC, N, F, State_Met ) 
          ISOL = GET_ISOL( N )
 
 
@@ -2753,6 +2751,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTBCPO,  IDTDST1,  IDTHNO3 
       USE TRACERID_MOD,       ONLY : IDTDST2,  IDTDST3,  IDTDST4
+      USE TRACERID_MOD,       ONLY : IDTOCPO,  IDTPOA1,  IDTPOA2
+      USE TRACERID_MOD,       ONLY : IDTPOPPOC,  IDTPOPPBC
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2783,7 +2783,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L
-      REAL*8              :: TMP
+      REAL*8              :: TMP, FF
 #if defined( TOMAS )
       REAL*8              :: TINY1 = 1.0d-20
 #endif
@@ -2807,33 +2807,47 @@
          TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                   State_Met%BXHEIGHT(I,J,L) ) 
        
+         ! snow vs rain (qq, 10/11/2011)
+         IF ( State_Met%T(I,J,L) >= 258d0) THEN
+             IF (N == IDTBCPO .or. N == IDTOCPO  .or.
+     &           N == IDTPOA1  .or. N == IDTPOA2  .or.
+     &           N == IDTPOPPOC  .or. N == IDTPOPPBC) THEN
+                FF=0.5d0
+             ELSE
+                FF=1d0
+             ENDIF
+
+         ELSE IF ( State_Met%T(I,J,L) < 237d0) THEN
+             IF (N == IDTOCPO  .or. N == IDTPOPPOC .or.
+     &           N == IDTPOA1  .or. N == IDTPOA2  ) THEN
+                FF=0.5d0
+             ELSE
+                FF=1d0
+             ENDIF
+
+         ELSE   
+            IF ( N == IDTBCPO  .or. N == IDTHNO3  .or.
+     &           N == IDTDST1  .or. N == IDTDST2  .or.
+     &           N == IDTDST3  .or. N == IDTDST4) THEN
+               FF=1d0
+            ELSE 
+               FF=0.5d0
+            ENDIF       
+         ENDIF
+
+         F(I,J,L) = 1d0 - EXP( -FF*KC * TMP / Vud(I,J) )
+
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
+
 #if defined( TOMAS )
          !-------------------------------------
          ! TOMAS: set F=1 if Vud is too small
          !-------------------------------------
-         IF ( Vud(I,J) < TINY1 ) THEN
+         IF ( Vud(I,J) < TINY1  ) THEN
             F(I,J,L) = 1d0
-         ELSE
-            F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
          ENDIF
-#else
-         !-------------------------------------
-         ! STD G-C: Preserve existing code
-         !-------------------------------------
-         F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
 #endif
 
-         ! snow vs rain (qq, 10/11/2011)
-         IF ( State_Met%T(I,J,L) >= 258d0 .and. N == IDTBCPO) THEN
-            F(I,J,L) = 0d0
-         ENDIF
-         IF ( State_Met%T(I,J,L)  < 258d0       .and.
-     &        N /= IDTBCPO  .and. N /= IDTHNO3  .and.
-     &        N /= IDTDST1  .and. N /= IDTDST2  .and.
-     &        N /= IDTDST3  .and. N /= IDTDST4) THEN
-            F(I,J,L) = 0d0
-         ENDIF
             
       ENDDO
       ENDDO
@@ -3839,6 +3853,46 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
         
+      !------------------------------
+      ! Hg2 (liquid phase only)
+      !------------------------------
+      ELSE IF ( IS_Hg2( N ) ) THEN 
+
+         ! Compute liquid to gas ratio for HgCl2, using
+         ! the appropriate parameters for Henry's law
+         ! (Refs: INSERT HERE)
+         !
+         ! hma, 10-Jan-2011, Henry's law constant for 
+         ! HgCl2 = 1.4d+6 M/atm for HgCl2 (Lindqvist and Rodhe, 1985)
+         CALL COMPUTE_L2G( 1.4d+6, -8.4d3, TK, CLDLIQ(I,J,L), L2G )
+      
+         ! Fraction of HgCl2 in liquid phase
+         ! Assume no HgCl2 in the ice phase
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  Assume the retention factor  
+         ! for liquid HgCl2 is 0 for T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 248d0 ) THEN
+            K = K_RAIN * F_L  
+         ELSE
+            K = 0d0               
+         ENDIF
+
+         ! Compute RAINFRAC, the fraction of rained-out HgCl2
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
+      !------------------------------
+      ! HgP (treat like aerosol)
+      !------------------------------
+      ELSE IF ( IS_HgP( N ) ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+         ! CDH 9/28/2009
+!            IF ( TK < 248d0 ) RAINFRAC = 0d0
+
       ELSE
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
@@ -3850,10 +3904,15 @@
          ! (cdh, 4/16/09, 5/20/09)
          !------------------------------------------------------------------- 
 ! CDH 8/7/2009, 10/27/2009. All temperature dependence for Hg handled below
-         IF ( TK < 258d0 .AND. (.NOT. ITS_A_MERCURY_SIM ) ) THEN
-            ! allow Dust and BCPO to be IN (qq,10/11/2011)
+         IF ( TK < 237d0 .AND. 
+     &        ( N == IDTBCPO .or. N == IDTPOPPBC)) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+            RETURN
+         ENDIF
+         IF (TK < 258d0 .AND. TK >= 237d0) THEN
             IF ( N == IDTBCPO .or. N == IDTDST1 .or. N == IDTDST2 .or.
-     &           N == IDTDST3 .or. N == IDTDST4 .or.N == IDTHNO3) THEN
+     &           N == IDTDST3 .or. N == IDTDST4 .or.N == IDTHNO3 .or.
+     &           N == IDTPOPPBC ) THEN
                RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             ELSE 
                RAINFRAC = 0d0
@@ -3999,46 +4058,6 @@
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             RAINFRAC = RAINFRAC * 0.8d0
   
-         !------------------------------
-         ! Hg2 (liquid phase only)
-         !------------------------------
-         ELSE IF ( IS_Hg2( N ) ) THEN 
-
-            ! Compute liquid to gas ratio for HgCl2, using
-            ! the appropriate parameters for Henry's law
-            ! (Refs: INSERT HERE)
-            !
-            ! hma, 10-Jan-2011, Henry's law constant for 
-            ! HgCl2 = 1.4d+6 M/atm for HgCl2 (Lindqvist and Rodhe, 1985)
-            CALL COMPUTE_L2G( 1.4d+6, -8.4d3, TK, CLDLIQ(I,J,L), L2G )
-         
-            ! Fraction of HgCl2 in liquid phase
-            ! Assume no HgCl2 in the ice phase
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume the retention factor  
-            ! for liquid HgCl2 is 0 for T < 268 K, and 
-            ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( TK >= 248d0 ) THEN
-               K = K_RAIN * F_L  
-            ELSE
-               K = 0d0               
-            ENDIF
-  
-            ! Compute RAINFRAC, the fraction of rained-out HgCl2
-            ! (Eq. 10, Jacob et al, 2000)
-            RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-         !------------------------------
-         ! HgP (treat like aerosol)
-         !------------------------------
-         ELSE IF ( IS_HgP( N ) ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-            ! CDH 9/28/2009
-!            IF ( TK < 248d0 ) RAINFRAC = 0d0
-
 
 #if defined( TOMAS )
       ! Added for size-resolved aerosol (win, 7/16/09)

@@ -127,6 +127,8 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCAC
      LOGICAL                     :: LNEI05
      LOGICAL                     :: LNEI08
+     LOGICAL                     :: LNEI08CARB
+     LOGICAL                     :: LSCALE2MASAGE
      LOGICAL                     :: LRETRO
      LOGICAL                     :: LNEI99
      LOGICAL                     :: LICARTT
@@ -566,6 +568,13 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                    :: LINOZ_NFIELDS
      REAL*8,            POINTER :: LINOZ_TPARM(:,:,:,:)
 
+     !----------------------------------------
+     ! Fields for overhead O3
+     ! This gets set in main.F based on met
+     ! field and year (mpayer, 12/13/13)
+     !----------------------------------------
+     LOGICAL                    :: USE_O3_FROM_MET
+
   END TYPE OptInput
 !
 ! !REMARKS:
@@ -595,6 +604,7 @@ MODULE GIGC_Input_Opt_Mod
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
+!  13 Dec 2013 - M. Sulprizio- Add USE_O3_FROM_MET logical flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -787,6 +797,8 @@ CONTAINS
     Input_Opt%LCAC                   = .FALSE.
     Input_Opt%LNEI05                 = .FALSE.
     Input_Opt%LNEI08                 = .FALSE.
+    Input_Opt%LNEI08CARB             = .FALSE.
+    Input_Opt%LSCALE2MASAGE          = .FALSE.
     Input_Opt%LRETRO                 = .FALSE.
     Input_Opt%LNEI99                 = .FALSE.
     Input_Opt%LICARTT                = .FALSE.
@@ -1334,6 +1346,11 @@ CONTAINS
                                      Input_Opt%LINOZ_NFIELDS ), STAT=RC )
 
     Input_Opt%LINOZ_TPARM            = 0d0
+
+    !----------------------------------------
+    ! Fields for overhead O3
+    !----------------------------------------
+    Input_Opt%USE_O3_FROM_MET        = .FALSE.
 
   END SUBROUTINE Set_GIGC_Input_Opt
 !EOC

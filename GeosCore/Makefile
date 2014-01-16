@@ -396,7 +396,8 @@ carbon_mod.o                : carbon_mod.F                                   \
                               meganut_mod.o           pbl_mix_mod.o          \
                               rcp_mod.o               tomas_mod.o            \
                               tracerid_mod.o          tracer_mod.o           \
-                              tropopause_mod.o        vdiff_pre_mod.o
+                              tropopause_mod.o        vdiff_pre_mod.o        \
+                              nei2008_anthro_mod.o
 
 ch3i_mod.o                  : ch3i_mod.F                                     \
                               biofuel_mod.o           biomass_mod.o          \
@@ -968,7 +969,8 @@ pjc_pfix_mod.o              : pjc_pfix_mod.F
 
 planeflight_mod.o           : planeflight_mod.F                              \
                               comode_mod.o            diag_mod.o             \
-                              ocean_mercury_mod.o     tracer_mod.o
+                              ocean_mercury_mod.o     tracer_mod.o           \
+	                      dust_mod.o
 
 pops_mod.o           	    : pops_mod.F    	                             \
 			      diag_mod.o	      diag53_mod.o           \

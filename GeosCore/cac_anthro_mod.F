@@ -407,10 +407,10 @@
 
             ! File name
             IF (SPECIES .eq. 4 ) THEN
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC' //
-     &                    '2008-' // TRIM( SNAME ) // '-' // 
-     &                    TRIM( THISMONTHCHAR ) // 
-     &                    '.geos.1x1'
+               FILENAME = TRIM( DATA_DIR_1x1 )  //
+     &                    'CAC_201307/CAC2008-' // 
+     &                    TRIM( SNAME )         // '-' // 
+     &                    TRIM( THISMONTHCHAR ) // '.geos.1x1'
             ELSE
                FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC' // 
      &                     SYEAR // '-' // TRIM( SNAME ) // '.geos.1x1'
@@ -428,7 +428,6 @@
             ENDIF
 
             CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo, 
-!phs     &                       TAU,      I1x1,       J1x1-1,     
      &                       TAU,      I1x1,       J1x1,
      &                       1,        ARRAY,      QUIET=.TRUE. )
 
@@ -465,10 +464,10 @@
 
             ! File name for 2002 data
             IF (SPECIES .eq. 4) THEN
-               FILENAME = TRIM(DATA_DIR_1x1 ) // 'CAC_200801/CAC' //
-     &                    '2008-' // TRIM( SNAME ) // '-' //
-     &                    TRIM( THISMONTHCHAR ) //
-     &                    '.geos.1x1'
+               FILENAME = TRIM(DATA_DIR_1x1 )   //
+     &                    'CAC_201307/CAC2008-' //
+     &                    TRIM( SNAME )         // '-' //
+     &                    TRIM( THISMONTHCHAR ) // '.geos.1x1'
             ELSE
                IF ( THISYEAR .ne. 2006 ) THEN
                   FILENAME  = TRIM( DATA_DIR_1x1 )       //
@@ -491,12 +490,10 @@
                ! emissions
                TAU = GET_TAU0( THISMONTH, 1, 2008 )
                CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-!wl     &                          TAU,       I1x1,      J1x1-1,
      &                          TAU,       I1x1,      J1x1,
      &                          1,         ARRAY,     QUIET=.TRUE. )
             ELSE
                CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-!phs     &                          TAU2002,   I1x1,      J1x1-1,
      &                          TAU2002,   I1x1,      J1x1,
      &                          1,         ARRAY,     QUIET=.TRUE. )
             ENDIF
@@ -506,10 +503,10 @@
 
             ! File name for 2005 data
             IF (SPECIES .eq. 4) THEN
-               FILENAME = TRIM(DATA_DIR_1x1 ) // 'CAC_200801/CAC' //
-     &                    '2008-' // TRIM( SNAME ) // '-' //
-     &                    TRIM( THISMONTHCHAR ) //
-     &                    '.geos.1x1'
+               FILENAME = TRIM(DATA_DIR_1x1 )   // 
+     &                    'CAC_201307/CAC2008-' //
+     &                    TRIM( SNAME )         // '-' //
+     &                    TRIM( THISMONTHCHAR ) // '.geos.1x1'
             ELSE
                IF ( THISYEAR .ne. 2006 ) THEN
                   FILENAME  = TRIM( DATA_DIR_1x1 )       //
@@ -532,12 +529,10 @@
                ! emissions
                TAU = GET_TAU0( THISMONTH, 1, 2008 )
                CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-!wl     &                          TAU,       I1x1,      J1x1,
      &                          TAU,       I1x1,      J1x1,
      &                          1,         ARRAY,     QUIET=.TRUE. )
             ELSE
                CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-!phs     &                          TAU2005,   I1x1,      J1x1-1,
      &                          TAU2005,   I1x1,      J1x1,
      &                          1,         ARRAY,     QUIET=.TRUE. )
             ENDIF
@@ -556,7 +551,7 @@
      &                   ( GEOS_1x1_2005(:,:,1) - GEOS_1x1_2002(:,:,1) )
             ENDIF
 
-            ! Prevent negative emissions (ckeller, mpayer, 7/16/13)
+            ! Bug fix: Prevent negative emissions (ckeller, mpayer, 7/16/13)
             WHERE ( GEOS_1x1 < 0d0 )
                GEOS_1x1 = 0d0
             END WHERE
@@ -780,10 +775,10 @@
 
             ! File name
             IF (SPECIES .eq. 4 ) THEN
-               FILENAME = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
-     &                    '2008-' // TRIM( SNAME ) // '-' //
-     &                    TRIM( THISMONTHCHAR ) //
-     &                    '.geos.1t2x2t3'
+               FILENAME = TRIM( DATA_DIR )      // 
+     &                    'CAC_201307/CAC2008-' // 
+     &                    TRIM( SNAME )         // '-' //
+     &                    TRIM( THISMONTHCHAR ) // '.geos.1t2x2t3'
             ELSE
                FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
      &                     SYEAR // '-' // TRIM( SNAME ) // 
@@ -842,10 +837,10 @@
 
             ! File name for 2002 data
             IF (SPECIES .eq. 4 ) THEN
-               FILENAME = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
-     &                    '2008-' // TRIM( SNAME ) // '-' //
-     &                    TRIM(THISMONTHCHAR ) //
-     &                    '.geos.1t2x2t3'
+               FILENAME = TRIM( DATA_DIR )      //
+     &                    'CAC_201307/CAC2008-' // 
+     &                    TRIM( SNAME )         // '-' //
+     &                    TRIM( THISMONTHCHAR ) // '.geos.1t2x2t3'
             ELSE
                IF ( THISYEAR .ne. 2006 ) THEN
                   FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2002-'
@@ -879,10 +874,10 @@
 
             ! File name for 2005 data
             IF (SPECIES .eq. 4 ) THEN
-               FILENAME = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
-     &                    '2008-' // TRIM( SNAME ) // '-' //
-     &                    TRIM(THISMONTHCHAR ) //
-     &                    '.geos.1t2x2t3'
+               FILENAME = TRIM( DATA_DIR )      //
+     &                    'CAC_201307/CAC2008-' // 
+     &                    TRIM( SNAME )         // '-' //
+     &                    TRIM( THISMONTHCHAR ) // '.geos.1t2x2t3'
             ELSE
                IF ( THISYEAR .ne. 2006 ) THEN
                   FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2005-'
