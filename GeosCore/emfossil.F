@@ -609,7 +609,7 @@
      &                    WEEKDAY )
                ! Replace GEIA with EPA/NEI emissions up to level 3
                      EMX(LL) = NEI08 *
-     &                    ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+     &                    ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO)
                   ENDIF
                ENDIF
                
@@ -688,33 +688,65 @@
             ! Store in EMISRRN array and archive diagnostics
             !-----------------------------------------------------------
 
-            ! EMISRRN [molec/box/s] is referenced by LL
-            EMISRRN(I,J,LL) = EMISRRN(I,J,LL) +
-     &                       ( EMX(LL) * XNUMOL(IDTNO2) / DTSRCE )
+            IF ( LNEI08 .and. NEI08_MASK( I, J ) > 0d0 ) THEN
+               !---------------------------------------------
+               !            %%%%%% NEI08 %%%%%%
+               ! NO and NO2 are separate species
+               ! We need to convert NO using mass units NO
+               ! for grid boxes over the US (mpayer, 9/11/13)
+               !---------------------------------------------
 
-            ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
-            IF ( ND32 > 0 ) THEN
-               AD32_an(I,J,LL) = AD32_an(I,J,LL) + 
-     &              ( EMX(LL) * XNUMOL(IDTNO2) / ( DTSRCE * AREA_CM2 ) )   
-            ENDIF
-
-            ! ND36 = save anthro emissions in [molec/cm2]
-            ! and then convert to [molec/cm2/s] in DIAG3.F
-            IF ( ND36 > 0 ) THEN
-               IF ( LNEI08 ) THEN
-                  AD36(I,J,N) = AD36(I,J,N) +
-     &              ( EMX(LL) * XNUMOL(IDTNO) / AREA_CM2 )
-               ELSE
-                  AD36(I,J,N) = AD36(I,J,N) +
-     &                 ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
-            
+               ! EMISRRN [molec/box/s] is referenced by LL
+               EMISRRN(I,J,LL) = EMISRRN(I,J,LL) +
+     &                          ( EMX(LL) * XNUMOL(IDTNO) / DTSRCE )
+               
+               ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
+               IF ( ND32 > 0 ) THEN
+                  AD32_an(I,J,LL) = AD32_an(I,J,LL) + 
+     &               ( EMX(LL) * XNUMOL(IDTNO) / ( DTSRCE * AREA_CM2 ) )   
                ENDIF
-            ENDIF
-            IF ( DO_SAVE_DIAG49 ) THEN               
-               EMISS_ANTHR(I,J,N) = EMISS_ANTHR(I,J,N) +
-     &            ( EMX(LL) * XNUMOL(NN) / (DTSRCE * AREA_CM2 ))
+               
+               ! ND36 = save anthro emissions in [molec/cm2]
+               ! and then convert to [molec/cm2/s] in DIAG3.F
+               IF ( ND36 > 0 ) THEN
+                     AD36(I,J,N) = AD36(I,J,N) +
+     &                    ( EMX(LL) * XNUMOL(IDTNO) / AREA_CM2 )
+               ENDIF
+               
+               IF ( DO_SAVE_DIAG49 ) THEN               
+                  EMISS_ANTHR(I,J,N) = EMISS_ANTHR(I,J,N) +
+     &               ( EMX(LL) * XNUMOL(IDTNO) / (DTSRCE * AREA_CM2 ))
+               
+               ENDIF 
+            ELSE
+               !---------------------------------------------
+               !     %%%%%% All other inventories %%%%%%
+               ! We need to convert NO using mass units NO2
+               !---------------------------------------------
 
-            ENDIF    
+               ! EMISRRN [molec/box/s] is referenced by LL
+               EMISRRN(I,J,LL) = EMISRRN(I,J,LL) +
+     &                          ( EMX(LL) * XNUMOL(IDTNO2) / DTSRCE )
+               
+               ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
+               IF ( ND32 > 0 ) THEN
+                  AD32_an(I,J,LL) = AD32_an(I,J,LL) + 
+     &              ( EMX(LL) * XNUMOL(IDTNO2) / ( DTSRCE * AREA_CM2 ) )   
+               ENDIF
+               
+               ! ND36 = save anthro emissions in [molec/cm2]
+               ! and then convert to [molec/cm2/s] in DIAG3.F
+               IF ( ND36 > 0 ) THEN
+                     AD36(I,J,N) = AD36(I,J,N) +
+     &                    ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
+               ENDIF
+               
+               IF ( DO_SAVE_DIAG49 ) THEN               
+                  EMISS_ANTHR(I,J,N) = EMISS_ANTHR(I,J,N) +
+     &               ( EMX(LL) * XNUMOL(IDTNO2) / (DTSRCE * AREA_CM2 ))
+               
+               ENDIF    
+            ENDIF
          ENDDO     
 
       !=================================================================    
@@ -1162,7 +1194,7 @@
          ! store as [molec/cm2/s] in AD29(:,:,1)
          IF ( ND29 > 0 .and. NN == IDTCO ) THEN
             DO LL = 1, NOXLEVELS
-               AD29(I,J,1) = AD29(I,J,1) +
+               AD29(I,J,LL,1) = AD29(I,J,LL,1) +
      &              ( EMX(LL) * XNUMOL(NN) / ( DTSRCE * AREA_CM2 ) ) 
             ENDDO
          ENDIF
