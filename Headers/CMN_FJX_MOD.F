@@ -49,7 +49,7 @@
       INTEGER, PARAMETER :: JVN_=121   ! Max number of J-values
 
 #if defined( UCX )
-      INTEGER, PARAMETER :: AN_ =38    ! Including PSCs
+      INTEGER, PARAMETER :: AN_ =37    ! Including PSCs
 #else
       INTEGER, PARAMETER :: AN_ =35    ! Number of separate aerosols per layer
 #endif

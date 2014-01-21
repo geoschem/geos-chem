@@ -129,7 +129,7 @@ CONTAINS
 !
     USE DAO_MOD,        ONLY : AD, CONVERT_UNITS, T, SUNCOS
     USE ERROR_MOD,      ONLY : DEBUG_MSG, GEOS_CHEM_STOP
-    USE LOGICAL_MOD,    ONLY : LLINOZ, LPRT
+    USE LOGICAL_MOD,    ONLY : LLINOZ, LPRT, LBRGCCM
     USE LINOZ_MOD,      ONLY : DO_LINOZ
     USE TIME_MOD,       ONLY : GET_MONTH, TIMESTAMP_STRING
     USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
@@ -137,7 +137,7 @@ CONTAINS
     USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV, TRACER_MW_KG, XNUMOLAIR
     USE TRACERID_MOD,   ONLY : IDTOX, IDTCHBr3, IDTCH2Br2, IDTCH3Br
     USE CHEMGRID_MOD,   ONLY : GET_TPAUSE_LEVEL
-    USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID
+    USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID, ITS_IN_THE_TROP
 
     USE CMN_SIZE_MOD
 
@@ -176,6 +176,7 @@ CONTAINS
     INTEGER                   :: I,    IJWINDOW, J,   L,   N,      NN
     REAL*8                    :: dt,   P,        k,   M0,  RC,     M
     REAL*8                    :: TK,   RDLOSS,   T1L, mOH, BryDay, BryNight
+    LOGICAL                   :: LRESET, LCYCLE
 
     ! Arrays
     REAL*8                    :: STT0(IIPAR,JJPAR,LLPAR,N_TRACERS)
@@ -214,6 +215,10 @@ CONTAINS
        ! Save month for next iteration
        LASTMONTH = GET_MONTH()
     ENDIF
+
+    ! SDE 2014-01-14: Allow the user to overwrite stratospheric
+    ! concentrations at model initialization if necessary
+    LRESET = (FIRST.AND.LBRGCCM)
 
     ! Set first-time flag to false
     FIRST = .FALSE.    
@@ -384,7 +389,8 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight, IJWINDOW )
+       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight, IJWINDOW ) &
+       !$OMP PRIVATE( LCYCLE )
        DO NN=1,6
 
           IF ( GC_Bry_TrID(NN) > 0 ) THEN
@@ -401,9 +407,14 @@ CONTAINS
              DO L = 1, LLPAR
              DO J = 1, JJPAR
              DO I = 1, IIPAR  
-                  
-                IF ( ITS_IN_THE_CHEMGRID(I,J,L) ) CYCLE
-                   
+                 
+                IF (LRESET) THEN
+                   LCYCLE = ITS_IN_THE_TROP(I,J,L)
+                ELSE 
+                   LCYCLE = ITS_IN_THE_CHEMGRID(I,J,L)
+                ENDIF
+                IF ( LCYCLE ) CYCLE
+
                 ! Set the Bry boundary conditions. Simulated
                 ! output from the GEOS5 CCM stratosphere.
                 ! (jpp, 6/27/2011)

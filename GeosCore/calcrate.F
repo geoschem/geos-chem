@@ -1591,7 +1591,15 @@ c new OH+CO rate from JPL2006.
                   ! If all these checks are passed, we set k = ki/[B].
                   !-----SDE DEBUG
                   ! Rxn 11 is first-order - ignore
-                  IF (PSCIDX.ne.11) THEN
+                  IF (PSCIDX.eq.1) THEN
+                     ! N2O5 + H2O is an old reaction, allow to proceed
+                     ! as it did in base GEOS-Chem
+                     IF (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)) THEN
+                        ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
+                     ELSE
+                        ADJUSTEDRATE = 0d0
+                     ENDIF
+                  ELSEIF (PSCIDX.ne.11) THEN
                      IF (ADJUSTEDRATE.gt.(1.d0/PSCMINLIFE)) THEN
                         ADJUSTEDRATE = 1.d0/PSCMINLIFE
                      ENDIF

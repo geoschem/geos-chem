@@ -2140,41 +2140,45 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
       READ( SUBSTRS(1:N), * ) LSETCL
 
-      ! Initialize bromine species to 2D baseline?
+      ! Initialize stratospheric bromine species to GCCM baseline?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
+      READ( SUBSTRS(1:N), * ) LBRGCCM
+
+      ! Initialize bromine species to 2D baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
       READ( SUBSTRS(1:N), * ) LSETBR
 
       ! Initialize stratospheric bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
       READ( SUBSTRS(1:N), * ) LSETBRSTRAT
 
       ! Initialize stratospheric NOx/HNO3 to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
       READ( SUBSTRS(1:N), * ) LSETNOYSTRAT
 
       ! Initialize N2O to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
       READ( SUBSTRS(1:N), * ) LSETN2O
 
       ! Initialize stratospheric sulfates to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
       READ( SUBSTRS(1:N), * ) LSETH2SO4
 
       ! Starting year for CFC emissions
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:96' )
       READ( SUBSTRS(1:N), '(i)') CFCYEAR
 
       ! Do we apply an offset?
       LFUTURECFC = (CFCYEAR .gt. 1950)
 
       ! Directory containing 2D data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:96' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:97' )
       READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
 
       TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:97' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:98' )
 
       !=================================================================
       ! Error check logical flags
@@ -2604,11 +2608,12 @@
          ENDIF
       ENDIF
 
-      IF ( LBREMIS .or. LSETBR .or. LSETBRSTRAT) THEN
+      IF ( LBREMIS .or. LSETBR .or. LSETBRSTRAT.or.LBRGCCM) THEN
          IF ( IDTBR2 == 0 ) THEN
             LBREMIS = .FALSE.
             LSETBR = .FALSE.
             LSETBRSTRAT = .FALSE.
+            LBRGCCM = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'Br species emitted but Br2 tracer is undefined.'
             WRITE( 6, '(a)' ) 'Turning off bromine emissions.'
@@ -2757,7 +2762,7 @@
         WRITE( 6, 100 ) 'Turn on the Warwick VSLs?   : ', LWARWICK_VSLS
         WRITE( 6, 100 ) 'Use seasalt Br2 emissions?  : ', LSSABr2
         WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
-        WRITE( 6, 100 ) 'Bromine emiss scale factor  : ', Br_SCALING
+        WRITE( 6, 120 ) 'Bromine emiss scale factor  : ', Br_SCALING
         WRITE( 6, 100 ) 'Use CH4 emissions inventory?: ', LCH4EMIS
         WRITE( 6, 100 ) 'Turn on surface BC for      : '
         WRITE( 6, 100 ) '      --> methane?          : ', LCH4SBC
@@ -2772,6 +2777,7 @@
         WRITE( 6, 100 ) '      --> OCS?              : ', LSETOCS
         WRITE( 6, 100 ) '      --> CFCs/HCFCs/halon? : ', LSETCFC
         WRITE( 6, 100 ) '      --> chlorine species? : ', LSETCL
+        WRITE( 6, 100 ) '      --> strat. Bry (GCCM)?: ', LBRGCCM
         WRITE( 6, 100 ) '      --> bromine species?  : ', LSETBR
         WRITE( 6, 100 ) '      --> strat. bromine?   : ', LSETBRSTRAT
         WRITE( 6, 100 ) '      --> strat. NOx/HNO3?  : ', LSETNOYSTRAT
@@ -7541,6 +7547,7 @@
       LSETH2O        = .FALSE.
       LSETCFC        = .FALSE.
       LSETCL         = .FALSE.
+      LBRGCCM        = .FALSE.
       LSETBR         = .FALSE.
       LSETBRSTRAT    = .FALSE.
       LSETNOYSTRAT   = .FALSE.

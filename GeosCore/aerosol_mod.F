@@ -584,6 +584,7 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
       USE UCX_MOD,       ONLY : GET_STRAT_OPT, RHO_STRAT_AER, NDENS_AER
+      USE COMODE_MOD,    ONLY : JLOP ! SDE 2013-12-30
 
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR
       USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
@@ -1002,11 +1003,19 @@
          ENDIF   
       ENDIF 
 
+      !-----SDE DEBUG
+!      WRITE(6,'(a,x,I03)') 'SDE CHECK ', 1
+      !-----SDE DEBUG
+
 #if defined( UCX )
       ! SDE 04/17/13 - Transfer stratospheric aerosol data
       WAERSL(:,:,:,NRHAER+1) = SLA
       WAERSL(:,:,:,NRHAER+2) = SPA
 #endif
+
+      !-----SDE DEBUG
+!      WRITE(6,'(a,x,I03)') 'SDE CHECK ', 2
+      !-----SDE DEBUG
 
       !=================================================================
       ! Calculate optical depth and surface area at each timestep
@@ -1033,6 +1042,10 @@
       MSDENS(NRHAER+1) = 1700.0d0! SSA/STS
       MSDENS(NRHAER+2) = 1000.0d0! NAT/ice PSC
 #endif
+
+      !-----SDE DEBUG
+!      WRITE(6,'(a,x,I03)') 'SDE CHECK ', 3
+      !-----SDE DEBUG
 
       ! Loop over types of aerosol with hygroscopic growth
       DO N = 1, NRHAER
@@ -1370,79 +1383,68 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, RHOSTRAT ) 
+!$OMP+PRIVATE( I, J, L, RHOSTRAT, RAER, REFF, SADSTRAT, JLOOP ) 
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
+!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 1 !--SDE DEBUG
             ! Retrieve aerosol density
             RHOSTRAT = RHO_STRAT_AER(I,J,L,ISTRAT)
+
+!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 2 !--SDE DEBUG
+            ! Get aerosol effective radius
+            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT)
+
+!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 3 !--SDE DEBUG
+            ! SDE 2013-12-30
+            ! Changed this from RAA_AOD and RAA respectively to REFF
+            ! in each calculation. Although QAA_AOD and QAA were
+            ! calculated for the given RAA_AOD and RAA values, the
+            ! effective radius calculated in the UCX module is more
+            ! relevant to the calculation of optical depth since it
+            ! needs to produce something approximating the
+            ! cross-sectional mass when dividing the box mass WAERSL
 
             IF ( WAVELENGTH > 0 ) THEN
 
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = 0.75d0          * BXHEIGHT(I,J,L) * 
      &                          WAERSL(I,J,L,N) * QAA_AOD(IND(N))   / 
+!     &                          ( RHOSTRAT * REFF * 1.0D-6 )
      &                          ( RHOSTRAT * RAA_AOD(IND(N)) * 1.0D-6 )
 
+!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 4 !--SDE DEBUG
             ELSE
 
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = 0.75d0          * BXHEIGHT(I,J,L) * 
      &                       WAERSL(I,J,L,N)    * QAA(IND999,IND(N))  / 
+!     &                       ( RHOSTRAT * REFF * 1.0D-6 )
      &                       ( RHOSTRAT * RAA(IND999,IND(N)) * 1.0D-6 )
+!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 5 !--SDE DEBUG
 
             ENDIF
 
-            !-----SDE DEBUG
-!            IF (IT_IS_NAN(ODAER(I,J,L,IRHN))) THEN
-!               WRITE(6,'(a,1x,5I3)') 'NaN OD! I,J,L,ISTRAT,N:  ',
-!     &                        I,J,L,ISTRAT,N
-!               IF ( WAVELENGTH > 0) THEN
-!               WRITE(6,'(a,1x,4E14.4)') '1: WAERSL,QAA,RHO,RAA:   ',
-!     &                WAERSL(I,J,L,N),QAA(IND999,IND(N)),RHOSTRAT,
-!     &                RAA_AOD(IND(N))
-!               ELSE
-!               WRITE(6,'(a,1x,4E14.4)') '0: WAERSL,QAA,RHO,RAA:   ',
-!     &                WAERSL(I,J,L,N),QAA(IND999,IND(N)),RHOSTRAT,
-!     &                RAA_AOD(IND(N))
-!               ENDIF
-!               CALL ERROR_STOP('HARDKILL','HARDKILL')
-!            ENDIF
-            !-----SDE DEBUG
+            ! Moved this from a separate loop for clarity
+            JLOOP = JLOP(I,J,L)
+!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 6 !--SDE DEBUG
+            IF ( JLOOP > 0 ) THEN
+               ! Add surface area to TAREA array
+               TAREA(JLOOP,NDUST+N) = SADSTRAT
+               WTAREA(JLOOP,NDUST+N) = SADSTRAT
 
+               ! Store radius
+               ERADIUS(JLOOP,NDUST+N) = RAER
+               WERADIUS(JLOOP,NDUST+N) = REFF
+            ENDIF
+
+!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 7 !--SDE DEBUG
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-         ! Loop over grid boxes
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, JLOOP, RAER, REFF, SADSTRAT ) 
-!$OMP+SCHEDULE( DYNAMIC )
-         DO JLOOP = 1, NTLOOP
-
-            ! Get 3-D grid box indices
-            I = IXSAVE(JLOOP)
-            J = IYSAVE(JLOOP)
-            L = IZSAVE(JLOOP)
-
-            ! Retrieve aerosol properties from ucx_mod
-            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT)
-
-            ! Add surface area to TAREA array
-            TAREA(JLOOP,NDUST+N) = SADSTRAT
-            WTAREA(JLOOP,NDUST+N) = SADSTRAT
-
-            ! Store radius
-            ERADIUS(JLOOP,NDUST+N) = RAER
-            WERADIUS(JLOOP,NDUST+N) = REFF
-
-         ENDDO
-!$OMP END PARALLEL DO
-
       ENDDO
 #endif
        

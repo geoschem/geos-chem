@@ -1044,7 +1044,7 @@
                !========================================================
                IF ( LEMIS  .and. ( IDTCH3Br > 0 ) )
      &            CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
-     &                            ITS_TIME_FOR_UNIT() )
+     &                            .FALSE. )
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
@@ -1052,7 +1052,7 @@
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) )
      &            CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
-     &                          STT, ITS_TIME_FOR_UNIT() )
+     &                          STT, .FALSE. )
 
             ENDIF
          ENDIF    

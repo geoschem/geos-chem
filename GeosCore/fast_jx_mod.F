@@ -3813,10 +3813,9 @@ C---Always does PL(2) = P[1]
       ENDDO
 
 #if defined( UCX )
-      ! Stratospheric aerosols - SSA, STS and solid PSCs
-      MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA (liquid H2SO4)
-      MIEDX(10+(NRHAER*NRH)+2) = 4  ! STS (approx. as SSA)
-      MIEDX(10+(NRHAER*NRH)+3) = 14 ! NAT/ice PSCs
+      ! Stratospheric aerosols - SSA/STS and solid PSCs
+      MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA/LBS/STS
+      MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
 #endif
 c
 c  Ensure all 'AN_' types are valid selections
