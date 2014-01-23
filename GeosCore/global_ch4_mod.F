@@ -713,6 +713,9 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  23 Jan 2014 - M. Sulprizio- Now zero wetland emissions if snow covers the
+!                              ground. Also updated MOIST_SCALE and EMIT_FACT.
+!                              (K. Wecht, C. Pickett-Heaps)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -740,6 +743,7 @@
       REAL*8                 :: EMIT_TROPIC
       REAL*8                 :: EMIT_TEMPER
       REAL*8                 :: MOIST_SCALE
+      REAL*8                 :: MAX_SNOWDP
       REAL*8                 :: EMIT_FACT
       INTEGER                :: MONTHDATES(12) = (/ 31, 28, 31, 30,
      &                                              31, 30, 31, 31,
@@ -811,6 +815,9 @@
       ! REALWET is the actual inundated fraction of a box
       REALWET(:,:) = 0d0
 
+      ! Max allowable snowdepth for emissions to take place [meters]
+      MAX_SNOWDP  =  0.0001d0  
+
       ! GEOS4 calculation of inundated fraction
 #if   defined( GEOS_4 )
 !$OMP PARALLEL DO
@@ -819,8 +826,9 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-	 ! We don't want emissions in frozen regions
-	 IF ( State_Met%TSKIN(I,J) > 273d0 ) THEN
+	 ! We don't want emissions in frozen or snow-covered regions
+	 IF ( State_Met%TSKIN(I,J) > 273d0      ) THEN
+         IF ( State_Met%SNOW (I,J) < MAX_SNOWDP ) THEN !SNOW DEPTH (in mm)!!!
 
          ! We want emissions from land boxes only
          IF ( State_Met%LWI(I,J) == 1 ) THEN
@@ -834,7 +842,8 @@
             ENDIF
 
          ENDIF
-	 ENDIF	
+	 ENDIF
+         ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -847,8 +856,9 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-	 ! We don't want emissions in frozen regions
-	 IF ( State_Met%TSKIN(I,J) > 273d0 ) THEN
+	 ! We don't want emissions in frozen or snow-covered regions
+	 IF ( State_Met%TSKIN(I,J) > 273d0      ) THEN
+         IF ( State_Met%SNODP(I,J) < MAX_SNOWDP ) THEN !SNOW DEPTH (in m)!!!
 
          ! We want emissions from any box that contains some land
          ! FRLAND is fraction of grid box that is land
@@ -874,6 +884,7 @@
 		REALWET(I,J) = 0.d0
             ENDIF
 
+         ENDIF
 	 ENDIF
 	 ENDIF	
       ENDDO
@@ -1019,9 +1030,19 @@
       !      MOIST_SCALE = 0.19
       !      EMIT_FACT   = 0.023
       !    (kjw, 12/13/2011)
-      MOIST_SCALE=0.19d0
-      EMIT_FACT = .023d0
-
+      !MOIST_SCALE=0.19d0
+      !EMIT_FACT = .023d0
+      !
+      ! UPDATE 1/16/2014
+      !    Use of the new carbon litter and soil maps changed global
+      !    and regional emission totals. Here, I change MOIST_SCALE
+      !    and EMIT_FACT to 1) match HBL emissions constrained by 
+      !    surface and aircraft data in Pickett-Heaps et al. 2011. 
+      !    and 2) preserve global total emissions (~165 Tg/y) used
+      !    in comparison to NOAA GMD, SCIAMACHY, and INTEX-A in 
+      !    Wecht et al. (2014).
+      MOIST_SCALE = 0.205   ! tropical emissions
+      EMIT_FACT   = 0.018   ! extratropical emissions
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
