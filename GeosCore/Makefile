@@ -1049,7 +1049,8 @@ ssa_bromine_mod.o           : ssa_bromine_mod.F                              \
 strat_chem_mod.o            : strat_chem_mod.F90                             \
                               dao_mod.o               logical_mod.o          \
                               linoz_mod.o             tracer_mod.o           \
-                              tracerid_mod.o          tropopause_mod.o
+                              tracerid_mod.o          tropopause_mod.o       \
+                              tagged_ox_mod.o
 
 streets_anthro_mod.o        : streets_anthro_mod.F                           \
                               dao_mod.o               future_emissions_mod.o \

@@ -1762,6 +1762,7 @@ CONTAINS
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE LOGICAL_MOD,        ONLY : LVARTROP 
     USE PRESSURE_MOD,       ONLY : GET_PEDGE,   GET_PCENTER
+    USE TAGGED_Ox_MOD,      ONLY : ADD_STRAT_POX
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
     USE TRACERID_MOD,       ONLY : IDTO3,       IDTO3Strt
     USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
@@ -1871,6 +1872,8 @@ CONTAINS
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
+!  23 Jan 2014 - M. Sulprizio- Linoz does not call UPBDFLX_O3. Synoz does. 
+!                              Now uncomment ADD_STRAT_POx (jtl,hyl,dbj,11/3/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1879,7 +1882,6 @@ CONTAINS
 !
     LOGICAL, SAVE        :: FIRST = .TRUE.
     INTEGER              :: I, J, L, L70mb
-    INTEGER              :: NTRACER, NTRACE2
     REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
     REAL*8               :: DTCHEM, H70mb, PO3, PO3_vmr
     REAL*8               :: STFLUX(IIPAR,JJPAR,LLPAR)
@@ -1901,13 +1903,13 @@ CONTAINS
 
 #elif defined( GRID05x0666 )
 
-#if defined( NESTED_CH )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 133
-#elif defined( NESTED_NA )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 121
-#elif defined( NESTED_EU )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 81
-
+! jtl, 10/26/11 
+#if   defined( NESTED_CH )
+      INTEGER, PARAMETER   :: J30S = 1,  J30N = 83
+#elif   defined( NESTED_NA )
+      INTEGER, PARAMETER   :: J30S = 1,  J30N = 41
+#elif   defined( NESTED_EU )
+      INTEGER, PARAMETER   :: J30S = 1,  J30N = 1         ! add later
 #endif
 
 #elif defined( GRID025x03125 )
@@ -2013,13 +2015,6 @@ CONTAINS
 
 #endif
 
-    ! Store in the proper Ox tracer #
-    IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-       NTRACER = IDTO3
-    ELSE
-       NTRACER = IDTO3
-    ENDIF
-
     ! Only initialize on first time step
     IF ( FIRST ) STFLUX = 0d0
 
@@ -2124,15 +2119,14 @@ CONTAINS
                 PO3 = PO3 * H70mb / State_Met%BXHEIGHT(I,J,L) 
              ENDIF
 
-             IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-                ! Store O3 flux in the proper tracer number
-                STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + PO3 
+             ! Store O3 flux in the proper tracer number
+             STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + PO3 
 
-                ! Store O3 flux for strat Ox tracer (Tagged Ox only)
-                STT(I,J,L,IDTO3Strt) = STT(I,J,L,IDTO3Strt) + PO3
-             ELSE
-                ! Store O3 flux in the proper tracer number
-                STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + PO3 
+             ! Store O3 flux for strat Ox tracer (Tagged Ox only)
+             ! UPBDFLX_O3 and thus ADD_STRAT_POX is called only 
+             ! when Synoz is used (LLINOZ is FALSE) (jtl, hyl, dbj, 11/3/11)
+             IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+                CALL ADD_STRAT_POX( I, J, L, PO3, State_Chm )
              ENDIF
 
              ! Archive stratospheric O3 for printout in [Tg/yr]
@@ -2259,13 +2253,13 @@ CONTAINS
 
 #elif defined( GRID05x0666 )
 
-#if defined( NESTED_CH )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 133
-#elif defined( NESTED_NA )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 121
-#elif defined( NESTED_EU )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 81
-
+! jtl, 10/26/11 
+#if   defined( NESTED_CH )
+      INTEGER, PARAMETER   :: J30S = 1,  J30N = 83
+#elif   defined( NESTED_NA )
+      INTEGER, PARAMETER   :: J30S = 1,  J30N = 41
+#elif   defined( NESTED_EU )
+      INTEGER, PARAMETER   :: J30S = 1,  J30N = 1         ! add later
 #endif
 
 #elif defined( GRID025x03125 )
