@@ -52,6 +52,8 @@
 !  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
 !                              partitioning
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 or LLTROP_FIX
+!                              everywhere (hyl, bmy, 11/3/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,13 +197,15 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  06 Nov 2013 - R. Yantosca - Use an #ifdef to decide if we are reading O3
 !                              P/L data from a different year than the met
+!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 or LLTROP_FIX
+!                              (hyl,bmy/11/3/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LD65)
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
       !JLIU, 2008/10/01
@@ -303,11 +307,13 @@
       ! Initialize
       ARRAY = 0e0
 
+      ! Prior to 11/3/11: 
       ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
       ! tropopause. This is backward compatibility with offline data set.
+      ! Now limit array 3d dimension to LLTROP (hyl, bmy, 11/3/11)
       CALL READ_BPCH2( FILENAME,  'PORL-L=$', 1,      
      &                 XTAU,       IIPAR,     JJPAR,      
-     &                 LLTROP_FIX, ARRAY,     QUIET=.false.)
+     &                 LLTROP,     ARRAY,     QUIET=.false.)
 
       ! Cast from REAL*4 to REAL*8
       CALL TRANSFER_3D_TROP( ARRAY, P24H )
@@ -322,7 +328,7 @@
       ! read data
       CALL READ_BPCH2( FILENAME,  'PORL-L=$', 2,      
      &                 XTAU,       IIPAR,     JJPAR,      
-     &                 LLTROP_FIX, ARRAY,     QUIET=.false.)
+     &                 LLTROP,     ARRAY,     QUIET=.false.)
 
       ! Cast from REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAY, L24H )
@@ -367,7 +373,7 @@
 ! !OUTPUT PARAMETERS:
 !
       ! Array containing P(Ox) for each tagged tracer
-      REAL*8,  INTENT(OUT) :: PP(IIPAR,JJPAR,LD65,N_TAGGED)
+      REAL*8,  INTENT(OUT) :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2003 - A. Fiore - Initial version
@@ -387,6 +393,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -611,6 +618,8 @@
 !                              partitioning
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -620,8 +629,8 @@
       LOGICAL, SAVE     :: FIRST   = .TRUE.
       INTEGER, SAVE     :: LASTDAY = -1
       INTEGER           :: I, J, L, N
-      REAL*8            :: PP(IIPAR,JJPAR,LD65,N_TAGGED)
-      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LD65)
+      REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
       REAL*8            :: DTCHEM,  FREQ,    FLUX
       REAL*8            :: LL,      PL,      Ox_0
       REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
@@ -719,7 +728,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX, F_UNDER_TOP )  
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LD65 ! LLTROP !_FIX
+         DO L = 1, LLTROP
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
@@ -882,6 +891,8 @@
 !  (2 ) Now use LD65 instead of LLTROP to dimension P24H, L24H (phs, 11/18/08)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC args
+!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 to dimension P24H,
+!                              L24H (hyl, bmy, 11/3/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -904,12 +915,12 @@
       ENDIF
 
       ! Allocate P24H
-      ALLOCATE( P24H( IIPAR, JJPAR, LD65 ), STAT=AS )
+      ALLOCATE( P24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'P24H' )
       P24H = 0d0
 
       ! Allocate L24H
-      ALLOCATE( L24H( IIPAR, JJPAR, LD65 ), STAT=AS )
+      ALLOCATE( L24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'L24H' ) 
       L24H = 0d0
 
