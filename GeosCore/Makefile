@@ -114,6 +114,7 @@
 #  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
 #  20 Sep 2013 - R. Yantosca - Bug fix for make realclean: Don't try to make
 #                              clean unless we compile for target hpc
+#  27 Jan 2014 - R. Yantosca - Add tomas_mod.o to wetscav_mod dependency list
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -1148,7 +1149,7 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      get_ndep_mod.o         \
                               get_popsinfo_mod.o      tracerid_mod.o         \
-                              tracer_mod.o
+                              tracer_mod.o            tomas_mod.o
 
 XSEC1D.o                    : XSEC1D.F
 
