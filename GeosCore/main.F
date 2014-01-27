@@ -312,7 +312,7 @@
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
-#if defined ( TOMAS40 )
+#if defined( TOMAS )
       !(sfarina, 6/19/2013) It may seem strange, but this welcome message
       !                     fixes an issue where geoschem crashes with a
       !                     sigsegv immediately after starting.
@@ -322,8 +322,10 @@
       !                     a debugger, and is probably related to
       !                     some initialization garbage in memory
       !                     when using -O2 optimization
-      print *, 'welcome to geoschem'
-      call flush()
+      !(bmy, 1/27/2014)   - Need to "CALL FLUSH(6).  FLUSH needs
+      !                     an argument.  Unit 6 is Unix stdout.
+      PRINT*, '%%%%% USING TOMAS MICROPHYSICS PACKAGE %%%%%'
+      CALL FLUSH(6)
 #endif
 
       !-----------------------------------------------------------------
