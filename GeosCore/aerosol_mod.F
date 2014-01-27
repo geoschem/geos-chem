@@ -585,6 +585,7 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
       USE UCX_MOD,       ONLY : GET_STRAT_OPT, RHO_STRAT_AER, NDENS_AER
       USE COMODE_MOD,    ONLY : JLOP ! SDE 2013-12-30
+      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_CHEMGRID
 
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR
       USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
@@ -1428,9 +1429,8 @@
             ENDIF
 
             ! Moved this from a separate loop for clarity
-            JLOOP = JLOP(I,J,L)
-!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 6 !--SDE DEBUG
-            IF ( JLOOP > 0 ) THEN
+            IF (ITS_IN_THE_CHEMGRID(I,J,L)) THEN
+               JLOOP = JLOP(I,J,L)
                ! Add surface area to TAREA array
                TAREA(JLOOP,NDUST+N) = SADSTRAT
                WTAREA(JLOOP,NDUST+N) = SADSTRAT
