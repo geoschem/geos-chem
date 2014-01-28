@@ -2041,14 +2041,16 @@
             N  = TINDEX(29,M)
             IF ( N > PD29 ) CYCLE
             NN = N 
-
-            ARRAY(:,:,1) = AD29(:,:,N) / SCALESRCE
+            
+            DO L = 1, LLTROP
+               ARRAY(:,:,L) = AD29(:,:,L,N) / SCALESRCE
+            ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &                  IIPAR,     JJPAR,     LLTROP,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
          ENDDO
       ENDIF
 !
@@ -2112,7 +2114,7 @@
 !
 !  Levels        : Field                  : Units       : Scale Factor
 !  -------------------------------------------------------------------------
-!  1 - LLPAR     : Aircraft NOx           : molec/cm2/s : SCALESRCE
+!  1 - LLTROP    : Aircraft NOx           : molec/cm2/s : SCALESRCE
 !  1 - NOXEXTENT : Anthropogenic NOx      : molec/cm2/s : SCALESRCE
 !  Surface       : Biomass Burning NOx    : molec/cm2/s : SCALESRCE
 !  Surface       : Biofuel Burning NOx    : molec/cm2/s : SCALESRCE
@@ -2184,13 +2186,16 @@
          !==============================================================
          CATEGORY     = 'NO-BIOB'
 
-         ARRAY(:,:,1) = AD32_bb(:,:) / SCALESRCE
+                  
+         DO L = 1, LLTROP
+            ARRAY(:,:,L) = AD32_bb(:,:,L) / SCALESRCE
+         ENDDO
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
      &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               IIPAR,     JJPAR,     LLTROP,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
 
          !==============================================================
          ! Binary punch file: NOx from Biofuel

@@ -379,7 +379,7 @@
 
                ! ND29 diagnostic -- store Fossil Fuel CO [molec/cm2/s] 
                IF ( ND29 > 0 ) THEN
-                  AD29(I,J,1) = AD29(I,J,1) + E_CO * 1.185d0
+                  AD29(I,J,1,1) = AD29(I,J,1,1) + E_CO * 1.185d0
                ENDIF
 
                ! To obtain H2 FF emissions, scale E_CO by Anthropogenic ratio 

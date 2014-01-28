@@ -45,7 +45,7 @@
       USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
       USE DIAG_MOD,        ONLY : AD32_SHIP,   AD32_SHIP_COUNT
-
+      USE DIAG_MOD,        ONLY : EMISS_ANTHR
       USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
       USE DIAG_MOD,        ONLY : AD36_SHIP,   AD36_SHIP_COUNT
       USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
@@ -63,7 +63,7 @@
       USE DIAG_MOD,        ONLY : AD52,        AD54,        AD63
       USE DIAG_MOD,        ONLY : AD63_COUNT
       USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
-      USE DIAG_MOD,        ONLY : EMISS_ANTHR
+
 #if   defined( TOMAS )
       USE DIAG_MOD,        ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT  !(win, 7/9/09)
       USE DIAG_MOD,        ONLY : AD59_ECIL,   AD59_ECOB               !(win, 7/9/09)
@@ -386,7 +386,7 @@
       IF ( ND07 > 0 .and. LCARB ) THEN 
          LD07 = MIN( ND07, LLPAR )
 
-         ALLOCATE( AD07( IIPAR, JJPAR, PD07 ), STAT=AS )
+         ALLOCATE( AD07( IIPAR, JJPAR, LLTROP,PD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07' )
 
          ALLOCATE( AD07_BC( IIPAR, JJPAR, LD07 ), STAT=AS )
@@ -488,7 +488,7 @@
          ALLOCATE( AD13_SO2_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_an' )
 
-         ALLOCATE( AD13_SO2_bb( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( AD13_SO2_bb( IIPAR, JJPAR, LLTROP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_bb' )
 
          ALLOCATE( AD13_SO2_bf( IIPAR, JJPAR ), STAT=AS )
@@ -515,7 +515,7 @@
          ALLOCATE( AD13_NH3_na( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_NH3_na' )
 
-         ALLOCATE( AD13_NH3_bb( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( AD13_NH3_bb( IIPAR, JJPAR, LLTROP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_NH3_bb' )
 
          ALLOCATE( AD13_NH3_bf( IIPAR, JJPAR ), STAT=AS )
@@ -730,7 +730,7 @@
       !       --> uses AD28 array (allocatable)
       !=================================================================
       IF ( ND28 > 0 ) THEN
-         ALLOCATE( AD28( IIPAR, JJPAR, NBIOMAX ), STAT=AS )
+         ALLOCATE( AD28( IIPAR, JJPAR,LLTROP, NBIOMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD28' )
       ENDIF
 
@@ -740,7 +740,7 @@
       !        --> uses AD29 array (allocatable)
       !=================================================================
       IF ( ND29 > 0 ) THEN
-         ALLOCATE( AD29( IIPAR, JJPAR, PD29 ), STAT=AS )
+         ALLOCATE( AD29( IIPAR, JJPAR,LLTROP, PD29 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD29' )
       ENDIF
 
@@ -779,7 +779,7 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_an' ) 
 
          ! For biomass burning NOx
-         ALLOCATE( AD32_bb( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( AD32_bb( IIPAR, JJPAR, LLTROP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_bb' )
 
          ! For biofuel NOx

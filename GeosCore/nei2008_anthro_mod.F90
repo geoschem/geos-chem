@@ -569,36 +569,27 @@
 
       ! Apply annual scalar factor.
       ! Using EPA's National Tier1 CAPS (http://www.epa.gov/ttnchie1/trends/)
+      ! Based on NEI08 v2
       IF ( THISYEAR == 2011 ) THEN  ! scale based on 2010
-         ScCO        = 0.981
-         ScNOx       = 0.967
-         ScPM10      = 0.985
-         ScPM25      = 1.007
-         ScSO2       = 0.883
-         ScVOC       = 0.984
-         ScNH3       = 0.990
-         ScNH3_Ag    = 0.998
-         ScNH3_NonAg = 1.006
+         ScCO        = 0.916
+         ScNOx       = 0.897
+         ScPM10      = 0.998
+         ScPM25      = 0.988
+         ScSO2       = 0.905
+         ScVOC       = 0.955
+         ScNH3       = 0.996
+         ScNH3_Ag    = 1.000
+         ScNH3_NonAg = 0.952
       ELSEIF ( THISYEAR == 2012 ) THEN ! scale based on 2010
-         ScCO        = 0.963
-         ScNOx       = 0.908
-         ScPM10      = 1.014
-         ScPM25      = 1.002
-         ScSO2       = 0.667
-         ScVOC       = 0.970
-         ScNH3       = 0.989
-         ScNH3_Ag    = 0.998
-         ScNH3_NonAg = 0.996
-      ELSEIF ( THISYEAR >= 2013 ) THEN ! scale based on 2010
-         ScCO        = 0.944
-         ScNOx       = 0.857
-         ScPM10      = 1.012
-         ScPM25      = 0.997
-         ScSO2       = 0.615
-         ScVOC       = 0.956
-         ScNH3       = 0.988
-         ScNH3_Ag    = 0.998
-         ScNH3_NonAg = 0.986
+         ScCO        = 0.820
+         ScNOx       = 0.794
+         ScPM10      = 0.995
+         ScPM25      = 0.975
+         ScSO2       = 0.899
+         ScVOC       = 0.905
+         ScNH3       = 0.991
+         ScNH3_Ag    = 1.000
+         ScNH3_NonAg = 0.901
       ENDIF
 
       SPECIES_ID = (/ IDTCO,   IDTNO,  IDTNO2, IDTHNO2,           &
@@ -2108,35 +2099,25 @@
       ! Apply annual scalar factor.
       ! Using EPA's National Tier1 CAPS (http://www.epa.gov/ttnchie1/trends/)
       IF ( THISYEAR == 2011 ) THEN  ! scale based on 2010
-         ScCO        = 0.981
-         ScNOx       = 0.967
-         ScPM10      = 0.985
-         ScPM25      = 1.007
-         ScSO2       = 0.883
-         ScVOC       = 0.984
-         ScNH3       = 0.990
-         ScNH3_Ag    = 0.998
-         ScNH3_NonAg = 1.006
+         ScCO   = 0.916
+         ScNOx  = 0.897
+         ScPM10 = 0.998
+         ScPM25 = 0.988
+         ScSO2  = 0.905
+         ScVOC  = 0.955
+         ScNH3  = 0.996
+         ScNH3_Ag    = 1.000
+         ScNH3_NonAg = 0.952
       ELSEIF ( THISYEAR == 2012 ) THEN ! scale based on 2010
-         ScCO        = 0.963
-         ScNOx       = 0.908
-         ScPM10      = 1.014
-         ScPM25      = 1.002
-         ScSO2       = 0.667
-         ScVOC       = 0.970
-         ScNH3       = 0.989
-         ScNH3_Ag    = 0.998
-         ScNH3_NonAg = 0.996
-      ELSEIF ( THISYEAR >= 2013 ) THEN ! scale based on 2010
-         ScCO        = 0.944
-         ScNOx       = 0.857
-         ScPM10      = 1.012
-         ScPM25      = 0.997
-         ScSO2       = 0.615
-         ScVOC       = 0.956
-         ScNH3       = 0.988
-         ScNH3_Ag    = 0.998
-         ScNH3_NonAg = 0.986
+         ScCO   = 0.820
+         ScNOx  = 0.794
+         ScPM10 = 0.995
+         ScPM25 = 0.975
+         ScSO2  = 0.899
+         ScVOC  = 0.905
+         ScNH3  = 0.991
+         ScNH3_Ag    = 1.000
+         ScNH3_NonAg = 0.901
       ENDIF
 
       SPECIES_ID = (/ IDTCO,   IDTNO,   IDTNO2,  IDTHNO2,          &
