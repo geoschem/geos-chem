@@ -1676,7 +1676,7 @@
          WRITE( 6,* ) 'magnitude and distribution of lightning may be'
          WRITE( 6,* ) 'unrealistic.'
          
-         CALL GEOS_CHEM_STOP
+        ! CALL GEOS_CHEM_STOP
          
       ENDIF
 

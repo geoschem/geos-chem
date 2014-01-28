@@ -397,7 +397,7 @@
       USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
       USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK_LT
 #endif
 !
 ! !REVISION HISTORY: 
@@ -436,7 +436,7 @@
       REAL*8, POINTER            :: INGRID (:,:) => NULL()
 
 #if defined( DEVEL )
-      INTEGER               :: DAY_NUM
+      INTEGER               :: DAY_LT
       LOGICAL               :: WEEKDAY
       REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, LLPAR, N_TRACERS)
 #endif
@@ -1222,8 +1222,8 @@
       ENDIF
 
 #if defined( DEVEL )
-      DAY_NUM = GET_DAY_OF_WEEK()
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+      DAY_LT = GET_DAY_OF_WEEK_LT(I,J,1)
+      WEEKDAY = ( DAY_LT > 0 .and. DAY_LT < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
          EMISS(:,:,1:5,IDTNOx)  = NOx
@@ -1304,7 +1304,7 @@
       USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
       USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK_LT
 #endif
 
 !
@@ -1340,7 +1340,7 @@
 
 
 #if defined( DEVEL )
-      INTEGER               :: DAY_NUM
+      INTEGER               :: DAY_LT
       LOGICAL               :: WEEKDAY
       REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, LLPAR, N_TRACERS)
 #endif
@@ -1605,8 +1605,8 @@
       ENDIF
 
 #if defined( DEVEL )
-      DAY_NUM = GET_DAY_OF_WEEK()
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+      DAY_LT  = GET_DAY_OF_WEEK_LT(I,J,1)
+      WEEKDAY = ( DAY_LT > 0 .and. DAY_LT < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
          EMISS(:,:,:,IDTNOx)  = NOx
@@ -1704,8 +1704,11 @@
 
       ! seasonal scalar for NH3 emission (lzh, amv, 12/11/2009)
       REAL*8, PARAMETER :: NH3_SCALE(12) = (/ 
-     &     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0, 
-     &     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
+     &     0.216d0, 0.418d0, 0.622d0, 0.815d0, 0.982d0, 0.974d0,
+     &     1.000d0, 0.900d0, 0.960d0, 0.600d0, 0.280d0, 0.236d0 /)
+
+!     &     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0, 
+!     &     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
  
       !=================================================================
       ! GET_NEI99_SEASON begins here!
@@ -1723,7 +1726,8 @@
          AS = 1.d0
          RETURN
       ELSEIF ( TRACER == 30 ) THEN
-         AS = NH3_SCALE(ThisMN) / NH3_SCALE(8)   ! Normalize to August
+         !AS = NH3_SCALE(ThisMN) / NH3_SCALE(8)   ! Normalize to August
+         AS = NH3_SCALE(ThisMN) ! (lzh, 03/2012)
          RETURN
       ENDIF 
 
@@ -1847,7 +1851,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, PERAREA=0,  !fix from wiki (lds, 10/27/13)
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
@@ -2089,7 +2093,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, PERAREA=0, !fix from wiki (lds, 10/27/2013)
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
@@ -2277,7 +2281,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, PERAREA=0, !fix from wiki (lds, 10/27/13)
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO

@@ -4876,11 +4876,14 @@ c Fix up for negative argument, erf, etc.
 
       ! ERD_FCT_KVN !based on roughness and levelness from Koven 08
       !-----------------
+! not available in nested right now
+#if defined( GRID2x25 ) || defined( GRID_4x5 )
+
       CALL READ_BPCH2( FILENAME, 'DEAD-2D', 87,
      &                 XTAU,      IGLOB,    JGLOB,
      &                 1,         ARRAY,    QUIET=.TRUE. )
       CALL TRANSFER_2D( ARRAY(:,:,1), ERD_FCT_KVN )
-
+#endif
       !-----------------
       ! MBL_BSN_FCT
       !-----------------
@@ -5028,6 +5031,7 @@ c Fix up for negative argument, erf, etc.
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - GET_MONTHLY_DATA: Reading ', a )
 
+#if defined( GRID2x25 ) || defined( GRID_4x5 )
       ! Bareness Fraction from AVHRR NDVI (Kim et al. 2013) DAR
       !-----------------------
       CALL READ_BPCH2( FILENAME, 'DEAD-2D', 88,
@@ -5048,7 +5052,7 @@ c Fix up for negative argument, erf, etc.
 
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), VAI_DST )
-
+#endif
       ! Return to calling program
       END SUBROUTINE GET_MONTHLY_DATA
 

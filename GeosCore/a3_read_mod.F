@@ -447,14 +447,15 @@
          OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
-               
-         IF ( IOS /= 0 ) THEN
-            CALL IOERROR( IOS, IU_A3, 'open_a3_fields:1' )
-         ENDIF
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( PATH ), IU_A3
  100     FORMAT( '     - Opening: ', a,  ' on unit ', i4 )
+          
+         IF ( IOS /= 0 ) THEN
+            CALL IOERROR( IOS, IU_A3, 'open_a3_fields:1' )
+         ENDIF
+
          
          ! Skip past the ident string
          READ( IU_A3, IOSTAT=IOS ) IDENT
