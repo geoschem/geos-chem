@@ -131,7 +131,7 @@
       REAL*4,  ALLOCATABLE :: AD28(:,:,:)
 
       ! For ND29 -- CO source diagnostic
-      REAL*4,  ALLOCATABLE :: AD29(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD29(:,:,:,:)
 
       ! For ND30 -- land / water / ice flags
       REAL*4,  ALLOCATABLE :: AD30(:,:)
@@ -142,7 +142,7 @@
       ! For ND32 -- NOx sources 
       REAL*4,  ALLOCATABLE :: AD32_ac(:,:,:)
       REAL*4,  ALLOCATABLE :: AD32_an(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD32_bb(:,:)
+      REAL*4,  ALLOCATABLE :: AD32_bb(:,:,:)
       REAL*4,  ALLOCATABLE :: AD32_bf(:,:)
       REAL*4,  ALLOCATABLE :: AD32_fe(:,:)
       REAL*4,  ALLOCATABLE :: AD32_li(:,:,:)
@@ -485,6 +485,7 @@
       IF ( ALLOCATED( CTO3        ) ) DEALLOCATE( CTO3        )
       IF ( ALLOCATED( CTO3_24h    ) ) DEALLOCATE( CTO3_24h    )
       IF ( ALLOCATED( CTOH        ) ) DEALLOCATE( CTOH        )
+      IF ( ALLOCATED( EMISS_ANTHR ) ) DEALLOCATE( EMISS_ANTHR )
       ! update for arom (dkh, 06/21/07)  
       IF ( ALLOCATED( CTLBRO2H    ) ) DEALLOCATE( CTLBRO2H    )
       IF ( ALLOCATED( CTLBRO2N    ) ) DEALLOCATE( CTLBRO2N    )

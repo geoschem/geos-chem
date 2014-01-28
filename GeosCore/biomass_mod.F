@@ -550,16 +550,16 @@
             IF ( DO_ND29 .and. N == IDBCO ) THEN 
 
                IF ( ITS_A_H2HD_SIM .and. (.not. USE_GFED ) ) THEN
-                  AD29(I,J,2) = AD29(I,J,2) + 
+                  AD29(I,J,1,2) = AD29(I,J,1,2) + 
      &                          BIOMASS(I,J,IDBCO) * 1.11d0
                ELSE
-                  AD29(I,J,2) = AD29(I,J,2) + BIOMASS(I,J,IDBCO)
+                  AD29(I,J,1,2) = AD29(I,J,1,2) + BIOMASS(I,J,IDBCO)
                ENDIF
             ENDIF
             
             ! ND32: NOx biomass emissions in [molec/cm2/s]
             IF ( DO_ND32 .and. N == IDBNO ) THEN
-               AD32_bb(I,J) = AD32_bb(I,J) + BIOMASS(I,J,IDBNO)
+               AD32_bb(I,J,1) = AD32_bb(I,J,1) + BIOMASS(I,J,IDBNO)
             ENDIF
 
          ENDDO
