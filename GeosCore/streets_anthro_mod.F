@@ -775,7 +775,11 @@
 
          NOX = NOX * TEMP
 
-         
+!------KLUDGE FOR SEAC4RS-----------------------------------
+         ! Based on a comparison with OMI NO2 for JJA 2013
+         !    we are scaling up NOx by 25% (skim, 1/27/14)
+         NOX = 1.25 * NOX      
+!-----------------------------------------------------------
 
          !--------------------------
          ! Read CO and scale CO
@@ -1697,6 +1701,11 @@
 
          NOX = NOX * TEMP
 
+!------KLUDGE FOR SEAC4RS-----------------------------------
+         ! Based on a comparison with OMI NO2 for JJA 2013
+         !    we are scaling up NOx by 25% (skim, 1/27/14)
+         NOX = 1.25 * NOX
+!-----------------------------------------------------------
        
          !--------------------------
          ! Read CO 2006 (SE Asia)
