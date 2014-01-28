@@ -778,7 +778,10 @@
 !------KLUDGE FOR SEAC4RS-----------------------------------
          ! Based on a comparison with OMI NO2 for JJA 2013
          !    we are scaling up NOx by 25% (skim, 1/27/14)
-         NOX = 1.25 * NOX      
+
+         IF ( GET_YEAR() .EQ. 2013 ) THEN 
+            NOX = 1.25 * NOX      
+         ENDIF
 !-----------------------------------------------------------
 
          !--------------------------
@@ -1704,7 +1707,10 @@
 !------KLUDGE FOR SEAC4RS-----------------------------------
          ! Based on a comparison with OMI NO2 for JJA 2013
          !    we are scaling up NOx by 25% (skim, 1/27/14)
-         NOX = 1.25 * NOX
+
+         IF ( GET_YEAR() .EQ. 2013 ) THEN
+            NOX = 1.25 * NOX
+         ENDIF
 !-----------------------------------------------------------
        
          !--------------------------
