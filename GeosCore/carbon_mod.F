@@ -5361,6 +5361,7 @@
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  18 Oct 2013 - M. Sulprizio- Do not call ANTHRO_CARB_TBOND when LRCP is true.
 !                              RCP emissions include biofuel. (C. Heald)
+!  28 Jan 2014 - R. Yantosca - Avoid array temporary in calls to EMITSGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5397,6 +5398,10 @@
       REAL*4               :: BOXVOL  ! calculated from State_Met
       REAL*4               :: TEMPTMS ! calculated from State_Met
       REAL*4               :: PRES    ! calculated from State_Met
+
+      ! Temporary array for passing data to EMITSGC.  This will
+      ! avoid the creation of array temporaries. (bmy, 1/28/14)
+      REAL*8               :: TMP_MASS(IIPAR,JJPAR,IBINS)
 #endif
 
       ! For fields from Input_Opt
@@ -5799,8 +5804,18 @@
          enddo
       endif
 !temp debug --------
-            CALL EMITSGC( EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2), 1,
-     &                    Input_Opt, State_Met, State_Chm )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 1/28/14:
+!%%% Avoid the creation of array temporaries in call to EMITSGC (bmy, 1/28/14)
+!%%%            CALL EMITSGC( EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2), 1,
+!%%%     &                    Input_Opt, State_Met, State_Chm )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            ! Now sum mass terms into TEMP_MASS and then pass to EMITSGC
+            ! This avoids the creation of an array temporary. (bmy, 1/28/14)
+            TMP_MASS = EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2)
+            CALL EMITSGC( TMP_MASS, 1, Input_Opt, State_Met, State_Chm )
+
 !temp debug            if(sum(OC30SRC(ii,jj,:,:)) > 0d0) dbg = .true.
       if( dbg) then
          print *,'===== Before EMITSGC:OC ===== at',ii,jj,ll
@@ -5813,8 +5828,18 @@
          enddo
       endif
 !temp debug --------
-            CALL EMITSGC( OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2), 2,
-     &                    Input_Opt, State_Met, State_Chm )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 1/28/14:
+!%%% Avoid the creation of array temporaries in call to EMITSGC (bmy, 1/28/14)
+!%%%          CALL EMITSGC( OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2), 2,
+!%%%     &                    Input_Opt, State_Met, State_Chm )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            ! Now sum mass terms into TEMP_MASS and then pass to EMITSGC
+            ! This avoids the creation of an array temporary. (bmy, 1/28/14)
+            TMP_MASS = OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2)
+            CALL EMITSGC( TMP_MASS, 2, Input_Opt, State_Met, State_Chm )
+
 !temp debug
       if( dbg) then
          print *,'===== After EMITSGC:OC ===== at',ii,jj,ll
