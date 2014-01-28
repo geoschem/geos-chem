@@ -386,7 +386,7 @@
       IF ( ND07 > 0 .and. LCARB ) THEN 
          LD07 = MIN( ND07, LLPAR )
 
-         ALLOCATE( AD07( IIPAR, JJPAR, LLTROP,PD07 ), STAT=AS )
+         ALLOCATE( AD07( IIPAR, JJPAR, PD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07' )
 
          ALLOCATE( AD07_BC( IIPAR, JJPAR, LD07 ), STAT=AS )
@@ -488,7 +488,7 @@
          ALLOCATE( AD13_SO2_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_an' )
 
-         ALLOCATE( AD13_SO2_bb( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( AD13_SO2_bb( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_bb' )
 
          ALLOCATE( AD13_SO2_bf( IIPAR, JJPAR ), STAT=AS )
@@ -515,7 +515,7 @@
          ALLOCATE( AD13_NH3_na( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_NH3_na' )
 
-         ALLOCATE( AD13_NH3_bb( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( AD13_NH3_bb( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_NH3_bb' )
 
          ALLOCATE( AD13_NH3_bf( IIPAR, JJPAR ), STAT=AS )
@@ -730,7 +730,7 @@
       !       --> uses AD28 array (allocatable)
       !=================================================================
       IF ( ND28 > 0 ) THEN
-         ALLOCATE( AD28( IIPAR, JJPAR,LLTROP, NBIOMAX ), STAT=AS )
+         ALLOCATE( AD28( IIPAR, JJPAR, NBIOMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD28' )
       ENDIF
 
