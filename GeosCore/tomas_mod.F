@@ -270,6 +270,7 @@
 !       Prefer not to use .h file (win, 9/30/08)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Jan 2014 - R. Yantosca - Avoid array temporaries in call to CHECK_VALUE
 !******************************************************************************
 !
       ! References to F90 modules
@@ -306,9 +307,10 @@
       INTEGER           :: TRACNUM
       REAL*8            :: FRAC
 
+      ! Arguments for CHECK_VALUE; avoids array temporaries (bmy, 1/28/14)
       CHARACTER(LEN=255) :: ERR_VAR
       CHARACTER(LEN=255) :: ERR_MSG
-
+      INTEGER            :: ERR_IND(4)
 
 !---------
 !sfarina - move definitions of these from module common
@@ -437,7 +439,10 @@
          firsttime = .false.
       endif
 
-
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: THIS PARALLEL LOOP MAY BE ABLE TO BE REVERSED TO L-J-I
+!%%% WHICH IS MUCH MORE EFFICIENT (bmy, 1/28/14)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -448,6 +453,7 @@
 !$OMP+PRIVATE( Nkout,Mkout,Gcout,fn,fn1 )
 !$OMP+PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )
 !$OMP+PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )
+!$OMP+PRIVATE( ERR_VAR, ERR_MSG, ERR_IND )
 !$OMP+SCHEDULE( DYNAMIC )
       DO I = 1, IIPAR
       DO J = 1, JJPAR
@@ -645,10 +651,21 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
            ERR_MSG = 'After COND_NUC'
             ! check for NaN and Inf (win, 10/4/08)
             do jc = 1, icomp-1
-               call check_value(Gcout(jc),(/I,J,L,0/),ERR_VAR,
-     &              ERR_MSG)
-!               call check_value(Gcout(jc),(/I,J,L,0/),'Gcout',
-!     &              'After COND_NUC')
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 1/28/14:
+!%%% Eliminate array temporary in call to CHECK_VALUE.  Now use ERR_IND
+!%%% array instead of a constructor list (/I,J,L,0/).  (bmy, 1/28/14)
+!%%%              call check_value(Gcout(jc),(/I,J,L,0/),ERR_VAR,
+!%%%    &              ERR_MSG)
+!%%%!               call check_value(Gcout(jc),(/I,J,L,0/),'Gcout',
+!%%%!     &              'After COND_NUC')
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               ERR_IND(1) = I
+               ERR_IND(2) = J
+               ERR_IND(3) = L
+               ERR_IND(4) = 0
+               call check_value( Gcout(jc), ERR_IND, ERR_VAR, ERR_MSG )
+
 !               if( IT_IS_FINITE(Gcout(jc))) then
 !                  print *,'xxxxxxxxx Found Inf in Gcout xxxxxxxxxxxxxx'
 !                  print *,'Location ',I,J,L, 'comp',jc

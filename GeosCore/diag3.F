@@ -209,6 +209,7 @@
 !  03 Dec 2013 - R. Yantosca - Change unit of PBL height to meters, this used
 !                              to be hPa in GEOS-1, GEOS-STRAT, GEOS-3, which
 !                              are no longer supported.
+!  28 Jan 2014 - R. Yantosca - Avoid array temporaries in ND60 TOMAS diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -243,12 +244,17 @@
       CHARACTER (LEN=40) :: RESERVED = ''
 
       ! For fields from Input_Opt
-      INTEGER         :: N_TRACERS
+      INTEGER            :: N_TRACERS
+
+#if   defined( TOMAS )
+      ! For ND60 TOMAS diagnostic, avoids an array temporary (bmy, 1/28/14)
+      REAL*4             :: ARR2D(JJPAR,LLPAR)
+#endif
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER    :: STT(:,:,:,:)
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -3571,6 +3577,7 @@
 !
 !  NOTES:
 !  (1 ) Add TMS-SOA diagnostic (win, 9/25/07)
+!  28 Jan 2014 - R. Yantosca - Use ARR2D to avoid array temporaries
 !*****************************************************************************
 !
       IF ( ND60 > 0 ) THEN
@@ -3594,14 +3601,14 @@
             ENDIF
 
             DO L = 1, LD60
-               ARRAY(1,:,L) = AD60_COND(1,:,L,M) / SCALEX
+               ARR2D(:,L) = AD60_COND(1,:,L,M) / SCALEX
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  1,         JJPAR,     LD60,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+     &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
          ENDDO
 
          !==============================================================
@@ -3623,14 +3630,14 @@
             ENDIF
 
             DO L = 1, LD60
-               ARRAY(1,:,L) = AD60_COAG(1,:,L,M) / SCALEX
+               ARR2D(:,L) = AD60_COAG(1,:,L,M) / SCALEX
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  1,         JJPAR,     LD60,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+     &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
          ENDDO
 
          !==============================================================
@@ -3652,14 +3659,14 @@
             ENDIF
 
             DO L = 1, LD60
-               ARRAY(1,:,L) = AD60_NUCL(1,:,L,M) / SCALEX
+               ARR2D(:,L) = AD60_NUCL(1,:,L,M) / SCALEX
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  1,         JJPAR,     LD60,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+     &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
          ENDDO
 
          !==============================================================
@@ -3681,14 +3688,14 @@
             ENDIF
 
             DO L = 1, LD60
-               ARRAY(1,:,L) = AD60_AQOX(1,:,L,M) / SCALEX
+               ARR2D(:,L) = AD60_AQOX(1,:,L,M) / SCALEX
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  1,         JJPAR,     LD60,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+     &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
          ENDDO
 
          !==============================================================
@@ -3710,14 +3717,14 @@
             ENDIF
 
              DO L = 1, LD60
-                ARRAY(1,:,L) = AD60_ERROR(1,:,L,M) / SCALEX
+                ARR2D(:,L) = AD60_ERROR(1,:,L,M) / SCALEX
              ENDDO
 
              CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  1,         JJPAR,     LD60,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+     &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
           ENDDO
 
          !==============================================================
@@ -3739,14 +3746,14 @@
             ENDIF
 
             DO L = 1, LD60
-               ARRAY(1,:,L) = AD60_SOA(1,:,L,M) / SCALEX
+               ARR2D(:,L) = AD60_SOA(1,:,L,M) / SCALEX
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  1,         JJPAR,     LD60,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+     &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
          ENDDO
 
       ENDIF
