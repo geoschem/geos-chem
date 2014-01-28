@@ -920,6 +920,9 @@ C     Nkf, Mkf, Gcf - same as above, but final values
 C     Nknuc, Mknuc - same as above, final values from just nucleation
 C     Nkcond, Mkcond - same as above, but final values from just condensation
 C     fn, fn1
+!
+! !REVISION HISTORY:
+!  28 Jan 2014 - R. Yantosca - Avoid div-by-zero errors
 !*****************************************************************************
 !
       IMPLICIT NONE
@@ -1150,7 +1153,19 @@ c      print*,'mcond',mcond,'mcond1',mcond1
 c      if (CSch.gt.CSch_tol) then ! condensation sink didn't change much use whole timesteps
          ! get starting adaptive timestep to not allow condensationk sink
          ! to change that much
-         addt = addt*CSch_tol/CSch/2
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 1/28/14:
+!%%% BUG FIX: Do not allow a division by zero to occur.  Set ADDT to zero
+!%%% if CSCH is zero.  ADDT is reset to MIN_TSTEP below so that should be OK.
+!%%% (bmy, 1/28/14)
+!%%%      addt = addt*CSch_tol/CSch/2
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Avoid div-by-zero (bmy, 1/28/14)
+         IF ( ABS( CSch ) > 0d0 ) THEN
+            addt = addt*CSch_tol/CSch/2d0
+         ELSE
+            addt = 0d0
+         ENDIF
          addt = min(addt,dt)
          addt = max(addt,min_tstep)
 
@@ -1357,8 +1372,25 @@ Cjrp                  print*,''
 Cjrp
 Cjrp                  addt = min(addt,time_rem)
 Cjrp               else
-               addt = min(addt*CSch_tol/CSch,addt*1.5d0) ! allow adaptive timestep to change
-               addt = min(addt,time_rem) ! allow adaptive timestep to change
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 1/28/14:
+!%%% BUG FIX: Do not allow a division by zero to occur.  Set ADDT to zero
+!%%% if CSCH is zero.  ADDT is reset to MIN_TSTEP below so that should be OK.
+!%%% (bmy, 1/28/14)
+!%%%               addt = min(addt*CSch_tol/CSch,addt*1.5d0) ! allow adaptive timestep to change
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+               ! Allow adaptive timestep to change
+               ! Avoid div-by-zero error
+               IF ( ABS( CSch ) > 0d0 ) THEN 
+                  addt = min(addt*CSch_tol/CSch,addt*1.5d0) 
+               ELSE
+                  addt = 0d0
+               ENDIF
+
+               ! allow adaptive timestep to change again
+               addt = min(addt,time_rem) 
                addt = max(addt,min_tstep)
 Cjrp               endif
                if( pdbg)     print*,'CS1',CS1,'CS2',CS2

@@ -1814,6 +1814,8 @@
 !   6 Sep 2013 - M. Sulprizio- Bug fix: Prevent divide-by-zero if LWC=0. Only
 !                              do aqueous SO2 chemistry when LWC>0.
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  28 Jan 2014 - R. Yantosca - Bug fix for TOMAS. Set ALKdst=0 since TOMAS
+!                              carries its own dust tracers instead of DST1-4.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2256,10 +2258,20 @@
             ! Add up total seasalt and dust and convert to ug/m3
             ! Note that it is better to use dust and sea-salt alkalinity
             ! tracers if these are being transported (bec, 12/23/11)
+
+#if defined( TOMAS )
+            !%%%%%%%%%%%%%%%%% BUG FIX FOR TOMAS %%%%%%%%%%%%%%%%%%%%%%%
+            ! NOTE: TOMAS uses its own dust tracers and does not
+            ! carry ALKdst.  Set ALKdst to zero here. (bmy, 1/28/14)
+            ALKdst = 0d0
+#else
+            ! For other simulations, Sum up the contributions from
+            ! DST1 thru DST4 tracers into ALKdst. (bmy, 1/28/14)
             ALKdst = ( STT(I,J,L,IDTDST1) + STT(I,J,L,IDTDST2) +
      &                 STT(I,J,L,IDTDST3) + STT(I,J,L,IDTDST4) ) *
      &                 1.D9 * State_Met%AD(I,J,L) / TCVV(IDTDST1) /
      &                 State_Met%AIRVOL(I,J,L)
+#endif
 
             ALKss  = ( STT(I,J,L,IDTSALA  ) + STT(I,J,L,IDTSALC) ) *
      &                 1.D9 * State_Met%AD(I,J,L) / TCVV(IDTSALA) /

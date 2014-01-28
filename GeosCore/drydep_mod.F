@@ -1616,6 +1616,7 @@
 !  29 Aug 2013 - R. Yantosca - Bug fix: Skip to the next species if unless
 !                              HSTAR>0 and XMW>0, or AIROSOL=t.  This avoids
 !                              a floating-point invalid condition.
+!  28 Jan 2014 - R. Yantosca - For TOMAS, don't hold A_RADI and A_DEN PRIVATE
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1744,7 +1745,13 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 #if   defined( TOMAS )
-!$OMP+PRIVATE( BIN, A_RADI, A_DEN )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 1/28/14:
+!%%% BUG FIX: K is already private, so A_RADI(K) and A_DEN(K) will be unique
+!%%% to each CPU.  Don't hold A_RADI and A_DEN private here. (bmy, 1/28/14)
+!%%%!$OMP+PRIVATE( BIN, A_RADI, A_DEN )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP+PRIVATE( BIN )
 #endif
 !$OMP+PRIVATE( IJLOOP, CZ,     TEMPK,  TEMPC,  K,      VD     )
 !$OMP+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
