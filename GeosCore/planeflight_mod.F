@@ -1971,7 +1971,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE TIME_MOD,               ONLY : EXPAND_DATE, GET_NYMD
+      USE TIME_MOD,               ONLY : EXPAND_DATE
+      USE TIME_MOD,               ONLY : GET_NYMD, GET_NHMS
       ! Modules for netCDF read
       USE m_netcdf_io_open
       USE m_netcdf_io_get_dimlen
@@ -2030,9 +2031,9 @@
       !=================================================================
 
       ! Set the netCDF filename
-      ncFile = 'model.curtain.' // TRIM( OUTFILENAME(19:26) ) 
+      ncFile = 'model.curtain.YYYYMMDD.hhmm' 
 
-      CALL EXPAND_DATE( ncFile, GET_NYMD(), 000000 )
+      CALL EXPAND_DATE( ncFile, GET_NYMD(), GET_NHMS() )
 
       ! Initialize the variable ID counter
       vId = 0
@@ -2424,6 +2425,19 @@
       !--------------------------------
       CALL NcCl( fId )
 
+      ! Deallocate for safety's sake (skim, 12/06/13)
+      PRINT*, 'DEALLOCATING PLANEFLIGHT CURTAINS'
+
+      IF ( ALLOCATED( P_CURTAIN      ) ) DEALLOCATE( P_CURTAIN      )
+      IF ( ALLOCATED( HEIGHT_CURTAIN ) ) DEALLOCATE( HEIGHT_CURTAIN )
+      IF ( ALLOCATED( TRACER_CURTAIN ) ) DEALLOCATE( TRACER_CURTAIN )
+      IF ( ALLOCATED( SNA_CURTAIN    ) ) DEALLOCATE( SNA_CURTAIN    )
+      IF ( ALLOCATED( BC_CURTAIN     ) ) DEALLOCATE( BC_CURTAIN     )
+      IF ( ALLOCATED( OC_CURTAIN     ) ) DEALLOCATE( OC_CURTAIN     )
+      IF ( ALLOCATED( SSA_CURTAIN    ) ) DEALLOCATE( SSA_CURTAIN    )
+      IF ( ALLOCATED( SSC_CURTAIN    ) ) DEALLOCATE( SSC_CURTAIN    )
+      IF ( ALLOCATED( DUST_CURTAIN   ) ) DEALLOCATE( DUST_CURTAIN   )
+
       END SUBROUTINE SAVE_CURTAIN
 !EOC
 !------------------------------------------------------------------------------
@@ -2753,7 +2767,7 @@
          ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
-         
+      
       !=================================================================
       ! Allocate arrays to maximum sizes
       !
@@ -2804,37 +2818,40 @@
          ALLOCATE( PPRESS( MAXPOINTS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
 
-         ! Allocate additional arrays for curtains (skim, 12/06/13)
-         ALLOCATE( P_CURTAIN( NPOINTS, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'P_CURTAIN' )
-
-         ALLOCATE( HEIGHT_CURTAIN( NPOINTS, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HEIGHT_CURTAIN' )
-
-         ALLOCATE( TRACER_CURTAIN( NPOINTS, LLPAR, 80 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_CURTAIN' )
-
-         ALLOCATE( SNA_CURTAIN ( NPOINTS, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNA_CURTAIN' )
-
-         ALLOCATE( BC_CURTAIN  ( NPOINTS, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CURTAIN' )
-
-         ALLOCATE( OC_CURTAIN  ( NPOINTS, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC_CURTAIN' )
-
-         ALLOCATE( SSA_CURTAIN ( NPOINTS, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSA_CURTAIN' )
-
-         ALLOCATE( SSC_CURTAIN ( NPOINTS, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSC_CURTAIN' )
-
-         ALLOCATE( DUST_CURTAIN( NPOINTS, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DUST_CURTAIN' )
-
          ! Reset IS_INIT flag
          IS_INIT = .TRUE.
       ENDIF
+
+      ! Allocate additional arrays for curtains (skim, 12/06/13)
+      ! We need to do this outside of the if statement because the
+      ! curtains need to be sized by the number of points along the
+      ! flight track
+      ALLOCATE( P_CURTAIN( NPOINTS, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'P_CURTAIN' )
+
+      ALLOCATE( HEIGHT_CURTAIN( NPOINTS, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HEIGHT_CURTAIN' )
+
+      ALLOCATE( TRACER_CURTAIN( NPOINTS, LLPAR, 80 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_CURTAIN' )
+
+      ALLOCATE( SNA_CURTAIN ( NPOINTS, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNA_CURTAIN' )
+
+      ALLOCATE( BC_CURTAIN  ( NPOINTS, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CURTAIN' )
+
+      ALLOCATE( OC_CURTAIN  ( NPOINTS, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC_CURTAIN' )
+
+      ALLOCATE( SSA_CURTAIN ( NPOINTS, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSA_CURTAIN' )
+
+      ALLOCATE( SSC_CURTAIN ( NPOINTS, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSC_CURTAIN' )
+
+      ALLOCATE( DUST_CURTAIN( NPOINTS, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DUST_CURTAIN' )
 
       !=================================================================
       ! Initialize arrays 
@@ -2896,15 +2913,6 @@
       IF ( ALLOCATED( PLAT           ) ) DEALLOCATE( PLAT           )
       IF ( ALLOCATED( PLON           ) ) DEALLOCATE( PLON           )
       IF ( ALLOCATED( PPRESS         ) ) DEALLOCATE( PPRESS         )
-      IF ( ALLOCATED( P_CURTAIN      ) ) DEALLOCATE( P_CURTAIN      )
-      IF ( ALLOCATED( HEIGHT_CURTAIN ) ) DEALLOCATE( HEIGHT_CURTAIN )
-      IF ( ALLOCATED( TRACER_CURTAIN ) ) DEALLOCATE( TRACER_CURTAIN )
-      IF ( ALLOCATED( SNA_CURTAIN    ) ) DEALLOCATE( SNA_CURTAIN    )
-      IF ( ALLOCATED( BC_CURTAIN     ) ) DEALLOCATE( BC_CURTAIN     )
-      IF ( ALLOCATED( OC_CURTAIN     ) ) DEALLOCATE( OC_CURTAIN     )
-      IF ( ALLOCATED( SSA_CURTAIN    ) ) DEALLOCATE( SSA_CURTAIN    )
-      IF ( ALLOCATED( SSC_CURTAIN    ) ) DEALLOCATE( SSC_CURTAIN    )
-      IF ( ALLOCATED( DUST_CURTAIN   ) ) DEALLOCATE( DUST_CURTAIN   )
 
       END SUBROUTINE CLEANUP_PLANEFLIGHT
 !EOC
