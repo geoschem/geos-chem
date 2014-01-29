@@ -6092,10 +6092,19 @@
             MADDFINAL(K) = 0d0
          ENDDO
 
-         IF( SRTNH4 > 0 ) 
-     &        CALL NH4BULKTOBIN( MDIST(1:IBINS,SRTSO4),
-     &                           STT(I,J,L,IDTNH4),
-     &                           MDIST(1:IBINS,SRTNH4) )
+!------------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
+!         IF( SRTNH4 > 0 ) 
+!     &        CALL NH4BULKTOBIN( MDIST(1:IBINS,SRTSO4),
+!     &                           STT(I,J,L,IDTNH4),
+!     &                           MDIST(1:IBINS,SRTNH4) )
+!------------------------------------------------------------------------------
+         IF ( SRTNH4 > 0 ) THEN
+            CALL NH4BULKTOBIN( MDIST(:,SRTSO4),
+     &                         STT(I,J,L,IDTNH4),
+     &                         MDIST(:,SRTNH4) )
+         ENDIF
 
          ! Save initial info for diagnostic
          N0(L,:) = NDIST(:)

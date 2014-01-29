@@ -5876,6 +5876,7 @@
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_SULFATE
 !  31 Jul 2013 - M. Sulprizio- Now set SO2 aircraft emissions to zero if using
 !                              AEIC aircraft emissions (S. Eastham)
+!  29 Jan 2014 - R. Yantosca - Avoid array temporaries in call to NH4BULKTOBIN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5890,6 +5891,7 @@
       REAL*8        :: BINMASS(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
       REAL*8        :: tempnh4(ibins)
       INTEGER       :: TID, I, J, L
+      REAL*8        :: MK_TEMP(IBINS)
 #endif
 
       ! For fields from Input_Opt
@@ -6099,14 +6101,24 @@
 
 !%%%OMP PARALLEL DO
 !%%%OMP+DEFAULT( SHARED )
-!%%%OMP+PRIVATE( I, J, L, TMPNH4 )
+!%%%OMP+PRIVATE( I, J, L, TMPNH4, MKTEMP )
 !%%%OMP+SCHEDULE( DYNAMIC )
             DO L=1,LLPAR
             DO J=1,JJPAR
             DO I=1,IIPAR
-         
-               CALL NH4BULKTOBIN( STT(I,J,L,IDTSF1:IDTSF1-1+IBINS), 
-     &              STT(I,J,L,IDTNH4), TEMPNH4(1:IBINS) )
+
+!-----------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
+!               CALL NH4BULKTOBIN( STT(I,J,L,IDTSF1:IDTSF1-1+IBINS), 
+!     &              STT(I,J,L,IDTNH4), TEMPNH4(1:IBINS) )
+!-----------------------------------------------------------------------------
+
+               ! Take a slice of size IBINS from STT
+               MK_TEMP = STT(I,J,L,IDTSF1:IDTSF1-1+IBINS)
+
+               ! Avoid array tmeporaries in subroutine call (bmy, 1/29/14)
+               CALL NH4BULKTOBIN( MK_TEMP, STT(I,J,L,IDTNH4), TEMPNH4 )
 
                BINMASS(I,J,L,TID:TID+IBINS-1) = TEMPNH4(1:IBINS)
             ENDDO

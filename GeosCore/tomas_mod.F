@@ -271,6 +271,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Jan 2014 - R. Yantosca - Avoid array temporaries in call to CHECK_VALUE
+!  29 Jan 2014 - R. Yantosca - Avoid array temporaries in call to NH4BULKTOBIN
 !******************************************************************************
 !
       ! References to F90 modules
@@ -543,8 +544,15 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
          ! Get NH4 mass from the bulk mass and scale to bin with sulfate
          IF ( SRTNH4 > 0 ) THEN
-            CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4),
-     &                         TRANSFER(1:IBINS)  )
+
+!------------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Rewrite subroutine call to avoid array temporaries
+!            CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4),
+!     &                         TRANSFER(1:IBINS)  )
+!------------------------------------------------------------------------------
+            CALL NH4BULKTOBIN( MK(:,SRTSO4), STT(I,J,L,IDTNH4), 
+     &                         TRANSFER )
             MK(1:IBINS,SRTNH4) = TRANSFER(1:IBINS)
             Gc(SRTNH4) = STT(I,J,L,IDTNH3) 
          ENDIF
@@ -3299,6 +3307,7 @@ Cjrp      endif
 !  NOTES: 
 !  (1 ) Currently do aqueous oxidation pretending that it's dry, so aerosol 
 !       water is just zero (win, 7/23/07)
+!  29 Jan 2014 - R. Yantosca - Avoid array temporaries in call to NH4BULKTOBIN
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -3335,7 +3344,7 @@ Cjrp      endif
       REAL*8                 :: Gcd(ICOMP - 1)
       REAL*4                 :: BOXVOL
       REAL*4                 :: thresh
-      
+
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -3380,10 +3389,18 @@ Cjrp      endif
       ENDDO
 
       ! Take the bulk NH4 and allocate to size-resolved NH4
-      IF ( SRTNH4 > 0 ) 
-     &     CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4), 
-     &                        MK(1:IBINS,SRTNH4) )
-      
+!-----------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
+!      IF ( SRTNH4 > 0 ) 
+!     &     CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4), 
+!    &                        MK(1:IBINS,SRTNH4) )
+!-----------------------------------------------------------------------------
+      IF ( SRTNH4 > 0 ) THEN
+         CALL NH4BULKTOBIN( MK(:,SRTSO4), STT(I,J,L,IDTNH4), 
+     &                      MK(:,SRTNH4) )
+      ENDIF
+
       ! Fix any inconsistencies in M/N distribution 
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 !debug      IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
@@ -3660,9 +3677,17 @@ Cjrp      endif
       ENDDO
 
       ! Take the bulk NH4 and allocate to size-resolved NH4
-      IF ( SRTNH4 > 0 ) 
-     &     CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4), 
-     &                        MK(1:IBINS,SRTNH4) )
+!-----------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
+!      IF ( SRTNH4 > 0 ) 
+!     &     CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4), 
+!     &                        MK(1:IBINS,SRTNH4) )
+!-----------------------------------------------------------------------------
+      IF ( SRTNH4 > 0 ) THEN
+         CALL NH4BULKTOBIN( MK(:,SRTSO4), STT(I,J,L,IDTNH4), 
+     &                      MK(:,SRTNH4) )
+      ENDIF
 
       CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
@@ -6843,8 +6868,13 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
          ! Get NH4 mass from the bulk mass and scale to bin with sulfate
          IF ( SRTNH4 > 0 ) THEN
-            CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4),
-     &                         XFER(1:IBINS)  )
+!-----------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
+!            CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4),
+!     &                         XFER(1:IBINS)  )
+!-----------------------------------------------------------------------------
+            CALL NH4BULKTOBIN( MK(:,SRTSO4), STT(I,J,L,IDTNH4), XFER  )
             MK(1:IBINS,SRTNH4) = XFER(1:IBINS)
             Gc(SRTNH4) = STT(I,J,L,IDTNH3) 
          ENDIF
