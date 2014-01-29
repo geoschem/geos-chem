@@ -1066,21 +1066,23 @@
                ! Kludge: eventually I want to keep the concentration
                !         entirely fixed! Ask around on how to...
                !========================================================
-               IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
-     &            CALL SET_CH3Br( N_TRACERS, TCVV,
+               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
+                  CALL SET_CH3Br( N_TRACERS, TCVV,
      &                            STT,       ITS_TIME_FOR_UNIT(),
      &                            State_Met  )
+               ENDIF
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
-               IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS,           
+               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
+                  CALL SET_BrO( N_TRACERS,           
      &                          TCVV,
      &                          STT,
      &                          ITS_TIME_FOR_UNIT(), 
      &                          State_Met            )
+               ENDIF
             ENDIF
          ENDIF
 
@@ -1174,22 +1176,41 @@
                ! Kludge: eventually I want to keep the concentration
                !         entirely fixed! Ask around on how to...
                !========================================================
-               IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
-     &            CALL SET_CH3Br( N_TRACERS, TCVV,
-     &                            STT,       ITS_TIME_FOR_UNIT(),
+               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
+                  CALL SET_CH3Br( N_TRACERS, TCVV,
+!-----------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Now pass .FALSE. in place of ITS_TIME_FOR_UNIT() to SET_CH3Br.  At this
+! point in the code, STT is in kg.  But passing a .TRUE. value to SET_CH3Br
+! will cause mixing ratios to be overwritten to STT withn the PBL.  Because
+! full-PBL mixing is not used for most fullchem simulations, we don't
+! anticipate that many fullchem runs have been affected. (bmy, 1/29/14)
+!     &                            STT,       ITS_TIME_FOR_UNIT(),
+!-----------------------------------------------------------------------------
+     &                            STT,       .FALSE.,
      &                            State_Met  )
+               ENDIF
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
-               IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS,           
+               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
+                  CALL SET_BrO( N_TRACERS,
      &                          TCVV,
      &                          STT,
-     &                          ITS_TIME_FOR_UNIT(), 
+!-----------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Now pass .FALSE. in place of ITS_TIME_FOR_UNIT() to SET_BrO.  At this
+! point in the code, STT is in kg.  But passing a .TRUE. value to SET_BrO
+! will cause mixing ratios to be overwritten to STT withn the PBL.  Because
+! full-PBL mixing is not used for most fullchem simulations, we don't
+! anticipate that many fullchem runs have been affected. (bmy, 1/29/14)
+!     &                          ITS_TIME_FOR_UNIT(),
+!-----------------------------------------------------------------------------
+     &                          .FALSE.,
      &                          State_Met            )
-
+               ENDIF
             ENDIF
          ENDIF
 
