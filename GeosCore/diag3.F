@@ -251,6 +251,10 @@
       REAL*4             :: ARR2D(JJPAR,LLPAR)
 #endif
 
+      ! Define a local variable for dry depostion species name
+      ! This helps to avoid ambiguity for TOMAS simulations (bmy, 1/29/14)
+      CHARACTER(LEN=14)  :: DRYDEP_NAME
+
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -2789,6 +2793,8 @@
 !        now saves drydep in molec/cm2/s. (bmy, 8/19/03)
 !  (8 ) Rearrange ND44 code for clarity (bmy, 3/24/04)
 !  (9 ) Add code for H2/HD simulation (phs, 5/8/07)
+!  29 Jan 2014 - R. Yantosca - Now save DEPNAME(N) into DRYDEP_NAME, which
+!                              helps avoid ambiguity for TOMAS simulations
 !******************************************************************************
 !
       IF ( ND44 > 0 ) THEN
@@ -2805,7 +2811,7 @@
      &        Input_Opt%ITS_A_MERCURY_SIM ) THEN
             M = N_TRACERS
          ELSE
-            ! Extend dry dep tracers if 30-bin aerosol is turned on (win, 7/14/09)
+            ! Extend dry dep tracers if TOMAS aerosol is turned on
 #if   defined ( TOMAS )
             IF ( IDTNK1 > 0 ) THEN
                M = NUMDEP + ( ( ICOMP - IDIAG )* IBINS )
@@ -2819,6 +2825,17 @@
 
          ! Loop over drydep tracers
          DO N = 1, M
+
+            ! Save the dry deposition species name into DRYDEP_NAME.
+            ! For TOMAS simulations we loop over all size bins, but
+            ! because of the above statement, M can be greater than 
+            ! MAXDEP.  DEPNAME is sized to MAXDEP so this prevents
+            ! out of bounds errors in DEPNAME. (bmy, 1/29/14)
+            IF ( N > NUMDEP ) THEN 
+               DRYDEP_NAME = ''
+            ELSE
+               DRYDEP_NAME = DEPNAME(N)
+            ENDIF
 
             IF ( Input_Opt%ITS_A_RnPbBe_SIM .or. 
      &           Input_Opt%ITS_A_H2HD_SIM ) THEN
@@ -2876,9 +2893,16 @@
                ! We handle both tracers at the same time so we need to 
                ! skip the second tracer. (ccc, 2/3/10)
                !IF ( MMB /= NN ) CYCLE
-               IF ( MMB /= NN                .OR.
-     &              DEPNAME( N ) == 'ISOPNB' .OR.
-     &              DEPNAME( N ) == 'MVKN'       ) CYCLE
+               IF ( MMB /= NN                       .OR.
+!-----------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Now use DRYDEP_NAME, which is defined above.  This avoids an out-of-bounds
+! error on DEPNAME(N) when using TOMAS simulations. (bmy, 1/29/14)
+!     &              DEPNAME( N ) == 'ISOPNB' .OR.
+!     &              DEPNAME( N ) == 'MVKN'       ) CYCLE
+!-----------------------------------------------------------------------------
+     &              TRIM( DRYDEP_NAME ) == 'ISOPNB' .OR.
+     &              TRIM( DRYDEP_NAME ) == 'MVKN'       ) CYCLE
             ENDIF
 
             ! Save into ARRAY
@@ -2905,7 +2929,14 @@
             ! MACRN above.  Therefore, also write the drydep velocities
             ! for the second species (ISOPNB and MVKN) here.
             !-----------------------------------------------------------
-            SELECT CASE( TRIM( DEPNAME( N ) ) )
+!------------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Now use DRYDEP_NAME, which is defined above.  This avoids an out-of-bounds
+! error on DEPNAME(N) when using TOMAS simulations. (bmy, 1/29/14)
+!            SELECT CASE( TRIM( DEPNAME( N ) ) )
+!------------------------------------------------------------------------------
+            SELECT CASE( TRIM( DRYDEP_NAME ) )
+
                CASE( 'ISOPND' ) 
                   !ISOPNB is the next deposition tracer
                   ! Save into ARRAY

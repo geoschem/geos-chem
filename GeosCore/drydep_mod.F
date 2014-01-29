@@ -188,18 +188,16 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  29 Jan 2014 - R. Yantosca - Now set MAXDEP=105 for all simulations.  For
+!                              TOMAS we had MAXDEP=100; this is close enough.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-#if   defined( TOMAS )
-      INTEGER, PARAMETER :: MAXDEP    = 100     ! Max # of depositing species
-#else
       ! SOAupdate: 55 to 105 jje (8/19/2010)
       INTEGER, PARAMETER :: MAXDEP    = 105     ! Max # of depositing species
-#endif
       REAL*8,  PARAMETER :: XCKMAN    = 0.4d0   ! Von Karman's constant
       INTEGER, PARAMETER :: NR_MAX    = 200     ! # of seasalt bins 
       INTEGER, PARAMETER :: NDRYDTYPE = 11      ! # of drydep land types
