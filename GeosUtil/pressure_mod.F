@@ -226,6 +226,9 @@
 ! !LOCAL VARIABLES:
 ! 
       INTEGER :: I, J
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
 
       !=================================================================
       ! SET_FLOATING_PRESSURE begins here!
@@ -239,9 +242,12 @@
          ! Assign into PFLT array
          PFLT(I,J) = PS(I,J) 
 
-         ! Check for NaN or Infinities
-         CALL CHECK_VALUE( PFLT(I,J), (/I,J,0,0/), 
-     &                    'PFLT',   'set_floating_pressure:1' )
+            ! Check for NaN or Infinities
+         ERR_LOC = (/ I, J, 0, 0 /)
+         ERR_VAR = 'PFLT'
+         ERR_MSG = 'set_floating_pressure:1'
+         CALL CHECK_VALUE( PFLT(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO

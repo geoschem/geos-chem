@@ -39,7 +39,7 @@
                               
       USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
-      USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
+      USE TIME_MOD,           ONLY : GET_TS_EMIS,   GET_DAY_OF_WEEK_LT
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
       USE TRACER_MOD,         ONLY : XNUMOL
@@ -51,6 +51,9 @@
 ![eml
       USE LOGICAL_MOD,        ONLY : LHIST
 !eml]
+
+      ! 10/24/12, ckeller: NOX diurnal scale factors fix:
+      USE TIME_MOD,           ONLY : GET_LOCALTIME !lds, 10/27/13
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! IHOUR
@@ -154,7 +157,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: WEEKDAY
-      INTEGER :: L, LL, K, DOW, HOUR
+      INTEGER :: L, LL, K, DOW_LT, HOUR
       REAL*8  :: TODX, DTSRCE, AREA_CM2           
       REAL*8  :: EMX(NOXLEVELS)  
       REAL*8  :: XEMISR
@@ -163,6 +166,8 @@
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
       REAL*8  :: RETRO
       REAL*8  :: C2H6_ANTHRO
+      ! 10/24/12, ckeller: NOX diurnal scale factors fix:
+      INTEGER :: NOXHOUR !lds, 10/27/13
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -177,9 +182,11 @@
       ! GMT hour of day
       HOUR     = GET_HOUR()
 
-      ! Flag for weekday or weekend for NEI/VISTAS emissions
-      DOW      = GET_DAY_OF_WEEK()
-      WEEKDAY  = ( DOW > 0 .and. DOW < 6 )
+      ! Determine if we should use weekday or weekend NEI
+      ! emissions at grid box (I,J,L).  Since NEI is over
+      ! the US, then weekend is Sat/Sun.
+      DOW_LT   = GET_DAY_OF_WEEK_LT( I, J, 1 )
+      WEEKDAY  = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
       !=================================================================
       ! Call EMF_SCALE to do the following:
@@ -202,6 +209,10 @@
 
          ! Initialize work variables
          EMX(:)  = 0d0
+
+        ! 10/24/12, ckeller: fix for EDGAR diurnal scale factors:
+         NOXHOUR = MIN( 23, NINT( GET_LOCALTIME ( I, J, I ) ) ) !lds, 10/27/13
+         TODX = GET_EDGAR_TODN(I,J,NOXHOUR)
 
          ! Use spatially varying diurnal scale factors 
          ! from EDGAR (amv, phs, 3/10/08)

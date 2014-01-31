@@ -561,7 +561,7 @@
       IF (.NOT. IS_2006) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_527 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
 #else
             IF ( IS_WATER(I,J) ) SCALOC(I,J) = 0d0
@@ -684,7 +684,7 @@
  
             ! Read data
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 1,
-     &                         TAU,       TEMP,      PERAREA=0 )
+     &                         TAU,       TEMP,      PERAREA=1 )
    
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             !NOX = NOX + TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE )
@@ -726,7 +726,7 @@
          ENDIF
          
          CALL READ_STREETS( FILENAME,      'RATIO-2D', 71,
-     $                      TAUMONTH_2004,  TEMP,      PERAREA=1 )
+     $                      TAUMONTH_2004,  TEMP,      PERAREA=0 )
 
          NOX = NOX * TEMP
 
@@ -746,7 +746,7 @@
 
                ! Read data
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4,
-     $                            TAU2006,   TEMP,      PERAREA=0 )
+     $                            TAU2006,   TEMP,      PERAREA=1 )
 
                ! No scaling for 2006-2020
                CO = CO + TEMP * ONOFF( NSOURCE )
@@ -760,7 +760,7 @@
      &                  'Streets_2001_CO_MonthFctr_total.generic.1x1'
 
             CALL READ_STREETS( FILENAME,     'RATIO-2D', 72,
-     $                         TAUMONTH_2001, TEMP,      PERAREA=1 )
+     $                         TAUMONTH_2001, TEMP,      PERAREA=0 )
 
             CO = CO * TEMP
 
@@ -777,7 +777,7 @@
 
             ! Read data
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4,
-     &                         TAU2000,   CO,        PERAREA=0 )
+     &                         TAU2000,   CO,        PERAREA=1 )
 
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             ! Only necessary for 2000 emissions
@@ -793,7 +793,7 @@
 
             ! Read data 
             CALL READ_STREETS( FILENAME,      'ANTHSRCE', 4,
-     $                         TAUMONTH_2001,  TEMP,      PERAREA=0 )
+     $                         TAUMONTH_2001,  TEMP,      PERAREA=1 )
 
             ! Annual scalar factor (amv, phs, 3/10/08)
             CALL GET_ANNUAL_SCALAR( 72, 2001, SIM_YEAR, SCALFAC )
@@ -1673,7 +1673,9 @@
             !-- PART 3 -- Replace SE Asia CO for 2000 with China CO for 2001
             
             WHERE ( MASK_CHINA > 0 ) CO = TEMP
-
+            
+            ! switch and scale
+            CO = CO * ONOFF( 1 )
 
          ENDIF
             

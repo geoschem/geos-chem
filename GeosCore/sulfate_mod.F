@@ -4520,7 +4520,7 @@
       USE PBL_MIX_MOD,    ONLY     : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
       USE PRESSURE_MOD,   ONLY     : GET_PEDGE
       USE TIME_MOD,       ONLY     : GET_TS_EMIS,      GET_DAY_OF_YEAR 
-      USE TIME_MOD,       ONLY     : GET_DAY_OF_WEEK
+      USE TIME_MOD,       ONLY     : GET_DAY_OF_WEEK_LT
       USE TRACER_MOD,     ONLY     : XNUMOL
       USE TRACERID_MOD,   ONLY     : IDTSO2
 ![eml
@@ -4593,7 +4593,7 @@
 !
       LOGICAL                :: WEEKDAY, IS_LOCAL
       INTEGER                :: I, J, K, L, NTOP
-      INTEGER                :: DAY_NUM
+      INTEGER                :: DOW_LT
       REAL*8                 :: SO2(LLPAR)
       REAL*8                 :: DTSRCE,      SO2SRC
       REAL*8                 :: TSO2,        FEMIS(LLPAR)
@@ -4622,12 +4622,6 @@
 
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0
-
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       ! is it local PBL mixing scheme?
       IS_LOCAL = .NOT. LNLPBL      
@@ -4791,7 +4785,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_CM2, AN, BF )
+!$OMP+PRIVATE( I, J, L, AREA_CM2, AN, BF, DOW_LT, WEEKDAY)
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
 
@@ -4812,6 +4806,12 @@
             !
             !   ! If we are over the USA ...
             !   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+	    !
+            !      ! Determine if we should use weekday or weekend NEI
+            !      ! emissions at grid box (I,J,L).  Since NEI is over
+            !      ! the US, then weekend is Sat/Sun.
+            !      DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+            !      WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
             !
             !      ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
             !      AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
@@ -4896,6 +4896,12 @@
             IF ( LNEI99 .and. .not. LHIST ) THEN
 !eml]
             IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
             
                ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
                AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
@@ -4988,6 +4994,12 @@
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
+
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
                ! Read USA SO2 emissions in [molec/cm2/s]
                DO L = 1, NOXLEVELS
@@ -5150,7 +5162,7 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,        ONLY : LNEI99, LCAC, LBRAVO, LNEI05
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT, GET_TS_EMIS
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
 ![eml
@@ -5207,7 +5219,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                :: WEEKDAY, IS_LOCAL
-      INTEGER                :: I, J, K, L, DAY_NUM, NTOP
+      INTEGER                :: I, J, K, L, DOW_LT, NTOP
       REAL*8                 :: SO4(LLPAR), DTSRCE  
       REAL*8                 :: TSO4,       FEMIS(LLPAR)
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
@@ -5223,12 +5235,6 @@
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0
 
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       ! is it local PBL mixing scheme?
       IS_LOCAL = .NOT. LNLPBL
 
@@ -5241,7 +5247,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, AREA_CM2, EPA_AN, EPA_BF, AN )
-!$OMP+PRIVATE( NTOP, FEMIS, SO4, TEMPEMISS )
+!$OMP+PRIVATE( NTOP, FEMIS, SO4, TEMPEMISS, DOW_LT, WEEKDAY )
       DO J = 1, JJPAR
          
          DO I = 1, IIPAR
@@ -5274,6 +5280,12 @@
             IF ( LNEI99 .and. .not. LHIST ) THEN
 !eml]
             IF ( GET_USA_MASK( I, J ) > 0d0 )  THEN
+
+                  ! Determine if we should use weekday or weekend NEI
+                  ! emissions at grid box (I,J,L).  Since NEI is over
+                  ! the US, then weekend is Sat/Sun.
+                  DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                  WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
             
                   ! Read SO4 emissions in [molec/cm2/s]
                   EPA_AN       = GET_EPA_ANTHRO( I, J, IDTSO4, WEEKDAY )
@@ -5362,6 +5374,12 @@
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
                IF ( NEI05_MASK( I, J) < 0d0 ) THEN
+
+                  ! Determine if we should use weekday or weekend NEI
+                  ! emissions at grid box (I,J,L).  Since NEI is over
+                  ! the US, then weekend is Sat/Sun.
+                  DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                  WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
                   ! Read SO4 emissions in [molec/cm2/s]
                   DO L = 1, NOXLEVELS
@@ -5459,7 +5477,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE LOGICAL_MOD,        ONLY : LNEI99, LCAC, LNEI05
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT, GET_TS_EMIS
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTNH3
 
@@ -5508,7 +5526,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                :: WEEKDAY,  IS_LOCAL
-      INTEGER                :: I, J, L,  K, NTOP, DAY_NUM
+      INTEGER                :: I, J, L,  K, NTOP, DOW_LT
       REAL*8                 :: DTSRCE,   AREA_CM2    
       REAL*8                 :: CAC_AN,   EPA_AN,  EPA_BF
       REAL*8                 :: FEMIS(LLPAR), NH3(LLPAR)
@@ -5523,12 +5541,6 @@
 
       ! Emission timestep [s]
       DTSRCE  = GET_TS_EMIS() * 60d0
- 
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       ! init
       NH3an = 0D0
@@ -5543,7 +5555,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN, L )
-!$OMP+PRIVATE( NTOP, FEMIS, NH3, TEMPEMISS )
+!$OMP+PRIVATE( NTOP, FEMIS, NH3, TEMPEMISS, DOW_LT, WEEKDAY )
       DO J = 1, JJPAR
 
          DO I = 1, IIPAR
@@ -5577,6 +5589,12 @@
             !   ! If we are over the USA ...
             !   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
             !
+            !      ! Determine if we should use weekday or weekend NEI
+            !      ! emissions at grid box (I,J,L).  Since NEI is over
+            !      ! the US, then weekend is Sat/Sun.
+            !      DOW_LT     = GET_DAY_OF_WEEK_LT( I, J, 1 )
+            !      WEEKDAY    = ( DOW_LT > 0 .and. DOW_LT < 6 )
+	    !
             !      ! Read NH3 anthro emissions in [molec NH3/cm2/s]
             !      EPA_AN     = GET_EPA_ANTHRO(  I, J, IDTNH3, WEEKDAY )
             !      EPA_BF     = GET_EPA_BIOFUEL( I, J, IDTNH3, WEEKDAY )
@@ -5629,6 +5647,12 @@
             ! If we are using NEI 2005 over North America
             IF ( LNEI05 ) THEN
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
+
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
              
                DO L = 1, NOXLEVELS 
 
@@ -7160,7 +7184,7 @@
 
          ! Regrid to current model resolution [kg/yr]
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       INGRID,     OUTGRID, PERAREA=1,
      &                       netCDF=.TRUE.                   )
 
          ! Free pointers

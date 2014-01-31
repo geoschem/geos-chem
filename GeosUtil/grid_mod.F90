@@ -241,6 +241,9 @@ CONTAINS
           DO I = I1, I2
              YEDGE  (I,JNP+1,L) = +90d0
              YEDGE_R(I,JNP+1,L) = YEDGE(I,JNP+1,L) * PI_180
+          
+             ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
+             YSIN(I,J2+1,L) = SIN ( YEDGE_R(I,J2+1,L) )
           ENDDO
           
        ELSE
@@ -249,6 +252,9 @@ CONTAINS
           DO I = I1, I2 
              YEDGE  (I,J2+1,L)  = YEDGE(I,J2,L  ) + DLAT(I,J2,L)
              YEDGE_R(I,J2+1,L)  = YEDGE(I,J2+1,L) * PI_180
+
+             ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
+             YSIN(I,J2+1,L) = SIN ( YEDGE_R(I,J2+1,L) )
           ENDDO
        ENDIF
 

@@ -504,8 +504,10 @@
 ! !INPUT PARAMETERS: 
 !
       REAL*4,           INTENT(IN) :: VALUE        ! Value to be checked
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      !CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
+      !CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
       INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:
@@ -564,8 +566,10 @@
 ! !INPUT PARAMETERS: 
 !
       REAL*8,           INTENT(IN) :: VALUE        ! Value to be checked
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      !CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
+      !CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
       INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:

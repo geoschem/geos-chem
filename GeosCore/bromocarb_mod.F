@@ -782,6 +782,8 @@
 !
       INTEGER           :: I, J, fileID
       INTEGER           :: AS
+      INTEGER           :: st2d(2)
+      INTEGER           :: ct2d(2)
       CHARACTER(len=60) :: vsl_file, fmt, vsldir
       CHARACTER(len=10) :: cnlon
       CHARACTER(len=255):: LLFILENAME, FILENAME
@@ -794,6 +796,10 @@
       !--------------------------
       ! Allocate and zero arrays
       !--------------------------
+
+      ! Start and count arrays for netCDF reads
+      st2d = (/ 1,   1  /)
+      ct2d = (/ 144, 91 /)
 
       ! Total regional areas
       ALLOCATE( TOT_OC_AREA( NUM_REGIONS ), STAT=AS )
@@ -844,7 +850,7 @@
       ! Read in CHBr3 emission file ([kg(CHBr3)/m2/s]), regrid
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
       call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', 
-     &           (/ 1, 1 /),  (/ 144, 91 /) )
+     &           st2d,  ct2d )
       CALL DO_REGRID_A2A( LLFILENAME, 144,         91, 
      &                    ARRAY2x25,  CHBr3_EMISS, PERAREA=0,
      &                    netCDF=.TRUE.                       )
@@ -853,7 +859,7 @@
       ! Read in CH2Br2 emission file ([kg(CH2Br2)/m2/s]), regrid
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
       call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission',
-     &           (/ 1, 1 /),  (/ 144, 91 /) )
+     &           st2d,  ct2d )
       CALL DO_REGRID_A2A( LLFILENAME, 144,          91,
      &                    ARRAY2x25,  CH2Br2_EMISS, PERAREA=0,
      &                    netCDF=.TRUE.                        )

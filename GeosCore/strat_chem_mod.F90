@@ -585,6 +585,8 @@ CONTAINS
     ! Arrays
     REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
     REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR )  ! Actual vertical res
+    INTEGER :: st4d(4)
+    INTEGER :: ct4d(4)
 
     !=================================================================
     ! GET_RATES begins here
@@ -615,9 +617,13 @@ CONTAINS
     ENDIF
 
     call NcOp_Rd( fileID, TRIM( FILENAME ) )
-    call NcRd( array, fileID, 'species',                     &
-                              (/     1,     1,     1,  m /), & ! Start
-                              (/ iipar, jjpar, lglob,  1 /)  ) ! Count
+    !call NcRd( array, fileID, 'species',                     &
+    !                          (/     1,     1,     1,  m /), & ! Start
+    !                          (/ iipar, jjpar, lglob,  1 /)  ) ! Count
+    st4d = (/    1,   1,   1,  M /)      !Start
+    ct4d = (/ IIPAR, JJPAR, LGLOB,  1 /) !Count
+    call NcRd( array, fileID, 'species', st4d, ct4d )
+
     call NcCl( fileID )
 
     ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
@@ -647,9 +653,12 @@ CONTAINS
        ! Read production rate [v/v/s]
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-       call NcRd( array, fileID, 'prod',                          &
-                                 (/     1,     1,     1,  m  /),  & ! Start 
-                                 (/ iipar, jjpar, lglob,  1  /)  )  ! Count
+       !call NcRd( array, fileID, 'prod',                          &
+       !                          (/     1,     1,     1,  m  /),  & ! Start 
+       !                          (/ iipar, jjpar, lglob,  1  /)  )  ! Count
+       st4d = (/    1,   1,   1,  M /)      !Start
+       ct4d = (/ IIPAR, JJPAR, LGLOB,  1 /) !Count
+       call NcRd( array, fileID, 'prod', st4d, ct4d )
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
        call transfer_3D( array, array2 )
@@ -663,9 +672,12 @@ CONTAINS
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Read loss frequencies [s^-1]
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       call NcRd( array, fileID, 'loss',                          &
-                                 (/     1,     1,     1,  m  /),  & ! Start
-                                 (/ iipar, jjpar, lglob,  1  /)  )  ! Count
+       !call NcRd( array, fileID, 'loss',                          &
+       !                          (/     1,     1,     1,  m  /),  & ! Start
+       !                          (/ iipar, jjpar, lglob,  1  /)  )  ! Count
+       st4d = (/    1,   1,   1,  M /)      !Start
+       ct4d = (/ IIPAR, JJPAR, LGLOB,  1 /) !Count
+       call NcRd( array, fileID, 'loss', st4d, ct4d )
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
        call transfer_3D( array, array2 )

@@ -210,7 +210,7 @@
       USE LOGICAL_MOD,          ONLY : LRETRO ! (dbm, 8/18/2011)
       USE LOGICAL_MOD,          ONLY : LNEI05
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
-      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK,  GET_YEAR
+      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK_LT,  GET_YEAR
       USE TRACER_MOD,           ONLY : ITS_A_H2HD_SIM
       USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNOX, IDTACET
       USE TRACERID_MOD,         ONLY : IDTALD2, IDTALK4, IDTC2H6
@@ -242,7 +242,7 @@
       LOGICAL                       :: WEEKDAY
       LOGICAL, SAVE                 :: FIRST = .TRUE.
       LOGICAL, SAVE                 :: DO_ND29, DO_ND32, DO_ND34
-      INTEGER                       :: AS, I, J, N, NN, DAY_NUM
+      INTEGER                       :: AS, I, J, N, NN, DOW_LT
       INTEGER                       :: SIM_YEAR
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8,  SAVE                 :: MOLWT(NBFMAX)
@@ -385,7 +385,8 @@
      &                             1,         ARRAY,     QUIET=.TRUE. ) 
                           
                   ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-                  CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+                  !CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+                  BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
                
                ENDIF
 !eml]
@@ -414,10 +415,12 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               !CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Save BF_CO before scaling (tmf, 6/15/07) 
-               CALL TRANSFER_2D( ARRAY(:,:,1), BF_CO(:,:) )         
+               !CALL TRANSFER_2D( ARRAY(:,:,1), BF_CO(:,:) )       
+               BF_CO              = ARRAY(:,:,1)
 
                ! Scale CO to account for oxidation of extra VOC's
                CALL SCALE_BIOFUEL_CO( BIOFUEL_KG(N,:,:) )
@@ -446,7 +449,8 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               !CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future ALK4 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -472,7 +476,8 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               !CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Scale to match a posteriori source (bdf, bmy, 9/10/01)
                CALL SCALE_BIOFUEL_ACET( BIOFUEL_KG(N,:,:) )
@@ -501,7 +506,8 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               !CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future MEK emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -527,7 +533,8 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               !CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future ALD2 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -553,7 +560,8 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               !CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future PRPE emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -580,6 +588,7 @@
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
                CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future C3H8 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -605,7 +614,8 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               !CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future CH2O emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -631,7 +641,8 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               !CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future C2H6 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -824,12 +835,6 @@
       ! Also archive diagnostics w/in parallel loop (bmy, 5/30/02)
       !=================================================================
 
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       ! get emissions year to test Streets
       IF ( FSCALYR < 0 ) THEN
          SIM_YEAR = GET_YEAR()
@@ -839,7 +844,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI )
+!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI, DOW_LT, WEEKDAY  )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -890,6 +895,12 @@
 
                   ! If we are over the USA ...
                   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+
+                     ! Determine if we should use weekday or weekend NEI
+                     ! emissions at grid box (I,J,L).  Since NEI is over
+                     ! the US, then weekend is Sat/Sun.
+                     DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                     WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
   
                      ! Get GEOS-CHEM tracer number
                      NN      = BFTRACE(N)

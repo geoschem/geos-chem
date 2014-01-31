@@ -735,6 +735,11 @@
       REAL*8                 :: THIK, P2, DRYF, TESTVAR
       REAL*8                 :: FRACLOST, H2_RATE
 
+      ! Avoid array temporaries in CHECK_VALUE
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
+
       ! For saving CH4 latitudinal gradient
       REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
 
@@ -910,8 +915,10 @@
          ENDIF
 	 
          ! Check H2_CH4 for NaN or Infinity
-         CALL CHECK_VALUE( H2_CH4,  (/ I, J, L, 0 /),
-     *                    'H2_CH4', 'STOP at h2_hd_mod:1' )
+         ERR_LOC = (/ I, J, L, 0 /)
+         ERR_VAR = 'H2_CH4'
+         ERR_MSG = 'STOP at h2_hd_mod:1'
+         CALL CHECK_VALUE( H2_CH4,  ERR_LOC, ERR_VAR, ERR_MSG )
 
 
          !==============================================================
@@ -984,12 +991,15 @@
             SUMCH3OHCO(I,J) = 0d0
 
             ! Check H2_ISOP for NaN or Infinity
-            CALL CHECK_VALUE( H2_ISOP,  (/ I, J, L, 0 /),
-     &                       'H2_ISOP', 'STOP at h2_hd_mod:2' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_ISOP'
+            ERR_MSG = 'STOP at h2_hd_mod:2'
+            CALL CHECK_VALUE( H2_ISOP,  ERR_LOC, ERR_VAR, ERR_MSG )
 
             ! Check H2_CH4 for NaN or Infinity
-            CALL CHECK_VALUE( H2_CH3OH,  (/ I, J, L, 0 /),
-     &                       'H2_CH3OH', 'STOP at h2_hd_mod:3' )
+            ERR_VAR = 'H2_ISOP'
+            ERR_MSG = 'STOP at h2_hd_mod:3'
+            CALL CHECK_VALUE( H2_CH3OH,  ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1048,8 +1058,10 @@
             SUMMONOCO(I,J) = 0d0
 
             ! Check H2_MONO for NaN or Infinity
-            CALL CHECK_VALUE( H2_MONO,  (/ I, J, L, 0 /),
-     &                       'H2_MONO', 'STOP at h2_hd_mod:4' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_MONO'
+            ERR_MSG = 'STOP at h2_hd_mod:4'
+            CALL CHECK_VALUE( H2_MONO, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1093,8 +1105,10 @@
             SUMACETCO(I,J) = 0d0
 
             ! Check H2_ACET for NaN or Infinity
-            CALL CHECK_VALUE( H2_ACET,  (/I, J, L, 0 /),
-     &                       'H2_ACET', 'STOP at h2_hd_mod:5' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_MONO'
+            ERR_MSG = 'STOP at h2_hd_mod:5'
+            CALL CHECK_VALUE( H2_ACET, ERR_LOC, ERR_VAR, ERR_MSG )
 
 
          ENDIF
@@ -1146,13 +1160,16 @@
             ! Do not deal with this for HD.
 	    HD_O1D = 0d0
 	    
-	    
             ! Check values for NaN or Infinity
-            CALL CHECK_VALUE( H2_OH,  (/ I, J, L, 0 /),
-     &                      'H2_OH', 'STOP at h2_hd_mod:6' )
-     
-     	    CALL CHECK_VALUE( H2_O1D,  (/ I, J, L, 0 /),
-     &                      'H2_O1D', 'STOP at h2_hd_mod:6' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_OH'
+            ERR_MSG = 'STOP at h2_hd_mod:6'
+            CALL CHECK_VALUE( H2_OH,  ERR_LOC, ERR_VAR, ERR_MSG )
+
+            ! Check values for NaN or Infinity
+            ERR_VAR = 'H2_MONO'
+            ERR_MSG = 'STOP at h2_hd_mod:7'
+     	    CALL CHECK_VALUE( H2_O1D, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ELSE
 

@@ -2519,7 +2519,7 @@
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  PERAREA=0,
      &                    netCDF=.TRUE.                    )
       AEF_ISOP = OUTGRID
       NULLIFY( INGRID )
@@ -2562,7 +2562,7 @@
       ! Regrid from 0.5 x 0.666 to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  PERAREA=0,
      &                    netCDF=.TRUE.                    )
       AEF_MONOT = OUTGRID
       NULLIFY( INGRID )
@@ -2606,7 +2606,7 @@
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  PERAREA=0,
      &                    netCDF=.TRUE.                    )
       AEF_MBO = OUTGRID
       NULLIFY( INGRID )
@@ -2649,7 +2649,7 @@
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  PERAREA=0,
      &                    netCDF=.TRUE.                    )
       AEF_OVOC = OUTGRID
       NULLIFY( INGRID )

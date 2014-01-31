@@ -434,12 +434,15 @@ CONTAINS
     REAL*8,  INTENT(IN)    :: bk(KM+1)              
 
     ! u-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL*8,  INTENT(IN)    :: u(IM,JFIRST:JLAST,KM) 
+    !REAL*8,  INTENT(IN)    :: u(IM,JFIRST:JLAST,KM) 
+    REAL*8,  INTENT(IN)    :: u(:,:,:) 
 
     ! E/W and N/S mass fluxes [kg/s]
     ! (These are computed by the pressure fixer, and passed into TPCORE)
-    REAL*8,  INTENT(IN)    :: XMASS(IM,JM,KM)
-    REAL*8,  INTENT(IN)    :: YMASS(IM,JM,KM)
+    !REAL*8,  INTENT(IN)    :: XMASS(IM,JM,KM)
+    !REAL*8,  INTENT(IN)    :: YMASS(IM,JM,KM)
+    REAL*8,  INTENT(IN)    :: XMASS(:,:,:)
+    REAL*8,  INTENT(IN)    :: YMASS(:,:,:)
 
     ! Grid box surface area for mass flux diag [m2]
     REAL*8,  INTENT(IN)    :: AREA_M2(JM)        
@@ -457,7 +460,8 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! V-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL*8,  INTENT(INOUT) :: v(IM, JFIRST-MG:JLAST+MG, KM) 
+    !REAL*8,  INTENT(INOUT) :: v(IM, JFIRST-MG:JLAST+MG, KM) 
+    REAL*8,  INTENT(INOUT) :: v(:,:,:) 
 
     ! surface pressure at current time
     REAL*8,  INTENT(INOUT) :: ps1(IM, JFIRST:JLAST)  
@@ -466,7 +470,8 @@ CONTAINS
     REAL*8,  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
 
     ! Tracer "mixing ratios" [v/v]
-    REAL*8,  INTENT(INOUT) :: q(IM, JFIRST-NG:JLAST+NG, KM, NQ)  
+    !REAL*8,  INTENT(INOUT) :: q(IM, JFIRST-NG:JLAST+NG, KM, NQ) 
+    REAL*8,  INTENT(INOUT), TARGET :: q(:,:,:,:)  
 
     ! E/W, N/S, and up/down diagnostic mass fluxes
 !--- Previous to (ccc, 12/3/09)
@@ -567,6 +572,9 @@ CONTAINS
     
     INTEGER, SAVE      :: ilmt, jlmt, klmt
     INTEGER            :: js2g0, jn2g0
+
+    ! Add pointer to avoid array temporary in call to FZPPM (bmy, 6/5/13)
+    REAL*8,  POINTER   :: ptr_Q(:,:,:)
     
     !     ----------------
     !     Begin execution.
@@ -744,7 +752,7 @@ CONTAINS
 !--------------------------------------------------------
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1 )
+!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q )
     do iq = 1, nq
 
        do ik = 1, km
@@ -860,13 +868,19 @@ CONTAINS
 
        qtemp(:,:,:,iq) = q(:,:,:,iq)
 
+       ! Set up temporary pointer to Q to avoid array temporary in FZPPM
+       ! (bmy, 6/5/13)
+       ptr_Q => q(:,:,:,iq)
 
      ! ==========
        call Fzppm  &
      ! ==========
-            (klmt, delp1, wz, dq1, q(:,:,:,iq), fz(:,:,:,iq), &
+            (klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), &
             j1p, 1, jm, 1, im, 1, jm, &
             im, km, 1, im, 1, jm, 1, km)
+
+       ! Free pointer memory (bmy, 6/5/13)
+       NULLIFY( ptr_Q )
          
        !.sds notes on output arrays
        !   wz  (in) : vertical mass flux

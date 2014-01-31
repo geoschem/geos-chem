@@ -62,6 +62,7 @@
       PUBLIC  :: GET_SECOND
       PUBLIC  :: GET_DAY_OF_YEAR
       PUBLIC  :: GET_DAY_OF_WEEK
+      PUBLIC  :: GET_DAY_OF_WEEK_LT
       PUBLIC  :: GET_GMT
       PUBLIC  :: GET_TAU
       PUBLIC  :: GET_TAUb
@@ -220,7 +221,7 @@
       INTEGER           :: MONTH,      DAY,         YEAR
       INTEGER           :: HOUR,       MINUTE,      SECOND
       INTEGER           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
-      INTEGER           :: NDIAGTIME
+      INTEGER           :: NDIAGTIME, DAY_OF_WEEK    ! Day of week (0=Sun,1=Mon,.., 6=Sat)
 ![eml
       INTEGER           :: HISTYRA
 !eml]
@@ -299,7 +300,7 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       REAL*4        :: TMP
-      REAL*8        :: JD0, JD1
+      REAL*8        :: A, B, JD, JD0, JD1, THISDAY
 
       !=================================================================
       ! SET_CURRENT_TIME begins here!
@@ -396,6 +397,31 @@
          CASE ( 9, 10, 11 )
             NSEASON = 4
       END SELECT
+
+      !=================================================================
+      ! Compute day of week w/r/t the GMT date
+      ! (moved here from routine GET_DAY_OF_WEEK)
+      !=================================================================
+
+      ! Get fractional GMT day
+      THISDAY     = DAY + ( GMT / 24d0 )
+
+      ! Get current Julian date
+      JD          = JULDAY( YEAR, MONTH, THISDAY )
+
+      ! Add 1.5 to JD and divide by 7
+      A           = ( JD + 1.5d0 ) / 7d0
+
+      ! Take fractional part and multiply by 7
+      B           = ( A - INT( A ) ) * 7d0
+
+      ! NOTE: This is not in the Duffett-Smith book, but when using
+      ! REAL*8, we have to round B to 4 decimal places in order
+      ! to avoid floating-point errors. (bmy, 6/13/13)
+      B           = INT( NINT( B*1d5 + SIGN( 5d0, B ) ) / 10d0 ) / 1d4
+
+      ! Discard the fractional part of B
+      DAY_OF_WEEK = INT( B )
 
       END SUBROUTINE SET_CURRENT_TIME
 !EOC
@@ -1901,6 +1927,83 @@
       DAY_NUM = INT( B + 0.5d0 )
       
       END FUNCTION GET_DAY_OF_WEEK
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group
+!          !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_day_of_week_lt
+!
+! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK\_LT returns the day of the
+! week
+!  (with repect to the SOLAR LOCAL TIME AT GRID BOX [I,J,L]) as a
+!  number:
+!  Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_DAY_OF_WEEK_LT( I, J, L ) RESULT( DAY_NUM )
+!
+! !USES:
+!
+      USE GRID_MOD, ONLY : GET_XMID
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: I         ! Grid box lon index
+      INTEGER, INTENT(IN) :: J         ! Grid box lat index
+      INTEGER, INTENT(IN) :: L         ! Grid box level index
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: DAY_NUM   ! Day of week, w/r/t local time
+!
+! !REMARKS:
+!  This routine is used by various emissions routines, in order to
+!  determine
+!  whether weekday or weekend emissions need to be applied.
+!
+! !REVISION HISTORY:
+!  13 Jun 2013 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: DOW_LOCAL, LOCAL_TIME
+
+      !=================================================================
+      ! GET_DAY_OF_WEEK begins here!
+      !=================================================================
+
+      ! Get the local time [hrs] at grid box (I,J,L),
+      ! but do not force it into the range of [0..24] hours.
+      LOCAL_TIME = GMT + ( GET_XMID( I, J, L ) / 15d0 )
+      ! Add the local fraction of day elapsed to the day of week
+      ! obtained w/r/t the GREENWICH MEAN TIME.  This accounts for
+      ! the distance of grid box (I,J,L) from the Greenwich meridian.
+      DOW_LOCAL  = DBLE( DAY_OF_WEEK ) + ( LOCAL_TIME / 24d0 )
+
+      ! If DOW_LOCAL is negative, then we need to add 7.
+      ! This means that the day of week w/r/t GMT is Sunday
+      ! but that it is still Saturday at grid box (I,J,L).
+      IF ( DOW_LOCAL < 0d0 ) THEN
+         DOW_LOCAL = DOW_LOCAL + 7d0
+      ENDIF
+
+      ! Force the day of week w/r/t LOCAL TIME to fall
+      ! within the range 0 (Sunday) thru 6 (Saturday).
+      DOW_LOCAL  = MOD( DOW_LOCAL, 7d0 )
+
+      ! Cast to integer and return result
+      DAY_NUM    = INT( DOW_LOCAL )
+
+      END FUNCTION GET_DAY_OF_WEEK_LT
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

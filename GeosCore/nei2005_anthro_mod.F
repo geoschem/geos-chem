@@ -436,7 +436,7 @@
       REAL*8, POINTER            :: INGRID (:,:) => NULL()
 
 #if defined( DEVEL )
-      INTEGER               :: DAY_LT
+      INTEGER               :: DOW_LT
       LOGICAL               :: WEEKDAY
       REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, LLPAR, N_TRACERS)
 #endif
@@ -1222,38 +1222,46 @@
       ENDIF
 
 #if defined( DEVEL )
-      DAY_LT = GET_DAY_OF_WEEK_LT(I,J,1)
-      WEEKDAY = ( DAY_LT > 0 .and. DAY_LT < 6 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Determine if we should use weekday or weekend NEI
+         ! emissions at grid box (I,J,L).  Since NEI is over
+         ! the US, then weekend is Sat/Sun.
+         DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
-         EMISS(:,:,1:5,IDTNOx)  = NOx
-         EMISS(:,:,1:5,IDTCO)   = CO
-         EMISS(:,:,1:5,IDTSO2)  = SO2
-         EMISS(:,:,1:5,IDTSO4)  = SO4
-         EMISS(:,:,1:5,IDTNH3)  = NH3
-         EMISS(:,:,1:5,IDTALK4) = ALK4
-         EMISS(:,:,1:5,IDTACET) = ACET
-         EMISS(:,:,1:5,IDTMEK)  = MEK
-         EMISS(:,:,1:5,IDTPRPE) = PRPE
-         EMISS(:,:,1:5,IDTC3H8) = C3H8
-         EMISS(:,:,1:5,IDTCH2O) = CH2O
-         EMISS(:,:,1:5,IDTC2H6) = C2H6
-         EMISS(:,:,1:5,IDTALD2) = ALD2
+         EMISS(I,J,1:5,IDTNOx)  = NOx(I,J,1:5)
+         EMISS(I,J,1:5,IDTCO)   = CO(I,J,1:5)
+         EMISS(I,J,1:5,IDTSO2)  = SO2(I,J,1:5)
+         EMISS(I,J,1:5,IDTSO4)  = SO4(I,J,1:5)
+         EMISS(I,J,1:5,IDTNH3)  = NH3(I,J,1:5)
+         EMISS(I,J,1:5,IDTALK4) = ALK4(I,J,1:5)
+         EMISS(I,J,1:5,IDTACET) = ACET(I,J,1:5)
+         EMISS(I,J,1:5,IDTMEK)  = MEK(I,J,1:5)
+         EMISS(I,J,1:5,IDTPRPE) = PRPE(I,J,1:5)
+         EMISS(I,J,1:5,IDTC3H8) = C3H8(I,J,1:5)
+         EMISS(I,J,1:5,IDTCH2O) = CH2O(I,J,1:5)
+         EMISS(I,J,1:5,IDTC2H6) = C2H6(I,J,1:5)
+         EMISS(I,J,1:5,IDTALD2) = ALD2(I,J,1:5)
       ELSE
-         EMISS(:,:,1:5,IDTNOx)  = NOx_WKEND
-         EMISS(:,:,1:5,IDTCO)   = CO_WKEND
-         EMISS(:,:,1:5,IDTSO2)  = SO2_WKEND
-         EMISS(:,:,1:5,IDTSO4)  = SO4_WKEND
-         EMISS(:,:,1:5,IDTNH3)  = NH3_WKEND
-         EMISS(:,:,1:5,IDTALK4) = ALK4_WKEND
-         EMISS(:,:,1:5,IDTACET) = ACET_WKEND
-         EMISS(:,:,1:5,IDTMEK)  = MEK_WKEND
-         EMISS(:,:,1:5,IDTPRPE) = PRPE_WKEND
-         EMISS(:,:,1:5,IDTC3H8) = C3H8_WKEND
-         EMISS(:,:,1:5,IDTCH2O) = CH2O_WKEND
-         EMISS(:,:,1:5,IDTC2H6) = C2H6_WKEND
-         EMISS(:,:,1:5,IDTALD2) = ALD2_WKEND
+         EMISS(I,J,1:5,IDTNOx)  = NOx_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTCO)   = CO_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTSO2)  = SO2_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTSO4)  = SO4_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTNH3)  = NH3_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTALK4) = ALK4_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTACET) = ACET_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTMEK)  = MEK_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTPRPE) = PRPE_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTC3H8) = C3H8_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTCH2O) = CH2O_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTC2H6) = C2H6_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTALD2) = ALD2_WKEND(I,J,1:5)
       ENDIF
+      ENDDO
+      ENDDO
 #endif
       !--------------------------
       ! Print emission totals
@@ -1340,7 +1348,7 @@
 
 
 #if defined( DEVEL )
-      INTEGER               :: DAY_LT
+      INTEGER               :: DOW_LT
       LOGICAL               :: WEEKDAY
       REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, LLPAR, N_TRACERS)
 #endif
@@ -1605,38 +1613,46 @@
       ENDIF
 
 #if defined( DEVEL )
-      DAY_LT  = GET_DAY_OF_WEEK_LT(I,J,1)
-      WEEKDAY = ( DAY_LT > 0 .and. DAY_LT < 6 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Determine if we should use weekday or weekend NEI
+         ! emissions at grid box (I,J,L).  Since NEI is over
+         ! the US, then weekend is Sat/Sun.
+         DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
-         EMISS(:,:,:,IDTNOx)  = NOx
-         EMISS(:,:,:,IDTCO)   = CO
-         EMISS(:,:,:,IDTSO2)  = SO2
-         EMISS(:,:,:,IDTSO4)  = SO4
-         EMISS(:,:,:,IDTNH3)  = NH3
-         EMISS(:,:,:,IDTALK4) = ALK4
-         EMISS(:,:,:,IDTACET) = ACET
-         EMISS(:,:,:,IDTMEK)  = MEK
-         EMISS(:,:,:,IDTPRPE) = PRPE
-         EMISS(:,:,:,IDTC3H8) = C3H8
-         EMISS(:,:,:,IDTCH2O) = CH2O
-         EMISS(:,:,:,IDTC2H6) = C2H6
-         EMISS(:,:,:,IDTALD2) = ALD2
+         EMISS(I,J,1:5,IDTNOx)  = NOx(I,J,1:5)
+         EMISS(I,J,1:5,IDTCO)   = CO(I,J,1:5)
+         EMISS(I,J,1:5,IDTSO2)  = SO2(I,J,1:5)
+         EMISS(I,J,1:5,IDTSO4)  = SO4(I,J,1:5)
+         EMISS(I,J,1:5,IDTNH3)  = NH3(I,J,1:5)
+         EMISS(I,J,1:5,IDTALK4) = ALK4(I,J,1:5)
+         EMISS(I,J,1:5,IDTACET) = ACET(I,J,1:5)
+         EMISS(I,J,1:5,IDTMEK)  = MEK(I,J,1:5)
+         EMISS(I,J,1:5,IDTPRPE) = PRPE(I,J,1:5)
+         EMISS(I,J,1:5,IDTC3H8) = C3H8(I,J,1:5)
+         EMISS(I,J,1:5,IDTCH2O) = CH2O(I,J,1:5)
+         EMISS(I,J,1:5,IDTC2H6) = C2H6(I,J,1:5)
+         EMISS(I,J,1:5,IDTALD2) = ALD2(I,J,1:5)
       ELSE
-         EMISS(:,:,:,IDTNOx)  = NOx_WKEND
-         EMISS(:,:,:,IDTCO)   = CO_WKEND
-         EMISS(:,:,:,IDTSO2)  = SO2_WKEND
-         EMISS(:,:,:,IDTSO4)  = SO4_WKEND
-         EMISS(:,:,:,IDTNH3)  = NH3_WKEND
-         EMISS(:,:,:,IDTALK4) = ALK4_WKEND
-         EMISS(:,:,:,IDTACET) = ACET_WKEND
-         EMISS(:,:,:,IDTMEK)  = MEK_WKEND
-         EMISS(:,:,:,IDTPRPE) = PRPE_WKEND
-         EMISS(:,:,:,IDTC3H8) = C3H8_WKEND
-         EMISS(:,:,:,IDTCH2O) = CH2O_WKEND
-         EMISS(:,:,:,IDTC2H6) = C2H6_WKEND
-         EMISS(:,:,:,IDTALD2) = ALD2_WKEND
+         EMISS(I,J,1:5,IDTNOx)  = NOx_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTCO)   = CO_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTSO2)  = SO2_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTSO4)  = SO4_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTNH3)  = NH3_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTALK4) = ALK4_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTACET) = ACET_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTMEK)  = MEK_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTPRPE) = PRPE_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTC3H8) = C3H8_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTCH2O) = CH2O_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTC2H6) = C2H6_WKEND(I,J,1:5)
+         EMISS(I,J,1:5,IDTALD2) = ALD2_WKEND(I,J,1:5)
       ENDIF
+      ENDDO
+      ENDDO
 #endif
 
       !--------------------------
@@ -1703,12 +1719,13 @@
       INTEGER                :: MN, ThisMN, L
 
       ! seasonal scalar for NH3 emission (lzh, amv, 12/11/2009)
+      !REAL*8, PARAMETER :: NH3_SCALE(12) = (/ 
+      !     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0, 
+      !     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
+      ! New seasonal NH3 emission scalar based on Zhang et al. ACP 2012 (lzh 03/2012)
       REAL*8, PARAMETER :: NH3_SCALE(12) = (/ 
-     &     0.216d0, 0.418d0, 0.622d0, 0.815d0, 0.982d0, 0.974d0,
+     &     0.216d0, 0.418d0, 0.622d0, 0.815d0, 0.982d0, 0.974d0, 
      &     1.000d0, 0.900d0, 0.960d0, 0.600d0, 0.280d0, 0.236d0 /)
-
-!     &     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0, 
-!     &     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
  
       !=================================================================
       ! GET_NEI99_SEASON begins here!
@@ -2093,7 +2110,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=0, !fix from wiki (lds, 10/27/2013)
+     &                       INGRID,     OUTGRID, PERAREA=0,   !fix from wiki (lds, 10/27/2013)
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
@@ -2281,7 +2298,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=0, !fix from wiki (lds, 10/27/13)
+     &                       INGRID,     OUTGRID, PERAREA=0,
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO

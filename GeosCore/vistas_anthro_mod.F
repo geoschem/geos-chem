@@ -175,7 +175,7 @@
       USE CMN_O3_MOD              ! FSCALYR
 
 #if defined( DEVEL )
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK_LT
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTNOx
@@ -210,7 +210,7 @@
 
 
 #if defined( DEVEL )
-      INTEGER               :: DAY_NUM
+      INTEGER               :: DOW_LT
       LOGICAL               :: WEEKDAY
       REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
       REAL*8, ALLOCATABLE   :: A(:,:)
@@ -358,22 +358,26 @@
       !--------------------------
       ! Give to global bundle
       !--------------------------
-      DAY_NUM = GET_DAY_OF_WEEK()
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       DO I=1,IIPAR
       DO J=1,JJPAR
+
+         ! Determine if we should use weekday or weekend NEI
+         ! emissions at grid box (I,J,L).  Since NEI is over
+         ! the US, then weekend is Sat/Sun.
+         DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
          A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
-      ENDDO
-      ENDDO
 
       IF ( WEEKDAY ) THEN
-         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
-     &        VISTAS_WD_NOx(:,:) * A / XNUMOL(IDTNOX)
+         IF ( IDTNOX > 0) EMISS(I,J,IDTNOX) = 
+     &        VISTAS_WD_NOx(I,J) * A / XNUMOL(IDTNOX)
       ELSE
-         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
-     &        VISTAS_WE_NOx(:,:) * A / XNUMOL(IDTNOX)
+         IF ( IDTNOX > 0) EMISS(I,J,IDTNOX) = 
+     &        VISTAS_WE_NOx(I,J) * A / XNUMOL(IDTNOX)
       ENDIF
+      ENDDO
+      ENDDO
 #endif
 
       !--------------------------

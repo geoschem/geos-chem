@@ -534,7 +534,7 @@
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK_LT
       USE ERROR_MOD,    ONLY : ALLOC_ERR
 #endif
 !
@@ -556,7 +556,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       
 #if defined( DEVEL )
-      INTEGER               :: I,J,DAY_NUM, AS
+      INTEGER               :: I,J,DOW_LT, AS
       LOGICAL               :: WEEKDAY
       REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
       REAL*8, INTENT(INOUT) :: BEMISS(IIPAR, JJPAR, NBIOMAX)
@@ -623,172 +623,171 @@
 #if defined( DEVEL )
 ! Emissions  are treated as if they're molec/cm2/s
 ! and converted to Kg/s
-
-      DAY_NUM = GET_DAY_OF_WEEK()
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       DO I=1,IIPAR
       DO J=1,JJPAR
-         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
-      ENDDO
-      ENDDO
 
-      DO J=1,JJPAR
+         ! Determine day of week w/r/t local time
+         DOW_LT = GET_DAY_OF_WEEK_LT( I, J, 1 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+
          IF ( WEEKDAY ) THEN
             IF (.not. LNEI05) THEN
-               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
-     &              EPA_WD_AN_NOX(:,J) * A(:,J) *
+               IF ( IDTNOX > 0) EMISS(I,J,IDTNOX) = 
+     &              EPA_WD_AN_NOX(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-               IF ( IDTCO  > 0) EMISS(:,J,IDTCO)  = 
-     &              EPA_WD_AN_CO(:,J) * A(:,J) *
+               IF ( IDTCO  > 0) EMISS(I,J,IDTCO)  = 
+     &              EPA_WD_AN_CO(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
-               IF ( IDTALK4> 0) EMISS(:,J,IDTALK4) = 
-     &              EPA_WD_AN_ALK4(:,J) * A(:,J) *
+               IF ( IDTALK4> 0) EMISS(I,J,IDTALK4) = 
+     &              EPA_WD_AN_ALK4(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-               IF ( IDTACET > 0) EMISS(:,J,IDTACET) = 
-     &              EPA_WD_AN_ACET(:,J) * A(:,J) *
+               IF ( IDTACET > 0) EMISS(I,J,IDTACET) = 
+     &              EPA_WD_AN_ACET(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTACET) 
-               IF ( IDTMEK > 0) EMISS(:,J,IDTMEK)  = 
-     &              EPA_WD_AN_MEK(:,J) * A(:,J) *
+               IF ( IDTMEK > 0) EMISS(I,J,IDTMEK)  = 
+     &              EPA_WD_AN_MEK(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-               IF ( IDTPRPE > 0) EMISS(:,J,IDTPRPE) = 
-     &              EPA_WD_AN_PRPE(:,J) * A(:,J) *
+               IF ( IDTPRPE > 0) EMISS(I,J,IDTPRPE) = 
+     &              EPA_WD_AN_PRPE(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-               IF ( IDTC3H8> 0) EMISS(:,J,IDTC3H8) = 
-     &              EPA_WD_AN_C3H8(:,J) * A(:,J) *
+               IF ( IDTC3H8> 0) EMISS(I,J,IDTC3H8) = 
+     &              EPA_WD_AN_C3H8(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-               IF ( IDTCH2O> 0) EMISS(:,J,IDTCH2O) = 
-     &              EPA_WD_AN_CH2O(:,J) * A(:,J) *
+               IF ( IDTCH2O> 0) EMISS(I,J,IDTCH2O) = 
+     &              EPA_WD_AN_CH2O(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-               IF ( IDTC2H6> 0) EMISS(:,J,IDTC2H6) = 
-     &              EPA_WD_AN_C2H6(:,J) * A(:,J) *
+               IF ( IDTC2H6> 0) EMISS(I,J,IDTC2H6) = 
+     &              EPA_WD_AN_C2H6(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-               IF ( IDTSO2 > 0) EMISS(:,J,IDTSO2)  = 
-     &              EPA_WD_AN_SO2(:,J) * A(:,J) *
+               IF ( IDTSO2 > 0) EMISS(I,J,IDTSO2)  = 
+     &              EPA_WD_AN_SO2(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-               IF ( IDTSO4 > 0) EMISS(:,J,IDTSO4)  = 
-     &              EPA_WD_AN_SO4(:,J) * A(:,J) *
+               IF ( IDTSO4 > 0) EMISS(I,J,IDTSO4)  = 
+     &              EPA_WD_AN_SO4(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-               IF ( IDTNH3 > 0) EMISS(:,J,IDTNH3)  = 
-     &              EPA_WD_AN_NH3(:,J) * A(:,J) *
+               IF ( IDTNH3 > 0) EMISS(I,J,IDTNH3)  = 
+     &              EPA_WD_AN_NH3(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
             ENDIF
 
-            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
-     &           EPA_WD_BF_NOX(:,J) * A(:,J) *
+            IF ( IDTNOX > 0 ) EMISS(I,J,IDTNOX) = 
+     &           EPA_WD_BF_NOX(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-            IF ( IDTCO > 0 ) EMISS(:,J,IDTCO)  = 
-     &           EPA_WD_BF_CO(:,J) * A(:,J) *
+            IF ( IDTCO > 0 ) EMISS(I,J,IDTCO)  = 
+     &           EPA_WD_BF_CO(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
-            IF ( IDTALK4> 0 ) EMISS(:,J,IDTALK4) = 
-     &           EPA_WD_BF_ALK4(:,J) * A(:,J) *
+            IF ( IDTALK4> 0 ) EMISS(I,J,IDTALK4) = 
+     &           EPA_WD_BF_ALK4(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-            IF ( IDTACET> 0 ) EMISS(:,J,IDTACET) = 
-     &           EPA_WD_BF_ACET(:,J) * A(:,J) *
+            IF ( IDTACET> 0 ) EMISS(I,J,IDTACET) = 
+     &           EPA_WD_BF_ACET(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTACET) 
-            IF ( IDTMEK > 0 ) EMISS(:,J,IDTMEK)  = 
-     &           EPA_WD_BF_MEK(:,J) * A(:,J) *
+            IF ( IDTMEK > 0 ) EMISS(I,J,IDTMEK)  = 
+     &           EPA_WD_BF_MEK(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-            IF ( IDTPRPE> 0 ) EMISS(:,J,IDTPRPE) = 
-     &           EPA_WD_BF_PRPE(:,J) * A(:,J) *
+            IF ( IDTPRPE> 0 ) EMISS(I,J,IDTPRPE) = 
+     &           EPA_WD_BF_PRPE(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-            IF ( IDTC3H8> 0 ) EMISS(:,J,IDTC3H8) = 
-     &           EPA_WD_BF_C3H8(:,J) * A(:,J) *
+            IF ( IDTC3H8> 0 ) EMISS(I,J,IDTC3H8) = 
+     &           EPA_WD_BF_C3H8(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-            IF ( IDTCH2O> 0 ) EMISS(:,J,IDTCH2O) = 
-     &           EPA_WD_BF_CH2O(:,J) * A(:,J) *
+            IF ( IDTCH2O> 0 ) EMISS(I,J,IDTCH2O) = 
+     &           EPA_WD_BF_CH2O(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-            IF ( IDTC2H6> 0 ) EMISS(:,J,IDTC2H6) = 
-     &           EPA_WD_BF_C2H6(:,J) * A(:,J) *
+            IF ( IDTC2H6> 0 ) EMISS(I,J,IDTC2H6) = 
+     &           EPA_WD_BF_C2H6(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-            IF ( IDTSO2 > 0 ) EMISS(:,J,IDTSO2)  = 
-     &           EPA_WD_BF_SO2(:,J) * A(:,J) *
+            IF ( IDTSO2 > 0 ) EMISS(I,J,IDTSO2)  = 
+     &           EPA_WD_BF_SO2(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-            IF ( IDTSO4 > 0 ) EMISS(:,J,IDTSO4)  = 
-     &           EPA_WD_BF_SO4(:,J) * A(:,J) *
+            IF ( IDTSO4 > 0 ) EMISS(I,J,IDTSO4)  = 
+     &           EPA_WD_BF_SO4(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-            IF ( IDTNH3 > 0 ) EMISS(:,J,IDTNH3)  = 
-     &           EPA_WD_BF_NH3(:,J) * A(:,J) *
+            IF ( IDTNH3 > 0 ) EMISS(I,J,IDTNH3)  = 
+     &           EPA_WD_BF_NH3(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNH3) 
 
          ELSE ! ITS a WEEKEND...
             IF (.not. LNEI05) THEN
-               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
-     &              EPA_WE_AN_NOX(:,J) * A(:,J) *
+               IF ( IDTNOX > 0) EMISS(I,J,IDTNOX) = 
+     &              EPA_WE_AN_NOX(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-               IF ( IDTCO  > 0) EMISS(:,J,IDTCO)  = 
-     &              EPA_WE_AN_CO(:,J) * A(:,J) *
+               IF ( IDTCO  > 0) EMISS(I,J,IDTCO)  = 
+     &              EPA_WE_AN_CO(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
-               IF ( IDTALK4> 0) EMISS(:,J,IDTALK4) = 
-     &              EPA_WE_AN_ALK4(:,J) * A(:,J) *
+               IF ( IDTALK4> 0) EMISS(I,J,IDTALK4) = 
+     &              EPA_WE_AN_ALK4(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-               IF ( IDTACET> 0) EMISS(:,J,IDTACET) = 
-     &              EPA_WE_AN_ACET(:,J) * A(:,J) *
+               IF ( IDTACET> 0) EMISS(I,J,IDTACET) = 
+     &              EPA_WE_AN_ACET(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTACET) 
-               IF ( IDTMEK > 0) EMISS(:,J,IDTMEK)  = 
-     &              EPA_WE_AN_MEK(:,J) * A(:,J) *
+               IF ( IDTMEK > 0) EMISS(I,J,IDTMEK)  = 
+     &              EPA_WE_AN_MEK(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-               IF ( IDTPRPE> 0) EMISS(:,J,IDTPRPE) = 
-     &              EPA_WE_AN_PRPE(:,J) * A(:,J) *
+               IF ( IDTPRPE> 0) EMISS(I,J,IDTPRPE) = 
+     &              EPA_WE_AN_PRPE(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-               IF ( IDTC3H8> 0) EMISS(:,J,IDTC3H8) = 
-     &              EPA_WE_AN_C3H8(:,J) * A(:,J) *
+               IF ( IDTC3H8> 0) EMISS(I,J,IDTC3H8) = 
+     &              EPA_WE_AN_C3H8(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-               IF ( IDTCH2O> 0) EMISS(:,J,IDTCH2O) = 
-     &              EPA_WE_AN_CH2O(:,J) * A(:,J) *
+               IF ( IDTCH2O> 0) EMISS(I,J,IDTCH2O) = 
+     &              EPA_WE_AN_CH2O(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-               IF ( IDTC2H6> 0) EMISS(:,J,IDTC2H6) = 
-     &              EPA_WE_AN_C2H6(:,J) * A(:,J) *
+               IF ( IDTC2H6> 0) EMISS(I,J,IDTC2H6) = 
+     &              EPA_WE_AN_C2H6(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-               IF ( IDTSO2 > 0) EMISS(:,J,IDTSO2)  = 
-     &              EPA_WE_AN_SO2(:,J) * A(:,J) *
+               IF ( IDTSO2 > 0) EMISS(I,J,IDTSO2)  = 
+     &              EPA_WE_AN_SO2(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-               IF ( IDTSO4 > 0) EMISS(:,J,IDTSO4)  = 
-     &              EPA_WE_AN_SO4(:,J) * A(:,J) *
+               IF ( IDTSO4 > 0) EMISS(I,J,IDTSO4)  = 
+     &              EPA_WE_AN_SO4(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-               IF ( IDTNH3 > 0) EMISS(:,J,IDTNH3)  = 
-     &              EPA_WE_AN_NH3(:,J) * A(:,J) *
+               IF ( IDTNH3 > 0) EMISS(I,J,IDTNH3)  = 
+     &              EPA_WE_AN_NH3(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
             ENDIF
             
-            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
-     &           EPA_WE_BF_NOX(:,J) * A(:,J) *
+            IF ( IDTNOX > 0 ) EMISS(I,J,IDTNOX) = 
+     &           EPA_WE_BF_NOX(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-            IF ( IDTCO  > 0 ) EMISS(:,J,IDTCO)  = 
-     &           EPA_WE_BF_CO(:,J) * A(:,J) *
+            IF ( IDTCO  > 0 ) EMISS(I,J,IDTCO)  = 
+     &           EPA_WE_BF_CO(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
-            IF ( IDTALK4> 0 ) EMISS(:,J,IDTALK4) = 
-     &           EPA_WE_BF_ALK4(:,J) * A(:,J) *
+            IF ( IDTALK4> 0 ) EMISS(I,J,IDTALK4) = 
+     &           EPA_WE_BF_ALK4(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-            IF ( IDTACET> 0 ) EMISS(:,J,IDTACET) = 
-     &           EPA_WE_BF_ACET(:,J) * A(:,J) *
+            IF ( IDTACET> 0 ) EMISS(I,J,IDTACET) = 
+     &           EPA_WE_BF_ACET(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTACET) 
-            IF ( IDTMEK > 0 ) EMISS(:,J,IDTMEK)  = 
-     &           EPA_WE_BF_MEK(:,J) * A(:,J) *
+            IF ( IDTMEK > 0 ) EMISS(I,J,IDTMEK)  = 
+     &           EPA_WE_BF_MEK(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-            IF ( IDTPRPE> 0 ) EMISS(:,J,IDTPRPE) = 
-     &           EPA_WE_BF_PRPE(:,J) * A(:,J) *
+            IF ( IDTPRPE> 0 ) EMISS(I,J,IDTPRPE) = 
+     &           EPA_WE_BF_PRPE(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-            IF ( IDTC3H8> 0 ) EMISS(:,J,IDTC3H8) = 
-     &           EPA_WE_BF_C3H8(:,J) * A(:,J) *
+            IF ( IDTC3H8> 0 ) EMISS(I,J,IDTC3H8) = 
+     &           EPA_WE_BF_C3H8(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-            IF ( IDTCH2O> 0 ) EMISS(:,J,IDTCH2O) = 
-     &           EPA_WE_BF_CH2O(:,J) * A(:,J) *
+            IF ( IDTCH2O> 0 ) EMISS(I,J,IDTCH2O) = 
+     &           EPA_WE_BF_CH2O(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-            IF ( IDTC2H6> 0 ) EMISS(:,J,IDTC2H6) = 
-     &           EPA_WE_BF_C2H6(:,J) * A(:,J) *
+            IF ( IDTC2H6> 0 ) EMISS(I,J,IDTC2H6) = 
+     &           EPA_WE_BF_C2H6(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-            IF ( IDTSO2 > 0 ) EMISS(:,J,IDTSO2)  = 
-     &           EPA_WE_BF_SO2(:,J) * A(:,J) *
+            IF ( IDTSO2 > 0 ) EMISS(I,J,IDTSO2)  = 
+     &           EPA_WE_BF_SO2(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-            IF ( IDTSO4 > 0 ) EMISS(:,J,IDTSO4)  = 
-     &           EPA_WE_BF_SO4(:,J) * A(:,J) *
+            IF ( IDTSO4 > 0 ) EMISS(I,J,IDTSO4)  = 
+     &           EPA_WE_BF_SO4(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-            IF ( IDTNH3 > 0 ) EMISS(:,J,IDTNH3)  = 
-     &           EPA_WE_BF_NH3(:,J) * A(:,J) *
+            IF ( IDTNH3 > 0 ) EMISS(I,J,IDTNH3)  = 
+     &           EPA_WE_BF_NH3(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNH3) 
 
          ENDIF
+      ENDDO
       ENDDO
 #endif
 

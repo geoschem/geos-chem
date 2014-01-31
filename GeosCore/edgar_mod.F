@@ -1601,7 +1601,7 @@
       ! Regrid to current model resolution
       INGRID = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
 
       ! Apply monthly scale factors to ship SO2

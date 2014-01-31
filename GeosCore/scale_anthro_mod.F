@@ -185,7 +185,8 @@
       ! GET_ANNUAL_SCALAR_1x1 begins here!
       !=================================================================
 
-      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_201111/'
+      !SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_201111/'
+      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_201207/'
 
       ! limit scaling between available years
       BASE_YEAR = MAX( MIN( B_YEAR, 2010 ), 1985 )
@@ -218,7 +219,7 @@
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) //
-     &           'CO-AnnualScalar.201105-Fix.geos.1x1'
+     &           'CO-AnnualScalar.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
@@ -230,11 +231,11 @@
 
          ! Get Tau. Only NOx scaling exists after 2006   
          
-         IF ( BASE_YEAR >=2006 .and. TRACER.ne.71) THEN
-             TAU = GET_TAU0(1,1,2005)
-         ELSE 
-             TAU = GET_TAU0(1,1,BASE_YEAR)
-         ENDIF
+         !IF ( BASE_YEAR >=2006 .and. TRACER.ne.71) THEN
+         !    TAU = GET_TAU0(1,1,2006)
+         !ELSE 
+             TAU = GET_TAU0(1,1,BASE_YEAR) !now scalable until 2010
+         !ENDIF
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -264,7 +265,7 @@
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) //
-     &           'CO-AnnualScalar.201105-Fix.geos.1x1'
+     &           'CO-AnnualScalar.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
@@ -275,11 +276,11 @@
          ENDIF
 
          ! Calc Tau. Only NOx scaling exists after 2006 
-         IF ( TARG_YEAR >=2006 .and. TRACER.ne.71 ) THEN
-             TAU = GET_TAU0(1,1,2005)
-         ELSE 
-             TAU = GET_TAU0(1,1,TARG_YEAR)
-         ENDIF
+         !IF ( TARG_YEAR >=2006 .and. TRACER.ne.71 ) THEN
+         !    TAU = GET_TAU0(1,1,2006)
+         !ELSE 
+             TAU = GET_TAU0(1,1,TARG_YEAR) !now scalable until 2010
+         !ENDIF
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
