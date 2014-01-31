@@ -543,35 +543,35 @@
 !     &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
 !      ENDDO
 
-      !-------------------------------------
-      ! SPACING*6: GPROD & APROD [kg/kg]
-      !-------------------------------------
-      IF ( Input_Opt%LSOA ) THEN
-
-         ! Write separator line
-         CALL WRITE_SEPARATOR( IU_FILE, 600 )
-
-         ! Loop over tracers
-         ! New tracers for SOA simulation
+!     !-------------------------------------
+!     ! SPACING*6: GPROD & APROD [kg/kg]
+!     !-------------------------------------
+!     IF ( Input_Opt%LSOA ) THEN
+!
+!        ! Write separator line
+!        CALL WRITE_SEPARATOR( IU_FILE, 600 )
+!
+!        ! Loop over tracers
+!        ! New tracers for SOA simulation
 !--- Previous (ccc, 3/17/10)
 !         DO T = 1, 18
-         DO T = 1, 28
-            
-            ! GAMAP tracer number
-            N = ( SPACING * 6 ) + T
-            
-            ! Make a character 
-            WRITE( C, '(i2.2)' ) T
-
-            ! Tracer name
-            NAME_NEW = 'PROD' // C
-            
-            ! Write tracers [kg] to "tracerinfo.dat"
-            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,
-     &           REAL(1e0,4), 1, REAL(1e0,4), 'kg/kg', N )
-         ENDDO
-
-      ENDIF
+!        DO T = 1, 28
+!           
+!           ! GAMAP tracer number
+!           N = ( SPACING * 6 ) + T
+!           
+!           ! Make a character 
+!           WRITE( C, '(i2.2)' ) T
+!
+!           ! Tracer name
+!           NAME_NEW = 'PROD' // C
+!           
+!           ! Write tracers [kg] to "tracerinfo.dat"
+!           CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,
+!    &           REAL(1e0,4), 1, REAL(1e0,4), 'kg/kg', N )
+!        ENDDO
+!
+!     ENDIF
 
       !-------------------------------------      
       ! SPACING*60: Soil NOx restart file
@@ -832,6 +832,7 @@
 !                              semivolatile POA simulations (H. Pye)
 !  03 Sep 2013 - R. Yantosca - Restored PS-PTOP to avoid issues when using
 !                              diaginfo.dat, tracerinfo.dat w/ REGRIDH_RESTART
+!  30 Jan 2014 - R. Yantosca - Add ND60 TOMAS diagnostic catetories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1094,6 +1095,7 @@
       CATEGORY(N) = 'DUST-SRC'
       DESCRIPT(N) = 'Size-res dust mass emissions'
       OFFSET(N)   = SPACING * 4
+
 #endif
 
       N           = N + 1
@@ -1106,7 +1108,38 @@
       DESCRIPT(N) = 'Tracer mass (kg)'
       OFFSET(N)   = SPACING * 4
 
-#if   defined( TOMAS )
+#if   defined( TOMAS ) 
+
+      N           = N + 1
+      CATEGORY(N) = 'TMS-COND'
+      DESCRIPT(N) = 'Condensation rate'
+      OFFSET(N)   = SPACING * 6
+
+      N           = N + 1
+      CATEGORY(N) = 'TMS-COAG'
+      DESCRIPT(N) = 'Condensation rate'
+      OFFSET(N)   = SPACING * 6
+
+      N           = N + 1
+      CATEGORY(N) = 'TMS-NUCL'
+      DESCRIPT(N) = 'Condensation rate'
+      OFFSET(N)   = SPACING * 6
+
+      N           = N + 1
+      CATEGORY(N) = 'TMS-AQOX'
+      DESCRIPT(N) = 'Condensation rate'
+      OFFSET(N)   = SPACING * 6
+
+      N           = N + 1
+      CATEGORY(N) = 'AERO-FIX'
+      DESCRIPT(N) = 'Condensation rate'
+      OFFSET(N)   = SPACING * 6
+
+      N           = N + 1
+      CATEGORY(N) = 'TMS-SOA'
+      DESCRIPT(N) = 'Condensation rate'
+      OFFSET(N)   = SPACING * 6
+
       N           = N + 1           !(win, 7/9/09)
       CATEGORY(N) = 'TOMAS-3D'
       DESCRIPT(N) = '3-D aerosol rate of a selected microphysics'
@@ -1693,6 +1726,7 @@
 !  04 Sep 2013 - R. Yantosca - Now also reference everything in tracerid_mod.F
 !  04 Sep 2013 - R. Yantosca - Bug fix: # of ND46 tracers should be 20
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  31 Jan 2014 - R. Yantosca - Now save out tracerinfo.dat properly for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5787,7 +5821,7 @@
                         !-----------------------------------------------
                         ! Drydep velocity all other G-C tracers
                         !-----------------------------------------------
-                        NN            = N + Input_Opt%NUMDEP
+                        NN            = N + NUMDEP  +(ICOMP-IDIAG)*IBINS
                         NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
                         FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
      &                                  ' drydep velocity'
@@ -5800,10 +5834,11 @@
 
                   END SELECT
 
-
                ELSE
 
-                  ! Aerosol mass tracer number
+                  !-----------------------------------------------
+                  ! Drydep flux: TOMAS aerosol tracers
+                  !-----------------------------------------------
                   T = IDTNK1 + IBINS - 1 + ( N - NUMDEP )
 
                   ! Drydep flux (extended deposited species)
@@ -5818,6 +5853,21 @@
                   INDEX(N,44)  = T + ( SPACING * 36 )
                   NTRAC(44)    = NTRAC(44) + 1
                   
+                  !-----------------------------------------------
+                  ! Drydep velocity all other G-C tracers
+                  !-----------------------------------------------
+                  NN            = N + NUMDEP + (ICOMP-IDIAG)* IBINS
+                  NAME (NN,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) // 
+     &                            'dv'        
+                  FNAME(NN,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) //
+     &                           ' drydep velocity'
+                  MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
+                  MOLC (NN,44)  = INT(Input_Opt%TRACER_COEFF(T,1))
+                  UNIT (NN,44)  = 'cm/s'                     
+                  SCALE(NN,44)  = 1.0e0
+                  INDEX(NN,44)  = T + ( SPACING * 37 )
+                  NTRAC(44)     = NTRAC(44) + 1
+
                ENDIF
             ENDDO
 #else
@@ -6475,26 +6525,37 @@
          ENDDO
       ENDIF
 
-      !-------------------------------------      
-      ! Wetland Fraction (ND60)
-      !-------------------------------------      
+#if   defined( TOMAS )
+
+      !-------------------------------------
+      ! TOMAS 3-D rate (ND60)
+      !-------------------------------------
       IF ( ND60 > 0 ) THEN
+         
+         ! # of tracers 
+         NTRAC(60) = TMAX(60) 
+         
+         ! Loop over tracers
+         DO T = 1, NTRAC(60)
 
-         ! Number of tracers
-         NTRAC(60) = 1
-         T         = 1
+            IF ( ( T .ge. IDTNK1 )       .and. 
+     &           ( T .lt. IDTNK1+IBINS )      ) THEN
+               UNIT(T,60) = 'no.'
+            ELSE
+               UNIT(T,60) = 'kg'
+            ENDIF
 
-         NAME (T,60) = 'WETFRAC'
-         FNAME(T,60) = 'Wetland Fraction'
-         INDEX(T,60) = T + ( SPACING * 51 )
-         MOLC (T,60) = 0 
-         MWT  (T,60) = 0e0
-         SCALE(T,60) = 1e0
-         UNIT(T,60)  = 'unitless'
+            ! Define the rest of the quantities
+            NAME (T,60) = Input_Opt%TRACER_NAME(T)
+            FNAME(T,60) = 'Rates from ND60 TOMAS diagnostic'
+            INDEX(T,60) = T + ( SPACING * 6 )
+            MOLC (T,60) = 1
+            MWT  (T,60) = 1e0
+            SCALE(T,60) = 1e0
+         ENDDO
+
       ENDIF
 
-
-#if   defined( TOMAS )
       !-------------------------------------
       ! TOMAS 3-D rate (ND61)                !(win, 7/9/09)
       !-------------------------------------
@@ -6524,6 +6585,27 @@
             SCALE(T,61) = 1e0
          ENDDO
       ENDIF
+
+#else
+
+      !-------------------------------------      
+      ! Wetland Fraction (ND60)
+      !-------------------------------------      
+      IF ( ND60 > 0 ) THEN
+
+         ! Number of tracers
+         NTRAC(60) = 1
+         T         = 1
+
+         NAME (T,60) = 'WETFRAC'
+         FNAME(T,60) = 'Wetland Fraction'
+         INDEX(T,60) = T + ( SPACING * 51 )
+         MOLC (T,60) = 0 
+         MWT  (T,60) = 0e0
+         SCALE(T,60) = 1e0
+         UNIT(T,60)  = 'unitless'
+      ENDIF
+
 #endif
 
       !-------------------------------------      
