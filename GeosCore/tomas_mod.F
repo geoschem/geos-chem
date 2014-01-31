@@ -272,6 +272,7 @@
 !                              derived type object
 !  28 Jan 2014 - R. Yantosca - Avoid array temporaries in call to CHECK_VALUE
 !  29 Jan 2014 - R. Yantosca - Avoid array temporaries in call to NH4BULKTOBIN
+!  30 Jan 2014 - R. Yantosca - Add missing variables to !$OMP+PRIVATE statement
 !******************************************************************************
 !
       ! References to F90 modules
@@ -455,6 +456,7 @@
 !$OMP+PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )
 !$OMP+PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )
 !$OMP+PRIVATE( ERR_VAR, ERR_MSG, ERR_IND )
+!$OMP+PRIVATE( TRACNUM, NH3_TO_NH4, SURF_AREA )
 !$OMP+SCHEDULE( DYNAMIC )
       DO I = 1, IIPAR
       DO J = 1, JJPAR
@@ -607,12 +609,14 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          ENDIF
 
          MPNUM = 5    
-         IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+         IF ( ND60 > 0 ) THEN
+            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+         ENDIF
 
-         if (printdebug.and.i==iob .and. j==job .and. l==lob ) 
-     &        CALL DEBUGPRINT( Nk, Mk, I, J, L,
-     &        'After mnfix before cond/nucl' )
+         IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
+            CALL DEBUGPRINT( Nk, Mk, I, J, L,
+     &           'After mnfix before cond/nucl' )
+         ENDIF
 
          ! Before doing any cond/nucl/coag, check if there's any aerosol in the current box
          TOT_NK = 0.D0
@@ -691,16 +695,18 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             ENDDO
 
             MPNUM = 3
-            IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            IF ( ND60 > 0 ) THEN
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            ENDIF
 
             MPNUM = 7
-            IF ( ND61 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
-         
-            if (printdebug.and.i==iob .and. j==job .and. l==lob ) 
-     &           CALL DEBUGPRINT( Nk, Mk, I, J, L,'After nucleation' )
-         
+            IF ( ND61 > 0 )  THEN
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            ENDIF
+
+            IF ( printdebug.and.i==iob .and. j==job .and. l==lob )  THEN
+               CALL DEBUGPRINT( Nk, Mk, I, J, L,'After nucleation' )
+            ENDIF
                                !get condensation diagnostic
             DO N = 1, IBINS
                NK(N) = NKcond(N)
@@ -713,12 +719,13 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             Gc(srtso4)=Gcout(srtso4)
 
             MPNUM = 1
-            IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            IF ( ND60 > 0 ) THEN
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            ENDIF
 
-            if (printdebug.and.i==iob .and. j==job .and. l==lob )
-     &           CALL DEBUGPRINT( Nk, Mk, I, J, L,'After condensation' )
-
+            IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
+               CALL DEBUGPRINT( Nk, Mk, I, J, L,'After condensation' )
+            ENDIF
 
             nucrate(j,l)=nucrate(j,l)+fn
             nucrate1(j,l)=nucrate1(j,l)+fn1
@@ -773,9 +780,9 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          ENDIF
 
          MPNUM = 5    
-         IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
-
+         IF ( ND60 > 0 ) THEN
+            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+         ENDIF
 
          !-----------------------------
          ! Coagulation 
@@ -797,8 +804,9 @@ C            if (i==iob .and. j==job .and. l==lob )
 C     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
             MPNUM = 2
-            IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            IF ( ND60 > 0 ) THEN 
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            ENDIF
 
          !Fix any inconsistency after coagulation (win, 4/18/06)
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
@@ -821,8 +829,9 @@ C     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
             ENDIF
 
             MPNUM = 5
-            IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            IF ( ND60 > 0 ) THEN
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            ENDIF
          ENDIF  ! Coagulation
 
 
@@ -858,9 +867,11 @@ C     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
             ENDIF
          ENDIF
 
+         ! Accumulate changes by mnfix to diagnostic (win, 9/8/05)
          MPNUM = 5
-         IF ( ND60 > 0 ) ! Accumulate changes by mnfix to diagnostic (win, 9/8/05)
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+         IF ( ND60 > 0 ) THEN
+            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+         ENDIF
 
          ! Swap Nk, Mk, and Gc arrays back to STT
          DO N = 1, IBINS
