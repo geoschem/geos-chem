@@ -306,6 +306,9 @@
 !   5 Jun 2013 - K. Yu       - Use 0.5 x 0.666 NA scale factor for the
 !                              0.25 x 0.3125 NA nested simulation
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  07 Nov 2013 - M. Sulprizio- Update FLX_MSS_FDG_FCT for GEOS-FP 4x5
+!  15 Jan 2014 - M. Sulprizio- Update FLX_MSS_FDG_FCT for GEOS-FP 2x2.5 and
+!                              GEOS-FP nested NA simulations
 !******************************************************************************
 !
       ! References to F90 modules
@@ -342,22 +345,40 @@
       ! Global mass flux tuning factor (a posteriori) [frc]
 #if   defined( GEOS_FP ) && defined( GRID025x03125 )
 
+#if defined(NESTED_CH)  
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%       NOTE: NEED TO SCALE THIS FOR GEOS-FP nested CH!         %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! Copy the 05x0666 scale factors for now
       ! (skim, 5/20/12)
-
-#if defined(NESTED_CH)  
-      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
-!----------------------------------------------------------------------------
-! Prior to 9/26/13:
-! NOTE: The original SEAC4RS grid definition was for SE Asia.  Not sure if
-! this value is correct anymore.  Consult w/ SEAC4RS team. (bmy, 9/26/13)
-!#elif defined(SEAC4RS)
-!      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
-! added NA, copied 05x0666 scale factor (kyu, 22 April 2013)
-!----------------------------------------------------------------------------
+#elif defined(NESTED_SE)  
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%       NOTE: NEED TO SCALE THIS FOR GEOS-FP nested SE!         %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Copy the 05x0666 scale factors for now
+      ! (skim, 5/20/12)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
 #elif defined(NESTED_NA)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.16d-4
+      !----------------------------------------------------------------
+      ! Based on results from GEOS-FP 0.25x0.3125 NA for 08/2012-08/2013
+      ! compared to 2006 GEOS-5 0.5x0.666 NA
+      !
+      !   (GEOS-FP - GEOS-5)/GEOS-5 * 100 is 80.04% in each size bin.
+      !
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
+      ! dust emissions consistent. Consequently, to bring GEOS-FP nested
+      ! NA dust emissions down to GEOS-5 nested NA levels, we need use
+      ! a FLX_MSS_FDG_FCT of:
+      !
+      !             1 / (1 + 0.8004) = 0.5554
+      !
+      !             2.16d-4 * 0.5554 = 1.20d-4   ( 2.16d-4 is factor for
+      !                                            GEOS-5 nested NA )
+      !
+      !    -- M. Sulprizio, 15 Jan 2014
+      !----------------------------------------------------------------
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 1.20d-4
 #endif
 
       ! Global mass flux tuning factor (a posteriori) [frc]
@@ -408,15 +429,39 @@
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%         NOTE: NEED TO SCALE THIS FOR GEOS-FP 2x25!            %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
+      !----------------------------------------------------------------
+      ! Based on results from GEOS-FP 2x25 for 08/2012-08/2013
+      !
+      !   (GEOS-FP - GEOS-5)/GEOS-5 * 100 is -2.810% in each size bin.
+      !
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
+      ! dust emissions consistent.  Consequently, to bring GEOS-FP 2x25
+      ! dust emissions up to 2005 GEOS-5 levels, we need to MULTIPLY the
+      ! FLX_MSS_FDG_FCT used for GEOS-5 by:
+      !
+      !             1 / (1. - 0.02810) = 1 / 0.9719 = 1.0289
+      !
+      !    -- M. Sulprizio, 15 Jan 2014
+      !----------------------------------------------------------------
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4 * 1.0289d0
 
 #elif defined( GEOS_FP ) && defined( GRID4x5 )
 
-      ! Based on results from GEOS 5.7 for September 2011
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.272d0
+      !----------------------------------------------------------------
+      ! Based on results from GEOS-FP 4x5 for 08/2012-08/2013
+      !
+      !   (GEOS-FP - GEOS-5)/GEOS-5 * 100 is -15.95% in each size bin.
+      !
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the
+      ! dust emissions consistent.  Consequently, to bring GEOS-FP 4x5
+      ! dust emissions up to 2005 GEOS-5 levels, we need to MULTIPLY the
+      ! FLX_MSS_FDG_FCT used for GEOS-5 by:
+      !
+      !             1 / (1. - 0.1595) = 1 / 0.8405 = 1.1898
+      !
+      !    -- R. Yantosca, M. Sulprizio, 06 Jan 2014
+      !----------------------------------------------------------------
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.1898d0
 
 #else
 

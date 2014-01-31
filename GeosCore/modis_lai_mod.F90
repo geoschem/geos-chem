@@ -937,7 +937,9 @@ CONTAINS
        I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
        J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
        MODIS_START = 2005             ! First year of MODIS data  
-       MODIS_END   = 2009             ! Last  year of MODIS data
+       MODIS_END   = 2008             ! Force to 2008 for SEAC4RS
+                                      ! (skim, 1/29/14)       
+!      MODIS_END   = 2009             ! Last  year of MODIS data
     ELSE
        I_MODIS     = 720              ! For Olson 1992, use MODIS LAI
        J_MODIS     = 360              ! on the 0.5 x 0.5 native grid

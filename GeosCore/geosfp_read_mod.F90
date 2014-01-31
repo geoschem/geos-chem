@@ -96,6 +96,7 @@ CONTAINS
 !  10 Feb 2012 - R. Yantosca - Initial version
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocssor switch
+!  14 Jan 2014 - R. Yantosca - Now add NESTED_SE option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -123,6 +124,9 @@ CONTAINS
 
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     resString = '025x03125.NA.nc'
+
+#elif defined( GRID025x03125 ) && defined( NESTED_SE )
+    resString = '025x03125.SE.nc'
 
 #elif defined( GRID025x03125 )
     resString = '025x03125.nc'
@@ -775,27 +779,6 @@ CONTAINS
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
     
-    !----------------------------------------------------------------------
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%% NOTE: After further investigation, we don't really need the    %%%
-    !%%% PBL mixing height correction, as the GEOS-FP PBL heights are   %%%
-    !%%% already very high.  Also, adding this fix only changes the PBL %%%
-    !%%% heights over Antarctica by up to 300 meters.  Therefore we     %%%
-    !%%% shall comment out this fix.  If you wish to re-activate it,    %%%
-    !%%% then you may uncomment this code.  (bmy, 12/4/13)              %%%
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !! Correction for MERRA PBLH:
-    !! PBLH must be greater than a minimum mechanical mixing depth,
-    !! defined as 700*friction velocity
-    !! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
-    !DO J = 1, JJPAR
-    !DO I = 1, IIPAR
-    !   State_Met%PBLH(I,J) = max( State_Met%PBLH(I,J),          &
-    !                              State_Met%USTAR(I,J) * 700d0 )
-    !ENDDO
-    !ENDDO
-    !----------------------------------------------------------------------
-
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
        AD67(:,:,1 ) = AD67(:,:,1 ) + State_Met%HFLUX    ! Sens heat flux [W/m2]
@@ -1198,27 +1181,12 @@ CONTAINS
     ENDIF
 
     !--------------------------------
-    ! Read data on level edges
-    !--------------------------------
-
-    ! netCDF start & count indices
-    st4d      = (/ 1,     1,     1,       time_index /)      
-    ct4d      = (/ IIPAR, JJPAR, LGLOB+1, 1          /)
-
-#if defined( GEOS572_FILES )
-    ! Read CMFMC (only in GEOS572*.nc files)
-    v_name = "CMFMC"
-    CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%CMFMC )
-#endif
-
-    !--------------------------------
     ! Read data on level centers
     !--------------------------------
 
     ! netCDF start & count indices
-    st4d      = (/ 1,     1,     1,       time_index /)      
-    ct4d      = (/ IIPAR, JJPAR, LGLOB,   1          /)
+    st4d      = (/ 1,     1,     1,     time_index /)      
+    ct4d      = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     ! Read DTRAIN
     v_name = "DTRAIN"

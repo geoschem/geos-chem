@@ -418,6 +418,58 @@
             ENDDO
 !$OMP END PARALLEL DO
 
+!-----------KLUDGE FOR SEAC4RS------------------
+! Make a special case for MVK + MACR
+! Combine the two together in order to save
+!    space in the timeseries file
+! (skim, 1/27/14)
+            IF ( N == 13 ) THEN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = Q(X,Y,K) + ( STT(I,J,L,N+1) * TCVV(N+1) / 
+     &                                 State_Met%AD(I,J,L)        )
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+            ENDIF
+!-----------------------------------------------
+
+!-----------KLUDGE FOR SEAC4RS------------------
+! Make a special case for POA
+! Combine the two together in order to save
+!    space in the timeseries file
+! (skim, 1/27/14)
+            IF ( N == 35 ) THEN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = Q(X,Y,K) + ( STT(I,J,L,N+2) * TCVV(N+2) /
+     &                                 State_Met%AD(I,J,L)        )
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+            ENDIF
+!-----------------------------------------------
+
             ! Free pointer
             NULLIFY( STT )
 
@@ -902,6 +954,36 @@
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
+
+!-----------KLUDGE FOR SEAC4RS------------------
+! Make a special case for seasalt AOD
+! Combine the two together in order to save
+!    space in the timeseries file (skim, 1/27/14)
+               ! Index for ODAER
+               H          = 4*NRH + R
+
+               ! Scaling factor for AOD wavelength (clh, 05/09)
+               ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
+               ! We no longer need to scale by wavelength (skim,
+               ! 02/03/11)
+               SCALEAODnm = 1.0
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, R, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+!-----------------------------------------------
+
             ENDDO
 
          ELSE IF ( N == 88 ) THEN
