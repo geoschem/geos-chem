@@ -1702,7 +1702,6 @@
                      ! Save the tracer curtains, (skim, 12/06/13)
                      ! Only need to get the pressure and height once
                      IF ( N == 1 ) THEN
-
                         DO H = 1,LLPAR
                            P_CURTAIN(M, H) = GET_PCENTER(I, J, H)
                         ENDDO
@@ -2353,7 +2352,7 @@
       ct1d   = (/ NPOINTS /)
       v_name = "lon"
       CALL NcWr( PLON, fId, TRIM(v_name), st1d, ct1d )
-
+      
       ! Write lat to netCDF file
       st1d   = (/ 1 /)
       ct1d   = (/ NPOINTS /)
