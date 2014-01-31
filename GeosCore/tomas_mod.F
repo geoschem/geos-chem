@@ -5889,7 +5889,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_TOMAS
+      SUBROUTINE INIT_TOMAS( am_I_Root, Input_Opt, RC )
 
 !
 !******************************************************************************
@@ -5901,25 +5901,55 @@ c
 !         bound for first size bin (kg) (win, 7/18/07)
 !   (2 ) IDIAG is introduced.  IDIAG=2 for NH4 and H2O (win, 9/26/08)
 !  23 Apr 2013 - R. Yantosca - Now get unit # with findFreeLUN
-
+!  30 Jan 2014 - R. Yantosca - Now read big files from shared disk space
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,     ONLY : ALLOC_ERR, ERROR_STOP
-      USE inquireMod,    ONLY : findFreeLUN
-      USE DIRECTORY_MOD, ONLY: DATA_DIR
-      USE TRACERID_MOD,  ONLY : IDTSF1, IDTSS1, IDTECIL1, IDTECOB1
-      USE TRACERID_MOD,  ONLY : IDTOCIL1, IDTOCOB1, IDTDUST1
-
-      ! Local variables
+      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE inquireMod,         ONLY : findFreeLUN
+!------------------------------------------------------------------------------
+! Prior to 1/30/14:
+! Now use Input_Opt for the data directory (bmy, 1/30/14)
+!      USE DIRECTORY_MOD,      ONLY: DATA_DIR
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IDTSF1, IDTSS1, IDTECIL1, IDTECOB1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTDUST1
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: AS, K, I,J,L, dum1, dum2, dum3, LUN
       REAL*8               :: Mo
-      character*80         :: filename
-      character*80         :: fname(4)
+!------------------------------------------------------------------------------
+! Prior to 1/30/14:
+! Make all character strings 255 chars wide (bmy, 1/30/14)
+!      character*80         :: filename
+!      character*80         :: fname(4)
+!------------------------------------------------------------------------------
+      CHARACTER(LEN=255)   :: filename
+      CHARACTER(LEN=255)   :: fname(4)     
+      CHARACTER(LEN=255)   :: DATA_DIR
 
       !=================================================================
       ! INIT_TOMAS begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Now read large TOMAS input files from a common disk directory
+      ! (bmy, 1/30/14)
+      DATA_DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'TOMAS_201402/'
 
 #if    defined( TOMAS40 )
       Mo = 1.0d-21*2.d0**(-10)     
@@ -6033,48 +6063,49 @@ c         SRTH2O = ICOMP
       ! Create a look-up table for activating bin and scavenging 
       ! fraction as a function of chemical composition.
       !=================================================================
+      IF ( IBINS == 12 .OR. IBINS == 15 ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 1/30/14:
+! Now read big files from a shared data directory (bmy, 1/30/14)
+!         fname(1) = 'binact02_12.dat'
+!         fname(2) = 'binact10_12.dat'
+!         fname(3) = 'fraction02_12.dat'
+!         fname(4) = 'fraction10_12.dat'
+!-----------------------------------------------------------------------------
+         fname(1) = TRIM( DATA_DIR ) // 'binact02_12.dat'
+         fname(2) = TRIM( DATA_DIR ) // 'binact10_12.dat'
+         fname(3) = TRIM( DATA_DIR ) // 'fraction02_12.dat'
+         fname(4) = TRIM( DATA_DIR ) // 'fraction10_12.dat'
 
-!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-!     &     'binact02.dat'
-!      CALL READBINACT(FILENAME, BINACT1)
-!
-!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-!     &     'binact10.dat'
-!      CALL READBINACT(FILENAME, BINACT2)
-!
-!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-!     &     'fraction02.dat'
-!      CALL READFRACTION(FILENAME, FRACTION1)
-!
-!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-!     &     'fraction10.dat'
-!      CALL READFRACTION(FILENAME, FRACTION2)
-
-      IF(IBINS .eq. 12 .OR. IBINS .eq. 15) THEN
-         fname(1) = 'binact02_12.dat'
-         fname(2) = 'binact10_12.dat'
-         fname(3) = 'fraction02_12.dat'
-         fname(4) = 'fraction10_12.dat'
-      ELSE IF (IBINS .eq. 30 .OR. IBINS .eq. 40) THEN
-         fname(1) = 'binact02.dat'
-         fname(2) = 'binact10.dat'
-         fname(3) = 'fraction02.dat'
-         fname(4) = 'fraction10.dat'
+      ELSE IF ( IBINS == 30 .OR. IBINS == 40 ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 1/30/14:
+! Now read big files from a shared data directory (bmy, 1/30/14)
+!         fname(1) = 'binact02.dat'
+!         fname(2) = 'binact10.dat'
+!         fname(3) = 'fraction02.dat'
+!         fname(4) = 'fraction10.dat'
+!-----------------------------------------------------------------------------
+         fname(1) = TRIM( DATA_DIR ) // 'binact02.dat'
+         fname(2) = TRIM( DATA_DIR ) // 'binact10.dat'
+         fname(3) = TRIM( DATA_DIR ) // 'fraction02.dat'
+         fname(4) = TRIM( DATA_DIR ) // 'fraction10.dat'
       END IF
 
-      CALL READBINACT(  fname(1), BINACT1)
-      CALL READBINACT(  fname(2), BINACT2)
-      CALL READFRACTION(fname(3), FRACTION1)
-      CALL READFRACTION(fname(4), FRACTION2)
+      CALL READBINACT  ( fname(1), BINACT1   )
+      CALL READBINACT  ( fname(2), BINACT2   )
+      CALL READFRACTION( fname(3), FRACTION1 )
+      CALL READFRACTION( fname(4), FRACTION2 )
 
       !initialize yu lookup table
-      call READJIMN5D ! yu nucleation inputs
+      call READJIMN5D( am_I_Root, Input_Opt, RC )  ! yu nucleation inputs
 
       ! Find a free file LUN
       LUN = findFreeLUN()
 
       ! Read cosmic ray ion input file
-      OPEN( unit=LUN, file="IonPairs1GV.4x5", FORM='FORMATTED',
+      FILENAME = TRIM( DATA_DIR ) // 'IonPairs1GV.4x5'
+      OPEN( unit=LUN, FILE=TRIM( FILENAME ), FORM='FORMATTED',
      &      STATUS='OLD' )
 
       DO L=1,9

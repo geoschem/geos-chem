@@ -242,11 +242,27 @@ C
         RETURN
         END
 C *********************************************************************
-        SUBROUTINE READJIMN5D
+        SUBROUTINE READJIMN5D( am_I_Root, Input_Opt, RC )
 C
 C       WRITTEN by Fangqun Yu, SUNY-Albany, 2006 (Updated, 6/2009)
 C
-C ============================================================================
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !DEFINED PARAMETERS:
+!
 C Parameters
 C (1 ) MC     : NUMBER OF POINTS IN H2SO4 CONCENTRATION DIMENSION
 C (2 ) MT     : NUMBER OF POINTS IN TEMPERATURE DIMENSION
@@ -264,19 +280,52 @@ C (10) S    : VALUES AT POINTS IN SURFACE AREA DIMENSION
      &                 XJIMN(MC,MRH,MT,MQ,MS),
      &                 XISTAR(MC,MRH,MT),XRSTAR(MC,MRH,MT),
      &                 XAMOLFSTAR(MC,MRH,MT)
-C
-        CHARACTER*6 YPATH
-        YPATH = './'
-        WRITE(6,*)"Read IMN look-up tables"
-        open(31,file='YuIMN_J5D.txt',form='formatted')
-        open(32,file='YuIMN_Istar3D.txt',form='formatted')
-        open(33,file='YuIMN_Rstar3D.txt',form='formatted')
-        open(34,file='YuIMN_AMOLF3D.txt',form='formatted')
-        open(41,file='YuIMN_1H2SO4.txt',form='formatted')
-        open(42,file='YuIMN_2RH.txt',form='formatted')
-        open(43,file='YuIMN_3T.txt',form='formatted')
-        open(44,file='YuIMN_4Q.txt',form='formatted')
-        open(45,file='YuIMN_5S.txt',form='formatted')
+!
+! !REVISION HISTORY
+!  30 Jan 2014 - R. Yantosca - Now read big files from shared data space
+!
+!----------------------------------------------------------
+! Prior to 1/30/14:
+!        CHARACTER*6 YPATH
+!        YPATH = './'
+!----------------------------------------------------------
+        CHARACTER(LEN=255) :: DATA_DIR 
+        CHARACTER(LEN=255) :: FNAME
+        
+        ! Assume success
+        RC       = GIGC_SUCCESS
+
+        ! Data directory path in shared disk space where files live
+        DATA_DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'TOMAS_201402/'
+
+        WRITE(6,*) "Read IMN look-up tables"
+
+        FNAME = TRIM( DATA_DIR ) // 'YuIMN_J5D.txt'
+        open(31, file=TRIM( FNAME ), form='formatted')
+
+        FNAME = TRIM( DATA_DIR ) // 'YuIMN_Istar3D.txt'
+        open(32, file=TRIM( FNAME ), form='formatted')
+
+        FNAME = TRIM( DATA_DIR ) // 'YuIMN_Rstar3D.txt'
+        open(33, file=TRIM( FNAME ), form='formatted')
+
+        FNAME = TRIM( DATA_DIR ) // 'YuIMN_AMOLF3D.txt'
+        open(34, file=TRIM( FNAME ), form='formatted')
+
+        FNAME = TRIM( DATA_DIR ) // 'YuIMN_1H2SO4.txt'
+        open(41, file=TRIM( FNAME ), form='formatted')
+
+        FNAME = TRIM( DATA_DIR ) // 'YuIMN_2RH.txt'
+        open(42, file=TRIM( FNAME ), form='formatted')
+
+        FNAME = TRIM( DATA_DIR ) // 'YuIMN_3T.txt'
+        open(43, file=TRIM( FNAME ), form='formatted')
+
+        FNAME = TRIM( DATA_DIR ) // 'YuIMN_4Q.txt'
+        open(44, file=TRIM( FNAME ), form='formatted')
+
+        FNAME = TRIM( DATA_DIR ) // 'YuIMN_5S.txt'
+        open(45, file=TRIM( FNAME ), form='formatted')
 C
         READ(41,101)(C(I),I=1,MC)
         WRITE(6,*)"[H2SO4](I), I=1, ", MC, ":"

@@ -2091,6 +2091,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  23 Apr 2013 - R. Yantosca - Renamed to INIT_TOMAS_MICROPHYS
+!  30 Jan 2014 - R. Yantosca - INIT_TOMAS accepts am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2148,7 +2149,7 @@
       !=================================================================
       ! All error checks are satisfied, so initialize TOMAS
       !=================================================================
-      CALL INIT_TOMAS    
+      CALL INIT_TOMAS( am_I_Root, Input_Opt, RC )
  
       END SUBROUTINE INIT_TOMAS_MICROPHYSICS
 !EOC
