@@ -1687,6 +1687,10 @@
       ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
 
+      ! Added these to pass particle density & number to DUST_SFCRSII
+      ! so as to avoid parallelization errors with TOMAS (bmy, 1/31/14)
+      REAL*8  :: DIAM, DEN
+
       ! Logical switch for POPS in order to use octanol-air partitioning instead
       ! of Henry's Law for scaling of cuticular resitances (clf, 1/3/2011)
       LOGICAL IS_POPS
@@ -1742,15 +1746,6 @@
       ! Add parallel DO-loop (bmy, 2/22/05)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-#if   defined( TOMAS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 1/28/14:
-!%%% BUG FIX: K is already private, so A_RADI(K) and A_DEN(K) will be unique
-!%%% to each CPU.  Don't hold A_RADI and A_DEN private here. (bmy, 1/28/14)
-!%%%!$OMP+PRIVATE( BIN, A_RADI, A_DEN )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!$OMP+PRIVATE( BIN )
-#endif
 !$OMP+PRIVATE( IJLOOP, CZ,     TEMPK,  TEMPC,  K,      VD     )
 !$OMP+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
 !$OMP+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )
@@ -1760,6 +1755,10 @@
 !$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
+!$OMP+PRIVATE( DIAM,   DEN                                    )
+#if defined( TOMAS )
+!$OMP+PRIVATE( BIN                                            )
+#endif
 #if defined( GCAP )
 !$OMP+PRIVATE( ZO                                             )
 #endif
@@ -2015,10 +2014,20 @@
 !                  RSURFC(K,LDT) = 
 !     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
 
+                  ! Particle diameter [m]
+                  DIAM  = A_RADI(K) * 2.d0 
+
+                  ! Particle density [kg/m3]
+                  DEN   = A_DEN(K) 
+
                   ! [Zhang et al., 2001]
-                  RSURFC(K,LDT) = 
-     &             DUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, 
-     &                                 TEMPK, USTAR(IJLOOP))
+                  ! Now pass DIAM, DEN as arguments (bmy, 1/31/14)
+                  RSURFC(K,LDT) = DUST_SFCRSII( K, II, 
+     &                                          PRESSU(IJLOOP)*1D-3, 
+     &                                          TEMPK, 
+     &                                          USTAR(IJLOOP),
+     &                                          DIAM,  
+     &                                          DEN )
 
 #if   defined( TOMAS )
                ! (win, 7/15/09)
@@ -2035,14 +2044,27 @@
                   !=====================================================     
 
                   ! Get current aerosol diameter and density
-                  BIN       = NTRAIND(K) - IDTNK1 + 1
-                  A_RADI(K) = SIZ_DIA( IJLOOP, BIN ) / 2.d0    !(m)
-                  A_DEN(K)  = SIZ_DEN( IJLOOP, BIN )           !(kg/m3)
+                  ! NOTE: In TOMAS the aerosol diameter and density
+                  ! evolves with time.  We have to save these in the 
+                  ! DIAM and DEN variables so that we can hold these
+                  ! PRIVATE for the parallel loop.
+                  BIN  = NTRAIND(K) - IDTNK1 + 1
+                  DIAM = SIZ_DIA( IJLOOP, BIN )     ! Diameter [m]
+                  DEN  = SIZ_DEN( IJLOOP, BIN )     ! Density  [kg/m3]
+
+                  !### debug print
+                  IF ( IJLOOP == 2000 ) THEN
+                     PRINT*, '%%%%% ', K, DIAM, DEN
+                  ENDIF
 
                   ! [Zhang et al., 2001]
-                  RSURFC(K,LDT) = 
-     &             DUST_SFCRSII(K, II, PRESSU(IJLOOP), 
-     &                                 TEMPK, USTAR(IJLOOP))
+                  ! Now pass DIAM, DEN as arguments (bmy, 1/31/14)
+                  RSURFC(K,LDT) = DUST_SFCRSII( K, II, 
+     &                                          PRESSU(IJLOOP)*1D-3,
+     &                                          TEMPK, 
+     &                                          USTAR(IJLOOP),   
+     &                                          DIAM, 
+     &                                          DEN )
 #endif
 
                ELSE 
@@ -3552,15 +3574,15 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
-      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
-      REAL*8,  INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
-      REAL*8,  INTENT(IN) :: TEMP  ! Temperature [K]    
-      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity [m/s]
+      INTEGER, INTENT(IN) :: K       ! Drydep species (range: 1-NUMDEP)
+      INTEGER, INTENT(IN) :: II      ! Surface type index of GEOS-CHEM
+      REAL*8,  INTENT(IN) :: PRESS   ! Pressure [kPa]
+      REAL*8,  INTENT(IN) :: TEMP    ! Temperature [K]    
+      REAL*8,  INTENT(IN) :: USTAR   ! Friction velocity [m/s]
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: RS    ! Surface resistance for particles [s/m]
+      REAL*8              :: RS      ! Surface resistance for particles [s/m]
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
@@ -4000,19 +4022,22 @@
 ! !INTERFACE:
 !
 
-      FUNCTION DUST_SFCRSII( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
+      FUNCTION DUST_SFCRSII( K, II, PRESS, TEMP, USTAR, DIAM, DEN ) 
+     & RESULT( RS )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
-      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
-      REAL*8,  INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
-      REAL*8,  INTENT(IN) :: TEMP  ! Temperature [K]    
-      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity [m/s]
+      INTEGER, INTENT(IN) :: K       ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER, INTENT(IN) :: II      ! Surface type index of GEOS-CHEM
+      REAL*8,  INTENT(IN) :: PRESS   ! Pressure [kPa]
+      REAL*8,  INTENT(IN) :: TEMP    ! Temperature [K]    
+      REAL*8,  INTENT(IN) :: USTAR   ! Friction velocity [m/s]
+      REAL*8,  INTENT(IN) :: DIAM    ! Particle diameter [m]
+      REAL*8,  INTENT(IN) :: DEN     ! Particle density [kg/m3]
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: RS    ! Surface resistance for particles [s/m]
+      REAL*8              :: RS      ! Surface resistance for particles [s/m]
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
@@ -4020,6 +4045,9 @@
 !  (2 ) Renamed to DUST_SFCRSII, since this will only be used to compute
 !        aerodynamic resistance of dust aerosols.  (bec, bmy, 4/15/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  31 Jan 2014 - R. Yantosca - Now pass DIAM and DEN as arguments so as to
+!                              avoid parallelization errors when using
+!                              the TOMAS microphysics package.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4043,7 +4071,11 @@
       REAL*8  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
       REAL*8  :: SC, ST      ! Schmidt and Stokes number (nondim)
 
-      REAL*8  :: DIAM, DEN
+!------------------------------------------------------------------------------
+! Prior to 1/31/14:
+! Now pass these as arguments to avoid parallel errors w/ TOMAS (bmy, 1/31/14)
+!      REAL*8  :: DIAM, DEN
+!------------------------------------------------------------------------------
       REAL*8  :: EB, EIM, EIN, R1, AA, VTS
 
 !=======================================================================
@@ -4182,12 +4214,16 @@
       !
       !      R1 (Particle rebound)  = exp(-St^0.5)
       !=================================================================
-      
-      ! Particle diameter [m]
-      DIAM  = A_RADI(K) * 2.d0  
-
-      ! Particle density [kg/m3]
-      DEN   = A_DEN(K)          
+ 
+!-----------------------------------------------------------------------------  
+! Prior to 1/31/14:
+! Now pass these as arguments to avoid parallel errors w/ TOMAS (bmy, 1/31/14)
+!      ! Particle diameter [m]
+!      DIAM  = A_RADI(K) * 2.d0  
+!
+!      ! Particle density [kg/m3]
+!      DEN   = A_DEN(K)          
+!-----------------------------------------------------------------------------  
 
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.d6 
