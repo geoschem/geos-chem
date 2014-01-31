@@ -2790,6 +2790,16 @@
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
+! KLUDGE FOR SEAC4RS
+! skim, 1/27/14
+!
+      PRINT*, IRI
+      PRINT*, 'REPLACING INTERNAL RESISTANCE FOR CONIFEROUS FORESTS' 
+      IRI(3) = 200
+      PRINT*, IRI
+!
+!
+
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
