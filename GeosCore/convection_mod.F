@@ -1450,6 +1450,17 @@
       !     ( CMOUT, DELQ, ENTRN, ISOL, QC_PRES, etc. )
       ! (3) Arrays independent of tracer ( F, MB, QB, QC )
       !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED   )
+!$OMP+PRIVATE( IC, ISOL ) 
+!$OMP+SCHEDULE( DYNAMIC )
+      DO IC = 1, NC
+         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, State_Met, State_Chm ) 
+      END DO
+
+!$OMP END PARALLEL DO
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISOL, ISTEP, J, AREA_M2, K  ) 
@@ -1473,7 +1484,6 @@
          ! used for diagnostic arrays AD37 and AD38.  ISOL = 0 for all 
          ! non-soluble tracers.   
          !==============================================================
-         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, State_Met, State_Chm ) 
 
          ! ND37 diagnostic -- store F only for soluble tracers
          IF ( ND37 > 0 .and. ISOL > 0 ) THEN
