@@ -4453,9 +4453,15 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! NDxx flags
-      USE DIAG_MOD,           ONLY: TINDEX
-      USE DIAG_MOD,           ONLY: TCOUNT
-      USE DIAG_MOD,           ONLY: TMAX
+!-----------------------------------------------------------------------------
+! Prior to 2/3/14:
+! NOTE: These variables are in Headers/CMN_DIAG_mod.F, so we don't need
+! to reference these.  Lee Murray says that this causes the code to choke
+! when compiling GEOS-Chem on Mac. (bmy, 2/3/14)
+!      USE DIAG_MOD,           ONLY: TINDEX
+!      USE DIAG_MOD,           ONLY: TCOUNT
+!      USE DIAG_MOD,           ONLY: TMAX
+!-----------------------------------------------------------------------------
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -4504,6 +4510,10 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  08 Nov 2013 - M. Sulprizio- Remove HR1_NO, and HR2_NO from ND43 diagnostic.
+!  03 Feb 2014 - R. Yantosca - Remove references to TINDEX, TCOUNT, and TMAX
+!                              from diag_mod.  They are in CMN_SIZE_mod.F.
+!                              Lee Murray reports this causes the compilation
+!                              to choke on Macintosh platforms.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
