@@ -1644,7 +1644,6 @@
 !
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD
-      USE AEIC_MOD,      ONLY : OPTIONS_AEIC
       USE MODIS_LAI_MOD, ONLY : INIT_MODIS_LAI
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
@@ -1791,109 +1790,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
       READ( SUBSTRS(1:N), * ) LRETRO
 
-      ! Aircraft emissions submenus
-      ! Run old aircraft SO2 emissions?
+      ! AEIC aircraft emissions
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
-      READ( SUBSTRS(1:N), * ) LACSO2
-
-      ! Run LTO emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LLTO_EMIS
-
-      ! Fuelburn multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_FB_MULT
-
-      ! NOx multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_NOx_MULT
-
-      ! HC multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_HC_MULT
-
-      ! CO multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_CO_MULT
-
-      ! Black carbon emissions index
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_BC_EI
-
-      ! Organic carbon emissions index
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LTO_OC_EI
-
-      ! Run CRUISE emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%LCRUISE_EMIS
-
-      ! Fuelburn multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_FB_MULT
-
-      ! NOx multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_NOx_MULT
-
-      ! HC multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_HC_MULT
-
-      ! CO multiplier
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_CO_MULT
-
-      ! Black carbon emissions index
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_BC_EI
-
-      ! Organic carbon emissions index
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%CRUISE_OC_EI
-
-      ! Fuel sulfur content
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%FSC
-
-      ! Convert to fraction
-      OPTIONS_AEIC%FSC = OPTIONS_AEIC%FSC * 1.d-6
-
-      ! Sulfur conversion efficiency
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%SULFCONV
-
-      OPTIONS_AEIC%SULFCONV = OPTIONS_AEIC%SULFCONV * 1.d-2
-
-      ! Exclusion code (-1/0/1) and LL and RR corners grid idx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_AEIC%EXC_CODE
-
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_emissions_menu:30' )
-      READ(SUBSTRS(1:N),*) OPTIONS_AEIC%EXC_LL_I,OPTIONS_AEIC%EXC_LL_J
-
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_emissions_menu:31' )
-      READ(SUBSTRS(1:N),*) OPTIONS_AEIC%EXC_UR_I,OPTIONS_AEIC%EXC_UR_J
-  
-      ! Cut-off altitude (no emissions below this) in km
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
-      READ(SUBSTRS(1:N),*) OPTIONS_AEIC%ALT_FLR
-
-      ! Altitude offset in km
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
-      READ(SUBSTRS(1:N),*) OPTIONS_AEIC%ALT_OFFSET
- 
-      ! Are we running aircraft at all?
-      LAEIC = (OPTIONS_AEIC%LLTO_EMIS .or. OPTIONS_AEIC%LCRUISE_EMIS)
-      
-      ! Implement LTO and cruise switches
-      IF (.not.OPTIONS_AEIC%LLTO_EMIS) THEN
-          OPTIONS_AEIC%LTO_FB_MULT = 0d0
-      ENDIF
-
-      IF (.not.OPTIONS_AEIC%LCRUISE_EMIS) THEN
-          OPTIONS_AEIC%CRUISE_FB_MULT = 0d0
-      ENDIF
+      READ( SUBSTRS(1:N), * ) LAEIC
 
       ! Use RCP emissions? (cdh, 2011-10-18)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP1' )
@@ -2193,7 +2092,6 @@
       LBIOMASS          = ( LBIOMASS       .and. LEMIS     )
 
       ! Anthro
-      LACSO2            = ( LACSO2         .and. LANTHRO   )
       LAEIC             = ( LAEIC          .and. LANTHRO   )
       LEMEP             = ( LEMEP          .and. LANTHRO   )
       LBRAVO            = ( LBRAVO         .and. LANTHRO   )
@@ -2249,7 +2147,6 @@
       IF ( .not. ITS_A_FULLCHEM_SIM() ) THEN
          LLIGHTNOX      = .FALSE.
          LAEIC          = .FALSE.
-         LACSO2         = .FALSE.
          LSOILNOX       = .FALSE.
          LFERTILIZERNOX = .FALSE. 
          LSETH2O        = .FALSE.
@@ -2301,7 +2198,7 @@
      &           'READ_EMISSIONS_MENU' )
 
          ! Force user to choose just 1 global aircraft inventory
-         IF ( ( LACSO2 .or. LAEIC ) .and. OPTIONS_RCP%LRCPAIR )
+         IF ( LAEIC .and. OPTIONS_RCP%LRCPAIR )
      &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
      &           'Choose either RCP or AEIC for global aircraft' //
      &           ' emissions', 'READ_EMISSIONS_MENU' )
@@ -2707,7 +2604,6 @@
         WRITE( 6, 100 ) '  Use STREETS anthro emiss. : ', LSTREETS
         WRITE( 6, 100 ) '  Use EPA/NEI 2005          : ', LNEI05
         WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
-        WRITE( 6, 100 ) '  Use old aircraft SO2      : ', LACSO2
         WRITE( 6, 100 ) '  Use AEIC emissions        : ', LAEIC
         WRITE( 6, 100 ) '  Use RCP emissions         : ', 
      &                                           OPTIONS_RCP%LRCP
