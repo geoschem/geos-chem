@@ -77,7 +77,6 @@
          INTEGER   :: EXC_LL_J
          REAL*8    :: ALT_FLR    ! Altitude cutoff (only emit above)
          REAL*8    :: ALT_OFFSET ! Altitude offset
-         CHARACTER(LEN=255) :: AEIC_DIR_1x1
       END TYPE Aircraft_Struct
 
       !=================================================================
@@ -173,6 +172,10 @@
 !
 ! !REVISION HISTORY: 
 !  14 Dec 2012 - S. Eastham - Adapted from READ_NONERUP_VOLC
+!  01 Aug 2013 - M. Sulprizio- Update to read emissions from netCDF file
+!                              created by Christoph Keller. He combined original
+!                              monthly files into one file and made file
+!                              COARDS compliant.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,15 +209,9 @@
       PLUSALT = OPTIONS_AEIC%ALT_OFFSET * 1.0d3
       MINALT = (OPTIONS_AEIC%ALT_FLR * 1.0d3) + PLUSALT
 
-      ! File name
-      IF (INMONTH .lt. 10) THEN
-         WRITE( MONTH_STR,'(I1)' ) INMONTH
-      ELSE
-         WRITE( MONTH_STR,'(I2)' ) INMONTH
-      END IF
-
-      AEIC_FILE = TRIM( OPTIONS_AEIC%AEIC_DIR_1x1 )  // '/' //
-     &           'AEIC_1x1_' // TRIM(MONTH_STR) // '.nc'
+      ! Filename
+      AEIC_FILE = TRIM( DATA_DIR_1x1 ) // '/AEIC_201301/' //
+     &           'AEIC.nc'
 
       ! Echo output
       WRITE( 6, 100 ) TRIM( AEIC_FILE )
@@ -245,7 +242,7 @@
          END SELECT
   
          CALL NcRd(AEIC_1x1(:,:,:,EMIT_INDEX),AEIC_FID,TRIM(EMIT_NAME),
-     &       (/ 1, 1, 1 /),(/360, 180, NLVLAEIC /))
+     &       (/ 1, 1, 1 , INMONTH /),(/360, 180, NLVLAEIC, 1 /))
  
          ! Fuel burn sum
          IF (EMIT_INDEX .eq. FB_INDEX) THEN

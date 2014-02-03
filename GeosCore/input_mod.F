@@ -1883,10 +1883,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ(SUBSTRS(1:N),*) OPTIONS_AEIC%ALT_OFFSET
  
-      ! AEIC preprocessed emissions directory
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
-      READ( SUBSTRS(1:N), '(a)' ) OPTIONS_AEIC%AEIC_DIR_1x1
-
       ! Are we running aircraft at all?
       LAEIC = (OPTIONS_AEIC%LLTO_EMIS .or. OPTIONS_AEIC%LCRUISE_EMIS)
       
