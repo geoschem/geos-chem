@@ -2615,6 +2615,10 @@
 !
 ! !REVISION HISTORY:
 !  26 Mar 2012 - R. Yantosca - Initial version
+!  03 Feb 2014 - M. Sulprizio- Change the internal resistance for coniferous
+!                              forests to match the internal resistance for
+!                              deciduous forests when using the Olson 2001
+!                              land map (skim, 1/27/14)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2811,15 +2815,11 @@
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
-! KLUDGE FOR SEAC4RS
-! skim, 1/27/14
-!
-      PRINT*, IRI
-      PRINT*, 'REPLACING INTERNAL RESISTANCE FOR CONIFEROUS FORESTS' 
-      IRI(3) = 200
-      PRINT*, IRI
-!
-!
+      ! If using Olson 2001 land map, change IRI for coniferous forests
+      ! to match IRI for deciduous forests (skim, mps, 2/3/14)
+      IF ( USE_OLSON_2001 ) THEN
+         IRI(3) = 200
+      ENDIF
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN

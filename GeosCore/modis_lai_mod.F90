@@ -903,6 +903,9 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
+!  03 Feb 2014 - M. Sulprizio- Force last year of MODIS data to 2008. There is
+!                              a large difference in the 2009 file that still
+!                              needs to be investigated (skim, 1/29/14)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -937,8 +940,7 @@ CONTAINS
        I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
        J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
        MODIS_START = 2005             ! First year of MODIS data  
-       MODIS_END   = 2008             ! Force to 2008 for SEAC4RS
-                                      ! (skim, 1/29/14)       
+       MODIS_END   = 2008             ! Force to 2008 (skim, 1/29/14)
 !      MODIS_END   = 2009             ! Last  year of MODIS data
     ELSE
        I_MODIS     = 720              ! For Olson 1992, use MODIS LAI
