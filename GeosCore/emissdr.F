@@ -864,9 +864,6 @@
          ENDDO
       ENDDO
 
-      ! SDE DEBUG: Print CH4 biogenic emissions
-      WRITE(6,'(a,1x,E10.4)') 'CH4 biogenic emissions: ', CH4_BIOGSUM
-
       ! Return to calling program
       END SUBROUTINE EMISSDR                                                
 

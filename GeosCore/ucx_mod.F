@@ -709,11 +709,6 @@
       USE TIME_MOD,      ONLY : GET_MINUTE
       USE CMN_GCTM_MOD,  ONLY : PI, RE
       USE GRID_MOD,      ONLY : GET_YMID
-      !-----SDE DEBUG
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : GET_YEAR
-      !-----SDE DEBUG
 !
 ! !REVISION HISTORY: 
 !  16 Jul 2013 - S. D. Eastham - Initial version
@@ -765,9 +760,6 @@
       ! Timing information
       INTEGER       :: NDAY
       INTEGER, SAVE :: LASTMONTH=0
-      !-----SDE DEBUG
-      INTEGER, SAVE :: LASTDAY=0
-      !-----SDE DEBUG
 
       ! Grid indexing
       INTEGER :: I,J,L
@@ -782,14 +774,6 @@
       INTEGER            :: NDYEAR, AS
       LOGICAL            :: CYCLEBOX
       CHARACTER(LEN=255) :: DBGMSG
-
-      !-----SDE DEBUG
-      INTEGER            :: IU_FILE, IOS
-      CHARACTER(LEN=255) :: STRATNOXFILE, NOXSTRING, STRATNOXSTAT
-      CHARACTER(LEN=255) :: STRATNOXACCESS
-      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NOXARR
-      LOGICAL, PARAMETER :: WRITENOX = .FALSE.
-      !-----SDE DEBUG
 
       !=================================================================
       ! UCX_NOX begins here!
@@ -831,14 +815,6 @@
       MESONOX_DELTA = 0d0
       MESON2O_DELTA = 0d0
 
-      !-----SDE DEBUG
-      IF (WRITENOX) THEN
-         ALLOCATE( NOXARR( IIPAR,JJPAR,LLPAR,8 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXARR' )
-         NOXARR=0d0
-      ENDIF
-      !-----SDE DEBUG
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, DAYFRAC, RRATE               )
@@ -870,12 +846,6 @@
          ! Are the pre-calculated J-rates zero (ie in darkness)?
          CYCLEBOX = (ANY(NOX_J(I,J,L,:).lt.TINY(1d0)))
          IF (ITS_IN_THE_CHEMGRID(I,J,L).or.CYCLEBOX) THEN
-!            !-----SDE DEBUG
-!            WRITE(IU_FILE,222) I,J,L,0.d0,0.d0,0.d0,0.d0,0.d0,
-!     &              0.d0,0.d0,0.d0,GMTSTART,DTCHEM_HR
-!            ! Change this to CYCLE
-!            CYCLEBOX = .TRUE.
-!            !-----SDE DEBUG
             CYCLE
          ENDIF
          ! Calculate daylight fraction
@@ -910,15 +880,7 @@
                DAYFRAC = (TMAX-TMIN)/DTCHEM_HR
             ENDIF
          ENDIF
-!         !-----SDE DEBUG
-!         WRITE(6,'(3(I0.3,1x),5(F10.4,1x),L1,1x,3(E10.4,1x))') I, J, L,
-!     &      TSTART,TEND,TMIN,TMAX,DAYFRAC,CYCLEBOX,SOL_B,SOL_C,SOL_TEST
-!         !-----SDE DEBUG
          IF (CYCLEBOX) THEN
-!            !-----SDE DEBUG
-!            WRITE(IU_FILE,222) I,J,L,0.d0,0.d0,0.d0,0.d0,0.d0,
-!     &              0.d0,0.d0,1.d0,GMTSTART,DTCHEM_HR
-!            !-----SDE DEBUG
             CYCLE
          ENDIF
          ! Reset reaction rates
@@ -1016,38 +978,6 @@
 
          MESON2O_DELTA = MESON2O_DELTA + DN2O
          
-         !-----SDE DEBUG
-         IF (WRITENOX) THEN
-            NOXARR(I,J,L,1) = N2ORATE/NDAIR  ! (v/v)/s
-            NOXARR(I,J,L,2) = NOXRATE/NDAIR  ! (v/v)/s
-            NOXARR(I,J,L,3) = LOCALN2O/NDAIR ! v/v
-            NOXARR(I,J,L,4) = LOCALNOX/NDAIR ! v/v
-            NOXARR(I,J,L,5) = FRACN
-            NOXARR(I,J,L,6) = FRACNO
-            NOXARR(I,J,L,7) = FRACNO2
-            NOXARR(I,J,L,8) = FRACNO3
-         ENDIF
-         !-----SDE DEBUG
-
-!         ! Implicit Euler method (stable)
-!         NO_ALPHA  = 2.d0*RRATE(11)*LOCALO1D
-!         NO_GAMMA  = RRATE(7)*FRACN*FRACNO2   
-!         NO_BETA   = 2.d0*(NO_GAMMA + (RRATE(8)*FRACN*FRACNO))
-!         NO_EPSILON= RRATE(k_JN2O) + (LOCALO1D*(RRATE(10)+RRATE(11)))
-!         ! Temporary storage variable
-!         NO_QX     = DTCHEM*NO_ALPHA/(1.d0+(NO_EPSILON*DTCHEM))
-!         ! Calculate quadratic coefficients (B = 1)
-!         NO_QA     = DTCHEM*(NO_BETA - (NO_QX*NO_GAMMA))
-!         NO_QC     = -1.d0*(LOCALNOX + (LOCALN2O*NO_QX))
-!         ! Calculate new molecular concentrations
-!         LOCALNOX  = (-1.d0 + SQRT(1.d0 - (4.d0*NO_QA*NO_QC)))/
-!     &                              (2.d0*NO_QA)
-!         LOCALN2O  = (LOCALN2O+(DTCHEM*LOCALNOX*LOCALNOX*NO_GAMMA))/
-!     &               (1.d0 + (NO_EPSILON*DTCHEM))
-!         KGNOX     = LOCALNOX/(TCVV(IDTNOX)*XAIR)
-!         KGN2O     = LOCALN2O/(TCVV(IDTN2O)*XAIR)
-!         STT(I,J,L,IDTNOX) = KGNOX
-!         STT(I,J,L,IDTN2O) = KGN2O
       ENDDO ! J
       ENDDO ! I
       ENDDO ! L
@@ -1067,48 +997,6 @@
      &       MESON2O_DELTA, ' kg'
          CALL DEBUG_MSG(TRIM(DBGMSG))
       ENDIF
-
-      !-----SDE DEBUG
-      ! Write full set of diagnostics to file
-      IF (WRITENOX) THEN
-         IF (LASTDAY.ne.NDAY) THEN
-            STRATNOXSTAT = 'REPLACE'
-            STRATNOXACCESS='SEQUENTIAL'
-         ELSE
-            STRATNOXSTAT = 'OLD'
-            STRATNOXACCESS='APPEND'
-         ENDIF
-         LASTDAY = NDAY
-
-         ! Get a free LUN
-         IU_FILE = findFreeLUN()
-         WRITE(STRATNOXFILE,'(a,I0.4,I0.3)') 'STRATNOX_',GET_YEAR(),NDAY
-         IOS = 1
-         OPEN( IU_FILE, FILE=TRIM( STRATNOXFILE ),
-     &          ACCESS=TRIM( STRATNOXACCESS ),
-     &          STATUS=TRIM(STRATNOXSTAT),IOSTAT=IOS) 
-         IF ( IOS /= 0 ) THEN
-           WRITE(6,*) 'UCX_MOD: Could not read ',TRIM(STRATNOXFILE)
-           CALL IOERROR( IOS, IU_FILE,'UCX_MOD:UCX_NOX')
-         ENDIF
-         DO I=1,IIPAR
-         DO J=1,JJPAR
-         DO L=LLCHEM,LLPAR
-         IF (NOXARR(I,J,L,7).gt.0d0) THEN
-            WRITE(IU_FILE, 222) I,J,L,NOXARR(I,J,L,1),NOXARR(I,J,L,2),
-     &                                NOXARR(I,J,L,3),NOXARR(I,J,L,4),
-     &                                NOXARR(I,J,L,5),NOXARR(I,J,L,6),
-     &                                NOXARR(I,J,L,7),NOXARR(I,J,L,8),
-     &                                GMTSTART,DTCHEM_HR
-         ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-222      FORMAT (3(I0.3,1x), 8(E14.5,1x), F10.5, 1x, F10.5)
-         CLOSE(IU_FILE)
-         DEALLOCATE(NOXARR)
-      ENDIF
-      !-----SDE DEBUG
 
       END SUBROUTINE UCX_NOX
 !EOC
@@ -1134,12 +1022,8 @@
       USE ERROR_MOD,     ONLY : ERROR_STOP, ALLOC_ERR
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
       USE TRACER_MOD,    ONLY : STT, TCVV
-      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_CHEMGRID
+      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_CHEMGRID, GET_CHEMGRID_LEVEL
       USE DAO_MOD,       ONLY : AD
-      !-----SDE DEBUG
-      USE CHEMGRID_MOD,  ONLY : GET_CHEMGRID_LEVEL
-      USE FAST_JX_MOD,   ONLY : FJXFUNC
-      !-----SDE DEBUG
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1167,9 +1051,6 @@
       CHARACTER(LEN=255) :: DBGMSG
       REAL*8,DIMENSION(:,:,:),ALLOCATABLE :: NOXDATA2D
       INTEGER :: LSTART
-      !-----SDE DEBUG
-      REAL*8,DIMENSION(4) :: JTEMP
-      !-----SDE DEBUG
 
       !=================================================================
       ! GET_NOXCOEFF begins here!
@@ -1184,10 +1065,6 @@
       NOX_O = 0d0
       NOX_J = 0d0
 
-      !-----SDE DEBUG
-      ! j-value data not yet available
-      !DO ITRAC = 1,2
-      !-----SDE DEBUG
       DO ITRAC = 1,6
          SELECT CASE (ITRAC)
             CASE ( 1 )
@@ -2139,11 +2016,6 @@
          ENDDO
          STT(I,J,L,IDTBCPI)= STT(I,J,L,IDTBCPI)* CONST_V(IBC) 
 
-         !-----SDE DEBUG
-!         WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Pre-STS H2O sum.. for I, J: ',
-!     &                      I,J, SUM(STT(I,J,:,IDTH2O))
-         !-----SDE DEBUG
-
          DO L = LLPAR-1,1,-1
             IF (ITS_IN_THE_TROP(I,J,L+1)) CYCLE
             DELZ  = BXHEIGHT(I,J,L)
@@ -2208,13 +2080,6 @@
                VFALLMAX = BXMIN/SEDSTEP
             ENDIF
 
-            !-----SDE DEBUG
-!            WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Post-STS H2O sum. for I, J: ',
-!     &                         I,J, SUM(STT(I,J,:,IDTH2O))
-!            WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Max fall velocity for I, J: ',
-!     &                         I,J,VFALLMAX
-            !-----SDE DEBUG
-
             SEDSTEPLOOP: DO ISED=1,NUMSEDSTEPS
                STARTPT = MAX(1,MINALT-1)
                ! XPSC is the number of molecules tied up in solid particles
@@ -2232,15 +2097,6 @@
      &                 ((NATMW/TRACER_MW_G(IDTNIT))*
      &                STT(I,J,L,IDTNIT)))*AIRMW/(ICEMW*AD(I,J,L))
                ENDIF
-               !-----SDE DEBUG
-               IF (XICE_0 .lt. 0d0) THEN
-                  WRITE(6,'(a)') 'ERROR! L,XNO3 XNAT XICE KG AER:'
-                  WRITE(6,'(I3,1x,4(E10.4,1x))') L,XNO3_0,XNAT_0,XICE_0,
-     &                  KG_AER(I,J,L,I_SPA)
-                  CALL ERROR_STOP('Negative mixing ratio!',
-     &                               'UCX_mod.F')
-               ENDIF
-               !-----SDE DEBUG
                XPSC_0 = XNAT_0 + XICE_0
                P_0 = 100.0d0 * GET_PCENTER(I,J,L)
                INVAIR_0 = AIRMW/AD(I,J,L)
@@ -2406,7 +2262,6 @@
                   SEDNO3 = MAX(0.0d0,SEDNO3)
                   SEDICE = MAX(0.0d0,SEDICE)
                   
-                  !-----SDE DEBUG
                   ! Convert v/v to kg/box
                   SEDNO3 = SEDNO3*TRACER_MW_G(IDTNIT)/INVAIR_0
                   SEDICE = SEDICE*ICEMW/INVAIR_0
@@ -2426,37 +2281,34 @@
                   SEDPSC = MIN(SEDPSC,KG_AER(I,J,L+1,I_SPA))
                   KG_AER(I,J,L,I_SPA) = KG_AER(I,J,L,I_SPA) + SEDPSC
                   KG_AER(I,J,L+1,I_SPA)=KG_AER(I,J,L+1,I_SPA)-SEDPSC
-                  !-----SDE DEBUG
                   
                   ! Store for debug
-                  FRACLOSS = SEDH2O/STT(I,J,L+1,IDTH2O)
-                  IF (FRACLOSS .gt. MAXLOSS) THEN
-                     MAXLOSS = FRACLOSS
-                     D_ICE0 = XICE_0*ICEMW/INVAIR_0
-                     D_ICE1 = D_ICE0 - SEDICE
-                     D_H2O1 = STT(I,J,L+1,IDTH2O)
-                     D_H2O0 = D_H2O1 + SEDH2O
-                     D_NAT1 = STT(I,J,L+1,IDTNIT)*NATMW/
-     &                                   TRACER_MW_G(IDTNIT)
-                     D_NAT0 = D_NAT1 + SEDNAT
-                     D_HNO3 = STT(I,J,L+1,IDTHNO3)
-                     D_RMAX = RAD_AER(I,J,L+1,I_SPA)
-                     D_VMAX = VNAT(L+1)
-                     D_SEDQ = SEDQUANT
-                     D_PSED = PSED0
-                     D_XH2O = D_H2O0*INVAIR_0/ICEMW
-                     D_XHNO3= D_HNO3*INVAIR_0/TRACER_MW_G(IDTHNO3)
-                     D_XNAT = D_NAT0*INVAIR_0/NATMW
-                     D_PPA  = P_0
-                     D_TK   = TEMP
+                  IF (LPRT) THEN
+                     FRACLOSS = SEDH2O/STT(I,J,L+1,IDTH2O)
+                     IF (FRACLOSS .gt. MAXLOSS) THEN
+                        MAXLOSS = FRACLOSS
+                        D_ICE0 = XICE_0*ICEMW/INVAIR_0
+                        D_ICE1 = D_ICE0 - SEDICE
+                        D_H2O1 = STT(I,J,L+1,IDTH2O)
+                        D_H2O0 = D_H2O1 + SEDH2O
+                        D_NAT1 = STT(I,J,L+1,IDTNIT)*NATMW/
+     &                                      TRACER_MW_G(IDTNIT)
+                        D_NAT0 = D_NAT1 + SEDNAT
+                        D_HNO3 = STT(I,J,L+1,IDTHNO3)
+                        D_RMAX = RAD_AER(I,J,L+1,I_SPA)
+                        D_VMAX = VNAT(L+1)
+                        D_SEDQ = SEDQUANT
+                        D_PSED = PSED0
+                        D_XH2O = D_H2O0*INVAIR_0/ICEMW
+                        D_XHNO3= D_HNO3*INVAIR_0/TRACER_MW_G(IDTHNO3)
+                        D_XNAT = D_NAT0*INVAIR_0/NATMW
+                        D_PPA  = P_0
+                        D_TK   = TEMP
+                     ENDIF
                   ENDIF
 
                ENDDO SED_LLOOP
             ENDDO SEDSTEPLOOP
-         !-----SDE DEBUG
-!         WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Post-PSC H2O sum. for I, J: ',
-!     &                      I,J, SUM(STT(I,J,:,IDTH2O))
-         !-----SDE DEBUG
          ENDIF ! VFALLMAX > 0
 
       ENDDO
@@ -2673,9 +2525,6 @@
       USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_CHEMGRID
       USE COMODE_MOD,       ONLY : CSPEC,JLOP
       USE ERROR_MOD,        ONLY : ERROR_STOP, IS_SAFE_DIV
-      !-----SDE DEBUG
-!      USE ERROR_MOD,        ONLY : IT_IS_NAN
-      !-----SDE DEBUG
 
       USE CMN_GCTM_MOD,     ONLY : AIRMW, PI
 !
@@ -2875,12 +2724,8 @@
                HNO3SUM = HNO3SUM + STT(I,J,L,IDTNIT)*INVAIR/
      &                    TRACER_MW_G(IDTNIT)
 
-               !-----SDE DEBUG
-               ! Revert to static H2O for now
-               !H2OSUM = AVGW(I,J,L)
                H2OSUM = STT(I,J,L,IDTH2O)*INVAIR/
      &                   TRACER_MW_G(IDTH2O)
-               !-----SDE DEBUG
 
                ! Calculate partial pressures (Pa)
                HNO3PP = PCENTER_PA * HNO3SUM
@@ -3041,17 +2886,6 @@
                      RHO_AER_BOX = 
      &                  ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/
      &                                    (VOL_ICE+VOL_NAT)
-                     !----SDE DEBUG
-!                     IF (IT_IS_NAN(RHO_AER_BOX)) THEN
-!                        WRITE(6,'(a,1x,4I4)') 'BAD RHO! I,J,L,STATE:',
-!     &                                I,J,L,STATE_LOCAL
-!                        WRITE(6,'(a,1x,3E14.4)') 'VOL/DENS/KG ICE : ',
-!     &                                 VOL_ICE,DENSICE,KG_NAT
-!                        WRITE(6,'(a,1x,3E14.4)') 'VOL/DENS/KG NAT : ',
-!     &                                 VOL_NAT,DENSNAT,KG_NAT
-!                        CALL ERROR_STOP('HARDKILL','HARDKILL')
-!                     ENDIF
-                     !----SDE DEBUG
                   ENDIF
 
                   ! Calculate SAD (cm2/cm3)
@@ -3186,18 +3020,6 @@
                   RAD_AER_BOX = SLA_VR*SLA_RR*(VOL_SLA**0.249d0) ! m
                   KG_AER_BOX  = RHO_AER_BOX*VOL_SLA*AIRVOL(I,J,L)! kg
 
-                  !-----SDE DEBUG
-!                  IF (RAD_AER_BOX.gt.1.d-7) THEN
-!                  WRITE(6,'(a,1x,3I3)') 'Aerosol properties at: ', I,J,L
-!                  WRITE(6,'(a,1x,4(E10.4,1x))') 'P T H2O H2SO4    : ', 
-!     &                          PCENTER,TCENTER,H2OSUM,H2SO4_BOX_L
-!                  WRITE(6,'(a,1x,4(E10.4,1x))') 'Ws Wh V RHO      : ', 
-!     &                          W_H2SO4,W_H2O,VOL_SLA,RHO_AER_BOX
-!                  WRITE(6,'(a,1x,2(E10.4,1x))') 'A(um2/cm3) r(um) : ', 
-!     &                          SAD_AER_BOX*1.d8,RAD_AER_BOX*1.d6
-!                  ENDIF
-                  !-----SDE DEBUG
-
                   IF (VOL_SLA.gt.1.d-30) THEN
                      ! Approximate particles as spherical for calculation
                      ! of aerosol number density
@@ -3302,31 +3124,10 @@
                NDENS_AER(I,J,L,I_SLA)= NDENS_AER_BOX    ! #/m3
                SAD_AER(I,J,L,I_SLA)  = SAD_AER_BOX      ! cm2/cm3
 
-!               !-----SDE DEBUG
-!               WRITE(6,'(a,3(1x,I3))') '---------I J L       : ',
-!     &                      I, J, L
-!               WRITE(6,'(a,2(1x,E10.4))') ' T (K) P (Pa)     : ',
-!     &                      TCENTER, PCENTER_PA
-!               WRITE(6,'(a,3(1x,E10.4))') ' H2SO4 HNO3 H2O   : ',
-!     &                      H2SO4SUM, HNO3SUM, H2OSUM
-!               WRITE(6,'(a,3(1x,E10.4))') ' HCl H2SO4-l WT%  : ',
-!     &                      HClSUM, H2SO4_BOX_L, 1.d2*W_H2SO4
-!               WRITE(6,'(a,2(1x,E10.4))') ' r (m) SAD (u2/c3): ',
-!     &                      RAD_AER_BOX, SAD_AER_BOX*1.d8
-!               WRITE(6,'(a,1(1x,E10.4))') ' RHO (g/cm3)      : ',
-!     &                      RHO_AER_BOX
-!               WRITE(6,'(a,3(1x,E10.4))') ' GHCl GH2O GHOCl  : ',
-!     &                      GAMMA_BOX(3), GAMMA_BOX(4), GAMMA_BOX(8)
-!               !-----SDE DEBUG
-
             ENDDO LLOOP ! L
          ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
-
-!      !-----SDE DEBUG
-!      CALL ERROR_STOP('HARDKILL','HARDKILL')
-!      !-----SDE DEBUG
 
       IF (LPRT) THEN
          CALL DEBUG_MSG( '### UCX: after CALC_STRAT_AER' )
@@ -3804,31 +3605,6 @@
          W_HNO3 = 0.0d0
          PVAP_HNO3 = 0.0d0
          HNO3GASFRAC=1.0d0
-      ENDIF
-
-      ! SDE DEBUG
-      IF (W_H2SO4.gt.1.0d0) THEN
-         WRITE(DBGMSG,'(a,E10.4)') 'PATMH2O: ', PATMH2O
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,E10.4)') 'TCENTER: ', TCENTER
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,E10.4)') 'TCENTER_IN: ', TCENTER_IN
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,E10.4)') 'MOLDENS_H2SO4: ', MOLDENS_H2SO4
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,E10.4)') 'H2SO4SUM: ', H2SO4SUM
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,E10.4)') 'PATMH2O: ', PATMH2O
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,E10.4)') 'X_H2SO4_BIN: ', X_H2SO4_BIN
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,E10.4)') 'M_H2SO4_BIN: ', M_H2SO4_BIN
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,E10.4)') 'M_H2SO4: ', M_H2SO4
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,E10.4)') 'W_H2SO4:    ', W_H2SO4
-         CALL DEBUG_MSG( DBGMSG )
-         CALL ERROR_STOP('BAD WEIGHT FRAC','UCX_mod')
       ENDIF
 
       ! Handle HCl (Luo et al., Vapor pressures of
@@ -5232,13 +5008,13 @@
       GRIDSPEC = 'Grid4x5/InitCFC_'
 #endif
 
-      !-----SDE DEBUG
-      ! Check - and write - the `record length' of AVG_FILE_ROOT
-      WRITE(6,*) TRIM(TRAC_FILE_ROOT)
-      WRITE(6,*) '/DiurnalAvg/'
-      WRITE(6,*) TRIM(GRIDSPEC)
-      WRITE(6,*) TRIM(TRAC_FILE_ROOT), '/DiurnalAvg/', TRIM(GRIDSPEC)
-      !-----SDE DEBUG
+!      !-----SDE DEBUG
+!      ! Check - and write - the `record length' of AVG_FILE_ROOT
+!      WRITE(6,*) TRIM(TRAC_FILE_ROOT)
+!      WRITE(6,*) '/DiurnalAvg/'
+!      WRITE(6,*) TRIM(GRIDSPEC)
+!      WRITE(6,*) TRIM(TRAC_FILE_ROOT), '/DiurnalAvg/', TRIM(GRIDSPEC)
+!      !-----SDE DEBUG
 
       ! Determine folder paths from root folder
       WRITE(     AVG_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT),

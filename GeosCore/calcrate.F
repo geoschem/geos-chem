@@ -146,10 +146,6 @@
       USE CMN_DEP_MOD           ! FRCLND
       USE CMN_O3_MOD            ! for jvalues (gvinken, 6/09/10)
 
-!      !-----SDE DEBUG
-!      USE ERROR_MOD, ONLY : DEBUG_MSG
-!      USE LOGICAL_MOD, ONLY : LPRT
-!      !-----SDE DEBUG
       IMPLICIT NONE
 #     include "define.h"
 
@@ -247,15 +243,11 @@
       LOGICAL :: NATSURFACE
       REAL*8  :: ADJUSTEDRATE
       LOGICAL :: KII_KI, PSCBOX, STRATBOX
-      !-----SDE DEBUG
       REAL*8, PARAMETER :: PSCMAXRATE=1.d-13
 
       ! Minimum lifetime of a species for PSC heterogeneous chemistry
-      !-----SDE DEBUG
       REAL*8, PARAMETER :: PSCMINLIFE=1.d-3
-      !-----SDE DEBUG
       CHARACTER(LEN=255) :: PSCMESSAGE
-      !-----SDE DEBUG
 
 !-------------------------------------------------------------------------------
 ! Prior to 9/24/12:
@@ -429,9 +421,6 @@
 ! ---------------------------     H2O     -----------------------------
 !
       IF (IH2O.GT.NGAS) THEN
-         !-----SDE DEBUG
-         WRITE(6,'(a)') 'SDE DEBUG: H2O INACTIVE'
-         !-----SDE DEBUG
          DO KLOOP      = 1, KTLOOP 
             TK               = T3K(KLOOP) 
             CONSEXP          = 17.2693882D0 * (TK - 273.16D0) / 
@@ -596,32 +585,6 @@
          ENDDO
       ENDIF
 
-!-----SDE DEBUG         
-! SDE 05/14/13: Calculate atomic N steady-state concentration
-!      IF (INATOM.GT.NGAS) THEN
-!         PHOTVAL = NKNOPHOT-NRATES(NCS)
-!         NKN     = NKNPHOTRT(PHOTVAL,NCS)
-!         DO KLOOP          = 1, KTLOOP
-!            CBLK(KLOOP,INATOM) = RRATE(KLOOP,NKN)/(
-!     &         (1.5d-11*dexp(-3600.d0*T3I(KLOOP))*CONCO2(KLOOP)/
-!     &          CBLK(KLOOP,INO)) - (2.1d-11*dexp(100.d0*T3I(KLOOP))))
-!         ENDDO
-!      ENDIF
-!      IF (IO1D.GT.NGAS) THEN
-!         PHOTVAL = NKO3PHOT(NCS) - NRATES(NCS)
-!         NKN     = NKNPHOTRT(PHOTVAL,NCS)
-!!         PHOTVAL = NKN2OPHOT(NCS) - NRATES(NCS)
-!!         NK      = NKNPHOTRT(PHOTVAL,NCS)
-!         DO KLOOP          = 1, KTLOOP
-!            CBLK(KLOOP,IO1D) = (RRATE(KLOOP,NKN)*CBLK(KLOOP,IO3) + 
-!     &                          RRATE(KLOOP,NKN)*CBLK(KLOOP,IN2O)   ) /
-!     $       ( 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
-!     $         2.15d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
-!     $         3.30d-11 * EXP( 55.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
-!!               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
-!         ENDDO
-!      ENDIF
-!-----SDE DEBUG         
 !
 ! *********************************************************************
 ! ******                SET DRY DEPOSITION RATES                 ******
@@ -1589,7 +1552,6 @@ c new OH+CO rate from JPL2006.
                   !    a Nan, force k = 0.
                   !
                   ! If all these checks are passed, we set k = ki/[B].
-                  !-----SDE DEBUG
                   ! Rxn 11 is first-order - ignore
                   IF (PSCIDX.eq.1) THEN
                      ! N2O5 + H2O is an old reaction, allow to proceed
@@ -1613,7 +1575,6 @@ c new OH+CO rate from JPL2006.
                      ELSE
                         ADJUSTEDRATE = 0d0
                      ENDIF
-                     !-----SDE DEBUG
                      IF ((EDUCTCONC.gt.1.d2).and.
      &                      (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
                         ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC

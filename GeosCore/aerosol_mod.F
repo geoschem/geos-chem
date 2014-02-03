@@ -597,10 +597,6 @@
       USE COMODE_LOOP_MOD   ! NTLOOP
       USE CMN_DIAG_MOD   ! ND21, LD21
 
-      !-----SDE DEBUG
-!      USE ERROR_MOD,     ONLY : IT_IS_NAN
-      !-----SDE DEBUG
-
       IMPLICIT NONE
 #     include "define.h"
 
@@ -1004,19 +1000,11 @@
          ENDIF   
       ENDIF 
 
-      !-----SDE DEBUG
-!      WRITE(6,'(a,x,I03)') 'SDE CHECK ', 1
-      !-----SDE DEBUG
-
 #if defined( UCX )
       ! SDE 04/17/13 - Transfer stratospheric aerosol data
       WAERSL(:,:,:,NRHAER+1) = SLA
       WAERSL(:,:,:,NRHAER+2) = SPA
 #endif
-
-      !-----SDE DEBUG
-!      WRITE(6,'(a,x,I03)') 'SDE CHECK ', 2
-      !-----SDE DEBUG
 
       !=================================================================
       ! Calculate optical depth and surface area at each timestep
@@ -1043,10 +1031,6 @@
       MSDENS(NRHAER+1) = 1700.0d0! SSA/STS
       MSDENS(NRHAER+2) = 1000.0d0! NAT/ice PSC
 #endif
-
-      !-----SDE DEBUG
-!      WRITE(6,'(a,x,I03)') 'SDE CHECK ', 3
-      !-----SDE DEBUG
 
       ! Loop over types of aerosol with hygroscopic growth
       DO N = 1, NRHAER
@@ -1390,15 +1374,12 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 1 !--SDE DEBUG
             ! Retrieve aerosol density
             RHOSTRAT = RHO_STRAT_AER(I,J,L,ISTRAT)
 
-!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 2 !--SDE DEBUG
             ! Get aerosol effective radius
             CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT)
 
-!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 3 !--SDE DEBUG
             ! SDE 2013-12-30
             ! Changed this from RAA_AOD and RAA respectively to REFF
             ! in each calculation. Although QAA_AOD and QAA were
@@ -1416,7 +1397,6 @@
 !     &                          ( RHOSTRAT * REFF * 1.0D-6 )
      &                          ( RHOSTRAT * RAA_AOD(IND(N)) * 1.0D-6 )
 
-!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 4 !--SDE DEBUG
             ELSE
 
             ! Aerosol optical depth
@@ -1424,7 +1404,6 @@
      &                       WAERSL(I,J,L,N)    * QAA(IND999,IND(N))  / 
 !     &                       ( RHOSTRAT * REFF * 1.0D-6 )
      &                       ( RHOSTRAT * RAA(IND999,IND(N)) * 1.0D-6 )
-!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 5 !--SDE DEBUG
 
             ENDIF
 
@@ -1440,7 +1419,6 @@
                WERADIUS(JLOOP,NDUST+N) = REFF
             ENDIF
 
-!            WRITE(6,'(a,x,I2)') 'SDE BETA ', 7 !--SDE DEBUG
          ENDDO
          ENDDO
          ENDDO
