@@ -34,7 +34,6 @@
       PRIVATE :: READ_TRACER_MENU  
       PRIVATE :: READ_AEROSOL_MENU     
       PRIVATE :: READ_EMISSIONS_MENU
-      PRIVATE :: READ_GEOENG_MENU
       PRIVATE :: READ_FUTURE_MENU
       PRIVATE :: READ_CHEMISTRY_MENU
       PRIVATE :: READ_TRANSPORT_MENU
@@ -128,7 +127,6 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
-!  15 Oct 2013 - S. D. Eastham - Added READ_GEOENG_MENU option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -356,9 +354,6 @@
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
             CALL READ_CH4_MENU( am_I_Root )
 
-         ELSE IF ( INDEX( LINE, 'GEOENG MENU'      ) > 0 ) THEN
-            CALL READ_GEOENG_MENU( am_I_Root )
-                                    
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
 
@@ -1655,9 +1650,6 @@
       USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFCX
       USE TRACERID_MOD,  ONLY : IDTCl, IDTN2O, IDTBr2, IDTH2O
       USE UCX_MOD,       ONLY : TRAC_FILE_ROOT, CFCYEAR
-      ! SDE 2013-07-28
-      USE GEOENG_MOD,    ONLY : GE_TGS, GE_PCEIL, GE_PBASE
-      USE GEOENG_MOD,    ONLY : GE_MINLAT, GE_MAXLAT
       ! Adapted from C. Holmes' RCP module (SDE 2013-11-15)
       USE RCP_MOD,       ONLY : RCPNAME, RCPYEAR, OPTIONS_RCP
 !
@@ -2688,159 +2680,6 @@
  130  FORMAT( A, A  )
 
       END SUBROUTINE READ_EMISSIONS_MENU
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_emissions_menu
-!
-! !DESCRIPTION: Subroutine READ\_EMISSIONS\_MENU reads the EMISSIONS MENU 
-!  section of the GEOS-Chem input file.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_GEOENG_MENU( am_I_Root )
-!
-! !USES:
-!
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD
-      ! SDE 2013-07-28
-      USE GEOENG_MOD,    ONLY : GE_TGS, GE_PCEIL, GE_PBASE
-      USE GEOENG_MOD,    ONLY : GE_MINLAT, GE_MAXLAT, GE_TSURF
-      USE GEOENG_MOD,    ONLY : GE_QQCC, GE_QQGE
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
-! !REVISION HISTORY: 
-!  15 Oct 2013 - S. D. Eastham - Initial version (based on EMISSIONS)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
-
-      !=================================================================
-      ! READ_GEOENG_MENU begins here!
-      !=================================================================
-
-      ! Location for error messages
-      LOC = 'READ_GEOENG_MENU ("input_mod.f")'
-
-      ! Apply geoengineering emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:1' )
-      READ( SUBSTRS(1:N), * ) LGEOENG
-
-      ! Total geoeongeering emissions (TgS/yr)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:2' )
-      READ( SUBSTRS(1:N), * ) GE_TGS
-
-      ! Geoengineering pressure base (hPa)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:3' )
-      READ( SUBSTRS(1:N), * ) GE_PBASE
-
-      ! Geoengineering pressure ceiling (hPa)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:4' )
-      READ( SUBSTRS(1:N), * ) GE_PCEIL
-
-      ! Lower latitude edge (deg)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:5' )
-      READ( SUBSTRS(1:N), * ) GE_MINLAT
-
-      ! Upper latitude edge (deg)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:6' )
-      READ( SUBSTRS(1:N), * ) GE_MAXLAT
-
-      ! Global temperature offsets (K)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:7' )
-      READ( SUBSTRS(1:N), * ) GE_TSURF
-
-      ! Apply offset uniformly?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:8' )
-      READ( SUBSTRS(1:N), * ) LCC_UNIFORMT
-
-      ! Apply offset to the surface only?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:9' )
-      READ( SUBSTRS(1:N), * ) LCC_SFCT
-
-      ! Apply offset with AR5-based scaling?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:10' )
-      READ( SUBSTRS(1:N), * ) LCC_AR5T
-
-      ! Apply precipitation delta for climate change/geoeng?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:11' )
-      READ( SUBSTRS(1:N), * ) LCC_QQ
-
-      ! Climate change delta scaling factor (%)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:12' )
-      READ( SUBSTRS(1:N), * ) GE_QQCC
-
-      ! Geoengineering delta scaling factor (%)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:13' )
-      READ( SUBSTRS(1:N), * ) GE_QQGE
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_geoeng_menu:14' )
-
-      !=================================================================
-      ! Error check
-      !=================================================================
-#if !defined( UCX )
-      LGEOENG           = .FALSE.
-#endif
-
-      ! Can only have one of the three temperature scalings
-      IF ((LCC_SFCT.AND.LCC_AR5T).OR.
-     &    (LCC_SFCT.AND.LCC_UNIFORMT).OR.
-     &    (LCC_UNIFORMT.AND.LCC_AR5T)) THEN
-         
-          MSG = 'Only 1 temperature offset scenario can be set.'
-          CALL ERROR_STOP( MSG, LOC )
-      ENDIF
-
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 'GEOENGINEERING MENU'
-         WRITE( 6, '(  a)' ) '--------------'
-         WRITE( 6, 100 ) 'Emit geoengineering SO2?    : ', LGEOENG
-         IF (LGEOENG) THEN
-            WRITE( 6, 120 ) '      --> TgS per year      : ', GE_TGS
-            WRITE( 6, 120 ) '      --> Base P (hPa)      : ', GE_PBASE
-            WRITE( 6, 120 ) '      --> Ceiling P (hPa)   : ', GE_PCEIL
-            WRITE( 6, 120 ) '      --> Min. latitude     : ', GE_MINLAT
-            WRITE( 6, 120 ) '      --> Max. latitude     : ', GE_MAXLAT
-         ENDIF
-         IF (LCC_SFCT.or.LCC_UNIFORMT.or.LCC_AR5T) THEN
-            WRITE( 6, 120 ) 'Climate change T offset     : ', GE_TSURF
-            IF (LCC_SFCT) THEN
-               WRITE( 6, '(a)' ) '      --> applied at surface only'
-            ELSEIF (LCC_UNIFORMT) THEN
-               WRITE( 6, '(a)' ) '      --> applied at all altitudes'
-            ELSEIF (LCC_AR5T) THEN
-               WRITE( 6, '(a)' ) '      --> AR5 vertical scaling'
-            ENDIF
-         ENDIF
-         WRITE( 6, 100 ) 'Emit geoengineering SO2?    : ', LCC_QQ   
-         IF (LCC_QQ) THEN
-            WRITE( 6, 120 ) '      --> Climate change %  : ', GE_QQCC
-            WRITE( 6, 120 ) '      --> Geoengineering %  : ', GE_QQGE
-         ENDIF
-      ENDIF
-
- 100  FORMAT( A, L5 )
- 120  FORMAT( A, f6.2 )
-
-      END SUBROUTINE READ_GEOENG_MENU
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -7313,7 +7152,6 @@
 !
       USE DIRECTORY_MOD
       USE LOGICAL_MOD
-      USE GEOENG_MOD,    ONLY : GE_TSURF, GE_QQGE, GE_QQCC
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -7458,14 +7296,6 @@
       LHOMNUCNAT     = .FALSE.
       LPSCCHEM       = .FALSE.
       LFUTURECFC     = .FALSE.
-      LGEOENG        = .FALSE.
-      LCC_UNIFORMT   = .FALSE.
-      LCC_SFCT       = .FALSE.
-      LCC_AR5T       = .FALSE.
-      LCC_QQ         = .TRUE.
-      GE_TSURF       = 0d0
-      GE_QQCC        = 0d0
-      GE_QQGE        = 0d0
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.

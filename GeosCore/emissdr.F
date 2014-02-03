@@ -149,8 +149,7 @@
       USE COMMSOIL_MOD            ! Soil wetness variables
       USE CMN_DEP_MOD
 
-      USE GEOENG_MOD,        ONLY : EMIT_GEOENG
-      USE LOGICAL_MOD,       ONLY : LGEOENG, LCH4EMIS
+      USE LOGICAL_MOD,       ONLY : LCH4EMIS
 
 #if defined( DEVEL )
       USE TRACERID_MOD,      ONLY : IDTNOX
@@ -445,10 +444,6 @@
             IF ( OPTIONS_RCP%LRCPAIR .AND. I == 1 .AND. J == 1 ) THEN
                CALL RCP_AIREMISS
             ENDIF
-!-----------------------------------------------------------------------------
-! GEOENGINEERING emissions [kg/box]
-!
-            IF ( LGEOENG .AND. I == 1 .AND. J == 1 ) CALL EMIT_GEOENG
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !

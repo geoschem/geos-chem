@@ -57,7 +57,6 @@
       USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
       USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
       USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
-      USE GEOENG_MOD,              ONLY : CLEANUP_GEOENG  
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
@@ -202,7 +201,6 @@
 !                              CLEANUP_GRID
 !  24 Mar 2013 - S. D. Eastham - Switched TROPOPAUSE_MOD to CHEMGRID_MOD
 !  04 Apr 2013 - S. D. Eastham - Added call for CLEANUP_UCX
-!  11 Nov 2013 - S. D. Eastham - Added call for CLEANUP_GEOENG
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -259,7 +257,6 @@
       CALL CLEANUP_GLOBAL_BC
       CALL CLEANUP_GLOBAL_GRID
       CALL CLEANUP_UCX
-      CALL CLEANUP_GEOENG
       CALL CLEANUP_GRID
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN

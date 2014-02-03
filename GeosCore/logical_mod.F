@@ -190,11 +190,6 @@
       LOGICAL :: LSETOCS         ! Initialize OCS to generic conditions?
       LOGICAL :: LSETH2SO4       ! Initialize H2SO4 to generic conditions?
       LOGICAL :: LSTRATOD        ! Add stratospheric aerosolsin OD calculation?
-      LOGICAL :: LGEOENG         ! Apply geoengineering emissions?
-      LOGICAL :: LCC_UNIFORMT    ! Apply uniform temperature delta at all altitudes?
-      LOGICAL :: LCC_SFCT        ! Apply temperature delta at the surface only?
-      LOGICAL :: LCC_AR5T        ! Apply temperature delta scaled according to AR5 Fig 10.8?
-      LOGICAL :: LCC_QQ          ! Apply a precipitation delta?
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?

@@ -297,7 +297,8 @@ biofuel_mod.o               : biofuel_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               epa_nei_mod.o           future_emissions_mod.o \
                               logical_mod.o           streets_anthro_mod.o   \
-                              tracerid_mod.o          tracer_mod.o    
+                              tracerid_mod.o          tracer_mod.o           \
+                              rcp_mod.o
 
 biofit.o                    : biofit.F
 
@@ -406,10 +407,11 @@ cleanup.o                   : cleanup.F                                      \
                               edgar_mod.o             emep_mod.o             \
                               epa_nei_mod.o           gc_biomass_mod.o       \
                               isoropiaII_mod.o        gfed2_biomass_mod.o    \
-                              gfed3_biomass_mod.o     geoeng_mod.o           \
+                              gfed3_biomass_mod.o                            \
                               global_ch4_mod.o        global_hno3_mod.o      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_o1d_mod.o        global_oh_mod.o        \
+                              global_bc_mod.o         global_oc_mod.o        \
                               ucx_mod.o               rcp_mod.o              \
                               h2_hd_mod.o             hcn_ch3cn_mod.o        \
                               modis_lai_mod.o         land_mercury_mod.o     \
@@ -475,7 +477,7 @@ diag3.o                     : diag3.F                                        \
                               diag_pl_mod.o           depo_mercury_mod.o     \
                               drydep_mod.o            logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o         \
-                              wetscav_mod.o
+                              wetscav_mod.o           diag53_mod.o
 
 diag41_mod.o                : diag41_mod.F            pbl_mix_mod.o    
 
@@ -630,7 +632,8 @@ gamap_mod.o                 : gamap_mod.F                                    \
                               diag_pl_mod.o  	      drydep_mod.o           \
                               logical_mod.o    	      tracerid_mod.o         \
                               tracer_mod.o            wetscav_mod.o          \
-                              diag63_mod.o            get_popsinfo_mod.o
+                              diag63_mod.o            get_popsinfo_mod.o     \
+                              diag53_mod.o
 
 ifeq ($(COMPILER),sun)
 	$(F90) -O0 -c $<
@@ -839,7 +842,8 @@ merra_a1_mod.o              : merra_a1_mod.F                                 \
                               logical_mod.o           dao_mod.o
 
 merra_a3_mod.o              : merra_a3_mod.F                                 \
-                              logical_mod.o           dao_mod.o
+                              logical_mod.o           dao_mod.o              \
+                              diag_mod.o
 
 merra_cn_mod.o              : merra_cn_mod.F                                 \
                               logical_mod.o           dao_mod.o
@@ -977,10 +981,6 @@ setemis.o                   : setemis.F                                      \
                               lightning_nox_mod.o     logical_mod.o          \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               chemgrid_mod.o      
-
-geoeng_mod.o                : geoeng_mod.F            logical_mod.o          \
-                              tracer_mod.o            tracerid_mod.o         \
-                              chemgrid_mod.o   
 
 ucx_mod.o                   : ucx_mod.F               logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o         \
