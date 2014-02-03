@@ -249,6 +249,11 @@
       REAL*8, PARAMETER :: PSCMINLIFE=1.d-3
       CHARACTER(LEN=255) :: PSCMESSAGE
 
+      ! Avoid array temporaries in CHECK_VALUE
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
+
 !-------------------------------------------------------------------------------
 ! Prior to 9/24/12:
 ! CALCRATE is already called within a parallel loop from routine PHYSPROC,
@@ -1130,8 +1135,12 @@ c new OH+CO rate from JPL2006.
 
                      ! Now call CHECK_VALUE to make sure that XSTKCF is 
                      ! not a NaN or an infinity
-                     CALL CHECK_VALUE( XSTKCF, (/KLOOP,0,0,0/),
-     &                                 'GAMMA_HO2', 'at calcrate')
+                     ! not a NaN or an infinity
+                     ERR_VAR = 'GAMMA_HO2'
+                     ERR_MSG = 'at calcrate'
+                     ERR_LOC = (/ KLOOP,0,0,0 /)
+                     CALL CHECK_VALUE( XSTKCF,  ERR_LOC, 
+     &                                 ERR_VAR, ERR_MSG  )
 
                      ! Archive gamma HO2 for ND52 diagnostic
                      DUMMY3(KLOOP) = DUMMY3(KLOOP) +
