@@ -714,15 +714,6 @@
      &                    N_TOT_TRC, 
      &                    STT   (:,:,LLPAR:1:-1,:),    
      &                    RPDEL,         
-!-----------------------------------------------------------------------------
-! Prior to 10/28/13:
-! Now use pointer variables to flip in the vertical (bmy, 10/28/13)
-!     &                    State_Met%HKETA (:,:,LLPAR:1:-1  ),
-!     &                    State_Met%HKBETA(:,:,LLPAR:1:-1  ), 
-!     &                    State_Met%ZMMU  (:,:,LLPAR:1:-1  ),    
-!     &                    State_Met%ZMMD  (:,:,LLPAR:1:-1  ),  
-!     &                    State_Met%ZMEU  (:,:,LLPAR:1:-1  ),  
-!-----------------------------------------------------------------------------
      &                    p_HKETA,
      &                    p_HKBETA,
      &                    p_ZMMU,
@@ -1001,17 +992,6 @@
      &                   F        (:,:,LLPAR:1:-1,:),     
      &                   TCVV,   
      &                   INDEXSOL, 
-!------------------------------------------------------------------------------
-! Prior to 11/4/13:
-! Now use pointer variables to flip in the vertical (mpayer, 11/4/13)
-!     &                   State_Met%UPDE     (:,:,LLPAR:1:-1  ),
-!     &                   State_Met%DNDE     (:,:,LLPAR:1:-1  ), 
-!     &                   State_Met%ENTRAIN  (:,:,LLPAR:1:-1  ), 
-!     &                   State_Met%DETRAINE (:,:,LLPAR:1:-1  ), 
-!     &                   State_Met%UPDN     (:,:,LLPAR:1:-1  ),  
-!     &                   State_Met%DNDN     (:,:,LLPAR:1:-1  ),
-!     &                   State_Met%DETRAINN (:,:,LLPAR:1:-1  )  )
-!------------------------------------------------------------------------------
      &                   p_UPDE,
      &                   p_DNDE,
      &                   p_ENTRAIN,
@@ -1260,6 +1240,10 @@
 !                              State_Chm%Tracers.  This is for TOMAS.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  04 Feb 2014 - R. Yantosca - Bug fix for TOMAS: call COMPUTE_F In its own
+!                              separate parallel loop.  Also save the values
+!                              of ISOL in the ISOL_SAVE array so that we can
+!                              pass them to the parallel tracer loop.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1298,6 +1282,7 @@
 
       ! ISOL is an index for the diagnostic arrays
       INTEGER                :: ISOL
+      INTEGER                :: ISOL_SAVE(Input_Opt%N_TRACERS)
 
       ! QC_PRES and QC_SCAV are the amounts of tracer 
       ! preserved against and lost to wet scavenging
@@ -1452,7 +1437,7 @@
       ! NOTE: We now move this into a separate parallel loop so as to
       ! ensure that TOMAS simulations result in identical results
       ! when parallelization is turned on compared to when it is
-      ! turned off. (bmy, sfarina, 2/4/13)
+      ! turned off. (bmy, sfarina, 2/4/14)
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED   )
@@ -1462,6 +1447,9 @@
 
          ! Compute the fraction of tracer IC scavenged in updrafts
          CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, State_Met, State_Chm ) 
+
+         ! Save ISOL values in an array for use below
+         ISOL_SAVE(IC) = ISOL
 
          ! ND37 diagnostic -- store F only for soluble tracers
          IF ( ND37 > 0 .and. ISOL > 0 ) THEN
@@ -1475,7 +1463,7 @@
          ENDIF
       ENDDO
 !$OMP END PARALLEL DO
-   
+
       !=================================================================
       ! (2)  T r a c e r   L o o p 
       !
@@ -1494,11 +1482,14 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISTEP, J, AREA_M2, K        ) 
+!$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISTEP, ISOL, J, AREA_M2, K  ) 
 !$OMP+PRIVATE( MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4, TSUM )
 !$OMP+PRIVATE( WET_Hg2, WET_HgP                                       )
 !$OMP+SCHEDULE( DYNAMIC )
       DO IC = 1, NC
+
+         ! Get previously archived value of ISOL (bmy, 2/4/14)
+         ISOL = ISOL_SAVE(IC)
 
          !==============================================================
          ! (3)  I n t e r n a l   T i m e   S t e p   L o o p
@@ -2567,13 +2558,6 @@
                   ! Call WASHOUT to compute the fraction of tracer lost
                   ! to washout in grid box (I,J,K)
                   CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 
-!-----------------------------------------------------------------------------
-! Prior to 9/4/13:
-! Bug fix: need to call WASHOUT with SDT instead of DT, since DT is a typo.
-! There is no variable DT defined in this routine.  This error was found by
-! compiling with FPE=yes. (bmy, 9/4/13)
-!     &                          T(K),      QDOWN,    DT,   
-!-----------------------------------------------------------------------------
      &                          T(K),      QDOWN,    SDT,   
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
      &                          WASHFRAC,  AER,      State_Met,
