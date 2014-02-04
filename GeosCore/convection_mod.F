@@ -1435,7 +1435,49 @@
 !$OMP END PARALLEL DO
 
       !=================================================================
-      ! (1)  T r a c e r   L o o p 
+      ! (1)  S c a v e n g i n g   i n   C l o u d   U p d r a f t s
+      !
+      ! Call COMPUTE_F to compute the fraction of tracer scavenged
+      ! in convective cloud updrafts.  COMPUTE_F works for both full
+      ! chemistry (NSRCX == 3) and Rn-Pb-Be chemistry (NSRCX == 1)
+      ! simulations.  It is best to compute the fraction of tracer
+      ! scavenged at this point, outside the internal time step loop.
+      ! This will avoid having to repeat the entire calculation of F
+      ! for NS times.
+      !
+      ! ISOL, which is returned from COMPUTE_F, is the tracer index
+      ! used for diagnostic arrays AD37 and AD38.  ISOL = 0 for all
+      ! non-soluble tracers.
+      !
+      ! NOTE: We now move this into a separate parallel loop so as to
+      ! ensure that TOMAS simulations result in identical results
+      ! when parallelization is turned on compared to when it is
+      ! turned off. (bmy, sfarina, 2/4/13)
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED   )
+!$OMP+PRIVATE( IC, ISOL, I, J, K ) 
+!$OMP+SCHEDULE( DYNAMIC )
+      DO IC = 1, NC
+
+         ! Compute the fraction of tracer IC scavenged in updrafts
+         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, State_Met, State_Chm ) 
+
+         ! ND37 diagnostic -- store F only for soluble tracers
+         IF ( ND37 > 0 .and. ISOL > 0 ) THEN
+            DO K = 1, LD37
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               AD37(I,J,K,ISOL) = AD37(I,J,K,ISOL) + F(I,J,K,IC) 
+            ENDDO
+            ENDDO
+            ENDDO
+         ENDIF
+      ENDDO
+!$OMP END PARALLEL DO
+   
+      !=================================================================
+      ! (2)  T r a c e r   L o o p 
       !
       ! We now parallelize over tracers, since tracers are independent 
       ! of each other.  The parallel loop only takes effect if you 
@@ -1450,52 +1492,14 @@
       !     ( CMOUT, DELQ, ENTRN, ISOL, QC_PRES, etc. )
       ! (3) Arrays independent of tracer ( F, MB, QB, QC )
       !=================================================================
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED   )
-!$OMP+PRIVATE( IC, ISOL ) 
-!$OMP+SCHEDULE( DYNAMIC )
-      DO IC = 1, NC
-         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, State_Met, State_Chm ) 
-      END DO
-
-!$OMP END PARALLEL DO
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISOL, ISTEP, J, AREA_M2, K  ) 
+!$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISTEP, J, AREA_M2, K        ) 
 !$OMP+PRIVATE( MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4, TSUM )
 !$OMP+PRIVATE( WET_Hg2, WET_HgP                                       )
 !$OMP+SCHEDULE( DYNAMIC )
       DO IC = 1, NC
 
-         !==============================================================
-         ! (2)  S c a v e n g i n g   i n   C l o u d   U p d r a f t s
-         !
-         ! Call COMPUTE_F to compute the fraction of tracer scavenged 
-         ! in convective cloud updrafts.  COMPUTE_F works for both full 
-         ! chemistry (NSRCX == 3) and Rn-Pb-Be chemistry (NSRCX == 1) 
-         ! simulations.  It is best to compute the fraction of tracer 
-         ! scavenged at this point, outside the internal time step loop.  
-         ! This will avoid having to repeat the entire calculation of F 
-         ! for NS times.
-         !
-         ! ISOL, which is returned from COMPUTE_F, is the tracer index 
-         ! used for diagnostic arrays AD37 and AD38.  ISOL = 0 for all 
-         ! non-soluble tracers.   
-         !==============================================================
-
-         ! ND37 diagnostic -- store F only for soluble tracers
-         IF ( ND37 > 0 .and. ISOL > 0 ) THEN
-            DO K = 1, LD37
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               AD37(I,J,K,ISOL) = AD37(I,J,K,ISOL) + F(I,J,K,IC) 
-            ENDDO
-            ENDDO
-            ENDDO
-         ENDIF
-      
          !==============================================================
          ! (3)  I n t e r n a l   T i m e   S t e p   L o o p
          !
