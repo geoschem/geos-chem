@@ -294,6 +294,7 @@
 !        5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  12 Jun 2013 - R. Yantosca - Bug fix: SALT_MASS needs to be !OMP PRIVATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -435,11 +436,12 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) 
-!$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC, TC0  )
-!$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX             )
-!$OMP+PRIVATE( SW,      ID,    SALT_MASS_TOTAL,      VTS_WEIGHT       ) !jaegle 5/11/11
-!$OMP+PRIVATE( DMIDW,   RHO1,  WTP                                    ) !jaegle 5/11/11
+!$OMP+PRIVATE( I,        J,     L,     VTS,             P          )     
+!$OMP+PRIVATE( TEMP,     RHB,   RWET,  RATIO_R,         RHO        )
+!$OMP+PRIVATE( DP,       PDP,   CONST, SLIP,            VISC       )
+!$OMP+PRIVATE( TC0,      DELZ,  DELZ1, TOT1,            TOT2       )
+!$OMP+PRIVATE( AREA_CM2, FLUX,  ID,    SALT_MASS_TOTAL, VTS_WEIGHT )
+!$OMP+PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS                   )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
