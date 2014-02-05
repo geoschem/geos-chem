@@ -644,6 +644,7 @@
 !  (9 ) Add sea level pressure and 10m windspeed as arguments (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  10 Jan 2012 - M. Payer    - Added local surface pressure
+!  21 Oct 2013 - R. Yantosca - Bug fix: need to hold SP private in OMP loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -671,7 +672,7 @@
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, SP )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -790,6 +791,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  30 Oct 2013 - M. Sulprizio- Bug fix: Hold AREA_CM2 private in !$OMP loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -822,7 +824,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX )
+!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX, AREA_CM2 )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, NUMDEP
 
@@ -1433,6 +1435,9 @@
 !  09 Apr 2012 - R. Yantosca - Now use INTENT(IN), INTENT(OUT) for arguments
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  29 Aug 2013 - R. Yantosca - Bug fix: Skip to the next species if unless
+!                              HSTAR>0 and XMW>0, or AIROSOL=t.  This avoids
+!                              a floating-point invalid condition.
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1513,8 +1518,18 @@
 !** Deposition is applied only to species with LDEP=T.
 
       DO K = 1,NUMDEP
-         LDEP(K) = (HSTAR(K).GT.0.D0 .OR. F0(K).GT.0.D0 
-     &              .OR. AIROSOL(K)) 
+
+         ! Better test for depositing species K: We need both HSTAR and XMW
+         ! to be nonzero, OR the value of AIROSOL to be true.  This should
+         ! avoid any futher floating point invalid issues caused by putting
+         ! a zero value in a denominator. (bmy, 8/29/13)
+         ! (bmy, 8/29/13)
+         IF ( ( HSTAR(K) > 0d0   .and. 
+     &          XMW  (K) > 0d0 ) .or.  AIROSOL(K) ) THEN
+            LDEP(K) = .TRUE.
+         ELSE
+            LDEP(K) = .FALSE.
+         ENDIF
       ENDDO
                                    
       DO K = 1,NUMDEP    
@@ -4038,6 +4053,9 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  29 Aug 2013 - R. Yantosca - Assign XMW=118d-3 to RIP and IEPOX.  This now
+!                              prevents XMW=0d0 from being passed to function
+!                              DIFFG, where it is in the denominator.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4515,8 +4533,14 @@
             NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
             DEPNAME(NUMDEP) = 'RIP'
             HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
+            F0(NUMDEP)      = 0d0     ! Karl et al. 2010(science)
             XMW(NUMDEP)     = 0d0
+            !------------------------------------------------------------
+            ! Activate this later (bmy, 2/5/14)
+            !HSTAR(NUMDEP)   = 1.70d6    ! US EPA 2011
+            !F0(NUMDEP)      = 1.0d0     ! Karl et al. 2010(science)
+            !XMW(NUMDEP)     = 118d-3
+            !------------------------------------------------------------
             AIROSOL(NUMDEP) = .FALSE.
 
          !IEPOX
@@ -4526,8 +4550,14 @@
             NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
             DEPNAME(NUMDEP) = 'IEPOX'
             HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
+            F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 0d0
+            !----------------------------------------------------------
+            ! Activate this later (bmy, 2/5/14)
+            !HSTAR(NUMDEP)   = 1.30d8
+            !F0(NUMDEP)      = 1.0d0     ! Karl et al. 2010(science)
+            !XMW(NUMDEP)     = 118d-3    ! (Eddingsaas et al., 2010)
+            !----------------------------------------------------------
             AIROSOL(NUMDEP) = .FALSE.
 
          !MAP
