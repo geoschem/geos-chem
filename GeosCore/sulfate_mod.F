@@ -1567,6 +1567,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  31 Jul 2012 - R. Yantosca - Now loop over 1..LLPAR for GIGC compatibility
 !  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
+!   6 Sep 2013 - M. Sulprizio- Bug fix: Prevent divide-by-zero if LWC=0. Only
+!                              do aqueous SO2 chemistry when LWC>0.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1789,9 +1791,11 @@
          
          ! If (1) there is cloud, (2) there is SO2 present, and 
          ! (3) the T > -15 C, then compute aqueous SO2 chemistry
+         ! Prevent divide-by-zero if LWC=0 (mpayer, 9/6/13)
          IF ( ( FC     > 0.d0   )  .AND. 
      &        ( SO2_ss > MINDAT )  .AND. 
-     &        ( TK     > 258.0  ) ) THEN
+     &        ( TK     > 258.0  )  .AND.
+     &        ( LWC    > 0.d0   ) ) THEN
 
             !===========================================================
             ! NOTE...Sulfate production from aquatic reactions of SO2 
