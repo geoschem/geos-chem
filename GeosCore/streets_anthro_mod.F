@@ -433,6 +433,8 @@
 !  (7 ) Bug fix : overwrite NOx, SO2, and CO emissions over water (ship tracks)
 !        with zero for Streets 2000 emissions since these are double counted 
 !        (jaf, gcmv, amv, 1/30/12)
+!  03 Jan 2013 - M. Payer    - Bug fixes for regridding of NOx and CO base
+!                              emissions and monthly variability scale factors
 !******************************************************************************
 !
       ! References to F90 modules
@@ -684,7 +686,13 @@
  
             ! Read data
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 1,
-     &                         TAU,       TEMP,      PERAREA=0 )
+!------------------------------------------------------------------------------
+! Prior to 2/6/14:
+! Need to set PERAREA=1, as described on the G-C wiki.  This vix was originally
+! made in GEOS-Chem v9-02p, but we need to add it here for UCX.
+!     &                         TAU,       TEMP,      PERAREA=0 )
+!------------------------------------------------------------------------------
+     &                         TAU,       TEMP,      PERAREA=1 )
    
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             !NOX = NOX + TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE )
@@ -726,7 +734,14 @@
          ENDIF
          
          CALL READ_STREETS( FILENAME,      'RATIO-2D', 71,
-     $                      TAUMONTH_2004,  TEMP,      PERAREA=1 )
+!-----------------------------------------------------------------------------
+! Prior to 2/6/14:
+! Need to set PERAREA=1, as described on the G-C wiki.  This vix was originally
+! made in GEOS-Chem v9-02p, but we need to add it here for UCX.
+!     $                      TAUMONTH_2004,  TEMP,      PERAREA=1 )
+!-----------------------------------------------------------------------------
+     $                      TAUMONTH_2004,  TEMP,      PERAREA=0 )
+
 
          NOX = NOX * TEMP
 

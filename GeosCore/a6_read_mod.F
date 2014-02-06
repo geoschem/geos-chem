@@ -1564,10 +1564,15 @@
       ! [kg H2O/kg air/s].  (bmy, 4/5/99)
       !=================================================================
       IF ( PRESENT( MOISTQ ) ) THEN
-         ! Safety-check for NaNs
-         WHERE( MOISTQ .ne. MOISTQ )
+
+         ! First replace any NaN values with zeroes.  Most NaN's in MOISTQ 
+         ! have been shown to occur near the tropopause, where there are 
+         ! no clouds, and no cloud or ice precip. (bmy, 11/7/13)
+         WHERE( MOISTQ .ne. MOISTQ ) 
             MOISTQ = 0d0
          ENDWHERE
+
+         ! Then convert to [kg H2O/kg air/s]
          MOISTQ = -MOISTQ / 8.64d7
       ENDIF
 
