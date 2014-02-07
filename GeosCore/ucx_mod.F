@@ -823,7 +823,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,        J,        MIDLAT,   SOL_B         ) 
-!$OMP+PRIVATE( SOL_C,    TSTART,   TEND      MESON2O_DELTA )
+!$OMP+PRIVATE( SOL_C,    TSTART,   TEND,     MESON2O_DELTA )
 !$OMP+PRIVATE( DAYFRAC,  L,        ZDEL,     ZMID          )
 !$OMP+PRIVATE( ZBASE,    CYCLEBOX, SOL_TEST, TMIN          )
 !$OMP+PRIVATE( TMAX,     RRATE,    T3K,      TINV          )
