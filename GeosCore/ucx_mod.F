@@ -644,9 +644,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, YLAT )
-         DO L = 1, LLPAR   
-         DO J = 1, JJPAR   
-         DO I = 1, IIPAR   
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
             ! Grid-box latitude index
             YLAT  = GET_YMID( I,J,L )
