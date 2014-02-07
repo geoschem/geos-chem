@@ -382,6 +382,8 @@
 !  13 Dec 2013 - M. Sulprizio- Only add SO2 aircraft emissions to AD13_SO2_ac
 !                              if level is <= LD13 in order to avoid array-
 !                              out-of-bounds error (J. Fisher)
+!  07 Feb 2014 - R. Yantosca - Bug fix: Only save into LLCHEM levels of the
+!                              array AD32_nc.  This is set for UCX now.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -527,7 +529,12 @@
          AREA_CM2 = GET_AREA_CM2( I, J, L )
 
          ! ND32 -- NOx aircraft emissions in [molec/cm2]
-         IF ( ND32 > 0 ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 2/7/14:
+! AD32_ac is now declared with LLCHEM levels (bmy, 2/17/14)
+!         IF ( ND32 > 0 ) THEN
+!-----------------------------------------------------------------------------
+         IF ( ND32 > 0 .and. L <= LLCHEM ) THEN
             AD32_ac(I,J,L) = AD32_ac(I,J,L) +
      &                       (AEIC_EMIT(I,J,L,NOx_INDEX)  *
      &                       XNUMOL(IDTNOx) / AREA_CM2 )
