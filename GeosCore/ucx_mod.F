@@ -289,6 +289,7 @@
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
+!  07 Feb 2014 - R. Yantosca - !$OMP DO loops now go in L-J-I order
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -643,11 +644,14 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, YLAT )
-         DO I=1,IIPAR   
-         DO J=1,JJPAR   
-         DO L=1,LLPAR   
+         DO L = 1, LLPAR   
+         DO J = 1, JJPAR   
+         DO I = 1, IIPAR   
+
             ! Grid-box latitude index
             YLAT  = GET_YMID( I,J,L )
+
+            ! Set CH4 according to latitude
             IF ( YLAT < -30d0 ) THEN
                STT(I,J,L,IDTCH4) = C3090S*AD(I,J,L)
             ELSE IF ( YLAT >= -30d0 .and. YLAT < 0d0  ) THEN
@@ -815,18 +819,20 @@
       MESONOX_DELTA = 0d0
       MESON2O_DELTA = 0d0
 
+      ! Loop over lat & lon
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, DAYFRAC, RRATE               )
-!$OMP+PRIVATE( T3K, TINV, XAIR,  KGNOX, KGN2O        )
-!$OMP+PRIVATE( FRACNO, FRACNO2, FRACNO3, LOCALNOX )
-!$OMP+PRIVATE( LOCALN2O, LOCALO1D, LOCALO3P, LOCALO3 )
-!$OMP+PRIVATE( NOXRATE, N2ORATE, FRACN, NO_ALPHA    )
-!$OMP+PRIVATE( NO_BETA, NO_GAMMA, NDAIR, MIDLAT      )
-!$OMP+PRIVATE( SOL_B, SOL_C, SOL_TEST, NO_EPSILON    )
-!$OMP+PRIVATE( ZMID, ZBASE, ZDEL, CYCLEBOX           )
-!$OMP+PRIVATE( TSTART, TEND, TMIN, TMAX, DNOX, DN2O  )
-!$OMP+PRIVATE( NO_QA, NO_QX, NO_QC                   )
+!$OMP+PRIVATE( I,        J,        MIDLAT,   SOL_B         ) 
+!$OMP+PRIVATE( SOL_C,    TSTART,   TEND      MESON2O_DELTA )
+!$OMP+PRIVATE( DAYFRAC,  L,        ZDEL,     ZMID          )
+!$OMP+PRIVATE( ZBASE,    CYCLEBOX, SOL_TEST, TMIN          )
+!$OMP+PRIVATE( TMAX,     RRATE,    T3K,      TINV          )
+!$OMP+PRIVATE( NDAIR,    XAIR,     KGNOX,    KGN2O         )
+!$OMP+PRIVATE( LOCALNOX, LOCALN2O, LOCALO3,  LOCALO3P      )
+!$OMP+PRIVATE( LOCALO1D, NO_ALPHA, NO_BETA,  NO_GAMMA      )
+!$OMP+PRIVATE( FRACNO2,  FRACNO3,  FRACNO,   FRACN         )
+!$OMP+PRIVATE( NOXRATE,  N2ORATE,  DNOX,     MESONOX_DELTA )
+!$OMP+PRIVATE( DN2O                                        )
       DO J=1,JJPAR
       DO I=1,IIPAR
       ! Grid box longitude/latitude [degrees]
@@ -1733,6 +1739,8 @@
 !
 ! !REVISION HISTORY: 
 !  11 Apr 2013 - S. D. Eastham - Initial version
+!  07 Feb 2014 - R. Yantosca - Add missing variables to !$OMP PRIVATE statement
+!  07 Feb 2014 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1833,21 +1841,28 @@
       ! First settle liquid aerosols (SLA) using scheme found
       ! elsewhere in GEOS-Chem
 !$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) 
-!$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC )
-!$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX, IAERO      )
-!$OMP+PRIVATE( SP_NUM, SP_LAMBDA, RUNCALC )
-!$OMP+PRIVATE( CONST_V, K, PHASEMASS, IDTCURRENT, SEDMASS )
-!$OMP+PRIVATE( BXMIN, NATCOL, MINALT, MAXALT, VFALLMAX, SEDSTEP )
-!$OMP+PRIVATE( LOCALPROFILE, NUMSEDSTEPS, TEMPREAL, STARTPT, ISED )
-!$OMP+PRIVATE( PSED0, P_0, P_ABOVE, ABOVEGRAD, PSEDABOVE )
-!$OMP+PRIVATE( BELOWGRAD, INVAIR_0, INVAIR_ABOVE )
-!$OMP+PRIVATE( SEDNO3, SEDNAT, SEDICE, SEDPSC, SEDH2O, SEDQUANT )
-!$OMP+PRIVATE( XNO3_ABOVE, XNAT_ABOVE, XICE_ABOVE, XPSC_ABOVE )
-!$OMP+PRIVATE( XNO3_0, XNAT_0, XICE_0, XPSC_0, VNAT )
-!$OMP+PRIVATE( XNO3_BELOW, XNAT_BELOW, XICE_BELOW, XPSC_BELOW )
-!$OMP+PRIVATE( FRACLOSS )
+!$OMP+DEFAULT( SHARED  )
+!$OMP+PRIVATE( J,            I,            L,          VTS        )
+!$OMP+PRIVATE( VNAT,         NATCOL,       BXMIN,      MINALT     )
+!$OMP+PRIVATE( MAXALT,       VFALLMAX,     TEMP,       P          )
+!$OMP+PRIVATE( RUNCALC,      KLOOP,        RWET,       RHO        )
+!$OMP+PRIVATE( SP_NUM,       SP_LAMBDA,    VISC,       IAERO      )
+!$OMP+PRIVATE( DP,           PDP,          CONST,      SLIP       )
+!$OMP+PRIVATE( DELZ,         CONST_V,      PHASEMASS,  K          )
+!$OMP+PRIVATE( IDTCURRENT,   SEDMASS,      DELZ1,      SEDSTEP    )
+!$OMP+PRIVATE( NUMSEDSTEPS,  TEMPREAL,     ISED,       STARTPT    )
+!$OMP+PRIVATE( XNO3_0,       XNAT_0,       XICE_0,     XPSC_0     )
+!$OMP+PRIVATE( INVAIR_0,     INVAIR_ABOVE, XNO3_ABOVE, XNAT_ABOVE )
+!$OMP+PRIVATE( XICE_ABOVE,   XPSC_ABOVE,   P_ABOVE,    ABOVEGRAD  )
+!$OMP+PRIVATE( XNO3_BELOW,   XNAT_BELOW,   XICE_BELOW, XPSC_BELOW )
+!$OMP+PRIVATE( P_0,          PSED0,        PSEDABOVE.  BELOWGRAD  )
+!$OMP+PRIVATE( LOCALPROFILE, SEDQUANT,     SEDNO3,     SEDICE     )
+!$OMP+PRIVATE( SEDH2O,       SEDNAT,       SEDPSC,     FRACLOSS   )
+!$OMP+PRIVATE( MAXLOSS,      D_ICE0,       D_ICE1,     D_H2O1     )
+!$OMP+PRIVATE( D_H2O0,       D_NAT1,       D_NAT0,     D_HNO3     )
+!$OMP+PRIVATE( D_RMAX,       D_VMAX,       D_SEDQ,     D_PSED     )
+!$OMP+PRIVATE( D_XH2O,       D_XHNO3,      D_XNAT,     D_PPA      )
+!$OMP+PRIVATE( D_TK                                               )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -1926,7 +1941,7 @@
                      ! Constant
                      CONST = 2.d0 * RHO(IAERO) * RWET(IAERO)**2 * g0 / 9.d0
 
-                     !===========================================================
+                     !=========================================================
                      ! NOTE: Slip correction factor calculations following 
                      ! Seinfeld, pp464 which is thought to be more accurate 
                      ! but more computation required. (rjp, 1/24/02)
@@ -1938,13 +1953,13 @@
                      ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
                      !
                      ! # Slip correction
-                     ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp     
+                     ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp  
                      !     &     / (2. * lamda))) / Dp
                      !
                      ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
                      ! which produces slip correction factore with small error
                      ! compared to the above with less computation.
-                     !===========================================================  
+                     !========================================================= 
                    
                      ! Slip correction factor (as function of P*dp)
                      ! Slip = 1.d0+(15.60d0 + 7.0d0 *
@@ -2366,6 +2381,7 @@
 !
 ! !REVISION HISTORY: 
 !  11 Apr 2013 - S. D. Eastham - Initial version
+!  07 Feb 2014 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2404,11 +2420,12 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PCENTER, TCENTER, INVAIR ) 
-!$OMP+PRIVATE( H2SO4SUM, GF_DIFF )
-!$OMP+PRIVATE( GF_PP, GF_INVT, GF_CFACTOR, GF_LOGPSULFATE, GF_PVAP )
+!$OMP+PRIVATE( J,          I,              L       )
+!$OMP+PRIVATE( PCENTER,    TCENTER,        INVAIR  )
+!$OMP+PRIVATE( H2SO4SUM,   GF_PP,          GF_INVT )
+!$OMP+PRIVATE( GF_CFACTOR, GF_LOGPSULFATE, GF_PVAP )
+!$OMP+PRIVATE( GF_DIFF                             )
 !$OMP+SCHEDULE( DYNAMIC )
-
       DO J=1, JJPAR
       DO I=1, IIPAR
       LLOOP: DO L=1, LLPAR
