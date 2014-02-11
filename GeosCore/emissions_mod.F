@@ -404,6 +404,7 @@
          CALL EMISSC2H6
 #endif
 
+#if defined( UCX ) 
          ! Simplified emissions of N2O, OCS and CFCs (SDE 04/04/13)
          IF (LBASICEMIS) THEN
             CALL EMISS_BASIC
@@ -413,6 +414,7 @@
          IF (LCH4EMIS) THEN
             CALL EMISSCH4
          ENDIF
+#endif
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
