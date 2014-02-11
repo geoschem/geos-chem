@@ -1365,7 +1365,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_BASIC
+      SUBROUTINE EMISS_BASIC()
 !
 ! !USES:
 !
@@ -1374,24 +1374,19 @@
       USE DAO_MOD,      ONLY : AD
       USE LOGICAL_MOD,  ONLY : LFUTURECFC
 !
-! !INPUT PARAMETERS:
-!
-!
-! !OUTPUT VARIABLES:
-!
-!
 ! !REMARKS:
-! (1) A remark
+!  
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Initial version
+!  11 Feb 2014 - R. Yantosca - Rewrote DO loop to be more efficient
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I, J, N
+      INTEGER            :: I, J, N, N_EMITTED
       REAL*8             :: N2O_MULT,OCS_MULT,CFC_MULT,HCFC_MULT
       REAL*8             :: DT_YR
       CHARACTER(LEN=255) :: OUTMSG
@@ -1414,18 +1409,44 @@
           CALL READ_SFC
        END IF
   
-      ! Loop over surface grid boxes
-      DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ! Set kg/box using vol/vol (see CONVERT_UNITS in DAO_MOD)
-            DO N=1,N_EMIT
-               IF (IDT_EMIT(N) .ne. 0) THEN
-                  STT(I,J,1,IDT_EMIT(N))=GRID_EMIT(J,N)*AD(I,J,1)/
-     &                                 TCVV(IDT_EMIT(N))
-               ENDIF
-            ENDDO
-         ENDDO ! I
-      ENDDO ! J
+!------------------------------------------------------------------------------
+! Prior to 2/11/14:
+! This DO-loop can be more efficiently written.  See below (bmy, 2/11/14)
+!      ! Loop over surface grid boxes
+!      DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!            ! Set kg/box using vol/vol (see CONVERT_UNITS in DAO_MOD)
+!            DO N=1,N_EMIT
+!               IF (IDT_EMIT(N) .ne. 0) THEN
+!                  STT(I,J,1,IDT_EMIT(N))=GRID_EMIT(J,N)*AD(I,J,1)/
+!     &                                 TCVV(IDT_EMIT(N))
+!               ENDIF
+!            ENDDO
+!         ENDDO ! I
+!      ENDDO ! J
+!------------------------------------------------------------------------------
+       ! Loop over emitted species
+       DO N = 1, N_EMIT
+
+          ! Get the tracer # of the emitted species
+          N_EMITTED = IDT_EMIT(N)
+
+          ! Convert units if the tracer is valied
+          IF ( N_EMITTED /= 0 ) THEN
+        
+             ! Loop over surface grmid boxes
+             DO J = 1, JJPAR
+             DO I = 1, IIPAR
+           
+                ! Set kg/box using vol/vol (see CONVERT_UNITS in DAO_MOD)
+                STT(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
+     &                               * AD(I,J,1)   
+     &                               / TCVV(N_EMITTED)
+
+             ENDDO
+             ENDDO
+          ENDIF
+      ENDDO
 
       IF ( LPRT ) CALL DEBUG_MSG( '### UCX: Emissions complete' )
 
