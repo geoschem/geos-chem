@@ -3253,7 +3253,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_STRAT_OPT (I,J,L,IAER,RAER,REFF,SAD)
+      SUBROUTINE GET_STRAT_OPT (I,J,L,IAER,RAER,REFF,SAD,XSA)
 !
 ! !INPUT PARAMETERS:
 !
@@ -3267,6 +3267,7 @@
       REAL*8, INTENT(OUT)         :: REFF       ! Effective radius (cm)
       REAL*8, INTENT(OUT)         :: RAER       ! Physical radius (cm)
       REAL*8, INTENT(OUT)         :: SAD        ! Surface area density (cm2/cm3)
+      REAL*8, INTENT(OUT)         :: XSA        ! X-S area density (m2/m3)
 !
 ! !REMARKS:
 ! (1) A remark
@@ -3289,6 +3290,10 @@
       ELSE
          REFF = RAER
       ENDIF
+
+      ! Standard log-normal distribution approach
+      ! Probably OK for PSCs too? Note cm2/cm3 to m2/m3 = x100
+      XSA = 0.25d2*SAD
 
       END SUBROUTINE GET_STRAT_OPT
 !

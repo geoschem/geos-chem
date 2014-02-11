@@ -583,7 +583,7 @@
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE UCX_MOD,       ONLY : GET_STRAT_OPT, RHO_STRAT_AER, NDENS_AER
+      USE UCX_MOD,       ONLY : GET_STRAT_OPT, NDENS_AER
       USE COMODE_MOD,    ONLY : JLOP ! SDE 2013-12-30
       USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_CHEMGRID
 
@@ -702,7 +702,7 @@
       REAL*8,  SAVE       :: RH(NRH)   = (/0d0,0.5d0,0.7d0,0.8d0,0.9d0/)
 
       ! Temporary varaibles
-      REAL*8              :: RAER, SADSTRAT, RHOSTRAT
+      REAL*8              :: RAER, SADSTRAT, RHOSTRAT, XSASTRAT
       INTEGER             :: ISTRAT
 
       ! Index to aerosol types in jv_spec.dat
@@ -1368,45 +1368,38 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, RHOSTRAT, RAER, REFF, SADSTRAT, JLOOP ) 
+!$OMP+PRIVATE( I, J, L, RHOSTRAT, RAER, REFF, JLOOP )
+!$OMP+PRIVATE( SADSTRAT, XSASTRAT )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! Retrieve aerosol density
-            RHOSTRAT = RHO_STRAT_AER(I,J,L,ISTRAT)
-
             ! Get aerosol effective radius
-            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT)
+            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
-            ! SDE 2013-12-30
-            ! Changed this from RAA_AOD and RAA respectively to REFF
-            ! in each calculation. Although QAA_AOD and QAA were
-            ! calculated for the given RAA_AOD and RAA values, the
-            ! effective radius calculated in the UCX module is more
-            ! relevant to the calculation of optical depth since it
-            ! needs to produce something approximating the
-            ! cross-sectional mass when dividing the box mass WAERSL
+            ! SDE 2014-02-04
+            ! The calculation used for the aerosols above
+            ! is essentially a roundabout way of deriving 
+            ! the cross-sectional area. For log-normally
+            ! distributed aerosols, this is much easier,
+            ! and a direct query prevents the possibility 
+            ! of dividing a small mass by a small calculated
+            ! radius and blowing up
 
             IF ( WAVELENGTH > 0 ) THEN
 
             ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = 0.75d0          * BXHEIGHT(I,J,L) * 
-     &                          WAERSL(I,J,L,N) * QAA_AOD(IND(N))   / 
-!     &                          ( RHOSTRAT * REFF * 1.0D-6 )
-     &                          ( RHOSTRAT * RAA_AOD(IND(N)) * 1.0D-6 )
+            ODAER(I,J,L,IRHN) = BXHEIGHT(I,J,L) * XSASTRAT 
+     &                              * QAA_AOD(IND(N))
 
             ELSE
 
             ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = 0.75d0          * BXHEIGHT(I,J,L) * 
-     &                       WAERSL(I,J,L,N)    * QAA(IND999,IND(N))  / 
-!     &                       ( RHOSTRAT * REFF * 1.0D-6 )
-     &                       ( RHOSTRAT * RAA(IND999,IND(N)) * 1.0D-6 )
+            ODAER(I,J,L,IRHN) = BXHEIGHT(I,J,L) * XSASTRAT 
+     &                              * QAA(IND999,IND(N))
 
             ENDIF
-
             ! Moved this from a separate loop for clarity
             IF (ITS_IN_THE_CHEMGRID(I,J,L)) THEN
                JLOOP = JLOP(I,J,L)
@@ -1416,7 +1409,7 @@
 
                ! Store radius
                ERADIUS(JLOOP,NDUST+N) = RAER
-               WERADIUS(JLOOP,NDUST+N) = REFF
+               WERADIUS(JLOOP,NDUST+N) = RAER 
             ENDIF
 
          ENDDO
