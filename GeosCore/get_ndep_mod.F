@@ -320,7 +320,9 @@
 
       ! In my code and I think as it should be in everyones 
       ! EMIS TS = 2 x DYN TS 
-      IF (NTS /= 2.) WRITE(6,*) 'ERROR! CHECK THIS'
+      ! Comment out for test simulations where transport is not done
+      ! (skim, 1/14/13)
+      !IF (NTS /= 2.) WRITE(6,*) 'ERROR! CHECK THIS'
 
       ! Convert kg species/s * xx dyn t.s --> ng N/m2/s
       HNO3NG  = WET_HNO3(I,J) * CONVHNO3 * 1.d12 / 
