@@ -874,14 +874,12 @@
                   ! Save into AD44 diagnostic array
                   AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
                ENDIF 
+!$OMP END CRITICAL
 
                ! Archive dry deposited N species for use in soil_nox_mod
                IF (LSOILNOX ) THEN
                   CALL SOIL_DRYDEP ( I, J, L, NN, TDRYFX)
                ENDIF
-
-
-!$OMP END CRITICAL
 
             ENDIF
          ENDDO           
@@ -1553,7 +1551,7 @@
 !$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
 !$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
-!$OMP+PRIVATE( C1X,    VK,     I,      J                      )
+!$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 

@@ -210,7 +210,10 @@
          WRITE(*,*) 'SCALE NOx emissions by', NOx_SCALING
       ENDIF
 
-!$OMP PARALLEL DO 
+      ! Initialize REMIS(*,N) -- the emission rate array
+      REMIS = 0d0
+
+!$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( N,       NN,     NBB,      NBF,          I       )
 !$OMP+PRIVATE( J,       L,      JLOOP,    COEF1,        TOP     )
@@ -256,11 +259,6 @@
               ENDIF
             ENDDO
          ENDIF            
-
-         ! Initialize REMIS(*,N) -- the emission rate array
-         DO JLOOP = 1, NTTLOOP
-            REMIS(JLOOP,N) = 0d0
-         ENDDO       
 
          ! Skip to next tracer if IDEMIS(NN) is not defined in 
          ! order to avoid array-out-of-bounds errors (bmy, 8/6/04)
@@ -804,7 +802,9 @@
 
                      ! Convert emissions from [molec species/box/s] to 
                      ! [molec species/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,N) = EMIS_BL / VOLUME(JLOOP)
+                     REMIS(JLOOP,N) = REMIS(JLOOP,N) 
+     &                              + ( EMIS_BL / VOLUME(JLOOP) )
+
                   ENDIF
                ENDDO
             ENDIF

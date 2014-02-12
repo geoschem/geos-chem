@@ -150,10 +150,6 @@
       ! SAVENO2                 = array to save NO2 fields (rvm, 5/9/00)
       ! FRACNO2                 = fraction of NO2 (rvm, bmy, 2/27/02)
       ! SAVEHO2                 = array to save HO2 fields (rvm, bmy, 2/27/02)
-      ! fracnox                 = look up table for fraction of NOx remaining
-      !                           for ship emissions (gvinken, 6/6/10)
-      ! intope                  = look up table for integrated Ozone Production
-      !                           Efficiency for ship emiss (gvinken, 6/6/10)
 #if defined( DEVEL )
       REAL*8, ALLOCATABLE ::   FRACO3(:,:,:)
       REAL*8, ALLOCATABLE ::   SAVEOH(:,:,:)
@@ -179,8 +175,6 @@
       REAL*8 ::   SAVEHO2(IIPAR,JJPAR,LLPAR)
       REAL   ::   jvalues(IIPAR,JJPAR,2)
 #endif
-      REAL*4 ::   fracnox(4,4,4,12,12,4,5)
-      REAL*4 ::   intope(4,4,4,12,12,4,5)
 !
 ! !REMARKS:
 !  NOTE: Now NEMPARA = max no. of anthropogenic emissions

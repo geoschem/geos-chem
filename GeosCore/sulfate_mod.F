@@ -1618,7 +1618,7 @@
       F      = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
 
       ! Zero ND44_TMP array
-      ND44_TMP = 0d0
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
       
       ! Loop over tropospheric grid boxes
 !$OMP PARALLEL DO
@@ -6674,13 +6674,16 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y, EDG_SO2, Fe, LL ) 
+!$OMP+PRIVATE( I, J, X, Y, AREA_CM2, EDG_SO2, Fe, LL ) 
 
          ! Loop over latitudes
          DO J = 1, JJPAR
 
             ! Loop over longitudes
             DO I = 1, IIPAR
+
+               ! Grid box surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
                ! Longitude and latitude [degrees]
                X       = GET_XMID( I, J, 1 )
@@ -7937,17 +7940,11 @@
          ! Cast from REAL*4 to REAL*8
          CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
 
-!$OMP PARALLEL DO
-!$OMP+PRIVATE( I, J )
-!$OMP+DEFAULT( SHARED )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ! Convert from [kg N/box/mon] to [kg NH3/box/s]
-            ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
-     &                / ( NMDAY(THISMONTH) * 86400.d0 )
-         ENDDO 
-         ENDDO
-!$OMP END PARALLEL DO
+         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
+         ENH3_an = ENH3_an * ( 17.d0 / 14.d0 ) 
+     &             / ( NMDAY(THISMONTH) * 86400.d0 )
+
+
       ENDIF
 
 !$OMP PARALLEL DO
