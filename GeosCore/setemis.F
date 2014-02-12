@@ -212,9 +212,11 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( N,     NN,  NBB,     NBF,    I,        J,     L, JLOOP )
-!$OMP+PRIVATE( COEF1, TOP, TOTPRES, NOXTOT, DELTPRES, EMIS_BL,  A_CM2 )
-!$OMP+PRIVATE( TOPMIX )
+!$OMP+PRIVATE( N,       NN,     NBB,      NBF,          I       )
+!$OMP+PRIVATE( J,       L,      JLOOP,    COEF1,        TOP     )
+!$OMP+PRIVATE( TOTPRES, NOXTOT, DELTPRES, EMIS_BL,      A_CM2   )
+!$OMP+PRIVATE( TOTO3,   SHIP,   AREA_CM2, FRACTION_NOX, INT_OPE )
+!$OMP+PRIVATE( NK,      JNO2,   JO1D,     SPECNAME,     TOPMIX  )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over emission species

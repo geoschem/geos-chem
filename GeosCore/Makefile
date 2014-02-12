@@ -572,7 +572,7 @@ emfossil.o                  : emfossil.F                                     \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    \
 			      retro_mod.o             c2h6_mod.o             \
-			      rcp_mod.o
+			      rcp_mod.o               global_ch4_mod.o
 
 emissdr.o                   : emissdr.F                                      \
                               acetone_mod.o           aeic_mod.o             \

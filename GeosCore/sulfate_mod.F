@@ -7938,6 +7938,7 @@
          CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
 
 !$OMP PARALLEL DO
+!$OMP+PRIVATE( I, J )
 !$OMP+DEFAULT( SHARED )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
