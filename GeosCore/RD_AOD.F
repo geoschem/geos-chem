@@ -160,10 +160,15 @@
 
       USE JV_CMN_MOD, ONLY : NWVAA, NWVAA0, WVAA
       USE JV_CMN_MOD, ONLY : WVSELECT, IWVSELECT, NWVSELECT
+      USE JV_CMN_MOD, ONLY : IRTWVSELECT
       USE JV_CMN_MOD, ONLY : ACOEF_WV, BCOEF_WV, CCOEF_WV
+      USE JV_CMN_MOD, ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV
       USE JV_CMN_MOD, ONLY : NWVREQUIRED, IWVREQUIRED
+      USE JV_CMN_MOD, ONLY : NRTWVREQUIRED, IRTWVREQUIRED
       USE LOGICAL_MOD,ONLY : LRAD
-
+#if defined( RRTMG ) 
+      USE PARRRTM, ONLY : NBNDLW
+#endif
       IMPLICIT NONE
 
       INTEGER             :: MINWV, MAXWV, N, N0, N1, W, NSTEP
@@ -180,6 +185,14 @@
       !wavelengths are selected from the standard wavelengths. RRTMG
       !wavelengths are not used in the interpolation for AOD output
       !(DAR 10/2013)
+      ! UPDATE: because the RT optics output doesnt have access to the
+      ! standard wavelengths we now calculate two sets of values: one
+      ! for the ND21 and diag3 outputs that use the standard wavelengths
+      ! and one for ND71 that interpolates the optics from RRTMG
+      ! wavelengths. Perhaps a switch needs adding to switch off the RT
+      ! optics output (and interpolation) if this ends up costing too
+      ! much and is not used, but it is ideal to have an optics output
+      ! that matches exactly what RRTMG uses to calculate the fluxes
 
       !cycle over standard wavelengths
       N0=1
@@ -260,4 +273,91 @@
       !write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
       write(6,*) '*********************************'
       ENDDO !NWVSELECT
+#if defined( RRTMG )
+      !repeat for RRTMG wavelengths to get the closest wavelength
+      !indices and the interpolation coefficients
+      !Indices are relative to all wavelengths in the LUT i.e. the RRTMG
+      !wavelengths start at NWVAA0+1
+      N0=NWVAA0+1
+      N1=NWVAA
+      NSTEP=1
+      NRTWVREQUIRED=0
+      DO W=1,NWVSELECT
+       MINWV     = -999
+       MAXWV     =  999
+       DO N=N0,N1,NSTEP
+        WVDIF = WVAA(N,1)-WVSELECT(W)
+        IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
+         MINWV = WVDIF
+         IRTWVSELECT(1,W)=N
+        ENDIF
+        IF ((WVDIF.GE.0).AND.(WVDIF.LT.MAXWV)) THEN
+         MAXWV = WVDIF
+         IRTWVSELECT(2,W)=N
+        ENDIF
+       ENDDO
+        IF (IRTWVSELECT(2,W).EQ.IRTWVSELECT(1,W)) THEN
+         !we have a match!
+         MINWV=0
+         MAXWV=0
+         !add this wavelength to those for output
+         NRTWVREQUIRED=NRTWVREQUIRED+1
+         IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+        ELSE
+         !we are going to have to interpolate to the requested
+         !wavelength
+         NRTWVREQUIRED=NRTWVREQUIRED+1
+         IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+         NRTWVREQUIRED=NRTWVREQUIRED+1
+         IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(2,W)
+        ENDIF
+
+      !Error check - ensure we have a match or requested wavelength
+      !falls within two LUT tie points
+      IF (MINWV.EQ.-999) THEN
+       ! requested wavelength is shorter than min wv in LUT
+       ! set to min
+       write(6,*) 'ERROR requested wavelength is too short!!'
+       write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA-1,1)
+       IRTWVSELECT(1,W)=NWVAA-1
+       IRTWVSELECT(2,W)=NWVAA-1 
+       NRTWVREQUIRED=NRTWVREQUIRED-1
+       IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+      ENDIF
+      IF (MAXWV.EQ.999) THEN
+       ! requested wavelength is longer than min wv in LUT
+       ! set to max
+       write(6,*) 'ERROR requested wavelength is too long!!'
+       write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA0+1,1)
+       IRTWVSELECT(1,W)=NWVAA0+1
+       IRTWVSELECT(2,W)=NWVAA0+1
+       NRTWVREQUIRED=NRTWVREQUIRED-1
+       IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+      ENDIF
+
+      !now calcualte the angstrom exponent coefs for interpolation -
+      !this is done here to save time and repetition in aerosol_mod.F
+      IF (IRTWVSELECT(1,W).NE.IRTWVSELECT(2,W)) THEN
+       ACOEF_RTWV(W) = WVAA(IRTWVSELECT(2,W),1)/WVSELECT(W)
+       BCOEF_RTWV(W) =1.0d0/(LOG(WVAA(IRTWVSELECT(2,W),1)/
+     &                         WVAA(IRTWVSELECT(1,W),1)))
+       !relative location of selected wavelength between tie points
+       !for interpolating SSA and ASYM for output in aerosol_mod.F and
+       !dust_mod.F
+       CCOEF_RTWV(W) =(WVSELECT(W)-WVAA(IRTWVSELECT(1,W),1))/
+     &              (WVAA(IRTWVSELECT(2,W),1)-WVAA(IRTWVSELECT(1,W),1))
+      ENDIF
+      !convert wavelength index to that required by rrtmg_rad_transfer
+      !i.e. without the standard and LW wavelengths
+      IRTWVSELECT(1,W) = IRTWVSELECT(1,W) - NWVAA0 - NBNDLW
+      IRTWVSELECT(2,W) = IRTWVSELECT(2,W) - NWVAA0 - NBNDLW
+      write(6,*) 'N RT WAVELENGTHS: ',NWVSELECT
+      write(6,*) 'RT WAVELENGTH REQUESTED:',WVSELECT(W)
+      write(6,*) 'RT WAVELENGTH REQUIRED:', NRTWVREQUIRED
+      write(6,*) IRTWVSELECT(1,W),WVAA(IRTWVSELECT(1,W)+NWVAA0+NBNDLW,1)
+      write(6,*) IRTWVSELECT(2,W),WVAA(IRTWVSELECT(2,W)+NWVAA0+NBNDLW,1)
+      write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
+      write(6,*) '*********************************'
+      ENDDO !NWVSELECT
+#endif
       END SUBROUTINE CALC_AOD

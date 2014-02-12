@@ -251,6 +251,7 @@
 
       INTEGER, PARAMETER :: NWVAA   = 41 !number of wavelengths in LUT
       INTEGER, PARAMETER :: NWVAA0  = 11 !number of non-RRTMG wavelengths
+      INTEGER, PARAMETER :: NWVAART = NWVAA-NWVAA0 !number of RRTMG wvs
       INTEGER, PARAMETER :: NRAA    = 7  !number of aer sizes in LUT
       INTEGER, PARAMETER :: NSPAA   = 6  !number of species in LUT
       INTEGER, PARAMETER :: NALBD   = 2
@@ -298,16 +299,22 @@
       REAL*8  :: PHAA(NWVAA,NRAA,NSPAA,8)
       REAL*8  :: WVSELECT(3)  !wavelengths requested by user
       INTEGER :: IWVSELECT(2,3) !index of requested wavelengths
+      INTEGER :: IRTWVSELECT(2,3) !index of requested RT wavelengths
+
       ! max of 3 but need 2 per wavelength if interpolating
       INTEGER :: NWVSELECT !number of selected AOD output wavelengths
                            !(max=3)
       INTEGER :: NWVREQUIRED !number of wvs required for interpolation
-      INTEGER :: IWVREQUIRED(6) !index of wavelengths for interp.
+      INTEGER :: IWVREQUIRED(6) !index of wavelengths for interpo.
+      INTEGER :: NRTWVREQUIRED !number of wvs required for RT interpolation
+      INTEGER :: IRTWVREQUIRED(6) !index of wavelengths for RT interpo.
+
       INTEGER :: IWV1000 !Store the wavelength index for 1000nm for Fast-J
       ! list of required wavelengths, up to max of 3 x 2
 
-      !coefficients for interpolation of wavelength
+      !coefficients for interpolation of wavelength (and for RT too)
       REAL*8      :: ACOEF_WV(3),BCOEF_WV(3),CCOEF_WV(3)
+      REAL*8      :: ACOEF_RTWV(3),BCOEF_RTWV(3),CCOEF_RTWV(3)
       CHARACTER*5 :: STRWVSELECT(3) !String array of requested wavelengths
       INTEGER     :: LSPECRADMENU(NSPECRADMENU) !indices for number of species on input menu 
       INTEGER     :: SPECMASK(NSPECRAD) !list of binary switches for different 

@@ -1234,15 +1234,16 @@
       ! if radiation off but call is for AOD then cycle over the
       ! wavelength required or the wavelengths between which to
       ! interpolate
+
       IF (ODSWITCH .EQ. 0) THEN
        NWVS   = 1
       ELSE
-       IF ( LRAD ) THEN !Loop over all RT wavelengths
-        NWVS   = NWVAA-NWVAA0 !minus the standard wavelengths for RRTMG wvs
-       ELSE
-        NWVS   = NWVREQUIRED ! 1 or 2 depending if selected wavelength on or
-                             ! between LUT tie points
-       ENDIF               
+       IF ( LRAD ) THEN !Loop over all RT wavelengths (30)
+        ! plus any required for calculating the AOD
+        NWVS   = NWVAART+NWVREQUIRED
+       ELSE !Loop over wavelengths needed (from RD_AOD)
+        NWVS   = NWVREQUIRED
+       ENDIF
       ENDIF
       
       DO IIWV = 1, NWVS
@@ -1254,14 +1255,24 @@
         ! N.B. NWVS is fixed to 1 above - only one wavelength
         IWV=IWV1000
        ELSE
-        IF ( LRAD ) THEN !Loop over all RT wavelengths
-         IWV = IIWV+NWVAA0
+        IF ( LRAD ) THEN
+         ! RRTMG wavelengths begin after NWVAA0 standard wavelengths
+         ! but add on any others required
+         IF (IIWV.LE.NWVAART) THEN
+          !index of RRTMG wavelengths starts after the standard NWVAA0
+          !(currently NWVAA0=11, set in jv_cmn_mod based on the .dat
+          !LUT)
+          IWV = IIWV+NWVAA0
+         ELSE
+          !now we calculate at wvs for the requested AOD
+          !offset index by NWVAART i.e. start from 1 
+          IWV = IWVREQUIRED(IIWV-NWVAART)
+         ENDIF
         ELSE
-         ! cycle through all requested wavelengths
+         ! IWVREQUIRED lists the index of requires standard wavelengths
          IWV = IWVREQUIRED(IIWV)
         ENDIF
        ENDIF
-
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1354,7 +1365,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT )
          DO N=1, NDUST
-            DO W = 1, NWVSELECT !different to NWVSELECT if interp
+            DO W = 1, NWVSELECT !loop over required number of wavelengths
              IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
               LINTERP=.FALSE.
              ELSE
@@ -1391,10 +1402,8 @@
                ! Closest available wavelengths
                ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
                ! AOD sometimes zero (if Q zero), must catch this
-               IF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).EQ.0).OR.
-     &             (ODMDUST(I,J,L,IWVSELECT(2,W),N).EQ.0)) THEN
-                !Dont add anything to diagnostic
-               ELSE
+               IF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).GT.0).AND.
+     &             (ODMDUST(I,J,L,IWVSELECT(2,W),N).GT.0)) THEN
 
                !--------------------------------------
                ! ND21 tracer #4: Dust optical depths (clh)
@@ -1558,6 +1567,7 @@
       INTEGER             :: I, J, JLOOP, L, N, NOUT, W
       INTEGER             :: IWV, IIWV, NWVS
       INTEGER, SAVE       :: MONTH_LAST = -999
+      LOGICAL, SAVE       :: DO_DIAG = .FALSE.
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL*8              :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
       REAL*8              :: MSDENS(NDUST), XTAU
@@ -1575,11 +1585,8 @@
       ! Read aerosol data from the binary punch file during the first 
       ! chemistry timestep and, after that, at the start of each month.
       !=================================================================
-      IF ( THISMONTH /= MONTH_LAST ) THEN   
+      IF ( THISMONTH /= MONTH_LAST .or. DO_DIAG ) THEN
          
-         ! Save the current month
-         MONTH_LAST = THISMONTH
-
          ! Get TAU0 value used to index the punch file
          ! Use the "generic" year 1985
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )
@@ -1870,8 +1877,18 @@
            ENDDO
 !$OMP END PARALLEL DO
        ENDIF
-      ENDIF !(this_month check)
 
+         ! Save the current month
+         ! Set diagnostic to aggregate next call time. 
+         IF ( THISMONTH /= MONTH_LAST ) THEN
+            MONTH_LAST = THISMONTH
+            DO_DIAG = .TRUE.
+         ELSE
+            DO_DIAG = .FALSE.
+         ENDIF
+         
+      ENDIF
+      
       END SUBROUTINE RDUST_OFFLINE
 !EOC
 !------------------------------------------------------------------------------
