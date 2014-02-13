@@ -1766,7 +1766,7 @@ c new OH+CO rate from JPL2006.
                ! (mje 4/5/04)
                !========================================================
 ! Updated from JPL2006, the difference is pretty small.(jmao,02/26/2009)
-               IF ( LUCX )
+               IF ( LUCX ) THEN
                   CALL ERROR_STOP( 'ERROR in IFSUN -- UCX',
      &             'calcrate.f' )
                ENDIF
