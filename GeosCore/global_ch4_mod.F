@@ -693,7 +693,7 @@
       USE BPCH2_MOD,          ONLY : GET_RES_EXT,  GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR,     DATA_DIR_1x1
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
@@ -783,16 +783,16 @@
       ! Read Wetland fraction only if first call of simulation
       !IF ( FIRST ) THEN
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201203/wetlands/' //
-     &              'Wetfrac.'           // GET_RES_EXT()          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Wetfrac.'       // GET_RES_EXT()          //
      &              '_NA.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/wetlands/' //
-     &              'Wetfrac.'           // GET_RES_EXT()          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
+     &              'Wetfrac.'       // GET_RES_EXT()          //
      &              '_NA.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201203/wetlands/' //
-     &              'Wetfrac.'           // GET_RES_EXT()          // 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Wetfrac.'       // GET_RES_EXT()          // 
      &              '.bpch'
 #endif
 
@@ -932,16 +932,16 @@
          XTAU = GET_TAU0( 1, 1, 2000 )
 
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_litter.'     // GET_RES_EXT()          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Carbon_litter.' // GET_RES_EXT()          //
      &              '_NA.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/wetlands/' //
-     &              'Carbon_litter.'     // GET_RES_EXT()          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
+     &              'Carbon_litter.' // GET_RES_EXT()          //
      &              '_NA.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR )     // 'CH4_201203/wetlands/' //
-     &              'Carbon_litter.'     // GET_RES_EXT()          // 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Carbon_litter.' // GET_RES_EXT()          // 
      &              '.bpch'
 #endif
 
@@ -952,16 +952,16 @@
          CALL TRANSFER_2D( ARRAY, LITTER_C )
 
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_soil.'       // GET_RES_EXT()          // 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Carbon_soil.'   // GET_RES_EXT()          // 
      &              '_NA.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/wetlands/' //
-     &              'Carbon_soil.'       // GET_RES_EXT()          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
+     &              'Carbon_soil.'   // GET_RES_EXT()          //
      &              '_NA.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_soil.'       // GET_RES_EXT()          // 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Carbon_soil.'   // GET_RES_EXT()          // 
      &              '.bpch'
 #endif
 
@@ -1022,10 +1022,10 @@
          IF ( YEAR .GT. 2013 ) YEAR  = 2013
          WRITE( CYEAR, '(i4)' ) YEAR
 
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/wetlands/' //
-     &              'TSKIN.'             // GET_NAME_EXT()         //
-     &              '.'                  // GET_RES_EXT()          //
-     &              '_NA.'               // CYEAR                  //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
+     &              'TSKIN.'         // GET_NAME_EXT()         //
+     &              '.'              // GET_RES_EXT()          //
+     &              '_NA.'           // CYEAR                  //
      &              '.bpch' 
 #endif
 
@@ -1258,7 +1258,7 @@
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR,     DATA_DIR_1x1
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_AREA_CM2
@@ -1338,22 +1338,22 @@
 
       ! Read Rice Emissions
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/' //
-     &           'rice.'              // GET_RES_EXT() //
-     &           '_NA.'               // CYEAR         //
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/' //
+     &           'rice.'          // GET_RES_EXT() //
+     &           '_NA.'           // CYEAR         //
      &           '.bpch' 
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
       !-----------------------------------------------
       ! 0.25 x 0.3125 NA nested grid (kjw, 02/12/14)
       !----------------------------------------------
-      FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/' //
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/' //
      &           'rice.'              // GET_RES_EXT() //
      &           '_NA.'               // CYEAR         //
      &           '.bpch' 
 #else
-      FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/' //
-     &           'rice.'              // GET_RES_EXT() //
-     &           '.'                  // CYEAR         //
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/' //
+     &           'rice.'          // GET_RES_EXT() //
+     &           '.'              // CYEAR         //
      &           '.bpch'
 #endif
 
@@ -1408,10 +1408,10 @@
          IF ( YEAR .GT. 2013 ) YEAR  = 2013
          WRITE( CYEAR, '(i4)' ) YEAR
 
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/wetlands/' //
-     &              'GWETTOP.'           // GET_NAME_EXT()         //
-     &              '.'                  // GET_RES_EXT()          //
-     &              '_NA.'               // CYEAR                  //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
+     &              'GWETTOP.'       // GET_NAME_EXT()         //
+     &              '.'              // GET_RES_EXT()          //
+     &              '_NA.'           // CYEAR                  //
      &              '.bpch' 
 #endif
 
@@ -1478,7 +1478,7 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR,     DATA_DIR_1x1
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_YEAR
@@ -1563,19 +1563,19 @@
       !4.2 Gas and Oil emissions
       IF ( LGAO ) THEN
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'oil_gas.'           // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'oil_gas.'       // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/'  //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
      &              'oil_gas.'           // GET_RES_EXT()  //
      &              '_NA.'               // CYEAR          //
      &              '.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'oil_gas.'           // GET_RES_EXT()  //
-     &              '.'                  // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'oil_gas.'       // GET_RES_EXT()  //
+     &              '.'              // CYEAR          //
      &              '.bpch'
 #endif
 
@@ -1589,19 +1589,19 @@
       !4.3 Coal Mine emissions
       IF ( LCOL ) THEN
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'coal.'              // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'coal.'          // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/'  //
-     &              'coal.'              // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+     &              'coal.'          // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR    ) // 'CH4_201305/'   //
-     &              'coal.'             // GET_RES_EXT()   //
-     &              '.'                 // CYEAR           //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'   //
+     &              'coal.'          // GET_RES_EXT()   //
+     &              '.'              // CYEAR           //
      &              '.bpch'
 #endif 
 
@@ -1614,19 +1614,19 @@
       !4.4 Livestock emissions
       IF ( LLIV ) THEN
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'livestock.'         // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'livestock.'     // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/'  //
-     &              'livestock.'         // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+     &              'livestock.'     // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'livestock.'         // GET_RES_EXT()  //
-     &              '.'                  // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'livestock.'     // GET_RES_EXT()  //
+     &              '.'              // CYEAR          //
      &              '.bpch'
 #endif
 
@@ -1639,19 +1639,19 @@
       !4.5 Waste emissions
       IF ( LWAST ) THEN
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'waste.'             // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'waste.'         // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/'  //
-     &              'waste.'             // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+     &              'waste.'         // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'waste.'             // GET_RES_EXT()  //
-     &              '.'                  // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'waste.'         // GET_RES_EXT()  //
+     &              '.'              // CYEAR          //
      &              '.bpch'
 #endif
 
@@ -1664,19 +1664,19 @@
       !4.6 Biofuel emissions
       IF ( LBFCH4 ) THEN
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'resident.'          // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'resident.'      // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/'  //
-     &              'resident.'          // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+     &              'resident.'      // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'resident.'          // GET_RES_EXT()  //
-     &              '.'                  // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'resident.'      // GET_RES_EXT()  //
+     &              '.'              // CYEAR          //
      &              '.bpch'
 #endif
 
@@ -1689,19 +1689,19 @@
       !4.8 Other Anthropogenic Emissions
       IF ( LOTANT ) THEN
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'other.'             // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'other.'         // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/'  //
-     &              'other.'             // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+     &              'other.'         // GET_RES_EXT()  //
+     &              '_NA.'           // CYEAR          //
      &              '.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201305/'  //
-     &              'other.'             // GET_RES_EXT()  //
-     &              '.'                  // CYEAR          //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+     &              'other.'         // GET_RES_EXT()  //
+     &              '.'              // CYEAR          //
      &              '.bpch'
 #endif
 
@@ -1735,7 +1735,7 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0,       READ_BPCH2
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR,       DATA_DIR_1x1
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_YEAR
@@ -1797,17 +1797,17 @@
       !4.11 Soil Absorption
       IF ( LSOABS ) THEN
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201203/'     //
-     &              'soilabs.'           // GET_RES_EXT()     // 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'soilabs.'       // GET_RES_EXT()     // 
      &              '_NA.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/'     //
-     &              'soilabs.'           // GET_RES_EXT()     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'     //
+     &              'soilabs.'       // GET_RES_EXT()     //
      &              '_NA.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_200911/'     //
-     &              'soilabs.'           // GET_NAME_EXT_2D() //
-     &              '.'                  // GET_RES_EXT() 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
+     &              'soilabs.'       // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 #endif
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
@@ -1819,17 +1819,17 @@
       !4.12 Other Natural Emissions
       IF ( LOTNAT ) THEN
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_201203/'     //
-     &              'termites.'          // GET_RES_EXT()     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'termites.'      // GET_RES_EXT()     //
      &              '_NA.bpch'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'CH4_201402/'     //
-     &              'termites.'          // GET_RES_EXT()     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'     //
+     &              'termites.'      // GET_RES_EXT()     //
      &              '_NA.bpch'
 #else
-         FILENAME = TRIM( DATA_DIR     ) // 'CH4_200911/'     //
-     &              'termites.'          // GET_NAME_EXT_2D() //
-     &              '.'                  // GET_RES_EXT() 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
+     &              'termites.'      // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 #endif
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
@@ -2376,7 +2376,7 @@
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT,    GET_MODELNAME
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,        DATA_DIR_1x1
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
       USE TIME_MOD,      ONLY : GET_MONTH
 
@@ -2423,7 +2423,7 @@
      &           'gmi.ch4loss.geos5_47L.' // GET_RES_EXT() //
      &           '_NA.bpch'
 #elif defined( NESTED_NA ) && defined( GRID025x03125 ) 
-      FILENAME = TRIM( DATA_DIR_1x1 )     // 'CH4_201402/' //
+      FILENAME = TRIM( DATA_DIR )         // 'CH4_201402/' //
      &           'gmi.ch4loss.geos5_47L.'                  //
      &           GET_RES_EXT()            //  '_NA.bpch'
 #else
