@@ -1078,6 +1078,10 @@
 !
       INTEGER,INTENT(IN) :: TARG_MONTH
 !
+! !REMARKS:
+!  At some later point we should attempt to rewrite the parallel DO loop so
+!  that the loop order is L-J-I.  Not sure how easy that is. (bmy, 2/14/14)
+!
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
 !  14 Feb 2014 - R. Yantosca - Parallelize main DO loop 
@@ -1235,7 +1239,6 @@
       DEALLOCATE( NOXDATA2D )
  
       END SUBROUTINE GET_NOXCOEFF
- 
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -1270,8 +1273,13 @@
       REAL*8, INTENT(IN)               :: SCALEFAC     ! Future scaling factor
       
 !
+! !REMARKS:
+!  At some later point we should attempt to rewrite the parallel DO loop so
+!  that the loop order is L-J-I.  Not sure how easy that is. (bmy, 2/14/14)
+!
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca - Now parallelize main DO loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1345,6 +1353,10 @@
       ENDIF
 
       ! Scan through STT, element by element
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,        J,       L,        VERTCOUNT, EXTRAP   )
+!$OMP+PRIVATE( SET_CELL, PCENTER, FOUNDLEV, TRACMR,    TRACMASS )
       DO J = 1,JJPAR
          DO I = 1,IIPAR
             ! Vertcount is the layer count for the input, where layer 1
@@ -1399,6 +1411,7 @@
             ENDDO
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
  
       ! Return to calling program
       END SUBROUTINE APPLY_2DTRAC
@@ -1431,6 +1444,7 @@
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Initial version
 !  11 Feb 2014 - R. Yantosca - Rewrote DO loop to be more efficient
+!  14 Feb 2014 - R. Yantosca - Now parallelize main DO loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1460,23 +1474,11 @@
           CALL READ_SFC
        END IF
   
-!------------------------------------------------------------------------------
-! Prior to 2/11/14:
-! This DO-loop can be more efficiently written.  See below (bmy, 2/11/14)
-!      ! Loop over surface grid boxes
-!      DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!            ! Set kg/box using vol/vol (see CONVERT_UNITS in DAO_MOD)
-!            DO N=1,N_EMIT
-!               IF (IDT_EMIT(N) .ne. 0) THEN
-!                  STT(I,J,1,IDT_EMIT(N))=GRID_EMIT(J,N)*AD(I,J,1)/
-!     &                                 TCVV(IDT_EMIT(N))
-!               ENDIF
-!            ENDDO
-!         ENDDO ! I
-!      ENDDO ! J
-!------------------------------------------------------------------------------
        ! Loop over emitted species
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, N, N_EMITTED )
+!$OMP+SCHEDULE( DYNAMIC )
        DO N = 1, N_EMIT
 
           ! Get the tracer # of the emitted species
@@ -1498,11 +1500,11 @@
              ENDDO
           ENDIF
       ENDDO
+!$OMP END PARALLEL DO
 
       IF ( LPRT ) CALL DEBUG_MSG( '### UCX: Emissions complete' )
 
       END SUBROUTINE EMISS_BASIC
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
