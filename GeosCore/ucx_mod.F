@@ -1080,6 +1080,7 @@
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca - Parallelize main DO loop 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1169,10 +1170,15 @@
          CLOSE(IU_FILE)
       ENDDO 
 
-
       ! Scan through target array, element by element
-      DO J = 1,JJPAR
-      DO I = 1,IIPAR
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,      J,      L,       VERTCOUNT )
+!$OMP+PRIVATE( EXTRAP, LSTART, PCENTER, FOUNDLEV  )
+!$OMP+PRIVATE( ITRAC,  ISRATE, CURRVAL            )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
          ! Vertcount is the layer count for the input, where layer 1
          ! is at the *top* of the atmosphere
          VERTCOUNT = 51
@@ -1181,6 +1187,7 @@
 
          DO L = LSTART, LLPAR
             IF (ITS_IN_THE_CHEMGRID(I,J,L)) CYCLE
+
             ! Pressure at center of cell
             PCENTER = GET_PCENTER(I,J,L)
             FOUNDLEV = (PCENTER.gt.AER_PLEVS(VERTCOUNT))
@@ -1222,7 +1229,8 @@
             ENDDO ! ITRAC
          ENDDO ! L
       ENDDO ! I
-      ENDDO ! J
+      ENDDO ! J]
+!$OMP END PARALLEL DO
 
       DEALLOCATE( NOXDATA2D )
  
