@@ -4867,6 +4867,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  17 Aug 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca - Reorder DO loops for efficiency
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4911,8 +4912,14 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, IJWINDOW, DAYCOLUMN, GMU )
 !$OMP+PRIVATE( LMINPHOT, PHOTDELTA, SO4_IN, SO4_DELTA )
-      DO I=1,IIPAR
+!----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Change loop order to J-I, which is more efficient (bmy, 2/14/14)
+!      DO I=1,IIPAR
+!      DO J=1,JJPAR
+!----------------------------------------------------------------------------
       DO J=1,JJPAR
+      DO I=1,IIPAR
       IJWINDOW = (J-1)*IIPAR + I
       GMU = SUNCOS(IJWINDOW)
       DAYCOLUMN = (GMU.gt.0d0)
