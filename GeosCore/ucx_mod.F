@@ -4767,6 +4767,7 @@
 !
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca - Reordered DO loop for efficiency
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4789,9 +4790,16 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PRES, TEMP, ESAT, SHMB, READ_SPHU )
-      DO J=1,JJPAR
-      DO I=1,IIPAR
-      DO L=1,LLPAR
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+!---------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Need to pull the L-loop to the top for efficiency (bmy, 2/14/14)
+!      DO J=1,JJPAR
+!      DO I=1,IIPAR
+!      DO L=1,LLPAR
+!---------------------------------------------------------------------------
          READ_SPHU = (ITS_IN_THE_TROP(I,J,L).or.SETSTRAT.or.
      &                             (.not.LACTIVEH2O))
          IF (READ_SPHU) THEN
