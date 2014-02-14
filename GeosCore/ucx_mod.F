@@ -1775,7 +1775,6 @@
 
       ! Return to calling program
       END FUNCTION GET_MONTREAL
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -2456,6 +2455,8 @@
 ! !REVISION HISTORY: 
 !  11 Apr 2013 - S. D. Eastham - Initial version
 !  07 Feb 2014 - R. Yantosca - Cosmetic changes
+!  14 Feb 2014 - R. Yantosca - Changed parallel DO loop order to L-J-I,
+!                              which is the most efficient configuration
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2500,20 +2501,33 @@
 !$OMP+PRIVATE( GF_CFACTOR, GF_LOGPSULFATE, GF_PVAP )
 !$OMP+PRIVATE( GF_DIFF                             )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J=1, JJPAR
-      DO I=1, IIPAR
-      LLOOP: DO L=1, LLPAR
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Now put the L-loop as the outermost loop, for efficiency (bmy, 2/14/14)
+!      LLOOP: DO L=1, LLPAR
+!-----------------------------------------------------------------------------
          ! Only interested in low-pressure boxes
          PCENTER = GET_PCENTER(I,J,L)
          TCENTER = T(I,J,L)
          INVAIR  = AIRMW / AD(I,J,L)
          IF (PCENTER.ge.1.d2) THEN
             AERFRAC(I,J,L,1) = 1d0
-            CYCLE LLOOP
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! The IF statement means we don't have to cycle (bmy, 2/14/14)
+!            CYCLE LLOOP
+!-----------------------------------------------------------------------------
          ELSEIF (ITS_IN_THE_TROP(I,J,L)) THEN
             ! Don't want to interfere with tropospheric aerosols
             AERFRAC(I,J,L,1) = 1d0
-            CYCLE LLOOP
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! The IF statement means we don't have to cycle (bmy, 2/14/14)
+!            CYCLE LLOOP
+!-----------------------------------------------------------------------------
          ELSE
             H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/TRACER_MW_G(IDTSO4  )
             ! Use approximation from Kumala (1990)
@@ -2533,7 +2547,12 @@
                AERFRAC(I,J,L,1) = 0d0
             ENDIF
          ENDIF
-      ENDDO LLOOP
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! The IF statement means we don't have to cycle (bmy, 2/14/14)
+!      ENDDO  LLOOP
+!-----------------------------------------------------------------------------
+      ENDDO
       ENDDO
       ENDDO
 
