@@ -716,6 +716,8 @@
 !
 ! !REVISION HISTORY: 
 !  16 Jul 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca - Now pull computation of ZMID out of main
+!                              parallel DO loop.  Switch loop order to L-J-I.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -767,8 +769,15 @@
 
       ! Grid indexing
       INTEGER :: I,J,L
-      REAL*8  :: MIDLAT, ZMID, ZDEL, ZBASE
- 
+!------------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Now make ZMID a 3-D array so that we can now compute it outside the 
+! main parallel DO loop.  (bmy, 2/14/14)
+!      REAL*8  :: MIDLAT, ZMID, ZDEL, ZBASE
+!------------------------------------------------------------------------------
+      REAL*8  :: MIDLAT, ZDEL, ZBASE
+      REAL*8  :: ZMID(IIPAR,JJPAR,LLPAR)
+
       ! Local daylight fraction
       REAL*8             :: DAYFRAC
       REAL*8             :: SOL_ME, SOL_FE, SOL_LS, SOL_DEC
@@ -819,35 +828,61 @@
       MESONOX_DELTA = 0d0
       MESON2O_DELTA = 0d0
 
-      ! Loop over lat & lon
+      ! First compute ZMID outside of main parallel loop
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, ZBASE, ZDEL )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Zero base height
+         ZBASE = 0d0
+
+         ! Compute the array of midpoint heights [m]
+         DO L = 1, LLPAR
+            ZDEL        = BXHEIGHT(I,J,L)
+            ZMID(I,J,L) = ZBASE + (ZDEL/2.d0)
+            ZBASE       = ZBASE + ZDEL
+         ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Main parallel DO loop over lon, lat, alt
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,        J,        MIDLAT,   SOL_B         ) 
 !$OMP+PRIVATE( SOL_C,    TSTART,   TEND,     MESON2O_DELTA )
-!$OMP+PRIVATE( DAYFRAC,  L,        ZDEL,     ZMID          )
-!$OMP+PRIVATE( ZBASE,    CYCLEBOX, SOL_TEST, TMIN          )
+!$OMP+PRIVATE( DAYFRAC,  L,        DN2O,     CYCLEBOX      )
 !$OMP+PRIVATE( TMAX,     RRATE,    T3K,      TINV          )
 !$OMP+PRIVATE( NDAIR,    XAIR,     KGNOX,    KGN2O         )
 !$OMP+PRIVATE( LOCALNOX, LOCALN2O, LOCALO3,  LOCALO3P      )
 !$OMP+PRIVATE( LOCALO1D, NO_ALPHA, NO_BETA,  NO_GAMMA      )
 !$OMP+PRIVATE( FRACNO2,  FRACNO3,  FRACNO,   FRACN         )
 !$OMP+PRIVATE( NOXRATE,  N2ORATE,  DNOX,     MESONOX_DELTA )
-!$OMP+PRIVATE( DN2O                                        )
-      DO J=1,JJPAR
-      DO I=1,IIPAR
-      ! Grid box longitude/latitude [degrees]
-      MIDLAT = PI*GET_YMID( I, J, 1 )/180.d0
-      SOL_B = TAN(SOL_DEC)*TAN(MIDLAT)
-      SOL_C = COS(SOL_DEC)*COS(MIDLAT)
-      !SOLFUNC  = 1.d0-(0.034d0*cos(dble(NDAY-172)*2.d0*PI/365.d0))
-      TSTART = GET_LOCALTIME(I,J,1,GMTSTART)
-      TEND = TSTART + DTCHEM_HR
-      !DAYFRAC = SOLFUNC
-      ZBASE = 0d0
-      DO L=1,LLPAR
-         ZDEL = BXHEIGHT(I,J,L)
-         ZMID = ZBASE + (ZDEL/2.d0)
-         ZBASE = ZBASE + ZDEL
+!$OMP+PRIVATE( SOL_TEST, TMIN                              )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Grid box longitude/latitude [degrees]
+         MIDLAT = PI*GET_YMID( I, J, 1 )/180.d0
+         SOL_B = TAN(SOL_DEC)*TAN(MIDLAT)
+         SOL_C = COS(SOL_DEC)*COS(MIDLAT)
+         !SOLFUNC  = 1.d0-(0.034d0*cos(dble(NDAY-172)*2.d0*PI/365.d0))
+         TSTART = GET_LOCALTIME(I,J,1,GMTSTART)
+         TEND = TSTART + DTCHEM_HR
+         !DAYFRAC = SOLFUNC
+!------------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Now move computation of ZMID out of this loop, so that we can change
+! the loop order to a more optimal L-J-L (bmy, 2/14/14)
+!      ZBASE = 0d0
+!      DO L=1,LLPAR
+!         ZDEL = BXHEIGHT(I,J,L)
+!         ZMID = ZBASE + (ZDEL/2.d0)
+!         ZBASE = ZBASE + ZDEL
+!------------------------------------------------------------------------------
          CYCLEBOX = .FALSE.
          ! Are the pre-calculated J-rates zero (ie in darkness)?
          CYCLEBOX = (ANY(NOX_J(I,J,L,:).lt.TINY(1d0)))
@@ -855,8 +890,16 @@
             CYCLE
          ENDIF
          ! Calculate daylight fraction
-         SOL_TEST = (-SOL_B) - SQRT(ZMID*(ZMID+2.d0*RE)/
-     &     ((ZMID+RE)*(ZMID+RE)))/SOL_C
+!------------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Now use ZMID(I,J,L) instead of ZMID (bmy, 2/14/14)
+!         SOL_TEST = (-SOL_B) - SQRT(ZMID*(ZMID+2.d0*RE)/
+!    &     ((ZMID+RE)*(ZMID+RE)))/SOL_C
+!------------------------------------------------------------------------------
+         SOL_TEST = (-SOL_B) 
+     &            - SQRT( ZMID(I,J,L) * ( ZMID(I,J,L) + 2.d0*RE )
+     &            / ( ( ZMID(I,J,L) +RE ) * ( ZMID(I,J,L) +RE ) ) )
+     &            / SOL_C
          IF (SOL_TEST.ge.0.9998d0) THEN
             DAYFRAC = 0.d0
             CYCLEBOX=.TRUE.
