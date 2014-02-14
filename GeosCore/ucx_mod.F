@@ -2641,6 +2641,7 @@
 ! !REVISION HISTORY: 
 !  13 Apr 2013 - S. D. Eastham - Initial version
 !  06 Feb 2014 - R. Yantosca - Add missing variables to OpenMP loop
+!  14 Feb 2014 - R. Yantosca - Make the L-loop the outermost DO loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2781,14 +2782,20 @@
 !$OMP+PRIVATE( D_XHNO3,      D_XNAT,             D_PPA         )
 !$OMP+PRIVATE( D_PP,         D_PS,               D_TK          )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J=1,JJPAR
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
          BOX_LAT_S = GET_YEDGE(1,J,1)
          BOX_LAT_N = GET_YEDGE(1,J+1,1)
          IS_POLAR = ((BOX_LAT_S.lt.PSC_MINLAT).or.
      &               (BOX_LAT_N.gt.PSC_MAXLAT))
          ! Loop over longitudinal boxes
-         DO I=1,IIPAR
-            LLOOP: DO L=1,LLPAR
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Need to pull the L-loop to the top; this is more efficient (bmy, 2/14/14)
+!         DO I=1,IIPAR
+!            LLOOP: DO L=1,LLPAR
+!-----------------------------------------------------------------------------
+         DO I = 1, IIPAR
 
                ! Get local conditions
                PCENTER = GET_PCENTER(I,J,L) 
@@ -3248,9 +3255,16 @@
                NDENS_AER(I,J,L,I_SLA)= NDENS_AER_BOX    ! #/m3
                SAD_AER(I,J,L,I_SLA)  = SAD_AER_BOX      ! cm2/cm3
 
-            ENDDO LLOOP ! L
-         ENDDO ! I
-      ENDDO ! J
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! We don't need to label LLOOP anymore (bmy, 2/14/14)
+!            ENDDO LLOOP ! L
+!         ENDDO ! I
+!      ENDDO ! J
+!-----------------------------------------------------------------------------
+         ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
 
       IF (LPRT) THEN
@@ -3283,7 +3297,6 @@
       ENDIF
 
       END SUBROUTINE CALC_STRAT_AER
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3322,7 +3335,6 @@
       KG_STRAT_AER = KG_AER(I,J,L,IAER)
 
       END FUNCTION KG_STRAT_AER
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3359,7 +3371,6 @@
       RHO_STRAT_AER = RHO_AER(I,J,L,IAER)
 
       END FUNCTION RHO_STRAT_AER
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3415,7 +3426,6 @@
       ENDIF
 
       END SUBROUTINE GET_STRAT_OPT
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3466,7 +3476,6 @@
       IS_NAT = (IS_PSC).and.(STT(I,J,L,IDTNIT).gt.TINY(1d0))
 
       END SUBROUTINE CHECK_NAT
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3825,7 +3834,6 @@
       SLA_VOL = (MOLDENS_H2SO4*98.076d0/W_H2SO4/SLA_RHO)*1.d-3
 
       END SUBROUTINE TERNARY
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3844,9 +3852,9 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(IN)          :: CS         ! H2SO4 molality (mol H2SO4/kg solvent)
-      REAL*8, INTENT(IN)          :: CN         ! HNO3 molality (mol HNO3/kg solvent)
-      REAL*8, INTENT(IN)          :: T          ! Temperature (K)
+      REAL*8, INTENT(IN) :: CS         ! H2SO4 molality (mol H2SO4/kg solvent)
+      REAL*8, INTENT(IN) :: CN         ! HNO3 molality (mol HNO3/kg solvent)
+      REAL*8, INTENT(IN) :: T          ! Temperature (K)
 !
 ! !REVISION HISTORY: 
 !  19 Apr 2013 - S. D. Eastham - Initial version
@@ -3877,7 +3885,6 @@
       RETURN
 
       END FUNCTION CARSLAW_DENSITY
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3955,7 +3962,6 @@
       ENDIF
 
       END FUNCTION CALC_FALLVEL
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4280,7 +4286,6 @@
 
       ! Return to calling program
       END SUBROUTINE CALC_SLA_GAMMA
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4319,7 +4324,6 @@
       MOLEC_SPEED=SQRT(8.0d0*8.31451d7*T/(PI*MOLMASS))
 
       END FUNCTION MOLEC_SPEED
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4478,7 +4482,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_PSC_FILE: wrote file' )
 
       END SUBROUTINE MAKE_PSC_FILE
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4518,6 +4521,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
+!  14 Feb 2014 - R. Yantosca - Reorder DO loops for efficiency
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4625,10 +4629,21 @@
      &     NN            == ILAT       .and. 
      &     NL            == IPVERT            ) THEN
 
-         DO I=1,NTL
-         DO J=1,NN
-         DO L=1,NL
-         STATE_PSC(I,J,L) = INT(FLOOR(TMP(I,J,L)))
+!----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Now order the DO loops L-J-I, this is most efficient (bmy, 2/14/14)
+!         DO I=1,NTL
+!         DO J=1,NN
+!         DO L=1,NL
+!         STATE_PSC(I,J,L) = INT(FLOOR(TMP(I,J,L)))
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!----------------------------------------------------------------------------
+         DO L = 1, NL
+         DO J = 1, NN
+         DO I = 1, NTL
+            STATE_PSC(I,J,L) = INT( FLOOR( TMP(I,J,L) ) )
          ENDDO
          ENDDO
          ENDDO
@@ -4648,7 +4663,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_PSC_FILE: read file' )
 
       END SUBROUTINE READ_PSC_FILE
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4678,6 +4692,7 @@
 !
 ! !REVISION HISTORY: 
 !  16 Oct 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca - Reorder DO loop for efficiency
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4702,9 +4717,14 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
+      DO L=1,LCLOCK
       DO J=1,JJPAR
       DO I=1,IIPAR
-      DO L=1,LCLOCK
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Make the L-Loop the outermost loop, for efficiency (bmy, 2/14/14)
+!      DO L=1,LCLOCK
+!-----------------------------------------------------------------------------
          STT(I,J,L,IDTCLOCK) = CLOCKMR
       ENDDO ! L
       ENDDO ! I
@@ -4715,7 +4735,6 @@
       CLOCKMR = CLOCKMR + (INCRATE*STEPLEN/(60d0*24d0))
 
       END SUBROUTINE SET_CLOCK_TRAC
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
