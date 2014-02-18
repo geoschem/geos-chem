@@ -876,6 +876,21 @@
       ! Execute on first-call only
       IF ( FIRST ) THEN
 
+#if defined( TOMAS )
+         ! Return if dust ID flags are not defined
+         IF ( IDTDUST1 == 0 ) THEN
+            IF ( LDUST ) THEN 
+               CALL ERROR_STOP( 
+     &              'LDUST=T but dust tracers are undefined!',
+     &              'EMISSDUST ("dust_mod.f")' )
+            ENDIF
+         ENDIF
+ 
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
+#else
+
          ! Return if dust ID flags are not defined
          IF ( IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4 == 0 ) THEN
             IF ( LDUST ) THEN 
@@ -888,6 +903,7 @@
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
+#endif
 
       !=================================================================
       ! Call appropriate emissions routine
@@ -907,29 +923,37 @@
       ! For TOMAS microphysics
       !=================================================================
 
-      ! Added option to do 4-bin dust or TOMAS size-resolved dust emission (win, 7/17/09)
-      IF ( LDUST ) THEN 
- 
-         IF ( LDEAD ) THEN
-            ! Use Zender's DEAD dust source function
-            CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4),
-     &                          State_Met )
-         
-            !### Debug
-            IF ( LPRT ) 
-     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
-         ELSE
-            ! Use Paul Ginoux's dust source function
-            CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4),
-     &                            State_Met, Input_Opt )
-
-            !### Debug
-            IF ( LPRT ) 
-     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
-            
-         ENDIF     
-
-      ELSEIF ( IDTNK1 > 0 .and. IDTDUST1 > 0 ) THEN
+!--------------------------------------------------------------------------
+!     The following logical construct caused TOMAS dust to NEVER be invoked.
+!     Now we define LDUST in input.geos to mean exactly that, and REMOVE
+!     the option to use 4-bin dust in TOMAS simulations
+!--------------------------------------------------------------------------
+!      ! Added option to do 4-bin dust or TOMAS size-resolved dust emission (win, 7/17/09)
+!      IF ( LDUST ) THEN 
+! 
+!         IF ( LDEAD ) THEN
+!            ! Use Zender's DEAD dust source function
+!            CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4),
+!     &                          State_Met )
+!         
+!            !### Debug
+!            IF ( LPRT ) 
+!     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
+!         ELSE
+!            ! Use Paul Ginoux's dust source function
+!            CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4),
+!     &                            State_Met, Input_Opt )
+!
+!            !### Debug
+!            IF ( LPRT ) 
+!     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
+!            
+!         ENDIF     
+!
+!      ELSEIF ( IDTNK1 > 0 .and. IDTDUST1 > 0 ) THEN
+!
+!--------------------------------------------------------------------------
+      IF ( IDTNK1 > 0 .and. IDTDUST1 > 0 ) THEN
 
          MINIT(:,:,1,1:IBINS) = STT(:,:,1,IDTDUST1:IDTDUST1-1+IBINS)
 
@@ -945,7 +969,7 @@
             !### Debug
             IF ( LPRT ) 
      &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
-         ELSE
+         ELSE 
             ! Use Paul Ginoux's dust source function
             CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
      &                            State_Met, Input_Opt )
@@ -1312,7 +1336,7 @@
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE ERROR_MOD,          ONLY : ERROR_STOP
 #if   defined ( TOMAS )
-      USE TOMAS_MOD,          ONLY : IBINS
+      USE TOMAS_MOD,          ONLY : IBINS, Xk
 #endif
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -1389,6 +1413,7 @@
 #if   defined( TOMAS )
       INTEGER                :: IPOINT(NDSTBIN)        !(win, 8/4/09)
       INTEGER                :: ACTMODEBINS
+      REAL*8                 :: Mp, Rp
 #else
       INTEGER                :: IPOINT(NDSTBIN) = (/3, 2, 2, 2/)
 #endif
@@ -1436,29 +1461,46 @@
       ! SRC_DUST_GINOUX begins here!
       !=================================================================
 
-#if   defined ( TOMAS )
-#if   defined ( TOMAS40 )
+#if   defined( TOMAS )
+# if   defined( TOMAS40 )
       ACTMODEBINS=10
-#else
+# elif defined( TOMAS15 )
+      ACTMODEBINS=3
+# else 
       ACTMODEBINS=0
-#endif
+# endif
 #endif
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
 
 #if   defined( TOMAS )
+!from ginoux:
+!The U.S. Department of Agriculture (USDA) defines 
+!particles with a radius between 1 um and 25 um as silt, 
+!and below 1 um as clay [Hillel, 1982]. Mineralogical silt 
+!particles are mainly composed of quartz, but they are 
+!often coated with strongly adherent clay such that their 
+!physicochemical properties are similar to clay [Hillel, 
+!1982].
+!
+!SRCE_FUNC Source function                              
+!for 1: Sand, 2: Silt, 3: Clay
+
       ! Give values for IPOINT array (win, 3/11/08)
-      IF ( NDSTBIN == 4 ) THEN
-         IPOINT(1) = 3
-         IPOINT(2) = 2
-         IPOINT(3) = 2
-         IPOINT(4) = 2
-      ELSEIF ( NDSTBIN == IBINS ) THEN
-         IPOINT(1:3) = 3
-         IPOINT(4:(ACTMODEBINS + 30)) = 2 ! scf for TOMAS40
+      IF ( NDSTBIN == IBINS ) THEN
+         DO N = 1, IBINS
+            Mp=1.4*xk(N)
+            Rp=((Mp/2500.)*(3./(4.*pi)))**(0.333)
+            IF (Rp < 1.d-6) THEN
+               IPOINT(N) = 3
+            ELSE
+               IPOINT(N) = 2
+            END IF
+         END DO
       ELSE
-         PRINT *,' SRC_DUST_GINOUX: not support ',NDSTBIN,' bin yet'
+         PRINT *,' SRC_DUST_GINOUX: ',NDSTBIN,' bins not supported'
+         PRINT *,' SRC_DUST_GINOUX: in this executable.'
          CALL ERROR_STOP('Need to change hard-wired array IPOINT',
      &                   'SRC_DUST_GINOUX: dust_mod.f' )
       ENDIF
@@ -2440,7 +2482,7 @@
       ENDIF
 #endif 
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
       ! EXPERIMENTAL: For archiving the dust source for GIGC
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )

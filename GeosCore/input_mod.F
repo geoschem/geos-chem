@@ -2141,10 +2141,10 @@
 
       ! Halt with error if dust aerosols are turned on.
       ! TOMAS defines its own dust aerosol tracers.
-      IF ( IDTDUST1 > 0 .AND. Input_Opt%LDUST ) THEN
-         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
+!      IF ( IDTDUST1 > 0 .AND. Input_Opt%LDUST ) THEN
+!         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
+!         CALL ERROR_STOP( MSG, LOCATION )
+!      ENDIF
 
       !=================================================================
       ! All error checks are satisfied, so initialize TOMAS
