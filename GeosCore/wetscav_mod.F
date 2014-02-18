@@ -6725,41 +6725,13 @@
 
 
 #if defined( TOMAS )
-
-!========================================================================
-!= sfarina                                                              =
-!= this section was optimized to remove the large array                 =
-!= TOM_SC_FRACTION which is used to reduce the number of                =
-!= calls to getfraction by assuming that all species behave             =
-!= the same and rainfrac only depends on the size bin.                  =
-!========================================================================
          IF ( IDTNK1 > 0 ) THEN
             IF ( N >= IDTNK1 .and. N < IDTNK1 + IBINS ) THEN  
                CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT ) 
                RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
-               TOM_SC_FRACTION(N-IDTNK1+1) = XFRAC
-             ELSE IF ( N >= IDTSF1 .and. N < IDTSF1 + IBINS ) THEN
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTSF1+1) 
-             ELSE IF ( N >= IDTSS1 .and. N < IDTSS1 + IBINS ) THEN
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTSS1+1) 
-             ELSE IF ( N >= IDTECIL1 .and. 
-     &                 N < IDTECIL1 + IBINS ) THEN 
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTECIL1+1) 
-             ELSE IF ( N >= IDTOCIL1 .and. 
-     &                 N < IDTOCIL1 + IBINS ) THEN 
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTOCIL1+1) 
-             ELSE IF ( N >= IDTOCOB1 .and. 
-     &                 N < IDTOCOB1 + IBINS ) THEN 
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTOCOB1+1) 
-             ELSE IF ( N >= IDTDUST1 .and. 
-     &                 N < IDTDUST1 + IBINS ) THEN 
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTDUST1+1) 
+             ELSE IF ( N >= IDTSF1 .and. N < IDTDUST1 + IBINS ) THEN
+               CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT ) 
+               RAINFRAC = RAINFRAC * XFRAC
              ENDIF
           ENDIF
 #endif
