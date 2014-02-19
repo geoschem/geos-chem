@@ -2440,7 +2440,7 @@
       ! Read data for each month
       DO M = 1, 12 
 
-d      !M = GET_MONTH()
+      !M = GET_MONTH()
 
          ! TAU value at the start of month M -- Use "generic" year 1985
          XTAU = GET_TAU0( M, 1, 1985 )
@@ -2920,7 +2920,6 @@ d      !M = GET_MONTH()
       ENDDO
 
       ! Check STT for negatives and NaN
-      print*,'minval( STT ) after CH4_STRAT = ', minval( STT(:,:,:,1) )
       CALL CHECK_STT( State_Chm, 'IN global_ch4_mod.F: CH4_STRAT' )
 
       ! Free pointer

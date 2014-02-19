@@ -7468,6 +7468,8 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Feb 2014 - R. Yantosca - Add warning for CH4 budget (which is now
+!                              controlled by an #ifdef in global_ch4_mod.F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7568,6 +7570,17 @@
 !              print*,'L8DAYBB3 = ',L8DAYBB3
 	    ENDIF
             CALL ERROR_STOP( MSG, 'READ_CH4_MENU ("input_mod.F")' )
+         ENDIF
+      ENDIF
+
+      ! Error check (kjw)
+      IF ( LCH4BUD .EQ. .TRUE. ) THEN
+         MSG = 'To print CH4 budget information, be sure that ' //
+     &         'USE_CH4_BUDGET_DIAG is defined at the beginning' //
+     &         ' of global_ch4_mod.F'
+         IF ( am_I_Root ) THEN
+            print*,'CH4 Budget warning:'
+            print*,MSG
          ENDIF
       ENDIF
 
