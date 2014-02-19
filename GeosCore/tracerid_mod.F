@@ -516,6 +516,7 @@
       INTEGER            :: IDEHAC
       !%%%%(bmy 4/13/11)
       INTEGER            :: IDERCHO, IDEHCOOH, IDEACTA       
+      INTEGER            :: IDEPAN  ! PAN  (evf, Aug/12)        
       !jpp, 8/24/07: emission ID's for Br biogenic emissions in fullchem runs
       INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
       ! krt, 6/2/13 - for additional NEI08 emissions
@@ -549,8 +550,9 @@
       INTEGER            :: IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       INTEGER            :: IDBCH2O, IDBC2H6
       INTEGER            :: IDBSO2,  IDBNH3
-      INTEGER            :: IDBBC,   IDBOC
-      INTEGER            :: IDBCO2
+
+      INTEGER            :: IDBBC,   IDBOC, IDBHNO3 !BB HNO3 (evf,09/15/11)
+      INTEGER            :: IDBCO2,  IDBPAN !added PAN emissions (evf, 09/09/11)
 !kjw
       INTEGER            :: IDBCH4
 !kjw
@@ -728,6 +730,10 @@
 
             CASE ( 'PAN' )
                IDTPAN   = N
+
+               !added for PAN (evf, 9/9/2011)             
+               COUNT_BB = COUNT_BB + 1
+               IDBPAN   = COUNT_BB
                
             CASE ( 'CO' )
                COUNT    = COUNT + 1
@@ -790,6 +796,10 @@
                
             CASE ( 'HNO3' )
                IDTHNO3  = N
+
+               !(fp) added for HNO3 (evf, 9/15/2011)             
+               COUNT_BB = COUNT_BB + 1
+               IDBHNO3   = COUNT_BB
 
             CASE ( 'H2O2' )
                IDTH2O2  = N
@@ -2842,6 +2852,13 @@
             NEMBIOG   = NEMBIOG + 1
             IDEHAC    = NEMANTHRO + NEMBIOG
          ENDIF
+
+         !evf, added Aug/12
+         IF ( IDTPAN > 0 ) THEN
+            NEMBIOG   = NEMBIOG + 1
+            IDEPAN  = NEMANTHRO + NEMBIOG
+         ENDIF
+
          IF ( IDTMONX > 0 ) THEN
             NEMBIOG   = NEMBIOG + 1
             IDEMONX   = NEMANTHRO + NEMBIOG
@@ -2901,7 +2918,10 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
-      IF ( IDEHAC  /= 0 ) IDEMS(IDEHAC ) = IDTHAC
+      IF ( IDEHAC /= 0 )  IDEMS(IDEHAC ) = IDTHAC
+      !evf
+      IF ( IDEPAN  /= 0  )  IDEMS(IDEPAN   ) = IDTPAN  !evf, Aug/12
+
       ! jpp:
       IF ( IDECHBr3  /= 0 ) IDEMS(IDECHBr3 ) = IDTCHBr3
       IF ( IDECH2Br2 /= 0 ) IDEMS(IDECH2Br2) = IDTCH2Br2

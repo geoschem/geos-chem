@@ -29,6 +29,7 @@
       PUBLIC  :: EMISS_NEI2008_ANTHRO
       PUBLIC  :: EMISS_NEI2008_ANTHRO_NATIVE
       PUBLIC  :: GET_NEI2008_ANTHRO
+      PUBLIC  :: GET_MASK_FORFIRE
       !--------------------------------------
       ! Leave for future use (bmy, 12/3/09)
       !PUBLIC  :: GET_NEI2005_MASK
@@ -422,6 +423,36 @@
       ! Return to calling program
       END FUNCTION GET_NEI2008_ANTHRO
 !EOC
+!BOP
+!------------------------------------------------------------------------------
+! !IROUTINE: GET_MASK_FORFIRE
+! !DESCRIPTION: Subroutine GET_MASK_FORFIRE initializes the mask for the fire injection routine
+
+      SUBROUTINE GET_MASK_FORFIRE(  RC )
+! !INPUT PARAMETERS:
+!
+        USE GIGC_ErrCode_Mod
+        USE CMN_SIZE_MOD    ! Size parameters
+        USE ERROR_MOD,   ONLY : ALLOC_ERR
+
+        INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
+        LOGICAL,        SAVE          :: FIRST = .TRUE.
+
+       ! First-time initialization
+        IF ( FIRST ) THEN
+         ! Assume success
+           RC        =  GIGC_SUCCESS
+           ! allocate and read USA Mask
+           ALLOCATE( USA_MASK( IIPAR, JJPAR ), STAT=RC )
+           IF ( RC /= 0 ) CALL ALLOC_ERR( 'USA_MASK' )
+           USA_MASK = 0d0
+
+           CALL READ_NEI2008_MASK
+           FIRST = .FALSE.
+        ENDIF
+    ! Return to calling program
+      END SUBROUTINE GET_MASK_FORFIRE
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -552,7 +583,6 @@
          CALL INIT_NEI2008_ANTHRO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
-
       ! Get emissions year
       THISYEAR = GET_YEAR()
 
@@ -2567,6 +2597,7 @@
       NULLIFY( INGRID )
 
       WHERE ( USA_MASK > 0D0 ) USA_MASK = 1D0
+      WRITE(*,*) 'READ NEI2008 MASK!'
       ! Return to calling program
       END SUBROUTINE READ_NEI2008_MASK
 !------------------------------------------------------------------------------
@@ -2993,13 +3024,6 @@
       !--------------------------------------------------
       ! Allocate and zero arrays for emissions
       !--------------------------------------------------
-
-      ! allocate and read USA Mask
-      ALLOCATE( USA_MASK( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'USA_MASK' )
-      USA_MASK = 0d0
-
-      CALL READ_NEI2008_MASK
 
       ALLOCATE( CO( IIPAR, JJPAR, 3, 24 ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'CO' )

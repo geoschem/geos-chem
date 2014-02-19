@@ -1047,7 +1047,7 @@ setemis.o                   : setemis.F                                      \
                               emep_mod.o              lightning_nox_mod.o    \
                               paranox_mod.o           pbl_mix_mod.o          \
                               rcp_mod.o               tracerid_mod.o         \
-                              tropopause_mod.o
+                              tropopause_mod.o        nei2008_anthro_mod.o   
 
 setmodel.o                  : setmodel.F
 

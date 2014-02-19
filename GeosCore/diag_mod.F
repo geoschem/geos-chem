@@ -42,7 +42,7 @@
       REAL*4,  ALLOCATABLE :: AD06(:,:,:)
 
       ! For ND07 -- Carbon aerosol emission
-      REAL*4,  ALLOCATABLE :: AD07(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD07(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_BC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
@@ -76,7 +76,7 @@
       REAL*4,  ALLOCATABLE :: AD13_DMS(:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO2_ac(:,:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO2_an(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD13_SO2_bb(:,:)
+      REAL*4,  ALLOCATABLE :: AD13_SO2_bb(:,:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO2_bf(:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO2_nv(:,:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO2_ev(:,:,:)
@@ -85,7 +85,7 @@
       REAL*4,  ALLOCATABLE :: AD13_SO4_bf(:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_an(:,:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_na(:,:)
-      REAL*4,  ALLOCATABLE :: AD13_NH3_bb(:,:)
+      REAL*4,  ALLOCATABLE :: AD13_NH3_bb(:,:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_bf(:,:)
 
       ! For ND14 -- wet convection mass flux diagnostic
@@ -128,7 +128,7 @@
       REAL*8,  ALLOCATABLE :: MASSFLUP(:,:,:,:)
 
       ! For ND28 -- Biomass burning diagnostic
-      REAL*4,  ALLOCATABLE :: AD28(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD28(:,:,:,:)
 
       ! For ND29 -- CO source diagnostic
       REAL*4,  ALLOCATABLE :: AD29(:,:,:,:)
