@@ -114,12 +114,13 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTACET
       USE TRACERID_MOD,       ONLY : IDTISOP
+#if defined (UCX )
+      USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
+#endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
       USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
 #endif
-      USE LOGICAL_MOD,        ONLY : LUCX ! (SDE 04/20/13)
-      USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
 !
 ! !INPUT PARAMETERS:
 !
@@ -208,6 +209,7 @@
 !                              now obtained either from CMN_SIZE_mod.F or
 !                              from the Input_Opt object
 !  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to DRYFLX
+!  28 Mar 2013 - S.D. Eastham- Updated to use FAST_JX_MOD
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to DO_TOMAS
 !EOP
 !------------------------------------------------------------------------------
@@ -243,6 +245,7 @@
       LOGICAL       :: LSULF
       LOGICAL       :: LSOA
       LOGICAL       :: LNLPBL
+      LOGICAL       :: LUCX
 
       ! SAVEd variables
       LOGICAL, SAVE :: FIRST = .TRUE.
@@ -271,6 +274,7 @@
       LSULF                    = Input_Opt%LSULF
       LSOA                     = Input_Opt%LSOA
       LNLPBL                   = Input_Opt%LNLPBL
+      LUCX                     = Input_Opt%LUCX
       IT_IS_A_C2H6_SIM         = Input_Opt%ITS_A_C2H6_SIM
       IT_IS_A_CH3I_SIM         = Input_Opt%ITS_A_CH3I_SIM
       IT_IS_A_CH4_SIM          = Input_Opt%ITS_A_CH4_SIM 
@@ -335,7 +339,7 @@
 
 #if defined( UCX )
             ! Recalculate PSC properties
-            IF ( LUCX ) CALL CALC_STRAT_AER
+            IF ( LUCX ) CALL CALC_STRAT_AER( Input_Opt )
 #endif
 
             ! Also do sulfate chemistry

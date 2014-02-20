@@ -216,7 +216,6 @@ CONTAINS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE LINOZ_MOD,          ONLY : DO_LINOZ
-    USE LOGICAL_MOD,        ONLY : LBRGCCM
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
     USE TRACER_MOD,         ONLY : XNUMOLAIR
@@ -286,6 +285,7 @@ CONTAINS
     REAL*8            :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
+    LOGICAL           :: LBRGCCM
     LOGICAL           :: LRESET, LCYCLE
     INTEGER           :: N_TRACERS
 
@@ -313,6 +313,7 @@ CONTAINS
     N_TRACERS            = Input_Opt%N_TRACERS
     LLINOZ               = Input_Opt%LLINOZ
     LPRT                 = Input_Opt%LPRT
+    LBRGCCM              = Input_Opt%LBRGCCM
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM  
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
@@ -1449,7 +1450,6 @@ CONTAINS
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE LOGICAL_MOD,        ONLY : LUCX
     USE TRACERID_MOD,       ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
     USE TRACERID_MOD,       ONLY : IDTBr2,   IDTBr,     IDTBrO
     USE TRACERID_MOD,       ONLY : IDTHOBr,  IDTHBr,    IDTBrNO3
@@ -1492,6 +1492,7 @@ CONTAINS
     LOGICAL           :: IT_IS_A_FULLCHEM_SIM
     LOGICAL           :: IT_IS_A_TAGOX_SIM
     LOGICAL           :: LLINOZ
+    LOGICAL           :: LUCX
     INTEGER           :: N_TRACERS
 
     ! Arrays
@@ -1511,6 +1512,7 @@ CONTAINS
 
     ! Save fields from the Input_Opt object to local variables
     LLINOZ                   = Input_Opt%LLINOZ
+    LUCX                     = Input_Opt%LUCX
     N_TRACERS                = Input_Opt%N_TRACERS
     IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM

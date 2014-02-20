@@ -8446,7 +8446,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE LOGICAL_MOD,        ONLY : LUCX
       USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
 #if defined( TOMAS )
       USE TRACERID_MOD,       ONLY : IDTNK1
@@ -8497,6 +8496,7 @@
       ! For fields from Input_Opt
       LOGICAL :: LCARB,  LDUST, LSOA
       LOGICAL :: LSSALT, LSULF, LSPLIT, LCRYST
+      LOGICAL :: LUCX
 
       !=================================================================
       ! GET_WETDEP_NMAX begins here!
@@ -8513,6 +8513,7 @@
       LSULF  = Input_Opt%LSULF
       LSPLIT = Input_Opt%LSPLIT
       LCRYST = Input_Opt%LCRYST
+      LUCX   = Input_Opt%LUCX
 
       !=================================================================
       ! NOTE: If you add tracers to a simulation, update as necessary

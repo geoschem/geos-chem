@@ -19,7 +19,6 @@
 !
       USE inquireMod, ONLY : findFreeLUN
       USE ERROR_MOD,  ONLY : DEBUG_MSG
-      USE LOGICAL_MOD,ONLY : LPRT
       USE CMN_SIZE_MOD
 
       IMPLICIT NONE
@@ -269,23 +268,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_INITIAL_MIXRATIOS( am_I_Root )
+      SUBROUTINE SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt )
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,          ONLY : LSETCH4,  LSETOCS,  LSETCFC
-      USE LOGICAL_MOD,          ONLY : LSETCL,   LSETBR,   LSETN2O
-      USE LOGICAL_MOD,          ONLY : LSETH2SO4,LUCX,     LSETBRSTRAT
-      USE LOGICAL_MOD,          ONLY : LSETNOYSTRAT
-      USE LOGICAL_MOD,          ONLY : LBASICEMIS
+      USE DAO_MOD,            ONLY : AD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR,ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR
       USE TRACERID_MOD
-      USE TRACER_MOD,           ONLY : N_TRACERS, STT,TCVV
-      USE DAO_MOD,              ONLY : AD
-      USE TIME_MOD,             ONLY : GET_MONTH
-      USE ERROR_MOD,            ONLY : ALLOC_ERR,ERROR_STOP
-      USE GRID_MOD,             ONLY : GET_YMID
-      USE TIME_MOD,             ONLY : GET_YEAR
-      USE LOGICAL_MOD,          ONLY : LFUTURE, LFUTURECFC
+      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
@@ -307,6 +301,36 @@
       REAL*8             :: SCALEFAC
       INTEGER            :: FUTURE_LINE
       INTEGER            :: BASIS_LINE
+
+      ! Local variables for quantities from Input_Opt
+      LOGICAL            :: LPRT
+      LOGICAL            :: LSETCH4
+      LOGICAL            :: LSETOCS
+      LOGICAL            :: LSETCFC
+      LOGICAL            :: LSETCL
+      LOGICAL            :: LSETBR
+      LOGICAL            :: LSETN2O
+      LOGICAL            :: LSETH2SO4,   
+      LOGICAL            :: LSETBRSTRAT
+      LOGICAL            :: LSETNOYSTRAT
+      LOGICAL            :: LBASICEMIS
+
+      !=================================================================
+      ! SET_INITIAL_MIXRATIOS begins here!
+      !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT         = Input_Opt%LPRT
+      LSETCH4      = Input_Opt%LSETCH4
+      LSETOCS      = Input_Opt%LSETOCS
+      LSETCFC      = Input_Opt%LSETCFC
+      LSETCL       = Input_Opt%LSETCL
+      LSETBR       = Input_Opt%LSETBR
+      LSETN2O      = Input_Opt%LSETN2O
+      LSETH2SO4    = Input_Opt%LSETH2SO4
+      LSETBRSTRAT  = Input_Opt%LSETBRSTRAT
+      LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
+      LBASICEMIS   = Input_Opt%LBASICEMIS
 
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   )
@@ -357,46 +381,56 @@
             SCALEFAC = 1.d0
 
             TRAC_IDX = IDTBr2
-            TRAC_SET  = 'BR2'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            TRAC_SET = 'BR2'
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
          
             TRAC_IDX = IDTBr
-            TRAC_SET  = 'BR'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            TRAC_SET = 'BR'
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
          
             TRAC_IDX = IDTBrO
-            TRAC_SET  = 'BRO'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            TRAC_SET = 'BRO'
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
          
             TRAC_IDX = IDTHOBr
-            TRAC_SET  = 'HOBR'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            TRAC_SET = 'HOBR'
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
          
             TRAC_IDX = IDTHBr
-            TRAC_SET  = 'HBR'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            TRAC_SET = 'HBR'
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             TRAC_IDX = IDTBrNO2
-            TRAC_SET  = 'BRNO2'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            TRAC_SET = 'BRNO2'
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             TRAC_IDX = IDTBrNO3
-            TRAC_SET  = 'BRNO3'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            TRAC_SET = 'BRNO3'
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             TRAC_IDX = IDTCHBr3 
-            TRAC_SET  = 'CHBR3'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CHBR3'
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             TRAC_IDX = IDTCH2Br2
-            TRAC_SET  = 'CH2BR2'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CH2BR2'
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             TRAC_IDX = IDTCH3Br
-            TRAC_SET  = 'CH3BR'
-            SCALEFAC = GET_MONTREAL('CH3Br',FUTURE_LINE)/
-     &                    GET_MONTREAL('CH3Br',BASIS_LINE)
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CH3BR'
+            SCALEFAC = GET_MONTREAL('CH3Br',FUTURE_LINE) /
+     &                 GET_MONTREAL('CH3Br',BASIS_LINE)
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
          ENDIF
 
          ! Stratospheric NOy
@@ -411,11 +445,13 @@
 
             TRAC_IDX = IDTHNO3
             TRAC_SET = 'HNO3'
-            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.,SCALEFAC)
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
 
             TRAC_IDX = IDTNOx
             TRAC_SET = 'NOX'
-            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.,SCALEFAC)
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
          ENDIF
 
          ! Br-Cl (special case)
@@ -430,7 +466,8 @@
 
             TRAC_IDX = IDTBrCl
             TRAC_SET  = 'BRCL'
-            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
+            CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
          ENDIF
 
@@ -449,56 +486,69 @@
             SCALEFAC = 1d0
 
             TRAC_IDX = IDTCl
-            TRAC_SET  = 'CL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CL'
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
             TRAC_IDX = IDTClO
-            TRAC_SET  = 'CLO'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CLO'
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
             TRAC_IDX = IDTClNO2
-            TRAC_SET  = 'CLNO2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CLNO2'
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
             TRAC_IDX = IDTClNO3
-            TRAC_SET  = 'CLNO3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CLNO3'
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
             TRAC_IDX = IDTHOCl
-            TRAC_SET  = 'HOCL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'HOCL'
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
             TRAC_IDX = IDTOClO
-            TRAC_SET  = 'OCLO'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'OCLO'
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
             TRAC_IDX = IDTClOO
-            TRAC_SET  = 'CLOO'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CLOO'
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             TRAC_IDX = IDTCl2
-            TRAC_SET  = 'CL2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CL2'
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
             TRAC_IDX = IDTCl2O2
-            TRAC_SET  = 'CL2O2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CL2O2'
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             TRAC_IDX = IDTHCl
-            TRAC_SET  = 'HCL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'HCL'
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             ! Handle chloroalkanes      
             TRAC_IDX = IDTCH3Cl
-            TRAC_SET  = 'CH3CL'
-            SCALEFAC = GET_MONTREAL('CH3Cl',FUTURE_LINE)/
-     &                    GET_MONTREAL('CH3Cl',BASIS_LINE)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CH3CL'
+            SCALEFAC = GET_MONTREAL('CH3Cl',FUTURE_LINE) /
+     &                 GET_MONTREAL('CH3Cl',BASIS_LINE)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             TRAC_IDX = IDTCH3CCl3
-            TRAC_SET  = 'CH3CCL3'
-            SCALEFAC = GET_MONTREAL('CH3CCl3',FUTURE_LINE)/
-     &                    GET_MONTREAL('CH3CCl3',BASIS_LINE)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CH3CCL3'
+            SCALEFAC = GET_MONTREAL('CH3CCl3',FUTURE_LINE) /
+     &                 GET_MONTREAL('CH3CCl3',BASIS_LINE)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             TRAC_IDX = IDTCCl4
-            TRAC_SET  = 'CCL4'
-            SCALEFAC = GET_MONTREAL('CCl4',FUTURE_LINE)/
-     &                    GET_MONTREAL('CCl4',BASIS_LINE)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CCL4'
+            SCALEFAC = GET_MONTREAL('CCl4',FUTURE_LINE) /
+     &                 GET_MONTREAL('CCl4',BASIS_LINE)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
          ENDIf
          
          ! CFCs, HCFCs and Halons
@@ -512,71 +562,84 @@
             ENDIF
             ! H-1211, 1301 and 2402
             TRAC_IDX = IDTH1211
-            TRAC_SET  = 'CBRCLF2'
-            SCALEFAC = GET_MONTREAL('H1211',FUTURE_LINE)/
-     &                    GET_MONTREAL('H1211',BASIS_LINE)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CBRCLF2'
+            SCALEFAC = GET_MONTREAL('H1211',FUTURE_LINE) /
+     &                 GET_MONTREAL('H1211',BASIS_LINE)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
             TRAC_IDX = IDTH1301
-            TRAC_SET  = 'CBRF3'
-            SCALEFAC = GET_MONTREAL('H1301',FUTURE_LINE)/
-     &                    GET_MONTREAL('H1301',BASIS_LINE)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CBRF3'
+            SCALEFAC = GET_MONTREAL('H1301',FUTURE_LINE) /
+     &                 GET_MONTREAL('H1301',BASIS_LINE)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
             TRAC_IDX = IDTH2402
-            TRAC_SET  = 'C2BR2F4'
+            TRAC_SET = 'C2BR2F4'
+            SCALEFAC = GET_MONTREAL('C2BR2F4',CFCYEAR+OFFSETYEAR-1949)/
+     &                 GET_MONTREAL('C2BR2F4',INITMR_BASIS-1949)
 
-            SCALEFAC=GET_MONTREAL('C2BR2F4',CFCYEAR+OFFSETYEAR-1949)/
-     &               GET_MONTREAL('C2BR2F4',INITMR_BASIS-1949)
-
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             ! CFC  11, 12, and [113/114/115]
             TRAC_IDX = IDTCFC11
-            TRAC_SET  = 'CFCL3'
-            SCALEFAC = GET_MONTREAL('CFC11',FUTURE_LINE)/
-     &                    GET_MONTREAL('CFC11',BASIS_LINE)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CFCL3'
+            SCALEFAC = GET_MONTREAL('CFC11',FUTURE_LINE) /
+     &                 GET_MONTREAL('CFC11',BASIS_LINE)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
 
             TRAC_IDX = IDTCFC12
-            TRAC_SET  = 'CF2CL2'
-            SCALEFAC = GET_MONTREAL('CFC12',FUTURE_LINE)/
-     &                    GET_MONTREAL('CFC12',BASIS_LINE)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CF2CL2'
+            SCALEFAC = GET_MONTREAL('CFC12',FUTURE_LINE) /
+     &                 GET_MONTREAL('CFC12',BASIS_LINE)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
 
             TRAC_IDX = IDTCFCX
-            TRAC_SET  = 'C2CL3F3'
-            SCALEFAC = GET_MONTREAL('CFC113',FUTURE_LINE)/
-     &                    GET_MONTREAL('CFC113',BASIS_LINE)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'C2CL3F3'
+            SCALEFAC = GET_MONTREAL('CFC113',FUTURE_LINE) /
+     &                 GET_MONTREAL('CFC113',BASIS_LINE)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
 
-            TRAC_SET  = 'C2CL2F4'
-            SCALEFAC = GET_MONTREAL('CFC114',FUTURE_LINE)/
-     &                    GET_MONTREAL('CFC114',BASIS_LINE)
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
-            TRAC_SET  = 'C2CLF5'
-            SCALEFAC = GET_MONTREAL('CFC115',FUTURE_LINE)/
-     &                    GET_MONTREAL('CFC115',BASIS_LINE)
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'C2CL2F4'
+            SCALEFAC = GET_MONTREAL('CFC114',FUTURE_LINE) /
+     &                 GET_MONTREAL('CFC114',BASIS_LINE)
+            CALL APPLY_2DTRAC( .TRUE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
+
+            TRAC_SET = 'C2CLF5'
+            SCALEFAC = GET_MONTREAL('CFC115',FUTURE_LINE) /
+     &                 GET_MONTREAL('CFC115',BASIS_LINE)
+            CALL APPLY_2DTRAC( .TRUE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
      
             ! HCFC 22, 123, 141b and 142b
             TRAC_IDX = IDTHCFC22
-            TRAC_SET  = 'CHCLF2'
-            SCALEFAC = GET_MONTREAL('HCFC22',FUTURE_LINE)/
-     &                    GET_MONTREAL('HCFC22',BASIS_LINE)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CHCLF2'
+            SCALEFAC = GET_MONTREAL('HCFC22',FUTURE_LINE) /
+     &                 GET_MONTREAL('HCFC22',BASIS_LINE)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
 
             TRAC_IDX = IDTHCFCX
-            TRAC_SET  = 'C2HF3CL2'
+            TRAC_SET = 'C2HF3CL2'
             ! Take scaling factor for HCFC22 (no data for 123)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
-            TRAC_SET  = 'C2H3FCL2'
-            SCALEFAC = GET_MONTREAL('HCFC141b',FUTURE_LINE)/
-     &                    GET_MONTREAL('HCFC141b',BASIS_LINE)
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE.,SCALEFAC,
+     &                         Input_Opt )
 
-            TRAC_SET  = 'C2H3F2CL'
-            SCALEFAC = GET_MONTREAL('HCFC142b',FUTURE_LINE)/
-     &                    GET_MONTREAL('HCFC142b',BASIS_LINE)
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'C2H3FCL2'
+            SCALEFAC = GET_MONTREAL('HCFC141b',FUTURE_LINE) /
+     &                 GET_MONTREAL('HCFC141b',BASIS_LINE)
+            CALL APPLY_2DTRAC( .TRUE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
+
+            TRAC_SET = 'C2H3F2CL'
+            SCALEFAC = GET_MONTREAL('HCFC142b',FUTURE_LINE) /
+     &                 GET_MONTREAL('HCFC142b',BASIS_LINE)
+            CALL APPLY_2DTRAC( .TRUE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
          ENDIF
 
          IF (LSETOCS) THEN
@@ -585,12 +648,13 @@
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
             TRAC_IDX = IDTOCS
-            TRAC_SET  = 'OCS'
+            TRAC_SET = 'OCS'
 
             ! No Montreal scaling
             SCALEFAC = 1.d0
 
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+            CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
          ENDIF
 
          IF (LSETH2SO4) THEN
@@ -603,8 +667,9 @@
 
             TRAC_IDX = IDTSO4
             ! Actually H2SO4 aerosol
-            TRAC_SET  = 'SO4'
-            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'SO4'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
          ENDIF
       ENDIF ! USE2DDATA
 
@@ -616,10 +681,11 @@
          ENDIF
 
          TRAC_IDX = IDTN2O
-         TRAC_SET  = 'N2O'
+         TRAC_SET = 'N2O'
          SCALEFAC = GET_MONTREAL('N2O',FUTURE_LINE)/
-     &                 GET_MONTREAL('N2O',BASIS_LINE)
-         CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
+     &              GET_MONTREAL('N2O',BASIS_LINE)
+         CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
+     &                      Input_Opt )
       ENDIF
 
       ! CH4 taken from the existing GEOS-Chem input data,
@@ -632,8 +698,9 @@
          ENDIF
 
          ! Retrieve 4 large-scale averages, scaled to target year
-         CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
-     &               C3090S,C0030S,C0030N,C3090N)
+         CALL GET_UCX_CH4( CFCYEAR+OFFSETYEAR,
+     &                     C3090S, C0030S, C0030N, C3090N,
+     &                     Input_Opt )
 
          ! Convert from [vv] to [kg CH4/mol air]
          C3090S = C3090S / TCVV(IDTCH4)
@@ -676,8 +743,9 @@
 
             ! Code to set strat using AER 2D data
             TRAC_IDX = IDTCH4
-            TRAC_SET  = 'CH4'
-            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.,SCALEFAC)
+            TRAC_SET = 'CH4'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt )
          ENDIF
       ENDIF
  
@@ -697,22 +765,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UCX_NOX
+      SUBROUTINE UCX_NOX( Input_Opt )
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : ERROR_STOP, DEBUG_MSG
-      USE LOGICAL_MOD,   ONLY : LPRT
-      USE TRACER_MOD,    ONLY : STT, TCVV
-      USE TRACERID_MOD,  ONLY : IDTNOX, IDTN2O, IDTOX
-      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_CHEMGRID
-      USE DAO_MOD,       ONLY : AD, T, BXHEIGHT
-      USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_MONTH
-      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_HOUR, GET_LOCALTIME
-      USE TIME_MOD,      ONLY : GET_MINUTE
-      USE CMN_GCTM_MOD,  ONLY : PI, RE
-      USE GRID_MOD,      ONLY : GET_YMID
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CMN_GCTM_MOD,       ONLY : PI, RE
+      USE DAO_MOD,            ONLY : AD, T, BXHEIGHT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
+      USE TIME_MOD,           ONLY : GET_HOUR
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+      USE TIME_MOD,           ONLY : GET_MINUTE
+      USE TRACER_MOD,         ONLY : STT, TCVV
+      USE TRACERID_MOD,       ONLY : IDTNOX, IDTN2O, IDTOX
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !REVISION HISTORY: 
 !  16 Jul 2013 - S. D. Eastham - Initial version
@@ -779,14 +856,20 @@
       LOGICAL            :: CYCLEBOX
       CHARACTER(LEN=255) :: DBGMSG
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LPRT
+
       !=================================================================
       ! UCX_NOX begins here!
       !=================================================================
 
+      ! Copy fields from INPUT_OPT
+      LPRT = Input_Opt%LPRT
+
       ! Retrieve monthly mean data if necessary
       IF (LASTMONTH.ne.GET_MONTH()) THEN
          LASTMONTH = GET_MONTH()
-         CALL GET_NOXCOEFF( LASTMONTH )
+         CALL GET_NOXCOEFF( LASTMONTH, Input_Opt )
       ENDIF
 
       ! Get chemistry step length in seconds
@@ -1020,20 +1103,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_NOXCOEFF( TARG_MONTH )
+      SUBROUTINE GET_NOXCOEFF( TARG_MONTH, Input_Opt )
 !
 ! !USES:
 !
-      USE FILE_MOD,      ONLY : IOERROR
-      USE ERROR_MOD,     ONLY : ERROR_STOP, ALLOC_ERR
-      USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TRACER_MOD,    ONLY : STT, TCVV
-      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_CHEMGRID, GET_CHEMGRID_LEVEL
-      USE DAO_MOD,       ONLY : AD
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
+      USE DAO_MOD,            ONLY : AD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TRACER_MOD,         ONLY : STT, TCVV
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,INTENT(IN) :: TARG_MONTH
+      INTEGER,        INTENT(IN) :: TARG_MONTH
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
@@ -1058,9 +1145,15 @@
       REAL*8,DIMENSION(:,:,:),ALLOCATABLE :: NOXDATA2D
       INTEGER :: LSTART
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LPRT
+
       !=================================================================
       ! GET_NOXCOEFF begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT = Input_Opt%LPRT
 
       ! Allocate and zero 2D data array
       ALLOCATE( NOXDATA2D( JJPAR, 51, 6 ), STAT=AS )
@@ -1200,24 +1293,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APPLY_2DTRAC( TRAC_ADD, STRAT_ONLY, SFC_ONLY, SCALEFAC)
+      SUBROUTINE APPLY_2DTRAC( TRAC_ADD, STRAT_ONLY, SFC_ONLY, SCALEFAC,
+     &                         Input_Opt )
 !
 ! !USES:
 !
-      USE FILE_MOD,      ONLY : IOERROR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TRACER_MOD,    ONLY : STT, TCVV
-      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRATMESO
-      USE DAO_MOD,       ONLY : AD
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
+      USE DAO_MOD,            ONLY : AD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TRACER_MOD,         ONLY : STT, TCVV
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)              :: TRAC_ADD     ! Add (instead of overwrite) 
-      LOGICAL, INTENT(IN)              :: STRAT_ONLY   ! Only write to stratosphere 
-      LOGICAL, INTENT(IN)              :: SFC_ONLY     ! Only write to surface
-      REAL*8, INTENT(IN)               :: SCALEFAC     ! Future scaling factor
-      
+      LOGICAL,        INTENT(IN) :: TRAC_ADD     ! Add (instead of overwrite) 
+      LOGICAL,        INTENT(IN) :: STRAT_ONLY   ! Only write to stratosphere 
+      LOGICAL,        INTENT(IN) :: SFC_ONLY     ! Only write to surface
+      REAL*8,         INTENT(IN) :: SCALEFAC     ! Future scaling factor
+      TYPE(OptInput), INTENT(IN) :: Input_Opt    ! Input options
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
@@ -1240,9 +1335,15 @@
       INTEGER :: L_MAX
       CHARACTER(LEN=255) :: DBGMSG
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LPRT
+
       !=================================================================
       ! APPLY_2DTRAC begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT = Input_Opt%LPRT
 
       TRAC_FILE = TRIM(AVG_FILE_ROOT)//TRIM(TRAC_SET )
       TRAC_FILE = TRIM(TRAC_FILE)//'_'//TRIM(MONTH_STR)//'.dat'
@@ -1365,14 +1466,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_BASIC()
+      SUBROUTINE EMISS_BASIC( Input_Opt )
 !
 ! !USES:
 !
-      USE TIME_MOD,     ONLY : GET_MONTH
-      USE TRACER_MOD,   ONLY : STT, TCVV
-      USE DAO_MOD,      ONLY : AD
-      USE LOGICAL_MOD,  ONLY : LFUTURECFC
+      USE DAO_MOD,            ONLY : AD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TRACER_MOD,         ONLY : STT, TCVV
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !REMARKS:
 !  
@@ -1391,9 +1496,15 @@
       REAL*8             :: DT_YR
       CHARACTER(LEN=255) :: OUTMSG
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LPRT
+
       !=================================================================
       ! EMISS_BASIC begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT = Input_Opt%LPRT
 
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
@@ -1471,7 +1582,6 @@
 ! !USES:
 !
       USE TRACERID_MOD,   ONLY : IDTHCFCX
-      USE LOGICAL_MOD,    ONLY : LFUTURECFC
       USE GRID_MOD,       ONLY : GET_YMID
 !
 ! !INPUT PARAMETERS:
@@ -1542,8 +1652,9 @@
                GRID_EMIT(:,N) = H2_MR
             CASE ('CH4')
                ! Get the 4 major mixing ratios
-               CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
-     &                     MR90S,MR30S,MR30N,MR90N)
+               CALL GET_UCX_CH4( CFCYEAR+OFFSETYEAR,
+     &                           MR90S, MR30S, MR30N, MR90N,
+     &                           Input_Opt )
                ! Figure out which box each is in
                DO J=1,JJPAR   
                   ! Grid-box latitude index
@@ -1738,25 +1849,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETTLE_STRAT_AER
+      SUBROUTINE SETTLE_STRAT_AER( Input_Opt )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : T, BXHEIGHT, AD
-      USE PRESSURE_MOD,  ONLY : GET_PCENTER, GET_PEDGE
-      USE TRACER_MOD,    ONLY : STT, XNUMOL, TRACER_MW_G
-      USE TRACERID_MOD,  ONLY : IDTNIT,IDTBCPI,IDTH2O,IDTHNO3
-      USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
-      USE COMODE_MOD,    ONLY : JLOP,WERADIUS,ERADIUS
-      USE LOGICAL_MOD,   ONLY : LUCX,LGRAVSTRAT
-      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRATMESO
-      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_TROP,ITS_IN_THE_CHEMGRID
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND44
-      USE CMN_GCTM_MOD        ! g0
-      USE CMN_FJX_MOD,   ONLY : RAA, IND999
-      USE ERROR_MOD,     ONLY : IT_IS_NAN,ERROR_STOP     ! Test for NaN
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44
+      USE CMN_GCTM_MOD             ! g0
+      USE CMN_FJX_MOD,        ONLY : RAA, IND999
+      USE COMODE_MOD,         ONLY : JLOP,WERADIUS,ERADIUS
+      USE DAO_MOD,            ONLY : T, BXHEIGHT, AD
+      USE ERROR_MOD,          ONLY : IT_IS_NAN,ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT, XNUMOL, TRACER_MW_G
+      USE TRACERID_MOD,       ONLY : IDTNIT,IDTBCPI,IDTH2O,IDTHNO3
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !REVISION HISTORY: 
 !  11 Apr 2013 - S. D. Eastham - Initial version
@@ -1827,9 +1942,17 @@
       REAL*8                 :: D_NAT1, D_NAT0, D_SEDQ, D_PSED, D_HNO3
       REAL*8                 :: D_RMAX, D_VMAX, MAXLOSS, FRACLOSS
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL                :: LPRT
+      LOGICAL                :: LGRAVSTRAT
+
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT       = Input_Opt%LPRT
+      LGRAVSTRAT = Input_Opt%LGRAVSTRAT
 
       ! Return if gravitational settling disabled
       IF (.not. LGRAVSTRAT) RETURN
@@ -2388,17 +2511,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_H2SO4_GAS
+      SUBROUTINE CALC_H2SO4_GAS( Input_Opt )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T, AD
-      USE TRACER_MOD,   ONLY : STT, TRACER_MW_G
-      USE TRACERID_MOD, ONLY : IDTSO4
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE CHEMGRID_MOD, ONLY : ITS_IN_THE_TROP
-
-      USE CMN_GCTM_MOD, ONLY : AIRMW
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+      USE CMN_GCTM_MOD,       ONLY : AIRMW
+      USE DAO_MOD,            ONLY : T, AD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACER_MOD,         ONLY : STT, TRACER_MW_G
+      USE TRACERID_MOD,       ONLY : IDTSO4
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !REVISION HISTORY: 
 !  11 Apr 2013 - S. D. Eastham - Initial version
@@ -2426,9 +2553,15 @@
       INTEGER            :: I, J, L
       REAL*8             :: PCENTER, TCENTER, H2SO4SUM, INVAIR
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LPRT
+
       !=================================================================
       ! CALC_H2SO4_GAS begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT = Input_Opt%LPRT
 
       IF (FIRST) THEN
          FIRST = .FALSE.
@@ -2545,26 +2678,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_STRAT_AER
+      SUBROUTINE CALC_STRAT_AER( Input_Opt )
 !
 ! !USES:
 !
-      USE DAO_MOD,          ONLY : T, AD, CLDF, QI, AIRVOL, AVGW
-      USE PRESSURE_MOD,     ONLY : GET_PCENTER
-      USE LOGICAL_MOD,      ONLY : LPRT, LHOMNUCNAT, LSOLIDPSC
-      USE LOGICAL_MOD,      ONLY : LACTIVEH2O
-      USE ERROR_MOD,        ONLY : DEBUG_MSG
-      USE GRID_MOD,         ONLY : GET_YEDGE
-      USE TRACER_MOD,       ONLY : STT, TRACER_MW_G
-      USE TRACERID_MOD,     ONLY : IDTSO4, IDTH2O
-      USE TRACERID_MOD,     ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
-      USE TRACERID_MOD,     ONLY : IDTHOBr, IDTHCl, IDTClNO3, IDTHOCl
-      USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_STRATMESO
-      USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_CHEMGRID
-      USE COMODE_MOD,       ONLY : CSPEC,JLOP
-      USE ERROR_MOD,        ONLY : ERROR_STOP, IS_SAFE_DIV
-
-      USE CMN_GCTM_MOD,     ONLY : AIRMW, PI
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CMN_GCTM_MOD,       ONLY : AIRMW, PI
+      USE COMODE_MOD,         ONLY : CSPEC,JLOP
+      USE DAO_MOD,            ONLY : T, AD, CLDF, QI, AIRVOL, AVGW
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : IS_SAFE_DIV
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_YEDGE
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TRACER_MOD,         ONLY : STT, TRACER_MW_G
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTH2O
+      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
+      USE TRACERID_MOD,       ONLY : IDTHOBr, IDTHCl, IDTClNO3, IDTHOCl
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !REVISION HISTORY: 
 !  13 Apr 2013 - S. D. Eastham - Initial version
@@ -2657,16 +2793,28 @@
       REAL*8                 :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
       REAL*8                 :: D_MAXN, D_FRACN,D_PP,   D_PS
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL                :: LPRT
+      LOGICAL                :: LHOMNUCNAT
+      LOGICAL                :: LSOLIDPSC
+      LOGICAL                :: LACTIVEH2O
+
       !=================================================================
       ! CALC_STRAT_AER begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT       = Input_Opt%LPRT
+      LHOMNUCNAT = Input_Opt%LHOMNUCNAT
+      LSOLIDPSC  = Input_Opt%LSOLIDPSC
+      LACTIVEH2O = Input_Opt%LACTIVEH2O
 
       IF (LPRT) THEN
          CALL DEBUG_MSG( '### UCX: start CALC_STRAT_AER' )
       ENDIF
 
       ! Partition H2SO4 before proceeding
-      CALL CALC_H2SO4_GAS
+      CALL CALC_H2SO4_GAS( Input_Opt )
 
       D_XH2O = 0d0
       D_PPA  = 0d0
@@ -3360,24 +3508,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_NAT (I,J,L,IS_NAT,IS_PSC,IS_STRAT)
+      SUBROUTINE CHECK_NAT( I, J, L, IS_NAT, IS_PSC, IS_STRAT, 
+     &                      Input_Opt )
 !
 ! !USES:
 !
-      USE TRACERID_MOD,      ONLY : IDTNIT
-      USE TRACER_MOD,        ONLY : STT
-      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_STRAT
-      USE LOGICAL_MOD,       ONLY : LPSCCHEM
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTNIT
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,INTENT(IN)          :: I,J,L      ! Grid indices
+      INTEGER,        INTENT(IN)  :: I,J,L      ! Grid indices
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
 !
 ! !OUTPUT VARIABLES:
 !
-      LOGICAL,INTENT(OUT)         :: IS_NAT     ! Is surface NAT?
-      LOGICAL,INTENT(OUT)         :: IS_PSC     ! Are there solid PSCs?
-      LOGICAL,INTENT(OUT)         :: IS_STRAT   ! Are we in the strat?
+      LOGICAL,        INTENT(OUT) :: IS_NAT     ! Is surface NAT?
+      LOGICAL,        INTENT(OUT) :: IS_PSC     ! Are there solid PSCs?
+      LOGICAL,        INTENT(OUT) :: IS_STRAT   ! Are we in the strat?
 !
 ! !REVISION HISTORY: 
 !  17 Apr 2013 - S. D. Eastham - Initial version
@@ -3390,8 +3540,9 @@
       !=================================================================
 
       IS_STRAT = ITS_IN_THE_STRAT(I,J,L)
-      IS_PSC = ((LPSCCHEM).and.(STATE_PSC(I,J,L).ge.2).and.(IS_STRAT))
-      IS_NAT = (IS_PSC).and.(STT(I,J,L,IDTNIT).gt.TINY(1d0))
+      IS_PSC   = ( ( Input_Opt%LPSCCHEM ) .and.
+     &             ( STATE_PSC(I,J,L) .ge. 2 ) .and. ( IS_STRAT ) )
+      IS_NAT   = ( IS_PSC ) .and. ( STT(I,J,L,IDTNIT ) .gt. TINY(1d0) )
 
       END SUBROUTINE CHECK_NAT
 !
@@ -4263,28 +4414,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_PSC_FILE( YYYYMMDD, HHMMSS )
+      SUBROUTINE MAKE_PSC_FILE( YYYYMMDD, HHMMSS, Input_Opt )
 !
 ! !USES:
 !
       USE BPCH2_MOD
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE FILE_MOD,    ONLY : IOERROR
-      USE GRID_MOD,    ONLY : GET_XOFFSET
-      USE GRID_MOD,    ONLY : GET_YOFFSET
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TIME_MOD,    ONLY : GET_TAU
-
-      USE CMN_SIZE_MOD                   ! Size parameters
-      USE COMODE_LOOP_MOD                ! IGAS
-      USE CMN_MOD                        ! TAU , NSRCX, LSOILNOX
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_MOD                  ! TAU , NSRCX, LSOILNOX
+      USE COMODE_LOOP_MOD          ! IGAS
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_XOFFSET
+      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_TAU
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER, INTENT(IN)  :: HHMMSS     ! hh:mm:ss   GMT time
+      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 ! 
 ! !REVISION HISTORY: 
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on MAKE_CSPEC_FILE
@@ -4299,7 +4450,6 @@
       INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
       CHARACTER(LEN=255)   :: FILENAME
       CHARACTER(LEN=255)   :: OUTPUT_CHECKPT_FILE
-
 
       ! Temporary storage arrays for checkpointed variables
       REAL*4               :: TMP(ILONG, ILAT, IPVERT)
@@ -4316,10 +4466,15 @@
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE 
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LPRT
 
       !=================================================================
       ! MAKE_PSC_FILE begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT = Input_Opt%LPRT
 
       ! Hardwire output file for now
       OUTPUT_CHECKPT_FILE = 'restart.psc.YYYYMMDDhh'
@@ -4421,28 +4576,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PSC_FILE( am_I_Root, YYYYMMDD,  
-     &                          HHMMSS,    IT_EXISTS ) 
+      SUBROUTINE READ_PSC_FILE( am_I_Root, Input_Opt,
+     &                          YYYYMMDD,  HHMMSS,    
+     &                          IT_EXISTS  ) 
 !
 ! !USES:
 !
-      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE FILE_MOD,    ONLY : IOERROR
-      USE FILE_MOD,    ONLY : FILE_EXISTS
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE COMODE_LOOP_MOD               ! ITLOOP, IGAS
-      USE CMN_MOD                        ! TAU , NSRCX, LSOILNOX
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_MOD                  ! TAU , NSRCX, LSOILNOX
+      USE COMODE_LOOP_MOD          ! ITLOOP, IGAS
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN) :: am_I_Root  ! Is this the root CPU?
-      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 ! 
 ! !REVISION HISTORY: 
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
@@ -4461,7 +4617,6 @@
       CHARACTER(LEN=255)  :: INPUT_CHECKPT_FILE
       CHARACTER(LEN=255)  :: MSG
      
-
       ! For binary punch file, version 2.0
       INTEGER             :: NI,     NJ,     NL
       INTEGER             :: IFIRST, JFIRST, LFIRST
@@ -4474,9 +4629,15 @@
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LPRT
+
       !=================================================================
       ! READ_PSC_FILE begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT = Input_Opt%LPRT
 
       ! Hardwire output file for now
       INPUT_CHECKPT_FILE = 'restart.psc.YYYYMMDDhh'
@@ -4658,21 +4819,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_H2O_TRAC ( SETSTRAT )
+      SUBROUTINE SET_H2O_TRAC ( SETSTRAT, Input_Opt )
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTH2O
-      USE TRACER_MOD,   ONLY : STT
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE DAO_MOD,      ONLY : SPHU, AD, T, RH
-      USE CHEMGRID_MOD, ONLY : ITS_IN_THE_TROP
-      USE LOGICAL_MOD,  ONLY : LACTIVEH2O
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
+      USE DAO_MOD,            ONLY : SPHU, AD, T, RH
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTH2O
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)          :: SETSTRAT   ! Set strat H2O?
+      LOGICAL,        INTENT(IN) :: SETSTRAT    ! Set strat H2O?
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Initial version
@@ -4691,9 +4853,15 @@
 
       LOGICAL           :: READ_SPHU
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL           :: LACTIVEH2O
+
       !=================================================================
       ! SET_H2O_TRAC begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LACTIVEH2O = Input_Opt%LACTIVEH2O
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4854,21 +5022,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_UCX_CH4(CH4_YEAR,MR90S,MR30S,MR30N,MR90N)
+      SUBROUTINE GET_UCX_CH4( CH4_YEAR, MR90S, MR30S, MR30N, MR90N,
+     &                        Input_Opt )
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_YEAR, GET_MONTH
-      USE LOGICAL_MOD, ONLY : LFUTURE
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE TIME_MOD,             ONLY : GET_MONTH
+      USE TIME_MOD,             ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)         :: CH4_YEAR   ! Target year
+      INTEGER,        INTENT(IN)  :: CH4_YEAR    ! Target year
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL*8, INTENT(OUT)         :: MR90S,MR30S,MR30N,MR90N
+      REAL*8,         INTENT(OUT) :: MR90S
+      REAL*8,         INTENT(OUT) :: MR30S
+      REAL*8,         INTENT(OUT) :: MR30N
+      REAL*8,         INTENT(OUT) :: MR90N
 !
 ! !REVISION HISTORY: 
 !  18 Dec 2013 - S. D. Eastham - Initial version
@@ -4886,9 +5060,15 @@
       INTEGER, SAVE         :: LAST_YEAR=-1
       REAL*8, SAVE          :: LAST_MR(4)
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LFUTURE
+
       !=================================================================
       ! GET_UCX_CH4 begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LFUTURE = Input_Opt%LFUTURE
 
       ! Adapted from GEOS-Chem routine
 
@@ -5003,20 +5183,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_UCX( am_I_Root, YYYYMMDD, HHMMSS )
+      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, YYYYMMDD, HHMMSS )
 !
 ! !USES:
 !
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : GET_YEAR
       USE TRACERID_MOD
-      USE LOGICAL_MOD
-      USE TIME_MOD,     ONLY : GET_YEAR
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root  ! Is this the root CPU?
-      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !OUTPUT VARIABLES:
 !
@@ -5033,9 +5214,31 @@
       LOGICAL :: IT_EXISTS, USE2DDATA
       CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LPRT
+      LOGICAL :: LUCX
+      LOGICAL :: LFUTURECFC
+      LOGICAL :: LCH4SBC
+      LOGICAL :: LCFCEMIS
+      LOGICAL :: LCLEMIS
+      LOGICAL :: LOCSEMIS
+      LOGICAL :: LN2OEMIS
+      LOGICAL :: LBREMIS
+
       !=================================================================
       ! INIT_UCX begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT       = Input_Opt%LPRT
+      LUCX       = Input_Opt%LUCX
+      LFUTURECFC = Input_Opt%LFUTURECFC
+      LCH4SBC    = Input_Opt%LCH4SBC
+      LCFCEMIS   = Input_Opt%LCFCEMIS
+      LCLEMIS    = Input_Opt%LCLEMIS
+      LOCSEMIS   = Input_Opt%LOCSEMIS
+      LN2OEMIS   = Input_Opt%LN2OEMIS
+      LBREMIS    = Input_Opt%LBREMIS
 
       WRITE( 6,'(a)') REPEAT( '=', 79 )
       WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
@@ -5296,8 +5499,9 @@
       KHETI_SLA = 0d0
      
       ! Read in PSC state
-      CALL READ_PSC_FILE( am_I_Root, YYYYMMDD,  
-     &                    HHMMSS,    IT_EXISTS )
+      CALL READ_PSC_FILE( am_I_Root, Input_Opt,
+     &                    YYYYMMDD,  HHMMSS,
+     &                    IT_EXISTS  )
 
       IF ((am_I_Root).and.(.not.IT_EXISTS)) THEN
          WRITE(6,*) 

@@ -86,7 +86,6 @@
       USE DIRECTORY_MOD,          ONLY : DATA_DIR
       USE ERROR_MOD,              ONLY : GEOS_CHEM_STOP
       USE GIGC_Input_Opt_Mod,     ONLY : OptInput
-      USE LOGICAL_MOD,            ONLY : LFIXEDYR
       USE TIME_MOD,               ONLY : GET_MONTH, GET_YEAR
       USE TRACERID_MOD
       USE TRACER_MOD,             ONLY : TRACER_NAME
@@ -116,6 +115,7 @@
       LOGICAL                       :: LRCP
       LOGICAL                       :: LRCPSHIP
       LOGICAL                       :: LRCPAIR
+      LOGICAL                       :: LFIXEDYR
 
       !=================================================================
       !  LOAD_RCP_EMISSIONS begins here
@@ -125,6 +125,7 @@
       LRCP     = Input_Opt%LRCP
       LRCPSHIP = Input_Opt%LRCPSHIP
       LRCPAIR  = Input_Opt%LRCPAIR
+      LFIXEDYR = Input_Opt%LFIXEDYR
 
       ! First-time initialization
       IF ( FIRST ) THEN

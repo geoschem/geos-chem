@@ -592,12 +592,12 @@
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
-         CALL INIT_UCX( am_I_Root, NYMDb, NHMSb )
+         CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
       ENDIF
 
       ! Set simple initial tracer conditions
-      CALL SET_INITIAL_MIXRATIOS( am_I_Root )
+      CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
       ENDIF
@@ -745,7 +745,7 @@
 #if defined( UCX )
                ! Write PSC data
                IF ( LUCX ) THEN
-                  CALL MAKE_PSC_FILE( NYMD, NHMS )
+                  CALL MAKE_PSC_FILE( NYMD, NHMS, Input_Opt )
                ENDIF
 #endif
 
@@ -970,7 +970,8 @@
 
          ! SDE 05/28/13: Set H2O to STT if relevant
          IF (IDTH2O.ne.0) THEN
-            CALL SET_H2O_TRAC((.not.LUCX).or.LSETH2O)
+            CALL SET_H2O_TRAC( (( .not. LUCX ) .or. LSETH2O ),
+     &                         Input_Opt)
             ! Only force strat once if using UCX
             IF (LSETH2O) LSETH2O = .FALSE.
          ENDIF

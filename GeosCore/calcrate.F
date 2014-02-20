@@ -988,7 +988,8 @@ c new OH+CO rate from JPL2006.
             XSTK    = SQRT(T3K(KLOOP))
                   
             ! Check surface type of PSCs (SDE 04/17/13)
-            CALL CHECK_NAT(IX,IY,IZ,NATSURFACE,PSCBOX,STRATBOX)
+            CALL CHECK_NAT( IX, IY, IZ, NATSURFACE, PSCBOX, STRATBOX,
+     &                      Input_Opt )
 
             DO I       = 1, NNADDK(NCS)
                NK      = NKSPECK(I,NCS)

@@ -1501,7 +1501,7 @@
       CALL SET_BFTRACE( am_I_Root )
 
       ! Set NBIOTRACE in "biomass_mod.f"
-      CALL SET_BIOTRCE( am_I_Root )
+      CALL SET_BIOTRCE( am_I_Root, Input_Opt )
 
       ! Set counter
       CT1 = CT1 + 1
@@ -2001,6 +2001,13 @@
       Input_Opt%LDICARB            = LDICARB  
       Input_Opt%SALA_REDGE_um(1:2) = SALA_REDGE_um(1:2)
       Input_Opt%SALC_REDGE_um(1:2) = SALC_REDGE_um(1:2)
+      Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
+      Input_Opt%LSOLIDPSC          = LSOLIDPSC
+      Input_Opt%LHOMNUCNAT         = LHOMNUCNAT
+      Input_Opt%T_NAT_SUPERCOOL    = T_NAT_SUPERCOOL
+      Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT
+      Input_Opt%LPSCCHEM           = LPSCCHEM
+      Input_Opt%LSTRATOD           = LSTRATOD
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -2574,11 +2581,14 @@
       READ( SUBSTRS(1:N), * ) Br_SCALING
 
       ! Separator line (start of UCX options)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
 
       ! Use variable methane emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
       READ( SUBSTRS(1:N), * ) LCH4EMIS
+
+      ! Separator line (start of surface BC options)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56a' )
 
       ! Use fixed methane surface mixing ratio?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
@@ -2603,6 +2613,9 @@
       ! Use fixed N2O surface mixing ratio?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:61' )
       READ( SUBSTRS(1:N), * ) LN2OEMIS
+
+      ! Separator line (start of initial global mixing ratio options)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:62a' )
 
       ! Initialize strat H2O to GEOS-Chem baseline?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:62' )
@@ -3195,6 +3208,29 @@
       Input_Opt%LRCP           = LRCP
       Input_Opt%LRCPSHIP       = LRCPSHIP
       Input_Opt%LRCPAIR        = LRCPAIR
+      Input_Opt%LFIXEDYR       = LFIXEDYR
+      Input_Opt%LCH4EMIS       = LCH4EMIS
+      Input_Opt%LCH4SBC        = LCH4SBC
+      Input_Opt%LOCSEMIS       = LOCSEMIS
+      Input_Opt%LCFCEMIS       = LCFCEMIS
+      Input_Opt%LCLEMIS        = LCLEMIS
+      Input_Opt%LBREMIS        = LBREMIS
+      Input_Opt%LN2OEMIS       = LN2OEMIS
+      Input_Opt%LBASICEMIS     = LBASICEMIS
+      Input_Opt%LSETH2O        = LSETH2O
+      Input_Opt%LSETCH4        = LSETCH4
+      Input_Opt%LSETOCS        = LSETOCS
+      Input_Opt%LSETCFC        = LSETCFC
+      Input_Opt%LSETCL         = LSETCL
+      Input_Opt%LBRGCCM        = LBRGCCM
+      Input_Opt%LSETBR         = LSETBR
+      Input_Opt%LSETBRSTRAT    = LSETBRSTRAT
+      Input_Opt%LSETNOYSTRAT   = LSETNOYSTRAT
+      Input_Opt%LSETN2O        = LSETN2O
+      Input_Opt%LSETH2SO4      = LSETH2SO4
+      Input_Opt%CFCYEAR        = CFCYEAR
+      Input_Opt%LFUTURECFC     = LFUTURECFC
+      Input_Opt%TRAC_FILE_ROOT = TRAC_FILE_ROOT
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -3984,6 +4020,10 @@
       Input_Opt%LSVCSPEC      = LSVCSPEC
       Input_Opt%SPEC_RST_FILE = TRIM( SPEC_RST_FILE )
       Input_Opt%LKPP          = LKPP
+      Input_Opt%LUCX          = LUCX
+      Input_Opt%LCH4CHEM      = LCH4CHEM
+      Input_Opt%LACTIVEH2O    = LACTIVEH2O
+      Input_Opt%LO3FJX        = LO3FJX
 
       ! Return success
       RC                      = GIGC_SUCCESS

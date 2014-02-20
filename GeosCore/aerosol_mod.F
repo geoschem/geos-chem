@@ -719,7 +719,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LSTRATOD
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
       USE UCX_MOD,            ONLY : GET_STRAT_OPT
@@ -850,6 +849,7 @@
       LOGICAL             :: LCARB
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
+      LOGICAL             :: LSTRATOD
 
       !=================================================================
       ! RDAER begins here!
@@ -864,6 +864,7 @@
       LCARB                = Input_Opt%LCARB
       LSSALT               = Input_Opt%LSSALT
       LSULF                = Input_Opt%LSULF
+      LSTRATOD             = Input_Opt%LSTRATOD
 
       ! Copy MONTH argument to local variable THISMONTH
       IF ( PRESENT( MONTH ) ) THEN

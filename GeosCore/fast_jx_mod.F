@@ -17,7 +17,6 @@
 ! !USES:
 !
       USE CMN_FJX_MOD
-      USE LOGICAL_MOD, ONLY : LO3FJX
 
       IMPLICIT NONE
 #     include "define.h"
@@ -80,30 +79,31 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, PEDGE, WLAOD, am_I_Root )  
+      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, PEDGE, WLAOD, am_I_Root, 
+     &                    Input_Opt )  
 #else
-      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, WLAOD, am_I_Root )  
+      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, WLAOD, am_I_Root, 
+     &                    Input_Opt )  
 #endif
 !
 ! !USES:
 !
 #     include "define.h"
 
-      USE DAO_MOD,        ONLY : T, CLDF
-      USE ERROR_MOD,      ONLY : ERROR_STOP, ALLOC_ERR
-      USE GRID_MOD,       ONLY : GET_YMID
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TIME_MOD,       ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
-      USE TIME_MOD,       ONLY : GET_TAU,   GET_YEAR
-      USE TOMS_MOD,       ONLY : GET_OVERHEAD_O3
-
-      USE CMN_SIZE_MOD,   ONLY : IIPAR,   JJPAR, LLPAR
-      USE CMN_SIZE_MOD,   ONLY : NDUST,   MAXIJ
-      USE COMODE_MOD,     ONLY : JLOP, CSPEC, AIRDENS, ABSHUM
-      USE COMODE_LOOP_MOD,ONLY : CONSVAP,AVG,RSTARG
-      USE ERROR_MOD,      ONLY : DEBUG_MSG
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
-      USE LOGICAL_MOD,    ONLY : LPRT
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR, LLPAR
+      USE CMN_SIZE_MOD,       ONLY : NDUST,   MAXIJ
+      USE COMODE_MOD,         ONLY : JLOP, CSPEC, AIRDENS, ABSHUM
+      USE COMODE_LOOP_MOD,    ONLY : CONSVAP,AVG,RSTARG
+      USE DAO_MOD,            ONLY : T, CLDF
+      USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
+      USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
+      USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
 
       IMPLICIT NONE
 !
@@ -128,6 +128,9 @@
       ! Pressure at gridbox interfaces
       REAL*8,  INTENT(IN) :: PEDGE(IIPAR, JJPAR, LLPAR+1)
 #endif
+
+      ! Input options
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
 !
 ! !REMARKS:
 !
@@ -240,9 +243,16 @@
       INTEGER            :: JLOOP
       REAL*8             :: H2OFACTOR,CONSEXP,TLOCAL,TINV, ADLOCAL
 
+
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LPRT
+
       !=================================================================
       ! FAST_JX begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT = Input_Opt%LPRT
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       IF ( FIRST ) THEN
@@ -371,9 +381,11 @@
 #endif
 
                ! Call FAST-JX routines to compute J-values
-               CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3_CTM,O3_TOMS,
-     &            AOD999,OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
-     &            MONTH,DAY,am_I_Root)
+               CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
+     &                        O3_CTM,    O3_TOMS,   AOD999, OPTAER,
+     &                        OPTDUST,   OPTD,      NLON,   NLAT,
+     &                        YLAT,      DAY_OF_YR, MONTH,  DAY,
+     &                        am_I_Root, Input_Opt  )
 
             !===========================================================
             ! CLOUD OVERLAP : APPROXIMATE RANDOM OVERLAP
@@ -407,9 +419,11 @@
 #endif
 
                ! Call FAST-JX routines to compute J-values
-               CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3_CTM,O3_TOMS,
-     &            AOD999,OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
-     &            MONTH,DAY,am_I_Root)
+               CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
+     &                        O3_CTM,    O3_TOMS,   AOD999, OPTAER,
+     &                        OPTDUST,   OPTD,      NLON,   NLAT,
+     &                        YLAT,      DAY_OF_YR, MONTH,  DAY,
+     &                        am_I_Root, Input_Opt  )
 
             !===========================================================
             ! CLOUD OVERLAP : MAXIMUM RANDOM OVERLAP
@@ -2425,14 +2439,18 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PHOTO_JX(U0,REFLB,P_COL,T_COL,O3_COL,O3_TOMS,AOD999,
-     &              ODAER_COL,ODMDUST_COL,ODCLOUD_COL_IN,ILON,ILAT,YLAT,
-     &              DAY_OF_YR,MONTH,DAY,am_I_Root)
+      SUBROUTINE PHOTO_JX( U0,             REFLB,     P_COL,
+     &                     T_COL,          O3_COL,    O3_TOMS,
+     &                     AOD999,         ODAER_COL, ODMDUST_COL,
+     &                     ODCLOUD_COL_IN, ILON,      ILAT,
+     &                     YLAT,           DAY_OF_YR, MONTH,
+     &                     DAY,            am_I_Root, Input_Opt )
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD,   ONLY : LD64, ND64
-      USE DIAG_MOD,       ONLY : AD64
+      USE CMN_DIAG_MOD,       ONLY : LD64, ND64
+      USE DIAG_MOD,           ONLY : AD64
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2450,6 +2468,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       REAL*8,  INTENT(IN),DIMENSION(L_)             :: ODCLOUD_COL_IN
       LOGICAL, INTENT(IN)                           :: AOD999
       LOGICAL, INTENT(IN)                           :: am_I_Root
+      TYPE(OptInput), INTENT(IN)                    :: Input_Opt
 !
 ! !OUTPUT VARIABLES:
 !
@@ -2531,9 +2550,12 @@ c                        or         99.0                 80 km
       ! Path density  (DDJ)    [# molec/cm2]
       ! New methodology for:
       ! Ozone density (OOJ)    [# O3 molec/cm2]
-      CALL SET_PROF (YLAT,MONTH,DAY,T_COL,P_COL,
-     &               ODCLOUD_COL,ODMDUST_COL,ODAER_COL,
-     &               O3_COL,O3_TOMS,AERX_COL,T_CLIM,OOJ,ZZJ,DDJ)
+      CALL SET_PROF (YLAT,        MONTH,     DAY,
+     &               T_COL,       P_COL,     ODCLOUD_COL,
+     &               ODMDUST_COL, ODAER_COL, O3_COL,
+     &               O3_TOMS,     AERX_COL,  T_CLIM,
+     &               OOJ,         ZZJ,       DDJ,
+     &               Input_Opt )
 
       ! Fill out PPJ and TTJ with CTM data to replace fixed climatology
       DO L=1,L1_
@@ -3484,33 +3506,36 @@ C---Always does PL(2) = P[1]
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_PROF (YLAT,MONTH,DAY,T_CTM,P_CTM,
-     &                     CLDOD,DSTOD,AEROD,O3_CTM,O3_TOMS,AERCOL,
-     &                     T_CLIM,O3_CLIM,Z_CLIM,AIR_CLIM)
+      SUBROUTINE SET_PROF (YLAT,     MONTH,  DAY,     T_CTM,  P_CTM,
+     &                     CLDOD,    DSTOD,  AEROD,   O3_CTM, O3_TOMS,
+     &                     AERCOL,   T_CLIM, O3_CLIM, Z_CLIM, AIR_CLIM,
+     &                     Input_Opt )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(IN)    :: YLAT                  ! Latitude (degrees)
-      INTEGER,INTENT(IN)    :: MONTH
-      INTEGER,INTENT(IN)    :: DAY                   ! Day *of month*
-      REAL*8, INTENT(IN)    :: T_CTM(L1_)            ! CTM temperatures (K)
-      REAL*8, INTENT(IN)    :: O3_TOMS               ! O3 column (DU)
-      REAL*8, INTENT(IN)    :: P_CTM(L1_+1)          ! CTM edge pressures (hPa)
-      REAL*8, INTENT(INOUT) :: CLDOD(L_)             ! Cloud optical depth
-      REAL*8, INTENT(IN)    :: DSTOD(L_,NDUST)       ! Mineral dust OD
-      REAL*8, INTENT(IN)    :: AEROD(L_,NALLAER)     ! Aerosol OD
-      REAL*8, INTENT(IN)    :: O3_CTM(L1_)           ! CTM ozone (molec/cm3)
+      REAL*8, INTENT(IN)         :: YLAT              ! Latitude (degrees)
+      INTEGER,INTENT(IN)         :: MONTH             ! Month
+      INTEGER,INTENT(IN)         :: DAY               ! Day *of month*
+      REAL*8, INTENT(IN)         :: T_CTM(L1_)        ! CTM temperatures (K)
+      REAL*8, INTENT(IN)         :: O3_TOMS           ! O3 column (DU)
+      REAL*8, INTENT(IN)         :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
+      REAL*8, INTENT(INOUT)      :: CLDOD(L_)         ! Cloud optical depth
+      REAL*8, INTENT(IN)         :: DSTOD(L_,NDUST)   ! Mineral dust OD
+      REAL*8, INTENT(IN)         :: AEROD(L_,NALLAER) ! Aerosol OD
+      REAL*8, INTENT(IN)         :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL*8, INTENT(OUT)   :: AERCOL(A_,L1_)        ! Aerosol column
-      REAL*8, INTENT(OUT)   :: T_CLIM(L1_)           ! Clim. temperatures (K)
-      REAL*8, INTENT(OUT)   :: Z_CLIM(L1_+1)         ! Edge altitudes (cm)
-      REAL*8, INTENT(OUT)   :: O3_CLIM(L1_)          ! O3 column depth (#/cm2)
-      REAL*8, INTENT(OUT)   :: AIR_CLIM(L1_)         ! O3 column depth (#/cm2)
+      REAL*8, INTENT(OUT)        :: AERCOL(A_,L1_)    ! Aerosol column
+      REAL*8, INTENT(OUT)        :: T_CLIM(L1_)       ! Clim. temperatures (K)
+      REAL*8, INTENT(OUT)        :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
+      REAL*8, INTENT(OUT)        :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
+      REAL*8, INTENT(OUT)        :: AIR_CLIM(L1_)     ! O3 column depth (#/cm2)
 !
 ! !REMARKS:
 ! 
@@ -3528,9 +3553,15 @@ C---Always does PL(2) = P[1]
       REAL*8                 :: PROFCOL, ODSUM
       REAL*8, PARAMETER      :: ODMAX = 200.0d0
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LO3FJX
+
       !=================================================================
       ! SET_PROF begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LO3FJX = Input_Opt%LO3FJX
 
       ! Zero aerosol column
       DO K=1,A_

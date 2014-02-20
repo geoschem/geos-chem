@@ -112,6 +112,13 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LDICARB            
      REAL*8,             POINTER :: SALA_REDGE_um(:)   
      REAL*8,             POINTER :: SALC_REDGE_um(:)   
+     LOGICAL                     :: LGRAVSTRAT
+     LOGICAL                     :: LSOLIDPSC
+     LOGICAL                     :: LHOMNUCNAT
+     REAL*8                      :: T_NAT_SUPERCOOL
+     REAL*8                      :: P_ICE_SUPERSAT
+     LOGICAL                     :: LPSCCHEM
+     LOGICAL                     :: LSTRATOD
 
      !----------------------------------------
      ! EMISSIONS MENU fields
@@ -172,6 +179,29 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LRCP
      LOGICAL                     :: LRCPSHIP
      LOGICAL                     :: LRCPAIR
+     LOGICAL                     :: LFIXEDYR
+     LOGICAL                     :: LCH4EMIS
+     LOGICAL                     :: LCH4SBC
+     LOGICAL                     :: LOCSEMIS
+     LOGICAL                     :: LCFCEMIS
+     LOGICAL                     :: LCLEMIS
+     LOGICAL                     :: LBREMIS
+     LOGICAL                     :: LN2OEMIS
+     LOGICAL                     :: LBASICEMIS
+     LOGICAL                     :: LSETH2O
+     LOGICAL                     :: LSETCH4
+     LOGICAL                     :: LSETOCS
+     LOGICAL                     :: LSETCFC
+     LOGICAL                     :: LSETCL
+     LOGICAL                     :: LBRGCCM
+     LOGICAL                     :: LSETBR
+     LOGICAL                     :: LSETBRSTRAT
+     LOGICAL                     :: LSETNOYSTRAT
+     LOGICAL                     :: LSETN2O
+     LOGICAL                     :: LSETH2SO4
+     INTEGER                     :: CFCYEAR
+     LOGICAL                     :: LFUTURECFC
+     CHARACTER(LEN=255)          :: TRAC_FILE_ROOT
 
      !----------------------------------------
      ! CO2 MENU fields
@@ -215,9 +245,13 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: SPEC_RST_FILE
      LOGICAL                     :: LKPP
      REAL*8                      :: GAMMA_HO2
+     LOGICAL                     :: LUCX
+     LOGICAL                     :: LCH4CHEM
+     LOGICAL                     :: LACTIVEH2O
+     LOGICAL                     :: LO3FJX
 
      !----------------------------------------
-     ! CHEMISTRY MENU fields
+     ! TRANSPORT MENU fields
      !----------------------------------------
      LOGICAL                     :: LTRAN
      LOGICAL                     :: LFILL
@@ -780,6 +814,13 @@ CONTAINS
     Input_Opt%LDICARB                = .FALSE.
     Input_Opt%SALA_REDGE_um          = 0d0
     Input_Opt%SALC_REDGE_um          = 0d0
+    Input_Opt%LGRAVSTRAT             = .FALSE.
+    Input_Opt%LSOLIDPSC              = .FALSE.
+    Input_Opt%LHOMNUCNAT             = .FALSE.
+    Input_Opt%T_NAT_SUPERCOOL        = 0d0
+    Input_Opt%P_ICE_SUPERSAT         = 0d0
+    Input_Opt%LPSCCHEM               = .FALSE.
+    Input_Opt%LSTRATOD               = .FALSE.
 
     !----------------------------------------
     ! EMISSIONS MENU fields
@@ -840,6 +881,29 @@ CONTAINS
     Input_Opt%LRCP                   = .FALSE.
     Input_Opt%LRCPSHIP               = .FALSE.
     Input_Opt%LRCPAIR                = .FALSE.
+    Input_Opt%LFIXEDYR               = .FALSE.
+    Input_Opt%LCH4EMIS               = .FALSE.
+    Input_Opt%LCH4SBC                = .FALSE.
+    Input_Opt%LOCSEMIS               = .FALSE.
+    Input_Opt%LCFCEMIS               = .FALSE.
+    Input_Opt%LCLEMIS                = .FALSE.
+    Input_Opt%LBREMIS                = .FALSE.
+    Input_Opt%LN2OEMIS               = .FALSE.
+    Input_Opt%LBASICEMIS             = .FALSE.
+    Input_Opt%LSETH2O                = .FALSE.
+    Input_Opt%LSETCH4                = .FALSE.
+    Input_Opt%LSETOCS                = .FALSE.
+    Input_Opt%LSETCFC                = .FALSE.
+    Input_Opt%LSETCL                 = .FALSE.
+    Input_Opt%LBRGCCM                = .FALSE.
+    Input_Opt%LSETBR                 = .FALSE.
+    Input_Opt%LSETBRSTRAT            = .FALSE.
+    Input_Opt%LSETNOYSTRAT           = .FALSE.
+    Input_Opt%LSETN2O                = .FALSE.
+    Input_Opt%LSETH2SO4              = .FALSE.
+    Input_Opt%CFCYEAR                = 0
+    Input_Opt%LFUTURECFC             = .FALSE.
+    Input_Opt%TRAC_FILE_ROOT         = ''
 
     !----------------------------------------
     ! CO2 MENU fields
@@ -884,9 +948,13 @@ CONTAINS
     Input_Opt%SPEC_RST_FILE          = ''
     Input_Opt%LKPP                   = .FALSE. 
     Input_Opt%GAMMA_HO2              = 0d0
+    Input_Opt%LUCX                   = .FALSE.
+    Input_Opt%LCH4CHEM               = .FALSE.
+    Input_Opt%LACTIVEH2O             = .FALSE.
+    Input_Opt%LO3FJX                 = .FALSE.
 
     !----------------------------------------
-    ! CHEMISTRY MENU fields
+    ! TRANSPORT MENU fields
     !----------------------------------------
     Input_Opt%LTRAN                  = .FALSE.
     Input_Opt%LFILL                  = .FALSE.

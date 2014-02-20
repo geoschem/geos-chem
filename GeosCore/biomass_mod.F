@@ -535,7 +535,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SET_BIOTRCE( am_I_Root )
+      SUBROUTINE SET_BIOTRCE( am_I_Root, Input_Opt )
 
 !******************************************************************************
 !  Routine created by FP to set IDBxxxs according to the tracers defined
@@ -549,50 +549,33 @@
 !                              of removal of NOx-Ox partitioning
 !  13 Aug 2013 - M. Sulprizio- Add NAP and POA biomass burning emissions for 
 !                              SOA + semivolatile POA (H. Pye)
+!  20 Feb 2014 - M. Sulprizio- Now pass Input_Opt argument
 !******************************************************************************
 
-!FP_ISOP
-!AS BF_TRACE
-
-      ! References to F90 modules
-      ! ERROR_STOP to prevent array alloc issues (hotp 7/31/09)
-      USE ERROR_MOD, ONLY    : ERROR_STOP
-
-      ! need both IDBxxss and IDTxxxs
-      USE TRACERID_MOD, ONLY : IDBNO,   IDBCO,   IDBALK4, IDBACET 
-      USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
-      USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
-      USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
-      USE TRACERID_MOD, ONLY : IDBBC,   IDBOC
-      USE TRACERID_MOD, ONLY : IDBCO2
-      USE TRACERID_MOD, ONLY : IDBCH4   !kjw
-      USE TRACERID_MOD, ONLY : IDBBENZ, IDBTOLU, IDBXYLE
-      ! Add dicarbonyls
-      USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
-      USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
-      ! SOAupdate: Add NAP emissions (hotp 8/23/09)
-      USE TRACERID_MOD, ONLY : IDBNAP
-
-      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTACET 
-      USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
-      USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI
-      USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
-      USE TRACERID_MOD, ONLY : IDTHAC,  IDTGLYC, IDTMGLY, IDTGLYX
-      USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
-      USE TRACERID_MOD, ONLY : IDTCH4 ! Online CH4
-      ! SOAupdate: Add NAP emissions (hotp 8/23/09)
-      USE TRACERID_MOD, ONLY : IDTNAP,  IDTPOA1
-
-      USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
-      USE LOGICAL_MOD,  ONLY : LUCX
-
-      LOGICAL, INTENT(IN) :: am_I_Root
+!
+! !USES:
+!
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACER_MOD,         ONLY : ITS_A_CH4_SIM
+      USE TRACERID_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+!
+! !LOCAL VARIABLES:
+!
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LUCX
 
       !=================================================================
       ! SET_BIOTRCE begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LUCX = Input_Opt%LUCX
 
       ! Initialize
       NBIOTRCE = 0

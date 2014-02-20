@@ -29,7 +29,6 @@
       USE C2H6_MOD,           ONLY : GET_C2H6_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
-      USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
       USE RCP_MOD,            ONLY : GET_RCP_EMISSION
       USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
@@ -45,7 +44,6 @@
       ! Online CH4 simulation
       USE TRACERID_MOD,       ONLY : IDTCH4
       USE GLOBAL_CH4_MOD,     ONLY : GET_CH4_ANTHRO
-      USE LOGICAL_MOD,        ONLY : LCH4EMIS
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! IHOUR
@@ -185,6 +183,7 @@
       LOGICAL :: LSTREETS
       LOGICAL :: LCAC
       LOGICAL :: LEDGARSHIP
+      LOGICAL :: LICOADSSHIP
       LOGICAL :: LARCSHIP
       LOGICAL :: LEMEPSHIP
       LOGICAL :: LVISTAS
@@ -194,6 +193,7 @@
       LOGICAL :: LHIST
       LOGICAL :: LRCP
       LOGICAL :: LRCPSHIP
+      LOGICAL :: LCH4EMIS
       LOGICAL :: ITS_A_TAGCO_SIM
       INTEGER :: N_TRACERS
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
@@ -211,6 +211,7 @@
       LSTREETS        = Input_Opt%LSTREETS  
       LCAC            = Input_Opt%LCAC
       LEDGARSHIP      = Input_Opt%LEDGARSHIP
+      LICOADSSHIP     = Input_Opt%LICOADSSHIP
       LARCSHIP        = Input_Opt%LARCSHIP
       LEMEPSHIP       = Input_Opt%LEMEPSHIP
       LVISTAS         = Input_Opt%LVISTAS
@@ -220,6 +221,7 @@
       LHIST           = Input_Opt%LHIST
       LRCP            = Input_Opt%LRCP
       LRCPSHIP        = Input_Opt%LRCPSHIP
+      LCH4EMIS        = Input_Opt%LCH4EMIS
       ITS_A_TAGCO_SIM = Input_Opt%ITS_A_TAGCO_SIM
       N_TRACERS       = Input_Opt%N_TRACERS
       XNUMOL          = Input_Opt%XNUMOL(1:N_TRACERS)
@@ -1038,7 +1040,7 @@
          !--------------------------------------------------------------
          IF ( LCH4EMIS .and. ( NN == IDTCH4 )) THEN
 
-            CH4_ANTHRO = GET_CH4_ANTHRO( I, J, NN )
+            CH4_ANTHRO = GET_CH4_ANTHRO( I, J, NN, Input_Opt )
 
             ! Convert from molec/cm2/s to kg/box/timestep in order to be
             ! in the proper units for EMISRR array

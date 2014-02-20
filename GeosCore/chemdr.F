@@ -55,8 +55,6 @@
       USE TRACERID_MOD,         ONLY : IDTO3
       USE TRACERID_MOD,         ONLY : SETTRACE
       USE TRACERID_MOD,         ONLY : IDTCH4, IDO3 ! SDE 03/25/13
-      USE LOGICAL_MOD,          ONLY : LUCX ! SDE 04/11/13
-      USE LOGICAL_MOD,          ONLY : LGRAVSTRAT ! SDE 04/12/13
       USE UCX_MOD,              ONLY : CALC_STRAT_AER ! SDE 04/18/13
       USE UCX_MOD,              ONLY : UCX_NOX ! SDE 07/17/13
       USE UCX_MOD,              ONLY : UCX_H2SO4PHOT ! SDE 08/17/13
@@ -283,6 +281,7 @@
       LOGICAL       :: LVARTROP
       LOGICAL       :: LFUTURE
       LOGICAL       :: LSVCSPEC
+      LOGICAL       :: LUCX
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -308,6 +307,7 @@
       LVARTROP  = Input_Opt%LVARTROP
       LFUTURE   = Input_Opt%LFUTURE
       LSVCSPEC  = Input_Opt%LSVCSPEC
+      LUCX      = Input_Opt%LUCX
 
       ! Do we need to print debug output?
       prtDebug  = ( LPRT .and. am_I_Root )
@@ -564,9 +564,8 @@
 
          ! Calculate stratospheric aerosol properties (SDE 04/18/13)
          IF (LUCX) THEN
-            CALL CALC_STRAT_AER
-            !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after CALC_PSC' )
+            CALL CALC_STRAT_AER( Input_Opt )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMDR: after CALC_PSC' )
          ENDIF
 
          ! Skip this section if all these are turned off
@@ -733,9 +732,11 @@
       !=================================================================
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       CALL FAST_JX( SUNCOS_MID,      OPTD,       UVALBEDO, 
-     &              State_Met%PEDGE, WAVELENGTH, am_I_Root )
+     &              State_Met%PEDGE, WAVELENGTH, am_I_Root,
+     &              Input_Opt )
 #else
-      CALL FAST_JX( SUNCOS_MID, OPTD, UVALBEDO, WAVELENGTH, am_I_Root )
+      CALL FAST_JX( SUNCOS_MID, OPTD, UVALBEDO, WAVELENGTH, am_I_Root,
+     &              Input_Opt )
 #endif
 
       !### Debug
@@ -780,12 +781,12 @@
       ! active nitrogen partitioning and H2SO4 photolysis
       ! approximations  outside the chemgrid
       IF ( LUCX ) THEN
-         CALL UCX_NOX
-         IF ( LPRT .and. am_I_Root ) THEN
+         CALL UCX_NOX( Input_Opt )
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
          ENDIF
          CALL UCX_H2SO4PHOT(SUNCOS_MID)
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
          ENDIF
       ENDIF

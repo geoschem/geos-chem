@@ -123,7 +123,6 @@
       USE GRID_MOD,           ONLY : GET_XMID
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD,  ONLY : EMLIGHTNING
-      USE LOGICAL_MOD,        ONLY : LCH4EMIS
       USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
@@ -225,6 +224,7 @@
       LOGICAL                :: LNLPBL
       LOGICAL                :: LRCPAIR
       LOGICAL                :: LAEIC
+      LOGICAL                :: LCH4EMIS
       LOGICAL                :: ITS_A_TAGCO_SIM
       INTEGER                :: N_TRACERS
 !
@@ -255,6 +255,7 @@
       LNLPBL           = Input_Opt%LNLPBL
       LRCPAIR          = Input_Opt%LRCPAIR
       LAEIC            = Input_Opt%LAEIC
+      LCH4EMIS         = Input_Opt%LCH4EMIS
       ITS_A_TAGCO_SIM  = Input_Opt%ITS_A_TAGCO_SIM
       N_TRACERS        = Input_Opt%N_TRACERS
 
@@ -797,7 +798,7 @@
             IF ( IDECH4 > 0 ) THEN
 
                IF (LCH4EMIS) THEN
-                  CH4_BIOG = GET_CH4_BIOG(I, J, IDTCH4)
+                  CH4_BIOG = GET_CH4_BIOG(I, J, IDTCH4, Input_Opt )
                   CH4_BIOGSUM = CH4_BIOGSUM + (CH4_BIOG*AREA_CM2)
 
                   ! Store in EMISRR [molec/box/s]

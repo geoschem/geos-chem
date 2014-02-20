@@ -2924,25 +2924,26 @@ d      !M = GET_MONTH()
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_STRAT( State_Met, State_Chm )
+      SUBROUTINE CH4_STRAT( Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD,         ONLY : CHECK_STT
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,       ONLY : IDTCH4
-      USE LOGICAL_MOD,        ONLY : LUCX
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_MOD                  ! LPAUSE
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -2988,6 +2989,9 @@ d      !M = GET_MONTH()
       CHARACTER*20        :: STT2GCH4_CHAR
       LOGICAL,SAVE        :: FIRSTCHEM=.TRUE.
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LUCX
+
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -3000,6 +3004,9 @@ d      !M = GET_MONTH()
       !=================================================================
       ! CH4_STRAT begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LUCX = Input_Opt%LUCX
 
       ! If unified chemistry is active, ignore all of this
       IF ( .not. LUCX ) THEN
@@ -3877,23 +3884,23 @@ d      !M = GET_MONTH()
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CH4_ANTHRO( I, J, N ) RESULT( CH4_ANTHRO )
+      FUNCTION GET_CH4_ANTHRO( I, J, N, Input_Opt ) RESULT( CH4_ANTHRO )
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTCH4
-      USE LOGICAL_MOD,  ONLY : LCH4EMIS
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTCH4
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I   ! GEOS-Chem longitude index
-      INTEGER, INTENT(IN) :: J   ! GEOS-Chem latitude index
-      INTEGER, INTENT(IN) :: N   ! GEOS-Chem tracer index
+      INTEGER,        INTENT(IN) :: I           ! GEOS-Chem longitude index
+      INTEGER,        INTENT(IN) :: J           ! GEOS-Chem latitude index
+      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem tracer index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options!
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: CH4_ANTHRO   ! Anthro CH4 emissions [molec/cm2/s]
+      REAL*8 :: CH4_ANTHRO   ! Anthro CH4 emissions [molec/cm2/s]
 ! 
 ! !REVISION HISTORY: 
 !  24 Jan 2012 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
@@ -3904,10 +3911,16 @@ d      !M = GET_MONTH()
 !
 ! !LOCAL VARIABLES
 !
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LCH4EMIS
 
       !=================================================================
       !  GET_CH4_ANTHRO begins here
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LCH4EMIS = Input_Opt%LCH4EMIS
+
       IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
          CH4_ANTHRO = SUMANTHRO(I,J)
       ELSE
@@ -3930,23 +3943,23 @@ d      !M = GET_MONTH()
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CH4_BIOG( I, J, N ) RESULT( CH4_BIOG )
+      FUNCTION GET_CH4_BIOG( I, J, N, Input_Opt ) RESULT( CH4_BIOG )
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTCH4
-      USE LOGICAL_MOD,  ONLY : LCH4EMIS
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTCH4
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I   ! GEOS-Chem longitude index
-      INTEGER, INTENT(IN) :: J   ! GEOS-Chem latitude index
-      INTEGER, INTENT(IN) :: N   ! GEOS-Chem tracer index
+      INTEGER,        INTENT(IN) :: I           ! GEOS-Chem longitude index
+      INTEGER,        INTENT(IN) :: J           ! GEOS-Chem latitude index
+      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem tracer index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options!
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: CH4_BIOG   ! Biogenic CH4 emissions [molec/cm2/s]
+      REAL*8  :: CH4_BIOG   ! Biogenic CH4 emissions [molec/cm2/s]
 ! 
 ! !REVISION HISTORY: 
 !  24 Jan 2012 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
@@ -3957,10 +3970,16 @@ d      !M = GET_MONTH()
 !
 ! !LOCAL VARIABLES
 !
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LCH4EMIS
 
       !=================================================================
       !  GET_CH4_BIOG begins here
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LCH4EMIS = Input_Opt%LCH4EMIS
+
       IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
          CH4_BIOG = SUMBIOG(I,J)
       ELSE

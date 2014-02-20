@@ -497,10 +497,7 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTSO4s
-
-      ! Stratospheric settling
       USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
-      USE LOGICAL_MOD,        ONLY : LGRAVSTRAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -575,6 +572,7 @@
       ! For fields from Input_Opt
       LOGICAL           :: LCRYST
       LOGICAL           :: LPRT
+      LOGICAL           :: LGRAVSTRAT
       INTEGER           :: N_TRACERS
       REAL*8            :: TCVV(Input_Opt%N_TRACERS)
 
@@ -597,6 +595,7 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       LCRYST               = Input_Opt%LCRYST
       LPRT                 = Input_Opt%LPRT
+      LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
       N_TRACERS            = Input_Opt%N_TRACERS
       TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
@@ -666,7 +665,7 @@
 
       ! Stratospheric aerosol graviational settling
       IF ( LGRAVSTRAT ) THEN
-         CALL SETTLE_STRAT_AER
+         CALL SETTLE_STRAT_AER( Input_Opt )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
          ENDIF

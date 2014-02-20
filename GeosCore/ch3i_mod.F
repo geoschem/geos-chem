@@ -1095,7 +1095,7 @@
          ! needed for FAST-JX. Also set aerosol data to be computed
          ! at 999 nm.
          !==============================================================
-         CALL FAST_JX( SUNCOS, OPTD, UVALBEDO, 0, am_I_Root )
+         CALL FAST_JX( SUNCOS, OPTD, UVALBEDO, 0, am_I_Root, Input_Opt )
         
          !==============================================================
          ! NR is the loop over the number of reactions (NR=1 for now!)

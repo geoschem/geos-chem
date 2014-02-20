@@ -15,7 +15,6 @@
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,  ONLY : LUCX
       USE CMN_SIZE_MOD, ONLY : LLSTRAT
 
       IMPLICIT NONE
@@ -523,7 +522,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_MIN_CHEMGRID_LEVEL() RESULT( L_MIN )
+      FUNCTION GET_MIN_CHEMGRID_LEVEL( Input_Opt ) RESULT( L_MIN )
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -536,9 +543,19 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LUCX
+
       !=================================================================
       ! GET_MIN_CHEMGRID_LEVEL begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LUCX = Input_Opt%LUCX
+
 #if defined( UCX )
       IF (LUCX) THEN
          ! Minimum level is fixed at stratopause
@@ -565,7 +582,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_MAX_CHEMGRID_LEVEL() RESULT( L_MAX )
+      FUNCTION GET_MAX_CHEMGRID_LEVEL( Input_Opt ) RESULT( L_MAX )
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -578,9 +603,19 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LUCX
+
       !=================================================================
       ! GET_MAX_CHEMGRID_LEVEL begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LUCX = Input_Opt%LUCX
+
 #if defined( UCX )
       IF (LUCX) THEN
          ! Maximum level is fixed at stratopause
@@ -610,19 +645,21 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CHEMGRID_LEVEL( I, J ) RESULT( L_CHEM )
+      FUNCTION GET_CHEMGRID_LEVEL( I, J, Input_Opt ) RESULT( L_CHEM )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: I      ! Longitude index
-      INTEGER, INTENT(IN) :: J      ! Latitude index
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !RETURN VALUE:
 !
-      INTEGER             :: L_CHEM ! Chemgrid limit at (I,J)
+      INTEGER :: L_CHEM ! Chemgrid limit at (I,J)
 !
 ! !REVISION HISTORY:
 !  25 Mar 2013 - S. D. Eastham - Initial version
@@ -632,9 +669,16 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LUCX
+
       !=================================================================
       ! GET_TPAUSE_LEVEL begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LUCX = Input_Opt%LUCX
+
 #if defined( UCX )
       IF (LUCX) THEN
           ! Chemistry grid level is fixed at stratopause
@@ -666,21 +710,22 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TPAUSE_LEVEL( I, J ) RESULT( L_TP )
+      FUNCTION GET_TPAUSE_LEVEL( I, J, Input_Opt ) RESULT( L_TP )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : TROPP, PSC2
-      USE LOGICAL_MOD,  ONLY : LVARTROP
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE DAO_MOD,            ONLY : TROPP, PSC2
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I      ! Longitude index
-      INTEGER, INTENT(IN) :: J      ! Latitude index
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -699,9 +744,16 @@
       INTEGER :: L
       REAL*8  :: PRESS_BEDGE
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LVARTROP
+
       !=================================================================
       ! GET_TPAUSE_LEVEL begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LVARTROP = Input_Opt%LVARTROP
+
       IF ( LVARTROP ) THEN
 
          !--------------------------
@@ -967,13 +1019,19 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_IN_THE_CHEMGRID( I, J, L ) RESULT( IS_CHEM )
+      FUNCTION ITS_IN_THE_CHEMGRID( I, J, L, Input_Opt ) 
+     &                              RESULT( IS_CHEM )
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I          ! Longitude index
-      INTEGER, INTENT(IN) :: J          ! Latitude index
-      INTEGER, INTENT(IN) :: L          ! Level index
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      INTEGER,        INTENT(IN) :: L           ! Level index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -984,9 +1042,18 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LUCX
+
       !=================================================================
       ! ITS_IN_THE_CHEMGRID begins here
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LUCX = Input_Opt%LUCX
 
 #if defined( UCX )
       IF (LUCX) THEN

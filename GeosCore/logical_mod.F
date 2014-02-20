@@ -102,6 +102,7 @@
       LOGICAL :: LSOLIDPSC       ! Allow solid PSC formation?
       LOGICAL :: LHOMNUCNAT      ! Allow homogeneous NAT nucleation?
       LOGICAL :: LPSCCHEM        ! Perform PSC heterogeneous chemistry?
+      LOGICAL :: LSTRATOD        ! Add stratospheric aerosolsin OD calculation?
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
@@ -110,7 +111,6 @@
       LOGICAL :: LLINOZ          ! T = Linoz O3; F = Synoz O3
       LOGICAL :: LCH4CHEM        ! Online CH4 chemistry
       LOGICAL :: LUCX            ! Unified trop-strat chemistry
-      LOGICAL :: LFUTURECFC      ! Use future CFC+ emissions
       LOGICAL :: LACTIVEH2O      ! Allow active H2O?
       LOGICAL :: LO3FJX          ! Use online ozone for FAST-JX?
 
@@ -205,7 +205,7 @@
       LOGICAL :: LSETNOYSTRAT    ! Initialize strat. NOx/HNO3 to generic conditions?
       LOGICAL :: LSETOCS         ! Initialize OCS to generic conditions?
       LOGICAL :: LSETH2SO4       ! Initialize H2SO4 to generic conditions?
-      LOGICAL :: LSTRATOD        ! Add stratospheric aerosolsin OD calculation?
+      LOGICAL :: LFUTURECFC      ! Use future CFC+ emissions
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
