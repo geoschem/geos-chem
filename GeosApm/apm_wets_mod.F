@@ -124,10 +124,10 @@
 !  (23) Bug fixes in COMPUTE_F (bmy, 7/26/06)
 !  (24) Resize DSTT array in WETDEPBIN to save memory.  Added fixes for GEOS-5
 !        wet deposition per Hongyu Liu's suggestions. (bmy, 3/5/08)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS
@@ -170,7 +170,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_WETDEPBIN
+      SUBROUTINE DO_WETDEPBIN( State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine DO_WETDEPBIN is a driver for the wet deposition code, called
@@ -179,22 +179,33 @@
 !  NOTES:
 !  (1 ) Now references LPRT from "logical_mod.f" (bmy, 7/20/04)
 !  (2 ) Don't do rainout/washout for conv precip for GEOS-5 (hyl, bmy, 3/5/08)
+!  17 Oct 2013 - M. Sulprizio- Now pass State_Chm as argument
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE LOGICAL_MOD,        ONLY : LPRT
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       !==================================================================
       ! DO_WETDEPBIN begins here!
       !==================================================================
 
       ! Wetdep by large-scale (stratiform) precip
-      CALL MAKE_QQ( .TRUE. )
+      CALL MAKE_QQ( State_Met, .TRUE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEPBIN: before LS wetdep' )
-      CALL WETDEPBIN(  .TRUE. )
+      CALL WETDEPBIN( State_Met, State_Chm, .TRUE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEPBIN: after LS wetdep' )
 
 #if   !defined( GEOS_5 )
@@ -214,10 +225,10 @@
       !------------------------------------------------------------------
 
       ! Wetdep by convective precip
-      CALL MAKE_QQ( .FALSE. )
+      CALL MAKE_QQ( State_Met, .FALSE. )
       IF ( LPRT ) CALL
      &DEBUG_MSG( '### DO_WETDEPBIN: before conv wetdep' )
-      CALL WETDEPBIN(  .FALSE. )
+      CALL WETDEPBIN( State_Met, State_Chm, .FALSE. )
       IF ( LPRT ) CALL
      &DEBUG_MSG( '### DO_WETDEPBIN: after conv wetdep' )
 
@@ -228,24 +239,11 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE MAKE_QQ( LS )
+      SUBROUTINE MAKE_QQ( State_Met, LS )
 !
 !*****************************************************************************
 !  Subroutine MAKE_QQ computes the large-scale or convective precipitation
 !  fields for use with wetdep.f. (hyl, bmy, 2/29/00, 11/8/02)
-!
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) LS       : = T for Large-scale precip, =F otherwise
-!
-!  DAO met fields from "dao_mod.f:"
-!  ===========================================================================
-!  (1 ) AIRDEN   : Density of air in grid box (I,J,L) [kg air/m^3]
-!  (2 ) BXHEIGHT : Height of grid box (I,J,L) in [m]
-!  (3 ) MOISTQ   : DAO field for change in specific    
-!                  humidity due to moist processes    [kg H2O/kg air/s]
-!  (4 ) PREACC   : DAO total accumulated precipitaton [mm/day]
-!  (5 ) PRECON   : DAO convective precipitation       [mm/day]
 !
 !  References (see above for full citations):
 !  ===========================================================================
@@ -273,16 +271,19 @@
 !  (9 ) BXHEIGHT is now sized (IIPAR,JJPAR,LLPAR) (bmy, 10/4/01)
 !  (10) Removed obsolete, commented-out code from 10/01 (bmy, 11/26/01)
 !  (11) Now reference met field arrays directly from "dao_mod.f" (bmy, 11/8/02)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 ! 
       ! References to F90 modules
-      USE DAO_MOD,   ONLY : AIRDEN, BXHEIGHT, MOISTQ, PREACC, PRECON
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-      
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      LOGICAL, INTENT(IN)  :: LS
+      LOGICAL,        INTENT(IN)  :: LS          ! = T for Large-scale precip
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER              :: I, J, L, AS
@@ -323,7 +324,7 @@
          ! 
          ! (1) Compute FRAC, the large scale fraction (if LS = .TRUE.) 
          !     or convective fraction (if LS = .FALSE.) total 
-         !     precipitation.  FRAC is computed from PREACC and PRECON.
+         !     precipitation.  FRAC is computed from PRECTOT and PRECCON.
          !
          ! (2) Compute QQ, the rate of formation of precipitation 
          !     [cm3 H2O/cm3 air/s].  From MOISTQ [kg H2O/kg air/s], 
@@ -351,26 +352,28 @@
          !     BXHEIGHT(I,J,L) * 100 cm.  
          !
          ! (4) The reason why we do not force PTEMP to be positive is 
-         !     that PREACC is the integral of the MOISTQ field.  MOISTQ 
+         !     that PRECTOT is the integral of the MOISTQ field.  MOISTQ 
          !     contains both negative (evap) and positive (precip) 
          !     values.  If we forced PTEMP to be positive, then we would
          !     be adding extra precipitation to PDOWN (hyl, bmy, 3/6/99).
          !==============================================================
-         IF ( PREACC(I,J) > 0d0 ) THEN
+         IF ( State_Met%PRECTOT(I,J) > 0d0 ) THEN
 
             ! Large scale or convective fraction of precipitation
             IF ( LS ) THEN
-               FRAC = ( PREACC(I,J) - PRECON(I,J) ) / PREACC(I,J) 
+               FRAC = ( State_Met%PRECTOT(I,J) - State_Met%PRECCON(I,J))
+     &                / State_Met%PRECTOT(I,J) 
             ELSE
-               FRAC = PRECON(I,J) / PREACC(I,J)
+               FRAC =   State_Met%PRECCON(I,J) / State_Met%PRECTOT(I,J)
             ENDIF
 
             ! Start at the top of the atmosphere
             L = LLPAR
 
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
-            QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-            PTEMP        = QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2
+            QQ(L,I,J)    = FRAC * State_Met%MOISTQ(L,I,J) *
+     &                     State_Met%AIRDEN(L,I,J) / 1d3
+            PTEMP        = QQ(L,I,J) * State_Met%BXHEIGHT(I,J,L) * 1d2
             PDOWN(L,I,J) = PTEMP
 
             ! PDOWN cannot be negative
@@ -380,8 +383,10 @@
             DO L = LLPAR-1, 1, -1
                
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level.
-               QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2  
+               QQ(L,I,J)    = FRAC  * State_Met%MOISTQ(L,I,J) *
+     &                        State_Met%AIRDEN(L,I,J) / 1d3
+               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) *
+     &                        State_Met%BXHEIGHT(I,J,L) * 1d2  
                PTEMP        = PDOWN(L,I,J)
 
                ! PDOWN cannot be negative
@@ -411,8 +416,9 @@
             L = LLPAR
 
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
-            QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-            PTEMP        = QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2
+            QQ(L,I,J)    = FRAC * State_Met%MOISTQ(L,I,J) *
+     &                     State_Met%AIRDEN(L,I,J) / 1d3
+            PTEMP        = QQ(L,I,J) * State_Met%BXHEIGHT(I,J,L) * 1d2
             PDOWN(L,I,J) = PTEMP
            
             ! PDOWN cannot be negative
@@ -422,8 +428,10 @@
             DO L = LLPAR-1, 1, -1
               
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level
-               QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2 
+               QQ(L,I,J)    = FRAC  * State_Met%MOISTQ(L,I,J) *
+     &                        State_Met%AIRDEN(L,I,J) / 1d3
+               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) *
+     &                        State_Met%BXHEIGHT(I,J,L) * 1d2 
                PTEMP        = PDOWN(L,I,J)
 
                ! PDOWN cannot be negative
@@ -539,7 +547,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC )
+      SUBROUTINE RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC,
+     &                    State_Met )
 !
 !******************************************************************************
 !  Subroutine RAINOUT computes RAINFRAC, the fraction of soluble tracer
@@ -591,29 +600,38 @@
 !        HgP tracer. (eck, cdh, bmy, 1/6/06)
 !  (15) Updated for SOG4 and SOA4 (dkh, bmy, 5/18/06)
 !  (16) For GEOS-5, suppress rainout when T < 258K (hyl, bmy, 3/5/08)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : T
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE APM_INIT_MOD, ONLY : NGCOND,NSO4,NSEA,NDSTB
-      USE APM_INIT_MOD, ONLY : NCTSO4,NCTBCOC,NCTDST,NCTSEA
-      USE APM_INIT_MOD, ONLY : NBCPIF,NBCPIO,NOCPIF,NOCPIO
-      USE APM_INIT_MOD, ONLY : NBCPOF,NBCPOO,NOCPOF,NOCPOO
-      USE APM_INIT_MOD, ONLY : IDTSO4G,IDTSO4BIN1,IDTDSTBIN1
-      USE APM_INIT_MOD, ONLY : IDTCTSO4,IDTCTBCOC,IDTCTDST
-      USE APM_INIT_MOD, ONLY : IDTCTSEA,IDTSEABIN1
-      USE APM_INIT_MOD, ONLY : IDTBCPIFF,IDTBCPIBB,IDTOCPIFF,IDTOCPIBB
-      USE APM_INIT_MOD, ONLY : IDTBCPOFF,IDTBCPOBB,IDTOCPOFF,IDTOCPOBB
+      USE APM_INIT_MOD,       ONLY : NGCOND,    NSO4
+      USE APM_INIT_MOD,       ONLY : NSEA,      NDSTB
+      USE APM_INIT_MOD,       ONLY : NCTSO4,    NCTBCOC
+      USE APM_INIT_MOD,       ONLY : NCTDST,    NCTSEA
+      USE APM_INIT_MOD,       ONLY : NBCPIF,    NBCPIO
+      USE APM_INIT_MOD,       ONLY : NOCPIF,    NOCPIO
+      USE APM_INIT_MOD,       ONLY : NBCPOF,    NBCPOO
+      USE APM_INIT_MOD,       ONLY : NOCPOF,    NOCPOO
+      USE APM_INIT_MOD,       ONLY : IDTSO4G,   IDTSO4BIN1, IDTDSTBIN1
+      USE APM_INIT_MOD,       ONLY : IDTCTSO4,  IDTCTBCOC,  IDTCTDST
+      USE APM_INIT_MOD,       ONLY : IDTCTSEA,  IDTSEABIN1
+      USE APM_INIT_MOD,       ONLY : IDTBCPIFF, IDTBCPIBB
+      USE APM_INIT_MOD,       ONLY : IDTOCPIFF, IDTOCPIBB
+      USE APM_INIT_MOD,       ONLY : IDTBCPOFF, IDTBCPOBB
+      USE APM_INIT_MOD,       ONLY : IDTOCPOFF, IDTOCPOBB
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ERROR_MOD,          ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       IMPLICIT NONE
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: I, J, L, N
-      REAL*8,  INTENT(IN)  :: K_RAIN, DT, F
-      REAL*8,  INTENT(OUT) :: RAINFRAC
+      INTEGER,        INTENT(IN)  :: I, J, L, N
+      REAL*8,         INTENT(IN)  :: K_RAIN, DT, F
+      REAL*8,         INTENT(OUT) :: RAINFRAC
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables 
       REAL*8               :: L2G, I2G, C_TOT, F_L, F_I, K, TK, SO2LOSS
@@ -629,7 +647,7 @@
       !==================================================================
 
       ! Save the local temperature in TK for convenience
-      TK = T(I,J,L)
+      TK = State_Met%T(I,J,L)
 
 #if   defined( GEOS_5 )
       !------------------------------------------------------------------
@@ -753,7 +771,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE WASHOUT( I, J, L, N, PP, DT, F, WASHFRAC, AER )
+      SUBROUTINE WASHOUT( I, J, L, N, PP, DT, F, WASHFRAC, AER,
+     &                    State_Met )
 !
 !******************************************************************************
 !  Subroutine WASHOUT computes WASHFRAC, the fraction of soluble tracer
@@ -814,24 +833,33 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT, T
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE APM_INIT_MOD,   ONLY : NGCOND,NSO4,NSEA,NDSTB
-      USE APM_INIT_MOD,   ONLY : NCTSO4,NCTBCOC,NCTDST,NCTSEA
-      USE APM_INIT_MOD,   ONLY : NBCPIF,NBCPIO,NOCPIF,NOCPIO
-      USE APM_INIT_MOD,   ONLY : NBCPOF,NBCPOO,NOCPOF,NOCPOO
-      USE APM_INIT_MOD, ONLY : IDTSO4G, IDTSO4BIN1, IDTCTBCOC, IDTCTDST
-      USE APM_INIT_MOD, ONLY : IDTCTSO4, IDTCTSEA, IDTSEABIN1,IDTDSTBIN1
-      USE APM_INIT_MOD, ONLY : IDTBCPIFF,IDTBCPIBB,IDTOCPIFF,IDTOCPIBB
-      USE APM_INIT_MOD, ONLY : IDTBCPOFF,IDTBCPOBB,IDTOCPOFF,IDTOCPOBB
+      USE APM_INIT_MOD,       ONLY : NGCOND,     NSO4
+      USE APM_INIT_MOD,       ONLY : NSEA,       NDSTB
+      USE APM_INIT_MOD,       ONLY : NCTSO4,     NCTBCOC
+      USE APM_INIT_MOD,       ONLY : NCTDST,     NCTSEA
+      USE APM_INIT_MOD,       ONLY : NBCPIF,     NBCPIO
+      USE APM_INIT_MOD,       ONLY : NOCPIF,     NOCPIO
+      USE APM_INIT_MOD,       ONLY : NBCPOF,     NBCPOO
+      USE APM_INIT_MOD,       ONLY : NOCPOF,     NOCPOO
+      USE APM_INIT_MOD,       ONLY : IDTSO4G,    IDTSO4BIN1
+      USE APM_INIT_MOD,       ONLY : IDTCTBCOC,  IDTCTDST
+      USE APM_INIT_MOD,       ONLY : IDTCTSO4,   IDTCTSEA
+      USE APM_INIT_MOD,       ONLY : IDTSEABIN1, IDTDSTBIN1
+      USE APM_INIT_MOD,       ONLY : IDTBCPIFF,  IDTBCPIBB
+      USE APM_INIT_MOD,       ONLY : IDTOCPIFF,  IDTOCPIBB
+      USE APM_INIT_MOD,       ONLY : IDTBCPOFF,  IDTBCPOBB
+      USE APM_INIT_MOD,       ONLY : IDTOCPOFF,  IDTOCPOBB
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: I, J, L, N
-      REAL*8,  INTENT(IN)  :: PP, DT, F
-      REAL*8,  INTENT(OUT) :: WASHFRAC
-      LOGICAL, INTENT(OUT) :: AER
+      INTEGER,        INTENT(IN)  :: I, J, L, N
+      REAL*8,         INTENT(IN)  :: PP, DT, F
+      REAL*8,         INTENT(OUT) :: WASHFRAC
+      LOGICAL,        INTENT(OUT) :: AER
+      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
 
       ! Local variables 
       REAL*8               :: L2G, DZ, TK, SO2LOSS
@@ -847,10 +875,10 @@
       !=================================================================
 
       ! TK is Kelvin temperature 
-      TK = T(I,J,L)
+      TK = State_Met%T(I,J,L)
 
       ! DZ is the height of the grid box in cm
-      DZ = BXHEIGHT(I,J,L) * 1d2
+      DZ = State_Met%BXHEIGHT(I,J,L) * 1d2
 
       !------------------------------
       ! HNO3 (aerosol)
@@ -1031,7 +1059,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE WETDEPBIN( LS )
+      SUBROUTINE WETDEPBIN( State_Met, State_Chm, LS )
 !
 !******************************************************************************
 !  Subroutine WETDEPBIN computes the downward mass flux of tracer due to washout 
@@ -1077,10 +1105,6 @@
 !
 !  Thus: Precip coming in:  PSSW4(I,J,L  ) is analogous to PDOWN(L+1,I,J).
 !        Precip going  out: PSSW4(I,J,L-1) is analogous to PDOWN(L,I,J  ).
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) LS    : =T for Large-Scale precipitation; =F otherwise   
 !
 !  References (see above for full citations):
 !  ============================================================================
@@ -1143,38 +1167,54 @@
 !  (22) Redimension DSTT with NSOL instead of NSOLMAX. In many cases, NSOL is
 !        less than NSOLMAX and this will help to save memory especially when
 !        running at 2x25 or greater resolution. (bmy, 1/31/08)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  17 Oct 2013 - M. Sulprizio- Now pass STT via the State_Chm object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT, T
-      USE DIAG_MOD,     ONLY : AD16, AD17, AD18
-      USE DIAG_MOD,     ONLY : CT16, CT17, CT18, AD39 
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP, IT_IS_NAN
-      USE LOGICAL_MOD,  ONLY : LDYNOCEAN
-      USE TIME_MOD,     ONLY : GET_TS_DYN
-      USE TRACER_MOD,   ONLY : STT
-      USE WETSCAV_MOD,  ONLY : SO2GAINED, SO2WETLOSS
-      USE APM_INIT_MOD, ONLY : NGCOND,NSO4,NSEA,NDSTB
-      USE APM_INIT_MOD, ONLY : NCTSO4,NCTBCOC,NCTDST,NCTSEA
-      USE APM_INIT_MOD, ONLY : NBCPIF,NBCPIO,NOCPIF,NOCPIO
-      USE APM_INIT_MOD, ONLY : NBCPOF,NBCPOO,NOCPOF,NOCPOO
-      USE APM_INIT_MOD, ONLY : IDTSO4G, IDTSO4BIN1,IDTDSTBIN1
-      USE APM_INIT_MOD, ONLY : IDTCTSO4, IDTCTBCOC, IDTCTDST
-      USE APM_INIT_MOD, ONLY : IDTCTSEA, IDTSEABIN1
-      USE APM_INIT_MOD, ONLY : IDTBCPIFF,IDTBCPIBB,IDTOCPIFF,IDTOCPIBB
-      USE APM_INIT_MOD, ONLY : IDTBCPOFF,IDTBCPOBB,IDTOCPOFF,IDTOCPOBB
-      USE APM_DRIV_MOD, ONLY : IACT1, IACT3, FCLOUD,GFTOT3D
-      USE APM_INIT_MOD, ONLY : RDRY,RSALT,IACTSS1, IACTSS3
+      USE APM_INIT_MOD,       ONLY : NGCOND,    NSO4
+      USE APM_INIT_MOD,       ONLY : NSEA,      NDSTB
+      USE APM_INIT_MOD,       ONLY : NCTSO4,    NCTBCOC
+      USE APM_INIT_MOD,       ONLY : NCTDST,    NCTSEA
+      USE APM_INIT_MOD,       ONLY : NBCPIF,    NBCPIO
+      USE APM_INIT_MOD,       ONLY : NOCPIF,    NOCPIO
+      USE APM_INIT_MOD,       ONLY : NBCPOF,    NBCPOO
+      USE APM_INIT_MOD,       ONLY : NOCPOF,    NOCPOO
+      USE APM_INIT_MOD,       ONLY : IDTSO4G,   IDTSO4BIN1, IDTDSTBIN1
+      USE APM_INIT_MOD,       ONLY : IDTCTSO4,  IDTCTBCOC,  IDTCTDST
+      USE APM_INIT_MOD,       ONLY : IDTCTSEA,  IDTSEABIN1
+      USE APM_INIT_MOD,       ONLY : IDTBCPIFF, IDTBCPIBB
+      USE APM_INIT_MOD,       ONLY : IDTOCPIFF, IDTOCPIBB
+      USE APM_INIT_MOD,       ONLY : IDTBCPOFF, IDTBCPOBB
+      USE APM_INIT_MOD,       ONLY : IDTOCPOFF, IDTOCPOBB
+      USE APM_DRIV_MOD,       ONLY : IACT1, IACT3, FCLOUD,  GFTOT3D
+      USE APM_INIT_MOD,       ONLY : RDRY,  RSALT, IACTSS1, IACTSS3
+      USE DIAG_MOD,           ONLY : AD16,  AD17,  AD18
+      USE DIAG_MOD,           ONLY : CT16,  CT17,  CT18,    AD39 
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IT_IS_NAN
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE LOGICAL_MOD,        ONLY : LDYNOCEAN
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE WETSCAV_MOD,        ONLY : SO2GAINED, SO2WETLOSS
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! Diagnostic arrays and switches 
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic arrays and switches 
 
       IMPLICIT NONE
-
-      ! Arguments
-      LOGICAL, INTENT(IN) :: LS
-
-      ! Local Variables
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: LS          ! =T for Large-Scale precip
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: AER
 
@@ -1192,11 +1232,17 @@
       REAL*8              :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
       REAL*8              :: MASS1, MASS2, MASS3, MASS4
  
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! WETDEPBIN begins here!
       !
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
+
+      ! Point to STT
+      STT => State_Chm%TRACERS
 
       ! Dynamic timestep [s]
       DT    = GET_TS_DYN() * 60d0
@@ -1368,7 +1414,8 @@
 
                   ! Call subroutine RAINOUT to compute the fraction
                   ! of tracer lost to rainout in grid box (I,J,L=LLPAR)
-                  CALL RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC )
+                  CALL RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC,
+     &                          State_Met )
 
                   IF(.NOT.((N>=IDTSO4BIN1.and.N<(IDTSO4BIN1+IACT)).or.
      &               (N>=IDTSEABIN1.and.N<(IDTSEABIN1+IACTSS)).or.
@@ -1546,7 +1593,8 @@
 
                      ! Call subroutine RAINOUT to comptue the fraction
                      ! of tracer lost to rainout in grid box (I,J,L) 
-                     CALL RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC )
+                     CALL RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC,
+     &                             State_Met )
 
                   IF(.NOT.((N>=IDTSO4BIN1.and.N<(IDTSO4BIN1+IACT)).or.
      &               (N>=IDTSEABIN1.and.N<(IDTSEABIN1+IACTSS)).or.
@@ -1722,11 +1770,12 @@
                      ! Call WASHOUT to compute the fraction of 
                      ! tracer lost to washout in grid box (I,J,L)
                      CALL WASHOUT( I,     J,  L, N, 
-     &                             QDOWN, DT, F, WASHFRAC, AER )
+     &                             QDOWN, DT, F, WASHFRAC, AER,
+     &                             State_Met )
                   
                      IF( N >= IDTSO4BIN1 .and.
      &                   N < (IDTSO4BIN1+NSO4) )THEN
-                       IF(T(I,J,L)>268.D0)THEN
+                       IF ( State_Met%T(I,J,L) > 268.D0 ) THEN
                        RSIZEIN=GFTOT3D(I,J,L,1)*RDRY(N-IDTSO4BIN1+1)
                        CALL SIZEWASHFRAC( RSIZEIN, QDOWN, WASHFRAC )
                        WASHFRAC=(1.D0-EXP(-WASHFRAC*DT))
@@ -1737,7 +1786,7 @@
 
                      IF( N >= IDTSEABIN1 .and.
      &                   N < (IDTSEABIN1+NSEA) )THEN
-                       IF(T(I,J,L)>268.D0)THEN
+                       IF ( State_Met%T(I,J,L) > 268.D0 ) THEN
                        RSIZEIN=GFTOT3D(I,J,L,2)*RSALT(N-IDTSEABIN1+1)
                        CALL SIZEWASHFRAC( RSIZEIN, QDOWN, WASHFRAC )
                        WASHFRAC=(1.D0-EXP(-WASHFRAC*DT))
@@ -1876,8 +1925,8 @@
 
                      ! ALPHA is the fraction of the raindrops that
                      ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-                     ALPHA = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 ) /
-     &                         PDOWN(L+1,I,J)
+                     ALPHA = ( ABS( Q ) * State_Met%BXHEIGHT(I,J,L) *
+     &                         100d0 )  / PDOWN(L+1,I,J)
 
                      ! ALPHA2 is the fraction of the rained-out aerosols
                      ! that gets resuspended in grid box (I,J,L)
@@ -2273,11 +2322,12 @@
                   ! Call WASHOUT to compute the fraction of tracer 
                   ! in grid box (I,J,L) that is lost to washout.  
                   CALL WASHOUT( I,     J,  L, N, 
-     &                          QDOWN, DT, F, WASHFRAC, AER )
+     &                          QDOWN, DT, F, WASHFRAC, AER,
+     &                          State_Met )
 
                   IF( N >= IDTSO4BIN1 .and.
      &                N < (IDTSO4BIN1+NSO4) )THEN
-                    IF(T(I,J,L)>268.D0)THEN
+                    IF ( State_Met%T(I,J,L) > 268.D0 ) THEN
                     RSIZEIN=GFTOT3D(I,J,L,1)*RDRY(N-IDTSO4BIN1+1)
                     CALL SIZEWASHFRAC( RSIZEIN, QDOWN, WASHFRAC )
                     WASHFRAC=(1.D0-EXP(-WASHFRAC*DT))
@@ -2288,7 +2338,7 @@
 
                   IF( N >= IDTSEABIN1 .and.
      &                N < (IDTSEABIN1+NSEA) )THEN
-                    IF(T(I,J,L)>268.D0)THEN
+                    IF ( State_Met%T(I,J,L) > 268.D0 ) THEN
                     RSIZEIN=GFTOT3D(I,J,L,2)*RSALT(N-IDTSEABIN1+1)
                     CALL SIZEWASHFRAC( RSIZEIN, QDOWN, WASHFRAC )
                     WASHFRAC=(1.D0-EXP(-WASHFRAC*DT))
@@ -2387,6 +2437,9 @@
 #if   !defined( SGI_MIPS )
 !$OMP END PARALLEL DO
 #endif
+
+      ! Clear the pointer
+      NULLIFY( STT )
 
       ! Return to calling program
       END SUBROUTINE WETDEPBIN
@@ -2854,7 +2907,7 @@ coefs used
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_WETSCAVBIN
+      SUBROUTINE INIT_WETSCAVBIN( State_Met )
 !
 !******************************************************************************
 !  Subroutine INIT_WETSCAVBIN initializes updraft velocity, cloud liquid water
@@ -2886,14 +2939,20 @@ coefs used
 !        from "input_mod.f" (bmy, 7/20/04)
 !  (9 ) Now references new function E_ICE, which is an analytic function of 
 !        Kelvin temperature instead of Celsius. (bmy, 3/7/05)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : T, IS_WATER
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+
+      ! Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER             :: I, J, L, AS
@@ -2941,7 +3000,7 @@ coefs used
       DO I = 1, IIPAR
 
          ! Compute Temp [K] and Pressure [hPa]
-         TK = T(I,J,L)
+         TK = State_Met%T(I,J,L)
          PL = GET_PCENTER(I,J,L)
 
          !==============================================================
@@ -2949,7 +3008,7 @@ coefs used
          ! Assume Vud is the same at all altitudes; the array can be 2-D
          !==============================================================
          IF ( L == 1 ) THEN
-            IF ( IS_WATER( I, J ) ) THEN
+            IF ( IS_WATER( I, J, State_Met ) ) THEN
                Vud(I,J) = 5d0
             ELSE
                Vud(I,J) = 10d0

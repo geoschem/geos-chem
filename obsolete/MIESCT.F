@@ -31,7 +31,6 @@
       USE JV_MIE_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
 
       integer i, id, im

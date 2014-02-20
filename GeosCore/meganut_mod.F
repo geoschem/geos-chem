@@ -15,7 +15,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -25,8 +24,9 @@
       PUBLIC :: XLPARDR
 !
 ! !REVISION HISTORY
-!  20 Nov 2009 - C. Carouge - Create the module with xltmmp, xlpardf and 
-!                             xlpardr functions.
+!  20 Nov 2009 - C. Carouge  - Create the module with xltmmp, xlpardf and 
+!                              xlpardr functions.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -49,17 +49,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION XLTMMP( I, J, IJLOOP ) RESULT( VALUE )
+      FUNCTION XLTMMP( I, J, TS, IJLOOP ) RESULT( VALUE )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : TS
-      
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)           :: I, J
+      REAL*8,  INTENT(IN)           :: TS(IIPAR,JJPAR)
       INTEGER, INTENT(IN), OPTIONAL :: IJLOOP
 ! 
 ! !RETURN VALUE:
@@ -103,17 +102,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION XLPARDR( I, J, IJLOOP ) RESULT( VALUE )
+      FUNCTION XLPARDR( I, J, PARDR, IJLOOP ) RESULT( VALUE )
 !
 ! !USES
-!
-      USE DAO_MOD, ONLY : PARDR 
-      
+!     
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS 
 !
       INTEGER, INTENT(IN)           :: I, J
+      REAL*8,  INTENT(IN)           :: PARDR(IIPAR,JJPAR)
       INTEGER, INTENT(IN), OPTIONAL :: IJLOOP
 !
 ! !RETURN VALUE:
@@ -150,17 +148,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION XLPARDF( I, J, IJLOOP ) RESULT( VALUE )
+      FUNCTION XLPARDF( I, J, PARDF, IJLOOP ) RESULT( VALUE )
 !
 ! !USES
 !
-      USE DAO_MOD, ONLY : PARDF 
-      
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS 
 !
       INTEGER, INTENT(IN)           :: I, J
+      REAL*8,  INTENT(IN)           :: PARDF(IIPAR,JJPAR)
       INTEGER, INTENT(IN), OPTIONAL :: IJLOOP
 !
 ! !RETURN VALUE:

@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -34,6 +33,7 @@
 !  (2 ) Now modified for GCAP grid (swu, bmy, 6/28/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -46,33 +46,38 @@
 !
 ! !ROUTINE: stdrun
 !
-! !DESCRIPTION: Subroutine STDRUN dumps the mass of either Ox [kg] or 222Rn, 
+! !DESCRIPTION: Subroutine STDRUN dumps the mass of either O3 [kg] or 222Rn, 
 !  210Pb, and 7Be [kg] at the start \& end of each run.  This is necessary
 !  for GEOS-CHEM benchmarking.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE STDRUN( LBEGIN )
+      SUBROUTINE STDRUN( Input_Opt, State_Chm, LBEGIN )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE, BPCH2             
-      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR,        GET_MODELNAME
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : EXPAND_DATE,          GET_NYMD
-      USE TIME_MOD,     ONLY : GET_NHMS,             GET_TAU
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM,   ITS_A_RnPbBe_SIM
-      USE TRACER_MOD,   ONLY : STT,                  N_TRACERS
-      USE TRACERID_MOD, ONLY : IDTOX
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE inquireMod,   ONLY : findFreeLUN
+      USE BPCH2_MOD,          ONLY : BPCH2             
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+      USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
+      USE BPCH2_MOD,          ONLY : GET_MODELNAME
+      USE CMN_SIZE_MOD
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE inquireMod,         ONLY : findFreeLUN
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_NYMD
+      USE TIME_MOD,           ONLY : GET_NHMS
+      USE TIME_MOD,           ONLY : GET_TAU
+      USE TRACERID_MOD,       ONLY : IDTO3
 !
 ! !INPUT PARAMETERS: 
 !
-      ! TRUE  denotes beginning of simulation
-      ! FALSE denotes end of simulation
-      LOGICAL, INTENT(IN) :: LBEGIN 
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+      LOGICAL,        INTENT(IN) :: LBEGIN      ! =T denotes start of run
+                                                ! =F denotes end of run
 ! 
 ! !REVISION HISTORY: 
 !  12 Aug 2002 - R. Yantosca - Initial version
@@ -88,6 +93,10 @@
 !        and TRCOFFSET. (bmy, 6/28/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to obtain file unit #'s
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of 
+!                              NOx-Ox partitioning
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  30 May 2013 - R. Yantosca - Now pass Input_Opt object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -107,13 +116,18 @@
       CHARACTER(LEN=80)   :: TITLE
       CHARACTER(LEN=255)  :: FILENAME
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! STDRUN begins here!
       !=================================================================
 
       ! Return if we are not doing either a radon or fullchem stdrun
-      IF ( ( .not. ITS_A_FULLCHEM_SIM() ) .and. 
-     &     ( .not. ITS_A_RnPbBe_SIM() ) ) RETURN
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. 
+     &     ( .not. Input_Opt%ITS_A_RnPbBe_SIM   ) ) RETURN
 
       ! Find a free file LUN
       IU_FILE   = findFreeLUN()
@@ -130,6 +144,10 @@
       NHMS      = GET_NHMS()
       TAU       = GET_TAU()
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT       => State_Chm%Tracers
+
       ! Define filename for beginning or end of benchmark run
       IF ( LBEGIN ) THEN
          TITLE    = 'GEOS-CHEM Benchmark: Initial Tracer Mass'
@@ -145,13 +163,13 @@
       !=================================================================
       ! Save the mass of 222Rn, 210Pb, 7Be to a file
       !=================================================================
-      IF ( ITS_A_RnPbBE_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_RnPbBE_SIM ) THEN
 
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
 
          ! Loop over tracers
-         DO N = 1, N_TRACERS
+         DO N = 1, Input_Opt%N_TRACERS
 
             ! Save Rn, Pb, Be as REAL*4
             ARRAY(:,:,:) = STT(:,:,:,N)
@@ -166,27 +184,30 @@
          ENDDO
 
       !=================================================================
-      ! Save the mass of Ox to a file
+      ! Save the mass of O3 to a file
       !=================================================================
-      ELSE IF ( ITS_A_FULLCHEM_SIM() .and. IDTOX > 0 ) THEN
+      ELSE IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. IDTO3 > 0 ) THEN
 
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
         
-         ! Save Ox as REAL*4
-         ARRAY(:,:,:) = STT(:,:,:,IDTOX)
+         ! Save O3 as REAL*4
+         ARRAY(:,:,:) = STT(:,:,:,IDTO3)
 
-         ! Write Ox to binary punch file
+         ! Write O3 to binary punch file
          CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY,  IDTOX,    
-     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
-     &               IIPAR,     JJPAR,     LLPAR,     IFIRST,     
+     &               HALFPOLAR, CENTER180, CATEGORY,  IDTO3,
+     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
+     &               IIPAR,     JJPAR,     LLPAR,     IFIRST,
      &               JFIRST,    LFIRST,    ARRAY(:,:,:) )
                
       ENDIF
 
       ! Close file
       CLOSE( IU_FILE )
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE STDRUN
 !EOC

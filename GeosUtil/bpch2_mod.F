@@ -19,7 +19,7 @@
       USE inquireMod, ONLY : I_Am_UnOPENed
 
       IMPLICIT NONE
-#     include "define.h"
+!#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -433,8 +433,6 @@
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
       USE FILE_MOD,  ONLY : IOERROR
-
-#     include "define.h" 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -476,6 +474,8 @@
 !  25 May 2012 - R. Yantosca - Update TEMPARRAY for GRID025x03125
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -585,8 +585,7 @@
       IF ( FOUND ) THEN 
 
 #if   defined( GRID1x1 ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
-
-#if   defined(NESTED_CH) || defined(NESTED_NA) || defined( NESTED_EU ) || defined( SEAC4RS ) 
+#if   defined(NESTED_CH) || defined(NESTED_NA)     || defined( NESTED_EU )
          ! *** NOTE: now use NESTED_CH/NESTED_NA/NESTED_EU cpp switches ***
          ! *** to block off this section of code (bmy, 12/1/04)  ***
          ! This is a kludge to overwrite the IFIRST, JFIRST, LFIRST For
@@ -668,6 +667,9 @@
 !  13 Aug 2010 - R. Yantosca - Added MERRA model names
 !  01 Feb 2012 - R. Yantosca - Added GEOS-5.7.x model names
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
+!                              EXTERNAL_FORCING Cpp switches
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -693,13 +695,13 @@
 #elif defined( MERRA ) 
       MODELNAME = 'MERRA'
 
-#elif defined( GEOS_57 ) && defined( GRIDREDUCED )
-      MODELNAME = 'GEOS57_47L'
+#elif defined( GEOS_FP ) && defined( GRIDREDUCED )
+      MODELNAME = 'GEOSFP_47L'
 
-#elif defined( GEOS_57 )
-      MODELNAME = 'GEOS57'
+#elif defined( GEOS_FP )
+      MODELNAME = 'GEOSFP'
 
-#elif defined( EXTERNAL_FORCING  ) & defined ( EXTERNAL_GRID ) 
+#elif defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID ) 
       MODELNAME = 'EXTERNAL'
 
 #endif
@@ -723,17 +725,13 @@
 !
       FUNCTION GET_NAME_EXT() RESULT( NAME_EXT )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
 #if   defined( GEOS_4 )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos4'
 
-#elif defined( GEOS_5 ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( GEOS_FP )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos5'
 
@@ -745,11 +743,15 @@
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'merra'
 
-#elif defined( EXTERNAL_FORCING )
+#elif defined( EXTERNAL_GRID ) || ( EXTERNAL_FORCING )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'ext'
 
 #endif
+!
+! !REMARKS:
+!  NOTE: GEOS-FP and GEOS-5 met products use the same vertical grid, so we 
+!  can return the name extension "geos5" for both.
 !
 ! !REVISION HISTORY:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
@@ -761,6 +763,9 @@
 !                              grid is identical to GEOS-5.
 !  01 Feb 2012 - R. Yantosca - Now also define output for GEOS-5.7.x met
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
+!                              EXTERNAL_FORCING Cpp switches
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -840,10 +845,6 @@
 !
       FUNCTION GET_RES_EXT() RESULT( RES_EXT )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
 #if   defined( GRID4x5 )
@@ -881,7 +882,7 @@
 !  (2 ) Added extension for 0.5 x 0.666 grid (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  10 Feb 2012 - R. Yantosca - Added extension for 0.25 x 0.3125 grids
-
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -902,10 +903,6 @@
 !
       FUNCTION GET_HALFPOLAR() RESULT( HALFPOLAR )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: HALFPOLAR  ! =1 if we have half-sized polar boxes, =0 if not
@@ -913,6 +910,7 @@
 ! !REVISION HISTORY:
 !  28 Jun 2005 - S. Wu & R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca         - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

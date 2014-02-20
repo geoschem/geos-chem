@@ -17,13 +17,11 @@
 !  (2  ) J-values are stored in array "ZPJ" from "cmn_fj.h".
 !  (3  ) Now references ERROR_STOP from "error_mod.f".  Updated comments,
 !         and made some cosmetic changes. (bmy, 10/15/02)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !*****************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
-
-#     include "define.h"
-
       USE CMN_SIZE_MOD
       USE CMN_FJX_MOD,  ONLY : JPMAX, JPPJ, ZPJ, RINDEX
       USE FAST_JX_MOD,  ONLY : PHOTOJ

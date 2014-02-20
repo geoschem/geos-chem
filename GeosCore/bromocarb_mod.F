@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -38,6 +37,7 @@
 !  13 Aug 2007 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers 
 !  27 Aug 2012 - M. Payer    - Now parallelize DO loops
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,26 +86,28 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION EMIS_CHBr3( I, J ) RESULT( E_R_CHBr3 )
+      FUNCTION EMIS_CHBr3( I, J, State_Met ) RESULT( E_R_CHBr3 )
 ! 
 ! !USES:
 !
-      USE LOGICAL_MOD,  ONLY : LWARWICK_VSLS
-      USE TIME_MOD,     ONLY : GET_MONTH
-      USE GRID_MOD,     ONLY : GET_YMID
+      USE LOGICAL_MOD,        ONLY : LWARWICK_VSLS
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE TIME_MOD,           ONLY : GET_MONTH
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND57 -- diagnostics
-      USE COMODE_LOOP_MOD    ! Avogadro's #, called 'AVG' = 6.02252d+23
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND57 -- diagnostics
+      USE COMODE_LOOP_MOD          ! Avogadro's #, called 'AVG' = 6.02252d+23
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: I        ! Longitude index
-      INTEGER, INTENT(IN)    :: J        ! Latitude  index
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude  index
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      REAL*8                 :: E_R_CHBr3
+      REAL*8                      :: E_R_CHBr3
 !
 ! !REMARKS:
 ! only ocean emissions for all bromocarbons
@@ -164,7 +166,7 @@
 
       ! Pull out CHBr3 and CH2Br2 emissions
       IF (FIRST_INIT) THEN
-         CALL INIT_BROMOCARB
+         CALL INIT_BROMOCARB( State_Met )
          FIRST_INIT = .FALSE.
       ENDIF
 
@@ -258,17 +260,6 @@
       ! EMIS_CH2Br2 begins here!
       !=================================================================
 
-      !----------------------------------------------------------------------
-      ! Initialize arrays: SEA_SURFACE is also called within INIT_BROMOCARB 
-      ! to retrieve surface areas for chosen lat-band regions
-      !----------------------------------------------------------------------
-
-      ! pull out CHBr3 and CH2Br2 emissions
-      IF (FIRST_INIT) THEN
-         CALL INIT_BROMOCARB
-         FIRST_INIT = .FALSE.
-      ENDIF
-
       ! --------------------------------------------
       ! Return with 0'd emission if the VSL source
       ! has been turned off inside input.geos
@@ -299,19 +290,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SEA_SURFACE
+      SUBROUTINE SEA_SURFACE( State_Met )
 ! 
 ! !USES:
 !
-      USE GRID_MOD,    ONLY : GET_AREA_M2, GET_YEDGE
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_YEDGE
 
       USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DEP_MOD       ! FRCLND = returns land-fraction of given box
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
 !  16 Aug 2007 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  27 Aug 2012 - M. Payer    - Added parallel DO loop
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -383,7 +380,7 @@
 
 
          ! Fraction of grid box that is land
-         F_LAND  = FRCLND(I,J)
+         F_LAND  = State_Met%FRCLND(I,J)
 
          ! Fraction of grid box that is water
          F_WATER = 1d0 - F_LAND
@@ -426,35 +423,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CH3Br( N_TRACERS, TCVV, AD, STT, unit_flag )
+      SUBROUTINE SET_CH3Br( N_TRACERS, TCVV, STT, unit_flag, State_Met )
 ! 
 ! !USES:
 !
-      USE GRID_MOD,      ONLY : GET_YMID
-      USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACER_MOD,    ONLY : TRACER_NAME
-      USE LOGICAL_MOD,   ONLY : LWARWICK_VSLS
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE LOGICAL_MOD,        ONLY : LWARWICK_VSLS
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACER_MOD,         ONLY : TRACER_NAME
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DEP_MOD         ! FRCLND = returns land-fraction of given box
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      !=================================================================
-      ! Arguments:
-      !
-      ! TCVV : Array containing [Air MW / Tracer MW] for tracers
-      ! AD   : Array containing grid box air masses
-      ! STT  : Array containing tracer conc. [kg] in this case
-      !=================================================================
-      LOGICAL, INTENT(IN)    :: unit_flag
-      INTEGER, INTENT(IN)    :: N_TRACERS 
-      REAL*8,  INTENT(IN)    :: TCVV(N_TRACERS)
-      REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
+      LOGICAL,        INTENT(IN)    :: unit_flag
+      INTEGER,        INTENT(IN)    :: N_TRACERS
+      REAL*8,         INTENT(IN)    :: TCVV(N_TRACERS) ! [Air MW / Tracer MW]
+      TYPE(MetState), INTENT(IN)    :: State_Met       ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8,         INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
 ! !REMARKS: 
 !   1) STT is converted back and forth between units of [kg] and
@@ -466,6 +456,8 @@
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  27 Aug 2012 - M. Payer    - Added parallel DO loop
 !  28 Aug 2012 - M. Payer    - Add error check for CH3Br to avoid OOB error
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -557,8 +549,8 @@
             ELSE
                ! Now convert the [v/v] units to [kg]
                ! as in convert_units subroutine in dao_mod.f
-               STT(I,J,L,CH3Br_sel) = CH3Br_conc * 
-     &                                AD(I,J,L)  / TCVV(CH3Br_sel)
+               STT(I,J,L,CH3Br_sel) = CH3Br_conc * State_Met%AD(I,J,L) /
+     &                                TCVV(CH3Br_sel)
             ENDIF
 
 !            IF ( FIRST_COUNT ) THEN
@@ -593,36 +585,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_BRO( N_TRACERS, TCVV, AD, SUNCOS, STT, unit_flag )
+      SUBROUTINE SET_BRO( N_TRACERS, TCVV, STT, unit_flag, State_Met )
 ! 
 ! !USES:
 !
-      USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACER_MOD,    ONLY : TRACER_NAME
-      USE LOGICAL_MOD,   ONLY : LFIX_PBL_BRO
-      USE DAO_MOD,       ONLY : IS_WATER
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LFIX_PBL_BRO
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACER_MOD,         ONLY : TRACER_NAME
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DEP_MOD         ! FRCLND = returns land-fraction of given box
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      !=================================================================
-      ! Arguments:
-      !
-      ! TCVV : Array containing [Air MW / Tracer MW] for tracers
-      ! AD   : Array containing grid box air masses
-      ! STT  : Array containing tracer conc. [kg] in this case
-      !=================================================================
-      LOGICAL, INTENT(IN)    :: unit_flag
-      INTEGER, INTENT(IN)    :: N_TRACERS 
-      REAL*8,  INTENT(IN)    :: TCVV(N_TRACERS)
-      REAL*8,  INTENT(IN)    :: SUNCOS(MAXIJ) 
-      REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
+      LOGICAL,        INTENT(IN)    :: unit_flag
+      INTEGER,        INTENT(IN)    :: N_TRACERS 
+      REAL*8,         INTENT(IN)    :: TCVV(N_TRACERS)  ! [Air MW / Tracer MW]
+      TYPE(MetState), INTENT(IN)    :: State_Met        ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8,         INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
 ! !REMARKS:
 !   1) STT is converted back and forth between units of [kg] and
@@ -634,6 +618,9 @@
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  27 Aug 2012 - M. Payer    - Added parallel DO loop
 !  28 Aug 2012 - M. Payer    - Add error check for BrO to avoid OOB error
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -693,7 +680,7 @@
             !    contributed from other timesteps and
             !    sources.
             ! -----------------------------------------
-            IF ( .not. IS_WATER(I,J) ) THEN
+            IF ( .not. IS_WATER( I, J, State_Met) ) THEN
                CYCLE lon_loop
             ENDIF
 
@@ -705,7 +692,7 @@
             ! -----------------------------------------
             IJLOOP = ( (J-1) * IIPAR ) + I
 
-            IF ( SUNCOS(IJLOOP) > 0.d0 ) THEN
+            IF ( State_Met%SUNCOS(I,J) > 0.d0 ) THEN
                BrO_conc = 1.0d-12 ! 1pptv if daytime
             ELSE
                BrO_conc = 0.d0    ! 0 otherwise
@@ -724,7 +711,8 @@
                      ! Now convert the [v/v] units to [kg]
                      ! as in convert_units subroutine in dao_mod.f
                      STT(I,J,L,BrO_sel) = BrO_conc * 
-     &                    AD(I,J,L) / TCVV(BrO_sel)
+     &                                    State_Met%AD(I,J,L) /
+     &                                    TCVV(BrO_sel)
                   ENDIF
 
                ENDIF            ! end selection of PBL boxes
@@ -751,29 +739,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_BROMOCARB
+      SUBROUTINE INIT_BROMOCARB( State_Met )
 !
 ! !USES:
 !
-      USE ERROR_MOD,      ONLY : ALLOC_ERR, DEBUG_MSG
-      USE LOGICAL_MOD,    ONLY : LPRT,      LWARWICK_VSLS
-      USE GRID_MOD,       ONLY : GET_AREA_M2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR, DATA_DIR_1x1
+      USE ERROR_MOD,          ONLY : ALLOC_ERR, DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,        ONLY : LPRT,      LWARWICK_VSLS
       USE REGRID_A2A_MOD
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE COMODE_LOOP_MOD      ! Avogadro's #, called 'AVG' = 6.02252d+23
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! Avogadro's #, called 'AVG' = 6.02252d+23
 
       USE m_netcdf_io_open
       USE m_netcdf_io_read
       USE m_netcdf_io_close
-
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
 !  13 Aug 2007 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  27 Aug 2012 - M. Payer    - Added parallel DO loop
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  05 Jun 2013 - R. Yantosca - Add st2d, ct2d arrays to avoid having the
 !                              code create array temporaries in call to NcRd
 !EOP
@@ -783,11 +776,11 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: I, J, fileID
-      INTEGER           :: AS
-      CHARACTER(len=60) :: vsl_file, fmt, vsldir
-      CHARACTER(len=10) :: cnlon
-      CHARACTER(len=255):: LLFILENAME, FILENAME
+      INTEGER            :: I, J, fileID
+      INTEGER            :: AS
+      CHARACTER(len=60)  :: vsl_file, fmt, vsldir
+      CHARACTER(len=10)  :: cnlon
+      CHARACTER(len=255) :: LLFILENAME, FILENAME
 
       ! Arrays
       INTEGER            :: st2d(2)
@@ -834,7 +827,7 @@
       ! Call Sea Surface to start filling arrays
       !------------------------------------------
 
-      CALL SEA_SURFACE
+      CALL SEA_SURFACE( State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSBROMOCARB: SEA_SURFACE' )
 
       ! ----------------------------------------------------
@@ -856,7 +849,7 @@
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
       call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', st2d, ct2d )
       CALL DO_REGRID_A2A( LLFILENAME, 144,         91, 
-     &                    ARRAY2x25,  CHBr3_EMISS, PERAREA=0,
+     &                    ARRAY2x25,  CHBr3_EMISS, IS_MASS=0,
      &                    netCDF=.TRUE.                       )
 
 
@@ -864,7 +857,7 @@
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
       call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission', st2d, ct2d )
       CALL DO_REGRID_A2A( LLFILENAME, 144,          91,
-     &                    ARRAY2x25,  CH2Br2_EMISS, PERAREA=0,
+     &                    ARRAY2x25,  CH2Br2_EMISS, IS_MASS=0,
      &                    netCDF=.TRUE.                        )
 
       ! Close emission file

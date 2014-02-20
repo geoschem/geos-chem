@@ -224,6 +224,7 @@
 !  02 Mar 2010 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  27 Aug 2012 - M. Payer    - Now parallelize DO loop
+!  18 Dec 2012 - M. Payer    - Replace NLONG and NLAT with IIPAR and JJPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,7 +268,6 @@
 !jp      write(6, '(a)') '-------------------------------------------'
 !jp
 !jp      print*, 'jpp: beginning EMIT_Br2'
-!jp      print*, 'nlat =', nlat, '; nlon =',nlong
 !jp      call flush(6)
 
       ! Now convert the total emission of SSA_Br2
@@ -285,7 +285,7 @@
       ! zero'd for initialization... so just return.
       ! -----------------------------------------------
       IF ( .not. LSSABr2 ) THEN
-         AD46(:,:,16) = 0.d0
+         AD46(:,:,20) = 0.d0
          EMISRR(:,:,IDEBr2) = 0.d0
          RETURN
       ENDIF
@@ -294,11 +294,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_M2 )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: THIS WAS FIXED POST v9-01-03.  Loop limits were out-of-bounds
-!%%%      !DO J = 1, IIPAR
-!%%%      !DO I = 1, JJPAR
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -315,7 +310,7 @@
          IF ( ND46 > 0 ) THEN
             ! store the emission in the AD46 Biogenic Emissions
             ! diagnostic array [kg/m2/s]
-            AD46(I,J,16) = AD46(I,J,16) + ( EMISRR(I,J,IDEBr2) /
+            AD46(I,J,20) = AD46(I,J,20) + ( EMISRR(I,J,IDEBr2) /
      &                     AREA_M2 )    * ( MWT_BR2 / AVG )
          ENDIF
 

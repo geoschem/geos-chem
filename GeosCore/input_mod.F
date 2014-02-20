@@ -19,12 +19,13 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !  
+      PUBLIC  :: INITIALIZE_GEOS_GRID
       PUBLIC  :: READ_INPUT_FILE
+      PUBLIC  :: GIGC_Init_Extra
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -59,6 +60,9 @@
       PRIVATE :: CHECK_TIME_STEPS 
       PRIVATE :: IS_LAST_DAY_GOOD
       PRIVATE :: INIT_INPUT
+#if defined( TOMAS )
+      PRIVATE :: INIT_TOMAS_MICROPHYSICS
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -115,8 +119,8 @@
 !  (33) Remove depreciated lightning options (ltm, bmy, 1/24/11)
 !  25 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  29 Jul 2011 - R. Yantosca - Bug fix in READ_EMISSIONS_MENU for nested NA
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  29 Jul 2011 - R. Yantosca - Bug fix in READ_EMISSIONS_MENU for nested NA
 !  07 Sep 2011 - P. Kasibhatla - Modified to include monthly GFED3
 !  17 Jan 2012 - P. Kasibhatla - Modified to include daily and 3-hourly GFED3
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met data
@@ -127,6 +131,19 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
+!  02 Nov 2012 - R. Yantosca - Now pass the Input Options object to routines;
+!                              this will eventually replace logical_mod, etc.
+!  26 Feb 2013 - M. Long     - Now make INITIALIZE_GEOS_GRID a public routine
+!  04 Mar 2013 - R. Yantosca - Add routine GIGC_Init_Extra to move some init
+!                              calls out of the run stage when using ESMF
+!  23 Apr 2013 - R. Yantosca - For TOMAS, rename READ_MICROPHYSICS_MENU to 
+!                              INIT_TOMAS_MICROPHYSICS
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Sep 2013 - R. Yantosca - Increase MAXDIM from 255 to 500 for more tracers
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP everywhere
+!  26 Sep 2013 - R. Yantosca - Now read GEOS_FP_DIR from Input_Opt everywhere
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,7 +153,7 @@
       LOGICAL            :: VERBOSE  = .FALSE.
       INTEGER            :: IU_GEOS
       INTEGER, PARAMETER :: FIRSTCOL = 26
-      INTEGER, PARAMETER :: MAXDIM   = 255
+      INTEGER, PARAMETER :: MAXDIM   = 500
       INTEGER            :: TS_CHEM
       INTEGER            :: TS_DYN
       INTEGER            :: TS_CONV
@@ -164,17 +181,29 @@
 !\\
 ! !INTERFACE:
 ! 
-      SUBROUTINE READ_INPUT_FILE( am_I_Root )
+      SUBROUTINE READ_INPUT_FILE( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE CHARPAK_MOD, ONLY : STRREPL
-      USE FILE_MOD,    ONLY : IOERROR
-      USE GAMAP_MOD,   ONLY : DO_GAMAP
+      USE CMN_SIZE_MOD
+      USE CHARPAK_MOD,        ONLY : STRREPL
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GAMAP_MOD,          ONLY : DO_GAMAP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE SEASALT_MOD,        ONLY : INIT_SEASALT
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -191,6 +220,12 @@
 !  15 Oct 2012 - R. Yantosca - Add EXTERNAL_GRID, XTERNAL_FORCING to #ifdef
 !  16 Oct 2012 - R. Yantosca - Don't call CHECK_TIME_STEPS if we are calling
 !                              READ_INPUT_FILE from the ESMF interface
+!  09 Nov 2012 - R. Yantosca - Now pass Input_Opt to lower-level routines
+!  06 Dec 2012 - R. Yantosca - Now call CHECK_TIME_STEPS when we are connecting
+!                              to the GEOS-5 GCM via the ESMF environment,
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to input.geos (instead of ___.rc)
+!  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -201,7 +236,7 @@
       INTEGER            :: IOS
       CHARACTER(LEN=1)   :: TAB   = ACHAR(9)
       CHARACTER(LEN=1)   :: SPACE = ' '
-      CHARACTER(LEN=255) :: LINE
+      CHARACTER(LEN=MAXDIM) :: LINE
 
       !=================================================================
       ! READ_INPUT_FILE begins here!
@@ -221,9 +256,13 @@
       ! Find a free file LUN
       IU_GEOS  = findFreeLUN()
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+      ! Assume success
+      RC       = GIGC_SUCCESS
+
+#if defined( ESMF_ )
+      ! We need to add the ".rc" extension to the "input.geos" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Open file
@@ -263,97 +302,102 @@
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
-            CALL READ_SIMULATION_MENU( am_I_Root )             
-                                     
+            CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
+
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
-            CALL READ_TRACER_MENU( am_I_Root )                 
+            CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )                 
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
-            CALL READ_AEROSOL_MENU( am_I_Root )              
+            CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
 
-#if   defined( APM )
+#if defined( TOMAS )
+         ! Initialize the TOMAS microphysics package, if necessary
+         CALL INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )    
+#endif
+
+#if defined( APM )
+         ! Initialize APM microphysics package, if necessary
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
-            CALL READ_APM_MENU( am_I_Root )
+            CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
 #endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
-            CALL READ_EMISSIONS_MENU( am_I_Root )             
+            CALL READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )             
 
          ELSE IF ( INDEX( LINE, 'FUTURE MENU'      ) > 0 ) THEN
-            CALL READ_FUTURE_MENU( am_I_Root ) 
-                                                        
+            CALL READ_FUTURE_MENU( am_I_Root, Input_Opt, RC ) 
+                                                   
          ELSE IF ( INDEX( LINE, 'CHEMISTRY MENU'   ) > 0 ) THEN
-            CALL READ_CHEMISTRY_MENU( am_I_Root )              
-                                                  
+            CALL READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )              
+                                                 
          ELSE IF ( INDEX( LINE, 'TRANSPORT MENU'   ) > 0 ) THEN
-            CALL READ_TRANSPORT_MENU( am_I_Root )              
-                                                  
+            CALL READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )              
+                                             
          ELSE IF ( INDEX( LINE, 'CONVECTION MENU'  ) > 0 ) THEN
-            CALL READ_CONVECTION_MENU( am_I_Root )            
-                                                  
+            CALL READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )            
+                                             
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
-            CALL READ_DEPOSITION_MENU( am_I_Root )             
+            CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )             
 
-         ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN !Ray Nassar
-            CALL READ_CO2_SIM_MENU( am_I_Root )
+         ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
+            CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
                                     
          ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
-            CALL READ_GAMAP_MENU( am_I_Root )                 
+            CALL READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )                 
                                                   
          ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
-            CALL READ_OUTPUT_MENU( am_I_Root )                 
+            CALL READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )                 
                                                   
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
-            CALL READ_DIAGNOSTIC_MENU( am_I_Root )             
+            CALL READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )             
 
          ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
-            CALL READ_PLANEFLIGHT_MENU( am_I_Root )             
+            CALL READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )             
                                                   
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
-            CALL READ_ND48_MENU( am_I_Root )                  
+            CALL READ_ND48_MENU( am_I_Root, Input_Opt, RC )                  
 
          ELSE IF ( INDEX( LINE, 'ND49 MENU'        ) > 0 ) THEN
-            CALL READ_ND49_MENU( am_I_Root )                   
+            CALL READ_ND49_MENU( am_I_Root, Input_Opt, RC )                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND50 MENU'        ) > 0 ) THEN
-            CALL READ_ND50_MENU( am_I_Root )                   
+            CALL READ_ND50_MENU( am_I_Root, Input_Opt, RC )                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND51 MENU'        ) > 0 ) THEN
-            CALL READ_ND51_MENU( am_I_Root )                   
+            CALL READ_ND51_MENU( am_I_Root, Input_Opt, RC )                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
-            CALL READ_ND51b_MENU( am_I_Root )  
+            CALL READ_ND51b_MENU( am_I_Root, Input_Opt, RC )  
 
          ELSE IF ( INDEX( LINE, 'ND63 MENU'        ) > 0 ) THEN
-            CALL READ_ND63_MENU( am_I_Root )                   
+            CALL READ_ND63_MENU( am_I_Root, Input_Opt, RC )                   
 
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
-            CALL READ_PROD_LOSS_MENU( am_I_Root )               
-                                                  
+            CALL READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )               
+                                             
          ELSE IF ( INDEX( LINE, 'UNIX CMDS MENU'   ) > 0 ) THEN 
-            CALL READ_UNIX_CMDS_MENU( am_I_Root )              
+            CALL READ_UNIX_CMDS_MENU( am_I_Root, Input_Opt, RC )              
 
          ELSE IF ( INDEX( LINE, 'NESTED GRID MENU' ) > 0 ) THEN 
-            CALL READ_NESTED_GRID_MENU( am_I_Root )
+            CALL READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'ARCHIVED OH MENU' ) > 0 ) THEN 
-            CALL READ_ARCHIVED_OH_MENU( am_I_Root )
+            CALL READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC  )
 
          ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
-            CALL READ_O3PL_MENU( am_I_Root )
+            CALL READ_O3PL_MENU( am_I_Root, Input_Opt, RC  )
 
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
-            CALL READ_BENCHMARK_MENU( am_I_Root )
-              
+            CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
+         
          ELSE IF ( INDEX( LINE, 'POPS MENU'        ) > 0 ) THEN
-            CALL READ_POPS_MENU( am_I_Root )
+            CALL READ_POPS_MENU( am_I_Root, Input_Opt, RC )
            
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
-            CALL READ_MERCURY_MENU( am_I_Root )
-                                    
+            CALL READ_MERCURY_MENU( am_I_Root, Input_Opt, RC  )
+                                   
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
-            CALL READ_CH4_MENU( am_I_Root )
-
+            CALL READ_CH4_MENU( am_I_Root, Input_Opt, RC )
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
 
@@ -363,25 +407,40 @@
       ! Close input file
       CLOSE( IU_GEOS )
 
-#if   !defined( ESMF_         ) 
-#if   !defined( EXTERNAL_GRID ) && !defined( EXTERNAL_FORCING )
-      ! Allocate diagnostic arrays (phs, 11/18/08)
-      CALL NDXX_SETUP
-
       !=================================================================
       ! Further error-checking and initialization
       !=================================================================
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not initialize diagnostics when we are connecting to
+      ! the GEOS-5 GCM via ESMF. (bmy, 11/2/12)
+      !-----------------------------------------------------------------
+#else
+
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! We only need to initialize GEOS-5 diagnostics if we are not
+      ! using ESMF.  The GEOS-5 GCM has its own History component
+      ! for diagnostic output (bmy, 3/4/13)
+      !-----------------------------------------------------------------
+
+      ! Define GEOS-Chem diagnostic info
+      CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
+
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES
 
-      ! Check GEOS-CHEM timesteps
-      CALL CHECK_TIME_STEPS( am_I_Root )
-#endif
 #endif
 
+      ! Check GEOS-CHEM timesteps
+      CALL CHECK_TIME_STEPS( am_I_Root )
+
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
-      CALL DO_GAMAP( DIAGINFO, TRACERINFO )
+      CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
 
       ! Echo output
       IF ( am_I_Root ) THEN
@@ -425,6 +484,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
+!  17 Sep 2013 - R. Yantosca - Extend line length to read in more tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -432,7 +492,12 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: IOS
-      CHARACTER(LEN=255) :: LINE, MSG
+!------------------------------------------------------------------------------
+! Prior to 9/17/13:
+! Need to extend the line length for many more tracers (bmy, 9/17/13)
+!      CHARACTER(LEN=255) :: LINE, MSG
+!------------------------------------------------------------------------------
+      CHARACTER(LEN=500) :: LINE, MSG
 
       !=================================================================
       ! READ_ONE_LINE begins here!
@@ -514,6 +579,7 @@
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  17 Sep 2013 - R. Yantosca - Extend LINE to 500 chars to allow more tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -521,7 +587,13 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                         :: EOF
-      CHARACTER(LEN=255)              :: LINE, MSG
+!----------------------------------------------------------------------------
+! Prior to 9/17/13:
+! Extend LINE to 500 chars to allow more tracers (bmy, 9/17/13)
+!      CHARACTER(LEN=255)              :: LINE, MSG
+!----------------------------------------------------------------------------
+      CHARACTER(LEN=MAXDIM)           :: LINE
+      CHARACTER(LEN=255)              :: MSG
 
       !=================================================================
       ! SPLIT_ONE_LINE begins here!
@@ -578,27 +650,41 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_SIMULATION_MENU( am_I_Root )
+      SUBROUTINE READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
-!
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR,   GEOS_57_DIR
-      USE DIRECTORY_MOD, ONLY : RUN_DIR
-      USE DIRECTORY_MOD, ONLY : TEMP_DIR   
-      USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET
-      USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,       LWAIT
-      USE LOGICAL_MOD,   ONLY : LVARTROP
-      USE RESTART_MOD,   ONLY : SET_RESTART
-      USE TIME_MOD,      ONLY : SET_BEGIN_TIME,   SET_END_TIME 
-      USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
-      USE TIME_MOD,      ONLY : SET_NDIAGTIME,    GET_TAU
-      USE TRANSFER_MOD,  ONLY : INIT_TRANSFER
+!     
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
+      USE DIRECTORY_MOD,      ONLY : GEOS_4_DIR,  GEOS_5_DIR
+      USE DIRECTORY_MOD,      ONLY : MERRA_DIR,   GEOS_FP_DIR
+      USE DIRECTORY_MOD,      ONLY : RUN_DIR
+      USE DIRECTORY_MOD,      ONLY : TEMP_DIR   
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : SET_XOFFSET, SET_YOFFSET
+      USE LOGICAL_MOD,        ONLY : LSVGLB,      LUNZIP,       LWAIT
+      USE LOGICAL_MOD,        ONLY : LVARTROP
+      USE RESTART_MOD,        ONLY : SET_RESTART
+      USE TIME_MOD,           ONLY : SET_BEGIN_TIME,   SET_END_TIME 
+      USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
+      USE TIME_MOD,           ONLY : SET_NDIAGTIME,    GET_TAU
+      USE TRANSFER_MOD,       ONLY : INIT_TRANSFER
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -623,6 +709,11 @@
 !  10 Jun 2012 - L. Murray   - Move Linoz to chemistry menu
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Dec 2012 - R. Yantosca - Now get NYMDb, NHMSb, NYMDe, NHMSe from the ESMF
+!                              environment when connecting to the GEOS-5 GCM
+!  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
+!                              to ACCEPT_EXTERNAL_DATE_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -683,7 +774,7 @@
 
       ! GEOS-5.7.x subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
-      READ( SUBSTRS(1:N), '(a)' ) GEOS_57_DIR
+      READ( SUBSTRS(1:N), '(a)' ) GEOS_FP_DIR
 
       ! MERRA subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
@@ -719,10 +810,80 @@
       !=================================================================
       ! Add safety checks for logical switches
       !=================================================================
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
       ! Turn unzipping off for MERRA met fields
       LUNZIP = .FALSE. 
 #endif
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+#if defined( ESMF_ ) 
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to take
+      ! the start & end dates as defined in the ESMF resource file.
+      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of those in 
+      ! input.geos.  This is because the ESMF Clock object needs to be
+      ! defined at the highest level (in the driver routine), before 
+      ! input.geos is ever read.
+      !
+      ! Therefore, we will assign the start & end date fields (i.e.
+      ! Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, and 
+      ! Input_Opt%NHMSe) in the Gridded Component module file
+      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
+      ! in the code).  We don'need to define those fields here, so
+      ! we have bracketed this with an #ifdef. 
+      !
+      ! Ideallly it would be good to have one single version of 
+      ! "input.geos" that can double as the GEOS-Chem input file as 
+      ! well as the ESMF resource.  We may be a way off from that.
+      ! One potential solution is to use a Perl script to generate
+      ! both the input.geos file and the ESMF resource file, so that
+      ! both files are consistent with each other. (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      
+      ! Save to local variables for printing below
+      NYMDb                   = Input_Opt%NYMDb
+      NHMSb                   = Input_Opt%NHMSb
+      NYMDe                   = Input_Opt%NYMDe
+      NHMSe                   = Input_Opt%NHMSe
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to initialize 
+      ! the fields Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, 
+      ! and Input_Opt%NHMSe from the values read in from input.geos.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+
+      Input_Opt%NYMDb         = NYMDb 
+      Input_Opt%NHMSb         = NHMSb
+      Input_Opt%NYMDe         = NYMDe
+      Input_Opt%NHMSe         = NHMSe
+#endif
+      Input_Opt%RUN_DIR       = RUN_DIR
+      Input_Opt%IN_RST_FILE   = IN_RST_FILE
+      Input_Opt%LSVGLB        = LSVGLB
+      Input_Opt%OUT_RST_FILE  = OUT_RST_FILE
+      Input_Opt%DATA_DIR      = DATA_DIR
+      Input_Opt%GCAP_DIR      = GCAP_DIR
+      Input_Opt%GEOS_4_DIR    = GEOS_4_DIR
+      Input_Opt%GEOS_5_DIR    = GEOS_5_DIR
+      Input_Opt%GEOS_FP_DIR   = GEOS_FP_DIR
+      Input_Opt%MERRA_DIR     = MERRA_DIR
+      Input_Opt%DATA_DIR_1x1  = DATA_DIR_1x1
+      Input_Opt%TEMP_DIR      = TEMP_DIR
+      Input_Opt%LUNZIP        = LUNZIP
+      Input_Opt%LWAIT         = LWAIT
+      Input_Opt%LVARTROP      = LVARTROP
+      Input_Opt%NESTED_I0     = I0
+      Input_Opt%NESTED_J0     = J0 
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -743,7 +904,7 @@
          WRITE( 6, 110 ) 'GEOS-5     sub-directory    : ', 
      &                    TRIM( GEOS_5_DIR )
          WRITE( 6, 110 ) 'GEOS-5.7.x sub-directory    : ', 
-     &                    TRIM( GEOS_57_DIR )
+     &                    TRIM( GEOS_FP_DIR )
          WRITE( 6, 110 ) 'MERRA      sub-directory    : ', 
      &                    TRIM( MERRA_DIR )
          WRITE( 6, 110 ) '1x1 Emissions etc Data Dir  : ',
@@ -771,6 +932,35 @@
       ! Call setup routines from other GEOS-CHEM modules
       !=================================================================
 
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the GEOS-5 GCM via ESMF, then pass the
+      ! values for the start & end times of the simulation directly to
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      CALL Accept_External_Date_Time( am_I_Root   = am_I_Root, 
+     &                                value_NYMDb = Input_Opt%NYMDb,
+     &                                value_NHMSb = Input_Opt%NHMSb,
+     &                                value_NYMDe = Input_Opt%NYMDe,
+     &                                value_NHMSe = Input_Opt%NHMSe,
+     &                                value_NYMD  = Input_Opt%NYMDb,
+     &                                value_NHMS  = Input_Opt%NHMSb,
+     &                                RC          = RC               )
+     &                                 
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! If we are not using ESMF, then call the traditional GEOS-Chem
+      ! timing routines (from GeosUtil/time_mod.F) to set the start &
+      ! end times of the simulation, as well as the current time.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+
       ! Set start time of run in "time_mod.f"
       CALL SET_BEGIN_TIME( NYMDb, NHMSb )
 
@@ -779,6 +969,8 @@
 
       ! Set the current time
       CALL SET_CURRENT_TIME()
+
+#endif
 
       ! Set the time of day for writing bpch files
       NDIAGTIME = NHMSe !### test
@@ -795,7 +987,7 @@
       CALL SET_YOFFSET( J0 )
 
       ! Initialize GEOS-Chem horizontal grid structure
-      CALL INITIALIZE_GEOS_GRID( am_I_Root )
+      CALL INITIALIZE_GEOS_GRID( am_I_Root, RC )
 
       ! Initialze quantities for "transfer_mod.f"
       CALL INIT_TRANSFER( 0, 0 )
@@ -818,18 +1010,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE_GEOS_GRID( am_I_Root )
+      SUBROUTINE INITIALIZE_GEOS_GRID( am_I_Root, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE GLOBAL_GRID_MOD, ONLY : COMPUTE_GLOBAL_GRID
-      USE GRID_MOD,        ONLY : INIT_GRID, COMPUTE_GRID
+      USE GRID_MOD,        ONLY : COMPUTE_GRID
+      USE GRID_MOD,        ONLY : INIT_GRID
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL, INTENT(IN)  :: am_I_Root    ! Is this the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC           ! Success or failure?
+!
 ! !REMARKS:
 !  The module grid_mod.F90 has been modified to save grid parameters in 3D
 !  format, which will facilitate interfacing GEOS-Chem to a GCM.
@@ -839,76 +1036,84 @@
 !  biomass emissions, which are available on a 0.5x0.5 global grid. The global
 !  arrays may need to be used in the future for regridding other emissions for
 !  nested grids.
-!
+!                                                                             .
 ! !REVISION HISTORY: 
 !  01 Mar 2012 - R. Yantosca - Initial version
 !  01 May 2012 - M. Payer    - Add call to COMPUTE_GLOBAL_GRID for nested grids
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  30 Nov 2012 - R. Yantosca - Accept external DLON, DLAT from ESMF interface
+!  26 Feb 2013 - R. Yantosca - Now pass I_LO, J_LO to COMPUTE_GRID
+!  28 Feb 2013 - R. Yantosca - Bug fix for GEOS-5 interface: Now call 
+!                              Compute_Grid with 1..IIPAR, I..JJPAR
+!  01 Jul 2013 - R. Yantosca - Don't use 1/2 sized polar boxes for GCAP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-
-      ! Scalars
       INTEGER :: JSP, JNP
-      
-      ! Arrays
-      REAL*8  :: DLON(IIPAR,JJPAR,LLPAR)   ! Delta-longitudes
-      REAL*8  :: DLAT(IIPAR,JJPAR,LLPAR)   ! Delta-latitudes
 
+      !=================================================================
+      ! Define inputs depending on the grid that is selected
+      !=================================================================
 #if   defined( GRID4x5 )
 
       !-----------------------------
       ! Global 4 x 5 grid
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 5.0d0              ! Delta-longitude array [degrees]
-      DLAT            = 4.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 2.0d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 2.0d0              !  Half-sized N Pole boxes
-
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 5.0d0              ! Delta-longitude array [degrees]
+      DLAT          = 4.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
+      DLAT(:,JSP,:) = 2.0d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID2x25 )
 
       !-----------------------------
       ! Global 2 x 2.5 grid
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 2.5d0              ! Delta-longitude array [degrees]
-      DLAT            = 2.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 1.0d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 1.0d0              !  Half-sized N Pole boxes
-  
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 2.5d0              ! Delta-longitude array [degrees]
+      DLAT          = 2.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
+      DLAT(:,JSP,:) = 1.0d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 1.0d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID1x125 )
 
       !-----------------------------
       ! Global 1 x 1.25 grid
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 1.25d0             ! Delta-longitude array [degrees]
-      DLAT            = 1.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 0.5d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 0.5d0              !  Half-sized N Pole boxes
-
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 1.25d0             ! Delta-longitude array [degrees]
+      DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
+      DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID1x1 )
 
       !-----------------------------
       ! Global 1 x 1 
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 1.0d0              ! Delta-longitude array [degrees]
-      DLAT            = 1.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 0.5d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 0.5d0              !  Half-sized N Pole boxes
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 1.0d0              ! Delta-longitude array [degrees]
+      DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
+      DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID05x0666 )
 
@@ -917,10 +1122,10 @@
       !-------------------=---------
       ! Nested 0.5 x 0.666 grids
       !-----------------------------
-      JSP             = 0                  ! Lat index of S Pole
-      JNP             = 0                  ! Lat index of N pole
-      DLON            = 2d0/3d0            ! Delta-longitude array [degrees]
-      DLAT            = 0.5d0              ! Delta-latitude array [degrees]
+      JSP           = 0                  ! Lat index of S Pole
+      JNP           = 0                  ! Lat index of N pole
+      DLON          = 2d0/3d0            ! Delta-longitude array [degrees]
+      DLAT          = 0.5d0              ! Delta-latitude array [degrees]
 
 #elif defined( GRID025x03125 )
 
@@ -929,29 +1134,52 @@
       !-----------------------------
       ! Nested 0.25 x 0.3125 grids
       !-----------------------------
-      JSP             = 0                  ! Lat index of S Pole
-      JNP             = 0                  ! Lat index of N pole
-      DLON            = 0.3125d0           ! Delta-longitude array [degrees]
-      DLAT            = 0.25d0             ! Delta-latitude array [degrees]
+      JSP           = 0                  ! Lat index of S Pole
+      JNP           = 0                  ! Lat index of N pole
+      DLON          = 0.3125d0           ! Delta-longitude array [degrees]
+      DLAT          = 0.25d0             ! Delta-latitude array [degrees]
+
+#elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+
+      !-----------------------------
+      ! Connecting to GCM via ESMF
+      !-----------------------------
+      JSP           = 1
+      JNP           = JM_WORLD
+
+      ! NOTE: DLON, DLAT are defined in routine GIGC_Get_Options in
+      ! ESMF/gigc_initialization_mod.F90, so no need to define them
+      ! here.  (bmy, 12/3/12)
 
 #endif
+
+      !=================================================================
+      ! Initialize the horizontal grid
+      !=================================================================
 
       ! Allocate module arrays in grid_mod.F90
-      CALL INIT_GRID   ( I1=1,      I2=IIPAR,  
-     &                   J1=1,      J2=JJPAR,  
-     &                   L1=1,      L2=LLPAR  )
+      CALL Init_Grid   ( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+     &                   IM        = IIPAR,         ! # of lons on this CPU
+     &                   JM        = JJPAR,         ! # of lats on this CPU
+     &                   LM        = LLPAR,         ! # of levs on this CPU
+     &                   RC        = RC         )   ! Success or failure?
 
-      ! Compute grid parameters in grid_mod.F90
-#if ! defined( ESMF_ )
-#if ! defined( GCM   )
-      CALL COMPUTE_GRID( am_I_Root=am_I_Root,
-     &                   I1=1,      I2=IIPAR,  
-     &                   J1=1,      J2=JJPAR,  
-     &                   JSP=JSP,   JNP=JNP,   
-     &                   L1=1,      L2=LLPAR,  
-     &                   DLON=DLON, DLAT=DLAT )
-#endif
-#endif
+      ! Compute the horiziontal grid properties
+      CALL Compute_Grid( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+     &                   I1        = 1,             ! Min lon index, this CPU
+     &                   J1        = 1,             ! Min lat index, this CPU
+     &                   L1        = 1,             ! Min lev index, this CPU
+     &                   I2        = IIPAR,         ! Max lon index, this CPU
+     &                   J2        = JJPAR,         ! Max lat index, this CPU
+     &                   L2        = LLPAR,         ! Max lev index, this CPU
+     &                   JSP       = JSP,           ! Lat index of South Pole
+     &                   JNP       = JNP,           ! Lat index of North Pole
+     &                   DLON      = DLON,          ! Delta-longitudes [deg]
+     &                   DLAT      = DLAT,          ! Delta-latitudes  [deg]
+     &                   I_LO      = I_LO,          ! Min global lon index
+     &                   J_LO      = J_LO,          ! Min global lat index
+     &                   RC        = RC         )   ! Success or failure?
+
 
       END SUBROUTINE INITIALIZE_GEOS_GRID
 !EOC
@@ -968,7 +1196,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRACER_MENU( am_I_Root )
+      SUBROUTINE READ_TRACER_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -990,10 +1218,20 @@
       USE TRACERID_MOD, ONLY : TRACERID
 
       USE CMN_SIZE_MOD                    ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root    ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1007,6 +1245,10 @@
 !  (8 ) Add SET_BIOTRCE to initialize IDBxxxs. (fp, 2/26/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2012 - R. Yantosca - Now pass CHEM_STATE as an argument (DEVEL only)
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  07 Nov 2012 - R. Yantosca - Now define Input_Opt%ITS_A_*_SIM fields
+!  28 Oct 2013 - R. Yantosca - Set Input_Opt%ITS_A_SPECIALTY_SIM = .FALSE.
+!                              when running GEOS-Chem in an ESMF environment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1031,15 +1273,18 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
-      
       ! NTRACE cannot exceed NNPAR
+
       IF ( N_TRACERS > NNPAR ) THEN
          CALL ERROR_STOP( 'Error: N_TRACERS > NNPAR!', 
      &                    'read_tracer_menu (input_mod.f)' )
       ENDIF
      
+      ! Save N_TRACERS to Input_Opt
+      Input_Opt%N_TRACERS = N_TRACERS
+
       ! Initialize tracer arrays in tracer_mod.f
-      CALL INIT_TRACER
+      CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
 
       !=================================================================
       ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
@@ -1261,6 +1506,80 @@
       ! Set counter
       CT1 = CT1 + 1
 
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%N_TRACERS              = N_TRACERS
+      Input_Opt%LSPLIT                 = LSPLIT
+      Input_Opt%ITS_A_RnPbBe_SIM       = ( SIM_TYPE == 1  )
+      Input_Opt%ITS_A_CH3I_SIM         = ( SIM_TYPE == 2  )
+      Input_Opt%ITS_A_FULLCHEM_SIM     = ( SIM_TYPE == 3  )
+      Input_Opt%ITS_A_HCN_SIM          = ( SIM_TYPE == 4  )
+      Input_Opt%ITS_A_TAGOX_SIM        = ( SIM_TYPE == 6  )
+      Input_Opt%ITS_A_TAGCO_SIM        = ( SIM_TYPE == 7  )
+      Input_Opt%ITS_A_C2H6_SIM         = ( SIM_TYPE == 8  )
+      Input_Opt%ITS_A_CH4_SIM          = ( SIM_TYPE == 9  )
+      Input_Opt%ITS_NOT_COPARAM_OR_CH4 = ( SIM_TYPE /= 9  )
+      Input_Opt%ITS_AN_AEROSOL_SIM     = ( SIM_TYPE == 10 )
+      Input_Opt%ITS_A_MERCURY_SIM      = ( SIM_TYPE == 11 )
+      Input_Opt%ITS_A_CO2_SIM          = ( SIM_TYPE == 12 )
+      Input_Opt%ITS_A_H2HD_SIM         = ( SIM_TYPE == 13 )
+      Input_Opt%ITS_A_POPS_SIM         = ( SIM_TYPE == 14 )
+
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Set Input_Opt%ITS_A_SPECIALTY_SIM to FALSE, which will skip
+      ! reading/allocating T_FULLGRID and AIRDEN_FULLGRID arrays.
+      ! These are only needed for the offline "specialty" simulations
+      ! so that the OH fields can be regridded properly. (bmy, 10/28/13)
+      !-----------------------------------------------------------------
+      Input_Opt%ITS_A_SPECIALTY_SIM    = .FALSE.
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Set Input_Opt%ITS_A_SPECIALTY_SIM to TRUE if we are performing
+      ! any of the offline (non-full-chemistry) simulations that use
+      ! offline OH fields.  This will cause both the T_FULLGRID and 
+      ! AIRDEN_FULLGRID arrays to be allocated. (bmy, 10/28/13)
+      !-----------------------------------------------------------------
+      Input_Opt%ITS_A_SPECIALTY_SIM    =
+     &     ( Input_Opt%ITS_A_CH3I_SIM      .or.
+     &       Input_Opt%ITS_A_HCN_SIM       .or.
+     &       Input_Opt%ITS_A_TAGOX_SIM     .or.
+     &       Input_Opt%ITS_A_TAGCO_SIM     .or.
+     &       Input_Opt%ITS_A_C2H6_SIM      .or.
+     &       Input_Opt%ITS_A_CH4_SIM       .or.
+     &       Input_Opt%ITS_AN_AEROSOL_SIM  .or.
+     &       Input_Opt%ITS_A_MERCURY_SIM   .or.
+     &       Input_Opt%ITS_A_CO2_SIM       .or.
+     &       Input_Opt%ITS_A_H2HD_SIM      .or.
+     &       Input_Opt%ITS_A_POPS_SIM           )
+#endif
+
+      ! Print info about each tracer
+      DO T = 1, N_TRACERS
+         Input_Opt%ID_EMITTED(T)       = ID_EMITTED(T)
+         Input_Opt%ID_TRACER(T)        = ID_TRACER(T)
+         Input_Opt%TRACER_NAME(T)      = TRIM( TRACER_NAME(T) )
+         Input_Opt%TRACER_N_CONST(T)   = TRACER_N_CONST(T)
+         Input_Opt%TRACER_MW_G(T)      = TRACER_MW_G(T)
+         Input_Opt%TRACER_MW_KG(T)     = TRACER_MW_KG(T)
+         Input_OPt%TCVV(T)             = TCVV(T)  
+         Input_Opt%XNUMOL(T)           = XNUMOL(T)
+
+         ! Loop over member species
+         DO C = 1, TRACER_N_CONST(T)
+            Input_Opt%TRACER_COEFF(T,C) = TRACER_COEFF(T,C)
+            Input_Opt%TRACER_CONST(T,C) = TRIM( TRACER_CONST(T,C) )
+         ENDDO
+      ENDDO
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
       END SUBROUTINE READ_TRACER_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -1276,15 +1595,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_AEROSOL_MENU( am_I_Root )
+      SUBROUTINE READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
+      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA,   LSVPOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
-      USE LOGICAL_MOD,  ONLY : LDICARB, LGRAVSTRAT, LHOMNUCNAT
-      USE LOGICAL_MOD,  ONLY : LSOLIDPSC, LPSCCHEM
+      USE LOGICAL_MOD,  ONLY : LDICARB
+      USE LOGICAL_MOD,  ONLY : LGRAVSTRAT, LHOMNUCNAT
+      USE LOGICAL_MOD,  ONLY : LSOLIDPSC,  LPSCCHEM
       USE LOGICAL_MOD,  ONLY : LSTRATOD
       USE UCX_MOD,      ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
       USE TRACER_MOD,   ONLY : N_TRACERS
@@ -1294,16 +1614,35 @@
       USE TRACERID_MOD, ONLY : IDTMSA,   IDTNH3,   IDTNH4,  IDTNITs 
       USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTNH4aq 
       USE TRACERID_MOD, ONLY : IDTSO4aq, IDTBCPO,  IDTBCPI, IDTOCPO 
-      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTALPH,  IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
-      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IDTOCPI
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
-      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
+      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
+      ! SOAupdate: remove old tracers and add new mtp (hotp 5/24/10)
+      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
+      USE TRACERID_MOD, ONLY : IDTBENZ,  IDTTOLU,  IDTXYLE
+      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3, IDTASOAN
+      ! semivolpoa : add POA (hotp 8/23/09)
+      ! POA now 1 and 2 (hotp 10/11/09), and NAP (hotp 7/28/10)
+      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
+      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
+      USE TRACERID_MOD, ONLY : IDTNAP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1321,7 +1660,10 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
-!  11 Apr 2013 - S. D. Eastham - Added gravitational settling flag
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  11 Apr 2013 - S.D. Eastham- Added gravitational settling flag
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1360,65 +1702,79 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
       READ( SUBSTRS(1:N), * ) LSOA
 
-      ! Use online dust aerosols 
+      ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
+      READ( SUBSTRS(1:N), * ) LSVPOA
+
+      ! SOAupdate: Add NAP/IVOC surrogate emissions (hotp 8/9/09)
+      ! SOAupdate: set NAP emissions (in Tg/yr)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%NAPEMISS
+
+      ! SOAupdate: Add scaling for POA emiss (hotp 9/21/09)
+      ! Fractional scaling, recommended value: 1.27
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%POAEMISSSCALE
+
+      ! Use online dust aerosols 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
       READ( SUBSTRS(1:N), * ) LDUST
 
       ! Use DEAD dust mobilization (=T) or GINOUX (=F)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
       READ( SUBSTRS(1:N), * ) LDEAD      
 
       ! Use online sea-salt aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
       READ( SUBSTRS(1:N), * ) LSSALT      
 
       ! Accum mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:11' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) SALA_REDGE_um(T)
       ENDDO
 
       ! Coarse mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:12' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) SALC_REDGE_um(T)
       ENDDO
 
       ! Switch to comment the SOG condensation in carbon_mod.f (ccc, 3/10/09)
       ! Use online dicarbonyl chemistry 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
       READ( SUBSTRS(1:N), * ) LDICARB
 
       ! Apply gravitational settling in stratosphere?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
       READ( SUBSTRS(1:N), * ) LGRAVSTRAT  
 
       ! Use solid polar stratospheric clouds (PSCs)?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
       READ( SUBSTRS(1:N), * ) LSOLIDPSC   
 
       ! Allow homogeneous nucleation of NAT?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
       READ( SUBSTRS(1:N), * ) LHOMNUCNAT 
 
       ! NAT supercooling requirement (K)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:17' )
       READ( SUBSTRS(1:N), * ) T_NAT_SUPERCOOL
 
       ! Ice supersaturation ratio requirement
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:18' )
       READ( SUBSTRS(1:N), * ) P_ICE_SUPERSAT
 
       ! Perform PSC-related heterogeneous chemistry?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:19' )
       READ( SUBSTRS(1:N), * ) LPSCCHEM 
 
       ! Include stratospheric aerosols optical depths?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:20' )
       READ( SUBSTRS(1:N), * ) LSTRATOD
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:21' )
 
       !=================================================================
       ! Error checks
@@ -1440,6 +1796,7 @@
          LDUST  = .FALSE.
          LDEAD  = .FALSE.
          LSSALT = .FALSE.
+         LSVPOA = .FALSE.
       ENDIF
 
       !%%% The cryst/aq code is currently under development so make
@@ -1515,7 +1872,8 @@
       !---------------------------------
       ! Error check CARBON AEROSOLS
       !---------------------------------
-      I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI
+      ! SOAupdate: Add POA (hotp 10/11/09)
+      I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI + IDTPOA1
 
       IF ( LCARB ) THEN
          IF ( I == 0 ) THEN
@@ -1529,15 +1887,59 @@
          ENDIF
       ENDIF
 
+      IF ( LSVPOA .and. ( .NOT. LSOA ) ) THEN
+         MSG = 'Semivolatile POA requires LSOA=T'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! SOAupdate: Error check (hotp 8/24/09)
+      ! OCPI and OCPO are the non-volatile POA tracers
+      ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA tracers
+      ! You can't have both!
+      I = IDTOCPI + IDTOCPO
+      IF ( IDTPOA1 > 0 ) THEN
+         IF ( I > 0 ) THEN
+            MSG = 'Semivolatile POA tracer is defined in addition to
+     &             Nonvolatile POA'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+         IF ( ( .NOT. LSOA ) .or. (.NOT. LSVPOA ) ) THEN
+            MSG = 'Semivolatile POA requires LSOA=T and LSVPOA=T'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      ! SOAupdate
+      ! Options for organic aerosol tracers:
+      ! IF LSOA = F: only OCPI and OCPO
+      ! IF LSOA = T:
+      !   OCPI OCPO SOA (non-vol + original traditional)
+      !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
+      ! NAP emissions are set in input.geos
+      ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
+      I = IDTPOA1  + IDTPOA2  + IDTPOG1  + IDTPOG2  + 
+     &    IDTOPOA1 + IDTOPOA2 + IDTOPOG1 + IDTOPOG2
+      IF ( LSVPOA ) THEN
+         IF ( I < 8 ) THEN
+            MSG = 'Not enough semivolatile POA tracers!'
+                     CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+         IF ( IDTNAP == 0 ) THEN
+            MSG = 'Semivolatile POA requires IVOCs/NAP!'
+                     CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
       !---------------------------------
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
-      ! Add SOA5 in the check. (ccc, 2/4/10)
-      I = IDTALPH + IDTLIMO + IDTALCO + 
-     &    IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
-     &    IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4 + 
-     &    IDTSOAG + IDTSOAM + IDTSOA5
-
+      ! SOAupdate: update for new mtp (hotp 5/24/10)
+      I = IDTMTPA  + IDTLIMO  + IDTMTPO  + 
+     &    IDTBENZ  + IDTTOLU  + IDTXYLE  +
+     &    IDTTSOA1 + IDTTSOA2 + IDTTSOA3 +
+     &    IDTISOA1 + IDTISOA2 + IDTISOA3 +
+     &    IDTASOA1 + IDTASOA2 + IDTASOA3 + IDTASOAN +
+     &    IDTSOAG  + IDTSOAM
 
       IF ( LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -1586,6 +1988,24 @@
       ENDIF
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LSULF              = LSULF  
+      Input_Opt%LCRYST             = LCRYST
+      Input_Opt%LCARB              = LCARB
+      Input_Opt%LSOA               = LSOA 
+      Input_Opt%LSVPOA             = LSVPOA
+      Input_Opt%LDUST              = LDUST 
+      Input_Opt%LDEAD              = LDEAD
+      Input_Opt%LSSALT             = LSSALT
+      Input_Opt%LDICARB            = LDICARB  
+      Input_Opt%SALA_REDGE_um(1:2) = SALA_REDGE_um(1:2)
+      Input_Opt%SALC_REDGE_um(1:2) = SALC_REDGE_um(1:2)
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -1595,6 +2015,11 @@
          WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
          WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
+         WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
+         WRITE( 6, 105     ) 'Annual NAP emiss [TgC/yr]   : ',
+     &                        Input_Opt%NAPEMISS
+         WRITE( 6, 105     ) 'POA emission scale [dimless]: ', 
+     &                        Input_Opt%POAEMISSSCALE
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
@@ -1616,10 +2041,165 @@
  100  FORMAT( A, L5     )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
  120  FORMAT( A, f6.2, 'K' )
- 130  FORMAT( A, f6.2, '%' )
+ 105  FORMAT( A, f6.2 )
 
       END SUBROUTINE READ_AEROSOL_MENU
 !EOC
+#if defined( TOMAS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_tomas_microphys
+!
+! !DESCRIPTION: Subroutine INIT\_TOMAS\_MICROPHYS will initialize the 
+!  TOMAS microphysics package.  This replaces the former subroutine
+!  READ\_MICROPHYSICS\_MENU.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TOMAS_MOD,          ONLY : INIT_TOMAS
+      USE TRACERID_MOD,       ONLY : IDTNK1
+      USE TRACERID_MOD,       ONLY : IDTSF1
+      USE TRACERID_MOD,       ONLY : IDTSS1
+      USE TRACERID_MOD,       ONLY : IDTECOB1, IDTECIL1, IDTOCOB1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTH2SO4, IDTDUST1
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REMARKS:
+!  We now invoke TOMAS by compiling GEOS-Chem and setting either the TOMAS=yes
+!  (30 bins, default) or TOMAS40=yes (40 bins, optional) switches.  The old
+!  LTOMAS logical switch is now obsolete because all of the TOMAS code is
+!  segregated from the rest of GEOS-Chem with #ifdef blocks.  Therefore,
+!  we no longer need to read the microphysics menu, but we still need to
+!  apply some error checks and then call INIT_TOMAS. (bmy, 4/23/13)
+!
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
+!  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now read LMEGAN -- switch for MEGAN biogenics (tmf, bmy, 10/20/05)
+!  (5 ) Now read LEMEP -- switch for EMEP emissions (bdf, bmy, 11/1/05)
+!  (6 ) Now read LGFED2BB -- switch for GFED2 biomass emissions (bmy, 4/5/06)
+!  (7 ) Now read LOTDLIS, LCTH, LMFLUX, LPRECON for lightning options 
+!        (bmy, 5/10/06)
+!  (8 ) Now read LBRAVO for BRAVO Mexican emissions (rjp, kfb, bmy, 6/26/06)
+!  (9 ) Now read LEDGAR for EDGAR emissions (avd, bmy, 7/11/06)
+!  (10) Now read LSTREETS for David Streets' emissions (bmy, 8/17/06)
+!  (11) Kludge: Reset LMFLUX or LPRECON to LCTH, as the MFLUX and PRECON
+!        lightning schemes have not yet been implemented.  Rename LOTDLIS
+!        to LOTDREG.  Also read LOTDLOC for the OTD-LIS local redistribution
+!        of lightning flashes (cf B. Sauvage).  Make sure LOTDREG and 
+!        LOTDLOC are not both turned on at the same time. (bmy, 1/31/07)
+!  (12) Add LOTDSCALE to the list of LNOx options (ltm, bmy, 9/24/07)
+!  (13) Add new error traps for OTD-LIS options, dependent on met field type
+!        (ltm, bmy, 11/29/07)
+!  (14) Bug fix, create string variables for ERROR_STOP (bmy, 1/24/08)
+!  (15) Now read LCAC for CAC emissions (amv, 1/09/2008)
+!  (16) Now read LEDGARSHIP, LARCSHIP and LEMEPSHIP (phs, 12/5/08)
+!  (17) Fixed typo in message for GEOS-3 (bmy, 10/30/08)
+!  (18) Now read LVISTAS (amv, 12/2/08)
+!  (19) Now read L8DAYBB, L3HRBB and LSYNOPBB for GFED2 8-days and 3hr
+!        emissions, and LICARTT for corrected EPA (phs, yc, 12/17/08)
+!  (20) Add a specific switch for MEGAN emissions for monoterpenes and MBO
+!       (ccc, 2/2/09)
+!  (21) Now read LICOADSSHIP (cklee, 6/30/09)
+!  (22) Bug fix: for now, if LEMEPSHIP is turned on but LEMEP is turned off,
+!        just turn off LEMEPSHIP and print a warning msg. (mak, bmy, 10/18/09)
+!  (23) Now accounts for NEI2005 (amv, phs, 10/9/09)
+!  (24) Included optional flag for using MODIS LAI data (mpb,2009).
+!  (25) Included optional flag for using PCEEA model (mpb, 2009)
+!  (26) Now force settings for EU, NA, CC nested grids (amv, bmy, 12/18/09)
+!  (27) Now force MEGAN to use MODIS LAI (ccarouge, bmy, 2/24/10)
+!  (28) Add separate switch for NOx fertilizer. (fp, 2/29/10)
+!  (29) Add scaling for isoprene and NOx emissions. (fp, 2/29/10)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  23 Apr 2013 - R. Yantosca - Renamed to INIT_TOMAS_MICROPHYS
+!  30 Jan 2014 - R. Yantosca - INIT_TOMAS accepts am_I_Root, Input_Opt, RC
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N, I
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
+
+      !=================================================================
+      ! INIT_TOMAS_MICROPHYSICS begins here!
+      !=================================================================
+
+      ! Location string for ERROR_STOP
+      LOCATION = 'INIT_TOMAS_MICROPHYS ("input_mod.f")'
+
+      ! Halt with error if we are trying to run TOMAS in a simulation
+      ! that does not have any defined aerosols
+      ! Turn off switches for simulations that don't use microphysics
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and.
+     &     ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+         MSG = 'TOMAS needs to run with either a full-chemistry ' //
+     &         'or offline aerosol simulation!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! Halt with error if none of the TOMAS aerosol species are defined
+      I =  IDTNK1 + IDTSF1 + IDTSS1 + IDTECOB1 + IDTECIL1 + 
+     &     IDTOCOB1 + IDTOCIL1  + IDTDUST1
+      IF ( I == 0 ) THEN 
+         MSG = 'None of the TOMAS aerosols are defined!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      
+      ! Halt with error if sulfate aerosols are not defined
+      IF( IDTSF1 > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
+         MSG = 'Need LSULF on for TOMAS-Sulfate to work (for now)'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! Halt with error if carbonaceous aerosols are not defined
+      I = IDTECOB1 + IDTECIL1 + IDTOCOB1 + IDTOCIL1
+      IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
+         MSG = 'Need LCARB on for TOMAS-carb to work (for now)'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! Halt with error if dust aerosols are turned on.
+      ! TOMAS defines its own dust aerosol tracers.
+      IF ( IDTDUST1 > 0 .AND. Input_Opt%LDUST ) THEN
+         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      !=================================================================
+      ! All error checks are satisfied, so initialize TOMAS
+      !=================================================================
+      CALL INIT_TOMAS( am_I_Root, Input_Opt, RC )
+ 
+      END SUBROUTINE INIT_TOMAS_MICROPHYSICS
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1633,29 +2213,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_EMISSIONS_MENU( am_I_Root )
+      SUBROUTINE READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE BROMOCARB_MOD,      ONLY : Br_SCALING
+      USE CMN_O3_MOD               ! FSCALYR
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE EMISSIONS_MOD,      ONLY : ISOP_SCALING 
+      USE EMISSIONS_MOD,      ONLY : NOx_SCALING
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE LOGICAL_MOD
-      USE MODIS_LAI_MOD, ONLY : INIT_MODIS_LAI
-      USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
-      USE EMISSIONS_MOD, ONLY : NOx_SCALING
-      USE BROMOCARB_MOD, ONLY : Br_SCALING
-      USE TIME_MOD,      ONLY : SET_HISTYR
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_O3_MOD        ! FSCALYR
-      USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFCX
-      USE TRACERID_MOD,  ONLY : IDTCl, IDTN2O, IDTBr2, IDTH2O
-      USE UCX_MOD,       ONLY : TRAC_FILE_ROOT, CFCYEAR
-      ! Adapted from C. Holmes' RCP module (SDE 2013-11-15)
-      USE RCP_MOD,       ONLY : RCPNAME, RCPYEAR, OPTIONS_RCP
+      USE MODIS_LAI_MOD,      ONLY : INIT_MODIS_LAI
+      USE RCP_MOD,            ONLY : RCPNAME, RCPYEAR
+      USE TIME_MOD,           ONLY : SET_HISTYR
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACERID_MOD,       ONLY : IDTCH4, IDTOCS, IDTCFCX
+      USE TRACERID_MOD,       ONLY : IDTCl,  IDTN2O, IDTBr2, IDTH2O
+      USE UCX_MOD,            ONLY : TRAC_FILE_ROOT, CFCYEAR
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1714,6 +2303,15 @@
 !                              in other areas of the code.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR to Input_Opt
+!  31 Jul 2013 - M. Sulprizio- Now copy LAEIC to Input_Opt; Add check to
+!                              make sure LAEIC and LRCPAIR are not both on
+!  22 Aug 2013 - R. Yantosca - Now read path for soil NOx restart file
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete options for LAVHRRLAI and
+!                              LMODISLAI. MODIS LAI data are now read from
+!                              netCDF files.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1721,7 +2319,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC, SOIL_RST_FILE
 ![eml
       INTEGER            :: HISTYR
 !eml]
@@ -1786,11 +2384,11 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
       READ( SUBSTRS(1:N), * ) LAEIC
 
-      ! Use RCP emissions? (cdh, 2011-10-18)
+      ! Use RCP emissions? (cdh, 10/18/11)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP1' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_RCP%LRCP
+      READ( SUBSTRS(1:N), * ) LRCP
 
-      ! Which RCP scenario? (cdh, 2011-10-18)
+      ! Which RCP scenario? (cdh, 10/18/11)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP2' )
       READ( SUBSTRS(1:N), * ) RCPNAME
 
@@ -1800,272 +2398,271 @@
 
       ! Fixed year? (SDE 2013-11-16)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP4' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_RCP%LFIXEDYR
+      READ( SUBSTRS(1:N), * ) LFIXEDYR
 
       ! Use RCP aircraft NOx?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP5' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_RCP%LRCPAIR
+      READ( SUBSTRS(1:N), * ) LRCPAIR
 
       ! Use RCP (NOx, SO2, CO) ship  emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:RCP6' )
-      READ( SUBSTRS(1:N), * ) OPTIONS_RCP%LRCPSHIP
+      READ( SUBSTRS(1:N), * ) LRCPSHIP
 
       ! Use EPA/NEI99 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
       READ( SUBSTRS(1:N), * ) LNEI99
       
       ! Include ICARTT-based corrections ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
       READ( SUBSTRS(1:N), * ) LICARTT
 
       ! Include VISTAS anthro emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LVISTAS
 
       ! Include biofuel emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
       READ( SUBSTRS(1:N), * ) LBIOFUEL
 
       ! Include biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
       READ( SUBSTRS(1:N), * ) LBIOGENIC
 
       ! Use MEGAN biogenic emissions for ISOP?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) LMEGAN
 
       ! Use PCEEA model for biogenic emissions for? (mpb,2009)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
       READ( SUBSTRS(1:N), * ) LPECCA
 
       ! Use MEGAN biogenic emissions for MONOT and MBO ? (ccc, 2/2/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
       READ( SUBSTRS(1:N), * ) LMEGANMONO
 
       ! Isoprene Emissions scaling (fp, 06/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
       READ( SUBSTRS(1:N), * ) ISOP_SCALING
 
       ! Include biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
       ! Separator line (start of GFED2 biomass emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
 
       ! Use monthly GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
       READ( SUBSTRS(1:N), * ) LGFED2BB
 
       ! Use 8-day GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
       READ( SUBSTRS(1:N), * ) L8DAYBB
 
       ! Use 3-hr GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
       READ( SUBSTRS(1:N), * ) L3HRBB
 
       ! Use 3-hr synoptic GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
       READ( SUBSTRS(1:N), * ) LSYNOPBB
 
       ! Separator line (start of GFED3 biomass emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
 
       ! Use monthly GFED3 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
       READ( SUBSTRS(1:N), * ) LGFED3BB
 
       ! Use daily GFED3 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
       READ( SUBSTRS(1:N), * ) LDAYBB3
 
       ! Use 3-hr GFED3 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ( SUBSTRS(1:N), * ) L3HRBB3
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Apply OTD-LIS local redistribution for lightning spatial and
       ! seasonal constraint
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:58' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:59' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
-      ! separate use fertilizer and soil NOx (fp, 06/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:60' )
-      READ( SUBSTRS(1:N), * ) LFERTILIZERNOX
+      ! Soil NOx restart file name
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37a' )
+      READ( SUBSTRS(1:N), '(a)' ) SOIL_RST_FILE
 
+      ! separate use fertilizer and soil NOx (fp, 06/09)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      READ( SUBSTRS(1:N), * ) LFERTILIZERNOX
+      
       !(FP, 15/12/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:61' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) NOx_SCALING
 
       ! Separator line (start of ship emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:62' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
 
       ! Use ship EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:63' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:64' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
 
       ! Use ship EMEP emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:65' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
       ! Use ship SO2 Corbett emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:66' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use ship ARCTAS (SO2, CO2) emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:67' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use COOKE over North AMerica for BC/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:68' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
       READ( SUBSTRS(1:N), * ) LCOOKE
-
-      ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:69' )
-      READ( SUBSTRS(1:N), * ) LAVHRRLAI
-
-      ! Use MODIS-derived LAI fields? (mpb,2009)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:70' )
-      READ( SUBSTRS(1:N), * ) LMODISLAI
 
       ! Use historical emissions (EDGAR NOx/SO2 and Bond BC/OC) for 
       ! 1890-2000?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:71' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
       READ( SUBSTRS(1:N), * ) LHIST
       
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:72' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
       READ( SUBSTRS(1:N), * ) HISTYR
       CALL SET_HISTYR( HISTYR )
 
       ! Separator line (start of bromine emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:73' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
 
       ! Use the Warwick(2006), scenario 3? (400Gg/yr of CHBr3)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:74' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
       READ( SUBSTRS(1:N), * ) LWARWICK_VSLS
 
       ! Use sea-salt Br2 emissions? Currently Monahan w/ Yang et al. 2005
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:75' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
       READ( SUBSTRS(1:N), * ) LSSABr2
 
       ! Set PBL BrO concentrations equal to 1ppt during the day?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:76' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
       READ( SUBSTRS(1:N), * ) LFIX_PBL_BRO
 
       ! Bromine Emissions scaling
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:77' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
       READ( SUBSTRS(1:N), * ) Br_SCALING
 
+      ! Separator line (start of UCX options)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+
       ! Use variable methane emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:78' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
       READ( SUBSTRS(1:N), * ) LCH4EMIS
 
       ! Use fixed methane surface mixing ratio?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:79' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
       READ( SUBSTRS(1:N), * ) LCH4SBC
 
       ! Use fixed OCS surface mixing ratio?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:80' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
       READ( SUBSTRS(1:N), * ) LOCSEMIS
 
       ! Use Montreal CFC emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:81' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:58' )
       READ( SUBSTRS(1:N), * ) LCFCEMIS
 
       ! Use chlorine emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:82' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:59' )
       READ( SUBSTRS(1:N), * ) LCLEMIS
 
       ! Use bromine emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:83' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:60' )
       READ( SUBSTRS(1:N), * ) LBREMIS
 
       ! Use fixed N2O surface mixing ratio?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:84' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:61' )
       READ( SUBSTRS(1:N), * ) LN2OEMIS
 
       ! Initialize strat H2O to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:85' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:62' )
       READ( SUBSTRS(1:N), * ) LSETH2O
 
       ! Initialize CH4 to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:86' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:63' )
       READ( SUBSTRS(1:N), * ) LSETCH4
 
       ! Initialize OCS to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:87' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:64' )
       READ( SUBSTRS(1:N), * ) LSETOCS
 
       ! Initialize CFCs to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:88' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:65' )
       READ( SUBSTRS(1:N), * ) LSETCFC
 
       ! Initialize chlorine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:66' )
       READ( SUBSTRS(1:N), * ) LSETCL
 
       ! Initialize stratospheric bromine species to GCCM baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:67' )
       READ( SUBSTRS(1:N), * ) LBRGCCM
 
       ! Initialize bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:68' )
       READ( SUBSTRS(1:N), * ) LSETBR
 
       ! Initialize stratospheric bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:69' )
       READ( SUBSTRS(1:N), * ) LSETBRSTRAT
 
       ! Initialize stratospheric NOx/HNO3 to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:70' )
       READ( SUBSTRS(1:N), * ) LSETNOYSTRAT
 
       ! Initialize N2O to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:71' )
       READ( SUBSTRS(1:N), * ) LSETN2O
 
       ! Initialize stratospheric sulfates to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:72' )
       READ( SUBSTRS(1:N), * ) LSETH2SO4
 
       ! Starting year for CFC emissions
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:96' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:73' )
       READ( SUBSTRS(1:N), '(i)') CFCYEAR
 
       ! Do we apply an offset?
       LFUTURECFC = (CFCYEAR .gt. 1950)
 
       ! Directory containing 2D data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:97' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:74' )
       READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
 
       TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:98' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:75' )
 
       !=================================================================
       ! Error check logical flags
@@ -2165,9 +2762,9 @@
          LEDGARNOx = .TRUE.
          LEDGARSOx = .TRUE.
       ENDIF
-
+      
       ! RCP: Test for conflicts with other switches (cdh, 6/14/12) 
-      IF ( OPTIONS_RCP%LRCP ) THEN
+      IF ( LRCP ) THEN
          
          ! Force user to choose just 1 global inventory
          IF ( LEDGAR ) 
@@ -2182,15 +2779,14 @@
      &           'READ_EMISSIONS_MENU' )
 
          ! Force user to choose just 1 global ship inventory
-         IF ( ( LEDGARSHIP .OR. LICOADSSHIP ) .and.
-     &                          (OPTIONS_RCP%LRCPSHIP ) )
+         IF ( ( LEDGARSHIP .OR. LICOADSSHIP ) .AND. LRCPSHIP )
      &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
      &           'Choose only 1 global ship emissions: '//
      &           'RCP, EDGAR, or ICOADS',
      &           'READ_EMISSIONS_MENU' )
 
          ! Force user to choose just 1 global aircraft inventory
-         IF ( LAEIC .and. OPTIONS_RCP%LRCPAIR )
+         IF ( LAEIC .AND. LRCPAIR )
      &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
      &           'Choose either RCP or AEIC for global aircraft' //
      &           ' emissions', 'READ_EMISSIONS_MENU' )
@@ -2207,18 +2803,18 @@
          ENDIF
 
          ! Issue a warning against using regional inventories
-         IF (LEMEP.or.LBRAVO.or.LSTREETS.or.
-     &                     LCAC.or.LNEI05.or.LNEI99) THEN
+         IF ( LEMEP .or. LBRAVO .or. LSTREETS .or.
+     &        LCAC  .or. LNEI05 .or. LNEI99 ) THEN
             WRITE( 6, '(a)' ) REPEAT( '=', 79 )
             WRITE( 6, '(a)' ) 'WARNING! RCP inventory should not be '
             WRITE( 6, '(a)' ) 'used with regional inventories. The '
             WRITE( 6, '(a)' ) 'following should be disabled:       '
-            IF (LBRAVO) WRITE(6,'(a)') ' --> BRAVO Mexican emissions'
-            IF (LEMEP) WRITE(6,'(a)') ' --> EMEP European emissions'
+            IF (LBRAVO  ) WRITE(6,'(a)') ' --> BRAVO Mexican emissions'
+            IF (LEMEP   ) WRITE(6,'(a)') ' --> EMEP European emissions'
             IF (LSTREETS) WRITE(6,'(a)') ' --> STREETS emissions'
-            IF (LCAC) WRITE(6,'(a)') ' --> CAC Canadian emissions'
-            IF (LNEI05) WRITE(6,'(a)') ' --> EPA/NEI 2005 emissions'
-            IF (LNEI99) WRITE(6,'(a)') ' --> EPA/NEI 1999 emissions'
+            IF (LCAC    ) WRITE(6,'(a)') ' --> CAC Canadian emissions'
+            IF (LNEI05  ) WRITE(6,'(a)') ' --> EPA/NEI 2005 emissions'
+            IF (LNEI99  ) WRITE(6,'(a)') ' --> EPA/NEI 1999 emissions'
             WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          ENDIF
 
@@ -2259,13 +2855,13 @@
          WRITE( 6, '(a)' ) 'we also turn off LMEGANMONO ship emissions'
          WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-	 ENDIF
+         ENDIF
       ENDIF
 
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
       !=================================================================
-#if   defined ( NESTED_CH ) || defined ( SEAC4RS )
+#if   defined( NESTED_CH )
 
       ! Turn off emissions options that are
       ! not appropriate for the Nested CH grid
@@ -2301,18 +2897,6 @@
 
 #endif
 
-      !=================================================================
-      ! Check SO2 aircraft emissions options
-      !=================================================================
-      IF ( (LAEIC) .and. (LACSO2) ) THEN
-         LACSO2 = .FALSE. ! AEIC supercedes old aircraft SO2
-         IF ( am_I_Root ) THEN
-            WRITE( 6, '(/,a,/)' ) 
-     &         ' Old aircraft SO2 has been ' //
-     &         'superceded by MIT AEIC emissions'
-         ENDIF
-       ENDIF 
-      
       !=================================================================
       ! Check SO2 ship emissions options
       !=================================================================
@@ -2417,27 +3001,9 @@
          LGFED2BB = .FALSE.
       ENDIF
 
-#if   !defined( GCAP)
-      ! Force to use MODIS LAI if we use MEGAN. (ccc, 2/23/10)
-      IF ( LMEGAN .OR. LMEGANMONO ) THEN
-         LMODISLAI = .TRUE.
-         LAVHRRLAI = .FALSE.
-         IF ( am_I_Root ) THEN
-            WRITE(6,'(/,a,/)') 
-     &         'Force to use MODIS LAI for MEGAN.' //
-     &         ' AVHRR LAI will not be used'
-         ENDIF
-      ENDIF
-#endif
-
       !=================================================================
       ! Error checks
       !=================================================================
-      IF ( LAVHRRLAI .AND. LMODISLAI ) THEN
-            CALL ERROR_STOP( 
-     &         ' AVHRR LAI &  MODIS LAI cannot both be turned on!', 
-     &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
-      ENDIF
 
       !=================================================================
       ! Error check CFC emissions
@@ -2445,7 +3011,7 @@
       IF ( LCFCEMIS .or. LSETCFC ) THEN
          IF ( IDTCFCX == 0 ) THEN
             LCFCEMIS = .FALSE.
-            LSETCFC = .FALSE.
+            LSETCFC  = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'CFCs are emitted but CFC tracers are undefined.'
             WRITE( 6, '(a)' ) 'Turning off CFC emissions.'
@@ -2458,7 +3024,7 @@
       IF ( LN2OEMIS .or. LSETN2O ) THEN
          IF ( IDTN2O == 0 ) THEN
             LN2OEMIS = .FALSE.
-            LSETN2O = .FALSE.
+            LSETN2O  = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'N2O is emitted but N2O tracer is undefined.'
             WRITE( 6, '(a)' ) 'Turning off nitrous oxide emissions.'
@@ -2486,17 +3052,17 @@
       IF ( LCLEMIS .or. LSETCL) THEN
          IF ( IDTCl == 0 ) THEN
             LCLEMIS = .FALSE.
-            LSETCL = .FALSE.
+            LSETCL  = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'Cl species emitted but Cl tracer is undefined.'
             WRITE( 6, '(a)' ) 'Turning off chlorine emissions.'
          ENDIF
       ENDIF
 
-      IF ( LBREMIS .or. LSETBR .or. LSETBRSTRAT.or.LBRGCCM) THEN
+      IF ( LBREMIS .or. LSETBR .or. LSETBRSTRAT .or. LBRGCCM ) THEN
          IF ( IDTBR2 == 0 ) THEN
             LBREMIS = .FALSE.
-            LSETBR = .FALSE.
+            LSETBR  = .FALSE.
             LSETBRSTRAT = .FALSE.
             LBRGCCM = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
@@ -2511,7 +3077,7 @@
       IF ( LOCSEMIS .or. LSETOCS ) THEN
          IF ( IDTOCS == 0 ) THEN
             LOCSEMIS = .FALSE.
-            LSETOCS = .FALSE.
+            LSETOCS  = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'OCS is emitted but OCS tracer is undefined.'
             WRITE( 6, '(a)' ) 'Turning off OCS emissions.'
@@ -2530,8 +3096,8 @@
       IF ( LCH4EMIS .or. LSETCH4 .or. LCH4SBC ) THEN
          IF ( IDTCH4 == 0 ) THEN
             LCH4EMIS = .FALSE.
-            LSETCH4 = .FALSE.
-            LCH4SBC = .FALSE.
+            LSETCH4  = .FALSE.
+            LCH4SBC  = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'CH4 is emitted but CH4 tracer is undefined.'
             WRITE( 6, '(a)' ) 'Turning off methane emissions.'
@@ -2572,11 +3138,71 @@
       ENDIF
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LEMIS          = LEMIS
+      Input_Opt%TS_EMIS        = TS_EMIS
+      Input_Opt%LANTHRO        = LANTHRO
+      Input_Opt%FSCALYR        = FSCALYR
+      Input_Opt%LEMEP          = LEMEP 
+      Input_Opt%LBRAVO         = LBRAVO
+      Input_Opt%LEDGAR         = LEDGAR
+      Input_Opt%LSTREETS       = LSTREETS
+      Input_Opt%LCAC           = LCAC
+      Input_Opt%LNEI05         = LNEI05
+      Input_Opt%LRETRO         = LRETRO
+      Input_Opt%LNEI99         = LNEI99
+      Input_Opt%LICARTT        = LICARTT
+      Input_Opt%LVISTAS        = LVISTAS
+      Input_Opt%LBIOFUEL       = LBIOFUEL
+      Input_Opt%LBIOGENIC      = LBIOGENIC
+      Input_Opt%LMEGAN         = LMEGAN
+      Input_Opt%LPECCA         = LPECCA 
+      Input_Opt%LMEGANMONO     = LMEGANMONO
+      Input_Opt%ISOP_SCALING   = ISOP_SCALING 
+      Input_Opt%LBIOMASS       = LBIOMASS 
+      Input_Opt%LBBSEA         = LBBSEA
+      Input_Opt%LTOMSAI        = LTOMSAI
+      Input_Opt%LGFED2BB       = LGFED2BB
+      Input_Opt%L8DAYBB        = L8DAYBB
+      Input_Opt%L3HRBB         = L3HRBB
+      Input_Opt%LSYNOPBB       = LSYNOPBB 
+      Input_Opt%LGFED3BB       = LGFED3BB
+      Input_Opt%LDAYBB3        = LDAYBB3
+      Input_Opt%L3HRBB3        = L3HRBB3
+      Input_Opt%LAEIC          = LAEIC
+      Input_Opt%LLIGHTNOX      = LLIGHTNOX
+      Input_Opt%LOTDLOC        = LOTDLOC
+      Input_Opt%LSOILNOX       = LSOILNOX
+      Input_Opt%SOIL_RST_FILE  = SOIL_RST_FILE
+      Input_Opt%LFERTILIZERNOX = LFERTILIZERNOX
+      Input_Opt%NOx_SCALING    = NOx_SCALING
+      Input_Opt%LEDGARSHIP     = LEDGARSHIP
+      Input_Opt%LICOADSSHIP    = LICOADSSHIP
+      Input_Opt%LEMEPSHIP      = LEMEPSHIP
+      Input_Opt%LSHIPSO2       = LSHIPSO2
+      Input_Opt%LARCSHIP       = LARCSHIP
+      Input_Opt%LCOOKE         = LCOOKE
+      Input_Opt%LHIST          = LHIST
+      Input_Opt%HISTYR         = HISTYR
+      Input_Opt%LWARWICK_VSLS  = LWARWICK_VSLS
+      Input_Opt%LSSABr2        = LSSABr2
+      Input_Opt%LFIX_PBL_BRO   = LFIX_PBL_BRO
+      Input_Opt%Br_SCALING     = Br_SCALING
+      Input_Opt%LEDGARNOx      = LEDGARNOx
+      Input_Opt%LEDGARCO       = LEDGARCO
+      Input_Opt%LEDGARSOx      = LEDGARSOx
+      Input_Opt%LRCP           = LRCP
+      Input_Opt%LRCPSHIP       = LRCPSHIP
+      Input_Opt%LRCPAIR        = LRCPAIR
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Initialization
       !=================================================================
 
-      !%%% NOTE: For now turn on INIT_MODIS_LAI regardless of whether
-      !%%% MODIS or LAVHRRLAI is used.  The
       CALL INIT_MODIS_LAI()
 
       !=================================================================
@@ -2597,14 +3223,11 @@
         WRITE( 6, 100 ) '  Use EPA/NEI 2005          : ', LNEI05
         WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
         WRITE( 6, 100 ) '  Use AEIC emissions        : ', LAEIC
-        WRITE( 6, 100 ) '  Use RCP emissions         : ', 
-     &                                           OPTIONS_RCP%LRCP
+        WRITE( 6, 100 ) '  Use RCP emissions         : ', LRCP
         WRITE( 6, 130 ) '      RCP scenario?         : ', TRIM(RCPNAME)
         WRITE( 6, 110 ) '      RCP year?             : ', RCPYEAR
-        WRITE( 6, 100 ) '      RCP aircraft NOx?     : ', 
-     &                                           OPTIONS_RCP%LRCPAIR
-        WRITE( 6, 100 ) '      RCP ship emissions?   : ', 
-     &                                           OPTIONS_RCP%LRCPSHIP
+        WRITE( 6, 100 ) '      RCP aircraft NOx?     : ', LRCPAIR
+        WRITE( 6, 100 ) '      RCP ship emissions?   : ', LRCPSHIP
         WRITE( 6, 100 ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
         WRITE( 6, 100 ) '      --> with NOx VISTAS?  : ', LVISTAS
         WRITE( 6, 100 ) '      --> with ICARTT modif?: ', LICARTT
@@ -2631,6 +3254,8 @@
         WRITE( 6, 100 ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
         WRITE( 6, 100 ) 'Use OTD-LIS local redist?   : ', LOTDLOC
         WRITE( 6, 100 ) 'Turn on SOIL NOx?           : ', LSOILNOX
+        WRITE( 6, 130 ) 'Soil NOx restart file name? : ', 
+     &       TRIM( SOIL_RST_FILE )
         WRITE( 6, 100 ) 'Turn on Fertilizer NOx?     : ', 
      &                                                  LFERTILIZERNOX
         WRITE( 6, 120 ) 'NOx scaling                 : ', NOx_SCALING
@@ -2640,8 +3265,6 @@
         WRITE( 6, 100 ) 'Turn on Corbett SHIP SO2 ?  : ', LSHIPSO2
         WRITE( 6, 100 ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
         WRITE( 6, 100 ) 'Use COOKE for OC/BC N.-Amer.: ', LCOOKE
-        WRITE( 6, 100 ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
-        WRITE( 6, 100 ) 'Turn on MODIS-derived LAI?  : ', LMODISLAI
         WRITE( 6, 100 ) 'Turn on historical emiss?   : ', LHIST
         WRITE( 6, 100 ) 'Turn on the Warwick VSLs?   : ', LWARWICK_VSLS
         WRITE( 6, 100 ) 'Use seasalt Br2 emissions?  : ', LSSABr2
@@ -2677,7 +3300,7 @@
  110  FORMAT( A, I5 )
       ! add formatting for ISOP_SCALING and NOx_scaling (hotp 8/4/09)
  120  FORMAT( A, f6.2 )
- 130  FORMAT( A, A  )
+ 130  FORMAT( A, A   )
 
       END SUBROUTINE READ_EMISSIONS_MENU
 !EOC
@@ -2694,7 +3317,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CO2_SIM_MENU( am_I_Root )
+      SUBROUTINE READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -2704,10 +3327,20 @@
 
       USE CMN_SIZE_MOD                   ! Size parameters
       USE CMN_O3_MOD                     ! FSCALYR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  02 Mar 2009 - R. Nassar   - Initial version
@@ -2715,6 +3348,7 @@
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2923,6 +3557,38 @@
 	ENDIF
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LGENFF      = LGENFF
+      Input_Opt%LANNFF      = LANNFF
+      Input_Opt%LMONFF      = LMONFF
+      Input_Opt%LCHEMCO2    = LCHEMCO2
+      Input_Opt%LSEASBB     = LSEASBB
+      Input_Opt%LGFED2BB    = LGFED2BB
+      Input_Opt%L8DAYBB     = L8DAYBB 
+      Input_Opt%LGFED3BB    = LGFED3BB
+      Input_Opt%LDAYBB3     = LDAYBB3
+      Input_Opt%LBIOFUEL    = LBIOFUEL
+      Input_Opt%LBIODAILY   = LBIODAILY
+      Input_Opt%LBIODIURNAL = LBIODIURNAL
+      Input_Opt%LBIONETORIG = LBIONETORIG
+      Input_Opt%LBIONETCLIM = LBIONETCLIM
+      Input_Opt%LOCN1997    = LOCN1997
+      Input_Opt%LOCN2009ANN = LOCN2009ANN
+      Input_Opt%LOCN2009MON = LOCN2009MON
+      Input_Opt%LSHIPEDG    = LSHIPEDG
+      Input_Opt%LSHIPICO    = LSHIPICO
+      Input_Opt%LPLANE      = LPLANE
+      Input_Opt%LFFBKGRD    = LFFBKGRD
+      Input_Opt%LBIOSPHTAG  = LBIOSPHTAG
+      Input_Opt%LFOSSILTAG  = LFOSSILTAG
+      Input_Opt%LSHIPTAG    = LSHIPTAG
+      Input_Opt%LPLANETAG   = LPLANETAG
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF (ITS_A_CO2_SIM() ) THEN
@@ -2985,24 +3651,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_FUTURE_MENU( am_I_Root )
+      SUBROUTINE READ_FUTURE_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE FUTURE_EMISSIONS_MOD, ONLY : DO_FUTURE_EMISSIONS
       USE LOGICAL_MOD,          ONLY : LFUTURE
  
-#     include "define.h"             ! C-preprocessor switches
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  01 Jun 2006 - S. Wu       - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3040,6 +3717,16 @@
       !### other met fields at a later date. (swu, bmy, 6/1/06)
       LFUTURE = .FALSE. 
 #endif
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LFUTURE     = LFUTURE
+      Input_Opt%FUTURE_YEAR = FUTURE_YEAR
+      Input_Opt%FUTURE_SCEN = FUTURE_SCEN
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3082,24 +3769,36 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CHEMISTRY_MENU( am_I_Root )
+      SUBROUTINE READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP 
-      USE LOGICAL_MOD, ONLY : LCHEM, LSCHEM, LLINOZ
-      USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP, LUCX
-      USE LOGICAL_MOD, ONLY : LO3FJX
-      USE TIME_MOD,    ONLY : SET_CT_CHEM
-      USE TRACER_MOD,  ONLY : N_TRACERS
-      USE LOGICAL_MOD, ONLY : LCH4CHEM, LACTIVEH2O
-      USE TRACERID_MOD,ONLY : IDTCH4
-
-      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE LOGICAL_MOD,        ONLY : LCHEM, LSCHEM, LLINOZ
+      USE LOGICAL_MOD,        ONLY : LSVCSPEC, LKPP
+      USE LOGICAL_MOD,        ONLY : LUCX,     LO3FJX
+      USE LOGICAL_MOD,        ONLY : LCH4CHEM, LACTIVEH2O
+      USE TIME_MOD,           ONLY : SET_CT_CHEM
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACERID_MOD,       ONLY : IDTCH4
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3110,6 +3809,14 @@
 !  10 Jun 2012 - L. Murray   - Move all strat chemistry switches here
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Dec 2012 - R. Yantosca - Now get TS_CHEM from the ESMF environment
+!                              when we are connecting to the GEOS-5 GCM
+!  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
+!                              to ACCEPT_EXTERNAL_DATE_TIME
+!  22 May 2013 - M. Payer    - Now read in GAMMA_HO2. Recommended value is 0.2
+!                              based on Jacon et al (2000) and Mao et al (2013).
+!  22 Aug 2013 - R. Yantosca - Now read in path for species restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3118,6 +3825,7 @@
 !
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
+      CHARACTER(LEN=255) :: SPEC_RST_FILE
 
       !=================================================================
       ! READ_CHEMISTRY_MENU begins here!
@@ -3157,12 +3865,16 @@
       READ( SUBSTRS(1:N), * ) LACTIVEH2O
 
       ! Chemistry timestep
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
 
       ! Read and save CSPEC ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
+
+      ! Read and save CSPEC ?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
+      READ( SUBSTRS(1:N), '(a)' ) SPEC_RST_FILE
 
       ! Use KPP solver ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:10' )
@@ -3172,8 +3884,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:11' )
       READ( SUBSTRS(1:N), * ) LO3FJX
 
-      ! Separator line
+      ! GAMMA HO2 ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:12' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%GAMMA_HO2
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:13' )
 
       !=================================================================
       ! Error check settings
@@ -3191,6 +3907,7 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 #endif
+
 !      !================
 !      ! SDE 08/28/13: Can have both now (linearized chem applies only
 !      ! above stratopause)
@@ -3210,6 +3927,68 @@
       ENDIF
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+#if defined( ESMF_ ) && defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to take
+      ! the chemistry timestep as defined in the ESMF resource file.
+      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of those in 
+      ! input.geos.  This is because the ESMF Clock object needs to be
+      ! defined at the highest level (in the driver routine), before 
+      ! input.geos is ever read.
+      !
+      ! Therefore, we will assign the chemistry timestep field (i.e.
+      ! Input_Opt%TS_CHEM) in the Gridded Component module file
+      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
+      ! in the code).  We don'need to define those fields here, so
+      ! we have bracketed this with an #ifdef. 
+      !
+      ! Also pass the chemistry timestep value directly to module
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
+      !
+      ! Ideallly it would be good to have one single version of 
+      ! "input.geos" that can double as the GEOS-Chem input file as 
+      ! well as the ESMF resource.  We may be a way off from that.
+      ! One potential solution is to use a Perl script to generate
+      ! both the input.geos file and the ESMF resource file, so that
+      ! both files are consistent with each other.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      
+      ! Save to local variables for printing below
+      TS_CHEM                 = Input_Opt%TS_CHEM
+
+      ! Pass chemistry timestep to time_mod.F
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_CHEM = TS_CHEM,   
+     &                                RC            = RC         )
+     &                                 
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to initialize 
+      ! the field Input_OPt%TS_CHEM with the value read in from 
+      ! input.geos. (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      Input_Opt%TS_CHEM       = TS_CHEM
+
+#endif
+      Input_Opt%LCHEM         = LCHEM
+      Input_Opt%LSCHEM        = LSCHEM
+      Input_Opt%LLINOZ        = LLINOZ
+      Input_Opt%LSVCSPEC      = LSVCSPEC
+      Input_Opt%SPEC_RST_FILE = TRIM( SPEC_RST_FILE )
+      Input_Opt%LKPP          = LKPP
+
+      ! Return success
+      RC                      = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -3223,14 +4002,19 @@
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
+         WRITE( 6, 130     ) ' => CSPEC restart file?     : ', 
+     &        TRIM( SPEC_RST_FILE )
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
          WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX
+         WRITE( 6, 100     ) 'GAMMA HO2                   : ',
+     &      Input_Opt%GAMMA_HO2
       ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
  110  FORMAT( A, I5  )
  120  FORMAT( A, 2I5 )
+ 130  FORMAT( A, A   )
 
       END SUBROUTINE READ_CHEMISTRY_MENU  
 !EOC
@@ -3247,21 +4031,36 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRANSPORT_MENU( am_I_Root )
+      SUBROUTINE READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE LOGICAL_MOD,    ONLY : LTRAN
-      USE LOGICAL_MOD,    ONLY : LMFCT,              LFILL
-      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-#if ! defined( ESMF_ )
-      USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE LOGICAL_MOD,        ONLY : LFILL
+      USE LOGICAL_MOD,        ONLY : LTRAN
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
 #endif
+#if !defined( ESMF_ )
+      USE TRANSPORT_MOD,      ONLY : SET_TRANSPORT
+#endif
+
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3275,6 +4074,13 @@
 !  10 Jun 2012 - L. Murray - Move strat to chemistry menu
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Dec 2012 - R. Yantosca - Now get TS_DYN from the ESMF environment, if
+!                              we are connecting to the GEOS-5 GCM
+!  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
+!                              to ACCEPT_EXTERNAL_DATE_TIME
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete option for flux correction. This
+!                              was used for GEOS-3, which has been retired.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3300,10 +4106,6 @@
       ! Turn on transport?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:1' )
       READ( SUBSTRS(1:N), * ) LTRAN
-
-      ! Do flux-corrected transport?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:2' )
-      READ( SUBSTRS(1:N), * ) LMFCT
 
       ! Fill negative values
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:3' )
@@ -3348,13 +4150,74 @@
       ENDIF
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LTRAN       = LTRAN
+      Input_Opt%LFILL       = LFILL
+      Input_Opt%TPCORE_IORD = IORD
+      Input_Opt%TPCORE_JORD = JORD
+      Input_Opt%TPCORE_KORD = KORD
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to take
+      ! the dynamic timestep as defined in the ESMF resource file.
+      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of that in 
+      ! input.geos.  This is because the ESMF Clock object needs to be
+      ! defined at the highest level (in the driver routine), before 
+      ! input.geos is ever read.
+      !
+      ! Therefore, we will assign the chemistry timestep field (i.e.
+      ! Input_Opt%TS_CHEM) in the Gridded Component module file
+      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
+      ! in the code).  We don'need to define those fields here, so
+      ! we have bracketed this with an #ifdef. 
+      !
+      ! Also pass the chemistry timestep value directly to module
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
+      !
+      ! Ideallly it would be good to have one single version of 
+      ! "input.geos" that can double as the GEOS-Chem input file as 
+      ! well as the ESMF resource.  We may be a way off from that.
+      ! One potential solution is to use a Perl script to generate
+      ! both the input.geos file and the ESMF resource file, so that
+      ! both files are consistent with each other.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      
+      ! Save to local variables for printing below
+      TS_DYN                = Input_Opt%TS_DYN
+
+      ! Pass chemistry timestep to time_mod.F
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_DYN  = TS_DYN,
+     &                                RC            = RC         )
+     &                                 
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to initialize 
+      ! the field Input_Optt%TS_DYN with the value read in from 
+      ! input.geos. (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      Input_Opt%TS_DYN      = TS_DYN
+
+#endif
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'TRANSPORT MENU'
          WRITE( 6, '(  a)' ) '--------------'
          WRITE( 6, 100     ) 'Turn on transport?          : ', LTRAN
-         WRITE( 6, 100     ) 'Use TPCORE flux-correction? : ', LMFCT
          WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ', LFILL
          WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
      &                                                   JORD, KORD
@@ -3389,17 +4252,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CONVECTION_MENU( am_I_Root )
+      SUBROUTINE READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LCONV, LTURB
-      USE LOGICAL_MOD, ONLY : LNLPBL        ! (Lin, 03/31/09)
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE LOGICAL_MOD,        ONLY : LCONV, LTURB
+      USE LOGICAL_MOD,        ONLY : LNLPBL        ! (Lin, 03/31/09)
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3408,10 +4284,13 @@
 !  27 Aug 2010 - R. Yantosca - Now allow non-local PBL for MERRA met data
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for MERRA met data
-!  13 Apr 2012 - R. Yantosca - Fixed typo ( defined( GEOS_57 ) should have 
-!                              been !defined( GEOS_57 ) )
+!  13 Apr 2012 - R. Yantosca - Fixed typo ( defined( GEOS_FP ) should have 
+!                              been !defined( GEOS_FP ) )
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
+!                              when connecting to the GEOS-5 GCM.         
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3450,19 +4329,51 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
 
-      ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-5.7.x
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
+      ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-FP
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
       IF ( LNLPBL ) THEN
          IF( am_I_Root ) THEN
             WRITE(6,*) REPEAT( '=', 79 )
             WRITE(6,*) 'The non-local PBL scheme is only valid for'
-            WRITE(6,*) 'GEOS-5, GEOS-5.7, and MERRA met fields!'
+            WRITE(6,*) 'GEOS-5, GEOS-FP, and MERRA met fields!'
             WRITE(6,*) 'LNLPBL is automatically turned to false !'
             WRITE(6,*) REPEAT( '=', 79 )
          ENDIF
          LNLPBL = .FALSE.
       ENDIF
 #endif
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LCONV   = LCONV
+      Input_Opt%LTURB   = LTURB
+      Input_Opt%LNLPBL  = LNLPBL
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to set
+      ! the convection timestep equal to the dynamic timestep in
+      ! order to avoid tripping an error message in the routine
+      ! CHECK_TIMESTEPS. (bmy, 3/1/13)
+      !-----------------------------------------------------------------
+      
+      ! Set TS_CONV from Input_Opt%TS_DYN
+      TS_CONV           = Input_Opt%TS_DYN
+
+      ! Pass chemistry timestep to time_mod.F
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_CONV = TS_CONV,
+     &                                RC            = RC         )
+     &                                 
+#endif
+
+      Input_Opt%TS_CONV = TS_CONV
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3495,7 +4406,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DEPOSITION_MENU( am_I_Root )
+      SUBROUTINE READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -3512,10 +4423,20 @@
 #if   defined( APM )
       USE APM_WETS_MOD, ONLY : WETDEPBINID
 #endif
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3529,6 +4450,9 @@
 !  31 Jul 2012 - R. Yantosca - Now pass am_I_Root to INIT_DRYDEP
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  26 Feb 2013 - R. Yantosca - Now call INIT_DUST jere to facilitate 
+!                              connecting to the GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3576,6 +4500,15 @@
       IF ( ITS_A_CH4_SIM()     ) LWETD = .FALSE.
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LDRYD = LDRYD
+      Input_Opt%LWETD = LWETD
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -3596,10 +4529,10 @@
       !=================================================================
 
       ! Initialize dry deposition arrays
-      IF ( LDRYD ) THEN
+      IF ( Input_Opt%LDRYD ) THEN
 
          ! Setup for dry deposition
-         CALL INIT_DRYDEP( am_I_Root )
+         CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
       
          ! Print extra info message for Hg simulation
          IF ( ITS_A_MERCURY_SIM() .and. LSPLIT ) THEN
@@ -3609,7 +4542,9 @@
       ENDIF
 
       ! Initialize wet deposition tracers
-      IF ( LWETD .or. LCONV ) CALL WETDEPID( am_I_Root )
+      IF ( LWETD .or. LCONV ) THEN
+         CALL WETDEPID( am_I_Root, Input_Opt, RC )
+      ENDIF
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
@@ -3637,17 +4572,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_GAMAP_MENU( am_I_Root )
+      SUBROUTINE READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  25 Apr 2005 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3672,6 +4621,15 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_gamap_menu:3' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%GAMAP_DIAGINFO   = DIAGINFO
+      Input_Opt%GAMAP_TRACERINFO = TRACERINFO
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3700,7 +4658,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_OUTPUT_MENU( am_I_Root )
+      SUBROUTINE READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -3708,10 +4666,20 @@
       
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! NJDAY
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3719,6 +4687,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  03 Aug 2012 - R. Yantosca - IU_GEOS is now a global module variable
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  28 Feb 2013 - R. Yantosca - Don't call IS_LAST_DAY_GOOD when using ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3737,6 +4707,14 @@
 
       ! Error check
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_output_menu:1' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%NJDAY = NJDAY
+      
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3759,8 +4737,28 @@
      &        'JUL--', 31i1, /, 'AUG--', 31i1, /, 'SEP--', 30i1, /,
      &        'OCT--', 31i1, /, 'NOV--', 30i1, /, 'DEC--', 31i1 )
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! When we connect to the GEOS-5 GCM via ESMF, we let the GCM
+      ! handle all timing and diagnostic output via the GEOS-5 History
+      ! Component.  Therefore we do not need to make sure that we have 
+      ! scheduled output for the last day of the run.  This can cause
+      ! a premature exit. (bmy, 2/28/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to not let the run
+      ! proceed unless the user has scheduled output for the last day.
+      ! (bmy, 2/28/13)
+      !-----------------------------------------------------------------
+
       ! Make sure we have output at end of run
       CALL IS_LAST_DAY_GOOD
+#endif
 
       END SUBROUTINE READ_OUTPUT_MENU
 !EOC
@@ -3777,7 +4775,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DIAGNOSTIC_MENU( am_I_Root )
+      SUBROUTINE READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -3810,10 +4808,29 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! NDxx flags
+!-----------------------------------------------------------------------------
+! Prior to 2/3/14:
+! NOTE: These variables are in Headers/CMN_DIAG_mod.F, so we don't need
+! to reference these.  Lee Murray says that this causes the code to choke
+! when compiling GEOS-Chem on Mac. (bmy, 2/3/14)
+!      USE DIAG_MOD,           ONLY: TINDEX
+!      USE DIAG_MOD,           ONLY: TCOUNT
+!      USE DIAG_MOD,           ONLY: TMAX
+!-----------------------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3846,6 +4863,12 @@
 !                              with indices higher than #32 won't print out.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  08 Nov 2013 - M. Sulprizio- Remove HR1_NO, and HR2_NO from ND43 diagnostic.
+!  03 Feb 2014 - R. Yantosca - Remove references to TINDEX, TCOUNT, and TMAX
+!                              from diag_mod.  They are in CMN_SIZE_mod.F.
+!                              Lee Murray reports this causes the compilation
+!                              to choke on Macintosh platforms.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3900,7 +4923,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:5' )
       READ( SUBSTRS(1), * ) ND03
       IF ( .not. ITS_A_MERCURY_SIM() ) ND03 = 0
-      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
+      !CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
+      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 ) !yzh 12/15/12
+	  
 
       !--------------------------
       ! ND04: CO2 emissions
@@ -4187,7 +5212,7 @@
       CALL SET_TINDEX( am_I_Root, 42, ND42, SUBSTRS(2:N), N-1, PD42 )
 
       !--------------------------
-      ! ND43: OH, NO, etc.
+      ! ND43: OH, HO2
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:43' )
       READ( SUBSTRS(1), * ) ND43
@@ -4196,9 +5221,6 @@
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:44' )
       READ( SUBSTRS(1:N), * ) HR1_OH, HR2_OH
-
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:45' )
-      READ( SUBSTRS(1:N), * ) HR1_NO, HR2_NO
 
       !--------------------------
       ! ND44 drydep vel & flux
@@ -4376,6 +5398,94 @@
 
       !=================================================================
       ! Call other setup routines
+      !=================================================================
+      Input_Opt%ND01               = ND01
+      Input_Opt%ND02               = ND02
+      Input_Opt%ND03               = ND03
+      Input_Opt%ND04               = ND04
+      Input_Opt%ND05               = ND05
+      Input_Opt%ND06               = ND06
+      Input_Opt%ND07               = ND07
+      Input_Opt%ND08               = ND08
+      Input_Opt%ND09               = ND09
+      Input_Opt%ND10               = ND10
+      Input_Opt%ND11               = ND11
+      Input_Opt%ND12               = ND12
+      Input_Opt%ND13               = ND13
+      Input_Opt%ND14               = ND14
+      Input_Opt%ND15               = ND15
+      Input_Opt%ND16               = ND16
+      Input_Opt%ND17               = ND17
+      Input_Opt%ND18               = ND18
+      Input_Opt%ND19               = ND19
+      Input_Opt%ND20               = ND20
+      Input_Opt%ND21               = ND21
+      Input_Opt%ND22               = ND22
+      Input_Opt%ND23               = ND23
+      Input_Opt%ND24               = ND24
+      Input_Opt%ND25               = ND25
+      Input_Opt%ND26               = ND26
+      Input_Opt%ND27               = ND27
+      Input_Opt%ND28               = ND28
+      Input_Opt%ND29               = ND29
+      Input_Opt%ND30               = ND30
+      Input_Opt%ND31               = ND31
+      Input_Opt%ND32               = ND32
+      Input_Opt%ND33               = ND33
+      Input_Opt%ND34               = ND34
+      Input_Opt%ND35               = ND35
+      Input_Opt%ND36               = ND36
+      Input_Opt%ND37               = ND37
+      Input_Opt%ND38               = ND38
+      Input_Opt%ND39               = ND39
+      Input_Opt%ND40               = ND40
+      Input_Opt%ND41               = ND41
+      Input_Opt%ND42               = ND42
+      Input_Opt%ND43               = ND43
+      Input_Opt%ND44               = ND44
+      Input_Opt%ND45               = ND45
+      Input_Opt%ND46               = ND46
+      Input_Opt%ND47               = ND47
+      Input_Opt%ND48               = ND48
+      Input_Opt%ND49               = ND49
+      Input_Opt%ND50               = ND50
+      Input_Opt%ND51               = ND51
+      Input_Opt%ND52               = ND52
+      Input_Opt%ND53               = ND53
+      Input_Opt%ND54               = ND54
+      Input_Opt%ND55               = ND55
+      Input_Opt%ND56               = ND56
+      Input_Opt%ND57               = ND57
+      Input_Opt%ND58               = ND58
+      Input_Opt%ND59               = ND59
+      Input_Opt%ND60               = ND60
+      Input_Opt%ND61               = ND61
+      Input_Opt%ND62               = ND62
+      Input_Opt%ND63               = ND63
+      Input_Opt%ND64               = ND64
+      Input_Opt%ND66               = ND66
+      Input_Opt%ND67               = ND67
+      Input_Opt%ND68               = ND68
+      Input_Opt%ND69               = ND69
+      Input_Opt%ND70               = ND70
+      Input_Opt%LPRT               = ( ND70 > 0 )
+
+      ! Loop over # of diagnostics
+      DO M = 1, Input_Opt%MAX_DIAG
+         Input_Opt%TCOUNT(M)       = TCOUNT(M)
+         Input_Opt%TMAX(M)         = TMAX(M)
+
+         ! Loop over tracers per diagnostic
+         DO N = 1, Input_Opt%MAX_TRCS
+            Input_Opt%TINDEX(M,N)  = TINDEX(M,N)
+         ENDDO
+      ENDDO
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
+      ! Call other setup routines
       !================================================================
 
       ! Allocate diagnostic arrays
@@ -4418,6 +5528,10 @@
 !
 ! !USES:
 !
+#if   defined( TOMAS )
+      USE CHARPAK_MOD, ONLY : TXTEXT   ! (win, 7/14/09)
+#endif
+
       USE CMN_SIZE_MOD                              ! Size parameters
       USE CMN_DIAG_MOD                              ! TMAX, TINDEX
 !
@@ -4443,9 +5557,14 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      LOGICAL       :: IS_ALL 
-      INTEGER       :: M
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: IS_ALL 
+      INTEGER             :: M
+#if   defined( TOMAS )
+      INTEGER             :: NN,     COL,     IFLAG, TC     ! (win, 7/14/09)
+      CHARACTER (LEN=255) :: WORD,   SUBWORD, TMP1,  TMP2   ! (win, 7/14/09)
+      INTEGER             :: MINTMP, MAXTMP                 ! (win, 7/14/09)
+#endif
 
       !=================================================================
       ! SET_TINDEX begins here!
@@ -4482,6 +5601,48 @@
 
       ELSE 
 
+#if   defined( TOMAS )
+!(win, 7/14/09)  use TXTEXT and split the read in characters by -
+
+         COL   = 1
+         NN    = 0
+         SUBWORD  = ''
+         IFLAG = 0
+
+         ! Use explicit DO-loop
+         DO M = 1, N
+            WORD = SUBSTRS(M)
+
+            ! Check if the characters are a range with - in the middle
+            CALL TXTEXT ( '-', WORD, COL, SUBWORD, IFLAG )
+
+            ! Found a dash!  Get the numbers on both sides of the dash
+            ! since these the min and max of the tracer range
+            IF ( IFLAG == 0 ) THEN
+               TMP1 = TRIM( WORD(      1:COL-1      ) )
+               TMP2 = TRIM( WORD( COL+1:LEN_TRIM( WORD ) ) )
+
+               READ( TMP1, * ) MINTMP
+               READ( TMP2, * ) MAXTMP
+               
+               DO TC = MINTMP, MAXTMP
+                  NN = NN + 1
+                  TINDEX( N_DIAG, NN ) = TC
+               ENDDO
+
+            ! If we haven't found a dash, then there is only one number,
+            ! so that number is both the min and max of the tracer range
+            ELSE IF ( IFLAG == -1 ) THEN
+               NN = NN + 1
+               TMP1 = TRIM( WORD )
+               READ( TMP1, * ) TINDEX( N_DIAG, NN )
+            ENDIF
+               
+         ENDDO
+
+         ! Set TMAX to the counted # of tracers
+         TMAX( N_DIAG ) = NN
+#else
          ! Otherwise, set TMAX, TINDEX to the # of tracers
          ! listed in "input.ctm" -- need some error checks too
          TMAX(N_DIAG) = N
@@ -4491,6 +5652,7 @@
             READ( SUBSTRS(M:M), * ) TINDEX(N_DIAG,M)
          ENDDO
 
+#endif
          ! Set flag
          IS_ALL = .FALSE.
 
@@ -4551,7 +5713,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PLANEFLIGHT_MENU( am_I_Root )
+      SUBROUTINE READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -4560,16 +5722,27 @@
 
       USE CMN_SIZE_MOD                   ! MAXFAM
       USE CMN_DIAG_MOD                   ! ND40
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4614,6 +5787,16 @@
       READ( SUBSTRS(1:N), '(a)' ) OFILE
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_PF    = DO_PF
+      Input_Opt%PF_IFILE = IFILE
+      Input_Opt%PF_OFILE = OFILE
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -4650,16 +5833,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND48_MENU( am_I_Root )
+      SUBROUTINE READ_ND48_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE DIAG48_MOD, ONLY : INIT_DIAG48, ND48_MAX_STATIONS
       USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4667,6 +5860,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4727,6 +5921,21 @@
       ENDDO
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND48            = DO_ND48
+      Input_Opt%ND48_FILE          = FILE
+      Input_Opt%ND48_FREQ          = FREQ
+      Input_Opt%ND48_N_STA         = N_STA
+      Input_Opt%ND48_IARR(1:N_STA) = IARR(1:N_STA)
+      Input_Opt%ND48_JARR(1:N_STA) = JARR(1:N_STA)
+      Input_Opt%ND48_LARR(1:N_STA) = LARR(1:N_STA)
+      Input_Opt%ND48_NARR(1:N_STA) = NARR(1:N_STA)
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -4770,7 +5979,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND49_MENU( am_I_Root )
+      SUBROUTINE READ_ND49_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -4778,16 +5987,27 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4852,6 +6072,23 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:8' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND49                = DO_ND49
+      Input_Opt%ND49_FILE              = FILE
+      Input_Opt%ND49_TRACERS(1:N_ND49) = TRACERS(1:N_ND49)
+      Input_Opt%ND49_FREQ              = FREQ
+      Input_Opt%ND49_IMIN              = IMIN
+      Input_Opt%ND49_IMAX              = IMAX
+      Input_Opt%ND49_JMIN              = JMIN
+      Input_Opt%ND49_JMAX              = JMAX
+      Input_Opt%ND49_LMIN              = LMIN
+      Input_Opt%ND49_LMAX              = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -4897,17 +6134,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND50_MENU( am_I_Root )
+      SUBROUTINE READ_ND50_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE DIAG50_MOD,  ONLY : INIT_DIAG50
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND50_HDF
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4917,6 +6164,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4984,6 +6232,23 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd50_menu:8' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND50                = DO_ND50
+      Input_Opt%ND50_FILE              = FILE
+      Input_Opt%LND50_HDF              = LND50_HDF
+      Input_Opt%ND50_TRACERS(1:N_ND50) = TRACERS(1:N_ND50)
+      Input_Opt%ND50_IMIN              = IMIN
+      Input_Opt%ND50_IMAX              = IMAX
+      Input_Opt%ND50_JMIN              = JMIN
+      Input_Opt%ND50_JMAX              = JMAX
+      Input_Opt%ND50_LMIN              = LMIN
+      Input_Opt%ND50_LMAX              = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -5028,7 +6293,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND51_MENU( am_I_Root )
+      SUBROUTINE READ_ND51_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5038,10 +6303,20 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5051,6 +6326,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5128,6 +6404,26 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:11' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND51                = DO_ND51
+      Input_Opt%ND51_FILE              = FILE
+      Input_Opt%LND51_HDF              = LND51_HDF
+      Input_Opt%ND51_TRACERS(1:N_ND51) = TRACERS(1:N_ND51)
+      Input_Opt%ND51_HR_WRITE          = HR_WRITE
+      Input_Opt%ND51_HR1               = HR1 
+      Input_Opt%ND51_HR2               = HR2
+      Input_Opt%ND51_IMIN              = IMIN
+      Input_Opt%ND51_IMAX              = IMAX
+      Input_Opt%ND51_JMIN              = JMIN
+      Input_Opt%ND51_JMAX              = JMAX
+      Input_Opt%ND51_LMIN              = LMIN
+      Input_Opt%ND51_LMAX              = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -5176,7 +6472,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND51b_MENU( am_I_Root )
+      SUBROUTINE READ_ND51b_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5186,16 +6482,27 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
 ! !REVISION HISTORY: 
 !  21 Dec 2009 - Aaron van D - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5273,6 +6580,26 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:10' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND51b                 = DO_ND51
+      Input_Opt%ND51b_FILE               = FILE
+      Input_Opt%LND51b_HDF               = LND51b_HDF
+      Input_Opt%ND51b_TRACERS(1:N_ND51)  = TRACERS(1:N_ND51)
+      Input_Opt%ND51b_HR_WRITE           = HR_WRITE
+      Input_Opt%ND51b_HR1                = HR1 
+      Input_Opt%ND51b_HR2                = HR2
+      Input_Opt%ND51b_IMIN               = IMIN
+      Input_Opt%ND51b_IMAX               = IMAX
+      Input_Opt%ND51b_JMIN               = JMIN
+      Input_Opt%ND51b_JMAX               = JMAX
+      Input_Opt%ND51b_LMIN               = LMIN
+      Input_Opt%ND51b_LMAX               = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -5321,7 +6648,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND63_MENU( am_I_Root )
+      SUBROUTINE READ_ND63_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5329,10 +6656,20 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version
@@ -5341,6 +6678,7 @@
 !                              READ_ND63 MENU. ND59 is used by TOMAS.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5399,6 +6737,21 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:8' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND63              = DO_ND63
+      Input_Opt%ND63_FILE            = FILE
+      Input_Opt%ND63_TRACERS(1:ND63) = TRACERS(1:N_ND63)
+      Input_Opt%ND63_FREQ            = FREQ
+      Input_Opt%ND63_IMIN            = IMIN
+      Input_Opt%ND63_IMAX            = IMAX
+      Input_Opt%ND63_JMIN            = JMIN
+      Input_Opt%ND63_JMAX            = JMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -5442,7 +6795,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PROD_LOSS_MENU( am_I_Root )
+      SUBROUTINE READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5455,10 +6808,20 @@
 
       USE CMN_SIZE_MOD      ! MAXFAM
       USE CMN_DIAG_MOD      ! ND65
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5469,6 +6832,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  08 Nov 2012 - R. Yantosca - Now save fields to the Input_Opt object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5649,6 +7013,31 @@
  130  FORMAT( I3, 1X, F4.1, 1X, A5 )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_SAVE_PL          = DO_SAVE_PL
+      Input_Opt%LFAMILY             = ( DO_SAVE_PL .and. NFAM > 0 )
+      Input_Opt%ND65                = ND65
+      Input_Opt%DO_SAVE_O3          = DO_SAVE_O3
+      Input_Opt%NFAM                = NFAM
+
+      ! Loop over # families
+      DO F = 1, NFAM
+         Input_Opt%FAM_NAME(F)      = FAM_NAME(F) 
+         Input_Opt%FAM_NMEM(F)      = FAM_NMEM(F)
+         Input_Opt%FAM_TYPE(F)      = FAM_TYPE(F)
+
+         ! Loop over # members/family
+         DO M = 1, FAM_NMEM(F)   
+            Input_Opt%FAM_COEF(M,F) = FAM_COEF(M,F)
+            Input_Opt%FAM_MEMB(M,F) = FAM_MEMB(M,F)
+         ENDDO
+      ENDDO
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
 
@@ -5671,7 +7060,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_UNIX_CMDS_MENU( am_I_Root )
+      SUBROUTINE READ_UNIX_CMDS_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5679,17 +7068,28 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,  REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR,  SPACE,     UNZIP_CMD
       USE UNIX_CMDS_MOD, ONLY : WILD_CARD,  ZIP_SUFFIX 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5741,6 +7141,20 @@
       SPACE = ' '
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%BACKGROUND = BACKGROUND
+      Input_Opt%REDIRECT   = REDIRECT
+      Input_Opt%REMOVE_CMD = REMOVE_CMD
+      Input_Opt%SEPARATOR  = SEPARATOR
+      Input_Opt%WILD_CARD  = WILD_CARD
+      Input_Opt%UNZIP_CMD  = UNZIP_CMD
+      Input_Opt%ZIP_SUFFIX = ZIP_SUFFIX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -5780,7 +7194,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_NESTED_GRID_MENU( am_I_Root )
+      SUBROUTINE READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5791,10 +7205,20 @@
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,   LWINDO_CH
       USE LOGICAL_MOD,   ONLY : LWINDO_SE
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5803,6 +7227,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5884,6 +7309,32 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LWINDO      = LWINDO
+      Input_Opt%LWINDO2x25  = LWINDO2x25
+      Input_Opt%LWINDO_NA   = LWINDO_NA
+      Input_Opt%TPBC_DIR_NA = TPBC_DIR_NA
+      Input_Opt%LWINDO_EU   = LWINDO_EU
+      Input_Opt%TPBC_DIR_EU = TPBC_DIR_EU
+      Input_Opt%LWINDO_CH   = LWINDO_CH
+      Input_Opt%TPBC_DIR_CH = TPBC_DIR_CH
+      Input_Opt%LWINDO_SE   = LWINDO_SE
+      Input_Opt%TPBC_DIR_SE = TPBC_DIR_SE
+      Input_Opt%LWINDO_CU   = LWINDO_CU
+      Input_Opt%TPBC_DIR    = TPBC_DIR
+      Input_Opt%NESTED_TS   = TS
+      Input_Opt%NESTED_I1   = I1
+      Input_Opt%NESTED_J1   = J1
+      Input_Opt%NESTED_I2   = I2
+      Input_Opt%NESTED_J2   = J2
+      Input_Opt%NESTED_I0W  = I0W
+      Input_Opt%NESTED_J0W  = J0W
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -5908,7 +7359,7 @@
       !=================================================================
 
       ! Pass values to "tpcore_bc_mod.f"
-      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2 )
+      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2, Input_Opt )
 
       END SUBROUTINE READ_NESTED_GRID_MENU
 !EOC
@@ -5925,22 +7376,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_BENCHMARK_MENU( am_I_Root )
+      SUBROUTINE READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE BENCHMARK_MOD, ONLY : INITIAL_FILE, FINAL_FILE
       USE LOGICAL_MOD,   ONLY : LSTDRUN
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5968,6 +7430,16 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_benchmark_menu:4' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LSTDRUN           = LSTDRUN
+      Input_Opt%STDRUN_INIT_FILE  = INITIAL_FILE
+      Input_Opt%STDRUN_FINAL_FILE = FINAL_FILE
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -6001,21 +7473,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root )
+      SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : OH_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6035,6 +7518,14 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%OH_DIR = OH_DIR
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -6063,20 +7554,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_O3PL_MENU( am_I_Root )
+      SUBROUTINE READ_O3PL_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -6095,6 +7596,14 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:2' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%O3PL_DIR = O3PL_DIR
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -6124,7 +7633,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_MERCURY_MENU( am_I_Root )
+      SUBROUTINE READ_MERCURY_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -6135,10 +7644,20 @@
       USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
       USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  24 Feb 2006 - R. Yantosca - Initial version
@@ -6147,6 +7666,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6229,11 +7749,26 @@
  110  FORMAT( A, L5  )
  120  FORMAT( A, A   )
     
+      !=================================================================
+      ! Copy to Input Options object
+      !=================================================================
+      Input_Opt%ANTHRO_Hg_YEAR = ANTHRO_Hg_YEAR
+      Input_Opt%HG_SCENARIO    = HG_SCENARIO
+      Input_Opt%USE_CHECKS     = USE_CHECKS
+      Input_Opt%LDYNOCEAN      = LDYNOCEAN
+      Input_Opt%LPREINDHG      = LPREINDHG
+      Input_Opt%Hg_RST_FILE    = Hg_RST_FILE
+      Input_Opt%LGTMM          = LGTMM
+      Input_Opt%GTMM_RST_FILE  = GTMM_RST_FILE
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
       ! If we are performing a Hg simulation ...
       IF ( ITS_A_MERCURY_SIM() ) THEN 
 
          ! Initialize "mercury_mod.f"
-         CALL INIT_MERCURY( ANTHRO_Hg_YEAR, HG_SCENARIO ) !eds 5/17/12
+         CALL INIT_MERCURY( am_I_Root, Input_Opt, RC )
          CALL INIT_LAND_MERCURY()
          CALL INIT_DEPO_MERCURY(TRIM( GTMM_RST_FILE ))
 
@@ -6260,7 +7795,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CH4_MENU( am_I_Root )
+      SUBROUTINE READ_CH4_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -6274,18 +7809,28 @@
       USE LOGICAL_MOD, ONLY : LGFED3BB, LDAYBB3
       USE LOGICAL_MOD, ONLY : LGFED2BB, L8DAYBB
       USE ERROR_MOD,   ONLY : ERROR_STOP
- 
-#     include "define.h"             ! C-preprocessor switches
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6392,6 +7937,25 @@
       ! FORMAT statements
  100  FORMAT( A, L5  )
 
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LCH4BUD = LCH4BUD
+      Input_Opt%LGAO    = LGAO
+      Input_Opt%LCOL    = LCOL         
+      Input_Opt%LLIV    = LLIV         
+      Input_Opt%LWAST   = LWAST         
+      Input_Opt%LBFCH4  = LBFCH4       
+      Input_Opt%LRICE   = LRICE         
+      Input_Opt%LOTANT  = LOTANT         
+      Input_Opt%LBMCH4  = LBMCH4       
+      Input_Opt%LWETL   = LWETL         
+      Input_Opt%LSOABS  = LSOABS          
+      Input_Opt%LOTNAT  = LOTNAT 
+
+      ! Return success
+      RC = GIGC_SUCCESS         
+
       END SUBROUTINE READ_CH4_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -6408,23 +7972,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POPS_MENU( am_I_Root )
+      SUBROUTINE READ_POPS_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-#if !defined( APM )
-      USE GET_POPSINFO_MOD,  ONLY : GET_POP_TYPE
-      USE POPS_MOD,          ONLY : INIT_POPS
-      USE DIRECTORY_MOD,     ONLY : POP_EMISDIR
-      USE TRACER_MOD,        ONLY : ITS_A_POPS_SIM
+      USE GET_POPSINFO_MOD,     ONLY : GET_POP_TYPE
+      USE POPS_MOD,             ONLY : INIT_POPS
+      USE DIRECTORY_MOD,        ONLY : POP_EMISDIR
+      USE TRACER_MOD,           ONLY : ITS_A_POPS_SIM
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)        :: am_I_Root   ! Is this the root CPU?
+      LOGICAL, INTENT(IN)           :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 2012 - C. Friedman - Initial version
 !  26 Nov 2012 - M. Payer    - Added ProTeX headers
+!  29 Nov 2012 - M. Payer    - Now pass Input_Opt, RC as arguments
+!  26 Mar 2013 - R. Yantosca - Now pass Input_Opt to INIT_POPS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6514,6 +8089,25 @@
  120  FORMAT( A, A   )
  130  FORMAT( A, f6.5 )
 
+      !=================================================================
+      ! Copy to Input Options object
+      !=================================================================
+      Input_Opt%POP_TYPE       = POP_TYPE
+      Input_Opt%CHEM_PROCESS   = CHEM_PROCESS
+      Input_Opt%POP_EMISFILE   = POP_EMISDIR
+      Input_Opt%POP_XMW        = POP_XMW
+      Input_Opt%POP_KOA        = POP_KOA
+      Input_Opt%POP_KBC        = POP_KBC
+      Input_Opt%POP_K_POPG_OH  = POP_K_POPG_OH
+      Input_Opt%POP_K_POPP_O3A = POP_K_POPP_O3A
+      Input_Opt%POP_K_POPP_O3B = POP_K_POPP_O3B
+      Input_Opt%POP_HSTAR      = POP_HSTAR
+      Input_Opt%POP_DEL_H      = POP_DEL_H 
+      Input_Opt%POP_DEL_Hw     = POP_DEL_Hw
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
       ! If we are performing a POPS simulation ...
       IF ( ITS_A_POPS_SIM() ) THEN 
 
@@ -6526,17 +8120,9 @@
          ! Initialize "pops_mod.f"
          CALL INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
      &                  POP_K_POPP_O3A, POP_K_POPP_O3B, 
-     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
+     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw, Input_Opt )
 
       ENDIF
-
-#else
-      ! Hack to get APM compiled
-      USE ERROR_MOD, ONLY : ERROR_STOP
-      LOGICAL, INTENT(IN)        :: am_I_Root   ! Is this the root CPU?
-      CALL ERROR_STOP('POPS and APM not currently compatible',
-     &                'input_mod.F')
-#endif
 
       END SUBROUTINE READ_POPS_MENU
 !EOC
@@ -6554,24 +8140,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_APM_MENU( am_I_Root )
+      SUBROUTINE READ_APM_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE APM_INIT_MOD,  ONLY : APMTRACER_MW_G
-      USE APM_INIT_MOD,  ONLY : APMTRACER_MW_Kg
-      USE APM_INIT_MOD,  ONLY : IFNUCL
-      USE APM_INIT_MOD,  ONLY : FE0
-      USE APM_INIT_MOD,  ONLY : LAPM
-      USE TRACER_MOD,    ONLY : N_APMTRA
-      USE TRACER_MOD,    ONLY : N_TRACERS
-      USE TRACER_MOD,    ONLY : TCVV
-      USE TRACER_MOD,    ONLY : XNUMOL
+      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_G
+      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_Kg
+      USE APM_INIT_MOD,       ONLY : IFNUCL
+      USE APM_INIT_MOD,       ONLY : FE0
+      USE APM_INIT_MOD,       ONLY : LAPM
+      USE CHARPAK_MOD,        ONLY : STRREPL
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GAMAP_MOD,          ONLY : DO_GAMAP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACER_MOD,         ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : TCVV
+      USE TRACER_MOD,         ONLY : XNUMOL
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  This subroutine is only compiled when you build GEOS-Chem with the
@@ -6619,9 +8218,23 @@
       ENDDO
 
       !=================================================================
+      ! Set fields of the Input Options object
+      !=================================================================
+      Input_Opt%IFNUCL = IFNUCL
+      Input_Opt%FE0    = FE0
+
+      DO T = 1, N_APMTRA
+         Input_Opt%TCVV  (N_TRACERS+T) = TCVV(T)
+         Input_Opt%XNUMOL(N_TRACERS+T) = XNUMOL(T)
+      ENDDO
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
-      IF( am_I_Root ) THEN
+      IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'APM MENU'
          WRITE( 6, '(  a)' ) '----------------'
          WRITE( 6, 100     ) 'Turn on APM and add tracers?: ', LAPM
@@ -6636,6 +8249,7 @@
  120  FORMAT( A, F7.3 )
 
       END SUBROUTINE READ_APM_MENU
+
 !EOC
 #endif
 !EOC
@@ -6663,8 +8277,6 @@
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,    LWINDO_CH
       USE LOGICAL_MOD,   ONLY : LWINDO_SE
       USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMDb,    GET_NYMDe
-
-#     include "define.h" 
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -6678,6 +8290,7 @@
 !  08 Feb 2012 - R. Yantosca - Now check GEOS-5.7.x directory
 !  09 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6715,8 +8328,6 @@
          CALL CHECK_DIRECTORY( TPBC_DIR_EU )
 #elif defined( NESTED_CH)
          CALL CHECK_DIRECTORY( TPBC_DIR_CH )
-#elif defined( SEAC4RS )
-         CALL CHECK_DIRECTORY( TPBC_DIR_SE )
 #endif
 
       ENDIF
@@ -6731,9 +8342,6 @@
       ENDIF
       IF ( LWINDO_CH ) THEN
          CALL CHECK_DIRECTORY( TPBC_DIR_CH )
-      ENDIF
-      IF ( LWINDO_SE ) THEN
-         CALL CHECK_DIRECTORY( TPBC_DIR_SE )
       ENDIF
 
 #if   defined( GEOS_4 )
@@ -6765,16 +8373,16 @@
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
-#elif defined( GEOS_57 )
+#elif defined( GEOS_FP )
 
-      ! Check GEOS-5.7.x met field directory (starting date)
-      DIR = GEOS_57_DIR
+      ! Check GEOS-FP met field directory (starting date)
+      DIR = GEOS_FP_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
-      ! Check GEOS-5.7.x met field directory (ending date)
-      DIR = GEOS_57_DIR
+      ! Check GEOS-FP met field directory (ending date)
+      DIR = GEOS_FP_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
@@ -6834,8 +8442,6 @@
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE FILE_MOD,      ONLY : FILE_EXISTS
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR
-
-#     include "define.h"                        ! C-preprocessor flags
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6845,6 +8451,7 @@
 !  20 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7138,6 +8745,129 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: gigc_init_extra
+!
+! !DESCRIPTION: Suborutine GIGC\_INIT\_EXTRA initializes other GEOS-Chem 
+!  modules that have not been initialized in either GIGC\_Allocate\_All or
+!  GIGC\_Init\_all.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE Aerosol_Mod,        ONLY : Init_Aerosol
+      USE Carbon_Mod,         ONLY : Init_Carbon
+      USE Drydep_Mod,         ONLY : Init_Drydep
+      USE Dust_Mod,           ONLY : Init_Dust
+      USE Error_Mod,          ONLY : Debug_Msg
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Linoz_Mod,          ONLY : Init_Linoz
+      USE Seasalt_Mod,        ONLY : Init_SeaSalt
+      USE Sulfate_Mod,        ONLY : Init_Sulfate
+      USE Tropopause_Mod,     ONLY : Init_Tropopause
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Several of the INIT routines now called within GIGC_Init_Extra had 
+!  originally been called from the Run method.  We now gather these INIT
+!  routines here so that they may be called from the Initialization method.
+!  This is necessary when connecting GEOS-Chem to the GEOS-5 GCM via ESMF.
+!                                                                             .
+!  GIGC_Init_Extra should be called after the call to DO_DRYDEP, since
+!  these routines depend on dry deposition parameters being set up first.
+!
+! !REVISION HISTORY: 
+!  04 Mar 2013 - R. Yantosca - Initial revision
+!  05 Mar 2013 - R. Yantosca - Now call INIT_AEROSOL (GeosCore/aerosol_mod.F)
+!  15 Mar 2013 - R. Yantosca - Now call INIT_LINOZ (GeosCore/linoz_mod.F)
+!  29 Mar 2013 - R. Yantosca - Now call INIT_TROPOPAUSE (so that we can pass
+!                              a LVARTROP from Input_Opt and not logical_mod.F)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: prtDebug
+
+      !=================================================================
+      ! GIGC_Init_Extra begins here!
+      !=================================================================
+
+      ! Assume success
+      RC       = GIGC_SUCCESS
+
+      ! Set a flag for debugging
+      prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+
+      ! Initialize "carbon_mod.F"
+      IF ( Input_Opt%LCARB ) THEN
+         CALL Init_Carbon( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CARBON' )
+      ENDIF
+    
+      ! Initialize "dust_mod.F"
+      IF ( Input_Opt%LDUST ) then
+         CALL Init_Dust( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DUST' )
+      ENDIF
+
+      ! Initialize "seasalt_mod.F
+      IF ( Input_Opt%LSSALT ) THEN
+         CALL Init_Seasalt( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SEASALT' )
+      ENDIF
+
+      ! Initialize "sulfate_mod.F"
+      IF ( Input_Opt%LSULF ) THEN
+         CALL Init_Sulfate( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SULFATE' )
+      ENDIF
+
+      ! Initialize "aerosol_mod.F"
+      IF ( Input_Opt%LSULF .or. Input_Opt%LCARB   .or. 
+     &     Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+         CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )
+      ENDIF
+
+      ! Initialize "linoz_mod.F"
+      IF ( Input_Opt%LLINOZ ) THEN
+         CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
+      ENDIF
+
+      ! Initialize "tropopause_mod.F"
+      CALL INIT_TROPOPAUSE( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TROPOPAUSE' )
+
+      END SUBROUTINE GIGC_Init_Extra
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: init_input
 !
 ! !DESCRIPTION: Subroutine INIT\_INPUT initializes all variables from 
@@ -7179,6 +8909,8 @@
 !  26 Mar 2012 - R. Yantosca - Now turn off switch USE_OLSON_2001 by default
 !                              (except for GEOS-5.7.2 met)
 !  27 Mar 2012 - R. Yantosca - Cosmetic changes
+!  13 Aug 2013 - M. Sulprizio- Add modifications for SOA + semivolatile POA
+!                              simulation (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7200,7 +8932,6 @@
 
       ! Initialize logicals
       LATEQ          = .FALSE.
-      LAVHRRLAI      = .FALSE.
       LCARB          = .FALSE.
       LDEAD          = .FALSE.
       LDUST          = .FALSE.
@@ -7214,7 +8945,6 @@
       LPRT           = .FALSE.
       LSTDRUN        = .FALSE.
       LDRYD          = .FALSE.
-      LACSO2         = .FALSE.
       LAEIC          = .FALSE.
       LANTHRO        = .FALSE.
       LBIONOX        = .FALSE.
@@ -7247,7 +8977,6 @@
       LTOMSAI        = .FALSE.
       LWOODCO        = .FALSE.
       LFILL          = .FALSE.
-      LMFCT          = .FALSE.
       LTRAN          = .FALSE.
       LTPFV          = .FALSE.
       LWINDO         = .FALSE.
@@ -7263,6 +8992,15 @@
       LLINOZ         = .FALSE.
       LPREINDHG      = .FALSE.
       USE_OLSON_2001 = .FALSE.
+      LRETRO         = .FALSE.  !(wfr, 3/8/11)
+      LRCP           = .FALSE.  !(cdh, 10/18/11)
+      LRCPSHIP       = .FALSE.  !(cdh, 10/18/11)
+      LRCPAIR        = .FALSE.  !(cdh, 10/18/11)
+      LWARWICK_VSLS  = .FALSE.
+      LSSABr2        = .FALSE.
+      LFIX_PBL_BRO   = .FALSE.
+      ! SOAupdate stuff for semivol POA (hotp 10/1/09)
+      LSVPOA         = .FALSE.
 
       !Online CH4 (SDE 03/26/13)
       LCH4EMIS       = .FALSE.
@@ -7321,20 +9059,14 @@
       LPLANETAG      = .FALSE.
       LCHEMCO2       = .FALSE.
                      
-      LRETRO         = .FALSE.  !(wfr, 3/8/11)
-
-      LWARWICK_VSLS  = .FALSE.
-      LSSABr2        = .FALSE.
-      LFIX_PBL_BRO   = .FALSE.
-      
       ! Initialize counters
       CT1            = 0
       CT2            = 0
       CT3            = 0
 
-#if   defined( GEOS_57 ) 
+#if   defined( GEOS_FP ) 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% KLUDGE FOR TESTING GEOS-5.7.2 (bmy, 3/26/12)
+      !%%% KLUDGE FOR TESTING GEOS-FP (bmy, 3/26/12)
       !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
       !%%% in order to facilitate the SEAC4RS simulations.  Eventually
       !%%% this will replace Olson 1992 for all other met field types,

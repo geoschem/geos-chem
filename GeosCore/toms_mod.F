@@ -19,7 +19,6 @@
       USE CMN_SIZE_MOD                    ! Size parameters
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -35,16 +34,7 @@
       ! First & last years for which TOMS/SBUV data is is available
       ! (update these as new data is added to the archive)
       INTEGER, PUBLIC, PARAMETER :: FIRST_TOMS_YEAR = 1979
-#if   defined( GEOS_57 )
-      !%%% KLUDGE for SEAC4RS: Use TOMS data up to 2010.  This has not
-      !%%% yet gone into the std code since it needs to be benchmarked.
-      !%%% (bmy, 7/3/12)
       INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2010
-#else
-      !%%% Std GEOS-Chem: use TOMS data up to 2008 for the time being.
-      !%%% (bmy, 7/3/12)
-      INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2008
-#endif
 !
 ! !REMARKS:
 !  References:
@@ -88,6 +78,7 @@
 !                              updated data
 !  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
 !                              to GEOS-5.7.2 met data for the time being.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,7 +109,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TOMS( THISMONTH, THISYEAR )
+      SUBROUTINE READ_TOMS( THISMONTH, THISYEAR, USE_O3_FROM_MET )
 !
 ! !USES:
 !
@@ -132,8 +123,9 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: THISMONTH   ! Current month
-      INTEGER, INTENT(IN)    :: THISYEAR    ! Current year
+      INTEGER, INTENT(IN)    :: THISMONTH       ! Current month
+      INTEGER, INTENT(IN)    :: THISYEAR        ! Current year
+      LOGICAL, INTENT(IN)    :: USE_O3_FROM_MET ! Use TO3 from met fields?
 !
 ! !REMARKS:
 !  TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 5.
@@ -190,6 +182,9 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
 !                              to GEOS-5.7.2 met data for the time being.
+!  13 Dec 2013 - M. Sulprizio- Now pass USE_O3_FROM_MET logical flag so that
+!                              we bypass reading TOMS O3 data when using TO3
+!                              from the met fields.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,6 +206,9 @@
          CALL INIT_TOMS
          FIRST = .FALSE.
       ENDIF
+
+      ! Only read TOMS if not using TO3 from the met fields (mpayer, 12/13/13)
+      IF ( USE_O3_FROM_MET ) RETURN
 
       ! Always use 2002 data for GCAP
 #if   defined ( GCAP )
@@ -248,19 +246,8 @@
      
       ! Define filename (with replaceable tokens)
 #if   !defined( GCAP )
-#if   defined( GEOS_57 )
-      !%%% KLUDGE FOR SEAC4RS
-      !%%% Update to the latest TOMS data directory only for GEOS-5.7.2 met.
-      !%%% This update has not gone into the std code since it needs to be 
-      !%%% benchmarked. (skim, 6/25/12)
       FILENAME = 'TOMS_201203/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
-#else
-      !%%% Std GEOS-Chem: Read from the existing TOMS data directory
-      !%%% for the time being (bmy, 7/2/12)
-      FILENAME = 'TOMS_200906/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
-     &           '.'                            // GET_RES_EXT()
-#endif
 #else
       FILENAME = 'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
@@ -348,7 +335,7 @@
       ! directly from the met fields
       LOGICAL, INTENT(IN)  :: USE_O3_FROM_MET
       
-      ! TO3 from the met fields
+      ! TO3 from the met fields [Dobsons]
       REAL*8,  INTENT(IN)  :: TO3(IIPAR,JJPAR)
 !
 ! !REMARKS:
@@ -443,10 +430,10 @@
          ! we won't overwrite this with TOMS/SBUV O3 columns
          !---------------------------------------------------------------
          IF ( FIRST ) THEN
-            WRITE(6,*) 'TOMS/SBUV data are not available for this year'
-            WRITE(6,*) 'We use the total O3 column given by GEOS-5.'
-            WRITE(6,*) 'The validation by GMAO of these O3 columns is ' 
-     &                 // 'in progress.'
+            WRITE( 6, '(a)' ) REPEAT( '%', 45 )
+            WRITE( 6, 100   )
+ 100        FORMAT( '%%% USING O3 COLUMNS FROM THE MET FIELDS! %%% ' )
+            WRITE( 6, '(a)' ) REPEAT( '%', 45 )
             FIRST = .FALSE.
          ENDIF
 

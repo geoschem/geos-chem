@@ -160,12 +160,12 @@
 !        (jaf, 2/6/09)
 !  (35) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -182,6 +182,7 @@
       PUBLIC :: GC_READ_BIOMASS_CO2
       PUBLIC :: GC_READ_BIOMASS_NH3
       PUBLIC :: GC_READ_BIOMASS_SO2
+      PUBLIC :: TOTAL_BIOMASS_TG
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -315,9 +316,6 @@
      &                                              31, 30, 31, 31, 
      &                                              30, 31, 30, 31 /)
 
-      ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
-      
       !=================================================================
       !    B i o m a s s   B u r n i n g   B e g i n s   H e r e !!
       ! 
@@ -597,6 +595,8 @@
 !  (16) Treat all species with emissions dependant on CO emissions after
 !       the main loop on biomass species. To make sure CO emissions are already
 !       read. (ccc, 01/29/10)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -604,7 +604,7 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       ! Add IDBs of all species handled here (hotp 8/3/09)
-      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
+      USE TRACERID_MOD, ONLY : IDBNO,   IDBCO,   IDBALK4, IDBACET 
       USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ, IDBTOLU
@@ -641,7 +641,8 @@
       ! (ccc, 01/29/10)
           
          ! Do scaling if necessary and print totals in Tg
-         IF  ( IDBNOX > 0 ) THEN
+         ! Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
+         IF  ( IDBNO > 0 ) THEN
 
             !----------
             ! NOx
@@ -653,15 +654,15 @@
      &                       1,         ARRAY,     QUIET=.TRUE. )  
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBNOX) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBNO) )
 
             ! Compute future NOx emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'NOxbb', BIOMASS(:,:,IDBNOX) )
+               CALL SCALE_FUTURE( 'NObb', BIOMASS(:,:,IDBNO) )
             ENDIF
 
-            ! NOX -- print totals in [Tg/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNOX), 14d-3, 'NOx' )
+            ! NO -- print totals in [Tg/month]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNO), 14d-3, 'NO' )
          ENDIF
 
          !FP_ISOP (6/2009) removed hardwired IDBs
@@ -683,7 +684,7 @@
             ! for new gaseous emissions (tmf, 1/7/09)
             CALL TRANSFER_2D( ARRAY(:,:,1), COEMIS(:,:) )
 
-            ! Compute future NOx emissions (if necessary)
+            ! Compute future CO emissions (if necessary)
             IF ( LFUTURE ) THEN
                CALL SCALE_FUTURE( 'CObb', BIOMASS(:,:,IDBCO) )
             ENDIF
@@ -1129,6 +1130,8 @@
 !  (2 ) BB   (REAL*8   ) : Array w/ biomass burning emissions [molec/cm2]
 !
 !  NOTES:
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1149,7 +1152,7 @@
       ! SCALE_FUTURE begins here!
       !=================================================================
 
-      IF ( NAME == 'NOxbb' ) THEN
+      IF ( NAME == 'NObb' ) THEN
 
          ! Compute future NOx emissions
 !$OMP PARALLEL DO
@@ -1215,6 +1218,8 @@
 !  (4 ) Now report sums of NOx as Tg N instead of Tg NOx (bmy, 4/5/06)
 !  (5 ) Add unit choice for GLYX, MGLY, GLYC, HAC (tmf, 1/7/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1253,7 +1258,7 @@
      
       ! Define unit string
       SELECT CASE( NAME )
-         CASE( 'NOx' )
+         CASE( 'NO' )
             UNIT = '[Tg N]'
          CASE( 'CO', 'CH2O', 'GLYX', 'MGLY', 'GLYC', 'HAC' )
             UNIT = '[Tg  ]'
@@ -1292,6 +1297,7 @@
 !  (1 ) Took the code that reads the emissions from disk from 
 !        BIOMASS_CARB_GEOS in "carbon_mod.f". (bmy, 9/28/06)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Add POA1 for SOA + semivolatile POA (H. Pye) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1305,6 +1311,9 @@
       USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR 
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTBCPO,         IDTOCPO
+      ! SOAupdate (hotp 6/12/09)
+      ! semivolpoa: replace OCPO with POA (hotp 2/17/09)
+      USE TRACERID_MOD,         ONLY : IDTPOA1
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -1330,7 +1339,8 @@
       !=================================================================
 
       ! Make sure BCPO, OCPO tracers are defined
-      IF ( IDTBCPO == 0 .and. IDTOCPO == 0 ) THEN
+      ! SOAupdate: add IDTPOA for svpoa (hotp 8/23/09)
+      IF ( IDTBCPO == 0 .and. ( IDTOCPO == 0 .or. IDTPOA1 == 0 )) THEN
          BIOMASS_BC = 0d0
          BIOMASS_OC = 0d0
          RETURN
@@ -1449,7 +1459,13 @@
           
             ! Convert [kg C/month] -> [atoms C/cm2/s]
             BIOMASS_BC(I,J) = BIOMASS_BC(I,J) * XNUMOL(IDTBCPO) * CONV
-            BIOMASS_OC(I,J) = BIOMASS_OC(I,J) * XNUMOL(IDTOCPO) * CONV
+
+            ! SOAupdate: add POA fix (hotp 8/23/09)
+            IF ( IDTOCPO > 0 ) THEN
+              BIOMASS_OC(I,J) = BIOMASS_OC(I,J) * XNUMOL(IDTOCPO) * CONV
+            ELSEIF ( IDTPOA1 > 0 ) THEN
+              BIOMASS_OC(I,J) = BIOMASS_OC(I,J) * XNUMOL(IDTPOA1) * CONV
+            ENDIF
 
             ! Scale to IPCC future scenario (if necessary)
             IF ( LFUTURE ) THEN

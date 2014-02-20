@@ -27,6 +27,9 @@ MODULE m_netcdf_io_readattr
      MODULE PROCEDURE NcGet_Var_Attr_I4
      MODULE PROCEDURE NcGet_Var_Attr_R4
      MODULE PROCEDURE NcGet_Var_Attr_R8
+     MODULE PROCEDURE NcGet_Var_Attr_I4_arr
+     MODULE PROCEDURE NcGet_Var_Attr_R4_arr
+     MODULE PROCEDURE NcGet_Var_Attr_R8_arr
   END INTERFACE
 
   PUBLIC :: NcGet_Glob_Attributes
@@ -35,6 +38,9 @@ MODULE m_netcdf_io_readattr
      MODULE PROCEDURE NcGet_Glob_Attr_I4
      MODULE PROCEDURE NcGet_Glob_Attr_R4
      MODULE PROCEDURE NcGet_Glob_Attr_R8
+     MODULE PROCEDURE NcGet_Glob_Attr_I4_arr
+     MODULE PROCEDURE NcGet_Glob_Attr_R4_arr
+     MODULE PROCEDURE NcGet_Glob_Attr_R8_arr
   END INTERFACE
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -43,10 +49,16 @@ MODULE m_netcdf_io_readattr
   PRIVATE :: NcGet_Var_Attr_I4
   PRIVATE :: NcGet_Var_Attr_R4
   PRIVATE :: NcGet_Var_Attr_R8
+  PRIVATE :: NcGet_Var_Attr_I4_arr
+  PRIVATE :: NcGet_Var_Attr_R4_arr
+  PRIVATE :: NcGet_Var_Attr_R8_arr
   PRIVATE :: NcGet_Glob_Attr_C
   PRIVATE :: NcGet_Glob_Attr_I4
   PRIVATE :: NcGet_Glob_Attr_R4
   PRIVATE :: NcGet_Glob_Attr_R8
+  PRIVATE :: NcGet_Glob_Attr_I4_arr
+  PRIVATE :: NcGet_Glob_Attr_R4_arr
+  PRIVATE :: NcGet_Glob_Attr_R8_arr
 !
 ! !DESCRIPTION: Provides netCDF utility routines to read both netCDF
 !  variable attributes and global attributes.  Individual routines for 
@@ -61,6 +73,7 @@ MODULE m_netcdf_io_readattr
 !  25 Jan 2012 - R. Yantosca - Initial version
 !  30 Apr 2012 - R. Yantosca - Modified for compatibility with netCDF-3
 !  30 Apr 2012 - R. Yantosca - Added comments
+!  26 Sep 2013 - R. Yantosca - Add routines for reading vector attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -270,7 +283,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: NcGet_Var_Attr_R4
+! !IROUTINE: NcGet_Var_Attr_R8
 !
 ! !DESCRIPTION: Returns a variable attribute of type REAL*8.
 !\\
@@ -337,6 +350,207 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: NcGet_Var_Attr_I4_arr
+!
+! !DESCRIPTION: Returns a vector variable attribute of type INTEGER*4.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NcGet_Var_Attr_I4_arr( fid, varName, attName, attValue )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
+    CHARACTER(LEN=*), INTENT(IN)  :: varName      ! netCDF variable name
+    CHARACTER(LEN=*), INTENT(IN)  :: attName      ! Name of variable attribute
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: attValue(:)  ! Attribute value
+!
+! !DESCRIPTION: Reads a variable attribute (INTEGER type) from a netCDF file.
+!\\
+!\\
+! !AUTHOR: 
+!  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
+!                              which is compatible w/ netCDF3
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=128) :: errMsg
+    INTEGER            :: status, vId
+
+    ! Zero return value
+    attValue = 0
+
+    ! Check if VARNAME is a valid variable
+    status = Nf_Inq_Varid ( fId, varName, vId )
+
+    ! Exit w/ error message if VARNAME is not valid
+    IF ( status /= NF_NOERR ) THEN
+       errMsg = 'In NcGet_Var_Attr_I4_arr: ' // TRIM( varName )        // &
+                 ', '                        // Nf_Strerror( status )
+       CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
+    ENDIF
+
+    ! Get the attribute
+    status = Nf_Get_Att_Int( fId, vId, attName, attValue )
+    
+    ! Exit w/ error message if unsuccessful
+    IF ( status /= NF_NOERR ) THEN
+       errMsg = 'In NcGet_Var_Attr_I4_arr: cannot read attribute : ' // &
+                 TRIM( attName )
+       CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
+    endif
+    
+  END SUBROUTINE NcGet_Var_Attr_I4_arr
+!EOC
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: NcGet_Var_Attr_R4_arr
+!
+! !DESCRIPTION: Returns a vector variable attribute of type REAL*4.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NcGet_Var_Attr_R4_arr( fid, varName, attName, attValue )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
+    CHARACTER(LEN=*), INTENT(IN)  :: varName      ! netCDF variable name
+    CHARACTER(LEN=*), INTENT(IN)  :: attName      ! Name of variable attribute
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL*4,           INTENT(OUT) :: attValue(:)  ! Attribute value
+!
+! !DESCRIPTION: Reads a variable attribute (REAL*4 type) from a netCDF file.
+!\\
+!\\
+! !AUTHOR: 
+!  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
+!                              which is compatible w/ netCDF3
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=128) :: errMsg
+    INTEGER            :: status, vId
+
+    ! Zero return value
+    attValue = 0e0
+
+    ! Check if VARNAME is a valid variable
+    status = Nf_Inq_Varid ( fId, varName, vId )
+
+    ! Exit w/ error message if VARNAME is not valid
+    IF ( status /= NF_NOERR ) THEN
+       errMsg = 'In NcGet_Var_Attr_R4_arr: ' // TRIM( varName )        // &
+                 ', '                        // Nf_Strerror( status )
+       CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
+    ENDIF
+
+    ! Get the attribute
+    status = Nf_Get_Att_Real( fId, vId, attName, attValue )
+    
+    ! Exit w/ error message if unsuccessful
+    IF ( status /= NF_NOERR ) THEN
+       errMsg = 'In NcGet_Var_Attr_R4_arr: cannot read attribute : ' // &
+                 TRIM( attName )
+       CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
+    endif
+    
+  END SUBROUTINE NcGet_Var_Attr_R4_arr
+!EOC
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: NcGet_Var_Attr_R8_arr
+!
+! !DESCRIPTION: Returns a vector variable attribute of type REAL*8.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NcGet_Var_Attr_R8_arr( fid, varName, attName, attValue )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
+    CHARACTER(LEN=*), INTENT(IN)  :: varName      ! netCDF variable name
+    CHARACTER(LEN=*), INTENT(IN)  :: attName      ! Name of variable attribute
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL*8,           INTENT(OUT) :: attValue(:)  ! Attribute value
+!
+! !DESCRIPTION: Reads a variable attribute (REAL*4 type) from a netCDF file.
+!\\
+!\\
+! !AUTHOR: 
+!  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use internal function NF_GET_ATT_DOUBLE,
+!                              which is compatible w/ netCDF3
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=128) :: errMsg
+    INTEGER            :: status, vId
+
+    ! Zero return value
+    attValue = 0d0
+
+    ! Check if VARNAME is a valid variable
+    status = Nf_Inq_Varid ( fId, varName, vId )
+
+    ! Exit w/ error message if VARNAME is not valid
+    IF ( status /= NF_NOERR ) THEN
+       errMsg = 'In NcGet_Var_Attr_R8_arr: ' // TRIM( varName )        // &
+                 ', '                        // Nf_Strerror( status )
+       CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
+    ENDIF
+
+    ! Get the attribute
+    status = Nf_Get_Att_Double( fId, vId, attName, attValue )
+    
+    ! Exit w/ error message if unsuccessful
+    IF ( status /= NF_NOERR ) THEN
+       errMsg = 'In NcGet_Var_Attr_R8_arr: cannot read attribute : ' // &
+                 TRIM( attName )
+       CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
+    endif
+    
+  END SUBROUTINE NcGet_Var_Attr_R8_arr
+!EOC
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: NcGet_Glob_Attr_C
 !
 ! !DESCRIPTION: Returns a variable attribute of type CHARACTER.
@@ -389,7 +603,6 @@ CONTAINS
     endif
     
   END SUBROUTINE NcGet_Glob_Attr_C
-
 !EOC
 !------------------------------------------------------------------------------
 !BOP
@@ -558,5 +771,173 @@ CONTAINS
     endif
     
   END SUBROUTINE NcGet_Glob_Attr_R8
+!EOC
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: NcGet_Glob_Attr_I4_arr
+!
+! !DESCRIPTION: Returns a variable attribute of type INTEGER*4.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NcGet_Glob_Attr_I4_arr( fid, attName, attValue )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
+    CHARACTER(LEN=*), INTENT(IN)  :: attName      ! Name of variable attribute
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: attValue(:)  ! Attribute value
+!
+! !DESCRIPTION: Reads a global attribute (INTEGER type) from a netCDF file.
+!\\
+!\\
+! !AUTHOR: 
+!  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
+!                              which is compatible w/ netCDF3
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=128) :: errMsg, varName
+    INTEGER            :: status
+
+    ! Zero return value
+    attValue = 0
+
+    ! Get the attribute
+    status = Nf_Get_Att_Int( fId, NF_GLOBAL, attName, attValue )
+    
+    ! Exit w/ error message if unsuccessful
+    IF ( status /= NF_NOERR ) THEN
+       errMsg = 'In NcGet_Glob_Attr_I4_arr: cannot read attribute : ' // &
+                 TRIM( attName )
+       CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
+    endif
+    
+  END SUBROUTINE NcGet_Glob_Attr_I4_arr
+!EOC
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: NcGet_Glob_Attr_R4_arr
+!
+! !DESCRIPTION: Returns a variable attribute of type REAL*4.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NcGet_Glob_Attr_R4_arr( fid, attName, attValue )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
+    CHARACTER(LEN=*), INTENT(IN)  :: attName      ! Name of variable attribute
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL*4,           INTENT(OUT) :: attValue(:)  ! Attribute value
+!
+! !DESCRIPTION: Reads a global attribute (REAL*4 type) from a netCDF file.
+!\\
+!\\
+! !AUTHOR: 
+!  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
+!                              which is compatible w/ netCDF3
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=128) :: errMsg, varName
+    INTEGER            :: status
+
+    ! Zero return value
+    attValue = 0e0
+
+    ! Get the attribute
+    status = Nf_Get_Att_Real( fId, NF_GLOBAL, attName, attValue )
+    
+    ! Exit w/ error message if unsuccessful
+    IF ( status /= NF_NOERR ) THEN
+       errMsg = 'In NcGet_Glob_Attr_R4_arr: cannot read attribute : ' // &
+                 TRIM( attName )
+       CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
+    endif
+    
+  END SUBROUTINE NcGet_Glob_Attr_R4_arr
+!EOC
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: NcGet_Glob_Attr_R8
+!
+! !DESCRIPTION: Returns a variable attribute of type REAL*8.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NcGet_Glob_Attr_R8_arr( fid, attName, attValue )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
+    CHARACTER(LEN=*), INTENT(IN)  :: attName      ! Name of variable attribute
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL*8,           INTENT(OUT) :: attValue(:)  ! Attribute value
+!
+! !DESCRIPTION: Reads a global attribute (REAL*8 type) from a netCDF file.
+!\\
+!\\
+! !AUTHOR: 
+!  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_DOUBLE,
+!                              which is compatible w/ netCDF3
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=128) :: errMsg, varName
+    INTEGER            :: status
+
+    ! Zero return value
+    attValue = 0d0
+
+    ! Get the attribute
+    status = Nf_Get_Att_Double( fId, NF_GLOBAL, attName, attValue )
+    
+    ! Exit w/ error message if unsuccessful
+    IF ( status /= NF_NOERR ) THEN
+       errMsg = 'In NcGet_Glob_Attr_R8_arr: cannot read attribute : ' // &
+                 TRIM( attName )
+       CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
+    endif
+    
+  END SUBROUTINE NcGet_Glob_Attr_R8_arr
 !EOC
 END MODULE m_netcdf_io_readattr

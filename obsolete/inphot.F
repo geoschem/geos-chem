@@ -13,25 +13,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INPHOT( NLAYER, NREACS, am_I_Root )
+      SUBROUTINE INPHOT( NLAYER, NREACS, Input_Opt, am_I_Root )
 !
 ! !USES:
 !
-#     include "define.h"
-
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
-      USE CMN_SIZE_MOD, ONLY : LLPAR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_SIZE_MOD,       ONLY : LLPAR
       USE JV_CMN_MOD
-      USE inquireMod,   ONLY : findFreeLUN
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE inquireMod,         ONLY : findFreeLUN
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NLAYER      ! # of layers for FAST-J photolysis
-      INTEGER, INTENT(IN) :: NREACS      ! # of FAST-J photolysis reactions
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      INTEGER,        INTENT(IN) :: NLAYER    ! # of layers for FAST-J photolysis
+      INTEGER,        INTENT(IN) :: NREACS    ! # of FAST-J photolysis reactions
+      LOGICAL,        INTENT(IN) :: am_I_Root ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input Options
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 1999 - O. Wild     - Initial version
@@ -54,6 +54,10 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  26 Feb 2013 - M. Long     - Now accept Input_Opt as an argument
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to filenames (instead of ___.rc)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,9 +97,10 @@
       ! Name of file to read
       FILENAME = 'ratj.d'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+#if defined( ESMF_ )
+      ! We need to add the ".rc" extension to the "ratj.d" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -123,9 +128,10 @@
       ! Name of file to read
       FILENAME = 'jv_spec.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+#if defined( ESMF_ )
+      ! We need to add the ".rc" extension to the "jv_spec.dat" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -145,9 +151,11 @@
 
       ! Name of file to read
       FILENAME = 'jv_spec_aod.dat'
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+
+#if defined( ESMF_ )
+      ! We need to add the ".rc" extension to the "jv_spec_aod.dat"
+      ! file so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -161,7 +169,7 @@
       !-----------------------------------------------------------------
       ! Read in T & O3 climatology (cf. Nagatani/92 and McPeters/91)
       !-----------------------------------------------------------------
-      CALL READ_JV_ATMS_DAT( am_I_Root )
+      CALL READ_JV_ATMS_DAT( am_I_Root, Input_Opt%Data_Dir_1x1 )
 
       !-----------------------------------------------------------------
       ! Select Aerosol/Cloud types to be used

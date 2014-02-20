@@ -14,6 +14,7 @@
 !        precision with "D" exponents. (bmy, 4/18/03)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument even when
 !                              called from the traditional driver "main.F"
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -24,7 +25,6 @@
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
       IMPLICIT NONE
-#     include "define.h"
 
       INTEGER, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !

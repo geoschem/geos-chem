@@ -19,7 +19,6 @@ MODULE Olson_LandMap_Mod
 ! !USES:
 !
   USE CMN_GCTM_MOD                      ! Physical constants
-  USE CMN_DEP_MOD                       ! IREG, ILAND, IUSE, FRCLND arrays
   USE CMN_SIZE_MOD                      ! Size parameters
   USE DIRECTORY_MOD                     ! Disk directory paths   
   USE ERROR_MOD                         ! Error checking routines
@@ -187,11 +186,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_LandMap( mapping )
+  SUBROUTINE Compute_Olson_LandMap( am_I_Root, mapping, State_Met )
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MapWeight), POINTER :: mapping(:,:)   ! "fine" -> "coarse" mapping
+    TYPE(MapWeight), POINTER       :: mapping(:,:) ! "fine" -> "coarse" mapping
+    TYPE(MetState),  INTENT(INOUT) :: State_Met    ! Meteorology State object
 !
 ! !REMARKS:
 !  This routine supplies arrays that are required for legacy code routines:
@@ -214,6 +222,10 @@ CONTAINS
 !                              are replaced by IREG, ILAND, IUSE arrays
 !  17 Apr 2012 - R. Yantosca - Rename "map" object to "mapping" to avoid name
 !                              confusion with an F90 intrinsic function
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  29 Nov 2012 - R. Yantosca - Added am_I_Root argument
+!  12 Dec 2012 - R. Yantosca - Now get IREG, ILAND, IUSE from State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -224,7 +236,7 @@ CONTAINS
     LOGICAL :: isGlobal
     INTEGER :: I,         J,         II,       III
     INTEGER :: JJ,        T,         N,        type
-    INTEGER :: uniqOlson, sumIuse,   C
+    INTEGER :: uniqOlson, sumIuse,   C,        IG
     REAL*4  :: xedge_w,   xedge_e,   yedge_s,  yedge_n
     REAL*4  :: xedgeC_w,  xedgeC_e,  yedgeC_s, yedgeC_n
     REAL*4  :: dxdy,      dxdy4,     mapWt,    area
@@ -270,24 +282,27 @@ CONTAINS
     ctOlson            = 0
     frOlson            = 0e0
     ordOlson           = -999
-    IREG               = 0
-    ILAND              = 0
-    IUSE               = 0
-    FRCLND             = 1000e0
+    State_Met%IREG     = 0
+    State_Met%ILAND    = 0
+    State_Met%IUSE     = 0
+    State_Met%FRCLND   = 1000e0
     isGlobal           = ( .not. ITS_A_NESTED_GRID() )
 
     !======================================================================
     ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
     !======================================================================
-    !$OMP PARALLEL DO                                                &
-    !$OMP DEFAULT( SHARED )                                          &
-    !$OMP PRIVATE( I,        J,       xedgeC_w, yedgeC_s, xedgeC_e ) &
-    !$OMP PRIVATE( yedgeC_n, dxdy4,   sumArea,  JJ,       III      ) &
-    !$OMP PRIVATE( dxdy,     mapWt,   II,       xedge_w,  yedge_s  ) &
-    !$OMP PRIVATE( xedge_e,  yedge_n, area,     type,     maxIuse  ) &
-    !$OMP PRIVATE( sumIUse,  uniqOlson, C                          )
+    !$OMP PARALLEL DO                                                  &
+    !$OMP DEFAULT( SHARED )                                            &
+    !$OMP PRIVATE( I,        J,         xedgeC_w, yedgeC_s, xedgeC_e ) &
+    !$OMP PRIVATE( yedgeC_n, dxdy4,     sumArea,  JJ,       III      ) &
+    !$OMP PRIVATE( dxdy,     mapWt,     II,       xedge_w,  yedge_s  ) &
+    !$OMP PRIVATE( xedge_e,  yedge_n,   area,     type,     maxIuse  ) &
+    !$OMP PRIVATE( sumIUse,  uniqOlson, C,        IG                 )
     DO J = 1, JJPAR
     DO I = 1, IIPAR
+
+       ! Global lon index (needed for when running in ESMF)
+       IG = I + I_LO - 1
 
        ! Edges of this GEOS-CHEM GRID box
        xedgeC_w  = GET_XEDGE( I,   J,   1 )          ! W edge
@@ -320,7 +335,7 @@ CONTAINS
        
           ! Find the NATIVE GRID longitude index for use below.  Account for 
           ! the first GEOS-CHEM GRID box, which straddles the date line.
-          IF ( isGlobal .and.  I == 1 ) THEN
+          IF ( isGlobal .and.  IG == 1 ) THEN
              II      = shiftLon(III)
           ELSE
              II      = indLon(III)
@@ -336,7 +351,7 @@ CONTAINS
           ! we have to adjust the W and E edges of the NATIVE GRID BOX to
           ! be in monotonically increasing order.  This will prevent
           ! erronous results from being returned by GET_MAP_WT below.
-          IF ( isGlobal .and.  I == 1 .and. II >= shiftLon(1) ) THEN
+          IF ( isGlobal .and. IG == 1 .and. II >= shiftLon(1) )  THEN
              xedge_w = xedge_w - 360e0
              xedge_e = xedge_e - 360e0
           ENDIF
@@ -381,8 +396,8 @@ CONTAINS
           ENDIF
 
           ! Save mapping information for later use in modis_lai_mod.F90
-          ! in order to prepare the XLAI array for use with the legacy 
-          ! dry-deposition and soil NOx emissions codes.
+          ! in order to prepare the State_Met%XLAI array for use with the 
+          ! legacy dry-deposition and soil NOx emissions codes.
           C                     = C + 1
           mapping(I,J)%count    = C
           mapping(I,J)%II(C)    = II
@@ -392,7 +407,7 @@ CONTAINS
           mapping(I,J)%sumarea  = sumarea
 
        ENDDO
-       ENDDO
+    ENDDO
 
        !===================================================================
        ! Construct GEOS-Chem type output arrays from the binning that we 
@@ -417,44 +432,46 @@ CONTAINS
           ! If land type T is represented in this box ...
           IF ( ctOlson(I,J,T) > 0 .and. ordOlson(I,J,T) > 0 ) THEN 
  
-             ! Increment the count of Olson types in the box
-             IREG(I,J)                  = IREG(I,J) + 1
+             ! Increment the count of Olson types in the box 
+             State_Met%IREG(I,J)                  = State_Met%IREG(I,J) + 1
              
              ! Save land type into ILAND
-             ILAND(I,J,ordOlson(I,J,T)) = T
+             State_Met%ILAND(I,J,ordOlson(I,J,T)) = T
              
              ! Save the fraction (in mils) of this land type
-             IUSE(I,J,ordOlson(I,J,T))  = frOlson(I,J,T)
+             State_Met%IUSE(I,J,ordOlson(I,J,T))  = frOlson(I,J,T)
 
           ENDIF
        ENDDO
 
        ! Land type with the largest coverage in the GEOS-CHEM GRID BOX
-       maxIuse              = MAXLOC( IUSE( I, J, 1:IREG(I,J) ) )
+       maxIuse = MAXLOC( State_Met%IUSE( I, J, 1:State_Met%IREG(I,J) ) )
 
        ! Sum of all land types in the GEOS-CHEM GRID BOX (should be 1000)
-       sumIUse              = SUM( IUSE( I, J, 1:IREG(I,J) ) )
+       sumIUse = SUM   ( State_Met%IUSE( I, J, 1:State_Met%IREG(I,J) ) )
 
        ! Make sure everything adds up to 1000.  If not, then adjust
        ! the land type w/ the largest coverage accordingly.
        ! This follows the algorithm from "regridh_lai.pro".
        IF ( sumIUse /= 1000 ) THEN
-          IUSE(I,J,maxIUse) = IUSE(I,J,maxIUse) + ( 1000 - sumIUse )
+          State_Met%IUSE(I,J,maxIUse) = State_Met%IUSE(I,J,maxIUse) &
+                                      + ( 1000 - sumIUse )
        ENDIF
       
        ! Loop over land types in the GEOS-CHEM GRID BOX
-       DO T = 1, IREG(I,J)
+       DO T = 1, State_Met%IREG(I,J)
 
           ! If the current Olson land type is water (type 0),
           ! subtract the coverage fraction (IUSE) from FRCLND.
-          IF ( ILAND(I,J,T) == 0 ) THEN
-             FRCLND(I,J) = FRCLND(I,J) - IUSE(I,J,T)
+          IF ( State_Met%ILAND(I,J,T) == 0 ) THEN
+             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J)  &
+                                   - State_Met%IUSE(I,J,T)
           ENDIF
        ENDDO
 
        ! Normalize FRCLND into the range of 0-1
        ! NOTE: Use REAL*4 for backwards compatibility w/ existing code!
-       FRCLND(I,J) = FRCLND(I,J) / 1000e0
+       State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) / 1000e0
 
     ENDDO
     ENDDO
@@ -494,7 +511,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Olson_LandMap()
+  SUBROUTINE Init_Olson_LandMap( am_I_Root, DATA_DIR_1x1 )
 !
 ! !USES:
 !
@@ -507,6 +524,11 @@ CONTAINS
     
 #   include "netcdf.inc"
 !
+! !INPUT PARAMETERS:
+!
+    LOGICAL,            INTENT(IN) :: am_I_Root
+    CHARACTER(LEN=255), INTENT(IN) :: DATA_DIR_1x1
+!
 ! !REMARKS:
 !  Assumes that you have:
 !  (1) A netCDF library (either v3 or v4) installed on your system
@@ -518,6 +540,8 @@ CONTAINS
 !  27 Mar 2012 - R. Yantosca - Now read the "units" attribute of each variable
 !  27 Mar 2012 - R. Yantosca - Now echo file I/O status info to stdout
 !  27 Mar 2012 - R. Yantosca - Now can read Olson 1992 or Olson 2001 land map
+!  29 Nov 2012 - R. Yantosca - Add am_I_Root to the argument list
+!  26 Feb 2013 - M. Long     - Now pass DATA_DIR_1x1 via the argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -592,9 +616,11 @@ CONTAINS
     CALL Ncop_Rd( fId, TRIM(nc_path) )
      
     ! Echo info to stdout
-    WRITE( 6, 100 ) REPEAT( '%', 79 )
-    WRITE( 6, 110 ) TRIM(nc_file)
-    WRITE( 6, 120 ) TRIM(nc_dir)
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 100 ) REPEAT( '%', 79 )
+       WRITE( 6, 110 ) TRIM(nc_file)
+       WRITE( 6, 120 ) TRIM(nc_dir)
+    ENDIF
 
     !----------------------------------------
     ! VARIABLE: lon
@@ -613,7 +639,9 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
     
     ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)     
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)     
+    ENDIF
 
     !----------------------------------------
     ! VARIABLE: lat
@@ -632,7 +660,9 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
     
     ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    ENDIF
 
     !----------------------------------------
     ! VARIABLE: OLSON
@@ -651,7 +681,9 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
     
     ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    ENDIF
 
     !----------------------------------------
     ! VARIABLE: DXYP 
@@ -671,7 +703,9 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
     
     ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    ENDIF
 
     ! Convert from [m2] to [cm2]
     A_CM2  = A_CM2 * 1e4
@@ -684,8 +718,10 @@ CONTAINS
     CALL NcCl( fId )
     
     ! Echo info to stdout
-    WRITE( 6, 140 )
-    WRITE( 6, 100 ) REPEAT( '%', 79 )
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 140 )
+       WRITE( 6, 100 ) REPEAT( '%', 79 )
+    ENDIF
 
     ! FORMAT statements
 100 FORMAT( a                                              )
@@ -709,10 +745,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Olson_LandMap
+  SUBROUTINE Cleanup_Olson_LandMap( am_I_Root )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
 !
 ! !REVISION HISTORY:'
 !  22 Mar 2012 - R. Yantosca - Initial version
+!  29 Nov 2012 - R. Yantosca - Add am_I_Root as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

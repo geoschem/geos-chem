@@ -28,12 +28,15 @@
       USE COMMSOIL_MOD		! Soil variables
 
       IMPLICIT NONE
-#     include "define.h"
 #     include "netcdf.inc"
       
 ! !REVISION HISTORY:
 !  24 Aug 2012 - J.D. Maasakkers - Initial version
-
+!  03 Jan 2013 - M. Payer        - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  20 Aug 2013 - R. Yantosca     - Removed "define.h", this is now obsolete
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -123,22 +126,21 @@
       ! Regrid
       !=================================================================
 
-	!0.5x0.5 regrid - FERT
-       ! File with lat/lon edges for regridding
+      ! 0.5x0.5 regrid - FERT
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/latlon_generic05x05.txt'
 
-       ! Regrid to NOx [molec/cm2/s] current model resolution
-
-	do D = 1,366
-		INGRID = FERT(:,:,D)
-		OUTGRID = 0.
+      ! Regrid to NOx [molec/cm2/s] current model resolution
+      DO D = 1,366
+         INGRID = FERT(:,:,D)
+         OUTGRID = 0.
 		
-       CALL DO_REGRID_A2A( LLFILENAME, 720,    360,
-     &             INGRID,     OUTGRID, PERAREA=0 )
+         CALL DO_REGRID_A2A( LLFILENAME, 720,     360,
+     &                       INGRID,     OUTGRID, IS_MASS=0 )
 
-		SOILFERT(:,:,D) = OUTGRID
-	enddo 
+         SOILFERT(:,:,D) = OUTGRID
+      ENDDO 
 
       !=================================================================
       ! Cleanup and quit
@@ -159,5 +161,5 @@
  140  FORMAT( '%% Successfully closed file!'                 )
 
       ENDIF
-
+!EOC
       END SUBROUTINE READFERT

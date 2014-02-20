@@ -55,12 +55,13 @@
 !  (16) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now make IU_A6 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -95,7 +96,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE UNZIP_A6_FIELDS( OPTION, NYMD )
+      SUBROUTINE UNZIP_A6_FIELDS( Input_Opt, OPTION, NYMD )
 !
 !******************************************************************************
 !  Subroutine UNZIP_A6_FIELDS invokes a FORTRAN system call to uncompress
@@ -120,20 +121,19 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Apr 2013 - R. Yantosca - Now replace directory_mod.F and unix_cmds_mod.F
+!                              with the Input_Opt derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
-      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
-
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 
       ! Arguments
+      TYPE(OptInput),    INTENT(IN) :: Input_Opt
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
       INTEGER, OPTIONAL, INTENT(IN) :: NYMD
 
@@ -151,19 +151,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
 
 #endif
@@ -173,33 +173,42 @@
          CALL EXPAND_DATE( A6_STR,   NYMD, 000000 )
 
          ! Location of zipped A-3 file in data dir
-         A6_FILE_GZ  = TRIM( DATA_DIR  ) // TRIM( GEOS_DIR   ) // 
-     &                 TRIM( A6_STR    ) // TRIM( ZIP_SUFFIX )
+         A6_FILE_GZ  = TRIM( Input_Opt%DATA_DIR   ) // 
+     &                 TRIM( GEOS_DIR             ) // 
+     &                 TRIM( A6_STR               ) // 
+     &                 TRIM( Input_Opt%ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir
-         A6_FILE     = TRIM( TEMP_DIR  ) // TRIM( A6_STR     )
+         A6_FILE     = TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A6_STR               )
          
          ! Remove A-3 files for this date from temp dir 
-         REMOVE_DATE = TRIM( REMOVE_CMD ) // ' '               // 
-     &                 TRIM( TEMP_DIR   ) // TRIM( A6_STR    ) 
+         REMOVE_DATE = TRIM( Input_Opt%REMOVE_CMD ) // ' '   // 
+     &                 TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A6_STR               ) 
 
          !==============================================================
          ! Define the foreground and background UNZIP commands
          !==============================================================
 
          ! Foreground unzip
-         UNZIP_FG = TRIM( UNZIP_CMD ) // ' ' // TRIM( A6_FILE_GZ ) // 
-     &              TRIM( REDIRECT  ) // ' ' // TRIM( A6_FILE    )  
+         UNZIP_FG = TRIM( Input_Opt%UNZIP_CMD    ) //  ' '   // 
+     &              TRIM( A6_FILE_GZ             ) // 
+     &              TRIM( Input_Opt%REDIRECT     ) //  ' '   // 
+     &              TRIM( A6_FILE                )  
 
          ! Background unzip
-         UNZIP_BG  = TRIM( UNZIP_FG ) // TRIM( BACKGROUND )
+         UNZIP_BG = TRIM( UNZIP_FG               ) // 
+     &              TRIM( Input_Opt%BACKGROUND   ) 
       ENDIF
 
       !=================================================================
       ! Define command to remove all A-6 files from the TEMP dir
       !=================================================================
-      REMOVE_ALL = TRIM( REMOVE_CMD ) // ' '    // TRIM( TEMP_DIR  ) // 
-     &             TRIM( WILD_CARD  ) // '.a6.' // TRIM( WILD_CARD ) 
+      REMOVE_ALL = TRIM( Input_Opt%REMOVE_CMD    ) // ' '    // 
+     &             TRIM( Input_Opt%TEMP_DIR      ) // 
+     &             TRIM( Input_Opt%WILD_CARD     ) // '.a6.' // 
+     &             TRIM( Input_Opt%WILD_CARD     ) 
 
       !=================================================================
       ! Perform an F90 system call to do the desired operation
@@ -314,7 +323,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE OPEN_A6_FIELDS( NYMD, NHMS )
+      SUBROUTINE OPEN_A6_FIELDS( NYMD, NHMS, Input_Opt )
 !
 !******************************************************************************
 !  Subroutine OPEN_A6_FIELDS opens the A-6 met fields file for date NYMD and 
@@ -343,21 +352,21 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A6 locally
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE FILE_MOD,      ONLY : IOERROR, FILE_EXISTS
-      USE TIME_MOD,      ONLY : EXPAND_DATE
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: NYMD, NHMS
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
+      INTEGER,        INTENT(IN) :: NYMD, NHMS
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -378,19 +387,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
 
 #endif
@@ -401,11 +410,13 @@
 
          ! If unzipping, open GEOS-1 file in TEMP dir
          ! If not unzipping, open GEOS-1 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // TRIM( A6_FILE )
+         IF ( Input_Opt%LUNZIP ) THEN
+            PATH = TRIM( Input_Opt%TEMP_DIR ) // 
+     &             TRIM( A6_FILE            )
          ELSE
-            PATH = TRIM( DATA_DIR ) // 
-     &             TRIM( GEOS_DIR ) // TRIM( A6_FILE )
+            PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &             TRIM( GEOS_DIR           ) // 
+     &             TRIM( A6_FILE            )
          ENDIF
 
          ! Close previously opened A-3 file
@@ -460,11 +471,7 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, LOCAL_MET )
-#else
-      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS )
-#endif
+      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine GET_A6_FIELDS is a wrapper for routine READ_A6.  GET_A6_FIELDS
@@ -486,19 +493,24 @@
 !        MFYC, MFZ, PV, QI, QL, RH, TAUCLI, TAUCLW for GEOS-5 
 !        (bmy, 10/30/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  23 Oct 2012 - R. Yantosca - Add QI, QL to the State_Met object
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  14 Mar 2013 - M. Payer    - Now read T_FULLGRID for vertical regridding of
+!                              OH for offline simulations (C. Holmes)
+!  02 Jul 2013 - R. Yantosca - Now use State_Met%U and State_Met%V to hold
+!                              the GCAP U and V wind fields
+!  02 Jul 2013 - R. Yantosca - Now use State_Met%U and State_Met%V to hold
+!                              the GEOS-4 U and V wind fields
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : CLDF,    CLDFRC,   CLDMAS,   CLDTOPS 
-      USE DAO_MOD,      ONLY : CMFMC,   DETRAINE, DETRAINN, DNDE    
-      USE DAO_MOD,      ONLY : DNDN,    DQIDTMST, DQLDTMST, DQRCON
-      USE DAO_MOD,      ONLY : DQRLSC,  DQVDTMST, DTRAIN,   ENTRAIN
-      USE DAO_MOD,      ONLY : HKBETA,  HKETA,    MFXC,     MFYC
-      USE DAO_MOD,      ONLY : MFZ,     MOISTQ,   OPTDEP,   PV
-      USE DAO_MOD,      ONLY : QI,      QL,       RH,       SPHU 
-      USE DAO_MOD,      ONLY : T,       TAUCLI,   TAUCLW,   UPDE
-      USE DAO_MOD,      ONLY : UPDN,    UWND,     VWND,     ZMEU
-      USE DAO_MOD,      ONLY : ZMMD,    ZMMU
+      USE CMN_SIZE_MOD
+      USE DAO_MOD,            ONLY : T_FULLGRID
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
 #if   defined( APM )
       ! A-6 fields used by interpolation for APM simulation
@@ -536,21 +548,16 @@
       USE DAO_MOD, ONLY : ZMMD0b,    ZMMU0b
 #endif
 
-      USE CMN_SIZE_MOD  ! Size parameters
-#if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
-#endif
-
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
-#endif
+      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt
+      TYPE(MetState), INTENT(INOUT) :: State_Met
 
       ! Local variables
-      INTEGER, SAVE       :: LASTNYMD = -1, LASTNHMS = -1
+      INTEGER, SAVE                 :: LASTNYMD = -1
+      INTEGER, SAVE                 :: LASTNHMS = -1
 #if   defined( APM )
-      LOGICAL, SAVE       :: FIRST=.TRUE.
+      LOGICAL, SAVE                 :: FIRST=.TRUE.
 #endif
 
       !=================================================================
@@ -565,121 +572,319 @@
          RETURN
       ENDIF
 
+      !=================================================================
+      ! SPECIALTY SIMULATIONS: Make sure to read T_FULLGRID
+      !=================================================================
+      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+
 #if   defined( GEOS_4 )
 
-      !=================================================================      
-      ! GEOS-4: get CLDF, CLDTOPS, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
-      !             TMPU, UWND,    VWND,  ZMEU,   ZMMD,   ZMMU
-      !=================================================================
+         !--------------------------------------------------------------
+         ! Read fields for GEOS-4 meteorology
+         !--------------------------------------------------------------
+
 #if   defined( APM )
-      CALL READ_A6( NYMD=NYMD,      NHMS=NHMS,        CLDTOPS=CLDTOPS0,
-     &              CLDF=CLDF0,     HKBETA=HKBETA0,   HKETA=HKETA0,   
-     &              MOISTQ=MOISTQ0, OPTDEPTH=OPTDEP0, Q=SPHU0,        
-     &              T=T0,           U=UWND0,          V=VWND0,        
-     &              ZMEU=ZMEU0,     ZMMD=ZMMD0,       ZMMU=ZMMU0 )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,
+     &                 CLDTOPS  = CLDTOPS0,
+     &                 CLDF     = CLDF0,
+     &                 HKBETA   = HKBETA0,
+     &                 HKETA    = HKETA0,   
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0,
+     &                 Q        = SPHU0,        
+     &                 T        = T0,
+     &                 U        = UWND0,
+     &                 V        = VWND0,        
+     &                 ZMEU     = ZMEU0,
+     &                 ZMMD     = ZMMD0,
+     &                 ZMMU     = ZMMU0 )
 #else
-      CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       CLDTOPS=CLDTOPS,
-     &              CLDF=CLDF,     HKBETA=HKBETA,   HKETA=HKETA,   
-     &              MOISTQ=MOISTQ, OPTDEPTH=OPTDEP, Q=SPHU,        
-     &              T=T,           U=UWND,          V=VWND,        
-     &              ZMEU=ZMEU,     ZMMD=ZMMD,       ZMMU=ZMMU ) 
+         CALL READ_A6( NYMD       = NYMD,     
+     &                 NHMS       = NHMS,       
+     &                 CLDTOPS    = State_Met%CLDTOPS,
+     &                 CLDF       = State_Met%CLDF,     
+     &                 HKBETA     = State_Met%HKBETA,   
+     &                 HKETA      = State_Met%HKETA,   
+     &                 MOISTQ     = State_Met%MOISTQ, 
+     &                 OPTDEPTH   = State_Met%OPTDEP, 
+     &                 Q          = State_Met%SPHU,        
+     &                 T          = State_Met%T,           
+     &                 U          = State_Met%U,
+     &                 V          = State_Met%V,
+     &                 ZMEU       = State_Met%ZMEU,     
+     &                 ZMMD       = State_Met%ZMMD,       
+     &                 ZMMU       = State_Met%ZMMU,
+     &                 T_FULLGRID = T_FULLGRID ) 
 #endif
 
 #elif defined( GEOS_5 )
 
-      !=================================================================      
-      ! GEOS-5: get CLDF,   CLDTOPS, CMFMC,    DQIDTMST, DQLDTMST,
-      !             DQRCON, DQRLSC,  DQVDTMST, MFXC,     MFYC,
-      !             MFZ,    MOISTQ,  OPTDEPTH, PLE,      PV,
-      !             RH,     QV,      T,        TAUCLI,   TAUCLW,
-      !             U,      V    fields
-      !=================================================================
+         !--------------------------------------------------------------
+         ! Read fields for GEOS-5 meteorology
+         !--------------------------------------------------------------
+
 #if   defined( APM )
-      CALL READ_A6( NYMD=NYMD,          NHMS=NHMS,       
-     &              CLDF=CLDF0,         CLDTOPS=CLDTOPS0, 
-     &              CMFMC=CMFMC0,       DQIDTMST=DQIDTMST0, 
-     &              DQLDTMST=DQLDTMST0, DQRCON=DQRCON0, 
-     &              DQRLSC=DQRLSC0,     DQVDTMST=DQVDTMST0,
-     &              DTRAIN=DTRAIN0,     MOISTQ=MOISTQ0,
-     &              OPTDEPTH=OPTDEP0, 
-     &              PV=PV0,             RH=RH0,             
-     &              Q=SPHU0,            QL=QL0,             
-     &              QI=QI0,             T=T0,               
-     &              TAUCLI=TAUCLI0,     TAUCLW=TAUCLW0,     
-     &              U=UWND0,            V=VWND0         )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,       
+     &                 CLDF     = CLDF0,
+     &                 CLDTOPS  = CLDTOPS0, 
+     &                 CMFMC    = CMFMC0,
+     &                 DQIDTMST = DQIDTMST0, 
+     &                 DQLDTMST = DQLDTMST0,
+     &                 DQRCON   = DQRCON0, 
+     &                 DQRLSC   = DQRLSC0,
+     &                 DQVDTMST = DQVDTMST0,
+     &                 DTRAIN   = DTRAIN0,
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0, 
+     &                 PV       = PV0,
+     &                 RH       = RH0,             
+     &                 Q        = SPHU0,
+     &                 QL       = QL0,             
+     &                 QI       = QI0,
+     &                 T        = T0,               
+     &                 TAUCLI   = TAUCLI0,
+     &                 TAUCLW   = TAUCLW0,     
+     &                 U        = UWND0,
+     &                 V        = VWND0 )
 #else
-      CALL READ_A6( NYMD=NYMD,          NHMS=NHMS,       
-     &              CLDF=CLDF,          CLDTOPS=CLDTOPS, 
-     &              CMFMC=CMFMC,        DQIDTMST=DQIDTMST, 
-     &              DQLDTMST=DQLDTMST,  DQRCON=DQRCON, 
-     &              DQRLSC=DQRLSC,      DQVDTMST=DQVDTMST,
-     &              DTRAIN=DTRAIN,     
-     &              MOISTQ=MOISTQ,      OPTDEPTH=OPTDEP, 
-     &              PV=PV,              RH=RH,             
-     &              Q=SPHU,             QL=QL,             
-     &              QI=QI,              T=T,               
-     &              TAUCLI=TAUCLI,      TAUCLW=TAUCLW,     
-     &              U=UWND,             V=VWND         ) 
+         CALL READ_A6( NYMD       = NYMD,          
+     &                 NHMS       = NHMS,       
+     &                 CLDF       = State_Met%CLDF,          
+     &                 CLDTOPS    = State_Met%CLDTOPS, 
+     &                 CMFMC      = State_Met%CMFMC,        
+     &                 DQIDTMST   = State_Met%DQIDTMST, 
+     &                 DQLDTMST   = State_Met%DQLDTMST,  
+     &                 DQRCON     = State_Met%DQRCU, 
+     &                 DQRLSC     = State_Met%DQRLSAN,      
+     &                 DQVDTMST   = State_Met%DQVDTMST,
+     &                 DTRAIN     = State_Met%DTRAIN,     
+     &                 MOISTQ     = State_Met%MOISTQ,      
+     &                 OPTDEPTH   = State_Met%OPTDEP, 
+     &                 PV         = State_Met%PV,              
+     &                 RH         = State_Met%RH,             
+     &                 Q          = State_Met%SPHU,             
+     &                 QL         = State_Met%QL,             
+     &                 QI         = State_Met%QI,              
+     &                 T          = State_Met%T,               
+     &                 TAUCLI     = State_Met%TAUCLI,      
+     &                 TAUCLW     = State_Met%TAUCLW,     
+     &                 U          = State_Met%U,             
+     &                 V          = State_Met%V,
+     &                 T_FULLGRID = T_FULLGRID ) 
 #endif
 
 #elif defined( GCAP ) 
 
-      !=================================================================
-      ! GCAP: read CLDF,   DETRAINE, DETRAIN, DNDE, DNDN, ENTRAIN,   
-      !            MOISTQ, OPTDEPTH, SPHU,    T=T,  UWND, UPDE,
-      !            UPDN,   VWND, and compute CLDTOPS & CLDFRC
-      !=================================================================
+         !--------------------------------------------------------------
+         ! Read fields for GCAP meteorology
+         !--------------------------------------------------------------
+
 #if   defined( APM )
-      CALL READ_A6( NYMD=NYMD,          NHMS=NHMS,         
-     &              CLDF=CLDF0,         CLDTOPS=CLDTOPS0, 
-     &              DETRAINE=DETRAINE0, DETRAINN=DETRAINN0, 
-     &              DNDE=DNDE0,         DNDN=DNDN0,         
-     &              ENTRAIN=ENTRAIN0,   MOISTQ=MOISTQ0,
-     &              OPTDEPTH=OPTDEP0,   Q=SPHU0,            
-     &              T=T0,               U=UWND0,            
-     &              UPDE=UPDE0,         UPDN=UPDN0,  
-     &              V=VWND0 )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,         
+     &                 CLDF     = CLDF0,
+     &                 CLDTOPS  = CLDTOPS0, 
+     &                 DETRAINE = DETRAINE0,
+     &                 DETRAINN = DETRAINN0, 
+     &                 DNDE     = DNDE0,
+     &                 DNDN     = DNDN0,         
+     &                 ENTRAIN  = ENTRAIN0,
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0,
+     &                 Q        = SPHU0,            
+     &                 T        = T0,
+     &                 U        = UWND0,            
+     &                 UPDE     = UPDE0,
+     &                 UPDN     = UPDN0,  
+     &                 V        = VWND0 )
           
-      ! Create 2-D CLDFRC field from 3-D CLDF field
-      CALL MAKE_GCAP_CLDFRC( CLDF0, CLDFRC0 )
+         ! Create 2-D CLDFRC field from 3-D CLDF field
+         CALL MAKE_GCAP_CLDFRC( CLDF0, CLDFRC0 )
 
 #else
-      CALL READ_A6( NYMD=NYMD,          NHMS=NHMS,         
-     &              CLDF=CLDF,          CLDTOPS=CLDTOPS, 
-     &              DETRAINE=DETRAINE,  DETRAINN=DETRAINN, 
-     &              DNDE=DNDE,          DNDN=DNDN,         
-     &              ENTRAIN=ENTRAIN,    MOISTQ=MOISTQ,
-     &              OPTDEPTH=OPTDEP,    Q=SPHU,            
-     &              T=T,                U=UWND,            
-     &              UPDE=UPDE,          UPDN=UPDN,  
-     &              V=VWND )
-      
-      ! Create 2-D CLDFRC field from 3-D CLDF field
-      CALL MAKE_GCAP_CLDFRC( CLDF, CLDFRC )
+         CALL READ_A6( NYMD       = NYMD,          
+     &                 NHMS       = NHMS,         
+     &                 CLDF       = State_Met%CLDF,          
+     &                 CLDTOPS    = State_Met%CLDTOPS, 
+     &                 DETRAINE   = State_Met%DETRAINE,  
+     &                 DETRAINN   = State_Met%DETRAINN, 
+     &                 DNDE       = State_Met%DNDE,          
+     &                 DNDN       = State_Met%DNDN,         
+     &                 ENTRAIN    = State_Met%ENTRAIN,    
+     &                 MOISTQ     = State_Met%MOISTQ,
+     &                 OPTDEPTH   = State_Met%OPTDEP,    
+     &                 Q          = State_Met%SPHU,            
+     &                 T          = State_Met%T,                
+     &                 U          = State_Met%U,            
+     &                 UPDE       = State_Met%UPDE,          
+     &                 UPDN       = State_Met%UPDN,  
+     &                 V          = State_Met%V,
+     &                 T_FULLGRID = T_FULLGRID ) 
+
+         ! Create 2-D CLDFRC field from 3-D CLDF field
+         CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
+#endif
 #endif
 
-      
+      !=================================================================
+      ! FULL-CHEMISTRY SIMULATIONS: Do not read T_FULLGRID
+      !=================================================================
+      ELSE
+
+#if   defined( GEOS_4 )
+
+         !--------------------------------------------------------------
+         ! Read fields for GEOS-4 meteorology
+         !--------------------------------------------------------------
+
+#if   defined( APM )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,
+     &                 CLDTOPS  = CLDTOPS0,
+     &                 CLDF     = CLDF0,
+     &                 HKBETA   = HKBETA0,
+     &                 HKETA    = HKETA0,   
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0,
+     &                 Q        = SPHU0,        
+     &                 T        = T0,
+     &                 U        = UWND0,
+     &                 V        = VWND0,        
+     &                 ZMEU     = ZMEU0,
+     &                 ZMMD     = ZMMD0,
+     &                 ZMMU     = ZMMU0 )
+#else
+         CALL READ_A6( NYMD     = NYMD,     
+     &                 NHMS     = NHMS,       
+     &                 CLDTOPS  = State_Met%CLDTOPS,
+     &                 CLDF     = State_Met%CLDF,     
+     &                 HKBETA   = State_Met%HKBETA,   
+     &                 HKETA    = State_Met%HKETA,   
+     &                 MOISTQ   = State_Met%MOISTQ, 
+     &                 OPTDEPTH = State_Met%OPTDEP, 
+     &                 Q        = State_Met%SPHU,        
+     &                 T        = State_Met%T,           
+     &                 U        = State_Met%U,          
+     &                 V        = State_Met%V,        
+     &                 ZMEU     = State_Met%ZMEU,     
+     &                 ZMMD     = State_Met%ZMMD,       
+     &                 ZMMU     = State_Met%ZMMU ) 
 #endif
+
+#elif defined( GEOS_5 )
+
+         !--------------------------------------------------------------
+         ! Read fields for GEOS-5 meteorology
+         !--------------------------------------------------------------
+#if   defined( APM )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,       
+     &                 CLDF     = CLDF0,
+     &                 CLDTOPS  = CLDTOPS0, 
+     &                 CMFMC    = CMFMC0,
+     &                 DQIDTMST = DQIDTMST0, 
+     &                 DQLDTMST = DQLDTMST0,
+     &                 DQRCON   = DQRCON0, 
+     &                 DQRLSC   = DQRLSC0,
+     &                 DQVDTMST = DQVDTMST0,
+     &                 DTRAIN   = DTRAIN0,
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0, 
+     &                 PV       = PV0,
+     &                 RH       = RH0,             
+     &                 Q        = SPHU0,
+     &                 QL       = QL0,             
+     &                 QI       = QI0,
+     &                 T        = T0,               
+     &                 TAUCLI   = TAUCLI0,
+     &                 TAUCLW   = TAUCLW0,     
+     &                 U        = UWND0,
+     &                 V        = VWND0 )
+#else
+         CALL READ_A6( NYMD     = NYMD,          
+     &                 NHMS     = NHMS,       
+     &                 CLDF     = State_Met%CLDF,          
+     &                 CLDTOPS  = State_Met%CLDTOPS, 
+     &                 CMFMC    = State_Met%CMFMC,        
+     &                 DQIDTMST = State_Met%DQIDTMST, 
+     &                 DQLDTMST = State_Met%DQLDTMST,  
+     &                 DQRCON   = State_Met%DQRCU, 
+     &                 DQRLSC   = State_Met%DQRLSAN,      
+     &                 DQVDTMST = State_Met%DQVDTMST,
+     &                 DTRAIN   = State_Met%DTRAIN,     
+     &                 MOISTQ   = State_Met%MOISTQ,      
+     &                 OPTDEPTH = State_Met%OPTDEP, 
+     &                 PV       = State_Met%PV,              
+     &                 RH       = State_Met%RH,             
+     &                 Q        = State_Met%SPHU,             
+     &                 QL       = State_Met%QL,             
+     &                 QI       = State_Met%QI,              
+     &                 T        = State_Met%T,               
+     &                 TAUCLI   = State_Met%TAUCLI,      
+     &                 TAUCLW   = State_Met%TAUCLW,     
+     &                 U        = State_Met%U,             
+     &                 V        = State_Met%V          ) 
+#endif
+
+#elif defined( GCAP ) 
+
+         !--------------------------------------------------------------
+         ! Read fields for GCAP meteorology
+         !--------------------------------------------------------------
+#if   defined( APM )
+         CALL READ_A6( NYMD     = NYMD,
+     &                 NHMS     = NHMS,         
+     &                 CLDF     = CLDF0,
+     &                 CLDTOPS  = CLDTOPS0, 
+     &                 DETRAINE = DETRAINE0,
+     &                 DETRAINN = DETRAINN0, 
+     &                 DNDE     = DNDE0,
+     &                 DNDN     = DNDN0,         
+     &                 ENTRAIN  = ENTRAIN0,
+     &                 MOISTQ   = MOISTQ0,
+     &                 OPTDEPTH = OPTDEP0,
+     &                 Q        = SPHU0,            
+     &                 T        = T0,
+     &                 U        = UWND0,            
+     &                 UPDE     = UPDE0,
+     &                 UPDN     = UPDN0,  
+     &                 V        = VWND0 )
+          
+         ! Create 2-D CLDFRC field from 3-D CLDF field
+         CALL MAKE_GCAP_CLDFRC( CLDF0, CLDFRC0 )
+
+#else
+         CALL READ_A6( NYMD     = NYMD,          
+     &                 NHMS     = NHMS,         
+     &                 CLDF     = State_Met%CLDF,          
+     &                 CLDTOPS  = State_Met%CLDTOPS, 
+     &                 DETRAINE = State_Met%DETRAINE,  
+     &                 DETRAINN = State_Met%DETRAINN, 
+     &                 DNDE     = State_Met%DNDE,          
+     &                 DNDN     = State_Met%DNDN,         
+     &                 ENTRAIN  = State_Met%ENTRAIN,    
+     &                 MOISTQ   = State_Met%MOISTQ,
+     &                 OPTDEPTH = State_Met%OPTDEP,    
+     &                 Q        = State_Met%SPHU,            
+     &                 T        = State_Met%T,                
+     &                 U        = State_Met%U,            
+     &                 UPDE     = State_Met%UPDE,          
+     &                 UPDN     = State_Met%UPDN,  
+     &                 V        = State_Met%V )
+     
+         ! Create 2-D CLDFRC field from 3-D CLDF field
+         CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
+#endif
+
+#endif
+
+      ENDIF
 
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
-
-#if defined( DEVEL )
-      LOCAL_MET%CLDF     = CLDF
-      LOCAL_MET%CMFMC    = CMFMC
-      LOCAL_MET%DTRAIN   = DTRAIN
-      LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTD     = OPTDEP
-      LOCAL_MET%RH       = RH
-      LOCAL_MET%SPHU     = SPHU
-      LOCAL_MET%T        = T
-      LOCAL_MET%DQIDTMST = DQIDTMST
-      LOCAL_MET%DQLDTMST = DQLDTMST
-      LOCAL_MET%TAUCLI   = TAUCLI
-      LOCAL_MET%TAUCLW   = TAUCLW
-      LOCAL_MET%DQVDTMST = DQVDTMST
-#endif
 
 #if   defined( APM )
 
@@ -803,7 +1008,7 @@
 
 !------------------------------------------------------------------------------
 #if   defined( APM )
-      SUBROUTINE UPDATE_A6_FIELDS
+      SUBROUTINE UPDATE_A6_FIELDS( State_Met )
 !
 !******************************************************************************
       ! References to F90 modules
@@ -817,39 +1022,32 @@
       USE DAO_MOD,      ONLY : T0,       TAUCLI0,   TAUCLW0,   UPDE0
       USE DAO_MOD,      ONLY : UPDN0,    UWND0,     VWND0,     ZMEU0
       USE DAO_MOD,      ONLY : ZMMD0,    ZMMU0
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
-      USE DAO_MOD,      ONLY : CLDF,    CLDFRC,   CLDMAS,   CLDTOPS
-      USE DAO_MOD,      ONLY : CMFMC,   DETRAINE, DETRAINN, DNDE
-      USE DAO_MOD,      ONLY : DNDN,    DQIDTMST, DQLDTMST, DQRCON
-      USE DAO_MOD,      ONLY : DQRLSC,  DQVDTMST, DTRAIN,   ENTRAIN
-      USE DAO_MOD,      ONLY : HKBETA,  HKETA    
-      USE DAO_MOD,      ONLY : MOISTQ,  OPTDEP,   PV
-      USE DAO_MOD,      ONLY : QI,      QL,       RH,       SPHU
-      USE DAO_MOD,      ONLY : T,       TAUCLI,   TAUCLW,   UPDE
-      USE DAO_MOD,      ONLY : UPDN,    UWND,     VWND,     ZMEU
-      USE DAO_MOD,      ONLY : ZMMD,    ZMMU
+      ! Arguments
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 
-      CLDF     = CLDF0
-      CLDTOPS  = CLDTOPS0
-      CMFMC    = CMFMC0
-      DQIDTMST = DQIDTMST0
-      DQLDTMST = DQLDTMST0
-      DQRCON   = DQRCON0
-      DQRLSC   = DQRLSC0
-      DQVDTMST = DQVDTMST0
-      DTRAIN   = DTRAIN0
-      MOISTQ   = MOISTQ0
-      OPTDEP   = OPTDEP0
-      PV       = PV0
-      RH       = RH0
-      SPHU     = SPHU0
-      QL       = QL0
-      QI       = QI0
-      T        = T0
-      TAUCLI   = TAUCLI0
-      TAUCLW   = TAUCLW0
-      UWND     = UWND0
-      VWND     = VWND0
+      State_Met%CLDF     = CLDF0
+      State_Met%CLDTOPS  = CLDTOPS0
+      State_Met%CMFMC    = CMFMC0
+      State_Met%DQIDTMST = DQIDTMST0
+      State_Met%DQLDTMST = DQLDTMST0
+      State_Met%DQRCU    = DQRCON0
+      State_Met%DQRLSAN  = DQRLSC0
+      State_Met%DQVDTMST = DQVDTMST0
+      State_Met%DTRAIN   = DTRAIN0
+      State_Met%MOISTQ   = MOISTQ0
+      State_Met%OPTDEP   = OPTDEP0
+      State_Met%PV       = PV0
+      State_Met%RH       = RH0
+      State_Met%SPHU     = SPHU0
+      State_Met%QL       = QL0
+      State_Met%QI       = QI0
+      State_Met%T        = T0
+      State_Met%TAUCLI   = TAUCLI0
+      State_Met%TAUCLW   = TAUCLW0
+      State_Met%U        = UWND0
+      State_Met%V        = VWND0
 
       ! Return to calling program
       END SUBROUTINE UPDATE_A6_FIELDS
@@ -941,7 +1139,7 @@
       !=================================================================
       ! GET_N_A6 begins here!
       !=================================================================
-#if defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       ! GEOS-4 has 12 A-6 fields
       N_A6 = 12
@@ -1013,7 +1211,7 @@
      &                    Q,         QI,        QL,        RH,        
      &                    T,         TAUCLI,    TAUCLW,    U,         
      &                    UPDE,      UPDN,      V,         ZMEU,      
-     &                    ZMMD,      ZMMU )
+     &                    ZMMD,      ZMMU,      T_FULLGRID )
 !
 !******************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
@@ -1087,18 +1285,21 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  14 Mar 2013 - M. Payer    - Added T_FULLGRID as optional argument
+!  29 Oct 2013 - R. Yantosca - Remove reference to TRANSFER_3D_NOLUMP
+!  07 Nov 2013 - R. Yantosca - Now replace any NaN's in the MOISTQ field
+!                              with zeroes.  NaN's have occured near t-pause.
 !******************************************************************************
 !
       ! References to F90 modules
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_GCTM_MOD
       USE DIAG_MOD,     ONLY : AD66,        AD67
       USE FILE_MOD,     ONLY : IOERROR
       USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
-
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE CMN_DIAG_MOD               ! ND66, ND67
-      USE CMN_GCTM_MOD               ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS
@@ -1140,6 +1341,7 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: T_FULLGRID(IIPAR,JJPAR,LGLOB)
 
       ! Local variables
       INTEGER                        :: I, IJLOOP, J, K, L
@@ -1550,6 +1752,12 @@
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( T ) ) CALL TRANSFER_3D( D, T )
                   NFOUND = NFOUND + 1 
+
+                  ! Also make sure to archive temperature on the full vertical
+                  ! grid for offline "specialty" simulations (bmy, 10/28/13)
+                  IF ( PRESENT( T_FULLGRID ) ) THEN
+                     T_FULLGRID = D
+                  ENDIF
                ENDIF
 
             !--------------------------------------
@@ -1813,7 +2021,18 @@
       ! positives, and then divide by 8.64d7 to convert to units of
       ! [kg H2O/kg air/s].  (bmy, 4/5/99)
       !=================================================================
-      IF ( PRESENT( MOISTQ ) ) MOISTQ = -MOISTQ / 8.64d7
+      IF ( PRESENT( MOISTQ ) ) THEN
+
+         ! First replace any NaN values with zeroes.  Most NaN's in MOISTQ 
+         ! have been shown to occur near the tropopause, where there are 
+         ! no clouds, and no cloud or ice precip. (bmy, 11/7/13)
+         WHERE( MOISTQ .ne. MOISTQ ) 
+            MOISTQ = 0d0
+         ENDWHERE
+
+         ! Then convert to [kg H2O/kg air/s]
+         MOISTQ = -MOISTQ / 8.64d7
+      ENDIF
 
       !=================================================================
       ! ND66 diagnostic: A-6 fields

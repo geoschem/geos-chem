@@ -36,23 +36,11 @@
       PUBLIC :: GET_RCP_EMISSION
       PUBLIC :: RCPNAME, RCPYEAR
       PUBLIC :: RCP_AIREMISS
-      PUBLIC :: OPTIONS_RCP
-
-      ! PUBLIC options structure
-      TYPE, PUBLIC :: RCP_Struct
-         LOGICAL   :: LRCP
-         LOGICAL   :: LRCPSHIP
-         LOGICAL   :: LRCPAIR
-         LOGICAL   :: LFIXEDYR
-      END TYPE RCP_Struct
-
 !
 ! !PUBLIC DATA MEMBERS:
 !
       ! Array to pass aircraft NOx emissions to SMVGEAR
       REAL*8,  PUBLIC, ALLOCATABLE :: RCP_AC_NOx(:,:,:)
-      ! Options structure
-      TYPE(RCP_Struct)             :: OPTIONS_RCP
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -60,7 +48,8 @@
       REAL*4, ALLOCATABLE :: RCP_AIR(:,:,:,:)
       REAL*4, ALLOCATABLE :: RCP_SHIP(:,:,:)
       CHARACTER(LEN=20)   :: RCPNAME
-      INTEGER             :: RCPYEAR, RCPOFFSETYEAR
+      INTEGER             :: RCPYEAR
+      INTEGER             :: RCPOFFSETYEAR
       INTEGER             :: IDTRCP_LAND(20), IDTRCP_SHIP(20),
      &     IDTRCP_AIR(3)
 !
@@ -89,22 +78,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LOAD_RCP_EMISSIONS( )
+      SUBROUTINE LOAD_RCP_EMISSIONS( Input_Opt )
 !
 ! !USES:
 !
       USE BPCH2_MOD,              ONLY : GET_TAU0, GET_RES_EXT
       USE DIRECTORY_MOD,          ONLY : DATA_DIR
       USE ERROR_MOD,              ONLY : GEOS_CHEM_STOP
+      USE GIGC_Input_Opt_Mod,     ONLY : OptInput
+      USE LOGICAL_MOD,            ONLY : LFIXEDYR
       USE TIME_MOD,               ONLY : GET_MONTH, GET_YEAR
       USE TRACERID_MOD
       USE TRACER_MOD,             ONLY : TRACER_NAME
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !REVISION HISTORY: 
-!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from OPTIONS_RCP
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
 !  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
@@ -120,7 +112,7 @@
       REAL*8                        :: XTAU
       INTEGER, SAVE                 :: INITYEAR=0
 
-      ! For fields from OPTIONS_RCP
+      ! For fields from Input_Opt
       LOGICAL                       :: LRCP
       LOGICAL                       :: LRCPSHIP
       LOGICAL                       :: LRCPAIR
@@ -129,16 +121,16 @@
       !  LOAD_RCP_EMISSIONS begins here
       !=================================================================
 
-      ! Copy values from OPTIONS_RCP
-      LRCP     = OPTIONS_RCP%LRCP
-      LRCPSHIP = OPTIONS_RCP%LRCPSHIP
-      LRCPAIR  = OPTIONS_RCP%LRCPAIR
+      ! Copy values from Input_Opt
+      LRCP     = Input_Opt%LRCP
+      LRCPSHIP = Input_Opt%LRCPSHIP
+      LRCPAIR  = Input_Opt%LRCPAIR
 
       ! First-time initialization
       IF ( FIRST ) THEN
 
          ! Allocate arrays
-         CALL INIT_RCP
+         CALL INIT_RCP( Input_Opt )
 
          ! Set the reference year (SDE 2013-11-16)
          INITYEAR = GET_YEAR()
@@ -152,7 +144,7 @@
       THISMONTH = GET_MONTH()      
 
       ! Calculate which year we're in
-      IF (.not. OPTIONS_RCP%LFIXEDYR) THEN
+      IF (.not. LFIXEDYR) THEN
          RCPOFFSETYEAR = RCPYEAR + (INITYEAR - GET_YEAR())
       ELSE
          RCPOFFSETYEAR = RCPYEAR
@@ -339,7 +331,7 @@
          ! numbers change in the future
          SELECT CASE ( NTRACER )
          CASE ( 1  )
-            IDT = IDTNOx
+            IDT = IDTNO
          CASE ( 4  )
             IDT = IDTCO
          CASE ( 5  )
@@ -500,21 +492,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RCP_AIREMISS( )
+      SUBROUTINE RCP_AIREMISS( State_Met )
 !
 ! !USES:
 !
       USE DIAG_MOD,               ONLY : AD32_AC
       USE ERROR_MOD,              ONLY : ERROR_STOP
-!      USE GIGC_State_Met_Mod,     ONLY : MetState
-      USE DAO_MOD,                ONLY : BXHEIGHT
-      USE TRACERID_MOD,           ONLY : IDTNOx
+      USE GIGC_State_Met_Mod,     ONLY : MetState
+      USE TRACERID_MOD,           ONLY : IDTNO
       USE CMN_DIAG_MOD                 ! Diagnostic switches
       USE CMN_SIZE_MOD                 ! Size parameters      
 !
 ! !INPUT PARAMETERS:
 !
-!      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
 !  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
@@ -538,7 +529,7 @@
       
       ! Locate the NOx tracer in the emission array
       DO K=1, SIZE(IDTRCP_AIR)
-         IF (IDTNOx == IDTRCP_AIR(K)) THEN
+         IF (IDTNO == IDTRCP_AIR(K)) THEN
             TRACERFOUND=.TRUE.
             EXIT
          ENDIF
@@ -550,7 +541,7 @@
      &                     'RCP_AIREMISS' )
       
       ! Convert molec/cm2/s  -> molec/cm3/s
-      RCP_AC_NOx = RCP_AIR(:,:,:,K) / ( BXHEIGHT * 1D2 )
+      RCP_AC_NOx = RCP_AIR(:,:,:,K) / ( State_Met%BXHEIGHT * 1D2 )
 
       ! ND32 -- save NOx in [molec/cm2], will convert to
       ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
@@ -559,7 +550,7 @@
          DO J=1, JJPAR
          DO I=1, IIPAR
             AD32_ac(I,J,L) = AD32_ac(I,J,L) + ( RCP_AC_NOx(I,J,L) * 
-     &                       BXHEIGHT(I,J,L) * 1d2 )
+     &                       State_Met%BXHEIGHT(I,J,L) * 1d2 )
          ENDDO
          ENDDO
          ENDDO
@@ -927,17 +918,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_RCP( )
+      SUBROUTINE INIT_RCP( Input_Opt )
 !
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       USE CMN_SIZE_MOD             ! Size parameters
 
 !
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
 ! !REVISION HISTORY:
-!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from OPTIONS_RCP
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
 !  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -947,7 +943,7 @@
 !
       INTEGER    :: AS
 
-      ! For fields from OPTIONS_RCP
+      ! For fields from Input_Opt
       LOGICAL    :: LRCP
       LOGICAL    :: LRCPSHIP
       LOGICAL    :: LRCPAIR
@@ -956,10 +952,10 @@
       !  INIT_RCP begins here
       !=================================================================
 
-      ! Copy values from OPTIONS_RCP
-      LRCP        = OPTIONS_RCP%LRCP
-      LRCPSHIP    = OPTIONS_RCP%LRCPSHIP
-      LRCPAIR     = OPTIONS_RCP%LRCPAIR
+      ! Copy values from Input_Opt
+      LRCP        = Input_Opt%LRCP
+      LRCPSHIP    = Input_Opt%LRCPSHIP
+      LRCPAIR     = Input_Opt%LRCPAIR
 
       ! Return if we LRCP = .FALSE.
       IF ( .not. (LRCP .OR. LRCPSHIP .OR. LRCPAIR) ) RETURN

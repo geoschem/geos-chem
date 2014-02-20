@@ -26,7 +26,6 @@ MODULE Modis_Lai_Mod
 ! !USES:
 !
   USE CMN_SIZE_Mod                                ! Size parameters
-  USE CMN_DEP_Mod                                 ! IREG, ILAND, IUSE, FRCLND
   USE Directory_Mod                               ! Disk directory paths   
   USE Error_Mod                                   ! Error checking routines
   USE Logical_Mod                                 ! Logical switches
@@ -117,19 +116,23 @@ MODULE Modis_Lai_Mod
 !  (2) At the present time, we have not yet disabled the RDISOLAI function.  
 !      We will do so in the future, and will validate this with a separate 
 !      benchmark.
-!
-!      -- Bob Yantosca (geos-chem-support@as.harvard.edu), 09 Apr 2012
+!  (3) As of December 2012, XLAI and XLAI2 have been moved out of obsolete
+!      module Headers/CMN_DEP_mod.F and are now carried as part of the 
+!      Meteorology State object (State_Met).  This modification was made
+!      to facilitate the Grid-Independent GEOS-Chem (GIGC) project.
+!      
+!      -- Bob Yantosca (geos-chem-support@as.harvard.edu), 13 Dec 2012
 !                                                                             .
 !                                                                             .
 !  LAI arrays and where they are (or will be) used in GEOS-Chem:
 !  ===========================================================================
-!  (1) XLAI      --> Used in Soil NOx module
-!  (2) XLAI2     --> Used to compute XLAI
-!  (3) XYLAI     --> %%% OBSOLETE: REMOVED, NOW REPLACED BY XLAI %%%
-!  (4) GC_LAI    --> Intended replacement for ISOLAI   (from lai_mod.F)
-!  (5) GC_LAI_PM --> Intended replacement for PMISOLAI (from lai_mod.F)
-!  (6) GC_LAI_CM --> Intended replacement for MISOLAI  (from lai_mod.F)
-!  (7) GC_LAI_NM --> Intended replacement for NMISOLAI (from lai_mod.F)
+!  (1) State_Met%XLAI  --> Used in dry deposition routine DEPVEL
+!  (2) State_Met%XLAI2 --> Used to compute XLAI
+!  (3) XYLAI           --> %%% OBSOLETE: REMOVED, NOW REPLACED BY XLAI %%%
+!  (4) GC_LAI          --> Intended replacement for ISOLAI   (from lai_mod.F)
+!  (5) GC_LAI_PM       --> Intended replacement for PMISOLAI (from lai_mod.F)
+!  (6) GC_LAI_CM       --> Intended replacement for MISOLAI  (from lai_mod.F)
+!  (7) GC_LAI_NM       --> Intended replacement for NMISOLAI (from lai_mod.F)
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
@@ -139,6 +142,8 @@ MODULE Modis_Lai_Mod
 !  09 Apr 2012 - R. Yantosca - Changed variables to REAL*8
 !  09 Apr 2012 - R. Yantosca - Now set MODIS_START and MODIS_END depending
 !                              on which version of MODIS LAI we are using
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F;
+!                              XLAI, XLAI2 now are carried in State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -180,14 +185,26 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Modis_Lai( doy, mm, mapping, wasModisRead )
+  SUBROUTINE Compute_Modis_Lai( am_I_Root, State_Met,    doy, mm,  &
+                                mapping,   wasModisRead, RC       )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,         INTENT(IN) :: doy           ! Day of year
-    INTEGER,         INTENT(IN) :: mm            ! Month for LAI data
-    TYPE(MapWeight), POINTER    :: mapping(:,:)  ! "fine" -> "coarse" grid map
-    LOGICAL,         INTENT(IN) :: wasModisRead  ! Was LAI data just read in?
+    LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    TYPE(MetState),  INTENT(IN)  :: State_Met     ! Meteorology State object
+    INTEGER,         INTENT(IN)  :: doy           ! Day of year
+    INTEGER,         INTENT(IN)  :: mm            ! Month for LAI data
+    TYPE(MapWeight), POINTER     :: mapping(:,:)  ! "fine" -> "coarse" grid map
+    LOGICAL,         INTENT(IN)  :: wasModisRead  ! Was LAI data just read in?
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(OUT) :: RC            ! Success or failure?
 !
 ! !REMARKS:
 !  Uses same algorithm as RDISOLAI in the existing lai_mod.F.
@@ -202,6 +219,9 @@ CONTAINS
 !                              these are now obsolete
 !  17 Apr 2012 - R. Yantosca - Now rename "map" object to "mapping" to avoid
 !                              name confusion w/ an F90 intrinsic function
+!  13 Dec 2012 - R. Yantosca - Add am_I_Root, State_Met, RC arguments
+!  13 Dec 2012 - R. Yantosca - XLAI, XLAI2 are now carried in State_Met
+!                              instead of in obsolete Headers/CMN_DEP_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,6 +246,9 @@ CONTAINS
     ! Use same algorithm as in routines RDISOLAI (in lai_mod.F)
     !======================================================================
     
+    ! Assume success
+    RC                = GIGC_SUCCESS
+
     ! IMUL is days since midmonth
     ! ITD  is days between midmonths
     IF ( doy < startDay(1) ) THEN
@@ -378,9 +401,14 @@ CONTAINS
                 !     ([ next month - this month ] / # of days in month)
                 ! (4) XLAI is incremented by the amount 
                 !      ( Delta-LAI ) * # of days since start of month
+                ! 
+                ! NOTE: As of Dec 2012, XLAI and XLAI2 are now part of 
+                ! the Meteorology State object (bmy, 12/13/12)
                 !----------------------------------------------------------
-                XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C) ) / DITD
-                XLAI (I,J,K) = ( tempLaiCm(C) ) + ( XLAI2(I,J,K) * DIMUL )
+                State_Met%XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C)    ) &
+                                       / ( DITD                           )
+                State_Met%XLAI (I,J,K) = ( tempLaiCm(C)                   ) & 
+                                       + ( State_Met%XLAI2(I,J,K) * DIMUL )
 
              ELSE
 
@@ -394,8 +422,9 @@ CONTAINS
                    ! (2) XLAI2 is computed as the Delta-LAI this month
                    !     (i.e. [next month - this month ] / # of days
                    !----------------------------------------------------------
-                   XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C) ) / DITD
-                   XLAI (I,J,K) = ( tempLaiCm(C)                )
+                   State_Met%XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C) ) &
+                                          / ( DITD                        )
+                   State_Met%XLAI (I,J,K) = ( tempLaiCm(C)                )
  
                 ELSE
                 
@@ -405,7 +434,8 @@ CONTAINS
                    ! Follow original algorithm in the old rdland.F
                    ! (1) Increment LAI by the this month's Delta-LAI
                    !----------------------------------------------------------
-                   XLAI(I,J,K)  = XLAI(I,J,K) + XLAI2(I,J,K)
+                   State_Met%XLAI(I,J,K)  = State_Met%XLAI (I,J,K) &
+                                          + State_Met%XLAI2(I,J,K)
 
                 ENDIF
              ENDIF
@@ -456,6 +486,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
+!  05 Jun 2013 - R. Yantosca - Bug fix, use "mm" for current month index
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,12 +564,12 @@ CONTAINS
        ! so we have to read data from a different year.
        IF ( USE_OLSON_2001 ) THEN
           IF ( yyyy > MODIS_END ) THEN                    !%%% OLSON 2001 %%%
-             yyyymmdd = MODIS_END*10000   + Pmm*100 + 01  ! Use final year
+             yyyymmdd = MODIS_END*10000   + mm*100 + 01   ! Use final year
           ELSE IF ( yyyy < MODIS_START ) THEN             !
-             yyyymmdd = MODIS_START*10000 + Pmm*100 + 01  ! Use 1st year
+             yyyymmdd = MODIS_START*10000 + mm*100 + 01   ! Use 1st year
           ENDIF
        ELSE                                               !%%% OLSON 1992 %%%
-          yyyymmdd = 19850001 + Pmm*100                   ! Use climatology
+          yyyymmdd = 19850001 + mm*100                    ! Use climatology
        ENDIF
 
        ! Expand date tokens in filename
@@ -872,6 +903,9 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
+!  03 Feb 2014 - M. Sulprizio- Force last year of MODIS data to 2008. There is
+!                              a large difference in the 2009 file that still
+!                              needs to be investigated (skim, 1/29/14)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -906,7 +940,8 @@ CONTAINS
        I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
        J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
        MODIS_START = 2005             ! First year of MODIS data  
-       MODIS_END   = 2009             ! Last  year of MODIS data
+       MODIS_END   = 2008             ! Force to 2008 (skim, 1/29/14)
+!      MODIS_END   = 2009             ! Last  year of MODIS data
     ELSE
        I_MODIS     = 720              ! For Olson 1992, use MODIS LAI
        J_MODIS     = 360              ! on the 0.5 x 0.5 native grid

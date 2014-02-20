@@ -19,7 +19,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE 
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -38,6 +37,7 @@
 !  (1 ) Adapted from the obsolete "phis_read_mod.f" (bmy, 2/1/06)
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  06 Aug 2012 - R. Yantosca - Now make IU_PH a local variable
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -64,20 +64,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UNZIP_GCAP_FIELDS( OPTION )
+      SUBROUTINE UNZIP_GCAP_FIELDS( Input_Opt, OPTION )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD                          ! Size parameters
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD
+      USE CMN_SIZE_MOD
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*),  INTENT(IN) :: OPTION   ! Unzipping option
+      TYPE(OptInput),    INTENT(IN) :: Input_Opt   ! Input Options object
+      CHARACTER(LEN=*),  INTENT(IN) :: OPTION      ! Unzipping option
 ! 
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
@@ -89,6 +89,7 @@
 !        them (bmy, 7/20/04)
 !  (4 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2013 - R. Yantosca - Now pass fields via Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,7 +110,7 @@
       NYMD     = 20000101
 
       ! Strings for directory & filename
-      GEOS_DIR = TRIM( GCAP_DIR )
+      GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
       PHIS_STR = 'YYYYMMDD.phis.' // GET_RES_EXT() 
 
       ! Replace date tokens
@@ -117,32 +118,41 @@
       CALL EXPAND_DATE( PHIS_STR, NYMD, 000000 )
 
       ! Location of zipped A-3 file in data dir
-      PHIS_FILE_GZ = TRIM( DATA_DIR   ) // TRIM( GEOS_DIR   ) //
-     &               TRIM( PHIS_STR   ) // TRIM( ZIP_SUFFIX )
+      PHIS_FILE_GZ = TRIM( Input_Opt%DATA_DIR   ) // 
+     &               TRIM( GEOS_DIR             ) //
+     &               TRIM( PHIS_STR             ) // 
+     &               TRIM( Input_Opt%ZIP_SUFFIX )
 
       ! Location of unzipped A-3 file in temp dir
-      PHIS_FILE    = TRIM( TEMP_DIR   ) // TRIM( PHIS_STR   )
+      PHIS_FILE    = TRIM( Input_Opt%TEMP_DIR   ) // 
+     &               TRIM( PHIS_STR             )
          
       ! Remove A-3 files for this date from temp dir 
-      REMOVE_DATE  = TRIM( REMOVE_CMD ) // ' '                // 
-     &               TRIM( TEMP_DIR   ) // TRIM( PHIS_STR   )
+      REMOVE_DATE  = TRIM( Input_Opt%REMOVE_CMD ) // ' '    // 
+     &               TRIM( Input_Opt%TEMP_DIR   ) // 
+     &               TRIM( PHIS_STR             )
 
       !=================================================================
       ! Define the foreground and background UNZIP commands
       !=================================================================
 
       ! Foreground unzip
-      UNZIP_FG = TRIM( UNZIP_CMD ) // ' ' // TRIM( PHIS_FILE_GZ ) // 
-     &           TRIM( REDIRECT  ) // ' ' // TRIM( PHIS_FILE    )  
+      UNZIP_FG = TRIM( Input_Opt%UNZIP_CMD      ) // ' '    // 
+     &           TRIM( PHIS_FILE_GZ             ) // 
+     &           TRIM( Input_Opt%REDIRECT       ) // ' '    // 
+     &           TRIM( PHIS_FILE                )  
 
       ! Background unzip
-      UNZIP_BG  = TRIM( UNZIP_FG ) // TRIM( BACKGROUND )
+      UNZIP_BG  = TRIM( UNZIP_FG                ) // 
+     &            TRIM( Input_Opt%BACKGROUND    )
 
       !=================================================================
       ! Define command to remove all PHIS files from the TEMP dir
       !=================================================================
-      REMOVE_ALL = TRIM( REMOVE_CMD ) // ' '    // TRIM( TEMP_DIR  ) // 
-     &             TRIM( WILD_CARD  ) //'.phis.'// TRIM( WILD_CARD ) 
+      REMOVE_ALL = TRIM( Input_Opt%REMOVE_CMD   ) // ' '    // 
+     &             TRIM( Input_Opt%TEMP_DIR     ) // 
+     &             TRIM( Input_Opt%WILD_CARD    ) //'.phis.'// 
+     &             TRIM( Input_Opt%WILD_CARD    ) 
 
       !=================================================================
       ! Perform an F90 system call to do the desired operation
@@ -196,18 +206,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_GCAP_FIELDS 
+      SUBROUTINE OPEN_GCAP_FIELDS( Input_Opt )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LUNZIP
-      USE FILE_MOD,     ONLY : IOERROR, FILE_EXISTS
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE CMN_SIZE_MOD       ! Size parameters
-! 
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
 ! !REVISION HISTORY: 
 !  01 Feb 2006 - S. Wu        - Initial version
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
@@ -248,7 +261,7 @@
       IF ( NHMS == 000000 .or. FIRST ) THEN
 
          ! Strings for directory & filename
-         GEOS_DIR  = TRIM( GCAP_DIR )
+         GEOS_DIR  = TRIM( Input_Opt%GCAP_DIR )
          PHIS_FILE = 'YYYYMMDD.phis.' // GET_RES_EXT() 
 
          ! Replace date tokens
@@ -257,11 +270,13 @@
 
          ! If unzipping, open GEOS-1 file in TEMP dir
          ! If not unzipping, open GEOS-1 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // TRIM( PHIS_FILE )
+         IF ( Input_Opt%LUNZIP ) THEN
+            PATH = TRIM( Input_Opt%TEMP_DIR ) // 
+     &             TRIM( PHIS_FILE          )
          ELSE
-            PATH = TRIM( DATA_DIR ) // 
-     &             TRIM( GEOS_DIR ) // TRIM( PHIS_FILE )
+            PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &             TRIM( GEOS_DIR           ) // 
+     &             TRIM( PHIS_FILE          )
          ENDIF
 
          ! Close previously opened A-3 file
@@ -315,16 +330,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GCAP_FIELDS
+      SUBROUTINE GET_GCAP_FIELDS( Input_Opt, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : PHIS, LWI_GISS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  01 Feb 2006 - S. Wu       - Initial version
 !  (1 ) Now also read LWI_GISS for GCAP met fields (swu, bmy, 5/25/05)
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -342,8 +368,12 @@
       NHMS = 000000
 
       ! For GCAP met fields: read PHIS and LWI_GISS
-      CALL READ_GCAP( NYMD=NYMD, NHMS=NHMS, PHIS=PHIS, LWI=LWI_GISS )
+      CALL READ_GCAP( NYMD = NYMD, 
+     &                NHMS = NHMS, 
+     &                PHIS = State_Met%PHIS, 
+     &                LWI  = State_Met%LWI_GISS )
 
+      ! Return to calling program
       END SUBROUTINE GET_GCAP_FIELDS
 !EOC
 !------------------------------------------------------------------------------

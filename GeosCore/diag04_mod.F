@@ -17,7 +17,6 @@
 ! !USES:
 !     
       IMPLICIT NONE
-#     include "define.h"
       PUBLIC 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -54,6 +53,7 @@
 !  (3 ) Modified for ship emissions (2-D), aircraft emissions (3-D) and 
 !       chemical source for CO2 (3-D) (RayNassar, 2009-12-23)
 !  20 May 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -69,6 +69,7 @@
       ! changed PD39 (wetdep) to 38 (jpp, 7/08/09)
       ! Now set PD46 to 16 (jpp, 6/7/09)
       ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
+      ! SOAupdate: PD46 increased from 16 to 20 (hotp 3/1/10)
       ! Changed PD22 from 14 to 22 for strat-chem (SDE 04/13/13)
       ! Changed PD21 from 27 to 33 for strat aerosols (SDE 04/17/13)
       ! Changed PD43 from 5 to 7 for O1D/O3P (SDE 2013-07-15)
@@ -78,7 +79,8 @@
       INTEGER, PARAMETER :: PD02=3
       INTEGER, PARAMETER :: PD05=10        
       INTEGER, PARAMETER :: PD06=NDSTBIN
-      INTEGER, PARAMETER :: PD07=12
+      ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
+      INTEGER, PARAMETER :: PD07=15
       INTEGER, PARAMETER :: PD08=2
       INTEGER, PARAMETER :: PD09=6
       INTEGER, PARAMETER :: PD10=20            
@@ -93,7 +95,7 @@
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
       INTEGER, PARAMETER :: PD21=33
-      INTEGER, PARAMETER :: PD22=22      !jpp (Br), SDE (strat-chem) 4/24/2011-04/13/13
+      INTEGER, PARAMETER :: PD22=22      !jpp (Br), SDE (strat-chem)
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
       INTEGER, PARAMETER :: PD25=NNPAR       
@@ -115,7 +117,7 @@
       INTEGER, PARAMETER :: PD43=7  
       INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
       INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=17      !jpp replaced 13
+      INTEGER, PARAMETER :: PD46=21
       INTEGER, PARAMETER :: PD47=NNPAR+1
       INTEGER, PARAMETER :: PD48=2            
       INTEGER, PARAMETER :: PD49=0                
@@ -141,11 +143,7 @@
       INTEGER, PARAMETER :: PD62=NNPAR        
       INTEGER, PARAMETER :: PD63=0           
       INTEGER, PARAMETER :: PD64=W_
-#if defined( DEVEL )
       INTEGER            :: PD65
-#else
-      INTEGER, PARAMETER :: PD65=LLPAR*MAXFAM 
-#endif
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
       INTEGER, PARAMETER :: PD68=4            
@@ -211,18 +209,19 @@
       INTEGER :: TMAX(MAX_DIAG)					
 
       !=================================================================
-      ! NO, J-Value, and 2-PM diagnostic arrays (bmy, 9/25/98)
+      ! OH, J-Value, and 2-PM diagnostic arrays (bmy, 9/25/98)
       ! Move this here for now (bmy, 7/20/04)
+      ! Removed HR1_NO and HR2_NO (mpayer, 11/8/13)
       !=================================================================
-      REAL*8  :: HR1_NO, HR2_NO, HR1_JV,  HR2_JV
+      REAL*8  :: HR1_JV, HR2_JV
       REAL*8  :: HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE IS DEPRECATED.  AT SOME POINT WE NEED TO DO A  %%%
-!  %%%  TOTAL REWRITE OF THE GEOS-CHEM DIAGNOSTICS.  MANY OF THESE FLAGS %%%
-!  %%%  CAN BE BUNDLED INTO A DERIVED TYPE FOR THE DIAGNOSTICS, THUS     %%%
-!  %%%  SIMPLIFYING THE CODE.  FOR NOW, LEAVE AS-IS.                     %%%
+!  %%%  NOTE: THIS MODULE IS DEPRECATED.  MANY OF THE QUANTITIES STORED  %%%
+!  %%%  in CMN_DIAG_MOD ARE NOW INCLUDED IN THE INPUT OPTIONS OBJECT,    %%%
+!  %%%  BASED ON THE DERIVED TYPE IN Headers/gigc_input_opt_mod.F90.     %%%
+!  %%%  (bmy, 11/19/12)                                                  %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
@@ -264,20 +263,54 @@
 !                                              to match ND09 diagnostic
 !  09 Mar 2011 - R. Yantosca - Updated MAX_TRACER for APM (G. Luo)
 !  03 Aug 2011 - M. Long     - Converted from Header file to Module
+!  08 Nov 2013 - M. Sulprizio- Remove HR1_NO and HR2_NO. They are no longer
+!                              needed for ND43 because NO, NO2, and NO3 are now
+!                              tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( DEVEL )
       CONTAINS
-
-      SUBROUTINE SET_CMN_DIAG_MOD
-      
-        IMPLICIT NONE
-
-        PD65=LLPAR*MAXFAM 
-
-      END SUBROUTINE SET_CMN_DIAG_MOD
-#endif
-      END MODULE CMN_DIAG_MOD
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_cmn_diag
+!
+! !DESCRIPTION: Subroutine INIT\_CMN\_DIAG initializes quantities based on
+!  the grid-independent size parameters.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_CMN_DIAG( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC   = GIGC_SUCCESS
+
+      ! Set PD65 (for backwards compatibility, for now)
+      PD65 = LLPAR*MAXFAM 
+
+      END SUBROUTINE Init_CMN_DIAG
+!EOC
+      END MODULE CMN_DIAG_MOD
+
 

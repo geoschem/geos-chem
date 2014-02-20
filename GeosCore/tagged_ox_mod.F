@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -50,6 +49,11 @@
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 or LLTROP_FIX
+!                              everywhere (hyl, bmy, 11/3/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,14 +95,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ADD_STRAT_POX( I, J, L, POx )
+      SUBROUTINE ADD_STRAT_POX( I, J, L, POx, State_Chm )
 !
 ! !USES:
 !
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTOxStrt
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTO3Strt
 
-      USE CMN_SIZE_MOD           ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -106,19 +110,30 @@
       INTEGER, INTENT(IN) :: J     ! GEOS-Chem grid box lat index
       INTEGER, INTENT(IN) :: L     ! GEOS-Chem grid box level index
       REAL*8,  INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2003 - R. Yantosca - Initial version
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  10 Jun 2012 - L. Murray - Enable tagged Ox for Synoz.
+!  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
+!  05 Nov 2013 - R. Yantosca - Remove STT pointer for simplicity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
       !=================================================================
       ! GET_STRAT_POX begins here!
       !=================================================================
-      STT(I,J,L,IDTOxStrt) = STT(I,J,L,IDTOxStrt) + POx
+
+      State_Chm%Tracers(I,J,L,IDTO3Strt) = 
+     &State_Chm%Tracers(I,J,L,IDTO3Strt) + POx
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC
@@ -140,6 +155,7 @@
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE BPCH2_MOD,     ONLY : GET_TAU0
       USE DIRECTORY_MOD, ONLY : O3PL_DIR 
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TIME_MOD,      ONLY : GET_NYMD
@@ -151,12 +167,21 @@
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
       USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,      ONLY : GET_YEAR
+      USE TIME_MOD,      ONLY : GET_MONTH
+      USE TIME_MOD,      ONLY : GET_DAY
       USE TIME_MOD,      ONLY : GET_HOUR
       USE DIAG_PL_MOD                                      !dbj
       USE JULDAY_MOD,    ONLY : JULDAY                     !dbj
            
       USE CMN_SIZE_MOD ! Size parameters
       USE CMN_DIAG_MOD ! LD65
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% If you want to read archived O3 prod/loss data from a different year
+!%%% than the met field dates, then use this #ifdef.  Otherwise, just
+!%%% comment this flag out. (bmy, 11/6/13)
+#define USE_THIS_O3_YEAR 2004
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
@@ -170,30 +195,47 @@
 !        save diag20 (phs, 11/17/08)
 !  (7 ) Updates for LINOZ (dbj, jliu, bmy, 10/16/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  06 Nov 2013 - R. Yantosca - Use an #ifdef to decide if we are reading O3
+!                              P/L data from a different year than the met
+!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 or LLTROP_FIX
+!                              (hyl,bmy/11/3/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LD65)
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
       !JLIU, 2008/10/01
       INTEGER            :: YYYY, MM, DD, FIRST_DATE
-      INTEGER            :: DAY_OF_YEAR
+      INTEGER            :: DAY_OF_YEAR,  NYMD
       CHARACTER(LEN=2)   :: MM_STR, DD_STR
 
       !=================================================================
       ! READ_POX_LOX begins here!
       !=================================================================
 
-      ! Filename string
-      FILENAME = 'rate.YYYYMMDD'
-      CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+      ! Get year of archived O3 prod/loss data.  This can be the
+      ! current simulation year (or more likely, a previous year). 
+#if defined( USE_THIS_O3_YEAR )
+      YYYY  = USE_THIS_O3_YEAR
+#else
+      YYYY  = GET_YEAR()
+#endif
+      
+      ! Get date of archived ozone prod/loss data to read
+      MM    = GET_MONTH()
+      DD    = GET_DAY()
+      NYMD  = YYYY*10000 + MM*100 + DD 
 
-      ! Get the TAU0 value for today
-      XTAU = GET_TAU()
+      ! Create filename string
+      FILENAME = 'rate.YYYYMMDD'
+      CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+      ! Get the TAU value corresponding to the date
+      XTAU = GET_TAU0( MM, DD, YYYY )
 
 !------------------------------------------------------------------------------
 ! Comment out for now (bmy, 2/4/11)
@@ -265,11 +307,13 @@
       ! Initialize
       ARRAY = 0e0
 
+      ! Prior to 11/3/11: 
       ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
       ! tropopause. This is backward compatibility with offline data set.
+      ! Now limit array 3d dimension to LLTROP (hyl, bmy, 11/3/11)
       CALL READ_BPCH2( FILENAME,  'PORL-L=$', 1,      
      &                 XTAU,       IIPAR,     JJPAR,      
-     &                 LLCHEM_FIX, ARRAY,     QUIET=.false.)
+     &                 LLCHEM,     ARRAY,     QUIET=.false.)
 
       ! Cast from REAL*4 to REAL*8
       CALL TRANSFER_3D_TROP( ARRAY, P24H )
@@ -284,7 +328,7 @@
       ! read data
       CALL READ_BPCH2( FILENAME,  'PORL-L=$', 2,      
      &                 XTAU,       IIPAR,     JJPAR,      
-     &                 LLCHEM_FIX, ARRAY,     QUIET=.false.)
+     &                 LLCHEM,     ARRAY,     QUIET=.false.)
 
       ! Cast from REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAY, L24H )
@@ -305,28 +349,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_REGIONAL_POX( I, J, L, PP )
+      SUBROUTINE GET_REGIONAL_POX( I, J, L, PP, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : PBL
-      USE GRID_MOD,       ONLY : GET_XMID,  GET_YMID
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44, ND65, LD65
-      USE CMN_GCTM_MOD       ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44, ND65, LD65
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 !
 ! !INPUT PARAMETERS: 
 !
       ! GEOS-Chem grid box indices for lon, lat, alt
-      INTEGER, INTENT(IN)  :: I, J, L
+      INTEGER,        INTENT(IN)  :: I, J, L
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
 !
 ! !OUTPUT PARAMETERS:
 !
       ! Array containing P(Ox) for each tagged tracer
-      REAL*8,  INTENT(OUT) :: PP(IIPAR,JJPAR,LD65,N_TAGGED)
+      REAL*8,  INTENT(OUT) :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2003 - A. Fiore - Initial version
@@ -345,6 +392,8 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -369,7 +418,7 @@
       PP(I,J,L,:) = 0d0
       
       ! IS TROP is TRUE if we are in the troposphere
-      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L )
+      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L, State_Met )
       
       ! Skip stratospheric boxes
       IF ( .not. ITS_IN_TROP ) RETURN
@@ -388,7 +437,7 @@
 #if   defined( GEOS_4 )
       PBLTOP = 5
       MTTOP  = 10
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       PBLTOP = 5
       MTTOP  = 10
 #endif
@@ -416,7 +465,8 @@
       !=================================================================
 
       ! P(Ox) [kg]
-      PPROD = P24H(I,J,L) * BOXVL(I,J,L) * ( GET_TS_CHEM() * 60d0 )
+      PPROD = P24H(I,J,L)     * BOXVL(I,J,L,State_Met) *
+     &        ( GET_TS_CHEM() * 60d0 )
 
       !-----------------------
       ! #1: Total P(Ox)
@@ -501,34 +551,45 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_OX 
+      SUBROUTINE CHEM_TAGGED_OX( am_I_Root, Input_Opt,
+     &                           State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DIAG_MOD,       ONLY : AD44
-      USE DIAG_PL_MOD,    ONLY : AD65
-      USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
-      USE DRYDEP_MOD,     ONLY : DEPSAV      
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LDRYD
-      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TIME_MOD,       ONLY : ITS_A_NEW_DAY 
-      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,     ONLY : STT
-      USE TRACER_MOD,     ONLY : N_TRACERS
-      USE TRACER_MOD,     ONLY : XNUMOL
-      USE TRACERID_MOD,   ONLY : IDTOX
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_TROP
-      USE LOGICAL_MOD,    ONLY : LNLPBL
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! ND44, ND65, LD65
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44
+      USE DIAG_PL_MOD,        ONLY : AD65
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE DRYDEP_MOD,         ONLY : DEPSAV      
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY 
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRACERID_MOD,       ONLY : IDTO3
 
       IMPLICIT NONE
-#     include "define.h"
-
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Hudman   - Initial version
@@ -553,6 +614,12 @@
 !  (10) Now only compute loss rate in troposphere (dbj, bmy, 10/26/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -562,12 +629,24 @@
       LOGICAL, SAVE     :: FIRST   = .TRUE.
       INTEGER, SAVE     :: LASTDAY = -1
       INTEGER           :: I, J, L, N
-      REAL*8            :: PP(IIPAR,JJPAR,LD65,N_TAGGED)
-      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LD65)
+      REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
       REAL*8            :: DTCHEM,  FREQ,    FLUX
       REAL*8            :: LL,      PL,      Ox_0
       REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
       CHARACTER(LEN=16) :: STAMP
+
+      ! For fields from Input_Opt
+      LOGICAL           :: LDRYD
+      LOGICAL           :: LNLPBL
+      LOGICAL           :: LSPLIT
+      INTEGER           :: N_TRACERS
+      REAL*8            :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       ! External routines
       REAL*8, EXTERNAL :: BOXVL
@@ -576,18 +655,33 @@
       ! CHEM_TAGGED_OX begins here!
       !=================================================================
 
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      LDRYD     = Input_Opt%LDRYD
+      LNLPBL    = Input_Opt%LNLPBL
+      LSPLIT    = Input_Opt%LSPLIT
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! First-time initialization only
+      !%%% NOTE: Need to eventually move this to the init stage %%%
       IF ( FIRST ) THEN 
-         CALL INIT_TAGGED_OX
+         CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
       ! Read P(Ox) and L(Ox) if it's a new day
       IF ( ITS_A_NEW_DAY() ) THEN
-         CALL READ_POX_LOX
+         CALL READ_POX_LOX()
       ENDIF
 
       ! Maximum extent of the PBL [model layers]
@@ -634,7 +728,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX, F_UNDER_TOP )  
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LD65 ! LLTROP !_FIX
+         DO L = 1, LLTROP
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
@@ -644,15 +738,17 @@
 
             ! P(Ox) is a function of geographic & altitude location
             ! NOTE: We call this only when N==1 for optimal looping
-            IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP )
+            IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP,
+     &                                           State_Met   )
             
             ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
-            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
-               LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM
+            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
+               LL = STT(I,J,L,N)           * L24H(I,J,L) *
+     &              BOXVL(I,J,L,State_Met) * DTCHEM
             ELSE
                LL = 0.0d0
             ENDIF 
-                           
+
             !===========================================================
             ! ND65 diagnostic: Chemical prod/loss [kg/s]
             !===========================================================
@@ -661,13 +757,14 @@
                ! Only archive chemical production if this
                ! region has production to begin with [kg/s]
                IF ( PP(I,J,L,N) > 0d0 ) THEN
-                  PL            = P24H(I,J,L) * BOXVL(I,J,L)
+                  PL            = P24H(I,J,L) * BOXVL(I,J,L,State_Met)
                   AD65(I,J,L,N) = AD65(I,J,L,N) + PL
                ENDIF
 
                ! Archive loss for all tracers [kg/s]
-               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L)
+               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L,State_Met)
                AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
+
             ENDIF
 
             !===========================================================
@@ -708,7 +805,7 @@
                      IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
 
                         ! Convert from [kg] to [molec/cm2/s]
-                        FLUX = Ox_LOST             * XNUMOL(IDTOX) / 
+                        FLUX = Ox_LOST             * XNUMOL(IDTO3) / 
      &                         GET_AREA_CM2(I,J,L) / DTCHEM 
                      
                         ! Store dryd flx in ND44_TMP as a placeholder
@@ -747,6 +844,9 @@
          ENDIF
       ENDDO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CHEM_TAGGED_OX
 !EOC
 !------------------------------------------------------------------------------
@@ -762,22 +862,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_OX
+      SUBROUTINE INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE TRACER_MOD, ONLY : N_TRACERS
-
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! ND44, ND65, LD65
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
 !  (1 ) Now reference N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now use LD65 instead of LLTROP to dimension P24H, L24H (phs, 11/18/08)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC args
+!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 to dimension P24H,
+!                              L24H (hyl, bmy, 11/3/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -790,19 +905,22 @@
       ! INIT_TAGGED_OX begins here
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Safety valve
-      IF ( N_TRACERS > N_TAGGED ) THEN
+      IF ( Input_Opt%N_TRACERS > N_TAGGED ) THEN
          CALL ERROR_STOP( 'NTRACE is too large for Tagged Ox!', 
      &                    'INIT_TAGGED_OX (tagged_ox_mod.f)' )
       ENDIF
 
       ! Allocate P24H
-      ALLOCATE( P24H( IIPAR, JJPAR, LD65 ), STAT=AS )
+      ALLOCATE( P24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'P24H' )
       P24H = 0d0
 
       ! Allocate L24H
-      ALLOCATE( L24H( IIPAR, JJPAR, LD65 ), STAT=AS )
+      ALLOCATE( L24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'L24H' ) 
       L24H = 0d0
 

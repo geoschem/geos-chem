@@ -17,7 +17,6 @@
       USE CMN_SIZE_MOD
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -95,7 +94,8 @@
 !                                  regridded) landfraction, climate and
 !                                  fertilizer data
 !  29 Aug 2012 - J.D. Maasakkers - Removed all unused Wang et al. code
-!                                  (comments)  
+!                                  (comments)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -744,7 +744,7 @@
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
 !  31 Jan 2011 - R. Hudman   - Rewrote pulsing scheme
 !  31 Jan 2011 - R. Hudman   - Updated ProTex header
-!  28 Oct 2013 - R. Yantosca - Bug fix: prevent log(0) from happening
+!  28 Oct 2013 - R. Yantosca - Bug fix: prevent log(0) from happening 
 !EOP
 !------------------------------------------------------------------------------
 !BOC

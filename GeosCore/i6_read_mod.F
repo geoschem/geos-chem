@@ -51,12 +51,13 @@
 !  (15) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now make IU_I6 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -90,7 +91,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE UNZIP_I6_FIELDS( OPTION, NYMD )
+      SUBROUTINE UNZIP_I6_FIELDS( Input_Opt, OPTION, NYMD )
 !
 !******************************************************************************
 !  Subroutine UNZIP_I6_FIELDS invokes a FORTRAN system call to uncompress
@@ -114,20 +115,18 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Apr 2013 - R. Yantosca - Now pass fields via Input_Opt
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
-      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
-
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 
       ! Arguments
+      TYPE(OptInput),    INTENT(IN) :: Input_Opt   ! Input Options object
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
       INTEGER, OPTIONAL, INTENT(IN) :: NYMD
 
@@ -145,19 +144,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          I6_STR   = 'YYYYMMDD.i6.' // GET_RES_EXT() 
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          I6_STR   = 'YYYYMMDD.i6.' // GET_RES_EXT() 
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          I6_STR   = 'YYYYMMDD.i6.' // GET_RES_EXT() 
 
 #endif
@@ -167,33 +166,42 @@
          CALL EXPAND_DATE( I6_STR,   NYMD, 000000 )
 
          ! Location of zipped A-3 file in data dir
-         I6_FILE_GZ  = TRIM( DATA_DIR   ) // TRIM( GEOS_DIR   ) // 
-     &                 TRIM( I6_STR     ) // TRIM( ZIP_SUFFIX )
+         I6_FILE_GZ  = TRIM( Input_Opt%DATA_DIR   ) // 
+     &                 TRIM( GEOS_DIR             ) // 
+     &                 TRIM( I6_STR               ) // 
+     &                 TRIM( Input_Opt%ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir
-         I6_FILE     = TRIM( TEMP_DIR   ) // TRIM( I6_STR     )
+         I6_FILE     = TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( I6_STR               )
          
          ! Remove A-3 files for this date from temp dir
-         REMOVE_DATE = TRIM( REMOVE_CMD ) // ' '                // 
-     &                 TRIM( TEMP_DIR   ) // TRIM( I6_STR     )
+         REMOVE_DATE = TRIM( Input_Opt%REMOVE_CMD ) // ' '    // 
+     &                 TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( I6_STR               )
 
          !==============================================================
          ! Define the foreground and background UNZIP commands
          !==============================================================
 
          ! Foreground unzip
-         UNZIP_FG = TRIM( UNZIP_CMD ) // ' ' // TRIM( I6_FILE_GZ ) // 
-     &              TRIM( REDIRECT  ) // ' ' // TRIM( I6_FILE    )  
+         UNZIP_FG = TRIM( Input_Opt%UNZIP_CMD     ) // ' '   // 
+     &              TRIM( I6_FILE_GZ              ) // 
+     &              TRIM( Input_Opt%REDIRECT      ) // ' '   // 
+     &              TRIM( I6_FILE                 )  
 
          ! Background unzip
-         UNZIP_BG  = TRIM( UNZIP_FG ) // TRIM( BACKGROUND )
+         UNZIP_BG  = TRIM( UNZIP_FG               ) // 
+     &               TRIM( Input_Opt%BACKGROUND   )
       ENDIF
 
       !=================================================================
       ! Define command to remove all I-6 files from the TEMP dir
       !=================================================================
-      REMOVE_ALL = TRIM( REMOVE_CMD ) // ' '    // TRIM( TEMP_DIR  ) // 
-     &             TRIM( WILD_CARD )  // '.i6.' // TRIM( WILD_CARD ) 
+      REMOVE_ALL = TRIM( Input_Opt%REMOVE_CMD     ) // ' '    // 
+     &             TRIM( Input_Opt%TEMP_DIR       ) // 
+     &             TRIM( Input_Opt%WILD_CARD      ) // '.i6.' // 
+     &             TRIM( Input_Opt%WILD_CARD      ) 
 
       !=================================================================
       ! Perform an F90 system call to do the desired operation
@@ -237,7 +245,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE OPEN_I6_FIELDS( NYMD, NHMS )
+      SUBROUTINE OPEN_I6_FIELDS( NYMD, NHMS, Input_Opt )
 !
 !******************************************************************************
 !  Subroutine OPEN_I6_FIELDS opens the I-6 met fields file for date NYMD and 
@@ -265,20 +273,20 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_I6 locally
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass fields via Input_Opt
 !******************************************************************************
 !      
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LUNZIP, LVARTROP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE FILE_MOD,      ONLY : IOERROR, FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: NYMD, NHMS
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN) :: NYMD, NHMS
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -299,20 +307,20 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
          TP_FILE  = 'YYYYMMDD.tropp.' //  GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
 
 #endif
@@ -323,11 +331,13 @@
 
          ! If unzipping, open GEOS-1 file in TEMP dir
          ! If not unzipping, open GEOS-1 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // TRIM( I6_FILE )
+         IF ( Input_Opt%LUNZIP ) THEN
+            PATH = TRIM( Input_Opt%TEMP_DIR ) // 
+     &             TRIM( I6_FILE            )
          ELSE
-            PATH = TRIM( DATA_DIR ) // 
-     &             TRIM( GEOS_DIR ) // TRIM( I6_FILE )
+            PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &             TRIM( GEOS_DIR           ) // 
+     &             TRIM( I6_FILE            )
          ENDIF
 
          ! Close previously opened A-3 file
@@ -373,7 +383,7 @@
 #if   defined( GEOS_4 ) 
 
          ! Test if variable tropopause is turned on
-         IF ( LVARTROP ) THEN
+         IF ( Input_Opt%LVARTROP ) THEN
 
             !===========================================================
             ! ALSO NEED TO OPEN THE TROPOPAUSE PRESSURE FILE
@@ -384,11 +394,13 @@
 
             ! If unzipping, open GEOS-1 file in TEMP dir
             ! If not unzipping, open GEOS-1 file in DATA dir
-            IF ( LUNZIP ) THEN
-               PATH = TRIM( TEMP_DIR ) // TRIM( TP_FILE )
+            IF ( Input_Opt%LUNZIP ) THEN
+               PATH = TRIM( Input_Opt%TEMP_DIR ) // 
+     &                TRIM( TP_FILE            )
             ELSE
-               PATH = TRIM( DATA_DIR ) // 
-     &              TRIM( GEOS_DIR ) // TRIM( TP_FILE )
+               PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &                TRIM( GEOS_DIR           ) // 
+     &                TRIM( TP_FILE            )
             ENDIF
 
             ! Close previously opened A-3 file
@@ -435,7 +447,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS )
+      SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS, State_Met )
 !
 !******************************************************************************
 !  Subroutine GET_I6_FIELDS_1 is a wrapper for routine READ_I6.  This routine
@@ -453,46 +465,61 @@
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Now also read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD1, LWI,  PS1,   SLP,    SPHU1, T
-      USE DAO_MOD, ONLY : TO31,   TTO3, TMPU1, TROPP1, UWND1, VWND1
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
+      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 
 #if   defined( GEOS_4 )
 
       !=================================================================
       ! GEOS-4: read LWI, PS1, SLP      
       !=================================================================
-      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
-     &              LWI=LWI,   PS=PS1,  SLP=SLP, TROPP=TROPP1 )
+      CALL READ_I6( NYMD  = NYMD, 
+     &              NHMS  = NHMS, 
+     &              LWI   = State_Met%LWI,   
+     &              PS    = State_Met%PS1,  
+     &              SLP   = State_Met%SLP, 
+     &              TROPP = State_Met%TROPP1 )
 
 #elif defined( GEOS_5 )
 
       !=================================================================
       ! GEOS-5: read LWI, PS1, SLP, TO3, TTO3
       !=================================================================
-      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
-     &              LWI=LWI,   PS=PS1,  SLP=SLP, TO3=TO31, TTO3=TTO3 )
+      CALL READ_I6( NYMD = NYMD, 
+     &              NHMS = NHMS, 
+     &              LWI  = State_Met%LWI,   
+     &              PS   = State_Met%PS1,  
+     &              SLP  = State_Met%SLP, 
+     &              TO3  = State_Met%TO31, 
+     &              TTO3 = State_Met%TTO3 )
 
 #elif defined( GCAP )
 
       !=================================================================
       ! GCAP: read PS1, SLP
       !=================================================================
-      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS1, SLP=SLP )
+      CALL READ_I6( NYMD = NYMD, 
+     &              NHMS = NHMS, 
+     &              PS   = State_Met%PS1, 
+     &              SLP  = State_Met%SLP )
 
 #endif
-      
+
       ! Return to calling program
       END SUBROUTINE GET_I6_FIELDS_1
 
 !-----------------------------------------------------------------------------
 
-      SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS )
+      SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS, State_Met )
 !
 !******************************************************************************
 !  Subroutine GET_I6_FIELDS_2 is a wrapper for routine READ_I6.  This routine
@@ -510,39 +537,52 @@
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Now read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD2,  LWI,   PS2,   SLP,    SPHU2
-      USE DAO_MOD, ONLY : T,      TO32,   TTO3,  TMPU1,  TMPU2
-      USE DAO_MOD, ONLY : TROPP2, UWND2, VWND2
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
+      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 
 #if   defined( GEOS_4 )
 
       !=================================================================
       ! GEOS-4: read LWI, PS2, SLP
       !=================================================================
-      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
-     &              LWI=LWI,   PS=PS2, SLP=SLP, TROPP=TROPP2 )
+      CALL READ_I6( NYMD  = NYMD, 
+     &              NHMS  = NHMS, 
+     &              LWI   = State_Met%LWI,   
+     &              PS    = State_Met%PS2, 
+     &              SLP   = State_Met%SLP, 
+     &              TROPP = State_Met%TROPP2 )
 
 #elif defined( GEOS_5 )
 
       !=================================================================
       ! GEOS-5: read LWI, PS2, SLP, TO3, TTO3
       !=================================================================
-      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
-     &              LWI=LWI,   PS=PS2,   SLP=SLP, TO3=TO32, TTO3=TTO3 )
-
+      CALL READ_I6( NYMD = NYMD, 
+     &              NHMS = NHMS, 
+     &              LWI  = State_Met%LWI,   
+     &              PS   = State_Met%PS2,   
+     &              SLP  = State_Met%SLP, 
+     &              TO3  = State_Met%TO32, 
+     &              TTO3 = State_Met%TTO3 )
 
 #elif defined( GCAP )
 
       !=================================================================
       ! GCAP: read PS1, SLP
       !=================================================================
-      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS2, SLP=SLP )
+      CALL READ_I6( NYMD = NYMD, 
+     &              NHMS = NHMS, 
+     &              PS   = State_Met%PS2, 
+     &              SLP  = State_Met%SLP )
 
 #endif
 

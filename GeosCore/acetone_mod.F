@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -73,6 +72,7 @@
 !                              Removed obsolete code.
 !  19 Mar 2012 - M. Payer    - Removed obsolete subroutines READ_JO1D and
 !                              READ_RESP (E. Fischer)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -100,28 +100,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEAN_SOURCE_ACET( I, J, ACETONE )
+      SUBROUTINE OCEAN_SOURCE_ACET( I, J, ACETONE, State_Met )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : CHECK_VALUE
-      USE DAO_MOD,   ONLY : ALBD, TS
-      USE DIAG_MOD,  ONLY : AD11
-      USE GRID_MOD,  ONLY : GET_AREA_CM2
-      USE TIME_MOD,  ONLY : GET_TS_EMIS
+      USE ERROR_MOD,          ONLY : CHECK_VALUE
+      USE DIAG_MOD,           ONLY : AD11
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
 
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE CMN_DIAG_MOD                  ! ND11
-      USE CMN_DEP_MOD                   ! FRCLND
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND11
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: I         ! GEOS-Chem longitude index
-      INTEGER, INTENT(IN)    :: J         ! GEOS-Chem latitude index
+      INTEGER,        INTENT(IN)    :: I           ! GEOS-Chem longitude index
+      INTEGER,        INTENT(IN)    :: J           ! GEOS-Chem latitude index
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: ACETONE   ! Acetone emission [atoms C/s]
+      REAL*8,         INTENT(INOUT) :: ACETONE     ! Acetone emiss [atoms C/s]
 !
 ! !REMARKS:
 
@@ -175,6 +175,8 @@
 !                              [2010]. The model now reproduces aircraft
 !                              measurements over the remote oceans well.
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -207,7 +209,7 @@
       DTSRCE   = GET_TS_EMIS() * 60d0 
 
       ! Fraction of (I,J) that is ocean
-      FOCEAN   = 1d0 - FRCLND(I,J)    
+      FOCEAN   = 1d0 - State_Met%FRCLND(I,J)    
 
       ! Area of grid box (I,J) in cm^2
       AREA_CM2 = GET_AREA_CM2( I, J, 1 )    
@@ -221,9 +223,7 @@
 
          ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
          ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
-
-         HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
-
+         HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./State_Met%TS(I,J)))
   
          ! Want Henry constant exressed as
          ! concentration in air/concentration in water.
@@ -237,11 +237,13 @@
          ! Magnitude of resultant wind [m/s]
          ! SFCWINDSQR(I,J) is needed since this will compute the square
          ! of the surface wind correctly for all GEOS models (bmy, 9/5/01)
-         U        = SQRT( SFCWINDSQR( I, J ) )
+         U        = SQRT( SFCWINDSQR( I, J,
+     &                                State_Met%U10M,
+     &                                State_Met%V10M ) )
 
          ! TC is temperature in Celsius
          ! Also make sure -5 <= TC <= 30 (mje, rvm, bmy, 11/26/01)
-         TC       = TS(I,J) - 273.15d0                           
+         TC       = State_Met%TS(I,J) - 273.15d0                           
          TC       = MIN( MAX( TC, -5d0 ), 30d0 )
 
          ! SC is Schmidt # for acetone [unitless]
@@ -271,7 +273,7 @@
          KKL      = KKL / 3600d0
 
          ! Turn off ocean uptake over snow/ice (ALBEDO > 0.4)
-         IF ( ALBD(I,J) > 0.4d0 ) KKL = 0d0
+         IF ( State_Met%ALBD(I,J) > 0.4d0 ) KKL = 0d0
       
          !===============================================================
          !(evf, 5/11/11)
@@ -335,23 +337,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEAN_SINK_ACET( ACETONE )
+      SUBROUTINE OCEAN_SINK_ACET( ACETONE, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,  ONLY : ALBD
-      USE DAO_MOD,  ONLY : TS
-      USE DIAG_MOD, ONLY : AD11
-      USE GRID_MOD, ONLY : GET_AREA_CM2
-      USE TIME_MOD, ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD                              ! Size parameters 
-      USE CMN_DIAG_MOD                              ! ND11
-      USE CMN_DEP_MOD                               ! FRCLND 
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD11
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8, INTENT(INOUT) :: ACETONE(IIPAR,JJPAR)   ! Acetone mass [kg C]
+      REAL*8,         INTENT(INOUT) :: ACETONE(IIPAR,JJPAR) ! Acet mass [kg C]
 ! 
 ! !REVISION HISTORY: 
 !  14 Sep 2001 - B. Field    - Initial version
@@ -382,6 +385,8 @@
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  02 Aug 2012 - R. Yantosca - Add error trap for acetone under DEVEL tag
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -394,8 +399,9 @@
       REAL*8            :: USTAR, CD
       REAL*8            :: AREA_CM2, DTCHEM, FOCEAN, OCEAN_ACET
       REAL*8            :: PRE_ACET
-
-      ! External functions
+!
+! !EXTERNAL FUNCTIONS:
+!
       REAL*8, EXTERNAL  :: BOXVL, SFCWINDSQR
 !
 ! !DEFINED PARAMETERS:
@@ -428,24 +434,25 @@
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Fraction of grid box that is ocean
-            FOCEAN = 1d0 - FRCLND(I,J)
+            FOCEAN = 1d0 - State_Met%FRCLND(I,J)
 
             !===========================================================
             ! Only compute ocean sink if there is more than 50% ocean
             ! in the grid box, and if it is not ice (albedo > 0.4)
             ! (mje, rvm, bmy, 11/26/01)
             !===========================================================
-            IF ( FOCEAN > 0.5d0 .and. ALBD(I,J) <= 0.4d0 ) THEN
+            IF ( FOCEAN > 0.5d0 .and.
+     &           State_Met%ALBD(I,J) <= 0.4d0 ) THEN
 
-               ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
-               ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
-
-                HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
+               ! Updated Henry's Law to 27 M/atm following Benkelberg et al.
+               ! [1995], Johnson [2010], and Zhou and Mopper [1990]
+               ! (evf, 5/11/11)
+               HSTAR = (660d0)*EXP(-5090d0*(1./298d0 -
+     &                 1./State_Met%TS(I,J)))
   
                ! Want Henry constant exressed as
                ! concentration in air/concentration in water.
-               ! Take reciprocal.(evf, 5/11/11) 
- 
+               ! Take reciprocal.(evf, 5/11/11)  
                HSTAR = 1d0/HSTAR
 
                ! Now HENCONST = dimensionless H 
@@ -454,11 +461,14 @@
                ! Magnitude of surface wind [m/s]
                ! SFCWINDSQR(I,J) is needed since this will compute the 
                ! square of the surface wind correctly for all GEOS models 
-               U     = SQRT( SFCWINDSQR( I, J ) )
+               U     = SQRT( SFCWINDSQR( I, J,
+     &                                   State_Met%U10M,
+     &                                   State_Met%V10M ) )
+
             
                ! TC is temperature in Celsius
                ! Bug fix: make sure -5 <= TC <= 30 (mje, rvm, bmy, 11/26/01) 
-               TC    = TS(I,J) - 273.15d0  
+               TC    = State_Met%TS(I,J) - 273.15d0  
                TC    = MIN( MAX( TC, -5d0 ), 30d0 )
 
                ! SC is Schmidt # for acetone [unitless]
@@ -488,7 +498,7 @@
                KKL   = KKL / 3600d0       
 
                ! CG is the gas concentration of acetone [kg C/cm3]
-               CG    = ACETONE(I,J) / BOXVL(I,J,1)
+               CG    = ACETONE(I,J) / BOXVL(I,J,1,State_Met)
 
                ! FLUX is the air-to-sea flux of acetone in [kg C/cm2/s].
                FLUX  = KKL * CG / HSTAR    

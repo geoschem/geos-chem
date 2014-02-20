@@ -17,22 +17,24 @@
       USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR
 
       IMPLICIT NONE
-      PUBLIC
+      PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
 ! 
       ! NOTE: Keep this for backwards compatibility for now (bmy, 10/2/07)
       ! GEMISNOX2 = Soil Nox [molec NOx/cm3/s]
-#if defined( DEVEL )
-      REAL*8, ALLOCATABLE :: GEMISNOX2(:,:)
-#else
-      REAL*8 :: GEMISNOX2(IIPAR,JJPAR)
-#endif
+      REAL*8, PUBLIC, ALLOCATABLE :: GEMISNOX2(:,:)
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: Init_CMN_NOX
+      PUBLIC :: Cleanup_CMN_NOX
 
 ! !REMARKS:
 !  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  !%%%  NOTE: THIS MODULE IS DEPRECATED.  IT CAN BE REMOVED WHEN THE  %%%
-!  !%%%  UPDATED SOIL NOX EMISSIONS ARE FINALLY ADDED TO GEOS-CHEM.    %%%
+!  !%%%  NOTE: THIS MODULE IS DEPRECATED.  WE WILL PROBABLY PLACE THE  %%%
+!  !%%%  MODULE ARRAYS INTO A NEW DERIVED TYPE FOR THE GIGC EMISSIONS  %%%
+!  !%%%  COMPONENT. (bmy, 11/19/12)                                    %%%
 !  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
@@ -47,21 +49,93 @@
 !  23 Aug 2011 - M. Long    - Converted to Module from Header file
 !-----------------------------------------------------------------------------
 !BOC
-#if defined( DEVEL )
       CONTAINS
-
-      SUBROUTINE SET_CMN_NOX_MOD
-
-      IMPLICIT NONE
-
-      INTEGER AS
-      
-      ALLOCATE(
-     &     GEMISNOX2(IIPAR,JJPAR),
-     &     STAT=AS)
-
-      END SUBROUTINE SET_CMN_NOX_MOD
-#endif
-
-      END MODULE CMN_NOX_MOD
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_cmn_nox
+!
+! !DESCRIPTION: Subroutine INIT\_CMN\_NOX allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_CMN_NOX( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+      
+      ! Allocate arrays
+      ALLOCATE( GEMISNOX2(IIPAR,JJPAR), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: GEMISNOX2 (CMN_NOX_mod.F)'
+         RETURN
+      ENDIF
+
+      ! Zero arrays
+      GEMISNOX2 = 0d0
+
+      END SUBROUTINE Init_CMN_NOX
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_cmn_nox
+!
+! !DESCRIPTION: Subroutine CLEANUP\_CMN\_NOX allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Cleanup_CMN_NOX( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Deallocate arrays
+      IF ( ALLOCATED( GEMISNOX2 ) ) DEALLOCATE( GEMISNOX2 )
+
+      END SUBROUTINE Cleanup_CMN_NOX
+!EOC
+      END MODULE CMN_NOX_MOD
+

@@ -11,11 +11,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP
+      SUBROUTINE CLEANUP( am_I_Root, RC )
 !
 ! !USES:
 !
-      !USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE AEIC_MOD,                ONLY : CLEANUP_AEIC
       USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
@@ -25,6 +24,7 @@
       USE C2H6_MOD,                ONLY : CLEANUP_C2H6
       USE CAC_ANTHRO_MOD,          ONLY : CLEANUP_CAC_ANTHRO
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
+      USE CHEMGRID_MOD,            ONLY : CLEANUP_CHEMGRID
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE COMODE_MOD,              ONLY : CLEANUP_COMODE
       USE GCKPP_COMODE_MOD,        ONLY : CLEANUP_GCKPP_COMODE
@@ -57,7 +57,6 @@
       USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
       USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
       USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
-      USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
@@ -80,12 +79,15 @@
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
       USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
+#if   defined( TOMAS )
+      USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
+#endif
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
-      USE TPCORE_GEOS57_WINDOW_MOD,ONLY : EXIT_GEOS57_TPCORE_WINDOW !clb
+      USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : EXIT_GEOSFP_TPCORE_WINDOW !clb
       USE TRACER_MOD,              ONLY : CLEANUP_TRACER
-      USE CHEMGRID_MOD,            ONLY : CLEANUP_CHEMGRID
+      USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
@@ -96,13 +98,29 @@
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
+
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
+      USE CMN_Mod,                 ONLY : Cleanup_CMN
+      USE CMN_FJ_Mod,              ONLY : Cleanup_CMN_FJ
+      USE CMN_NOX_Mod,             ONLY : Cleanup_CMN_NOX
+      USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
+      USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
+      USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
+      USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
+      USE JV_CMN_Mod,              ONLY : Cleanup_JV_CMN
+      USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
 
       IMPLICIT NONE
-#     include "define.h"
-
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC           ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version
@@ -199,8 +217,23 @@
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
 !                              CLEANUP_GRID
-!  24 Mar 2013 - S. D. Eastham - Switched TROPOPAUSE_MOD to CHEMGRID_MOD
-!  04 Apr 2013 - S. D. Eastham - Added call for CLEANUP_UCX
+!  19 Nov 2012 - R. Yantosca - Add cleanup calls for modules in Headers;
+!                              these were omitted during development
+!  28 Nov 2012 - R. Yantosca - Remove reference to CLEANUP_DAO; we have now
+!                              removed all allocatable arrays from dao_mod.F
+!  03 Dec 2012 - R. Yantosca - Now call Cleanup_CMN_SIZE
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  14 Mar 2013 - M. Payer    - Restore reference to CLEANUP_DAO. Some arrays
+!                              have been restored to dao_mod.F for use in
+!                              the vertical regridding of OH for offline
+!                              simulations.
+!  24 Mar 2013 - S.D. Eastham- Switched TROPOPAUSE_MOD to CHEMGRID_MOD
+!  04 Apr 2013 - S.D. Eastham- Added call for CLEANUP_UCX
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  26 Sep 2013 - R. Yantosca - Now reference EXIT_GEOSFP_TPCORE_WINDOW
+!  29 Oct 2013 - R. Yantosca - Now call CLEANUP_DAO for all simulations (if
+!                              arrays are not allocated it'll exit gracefully)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,7 +246,6 @@
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! Call cleanup routines from individual F90 modules
-      !CALL CLEANUP_ACETONE
       CALL CLEANUP_AEROSOL
       CALL CLEANUP_AEIC
       CALL CLEANUP_ARCTAS_SHIP
@@ -224,6 +256,7 @@
       CALL CLEANUP_C2H6
       CALL CLEANUP_CAC_ANTHRO
       CALL CLEANUP_CARBON
+      CALL CLEANUP_CHEMGRID
       CALL CLEANUP_CO2
       CALL CLEANUP_COMODE
       CALL CLEANUP_GCKPP_COMODE
@@ -256,7 +289,6 @@
       CALL CLEANUP_GLOBAL_OC
       CALL CLEANUP_GLOBAL_BC
       CALL CLEANUP_GLOBAL_GRID
-      CALL CLEANUP_UCX
       CALL CLEANUP_GRID
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
@@ -284,7 +316,7 @@
 #endif
       CALL CLEANUP_TOMS
       CALL CLEANUP_TRACER
-      CALL CLEANUP_CHEMGRID
+      CALL CLEANUP_UCX
       CALL CLEANUP_UVALBEDO
       CALL CLEANUP_VISTAS_ANTHRO
       CALL CLEANUP_WETSCAV
@@ -296,14 +328,29 @@
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
 #endif
 
+
+#if   defined( TOMAS )
+      CALL CLEANUP_TOMAS
+#endif
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
-#elif defined( GEOS_57) && defined( GRID025x03125)
+#elif defined( GEOS_FP) && defined( GRID025x03125)
       ! clb
-      CALL EXIT_GEOS57_TPCORE_WINDOW
+      CALL EXIT_GEOSFP_TPCORE_WINDOW
 #else
       CALL EXIT_TPCORE
 #endif
+
+      ! Call extra cleanup routines, mostly from modules in Headers/
+      CALL Cleanup_CMN        ( am_I_Root, RC )
+      CALL Cleanup_CMN_FJ     ( am_I_Root, RC )
+      CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
+      CALL Cleanup_CMN_O3     ( am_I_Root, RC )
+      CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
+      CALL Cleanup_COMMSOIL   ( am_I_Root, RC )
+      CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
+      CALL Cleanup_JV_CMN     ( am_I_Root, RC )
+      CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
 
       END SUBROUTINE CLEANUP
 !EOC

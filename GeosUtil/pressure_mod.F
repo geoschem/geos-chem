@@ -18,21 +18,20 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: CLEANUP_PRESSURE           
-      PUBLIC :: GET_AP
-      PUBLIC :: GET_BP
-      PUBLIC :: GET_PCENTER           
-      PUBLIC :: GET_PEDGE
-      PUBLIC :: GET_PEDGE_FULLGRID             
-      PUBLIC :: INIT_PRESSURE         
-      PUBLIC :: SET_FLOATING_PRESSURE 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      PUBLIC :: EXTERNAL_PEDGE
+      PUBLIC  :: CLEANUP_PRESSURE
+      PUBLIC  :: GET_AP
+      PUBLIC  :: GET_BP
+      PUBLIC  :: GET_PCENTER
+      PUBLIC  :: GET_PEDGE
+      PUBLIC  :: GET_PEDGE_FULLGRID
+      PUBLIC  :: INIT_PRESSURE
+      PUBLIC  :: SET_FLOATING_PRESSURE
+#if defined( ESMF_ )
+      PUBLIC  :: Accept_External_Pedge
 #endif
 !
 ! !REMARKS:
@@ -97,17 +96,26 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !  10 Aug 2012 - R. Yantosca - Remove DEVEL from #ifdef for EXTERNAL_PEDGE
+!  11 Dec 2012 - R. Yantosca - Now make EXTERNAL_PEDGE private
+!  11 Dec 2012 - R. Yantosca - Add new routine ACCEPT_PEDGE_FROM_ESMF to set
+!                              EXTERNAL_PEDGE from the ESMF environment
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
       ! Module variables
-      REAL*8, ALLOCATABLE :: AP(:)      ! "A" term for hybrid ETA coordinate
-      REAL*8, ALLOCATABLE :: BP(:)      ! "B" term for hybrid ETA coordinate
-      REAL*8, ALLOCATABLE :: PFLT(:,:)  ! "Floating" surface pressure field
-      REAL*8, ALLOCATABLE :: AP_FULLGRID(:) ! "A" term for unreduced ETA
-      REAL*8, ALLOCATABLE :: BP_FULLGRID(:) ! "B" term for unreduced ETA
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)
+      REAL*8, ALLOCATABLE :: AP(:)                  ! "A" term for hybrid grid
+      REAL*8, ALLOCATABLE :: BP(:)                  ! "B" term for hybrid grid
+      REAL*8, ALLOCATABLE :: PFLT(:,:)              ! "Floating" sfc pressure
+      REAL*8, ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
+      REAL*8, ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
+#if defined( ESMF_ )
+      REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
+                                                    !  external grid
 #endif
       CONTAINS
 !EOC
@@ -211,8 +219,15 @@
 !
 ! !INPUT PARAMETERS: 
 !
+!------------------------------------------------------------------------------
+! Prior to 11/4/13:
+! Eliminate array temporary by accepting assumed-shape argument into this
+! routine. (mpayer, 11/4/13)
+!      ! Array containing pressure with which to initialize PFLT [hPa]
+!      REAL*8, INTENT(IN) :: PS(IIPAR,JJPAR)  
+!------------------------------------------------------------------------------
       ! Array containing pressure with which to initialize PFLT [hPa]
-      REAL*8, INTENT(IN) :: PS(IIPAR,JJPAR)  
+      REAL*8, INTENT(IN) :: PS(:,:)  
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, B. Field,  R. Yantosca - Initial version  
@@ -220,13 +235,15 @@
 !  (2 ) Added parallel DO-loop (bmy, 4/14/04)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
+!  04 Nov 2013 - M. Sulprizio- Eliminate array temporary by accepting assumed-
+!                              shape dummy argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER :: I, J
+      INTEGER            :: I, J
       INTEGER            :: ERR_LOC(4)
       CHARACTER(LEN=255) :: ERR_VAR
       CHARACTER(LEN=255) :: ERR_MSG
@@ -243,8 +260,7 @@
       DO I = 1, IIPAR
 
          ! Assign into PFLT array
-         PFLT(I,J) = PS(I,J) 
-
+         PFLT(I,J) = PS(I,J)
 
          ! Check for NaN or Infinities
          ERR_LOC = (/ I, J, 0, 0 /)
@@ -301,17 +317,18 @@
 !                              EXTERNAL_FORCING to use the GCM pressures.
 !                              This prevents problems when compiling G-C with
 !                              the DEVEL tag when using traditional main.F.
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
       !-----------------------------
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -327,7 +344,7 @@
       ! GEOS-3 & GCAP met fields
       !-----------------------------
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -374,6 +391,7 @@
 ! !REVISION HISTORY:
 !  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
 !  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -381,7 +399,7 @@
       ! GET_PEDGE_FULLGRID begins here!
       !=================================================================
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -498,6 +516,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,13 +552,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
       EXTERNAL_PEDGE = 0d0
 #endif
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !=================================================================
       ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)
@@ -909,10 +928,64 @@
       IF ( ALLOCATED( AP_FULLGRID ) ) DEALLOCATE( AP_FULLGRID )
       IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
       IF ( ALLOCATED( PFLT        ) ) DEALLOCATE( PFLT        )
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
 #endif
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: accept_external_pedge
+!
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_PEDGE sets the GEOS-Chem
+!  pressure edge variable with the values obtained from an external GCM
+!  (such as the NASA GEOS-5 GCM).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Accept_External_Pedge( am_I_Root, State_Met, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!     
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine is a setter for EXTERNAL_PEDGE.  It allows us to keep the 
+!  EXTERNAL_PEDGE array PRIVATE to this module, which is good programming
+!  practice.
+! 
+! !REVISION HISTORY: 
+!  06 Dec 2012 - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      ! Set EXTERNAL_PEDGE to the pressure edges [hPa] carried in the
+      ! State_Met object, which were obtained from the external GCM
+      EXTERNAL_PEDGE = State_Met%PEDGE
+
+      ! Return successfully
+      RC             = GIGC_SUCCESS
+      
+      END SUBROUTINE Accept_External_Pedge
+!EOC
+#endif
       END MODULE PRESSURE_MOD
+

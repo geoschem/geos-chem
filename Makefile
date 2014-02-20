@@ -13,7 +13,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -21,8 +21,9 @@
 #                                                                             .
 # Variable   Description
 # --------   -----------
+# GEOSAPM    Specifies the directory where GEOS-Chem + APM routines are found
 # GEOSDIR    Specifies the directory where GEOS-Chem "core" routines are found
-# GEOSTOM    Specifies the directory where GEOS-Chem + TOMAS routines are found
+# GTMM       Specifies the directory where the GTMM routines are found
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
@@ -35,18 +36,18 @@
 #  24 Jan 2012 - R. Yantosca - Also add libnc target to build netCDF utils
 #  11 May 2012 - R. Yantosca - Now make sure that all targets of the 
 #                              GeosCore/Makefile are pointed to properly
+#  20 Aug 2013 - R. Yantosca - Make sure Makefile names are consistent
+#  18 Sep 2013 - R. Yantosca - Remove GeosTomas, that is now gone
+#  18 Sep 2013 - M. Long     - Add Makefile target "hpc"
+#  15 Jan 2014 - R. Yantosca - Updated comments
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-# Get the Unix shell definition
-include ./Makefile_header.mk
-
 # Define variables
-GEOSAPM = GeosApm
-GEOSDIR = GeosCore
-GEOSTOM = GeosTomas
-GTMM = GTMM
+GEOSAPM :=GeosApm
+GEOSDIR :=GeosCore
+GTMM    :=GTMM
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete list!
@@ -56,6 +57,9 @@ GTMM = GTMM
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all
+
+hpc:
+	@$(MAKE) -C $(GEOSDIR) hpc
 
 lib:
 	@$(MAKE) -C $(GEOSDIR) lib
@@ -119,24 +123,6 @@ ligbtmm:
 
 exehg:
 	@$(MAKE) -C $(GEOSDIR) exehg
-
-#=============================================================================
-# Targets for TOMAS aerosol microphysics code (win, bmy, 1/25/10)
-#=============================================================================
-
-.PHONY: tomas libtomas exetomas cleantomas
-
-tomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes all
-
-libtomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes lib
-
-exetomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes exe
-
-cleantomas:
-	@$(MAKE) -C $(GEOSTOM) TOMAS=yes clean
 
 #=============================================================================
 # Targets for APM aerosol microphysics code (bmy, 2/16/11)

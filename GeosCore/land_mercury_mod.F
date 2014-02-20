@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -41,6 +40,7 @@
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  11 Apr 2012 - R. Yantosca - Now reference new modis_lai_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -65,27 +65,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LAND_MERCURY_FLUX( LFLUX, LHGSNOW )
+      SUBROUTINE LAND_MERCURY_FLUX( LFLUX, LHGSNOW, State_Met )
 !
 ! !USES:
 !
-      USE TRACERID_MOD,     ONLY : ID_Hg0,          N_Hg_CATS
-      USE LOGICAL_MOD,      ONLY : LSPLIT
-      USE TIME_MOD,         ONLY : GET_TS_EMIS
-      USE DAO_MOD,          ONLY : SNOW, SNOMAS 
-      USE DEPO_MERCURY_MOD, ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
-      USE DAO_MOD,          ONLY : IS_ICE, IS_LAND
-      USE DAO_MOD,          ONLY : FRSNO, FRSEAICE, FRLANDIC, FRLAND 
+      USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
+      USE DEPO_MERCURY_MOD,   ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LSPLIT
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TRACERID_MOD,       ONLY : ID_Hg0,          N_Hg_CATS
 
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)  :: LHGSNOW                      ! Use Hg0 from snow?
+      LOGICAL,        INTENT(IN)  :: LHGSNOW     ! Use Hg0 from snow?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: LFLUX(IIPAR,JJPAR,N_Hg_CATS) ! Hg0 flux [kg/s]
+      REAL*8,         INTENT(OUT) :: LFLUX(IIPAR,JJPAR,N_Hg_CATS) ! Hg0 flux
+                                                                  !  [kg/s]
 !
 ! !REVISION HISTORY:
 !  30 Aug 2010 - N. E. Selin, C. Holmes, B. Corbitt - Initial version
@@ -100,6 +101,9 @@
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,27 +142,35 @@
          FRAC_SNOW_OR_ICE = 0d0
          FRAC_SNOWFREE_LAND  = 1d0
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
          ! Distinguish between ice/snow and snow-free land
-         FRAC_SNOW_OR_ICE    =  MIN(FRSNO(I,J) 
-     &                       + FRSEAICE(I,J) + FRLANDIC(I,J), 1d0)
-         FRAC_SNOWFREE_LAND  = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
+         FRAC_SNOW_OR_ICE    = MIN( State_Met%FRSNO(I,J)     +
+     &                              State_Met%FRSEAICE(I,J)  + 
+     &                              State_Met%FRLANDIC(I,J), 1d0)
+         FRAC_SNOWFREE_LAND  = MAX( State_Met%FRLAND(I,J)    - 
+     &                              State_Met%FRSNO(I,J),    0d0)
 
          ! Set this to FALSE in MERRA to avoid overwriting fractions
          IS_SNOW_OR_ICE      = .FALSE.
-         IS_LAND_OR_ICE      = ( (FRAC_SNOWFREE_LAND > 0d0) .OR.
-     &                           (FRAC_SNOW_OR_ICE > 0d0) )
+         IS_LAND_OR_ICE      = (( FRAC_SNOWFREE_LAND > 0d0 ) .OR.
+     &                          ( FRAC_SNOW_OR_ICE   > 0d0 ))
+
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs incorrectly say m)
-         IS_SNOW_OR_ICE = 
-     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOMAS(I,J)>10d0) )
-         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )
+         IS_SNOW_OR_ICE = (( IS_ICE ( I, J, State_Met     ))  .OR. 
+     &                     ( IS_LAND( I, J, State_Met     )   .AND.
+     &                       State_Met%SNOMAS(I,J) > 10d0 ))
+         IS_LAND_OR_ICE = (( IS_LAND( I, J, State_Met     ))  .OR.
+     &                     ( IS_ICE ( I, J, State_Met     )))
+
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-         IS_SNOW_OR_ICE =
-     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOW(I,J)>10d0) )
-         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )
-#endif 
+         IS_SNOW_OR_ICE = (( IS_ICE ( I, J, State_Met     ))  .OR.
+     &                     ( IS_LAND( I, J, State_Met     )   .AND. 
+     &                       State_Met%SNOW(I,J)   > 10d0 ))
+         IS_LAND_OR_ICE = (( IS_LAND( I, J, State_Met     ))  .OR.
+     &                     ( IS_ICE ( I, J, State_Met     )))
+#endif
 
          ! Reset land fractions if we are in a version prior to MERRA
          ! and also in an ice- or snow-covered box (jaf, 4/26/11)
@@ -269,9 +281,6 @@
       ! Choose 100e-9 (Holmes et al. 2010 )
       REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 1d-7
  
-      ! External functions
-      REAL*8,  EXTERNAL      :: BOXVL
-
       !=================================================================
       ! BIOMASSHG begins here!
       !=================================================================
@@ -326,25 +335,23 @@
 !
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
       ! (jaf, eds, 4/1/11)
-      SUBROUTINE VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
+      SUBROUTINE VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY: RADSWG, IS_LAND
-      USE TIME_MOD,       ONLY: GET_MONTH, ITS_A_NEW_MONTH
-      USE TIME_MOD,       ONLY: GET_TS_EMIS
-      USE GRID_MOD,       ONLY: GET_AREA_M2
+      USE DAO_MOD,            ONLY : IS_LAND
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DEP_MOD      ! FRCLND
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
-      ! (jaf, eds, 4/1/11)
-      !LOGICAL,                INTENT(IN)  :: LGCAPEMIS
       LOGICAL,                INTENT(IN)  :: LVEGEMIS
       REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
+      TYPE(MetState),         INTENT(IN)  :: State_Met   ! Met State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -425,7 +432,7 @@
          DO J=1, JJPAR
          DO I=1, IIPAR
         
-            IF (IS_LAND(I,J)) THEN  
+            IF (IS_LAND( I, J, State_Met )) THEN
 
                ! Dry soil Hg concentration, ng Hg /g soil
                DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)
@@ -469,28 +476,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so )
+      SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so, State_Met )
 !
 ! !USES:
 !
-      USE MODIS_LAI_MOD, ONLY : ISOLAI  => GC_LAI
-      USE DAO_MOD,       ONLY : RADSWG, SUNCOS, TS, IS_LAND
-      USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE DAO_MOD,       ONLY : SNOW, SNOMAS
-      USE DAO_MOD,       ONLY : FRSNO, FRLAND
+      USE DAO_MOD,            ONLY : IS_LAND
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE MODIS_LAI_MOD,      ONLY : ISOLAI  => GC_LAI
+      USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DEP_MOD      ! FRCLND
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, DIMENSION(:,:), INTENT(IN) :: EHg0_dist
+      REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
+      TYPE(MetState),         INTENT(IN)  :: State_Met   ! Met State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8, DIMENSION(:,:), INTENT(OUT):: EHg0_so
+      REAL*8, DIMENSION(:,:), INTENT(OUT) :: EHg0_so
 !
 ! !REMARKS:
 !  Soil emissions are a function of solar radiation at ground level 
@@ -528,6 +534,10 @@
 !                              to get the code to compile w/o error.
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -556,15 +566,15 @@
       ! while also requiring global mean soil Hg concentration of 45 ng/g 
 !      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 3.3D13
 #if defined (GRID4x5)
-      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2*0.71d0 ! for sunlight function
+      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 1.6D-2 ! for sunlight function, yzh
 #elif defined(GRID2x25)
-      REAL*8, PARAMETER :: SOIL_EMIS_FAC=2.4D-2*0.71d0*4d0
+      REAL*8, PARAMETER :: SOIL_EMIS_FAC=1.6D-2
 #elif defined(GRID05x0666)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
       ! This is a non-physical value and would need to be changed for an
       ! actual mercury simulation
-      REAL*8, PARAMETER :: SOIL_EMIS_FAC = -9.0D99
+      REAL*8, PARAMETER :: SOIL_EMIS_FAC = 1.6D-2  ! yzh
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #elif defined(GRID025x03125)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -593,16 +603,22 @@
          ! Except in MERRA, assume whole box is land if conditions met
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1d0
-#if   defined( MERRA ) || defined( GEOS_57 )
-         FRAC_SNOWFREE_LAND = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
-         IS_SNOWFREE_LAND = (FRAC_SNOWFREE_LAND > 0d0)
+
+#if   defined( MERRA ) || defined( GEOS_FP )
+         FRAC_SNOWFREE_LAND = MAX( State_Met%FRLAND(I,J) - 
+     &                             State_Met%FRSNO(I,J), 0d0 )
+         IS_SNOWFREE_LAND   = ( FRAC_SNOWFREE_LAND > 0d0 )
+
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         IS_SNOWFREE_LAND = ( IS_LAND(I,J) .AND. (SNOMAS(I,J) < 10d0) )
+         IS_SNOWFREE_LAND = ( IS_LAND( I, J, State_Met ) .AND.
+     &                      ( State_Met%SNOMAS(I,J) < 10d0 ))
+
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-         IS_SNOWFREE_LAND = ( IS_LAND(I,J) .AND. (SNOW(I,J) < 10d0) )
-#endif          
+         IS_SNOWFREE_LAND = ( IS_LAND( I, J, State_Met ) .AND.
+     &                      ( State_Met%SNOW(I,J)   < 10d0 ))
+#endif
 
          IF ( IS_SNOWFREE_LAND ) THEN
 
@@ -615,7 +631,7 @@
 
             ! For very low and below-horizon solar zenith angles, use
             ! same attenuation as for SZA=85 degrees
-            SUNCOSVALUE = MAX( SUNCOS(JLOOP), 0.09D0 )
+            SUNCOSVALUE = MAX( State_Met%SUNCOS(I,J), 0.09D0 )
 
             ! fraction of light reaching the surface is
             ! attenuated based on LAI
@@ -626,7 +642,7 @@
 
             ! Soil emissions, ng /m2 /h
             SOIL_EMIS = 
-     &           EXP( 0.0011 * RADSWG(I,J) * LIGHTFRAC ) *
+     &           EXP( 0.0011 * State_Met%RADSWG(I,J) * LIGHTFRAC ) *
      &           DRYSOIL_HG * SOIL_EMIS_FAC
      
             ! Grid box surface area [m2]
@@ -745,24 +761,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW )
+      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW, State_Met )
 !
 ! !USES:
 !
-      USE TRACERID_MOD,     ONLY : N_Hg_CATS
-      USE TIME_MOD,         ONLY : GET_TS_EMIS
-      USE DAO_MOD,          ONLY : T, SUNCOS
-      USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TRACERID_MOD,       ONLY : N_Hg_CATS
 
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)   :: LHGSNOW                      ! Use Hg from snow?
+      LOGICAL,        INTENT(IN)  :: LHGSNOW     ! Use Hg from snow?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT)  :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux [kg/s]
+      REAL*8,         INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux
+                                                                  !  [kg/s]
 !
 ! !REMARKS:
 !  Emissions are a linear function of Hg mass stored in the snowpack. The
@@ -777,6 +795,9 @@
 !  15 Sep 2009 - C. Holmes, S. Carouge - Initial version
 !  30 Aug 2010 - R. Yantosca - Added ProTex headers
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -816,14 +837,14 @@
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! If the sun is set, then no emissions, go to next box
-         IF (SUNCOS(JLOOP)<0D0) CYCLE 
+         IF ( State_Met%SUNCOS(I,J) < 0D0 ) CYCLE 
 
             ! Decrease residence time to 1 week when T > -3C
             ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
             ! Emit Hg(0) at a steady rate, based on 180 d residence
             ! time in snowpack, based on cycle observed at Alert 
             ! (e.g. Steffen et al. 2008)
-            IF (T(I,J,1) > 270D0) THEN
+            IF ( State_Met%T(I,J,1) > 270D0) THEN
                ! NOW USE 3 weeks for broader summer peak
                !K_EMIT = 1.6D-6
                K_EMIT = 5D-7
@@ -868,27 +889,33 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE GTMM_DR( Hg0gtm )
+      SUBROUTINE GTMM_DR( Hg0gtm, State_Met )
 ! 
 ! !USES:
 !
       USE BPCH2_MOD
-      USE DAO_MOD,           ONLY : IS_LAND
-      USE FILE_MOD,          ONLY : IOERROR
-      USE inquireMod,        ONLY : findFreeLun
-      USE TIME_MOD,          ONLY : EXPAND_DATE, YMD_EXTRACT
-      USE TIME_MOD,          ONLY : GET_NYMD, GET_NHMS
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR
-      USE DEPO_MERCURY_MOD,  ONLY : CHECK_DIMENSIONS
-      USE DEPO_MERCURY_MOD,  ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
-      USE DEPO_MERCURY_MOD,  ONLY : READ_GTMM_RESTART
+      USE DAO_MOD,            ONLY : IS_LAND
+      USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
+      USE DEPO_MERCURY_MOD,   ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
+      USE DEPO_MERCURY_MOD,   ONLY : READ_GTMM_RESTART
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE inquireMod,         ONLY : findFreeLun
+      USE TIME_MOD,           ONLY : EXPAND_DATE, YMD_EXTRACT
+      USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
     
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
+!
+! !OUTPUT PARAMETERS: 
+!
       ! Emission of Hg0 calculated by GTMM for the month [kg/s]
-      REAL*8, INTENT(OUT)   :: Hg0gtm(IIPAR, JJPAR) 
+      REAL*8,         INTENT(OUT) :: Hg0gtm(IIPAR, JJPAR) 
 ! 
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
@@ -1071,7 +1098,7 @@
       ! Use LAND/OCEAN mask on the land emissions
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         IF ( .NOT.(IS_LAND(I, J)) ) Hg0gtm(I,J) = 0d0
+         IF ( .NOT.(IS_LAND(I, J, State_Met )) ) Hg0gtm(I,J) = 0d0
       ENDDO
       ENDDO
 

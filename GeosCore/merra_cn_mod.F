@@ -21,10 +21,7 @@
       USE inquireMod, ONLY : findFreeLUN   ! Routine to find free LUNs
 
       IMPLICIT NONE
-#     include "define.h"
-
       PRIVATE
-
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
@@ -43,6 +40,8 @@
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  20 Aug 2010 - R. Yantosca - Moved include files to top of module
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
+!  09 Nov 2012 - R. Yantosca - Now get met fields from State_Met object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -67,27 +66,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_CN_FIELDS( NYMD, NHMS )
+      SUBROUTINE OPEN_MERRA_CN_FIELDS( NYMD, NHMS, Input_Opt )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date
-      INTEGER, INTENT(IN) :: NHMS   ! hhmmss time
+      INTEGER,        INTENT(IN) :: NYMD   ! YYYYMMDD date
+      INTEGER,        INTENT(IN) :: NHMS   ! hhmmss time
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_CN locally
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields via Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,7 +114,7 @@
          !---------------------------
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( MERRA_DIR )
+         GEOS_DIR = TRIM( Input_Opt%MERRA_DIR )
          CN_FILE  = 'YYYYMMDD.cn.' // GET_RES_EXT()
 
          ! Replace date tokens
@@ -122,8 +122,9 @@
          CALL EXPAND_DATE( CN_FILE,  NYMD, NHMS )
 
          ! Full file path
-         PATH = TRIM( DATA_DIR ) // 
-     &          TRIM( GEOS_DIR ) // TRIM( CN_FILE )
+         PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &          TRIM( GEOS_DIR           ) // 
+     &          TRIM( CN_FILE            )
 
          ! Close previously opened CN file
        	 INQUIRE(IU_CN, OPENED=IS_OPEN)
@@ -190,23 +191,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : FRLAKE     ! Fraction of grid box that is lake
-      USE DAO_MOD, ONLY : FRLAND     ! Fraction of grid box that is land
-      USE DAO_MOD, ONLY : FRLANDIC   ! Fraction of grid box that is land ice
-      USE DAO_MOD, ONLY : FROCEAN    ! Fraction of grid box that is ocean
-      USE DAO_MOD, ONLY : PHIS       ! Surface geopotential height
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD    ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS    !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD    ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS    ! hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,12 +218,12 @@
       !=================================================================
       CALL READ_CN( NYMD     = NYMD,   
      &              NHMS     = NHMS, 
-     &              FRLAKE   = FRLAKE, 
-     &              FRLAND   = FRLAND, 
-     &              FRLANDIC = FRLANDIC, 
-     &              FROCEAN  = FROCEAN, 
-     &              PHIS     = PHIS      )
-      
+     &              FRLAKE   = State_Met%FRLAKE, 
+     &              FRLAND   = State_Met%FRLAND, 
+     &              FRLANDIC = State_Met%FRLANDIC, 
+     &              FROCEAN  = State_Met%FROCEAN, 
+     &              PHIS     = State_Met%PHIS      )
+
       END SUBROUTINE GET_MERRA_CN_FIELDS
 !EOC
 !------------------------------------------------------------------------------
@@ -325,7 +328,7 @@
                ENDIF
 
             !-----------------------------------------------
-            ! FRLAKE: Fraction of box covered by lakes
+            ! FRLAND: Fraction of box covered by land
             !-----------------------------------------------
             CASE ( 'FRLAND' )
                READ( IU_CN, IOSTAT=IOS ) XYMD, XHMS, Q2

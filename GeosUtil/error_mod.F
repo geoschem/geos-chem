@@ -1,4 +1,3 @@
-! $Id: error_mod.f,v 1.3 2010/02/02 16:57:47 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -16,7 +15,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -62,6 +60,16 @@
       PRIVATE :: NAN_DBLE
       PRIVATE :: NAN_FLOAT
 !
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: "LINUX_IFORT" and "LINUX_PGI" ARE CURRENTLY THE ONLY       %%%
+!  %%%  SUPPORTED COMPILER OPTIONS.  MOST SYSTEMS NOW USE A UNIX VERSION %%%
+!  %%%  BASED ON LINUX, SO OTHER COMPILERS (IBM/AIX, SUN/SPARC, etc.)    %%%
+!  %%%  ARE GENERALLY NOT USED ANYMORE.  LEAVE THE OLDER CODE HERE JUST  %%%
+!  %%%  IN CASE WE NEED TO REVERT TO IT AGAIN IN THE FUTURE.             %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 ! !REVISION HISTORY:
 !  08 Mar 2001 - R. Yantosca - Initial version
 !  (1 ) Added subroutines CHECK_REAL_VALUE and CHECK_DBLE_VALUE, which are
@@ -99,6 +107,7 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  04 Jan 2010 - R. Yantosca - Added SAFE_EXP and IS_SAFE_EXP functions
 !  04 Jan 2010 - R. Yantosca - Added SAVE_LOG and SAFE_LOG10 functions
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,8 +130,6 @@
 !
 ! !USES:
 !
-#     include "define.h" 
-
 #if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
@@ -151,6 +158,7 @@
 !  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,8 +219,6 @@
 !
 ! !USES:
 !
-#     include "define.h" 
-
 #if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
@@ -241,6 +247,7 @@
 !  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,8 +307,6 @@
 !
 ! !USES:
 !
-#     include "define.h" 
-
 #if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
@@ -331,6 +336,7 @@
 !  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -401,8 +407,6 @@
 !
 ! !USES:
 !
-#     include "define.h" 
-
 #if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
@@ -432,6 +436,7 @@
 !  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -503,16 +508,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,           INTENT(IN) :: VALUE        ! Value to be checked
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
-      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
+      REAL*4,             INTENT(IN) :: VALUE        ! Value to be checked
+      CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      INTEGER,            INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:
 !  13 Jun 2001 - R. Yantosca - Initial version
 !  15 Oct 2002 - R. Yantosca - Now call GEOS_CHEM_STOP to shutdown safely
 !  15 Oct 2002 - R. Yantosca - Updated comments, cosmetic changes
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries, use CHAR*255 args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -563,16 +569,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(IN) :: VALUE        ! Value to be checked
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
-      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
+      REAL*8,             INTENT(IN) :: VALUE        ! Value to be checked
+      CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      INTEGER,            INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:
 !  13 Jun 2001 - R. Yantosca - Initial version
 !  15 Oct 2002 - R. Yantosca - Now call GEOS_CHEM_STOP to shutdown safely
 !  15 Oct 2002 - R. Yantosca - Updated comments, cosmetic changes
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries, use CHAR*255 args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -665,17 +672,47 @@
 !
 ! !USES:
 !
-#     include "define.h"
+#if defined( ESMF_ )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Use GEOS-5 style error reporting when connecting to the GEOS-5
+      ! GCM via the ESMF interface (bmy, 3/12/13)
+      !-----------------------------------------------------------------
+      USE MAPL_Mod
+#     include "MAPL_Generic.h"
+#endif
 
 ! !REVISION HISTORY:
 !  15 Oct 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Now EXIT works for LINUX_IFC, LINUX_EFC,
 !                              so remove #if block.
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  12 Mar 2013 - R. Yantosca - Now use GEOS-5 style traceback when using ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
+#if defined( ESMF_ )
+
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Use GEOS-5 style error reporting when connecting to the GEOS-5
+      ! GCM via the ESMF interface (bmy, 3/12/13)
+      !-----------------------------------------------------------------
+      INTEGER :: RC      
+      __Iam__('GEOSCHEMSTOP')
+      STATUS = -1
+      VERIFY_(STATUS)
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to call CLEANUP to 
+      ! deallocate module arrays and then exit (bmy, 3/12/13)
+      !-----------------------------------------------------------------
 !$OMP CRITICAL
 
       ! Deallocate all module arrays
@@ -685,6 +722,8 @@
       CALL EXIT( 99999 )
 
 !$OMP END CRITICAL
+
+#endif
 
       ! End of program
       END SUBROUTINE GEOS_CHEM_STOP
@@ -704,10 +743,6 @@
 !
       SUBROUTINE ALLOC_ERR( ARRAYNAME, AS )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*),  INTENT(IN) :: ARRAYNAME  ! Name of array
@@ -718,6 +753,7 @@
 !  15 Oct 2002 - R. Yantosca - Added to "error_mod.f"
 !  30 Nov 2005 - R. Yantosca - Call IFORT_ERRMSG for Intel Fortran compiler
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -786,10 +822,6 @@
 !
       SUBROUTINE DEBUG_MSG( MESSAGE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN) :: MESSAGE   ! Message to print
@@ -803,6 +835,7 @@
 !  (5 ) Now add a little space for debug output (bmy, 4/10/06)
 !  (6 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

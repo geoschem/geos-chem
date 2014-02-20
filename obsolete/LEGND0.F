@@ -3,7 +3,6 @@
 !---Calculates ORDINARY LEGENDRE fns of X (real) 
 !---   from P[0] = PL(1) = 1,  P[1] = X, .... P[N-1] = PL(N)
       IMPLICIT NONE
-#     include "define.h"
       INTEGER N,I
       REAL*8 X,PL(N),DEN
 !---Always does PL(2) = P[1]
