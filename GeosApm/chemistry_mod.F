@@ -115,8 +115,7 @@
       USE TRACERID_MOD,       ONLY : IDTACET
       USE TRACERID_MOD,       ONLY : IDTISOP
 #if defined (UCX )
-      USE LOGICAL_MOD,     ONLY : LUCX ! (SDE 04/20/13)
-      USE UCX_MOD,         ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
+      USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
 #endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
@@ -164,7 +163,7 @@
 !  (7 ) Now references "logical_mod.f" & "tracer_mod.f".  Now references
 !        AEROSOL_CONC, AEROSOL_RURALBOX, and RDAER from "aerosol_mod.f".  
 !        Now includes "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
-!        and INIT_FJX to initialize the FAST-J arrays so that we can save out !
+!        and INPHOT to initialize the FAST-J arrays so that we can save out !
 !        AOD's to the ND21 diagnostic for offline runs. (bmy, 7/20/04)
 !  (8 ) Now call routine CHEMMERCURY from "mercury_mod.f" for an offline
 !        Hg0/Hg2/HgP simulation. (eck, bmy, 12/7/04)
@@ -250,6 +249,8 @@
       LOGICAL       :: LSULF
       LOGICAL       :: LSOA
       LOGICAL       :: LNLPBL
+      LOGICAL       :: LUCX
+
 #if   defined( APM )
       INTEGER       :: I,J,L
       REAL*8        :: CONCTMPSO4(IIPAR,JJPAR,LLPAR)
@@ -282,6 +283,7 @@
       LSULF                    = Input_Opt%LSULF
       LSOA                     = Input_Opt%LSOA
       LNLPBL                   = Input_Opt%LNLPBL
+      LUCX                     = Input_Opt%LUCX
       IT_IS_A_C2H6_SIM         = Input_Opt%ITS_A_C2H6_SIM
       IT_IS_A_CH3I_SIM         = Input_Opt%ITS_A_CH3I_SIM
       IT_IS_A_CH4_SIM          = Input_Opt%ITS_A_CH4_SIM 
@@ -358,7 +360,7 @@
             ! Recalculate PSC properties
             ! SDE: Handle for future implementation of 
             ! AER-compatible aerosols
-            !IF ( LUCX ) CALL CALC_STRAT_AER
+            !IF ( LUCX ) CALL CALC_STRAT_AER( Input_Opt )
 #endif
 
             ! Also do sulfate chemistry
@@ -432,13 +434,13 @@
             CALL AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
      &                             Input_Opt, State_Met  )
  
-            ! Initialize FAST-J quantities for computing AOD's
+            ! Initialize FAST-JX quantities for computing AOD's
             IF ( FIRST ) THEN
 
                ! Init chem mechanism and photolysis
                CALL READER  ( FIRST,     am_I_Root            )
                CALL READCHEM( am_I_Root, Input_Opt, RC        )
-               CALL INIT_FJX  ( am_I_Root )
+               CALL INIT_FJX( am_I_Root  )
  
                ! Reset NCS with NCSURBAN
                NCS     = NCSURBAN
@@ -1082,7 +1084,7 @@
                !===============================================================
                ! If LDUST is turned on, then we have online dust aerosol in
                ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
-               ! compute aerosol optical depth for FAST-J, etc.
+               ! compute aerosol optical depth for FAST-JX, etc.
                !
                ! If LDUST is turned off, then we don't have online dust aerosol
                ! in GEOS-CHEM...so read monthly-mean dust files from disk.

@@ -843,6 +843,8 @@
 !  (1 ) Now reference LDEAD, LDUST, LPRT from "logical_mod.f".  Now reference!
 !        STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Add if condition for selecting between emitting 4-bin or 30-bin 
+!       dust.  Add emission diagnostic calculation for 30bin dust(win, 7/17/09)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  26 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, State_Met as args
 !  26 Feb 2013 - R. Yantosca - Now pass Input_Opt to SRC_DUST_GINOUX
@@ -2783,6 +2785,8 @@
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version
 !  (1 ) Now references LDEAD from "logical_mod.f" (bmy, 7/20/04)
+!  (2 ) Modify to work with 30bin dust. Reference to IBINS from tomas_mod
+!       for number of total bi}n = 30 bins.  (win, 7/17/09)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  26 Feb 2013 - M. Long     - Now use fields from Input_Opt

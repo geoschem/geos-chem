@@ -52,6 +52,7 @@
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
       USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
+      USE UCX_MOD               ! For unified trop-strat chemistry (SDE)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
 
       !-----------------------------------------------------------------
@@ -130,11 +131,6 @@
       USE TRACER_MOD,        ONLY : N_APMTRA
 #endif
  
-      !-----------------------------------------------------------------
-      ! Modules in the stratospheric chemistry update (SDE)
-      !-----------------------------------------------------------------
-      USE UCX_MOD               ! Unified chemistry extension
-
       !-----------------------------------------------------------------
       ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
       !-----------------------------------------------------------------
@@ -242,11 +238,14 @@
 !  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to routine
 !                              DO_PBL_MIX_2 (for non-local PBL mixing)
 !  15 Mar 2013 - R. Yantosca - Now set Input_Opt%LINOZ_N* fields here
+!  26 Mar 2013 - S.D. Eastham- Added initialization of rare tracers
 !  29 Mar 2013 - R. Yantosca - Bring code out of DEVEL blocks
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object to STDRUN routine
 !  03 Jun 2013 - R. Yantosca - Use routines from updated mercury_mod.F
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Oct 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, RC to INIT_DAO
+!  13 Dec 2013 - M. Sulprizio- Now set USE_O3_FROM_MET logical flag during
+!                              initialization stage
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -335,7 +334,7 @@
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
-#if defined ( TOMAS40 )
+#if defined( TOMAS )
       !(sfarina, 6/19/2013) It may seem strange, but this welcome message
       !                     fixes an issue where geoschem crashes with a
       !                     sigsegv immediately after starting.
@@ -345,8 +344,10 @@
       !                     a debugger, and is probably related to
       !                     some initialization garbage in memory
       !                     when using -O2 optimization
-      print *, 'welcome to geoschem'
-      call flush()
+      !(bmy, 1/27/2014)   - Need to "CALL FLUSH(6).  FLUSH needs
+      !                     an argument.  Unit 6 is Unix stdout.
+      PRINT*, '%%%%% USING TOMAS MICROPHYSICS PACKAGE %%%%%'
+      CALL FLUSH(6)
 #endif
 
       !-----------------------------------------------------------------
@@ -421,6 +422,32 @@
          CALL INIT_DAO( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
       ENDIF
+
+#if   defined( GEOS_5 )
+
+      ! When TOMS data is not available, then we will use
+      ! the O3 columns directly from the met fields.  
+      ! Currently, this is only done for GEOS-5 met.
+      IF ( YEAR > LAST_TOMS_YEAR ) THEN
+         Input_Opt%USE_O3_FROM_MET = .TRUE.
+      ELSE
+         Input_Opt%USE_O3_FROM_MET = .FALSE.
+      ENDIF
+
+#elif defined( GEOS_FP )
+
+      ! For GEOS-FP met, always use the O3 columns
+      ! from the A1 met field files (bmy, 11/14/13)
+      Input_Opt%USE_O3_FROM_MET = .TRUE.
+
+#else
+         
+      ! When TOMS data is not available, then we will use
+      ! the TOMS data from the last valid year.  This is
+      ! done for all met field products other than GEOS-5.
+      Input_Opt%USE_O3_FROM_MET = .FALSE.
+
+#endif
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
@@ -604,14 +631,16 @@
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Initialize stratospheric routines
-      IF (LUCX) THEN
-         CALL INIT_UCX
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
+      IF ( LUCX ) THEN
+         CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
       ENDIF
 
       ! Set simple initial tracer conditions
-      CALL SET_INITIAL_MIXRATIOS( am_I_Root )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
+      CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
+      ENDIF
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       IF ( LSCHEM ) THEN
@@ -753,6 +782,13 @@
      &                                  NHMS,      State_Chm, RC    )
                ENDIF 
 
+#if defined( UCX )
+               ! Write PSC data
+               IF ( LUCX ) THEN
+                  CALL MAKE_PSC_FILE( NYMD, NHMS, Input_Opt )
+               ENDIF
+#endif
+
                !### Debug
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### MAIN: a MAKE_RESTART_FILE' )
@@ -821,7 +857,7 @@
                CALL READ_UVALBEDO( MONTH, State_Met )
 
                ! Read TOMS overhead O3 columns for FAST-J
-               CALL READ_TOMS( MONTH, YEAR )
+               CALL READ_TOMS( MONTH, YEAR, Input_Opt%USE_O3_FROM_MET )
             ENDIF
          ENDIF
 
@@ -960,7 +996,7 @@
      &                N_DYN, Input_Opt,     State_Met )
 
          ! Case of variable tropopause:
-         ! Check LLCHEM and set LMIN, LMAX, and LPAUSE
+         ! Check LLTROP and set LMIN, LMAX, and LPAUSE
          ! since this is not done with READ_TROPOPAUSE anymore.
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
          IF ( LVARTROP ) CALL CHECK_VAR_TROP( State_Met )
@@ -971,6 +1007,14 @@
 
          ! Compute airmass quantities at each grid box 
          CALL AIRQNT( State_Met )
+
+         ! SDE 05/28/13: Set H2O to STT if relevant
+         IF (IDTH2O.ne.0) THEN
+            CALL SET_H2O_TRAC( (( .not. LUCX ) .or. LSETH2O ),
+     &                         Input_Opt)
+            ! Only force strat once if using UCX
+            IF (LSETH2O) LSETH2O = .FALSE.
+         ENDIF
 
          ! Compute the cosine of the solar zenith angle array
          ! State_Met%SUNCOS     = at the current time
@@ -1097,21 +1141,23 @@
                ! Kludge: eventually I want to keep the concentration
                !         entirely fixed! Ask around on how to...
                !========================================================
-               IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
-     &            CALL SET_CH3Br( N_TRACERS, TCVV,
+               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
+                  CALL SET_CH3Br( N_TRACERS, TCVV,
      &                            STT,       ITS_TIME_FOR_UNIT(),
      &                            State_Met  )
+               ENDIF
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
-               IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS,           
+               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
+                  CALL SET_BrO( N_TRACERS,           
      &                          TCVV,
      &                          STT,
      &                          ITS_TIME_FOR_UNIT(), 
      &                          State_Met            )
+               ENDIF
             ENDIF
          ENDIF
 
@@ -1205,22 +1251,41 @@
                ! Kludge: eventually I want to keep the concentration
                !         entirely fixed! Ask around on how to...
                !========================================================
-               IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
-     &            CALL SET_CH3Br( N_TRACERS, TCVV,
-     &                            STT,       ITS_TIME_FOR_UNIT(),
+               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
+                  CALL SET_CH3Br( N_TRACERS, TCVV,
+!-----------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Now pass .FALSE. in place of ITS_TIME_FOR_UNIT() to SET_CH3Br.  At this
+! point in the code, STT is in kg.  But passing a .TRUE. value to SET_CH3Br
+! will cause mixing ratios to be overwritten to STT withn the PBL.  Because
+! full-PBL mixing is not used for most fullchem simulations, we don't
+! anticipate that many fullchem runs have been affected. (bmy, 1/29/14)
+!     &                            STT,       ITS_TIME_FOR_UNIT(),
+!-----------------------------------------------------------------------------
+     &                            STT,       .FALSE.,
      &                            State_Met  )
+               ENDIF
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
-               IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS,           
+               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
+                  CALL SET_BrO( N_TRACERS,
      &                          TCVV,
      &                          STT,
-     &                          ITS_TIME_FOR_UNIT(), 
+!-----------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Now pass .FALSE. in place of ITS_TIME_FOR_UNIT() to SET_BrO.  At this
+! point in the code, STT is in kg.  But passing a .TRUE. value to SET_BrO
+! will cause mixing ratios to be overwritten to STT withn the PBL.  Because
+! full-PBL mixing is not used for most fullchem simulations, we don't
+! anticipate that many fullchem runs have been affected. (bmy, 1/29/14)
+!     &                          ITS_TIME_FOR_UNIT(),
+!-----------------------------------------------------------------------------
+     &                          .FALSE.,
      &                          State_Met            )
-
+               ENDIF
             ENDIF
          ENDIF
 
@@ -1236,6 +1301,11 @@
 
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
+
+            ! SDE 05/28/13: Set H2O to STT if relevant
+            IF (IDTH2O.ne.0) THEN
+               CALL SET_H2O_TRAC(.not.LUCX)
+            ENDIF
 
 #if   defined( APM )
             ! Record aerosol number before aquaous chem which adds mass but 
@@ -2208,14 +2278,14 @@
 ! !REVISION HISTORY: 
 !  07 Mar 2012 - R. Yantosca - Initial version
 !  14 Nov 2013 - R. Yantosca - For GEOS-FP, read O3 from met field files
+!  13 Dec 2013 - M. Sulprizio- Moved USE_O3_FROM_MET to the Input_Opt object and
+!                              set in initialization stage of GEOS_CHEM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: USE_O3_FROM_MET
-
       ! FAST-J is only used for fullchem, offline aerosol
       ! and CH3I simulations, so skip otherwise
       IF ( ITS_A_FULLCHEM_SIM  .or.
@@ -2226,35 +2296,10 @@
          ! and if it we are at a chemistry timestep
          IF ( LCHEM .and. ITS_TIME_FOR_CHEM() ) THEN
              
-#if   defined( GEOS_5 )
-
-            ! When TOMS data is not available, then we will use
-            ! the O3 columns directly from the met fields.  
-            ! Currently, this is only done for GEOS-5 met.
-            IF ( YEAR > LAST_TOMS_YEAR ) THEN
-               USE_O3_FROM_MET = .TRUE.
-            ELSE
-               USE_O3_FROM_MET = .FALSE.
-            ENDIF
-
-#elif defined( GEOS_FP )
-
-            ! For GEOS-FP met, always use the O3 columns
-            ! from the A1 met field files (bmy, 11/14/13)
-            USE_O3_FROM_MET = .TRUE.
-
-#else
-               
-            ! When TOMS data is not available, then we will use
-            ! the TOMS data from the last valid year.  This is
-            ! done for all met field products other than GEOS-5.
-            USE_O3_FROM_MET = .FALSE.
-
-#endif
-
             ! Get the overhead O3 column for FAST-J.  Take either the
             ! TOMS O3 data or the column O3 directly from the met fields
-            CALL COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, 
+            CALL COMPUTE_OVERHEAD_O3( DAY,
+     &                                Input_Opt%USE_O3_FROM_MET, 
      &                                State_Met%TO3 )
          ENDIF
       ENDIF

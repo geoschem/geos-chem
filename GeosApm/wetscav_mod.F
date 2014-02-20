@@ -1223,7 +1223,7 @@
             ! Compute liquid to gas ratio for HCl:
             ! 1. first argument is the adjusted Henry's law coefficient
             ! H0 and heat of solution are estimated by Yang et al. [2005]
-            CALL COMPUTE_L2G( 7.1d15, -1.10d4, State_Met%T(I,J,L), 
+            CALL COMPUTE_L2G( 7.1d15, -1.10d4, State_Met%T(I,J,L),
      &                        CLDLIQ(I,J,L), L2G )
 
             ! Fraction of HCl in liquid phase
@@ -8564,7 +8564,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE LOGICAL_MOD,        ONLY : LUCX
       USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
 #if defined( TOMAS )
       USE TRACERID_MOD,       ONLY : IDTNK1
@@ -8619,6 +8618,7 @@
       ! For fields from Input_Opt
       LOGICAL :: LCARB,  LDUST, LSOA
       LOGICAL :: LSSALT, LSULF, LSPLIT, LCRYST
+      LOGICAL :: LUCX
 
       !=================================================================
       ! GET_WETDEP_NMAX begins here!
@@ -8635,6 +8635,7 @@
       LSULF  = Input_Opt%LSULF
       LSPLIT = Input_Opt%LSPLIT
       LCRYST = Input_Opt%LCRYST
+      LUCX   = Input_Opt%LUCX
 
       !=================================================================
       ! NOTE: If you add tracers to a simulation, update as necessary
