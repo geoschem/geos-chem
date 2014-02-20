@@ -2052,11 +2052,6 @@
                   DIAM = SIZ_DIA( IJLOOP, BIN )     ! Diameter [m]
                   DEN  = SIZ_DEN( IJLOOP, BIN )     ! Density  [kg/m3]
 
-                  !### debug print
-                  IF ( IJLOOP == 2000 ) THEN
-                     PRINT*, '%%%%% ', K, DIAM, DEN
-                  ENDIF
-
                   ! [Zhang et al., 2001]
                   ! Now pass DIAM, DEN as arguments (bmy, 1/31/14)
                   RSURFC(K,LDT) = DUST_SFCRSII( K, II, 
