@@ -5797,6 +5797,7 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
+      USE FINN_BIOMASS_MOD,   ONLY : FINN_IS_NEW
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -6022,12 +6023,14 @@
 #endif
 
             CALL READ_ANTHRO_NH3( Input_Opt, MONTH )
-
+            WRITE(*,*) 'OUT OF READ_ANTHRO_NH3'
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 
          !CALL READ_SHIP_SO2( MONTH )
          CALL READ_SHIP_SO2( Input_Opt, MONTH )
+         WRITE(*,*) 'OUT OF SHIP SO2'
+
 #if defined( TOMAS )
          ! Scale anthro SO2 for TOMAS
          ESO2_sh  = ESO2_sh * scaleanthso2
@@ -6046,7 +6049,7 @@
       ENDIF
 
       IF(  ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or.
-     &       ITS_A_NEW_MONTH() ) .AND. 
+     &       ITS_A_NEW_MONTH() .or. FINN_IS_NEW() ) .AND. 
      &     ( LBIOMASS )  ) THEN 
          CALL GET_BIOMASS_SO2
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_SO2')
@@ -6188,8 +6191,7 @@
         
       ! Get total emiss SULFATE in PBL
       TSULFATE = SUM( EMISS(1:TOPMIX) ) 
-
-      
+            
       ! Partition if local scheme
       IF ( IS_LOCAL ) THEN
 
@@ -6205,7 +6207,7 @@
       ! Do not touch emissions above PBL, regardless of mixing scheme
       IF ( TOPEMISS > TOPMIX )
      $     SULFATE( TOPMIX+1 : TOPEMISS ) = EMISS( TOPMIX+1 : TOPEMISS )
-        
+
       END SUBROUTINE SULFATE_PBL_MIX
 !EOC    
 !------------------------------------------------------------------------------
@@ -11068,7 +11070,7 @@
             ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
-
+         
       !----------------------------------------
       ! Or Corbett et al ship SO2 emissions
       !----------------------------------------
@@ -11175,7 +11177,6 @@
 !$OMP END PARALLEL DO
          
       ENDIF
-
       END SUBROUTINE READ_SHIP_SO2
 !EOC
 !------------------------------------------------------------------------------

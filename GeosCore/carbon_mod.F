@@ -5053,7 +5053,7 @@ c
       IF ( .not. USE_BOND_BIOBURN ) THEN
 
          IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
-     &        ITS_A_NEW_MONTH() ) THEN 
+     &        ITS_A_NEW_MONTH() .or. FINN_IS_NEW() ) THEN 
             CALL BIOMASS_CARB_GEOS( Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF
