@@ -322,7 +322,7 @@
       DO I = 1, IIPAR
 
          ! Only applying ISORROPIA II in troposphere
-         IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) CYCLE
 
          ! Initialize WI, WT
          DO N = 1, NCOMPA

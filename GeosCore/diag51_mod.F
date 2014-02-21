@@ -595,7 +595,7 @@
             I = GET_I( X )
 
             ! Only increment if we are in the trop
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + GOOD(I)
             ENDIF
          ENDDO

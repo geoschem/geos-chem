@@ -122,6 +122,8 @@
       ! SAVEHO2                 = array to save HO2 fields (rvm, bmy, 2/27/02)
       REAL*8, ALLOCATABLE ::   SAVEOH(:,:,:)
       REAL*8, ALLOCATABLE ::   SAVEHO2(:,:,:)
+      REAL*8, ALLOCATABLE ::   SAVEO1D(:,:,:)
+      REAL*8, ALLOCATABLE ::   SAVEO3P(:,:,:)
 !
 ! !REMARKS:
 !  NOTE: Now NEMPARA = max no. of anthropogenic emissions
@@ -140,6 +142,7 @@
 !  13 Aug 2013 - M. Sulprizio- Increase last dimension of EMISS_BVOC to include
 !                              sesquiterpenes and add EMISTNAP for SOA +
 !                              semivolatile POA simulation (H. Pye)
+!  21 Feb 2014 - M. Sulprizio- Added SAVEO1D and SAVEO3P for UCX (S.D. Eastham)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -216,6 +219,8 @@
       ALLOCATE( FLIQCO2   ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( SAVEOH    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
       ALLOCATE( SAVEHO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+      ALLOCATE( SAVEO1D   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+      ALLOCATE( SAVEO3P   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
 
       ! Zero arrays
       EMISR      = 0d0
@@ -244,6 +249,8 @@
       FLIQCO2    = 0d0
       SAVEOH     = 0d0
       SAVEHO2    = 0d0
+      SAVEO1D    = 0d0
+      SAVEO3P    = 0d0
 
       END SUBROUTINE Init_CMN_O3
 !EOC
@@ -312,6 +319,9 @@
       IF ( ALLOCATED( FLIQCO2    ) ) DEALLOCATE( FLIQCO2    )
       IF ( ALLOCATED( SAVEOH     ) ) DEALLOCATE( SAVEOH     )
       IF ( ALLOCATED( SAVEHO2    ) ) DEALLOCATE( SAVEHO2    )
+      IF ( ALLOCATED( SAVEO1D    ) ) DEALLOCATE( SAVEO1D    ) 
+      IF ( ALLOCATED( SAVEO3P    ) ) DEALLOCATE( SAVEO3P    )
+
 
       END SUBROUTINE Cleanup_CMN_O3
 !EOC

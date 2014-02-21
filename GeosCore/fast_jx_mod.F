@@ -77,24 +77,18 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, PEDGE, WLAOD, am_I_Root, 
-     &                    Input_Opt )  
-#else
-      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, WLAOD, am_I_Root, 
-     &                    Input_Opt )  
-#endif
+      SUBROUTINE FAST_JX( WLAOD, am_I_Root, Input_Opt, State_Met, RC )  
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR, LLPAR
       USE CMN_SIZE_MOD,       ONLY : NDUST,   MAXIJ
       USE COMODE_MOD,         ONLY : JLOP, CSPEC, AIRDENS, ABSHUM
       USE COMODE_LOOP_MOD,    ONLY : CONSVAP,AVG,RSTARG
-      USE DAO_MOD,            ONLY : T, CLDF
       USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
@@ -106,28 +100,21 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Is this the root CPU?
-      LOGICAL, INTENT(IN) :: am_I_Root
-
-      ! Cosine of solar zenith angle [unitless]
-      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)   
-
-      ! Cloud optical depth [unitless]
-      REAL*8,  INTENT(IN) :: OD(LLPAR,IIPAR,JJPAR) 
-
-      ! UV albedo [unitless]
-      REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)    
-
       ! How was AOD calculated? (1: 550 nm, 0: 999 nm)
-      INTEGER, INTENT(IN) :: WLAOD
+      INTEGER,        INTENT(IN)  :: WLAOD
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Pressure at gridbox interfaces
-      REAL*8,  INTENT(IN) :: PEDGE(IIPAR, JJPAR, LLPAR+1)
-#endif
+      ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
 
       ! Input options
-      TYPE(OptInput), INTENT(IN) :: Input_Opt
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !
@@ -191,7 +178,9 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
-!  27 Mar 2013 - S. D. Eastham - Rolled in FAST_JX_MOD
+!  27 Mar 2013 - S.D. Eastham- Rolled in FAST_JX_MOD
+!  21 Feb 2014 - M. Sulprizio- Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,12 +198,7 @@
       ! Local variables for cloud overlap (hyl, phs)
       INTEGER            :: NUMB, KK, I
       INTEGER            :: INDIC(LLPAR+1)
-!#if defined( DEVEL )
-!      INTEGER, ALLOCATABLE :: INDGEN(:)
-!      INTEGER              :: AS
-!#else
       INTEGER            :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
-!#endif
       INTEGER            :: KBOT(LLPAR)
       INTEGER            :: KTOP(LLPAR)
       INTEGER            :: INDICATOR(LLPAR+2)
@@ -240,7 +224,6 @@
       INTEGER            :: JLOOP
       REAL*8             :: H2OFACTOR,CONSEXP,TLOCAL,TINV, ADLOCAL
 
-
       ! Local variables for quantities from Input_Opt
       LOGICAL :: LPRT
 
@@ -248,20 +231,19 @@
       ! FAST_JX begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Copy fields from INPUT_OPT
       LPRT = Input_Opt%LPRT
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       IF ( FIRST ) THEN
 
-!         ALLOCATE ( INDGEN(LLPAR+1), STAT=AS)
-!         IF ( AS /=0 ) CALL ALLOC_ERR( 'INDGEN' )
-
          DO i = 1,LLPAR+1
             INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
          ENDDO
-         ! FIRST now reset later
-         !FIRST = .FALSE.
+         FIRST = .FALSE.
 
       ENDIF
 #endif
@@ -301,20 +283,20 @@
          DO NLON = 1, IIPAR
 
             ! Grid box latitude [degrees]
-            YLAT         = GET_YMID( NLON, NLAT, 1 )
+            YLAT            = GET_YMID( NLON, NLAT, 1 )
 
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
-            CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
+            CSZA            = State_Met%SUNCOSmid(NLON,NLAT)
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             ! Define the P array here, using GCM pressures
             DO L = 1, LLPAR+1
-               P_CTM(L)  = PEDGE( NLON, NLAT, L )
+               P_CTM(L)     = State_Met%PEDGE( NLON, NLAT, L )
             ENDDO
 #else
             ! Define the P array here, using Ap and Bp from GEOS-Chem
             DO L = 1, LLPAR+1
-               P_CTM(L)  = GET_PEDGE( NLON, NLAT, L )
+               P_CTM(L)     = GET_PEDGE( NLON, NLAT, L )
             ENDDO
 #endif
 
@@ -322,29 +304,29 @@
             P_CTM(LLPAR+2)  = 0d0
 
             ! Temperature profile [K] at (NLON,NLAT)
-            T_CTM(1:LLPAR) = T(NLON,NLAT,1:LLPAR)
+            T_CTM(1:LLPAR)  = State_Met%T(NLON,NLAT,1:LLPAR)
 
             ! Top of atmosphere
-            T_CTM(LLPAR+1) = T_CTM(LLPAR)
+            T_CTM(LLPAR+1)  = T_CTM(LLPAR)
 
             ! Surface albedo [unitless] at (NLON,NLAT)
-            SFCA         = ALBD(NLON,NLAT)
+            SFCA            = State_Met%UVALBEDO(NLON,NLAT)
 
             ! Overhead ozone column [DU] at (NLON, NLAT)
-            O3_TOMS      = GET_OVERHEAD_O3( NLON, NLAT )
+            O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
             O3_CTM(:) = 0d0
             O3_CTM(1:LLPAR) = O3GRID(NLON,NLAT,:)
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
-            OPTAER(:,:)  = ODAER(NLON,NLAT,:,:)
+            OPTAER(:,:)     = ODAER(NLON,NLAT,:,:)
 
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-            OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,:)
+            OPTDUST(:,:)    = ODMDUST(NLON,NLAT,:,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
-            OPTD         = OD(1:LLPAR,NLON,NLAT)
+            OPTD            = State_Met%OPTD(1:LLPAR,NLON,NLAT)
 
             !-----------------------------------------------------------
             !### If you want to exclude aerosol OD, mineral dust OD,
@@ -365,7 +347,7 @@
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
                ! Column cloud fraction (not less than zero)
-               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+               CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
@@ -391,7 +373,7 @@
             ELSE IF ( OVERLAP == 2 ) THEN
 
                ! Column cloud fraction (not less than zero)
-               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+               CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
@@ -463,7 +445,7 @@
 !               ! Initialize
 !               FMAX(:)   = 0d0  ! max cloud fraction in each cloud block
 !               ODNEW(:)  = 0d0  ! in-cloud optical depth
-!               CLDF1D    = CLDF(1:LLPAR,NLON,NLAT)
+!               CLDF1D    = State_Met%CLDF(1:LLPAR,NLON,NLAT)
 !               INDICATOR = 0
 !
 !               ! set small negative CLDF or OPTD to zero. 

@@ -160,7 +160,8 @@
 
                ! Counter for # of O3 boxes in the chemgrid (phs, 11/17/08)
                DO L = 1, MAX( LD47, LD65 )
-                 IF ( IS_CHEM.and.ITS_IN_THE_CHEMGRID( I, J, L )) THEN
+                 IF ( IS_CHEM .and.
+     &                ITS_IN_THE_CHEMGRID( I, J, L, State_Met )) THEN
                      CTO3_24h(I,J,L) = CTO3_24h(I,J,L) + 1
                   ENDIF
                ENDDO
@@ -201,7 +202,7 @@
 
                ! Counters for # of OH, HO2 boxes in the chemgrid (phs, 1/24/07)
                DO L = 1, LD43 
-                  IF ( ITS_IN_THE_CHEMGRID( I, J, L ) ) THEN
+                  IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                      CTOH(I,J,L)  = CTOH(I,J,L)  + 1
                      CTHO2(I,J,L) = CTHO2(I,J,L) + 1
                      CTO1D(I,J,L) = CTO1D(I,J,L) + 1

@@ -131,7 +131,6 @@
       USE TRACERID_MOD,       ONLY : IDHCl,   IDHBr,   IDHOCl, IDHOBr
       USE TRACERID_MOD,       ONLY : IDBrNO3, IDClNO3, IDN2O5
       ! Online CH4 (SDE 03/25/13, derived from mpayer 01/24/12)
-      USE LOGICAL_MOD,        ONLY : LUCX
       USE TRACERID_MOD,       ONLY : IDTCH4
       USE FAST_JX_MOD,        ONLY : FJXFUNC
       USE UCX_MOD,            ONLY : SO4_PHOTFRAC, CHECK_NAT
@@ -265,6 +264,7 @@
       LOGICAL :: LKPP
       LOGICAL :: LNLPBL
       LOGICAL :: LVISTAS
+      LOGICAL :: LUCX
       LOGICAL :: LWARWICK_VSLS
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -284,6 +284,7 @@
       LKPP          = Input_Opt%LKPP
       LNLPBL        = Input_Opt%LNLPBL
       LVISTAS       = Input_Opt%LVISTAS
+      LUCX          = Input_Opt%LUCX
       LWARWICK_VSLS = Input_Opt%LWARWICK_VSLS
       XNUMOL        = Input_Opt%XNUMOL
 
@@ -574,7 +575,7 @@
 
                ! Get cosine( SZA ) using 1-D array index
                IJWINDOW         = (IY-1)*IIPAR + IX
-               GMU              = SUNCOS(IJWINDOW)
+               GMU              = State_Met%SUNCOSmid(IX,IY)
 
                ! For daylight boxes...
                IF(GMU.GT. 0.D0) THEN
@@ -989,7 +990,7 @@ c new OH+CO rate from JPL2006.
                   
             ! Check surface type of PSCs (SDE 04/17/13)
             CALL CHECK_NAT( IX, IY, IZ, NATSURFACE, PSCBOX, STRATBOX,
-     &                      Input_Opt )
+     &                      Input_Opt,  State_Met,  State_Chm )
 
             DO I       = 1, NNADDK(NCS)
                NK      = NKSPECK(I,NCS)
@@ -1084,9 +1085,9 @@ c new OH+CO rate from JPL2006.
                      IF (N.gt.12) THEN
                         XSTKCF = TINY(1d0)
                      ELSE
-                        XSTKCF = HO2( XRADIUS, T3K(KLOOP), XDENA, XSQM,
-     &                                HO2_MOLEC_CM3, N , CONTINENTAL_PBL,
-     &                                Input_Opt )
+                        XSTKCF = HO2( XRADIUS, T3K(KLOOP),    XDENA,
+     &                                XSQM,    HO2_MOLEC_CM3, N,
+     &                                CONTINENTAL_PBL, Input_Opt )
                      ENDIF
 
                      ! Now call CHECK_VALUE to make sure that XSTKCF is 

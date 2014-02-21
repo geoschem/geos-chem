@@ -339,7 +339,10 @@
 
 #if defined( UCX )
             ! Recalculate PSC properties
-            IF ( LUCX ) CALL CALC_STRAT_AER( Input_Opt )
+            IF ( LUCX ) THEN
+               CALL CALC_STRAT_AER
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ENDIF
 #endif
 
             ! Also do sulfate chemistry

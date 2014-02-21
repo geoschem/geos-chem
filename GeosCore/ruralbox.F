@@ -123,7 +123,8 @@
                !=======================================================
                ! Skip over non-chemgrid boxes
                !=======================================================
-               IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) GOTO 40
+               IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) )
+     &            GOTO 40
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -150,7 +151,7 @@
                JLOOP          = JLOOP + 1
                JLOP(I,J,L)    = JLOOP
 
-               IF ( ITS_IN_THE_CHEMGRID( I, J, L ) ) THEN
+               IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
                   ! Chemgrid boxes go into the SMVGEAR II "URBAN" slot
                   NTLOOPNCS(NCSURBAN) = NTLOOPNCS(NCSURBAN) + 1

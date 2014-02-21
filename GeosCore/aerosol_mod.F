@@ -204,7 +204,7 @@
             !----------------------------------
             ! Boxes w/in chemistry grid
             !----------------------------------
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -1559,7 +1559,7 @@
             ENDIF
 
             ! Moved this from a separate loop for clarity
-            IF (ITS_IN_THE_CHEMGRID(I,J,L)) THEN
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                JLOOP = JLOP(I,J,L)
                ! Add surface area to TAREA array
                TAREA(JLOOP,NDUST+N) = SADSTRAT

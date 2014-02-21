@@ -384,7 +384,8 @@ calcrate.o                  : calcrate.F                                     \
                               comode_mod.o            dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o           planeflight_mod.o      \
-                              tracerid_mod.o          cldice_HBrHOBr_rxn.o
+                              tracerid_mod.o          cldice_HBrHOBr_rxn.o   \
+                              ucx_mod.o
 
 canopy_nox_mod.o            : canopy_nox_mod.F                               \
                               drydep_mod.o            modis_lai_mod.o
@@ -638,8 +639,7 @@ epa_nei_mod.o               : epa_nei_mod.F                                  \
                               tracerid_mod.o          tracer_mod.o
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
-                              chemgrid_mod.o          dao_mod.o              \
-                              toms_mod.o
+                              dao_mod.o               toms_mod.o
 
 future_emissions_mod.o      : future_emissions_mod.F
 

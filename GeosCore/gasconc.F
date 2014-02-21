@@ -328,7 +328,8 @@
       !    (1 ) copy CSPEC_FULL to CSPEC depending on
       !         READ_CSPEC (hotp, 2/25/09)
       !-----------------------------------------------------------------
-      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_CHEMGRID
+      IF ( FIRSTCHEM .or. READ_CSPEC )
+     &     CALL COPY_FULL_CHEMGRID( State_Chm )
 
 #endif
 

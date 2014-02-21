@@ -103,15 +103,13 @@
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
       USE CMN_Mod,                 ONLY : Cleanup_CMN
-      USE CMN_FJ_Mod,              ONLY : Cleanup_CMN_FJ
       USE CMN_NOX_Mod,             ONLY : Cleanup_CMN_NOX
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
       USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
       USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
       USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
-      USE JV_CMN_Mod,              ONLY : Cleanup_JV_CMN
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
-      USE CMN_FKX_Mod,             ONLY : Cleanup_CMN_FJX
+      USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
 
       IMPLICIT NONE
 !
@@ -344,13 +342,11 @@
 
       ! Call extra cleanup routines, mostly from modules in Headers/
       CALL Cleanup_CMN        ( am_I_Root, RC )
-      CALL Cleanup_CMN_FJ     ( am_I_Root, RC )
       CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
       CALL Cleanup_CMN_O3     ( am_I_Root, RC )
       CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
       CALL Cleanup_COMMSOIL   ( am_I_Root, RC )
       CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
-      CALL Cleanup_JV_CMN     ( am_I_Root, RC )
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
 

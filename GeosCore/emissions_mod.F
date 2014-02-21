@@ -453,7 +453,7 @@
 #if defined( UCX ) 
          ! Simplified emissions of N2O, OCS and CFCs (SDE 04/04/13)
          IF ( LBASICEMIS ) THEN
-            CALL EMISS_BASIC( Input_Opt )
+            CALL EMISS_BASIC( Input_Opt, State_Met, State_Chm )
          ENDIF
 
          ! CH4 emissions

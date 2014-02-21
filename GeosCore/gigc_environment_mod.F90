@@ -207,7 +207,7 @@ CONTAINS
     CALL Init_VDIFF_PRE( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    CALL Init_CMN_FJX_MOD( am_I_Root, RC )
+    CALL Init_CMN_FJX( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
           
   END SUBROUTINE GIGC_Allocate_All

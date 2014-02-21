@@ -447,7 +447,7 @@
                   ! Now use ITS_IN_THE_NOCHEMGRID to check whether
                   ! we are in a region where partitioning is valid
                   ! (SDE 03/24/13)
-                  IF ( ITS_IN_THE_NOCHEMGRID(I,J,L) ) EXIT
+                  IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,State_Met) ) EXIT
                   
                   JLOOP   = JLOP(I,J,L)
                   EMIS_BL = 0d0

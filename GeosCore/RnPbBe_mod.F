@@ -553,7 +553,7 @@
             ADD_Be  = Be_TMP * DTSRCE / XNUMOL_Be 
 
             ! Correct the strat-trop exchange of 7Be
-            IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
                CALL CORRECT_STE( ADD_Be )
             ENDIF
 
@@ -752,7 +752,7 @@
             ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
             ! Correct strat-trop exchange of 210Pb in stratosphere
-            IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
                CALL CORRECT_STE( ADD_Pb )
             ENDIF
 

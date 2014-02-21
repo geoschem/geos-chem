@@ -498,7 +498,7 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         MAXLEV = GET_CHEMGRID_LEVEL(I,J)
+         MAXLEV = GET_CHEMGRID_LEVEL( I, J, State_Met)
 
          ! First handle fuelburn-multiplied emissinos
          TMPMULT = (FSC*DTSRCE/32.0d0)

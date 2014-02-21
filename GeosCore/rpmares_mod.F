@@ -226,7 +226,7 @@
       DO I = 1, IIPAR
          
          ! Skip if we are outside the troposphere (bmy, 4/3/08)
-         IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) CYCLE
 
          ! Temperature [K], RH [unitless], and volume [m3]
          ATEMP = State_Met%T(I,J,L)

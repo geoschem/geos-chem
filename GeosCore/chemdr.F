@@ -564,8 +564,10 @@
 
          ! Calculate stratospheric aerosol properties (SDE 04/18/13)
          IF (LUCX) THEN
-            CALL CALC_STRAT_AER( Input_Opt )
-            IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMDR: after CALC_PSC' )
+            CALL CALC_STRAT_AER( am_I_Root, Input_Opt, 
+     &                           State_Met, State_Chm, RC )
+            IF ( prtDebug ) 
+     &         CALL DEBUG_MSG( '### CHEMDR: after CALC_PSC' )
          ENDIF
 
          ! Skip this section if all these are turned off
@@ -730,14 +732,7 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      CALL FAST_JX( SUNCOS_MID,      OPTD,       UVALBEDO, 
-     &              State_Met%PEDGE, WAVELENGTH, am_I_Root,
-     &              Input_Opt )
-#else
-      CALL FAST_JX( SUNCOS_MID, OPTD, UVALBEDO, WAVELENGTH, am_I_Root,
-     &              Input_Opt )
-#endif
+      CALL FAST_JX( WAVELENGTH, am_I_Root, Input_Opt, State_Met, RC )
 
       !### Debug
       IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMDR: after FAST-JX' )
@@ -781,11 +776,11 @@
       ! active nitrogen partitioning and H2SO4 photolysis
       ! approximations  outside the chemgrid
       IF ( LUCX ) THEN
-         CALL UCX_NOX( Input_Opt )
+         CALL UCX_NOX( Input_Opt, State_Met, State_Chm )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
          ENDIF
-         CALL UCX_H2SO4PHOT(SUNCOS_MID)
+         CALL UCX_H2SO4PHOT( Input_Opt, State_Met, State_Chm )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
          ENDIF
@@ -884,7 +879,7 @@
       !        CSPEC_FULL restart file. (ccc, 2/26/09) 
       !-----------------------------------------------------------------
       IF ( LVARTROP .or. LSVCSPEC ) THEN
-         CALL SAVE_FULL_CHEMGRID
+         CALL SAVE_FULL_CHEMGRID( State_Chm )
 
          !### Debug
          IF ( prtDebug ) THEN

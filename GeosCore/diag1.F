@@ -499,12 +499,14 @@
       ! ND71: Tracer (V/V) at level 1, daily maximum hourly avg.
       !================================================================= 
       IF ( ND71 > 0 ) THEN
+
          IF ((GET_DAY().ne.AD71_LDAY).and.(AD71_LDAY.ge.0)) THEN
             ! It's a new day, with no diagnostics written
             AD71(:,:,:) = AD71(:,:,:) + AD71_DAY(:,:,:)
             AD71_DAY(:,:,:) = 0e0
             AD71_COUNT = AD71_COUNT + 1
          ENDIF
+
          IF ((GET_HOUR().ne.AD71_LHR).and.(AD71_LHR.ge.0)) THEN
             ! New hour - get average of last data
 !            AD71_HR = AD71_HR / AD71_HRCT
@@ -519,22 +521,12 @@
      &                     (AD71_HR(I,J,N)/(AD71_HRCT)))
                ENDDO   
                ENDDO
-               
-               IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
-                  DO J = 1, JJPAR
-                  DO I = 1, IIPAR
-                     AD71_DAY(I,J,N_TRACERS+1) = 
-     &                  MAX(AD71_DAY(I,J,N_TRACERS+1),
-     &                  (AD71_HR(I,J,N_TRACERS+1)/
-     &                  (AD71_HRCT)))
-                  ENDDO
-                  ENDDO
-               ENDIF
             ENDDO 
 !$OMP END PARALLEL DO
             AD71_HR = 0e0
             AD71_HRCT = 0
          ENDIF
+
          ! Set the tracking variables
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -545,17 +537,9 @@
                AD71_HR(I,J,N) = AD71_HR(I,J,N) + STT_VV(I,J,1,N)
             ENDDO   
             ENDDO
-            
-            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-                  AD71_HR(I,J,N_TRACERS+1) = AD71_HR(I,J,N_TRACERS+1)
-     &               + ( STT_VV(I,J,1,N) * FRACO3(I,J,1) )
-               ENDDO
-               ENDDO
-            ENDIF
          ENDDO
 !$OMP END PARALLEL DO   
+
          AD71_LDAY = GET_DAY()
          AD71_LHR = GET_HOUR()
          AD71_HRCT = AD71_HRCT + 1

@@ -931,7 +931,7 @@
          H2_CH4 = 0d0
 
          ! Test level for stratosphere or troposphere
-         IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) THEN
+         IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
 
             !===========================================================
             ! (1a-1) Production of H2 from CH4 in the stratosphere
@@ -1212,7 +1212,7 @@
          HD_O1D = 0.d0
 
          ! Select out tropospheric or stratospheric boxes
-         IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) THEN
+         IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
 
             !===========================================================
             ! (2a-1) Stratospheric loss H2 HD due to chem rxn w/OH & O1D

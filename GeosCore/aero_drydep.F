@@ -365,7 +365,7 @@ cdbg      print *, dryd(:)
          flux   = 0d0
 
          ! Skip non-chemsitry boxes
-         IF (ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
+         IF (ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! Save the initial 30-bin number and icomp-1 mass component
          DO JC = 1, ICOMP-IDIAG+1

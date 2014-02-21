@@ -349,7 +349,6 @@
       USE DIAG_MOD,           ONLY : AD58
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IT_IS_NAN
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (ccc, 08/31/09)
-      USE TRACER_MOD,         ONLY : ITS_A_CH4_SIM, ITS_A_FULLCHEM_SIM
 !
 ! !INPUT PARAMETERS:
 !
@@ -411,40 +410,44 @@
       LOGICAL, SAVE       :: FIRST = .TRUE.
 
       ! For fields from Input_Opt
-      LOGICAL          :: LBFCH4
-      LOGICAL          :: LBMCH4
-      LOGICAL          :: LNLPBL
-      LOGICAL          :: LRICE
-      LOGICAL          :: LSPLIT
-      LOGICAL          :: LWETL
-      INTEGER          :: N_TRACERS
-      INTEGER          :: ID_TRACER(Input_Opt%N_TRACERS)
+      LOGICAL             :: LBFCH4
+      LOGICAL             :: LBMCH4
+      LOGICAL             :: LNLPBL
+      LOGICAL             :: LRICE
+      LOGICAL             :: LSPLIT
+      LOGICAL             :: LWETL
+      LOGICAL             :: ITS_A_CH4_SIM
+      LOGICAL             :: ITS_A_FULLCHEM_SIM
+      INTEGER             :: N_TRACERS
+      INTEGER             :: ID_TRACER(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER     :: STT(:,:,:,:)
 
       !=================================================================
       ! EMISSCH4 begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC                  = GIGC_SUCCESS
 
       ! Get nested-grid offsets
-      I0        = GET_XOFFSET()
-      J0        = GET_YOFFSET()
+      I0                  = GET_XOFFSET()
+      J0                  = GET_YOFFSET()
 
       ! Copy values from Input_Opt
-      LBFCH4    = Input_Opt%LBFCH4
-      LBMCH4    = Input_Opt%LBMCH4
-      LNLPBL    = Input_Opt%LNLPBL
-      LRICE     = Input_Opt%LRICE
-      LSPLIT    = Input_Opt%LSPLIT
-      LWETL     = Input_Opt%LWETL
-      N_TRACERS = Input_Opt%N_TRACERS
-      ID_TRACER = Input_Opt%ID_TRACER(1:N_TRACERS)
+      LBFCH4              = Input_Opt%LBFCH4
+      LBMCH4              = Input_Opt%LBMCH4
+      LNLPBL              = Input_Opt%LNLPBL
+      LRICE               = Input_Opt%LRICE
+      LSPLIT              = Input_Opt%LSPLIT
+      LWETL               = Input_Opt%LWETL
+      N_TRACERS           = Input_Opt%N_TRACERS
+      ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
+      ITS_A_CH4_SIM       = Input_Opt%ITS_A_CH4_SIM
+      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
 
       !===================================================================
       ! Emissions are read or calculated at the first of every:
@@ -473,12 +476,12 @@
       !                                                      (kjw, 6/4/09)
       !===================================================================
 
-      IF ( ITS_A_CH4_SIM() ) THEN
+      IF ( ITS_A_CH4_SIM ) THEN
          print*,'BEGIN SUBROUTINE: EMISSCH4' 
       ENDIF
 
       ! Initialization - only necessary for online simulations
-      IF ( ITS_A_FULLCHEM_SIM() .and. FIRST ) THEN
+      IF ( ITS_A_FULLCHEM_SIM .and. FIRST ) THEN
 
          ! Allocate arrays
          CALL INIT_GLOBAL_CH4
@@ -497,7 +500,7 @@
       !        See subroutine WETLAND_EMIS for more information
       ! ==================================================================
 
-      IF (ITS_A_CH4_SIM() ) THEN
+      IF ( ITS_A_CH4_SIM ) THEN
          print*, '% EMISSCH4 --- Calculating wetland emissions'
          CALL FLUSH(6)
       ENDIF
@@ -583,7 +586,7 @@
       ! =================================================================
  
       ! Only added to SST for offline CH4 simulations
-      IF ( ITS_A_CH4_SIM() ) THEN
+      IF ( ITS_A_CH4_SIM ) THEN
        WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to STT array.'
       ENDIF
 
@@ -605,7 +608,7 @@
          AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
          ! Offline CH4 only
-         IF ( ITS_A_CH4_SIM() ) THEN
+         IF ( ITS_A_CH4_SIM ) THEN
             IF ( .NOT. LNLPBL ) THEN
                DO N = 1, N_TRACERS
                   STT(IREF,JREF,1,N) = STT(IREF,JREF,1,N) + 
@@ -644,7 +647,7 @@
       ! Free pointer
       NULLIFY( STT )
 
-      IF ( ITS_A_CH4_SIM() ) THEN
+      IF ( ITS_A_CH4_SIM ) THEN
 
 #if defined( USE_CH4_BUDGET_DIAG )
          !===============================================================
@@ -698,7 +701,7 @@
          ENDDO
 #endif
 
-      ELSEIF ( ITS_A_FULLCHEM_SIM() ) THEN
+      ELSEIF ( ITS_A_FULLCHEM_SIM ) THEN
 
          !===============================================================
          ! Sum up CH4 emissions
@@ -794,7 +797,7 @@
          
       ENDIF
 
-      IF ( ITS_A_CH4_SIM() ) THEN
+      IF ( ITS_A_CH4_SIM ) THEN
          print*,'END SUBROUTINE: EMISSCH4'
       ENDIF
 
@@ -2301,7 +2304,7 @@
       !=================================================================
       ! (7) calculate CH4 chemistry in layers above tropopause.
       !=================================================================
-      CALL CH4_STRAT( State_Met, State_Chm )
+      CALL CH4_STRAT( Input_Opt, State_Met, State_Chm )
 
       !=================================================================
       ! (8) distribute the chemistry sink from total CH4 to other CH4 
@@ -2661,7 +2664,7 @@ d      !M = GET_MONTH()
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER     :: STT(:,:,:,:)
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -2935,7 +2938,6 @@ d      !M = GET_MONTH()
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD,         ONLY : CHECK_STT
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,       ONLY : IDTCH4
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -2990,23 +2992,25 @@ d      !M = GET_MONTH()
       LOGICAL,SAVE        :: FIRSTCHEM=.TRUE.
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL :: LUCX
+      LOGICAL             :: LUCX
+      LOGICAL             :: ITS_A_FULLCHEM_SIM
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER     :: STT(:,:,:,:)
 !
 ! !EXTERNAL FUNCTIONS:   
 !
-!      REAL*8, EXTERNAL    :: BOXVL
+      REAL*8, EXTERNAL    :: BOXVL
 
       !=================================================================
       ! CH4_STRAT begins here!
       !=================================================================
 
       ! Copy fields from INPUT_OPT
-      LUCX = Input_Opt%LUCX
+      LUCX                = Input_Opt%LUCX
+      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! If unified chemistry is active, ignore all of this
       IF ( .not. LUCX ) THEN
@@ -3017,7 +3021,7 @@ d      !M = GET_MONTH()
          ! Current month
          LMN = GET_MONTH()
 
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( ITS_A_FULLCHEM_SIM ) THEN
             
             !=============================================================
             ! (0) Calculate each box's air density [molec/cm3]
@@ -3026,8 +3030,9 @@ d      !M = GET_MONTH()
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1d3 / 
-     &                           BOXVL(I,J,L) * 6.023d23 / WTAIR
+               BAIRDENS(I,J,L) = State_Met%AD(I,J,L)    * 1d3      / 
+     &                           BOXVL(I,J,L,State_Met) * 6.023d23 /
+     &                           WTAIR
             ENDDO
             ENDDO
             ENDDO
@@ -3056,7 +3061,7 @@ d      !M = GET_MONTH()
          DO L = BASELEV, LLPAR 
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( ITS_IN_THE_NOCHEMGRID(I,J,L) ) THEN
+            IF ( ITS_IN_THE_NOCHEMGRID( I, J,  L, State_Met) ) THEN
 
                ! Conversion factor [kg/box] --> [molec/cm3]
                ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]

@@ -597,7 +597,8 @@
       ENDIF
 
       ! Set simple initial tracer conditions
-      CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt )
+      CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
       ENDIF
@@ -971,7 +972,7 @@
          ! SDE 05/28/13: Set H2O to STT if relevant
          IF (IDTH2O.ne.0) THEN
             CALL SET_H2O_TRAC( (( .not. LUCX ) .or. LSETH2O ),
-     &                         Input_Opt)
+     &                         Input_Opt, State_Met, State_Chm )
             ! Only force strat once if using UCX
             IF (LSETH2O) LSETH2O = .FALSE.
          ENDIF
@@ -1056,8 +1057,8 @@
          ENDIF
 
          ! SDE 10/16/13: Set clock tracer if relevant
-         IF (IDTCLOCK.ne.0) THEN
-            CALL SET_CLOCK_TRAC(GET_TS_DYN())
+         IF ( IDTCLOCK .ne. 0 ) THEN
+            CALL SET_CLOCK_TRAC( GET_TS_DYN(), State_Chm )
          ENDIF
 
          !-------------------------------
@@ -1263,7 +1264,8 @@
 
             ! SDE 05/28/13: Set H2O to STT if relevant
             IF (IDTH2O.ne.0) THEN
-               CALL SET_H2O_TRAC(.not.LUCX)
+               CALL SET_H2O_TRAC( (.not. LUCX), Input_Opt ,
+     &                            State_Met,    State_Chm )
             ENDIF
 
             ! Do GEOS-Chem chemistry

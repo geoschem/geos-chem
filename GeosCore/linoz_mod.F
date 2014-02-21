@@ -374,7 +374,7 @@
 !$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
          DO J = 1, JM
          DO I = 1, IM
-            LBOT = GET_CHEMGRID_LEVEL(I,J)+1
+            LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
             LPOS = 1
             DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3D0)
                LPOS = LPOS +1

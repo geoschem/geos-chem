@@ -4430,20 +4430,6 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-            ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
-            IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
-
-               ARRAY(:,:,1) = AD71(:,:,N_TRACERS+1)/AD71_COUNT
-               
-               NN = N_TRACERS + 1
-
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     1,        IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
-            ENDIF
          ENDDO
       ENDIF
 

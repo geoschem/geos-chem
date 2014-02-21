@@ -466,7 +466,7 @@
          AD61_INST(I,J,L,:) = 0e0
 
          ! Skip non-chemgrid boxes
-         IF ( ITS_N_THE_NOCHEMGRID( I, J, L ) ) CYCLE
+         IF ( ITS_N_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
 cvbn         write(890,89)I,J,L,STT(i,j,l,IDTH2SO4)
 
@@ -3468,7 +3468,7 @@ Cjrp      endif
 !     &              MK(K,SRTSO4),MK(K,SRTH2O)
 !            ENDDO
             IF ( MOXID > 5D0 .and.
-     &           ITS_IN_THE_NOCHEMGRID( I, J, L ) ) THEN
+     &           ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
                CALL ERROR_STOP( 'Too few number for condensing mass',
      &                          'AQOXID:1'                           )
             ELSE

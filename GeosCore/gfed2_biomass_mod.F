@@ -869,6 +869,7 @@
       USE TRACERID_MOD,  ONLY : IDBTOLU, IDBXYLE, IDBC2H4
       USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
       USE TRACERID_MOD,  ONLY : IDBCH4   !kjw
+      USE TRACER_MOD,    ONLY : ITS_A_CH4_SIM
       USE CMN_SIZE_MOD        ! Size parameters
 
       ! Local variables
@@ -1088,7 +1089,7 @@
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'CH4' )
                ! Only emit if we have LCH4EMIS
-               IF (LCH4EMIS) THEN
+               IF ( LCH4EMIS  .or. ITS_A_CH4_SIM() ) THEN
                   BIO_SAVE(N)         = IDBCH4
                   GFED2_SPEC_MOLWT(N) = 16d-3
                   GFED2_SPEC_UNIT(N)  = '[Tg  ]'

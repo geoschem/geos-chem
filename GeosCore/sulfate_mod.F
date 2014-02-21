@@ -665,7 +665,7 @@
 
       ! Stratospheric aerosol graviational settling
       IF ( LGRAVSTRAT ) THEN
-         CALL SETTLE_STRAT_AER( Input_Opt )
+         CALL SETTLE_STRAT_AER( Input_Opt, State_Met, State_Chm )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
          ENDIF
@@ -1245,7 +1245,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! Temperature [K]
          TK     = State_Met%T(I,J,L)
@@ -1603,7 +1603,7 @@
          FREQ = 0d0
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! Density of air [molec/cm3]
          M     = State_Met%AIRDEN(L,I,J) * f  
@@ -1929,7 +1929,7 @@
          Ld       = 0d0
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! Initial SO2, H2O2 and O3 [v/v]
          SO20   = STT(I,J,L,IDTSO2)         
@@ -4332,7 +4332,7 @@
 !------------------------------------------------------------------------------
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          !==============================================================
          ! Initial concentrations before chemistry
@@ -4710,7 +4710,7 @@
       DO I = 1, IIPAR
                   
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)/ TCVV(IDTSO4)
 
@@ -4892,7 +4892,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE      
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE      
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )

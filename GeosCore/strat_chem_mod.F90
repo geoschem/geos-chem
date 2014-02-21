@@ -392,7 +392,7 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_CHEMGRID( I, J, L ) ) CYCLE
+                IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
 
                 DO N=1,NSCHEM ! Tracer index of active strat chem species
                    NN = Strat_TrID_GC(N) ! Tracer index in STT
@@ -472,7 +472,7 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_CHEMGRID(I,J,L) ) CYCLE
+                IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
 
                 ! Density of air at grid box (I,J,L) in [molec cm-3]
                 M = State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met) * XNUMOLAIR
@@ -531,7 +531,7 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight )
+       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight ) &
        !$OMP PRIVATE( LCYCLE )
        DO NN=1,6
 
@@ -550,10 +550,10 @@ CONTAINS
              DO J = 1, JJPAR
              DO I = 1, IIPAR  
                  
-                IF (LRESET) THEN
-                   LCYCLE = ITS_IN_THE_TROP(I,J,L)
+                IF ( LRESET ) THEN
+                   LCYCLE = ITS_IN_THE_TROP( I, J, L, State_Met )
                 ELSE 
-                   LCYCLE = ITS_IN_THE_CHEMGRID(I,J,L)
+                   LCYCLE = ITS_IN_THE_CHEMGRID( I, J, L, State_Met )
                 ENDIF
                 IF ( LCYCLE ) CYCLE
                    

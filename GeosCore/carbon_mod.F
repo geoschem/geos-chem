@@ -2457,7 +2457,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! Volume of grid box [m3]
          VOL    = State_Met%AIRVOL(I,J,L)
@@ -9487,7 +9487,7 @@ ccc
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! initialize for safety
          XUPTKMAX = 0d0
@@ -9723,7 +9723,7 @@ ccc
       DO I = 1, IIPAR
 
          ! Skip non-chemgrid boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! initialize for safety
          XUPTKMAX = 0d0
