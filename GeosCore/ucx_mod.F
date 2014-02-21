@@ -823,6 +823,8 @@
 !
 ! !REVISION HISTORY: 
 !  16 Jul 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca   - Now pull computation of ZMID out of main
+!                                parallel DO loop.  Switch loop order to L-J-I.
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
 !EOP
@@ -876,8 +878,15 @@
 
       ! Grid indexing
       INTEGER :: I,J,L
-      REAL*8  :: MIDLAT, ZMID, ZDEL, ZBASE
- 
+!------------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Now make ZMID a 3-D array so that we can now compute it outside the 
+! main parallel DO loop.  (bmy, 2/14/14)
+!      REAL*8  :: MIDLAT, ZMID, ZDEL, ZBASE
+!------------------------------------------------------------------------------
+      REAL*8  :: MIDLAT, ZDEL, ZBASE
+      REAL*8  :: ZMID(IIPAR,JJPAR,LLPAR)
+
       ! Local daylight fraction
       REAL*8             :: DAYFRAC
       REAL*8             :: SOL_ME, SOL_FE, SOL_LS, SOL_DEC
@@ -944,35 +953,61 @@
       MESONOX_DELTA = 0d0
       MESON2O_DELTA = 0d0
 
-      ! Loop over lat & lon
+      ! First compute ZMID outside of main parallel loop
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, ZBASE, ZDEL )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Zero base height
+         ZBASE = 0d0
+
+         ! Compute the array of midpoint heights [m]
+         DO L = 1, LLPAR
+            ZDEL        = State_Met%BXHEIGHT(I,J,L)
+            ZMID(I,J,L) = ZBASE + (ZDEL/2.d0)
+            ZBASE       = ZBASE + ZDEL
+         ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Main parallel DO loop over lon, lat, alt
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,        J,        MIDLAT,   SOL_B         ) 
 !$OMP+PRIVATE( SOL_C,    TSTART,   TEND,     MESON2O_DELTA )
-!$OMP+PRIVATE( DAYFRAC,  L,        ZDEL,     ZMID          )
-!$OMP+PRIVATE( ZBASE,    CYCLEBOX, SOL_TEST, TMIN          )
+!$OMP+PRIVATE( DAYFRAC,  L,        DN2O,     CYCLEBOX      )
 !$OMP+PRIVATE( TMAX,     RRATE,    T3K,      TINV          )
 !$OMP+PRIVATE( NDAIR,    XAIR,     KGNOX,    KGN2O         )
 !$OMP+PRIVATE( LOCALNOX, LOCALN2O, LOCALO3,  LOCALO3P      )
 !$OMP+PRIVATE( LOCALO1D, NO_ALPHA, NO_BETA,  NO_GAMMA      )
 !$OMP+PRIVATE( FRACNO2,  FRACNO3,  FRACNO,   FRACN         )
 !$OMP+PRIVATE( NOXRATE,  N2ORATE,  DNOX,     MESONOX_DELTA )
-!$OMP+PRIVATE( DN2O                                        )
-      DO J=1,JJPAR
-      DO I=1,IIPAR
-      ! Grid box longitude/latitude [degrees]
-      MIDLAT = PI*GET_YMID( I, J, 1 )/180.d0
-      SOL_B = TAN(SOL_DEC)*TAN(MIDLAT)
-      SOL_C = COS(SOL_DEC)*COS(MIDLAT)
-      !SOLFUNC  = 1.d0-(0.034d0*cos(dble(NDAY-172)*2.d0*PI/365.d0))
-      TSTART = GET_LOCALTIME(I,J,1,GMTSTART)
-      TEND = TSTART + DTCHEM_HR
-      !DAYFRAC = SOLFUNC
-      ZBASE = 0d0
-      DO L=1,LLPAR
-         ZDEL  = State_Met%BXHEIGHT(I,J,L)
-         ZMID  = ZBASE + (ZDEL/2.d0)
-         ZBASE = ZBASE + ZDEL
+!$OMP+PRIVATE( SOL_TEST, TMIN                              )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Grid box longitude/latitude [degrees]
+         MIDLAT = PI*GET_YMID( I, J, 1 )/180.d0
+         SOL_B = TAN(SOL_DEC)*TAN(MIDLAT)
+         SOL_C = COS(SOL_DEC)*COS(MIDLAT)
+         !SOLFUNC  = 1.d0-(0.034d0*cos(dble(NDAY-172)*2.d0*PI/365.d0))
+         TSTART = GET_LOCALTIME(I,J,1,GMTSTART)
+         TEND = TSTART + DTCHEM_HR
+         !DAYFRAC = SOLFUNC
+!------------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Now move computation of ZMID out of this loop, so that we can change
+! the loop order to a more optimal L-J-L (bmy, 2/14/14)
+!      ZBASE = 0d0
+!      DO L=1,LLPAR
+!         ZDEL = State_Met%BXHEIGHT(I,J,L)
+!         ZMID = ZBASE + (ZDEL/2.d0)
+!         ZBASE = ZBASE + ZDEL
+!------------------------------------------------------------------------------
          CYCLEBOX = .FALSE.
          ! Are the pre-calculated J-rates zero (ie in darkness)?
          CYCLEBOX = (ANY(NOX_J(I,J,L,:).lt.TINY(1d0)))
@@ -980,8 +1015,16 @@
             CYCLE
          ENDIF
          ! Calculate daylight fraction
-         SOL_TEST = (-SOL_B) - SQRT(ZMID*(ZMID+2.d0*RE)/
-     &     ((ZMID+RE)*(ZMID+RE)))/SOL_C
+!------------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Now use ZMID(I,J,L) instead of ZMID (bmy, 2/14/14)
+!         SOL_TEST = (-SOL_B) - SQRT(ZMID*(ZMID+2.d0*RE)/
+!    &     ((ZMID+RE)*(ZMID+RE)))/SOL_C
+!------------------------------------------------------------------------------
+         SOL_TEST = (-SOL_B) 
+     &            - SQRT( ZMID(I,J,L) * ( ZMID(I,J,L) + 2.d0*RE )
+     &            / ( ( ZMID(I,J,L) +RE ) * ( ZMID(I,J,L) +RE ) ) )
+     &            / SOL_C
          IF (SOL_TEST.ge.0.9998d0) THEN
             DAYFRAC = 0.d0
             CYCLEBOX=.TRUE.
@@ -1167,8 +1210,13 @@
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
+! !REMARKS:
+!  At some later point we should attempt to rewrite the parallel DO loop so
+!  that the loop order is L-J-I.  Not sure how easy that is. (bmy, 2/14/14)
+!
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca   - Parallelize main DO loop 
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt and State_Met objects via
 !                                the arg list
 !EOP
@@ -1266,10 +1314,15 @@
          CLOSE(IU_FILE)
       ENDDO 
 
-
       ! Scan through target array, element by element
-      DO J = 1,JJPAR
-      DO I = 1,IIPAR
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,      J,      L,       VERTCOUNT )
+!$OMP+PRIVATE( EXTRAP, LSTART, PCENTER, FOUNDLEV  )
+!$OMP+PRIVATE( ITRAC,  ISRATE, CURRVAL            )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
          ! Vertcount is the layer count for the input, where layer 1
          ! is at the *top* of the atmosphere
          VERTCOUNT = 51
@@ -1278,6 +1331,7 @@
 
          DO L = LSTART, LLPAR
             IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
+
             ! Pressure at center of cell
             PCENTER = GET_PCENTER(I,J,L)
             FOUNDLEV = (PCENTER.gt.AER_PLEVS(VERTCOUNT))
@@ -1320,11 +1374,11 @@
          ENDDO ! L
       ENDDO ! I
       ENDDO ! J
+!$OMP END PARALLEL DO
 
       DEALLOCATE( NOXDATA2D )
  
       END SUBROUTINE GET_NOXCOEFF
- 
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -1366,8 +1420,13 @@
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
+! !REMARKS:
+!  At some later point we should attempt to rewrite the parallel DO loop so
+!  that the loop order is L-J-I.  Not sure how easy that is. (bmy, 2/14/14)
+!
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca   - Now parallelize main DO loop
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !EOP
@@ -1460,6 +1519,10 @@
       ENDIF
 
       ! Scan through STT, element by element
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,        J,       L,        VERTCOUNT, EXTRAP   )
+!$OMP+PRIVATE( SET_CELL, PCENTER, FOUNDLEV, TRACMR,    TRACMASS )
       DO J = 1,JJPAR
          DO I = 1,IIPAR
             ! Vertcount is the layer count for the input, where layer 1
@@ -1515,6 +1578,7 @@
             ENDDO
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
  
       ! Free pointer
       NULLIFY( STT )
@@ -1559,6 +1623,7 @@
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Initial version
 !  11 Feb 2014 - R. Yantosca   - Rewrote DO loop to be more efficient
+!  14 Feb 2014 - R. Yantosca   - Now parallelize main DO loop
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !EOP
@@ -1606,24 +1671,11 @@
           CALL READ_SFC( Input_Opt )
        END IF
   
-!------------------------------------------------------------------------------
-! Prior to 2/11/14:
-! This DO-loop can be more efficiently written.  See below (bmy, 2/11/14)
-!      ! Loop over surface grid boxes
-!      DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!            ! Set kg/box using vol/vol (see CONVERT_UNITS in DAO_MOD)
-!            DO N=1,N_EMIT
-!               IF (IDT_EMIT(N) .ne. 0) THEN
-!                  STT(I,J,1,IDT_EMIT(N))= GRID_EMIT(J,N)
-!     &                                  * State_Met%AD(I,J,1)
-!     &                                  / TCVV(IDT_EMIT(N))
-!               ENDIF
-!            ENDDO
-!         ENDDO ! I
-!      ENDDO ! J
-!------------------------------------------------------------------------------
        ! Loop over emitted species
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, N, N_EMITTED )
+!$OMP+SCHEDULE( DYNAMIC )
        DO N = 1, N_EMIT
 
           ! Get the tracer # of the emitted species
@@ -1645,6 +1697,7 @@
              ENDDO
           ENDIF
       ENDDO
+!$OMP END PARALLEL DO
 
       ! Free pointer
       NULLIFY( STT )
@@ -1652,7 +1705,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### UCX: Emissions complete' )
 
       END SUBROUTINE EMISS_BASIC
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -1926,7 +1978,6 @@
 
       ! Return to calling program
       END FUNCTION GET_MONTREAL
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -2649,6 +2700,8 @@
 ! !REVISION HISTORY: 
 !  11 Apr 2013 - S. D. Eastham - Initial version
 !  07 Feb 2014 - R. Yantosca   - Cosmetic changes
+!  14 Feb 2014 - R. Yantosca   - Changed parallel DO loop order to L-J-I,
+!                                which is the most efficient configuration
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
 !EOP
@@ -2711,20 +2764,33 @@
 !$OMP+PRIVATE( GF_CFACTOR, GF_LOGPSULFATE, GF_PVAP )
 !$OMP+PRIVATE( GF_DIFF                             )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J=1, JJPAR
-      DO I=1, IIPAR
-      LLOOP: DO L=1, LLPAR
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Now put the L-loop as the outermost loop, for efficiency (bmy, 2/14/14)
+!      LLOOP: DO L=1, LLPAR
+!-----------------------------------------------------------------------------
          ! Only interested in low-pressure boxes
          PCENTER = GET_PCENTER(I,J,L)
          TCENTER = State_Met%T(I,J,L)
          INVAIR  = AIRMW / State_Met%AD(I,J,L)
          IF (PCENTER.ge.1.d2) THEN
             AERFRAC(I,J,L,1) = 1d0
-            CYCLE LLOOP
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! The IF statement means we don't have to cycle (bmy, 2/14/14)
+!            CYCLE LLOOP
+!-----------------------------------------------------------------------------
          ELSEIF (ITS_IN_THE_TROP(I,J,L,State_Met)) THEN
             ! Don't want to interfere with tropospheric aerosols
             AERFRAC(I,J,L,1) = 1d0
-            CYCLE LLOOP
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! The IF statement means we don't have to cycle (bmy, 2/14/14)
+!            CYCLE LLOOP
+!-----------------------------------------------------------------------------
          ELSE
             H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/TRACER_MW_G(IDTSO4  )
             ! Use approximation from Kumala (1990)
@@ -2744,7 +2810,12 @@
                AERFRAC(I,J,L,1) = 0d0
             ENDIF
          ENDIF
-      ENDDO LLOOP
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! The IF statement means we don't have to cycle (bmy, 2/14/14)
+!      ENDDO  LLOOP
+!-----------------------------------------------------------------------------
+      ENDDO
       ENDDO
       ENDDO
 
@@ -2850,6 +2921,7 @@
 ! !REVISION HISTORY: 
 !  13 Apr 2013 - S. D. Eastham - Initial version
 !  06 Feb 2014 - R. Yantosca   - Add missing variables to OpenMP loop
+!  14 Feb 2014 - R. Yantosca   - Make the L-loop the outermost DO loop
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !EOP
@@ -3021,14 +3093,20 @@
 !$OMP+PRIVATE( D_XHNO3,      D_XNAT,             D_PPA         )
 !$OMP+PRIVATE( D_PP,         D_PS,               D_TK          )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J=1,JJPAR
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
          BOX_LAT_S = GET_YEDGE(1,J,1)
          BOX_LAT_N = GET_YEDGE(1,J+1,1)
          IS_POLAR = ((BOX_LAT_S.lt.PSC_MINLAT).or.
      &               (BOX_LAT_N.gt.PSC_MAXLAT))
          ! Loop over longitudinal boxes
-         DO I=1,IIPAR
-            LLOOP: DO L=1,LLPAR
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Need to pull the L-loop to the top; this is more efficient (bmy, 2/14/14)
+!         DO I=1,IIPAR
+!            LLOOP: DO L=1,LLPAR
+!-----------------------------------------------------------------------------
+         DO I = 1, IIPAR
 
                ! Get local conditions
                PCENTER    = GET_PCENTER(I,J,L) 
@@ -3494,9 +3572,16 @@
                NDENS_AER(I,J,L,I_SLA)= NDENS_AER_BOX    ! #/m3
                SAD_AER(I,J,L,I_SLA)  = SAD_AER_BOX      ! cm2/cm3
 
-            ENDDO LLOOP ! L
-         ENDDO ! I
-      ENDDO ! J
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! We don't need to label LLOOP anymore (bmy, 2/14/14)
+!            ENDDO LLOOP ! L
+!         ENDDO ! I
+!      ENDDO ! J
+!-----------------------------------------------------------------------------
+         ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
 
       IF ( prtDebug ) THEN
@@ -3532,7 +3617,6 @@
       NULLIFY( STT )
 
       END SUBROUTINE CALC_STRAT_AER
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3571,7 +3655,6 @@
       KG_STRAT_AER = KG_AER(I,J,L,IAER)
 
       END FUNCTION KG_STRAT_AER
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3608,7 +3691,6 @@
       RHO_STRAT_AER = RHO_AER(I,J,L,IAER)
 
       END FUNCTION RHO_STRAT_AER
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3664,7 +3746,6 @@
       ENDIF
 
       END SUBROUTINE GET_STRAT_OPT
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -3726,7 +3807,6 @@
      &             ( State_Chm%Tracers(I,J,L,IDTNIT) .gt. TINY(1d0) ) )
 
       END SUBROUTINE CHECK_NAT
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4085,7 +4165,6 @@
       SLA_VOL = (MOLDENS_H2SO4*98.076d0/W_H2SO4/SLA_RHO)*1.d-3
 
       END SUBROUTINE TERNARY
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4104,9 +4183,9 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(IN)          :: CS         ! H2SO4 molality (mol H2SO4/kg solvent)
-      REAL*8, INTENT(IN)          :: CN         ! HNO3 molality (mol HNO3/kg solvent)
-      REAL*8, INTENT(IN)          :: T          ! Temperature (K)
+      REAL*8, INTENT(IN) :: CS         ! H2SO4 molality (mol H2SO4/kg solvent)
+      REAL*8, INTENT(IN) :: CN         ! HNO3 molality (mol HNO3/kg solvent)
+      REAL*8, INTENT(IN) :: T          ! Temperature (K)
 !
 ! !REVISION HISTORY: 
 !  19 Apr 2013 - S. D. Eastham - Initial version
@@ -4137,7 +4216,6 @@
       RETURN
 
       END FUNCTION CARSLAW_DENSITY
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4215,7 +4293,6 @@
       ENDIF
 
       END FUNCTION CALC_FALLVEL
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4540,7 +4617,6 @@
 
       ! Return to calling program
       END SUBROUTINE CALC_SLA_GAMMA
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4579,7 +4655,6 @@
       MOLEC_SPEED=SQRT(8.0d0*8.31451d7*T/(PI*MOLMASS))
 
       END FUNCTION MOLEC_SPEED
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4742,7 +4817,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_PSC_FILE: wrote file' )
 
       END SUBROUTINE MAKE_PSC_FILE
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4783,6 +4857,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
+!  14 Feb 2014 - R. Yantosca   - Reorder DO loops for efficiency
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4895,10 +4970,21 @@
      &     NN            == ILAT       .and. 
      &     NL            == IPVERT            ) THEN
 
-         DO I=1,NTL
-         DO J=1,NN
-         DO L=1,NL
-         STATE_PSC(I,J,L) = INT(FLOOR(TMP(I,J,L)))
+!----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Now order the DO loops L-J-I, this is most efficient (bmy, 2/14/14)
+!         DO I=1,NTL
+!         DO J=1,NN
+!         DO L=1,NL
+!         STATE_PSC(I,J,L) = INT(FLOOR(TMP(I,J,L)))
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!----------------------------------------------------------------------------
+         DO L = 1, NL
+         DO J = 1, NN
+         DO I = 1, NTL
+            STATE_PSC(I,J,L) = INT( FLOOR( TMP(I,J,L) ) )
          ENDDO
          ENDDO
          ENDDO
@@ -4918,7 +5004,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_PSC_FILE: read file' )
 
       END SUBROUTINE READ_PSC_FILE
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -4952,6 +5037,7 @@
 !
 ! !REVISION HISTORY: 
 !  16 Oct 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca   - Reorder DO loop for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
@@ -4977,9 +5063,14 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
+      DO L=1,LCLOCK
       DO J=1,JJPAR
       DO I=1,IIPAR
-      DO L=1,LCLOCK
+!-----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Make the L-Loop the outermost loop, for efficiency (bmy, 2/14/14)
+!      DO L=1,LCLOCK
+!-----------------------------------------------------------------------------
          State_Chm%Tracers(I,J,L,IDTCLOCK) = CLOCKMR
       ENDDO ! L
       ENDDO ! I
@@ -4990,7 +5081,6 @@
       CLOCKMR = CLOCKMR + (INCRATE*STEPLEN/(60d0*24d0))
 
       END SUBROUTINE SET_CLOCK_TRAC
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -5030,6 +5120,7 @@
 !
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca   - Reordered DO loop for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !EOP
@@ -5066,10 +5157,16 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PRES, TEMP, ESAT, SHMB, READ_SPHU )
-      DO J=1,JJPAR
-      DO I=1,IIPAR
-      DO L=1,LLPAR
-
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+!---------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Need to pull the L-loop to the top for efficiency (bmy, 2/14/14)
+!      DO J=1,JJPAR
+!      DO I=1,IIPAR
+!      DO L=1,LLPAR
+!---------------------------------------------------------------------------
          READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
@@ -5151,6 +5248,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  17 Aug 2013 - S. D. Eastham - Initial version
+!  14 Feb 2014 - R. Yantosca   - Reorder DO loops for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
 !EOP
@@ -5211,8 +5309,14 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, IJWINDOW, DAYCOLUMN, GMU )
 !$OMP+PRIVATE( LMINPHOT, PHOTDELTA, SO4_IN, SO4_DELTA )
-      DO I=1,IIPAR
+!----------------------------------------------------------------------------
+! Prior to 2/14/14:
+! Change loop order to J-I, which is more efficient (bmy, 2/14/14)
+!      DO I=1,IIPAR
+!      DO J=1,JJPAR
+!----------------------------------------------------------------------------
       DO J=1,JJPAR
+      DO I=1,IIPAR
 
          IJWINDOW  = (J-1)*IIPAR + I
          GMU       = State_Met%SUNCOSmid(I,J)
@@ -5238,6 +5342,7 @@
             ENDDO
 
          ENDIF
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
