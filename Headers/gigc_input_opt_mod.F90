@@ -149,6 +149,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LGFED3BB
      LOGICAL                     :: LDAYBB3
      LOGICAL                     :: L3HRBB3
+     LOGICAL                     :: LFINN
      LOGICAL                     :: LAEIC
      LOGICAL                     :: LLIGHTNOX
      LOGICAL                     :: LOTDLOC
@@ -819,6 +820,7 @@ CONTAINS
     Input_Opt%LGFED3BB               = .FALSE.
     Input_Opt%LDAYBB3                = .FALSE.
     Input_Opt%L3HRBB3                = .FALSE.
+    Input_Opt%LFINN                  = .FALSE.
     Input_Opt%LAEIC                  = .FALSE.
     Input_Opt%LLIGHTNOX              = .FALSE.
     Input_Opt%LOTDLOC                = .FALSE.

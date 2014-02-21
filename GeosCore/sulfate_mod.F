@@ -6023,12 +6023,14 @@
 #endif
 
             CALL READ_ANTHRO_NH3( Input_Opt, MONTH )
-
+            WRITE(*,*) 'OUT OF READ_ANTHRO_NH3'
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 
          !CALL READ_SHIP_SO2( MONTH )
          CALL READ_SHIP_SO2( Input_Opt, MONTH )
+         WRITE(*,*) 'OUT OF SHIP SO2'
+
 #if defined( TOMAS )
          ! Scale anthro SO2 for TOMAS
          ESO2_sh  = ESO2_sh * scaleanthso2
@@ -10839,7 +10841,7 @@
             ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
-
+         
       !----------------------------------------
       ! Or Corbett et al ship SO2 emissions
       !----------------------------------------
@@ -10946,7 +10948,6 @@
 !$OMP END PARALLEL DO
          
       ENDIF
-
       END SUBROUTINE READ_SHIP_SO2
 !EOC
 !------------------------------------------------------------------------------
