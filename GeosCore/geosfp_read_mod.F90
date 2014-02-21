@@ -1709,6 +1709,8 @@ CONTAINS
     st3d   = (/ 1,     1,     time_index /)
     ct3d   = (/ IIPAR, JJPAR, 1          /)
 
+
+
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fId, TRIM(v_name), st3d, ct3d )
@@ -1740,7 +1742,7 @@ CONTAINS
     v_name = "T"
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q3, State_Met%TMPU1 )
-
+   
     ! Also archive T_FULLGRID_1 for offline "specialty" simulations
     IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
        T_FULLGRID_1 = Q3
@@ -1919,6 +1921,7 @@ CONTAINS
     ! netCDF start & count indices
     st3d   = (/ 1,     1,     time_index /)
     ct3d   = (/ IIPAR, JJPAR, 1          /)
+
 
     ! Read PS
     v_name = "PS"
