@@ -276,7 +276,6 @@
       USE GRID_MOD,           ONLY : GET_YMID
       USE GRID_MOD,           ONLY : GET_YEDGE 
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE
 !
@@ -620,7 +619,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !

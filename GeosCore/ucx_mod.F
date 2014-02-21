@@ -22,7 +22,6 @@
       USE CMN_SIZE_MOD
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 
 !
@@ -73,6 +72,7 @@
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
 !  04 Apr 2013 - S. D. Eastham - Rolled several routines into module
+!  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

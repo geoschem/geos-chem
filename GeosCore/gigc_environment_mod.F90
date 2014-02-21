@@ -79,7 +79,7 @@ CONTAINS
 !
     USE CMN_Mod,            ONLY : Init_CMN
     USE CMN_DIAG_Mod,       ONLY : Init_CMN_DIAG
-    USE CMN_FJX_MOD,        ONLY : SET_CMN_FJX_MOD
+    USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
     USE CMN_NOX_Mod,        ONLY : Init_CMN_NOX
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
@@ -207,7 +207,8 @@ CONTAINS
     CALL Init_VDIFF_PRE( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    CALL SET_CMN_FJX_MOD
+    CALL Init_CMN_FJX_MOD( am_I_Root, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
           
   END SUBROUTINE GIGC_Allocate_All
 !EOC

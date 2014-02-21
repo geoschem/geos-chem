@@ -19,7 +19,6 @@
       USE CMN_FJX_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
       PRIVATE
 !
@@ -52,10 +51,10 @@
       PRIVATE :: SET_AER
 !
 ! !REVISION HISTORY:
-!  27 Mar 2013 - S. D. Eastham - Initial version (based on original GEOS-
-!  Chem files and instructions from J. Mao)
+!  27 Mar 2013 - S. D. Eastham - Initial version (based on original GEOS-Chem
+!                                files and instructions from J. Mao)
 !  28 Mar 2013 - S. D. Eastham - Upgraded to Fast-JX v7.0
-!  
+!  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -88,8 +87,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR, LLPAR
       USE CMN_SIZE_MOD,       ONLY : NDUST,   MAXIJ

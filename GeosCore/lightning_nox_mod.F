@@ -1338,13 +1338,13 @@
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD32_li
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTNO
-      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !

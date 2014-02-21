@@ -8800,6 +8800,7 @@
 !
       USE Aerosol_Mod,        ONLY : Init_Aerosol
       USE Carbon_Mod,         ONLY : Init_Carbon
+      USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
       USE Error_Mod,          ONLY : Debug_Msg
@@ -8808,7 +8809,6 @@
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
-      USE Tropopause_Mod,     ONLY : Init_Tropopause
 !
 ! !INPUT PARAMETERS:
 !
@@ -8897,9 +8897,9 @@
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
 
-      ! Initialize "tropopause_mod.F"
-      CALL INIT_TROPOPAUSE( am_I_Root, Input_Opt, RC )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TROPOPAUSE' )
+      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
+      CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CHEMGRID' )
 
       END SUBROUTINE GIGC_Init_Extra
 !EOC

@@ -18,7 +18,6 @@
       USE CMN_SIZE_MOD, ONLY : LLSTRAT
 
       IMPLICIT NONE
-#     include "define.h"
 
       PRIVATE
 !
@@ -34,6 +33,7 @@
       PUBLIC  :: GET_MAX_TPAUSE_LEVEL
       PUBLIC  :: GET_TPAUSE_LEVEL
       PUBLIC  :: GET_CHEMGRID_LEVEL
+      PUBLIC  :: INIT_CHEMGRID
       PUBLIC  :: ITS_IN_THE_TROP
       PUBLIC  :: ITS_IN_THE_STRAT
       PUBLIC  :: ITS_IN_THE_MESO
@@ -45,11 +45,6 @@
 #if defined( DEVEL)
       PUBLIC  :: LMIN, LMAX
 #endif
-
-!
-! !PRIVATE MEMBER FUNCTIONS:
-!
-      PRIVATE :: INIT_CHEMGRID
 !
 ! !REVISION HISTORY:
 !  22 Aug 2005 - R. Yantosca - Initial version
@@ -63,11 +58,13 @@
 !  (4 ) Bug fix: set NCS=NCSURBAN for safety's sake (bmy, 4/25/07)
 !  (5 ) Updated comments (bmy, 9/18/07)
 !  (6 ) Bug fix: make ITS_IN_THE_STRAT more robust. (phs, 11/14/08)
-!  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  09 Sep 2010 - R. Yantosca   - Added ProTeX headers
 !  24 Mar 2013 - S. D. Eastham - Adapted from tropopause_mod.F. Can now
-!  identify atmospheric layers, chemistry grids and aerosol grids
-!  independently of one another
-!  
+!                                identify atmospheric layers, chemistry grids
+!                                and aerosol grids independently of one another
+!  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
+!  21 Feb 2014 - M. Sulprizio  - Now make INIT_CHEMGRID a public function
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -80,6 +77,10 @@
       ! Arrays
       INTEGER, ALLOCATABLE :: TROPOPAUSE(:,:)
       INTEGER, ALLOCATABLE :: IFLX(:,:)
+
+      ! Shadow variables for values in Input_Opt
+      LOGICAL              :: LVARTROP
+      LOGICAL              :: LUCX
 
       CONTAINS
 !EOC
@@ -352,6 +353,8 @@
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (15) Simplify counting of # of tropospheric boxes (bmy, 11/1/05)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  21 Feb 2014 - M. Sulprizio- Remove call to INIT_TROPOPAUSE, this is now
+!                              done in the init stage
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -370,12 +373,6 @@
       ! format).  Transfer data into an array of size (IIPAR,JJPAR).
       !=================================================================
       
-      ! Allocate arrays
-      IF ( FIRST ) THEN
-         CALL INIT_CHEMGRID
-         FIRST = .FALSE.
-      ENDIF
-
       ! Create filename
       FILENAME = TRIM( DATA_DIR )                      // 
      &           'ann_mean_trop_200202/ann_mean_trop.' //
@@ -522,15 +519,10 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_MIN_CHEMGRID_LEVEL( Input_Opt ) RESULT( L_MIN )
+      FUNCTION GET_MIN_CHEMGRID_LEVEL() RESULT( L_MIN )
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -543,18 +535,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local variables for quantities from Input_Opt
-      LOGICAL :: LUCX
 
       !=================================================================
       ! GET_MIN_CHEMGRID_LEVEL begins here!
       !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      LUCX = Input_Opt%LUCX
 
 #if defined( UCX )
       IF (LUCX) THEN
@@ -582,15 +566,10 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_MAX_CHEMGRID_LEVEL( Input_Opt ) RESULT( L_MAX )
+      FUNCTION GET_MAX_CHEMGRID_LEVEL( ) RESULT( L_MAX )
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -603,18 +582,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local variables for quantities from Input_Opt
-      LOGICAL :: LUCX
 
       !=================================================================
       ! GET_MAX_CHEMGRID_LEVEL begins here!
       !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      LUCX = Input_Opt%LUCX
 
 #if defined( UCX )
       IF (LUCX) THEN
@@ -645,39 +616,29 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CHEMGRID_LEVEL( I, J, Input_Opt ) RESULT( L_CHEM )
+      FUNCTION GET_CHEMGRID_LEVEL( I, J ) RESULT( L_CHEM )
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,        INTENT(IN) :: I           ! Longitude index
-      INTEGER,        INTENT(IN) :: J           ! Latitude index
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+      INTEGER, INTENT(IN) :: I      ! Longitude index
+      INTEGER, INTENT(IN) :: J      ! Latitude index
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: L_CHEM ! Chemgrid limit at (I,J)
+      INTEGER             :: L_CHEM ! Chemgrid limit at (I,J)
 !
 ! !REVISION HISTORY:
 !  25 Mar 2013 - S. D. Eastham - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local variables for quantities from Input_Opt
-      LOGICAL :: LUCX
 
       !=================================================================
-      ! GET_TPAUSE_LEVEL begins here!
+      ! GET_CHEMGRID_LEVEL begins here!
       !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      LUCX = Input_Opt%LUCX
 
 #if defined( UCX )
       IF (LUCX) THEN
@@ -710,13 +671,12 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TPAUSE_LEVEL( I, J, Input_Opt ) RESULT( L_TP )
+      FUNCTION GET_TPAUSE_LEVEL( I, J ) RESULT( L_TP )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : TROPP, PSC2
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -725,7 +685,6 @@
 !
       INTEGER,        INTENT(IN) :: I           ! Longitude index
       INTEGER,        INTENT(IN) :: J           ! Latitude index
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -744,15 +703,9 @@
       INTEGER :: L
       REAL*8  :: PRESS_BEDGE
 
-      ! Local variables for quantities from Input_Opt
-      LOGICAL :: LVARTROP
-
       !=================================================================
       ! GET_TPAUSE_LEVEL begins here!
       !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      LVARTROP = Input_Opt%LVARTROP
 
       IF ( LVARTROP ) THEN
 
@@ -826,7 +779,6 @@
 ! !USES:
 !
       USE DAO_MOD,      ONLY : TROPP, PSC2
-      USE LOGICAL_MOD,  ONLY : LVARTROP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS: 
@@ -1019,19 +971,17 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_IN_THE_CHEMGRID( I, J, L, Input_Opt ) 
+      FUNCTION ITS_IN_THE_CHEMGRID( I, J, L ) 
      &                              RESULT( IS_CHEM )
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: I           ! Longitude index
-      INTEGER,        INTENT(IN) :: J           ! Latitude index
-      INTEGER,        INTENT(IN) :: L           ! Level index
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+      INTEGER, INTENT(IN) :: I          ! Longitude index
+      INTEGER, INTENT(IN) :: J          ! Latitude index
+      INTEGER, INTENT(IN) :: L          ! Level index
 !
 ! !RETURN VALUE:
 !
@@ -1042,18 +992,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local variables for quantities from Input_Opt
-      LOGICAL :: LUCX
 
       !=================================================================
       ! ITS_IN_THE_CHEMGRID begins here
       !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      LUCX = Input_Opt%LUCX
 
 #if defined( UCX )
       IF (LUCX) THEN
@@ -1126,7 +1068,6 @@
       USE DAO_MOD,        ONLY : BXHEIGHT
       USE DAO_MOD,        ONLY : TROPP
       USE DIAG_MOD,       ONLY : AD55
-      USE LOGICAL_MOD,    ONLY : LVARTROP
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
 
@@ -1327,18 +1268,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CHEMGRID
+      SUBROUTINE INIT_CHEMGRID( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  10 Feb 2005 - R. Yantosca - Initial version
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - R. Yantosca - Now made public so we can shadow LVARTROP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1350,14 +1301,27 @@
       !=================================================================
       ! INIT_CHEMGRID begins here!
       !=================================================================
-      ALLOCATE( TROPOPAUSE( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPOPAUSE' )
-      TROPOPAUSE = 0
 
-      ! For now don't allocate IFLX
-      !ALLOCATE( IFLX( IIPAR, JJPAR ), STAT=AS ) 
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IFLX' )
-      !IFLX = 0
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Shadow Input_Opt%LVARTROP in a module variable
+      LVARTROP = Input_Opt%LVARTROP
+      LUCX = Input_Opt%LUCX
+
+      ! Only allocate arrays if we are not using the variable tropopause
+      IF ( .not. LVARTROP ) THEN 
+
+         ALLOCATE( TROPOPAUSE( IIPAR, JJPAR ), STAT=AS ) 
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPOPAUSE' )
+         TROPOPAUSE = 0
+
+         ! For now don't allocate IFLX
+         !ALLOCATE( IFLX( IIPAR, JJPAR ), STAT=AS ) 
+         !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IFLX' )
+         !IFLX = 0
+
+      ENDIF
 
       END SUBROUTINE INIT_CHEMGRID
 !EOC

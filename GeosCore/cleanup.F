@@ -111,6 +111,7 @@
       USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
       USE JV_CMN_Mod,              ONLY : Cleanup_JV_CMN
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
+      USE CMN_FKX_Mod,             ONLY : Cleanup_CMN_FJX
 
       IMPLICIT NONE
 !
@@ -351,6 +352,7 @@
       CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
       CALL Cleanup_JV_CMN     ( am_I_Root, RC )
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
+      CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
 
       END SUBROUTINE CLEANUP
 !EOC
