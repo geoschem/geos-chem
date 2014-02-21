@@ -2134,7 +2134,7 @@
             CALL GETFRACTION( I, J, L, N, .FALSE., 
      &                        XFRAC, SOLFRAC, State_Chm%Tracers  )
             F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)                 
-            TOM_SC_FRACTION(I,J,L,N-IDTNK1+1) = XFRAC
+!            TOM_SC_FRACTION(I,J,L,N-IDTNK1+1) = XFRAC
 !            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
          ENDDO
          ENDDO
@@ -5108,18 +5108,29 @@
          ! T >= 268K 
          !-------------
 
-         ! For aerosol number, get Dp and calculate scavr 
-         IF ( N < IDTNK1 + IBINS ) THEN
+!--------------------------------------------------------------
+!!sfarina - This contruct assumes tracers are dealt with sequentially,
+!!          but wetdep parallelizes over tracers
+!!          It could be possible to calculated the lookup table and save
+!!          in an I,J,L,BIN array but for now we will calculate redundantly.
+!         ! For aerosol number, get Dp and calculate scavr 
+!         IF ( N < IDTNK1 + IBINS ) THEN
+!            DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
+!            ! External function stratscav returns the scavenging rate (mm^-1)
+!            ! Let scavr has a unit of cm^-1
+!            SCAVR = 10.d0* STRATSCAV( DPAERO )
+!            SCAVRSAVE(N-IDTNK1+1) = scavr
+!         ELSE
+!            BIN = MOD( N - IDTNK1 + 1, IBINS )
+!            IF( BIN == 0 ) BIN = IBINS
+!            SCAVR = SCAVRSAVE(BIN)
+!         ENDIF
+!---------------------------------------------------------------
+
             DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
             ! External function stratscav returns the scavenging rate (mm^-1)
             ! Let scavr has a unit of cm^-1
             SCAVR = 10.d0* STRATSCAV( DPAERO )
-            SCAVRSAVE(N-IDTNK1+1) = scavr
-         ELSE
-            BIN = MOD( N - IDTNK1 + 1, IBINS )
-            IF( BIN == 0 ) BIN = IBINS
-            SCAVR = SCAVRSAVE(BIN)
-         ENDIF
 
          ! Prevent div by zero (bmy, 9/4/13)
          IF ( F > 0d0 ) THEN
