@@ -117,7 +117,7 @@
       ENDIF
 
       ! Get the TAU0 value for the start of the given month
-      XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+      XTAU = GET_TAU0( THISMONTH, 1, YEAR )
 
       ! Read in OC data from the binary punch file
       CALL READ_BPCH2( FILENAME, 'IJ-24H-$', 14,     
