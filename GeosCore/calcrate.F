@@ -264,7 +264,6 @@
       LOGICAL :: LKPP
       LOGICAL :: LNLPBL
       LOGICAL :: LVISTAS
-      LOGICAL :: LUCX
       LOGICAL :: LWARWICK_VSLS
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -284,7 +283,6 @@
       LKPP          = Input_Opt%LKPP
       LNLPBL        = Input_Opt%LNLPBL
       LVISTAS       = Input_Opt%LVISTAS
-      LUCX          = Input_Opt%LUCX
       LWARWICK_VSLS = Input_Opt%LWARWICK_VSLS
       XNUMOL        = Input_Opt%XNUMOL
 
@@ -1621,23 +1619,16 @@ c new OH+CO rate from JPL2006.
             PHOTVAL = NKSO4PHOT(NCS)-NRATES(NCS)
             NKN     = NKNPHOTRT(PHOTVAL,NCS)
             
-            IF (LUCX) THEN
-               DO KLOOP = 1, KTLOOP 
-                  JLOOP            = LREORDER(KLOOP+JLOOPLO)
+            DO KLOOP = 1, KTLOOP 
+               JLOOP            = LREORDER(KLOOP+JLOOPLO)
 
-                  ! Find location
-                  IX               = IXSAVE(JLOOP)
-                  IY               = IYSAVE(JLOOP)
-                  IZ               = IZSAVE(JLOOP)                  
-                  RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN)
-     &                               *SO4_PHOTFRAC(IX,IY,IZ)
-               ENDDO
-            ELSE
-               ! No H2SO4 photolysis in trop model
-               DO KLOOP = 1, KTLOOP
-                  RRATE(KLOOP,NKN) = 0.d0
-               ENDDO
-            ENDIF
+               ! Find location
+               IX               = IXSAVE(JLOOP)
+               IY               = IYSAVE(JLOOP)
+               IZ               = IZSAVE(JLOOP)                  
+               RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN)
+     &                            *SO4_PHOTFRAC(IX,IY,IZ)
+            ENDDO
          ENDIF
 #endif
 
@@ -1696,6 +1687,7 @@ c new OH+CO rate from JPL2006.
                NKN_2     = NKNPHOTRT(PHOTVAL_2,NCS)
             ENDIF
 #endif
+
             DO KLOOP = 1, KTLOOP
 
 #if defined( UCX )
@@ -1733,12 +1725,6 @@ c new OH+CO rate from JPL2006.
                !          ([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2])
                ! (bhh, jmao, eam, 7/18/11)
                !========================================================
-
-               IF ( LUCX ) THEN
-                  CALL ERROR_STOP( 'ERROR in IFSUN -- UCX',
-     &             'calcrate.f' )
-               ENDIF
-
                RO1DplH2O = 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) *
      $                     CBLK(KLOOP,IH2O)
                RO1DplH2  = 1.2e-10 * CONCH2(KLOOP)

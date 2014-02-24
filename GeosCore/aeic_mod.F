@@ -446,7 +446,7 @@
          CALL INIT_AEIC
 
 #if defined( UCX )
-         IF ((LUCX).and.(IDTH2O.ne.0)) THEN
+         IF ( IDTH2O .ne. 0 ) THEN
             WRITE(6,*) ' - H2O EI          : ',1260.d0
          ELSE
             WRITE(6,*) 'Aircraft H2O emissions ignored.'
@@ -518,7 +518,7 @@
          STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) +
      &           (AEIC_EMIT(I,J,L,BC_INDEX)*DTSRCE)
 #if defined( UCX )
-         IF ((LUCX).and.(IDTH2O.ne.0)) THEN
+         IF ( IDTH2O .ne. 0 ) THEN
             STT(I,J,L,IDTH2O) = STT(I,J,L,IDTH2O) +
      &              (1.26d0*AEIC_EMIT(I,J,L,FB_INDEX)*DTSRCE)
          ENDIF

@@ -80,7 +80,6 @@
 
       ! Shadow variables for values in Input_Opt
       LOGICAL              :: LVARTROP
-      LOGICAL              :: LUCX
 
       CONTAINS
 !EOC
@@ -555,14 +554,10 @@
       !=================================================================
 
 #if defined( UCX )
-      IF (LUCX) THEN
-         ! Minimum level is fixed at stratopause
-         L_MIN = LLSTRAT
-      ELSE
-#endif
+      ! Minimum level is fixed at stratopause
+      L_MIN = LLSTRAT
+#else
       L_MIN = LMIN
-#if defined( UCX )
-      ENDIF
 #endif
 
       END FUNCTION GET_MIN_CHEMGRID_LEVEL
@@ -602,14 +597,10 @@
       !=================================================================
 
 #if defined( UCX )
-      IF (LUCX) THEN
-         ! Maximum level is fixed at stratopause
-         L_MAX = LLSTRAT
-      ELSE
-#endif
+      ! Maximum level is fixed at stratopause
+      L_MAX = LLSTRAT
+#else
       L_MAX = LMAX
-#if defined( UCX )
-      ENDIF
 #endif
 
       END FUNCTION GET_MAX_CHEMGRID_LEVEL
@@ -658,17 +649,13 @@
       !=================================================================
 
 #if defined( UCX )
-      IF (LUCX) THEN
-          ! Chemistry grid level is fixed at stratopause
-          ! None of the vertical grids currently employed have terrain
-          ! following coordinates at this altitude, so the level is fixed
-          L_CHEM = LLSTRAT
-      ELSE
-#endif
+      ! Chemistry grid level is fixed at stratopause
+      ! None of the vertical grids currently employed have terrain
+      ! following coordinates at this altitude, so the level is fixed
+      L_CHEM = LLSTRAT
+#else
       ! Use GET_TPAUSE_LEVEL otherwise - no point in duplicating code
       L_CHEM = GET_TPAUSE_LEVEL( I, J, State_Met )
-#if defined( UCX )
-      ENDIF
 #endif
       END FUNCTION GET_CHEMGRID_LEVEL
 !
@@ -1034,13 +1021,9 @@
       !=================================================================
 
 #if defined( UCX )
-      IF (LUCX) THEN
-         IS_CHEM = ( .not. ITS_IN_THE_MESO( I, J, L ) )
-      ELSE
-#endif
+      IS_CHEM = ( .not. ITS_IN_THE_MESO( I, J, L ) )
+#else
       IS_CHEM = ITS_IN_THE_TROP( I, J, L, State_Met )
-#if defined( UCX )
-      ENDIF
 #endif
 
       END FUNCTION ITS_IN_THE_CHEMGRID
@@ -1357,7 +1340,6 @@
 
       ! Shadow Input_Opt%LVARTROP in a module variable
       LVARTROP = Input_Opt%LVARTROP
-      LUCX = Input_Opt%LUCX
 
       ! Only allocate arrays if we are not using the variable tropopause
       IF ( .not. LVARTROP ) THEN 

@@ -745,9 +745,7 @@
 
 #if defined( UCX )
                ! Write PSC data
-               IF ( LUCX ) THEN
-                  CALL MAKE_PSC_FILE( NYMD, NHMS, Input_Opt )
-               ENDIF
+               CALL MAKE_PSC_FILE( NYMD, NHMS, Input_Opt )
 #endif
 
                !### Debug
