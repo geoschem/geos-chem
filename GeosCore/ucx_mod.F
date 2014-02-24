@@ -5459,59 +5459,7 @@
       ENDIF
 
       END SUBROUTINE GET_UCX_CH4
-!
 !EOC
-!!------------------------------------------------------------------------------
-!!               MIT Laboratory for Aviation and the Environment               !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: srtn
-!!
-!! !DESCRIPTION: Subroutine SRTN is a reference subroutine, with more than one
-!!  line of description. Routine length is 51 lines.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE SRTN (INARG1,IOARG2,OARG3)
-!!
-!! !USES:
-!!
-!      USE THIS_MOD, ONLY : THIS_FN
-!!
-!! !INPUT PARAMETERS:
-!!
-!      REAL*8, INTENT(IN)          :: INARG1     ! Description of INARG1
-!      REAL*8, INTENT(INOUT)       :: IOARG2     ! Description of IOARG2
-!!
-!! !OUTPUT VARIABLES:
-!!
-!      REAL*8, INTENT(OUT)         :: OARG3      ! Description of OARG3
-!!
-!! !REMARKS:
-!! (1) A remark
-!! 
-!! !REVISION HISTORY: 
-!!  28 Mar 2013 - S. D. Eastham - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER, PARAMETER    :: IPARAM1=2
-!
-!      !=================================================================
-!      ! SRTN begins here!
-!      !=================================================================
-!
-!      OARG3 = INARG1 + IOARG2
-!      IOARG2 = OARG3/2.d0*IPARAM1
-!
-!      END SUBROUTINE SRTN
-!!
-!!EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
