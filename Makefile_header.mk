@@ -135,6 +135,7 @@
 #  07 Nov 2013 - R. Yantosca - NEST=se to now sets CPP switch w/ -DNESTED_SE
 #  08 Nov 2013 - R. Yantosca - Add FPEX flag to avoid conflicting with the
 #                              ESMF/MAPL environment variable FPE
+#  24 Feb 2014 - R. Yantosca - Add UCX=yes flag for invoking UCX strat chem
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -216,7 +217,7 @@ ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS      += -DLINUX_IFORT
 endif
 
-# %%%%% PG I compiler %%%%%
+# %%%%% PGI compiler %%%%%
 REGEXP         :=(^[Pp][Gg][Ii])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS      += -DLINUX_PGI
@@ -257,6 +258,17 @@ REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS      += -DEXTERNAL_FORCING
 NO_GRID_NEEDED :=1
+endif
+
+#------------------------------------------------------------------------------
+# UCX stratospheric-tropospheric chemistry settings
+#------------------------------------------------------------------------------
+
+# %%%%% UCX %%%%%
+REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
+NO_REDUCED     :=yes
+CHEM           :=UCX
 endif
 
 #------------------------------------------------------------------------------
@@ -534,8 +546,9 @@ endif
 REGEXP         := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS         :=-cpp -w -O0 -auto -noalign -convert big_endian
-FFLAGS         += -g -DDEBUG -check arg_temp_created -debug all
-TRACEBACK      := yes
+FFLAGS         += -g -check arg_temp_created -debug all
+TRACEBACK      :=yes
+USER_DEFS      := -DDEBUG
 else
 FFLAGS         :=-cpp -w $(OPT) -auto -noalign -convert big_endian
 FFLAGS         += -vec-report0
