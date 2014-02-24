@@ -5476,6 +5476,7 @@
 !
 ! !USES:
 !
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_YEAR
@@ -5557,8 +5558,11 @@
      &              LSETBRSTRAT .or. LSETNOYSTRAT .or. LSETN2O    .or.
      &              LBASICEMIS  )
 
+      ! Define data directory
+      TRAC_FILE_ROOT = TRIM( DATA_DIR_1x1 ) // 'UCX_201403'
+
 #if !defined(GRID4x5) && !defined(GRID2x25)
-      IF (LUCX.and.USE2DDATA) THEN
+      IF ( LUCX .and. USE2DDATA ) THEN
        DBGMSG = 'Zonal means preprocessed only for 2x2.5 and 4x5 grid.'
        CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
       ELSE
@@ -5579,11 +5583,11 @@
 !      !-----SDE DEBUG
 
       ! Determine folder paths from root folder
-      WRITE(     AVG_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT),
+      WRITE(      AVG_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT),
      &   '/DiurnalAvg/', TRIM(GRIDSPEC)
-      WRITE(    NOON_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT), 
+      WRITE(     NOON_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT), 
      &   '/NoonTime/', TRIM(GRIDSPEC)
-      WRITE(MONTREAL_FILE_ROOT,'(a,a)') TRIM(TRAC_FILE_ROOT), 
+      WRITE( MONTREAL_FILE_ROOT,'(a,a)'  ) TRIM(TRAC_FILE_ROOT), 
      &   '/Montreal/'
   
       IF ( LPRT ) THEN

@@ -201,7 +201,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSETH2SO4
      INTEGER                     :: CFCYEAR
      LOGICAL                     :: LFUTURECFC
-     CHARACTER(LEN=255)          :: TRAC_FILE_ROOT
 
      !----------------------------------------
      ! CO2 MENU fields
@@ -903,7 +902,6 @@ CONTAINS
     Input_Opt%LSETH2SO4              = .FALSE.
     Input_Opt%CFCYEAR                = 0
     Input_Opt%LFUTURECFC             = .FALSE.
-    Input_Opt%TRAC_FILE_ROOT         = ''
 
     !----------------------------------------
     ! CO2 MENU fields

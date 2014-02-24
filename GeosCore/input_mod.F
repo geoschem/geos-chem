@@ -2239,7 +2239,7 @@
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,       ONLY : IDTCH4, IDTOCS, IDTCFCX
       USE TRACERID_MOD,       ONLY : IDTCl,  IDTN2O, IDTBr2, IDTH2O
-      USE UCX_MOD,            ONLY : TRAC_FILE_ROOT, CFCYEAR
+      USE UCX_MOD,            ONLY : CFCYEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -2667,12 +2667,6 @@
 
       ! Do we apply an offset?
       LFUTURECFC = (CFCYEAR .gt. 1950)
-
-      ! Directory containing 2D data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:74' )
-      READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
-
-      TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:75' )
@@ -3230,7 +3224,6 @@
       Input_Opt%LSETH2SO4      = LSETH2SO4
       Input_Opt%CFCYEAR        = CFCYEAR
       Input_Opt%LFUTURECFC     = LFUTURECFC
-      Input_Opt%TRAC_FILE_ROOT = TRAC_FILE_ROOT
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -3327,8 +3320,6 @@
         WRITE( 6, 100 ) '      --> N2O?              : ', LSETN2O
         WRITE( 6, 100 ) '      --> strat. H2SO4?     : ', LSETH2SO4
         WRITE( 6, 110 ) 'CFC emissions read for year : ', CFCYEAR
-        WRITE( 6, 130 ) ' Directory for 2D data      : ',
-     &                                        TRIM(TRAC_FILE_ROOT)
       ENDIF
 
       ! FORMAT statements
