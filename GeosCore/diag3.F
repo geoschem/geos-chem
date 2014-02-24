@@ -2717,6 +2717,7 @@
 !  (6) Now assume that LD43 can't be higher than LD45 (phs, 1/24/07)
 !  (7) Check that CTxx are not zero, instead of adding 1e-20 (phs, 11/13/07)
 !  (8) Removed NO, NO2, and NO3. These are now tracers (mpayer, 3/29/13)
+!  24 Feb 2014 - M. Sulprizio- Added O1D and O3P for UCX strat chem
 !******************************************************************************
 !
       IF ( ND43 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -2752,6 +2753,26 @@
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
+
+#if defined( UCX )
+               ! O1D
+               CASE ( 4 )
+                  WHERE( CTO1D /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     $                    FLOAT( CTO1D )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+
+               ! O3P
+               CASE ( 5 )
+                  WHERE( CTO3P /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     $                    FLOAT( CTO3P )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+#endif
 
                CASE ( 6 )
                   WHERE( CTLBRO2H /= 0 )

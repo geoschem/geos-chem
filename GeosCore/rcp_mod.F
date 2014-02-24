@@ -547,7 +547,7 @@
       ! ND32 -- save NOx in [molec/cm2], will convert to
       ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
       IF ( ND32 > 0 ) THEN
-         DO L=1, LLTROP
+         DO L=1, LLCHEM
          DO J=1, JJPAR
          DO I=1, IIPAR
             AD32_ac(I,J,L) = AD32_ac(I,J,L) + ( RCP_AC_NOx(I,J,L) * 
