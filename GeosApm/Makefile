@@ -154,7 +154,7 @@ sulfate_mod.o            sunparam.o              tagged_co_mod.o	     \
 tagged_ox_mod.o          toms_mod.o		                             \
 tpcore_bc_mod.o          tpcore_fvdas_mod.o      tpcore_geos5_window_mod.o   \
 tracer_mod.o                                                                 \
-tracerid_mod.o           transport_mod.o	 tropopause_mod.o            \
+tracerid_mod.o           transport_mod.o	                             \
 update.o                 uvalbedo_mod.o                                      \
 vdiff_pre_mod.o          vdiff_mod.o             vistas_anthro_mod.o         \
 wetscav_mod.o            retro_mod.o             diag63_mod.o                \

@@ -283,7 +283,6 @@
       LSULF                    = Input_Opt%LSULF
       LSOA                     = Input_Opt%LSOA
       LNLPBL                   = Input_Opt%LNLPBL
-      LUCX                     = Input_Opt%LUCX
       IT_IS_A_C2H6_SIM         = Input_Opt%ITS_A_C2H6_SIM
       IT_IS_A_CH3I_SIM         = Input_Opt%ITS_A_CH3I_SIM
       IT_IS_A_CH4_SIM          = Input_Opt%ITS_A_CH4_SIM 
@@ -358,9 +357,9 @@
 
 #if defined( UCX )
             ! Recalculate PSC properties
-            ! SDE: Handle for future implementation of 
-            ! AER-compatible aerosols
-            !IF ( LUCX ) CALL CALC_STRAT_AER( Input_Opt )
+! SDE: Handle for future implementation of AER-compatible aerosols
+!            CALL CALC_STRAT_AER
+!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
 
             ! Also do sulfate chemistry
