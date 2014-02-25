@@ -544,7 +544,6 @@
 ! !IROUTINE: blkslv
 !
 ! !DESCRIPTION: Subroutine BLKSLV solves the block tri-diagonal system
-!  $A(I)\timesX(I-1) + B(I)\timesX(I) + C(I)\timesX(I+1) = H(I)$.
 !\\
 !\\
 ! !INTERFACE:
@@ -567,7 +566,9 @@
       REAL*8, INTENT(OUT) ::  FJ(N_,W_),FJTOP(W_),FJBOT(W_)
 !
 ! !REMARKS:
-! 
+! The block tri-diagonal system:
+!       A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
+!
 ! !REVISION HISTORY: 
 !  27 Mar 2013 - S. D. Eastham - Copied from GEOS-Chem v9-01-03
 !EOP
@@ -1283,31 +1284,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !IROUTINE: sphere2
 !
-! !DESCRIPTION: Subroutine SPHERE2 is an AMF2. Quoting from the original:
-!  New v6.2: does AirMassFactors for mid-layer, needed for SZA ~ 90
-!  This new AMF2 does each of the half-layers of the CTM separately,
-!     whereas the original, based on the pratmo code did the whole layers
-!     and thus calculated the ray-path to the CTM layre edges, NOT the middle.
-!  Since fast-JX is meant to calculate the intensity at the mid-layer, the
-!     solar beam at low sun (interpolated between layer edges) was incorrect.
-!  This new model does make some approximations of the geometry of the layers:
-!     the CTM layer is split evenly in mass (good) and in height (approx).
-!
-!  Calculation of spherical geometry; derive tangent heights, slant path
-!  lengths and air mass factor for each layer. Not called when
-!  SZA > 98 degrees.  Beyond 90 degrees, include treatment of emergent
-!  beam (where tangent height is below altitude J-value desired at).
-!  ---------------------------------------------------------------------
-!  Inputs:
-!     U0      cos(solar zenith angle)
-!     RAD  radius of Earth mean sea level (cm)
-!     ZHL(L)  height (cm) of the bottom edge of CTM level L
-!     ZZHT    scale height (cm) used above top of CTM (ZHL(L_+1))
-!     L1U     dimension of CTM = levels +1 (L+1 = above-CTM level)
-!  Outputs:
-!     AMF2(I,J) = air mass factor for CTM level I for sunlight reaching J
-!         ( these are calculated for both layer middle and layer edge)
-!  ---------------------------------------------------------------------
+! !DESCRIPTION: Subroutine SPHERE2 is an AMF2.
 !\\
 !\\
 ! !INTERFACE:
@@ -1327,6 +1304,32 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
       REAL*8, INTENT(OUT) ::   AMF2(2*LJX1U+1,2*LJX1U+1)
 !
 ! !REMARKS:
+! Quoting from the original:
+!  New v6.2: does AirMassFactors for mid-layer, needed for SZA ~ 90
+!  This new AMF2 does each of the half-layers of the CTM separately,
+!     whereas the original, based on the pratmo code did the whole layers
+!     and thus calculated the ray-path to the CTM layre edges, NOT the middle.
+!  Since fast-JX is meant to calculate the intensity at the mid-layer, the
+!     solar beam at low sun (interpolated between layer edges) was incorrect.
+!  This new model does make some approximations of the geometry of the layers:
+!     the CTM layer is split evenly in mass (good) and in height (approx).
+!                                                                             .
+!  Calculation of spherical geometry; derive tangent heights, slant path
+!  lengths and air mass factor for each layer. Not called when
+!  SZA > 98 degrees.  Beyond 90 degrees, include treatment of emergent
+!  beam (where tangent height is below altitude J-value desired at).
+!                                                                             .
+!  ---------------------------------------------------------------------
+!  Inputs:
+!     U0      cos(solar zenith angle)
+!     RAD  radius of Earth mean sea level (cm)
+!     ZHL(L)  height (cm) of the bottom edge of CTM level L
+!     ZZHT    scale height (cm) used above top of CTM (ZHL(L_+1))
+!     L1U     dimension of CTM = levels +1 (L+1 = above-CTM level)
+!  Outputs:
+!     AMF2(I,J) = air mass factor for CTM level I for sunlight reaching J
+!         ( these are calculated for both layer middle and layer edge)
+!  ---------------------------------------------------------------------
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -1436,19 +1439,6 @@ c  Lowest level intersected by emergent beam
 !
 ! !DESCRIPTION: Subroutine EXTRAL adds sub-layers to thick cloud/aerosol layers
 !  using log-spacing for sub-layers of increasing thickness ATAU.
-!
-!     DTAUX(L=1:L1X) = Optical Depth in layer L (generally 600 nm OD)
-!        This can be just cloud or cloud+aerosol, it is used only to set
-!        the number in levels to insert in each layer L
-!        Set for log-spacing of tau levels, increasing top-down.
-!
-!     N.B. the TTAU, etc calculated here are NOT used elsewhere
-!
-!   The log-spacing parameters have been tested for convergence and chosen
-!     to be within 0.5% for ranges OD=1-500, rflect=0-100%, mu0=0.1-1.0
-!     use of ATAU = 1.18 and min = 0.01, gives at most +135 pts for OD=100
-!     ATAU = 1.12 now recommended for more -accurate heating rates (not J's)
-!   --------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
@@ -1469,6 +1459,17 @@ c  Lowest level intersected by emergent beam
       integer, intent(out)::  JXTRA(L2X+1)    !number of sub-layers to be added
 !
 ! !REMARKS:
+!     DTAUX(L=1:L1X) = Optical Depth in layer L (generally 600 nm OD)
+!        This can be just cloud or cloud+aerosol, it is used only to set
+!        the number in levels to insert in each layer L
+!        Set for log-spacing of tau levels, increasing top-down.
+!                                                                             .
+!     N.B. the TTAU, etc calculated here are NOT used elsewhere
+!                                                                             .
+!   The log-spacing parameters have been tested for convergence and chosen
+!     to be within 0.5% for ranges OD=1-500, rflect=0-100%, mu0=0.1-1.0
+!     use of ATAU = 1.18 and min = 0.01, gives at most +135 pts for OD=100
+!     ATAU = 1.12 now recommended for more -accurate heating rates (not J's)
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -1741,32 +1742,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !DESCRIPTION: Subroutine RD\_XXX reads in wavelength bins, solar fluxes,
 !  Rayleigh and temperature-dependent cross-sections.
-!    NEW v-6.8  now allow 1 to 3 sets of X-sects for T or P
-!           LQQ = 1, 2, or 3 to determine interpolation with T or P
-!           IF the temperatures TQQQ are <0, then use as pressure interp (hPa)
-!           NB - the temperatures and pressures must be increasing
-!    NEW v-6.4  changed to collapse wavelengths & x-sections to Trop-only:
-!           WX_ = 18 should match the JX_spec.dat wavelengths
-!           W_ = 12 (Trop-only) or 18 (std) is set in (cmn_FXJ.f).
-!       if W_=12 then drop strat wavels, and drop x-sects (e.g. N2O, ...)
-!           W_ = 8, reverts to quick fix:  fast-J (12-18) plus bin (5) scaled
-!
-!   --------------------------------------------------------------------
-!     NAMFIL   Name of spectral data file (JX_spec.dat) >> j2 for fast-J2
-!     NUN      Channel number for reading data file
-!
-!     NJX    Number of species to calculate J-values for
-!     NWWW     Number of wavelength bins, from 1:NWWW
-!     WBIN     Boundaries of wavelength bins
-!     WL       Centres of wavelength bins - 'effective wavelength'
-!     FL       Solar flux incident on top of atmosphere (cm-2.s-1)
-!     QRAYL    Rayleigh parameters (effective cross-section) (cm2)
-!     QO2      O2 cross-sections
-!     QO3      O3 cross-sections
-!     Q1D      O3 => O(1D) quantum yield
-!     TQQ      Temperature for supplied cross sections
-!     QQQ      Supplied cross sections in each wavelength bin (cm2)
-!   --------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
@@ -1786,6 +1761,32 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 !
 ! !REMARKS:
+!    NEW v-6.8  now allow 1 to 3 sets of X-sects for T or P
+!           LQQ = 1, 2, or 3 to determine interpolation with T or P
+!           IF the temperatures TQQQ are <0, then use as pressure interp (hPa)
+!           NB - the temperatures and pressures must be increasing
+!    NEW v-6.4  changed to collapse wavelengths & x-sections to Trop-only:
+!           WX_ = 18 should match the JX_spec.dat wavelengths
+!           W_ = 12 (Trop-only) or 18 (std) is set in (CMN_FJX.F).
+!       if W_=12 then drop strat wavels, and drop x-sects (e.g. N2O, ...)
+!           W_ = 8, reverts to quick fix:  fast-J (12-18) plus bin (5) scaled
+!                                                                             .
+!   --------------------------------------------------------------------
+!     NAMFIL   Name of spectral data file (FJX_spec.dat) >> j2 for fast-J2
+!     NUN      Channel number for reading data file
+!
+!     NJX    Number of species to calculate J-values for
+!     NWWW     Number of wavelength bins, from 1:NWWW
+!     WBIN     Boundaries of wavelength bins
+!     WL       Centres of wavelength bins - 'effective wavelength'
+!     FL       Solar flux incident on top of atmosphere (cm-2.s-1)
+!     QRAYL    Rayleigh parameters (effective cross-section) (cm2)
+!     QO2      O2 cross-sections
+!     QO3      O3 cross-sections
+!     Q1D      O3 => O(1D) quantum yield
+!     TQQ      Temperature for supplied cross sections
+!     QQQ      Supplied cross sections in each wavelength bin (cm2)
+!   --------------------------------------------------------------------
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -2014,16 +2015,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !IROUTINE: rd_mie
 !
 ! !DESCRIPTION: Subroutine RD\_MIE retrieves aerosol scattering data for FJX.
-!   --------------------------------------------------------------------
-!     NAMFIL   Name of scattering data file (e.g., FJX_scat.dat)
-!     NUN      Channel number for reading data file
-!     NAA      Number of categories for scattering phase functions
-!     QAA      Aerosol scattering phase functions
-!     WAA      5 Wavelengths for the supplied phase functions
-!     PAA      Phase function: first 8 terms of expansion
-!     RAA      Effective radius associated with aerosol type
-!     SAA      Single scattering albedo
-!   --------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
@@ -2044,7 +2035,17 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 !
 ! !REMARKS:
-! 
+!   --------------------------------------------------------------------
+!     NAMFIL   Name of scattering data file (e.g., FJX_scat.dat)
+!     NUN      Channel number for reading data file
+!     NAA      Number of categories for scattering phase functions
+!     QAA      Aerosol scattering phase functions
+!     WAA      5 Wavelengths for the supplied phase functions
+!     PAA      Phase function: first 8 terms of expansion
+!     RAA      Effective radius associated with aerosol type
+!     SAA      Single scattering albedo
+!   --------------------------------------------------------------------
+!
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Adapted from GEOS-Chem v9-1-3
 !EOP
@@ -2221,10 +2222,10 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !IROUTINE: rd_js_jx
 !
-! !DESCRIPTION: Subroutine RD\_JS\_JX reads in 'FJX_j2j.dat', which defines 
+! !DESCRIPTION: Subroutine RD\_JS\_JX reads in 'FJX\_j2j.dat', which defines 
 !  the mapping of Fast-JX J's (TITLEJX(1:NJX)) onto the CTM reactions.
-!  Reaction number JJ, named T_REACT, uses Fast-JX's T_FJX (including scaling
-!  factor F_FJX).
+!  Reaction number JJ, named T\_REACT, uses Fast-JX's T\_FJX (including scaling
+!  factor F\_FJX).
 !\\
 !\\
 ! !INTERFACE:
@@ -2265,11 +2266,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! RD_JS_JX begins here!
       !=================================================================
 
-c Read the FJX_j2j.dat file to map model specific J's onto fast-JX J's
-c The chemistry code title describes fully the reaction (a50)
-c Blank (unfilled) chemistry J's are unmapped
-c The number NRATJ is the last JJ readin that is .le. JVN
-c   include fractional quantum yield for the fast-JX J's
+! Read the FJX_j2j.dat file to map model specific J's onto fast-JX J's
+! The chemistry code title describes fully the reaction (a50)
+! Blank (unfilled) chemistry J's are unmapped
+! The number NRATJ is the last JJ readin that is .le. JVN
+!   include fractional quantum yield for the fast-JX J's
 
       JLABEL(:) = '------'
       JMAP(:)   = '------'
@@ -2341,12 +2342,6 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 ! !IROUTINE: solar_jx
 !
 ! !DESCRIPTION: Subroutine SOLAR\_JX handles solar zenith angles.
-!  ---------------------------------------------------------------------
-!     NDAY   = integer day of the year (used for solar lat and declin)
-!     SZA = solar zenith angle in degrees
-!     COSSZA = U0 = cos(SZA)
-!     SOLFX = Solar function
-!  ---------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
@@ -2366,6 +2361,12 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       REAL*8, INTENT(OUT) ::  SZA,SOLFX
 !
 ! !REMARKS:
+!  ---------------------------------------------------------------------
+!     NDAY   = integer day of the year (used for solar lat and declin)
+!     SZA = solar zenith angle in degrees
+!     COSSZA = U0 = cos(SZA)
+!     SOLFX = Solar function
+!  ---------------------------------------------------------------------
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Adapted from Fast-JX v7.0
@@ -3335,19 +3336,6 @@ c---diffuse fluxes reflected at top, incident at bottom
 !
 ! !DESCRIPTION: Subroutine MIESCT is an adaptation of the Prather radiative
 !  transfer code (mjp, 10/95).
-!     Prather, 1974, Astrophys. J. 192, 787-792.
-!         Solution of inhomogeneous Rayleigh scattering atmosphere.
-!         (original Rayleigh w/ polarization)
-!     Cochran and Trafton, 1978, Ap.J., 219, 756-762.
-!         Raman scattering in the atmospheres of the major planets.
-!         (first use of anisotropic code)
-!     Jacob, Gottlieb and Prather, 1989, J.Geophys.Res., 94, 12975-13002.
-!         Chemistry of a polluted cloudy boundary layer,
-!         (documentation of extension to anisotropic scattering)
-!
-!    takes atmospheric structure and source terms from std J-code
-!    ALSO limited to 4 Gauss points, only calculates mean field! (M=1)
-!   --------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
@@ -3368,6 +3356,18 @@ c---diffuse fluxes reflected at top, incident at bottom
       REAL*8, INTENT(OUT) ::  FJ(N_,W_),FJT(W_),FJB(W_)
 !
 ! !REMARKS:
+!     Prather, 1974, Astrophys. J. 192, 787-792.
+!         Solution of inhomogeneous Rayleigh scattering atmosphere.
+!         (original Rayleigh w/ polarization)
+!     Cochran and Trafton, 1978, Ap.J., 219, 756-762.
+!         Raman scattering in the atmospheres of the major planets.
+!         (first use of anisotropic code)
+!     Jacob, Gottlieb and Prather, 1989, J.Geophys.Res., 94, 12975-13002.
+!         Chemistry of a polluted cloudy boundary layer,
+!         (documentation of extension to anisotropic scattering)
+!                                                                             .
+!    takes atmospheric structure and source terms from std J-code
+!    ALSO limited to 4 Gauss points, only calculates mean field! (M=1)
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -3919,7 +3919,7 @@ c  Ensure all 'AN_' types are valid selections
 !
 ! !DESCRIPTION: Subroutine JV\_INDEX computes the mapping between the CTM 
 !  indices (from "globchem.dat") for J-values to the FAST-JX indices 
-!  (from "FJX_j2j.dat") for J-values.  (bmy, 10/5/98, 4/27/10)
+!  (from "FJX\_j2j.dat") for J-values.  (bmy, 10/5/98, 4/27/10)
 !\\
 !\\
 ! !INTERFACE:

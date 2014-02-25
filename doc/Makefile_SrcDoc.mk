@@ -78,6 +78,9 @@
 #  05 Sep 2013 - M. Sulprizio- Added global_hno3_mod
 #  15 Jan 2014 - R. Yantosca - Now only create *.pdf file output
 #  25 Feb 2014 - M. Sulprizio- Added a3_read_mod, a6_read_mod, and i6_read_mod
+#  25 Feb 2014 - M. Sulprizio- Added chemgrid_mod, fast_jx_mod, and ucx_mod.
+#                              Removed references to tropopause_mod and routines
+#                              for Fast-J.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -91,16 +94,14 @@ $(HDR)/CMN_DIAG_mod.F                 \
 $(HDR)/CMN_GCTM_mod.F                 \
 $(HDR)/CMN_NOX_mod.F                  \
 $(HDR)/CMN_O3_mod.F                   \
+$(HDR)/CMN_FJX_MOD.F                  \
 $(HDR)/CMN_mod.F                      \
-$(HDR)/cmn_fj_mod.F                   \
 $(HDR)/commsoil_mod.F                 \
 $(HDR)/comode_loop_mod.F              \
 $(HDR)/EF_MGN20_mod.F                 \
 $(HDR)/gigc_errcode_mod.F90           \
 $(HDR)/gigc_state_chm_mod.F90         \
 $(HDR)/gigc_state_met_mod.F90         \
-$(HDR)/jv_cmn_mod.F                   \
-$(HDR)/jv_mie_mod.F                   \
 $(HDR)/smv_dimension_mod.F            \
 $(HDR)/smv_physconst_mod.F            \
 $(CORE)/main.F                        \
@@ -117,6 +118,7 @@ $(CORE)/c2h6_mod.F                    \
 $(CORE)/cac_anthro_mod.F              \
 $(CORE)/canopy_nox_mod.F              \
 $(CORE)/carbon_mod.F                  \
+$(CORE)/chemgrid_mod.F                \
 $(CORE)/chemistry_mod.F               \
 $(CORE)/co2_mod.F                     \
 $(CORE)/comode_mod.F                  \
@@ -140,7 +142,7 @@ $(CORE)/drydep_mod.F                  \
 $(CORE)/dust_mod.F                    \
 $(CORE)/emep_mod.F                    \
 $(CORE)/emissions_mod.F               \
-$(CORE)/fjx_acet_mod.F                \
+$(CORE)/fast_jx_mod.F                 \
 $(CORE)/gamap_mod.F                   \
 $(CORE)/gcap_read_mod.F               \
 $(CORE)/get_ndep_mod.F                \
@@ -199,10 +201,10 @@ $(CORE)/tagged_ox_mod.F               \
 $(CORE)/toms_mod.F                    \
 $(CORE)/tpcore_bc_mod.F               \
 $(CORE)/tracer_mod.F                  \
-$(CORE)/tropopause_mod.F              \
 $(CORE)/tpcore_fvdas_mod.F90          \
 $(CORE)/tpcore_geos5_window_mod.F90   \
 $(CORE)/transport_mod.F               \
+$(CORE)/ucx_mod.F                     \
 $(CORE)/vdiff_mod.F90                 \
 $(CORE)/vdiff_pre_mod.F               \
 $(CORE)/vistas_anthro_mod.F           \
@@ -217,29 +219,14 @@ $(CORE)/diag_2pm.F                    \
 $(CORE)/diagoh.F                      \
 $(CORE)/emfossil.F                    \
 $(CORE)/emf_scale.F                   \
-$(CORE)/fast_j.F                      \
 $(CORE)/gasconc.F                     \
-$(CORE)/JRATET.F                      \
-$(CORE)/JVALUE.F                      \
-$(CORE)/jv_index.F                    \
 $(CORE)/initialize.F                  \
-$(CORE)/inphot.F                      \
 $(CORE)/lump.F                        \
 $(CORE)/ndxx_setup.F                  \
 $(CORE)/ohsave.F                      \
-$(CORE)/OPMIE.F                       \
 $(CORE)/partition.F                   \
-$(CORE)/photoj.F                      \
 $(CORE)/physproc.F                    \
-$(CORE)/RD_AOD.F                      \
-$(CORE)/rd_js.F                       \
-$(CORE)/RD_TJPL.F                     \
-$(CORE)/read_jv_atms_dat.F90          \
-$(CORE)/set_aer.F                     \
 $(CORE)/setemdep.F                    \
-$(CORE)/set_prof.F                    \
-$(CORE)/SPHERE.F                      \
-$(CORE)/read_jv_atms_dat.F90          \
 $(CORE)/ruralbox.F                    \
 $(CORE)/setemis.F                     \
 $(CORE)/sfcwindsqr.F                  \

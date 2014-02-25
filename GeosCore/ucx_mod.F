@@ -224,6 +224,37 @@
 ! !IROUTINE: set_initial_mixratios
 !
 ! !DESCRIPTION: Subroutine SET\_INITIAL\_MIXRATIOS is a public interface.
+!  Concentrations of tracers are read from 2D estimates made using the
+!  AER 2D model.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
+     &                                  State_Chm )
+!
+! !USES:
+!
+      USE ERROR_MOD,          ONLY : ALLOC_ERR,ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE TRACERID_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
+!
+! !REMARKS:
 !  Concentrations of each of the following tracers are read from
 !  2D estimates made using the AER 2D model:
 !                                                                             .
@@ -264,33 +295,6 @@
 !     (33) CHBr3               = CHBr3                < LSETBR || LSETBRSTRAT
 !     (34) CH2Br2              = CH2Br2               < LSETBR || LSETBRSTRAT
 !     (35) CH3Br               = CH3Br                < LSETBR || LSETBRSTRAT
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
-     &                                  State_Chm )
-!
-! !USES:
-!
-      USE ERROR_MOD,          ONLY : ALLOC_ERR,ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_YMID
-      USE TIME_MOD,           ONLY : GET_MONTH
-      USE TIME_MOD,           ONLY : GET_YEAR
-      USE TRACERID_MOD
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
@@ -1186,7 +1190,7 @@
 !
 ! !DESCRIPTION: Subroutine GET\_NOXCOEFF reads in O1D and O3P mixing  
 !  ratios along with NO, NO2, NO3 and N2O J-rates from 2D data, 
-!  interpolating onto the 3D grid and storing in NOX_O and NOX_J.
+!  interpolating onto the 3D grid and storing in NOX\_O and NOX\_J.
 !\\
 !\\
 ! !INTERFACE:
@@ -1831,7 +1835,7 @@
 ! !IROUTINE: set_montreal
 !
 ! !DESCRIPTION: Subroutine SET\_MONTREAL calls GET\_MONTREAL for the surface 
-!  mixing ratio for a specific year, and applies it to GRID_EMIT.
+!  mixing ratio for a specific year, and applies it to GRID\_EMIT.
 !\\
 !\\
 ! !INTERFACE:
