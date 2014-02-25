@@ -1,6 +1,5 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.4 2010/02/02 16:57:51 bmy Exp $
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -199,11 +198,11 @@ MODULE Tpcore_FvDas_Mod
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
-
+!BOC
 CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -324,7 +323,7 @@ CONTAINS
   END SUBROUTINE Init_Tpcore
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -361,7 +360,7 @@ CONTAINS
   END SUBROUTINE Exit_Tpcore
 !EOC  
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1094,7 +1093,7 @@ CONTAINS
   END SUBROUTINE Tpcore_FvDas
 !EOC  
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1248,7 +1247,7 @@ CONTAINS
   END SUBROUTINE Average_Const_Poles
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1367,7 +1366,7 @@ CONTAINS
   END SUBROUTINE Set_Cross_Terms
 !EOC  
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1471,7 +1470,7 @@ CONTAINS
   END SUBROUTINE Calc_Vert_Mass_Flux
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1608,7 +1607,7 @@ CONTAINS
   END SUBROUTINE Set_Jn_Js
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1818,7 +1817,7 @@ CONTAINS
   END SUBROUTINE Calc_Advec_Cross_Terms
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2014,7 +2013,7 @@ CONTAINS
   END SUBROUTINE Qckxyz
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2106,7 +2105,7 @@ CONTAINS
   END SUBROUTINE Set_Lmts
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2212,7 +2211,7 @@ CONTAINS
   END SUBROUTINE Set_Press_Terms
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2320,7 +2319,7 @@ CONTAINS
   END SUBROUTINE Calc_Courant
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2455,7 +2454,7 @@ CONTAINS
   END SUBROUTINE Calc_Divergence
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2595,7 +2594,7 @@ CONTAINS
   END SUBROUTINE Do_Divergence_Pole_Sum
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2719,7 +2718,7 @@ CONTAINS
   END SUBROUTINE Do_Cross_Terms_Pole_I2d2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2979,7 +2978,7 @@ CONTAINS
   END SUBROUTINE Xadv_Dao2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3146,7 +3145,7 @@ CONTAINS
   END SUBROUTINE Yadv_Dao2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3275,7 +3274,7 @@ CONTAINS
   END SUBROUTINE Do_Yadv_Pole_I2d2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3417,7 +3416,7 @@ CONTAINS
   END SUBROUTINE Do_Yadv_Pole_Sum
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3704,7 +3703,7 @@ CONTAINS
   END SUBROUTINE Xtp
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3818,7 +3817,7 @@ CONTAINS
   END SUBROUTINE Xmist
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4053,7 +4052,7 @@ CONTAINS
   END SUBROUTINE Fxppm
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4249,7 +4248,7 @@ CONTAINS
   END SUBROUTINE Lmtppm
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4444,7 +4443,7 @@ CONTAINS
   END SUBROUTINE Ytp
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4603,7 +4602,7 @@ CONTAINS
   END SUBROUTINE Ymist
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4780,7 +4779,7 @@ CONTAINS
   END SUBROUTINE Do_Ymist_Pole1_I2d2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4951,7 +4950,7 @@ CONTAINS
   END SUBROUTINE Do_Ymist_Pole2_I2d2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5164,7 +5163,7 @@ CONTAINS
   END SUBROUTINE Fyppm
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5245,7 +5244,7 @@ CONTAINS
   END SUBROUTINE Do_Fyppm_Pole_I2d2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5381,7 +5380,7 @@ CONTAINS
   END SUBROUTINE Do_Ytp_Pole_Sum
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5923,7 +5922,7 @@ CONTAINS
 
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

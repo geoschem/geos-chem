@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: global_grid_mod.F90
+! !MODULE: global_grid_mod
 !
 ! !DESCRIPTION: Module GLOBAL\_GRID\_MOD contains variables and routines which
 !  are used to specify the parameters of a GEOS-Chem global horizontal grid.
@@ -71,7 +71,7 @@ MODULE Global_Grid_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -268,7 +268,7 @@ CONTAINS
   END SUBROUTINE Compute_Global_Grid
 !EOC
 !------------------------------------------------------------------------------
-!          Prasad Kasibhatla - Duke University                                !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -295,7 +295,7 @@ CONTAINS
       END FUNCTION Get_IIIPAR
 !EOC
 !------------------------------------------------------------------------------
-!          Prasad Kasibhatla - Duke University                                !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -322,7 +322,7 @@ CONTAINS
       END FUNCTION Get_JJJPAR
 !EOC
 !------------------------------------------------------------------------------
-!          Prasad Kasibhatla - Duke University                                !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -354,7 +354,7 @@ CONTAINS
       END FUNCTION Get_xEdge_G
 !EOC
 !------------------------------------------------------------------------------
-!          Prasad Kasibhatla - Duke University                                !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -386,7 +386,7 @@ CONTAINS
       END FUNCTION Get_yEdge_G
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -462,7 +462,7 @@ CONTAINS
   END SUBROUTINE Init_Global_Grid
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

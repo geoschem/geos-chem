@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -74,7 +74,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -202,7 +202,7 @@
 #endif
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -260,7 +260,7 @@
 #endif
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -501,7 +501,7 @@
 #endif
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -577,7 +577,7 @@
       END SUBROUTINE INIT_HDF
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

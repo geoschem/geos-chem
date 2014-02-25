@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -297,7 +297,7 @@
       END SUBROUTINE EMISS_RETRO
 !EOC
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -462,7 +462,7 @@
       END SUBROUTINE READ_RETRO
 !EOC
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -620,7 +620,7 @@
       END SUBROUTINE TOTAL_ANTHRO_TG
 !EOC
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -710,7 +710,7 @@
       END FUNCTION GET_RETRO_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -816,7 +816,7 @@
       END SUBROUTINE INIT_RETRO
 !EOC
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

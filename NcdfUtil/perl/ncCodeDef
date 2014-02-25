@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -55,7 +55,7 @@
 #  07 Mar 2012 - R. Yantosca - Minor fix, ignore comment lines
 #EOP
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -143,7 +143,7 @@ sub readRcFile($) {
 }
 #EOC
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -186,7 +186,7 @@ sub writeFortranVars($@) {
   $txt .= <<EOF;
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -308,7 +308,7 @@ EOF2
 }
 #EOC
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -449,7 +449,7 @@ EOF2
 }
 #EOC
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -524,7 +524,7 @@ EOF
 }
 #EOC
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -574,7 +574,7 @@ EOF
 }
 #EOC
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -623,7 +623,7 @@ EOF
 }
 #EOC
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -745,7 +745,7 @@ EOF2
 }
 #EOC
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #

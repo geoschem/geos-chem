@@ -1,10 +1,9 @@
-! $Id: julday_mod.f,v 1.1 2009/11/20 21:43:04 bmy Exp $
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: julday_mod.f
+! !MODULE: julday_mod
 !
 ! !DESCRIPTION: Module JULDAY\_MOD contains routines used to convert from 
 !  month/day/year to Astronomical Julian Date and back again.
@@ -42,7 +41,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -149,7 +148,7 @@
       END FUNCTION JULDAY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -192,7 +191,7 @@
       END FUNCTION MINT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

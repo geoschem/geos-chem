@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!         Caltech Department of Chemical Engineering / Seinfeld Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -93,7 +93,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!         Caltech Department of Chemical Engineering / Seinfeld Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -595,7 +595,7 @@
       END SUBROUTINE DO_ISOROPIAII
 !EOC
 !------------------------------------------------------------------------------
-!         Caltech Department of Chemical Engineering / Seinfeld Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -633,7 +633,7 @@
       END FUNCTION SAFELOG10
 !EOC
 !------------------------------------------------------------------------------
-!         Caltech Department of Chemical Engineering / Seinfeld Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -686,7 +686,7 @@
       END FUNCTION GET_ISRINFO
 !EOC
 !------------------------------------------------------------------------------
-!         Caltech Department of Chemical Engineering / Seinfeld Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -745,7 +745,7 @@
       END FUNCTION GET_HNO3
 !EOC
 !------------------------------------------------------------------------------
-!         Caltech Department of Chemical Engineering / Seinfeld Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -778,7 +778,7 @@
       END SUBROUTINE SET_HNO3
 !EOC
 !------------------------------------------------------------------------------
-!         Caltech Department of Chemical Engineering / Seinfeld Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -829,7 +829,7 @@
       END SUBROUTINE GET_GNO3
 !EOC
 !------------------------------------------------------------------------------
-!         Caltech Department of Chemical Engineering / Seinfeld Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -901,7 +901,7 @@
       END SUBROUTINE INIT_ISOROPIAII
 !EOC
 !------------------------------------------------------------------------------
-!         Caltech Department of Chemical Engineering / Seinfeld Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

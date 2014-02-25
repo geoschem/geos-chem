@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -126,7 +126,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -372,7 +372,7 @@
       END FUNCTION GET_NEI2005_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1325,7 +1325,7 @@
       END SUBROUTINE EMISS_NEI2005_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!       Dalhousie University Atmospheric Compositional Analysis Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1746,7 +1746,7 @@
       END SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1889,7 +1889,7 @@
       END SUBROUTINE GET_NEI99_SEASON
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1959,7 +1959,7 @@
       END SUBROUTINE GET_NEI99_SEASON_05x0666
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2138,7 +2138,7 @@
       END SUBROUTINE GET_VISTAS_SEASON
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2206,7 +2206,7 @@
       END SUBROUTINE GET_VISTAS_SEASON_05x0666
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2320,7 +2320,7 @@
       END SUBROUTINE GET_NEI99_WKSCALE
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2393,7 +2393,7 @@
       END SUBROUTINE GET_NEI99_WKSCALE_05x0666
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2493,7 +2493,7 @@
 ! Leave for future use (bmy, 12/3/09)
 !!EOC
 !!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!                  GEOS-Chem Global Chemical Transport Model                  !
 !!------------------------------------------------------------------------------
 !!BOP
 !!
@@ -2533,7 +2533,7 @@
 !------------------------------------------------------------------------------
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2614,7 +2614,7 @@
       END SUBROUTINE NEI2005_SCALE_FUTURE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2742,7 +2742,7 @@
       END SUBROUTINE TOTAL_ANTHRO_Tg
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2924,7 +2924,7 @@
       END SUBROUTINE INIT_NEI2005_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

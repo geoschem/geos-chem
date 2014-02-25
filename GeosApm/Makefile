@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -775,7 +775,7 @@ input_mod.o                 : input_mod.F                                    \
                               tpcore_bc_mod.o         tracerid_mod.o         \
                               tracer_mod.o            transport_mod.o        \
                               tropopause_mod.o        wetscav_mod.o          \
-                              apm_init_mod.o
+                              linoz_mod.o             apm_init_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               global_hno3_mod.o       tracerid_mod.o         \
@@ -1037,7 +1037,8 @@ ssa_bromine_mod.o           : ssa_bromine_mod.F                              \
 strat_chem_mod.o            : strat_chem_mod.F90                             \
                               dao_mod.o               logical_mod.o          \
                               linoz_mod.o             tracer_mod.o           \
-                              tracerid_mod.o          tropopause_mod.o
+                              tracerid_mod.o          tropopause_mod.o       \
+                              tagged_ox_mod.o
 
 streets_anthro_mod.o        : streets_anthro_mod.F                           \
                               dao_mod.o               future_emissions_mod.o \
@@ -1137,12 +1138,39 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      get_ndep_mod.o         \
                               get_popsinfo_mod.o      tracerid_mod.o         \
-                              tracer_mod.o            apm_init_mod.o
+                              tracer_mod.o            tomas_mod.o            \
+                              apm_init_mod.o
 
 XSEC1D.o                    : XSEC1D.F
 
 XSECO2.o                    : XSECO2.F
 
 XSECO3.o                    : XSECO3.F
+
+#------------------------------------------------------------------------------
+# Dependencies of files specific to TOMAS microphysics (bmy, 1/25/10)
+#------------------------------------------------------------------------------
+
+tomas_mod.o                 : tomas_mod.F                                    \
+                              dao_mod.o               diag_mod.o             \
+                              diag_pl_mod.o           tropopause_mod.o       \
+                              tracerid_mod.o          ion_nucl.o             \
+                              YuIMN_Code.o            cf_nucl.o
+
+tomas_tpcore_mod.o          : tomas_tpcore_mod.F90                           \
+                              tomas_mod.o             tracerid_mod.o
+
+
+aero_drydep.o               : aero_drydep.F                                  \
+                              diag_mod.o              drydep_mod.o           \
+                              dust_mod.o              pbl_mix_mod.o          \
+                              tomas_mod.o             tracerid_mod.o         \
+                              tropopause_mod.o
+
+ion_nucl.o                  : ion_nucl.F
+
+YuIMN_Code.o                : YuIMN_Code.F
+
+cf_nucl.o                   : cf_nucl.F
 
 #EOC

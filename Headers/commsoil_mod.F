@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -131,13 +131,13 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_commsoil_mod
+! !IROUTINE: init_commsoil
 !
-! !DESCRIPTION: Routine SET\_COMMSOIL\_MOD allocates all module arrays
+! !DESCRIPTION: Routine INIT\_COMMSOIL allocates all module arrays
 !  with the longitude and latitude values IIPAR and JJPAR.
 !\\
 !\\
@@ -260,7 +260,7 @@
       END SUBROUTINE Init_COMMSOIL
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

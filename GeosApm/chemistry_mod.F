@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -57,7 +57,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -113,6 +113,7 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTACET
       USE TRACERID_MOD,       ONLY : IDTISOP
+      USE TRACERID_MOD,       ONLY : IDTDST1
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
       USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
@@ -380,8 +381,9 @@
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
+
             ! Do dust aerosol chemistry
-            IF ( LDUST ) THEN
+            IF ( LDUST .AND. IDTDST1 > 0 ) THEN
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
@@ -630,7 +632,7 @@
       END SUBROUTINE DO_CHEMISTRY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -953,7 +955,7 @@
       END SUBROUTINE GCKPP_DRIVER
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

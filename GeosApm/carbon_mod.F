@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !     
@@ -345,7 +345,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -797,7 +797,7 @@
       END SUBROUTINE CHEMCARBON
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -998,7 +998,7 @@
       END SUBROUTINE CHEM_BCPO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1189,7 +1189,7 @@
       END SUBROUTINE CHEM_BCPI
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1390,7 +1390,7 @@
       END SUBROUTINE CHEM_OCPO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1582,7 +1582,7 @@
 !EOC
 #if   defined( TOMAS )
 !-------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1642,7 +1642,7 @@
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1892,7 +1892,7 @@
       END SUBROUTINE SOAG_LIGGIO_DIFF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2142,7 +2142,7 @@
       END SUBROUTINE SOAM_LIGGIO_DIFF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3073,7 +3073,7 @@
       END SUBROUTINE SOA_CHEMISTRY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3161,7 +3161,7 @@
       END FUNCTION SOA_EQUIL
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3331,7 +3331,7 @@
       END FUNCTION ZEROIN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3433,7 +3433,7 @@
       END FUNCTION RTBIS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3778,7 +3778,7 @@
       END SUBROUTINE SOA_PARA
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4169,7 +4169,7 @@
       END SUBROUTINE SOA_PARA_INIT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4626,7 +4626,7 @@
       END SUBROUTINE CHEM_NVOC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4802,7 +4802,7 @@
       END SUBROUTINE SOA_PARTITION
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5295,7 +5295,7 @@
       END SUBROUTINE SOA_LUMP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5470,7 +5470,7 @@
       END SUBROUTINE SOA_DEPO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5573,6 +5573,7 @@
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  18 Oct 2013 - M. Sulprizio- Do not call ANTHRO_CARB_TBOND when LRCP is true.
 !                              RCP emissions include biofuel. (C. Heald)
+!  28 Jan 2014 - R. Yantosca - Avoid array temporary in calls to EMITSGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5609,6 +5610,10 @@
       REAL*4               :: BOXVOL  ! calculated from State_Met
       REAL*4               :: TEMPTMS ! calculated from State_Met
       REAL*4               :: PRES    ! calculated from State_Met
+
+      ! Temporary array for passing data to EMITSGC.  This will
+      ! avoid the creation of array temporaries. (bmy, 1/28/14)
+      REAL*8               :: TMP_MASS(IIPAR,JJPAR,IBINS)
 #endif
 
 #if   defined( APM )
@@ -6082,8 +6087,18 @@
          enddo
       endif
 !temp debug --------
-            CALL EMITSGC( EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2), 1,
-     &                    Input_Opt, State_Met, State_Chm )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 1/28/14:
+!%%% Avoid the creation of array temporaries in call to EMITSGC (bmy, 1/28/14)
+!%%%            CALL EMITSGC( EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2), 1,
+!%%%     &                    Input_Opt, State_Met, State_Chm )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            ! Now sum mass terms into TEMP_MASS and then pass to EMITSGC
+            ! This avoids the creation of an array temporary. (bmy, 1/28/14)
+            TMP_MASS = EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2)
+            CALL EMITSGC( TMP_MASS, 1, Input_Opt, State_Met, State_Chm )
+
 !temp debug            if(sum(OC30SRC(ii,jj,:,:)) > 0d0) dbg = .true.
       if( dbg) then
          print *,'===== Before EMITSGC:OC ===== at',ii,jj,ll
@@ -6096,8 +6111,18 @@
          enddo
       endif
 !temp debug --------
-            CALL EMITSGC( OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2), 2,
-     &                    Input_Opt, State_Met, State_Chm )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 1/28/14:
+!%%% Avoid the creation of array temporaries in call to EMITSGC (bmy, 1/28/14)
+!%%%          CALL EMITSGC( OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2), 2,
+!%%%     &                    Input_Opt, State_Met, State_Chm )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            ! Now sum mass terms into TEMP_MASS and then pass to EMITSGC
+            ! This avoids the creation of an array temporary. (bmy, 1/28/14)
+            TMP_MASS = OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2)
+            CALL EMITSGC( TMP_MASS, 2, Input_Opt, State_Met, State_Chm )
+
 !temp debug
       if( dbg) then
          print *,'===== After EMITSGC:OC ===== at',ii,jj,ll
@@ -6210,7 +6235,7 @@
 !EOC
 #if   defined( TOMAS )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6350,10 +6375,19 @@
             MADDFINAL(K) = 0d0
          ENDDO
 
-         IF( SRTNH4 > 0 ) 
-     &        CALL NH4BULKTOBIN( MDIST(1:IBINS,SRTSO4),
-     &                           STT(I,J,L,IDTNH4),
-     &                           MDIST(1:IBINS,SRTNH4) )
+!------------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
+!         IF( SRTNH4 > 0 ) 
+!     &        CALL NH4BULKTOBIN( MDIST(1:IBINS,SRTSO4),
+!     &                           STT(I,J,L,IDTNH4),
+!     &                           MDIST(1:IBINS,SRTNH4) )
+!------------------------------------------------------------------------------
+         IF ( SRTNH4 > 0 ) THEN
+            CALL NH4BULKTOBIN( MDIST(:,SRTSO4),
+     &                         STT(I,J,L,IDTNH4),
+     &                         MDIST(:,SRTNH4) )
+         ENDIF
 
          ! Save initial info for diagnostic
          N0(L,:) = NDIST(:)
@@ -6518,7 +6552,7 @@ ccc
       END SUBROUTINE EMITSGC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6686,7 +6720,7 @@ ccc
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7115,7 +7149,7 @@ ccc
       END SUBROUTINE BIOGENIC_OC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7531,7 +7565,7 @@ ccc
       END SUBROUTINE ANTHRO_CARB_TBOND
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7789,7 +7823,7 @@ ccc
       END SUBROUTINE ANTHRO_CARB_COOKE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7899,7 +7933,7 @@ ccc
       END SUBROUTINE ANTHRO_CARB_RCP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8061,7 +8095,7 @@ ccc
       END SUBROUTINE BIOMASS_CARB_TBOND
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8220,7 +8254,7 @@ ccc
         END SUBROUTINE BIOMASS_CARB_GEOS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8470,7 +8504,7 @@ ccc
 !EOC
 #if defined( TOMAS )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8597,7 +8631,7 @@ ccc
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8746,7 +8780,7 @@ ccc
       END SUBROUTINE OHNO3TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8861,7 +8895,7 @@ ccc
       END FUNCTION GET_OH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -9010,7 +9044,7 @@ ccc
       END FUNCTION GET_NO3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -9146,7 +9180,7 @@ ccc
       END FUNCTION GET_O3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -9379,7 +9413,7 @@ ccc
       END FUNCTION GET_DARO2
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -9484,7 +9518,7 @@ ccc
       END FUNCTION GET_DOH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -9577,7 +9611,7 @@ ccc
       END SUBROUTINE GET_VCLDF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -9630,7 +9664,7 @@ ccc
       END FUNCTION GET_LWC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -9869,7 +9903,7 @@ ccc
       END SUBROUTINE SOAG_CLOUD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -10103,7 +10137,7 @@ ccc
       END SUBROUTINE SOAM_CLOUD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -10470,7 +10504,7 @@ ccc
       END SUBROUTINE CHECK_EQLB
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -10614,7 +10648,7 @@ ccc
       END SUBROUTINE SAVE_OAGINIT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -11162,7 +11196,7 @@ ccc
       END SUBROUTINE CHECK_MB
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -11240,7 +11274,7 @@ ccc
       END FUNCTION GET_NO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -11318,7 +11352,7 @@ ccc
       END FUNCTION GET_HO2
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -11428,7 +11462,7 @@ ccc
       END FUNCTION GET_ISOPNO3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -11900,7 +11934,7 @@ ccc
       END SUBROUTINE INIT_CARBON
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -11965,7 +11999,7 @@ ccc
 !EOC
 #if   defined( APM )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -12107,7 +12141,7 @@ ccc
       END SUBROUTINE CHEM_BCPONEW
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -12244,7 +12278,7 @@ ccc
       END SUBROUTINE CHEM_BCPINEW
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -12387,7 +12421,7 @@ ccc
       END SUBROUTINE CHEM_OCPONEW
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -12525,7 +12559,7 @@ ccc
       END SUBROUTINE CHEM_OCPINEW
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

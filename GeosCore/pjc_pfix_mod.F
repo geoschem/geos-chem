@@ -1,6 +1,5 @@
-! $Id: pjc_pfix_mod.f,v 1.1 2009/09/16 14:06:15 bmy Exp $
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -156,7 +155,7 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -288,7 +287,7 @@
       END SUBROUTINE Do_Pjc_Pfix
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -409,7 +408,7 @@
       END SUBROUTINE Calc_Pressure
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -508,7 +507,7 @@
       END SUBROUTINE Calc_Advection_Factors
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -736,7 +735,7 @@
       END SUBROUTINE Adjust_Press
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -905,7 +904,7 @@
       END SUBROUTINE Init_Press_Fix
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1122,7 +1121,7 @@ c     --------------------------------------
       END SUBROUTINE Do_Press_Fix_Llnl
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1190,7 +1189,7 @@ c     --------------------------------------
       END SUBROUTINE Average_Press_Poles
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1370,7 +1369,7 @@ c     --------------------------------------
       END SUBROUTINE Convert_Winds
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1500,7 +1499,7 @@ c     --------------------------------------
       END SUBROUTINE Calc_Horiz_Mass_Flux
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1618,7 +1617,7 @@ c     --------------------------------------
       END SUBROUTINE Calc_Divergence
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1708,7 +1707,7 @@ c     --------------------------------------
       END SUBROUTINE Set_Press_Terms
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1841,7 +1840,7 @@ c     --------------------------------------
       END SUBROUTINE Do_Divergence_Pole_Sum
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1903,7 +1902,7 @@ c     --------------------------------------
       END SUBROUTINE Xpavg
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2128,7 +2127,7 @@ c     --------------------------------------
       END SUBROUTINE Init_Pjc_Pfix
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

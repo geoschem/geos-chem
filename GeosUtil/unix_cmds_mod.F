@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: unix_cmds_mod.f
+! !MODULE: unix_cmds_mod
 !
 ! !DESCRIPTION: Module UNIX\_CMDS\_MOD contains variables which contain file 
 !  suffixes and various Unix command strings.
