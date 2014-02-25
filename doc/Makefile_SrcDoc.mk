@@ -77,6 +77,7 @@
 #  20 Aug 2013 - R. Yantosca - Remove reference to "define.h"
 #  05 Sep 2013 - M. Sulprizio- Added global_hno3_mod
 #  15 Jan 2014 - R. Yantosca - Now only create *.pdf file output
+#  25 Feb 2014 - M. Sulprizio- Added a3_read_mod, a6_read_mod, and i6_read_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -103,6 +104,8 @@ $(HDR)/jv_mie_mod.F                   \
 $(HDR)/smv_dimension_mod.F            \
 $(HDR)/smv_physconst_mod.F            \
 $(CORE)/main.F                        \
+$(CORE)/a3_read_mod.F                 \
+$(CORE)/a6_read_mod.F                 \
 $(CORE)/acetone_mod.F                 \
 $(CORE)/aeic_mod.F                    \
 $(CORE)/aerosol_mod.F                 \
@@ -157,6 +160,7 @@ $(CORE)/global_o3_mod.F               \
 $(CORE)/global_oc_mod.F               \
 $(CORE)/global_oh_mod.F               \
 $(CORE)/h2_hd_mod.F                   \
+$(CORE)/i6_read_mod.F                 \
 $(CORE)/icoads_ship_mod.F             \
 $(CORE)/input_mod.F                   \
 $(CORE)/isoropiaII_mod.F              \

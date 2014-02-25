@@ -745,7 +745,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: check_time
 !
 ! !DESCRIPTION: Function CHECK\_TIME checks to see if the timestamp of the A3 
 !  field just read from disk matches the current time.  If so, then it's 
@@ -778,10 +778,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Arguments 
-      
-      ! Function value
-
       !=================================================================
       ! CHECK_TIME begins here!
       !=================================================================
