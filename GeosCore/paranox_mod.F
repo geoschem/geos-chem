@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -58,7 +58,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -160,7 +160,7 @@
 ! Prior to 5/31/13:
 ! Comment out, this subroutine is not used here (bmy, 5/31/13)
 !!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!                  GEOS-Chem Global Chemical Transport Model                  !
 !!------------------------------------------------------------------------------
 !!BOP
 !!
@@ -582,7 +582,7 @@
 !!EOC
 !##############################################################################
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

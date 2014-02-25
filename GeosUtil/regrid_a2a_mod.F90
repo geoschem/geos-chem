@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Matthew Cooper - Dalhousie University                              !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: regrid_a2a_mod.F90
+! !MODULE: regrid_a2a_mod
 !
 ! !DESCRIPTION: Module REGRID\_A2A\_MOD uses an algorithm adapted from MAP\_A2A
 !   code to regrid from one horizonatal grid to another.
@@ -46,7 +46,7 @@ MODULE REGRID_A2A_MOD
   CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -255,7 +255,7 @@ MODULE REGRID_A2A_MOD
   END SUBROUTINE DO_REGRID_A2A
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -371,7 +371,7 @@ MODULE REGRID_A2A_MOD
   END SUBROUTINE map_a2a
 !EOC
 !------------------------------------------------------------------------------
-!                   Prasad Kasibhatla - Duke University                       !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -536,7 +536,7 @@ MODULE REGRID_A2A_MOD
    END SUBROUTINE YMAP
 !EOC
 !------------------------------------------------------------------------------
-!                   Prasad Kasibhatla - Duke University                       !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -732,7 +732,7 @@ MODULE REGRID_A2A_MOD
   END SUBROUTINE xmap
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

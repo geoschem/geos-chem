@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: smv_dimension_mod.F
+! !MODULE: smv_dimension_mod
 !
 ! !DESCRIPTION: This include file contains the various placeholder parameters
 !  that are required to replace references to GEOS-Chem grid parameters.  
