@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -58,13 +58,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
       CONTAINS      
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -538,8 +535,9 @@
       ! END OF SUBROUTINE FAST-J
       !-----------------------------------------------------------
       END SUBROUTINE FAST_JX
+!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -833,10 +831,9 @@ c---SUMBX = flux from Lambert reflected I+
       enddo
 
       END SUBROUTINE BLKSLV
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1100,7 +1097,7 @@ C------------lower boundary, 2nd-order, A-matrix is full (AA)
       END SUBROUTINE GEN_ID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1217,10 +1214,9 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
       endif
 
       END SUBROUTINE JRATET
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1279,10 +1275,9 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
       endif
 
       END SUBROUTINE X_INTERP
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1431,10 +1426,9 @@ c  Lowest level intersected by emergent beam
    16 continue
 
       END SUBROUTINE SPHERE2
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1547,10 +1541,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
   10  continue
 
       END SUBROUTINE EXTRAL
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1591,10 +1584,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       CALL ERROR_STOP( T_EXIT, 'fast_jx_mod.F' )
 
       END SUBROUTINE EXITC
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1739,10 +1731,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       call JV_INDEX(am_I_Root)
 
       END SUBROUTINE INIT_FJX
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2016,7 +2007,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       END SUBROUTINE RD_XXX
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2102,10 +2093,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
   110 format(3x,a20)
 
       END SUBROUTINE RD_MIE
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2225,7 +2215,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       END SUBROUTINE RD_AOD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2342,10 +2332,9 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       enddo
 
       END SUBROUTINE RD_JS_JX
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2401,10 +2390,9 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       SOLFX  = 1.d0-(0.034d0*cos(dble(NDAY-172)*2.d0*PI/365.d0))
 
       END SUBROUTINE SOLAR_JX
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2899,10 +2887,9 @@ C-----------------------------------------------------------------------
    99 continue
 
       END SUBROUTINE PHOTO_JX
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3338,10 +3325,9 @@ c---diffuse fluxes reflected at top, incident at bottom
       enddo  ! wavelength loop!
 
       END SUBROUTINE OPMIE
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3415,10 +3401,9 @@ c---BLKSLV now called with all the wavelength arrays (K=1:W_)
       call BLKSLV(FJ,POMEGA,FZ,ZTAU,ZFLUX,RFL,PM,PM0,FJT,FJB, ND)
 
       END SUBROUTINE MIESCT
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3470,10 +3455,9 @@ C---Always does PL(2) = P[1]
         enddo
 
       END SUBROUTINE LEGND0
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3746,10 +3730,9 @@ C---Always does PL(2) = P[1]
       ENDDO
 
       END SUBROUTINE SET_PROF
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3844,10 +3827,9 @@ c  Ensure all 'AN_' types are valid selections
      $       'between 1 and ',i3)
 
       END SUBROUTINE SET_AER
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3926,11 +3908,10 @@ c  Ensure all 'AN_' types are valid selections
 !         CALL EXITC('Bad photorate')
 !      ENDIF
 
-      ! Return to calling program
       END FUNCTION FJXFUNC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4042,7 +4023,7 @@ c  Ensure all 'AN_' types are valid selections
       END SUBROUTINE JV_INDEX
 !EOC
 !------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
