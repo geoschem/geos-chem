@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: charpak_mod.f
+! !MODULE: charpak_mod
 !
 ! !DESCRIPTION: Module CHARPAK\_MOD contains routines from the CHARPAK 
 !  string and character manipulation package used by GEOS-Chem.

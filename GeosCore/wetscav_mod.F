@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !     
@@ -197,7 +197,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -348,7 +348,7 @@
       END SUBROUTINE DO_WETDEP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -681,7 +681,7 @@
       END SUBROUTINE MAKE_QQ
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -730,7 +730,7 @@
       END FUNCTION E_ICE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -802,7 +802,7 @@
       END SUBROUTINE COMPUTE_L2G
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2195,7 +2195,7 @@
             CALL GETFRACTION( I, J, L, N, .FALSE., 
      &                        XFRAC, SOLFRAC, State_Chm%Tracers  )
             F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)                 
-            TOM_SC_FRACTION(I,J,L,N-IDTNK1+1) = XFRAC
+!            TOM_SC_FRACTION(I,J,L,N-IDTNK1+1) = XFRAC
 !            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
          ENDDO
          ENDDO
@@ -2784,7 +2784,7 @@
       END SUBROUTINE COMPUTE_F
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2893,7 +2893,7 @@
       END SUBROUTINE F_AEROSOL 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2976,7 +2976,7 @@
       END FUNCTION GET_ISOL
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4255,7 +4255,7 @@
       END SUBROUTINE RAINOUT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4299,7 +4299,7 @@
       END FUNCTION GET_RAINFRAC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4957,7 +4957,7 @@
       END SUBROUTINE WASHOUT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5047,7 +5047,7 @@
       END FUNCTION WASHFRAC_FINE_AEROSOL
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5131,7 +5131,7 @@
 !EOC
 #if defined( TOMAS )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5207,18 +5207,29 @@
          ! T >= 268K 
          !-------------
 
-         ! For aerosol number, get Dp and calculate scavr 
-         IF ( N < IDTNK1 + IBINS ) THEN
+!--------------------------------------------------------------
+!!sfarina - This contruct assumes tracers are dealt with sequentially,
+!!          but wetdep parallelizes over tracers
+!!          It could be possible to calculated the lookup table and save
+!!          in an I,J,L,BIN array but for now we will calculate redundantly.
+!         ! For aerosol number, get Dp and calculate scavr 
+!         IF ( N < IDTNK1 + IBINS ) THEN
+!            DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
+!            ! External function stratscav returns the scavenging rate (mm^-1)
+!            ! Let scavr has a unit of cm^-1
+!            SCAVR = 10.d0* STRATSCAV( DPAERO )
+!            SCAVRSAVE(N-IDTNK1+1) = scavr
+!         ELSE
+!            BIN = MOD( N - IDTNK1 + 1, IBINS )
+!            IF( BIN == 0 ) BIN = IBINS
+!            SCAVR = SCAVRSAVE(BIN)
+!         ENDIF
+!---------------------------------------------------------------
+
             DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
             ! External function stratscav returns the scavenging rate (mm^-1)
             ! Let scavr has a unit of cm^-1
             SCAVR = 10.d0* STRATSCAV( DPAERO )
-            SCAVRSAVE(N-IDTNK1+1) = scavr
-         ELSE
-            BIN = MOD( N - IDTNK1 + 1, IBINS )
-            IF( BIN == 0 ) BIN = IBINS
-            SCAVR = SCAVRSAVE(BIN)
-         ENDIF
 
          ! Prevent div by zero (bmy, 9/4/13)
          IF ( F > 0d0 ) THEN
@@ -5241,7 +5252,7 @@
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5319,7 +5330,7 @@
       END FUNCTION WASHFRAC_HNO3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5429,7 +5440,7 @@
       END SUBROUTINE WASHFRAC_LIQ_GAS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6039,7 +6050,7 @@
       END SUBROUTINE WETDEP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6552,7 +6563,7 @@
       END SUBROUTINE WETDEP_MERRA
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6598,7 +6609,7 @@
       END FUNCTION LS_K_RAIN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6646,7 +6657,7 @@
       END FUNCTION LS_F_PRIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6702,7 +6713,7 @@
       END FUNCTION CONV_F_PRIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6824,41 +6835,13 @@
 
 
 #if defined( TOMAS )
-
-!========================================================================
-!= sfarina                                                              =
-!= this section was optimized to remove the large array                 =
-!= TOM_SC_FRACTION which is used to reduce the number of                =
-!= calls to getfraction by assuming that all species behave             =
-!= the same and rainfrac only depends on the size bin.                  =
-!========================================================================
          IF ( IDTNK1 > 0 ) THEN
             IF ( N >= IDTNK1 .and. N < IDTNK1 + IBINS ) THEN  
                CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT ) 
                RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
-               TOM_SC_FRACTION(N-IDTNK1+1) = XFRAC
-             ELSE IF ( N >= IDTSF1 .and. N < IDTSF1 + IBINS ) THEN
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTSF1+1) 
-             ELSE IF ( N >= IDTSS1 .and. N < IDTSS1 + IBINS ) THEN
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTSS1+1) 
-             ELSE IF ( N >= IDTECIL1 .and. 
-     &                 N < IDTECIL1 + IBINS ) THEN 
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTECIL1+1) 
-             ELSE IF ( N >= IDTOCIL1 .and. 
-     &                 N < IDTOCIL1 + IBINS ) THEN 
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTOCIL1+1) 
-             ELSE IF ( N >= IDTOCOB1 .and. 
-     &                 N < IDTOCOB1 + IBINS ) THEN 
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTOCOB1+1) 
-             ELSE IF ( N >= IDTDUST1 .and. 
-     &                 N < IDTDUST1 + IBINS ) THEN 
-                RAINFRAC = RAINFRAC *
-     &                     TOM_SC_FRACTION(N-IDTDUST1+1) 
+             ELSE IF ( N >= IDTSF1 .and. N < IDTDUST1 + IBINS ) THEN
+               CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT ) 
+               RAINFRAC = RAINFRAC * XFRAC
              ENDIF
           ENDIF
 #endif
@@ -6940,7 +6923,7 @@
       END SUBROUTINE DO_RAINOUT_ONLY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7354,7 +7337,7 @@
       END SUBROUTINE DO_WASHOUT_ONLY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7541,7 +7524,7 @@
       END SUBROUTINE DO_COMPLETE_REEVAP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7747,7 +7730,7 @@
       END SUBROUTINE DO_WASHOUT_AT_SFC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7839,7 +7822,7 @@
       END SUBROUTINE SAFETY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8426,7 +8409,7 @@
       END SUBROUTINE WETDEPID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8615,7 +8598,7 @@
       END FUNCTION GET_WETDEP_NMAX
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8650,7 +8633,7 @@
       END FUNCTION GET_WETDEP_NSOL
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8699,7 +8682,7 @@
       END FUNCTION GET_WETDEP_IDWETD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8940,7 +8923,7 @@
       END SUBROUTINE INIT_WETSCAV
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

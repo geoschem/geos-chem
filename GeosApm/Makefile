@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -1094,6 +1094,33 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      get_ndep_mod.o         \
                               get_popsinfo_mod.o      tracerid_mod.o         \
-                              tracer_mod.o            apm_init_mod.o
+                              tracer_mod.o            tomas_mod.o            \
+                              apm_init_mod.o
+
+#------------------------------------------------------------------------------
+# Dependencies of files specific to TOMAS microphysics (bmy, 1/25/10)
+#------------------------------------------------------------------------------
+
+tomas_mod.o                 : tomas_mod.F                                    \
+                              dao_mod.o               diag_mod.o             \
+                              diag_pl_mod.o           tropopause_mod.o       \
+                              tracerid_mod.o          ion_nucl.o             \
+                              YuIMN_Code.o            cf_nucl.o
+
+tomas_tpcore_mod.o          : tomas_tpcore_mod.F90                           \
+                              tomas_mod.o             tracerid_mod.o
+
+
+aero_drydep.o               : aero_drydep.F                                  \
+                              diag_mod.o              drydep_mod.o           \
+                              dust_mod.o              pbl_mix_mod.o          \
+                              tomas_mod.o             tracerid_mod.o         \
+                              tropopause_mod.o
+
+ion_nucl.o                  : ion_nucl.F
+
+YuIMN_Code.o                : YuIMN_Code.F
+
+cf_nucl.o                   : cf_nucl.F
 
 #EOC

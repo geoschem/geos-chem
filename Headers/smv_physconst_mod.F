@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: smv_physconst_mod.F
+! !MODULE: smv_physconst_mod
 !
 ! !DESCRIPTION: This include file contains physical constants for the
 !  GEOS-Chem column chemistry code. 

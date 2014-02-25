@@ -1,37 +1,39 @@
-! $Id: i6_read_mod.f,v 1.2 2009/10/15 14:52:20 bmy Exp $
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: i6_read_mod
+!
+! !DESCRIPTION: Module I6\_READ\_MOD contains routines that unzip, open, and 
+!  read the GEOS-Chem I6 (instantaneous 6-hour) met fields from disk. 
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE I6_READ_MOD
 !
-!******************************************************************************
-!  Module I6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 10/15/09)
-! 
-!  Module Routines:
-!  =========================================================================
-!  (1 ) UNZIP_I6_FIELDS : Unzips & copies met field files to a temp dir
-!  (2 ) OPEN_I6_FIELDS  : Opens met field files residing in the temp dir
-!  (3 ) GET_I6_FIELDS_1 : Wrapper for routine READ_I6
-!  (4 ) GET_I6_FIELDS_2 : Wrapper for routine READ_I6
-!  (5 ) GET_N_I6        : Returns # of A-3 fields for each DAO data set 
-!  (6 ) READ_I6         : Reads A-3 fields from disk
-!  (7 ) I6_CHECK        : Checks if we have found all of the fields
-! 
-!  GEOS-CHEM modules referenced by i6_read_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f       : Module containing arrays for DAO met fields
-!  (3 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
-!  (5 ) error_mod.f     : Module containing NaN and other error check routines
-!  (6 ) logical_mod.f   : Module containing GEOS-CHEM logical switches 
-!  (7 ) file_mod.f      : Module containing file unit #'s and error checks
-!  (8 ) time_mod.f      : Module containing routines for computing time & date
-!  (9 ) transfer_mod.f  : Module containing routines to cast & resize arrays
-!  (10) tropopause_mod.f: Module containing routines for tropopause (only for 
-!                         variable one here)
-!  (11) unix_cmds_mod.f : Module containing Unix commands for unzipping etc.
+! !USES:
 !
-!  NOTES:
+      USE inquireMod, ONLY : findFreeLUN
+
+      IMPLICIT NONE
+      PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
+      PUBLIC :: GET_I6_FIELDS_1
+      PUBLIC :: GET_I6_FIELDS_2
+      PUBLIC :: OPEN_I6_FIELDS 
+      PUBLIC :: UNZIP_I6_FIELDS 
+!
+! !REMARKS:
+!  This module reads GEOS-4, GEOS-5, and GCAP met fields
+!  MERRA met fields are read in routines merra_*_mod.F
+!  GEOS-FP met fields are read in geosfp_read_mod.F
+!
+! !REVISION HISTORY:
+!  23 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Now use TIMESTAMP_STRING for formatted date/time output (bmy, 10/28/03)
 !  (3 ) Now reads either zipped or unzipped files (bmy, 12/11/03)
@@ -53,30 +55,13 @@
 !  03 Aug 2012 - R. Yantosca - Now make IU_I6 a private module variable
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!******************************************************************************
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      USE inquireMod, ONLY : findFreeLUN
-
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "i6_read_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: GET_I6_FIELDS_1
-      PUBLIC :: GET_I6_FIELDS_2
-      PUBLIC :: OPEN_I6_FIELDS 
-      PUBLIC :: UNZIP_I6_FIELDS 
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+! !PRIVATE TYPES:
+!
       ! Number of I6 fields in the file
       INTEGER :: N_I6_FIELDS
 
@@ -84,27 +69,41 @@
       INTEGER :: IU_I6
       INTEGER :: IU_TP
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: unzip_i6_fields 
+!
+! !DESCRIPTION: Subroutine UNZIP\_I6\_FIELDS invokes a FORTRAN system call 
+!  to uncompress GEOS-Chem I-6 met field files and store the uncompressed data 
+!  in a temporary directory, where GEOS-CHEM can read them.  The original data 
+!  files are not disturbed.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE UNZIP_I6_FIELDS( Input_Opt, OPTION, NYMD )
 !
-!******************************************************************************
-!  Subroutine UNZIP_I6_FIELDS invokes a FORTRAN system call to uncompress
-!  GEOS-CHEM I-6 met field files and store the uncompressed data in a 
-!  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 8/4/06)
+! !USES:
 !
-!  Arguments as input:
-!  ============================================================================
-!  (1 ) OPTION (CHAR*(*)) : Option
-!  (2 ) NYMD   (INTEGER ) : YYYYMMDD of A-6 file to be unzipped (optional)
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*),  INTENT(IN) :: OPTION    ! Unzip option
+      INTEGER, OPTIONAL, INTENT(IN) :: NYMD      ! YYYY/MM/DD of file to unzip
+      TYPE(OptInput),    INTENT(IN) :: Input_Opt ! Input Options object
+!     
+! !REVISION HISTORY: 
+!  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Directory information YYYY/MM or YYYYMM is now contained w/in 
 !        GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR (bmy, 12/11/03)
@@ -116,21 +115,13 @@
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  11 Apr 2013 - R. Yantosca - Now pass fields via Input_Opt
-!******************************************************************************
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TIME_MOD,           ONLY : EXPAND_DATE
-
-      ! Arguments
-      TYPE(OptInput),    INTENT(IN) :: Input_Opt   ! Input Options object
-      CHARACTER(LEN=*),  INTENT(IN) :: OPTION
-      INTEGER, OPTIONAL, INTENT(IN) :: NYMD
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       CHARACTER(LEN=255)            :: GEOS_DIR,   I6_STR
       CHARACTER(LEN=255)            :: I6_FILE_GZ, I6_FILE
       CHARACTER(LEN=255)            :: UNZIP_BG,   UNZIP_FG
@@ -240,23 +231,40 @@
  110  FORMAT( '     - Removing: ', a )
  120  FORMAT( '     - About to execute command: ', a )
 
-      ! Return to calling program
       END SUBROUTINE UNZIP_I6_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: open_i6_fields
+!
+! !DESCRIPTION: Subroutine OPEN\_I6\_FIELDS opens the I-6 met fields file 
+!  for date NYMD and time NHMS.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE OPEN_I6_FIELDS( NYMD, NHMS, Input_Opt )
 !
-!******************************************************************************
-!  Subroutine OPEN_I6_FIELDS opens the I-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 10/7/08)
-!  
-!  Arguments as input:
-!  ===========================================================================
-!  (1 ) NYMD (INTEGER) : Current value of YYYYMMDD
-!  (2 ) NHMS (INTEGER) : Current value of HHMMSS
+! !USES:
 !
-!  NOTES:
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN) :: NYMD        ! YYYY/MM/dd and
+      INTEGER,        INTENT(IN) :: NHMS        !  hh:mm:ss of data
+! 
+! !REVISION HISTORY: 
+!  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
@@ -274,21 +282,13 @@
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_I6 locally
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  11 Apr 2013 - R. Yantosca - Now pass fields via Input_Opt
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE FILE_MOD,      ONLY : IOERROR, FILE_EXISTS
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE CMN_SIZE_MOD        ! Size parameters
-
-      ! Arguments
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN) :: NYMD, NHMS
-
-      ! Local variables
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRST = .TRUE.
       LOGICAL                :: IT_EXISTS, IS_OPEN
       INTEGER                :: IOS, IUNIT
@@ -442,25 +442,39 @@
 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE OPEN_I6_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_i6_fields_1
+!
+! !DESCRIPTION: Subroutine GET\_I6\_FIELDS\_1 is a wrapper for routine READ\_I6.
+!  This routine calls READ\_I6 properly for reading I-6 fields from GEOS-3,
+!  GEOS-4, GEOS-5, or GCAP met data sets at the START of a GEOS-CHEM run. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS, State_Met )
 !
-!******************************************************************************
-!  Subroutine GET_I6_FIELDS_1 is a wrapper for routine READ_I6.  This routine
-!  calls READ_I6 properly for reading I-6 fields from GEOS-3, GEOS-4, GEOS-5,
-!  or GCAP met data sets at the START of a GEOS-CHEM run. 
-!  (bmy, 6/23/03, 1/16/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD
-!  (2 ) NHMS (INTEGER) :  and HHMMSS of I-6 fields to be read from disk
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)    :: NYMD    ! YYYY/MM/DD
+      INTEGER,        INTENT(IN)    :: NHMS    !  and hh:mm:ss of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+! 
+! !REVISION HISTORY: 
+!  23 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Now also read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
@@ -468,14 +482,13 @@
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE GIGC_State_Met_Mod, ONLY : MetState
-
-      ! Arguments
-      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      !=================================================================
+      ! GET_I6_FIELDS_1 begins here!
+      !=================================================================
 
 #if   defined( GEOS_4 )
 
@@ -514,25 +527,39 @@
 
 #endif
 
-      ! Return to calling program
       END SUBROUTINE GET_I6_FIELDS_1
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_i6_fields_2
+!
+! !DESCRIPTION: Subroutine GET\_I6\_FIELDS\_2 is a wrapper for routine READ\_I6.
+!  This routine calls READ\_I6 properly for reading I-6 fields from GEOS-3,
+!  GEOS-4, GEOS-5, or GCAP met data sets every 6 hours during a GEOS-CHEM run.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS, State_Met )
 !
-!******************************************************************************
-!  Subroutine GET_I6_FIELDS_2 is a wrapper for routine READ_I6.  This routine
-!  calls READ_I6 properly for reading I-6 fields from GEOS-3, GEOS-4, GEOS_5,
-!  or GCAP met data sets every 6 hours during a GEOS-CHEM run. 
-!  (bmy, 6/23/03, 1/16/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD
-!  (2 ) NHMS (INTEGER) :  and HHMMSS of A-3 fields to be read from disk
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)    :: NYMD    ! YYYY/MM/DD
+      INTEGER,        INTENT(IN)    :: NHMS    !  and hh:mm:ss of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+! 
+! !REVISION HISTORY: 
+!  23 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Now modified for GEOS-5 and GCAP met fields
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Now read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
@@ -540,14 +567,13 @@
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE GIGC_State_Met_Mod, ONLY : MetState
-
-      ! Arguments
-      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      !=================================================================
+      ! GET_I6_FIELDS_2 begins here!
+      !=================================================================
 
 #if   defined( GEOS_4 )
 
@@ -586,36 +612,44 @@
 
 #endif
 
-      ! Return to calling program
       END SUBROUTINE GET_I6_FIELDS_2
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_n_i6
+!
+! !DESCRIPTION: Function GET\_N\_I6 returns the number of I-6 fields per 
+!  met data set.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_N_I6( NYMD ) RESULT( N_I6 )
 !
-!******************************************************************************
-!  Function GET_N_I6 returns the number of I-6 fields per met data set
-!  (GEOS-3, GEOS-4, GEOS-5, or GCAP). (bmy, 6/23/03, 1/17/06) 
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD for which to read in I-6 fields
+      USE CMN_SIZE_MOD 
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NYMD   ! YYYY/MM/DD date
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: N_I6   ! Number of I-6 fields in file
+! 
+! !REVISION HISTORY:
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Increase # of I-6 fields to 5 for GEOS-5 (bmy, 1/17/06)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!******************************************************************************
-!
-      USE CMN_SIZE_MOD 
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD
-
-      ! Function value
-      INTEGER             :: N_I6
-
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_N_I6 begins here!
       !=================================================================
@@ -636,37 +670,46 @@
 
 #endif
 
-      ! Return to calling program
       END FUNCTION GET_N_I6
-
-!---------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_time
+!
+! !DESCRIPTION: Function CHECK\_TIME checks to see if the timestamp of the I6 
+!  field just read from disk matches the current time.  If so, then it's 
+!  time to return the I6 field to the calling program. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) RESULT( ITS_TIME )
 !
-!******************************************************************************
-!  Function CHECK_TIME checks to see if the timestamp of the A-3 field just
-!  read from disk matches the current time.  If so, then it's time to return
-!  the A-3 field to the calling program. (bmy, 6/23/03, 8/4/06)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) XYMD (INTEGER) : YYYYMMDD timestamp for A-3 field in file
-!  (2 ) XHMS (INTEGER) : HHMMSS   timestamp for A-3 field in file
-!  (3 ) NYMD (INTEGER) : YYYYMMDD at which A-3 field is to be read
-!  (4 ) NHMS (INTEGER) : HHMMSS   at which A-3 field is to be read
-!
-!  NOTES:
-!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+! !USES:
 !
       USE CMN_SIZE_MOD
-
-      ! Arguments 
-      INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
-      
-      ! Function value
-      LOGICAL             :: ITS_TIME
-
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: XYMD       ! YYYY/MM/DD and hh:mm:ss
+      INTEGER, INTENT(IN) :: XHMS       !  timestamp of I6 data in file
+      INTEGER, INTENT(IN) :: NYMD       ! YYYY/MM/DD and hh:mm:ss
+      INTEGER, INTENT(IN) :: NHMS       !  timestamp for desired data
+! 
+! !RETURN VALUE:
+!
+      LOGICAL             :: ITS_TIME   ! =T if XYMD & XHMS match NYMD & NHMS
+!
+! !REVISION HISTORY: 
+!  23 Jun 2003 - R. Yantosca - Initial version
+!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CHECK_TIME begins here!
       !=================================================================
@@ -676,26 +719,56 @@
          ITS_TIME = .FALSE.
       ENDIF
 
-      ! Return to calling program
       END FUNCTION CHECK_TIME
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_i6
+!
+! !DESCRIPTION: Subroutine READ\_I6 reads GEOS I-6 (inst. 6-hr) met fields from
+!  disk.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_I6( NYMD, NHMS, 
      &                    ALBD, LWI,   PS,   SLP,  SPHU, TMPU, 
      &                    TO3,  TROPP, TTO3, UWND, VWND         )
 !
-!******************************************************************************
-!  Subroutine READ_I6 reads GEOS-CHEM I-6 (inst. 6-hr) met fields from disk.
-!  (bmy, 5/8/98, 10/15/09)
-! 
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) NYMD   : YYYYMMDD
-!  (2 ) NHMS   :  and HHMMSS of I-6 fields to be read from disk
+! !USES:
 !
-!  Arguments as Output:
-!  ============================================================================
+      USE DIAG_MOD,       ONLY : AD66,            AD67
+      USE FILE_MOD,       ONLY : IOERROR
+      USE LOGICAL_MOD,    ONLY : LVARTROP
+      USE TIME_MOD,       ONLY : SET_CT_I6,       TIMESTAMP_STRING
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D,     TRANSFER_3D
+
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! NDxx flags
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)            :: NYMD   ! YYYYMMDD
+      INTEGER, INTENT(IN)            :: NHMS   !  and hhmmss of desired data
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT), OPTIONAL :: ALBD (IIPAR,JJPAR      )  
+      REAL*8,  INTENT(OUT), OPTIONAL :: LWI  (IIPAR,JJPAR      )    
+      REAL*8,  INTENT(OUT), OPTIONAL :: PS   (IIPAR,JJPAR      )     
+      REAL*8,  INTENT(OUT), OPTIONAL :: SLP  (IIPAR,JJPAR      )      
+      REAL*8,  INTENT(OUT), OPTIONAL :: SPHU (IIPAR,JJPAR,LLPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: TMPU (IIPAR,JJPAR,LLPAR)  
+      REAL*8,  INTENT(OUT), OPTIONAL :: TO3  (IIPAR,JJPAR      )  
+      REAL*8,  INTENT(OUT), OPTIONAL :: TROPP(IIPAR,JJPAR      )  
+      REAL*8,  INTENT(OUT), OPTIONAL :: TTO3 (IIPAR,JJPAR      )  
+      REAL*8,  INTENT(OUT), OPTIONAL :: UWND (IIPAR,JJPAR,LLPAR)   
+      REAL*8,  INTENT(OUT), OPTIONAL :: VWND (IIPAR,JJPAR,LLPAR)  
+!
+! !REMARKS:
 !  (3 ) ALBD  : (2-D) GMAO Surface albedo            [unitless]
 !  (4 ) LWI   : (2-D) GMAO Land-water indices        [unitless]
 !  (5 ) PS    : (2-D) GMAO Surface pressure          [hPa]
@@ -708,7 +781,8 @@
 !  (12) UWND  : (3-D) GMAO U-wind (zonal wind)       [m/s]
 !  (13) VWND  : (3-D) GMAO V-wind (meridional wind)  [m/s]
 !
-!  NOTES:
+! !REVISION HISTORY: 
+!  08 May 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from "READ_I6" of "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
 !        date/time output. (bmy, 10/28/03)
@@ -724,33 +798,13 @@
 !  (10) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_I6, IU_TP file LUNs
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
-!******************************************************************************
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,       ONLY : AD66,            AD67
-      USE FILE_MOD,       ONLY : IOERROR
-      USE LOGICAL_MOD,    ONLY : LVARTROP
-      USE TIME_MOD,       ONLY : SET_CT_I6,       TIMESTAMP_STRING
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D,     TRANSFER_3D
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! NDxx flags
-
-      ! Arguments
-      INTEGER, INTENT(IN)            :: NYMD, NHMS
-      REAL*8,  INTENT(OUT), OPTIONAL :: LWI  (IIPAR,JJPAR      )    
-      REAL*8,  INTENT(OUT), OPTIONAL :: ALBD (IIPAR,JJPAR      )  
-      REAL*8,  INTENT(OUT), OPTIONAL :: PS   (IIPAR,JJPAR      )     
-      REAL*8,  INTENT(OUT), OPTIONAL :: SLP  (IIPAR,JJPAR      )      
-      REAL*8,  INTENT(OUT), OPTIONAL :: SPHU (IIPAR,JJPAR,LLPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: TMPU (IIPAR,JJPAR,LLPAR)  
-      REAL*8,  INTENT(OUT), OPTIONAL :: TO3  (IIPAR,JJPAR      )  
-      REAL*8,  INTENT(OUT), OPTIONAL :: TROPP(IIPAR,JJPAR      )  
-      REAL*8,  INTENT(OUT), OPTIONAL :: TTO3 (IIPAR,JJPAR      )  
-      REAL*8,  INTENT(OUT), OPTIONAL :: UWND (IIPAR,JJPAR,LLPAR)   
-      REAL*8,  INTENT(OUT), OPTIONAL :: VWND (IIPAR,JJPAR,LLPAR)    
-
-      ! Local Variables
+! !LOCAL VARIABLES:
+!
       INTEGER                        :: IOS, NFOUND, N_I6      
       REAL*4                         :: Q2(IIPAR,JJPAR)
       REAL*4                         :: Q3(IIPAR,JJPAR,LGLOB)
@@ -1090,32 +1144,39 @@
          IF( PRESENT( SLP   ) ) AD67(:,:,18) = AD67(:,:,18) + SLP
       ENDIF 
 
-      ! Return to calling program      
       END SUBROUTINE READ_I6
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: i6_check
+!
+! !DESCRIPTION: Subroutine I6\_CHECK prints an error message if not all 
+!  of the I-6 met fields are found.  The run is also terminated. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE I6_CHECK( NFOUND, N_I6 )
 !
-!******************************************************************************
-!  Subroutine I6_CHECK prints an error message if not all of the I-6 met 
-!  fields are found.  The run is also terminated. (bmy, 10/27/00, 6/23/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NFOUND (INTEGER) : # of I-6 met fields read from disk
-!  (2 ) N_I6   (INTEGER) : # of I-6 met fields expected to be read from disk
-!
-!  NOTES
-!  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/23/03)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NFOUND, N_I6
-
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NFOUND   ! Number of I-6 fields found in file
+      INTEGER, INTENT(IN) :: N_I6     ! Expected number of I-6 fields
+! 
+! !REVISION HISTORY: 
+!  27 Oct 2000 - R. Yantosca - Initial version
+!  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/23/03)
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! I6_CHECK begins here!
       !=================================================================
@@ -1134,10 +1195,6 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE I6_CHECK
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE I6_READ_MOD

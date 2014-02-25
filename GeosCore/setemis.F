@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: setemis.f
+! !ROUTINE: setemis
 !
 ! !DESCRIPTION: Subroutine SETEMIS places emissions computed from GEOS-Chem
 !  subroutines into arrays for SMVGEAR II chemistry. 

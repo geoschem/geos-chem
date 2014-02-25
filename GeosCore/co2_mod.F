@@ -1,6 +1,5 @@
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !     
@@ -156,8 +155,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -799,8 +797,7 @@
       END SUBROUTINE EMISSCO2 
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -873,8 +870,7 @@
       END SUBROUTINE READ_CHEMCO2   
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1040,8 +1036,7 @@
       END SUBROUTINE READ_FOSSILCO2
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1383,8 +1378,7 @@
       END SUBROUTINE CHEM_SURF  
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1604,8 +1598,7 @@
       END SUBROUTINE AVIATION_DOM_CORR  
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1733,8 +1726,7 @@
       END SUBROUTINE READ_OCEANCO2
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1836,8 +1828,7 @@
       END SUBROUTINE READ_ANNUAL_BIOFUELCO2
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1984,8 +1975,7 @@
       END SUBROUTINE READ_SHIPCO2_EDGAR
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2142,8 +2132,7 @@
       END SUBROUTINE READ_SHIPCO2_ICOADS
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2375,8 +2364,7 @@
       END SUBROUTINE READ_AVIATION_CO2
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2592,7 +2580,7 @@
       END SUBROUTINE READ_ANNUAL_BIONET_CO2 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2696,8 +2684,7 @@
       END SUBROUTINE READ_BBIO_DAILYAVERAGE
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2815,8 +2802,7 @@
       END SUBROUTINE READ_BBIO_DIURNALCYCLE
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2894,8 +2880,7 @@
       END SUBROUTINE TOTAL_BIOMASS_TG
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3121,8 +3106,7 @@
       END SUBROUTINE DEF_BIOSPH_CO2_REGIONS_F
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3278,8 +3262,7 @@
       END SUBROUTINE DEF_OCEAN_CO2_REGIONS_F
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3501,8 +3484,7 @@
       END SUBROUTINE DEF_FOSSIL_CO2_REGIONS_F
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3690,8 +3672,7 @@
       END SUBROUTINE INIT_CO2 
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

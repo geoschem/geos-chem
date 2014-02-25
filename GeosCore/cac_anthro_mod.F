@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -67,7 +67,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -106,7 +106,7 @@
       END FUNCTION GET_CANADA_MASK
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -238,7 +238,7 @@
       END FUNCTION GET_CAC_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -637,7 +637,7 @@
       END SUBROUTINE EMISS_CAC_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!             Dalhousie Atmospheric Compositional Analysis Group              !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -987,12 +987,9 @@
 #endif
 
       END SUBROUTINE EMISS_CAC_ANTHRO_05x0666
-!EOP
+!EOC
 !------------------------------------------------------------------------------
-!BOC
-
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1055,7 +1052,7 @@
       END SUBROUTINE CAC_SCALE_FUTURE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1129,7 +1126,7 @@
       END SUBROUTINE TOTAL_ANTHRO_Tg
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1215,7 +1212,7 @@
       END SUBROUTINE READ_CANADA_MASK
 !EOC
 !------------------------------------------------------------------------------
-!       Dalhousie University Atmospheric Compositional Analysis Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1275,7 +1272,7 @@
       END SUBROUTINE READ_CANADA_MASK_05x0666
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1365,7 +1362,7 @@
       END SUBROUTINE INIT_CAC_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1385,7 +1382,7 @@
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
-      ! CLEANUP_STREETS begins here!
+      ! CLEANUP_CAC_ANTHRO begins here!
       !=================================================================
       IF ( ALLOCATED( MASK_CANADA_1x1) ) DEALLOCATE( MASK_CANADA_1x1) 
       IF ( ALLOCATED( MASK_CANADA    ) ) DEALLOCATE( MASK_CANADA    ) 

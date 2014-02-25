@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: directory_mod.f
+! !MODULE: directory_mod
 !
 ! !DESCRIPTION: Module DIRECTORY\_MOD contains the directory path variables
 !  used by GEOS-Chem.

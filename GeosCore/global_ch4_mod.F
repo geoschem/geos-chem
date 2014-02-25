@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -153,7 +153,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -318,7 +318,7 @@
       END SUBROUTINE CH4_AVGTP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -804,7 +804,7 @@
       END SUBROUTINE EMISSCH4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1293,7 +1293,7 @@
       END SUBROUTINE WETLAND_EMIS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1369,7 +1369,7 @@
       END SUBROUTINE BIOBURN_EMIS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1589,7 +1589,7 @@
       END SUBROUTINE RICE_EMIS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1846,7 +1846,7 @@
       END SUBROUTINE ASEASONAL_ANTHRO_EMIS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1973,7 +1973,7 @@
       END SUBROUTINE ASEASONAL_NATURAL_EMIS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2364,7 +2364,7 @@
       END SUBROUTINE CHEMCH4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2487,7 +2487,7 @@
       END SUBROUTINE READ_COPROD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2572,7 +2572,7 @@
       ! Read data for each month
       DO M = 1, 12 
 
-d      !M = GET_MONTH()
+      !M = GET_MONTH()
 
          ! TAU value at the start of month M -- Use "generic" year 1985
          XTAU = GET_TAU0( M, 1, 1985 )
@@ -2590,7 +2590,7 @@ d      !M = GET_MONTH()
       END SUBROUTINE READ_CH4LOSS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2759,7 +2759,7 @@ d      !M = GET_MONTH()
       END SUBROUTINE CH4_DECAY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2914,7 +2914,7 @@ d      !M = GET_MONTH()
       END SUBROUTINE CH4_OHSAVE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3109,7 +3109,6 @@ d      !M = GET_MONTH()
       FIRSTCHEM = .FALSE.
 
       ! Check STT for negatives and NaN
-      print*,'minval( STT ) after CH4_STRAT = ', minval( STT(:,:,:,1) )
       CALL CHECK_STT( State_Chm, 'IN global_ch4_mod.F: CH4_STRAT' )
 
       ! Free pointer
@@ -3119,7 +3118,7 @@ d      !M = GET_MONTH()
 !EOC
 #if defined( USE_CH4_BUDGET_DIAG )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3667,7 +3666,7 @@ d      !M = GET_MONTH()
       END SUBROUTINE CH4_BUDGET
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3791,7 +3790,7 @@ d      !M = GET_MONTH()
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3876,7 +3875,7 @@ d      !M = GET_MONTH()
       END SUBROUTINE CH4_DISTRIB
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4084,7 +4083,7 @@ d      !M = GET_MONTH()
       END SUBROUTINE INIT_GLOBAL_CH4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

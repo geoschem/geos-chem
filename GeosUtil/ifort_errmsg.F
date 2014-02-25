@@ -1,7 +1,5 @@
-! $Id: ifort_errmsg.f,v 1.1 2009/11/20 21:43:04 bmy Exp $
-!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

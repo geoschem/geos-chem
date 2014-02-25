@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -169,7 +169,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -450,7 +450,7 @@
       END SUBROUTINE READ_INPUT_FILE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -536,7 +536,7 @@
       END FUNCTION READ_ONE_LINE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -638,7 +638,7 @@
       END SUBROUTINE SPLIT_ONE_LINE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -998,7 +998,7 @@
       END SUBROUTINE READ_SIMULATION_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1184,7 +1184,7 @@
       END SUBROUTINE INITIALIZE_GEOS_GRID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1583,7 +1583,7 @@
       END SUBROUTINE READ_TRACER_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2054,7 +2054,7 @@
 !EOC
 #if defined( TOMAS )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2194,10 +2194,10 @@
 
       ! Halt with error if dust aerosols are turned on.
       ! TOMAS defines its own dust aerosol tracers.
-      IF ( IDTDUST1 > 0 .AND. Input_Opt%LDUST ) THEN
-         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
+!      IF ( IDTDUST1 > 0 .AND. Input_Opt%LDUST ) THEN
+!         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
+!         CALL ERROR_STOP( MSG, LOCATION )
+!      ENDIF
 
       !=================================================================
       ! All error checks are satisfied, so initialize TOMAS
@@ -2208,7 +2208,7 @@
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3332,7 +3332,7 @@
       END SUBROUTINE READ_EMISSIONS_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3666,7 +3666,7 @@
       END SUBROUTINE READ_CO2_SIM_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3784,7 +3784,7 @@
       END SUBROUTINE READ_FUTURE_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4050,7 +4050,7 @@
       END SUBROUTINE READ_CHEMISTRY_MENU  
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4271,7 +4271,7 @@
       END SUBROUTINE READ_TRANSPORT_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4425,7 +4425,7 @@
       END SUBROUTINE READ_CONVECTION_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4591,7 +4591,7 @@
       END SUBROUTINE READ_DEPOSITION_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4677,7 +4677,7 @@
       END SUBROUTINE READ_GAMAP_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4794,7 +4794,7 @@
       END SUBROUTINE READ_OUTPUT_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5542,7 +5542,7 @@
       END SUBROUTINE READ_DIAGNOSTIC_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5731,7 +5731,7 @@
       END SUBROUTINE SET_TINDEX
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5852,7 +5852,7 @@
       END SUBROUTINE READ_PLANEFLIGHT_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5998,7 +5998,7 @@
       END SUBROUTINE READ_ND48_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6153,7 +6153,7 @@
       END SUBROUTINE READ_ND49_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6312,7 +6312,7 @@
       END SUBROUTINE READ_ND50_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6491,7 +6491,7 @@
       END SUBROUTINE READ_ND51_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6667,7 +6667,7 @@
       END SUBROUTINE READ_ND51b_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -6814,7 +6814,7 @@
       END SUBROUTINE READ_ND63_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7079,7 +7079,7 @@
       END SUBROUTINE READ_PROD_LOSS_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7213,7 +7213,7 @@
       END SUBROUTINE READ_UNIX_CMDS_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7395,7 +7395,7 @@
       END SUBROUTINE READ_NESTED_GRID_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7492,7 +7492,7 @@
       END SUBROUTINE READ_BENCHMARK_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7573,7 +7573,7 @@
       END SUBROUTINE READ_ARCHIVED_OH_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7652,7 +7652,7 @@
       END SUBROUTINE READ_O3PL_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7813,7 +7813,7 @@
       END SUBROUTINE READ_MERCURY_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7862,6 +7862,8 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Feb 2014 - R. Yantosca - Add warning for CH4 budget (which is now
+!                              controlled by an #ifdef in global_ch4_mod.F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7965,6 +7967,17 @@
          ENDIF
       ENDIF
 
+      ! Error check (kjw)
+      IF ( LCH4BUD .EQ. .TRUE. ) THEN
+         MSG = 'To print CH4 budget information, be sure that ' //
+     &         'USE_CH4_BUDGET_DIAG is defined at the beginning' //
+     &         ' of global_ch4_mod.F'
+         IF ( am_I_Root ) THEN
+            print*,'CH4 Budget warning:'
+            print*,MSG
+         ENDIF
+      ENDIF
+
       ! FORMAT statements
  100  FORMAT( A, L5  )
 
@@ -7990,7 +8003,7 @@
       END SUBROUTINE READ_CH4_MENU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8159,7 +8172,7 @@
 !EOC
 #if   defined( APM ) 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8285,7 +8298,7 @@
 #endif
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8452,7 +8465,7 @@
       END SUBROUTINE VALIDATE_DIRECTORIES
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8517,7 +8530,7 @@
       END SUBROUTINE CHECK_DIRECTORY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8703,7 +8716,7 @@
       END SUBROUTINE CHECK_TIME_STEPS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8772,7 +8785,7 @@
       END SUBROUTINE IS_LAST_DAY_GOOD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -8895,7 +8908,7 @@
       END SUBROUTINE GIGC_Init_Extra
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
