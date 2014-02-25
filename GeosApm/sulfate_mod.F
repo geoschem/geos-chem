@@ -1835,6 +1835,8 @@
 !   6 Sep 2013 - M. Sulprizio- Bug fix: Prevent divide-by-zero if LWC=0. Only
 !                              do aqueous SO2 chemistry when LWC>0.
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  28 Jan 2014 - R. Yantosca - Bug fix for TOMAS. Set ALKdst=0 since TOMAS
+!                              carries its own dust tracers instead of DST1-4.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2277,10 +2279,20 @@
             ! Add up total seasalt and dust and convert to ug/m3
             ! Note that it is better to use dust and sea-salt alkalinity
             ! tracers if these are being transported (bec, 12/23/11)
+
+#if defined( TOMAS )
+            !%%%%%%%%%%%%%%%%% BUG FIX FOR TOMAS %%%%%%%%%%%%%%%%%%%%%%%
+            ! NOTE: TOMAS uses its own dust tracers and does not
+            ! carry ALKdst.  Set ALKdst to zero here. (bmy, 1/28/14)
+            ALKdst = 0d0
+#else
+            ! For other simulations, Sum up the contributions from
+            ! DST1 thru DST4 tracers into ALKdst. (bmy, 1/28/14)
             ALKdst = ( STT(I,J,L,IDTDST1) + STT(I,J,L,IDTDST2) +
      &                 STT(I,J,L,IDTDST3) + STT(I,J,L,IDTDST4) ) *
      &                 1.D9 * State_Met%AD(I,J,L) / TCVV(IDTDST1) /
      &                 State_Met%AIRVOL(I,J,L)
+#endif
 
             ALKss  = ( STT(I,J,L,IDTSALA  ) + STT(I,J,L,IDTSALC) ) *
      &                 1.D9 * State_Met%AD(I,J,L) / TCVV(IDTSALA) /
@@ -4953,22 +4965,6 @@
 !EOC
 #endif
 !------------------------------------------------------------------------------
-
-      !SUBROUTINE PHASE_SO4
-      !
-      ! *** Currently under development ***
-      !
-      !END SUBROUTINE PHASE_SO4
-
-!------------------------------------------------------------------------------
-
-      !SUBROUTINE PHASE_RADIATIVE
-      !
-      ! *** Currently under development ***
-      !
-      !END SUBROUTINE PHASE_RADIATIVE
-
-!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -6119,6 +6115,7 @@
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_SULFATE
 !  31 Jul 2013 - M. Sulprizio- Now set SO2 aircraft emissions to zero if using
 !                              AEIC aircraft emissions (S. Eastham)
+!  29 Jan 2014 - R. Yantosca - Avoid array temporaries in call to NH4BULKTOBIN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6133,6 +6130,7 @@
       REAL*8        :: BINMASS(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
       REAL*8        :: tempnh4(ibins)
       INTEGER       :: TID, I, J, L
+      REAL*8        :: MK_TEMP(IBINS)
 #endif
 
 #if   defined( APM )
@@ -6354,14 +6352,24 @@
 
 !%%%OMP PARALLEL DO
 !%%%OMP+DEFAULT( SHARED )
-!%%%OMP+PRIVATE( I, J, L, TMPNH4 )
+!%%%OMP+PRIVATE( I, J, L, TMPNH4, MKTEMP )
 !%%%OMP+SCHEDULE( DYNAMIC )
             DO L=1,LLPAR
             DO J=1,JJPAR
             DO I=1,IIPAR
-         
-               CALL NH4BULKTOBIN( STT(I,J,L,IDTSF1:IDTSF1-1+IBINS), 
-     &              STT(I,J,L,IDTNH4), TEMPNH4(1:IBINS) )
+
+!-----------------------------------------------------------------------------
+! Prior to 1/29/14:
+! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
+!               CALL NH4BULKTOBIN( STT(I,J,L,IDTSF1:IDTSF1-1+IBINS), 
+!     &              STT(I,J,L,IDTNH4), TEMPNH4(1:IBINS) )
+!-----------------------------------------------------------------------------
+
+               ! Take a slice of size IBINS from STT
+               MK_TEMP = STT(I,J,L,IDTSF1:IDTSF1-1+IBINS)
+
+               ! Avoid array tmeporaries in subroutine call (bmy, 1/29/14)
+               CALL NH4BULKTOBIN( MK_TEMP, STT(I,J,L,IDTNH4), TEMPNH4 )
 
                BINMASS(I,J,L,TID:TID+IBINS-1) = TEMPNH4(1:IBINS)
             ENDDO
@@ -7695,6 +7703,8 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
+!  13 Dec 2013 - M. Sulprizio- Bug fix: Make sure we apply NEI05 emissions when
+!                              NEI05_MASK > 0, not NEI05_MASK < 0 (J. Fisher)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7929,7 +7939,7 @@
 ![eml
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
-               IF ( NEI05_MASK( I, J) < 0d0 ) THEN
+               IF ( NEI05_MASK( I, J) > 0d0 ) THEN
 
                   ! Determine if we should use weekday or weekend NEI
                   ! emissions at grid box (I,J,L).  Since NEI is over
