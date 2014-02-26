@@ -4349,6 +4349,7 @@
 !                              prevents XMW=0d0 from being passed to function
 !                              DIFFG, where it is in the denominator.
 !  04 Sep 2013 - R. Yantosca - Improve printout of drydep species
+!  26 Feb 2014 - J. Fisher   - Add ETHLN as drydep species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4807,6 +4808,17 @@
             HSTAR(NUMDEP)   = 17d3 !ITO 2007
             F0(NUMDEP)      = 1d0  !Karl et al. 2010(science) 
             XMW(NUMDEP)     = 149d-3
+            AIROSOL(NUMDEP) = .FALSE.   
+
+         !ETHLN (jaf, 2/26/14)
+         ELSE IF ( N == IDTETHLN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTETHLN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ETHLN'  !ITO 2007
+            HSTAR(NUMDEP)   = 17d3       
+            F0(NUMDEP)      = 1d0 !Karl et al. 2010(science)
+            XMW(NUMDEP)     = 105d-3
             AIROSOL(NUMDEP) = .FALSE.   
 
          !ANIT
