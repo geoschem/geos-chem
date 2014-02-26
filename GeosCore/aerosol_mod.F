@@ -1543,7 +1543,7 @@
             IF ( WAVELENGTH > 0 ) THEN
 
             ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = 0.75d0          * BXHEIGHT(I,J,L) * 
+            ODAER(I,J,L,IRHN) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
      &                          WAERSL(I,J,L,N) * QAA_AOD(IND(N))   / 
 !     &                          ( RHOSTRAT * REFF * 1.0D-6 )
      &                          ( RHOSTRAT * RAA_AOD(IND(N)) * 1.0D-6 )
@@ -1551,7 +1551,7 @@
             ELSE
 
             ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = 0.75d0          * BXHEIGHT(I,J,L) * 
+            ODAER(I,J,L,IRHN) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
      &                       WAERSL(I,J,L,N)    * QAA(IND999,IND(N))  / 
 !     &                       ( RHOSTRAT * REFF * 1.0D-6 )
      &                       ( RHOSTRAT * RAA(IND999,IND(N)) * 1.0D-6 )

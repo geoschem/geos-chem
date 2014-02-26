@@ -255,6 +255,8 @@
       LOGICAL :: LRCP
       LOGICAL :: LRCPSHIP
       LOGICAL :: LRCPAIR
+      LOGICAL :: LBASICEMIS
+      LOGICAL :: LCH4EMIS
       INTEGER :: N_TRACERS
 
       !=================================================================
@@ -300,6 +302,8 @@
       LRCP               = Input_Opt%LRCP
       LRCPSHIP           = Input_Opt%LRCPSHIP
       LRCPAIR            = Input_Opt%LRCPAIR
+      LBASICEMIS         = Input_Opt%LBASICEMIS
+      LCH4EMIS           = Input_Opt%LCH4EMIS
       N_TRACERS          = Input_Opt%N_TRACERS
 
 #if defined( TOMAS )
@@ -453,12 +457,14 @@
 #if defined( UCX ) 
          ! Simplified emissions of N2O, OCS and CFCs (SDE 04/04/13)
          IF ( LBASICEMIS ) THEN
-            CALL EMISS_BASIC( Input_Opt, State_Met, State_Chm )
+            CALL EMISS_BASIC
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm )
          ENDIF
 
          ! CH4 emissions
          IF ( LCH4EMIS ) THEN
             CALL EMISSCH4
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
 #endif
 

@@ -726,7 +726,7 @@
          ! Retrieve 4 large-scale averages, scaled to target year
          CALL GET_UCX_CH4( CFCYEAR+OFFSETYEAR,
      &                     C3090S, C0030S, C0030N, C3090N,
-     &                     Input_Opt )
+     &                     am_I_Root, Input_Opt )
 
          ! Convert from [vv] to [kg CH4/mol air]
          C3090S = C3090S / TCVV(IDTCH4)
@@ -1603,7 +1603,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_BASIC( Input_Opt, State_Met, State_Chm )
+      SUBROUTINE EMISS_BASIC( am_I_Root, Input_Opt, State_Met,
+     &                        State_Chm  )
 !
 ! !USES:
 !
@@ -1614,6 +1615,7 @@
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
@@ -1672,7 +1674,7 @@
      &          'Using Montreal reference year', (CFCYEAR+OFFSETYEAR)
              CALL DEBUG_MSG( OUTMSG )
           ENDIF
-          CALL READ_SFC( Input_Opt )
+          CALL READ_SFC( am_I_Root, Input_Opt )
        END IF
   
        ! Loop over emitted species
@@ -1723,7 +1725,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_SFC( Input_Opt )
+      SUBROUTINE READ_SFC( am_I_Root, Input_Opt )
 !
 ! !USES:
 !
@@ -1733,6 +1735,7 @@
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT VARIABLES:
@@ -1803,7 +1806,8 @@
                ! Get the 4 major mixing ratios
                CALL GET_UCX_CH4( CFCYEAR+OFFSETYEAR,
      &                           MR90S, MR30S, MR30N, MR90N,
-     &                           Input_Opt )
+     &                           am_I_Root, Input_Opt )
+
                ! Figure out which box each is in
                DO J=1,JJPAR   
                   ! Grid-box latitude index
@@ -5368,7 +5372,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE GET_UCX_CH4( CH4_YEAR, MR90S, MR30S, MR30N, MR90N,
-     &                        Input_Opt )
+     &                        am_I_Root, Input_Opt )
 !
 ! !USES:
 !
@@ -5380,6 +5384,7 @@
 ! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN)  :: CH4_YEAR    ! Target year
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
 !
 ! !OUTPUT VARIABLES:
@@ -5430,7 +5435,8 @@
       IF (LAST_YEAR .ne. CH4_TARG_YEAR) THEN
          ! Get CH4 [ppbv] in 4 latitude bins for each year
          CALL GET_GLOBAL_CH4( BASE_YEAR, .TRUE., MR90S,
-     &                                 MR30S,   MR30N, MR90N, .FALSE. )
+     &                        MR30S,     MR30N,  MR90N,
+     &                        am_I_Root, Input_Opt      )
 
          ! Convert from [ppbv] to [vv] and scale by year
          ! Using just one month's data to be consistent with
