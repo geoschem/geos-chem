@@ -266,6 +266,7 @@ endif
 # %%%%% UCX %%%%%
 REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS      += -DUCX
 NO_REDUCED     :=yes
 CHEM           :=UCX
 endif
@@ -545,9 +546,8 @@ endif
 REGEXP         := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS         :=-cpp -w -O0 -auto -noalign -convert big_endian
-FFLAGS         += -g -check arg_temp_created -debug all
-TRACEBACK      :=yes
-USER_DEFS      := -DDEBUG
+FFLAGS         += -g -DDEBUG -check arg_temp_created -debug all
+TRACEBACK      := yes
 else
 FFLAGS         :=-cpp -w $(OPT) -auto -noalign -convert big_endian
 FFLAGS         += -vec-report0
