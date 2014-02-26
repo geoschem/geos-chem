@@ -434,8 +434,9 @@
       ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
       ! +1 for SEAC4RS ISOP passive tracers (jaf, 6/14/13)
       ! +5 for SEAC4RS SOA tracers (jaf, 6/20/13)
+      ! +1 for ETHLN (jaf, 2/26/14)
       !INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS simulations
-      INTEGER, PARAMETER :: NNPAR   = 114   ! For non-TOMAS simulations
+      INTEGER, PARAMETER :: NNPAR   = 115   ! For non-TOMAS simulations
       !------------------------------------------------------------------------
       ! This is in the std code (bmy, 10/30/13)
       !INTEGER, PARAMETER :: NNPAR   = 125   ! For non-TOMAS simulations

@@ -331,6 +331,7 @@
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
       INTEGER            :: IDTMPN
+      INTEGER            :: IDTETHLN  ! jaf, 2/26/14
 
       ! For tagged Ox simulation
       INTEGER            :: IDTOxStrt, IDTOX
@@ -625,6 +626,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations; Removed tracers
 !                              for old SOA simulation (H. Pye)
+!  26 Feb 2014 - J. Fisher   - Add ETHLN (already included as chem species)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1355,6 +1357,9 @@
 
             CASE (  'PYPAN'  )
                IDTPYPAN  = N
+
+            CASE (  'ETHLN'  )
+               IDTETHLN  = N
 
             !--------------------------------
             ! Tagged Ox Tracers
@@ -4348,6 +4353,7 @@
       IDTIEPOX   = 0
       IDTMAP     = 0
       IDTPYPAN   = 0
+      IDTETHLN   = 0
  
       ! SEAC4RS tracers (jaf, 6/13/13)
       IDTPCOFNE  = 0
