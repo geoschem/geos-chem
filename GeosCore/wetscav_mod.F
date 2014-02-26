@@ -844,7 +844,7 @@
       USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC      
       USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
       USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
-      USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN
+      USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN,    IDTETHLN
       USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP
       USE TRACERID_MOD,       ONLY : IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
@@ -2521,6 +2521,61 @@
          ISOL = GET_ISOL( N )
 
       !-------------------------------
+      ! ETHLN (liquid & ice phases)
+      !-------------------------------
+      ELSE IF ( N == IDTETHLN ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for LIMO, using
+            ! the appropriate parameters for Henry's law
+            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+
+            !FP ISOP : BUG FIX FOR CONSISTENCY WITH DRY DEP MODULE
+            !USE ITO NUMBER
+            CALL COMPUTE_L2G( 17D3, -9.2d3,  State_Met%T(I,J,L), 
+     &                        CLDLIQ(I,J,L), L2G )
+
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume retention factor  
+            ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
+            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of LIMO scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+            
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
       ! PROPNN (liquid & ice phases)
       !-------------------------------
       ELSE IF ( N == IDTPROPNN ) THEN
@@ -2973,7 +3028,7 @@
       USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
       USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
       USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
-      USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN
+      USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN,    IDTETHLN
       USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
@@ -3384,6 +3439,36 @@
       ! MMN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMMN ) THEN
+
+         !Ito 2007
+         CALL COMPUTE_L2G( 17d3, -9.2d3, TK, CLDLIQ(I,J,L), L2G )
+
+
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  The retention factor  
+         ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L  
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )  
+            
+         ELSE
+            K = 0d0
+               
+         ENDIF
+  
+         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
+      !------------------------------
+      ! ETHLN (liquid phase only)
+      !------------------------------
+      ELSE IF ( N == IDTETHLN ) THEN
 
          !Ito 2007
          CALL COMPUTE_L2G( 17d3, -9.2d3, TK, CLDLIQ(I,J,L), L2G )
@@ -4272,7 +4357,7 @@
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
-      USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
+      USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN, IDTETHLN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
@@ -4533,6 +4618,14 @@
       ! MMN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMMN ) THEN
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP,        DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
+
+      !------------------------------
+      ! ETHLN (liquid phase only)
+      !------------------------------
+      ELSE IF ( N == IDTETHLN ) THEN
          KIN      = .FALSE.
          CALL WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP,        DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
@@ -7802,7 +7895,7 @@
       USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
       USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
       USE TRACERID_MOD, ONLY : IDTMOBA,   IDTPROPNN
-      USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN
+      USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN,    IDTETHLN
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
@@ -7945,6 +8038,10 @@
          ELSE IF ( N == IDTMMN ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTMMN
+
+         ELSE IF ( N == IDTETHLN ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTETHLN
 
          ELSE IF ( N == IDTMOBA ) THEN
             NSOL         = NSOL + 1
@@ -8448,11 +8545,12 @@
          !-----------------------
          ! Fullchem simulation
          !-----------------------
-         NMAX = 14                                   ! HNO3,  H2O2,   CH2O,
+         NMAX = 15                                   ! HNO3,  H2O2,   CH2O,
                                                      ! MP,    GLYX,   MGLY,
                                                      ! GLYC,  MOBA,   ISOPN,
                                                      ! MVKN,  PROPNN, RIP,
-                                                     ! IEPOX, PMNN
+                                                     ! IEPOX, PMNN,
+                                                     ! ETHLN (jaf, 2/27/14)
 
          NMAX = NMAX + 3                             ! HBr,   HOBr,   Br2
 

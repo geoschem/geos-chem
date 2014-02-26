@@ -107,8 +107,8 @@
       INTEGER, PARAMETER :: PD35=NNPAR 
       INTEGER, PARAMETER :: PD36=NNPAR        
       INTEGER, PARAMETER :: PD37=35        
-      INTEGER, PARAMETER :: PD38=35 
-      INTEGER, PARAMETER :: PD39=38      !jpp replaced 35
+      INTEGER, PARAMETER :: PD38=36      !jaf +1 for ETHLN
+      INTEGER, PARAMETER :: PD39=39      !jpp replaced 35 !jaf +1 for ETHLN
       INTEGER, PARAMETER :: PD40=4       
       INTEGER, PARAMETER :: PD43=5  
       INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
