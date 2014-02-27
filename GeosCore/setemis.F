@@ -29,6 +29,7 @@
       USE COMODE_MOD,         ONLY : IXSAVE,    IYSAVE,  IZSAVE
       USE DIAG_MOD,           ONLY : AD12
       USE EMISSIONS_MOD,      ONLY : NOx_SCALING
+      USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -507,7 +508,8 @@
                !========================================================
                 
                ! Update only if ship emissions are turned on
-               IF ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) THEN
+               IF ( LICOADSSHIP .or. LEDGARSHIP .or. 
+     &              LEMEPSHIP   .or. LRCPSHIP ) THEN
 
                   ! Surface area of grid box
                   AREA_CM2 = GET_AREA_CM2( I, J, 1 )
@@ -747,7 +749,25 @@
                      ! TOTO3 is the total O3 content of the PBL, molec(O3)/cm2
                      ! Final units: 1/s
 !$OMP CRITICAL
-                     IF (LDRYD) SHIPO3DEP(I,J) = ABS( EMIS_BL / TOTO3 )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS (bmy, 2/13/14)
+!%%% Avoid extremely high SHIPO3DEP values, reset to zero
+!%%%                     IF (LDRYD) SHIPO3DEP(I,J) = ABS( EMIS_BL / TOTO3 )
+                     IF ( LDRYD ) THEN
+                        IF ( ABS( SHIPO3DEP(I,J) ) > 1d50 .or.
+     &                       TOTO3                 < 1d-50 ) THEN
+                           print*, "@@@ BAD SHIPO3DEP!"
+                           PRINT*, "@@@ I,   J   : ", I, J
+                           print*, "@@@ EMIS_BL  : ", EMIS_BL    
+                           print*, "@@@ TOTO3    : ", TOTO3
+                           print*, "@@@ shipo3dep: ", SHIPO3DEP(I,J) 
+                           print*, "@@@ NOW SETTING TO ZERO"
+                           SHIPO3DEP(I,J) = 0d0
+                        ELSE
+                           SHIPO3DEP(I,J) = ABS( EMIS_BL / TOTO3 )
+                        ENDIF
+                     ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP END CRITICAL
 
                   ENDIF
