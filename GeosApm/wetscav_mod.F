@@ -1002,12 +1002,20 @@
       REAL*8         :: SOLFRAC, XFRAC
 #endif
 
+      ! Pointers
+      REAL*8, POINTER :: BXHEIGHT(:,:,:)
+      REAL*8, POINTER :: T(:,:,:)
+
       !=================================================================
       ! COMPUTE_F begins here!
       !
       ! For aerosol tracers, compute F with internal routine F_AEROSOL.
       ! ISOL = tracer index for the ND38 diagnostic.
       !=================================================================
+
+      ! Initialize pointers
+      BXHEIGHT => State_Met%BXHEIGHT
+      T        => State_Met%T
 
       ! Initialize
       DUM = 1.0
@@ -1050,8 +1058,8 @@
             ! Compute liquid to gas ratio for H2O2, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 8.3d4, -7.4d3, State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 8.3d4,    -7.4d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of H2O2 in liquid & ice phases
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
@@ -1062,11 +1070,10 @@
             ! Compute the rate constant K.  The retention factor for 
             ! liquid H2O2 is 0.05 for 248 K < T < 268 K and 1.0 for 
             ! T >= 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * ( F_L + F_I )
  
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( ( 5d-2 * F_L ) + F_I ) 
 
             ELSE
@@ -1075,8 +1082,7 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
             
             ! Compute F, the fraction of scavenged H2O2.
             ! (Eq. 2, Jacob et al, 2000)
@@ -1105,8 +1111,8 @@
             ! Compute liquid to gas ratio for CH2O, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 3.0d3, -7.2d3, State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 3.0d3,    -7.2d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of CH2O in liquid phase 
             ! NOTE: CH2O does not exist in the ice phase!
@@ -1117,11 +1123,10 @@
             ! Compute the rate constant K.  The retention factor 
             ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
             ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
 
             ELSE
@@ -1130,8 +1135,7 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of CH2O scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1167,8 +1171,8 @@
             ! (- 12 kcal/mol)
             ! acid dissociation constant in Heff is small (1.5e-9), reported
             ! by Haag and Holne [1983]
-            CALL COMPUTE_L2G( 6.1d3, -6014.d0, State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 6.1d3, -6014.d0, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of HOBr in liquid phase
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
@@ -1176,12 +1180,11 @@
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
 
                K = KC * F_L
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0  .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
 
                K = KC * (0.d0 * F_L) 
 
@@ -1192,8 +1195,7 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of HOBr scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1284,8 +1286,8 @@
             ! which I've calculated for pH = 4.5
             !
             ! H0 and heat of solution are estimated by Yang et al. [2005]
-            CALL COMPUTE_L2G( 7.1d13, -10200.0d0, State_Met%T(I,J,L),
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 7.1d13, -10200.0d0, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
 
             ! Fraction of HBr in liquid phase
@@ -1294,12 +1296,11 @@
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
 
                K = KC * F_L
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0  .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
                
                ! HBr has a large effective Henry's
                ! Law Constant, similar to HCl and HNO3, which have
@@ -1318,8 +1319,7 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of HBr scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1348,8 +1348,8 @@
          DO I = 1, IIPAR
 
             ! Compute liquid to gas ratio for Br2:
-            CALL COMPUTE_L2G( 0.76d0, -3.72d3, State_Met%T(I,J,L),
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 0.76d0,   -3.72d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of Br2 in liquid phase
             C_TOT = 1d0 + L2G
@@ -1364,12 +1364,11 @@
             !   above 248K and below 268K. (jpp, 1/14/2011)
             ! * CL2 analogue has low mass accomodation coeff. for ice
             !   0 uptake in cold clouds. (<1e-4, Sander et al [2010] - JPL)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
 
                K = KC * F_L
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0  .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
 
                K = KC * (0.d0 * F_L) !jpp, testing riming efficiency
 
@@ -1381,8 +1380,7 @@
 
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                   
             ! F is the fraction of Br2 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1415,8 +1413,8 @@
             ! (2) Schweitzer et al. (1998) showed that the temperature 
             ! dependence for CH2O works well for glyoxal, so we use the 
             ! same H298_R as CH2O
-            CALL COMPUTE_L2G( 3.6d5,  -7.2d3, State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L),  L2G )
+            CALL COMPUTE_L2G( 3.6d5,   -7.2d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of GLYX in liquid phase 
             C_TOT = 1d0 + L2G
@@ -1426,11 +1424,10 @@
             ! Compute the rate constant K.  The retention factor 
             ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
             ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
 
             ELSE
@@ -1439,8 +1436,7 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of GLYX scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1470,8 +1466,8 @@
             ! the appropriate parameters for Henry's law
             ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
             ! H298_R = -7.5d3 K
-            CALL COMPUTE_L2G( 3.7d3, -7.5d3, State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 3.7d3,    -7.5d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of MGLY in liquid phase 
             ! NOTE: CH2O does not exist in the ice phase!
@@ -1483,11 +1479,10 @@
             ! Compute the rate constant K.  The retention factor 
             ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
             ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
 
             ELSE
@@ -1496,8 +1491,7 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of MGLY scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1527,8 +1521,8 @@
             ! the appropriate parameters for Henry's law
             ! from Betterton and Hoffman 1988): 
             ! Kstar298 = 4.1d4 M/atm;  H298_R = -4600 K
-            CALL COMPUTE_L2G( 4.1d4, -4.6d3, State_Met%T(I,J,L),
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 4.1d4,    -4.6d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of MGLY in liquid phase 
             ! NOTE: CH2O does not exist in the ice phase!
@@ -1540,11 +1534,10 @@
             ! Compute the rate constant K.  The retention factor 
             ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
             ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
 
             ELSE
@@ -1553,8 +1546,7 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of MGLY scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1583,8 +1575,8 @@
             ! Compute liquid to gas ratio for CH3OOH, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 3.1d2, -5.2d3, State_Met%T(I,J,L),
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 3.1d2,    -5.2d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of CH3OOH in liquid phase
             ! NOTE: CH3OOH does not exist in the ice phase!
@@ -1595,11 +1587,10 @@
             ! Compute the rate constant K.  The retention factor  
             ! for liquid CH3OOH is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -1608,8 +1599,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of CH3OOH scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1711,8 +1701,8 @@
             ! Compute liquid to gas ratio for NH3, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 3.3d6, -4.1d3, State_Met%T(I,J,L),  
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 3.3d6,    -4.1d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of NH3 in liquid & ice phases
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
@@ -1723,11 +1713,10 @@
             ! Compute the rate constant K.  The retention factor  
             ! for liquid NH3 is 0.0 for T <= 248 K and 0.05 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * ( F_L + F_I )
                   
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( ( 5d-2 * F_L ) + F_I )
                   
             ELSE
@@ -1737,8 +1726,8 @@
   
             ! F is the fraction of NH3 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * State_Met%BXHEIGHT(I,J,L) /
-     &                            Vud(I,J) )
+            F(I,J,L) = 1d0 - EXP( -K * BXHEIGHT(I,J,L) / Vud(I,J) )
+
          ENDDO
          ENDDO
          ENDDO
@@ -1821,8 +1810,8 @@
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
             ! Use H-law of 0.049 for all pinene (Sander, 1999)
             ! updated for new mtp (hotp 5/24/10), SOAupdate
-            CALL COMPUTE_L2G( 0.049d0, 0.d0, State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 0.049d0,  0.d0,
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of MTPA in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
@@ -1832,11 +1821,10 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid MTPA is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0 .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -1845,8 +1833,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of MTPA scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1874,8 +1861,8 @@
             ! Compute liquid to gas ratio for LIMO, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 0.07d0,  0.d0, State_Met%T(I,J,L),
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 0.07d0, 0.d0, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of LIMO in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
@@ -1885,11 +1872,10 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -1898,8 +1884,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1932,8 +1917,8 @@
             ! SOAupdate
             ! Terpenoid alcohol emission expected to be much lower
             ! than previously estimated. Use pinene H-law (hotp 5/24/10)
-            CALL COMPUTE_L2G( 0.049d0, 0.d0, State_Met%T(I,J,L),
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 0.049d0,  0.d0,
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of MTPO in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
@@ -1943,11 +1928,10 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid MTPO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0 .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -1956,8 +1940,7 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of MTPO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1989,8 +1972,8 @@
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
             ! Heff and deltaH/R based on phenanthrene from
             ! Sander 1999
-            CALL COMPUTE_L2G( 9.5d0, -4.70d3, State_Met%T(I,J,L),
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 9.5d0,    -4.70d3,
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POG in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
@@ -2000,11 +1983,10 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid POG is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0 .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -2013,8 +1995,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of POG scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2050,8 +2031,8 @@
             ! Compute liquid to gas ratio for GAS1, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 1.0d5, -6.039d3, State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L),   L2G )
+            CALL COMPUTE_L2G( 1.0d5, -6.039d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of GAS1 in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
@@ -2061,11 +2042,10 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid GAS1 is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -2074,8 +2054,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of GAS1 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2156,8 +2135,8 @@
             ! hma, 10-Jan-2011, Henry's law constant for 
             ! HgCl2 = 1.4d+6 M/atm
             ! Ref: Lindqvist and Rhode, 1985
-            CALL COMPUTE_L2G( 1.4d+6, -8.4d3, State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L),  L2G )
+            CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of HgCl2 in liquid phase 
             ! Assume that HgCl2 is not present in ice phase
@@ -2168,15 +2147,14 @@
             ! Compute the rate constant K. 
             !CDH allow scavening during riming (8/7/2009
             !Scavenging at all temperatures
-            IF ( State_Met%T(I,J,L) >= 248d0 ) THEN
+            IF ( T(I,J,L) >= 248d0 ) THEN
                K = KC * F_L  
             ELSE 
                K = 0d0
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
               
             ! F is the fraction of HgCl2 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2366,7 +2344,7 @@
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.65d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
             CALL COMPUTE_L2G( GET_POP_HSTAR(DUM), GET_POP_DEL_Hw(DUM), 
-     &                        State_Met%T(I,J,L), CLDLIQ(I,J,L), L2G )
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
             ! Assume (for now) that POP is not present in ice phase
@@ -2377,7 +2355,7 @@
             ! Compute the rate constant K.  Assume retention efficiency  
             ! for POPG in liquid is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
             ! ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
@@ -2390,8 +2368,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of POP scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2422,7 +2399,6 @@
          F    = 0d0
          ISOL = GET_ISOL( N )
 
-
       ! Additional tracers for isoprene
       ! (fp, 06/09)
       !Use temperature of limonene
@@ -2448,8 +2424,8 @@
             !based on methacrylic acid with acetic acid T dependance
             ! pKa = 4.1 - pH=5
 
-            CALL COMPUTE_L2G( 2.3d4, -6.3d3, State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 2.3d4,    -6.3d3,
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of LIMO in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
@@ -2459,11 +2435,10 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -2472,8 +2447,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2506,8 +2480,8 @@
 
             !FP ISOP : BUG FIX FOR CONSISTENCY WITH DRY DEP MODULE
             !USE ITO NUMBER
-            CALL COMPUTE_L2G( 17D3, -9.2d3,  State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 17D3,     -9.2d3,
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             C_TOT = 1d0 + L2G
             F_L   = L2G / C_TOT
@@ -2515,11 +2489,10 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -2528,8 +2501,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2561,8 +2533,8 @@
 
             !FP ISOP : BUG FIX FOR CONSISTENCY WITH DRY DEP MODULE
             !USE ITO NUMBER
-            CALL COMPUTE_L2G( 17D3, -9.2d3,  State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 17D3,     -9.2d3,
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             C_TOT = 1d0 + L2G
             F_L   = L2G / C_TOT
@@ -2570,11 +2542,10 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -2583,8 +2554,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2615,8 +2585,8 @@
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
 
             !NITROOXYACETONE IN SANDER TABLE
-            CALL COMPUTE_L2G( 1.0d3, 0.0d0,  State_Met%T(I,J,L), 
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 1.0d3,    0.0d0,
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
 
             C_TOT = 1d0 + L2G
@@ -2625,11 +2595,10 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -2638,8 +2607,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2665,8 +2633,8 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            CALL COMPUTE_L2G( 1.7d6, 0.0d0,  State_Met%T(I,J,L), !USE H2O2
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 1.7d6,    0.0d0,              !USE H2O2
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of LIMO in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
@@ -2676,11 +2644,10 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -2689,8 +2656,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2716,17 +2682,16 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            CALL COMPUTE_L2G( 8.4d2, -5.3d3, State_Met%T(I,J,L), !USE H2O2
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 8.4d2,    -5.3d3,              !USE H2O2
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             C_TOT = 1d0 + L2G
             F_L   = L2G / C_TOT
 
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -2735,8 +2700,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2763,17 +2727,16 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            CALL COMPUTE_L2G( 1.3d8, 0.0d0,  State_Met%T(I,J,L), !USE H2O2
-     &                        CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 1.3d8,    0.0d0,               !USE H2O2
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             C_TOT = 1d0 + L2G
             F_L   = L2G / C_TOT
 
-            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
-     &                State_Met%T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -2782,8 +2745,7 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                      State_Met%BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2838,6 +2800,10 @@
          ISOL     = 0
 
       ENDIF
+
+      ! Free pointers
+      NULLIFY( BXHEIGHT )
+      NULLIFY( T        )
 
       END SUBROUTINE COMPUTE_F
 !EOC
@@ -4264,7 +4230,7 @@
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
             CALL COMPUTE_L2G( GET_POP_HSTAR(DUM), GET_POP_DEL_Hw(DUM), 
-     &                        State_Met%T(I,J,L), CLDLIQ(I,J,L), L2G )
+     &                        TK, CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
             ! Assume (for now) that POP is not present in ice phase

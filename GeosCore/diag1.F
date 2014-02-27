@@ -158,11 +158,6 @@
       INTEGER :: N_TRACERS
       REAL*8  :: TCVV(Input_Opt%N_TRACERS)
 
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
-
       !=================================================================
       ! DIAG1 begins here!
       !=================================================================
@@ -189,10 +184,6 @@
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
 
-         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-         ! (mpayer, 12/6/12)
-         STT => State_Chm%Tracers
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -201,15 +192,13 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             STT_VV(I,J,L,N) = 
-     &         MAX( STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L), 0d0 )
+     &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N) /
+     &              State_Met%AD(I,J,L), 0d0 )
          ENDDO
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-         ! Free pointer
-         NULLIFY( STT )
 
       ENDIF
 
@@ -220,10 +209,6 @@
       !-----------------------------------------------!
       IF(ND03 > 0) THEN
 
-        ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-        ! (mpayer, 12/6/12)
-        STT => State_Chm%Tracers
-
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L)
@@ -233,21 +218,20 @@
 
           ! Reactive gaseous mercury, RGM
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
-     &          STT(I,J,L,ID_Hg2(ID_Hg_tot)) * TCVV(ID_Hg2(ID_Hg_tot)) /
-     &          State_Met%AD(I,J,L) *1D12 
+     &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
+     &                      TCVV(ID_Hg2(ID_Hg_tot)) /
+     &                      State_Met%AD(I,J,L) *1D12 
 
           ! Reactive particulate mercury, PBM
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &         STT(I,J,L,ID_HgP(ID_Hg_tot)) * TCVV(ID_HgP(ID_Hg_tot)) / 
-     &         State_Met%AD(I,J,L) *1D12
+     &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
+     &                      TCVV(ID_HgP(ID_Hg_tot)) / 
+     &                      State_Met%AD(I,J,L) *1D12
                                                        
         ENDDO
         ENDDO
         ENDDO
 !$OMP END PARALLEL DO 
-
-        ! Free pointer
-        NULLIFY( STT )
 
       ENDIF
 !-------------------------------------------------------------------------
@@ -294,10 +278,6 @@
       !=================================================================  
       IF ( ND33 > 0 ) THEN   
 
-         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-         ! (mpayer, 12/6/12)
-         STT => State_Chm%Tracers
-
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -305,15 +285,12 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD33(I,J,N) = AD33(I,J,N) + STT(I,J,L,N)
+            AD33(I,J,N) = AD33(I,J,N) + State_Chm%Tracers(I,J,L,N)
          ENDDO
          ENDDO
          ENDDO
          ENDDO  
 !$OMP END PARALLEL DO
-
-         ! Free pointer
-         NULLIFY( STT )
 
       ENDIF
 

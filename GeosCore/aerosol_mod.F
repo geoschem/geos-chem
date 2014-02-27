@@ -424,17 +424,12 @@
       LOGICAL            :: LSULF
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER    :: STT(:,:,:,:)
+      REAL*8, POINTER    :: AIRVOL(:,:,:)
 
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
 
       ! Assume success
       RC     = GIGC_SUCCESS
@@ -445,6 +440,10 @@
       LSOA   = Input_Opt%LSOA
       LSSALT = Input_Opt%LSSALT
       LSULF  = Input_Opt%LSULF
+
+      ! Initialize pointers
+      STT    => State_Chm%Tracers
+      AIRVOL => State_Met%AIRVOL
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -484,23 +483,21 @@
                SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)   + 
      &                                STT(I,J,L,IDTNH4)   +
      &                                STT(I,J,L,IDTNIT) ) /
-     &                                State_Met%AIRVOL(I,J,L)
+     &                                AIRVOL(I,J,L)
                SLA(I,J,L) = 0d0
                SPA(I,J,L) = 0d0
             ELSE
                ! Tropospheric sulfate is zero in stratosphere
                SO4_NH4_NIT(I,J,L) = 0d0
-               SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) /
-     &                      State_Met%AIRVOL(I,J,L)
-               SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) /
-     &                      State_Met%AIRVOL(I,J,L)
+               SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) / AIRVOL(I,J,L)
+               SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) / AIRVOL(I,J,L)
             ENDIF
 #else
             ! Compute SO4 aerosol concentration [kg/m3]
             SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)     + 
      &                             STT(I,J,L,IDTNH4)     +
      &                             STT(I,J,L,IDTNIT) )   /
-     &                             State_Met%AIRVOL(I,J,L)
+     &                             AIRVOL(I,J,L)
 #endif
          ENDIF
 
@@ -513,22 +510,20 @@
          IF ( LCARB ) THEN
 
             ! Hydrophilic BC [kg/m3]
-            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / State_Met%AIRVOL(I,J,L)
+            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
 
             ! Hydrophobic BC [kg/m3]
-            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / State_Met%AIRVOL(I,J,L)
+            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
 
             ! Hydrophobic OC [kg/m3]
             ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
             ! POA now 1 and 2 (hotp 10/11/09)
             IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 ) THEN
-               OCPO(I,J,L) = STT(I,J,L,IDTPOA1) * OCF /
-     &                       State_Met%AIRVOL(I,J,L)     +
-     &                       STT(I,J,L,IDTPOA2) * OCF /
-     &                       State_Met%AIRVOL(I,J,L)
+               OCPO(I,J,L) = STT(I,J,L,IDTPOA1) * OCF / AIRVOL(I,J,L) +
+     &                       STT(I,J,L,IDTPOA2) * OCF / AIRVOL(I,J,L)
             ELSE
-               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCFOPOA /
-     &                       State_Met%AIRVOL(I,J,L)
+               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCFOPOA / 
+     &                       AIRVOL(I,J,L)
             ENDIF
 
             IF ( LSOA ) THEN
@@ -546,20 +541,20 @@
      &                      +  STT(I,J,L,IDTISOA1)
      &                      +  STT(I,J,L,IDTISOA2)
      &                      +  STT(I,J,L,IDTISOA3) )
-     &                      /  State_Met%AIRVOL(I,J,L) 
+     &                      /  AIRVOL(I,J,L) 
 
                IF ( IDTOPOA1 > 0 .and. IDTOPOA2 > 0 ) THEN  ! hotp 7/28/10
                   OCPI(I,J,L) = OCPI(I,J,L) 
      &                        + ( STT(I,J,L,IDTOPOA1) * OCFOPOA
-     &                        / State_Met%AIRVOL(I,J,L) )
+     &                        / AIRVOL(I,J,L) )
      &                        + ( STT(I,J,L,IDTOPOA2) * OCFOPOA
-     &                        / State_Met%AIRVOL(I,J,L) )
+     &                        / AIRVOL(I,J,L) )
                ENDIF
 
                IF ( IDTOCPI > 0 ) THEN  ! hotp 7/28/10
                   OCPI(I,J,L) = OCPI(I,J,L)                                  
      &                        + ( STT(I,J,L,IDTOCPI) * OCFOPOA
-     &                        / State_Met%AIRVOL(I,J,L) )
+     &                        / AIRVOL(I,J,L) )
                ENDIF
 
                ! LUMPAROMIVOC (always present) hotp 7/28/10
@@ -568,19 +563,19 @@
      &                     + STT(I,J,L,IDTASOA1)
      &                     + STT(I,J,L,IDTASOA2)
      &                     + STT(I,J,L,IDTASOA3) )
-     &                     / State_Met%AIRVOL(I,J,L) )
+     &                     / AIRVOL(I,J,L) )
 
                ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
                IF ( IDTSOAG > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
      &                         STT(I,J,L,IDTSOAG) * OCFG /
-     &                         State_Met%AIRVOL(I,J,L)
+     &                         AIRVOL(I,J,L)
                ENDIF
 
                IF ( IDTSOAM > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
      &                         STT(I,J,L,IDTSOAM) * OCFM /
-     &                         State_Met%AIRVOL(I,J,L)
+     &                         AIRVOL(I,J,L)
                ENDIF
 
             ELSE
@@ -591,7 +586,7 @@
                ! (rjp, bmy, 7/15/04)
                ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
                OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCFOPOA /
-     &                       State_Met%AIRVOL(I,J,L)
+     &                       AIRVOL(I,J,L)
                   
             ENDIF ! LSOA
 
@@ -627,21 +622,18 @@
 
             ! Lump 1st dust tracer for het chem
             SOILDUST(I,J,L,1) = 
-     &            0.06d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
+     &            0.06d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,2) =
-     &            0.12d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
+     &            0.12d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,3) =
-     &            0.24d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
+     &            0.24d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,4) =
-     &            0.58d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
+     &            0.58d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
 
             ! Other hetchem bins
-            SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) /
-     &                          State_Met%AIRVOL(I,J,L)
-            SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) /
-     &                          State_Met%AIRVOL(I,J,L)
-            SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) /
-     &                          State_Met%AIRVOL(I,J,L)
+            SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
             
          ENDIF
 
@@ -653,10 +645,10 @@
          IF ( LSSALT ) THEN
 
             ! Accumulation mode seasalt aerosol [kg/m3]
-            SALA(I,J,L) = STT(I,J,L,IDTSALA) / State_Met%AIRVOL(I,J,L)
+            SALA(I,J,L) = STT(I,J,L,IDTSALA) / AIRVOL(I,J,L)
             
             ! Coarse mode seasalt aerosol [kg/m3]
-            SALC(I,J,L) = STT(I,J,L,IDTSALC) / State_Met%AIRVOL(I,J,L)
+            SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
 
             ! Avoid division by zero
             SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
@@ -669,8 +661,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Free pointer
-      NULLIFY( STT )
+      ! Free pointers
+      NULLIFY( STT    )
+      NULLIFY( AIRVOL )
 
       END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -851,6 +844,9 @@
       LOGICAL             :: LSULF
       LOGICAL             :: LSTRATOD
 
+      ! Pointers
+      REAL*8, POINTER     :: BXHEIGHT(:,:,:)
+
       !=================================================================
       ! RDAER begins here!
       !=================================================================
@@ -865,6 +861,9 @@
       LSSALT               = Input_Opt%LSSALT
       LSULF                = Input_Opt%LSULF
       LSTRATOD             = Input_Opt%LSTRATOD
+
+      ! Initialize pointers
+      BXHEIGHT            => State_Met%BXHEIGHT
 
       ! Copy MONTH argument to local variable THISMONTH
       IF ( PRESENT( MONTH ) ) THEN
@@ -1349,7 +1348,7 @@
             ! of aerosol type and relative humidity into ODAER, 
             ! which will get passed to the FAST-J routines
             ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) * 0.75d0
-     &                        * State_Met%BXHEIGHT(I,J,L) 
+     &                        * BXHEIGHT(I,J,L) 
      &                        * WAERSL(I,J,L,N)  * QAA_AOD(IND(N)) / 
      &                        ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
 
@@ -1359,7 +1358,7 @@
             ! of aerosol type and relative humidity into ODAER, 
             ! which will get passed to the FAST-J routines
             ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) * 0.75d0 
-     &                        * State_Met%BXHEIGHT(I,J,L) 
+     &                        * BXHEIGHT(I,J,L) 
      &                        * WAERSL(I,J,L,N)  * QAA(IND999,IND(N)) / 
      &                        ( MSDENS(N) * RAA(IND999,IND(N)) *
      &                        1.0D-6 )
@@ -1450,7 +1449,7 @@
 
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
-     &                          State_Met%BXHEIGHT(I,J,L)  * 
+     &                          BXHEIGHT(I,J,L)  * 
      &                          DAERSL(I,J,L,N-1) * QAA_AOD(IND(N))   / 
      &                          ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
 
@@ -1458,7 +1457,7 @@
 
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
-     &                          State_Met%BXHEIGHT(I,J,L)  * 
+     &                          BXHEIGHT(I,J,L)  * 
      &                          DAERSL(I,J,L,N-1) * QAA(IND999,IND(N)) / 
      &                          ( MSDENS(N) * RAA(IND999,IND(N)) * 
      &                          1.0D-6 )
@@ -1543,7 +1542,7 @@
             IF ( WAVELENGTH > 0 ) THEN
 
             ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
+            ODAER(I,J,L,IRHN) = 0.75d0 * BXHEIGHT(I,J,L) * 
      &                          WAERSL(I,J,L,N) * QAA_AOD(IND(N))   / 
 !     &                          ( RHOSTRAT * REFF * 1.0D-6 )
      &                          ( RHOSTRAT * RAA_AOD(IND(N)) * 1.0D-6 )
@@ -1551,7 +1550,7 @@
             ELSE
 
             ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
+            ODAER(I,J,L,IRHN) = 0.75d0 * BXHEIGHT(I,J,L) * 
      &                       WAERSL(I,J,L,N)    * QAA(IND999,IND(N))  / 
 !     &                       ( RHOSTRAT * REFF * 1.0D-6 )
      &                       ( RHOSTRAT * RAA(IND999,IND(N)) * 1.0D-6 )
@@ -1750,6 +1749,9 @@
       !TAREA(:,NDUST+5) = 0.d0	!SS (coarse)
       !TAREA(:,NDUST+NRHAER+1) = 0.d0 !SLA
       !TAREA(:,NDUST+NRHAER+2) = 0.d0 !SPA
+
+      ! Free pointers
+      NULLIFY( BXHEIGHT )
 
       ! Reset first-time flag
       FIRST = .FALSE.

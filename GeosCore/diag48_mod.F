@@ -223,9 +223,8 @@
       REAL*8          :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER :: AD(:,:,:)
 
       !=================================================================
       ! DIAG48 begins here!
@@ -238,6 +237,10 @@
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
       N_TRACERS     = Input_Opt%N_TRACERS
       TCVV          = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Initialize pointers
+      STT          => State_Chm%Tracers
+      AD           => State_Met%AD
 
       ! Get grid offsets
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
@@ -306,16 +309,9 @@
             UNIT     = ''              ! Let GAMAP pick the unit
             GMTRC    = N
 
-            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-            ! (mpayer, 12/6/12)
-            STT => State_Chm%Tracers
-
             DO L = 1, K
-               Q(L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
+               Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
             ENDDO
-
-            ! Free pointer
-            NULLIFY( STT )
 
          ELSE IF ( N == 91 .and. IS_O3 ) THEN
  
@@ -326,18 +322,10 @@
             UNIT     = ''              ! Let GAMAP pick the unit
             GMTRC    = N_TRACERS + 1
 
-            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-            ! (mpayer, 12/6/12)
-            STT => State_Chm%Tracers
-
             DO L = 1, K
-               Q(L) = STT(I,J,L,IDTO3)    * TCVV(IDTO3)  / 
-     &                State_Met%AD(I,J,L)
+               Q(L) = STT(I,J,L,IDTO3) * TCVV(IDTO3) / AD(I,J,L)
             ENDDO
                
-            ! Free pointer
-            NULLIFY( STT )
-
          ELSE IF ( N == 92 .and. IS_NO ) THEN
 
             !------------------------------------
@@ -347,17 +335,9 @@
             UNIT     = ''           ! Let GAMAP pick the unit
             GMTRC    = 9
 
-            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-            ! (mpayer, 12/6/12)
-            STT => State_Chm%Tracers
-
             DO L = 1, K
-               Q(L) = STT(I,J,L,IDTNO)  * TCVV(IDTNO) /
-     &                State_Met%AD(I,J,L)
+               Q(L) = STT(I,J,L,IDTNO) * TCVV(IDTNO) / AD(I,J,L)
             ENDDO
-
-            ! Free pointer
-            NULLIFY( STT )
 
          ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
@@ -368,10 +348,6 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMTRC    = 3
 
-            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-            ! (mpayer, 12/6/12)
-            STT => State_Chm%Tracers
-
             DO L = 1, K
 
                ! Initialize
@@ -380,51 +356,48 @@
                ! NO
                Q(L) = Q(L) + ( TCVV(IDTNO)         * 
      &                         STT(I,J,L,IDTNO)    / 
-     &                         State_Met%AD(I,J,L) )
+     &                         AD(I,J,L) )
 
                ! NO2
                Q(L) = Q(L) + ( TCVV(IDTNO2)        * 
      &                         STT(I,J,L,IDTNO2)   / 
-     &                         State_Met%AD(I,J,L) )
+     &                         AD(I,J,L) )
 
                ! PAN
                Q(L) = Q(L) + ( TCVV(IDTPAN)        * 
      &                         STT(I,J,L,IDTPAN)   / 
-     &                         State_Met%AD(I,J,L) )
+     &                         AD(I,J,L) )
 
                ! HNO3
                Q(L) = Q(L) + ( TCVV(IDTHNO3)       *
      &                         STT(I,J,L,IDTHNO3)  / 
-     &                         State_Met%AD(I,J,L) )
+     &                         AD(I,J,L) )
             
                ! PMN
                Q(L) = Q(L) + ( TCVV(IDTPMN)        *
      &                         STT(I,J,L,IDTPMN)   / 
-     &                         State_Met%AD(I,J,L) )
+     &                         AD(I,J,L) )
 
                ! PPN
                Q(L) = Q(L) + ( TCVV(IDTPPN)        * 
      &                         STT(I,J,L,IDTPPN)   / 
-     &                         State_Met%AD(I,J,L) )
+     &                         AD(I,J,L) )
  
                ! R4N2
                Q(L) = Q(L) + ( TCVV(IDTR4N2)       *
      &                         STT(I,J,L,IDTR4N2)  / 
-     &                         State_Met%AD(I,J,L) )
+     &                         AD(I,J,L) )
             
                ! N2O5
                Q(L) = Q(L) + ( 2d0 * TCVV(IDTN2O5) *
      &                         STT(I,J,L,IDTN2O5)  / 
-     &                         State_Met%AD(I,J,L) )
+     &                         AD(I,J,L) )
                         
                ! HNO4
                Q(L) = Q(L) + ( TCVV(IDTHNO4)       *
      &                         STT(I,J,L,IDTHNO4)  / 
-     &                         State_Met%AD(I,J,L) )
+     &                         AD(I,J,L) )
             ENDDO
-
-            ! Free pointer
-            NULLIFY( STT )
 
          ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
 
@@ -450,8 +423,7 @@
             GMTRC    = 19
 
             DO L = 1, K
-               Q(L) = STT(I,J,L,IDTNO2)  * TCVV(IDTNO2) /
-     &                State_Met%AD(I,J,L)
+               Q(L) = STT(I,J,L,IDTNO2) * TCVV(IDTNO2) / AD(I,J,L)
             ENDDO
 
          ELSE IF ( N == 78 ) THEN
@@ -685,17 +657,10 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMTRC    = 24
 
-            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-            ! (mpayer, 12/6/12)
-            STT => State_Chm%Tracers
-
             DO L = 1, K
                Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                  TCVV(IDTSALA)      / State_Met%AD(I,J,L) 
+     &                  TCVV(IDTSALA)      / AD(I,J,L) 
             ENDDO
-
-            ! Free pointer
-            NULLIFY( STT )
 
          ELSE IF ( N == 94 ) THEN 
 
@@ -833,6 +798,10 @@
          IF ( ITS_A_NEW_DAY() ) CALL FLUSH( IU_ND48 ) 
 
       ENDIF
+
+      ! Free pointers
+      NULLIFY( STT )
+      NULLIFY( AD  )
 
       ! Return to calling program
       END SUBROUTINE DIAG48

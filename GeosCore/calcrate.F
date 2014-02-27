@@ -268,9 +268,12 @@
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER :: FRCLND(:,:)
+      REAL*8, POINTER :: QI(:,:,:)
+      REAL*8, POINTER :: QL(:,:,:)
+      REAL*8, POINTER :: SUNCOSmid(:,:)
+      REAL*8, POINTER :: T(:,:,:)
 
       !=================================================================
       ! CALCRATE begins here!
@@ -285,6 +288,13 @@
       LVISTAS       = Input_Opt%LVISTAS
       LWARWICK_VSLS = Input_Opt%LWARWICK_VSLS
       XNUMOL        = Input_Opt%XNUMOL
+
+      ! Initialize pointers
+      FRCLND       => State_Met%FRCLND
+      QI           => State_Met%QI
+      QL           => State_Met%QL
+      SUNCOSmid    => State_Met%SUNCOSmid
+      T            => State_Met%T
 
       ! Initialize
       darea         = 0d0
@@ -390,7 +400,7 @@
             IY                = IYSAVE(JLOOP)
             IJWINDOW          = (IY-1)*IIPAR + IX
             !GMU               = SUNCOS(IJWINDOW)
-            GMU               = State_Met%SUNCOSmid(IX,IY)
+            GMU               = SUNCOSmid(IX,IY)
             IF(GMU .GT. 0.D0) KSUN = 1
 
             !==========================================================
@@ -410,19 +420,19 @@
             ! so use these to define the QICE, QLIQ arrays.  Also, QICE and
             ! QLIQ only need to be dimensioned with KBLOOP instead of
             ! IIPAR,JJPAR,LLPAR. (bmy, 9/24/12)
-            QICE(KLOOP)       = State_Met%QI(IX,IY,IZ)
-            QLIQ(KLOOP)       = State_Met%QL(IX,IY,IZ)
+            QICE(KLOOP)       = QI(IX,IY,IZ)
+            QLIQ(KLOOP)       = QL(IX,IY,IZ)
 
 #else
 
             ! Otherwise, compute QLIQ as a function of temperature ...
-            IF ( State_Met%T(IX,IY,IZ) .LE. 248d0 ) THEN
+            IF ( T(IX,IY,IZ) .LE. 248d0 ) THEN
                QLIQ(KLOOP)    = 0d0
-            ELSE IF ( State_Met%T(IX,IY,IZ) .GE. 268d0 ) THEN
+            ELSE IF ( T(IX,IY,IZ) .GE. 268d0 ) THEN
                QLIQ(KLOOP)    = 1d-6
             ELSE
                QLIQ(KLOOP)    = 1d-6 *
-     &                      ( ( State_Met%T(IX,IY,IZ) - 248d0 ) / 20d0)
+     &                      ( ( T(IX,IY,IZ) - 248d0 ) / 20d0)
             ENDIF
 
             ! ... and compute QICE from QLIQ (bmy, 9/24/12)
@@ -573,7 +583,7 @@
 
                ! Get cosine( SZA ) using 1-D array index
                IJWINDOW         = (IY-1)*IIPAR + IX
-               GMU              = State_Met%SUNCOSmid(IX,IY)
+               GMU              = SUNCOSmid(IX,IY)
 
                ! For daylight boxes...
                IF(GMU.GT. 0.D0) THEN
@@ -1070,7 +1080,7 @@ c new OH+CO rate from JPL2006.
                      ! boundary layer and set the CONTINENTAL_PBL
                      ! flag to 1 (also assume that there is no ice/snow)
                      IF (  IZ <= GET_PBL_TOP_L( IX , IY ) .and.
-     &                     State_Met%FRCLND(IX,IY) >= 0.5 .and.
+     &                     FRCLND(IX,IY) >= 0.5 .and.
      &                     (.not. IS_ICE( IX,IY,State_Met) ) ) THEN 
 
                         CONTINENTAL_PBL=1 
@@ -2103,6 +2113,14 @@ c new OH+CO rate from JPL2006.
          ENDDO
       ENDIF
       !********************************************
+
+      ! Free pointers
+      NULLIFY( FRCLND    )
+      NULLIFY( QI        )
+      NULLIFY( QL        )
+      NULLIFY( SUNCOSmid )
+      NULLIFY( T         )
+
 !
 ! *********************************************************************
 !                     RETURN TO CALLING PROGRAM
@@ -2587,16 +2605,32 @@ c new OH+CO rate from JPL2006.
       REAL*8            :: XAIRM3     ! Volume of air                [m3]
       LOGICAL           :: yn_continue
    
+      ! Pointers
+      REAL*8, POINTER   :: AD(:,:,:)
+      REAL*8, POINTER   :: AIRVOL(:,:,:)
+      REAL*8, POINTER   :: CLDF(:,:,:)
+      REAL*8, POINTER   :: FRLAND(:,:)
+      REAL*8, POINTER   :: FROCEAN(:,:)
+      REAL*8, POINTER   :: T(:,:,:)
+
       !=================================================================
       ! CLD1K_BrNO3 begins here!
       !=================================================================
+
+      ! Initialize pointers
+      AD      => State_Met%AD
+      AIRVOL  => State_Met%AIRVOL
+      CLDF    => State_Met%CLDF
+      FRLAND  => State_Met%FRLAND
+      FROCEAN => State_Met%FROCEAN
+      T       => State_Met%T
 
       ! ----------------------------------------------
       ! 1.
       !   calculate the mean molecular speed of the
       !   molecules given the temperature.
       ! ----------------------------------------------
-      nu   = sqrt( 8.d0 * R * State_Met%T(I,J,L) / (mw_brno3 * pi) )
+      nu   = sqrt( 8.d0 * R * T(I,J,L) / (mw_brno3 * pi) )
 
       ! ----------------------------------------------
       ! Test conditions to see if we want to continue
@@ -2605,8 +2639,7 @@ c new OH+CO rate from JPL2006.
 
       ! continental or marine clouds only...
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-      IF ( (State_Met%FRLAND (I,J) > 0)   .or. 
-     &     (State_Met%FROCEAN(I,J) > 0) ) THEN
+      IF ( (FRLAND (I,J) > 0) .or. (FROCEAN(I,J) > 0) ) THEN
 #else
       ! Above line is to skip over land ice (Greenland and Antartica). This
       ! should do the same (and also work for GEOS-5, but leave above for now).
@@ -2614,8 +2647,8 @@ c new OH+CO rate from JPL2006.
      &   ( IS_ICE ( I, J, State_Met )) ) THEN
 #endif
          ! do we have clouds? and do we have warm temperatures?
-         IF ( (State_Met%CLDF(L,I,J) > 0    )   .and.
-     &        (State_Met%T(I,J,L)    > 258.0) ) THEN
+         IF ( ( CLDF(L,I,J) > 0    )   .and.
+     &        ( T(I,J,L)    > 258.0) ) THEN
             yn_continue = .TRUE.
          ELSE
             yn_continue = .FALSE.
@@ -2683,7 +2716,7 @@ c new OH+CO rate from JPL2006.
       !              AIRVOL x RADIUS      (in cm)
       ! ----------------------------------------------
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-      IF ( State_Met%FRLAND(I,J) > State_Met%FROCEAN(I,J) ) THEN
+      IF ( FRLAND(I,J) > FROCEAN(I,J) ) THEN
 #else
       IF ( IS_LAND(I,J, State_Met) ) THEN
 #endif
@@ -2695,17 +2728,17 @@ c new OH+CO rate from JPL2006.
       ENDIF
 
       ! store the volume of air [m3]
-      XAIRM3 = State_Met%AIRVOL(I,J,L)
+      XAIRM3 = AIRVOL(I,J,L)
       ! convert to [cm3]
       XAIRM3 = XAIRM3 * (100.d0)**3
 
       ! get the volume of cloud [cm3]
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       ! QL is [g/g]
-      Vc = State_Met%CLDF(L,I,J) * QL * State_Met%AD(I,J,L) / dens_h2o
+      Vc = CLDF(L,I,J) * QL * AD(I,J,L) / dens_h2o
 #else
       ! QL is [cm3/cm3]
-      Vc = State_Met%CLDF(L,I,J) * QL * XAIRM3
+      Vc = CLDF(L,I,J) * QL * XAIRM3
 #endif
 
       ! now calculate the cloud droplet surface area
@@ -2721,7 +2754,7 @@ c new OH+CO rate from JPL2006.
       !   (b) calculate the hydrolysis rxn rate.
       ! ----------------------------------------------------
       SQM = sqrt(mw_brno3 * 1.d3)    ! square root of molar mass [g/mole]
-      STK = sqrt(State_Met%T(I,J,L)) ! square root of temperature [K]
+      STK = sqrt(T(I,J,L)) ! square root of temperature [K]
 
       ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
       DFKG  = 9.45D17/DENAIR * STK * SQRT(3.472D-2 + 1.D0/(SQM*SQM))
@@ -2730,6 +2763,13 @@ c new OH+CO rate from JPL2006.
       cld1k = AREA / ( RADIUS/DFKG + 2.749064E-4 
      &     * SQM/(alpha*STK) )
 
+      ! Free Pointers
+      NULLIFY( AD      )
+      NULLIFY( AIRVOL  )
+      NULLIFY( CLDF    )
+      NULLIFY( FRLAND  )
+      NULLIFY( FROCEAN )
+      NULLIFY( T       )
 
       END FUNCTION CLD1K_BrNO3
 !EOC

@@ -334,7 +334,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState 
       USE inquireMod,         ONLY : findFreeLUN
       USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
       USE TIME_MOD,           ONLY : EXPAND_DATE,  GET_YEAR
