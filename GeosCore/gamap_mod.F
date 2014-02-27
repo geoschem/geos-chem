@@ -303,6 +303,11 @@
       USE FILE_MOD,    ONLY : IOERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS
+!%%% Now reference names of SMVGEAR species (bmy, 6/24/13)
+      use comode_loop_mod, only : namegas, ntspec
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !INPUT PARAMETERS:
 !
@@ -332,7 +337,7 @@
       INTEGER           :: IU_FILE
       REAL*4            :: SCALE_NEW
       CHARACTER(LEN=2)  :: C
-      CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW
+      CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW, fname_new
 
       !=================================================================
       ! CREATE_TINFO begins here!
@@ -634,6 +639,51 @@
          ENDIF
       ENDDO
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS
+!%%% Add info about cspec restart file to tracerinfo.dat
+      !-------------------------------------
+      ! CSPEC restart fle
+      !-------------------------------------
+      IF ( Input_Opt%LSVCSPEC ) THEN
+
+         ! Write separator
+         CALL WRITE_SEPARATOR( IU_FILE, 9999 )
+
+
+         ! Write names of SMVGEAR species (active + inactive)
+         DO T = 1, NTSPEC(1)
+
+            ! Save into local variables
+            NAME_NEW  = TRIM( NAMEGAS(T) )
+            FNAME_NEW = TRIM( NAMEGAS(T) )
+
+            ! Fix drydep names (avoid confusion caused by truncation to
+            ! 8 letters in some species). ! NOTE: this is the quick &
+            ! dirty fix, one could do a better job.
+            SELECT CASE ( TRIM( NAME_NEW ) )
+               CASE ( 'DRYISOPND' )
+                  NAME_NEW = 'DRYISPND'
+               CASE ( 'DRYISOPNB' )
+                  NAME_NEW = 'DRYISPNB'
+               CASE ( 'DRYPROPNN' )
+                  NAME_NEW = 'DRYPRPNN'
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+            ! Write tracers to file
+            ! NOTE: Molecular weight info not accurate,
+            ! we are just using 1.0 as a placeholder
+            CALL WRITE_TINFO( IU_FILE,     NAME_NEW,  FNAME_NEW,
+     &                        1e0,         1,         1e0,
+     &                        'molec/cm3', T+100000              )
+
+         ENDDO
+
+      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       END SUBROUTINE CREATE_TINFO
 !EOC
 !------------------------------------------------------------------------------
@@ -765,6 +815,12 @@
             WRITE( IU_FILE, 190, IOSTAT=IOS ) !sfarina - this can stay
          CASE( 999 ) 
             WRITE( IU_FILE, 170, IOSTAT=IOS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS
+!%%% Add special line for CSPEC restart file (bmy, 6/24/13)
+         CASE( 9999 )
+            WRITE( IU_FILE, 9999, IOSTAT=IOS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          CASE DEFAULT
             WRITE( IU_FILE, 180, IOSTAT=IOS ) DIAG
       END SELECT
@@ -787,7 +843,8 @@
  170  FORMAT( '# Quantities for Soil NOx restart file' )
  180  FORMAT( '# ND', i2.2, ' diagnostic quantities'   )
  190  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
-      
+ 9999 FORMAT( '# Checkpointed chemical species [molec cm-3] )' ) 
+     
       END SUBROUTINE WRITE_SEPARATOR
 !EOC
 !------------------------------------------------------------------------------
@@ -1301,6 +1358,21 @@
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
+      CATEGORY(N) = 'ANVOCSRC'
+      DESCRIPT(N) = 'Anthro SOA precursor emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'BBVOCSRC'
+      DESCRIPT(N) = 'Biomass SOA precursor emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'BGSOASRC'
+      DESCRIPT(N) = 'Biogenic SOA emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
       CATEGORY(N) = 'PL-BC=$'
       DESCRIPT(N) = 'H-philic from H-phobic BC'
       OFFSET(N)   = SPACING * 33
@@ -1311,6 +1383,16 @@
       ! updated name for SOA (hotp 7/31/08)
       !DESCRIPT(N) = 'H-philic from H-phobic OC'
       DESCRIPT(N) = 'Philic OC prod/SOA prod'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'PL-ANSOA'
+      DESCRIPT(N) = 'Anthro. SOA production'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'PL-BBSOA'
+      DESCRIPT(N) = 'Biomass SOA production'
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
@@ -1580,6 +1662,16 @@
       DESCRIPT(N) = 'POP partitioning/oxidation'
       OFFSET(N)   = SPACING * 53
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS
+!%%% Add species in CSPEC restart file (bmy, 6/24/13)
+      ! New for CSPEC
+      N           = N + 1
+      CATEGORY(N) = 'IJ-CHK-$'
+      DESCRIPT(N) = 'species concentrations after chemistry'
+      OFFSET(N)   = SPACING * 100
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
 !      N           = N + 1
@@ -1635,6 +1727,7 @@
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
 #endif
       USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -4543,6 +4636,64 @@
             END SELECT
 
          ENDDO
+
+         ! SEAC4RS SOA tracers (jaf, 6/25/13)
+         IF ( IDTAVOC  > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = NTRAC(07)
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'ANVOC'
+            FNAME(T,07) = 'Anthro. SOA precursor'
+            INDEX(T,07) = IDTAVOC + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTBBVOC > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = T+1
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'BBVOC'
+            FNAME(T,07) = 'Biomass SOA precursor'
+            INDEX(T,07) = IDTBBVOC + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTBGSOA > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = T+1
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'BGSOA'
+            FNAME(T,07) = 'Biogenic SOA'
+            INDEX(T,07) = IDTBGSOA + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTASOA  > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = NTRAC(07)
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'ANSOA'
+            FNAME(T,07) = 'Anthro. SOA production'
+            INDEX(T,07) = IDTASOA + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTBBSOA > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = NTRAC(07)
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'BBSOA'
+            FNAME(T,07) = 'Biomass SOA production'
+            INDEX(T,07) = IDTBBSOA + ( SPACING * 33 )
+         ENDIF
+
       ENDIF
 
       !-------------------------------------

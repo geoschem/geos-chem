@@ -533,6 +533,10 @@
                DVZ = 3.0d-2
             ENDIF
 
+            !IF ( NN == IDTO3 ) THEN
+            !   PRINT*, 'DEPOSITION', I, J, DVZ, THIK
+            !ENDIF
+
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,N) = ( DVZ / 100.d0 ) / THIK
 
@@ -5456,6 +5460,43 @@
             HSTAR(NUMDEP)   = 0d0
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 72d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         !----------------------------------
+         ! SEAC4RS SOA tracers (jaf, 6/24/13)
+         !----------------------------------
+
+         ! ASOA
+         ELSE IF ( N == IDTASOA ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTASOA
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ASOA'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 12d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! BBSOA
+         ELSE IF ( N == IDTBBSOA ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTBBSOA
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'BBSOA'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 12d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! BGSOA
+         ELSE IF ( N == IDTBGSOA ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTBGSOA
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'BGSOA'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .TRUE.
 
          !----------------------------------

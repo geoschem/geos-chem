@@ -449,9 +449,14 @@
       !  BENZ, TOLU, XYLE, C2H2, C2H4, GLYX, MGLY, GLYC, HAC. (tmf, 1/7/09)
       !INTEGER, PARAMETER :: NEMPARA = 21 
       !  Add RCHO, HCOOH, ACTA
-      !INTEGER, PARAMETER :: NEMPARA = 26 
-      INTEGER, PARAMETER :: NEMPARA = 29
-      INTEGER, PARAMETER :: NEMPARB = 20
+      !INTEGER, PARAMETER :: NEMPARA = 26
+      ! +4 for SEAC4RS FF passive tracers (jaf, 6/13/13)
+      ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13) 
+      !INTEGER, PARAMETER :: NEMPARA = 29
+      INTEGER, PARAMETER :: NEMPARA = 37
+      ! +1 for SEAC4RS ISOP passive tracers (jaf, 6/14/13)
+      !INTEGER, PARAMETER :: NEMPARB = 20
+      INTEGER, PARAMETER :: NEMPARB = 21
 
       !=================================================================
       ! OTHER PARAMETERS 
