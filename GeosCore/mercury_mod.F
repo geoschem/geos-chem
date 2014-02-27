@@ -497,9 +497,8 @@
       REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER :: T(:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -565,9 +564,9 @@
       N_TRACERS = Input_Opt%N_TRACERS
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT       => State_Chm%Tracers
+      ! Initialize pointers
+      STT      => State_Chm%Tracers
+      T        => State_Met%T
 
       !=================================================================
       ! Read monthly mean Br, OH, O3, and J_NO2 fields
@@ -761,7 +760,7 @@
 
          ! Oxidation rate by Br, 1/s (accounts for HgBr intermediate)
          IF (LBRCHEM) THEN
-            K_BR = GET_HGBR_RATE( C_BR, State_Met%T(I,J,L), 
+            K_BR = GET_HGBR_RATE( C_BR, T(I,J,L), 
      &           GET_PCENTER(I,J,L), C_OH, METHOD )
          ELSE
             K_BR = 0d0
@@ -814,22 +813,22 @@
          FC          = GET_VCLDF( I, J, L, State_Met  )
 
          ! Get liquid water content in cloud (m3/m3)
-         LWC         = GET_LWC( State_Met%T(I,J,L) ) 
+         LWC         = GET_LWC( T(I,J,L) ) 
 
          ! There should be no liquid water when T < 258K 
-         IF ( State_Met%T(I,J,L) < 258D0 )  LWC = 0D0
+         IF ( T(I,J,L) < 258D0 )  LWC = 0D0
 
 #endif
 
          ! Define fraction of in-cloud Hg(II) which is in aqueous solution
          ! [dimensionless]
-         Faq  = ( HL * R * State_Met%T(I,J,L) * LWC )
+         Faq  = ( HL * R * T(I,J,L) * LWC )
          Faq  = Faq / ( 1d0 + Faq )
 
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
          IF (LRED_JNO2 .AND. (F_PBL >0.1) .AND. 
      &        IS_WATER(I,J, State_Met )) THEN
-            Faq = ( HL * 2D3 * R * State_Met%T(I,J,L) * LWC )
+            Faq = ( HL * 2D3 * R * T(I,J,L) * LWC )
             Faq = Faq / ( 1d0 + Faq )
          ENDIF
          
@@ -1105,10 +1104,11 @@
       ! Partition Hg(II) between gas and aerosol
       CALL PARTITIONHG2( am_I_Root, Input_Opt, State_Chm, RC )
 
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
-
       ! Free pointer memory
       NULLIFY( STT )
+      NULLIFY( T   )
+
+      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
 
       ! Return to calling program
       END SUBROUTINE CHEMMERCURY

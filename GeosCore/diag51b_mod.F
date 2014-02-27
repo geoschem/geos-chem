@@ -488,9 +488,8 @@
       REAL*8            :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER   :: STT(:,:,:,:)
+      REAL*8, POINTER   :: AD(:,:,:)
 
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
@@ -608,9 +607,9 @@
       !------------------------
       IF ( IS_DIAG ) THEN
 
-         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-         ! (mpayer, 12/6/12)
+         ! Initialize pointers
          STT => State_Chm%Tracers
+         AD  => State_Met%AD
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
@@ -642,8 +641,8 @@
 
                ! Archive afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,N)      * TCVV(N) / 
-     &                      State_Met%AD(I,J,L) * GOOD(I) )
+     &                      ( STT(I,J,L,N) * TCVV(N) / 
+     &                        AD(I,J,L)    * GOOD(I) )
 
             ELSE IF ( N == 91 .and. IS_O3 ) THEN
 
@@ -653,8 +652,8 @@
                !--------------------------------------
 
                ! Accumulate data
-               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTO3)    *
-     &                      TCVV(IDTO3)  /   State_Met%AD(I,J,L) *
+               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTO3) *
+     &                      TCVV(IDTO3)  /   AD(I,J,L) *
      &                      GOOD_CHEM(X) )
 
             ELSE IF ( N == 92 .and. IS_NO ) THEN
@@ -665,8 +664,8 @@
                !--------------------------------------
                
                ! Accumulate data
-               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTNO)    *
-     &                      TCVV(IDTNO)  /   State_Met%AD(I,J,L) *
+               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTNO) *
+     &                      TCVV(IDTNO)  /   AD(I,J,L) *
      &                      GOOD_CHEM(X) )
 
             ELSE IF ( N == 93 .and. IS_NOy ) THEN
@@ -680,47 +679,38 @@
             
                ! NO
                TMP = TMP + ( TCVV(IDTNO)         * GOOD(I) *
-     &                       STT(I,J,L,IDTNO)    /
-     &                       State_Met%AD(I,J,L) )
+     &                       STT(I,J,L,IDTNO)    / AD(I,J,L) )
 
                ! NO2
                TMP = TMP + ( TCVV(IDTNO2)        * GOOD(I) *
-     &                       STT(I,J,L,IDTNO2)   /
-     &                       State_Met%AD(I,J,L) )
+     &                       STT(I,J,L,IDTNO2)   / AD(I,J,L) )
                ! PAN
                TMP = TMP + ( TCVV(IDTPAN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPAN)   / 
-     &                       State_Met%AD(I,J,L) )
+     &                       STT(I,J,L,IDTPAN)   / AD(I,J,L) )
 
                ! HNO3
                TMP = TMP + ( TCVV(IDTHNO3)       * GOOD(I) *
-     &                       STT(I,J,L,IDTHNO3)  / 
-     &                       State_Met%AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO3)  / AD(I,J,L) )
             
                ! PMN
                TMP = TMP + ( TCVV(IDTPMN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPMN)   / 
-     &                       State_Met%AD(I,J,L) )
+     &                       STT(I,J,L,IDTPMN)   / AD(I,J,L) )
 
                ! PPN
                TMP = TMP + ( TCVV(IDTPPN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPPN)   / 
-     &                       State_Met%AD(I,J,L) )
+     &                       STT(I,J,L,IDTPPN)   / AD(I,J,L) )
  
                ! R4N2
                TMP = TMP + ( TCVV(IDTR4N2)       * GOOD(I) *
-     &                       STT(I,J,L,IDTR4N2)  / 
-     &                       State_Met%AD(I,J,L) )
+     &                       STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
             
                ! N2O5
                TMP = TMP + ( 2d0 * TCVV(IDTN2O5) * GOOD(I) *
-     &                       STT(I,J,L,IDTN2O5)  / 
-     &                       State_Met%AD(I,J,L) )
+     &                       STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
                         
                ! HNO4
                TMP = TMP + ( TCVV(IDTHNO4)       * GOOD(I) *
-     &                       STT(I,J,L,IDTHNO4)  / 
-     &                       State_Met%AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
 
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
@@ -742,8 +732,8 @@
                ! NO2 [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------     
-               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTNO2)   *
-     &                      TCVV(IDTNO2) /   State_Met%AD(I,J,L) *
+               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTNO2) *
+     &                      TCVV(IDTNO2) /   AD(I,J,L) *
      &                      GOOD_CHEM(X) )
  
             ELSE IF ( N == 78 ) THEN
@@ -946,7 +936,7 @@
      &                      ( STT(I,J,L,IDTSALA)   + 
      &                        STT(I,J,L,IDTSALC) ) *
      &                        TCVV(IDTSALA)        /
-     &                        State_Met%AD(I,J,L)  * GOOD(I)
+     &                        AD(I,J,L) * GOOD(I)
 
             ELSE IF ( N == 94 ) THEN
 
@@ -1199,8 +1189,9 @@
 !$OMP END PARALLEL DO
          GOOD(:) = 0
 
-         ! Free pointer
+         ! Free pointers
          NULLIFY( STT )
+         NULLIFY( AD  )
 
       ENDIF
 

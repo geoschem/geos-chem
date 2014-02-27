@@ -256,6 +256,12 @@ CONTAINS
     REAL*4  :: frOlson (IIPAR,    JJPAR, 0:N_OLSON-1) ! Frac of land types/box
     INTEGER :: ordOlson(IIPAR,    JJPAR, 0:N_OLSON-1) ! Order of land types
 
+    ! Pointers
+    INTEGER, POINTER :: IREG(:,:)
+    INTEGER, POINTER :: ILAND(:,:,:)
+    INTEGER, POINTER :: IUSE(:,:,:)
+    REAL*8,  POINTER :: FRCLND(:,:)
+
     !======================================================================
     ! NATIVE GRID parameters (i.e. 0.5 x 0.5 "GENERIC")
     !======================================================================
@@ -279,14 +285,21 @@ CONTAINS
     !======================================================================
     ! Initialize variables outside of the main loop 
     !======================================================================
-    ctOlson            = 0
-    frOlson            = 0e0
-    ordOlson           = -999
-    State_Met%IREG     = 0
-    State_Met%ILAND    = 0
-    State_Met%IUSE     = 0
-    State_Met%FRCLND   = 1000e0
-    isGlobal           = ( .not. ITS_A_NESTED_GRID() )
+
+    ! Initialize pointers
+    IREG    => State_Met%IREG
+    ILAND   => State_Met%ILAND
+    IUSE    => State_Met%IUSE
+    FRCLND  => State_Met%FRCLND
+
+    IREG     = 0
+    ILAND    = 0
+    IUSE     = 0
+    FRCLND   = 1000e0
+    ctOlson  = 0
+    frOlson  = 0e0
+    ordOlson = -999
+    isGlobal = ( .not. ITS_A_NESTED_GRID() )
 
     !======================================================================
     ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
@@ -433,45 +446,44 @@ CONTAINS
           IF ( ctOlson(I,J,T) > 0 .and. ordOlson(I,J,T) > 0 ) THEN 
  
              ! Increment the count of Olson types in the box 
-             State_Met%IREG(I,J)                  = State_Met%IREG(I,J) + 1
+             IREG(I,J)                  = IREG(I,J) + 1
              
              ! Save land type into ILAND
-             State_Met%ILAND(I,J,ordOlson(I,J,T)) = T
+             ILAND(I,J,ordOlson(I,J,T)) = T
              
              ! Save the fraction (in mils) of this land type
-             State_Met%IUSE(I,J,ordOlson(I,J,T))  = frOlson(I,J,T)
+             IUSE(I,J,ordOlson(I,J,T))  = frOlson(I,J,T)
 
           ENDIF
        ENDDO
 
        ! Land type with the largest coverage in the GEOS-CHEM GRID BOX
-       maxIuse = MAXLOC( State_Met%IUSE( I, J, 1:State_Met%IREG(I,J) ) )
+       maxIuse = MAXLOC( IUSE( I, J, 1:IREG(I,J) ) )
 
        ! Sum of all land types in the GEOS-CHEM GRID BOX (should be 1000)
-       sumIUse = SUM   ( State_Met%IUSE( I, J, 1:State_Met%IREG(I,J) ) )
+       sumIUse = SUM   ( IUSE( I, J, 1:IREG(I,J) ) )
 
        ! Make sure everything adds up to 1000.  If not, then adjust
        ! the land type w/ the largest coverage accordingly.
        ! This follows the algorithm from "regridh_lai.pro".
        IF ( sumIUse /= 1000 ) THEN
-          State_Met%IUSE(I,J,maxIUse) = State_Met%IUSE(I,J,maxIUse) &
-                                      + ( 1000 - sumIUse )
+          IUSE(I,J,maxIUse) = IUSE(I,J,maxIUse) &
+                            + ( 1000 - sumIUse )
        ENDIF
       
        ! Loop over land types in the GEOS-CHEM GRID BOX
-       DO T = 1, State_Met%IREG(I,J)
+       DO T = 1, IREG(I,J)
 
           ! If the current Olson land type is water (type 0),
           ! subtract the coverage fraction (IUSE) from FRCLND.
-          IF ( State_Met%ILAND(I,J,T) == 0 ) THEN
-             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J)  &
-                                   - State_Met%IUSE(I,J,T)
+          IF ( ILAND(I,J,T) == 0 ) THEN
+             FRCLND(I,J) = FRCLND(I,J)  - IUSE(I,J,T)
           ENDIF
        ENDDO
 
        ! Normalize FRCLND into the range of 0-1
        ! NOTE: Use REAL*4 for backwards compatibility w/ existing code!
-       State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) / 1000e0
+       FRCLND(I,J) = FRCLND(I,J) / 1000e0
 
     ENDDO
     ENDDO

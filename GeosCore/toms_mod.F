@@ -34,7 +34,11 @@
       ! First & last years for which TOMS/SBUV data is is available
       ! (update these as new data is added to the archive)
       INTEGER, PUBLIC, PARAMETER :: FIRST_TOMS_YEAR = 1979
+#if defined( GRID4x5 ) || defined( GRID2x25 ) || defined( GRID025x03125 )
       INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2010
+#else
+      INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2008
+#endif
 !
 ! !REMARKS:
 !  References:
@@ -246,8 +250,15 @@
      
       ! Define filename (with replaceable tokens)
 #if   !defined( GCAP )
+
+#if defined( GRID4x5 ) || defined( GRID2x25 ) || defined( GRID025x03125 )
       FILENAME = 'TOMS_201203/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
+#else
+      FILENAME = 'TOMS_200906/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
+     &           '.'                            // GET_RES_EXT()
+#endif
+
 #else
       FILENAME = 'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()

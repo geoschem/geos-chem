@@ -102,9 +102,9 @@
       REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER :: BXHEIGHT(:,:,:)
+      REAL*8, POINTER :: T(:,:,:)
 
       !=================================================================
       ! AERO_DRYDEP begins here!
@@ -121,9 +121,10 @@
       N_TRACERS = Input_Opt%N_TRACERS
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT       => State_Chm%TRACERS
+      ! Initialize pointers
+      STT      => State_Chm%TRACERS
+      BXHEIGHT => State_Met%BXHEIGHT
+      T        => State_Met%T
 
       ! First identify if the size-resolved aerosol tracers have their
       ! deposition velocity calculated.
@@ -208,7 +209,7 @@ cdbg      print *, dryd(:)
             
             ! Get P [kPa], T [K], and P*DP
             P    = GET_PCENTER(I,J,L) * 0.1d0  ![=] kPa
-            TEMP = State_Met%T(I,J,L)          ![=] K
+            TEMP = T(I,J,L)          ![=] K
             PDP  = P * DP
 
             !=====================================================
@@ -268,14 +269,14 @@ cdbg      print *, dryd(:)
             ENDDO
 
             ! We know the boundary condition at the model top
-            L           = LLTROP
-            DELZ        = State_Met%BXHEIGHT(I,J,L)           ![=] meter
+            L     = LLTROP
+            DELZ  = BXHEIGHT(I,J,L)           ![=] meter
             TC(L) = TC(L) / 
      &                   ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
             DO L = LLTROP-1, 1, -1
-               DELZ        = State_Met%BXHEIGHT(I,J,L)
-               DELZ1       = State_Met%BXHEIGHT(I,J,L+1)
+               DELZ  = BXHEIGHT(I,J,L)
+               DELZ1 = BXHEIGHT(I,J,L+1)
                TC(L) = 1.d0 / 
      &                       ( 1.d0 + DTCHEM * VTS(L) / DELZ )
      &                     * ( TC(L)  + DTCHEM * VTS(L+1) /
@@ -476,8 +477,10 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 
       IF ( LPRT ) PRINT *,'### Finish AERO_DRYDEP'
 
-      ! Free pointer memory
-      NULLIFY( STT )
+      ! Free pointers
+      NULLIFY( STT      )
+      NULLIFY( BXHEIGHT )
+      NULLIFY( T        )
 
       ! Return to calling program
       END SUBROUTINE AERO_DRYDEP

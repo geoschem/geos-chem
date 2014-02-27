@@ -293,9 +293,9 @@ CONTAINS
     REAL*8            :: TCVV(Input_Opt%N_TRACERS)
 
     ! Pointers
-    ! We need to define local arrays to hold corresponding values 
-    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
     REAL*8, POINTER   :: STT(:,:,:,:)
+    REAL*8, POINTER   :: AD(:,:,:)
+    REAL*8, POINTER   :: T(:,:,:)
 
     ! External functions
     REAL*8, EXTERNAL  :: BOXVL
@@ -316,9 +316,10 @@ CONTAINS
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
     TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
 
-    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-    ! (mpayer, 12/6/12)
-    STT => State_Chm%Tracers
+    ! Initialize pointers
+    STT                => State_Chm%Tracers
+    AD                 => State_Met%AD
+    T                  => State_Met%T
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )
@@ -395,8 +396,7 @@ CONTAINS
 
                    dt = DTCHEM                              ! timestep [s]
                    k = LOSS(I,J,L,N)                        ! loss freq [s-1]
-                   P = PROD(I,J,L,N) * State_Met%AD(I,J,L) &! prod term [kg s-1]
-                     / TCVV(NN)
+                   P = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
                    M0 = STT(I,J,L,NN)                       ! initial mass [kg]
 
                    ! No prod or loss at all
@@ -427,8 +427,7 @@ CONTAINS
        BEFORE = STT(:,:,:,IDTO3 )
 
        ! Put ozone in v/v
-       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * TCVV( IDTO3 ) / &
-                          State_Met%AD
+       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * TCVV( IDTO3 ) / AD
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
@@ -440,7 +439,7 @@ CONTAINS
        ENDIF
 
        ! Put ozone back to kg
-       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * State_Met%AD / TCVV( IDTO3 )
+       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * AD / TCVV( IDTO3 )
 
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,IDTO3) = SCHEM_TEND(:,:,:,IDTO3) + &
@@ -468,13 +467,13 @@ CONTAINS
                 IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
 
                 ! Density of air at grid box (I,J,L) in [molec cm-3]
-                M = State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met) * XNUMOLAIR
+                M = AD(I,J,L) / BOXVL(I,J,L,State_Met) * XNUMOLAIR
 
                 ! OH number density [molec cm-3]
                 mOH = M * STRAT_OH(I,J,L)
 
                 ! Temperature at grid box (I,J,L) in K
-                TK = State_Met%T(I,J,L)
+                TK = T(I,J,L)
 
                 !============!
                 ! CH3Br + OH !
@@ -548,14 +547,14 @@ CONTAINS
                    ! daytime [ppt] -> [kg]
                    BryDay = bry_day(I,J,L,NN)     &
                           * 1.d-12                & ! convert from [ppt]
-                          * State_Met%AD(I,J,L)   &
+                          * AD(I,J,L)             &
                           / TCVV(GC_Bry_TrID(NN))
                    STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
                 ELSE
                    ! nighttime [ppt] -> [kg]
                    BryNight = bry_night(I,J,L,NN)   &
                             * 1.d-12                & ! convert from [ppt]
-                            * State_Met%AD(I,J,L)   &
+                            * AD(I,J,L)             &
                             / TCVV(GC_Bry_TrID(NN))
                    STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
                 ENDIF
@@ -585,7 +584,7 @@ CONTAINS
        ! Intial conditions
        STT0(:,:,:,:) = STT(:,:,:,:)
 
-       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg -> v/v
+       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
 
        IF ( LLINOZ ) THEN
           CALL Do_Linoz( am_I_Root, Input_Opt,             &
@@ -595,7 +594,7 @@ CONTAINS
                          State_Met, State_Chm, RC=errCode )
        ENDIF
 
-       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v -> kg
+       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1d0
@@ -627,9 +626,9 @@ CONTAINS
        ! Intial conditions
        STT0(:,:,:,:) = STT(:,:,:,:)
 
-       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg -> v/v
+       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
        CALL UPBDFLX_HD( State_Met, State_Chm )
-       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v -> kg
+       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1d0
@@ -668,6 +667,8 @@ CONTAINS
 
     ! Free pointer
     NULLIFY( STT )
+    NULLIFY( AD  )
+    NULLIFY( T   )
 
   END SUBROUTINE DO_STRAT_CHEM
 #endif

@@ -2687,9 +2687,9 @@
       REAL*8             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER    :: STT(:,:,:,:)
+      REAL*8, POINTER    :: AD(:,:,:)
+      REAL*8, POINTER    :: AIRVOL(:,:,:)
 
       !=================================================================
       ! SEASALT_CHEM begins here!
@@ -2703,15 +2703,16 @@
       TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Initialize pointers
+      STT                 => State_Chm%Tracers
+      AD                  => State_Met%AD
+      AIRVOL              => State_Met%AIRVOL
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Convert SO2 [v/v] to  [eq/gridbox]
-      SO2_eq = ( 2.d0         * SO2_cd  * State_Met%AD(I,J,L) ) /
+      SO2_eq = ( 2.d0 * SO2_cd  * AD(I,J,L) ) / 
      &         ( TCVV(IDTSO2) * 0.064d0 )
       SO2_eq = MAX( SO2_eq, MINDAT )
 
@@ -2719,18 +2720,17 @@
 
  	 ! Convert HNO3 [v/v] to [equivalents]
          HNO3_vv = STT(I,J,L,IDTHNO3)
-         HNO3_eq = HNO3_vv * State_Met%AD(I,J,L) /
-     &             ( 28.97d0 / 63d0 ) / 63.d-3
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97d0 / 63d0 ) / 63.d-3
 
       ELSE
          
          ! Get HNO3 in ug/m3, then multiply by volume in m3
          ! and 1e-6 kg/ug to get HNO3 in kg
          HNO3_kg = GET_HNO3_UGM3( I, J, L, State_Met ) *
-     &             State_Met%AIRVOL(I,J,L) * 1e-6
+     &             AIRVOL(I,J,L) * 1e-6
 
 	 ! Convert HNO3 [kg] first to [v/v] 
-         HNO3_vv = HNO3_kg * ( 28.97d0 / 63d0 ) / State_Met%AD(I,J,L)
+         HNO3_vv = HNO3_kg * ( 28.97d0 / 63d0 ) / AD(I,J,L)
  
          ! Then convert HNO3 [kg] to [equivalents]
          HNO3_eq = HNO3_kg / 63d-3
@@ -2747,8 +2747,7 @@
       F_SO2_A  = MAX( F_SO2_A, 1.d-32 )
 
       ! Convert to [eq/timestep] 
-      C_FLUX_A = 2.d0 * F_SO2_A * State_Met%AD(I,J,L) /
-     &           TCVV(IDTSO2) / 0.064d0
+      C_FLUX_A = 2.d0 * F_SO2_A * AD(I,J,L) / TCVV(IDTSO2) / 0.064d0
 
       ! Available flux of SO2 to coarse sea salt aerosols [v/v/timestep]
       L5C      = EXP( - Kt2 * DTCHEM )
@@ -2756,8 +2755,7 @@
       F_SO2_C  = MAX( F_SO2_C, 1.0d-32 )
 
       ! Convert to [eq/timestep] 
-      C_FLUX_C = 2.d0 * F_SO2_C * State_Met%AD(I,J,L) /
-     &           TCVV(IDTSO2) / 0.064d0
+      C_FLUX_C = 2.d0 * F_SO2_C * AD(I,J,L) / TCVV(IDTSO2) / 0.064d0
 
       ! Total flux of SO2 [v/v/timestep]
       F_SO2    = F_SO2_A + F_SO2_C 
@@ -2775,8 +2773,7 @@
       F_HNO3_A = MAX( F_HNO3_A, 1.0D-32 )
 
       ! Convert to [eq/timestep] 
-      N_FLUX_A = F_HNO3_A * State_Met%AD(I,J,L) /
-     &           ( 28.97d0 / 63d0 ) / 0.063d0
+      N_FLUX_A = F_HNO3_A * AD(I,J,L) / ( 28.97d0 / 63d0 ) / 0.063d0
 
       ! Available flux of HNO3 to coarse sea salt aerosols [v/v/timestep]
       L6C = EXP( - Kt2N * DTCHEM )
@@ -2784,8 +2781,7 @@
       F_HNO3_C = MAX( F_HNO3_C, 1.0D-32 )
 
       ! convert to [eq/timestep] 
-      N_FLUX_C = F_HNO3_C * State_Met%AD(I,J,L) /
-     &           ( 28.97d0 / 63d0 ) / 0.063d0
+      N_FLUX_C = F_HNO3_C * AD(I,J,L) / ( 28.97d0 / 63d0 ) / 0.063d0
 
       ! Total flux of HNO3
       F_HNO3 = F_HNO3_A + F_HNO3_C ![v/v/timestep]
@@ -2905,17 +2901,17 @@
       !-------------------------------------------------------------------
 
       !Modified SO2 [eq] converted back to [v/v]
-      SO2_ss       = SO2_chem * 0.064    * TCVV(IDTSO2) /
-     &               State_Met%AD(I,J,L) / 2.0d0
+      SO2_ss       = SO2_chem * 0.064 * TCVV(IDTSO2) /
+     &               AD(I,J,L) / 2.0d0
       SO2_ss       = MAX( SO2_ss, MINDAT )
 
       !SO4E produced converted from [eq/timestep] to [v/v/timestep] 
-      PSO4E        = SO4E * 0.096        * TCVV(IDTSO4) /
-     &               State_Met%AD(I,J,L) / 2.0d0
+      PSO4E        = SO4E * 0.096 * TCVV(IDTSO4) /
+     &               AD(I,J,L) / 2.0d0
 
       !SO4F produced converted from [eq/timestep] to [v/v/timestep] 
-      PSO4F        = SO4F * 0.096        * TCVV(IDTSO4S) /
-     &               State_Met%AD(I,J,L) / 2.0d0
+      PSO4F        = SO4F * 0.096 * TCVV(IDTSO4S) /
+     &               AD(I,J,L) / 2.0d0
 
       ! Alkalinity titrated by HNO3
       HNO3_SSA     = MIN(N_FLUX_A, HNO3_EQ, EQ_1_N)
@@ -2936,20 +2932,18 @@
       IF ( IDTHNO3 > 0 ) THEN
 
          ! Coupled sim: IDTHNO3 is defined, so use it
-         HNO3_ss = HNO3_SSC * 0.063 * TCVV(IDTHNO3) /
-     &             State_Met%AD(I,J,L)
+         HNO3_ss = HNO3_SSC * 0.063 * TCVV(IDTHNO3) / AD(I,J,L)
          STT(I,J,L,IDTHNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
 
       ELSE
 
          ! Offline aerosol sim: IDTHNO3 isn't defined, use TCVV_HNO3
-         HNO3_ss = TITR_HNO3 * 0.063 * TCVV_HNO3 / State_Met%AD(I,J,L)
+         HNO3_ss = TITR_HNO3 * 0.063 * TCVV_HNO3 /AD(I,J,L)
 
       ENDIF
 
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
-      PNITs(I,J,L) = HNO3_SSC * 0.063 * TCVV(IDTNITS) /
-     &               State_Met%AD(I,J,L)
+      PNITs(I,J,L) = HNO3_SSC * 0.063 * TCVV(IDTNITS) / AD(I,J,L)
 	 
       ! Modified accum alkalinity 
       ALKA         = EQ1 - (SO4E + HNO3_SSA)
@@ -2958,7 +2952,7 @@
       !------------------------------------------------------------------------
       ! Uncomment this if you want to transport alkalinity (bec, bmy, 4/13/05)
       ![eq] --> [kg] --> [v/v] use this only if transporting alkalinity
-      !ALKAvv = (ALKA * TCVV(IDTSAL1))/(7.0d-2 * State_Met%AD(I,J,L))
+      !ALKAvv = (ALKA * TCVV(IDTSAL1))/(7.0d-2 * AD(I,J,L))
       !ALKAvv = MAX( ALKAvv, MINDAT )
       !------------------------------------------------------------------------
 
@@ -2969,7 +2963,7 @@
       !------------------------------------------------------------------------
       ! Uncomment this if you want to transport alkalinity (bec, bmy, 4/13/05)
       !! [eq] --> [kg] --> [v/v] use this only if transporting alkalinity
-      !ALKCvv = (ALKC * TCVV(IDTSAL2))/(7.0d-2 * State_Met%AD(I,J,L))
+      !ALKCvv = (ALKC * TCVV(IDTSAL2))/(7.0d-2 * AD(I,J,L))
       !ALKCvv = MAX(ALKCvv, MINDAT)
       !------------------------------------------------------------------------
 
@@ -2981,7 +2975,9 @@
       !------------------------------------------------------------------------
 
       ! Free pointer
-      NULLIFY( STT )
+      NULLIFY( STT    )
+      NULLIFY( AD     )
+      NULLIFY( AIRVOL )
 
       END SUBROUTINE SEASALT_CHEM
 !EOC
@@ -4011,9 +4007,23 @@
       REAL*8              :: B, NH3, SO2, H2O2, HNO3, SO4
       REAL*8              :: CNss, CNd2, CNd3, CNd4
 
+      ! Pointers
+      REAL*8, POINTER     :: AD(:,:,:)
+      REAL*8, POINTER     :: AIRDEN(:,:,:)
+      REAL*8, POINTER     :: AIRVOL(:,:,:)
+      REAL*8, POINTER     :: U(:,:,:)
+      REAL*8, POINTER     :: V(:,:,:)
+
       !=================================================================
       ! HET_DROP_CHEM begins here!
       !=================================================================
+
+      ! Initialize pointers
+      AD     => State_Met%AD
+      AIRDEN => State_Met%AIRDEN
+      AIRVOL => State_Met%AIRVOL
+      U      => State_Met%U
+      V      => State_Met%V
 
       ! Convert gas phase concentrations from [v/v] to [pptv]
       NH3  = GNH3  * 1.0d12
@@ -4022,19 +4032,19 @@
       HNO3 = GNO3 * 1.0d12
 
       ! Convert sulfate aerosol concentrations from [v/v] to [ug/m3]
-      SO4 = ( aSO4         * State_Met%AD(I,J,L)     * 1.0d9 ) / 
-     &      ( TCVV(IDTSO4) * State_Met%AIRVOL(I,J,L) )
+      SO4 = ( aSO4         * AD(I,J,L)     * 1.0d9 ) / 
+     &      ( TCVV(IDTSO4) * AIRVOL(I,J,L) )
 
       ! Convert in cloud sulfate production rate from [v/v/timestep] to
       ! [ug/m3/timestep]
-      B  = ( LSTOT        * State_Met%AD(I,J,L)     * 1.0d9 ) / 
-     &     ( TCVV(IDTSO4) * State_Met%AIRVOL(I,J,L) )
+      B  = ( LSTOT        * AD(I,J,L)     * 1.0d9 ) / 
+     &     ( TCVV(IDTSO4) * AIRVOL(I,J,L) )
 
       ! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
       ! based on equation in Hofmann, Science, 1990.
       ! First convert from [v/v] to [kg/m3 air]
-      CNss = SSCvv         * State_Met%AD(I,J,L)     /
-     &     ( TCVV(IDTSALC) * State_Met%AIRVOL(I,J,L) )
+      CNss = SSCvv         * AD(I,J,L)     /
+     &     ( TCVV(IDTSALC) * AIRVOL(I,J,L) )
 
       ! Now convert from [kg/m3 air] to [#/cm3 air]
       ! Sea-salt
@@ -4092,8 +4102,7 @@
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Compute air parcel velocity [m/s]
-      APV = SQRT( (State_Met%U(I,J,L) * State_Met%U(I,J,L)) + 
-     &            (State_Met%V(I,J,L) * State_Met%V(I,J,L)) )
+      APV = SQRT( (U(I,J,L) * U(I,J,L)) + (V(I,J,L) * V(I,J,L)) )
 
       H   = DTCHEM * APV          ![m]
 
@@ -4109,13 +4118,20 @@
       SR = DSVI - B 
 
       ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
-      SR = SR *TCVV(IDTSO4) * 1.D-9 / State_Met%AIRDEN(L,I,J)
+      SR = SR *TCVV(IDTSO4) * 1.D-9 / AIRDEN(L,I,J)
 	
       ! Don't allow SR to be negative
       SR = MAX( SR, 0.d0 )
 
       ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
       SR = MIN( SR, SO2_sr )
+
+      ! Free pointers
+      NULLIFY( AD     )
+      NULLIFY( AIRDEN )
+      NULLIFY( AIRVOL )
+      NULLIFY( U      )
+      NULLIFY( V      )
 
       END SUBROUTINE HET_DROP_CHEM
 !EOC
@@ -4236,9 +4252,8 @@
       REAL*8                :: T44(IIPAR,JJPAR,LLPAR,6) 
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER       :: STT(:,:,:,:)
+      REAL*8, POINTER       :: AD(:,:,:)
 
       !=================================================================
       ! CHEM_SO4 begins here!
@@ -4259,9 +4274,9 @@
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS) 
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Initialize pointers
+      STT      => State_Chm%Tracers
+      AD       => State_Met%AD
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM    = GET_TS_CHEM() * 60d0
@@ -4513,13 +4528,13 @@
 
             ! SO4 drydep flux [molec/cm2/s]
             FLUX = SO40  - SO4 + PSO4_SO2(I,J,L) 
-            FLUX = FLUX  * State_Met%AD(I,J,L) / TCVV(IDTSO4)
+            FLUX = FLUX  * AD(I,J,L) / TCVV(IDTSO4)
             FLUX = FLUX  * XNUMOL(IDTSO4)      / AREA_CM2 / DTCHEM
             T44(I,J,L,1) = T44(I,J,L,1) + FLUX
 
             ! SO4s drydep flux [molec/cm2/s]
             FLUX = SO40s - SO4s + PSO4_ss(I,J,L) 
-            FLUX = FLUX  * State_Met%AD(I,J,L) / TCVV(IDTSO4s)
+            FLUX = FLUX  * AD(I,J,L) / TCVV(IDTSO4s)
             FLUX = FLUX  * XNUMOL(IDTSO4s)     / AREA_CM2 / DTCHEM
             T44(I,J,L,2) = T44(I,J,L,2) + FLUX
 
@@ -4530,25 +4545,25 @@
 !%%% 
 !%%%                ! SO4aq drydep flux [molec/cm2/s]
 !%%%                FLUX = SO4aq0 - SO4aq + PSO4_SO2(I,J,L)     
-!%%%                FLUX = FLUX  * State_Met%AD(I,J,L) / TCVV(IDTSO4aq)
+!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTSO4aq)
 !%%%                FLUX = FLUX  * XNUMOL(IDTSO4aq)    / AREA_CM2 / DTCHEM
 !%%%                T44(I,J,L,3) = T44(I,J,L,3) + FLUX
 !%%% 
 !%%%                ! AS drydep flux [molec/cm2/s]
 !%%%                FLUX = AS0   - AS
-!%%%                FLUX = FLUX  * State_Met%AD(I,J,L) / TCVV(IDTAS)
+!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTAS)
 !%%%                FLUX = FLUX  * XNUMOL(IDTAS)       / AREA_CM2 / DTCHEM
 !%%%                T44(I,J,L,4) = T44(I,J,L,4) + FLUX
 !%%% 
 !%%%                ! AHS drydep flux [molec/cm2/s]
 !%%%                FLUX = AHS0  - AHS
-!%%%                FLUX = FLUX  * State_Met%AD(I,J,L) / TCVV(IDTAHS)
+!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTAHS)
 !%%%                FLUX = FLUX  * XNUMOL(IDTAHS)      / AREA_CM2 / DTCHEM
 !%%%                T44(I,J,L,5) = T44(I,J,L,5) + FLUX
 !%%% 
 !%%%                ! LET drydep flux [molec/cm2/s]
 !%%%                FLUX = LET0  - LET
-!%%%                FLUX = FLUX  * State_Met%AD(I,J,L) / TCVV(IDTLET)
+!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTLET)
 !%%%                FLUX = FLUX  * XNUMOL(IDTLET)      / AREA_CM2 / DTCHEM
 !%%%                T44(I,J,L,6) = T44(I,J,L,6) + FLUX
 !%%% 
@@ -4593,8 +4608,9 @@
 !$OMP END PARALLEL DO
       ENDIF
 
-      ! Free pointer
+      ! Free pointers
       NULLIFY( STT )
+      NULLIFY( AD  )
 
       END SUBROUTINE CHEM_SO4
 !EOC
@@ -4674,6 +4690,9 @@
       REAL*8  :: TCVV(Input_Opt%N_TRACERS)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
+      ! Pointers
+      REAL*8, POINTER :: AD(:,:,:)
+
       !=================================================================
       ! CHEM_SO4_AQ begins here!
       !=================================================================
@@ -4683,12 +4702,11 @@
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
+      ! Initialize pointers
+      AD     => State_Met%AD
+
       ! Convert STT from [v/v] -> [kg] 
-      CALL CONVERT_UNITS( 2, 
-     &                    N_TRACERS, 
-     &                    TCVV, 
-     &                    State_Met%AD, 
-     &                    State_Chm%Tracers )
+      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, State_Chm%Tracers )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4702,7 +4720,7 @@
          ! Skip stratospheric boxes
          IF (ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
-         SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)/ TCVV(IDTSO4)
+         SO4OXID = PSO4_SO2AQ(I,J,L) * AD(I,J,L)/ TCVV(IDTSO4)
 
          IF ( SO4OXID > 0d0 ) THEN
 
@@ -4724,12 +4742,11 @@
 !$OMP END PARALLEL DO
 
        ! Convert STT from [kg] -> [v/v] 
-      CALL CONVERT_UNITS( 1, 
-     &                    N_TRACERS, 
-     &                    TCVV,
-     &                    State_Met%AD, 
-     &                    State_Chm%Tracers )
+      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, State_Chm%Tracers )
       
+      ! Free pointers
+      NULLIFY( AD )
+
       END SUBROUTINE CHEM_SO4_AQ
 !EOC
 #endif
