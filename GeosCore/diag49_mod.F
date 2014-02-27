@@ -289,9 +289,8 @@
       REAL*8                   :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER          :: STT(:,:,:,:)
+      REAL*8, POINTER          :: AD(:,:,:)
 
       !=================================================================
       ! DIAG49 begins here!
@@ -305,6 +304,10 @@
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
       N_TRACERS     = Input_Opt%N_TRACERS
       TCVV          = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Initialize pointers
+      STT          => State_Chm%Tracers
+      AD           => State_Met%AD
 
       ! Set logical flags on first timestep
       IF ( FIRST ) THEN
@@ -389,10 +392,6 @@
             GMNL     = ND49_NL
             GMTRC    = N
       
-            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-            ! (mpayer, 12/6/12)
-            STT => State_Chm%Tracers
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -402,14 +401,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
+               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-
-            ! Free pointer
-            NULLIFY( STT )
 
          ELSE IF ( N == 91 .and. IS_O3 ) THEN
 
@@ -421,10 +417,6 @@
             GMNL     = ND49_NL
             GMTRC    = N_TRACERS + 1
 
-            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-            ! (mpayer, 12/6/12)
-            STT => State_Chm%Tracers
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -434,15 +426,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,IDTO3)    * TCVV(IDTO3)  / 
-     &                    State_Met%AD(I,J,L)
+               Q(X,Y,K) = STT(I,J,L,IDTO3) * TCVV(IDTO3) / AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-
-            ! Free pointer
-            NULLIFY( STT )
 
          ELSE IF ( N == 92 .and. IS_NO ) THEN
             
@@ -454,10 +442,6 @@
             GMNL     = ND49_NL
             GMTRC    = 9
                
-            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-            ! (mpayer, 12/6/12)
-            STT => State_Chm%Tracers
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -467,15 +451,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,IDTNO)  * TCVV(IDTNO) /
-     &                    State_Met%AD(I,J,L)
+               Q(X,Y,K) = STT(I,J,L,IDTNO) * TCVV(IDTNO) / AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-
-            ! Free pointer
-            NULLIFY( STT )
 
          ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
@@ -486,10 +466,6 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND49_NL
             GMTRC    = 3
-
-            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-            ! (mpayer, 12/6/12)
-            STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -507,47 +483,47 @@
                ! NO
                TMP = TMP + ( TCVV(IDTNO)         *
      &                       STT(I,J,L,IDTNO)    /
-     &                       State_Met%AD(I,J,L) )
+     &                       AD(I,J,L) )
 
                ! NO2
                TMP = TMP + ( TCVV(IDTNO2)        *
      &                       STT(I,J,L,IDTNO2)   /
-     &                       State_Met%AD(I,J,L) )
+     &                       AD(I,J,L) )
 
                ! PAN
                TMP = TMP + ( TCVV(IDTPAN)        * 
      &                       STT(I,J,L,IDTPAN)   / 
-     &                       State_Met%AD(I,J,L) )
+     &                       AD(I,J,L) )
 
                ! HNO3
                TMP = TMP + ( TCVV(IDTHNO3)       *
      &                       STT(I,J,L,IDTHNO3)  / 
-     &                       State_Met%AD(I,J,L) )
+     &                       AD(I,J,L) )
             
                ! PMN
                TMP = TMP + ( TCVV(IDTPMN)        *
      &                       STT(I,J,L,IDTPMN)   / 
-     &                       State_Met%AD(I,J,L) )
+     &                       AD(I,J,L) )
 
                ! PPN
                TMP = TMP + ( TCVV(IDTPPN)        * 
      &                       STT(I,J,L,IDTPPN)   / 
-     &                       State_Met%AD(I,J,L) )
+     &                       AD(I,J,L) )
  
                ! R4N2
                TMP = TMP + ( TCVV(IDTR4N2)       *
      &                       STT(I,J,L,IDTR4N2)  / 
-     &                       State_Met%AD(I,J,L) )
+     &                       AD(I,J,L) )
             
                ! N2O5
                TMP = TMP + ( 2d0 * TCVV(IDTN2O5) *
      &                       STT(I,J,L,IDTN2O5)  / 
-     &                       State_Met%AD(I,J,L) )
+     &                       AD(I,J,L) )
                         
                ! HNO4
                TMP = TMP + ( TCVV(IDTHNO4)       *
      &                       STT(I,J,L,IDTHNO4)  / 
-     &                       State_Met%AD(I,J,L) )
+     &                       AD(I,J,L) )
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
@@ -556,9 +532,6 @@
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-
-            ! Free pointer
-            NULLIFY( STT )
 
          ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
 
@@ -604,8 +577,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,IDTNO2)  * TCVV(IDTNO2) /
-     &                    State_Met%AD(I,J,L)
+               Q(X,Y,K) = STT(I,J,L,IDTNO2) * TCVV(IDTNO2) / AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1006,10 +978,6 @@
             GMNL     = ND49_NL
             GMTRC    = 24
 
-            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-            ! (mpayer, 12/6/12)
-            STT => State_Chm%Tracers
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -1020,14 +988,11 @@
             DO X = 1, ND49_NI
                I = GET_I( X )
                Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                      TCVV(IDTSALA)      / State_Met%AD(I,J,L) 
+     &                      TCVV(IDTSALA)      / AD(I,J,L) 
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-
-            ! Free pointer
-            NULLIFY( STT )
 
          ELSE IF ( N == 94 ) THEN
 
@@ -1723,6 +1688,10 @@
          ! Close file
          CLOSE( IU_ND49 ) 
       ENDIF
+
+      ! Free pointers
+      NULLIFY( STT )
+      NULLIFY( AD  )
 
       END SUBROUTINE DIAG49
 !EOC

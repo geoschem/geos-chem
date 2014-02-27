@@ -520,6 +520,9 @@
       REAL*8        :: A(IIPAR,JJPAR)
       REAL*8        :: DTC(IIPAR,JJPAR,LLPAR,NTRC)  
 
+      ! Pointers
+      REAL*8, POINTER :: AD(:,:,:)
+
       !=================================================================
       ! TURBDAY begins here!          
       !=================================================================
@@ -542,6 +545,9 @@
       ! Do the boundary layer mixing
       !=================================================================
 
+      ! Initialize pointers
+      AD    => State_Met%AD
+
       ! Convection timestep [s]
       DTCONV = GET_TS_CONV() * 60d0
 
@@ -559,11 +565,11 @@
          ! Calculate air mass within PBL at grid box (I,J,L)
          AA = 0.d0 
          DO L = 1, IMIX(I,J)-1 
-            AA = AA + State_Met%AD(I,J,L) 
+            AA = AA + AD(I,J,L) 
          ENDDO       
                
          L  = IMIX(I,J) 
-         AA = AA + State_Met%AD(I,J,L) * FPBL(I,J)
+         AA = AA + AD(I,J,L) * FPBL(I,J)
 
          ! Loop over tracers 
          DO N = 1, NTRC
@@ -575,12 +581,12 @@
             ! Sum mass from (I,J,L) below the PBL top
             CC = 0.d0
             DO L = 1, IMIX(I,J)-1 
-               CC = CC + State_Met%AD(I,J,L) * TC(I,J,L,N)
+               CC = CC + AD(I,J,L) * TC(I,J,L,N)
             ENDDO       
                
             ! Then also sum mass from (I,J,L) which straddle the PBL top
             L     = IMIX(I,J) 
-            CC    = CC + State_Met%AD(I,J,L) * TC(I,J,L,N) * FPBL(I,J)
+            CC    = CC + AD(I,J,L) * TC(I,J,L,N) * FPBL(I,J)
             
             ! CC/AA is the mean mixing ratio of tracer at 
             ! (I,J) from L=1 to L=LTOP
@@ -603,26 +609,20 @@
 
             ! For grid boxes (I,J,L) which lie below the PBL top
             DO L = 1, IMIX(I,J)-1 
-               DTC(I,J,L,N) = ( A(I,J) * CC_AA       *
-     &                          State_Met%AD(I,J,L)  -
-     &                          A(I,J) * TC(I,J,L,N) *
-     &                          State_Met%AD(I,J,L) ) 
+               DTC(I,J,L,N) = ( A(I,J) * CC_AA       * AD(I,J,L)  -
+     &                          A(I,J) * TC(I,J,L,N) * AD(I,J,L) ) 
 
-               TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) /
-     &                       State_Met%AD(I,J,L)
+               TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / AD(I,J,L)
             ENDDO 
 
             ! For grid boxes (I,J,L) which straddle the PBL top
             L = IMIX(I,J) 
 
             DTC(I,J,L,N)  = 
-     &           ( A(I,J) * FPBL(I,J)  * CC_AA       *
-     &             State_Met%AD(I,J,L) - 
-     &             A(I,J) * FPBL(I,J)  * TC(I,J,L,N) *
-     &             State_Met%AD(I,J,L) ) 
+     &           ( A(I,J) * FPBL(I,J)  * CC_AA       * AD(I,J,L) - 
+     &             A(I,J) * FPBL(I,J)  * TC(I,J,L,N) * AD(I,J,L) ) 
                
-            TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / 
-     &                    State_Met%AD(I,J,L)
+            TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / AD(I,J,L)
 
             !=======================================================
             ! ND15 Diagnostic: 
@@ -652,6 +652,9 @@
 !     &               ( 1 - A(I,J)   * FPBL(I,J) )     *
 !     &                TC(I,J,L,N)   * AIRMAS(I,J,L) ) / AIRMAS(I,J,L) 
 !-----------------------------------------------------------------------------
+
+      ! Free pointers
+      NULLIFY( AD )
 
       END SUBROUTINE TURBDAY
 !EOC

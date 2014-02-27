@@ -160,7 +160,8 @@
 !  (26) Modify dry depostion to follow the non-local PBL scheme.
 !        (lin, ccc, 5/29/09)
 !  (27) Minor bug fix in mol wts for ALPH, LIMO (bmy, 10/19/09)
-!  (28) modified to use Zhang 2001 for all non-size resolved aerosols (hotp)
+!  (28) Change MAXDEP from 50 to 81 (win, 7/14/09)
+!  (28a) modified to use Zhang 2001 for all non-size resolved aerosols (hotp)
 !  (29) Add aromatics SOA (dkh)
 !  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
 !       and ISOPND. (fp)
@@ -1761,7 +1762,23 @@
 
       ! Logical switch for POPS in order to use octanol-air partitioning instead
       ! of Henry's Law for scaling of cuticular resitances (clf, 1/3/2011)
-      LOGICAL IS_POPS
+      LOGICAL :: IS_POPS
+
+      ! Pointers
+      INTEGER, POINTER :: IREG(:,:)
+      INTEGER, POINTER :: ILAND(:,:,:)
+      INTEGER, POINTER :: IUSE(:,:,:)
+      REAL*8,  POINTER :: XLAI(:,:,:)
+
+      !=================================================================
+      ! DEPVEL begins here!
+      !=================================================================
+
+      ! Initialize pointers
+      IREG  => State_Met%IREG
+      ILAND => State_Met%ILAND
+      IUSE  => State_Met%IUSE
+      XLAI  => State_Met%XLAI
 
       ! Is this a POPs simmulation?
       IS_POPS = Input_Opt%ITS_A_POPS_SIM  ! clf, 1/3/2011
@@ -1888,14 +1905,14 @@
 !****************************************************************************
 
          ! Loop over the # of Olson land types in this grid box (I,J)
-         DO 170 LDT = 1, State_Met%IREG(I,J)
+         DO 170 LDT = 1, IREG(I,J)
 
             ! If the land type is not represented in grid 
             ! box  (I,J), then skip to the next land type
-            IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 170
+            IF ( IUSE(I,J,LDT) == 0 ) GOTO 170
 
             ! Olson land type index + 1
-            IOLSON = State_Met%ILAND(I,J,LDT)+1
+            IOLSON = ILAND(I,J,LDT)+1
 
             ! Dry deposition land type index
             II     = IDEP(IOLSON)
@@ -1917,12 +1934,10 @@
 !** divide them by the leaf area index to get a cuticular resistance for the
 !** bulk canopy.  If IRLU is '9999' it means there are no cuticular
 !** surfaces on which to deposit so we impose a very large value for RLU.
-            IF ( IRLU(II) >= 9999 .or. 
-     &           State_Met%XLAI(I,J,LDT) <= 0.D0 ) THEN
+            IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.D0 ) THEN
                RLU(LDT) = 1.D6
             ELSE
-               RLU(LDT) = DBLE( IRLU(II) ) 
-     &                  / State_Met%XLAI(I,J,LDT) + RT
+               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT) + RT
             ENDIF
 !** The following are the remaining resistances for the Wesely
 !** resistance-in-series model for a surface canopy
@@ -1971,11 +1986,9 @@
             IF (TEMPC .GT. 0.D0 .AND. TEMPC .LT. 40.D0)
      *           GFACT = 400.D0/TEMPC/(40.0D0-TEMPC)
             GFACI = 100.D0
-            IF ( RAD0 > 0.D0 .and. State_Met%XLAI(I,J,LDT) > 0.D0 ) THEN
-               GFACI = 1.D0 / BIOFIT( DRYCOEFF,       
-     &                                State_Met%XLAI(I,J,LDT),
-     &                                SUNCOS(IJLOOP), 
-     &                                CFRAC(IJLOOP)            )
+            IF ( RAD0 > 0.D0 .and. XLAI(I,J,LDT) > 0.D0 ) THEN
+               GFACI = 1.D0 / BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
+     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP) )
             ENDIF
             
             RIX = RIX*GFACT*GFACI
@@ -2170,18 +2183,17 @@
 !*                                 
          DO 190 K = 1,NUMDEP 
             IF (.NOT.LDEP(K)) GOTO 190
-            DO 180 LDT = 1, State_Met%IREG(I,J)
-               IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 180
+            DO 180 LDT = 1, IREG(I,J)
+               IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
                RSURFC(K,LDT)= MAX(1.D0, MIN(RSURFC(K,LDT), 9999.D0))
  180        CONTINUE
  190     CONTINUE
 !*                                 
 !*    Loop through the different landuse types present in the grid square     
 !*           
-         DO 500 LDT = 1, State_Met%IREG(I,J)
-            !IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
-            IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 500
-            IOLSON = State_Met%ILAND(I,J,LDT) + 1
+         DO 500 LDT = 1, IREG(I,J)
+            IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
+            IOLSON = ILAND(I,J,LDT) + 1
 
 #if   defined( GCAP )
 ! NOTE: This section only applies to the GCAP/GISS model (swu, bmy, 5/25/05)
@@ -2445,9 +2457,7 @@
             DO 400 K = 1,NUMDEP
                IF (.NOT.LDEP(K)) GOTO 400
                VK(K) = VD(K)
-               !VD(K) = VK(K) +.001D0*DBLE( IUSE(I,J,LDT) )/C1X(K)
-               VD(K) = VK(K) +.001D0*
-     &                        DBLE( State_Met%IUSE(I,J,LDT) )/C1X(K)
+               VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
  400        CONTINUE
  500     CONTINUE
 
@@ -2512,6 +2522,12 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointers
+      NULLIFY( IREG  )
+      NULLIFY( ILAND )
+      NULLIFY( IUSE  )
+      NULLIFY( XLAI  )
 
       END SUBROUTINE DEPVEL
 !EOC

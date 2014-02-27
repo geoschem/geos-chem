@@ -216,6 +216,11 @@
       REAL*8        :: XMID
       REAL*8        :: VERTPROF(LLPAR)
 
+      ! Pointers
+      INTEGER, POINTER :: CLDTOPS(:,:)
+      REAL*8,  POINTER :: BXHEIGHT(:,:,:)
+      REAL*8,  POINTER :: T(:,:,:)
+
       !=================================================================
       ! LIGHTNING begins here!
       !=================================================================
@@ -225,6 +230,11 @@
          CALL INIT_LIGHTNING_NOX
          FIRST = .FALSE.
       ENDIF
+
+      ! Initialize pointers
+      BXHEIGHT => State_Met%BXHEIGHT
+      CLDTOPS  => State_Met%CLDTOPS
+      T        => State_Met%T
 
       ! LMAX: the highest L-level to look for lightning (usually LLPAR-1)
       LMAX   = LLPAR - 1
@@ -324,7 +334,7 @@
 
             ! Find negative charge layer
             DO L = 1, LMAX
-               IF ( State_Met%T(I,J,L) <= T_NEG_CTR ) THEN
+               IF ( T(I,J,L) <= T_NEG_CTR ) THEN
                   LCHARGE = L
                   EXIT
                ENDIF
@@ -345,8 +355,8 @@
 
             ! Temperatures [K] at the centers of grid
             ! boxes (I,J,LCHARGE-1) and (I,J,LCHARGE)
-            T1   = State_Met%T(I,J,LCHARGE-1)
-            T2   = State_Met%T(I,J,LCHARGE  )
+            T1   = T(I,J,LCHARGE-1)
+            T2   = T(I,J,LCHARGE  )
  
             ! DZ is the height [m] from the center of box (I,J,LCHARGE-1)
             ! to the negative charge layer.  It may be found in either
@@ -381,7 +391,7 @@
                HCHARGE = DZ - ZUP
             ELSE
                LCHARGE = LCHARGE - 1
-               HCHARGE = ( State_Met%BXHEIGHT(I,J,LCHARGE) - ZUP ) + DZ
+               HCHARGE = ( BXHEIGHT(I,J,LCHARGE) - ZUP ) + DZ
             ENDIF
 
             !===========================================================
@@ -409,7 +419,7 @@
             !===========================================================
 
             ! Cloud top level
-            LTOP = State_Met%CLDTOPS(I,J)
+            LTOP = CLDTOPS(I,J)
             
             ! Error check LTOP
             IF ( LTOP == 0 ) CYCLE
@@ -424,19 +434,19 @@
             ! GEOS-4 only
             !--------------------------
             ! Shallow-cloud inhibition trap (see Murray et al. [2011])
-            IF ( State_Met%T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
+            IF ( T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
 
 #endif
 
             ! H0 is the convective cloud top height [m].  This is the
             ! distance from the surface to the top edge of box (I,J,LTOP).
-            H0   = SUM( State_Met%BXHEIGHT(I,J,1:LTOP) )
+            H0   = SUM( BXHEIGHT(I,J,1:LTOP) )
 
             ! Z_CG is the cloud-ground path (ground --> HCHARGE) [m]
-            Z_CG = SUM( State_Met%BXHEIGHT(I,J,1:LCHARGE-1)  ) + HCHARGE
+            Z_CG = SUM( BXHEIGHT(I,J,1:LCHARGE-1)  ) + HCHARGE
 
             ! Z_IC is the intra-cloud path (HCHARGE --> cloud top) [m]
-            Z_IC = SUM( State_Met%BXHEIGHT(I,J,LCHARGE:LTOP) ) - HCHARGE
+            Z_IC = SUM( BXHEIGHT(I,J,LCHARGE:LTOP) ) - HCHARGE
 
             !===========================================================
             ! (3) COMPUTE COLD CLOUD THICKNESS
@@ -461,7 +471,7 @@
 
             ! Find the level where T = 0 C
             DO L = 1, LMAX
-               IF ( State_Met%T(I,J,L) <= T_NEG_BOT ) THEN
+               IF ( T(I,J,L) <= T_NEG_BOT ) THEN
                   LBOTTOM = L
                   EXIT
                ENDIF
@@ -482,8 +492,8 @@
 
             ! Temperature [K] at the centers of grid
             ! boxes (I,J,LBOTTOM-1) and (I,J,LBOTTOM)
-            T1   = State_Met%T(I,J,LBOTTOM-1)
-            T2   = State_Met%T(I,J,LBOTTOM  )
+            T1   = T(I,J,LBOTTOM-1)
+            T2   = T(I,J,LBOTTOM  )
        
             ! DZ is the height [m] from the center of box (I,J,LCHARGE-1)
             ! to the negative charge layer.  It may be found in either
@@ -518,12 +528,12 @@
                HBOTTOM = DZ - ZUP
             ELSE
                LBOTTOM = LBOTTOM - 1
-               HBOTTOM = ( State_Met%BXHEIGHT(I,J,LBOTTOM) - ZUP ) + DZ
+               HBOTTOM = ( BXHEIGHT(I,J,LBOTTOM) - ZUP ) + DZ
             ENDIF
   
             ! Cold cloud thickness is difference of cloud top 
             ! height (H0) and the height to the bottom.
-            CC = H0 - SUM( State_Met%BXHEIGHT(I,J,1:LBOTTOM-1) ) -
+            CC = H0 - SUM( BXHEIGHT(I,J,1:LBOTTOM-1) ) -
      &           HBOTTOM 
 
             !===========================================================
@@ -777,6 +787,11 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointers
+      NULLIFY( BXHEIGHT )
+      NULLIFY( CLDTOPS  )
+      NULLIFY( T        )
 
       END SUBROUTINE LIGHTNING
 !EOC
