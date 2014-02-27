@@ -509,6 +509,26 @@
       ENDIF
 #endif
 
+      !=================================================================
+      ! Do chemistry for SEAC4RS simplified SOA tracers (jaf, 6/24/13)
+      !=================================================================
+      ! Chemistry for anthropogenic SOA
+      IF ( IDTASOA > 0 ) THEN
+         CALL CHEM_ASOA( am_I_Root, Input_Opt, State_Met,
+     &                   STT(:,:,:,IDTASOA), STT(:,:,:,IDTAVOC), RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_ASOA' )
+         ENDIF
+      ENDIF
+      ! Chemistry for biomass burning SOA
+      IF ( IDTBBSOA > 0 ) THEN
+         CALL CHEM_BBSOA( am_I_Root, Input_Opt, State_Met,
+     &                    STT(:,:,:,IDTBBSOA), STT(:,:,:,IDTBBVOC), RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BBSOA' )
+         ENDIF
+      ENDIF
+
       ! Free pointer
       NULLIFY( STT )
 
@@ -4800,6 +4820,7 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
+      USE BIOMASS_MOD,        ONLY : FLAMBE_IN_USE
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07
@@ -5052,8 +5073,9 @@ c
       !-----------------------------------
       IF ( .not. USE_BOND_BIOBURN ) THEN
 
-         IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
-     &        ITS_A_NEW_MONTH() ) THEN 
+         IF ( GFED2_IS_NEW()    .or. GFED3_IS_NEW()  .or.
+     &        ITS_A_NEW_MONTH() .or. FLAMBE_IN_USE() .or.
+     &        FINN_IS_NEW() ) THEN
             CALL BIOMASS_CARB_GEOS( Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF
@@ -5066,6 +5088,12 @@ c
       !--------------------------
       CALL BIOGENIC_OC( Input_Opt, State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: after BIOGENIC_OC' )
+
+      !--------------------------
+      ! SEAC4RS SOA (jaf, 6/25/13)
+      !--------------------------
+      IF ( IDTAVOC > 0 .or. IDTBBVOC > 0 )
+     &    CALL EMISS_AVOC_BBVOC( Input_Opt, State_Met )
 
       !=================================================================
       ! Sum up BC and OC sources. 

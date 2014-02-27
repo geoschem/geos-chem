@@ -397,7 +397,8 @@ carbon_mod.o                : carbon_mod.F                                   \
                               rcp_mod.o               tomas_mod.o            \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o        vdiff_pre_mod.o        \
-                              nei2008_anthro_mod.o
+                              nei2008_anthro_mod.o    finn_biomass_mod.o     \
+                              biofuel_mod.o
 
 ch3i_mod.o                  : ch3i_mod.F                                     \
                               biofuel_mod.o           biomass_mod.o          \
@@ -410,7 +411,7 @@ chemdr.o                    : chemdr.F                                       \
                               diag_pl_mod.o           dust_mod.o             \
                               future_emissions_mod.o  planeflight_mod.o      \
                               restart_mod.o           tracerid_mod.o         \
-                              tropopause_mod.o
+                              tropopause_mod.o        gamap_mod.o
 
 chemistry_mod.o             : chemistry_mod.F                                \
                               acetone_mod.o           aerosol_mod.o          \
