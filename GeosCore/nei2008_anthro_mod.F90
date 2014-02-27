@@ -1937,8 +1937,10 @@
       CALL NcCl( fId2d )
 
       ! Close ag files
-      CALL NcCl( fId1e )
-      CALL NcCl( fId2e )
+      IF ( LSCALE2MASAGE ) THEN
+         CALL NcCl( fId1e )
+         CALL NcCl( fId2e )
+      ENDIF
 
       !--------------------------
       ! Compute future emissions
@@ -2333,6 +2335,10 @@
                ! Read ag files
                CALL NcRd(ARRAYWD_NH3ag, fId1e, TRIM(SId), st3d, ct3d )
                CALL NcRd(ARRAYWE_NH3ag, fId2e, TRIM(SId), st3d, ct3d )
+
+               ! Close ag files
+               CALL NcCl( fId1e )
+               CALL NcCl( fId2e )
 
                ! Cast to REAL*8
                GEOS_NATIVEWD_NH3ag = ARRAYWD_NH3ag
