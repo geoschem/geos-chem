@@ -269,11 +269,6 @@
 
       INTEGER NJX,NW1,NW2
 
-      !-----------------------------------------------------------------------
-      ! New variable for O3 storage
-      !-----------------------------------------------------------------------
-      REAL*8, ALLOCATABLE :: O3GRID(:,:,:)
-
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -341,10 +336,6 @@
       IF ( RC /= GIGC_SUCCESS ) RETURN
       ODAER = 0d0
 
-      ALLOCATE( O3GRID( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-      O3GRID = 0d0
-
       ! Return w/ success
       RC = GIGC_SUCCESS
 
@@ -385,7 +376,6 @@
       ! CLEANUP_CMN_FJX begins here!
       !=================================================================
       IF ( ALLOCATED( ZPJ    ) ) DEALLOCATE( ZPJ    )
-      IF ( ALLOCATED( O3GRID ) ) DEALLOCATE( O3GRID )
 
       ! Return successfully
       RC = GIGC_SUCCESS

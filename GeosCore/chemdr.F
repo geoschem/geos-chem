@@ -732,7 +732,8 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-      CALL FAST_JX( WAVELENGTH, am_I_Root, Input_Opt, State_Met, RC )
+      CALL FAST_JX( WAVELENGTH, am_I_Root, Input_Opt, State_Met, 
+     &              State_Chm,  RC )
 
       !### Debug
       IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMDR: after FAST-JX' )

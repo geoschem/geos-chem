@@ -74,7 +74,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FAST_JX( WLAOD, am_I_Root, Input_Opt, State_Met, RC )  
+      SUBROUTINE FAST_JX( WLAOD, am_I_Root, Input_Opt, State_Met,
+     &                    State_Chm, RC )
 !
 ! !USES:
 !
@@ -85,13 +86,15 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
+      USE TRACERID_MOD,       ONLY : IDTO3
 
       IMPLICIT NONE
 !
@@ -103,11 +106,14 @@
       ! Is this the root CPU?
       LOGICAL,        INTENT(IN)  :: am_I_Root
 
+      ! Input options
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)  :: State_Met
 
-      ! Input options
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+      ! Chemistry State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -178,6 +184,7 @@
 !  27 Mar 2013 - S.D. Eastham- Rolled in FAST_JX_MOD
 !  21 Feb 2014 - M. Sulprizio- Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Feb 2014 - M. Sulprizio- Now obtain O3_CTM directly from State_Chm%Tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -313,8 +320,8 @@
             O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
-            O3_CTM(:) = 0d0
-            O3_CTM(1:LLPAR) = O3GRID(NLON,NLAT,:)
+            O3_CTM(:)       = 0d0
+            O3_CTM(1:LLPAR) = State_Chm%Tracers(NLON,NLAT,:,IDTO3)
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
             OPTAER(:,:)     = ODAER(NLON,NLAT,:,:)
@@ -3716,7 +3723,7 @@ C---Always does PL(2) = P[1]
       ! Updated with UCX
       ! Since we now have stratospheric ozone calculated online, use
       ! this instead of archived profiles for all chemistry-grid cells
-      ! The variable O3GRID is set in "partition.F", and will be 0
+      ! The variable O3_CTM is obtained from State_Met%Tracers, and will be 0
       ! outside the chemgrid (in which case we use climatology)
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)
