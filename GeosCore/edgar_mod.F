@@ -435,6 +435,8 @@
       USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
       USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
       USE CMN_SIZE_MOD
+      ! Added by kyu to read bpch2
+      USE BPCH2_MOD,          ONLY : GET_TAU0, READ_BPCH2
 
       ! Arguments
       INTEGER,        INTENT(IN)            :: YEAR, MONTH
@@ -453,6 +455,13 @@
       CHARACTER(LEN=255)         :: LLFILENAME
       REAL*8, POINTER            :: INGRID(:,:) => NULL()
       REAL*8                     :: OUTGRID(IIPAR,JJPAR)
+      ! added by kyu 23 Fe 2014 to read in bravo mask
+      REAL*4                     :: BRMASK(I1x1,J1x1-1)
+      REAL*8                     :: XTAUB
+      CHARACTER(LEN=255)         :: BRAVOFILENAME
+      CHARACTER(LEN=255)         :: CACFILENAME
+      REAL*8                     :: XTAUC
+      REAL*4                     :: CACMASK(I1x1,J1x1-1)
 
       !=================================================================
       ! COMPUTE_EDGAR_NOx begins here!
@@ -469,6 +478,57 @@
 
       ! Read EDGAR anthro and ship NOx, and hourly NOx [kg NO2/yr]
       CALL READ_EDGAR_NOx( E_NOx_1x1, E_NOX_SHIP_1x1, E_NOx_HRLY_1x1 )
+
+      ! *** START KYU EDITS ***
+      ! Check where BRAVO and CAC masks are non-zero and zero out these
+      ! grid boxes, kyu 23 FEb 2014
+      BRAVOFILENAME = TRIM( DATA_DIR_1x1 ) //
+     &                'BRAVO_200607/BRAVO.MexicoMask.generic.1x1'
+
+      ! Echo info
+      WRITE( 6, 101 ) TRIM( BRAVOFILENAME )
+101   FORMAT( '     - READING MEXICO MASK IN EDGAR_MOD: ', a )
+      
+      ! Get TAU0 for Jan 1985
+      XTAUB = GET_TAU0( 1, 1, 1999 )
+
+      ! Mask is stored in the bpch file as #2
+      CALL READ_BPCH2( BRAVOFILENAME, 'LANDMAP', 2,
+     &                 XTAUB,    I1x1,      J1x1-1,
+     &                 1,        BRMASK,     QUIET=.TRUE. )
+
+      ! Zero out grid boxes where mask is non-zero
+      WHERE( BRMASK .gt. 0 ) E_NOx_1x1 = 0d0
+      WHERE( BRMASK .gt. 0 ) E_NOx_SHIP_1x1 = 0d0
+
+      ! Loop over hours
+      DO H = 1, N_HOURS
+         WHERE( BRMASK .gt. 0 ) E_NOx_HRLY_1x1(:,:,H) = 0d0
+      ENDDO
+
+      ! Now read in CAC mask 
+      CACFILENAME = TRIM('/home/kyu/regrid/CanadaMask.generic.1x1')
+      XTAUC = GET_TAU0( 1, 1, 2000)
+
+      ! Read mask
+      CALL READ_BPCH2( CACFILENAME, 'LANDMAP', 2, 
+     &                 XTAUC,        I1x1,     J1x1-1,
+     &                 1,            CACMASK,  QUIET=.FALSE.)
+
+      ! Because the CAC mask is regridded from the geos 1x1 grid,
+      ! instead of zeroing out we multiply the emissions by (1-mask)
+      WHERE (CACMASK > 0) E_NOx_1x1 = 0d0
+      WHERE (CACMASK > 0) E_NOx_SHIP_1x1 = 0d0
+      DO H =1, N_HOURS
+      WHERE (CACMASK > 0) E_NOx_HRLY_1x1(:,:,H) = 0d0
+      ENDDO
+!      E_NOx_1x1 = E_NOx_1x1*(1-CACMASK)
+!      E_NOx_SHIP_1x1 = E_NOx_SHIP_1x1*(1-CACMASK)
+!      DO H = 1, N_HOURS
+!          E_NOx_HRLY_1x1(:,:,H) = E_NOx_HRLY_1x1(:,:,H) * 
+!     &                          (1-CACMASK)
+!      ENDDO
+      ! *** END KYU EDITS ***
 
       !----------------------------------
       ! Compute NOx hourly scale factors
@@ -1000,6 +1060,8 @@
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
       USE CMN_SIZE_MOD           ! Size parameters
+      ! Added by kyu to read bpch for mask
+      USE BPCH2_MOD,        ONLY : GET_TAU0, READ_BPCH2
 
       ! Arguments
       INTEGER, INTENT(IN)            :: YEAR
@@ -1015,6 +1077,13 @@
       CHARACTER(LEN=255)             :: LLFILENAME
       REAL*8                         :: OUTGRID(IIPAR,JJPAR)
       REAL*8,  POINTER               :: INGRID(:,:) => NULL()
+      ! added by kyu 23 Feb 2014 to read in bravo mask
+      REAL*4                         :: BRMASK(I1x1,J1x1-1)
+      REAL*8                         :: XTAUB
+      CHARACTER(LEN=255)             :: BRAVOFILENAME
+      CHARACTER(LEN=255)             :: CACFILENAME
+      REAL*8                         :: XTAUC
+      REAL*4                         :: CACMASK(I1x1,J1x1-1)
 
       !=================================================================
       ! COMPUTE_EDGAR_CO begins here!
@@ -1029,6 +1098,43 @@
 
       ! Read EDGAR total NOx and hourly NOx [kg/yr]
       CALL READ_EDGAR_CO( E_CO_1x1, E_CO_SHIP_1x1 )
+
+       ! *** START KYU EDITS ***
+      ! Check where BRAVO and CAC masks are non-zero and zero out these
+      ! grid boxes, kyu 23 FEb 2014
+      BRAVOFILENAME = TRIM( DATA_DIR_1x1 ) //
+     &                'BRAVO_200607/BRAVO.MexicoMask.generic.1x1'
+
+      ! Echo info
+      WRITE( 6, 101 ) TRIM( BRAVOFILENAME )
+101   FORMAT( '     - READING MEXICO MASK IN EDGAR_MOD: ', a )
+      
+      ! Get TAU0 for Jan 1985
+      XTAUB = GET_TAU0( 1, 1, 1999 )
+
+      ! Mask is stored in the bpch file as #2
+      CALL READ_BPCH2( BRAVOFILENAME, 'LANDMAP', 2,
+     &                 XTAUB,    I1x1,      J1x1-1,
+     &                 1,        BRMASK,     QUIET=.TRUE. )
+
+      ! Zero out grid boxes where mask is non-zero
+      !WHERE( BRMASK .gt. 0 ) E_CO_1x1 = 0d0
+      !WHERE( BRMASK .gt. 0 ) E_CO_SHIP_1x1 = 0d0
+
+      ! Read in CAC MASK
+      CACFILENAME = TRIM( '/home/kyu/regrid/CanadaMask.generic.1x1' )
+      XTAUC = GET_TAU0( 1, 1, 2000 )
+
+      CALL READ_BPCH2( CACFILENAME, 'LANDMAP', 2,
+     &                  XTAUC,      I1x1,      J1x1-1,
+     &                  1,          CACMASK,   QUIET=.FALSE.)
+
+       ! Mulitply by 1-mask because we've regridded from geos1x1
+       !CACMASK = 1 - CACMASK
+       !E_CO_1x1 = E_CO_1x1 * CACMASK
+       !E_CO_SHIP_1x1 = E_CO_SHIP_1x1 * CACMASK
+
+      ! *** END KYU EDITS ***
 
       !----------------------------------
       ! Do the regridding

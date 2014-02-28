@@ -750,7 +750,7 @@
                                ARRAYWEPTN(1,:,:,:) + ARRAYWEC3(:,:,:)
          GEOS_1x1WE(:,:,2,:) = ARRAYWEPT(2,:,:,:) + ARRAYWEPTN(2,:,:,:)
          GEOS_1x1WE(:,:,3,:) = ARRAYWEPTN(3,:,:,:)
- 
+
 ! Moved into weekday section below to avoid duplicating all the loops
 ! (jaf, 12/11/13)
 !         DO L=1,3
@@ -836,7 +836,7 @@
                   !-----------------
                   ! NO
                   !-----------------
-
+        
                   ! Apply scaling factor
                   GEOS_1x1WD(:,:,L,HH) = GEOS_1x1WD(:,:,L,HH) * ScNOx
 
@@ -2534,8 +2534,10 @@
 
       
 !%%%      FILENAME  = '/as/home/ktravis/' // &     
-      FILENAME  = TRIM( DATA_DIR_1x1) // &
-           'NEI2008_201307/usa.mask.nei2008.geos.1x1.nc'
+      !FILENAME  = TRIM( DATA_DIR_1x1) // &
+           !'NEI2008_201307/usa.mask.nei2005.geos.1x1.nc' !kyu, 7Feb2014
+      FILENAME = '/as/home/kyu/' // &
+            'regrid/nei2005masktest.nc'
 
       ! Echo info
       WRITE( 6, 200 ) TRIM( FILENAME )

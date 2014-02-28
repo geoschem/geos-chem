@@ -1205,7 +1205,8 @@
       ! Free pointer
       NULLIFY( INGRID )
 
-      WHERE ( MASK_CANADA > 0D0 ) MASK_CANADA = 1D0
+      ! kyu do not set mask to 1 
+      !WHERE ( MASK_CANADA > 0D0 ) MASK_CANADA = 1D0
 
       END SUBROUTINE READ_CANADA_MASK
 !EOC

@@ -409,6 +409,29 @@
                   
                   ENDIF
                ENDIF
+            ! kyu 17 Feb 2014
+            ! Modified so that NEI is read in here instead of at the
+            ! end so that we can add BRAVO and CAC emissions to it
+            ! instead of having NEI overwrite them
+            ELSE IF ( LNEI08 .and. .not. LHIST ) THEN
+               ! Flag for weekday or weekend for NEI/VISTAS emissions
+               ! If we are over the USA 
+               IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+                  DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                  WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+               ! Get EPA emissions for NOx; emissions are already 
+               ! in MOLEC_CM2_s, so set to .FALSE.
+                  IF ( LL .le. 3 ) THEN 
+                     NEI08 = GET_NEI2008_ANTHRO( I, J, LL, HOURNEI, NN,
+     &                    WEEKDAY )
+               ! Replace GEIA with EPA/NEI emissions up to level 3
+                     EMX(LL) = NEI08 *
+     &                    ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO)
+                  ENDIF
+               ENDIF
             ENDIF
 
 ![eml
@@ -501,13 +524,30 @@
 
                            EMX(LL) = EMX(LL) + BRAVO * ( DTSRCE *
      &                               AREA_CM2 ) / XNUMOL(IDTNO2) 
-                        ENDIF                           
+                        ENDIF      
+                     ELSE IF ( LNEI08 ) THEN
+                        ! If therei s overlap with the NEI08 mask, add
+                        ! BRAVO emissions to the NEI emissions
+                        ! multiplied by the percent of grid box not
+                        ! occupied BRAVO
+                        IF ( NEI08_MASK(I,J) > 0d0 ) THEN
+                          EMX(LL) = EMX(LL) * 
+     &                          (1d0 -GET_BRAVO_MASK(I,J)) + BRAVO *
+     &                          (DTSRCE * AREA_CM2) / XNUMOL(IDTNO2)
+                        ELSE 
+                        ! Since we have already zeroed out the grid
+                        ! boxes in the global inventory where BRAVO is
+                        ! not zero, simply add BRAVO emissions, kyu 24
+                        ! Feb 2014 
+                           EMX(LL) = EMX(LL) + BRAVO * ( DTSRCE * 
+     &                               AREA_CM2 ) / XNUMOL(IDTNO2)
+                        ENDIF
+                     ! Case for where neither NEI99 nor NEI08 is used
                      ELSE
                         EMX(LL) = BRAVO * ( DTSRCE*AREA_CM2 ) /
      &                            XNUMOL(IDTNO2) 
-
                      ENDIF
-
+                     
                   ELSE 
             
                      ! Zero GEIA emissions in the 2nd level 
@@ -539,6 +579,8 @@
                      ! Apply time-of-day factor
                      CAC = CAC * TODX
 
+                     ! If we are using NEI inventory need to treat
+                     ! border emissions differently
                      IF ( LNEI99 ) THEN
 
                         ! If on border, add to NEI99 emissions (which has
@@ -550,8 +592,27 @@
                            EMX(LL) = CAC * ( DTSRCE * AREA_CM2 ) /
      &                               XNUMOL(IDTNO2)
                         ENDIF
+                     ELSE IF ( LNEI08 ) THEN
+                        ! If CAC mask overlaps with NEI08 mask, then add
+                        ! CAC emissions to NEI emissions multiplied by
+                        ! percent of grid box not occupied by CAC
+                        ! kyu 24 Feb 2014
+                        IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
+                            EMX(LL) = EMX(LL)*(1-GET_CANADA_MASK(I,J))
+     &                          + CAC*(DTSRCE*AREA_CM2)/XNUMOL(IDTNO2)
+!                           IF (GET_CANADA_MASK(I,J) .ge. 0.90) THEN
+!                                EMX(LL) = CAC*
+!     &                           ( DTSRCE * AREA_CM2 ) /XNUMOL(IDTNO2)
+!                           ENDIF
+                        ! The global inventory has already been zeroed
+                        ! out for grid boxes that CAC occupies. Add CAC
+                        ! emissions to these grid boxes. kyu 24 Feb 2014 
+                        ELSE 
+                           EMX(LL) = EMX(LL) + CAC * (DTSRCE * 
+     &                                  AREA_CM2 ) / XNUMOL(IDTNO2)    
+                        ENDIF
+                    ! Case for where neither NEI99 nor NEI08 is used
                      ELSE
-
                         ! Replace base emissions with CAC
                         EMX(LL) = CAC * ( DTSRCE * AREA_CM2 ) /
      &                            XNUMOL(IDTNO2)
@@ -593,27 +654,6 @@
 
             ENDIF
             
-            IF ( LNEI08 .and. .not. LHIST ) THEN
-               ! Flag for weekday or weekend for NEI/VISTAS emissions
-               ! If we are over the USA and CAN/MEX
-               IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
-               ! Determine if we should use weekday or weekend NEI
-               ! emissions at grid box (I,J,L).  Since NEI is over
-               ! the US, then weekend is Sat/Sun.
-                  DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
-                  WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
-               ! Get EPA emissions for NOx; emissions are already 
-               ! in MOLEC_CM2_s, so set to .FALSE.
-                  IF ( LL .le. 3 ) THEN 
-                     NEI08 = GET_NEI2008_ANTHRO( I, J, LL, HOURNEI, NN,
-     &                    WEEKDAY )
-               ! Replace GEIA with EPA/NEI emissions up to level 3
-                     EMX(LL) = NEI08 *
-     &                    ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO)
-                  ENDIF
-               ENDIF
-               
-            ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! Prior to 2/24/12:
 ! Comment this out and leave this here, in case we have to re-install it
@@ -764,7 +804,7 @@
          ELSE
             TODX = TODH(IHOUR)
          ENDIF
-
+       
          EMX(1) = TODX * EMISR(IREF,JREF,N) 
  
          !--------------------------------------------------------------
@@ -916,6 +956,40 @@
 
                ENDIF
             ENDIF
+         ! kyu 17 Feb 2014: Modified so that NEI is read in here instead
+         ! of at the end so that we can add BRAVO and CAC emissions to
+         ! it instead of having NEI overwrite them
+         ELSE IF ( LNEI08 ) THEN
+             ! If we are over the USA ...
+            IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
+               ! Flag for weekday or weekend for NEI/VISTAS emissions
+
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+             
+               ! Loop over all of the emission levels
+               ! For now lump levels together (phs, 10/20/09)
+               DO LL = 1, NOXLEVELS 
+                  IF ( LL .le. 3 ) THEN !NEI08 has 3 levels
+                     ! Get EPA/NEI emissions               
+                     NEI08 = GET_NEI2008_ANTHRO( I, J, LL,HOURNEI,NN,
+     &                    WEEKDAY  )
+
+                     ! -1 indicates tracer NN does not have EPA/NEI emissions
+                     IF ( NEI08 < 0d0 )  EXIT
+
+                     ! Convert from molec/cm2/s to kg/box/timestep in order
+                     ! to be in the proper units for EMISRR array
+                     IF ( EPA_NEI > -1d0 ) THEN
+                        EMX(LL)  = NEI08 * ( DTSRCE * AREA_CM2 ) 
+     &                       / XNUMOL(NN)
+                     ENDIF
+                  ENDIF
+               ENDDO
+            ENDIF 
          ENDIF
 
          !--------------------------------------------------------------
@@ -975,6 +1049,24 @@
                         EMX(1) = EMX(1) + 
      &                       BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
                      ENDIF
+                  ELSE IF ( LNEI08 ) THEN
+                     ! If BRAVO mask overlaps with NEI08 mask, then we
+                     ! add BRAVO emissions to the NEI emissions
+                     ! mulitplied by the percent of the grid box not
+                     ! occupied by bravo
+                     ! kyu 17 Feb 2014
+                     IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
+                        EMX(1) = EMX(1) * ( 1 - GET_BRAVO_MASK(I,J)) + 
+     &                       BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                     ! Otherwise since the global inventory has already
+                     ! been overwritten with zeros where bravo mask is
+                     ! non zero, just add bravo emissions to these boxes
+                     ! kyu 24 FEb 2014
+                     ELSE
+                        EMX(1) = EMX(1) + 
+     &                        BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                     ENDIF
+                  ! Case for where neither NEI99 or NEI08 is used
                   ELSE
 
                      EMX(1) = BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
@@ -1014,6 +1106,28 @@
                      ELSE
                         EMX(1) = CAC *
      &                           ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                     ENDIF
+                  ELSE IF ( LNEI08 ) THEN
+                     ! If CAC mask overlaps with NEI08 mask, then add
+                     ! CAC emissions to the NEI emissions mutiplied by
+                     ! the percent of the grid box not occupied by CAC, 
+                     ! kyu 17 Feb 2014
+                     IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
+                        ! only overwrite if CAC occupies more than 3/4
+                        ! of the mask area
+                        EMX(1) = EMX(1) * (1-GET_CANADA_MASK(I,J))
+     &                        + CAC*(DTSRCE*AREA_CM2)/XNUMOL(NN)
+!                        IF (GET_CANADA_MASK(I,J) .ge. 0.75) THEN
+!                           EMX(1) = CAC * 
+!     &                          ( DTSRCE * AREA_CM2 ) /XNUMOL(NN)
+!                        ENDIF
+                     ! Otherwise, since the global inventory has already
+                     ! been zeroed out where the CAC emissions are
+                     ! non-zero, simply add CAC emission to these grid
+                     ! boxes, kyu 24 Feb 2014
+                     ELSE
+                        EMX(1) = EMX(1) + CAC * ( DTSRCE * AREA_CM2 ) /
+     &                          XNUMOL(NN)
                      ENDIF
                   ELSE
 
@@ -1068,40 +1182,6 @@
 
                ENDIF
             ENDIF              
-         ENDIF
-
-       IF ( LNEI08 ) THEN
-
-            ! If we are over the USA ...
-            IF ( NEI08_MASK( I, J ) > 0d0 ) THEN
-               ! Flag for weekday or weekend for NEI/VISTAS emissions
-
-               ! Determine if we should use weekday or weekend NEI
-               ! emissions at grid box (I,J,L).  Since NEI is over
-               ! the US, then weekend is Sat/Sun.
-               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
-               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
-             
-               ! Loop over all of the emission levels
-               ! For now lump levels together (phs, 10/20/09)
-               DO LL = 1, NOXLEVELS 
-                  IF ( LL .le. 3 ) THEN !NEI08 has 3 levels
-                     ! Get EPA/NEI emissions               
-                     NEI08 = GET_NEI2008_ANTHRO( I, J, LL,HOURNEI,NN,
-     &                    WEEKDAY  )
-
-                     ! -1 indicates tracer NN does not have EPA/NEI emissions
-                     IF ( NEI08 < 0d0 )  EXIT
-
-                     ! Convert from molec/cm2/s to kg/box/timestep in order
-                     ! to be in the proper units for EMISRR array
-                     IF ( EPA_NEI > -1d0 ) THEN
-                        EMX(LL)  = NEI08 * ( DTSRCE * AREA_CM2 ) 
-     &                       / XNUMOL(NN)
-                     ENDIF
-                  ENDIF
-               ENDDO
-            ENDIF           
          ENDIF
 
          ! Account for CO production from anthropogenic VOC's
