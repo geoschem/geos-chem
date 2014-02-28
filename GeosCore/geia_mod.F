@@ -413,7 +413,7 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:7' )      
 
       ! Close the file
-      CLOSE( IUNIT )
+      CLOSE( IUNIT 
 
 #elif defined( GRID05x0666 )
 
@@ -432,6 +432,35 @@
       READ( IUNIT, '(6E12.4)', IOSTAT=IOS ) TODN, TODH, TODB
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:6' )
 
+
+      ! Read Weekday/Saturday/Sunday emission scale factors
+      READ( IUNIT, '(3F7.4)', IOSTAT=IOS )
+     &     ( ( SCNR89(I,J), J=1,3 ), I=1,3 )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:7' )
+
+      ! Close the file
+      CLOSE( IUNIT )
+
+
+      ! kyu 26 Feb 2014: added for 025x03125, but reads from 2x2.5 dir
+#elif defined( GRID025x03125 )
+      
+      ! Define the filename
+      ! reads from the 2x2.5 directory instead
+      FILENAME = '/as/data/geos/GEOS_2x2.5/' //
+     &          'fossil_200104/MELD2x25' 
+
+      WRITE ( 6, 100 ) TRIM( FILENAME ) 
+100   FORMAT( 'READ_TODX: Reading: ', a ) 
+
+      ! Open the 2x2.5 file
+      OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', 
+     &             FORM='FORMATTED',      IOSTAT=IOS )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:5' )
+
+      ! Read time-of-day scale factors
+      READ( IUNIT, '(6E12.4)', IOSTAT=IOS ) TODN, TODH, TODB
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:6' )
 
       ! Read Weekday/Saturday/Sunday emission scale factors
       READ( IUNIT, '(3F7.4)', IOSTAT=IOS )
