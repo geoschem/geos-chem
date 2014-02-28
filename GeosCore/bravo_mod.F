@@ -603,6 +603,7 @@
       REAL*8                  :: XTAU
       CHARACTER(LEN=255)      :: FILENAME 
       CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*4                  :: J
 
       !=================================================================
       ! READ_BRAVO_MASK begins here!
@@ -636,7 +637,9 @@
      &                    GEN_1x1,    BRAVO_MASK, IS_MASS=0,
      &                    netCDF=.TRUE.                      )
 
-      WHERE ( BRAVO_MASK > 0D0 ) BRAVO_MASK = 1D0
+      ! kyu 26 Feb 2014: commetned out setting to zero so we can
+      ! determine area covered by mask in emfossil.F
+      !WHERE ( BRAVO_MASK > 0D0 ) BRAVO_MASK = 1D0
 
       END SUBROUTINE READ_BRAVO_MASK
 !EOC
