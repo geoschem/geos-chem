@@ -608,6 +608,12 @@ ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS         += -traceback
 endif
 
+# Loosen KPP tolerances upon non-convergence and try again
+REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
+FFLAGS         += -DKPP_SOLVE_ALWAYS
+endif
+
 # Append the user options in USER_DEFS to FFLAGS
 FFLAGS         += $(USER_DEFS)
 
@@ -672,6 +678,12 @@ endif
 REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS         += -traceback
+endif
+
+# Loosen KPP tolerances upon non-convergence and try again
+REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
+FFLAGS         += -DKPP_SOLVE_ALWAYS
 endif
 
 # Append the user options in USER_DEFS to FFLAGS
