@@ -1718,11 +1718,13 @@
 
       ENDIF 
 
+#if defined( UCX )
       ! Turn off radiative effects of stratospheric aerosols?
       IF (.not.(LSTRATOD)) THEN
          ODAER(:,:,:,NRHAER*NRH+1) = 0.d0
          ODAER(:,:,:,NRHAER*NRH+2) = 0.d0
       ENDIF
+#endif
 
       !=================================================================
       ! To turn off the radiative effects of different aerososl
