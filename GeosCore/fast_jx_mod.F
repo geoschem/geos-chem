@@ -97,6 +97,20 @@
       USE TRACERID_MOD,       ONLY : IDTO3
 
       IMPLICIT NONE
+
+!=============================================================================
+! Uncomment the appropriate #define statement to denote which of the
+! available cloud overlap options that you wish to use.
+
+!! Linear overlap
+!#define USE_LINEAR_OVERLAP 1
+
+! Approximate random overlap (balance between accuracy & speed)
+#define USE_APPROX_RANDOM_OVERLAP 1
+
+!! Maximum random cloud overlap (most computationally intensive)
+!#define USE_MAXIMUM_RANDOM_OVERLAP 1
+!=============================================================================
 !
 ! !INPUT PARAMETERS: 
 !
@@ -191,45 +205,44 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER, SAVE      :: LASTMONTH = -1
-      INTEGER            :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
-      REAL*8             :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
-      REAL*8             :: O3_CTM(LLPAR+1)
-      REAL*8             :: T_CTM(LLPAR+1), OPTD(LLPAR)
-      REAL*8             :: OPTDUST(LLPAR,NDUST)
-      REAL*8             :: OPTAER(LLPAR,NALLAER)
+      INTEGER, SAVE  :: LASTMONTH = -1
+      INTEGER        :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
+      REAL*8         :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
+      REAL*8         :: O3_CTM(LLPAR+1)
+      REAL*8         :: T_CTM(LLPAR+1), OPTD(LLPAR)
+      REAL*8         :: OPTDUST(LLPAR,NDUST)
+      REAL*8         :: OPTAER(LLPAR,NALLAER)
 
       ! Local variables for cloud overlap (hyl, phs)
-      INTEGER            :: NUMB, KK, I
-      INTEGER            :: INDIC(LLPAR+1)
-      INTEGER            :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
-      INTEGER            :: KBOT(LLPAR)
-      INTEGER            :: KTOP(LLPAR)
-      INTEGER            :: INDICATOR(LLPAR+2)
-      REAL*8             :: FMAX(LLPAR)  ! maximum cloud fraction 
-                                            !  in a block, size can be to 
-                                            !  FIX(LLPAR)+1
-      REAL*8             :: CLDF1D(LLPAR)
-      REAL*8             :: ODNEW(LLPAR)
-      REAL*8             :: P_CTM(LLPAR+2)
+      INTEGER        :: NUMB, KK, I
+      INTEGER        :: INDIC(LLPAR+1)
+      INTEGER        :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
+      INTEGER        :: KBOT(LLPAR)
+      INTEGER        :: KTOP(LLPAR)
+      INTEGER        :: INDICATOR(LLPAR+2)
+      REAL*8         :: FMAX(LLPAR)     ! maximum cloud fraction 
+                                        !  in a block, size can be to 
+                                        !  FIX(LLPAR)+1
+      REAL*8         :: CLDF1D(LLPAR)
+      REAL*8         :: ODNEW(LLPAR)
+      REAL*8         :: P_CTM(LLPAR+2)
 
-      LOGICAL            :: AOD999
+      LOGICAL        :: AOD999
 
-      ! NOTE: Switch from linear approximation (OVERLAP=1) to approximate
-      ! random overlap (OVERLAP=2) because we have re-processed the GEOS-5
-      ! met data such that OPTDEPTH, TAUCLI, and TAUCLW are now the in-cloud
-      ! optical depths rather than the grid-box optical depths. 
-      ! (hyl, phs, bmy, 10/7/08)
-      INTEGER, PARAMETER :: OVERLAP = 2
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Original code
+!%%%      ! NOTE: Switch from linear approximation (OVERLAP=1) to approximate
+!%%%      ! random overlap (OVERLAP=2) because we have re-processed the GEOS-5
+!%%%      ! met data such that OPTDEPTH, TAUCLI, and TAUCLW are now the in-cloud
+!%%%      ! optical depths rather than the grid-box optical depths. 
+!%%%      ! (hyl, phs, bmy, 10/7/08)
+!%%%      INTEGER, PARAMETER :: OVERLAP = 2
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       
-      LOGICAL, SAVE      :: FIRST = .true.
-
-      ! For setting O1D
-      INTEGER            :: JLOOP
-      REAL*8             :: H2OFACTOR,CONSEXP,TLOCAL,TINV, ADLOCAL
+      LOGICAL, SAVE :: FIRST = .true.
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL :: LPRT
+      LOGICAL       :: LPRT
 
       !=================================================================
       ! FAST_JX begins here!
@@ -256,13 +269,13 @@
       DAY_OF_YR = GET_DAY_OF_YEAR()
 
       ! Get current month
-      MONTH = GET_MONTH()
+      MONTH     = GET_MONTH()
 
       ! Get day of month
       DAY       = GET_DAY()
 
       ! Was AOD calculated at 999 nm or reference?
-      AOD999=(WLAOD.eq.0)
+      AOD999    = ( WLAOD == 0 )
 
       !=================================================================
       ! For each (NLON,NLAT) location, call subroutine PHOTO_JX (in a 
@@ -272,12 +285,14 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( NLON,  NLAT,   YLAT,  CSZA,      OPTAER  )
-!$OMP+PRIVATE( PRES,  T_CTM,  OPTD,  SFCA,      OPTDUST )
-!$OMP+PRIVATE( FMAX,  CLDF1D, KK,    NUMB,      L       )
-!$OMP+PRIVATE( KBOT,  KTOP,   ODNEW, INDICATOR, INDIC   )
-!$OMP+PRIVATE( O3_TOMS,P_CTM, JLOOP, H2OFACTOR, CONSEXP )
-!$OMP+PRIVATE( TLOCAL,O3_CTM                            )
+!$OMP+PRIVATE( NLAT,    NLON,   YLAT,     CSZA,   P_CTM   )
+!$OMP+PRIVATE( T_CTM,   SFCA,   O3_TOMS,  O3_CTM, OPTAER  )
+!$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                    )
+#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+!$OMP+PRIVATE( FMAX,  KK,     NUMB,      L        KBOT    )
+!$OMP+PRIVATe( KTOP   ODNEW,  INDICATOR, INDIC            )
+!$OMP+PRIVATE( O3_TOMS,P_CTM, JLOOP,                      ) 
+#endif
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
@@ -320,14 +335,14 @@
             O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
-            O3_CTM(:)       = 0d0
+            O3_CTM          = 0d0
             O3_CTM(1:LLPAR) = State_Chm%Tracers(NLON,NLAT,:,IDTO3)
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
-            OPTAER(:,:)     = ODAER(NLON,NLAT,:,:)
+            OPTAER          = ODAER(NLON,NLAT,:,:)
 
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-            OPTDUST(:,:)    = ODMDUST(NLON,NLAT,:,:)
+            OPTDUST         = ODMDUST(NLON,NLAT,:,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD            = State_Met%OPTD(1:LLPAR,NLON,NLAT)
@@ -339,6 +354,8 @@
             !OPTDUST = 0d0
             !OPTD    = 0d0
             !-----------------------------------------------------------
+
+#if defined( USE_LINEAR_OVERLAP )
             !===========================================================
             ! CLOUD OVERLAP : LINEAR ASSUMPTION 
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
@@ -346,9 +363,12 @@
             ! NOTE: Use this option if you want to compare to results
             !       from GEOS-Chem v7-04-12 and prior versions.
             !===========================================================
-            IF ( OVERLAP == 1 ) then
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Original code
+!%%%            IF ( OVERLAP == 1 ) then
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
                ! Column cloud fraction (not less than zero)
                CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
@@ -370,17 +390,21 @@
      &                        YLAT,      DAY_OF_YR, MONTH,  DAY,
      &                        am_I_Root, Input_Opt  )
 
+
+#elif defined( USE_APPROX_RANDOM_OVERLAP )
             !===========================================================
             ! CLOUD OVERLAP : APPROXIMATE RANDOM OVERLAP
             ! Use OPTDEPTH = TAUCLD * CLDTOT**1.5
             !===========================================================
-            ELSE IF ( OVERLAP == 2 ) THEN
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%%            ELSE IF ( OVERLAP == 2 ) THEN
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                ! Column cloud fraction (not less than zero)
                CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                ! optical depth & cloud fractions regridded with RegridTau)
@@ -408,6 +432,7 @@
      &                        YLAT,      DAY_OF_YR, MONTH,  DAY,
      &                        am_I_Root, Input_Opt  )
 
+#elif defined( USE_MAXIMUM_RANDOM_OVERLAP )
             !===========================================================
             ! CLOUD OVERLAP : MAXIMUM RANDOM OVERLAP
             !
@@ -441,7 +466,10 @@
             ! Use cloud fraction, instead of OPTD, to form cloud blocks
             ! (hyl,06/19/04)
             !===========================================================
-            ELSE IF ( OVERLAP == 3 ) THEN
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Original code
+!%%%            ELSE IF ( OVERLAP == 3 ) THEN
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                ! Sort this out later
                CALL ERROR_STOP('MMRAN_16 not yet FJX compatible.',
@@ -531,7 +559,8 @@
 !     &                              KTOP,  O3COL, am_I_Root )
 !
 !               END SELECT
-            ENDIF
+!           ENDIF
+#endif
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
