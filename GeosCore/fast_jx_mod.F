@@ -98,7 +98,7 @@
 
       IMPLICIT NONE
 
-!=============================================================================
+!==============================================================================
 ! Uncomment the appropriate #define statement to denote which of the
 ! available cloud overlap options that you wish to use.
 
@@ -110,7 +110,7 @@
 
 !! Maximum random cloud overlap (most computationally intensive)
 !#define USE_MAXIMUM_RANDOM_OVERLAP 1
-!=============================================================================
+!==============================================================================
 !
 ! !INPUT PARAMETERS: 
 !
@@ -199,46 +199,37 @@
 !  21 Feb 2014 - M. Sulprizio- Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Feb 2014 - M. Sulprizio- Now obtain O3_CTM directly from State_Chm%Tracers
+!  05 Mar 2014 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER, SAVE  :: LASTMONTH = -1
-      INTEGER        :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
-      REAL*8         :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
-      REAL*8         :: O3_CTM(LLPAR+1)
-      REAL*8         :: T_CTM(LLPAR+1), OPTD(LLPAR)
-      REAL*8         :: OPTDUST(LLPAR,NDUST)
-      REAL*8         :: OPTAER(LLPAR,NALLAER)
+      INTEGER, SAVE :: LASTMONTH = -1
+      INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
+      REAL*8        :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
+      REAL*8        :: O3_CTM(LLPAR+1)
+      REAL*8        :: T_CTM(LLPAR+1), OPTD(LLPAR)
+      REAL*8        :: OPTDUST(LLPAR,NDUST)
+      REAL*8        :: OPTAER(LLPAR,NALLAER)
 
       ! Local variables for cloud overlap (hyl, phs)
-      INTEGER        :: NUMB, KK, I
-      INTEGER        :: INDIC(LLPAR+1)
-      INTEGER        :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
-      INTEGER        :: KBOT(LLPAR)
-      INTEGER        :: KTOP(LLPAR)
-      INTEGER        :: INDICATOR(LLPAR+2)
-      REAL*8         :: FMAX(LLPAR)     ! maximum cloud fraction 
-                                        !  in a block, size can be to 
-                                        !  FIX(LLPAR)+1
-      REAL*8         :: CLDF1D(LLPAR)
-      REAL*8         :: ODNEW(LLPAR)
-      REAL*8         :: P_CTM(LLPAR+2)
+      INTEGER       :: NUMB, KK, I
+      INTEGER       :: INDIC(LLPAR+1)
+      INTEGER       :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
+      INTEGER       :: KBOT(LLPAR)
+      INTEGER       :: KTOP(LLPAR)
+      INTEGER       :: INDICATOR(LLPAR+2)
+      REAL*8        :: FMAX(LLPAR)     ! maximum cloud fraction 
+                                       !  in a block, size can be to 
+                                       !  FIX(LLPAR)+1
+      REAL*8        :: CLDF1D(LLPAR)
+      REAL*8        :: ODNEW(LLPAR)
+      REAL*8        :: P_CTM(LLPAR+2)
 
-      LOGICAL        :: AOD999
+      LOGICAL       :: AOD999
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Original code
-!%%%      ! NOTE: Switch from linear approximation (OVERLAP=1) to approximate
-!%%%      ! random overlap (OVERLAP=2) because we have re-processed the GEOS-5
-!%%%      ! met data such that OPTDEPTH, TAUCLI, and TAUCLW are now the in-cloud
-!%%%      ! optical depths rather than the grid-box optical depths. 
-!%%%      ! (hyl, phs, bmy, 10/7/08)
-!%%%      INTEGER, PARAMETER :: OVERLAP = 2
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      
       LOGICAL, SAVE :: FIRST = .true.
 
       ! Local variables for quantities from Input_Opt
@@ -252,9 +243,9 @@
       RC = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT
-      LPRT = Input_Opt%LPRT
+      LPRT = ( am_I_Root .and. Input_Opt%LPRT )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
       IF ( FIRST ) THEN
 
          DO i = 1,LLPAR+1
@@ -285,13 +276,13 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( NLAT,    NLON,   YLAT,     CSZA,   P_CTM   )
-!$OMP+PRIVATE( T_CTM,   SFCA,   O3_TOMS,  O3_CTM, OPTAER  )
-!$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                    )
+!$OMP+PRIVATE( NLAT,    NLON,   YLAT,      CSZA,   P_CTM   )
+!$OMP+PRIVATE( T_CTM,   SFCA,   O3_TOMS,   O3_CTM, OPTAER  )
+!$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                     )
 #if defined( USE_MAXIMUM_RANDOM_OVERLAP )
-!$OMP+PRIVATE( FMAX,  KK,     NUMB,      L        KBOT    )
-!$OMP+PRIVATe( KTOP   ODNEW,  INDICATOR, INDIC            )
-!$OMP+PRIVATE( O3_TOMS,P_CTM, JLOOP,                      ) 
+!$OMP+PRIVATE( FMAX,    KK,     NUMB,      L       KBOT    )
+!$OMP+PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC           )
+!$OMP+PRIVATE( O3_TOMS, P_CTM,  JLOOP                      ) 
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
 
@@ -357,84 +348,73 @@
 
 #if defined( USE_LINEAR_OVERLAP )
             !===========================================================
-            ! CLOUD OVERLAP : LINEAR ASSUMPTION 
+            ! %%%% CLOUD OVERLAP: LINEAR ASSUMPTION %%%%
+            !
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
-            ! 
-            ! NOTE: Use this option if you want to compare to results
-            !       from GEOS-Chem v7-04-12 and prior versions.
             !===========================================================
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Original code
-!%%%            IF ( OVERLAP == 1 ) then
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
-               ! Column cloud fraction (not less than zero)
-               CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
-               WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
+            ! Column cloud fraction (not less than zero)
+            CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
+            WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-               ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
-               ! optical depth & cloud fractions regridded with RegridTau)
-               ! OPTD is the in-cloud optical depth.  At this point it has
-               ! NOT been multiplied by cloud fraction yet.  Therefore,
-               ! we can just apply the linear overlap formula as written 
-               ! above (i.e. multiply by cloud fraction). (hyl, bmy, 10/24/08)
-               OPTD = OPTD * CLDF1D
+            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! depth is the in-cloud optical depth.  At this point it has 
+            ! NOT been multiplied by cloud fraction yet.  Therefore, we can
+            ! just apply the ! we can just apply the linear overlap formula 
+            ! as written above (i.e. multiply by cloud fraction).
+            OPTD = OPTD * CLDF1D
+
 #endif
 
-               ! Call FAST-JX routines to compute J-values
-               CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
-     &                        O3_CTM,    O3_TOMS,   AOD999, OPTAER,
-     &                        OPTDUST,   OPTD,      NLON,   NLAT,
-     &                        YLAT,      DAY_OF_YR, MONTH,  DAY,
-     &                        am_I_Root, Input_Opt  )
+            ! Call FAST-JX routines to compute J-values
+            CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
+     &                     O3_CTM,    O3_TOMS,   AOD999, OPTAER,
+     &                     OPTDUST,   OPTD,      NLON,   NLAT,
+     &                     YLAT,      DAY_OF_YR, MONTH,  DAY,
+     &                     am_I_Root, Input_Opt  )
 
 
 #elif defined( USE_APPROX_RANDOM_OVERLAP )
             !===========================================================
-            ! CLOUD OVERLAP : APPROXIMATE RANDOM OVERLAP
+            ! %%%% CLOUD OVERLAP: APPROX RANDOM OVERLAP ASSUMPTION %%%%
+            !
             ! Use OPTDEPTH = TAUCLD * CLDTOT**1.5
             !===========================================================
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%%            ELSE IF ( OVERLAP == 2 ) THEN
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-               ! Column cloud fraction (not less than zero)
-               CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
-               WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
+            ! Column cloud fraction (not less than zero)
+            CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
+            WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
-               ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
-               ! optical depth & cloud fractions regridded with RegridTau)
-               ! OPTD is the in-cloud optical depth.  At this point it has
-               ! NOT been multiplied by cloud fraction yet.  Therefore,
-               ! we can just apply the approximate random overlap formula
-               ! as written above (i.e. multiply by cloud fraction^1.5).
-               ! (hyl, bmy, 10/24/08)
-               OPTD = OPTD * ( CLDF1D )**1.5d0
-               
+            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! depth is the in-cloud optical depth.  At this point it has 
+            ! NOT been multiplied by cloud fraction yet.  Therefore, we can
+            ! just apply the approximate random overlap formula as written 
+            ! above (i.e. multiply by cloud fraction^1.5).
+            OPTD = OPTD * ( CLDF1D )**1.5d0
+            
 #else
-               ! Otherwise, OPTD is the grid-box optical depth and has 
-               ! already been multiplied by  the cloud fraction.  Therefore 
-               ! we only need to multiply by the square root of the cloud 
-               ! fraction here for the approximate random overlap option. 
-               ! (hyl, bmy, 10/24/08)
-               OPTD = OPTD * SQRT( CLDF1D )
+            ! Otherwise, OPTD is the grid-box optical depth and has 
+            ! already been multiplied by  the cloud fraction.  Therefore 
+            ! we only need to multiply by the square root of the cloud 
+            ! fraction here for the approximate random overlap option. 
+            OPTD = OPTD * SQRT( CLDF1D )
 
 #endif
 
-               ! Call FAST-JX routines to compute J-values
-               CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
-     &                        O3_CTM,    O3_TOMS,   AOD999, OPTAER,
-     &                        OPTDUST,   OPTD,      NLON,   NLAT,
-     &                        YLAT,      DAY_OF_YR, MONTH,  DAY,
-     &                        am_I_Root, Input_Opt  )
+            ! Call FAST-JX routines to compute J-values
+            CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
+     &                     O3_CTM,    O3_TOMS,   AOD999, OPTAER,
+     &                     OPTDUST,   OPTD,      NLON,   NLAT,
+     &                     YLAT,      DAY_OF_YR, MONTH,  DAY,
+     &                     am_I_Root, Input_Opt  )
 
 #elif defined( USE_MAXIMUM_RANDOM_OVERLAP )
             !===========================================================
-            ! CLOUD OVERLAP : MAXIMUM RANDOM OVERLAP
+            ! %%%% CLOUD OVERLAP: MAXIMUM RANDOM OVERLAP %%%%
             !
             ! The Maximum-Random Overlap (MRAN) scheme assumes that 
             ! clouds in adjacent layers are maximally overlapped to 
@@ -466,10 +446,6 @@
             ! Use cloud fraction, instead of OPTD, to form cloud blocks
             ! (hyl,06/19/04)
             !===========================================================
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Original code
-!%%%            ELSE IF ( OVERLAP == 3 ) THEN
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                ! Sort this out later
                CALL ERROR_STOP('MMRAN_16 not yet FJX compatible.',
@@ -1652,6 +1628,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  05 Mar 2014 - R. Yantosca - Use correct filenames for use w/ ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1685,9 +1662,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in fast-J X-sections (spectral data)
       FILENAME = 'FJX_spec.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -1710,9 +1687,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in 5-wavelength scattering data
       FILENAME = 'jv_spec_mie.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -1725,9 +1702,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in AOD data
       FILENAME = 'jv_spec_aod.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -1752,9 +1729,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! CTM call:  read in J-values names and link to fast-JX names
       FILENAME = 'FJX_j2j.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -2474,13 +2451,11 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       LOGICAL, INTENT(IN)                           :: am_I_Root
       TYPE(OptInput), INTENT(IN)                    :: Input_Opt
 !
-! !OUTPUT VARIABLES:
-!
-!
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  05 Mar 2014 - R. Yantosca - Now only save ND64 with LD64 specified levels
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2700,7 +2675,7 @@ C-----------------------------------------------------------------------
       call OPMIE (DTAUX,POMEGAX,U0,RFL,AMF2,JXTRA,
      &        AVGF,FJTOP,FJBOT,FSBOT,FJFLX,FLXD,FLXD0,LLPAR)
 
-C-----------------------------------------------------------------------
+!C-----------------------------------------------------------------------
 
       do K = 1,W_
 
@@ -2734,14 +2709,10 @@ C-----------------------------------------------------------------------
       ENDIF
 
       !---------------------------------------------------------------
-      ! Majority of heating code ignored by GEOS-Chem
-      ! Everything from here until statement number 99 is ignored
-      ! (SDE 03/31/13)
-      !---------------------------------------------------------------
+      ! New diagnostic (SDE 2013-10-25) 
       ! Use it to calculate fluxes for output if necessary
       !---------------------------------------------------------------
-      ! New diagnostic (SDE 2013-10-25)
-      IF ( ND64 > 0) THEN! .and. L <= LD64 ) THEN
+      IF ( ND64 > 0 .and. L <= LD64 ) THEN
          ! Get net direct and net diffuse fluxes separately
          ! Order:
          !    1 - Net flux
@@ -2768,6 +2739,15 @@ C-----------------------------------------------------------------------
             ENDDO
          ENDDO
       ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% COMMENT OUT FAST-J DIAGNOSTICS FOR NOW (bmy, 3/5/14)
+!%%% LEAVE CODE HERE SO THAT IT CAN BE RESTORED 
+!      !---------------------------------------------------------------
+!      ! Majority of heating code ignored by GEOS-Chem
+!      ! Everything from here until statement number 99 is ignored
+!      ! (SDE 03/31/13)
+!      !---------------------------------------------------------------
 !      IF (LFJXDIAG) THEN
 !         DO K=1,W_
 !c----direct(DIR) and diffuse(FLX) fluxes at top(UP) (solar = negative by convention)
@@ -2920,6 +2900,8 @@ C-----------------------------------------------------------------------
 !         endif
 !
 !      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
    99 continue
 
