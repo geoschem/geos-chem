@@ -1813,6 +1813,7 @@
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND59
+      USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
