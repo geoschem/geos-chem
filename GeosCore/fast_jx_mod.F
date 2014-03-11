@@ -79,6 +79,7 @@
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR, LLPAR
       USE CMN_SIZE_MOD,       ONLY : NDUST,   MAXIJ
       USE COMODE_MOD,         ONLY : JLOP, CSPEC, AIRDENS, ABSHUM
@@ -327,7 +328,8 @@
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
             O3_CTM          = 0d0
-            O3_CTM(1:LLPAR) = State_Chm%Tracers(NLON,NLAT,:,IDTO3)
+            L               = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
+            O3_CTM(1:L)     = State_Chm%Tracers(NLON,NLAT,1:L,IDTO3)
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
             OPTAER          = ODAER(NLON,NLAT,:,:)
@@ -3739,7 +3741,7 @@ C---Always does PL(2) = P[1]
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)
       DO I = 1, L1_
-         IF ((O3_CTM(I) > 0d0) .and. (LO3FJX)) THEN
+         IF ((LO3FJX) .and. (I.le.LLCHEM) .and. (O3_CTM(I) > 0d0)) THEN
             ! Convert from molec/cm3 to molec/cm2
             O3_CLIM(I) = O3_CTM(I) * (Z_CLIM(I+1)-Z_CLIM(I))
          ELSEIF (O3_TOMS > 0d0) THEN
