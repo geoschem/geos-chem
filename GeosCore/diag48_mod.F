@@ -730,7 +730,7 @@
          ELSE IF ( N == 99 ) THEN
 
             !-----------------------------------
-            ! PSURFACE - PTOP [hPa]
+            ! PEDGE-$ [hPa]
             !----------------------------------- 
             CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'

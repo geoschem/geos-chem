@@ -64,7 +64,7 @@
 !  96            : Sea level pressure                       [hPa        ]
 !  97            : Zonal wind (a.k.a. U-wind)               [m/s        ]
 !  98            : Meridional wind (a.k.a. V-wind)          [m/s        ]
-!  99            : P(surface) - PTOP                        [hPa        ]
+!  99            : PEDGE-$ (Pressure at level edges)        [hPa        ]
 !  100           : Temperature                              [K          ]
 !  101           : PAR direct                               [hPa        ]
 !  102           : PAR diffuse                              [hPa        ]
@@ -1771,7 +1771,7 @@
          ELSE IF ( N == 99 ) THEN
 
             !---------------------
-            ! Psurface - PTOP 
+            ! PEDGE-$
             !---------------------
             CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'

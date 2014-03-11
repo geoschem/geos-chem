@@ -62,7 +62,7 @@
 !  96            : Sea level pressure                       [hPa      ]
 !  97            : Zonal wind (a.k.a. U-wind)               [m/s      ]
 !  98            : Meridional wind (a.k.a. V-wind)          [m/s      ]
-!  99            : P(surface) - PTOP                        [hPa      ]
+!  99            : PEDGE-$ (Pressure at level edges)        [hPa      ]
 !  100           : Temperature                              [K        ]
 !  115-121       : size resolved dust optical depth         [unitless ]
 !
