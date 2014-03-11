@@ -403,32 +403,6 @@
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
       ENDIF
 
-#if   defined( GEOS_5 )
-
-      ! When TOMS data is not available, then we will use
-      ! the O3 columns directly from the met fields.  
-      ! Currently, this is only done for GEOS-5 met.
-      IF ( YEAR > LAST_TOMS_YEAR ) THEN
-         Input_Opt%USE_O3_FROM_MET = .TRUE.
-      ELSE
-         Input_Opt%USE_O3_FROM_MET = .FALSE.
-      ENDIF
-
-#elif defined( GEOS_FP )
-
-      ! For GEOS-FP met, always use the O3 columns
-      ! from the A1 met field files (bmy, 11/14/13)
-      Input_Opt%USE_O3_FROM_MET = .TRUE.
-
-#else
-         
-      ! When TOMS data is not available, then we will use
-      ! the TOMS data from the last valid year.  This is
-      ! done for all met field products other than GEOS-5.
-      Input_Opt%USE_O3_FROM_MET = .FALSE.
-
-#endif
-
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
@@ -801,6 +775,32 @@
          !    time when A3 or A6 met fields are read from disk.
          !==============================================================
          CALL READ_MET_FIELDS()
+
+#if   defined( GEOS_5 )
+
+         ! When TOMS data is not available, then we will use
+         ! the O3 columns directly from the met fields.  
+         ! Currently, this is only done for GEOS-5 met.
+         IF ( YEAR > LAST_TOMS_YEAR ) THEN
+            Input_Opt%USE_O3_FROM_MET = .TRUE.
+         ELSE
+            Input_Opt%USE_O3_FROM_MET = .FALSE.
+         ENDIF
+
+#elif defined( GEOS_FP )
+
+         ! For GEOS-FP met, always use the O3 columns
+         ! from the A1 met field files (bmy, 11/14/13)
+         Input_Opt%USE_O3_FROM_MET = .TRUE.
+
+#else
+
+         ! When TOMS data is not available, then we will use
+         ! the TOMS data from the last valid year.  This is
+         ! done for all met field products other than GEOS-5.
+         Input_Opt%USE_O3_FROM_MET = .FALSE.
+
+#endif
 
          !==============================================================
          ! ***** M O N T H L Y   O R   S E A S O N A L   D A T A *****
