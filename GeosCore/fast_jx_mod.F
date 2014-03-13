@@ -2467,23 +2467,26 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 c-----------------------------------------------------------------------
 c---key LOCAL atmospheric data needed to solve plane-parallel J----
 c-----these are dimensioned JXL_, and must have JXL_ .ge. LLPAR
-      real*8, dimension(JXL1_+1) :: DDJ,OOJ,ZZJ
-      real*8, dimension(JXL1_+1) :: PPJ
-      integer,dimension(JXL2_+1) :: JXTRA
-      real*8, dimension(W_)     :: FJTOP,FJBOT,FSBOT,FLXD0,RFL
-      real*8, dimension(JXL_, W_)   ::  AVGF, FJFLX
-      real*8, dimension(JXL1_,W_)   ::  DTAUX, FLXD
-      real*8, dimension(8,JXL1_,W_) ::  POMEGAX
+      real*8, dimension(JXL1_)      :: DDJ,OOJ
+      real*8, dimension(JXL1_+1)    :: PPJ,ZZJ
+      integer,dimension(JXL2_+1)    :: JXTRA
+      real*8, dimension(W_)         :: FJTOP,FJBOT,FSBOT,FLXD0,RFL
+      real*8, dimension(JXL_, W_)   :: AVGF, FJFLX
+      real*8, dimension(JXL1_,W_)   :: DTAUX, FLXD
+      real*8, dimension(8,JXL1_,W_) :: POMEGAX
+
 c---flux/heating arrays (along with FJFLX,FLXD,FLXD0)
-      real*8             :: ODABS,ODRAY
-      real*8             :: RFLECT
-      real*8             :: AMF2(2*JXL1_+1,2*JXL1_+1)
+      real*8 :: ODABS,ODRAY
+      real*8 :: RFLECT
+      real*8 :: AMF2(2*JXL1_+1,2*JXL1_+1)
+
 c------------key SCATTERING arrays for clouds+aerosols------------------
-      real*8             :: OD(5,JXL1_),SSA(5,JXL1_),SLEG(8,5,JXL1_)
-      real*8             :: OD600(JXL1_)
+      real*8 :: OD(5,JXL1_),SSA(5,JXL1_),SLEG(8,5,JXL1_)
+      real*8 :: OD600(JXL1_)
+
 c------------key arrays AFTER solving for J's---------------------------
-      real*8  FFF(W_,JXL_),VALJ(X_)
-      real*8  VALJL(JXL_,X_) !2-D array of J_s returned by JRATET
+      real*8   FFF(W_,JXL_),VALJ(X_)
+      real*8   VALJL(JXL_,X_) !2-D array of J_s returned by JRATET
 
       integer  L2EDGE, I,J,K,L,M,KMIE,IDXAER
       real*8   XQO3,XQO2,WAVE, TTTX
@@ -2493,8 +2496,10 @@ C-----------------------------------------------------------------------
       REAL*8   AERX_COL(A_,L1_) ! Accumulated aerosol array
       REAL*8   ODCLOUD_COL(L_)
       REAL*8   VALJXX(L_,JVN_)
+
       ! T_CLIM: Climatology data temperature (K)
-      REAL*8   T_CLIM(JXL1_+1)
+      REAL*8   T_CLIM(JXL1_)
+
       ! T_INPUT: Input temperature (K) with extra layer for compatibility
       REAL*8   T_INPUT(JXL1_+1)
 
@@ -2546,7 +2551,7 @@ c                        or         99.0                 80 km
       
       ! Ensure TOA pressure is zero
       PPJ(L1_+1) = 0.d0
-      T_INPUT(L1_+1) = T_CLIM(L1_+1)
+      T_INPUT(L1_+1) = T_CLIM(L1_)
 
 c---calculate spherical weighting functions (AMF: Air Mass Factor)
         RFLECT = REFLB
