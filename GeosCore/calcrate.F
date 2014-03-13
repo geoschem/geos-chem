@@ -1704,7 +1704,7 @@ c new OH+CO rate from JPL2006.
 
 #if defined( UCX )
                ! Need to subtract O3->O1D from rate
-               RRATE(KLOOP,NKN_2)=RRATE(KLOOP,NKN_2)-RRATE(KLOOP,NKN)
+               RRATE(KLOOP,NKN_2)=RRATE(KLOOP,NKN_2)-RRATE(KLOOP,NKNH2O)
                DUMMYO3P(KLOOP) = RRATE(KLOOP,NKN_2)
 #endif
 

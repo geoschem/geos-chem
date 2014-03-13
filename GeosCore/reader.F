@@ -674,6 +674,7 @@
        NKSPECZ(  NCS) = 0
        NKSO4PHOT(NCS) = 0
        NKO3PHOT( NCS) = 0
+       NKO3PHOTH2(NCS)= 0
        NKO3PPHOT(NCS) = 0
        NKO2PHOT( NCS) = 0
        NKPSC( NCS,11) = 0
