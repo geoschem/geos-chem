@@ -262,9 +262,6 @@ endif
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
 
-tauclean:
-	find . -name '*.o' -o -name '*.mod' -o -name '*.pdb' -o -name '*.inst.*' -o -name '*.pp.*' -o -name '*.continue.*' -o -name '*.a' | xargs rm -f
-
 doc:                                               # Build documentation
 	@$(MAKE) -C $(DOC) doc
 

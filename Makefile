@@ -105,7 +105,7 @@ docclean:
 	@$(MAKE) -C $(GEOSDIR) docclean
 
 tauclean:
-	@$(MAKE) -C $(GEOSDIR) tauclean
+	find . -name '*.o' -o -name '*.mod' -o -name '*.pdb' -o -name '*.inst.*' -o -name '*.pp.*' -o -name '*.continue.*' -o -name '*.a' | xargs rm -f
 
 help:
 	@$(MAKE) -C $(GEOSDIR) help
