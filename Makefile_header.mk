@@ -134,6 +134,7 @@
 #  07 Nov 2013 - R. Yantosca - NEST=se to now sets CPP switch w/ -DNESTED_SE
 #  08 Nov 2013 - R. Yantosca - Add FPEX flag to avoid conflicting with the
 #                              ESMF/MAPL environment variable FPE
+#  18 Mar 2014 - R. Yantosca - Now add TAU_PROF=y flag to invoke TAU profiler
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -206,6 +207,7 @@ endif
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
 OMP       := no
 endif
+
 # %%%%% IFORT compiler (default) %%%%%
 ifndef COMPILER
 COMPILER       :=ifort
@@ -215,7 +217,7 @@ ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS      += -DLINUX_IFORT
 endif
 
-# %%%%% PG I compiler %%%%%
+# %%%%% PGI compiler %%%%%
 REGEXP         :=(^[Pp][Gg][Ii])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS      += -DLINUX_PGI
@@ -498,6 +500,15 @@ USER_DEFS      += -DNO_ISORROPIA
 endif
 
 #------------------------------------------------------------------------------
+# TAU Performance Profiling (only works w/ IFORT for now)
+#------------------------------------------------------------------------------
+TAU_NEEDED     :=0
+REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
+TAU_NEEDED     :=1
+endif
+
+#------------------------------------------------------------------------------
 # HPC Settings: Build & use ESMF & MAPL for the Grid-Independent GEOS-Chem
 #------------------------------------------------------------------------------
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
@@ -608,8 +619,13 @@ endif
 
 # Set the standard compiler variables
 CC             :=
+ifeq ($(TAU_NEEDED),1)
+F90            :=tau_f90.sh $(FFLAGS) $(INCLUDE)
+LD             :=tau_f90.sh $(FFLAGS)
+else
 F90            :=ifort $(FFLAGS) $(INCLUDE)
 LD             :=ifort $(FFLAGS)
+endif
 FREEFORM       := -free
 R8             := -r8
 

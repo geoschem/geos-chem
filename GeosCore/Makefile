@@ -116,6 +116,7 @@
 #                              clean unless we compile for target hpc
 #  27 Jan 2014 - R. Yantosca - Add tomas_mod.o to wetscav_mod dependency list
 #  03 Feb 2014 - R. Yantosca - Add linoz_mod.o to input_mod.o dependency list
+#  18 Mar 2014 - R. Yantosca - Add tauclean target to remove TAU profile files
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -161,7 +162,7 @@ OBJ := $(TMP:.F90=.o)
 # Makefile targets: type "make help" for a complete listing!
 #=============================================================================
 
-.PHONY: clean realclean doc docclean help distclean
+.PHONY: clean realclean doc docclean help distclean tauclean
 
 all:                                               # Build libraries
 	@$(MAKE) lib                               #  and the executable
@@ -260,6 +261,9 @@ endif
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
+
+tauclean:
+	find . -name '*.o' -o -name '*.mod' -o -name '*.pdb' -o -name '*.inst.*' -o -name '*.pp.*' -o -name '*.continue.*' -o -name '*.a' | xargs rm -f
 
 doc:                                               # Build documentation
 	@$(MAKE) -C $(DOC) doc

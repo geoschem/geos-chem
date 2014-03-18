@@ -54,6 +54,7 @@ GTMM    :=GTMM
 #=============================================================================
 
 .PHONY: all lib libkpp libnc libutil exe clean realclean doc docclean help
+.PHONY: tauclean
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all
@@ -102,6 +103,9 @@ doc:
 
 docclean: 
 	@$(MAKE) -C $(GEOSDIR) docclean
+
+tauclean:
+	@$(MAKE) -C $(GEOSDIR) tauclean
 
 help:
 	@$(MAKE) -C $(GEOSDIR) help
