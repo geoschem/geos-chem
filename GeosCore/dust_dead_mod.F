@@ -4878,11 +4878,15 @@ c Fix up for negative argument, erf, etc.
       !-----------------
 ! not available in nested right now
 #if defined( GRID2x25 ) || defined( GRID_4x5 )
-
-      CALL READ_BPCH2( FILENAME, 'DEAD-2D', 87,
-     &                 XTAU,      IGLOB,    JGLOB,
-     &                 1,         ARRAY,    QUIET=.TRUE. )
-      CALL TRANSFER_2D( ARRAY(:,:,1), ERD_FCT_KVN )
+      !If the user hasnt set vegetation to be true then
+      !they probably dont care and dont have the right version
+      !of the dust input files DAR 2014
+      IF(FLG_VAI_TVBDS) THEN
+       CALL READ_BPCH2( FILENAME, 'DEAD-2D', 87,
+     &                  XTAU,      IGLOB,    JGLOB,
+     &                  1,         ARRAY,    QUIET=.TRUE. )
+       CALL TRANSFER_2D( ARRAY(:,:,1), ERD_FCT_KVN )
+      ENDIF
 #endif
       !-----------------
       ! MBL_BSN_FCT
@@ -5031,7 +5035,13 @@ c Fix up for negative argument, erf, etc.
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - GET_MONTHLY_DATA: Reading ', a )
 
+      ! vegetation related surface information 
+      ! currently only available for these grids
 #if defined( GRID2x25 ) || defined( GRID_4x5 )
+      !Dont try to load if vegetation flag not set
+      !(the user probably doesnt have the right file versions)
+      !DAR 2014
+      IF( FLG_VAI_TVBDS ) THEN
       ! Bareness Fraction from AVHRR NDVI (Kim et al. 2013) DAR
       !-----------------------
       CALL READ_BPCH2( FILENAME, 'DEAD-2D', 88,
@@ -5052,6 +5062,7 @@ c Fix up for negative argument, erf, etc.
 
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), VAI_DST )
+      ENDIF
 #endif
       ! Return to calling program
       END SUBROUTINE GET_MONTHLY_DATA
