@@ -6,3 +6,8 @@ geos
 geostomas
 geosapm
 *__genmod.f90
+*.pp.*
+*.pdb
+*.inst.*
+*.continue.*
+*.ppk
