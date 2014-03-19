@@ -122,16 +122,16 @@ help:
 .PHONY: allhg libhg libgtmm exehg
 
 allhg:
-	@$(MAKE) -C $(GEOSDIR) allhg
+	@$(MAKE) -C $(GEOSDIR) GTMM_Hg=yes allhg
 
 libhg:
-	@$(MAKE) -C $(GEOSDIR) libhg
+	@$(MAKE) -C $(GEOSDIR) GTMM_Hg=yes libhg
 
 ligbtmm:
-	@$(MAKE) -C $(GEOSDIR) libgtmm
+	@$(MAKE) -C $(GEOSDIR) GTMM_Hg=yes libgtmm
 
 exehg:
-	@$(MAKE) -C $(GEOSDIR) exehg
+	@$(MAKE) -C $(GEOSDIR) GTMM_Hg=yes exehg
 
 ###############################################################################
 ###                                                                         ###
