@@ -40,6 +40,7 @@
 #  18 Sep 2013 - R. Yantosca - Remove GeosTomas, that is now gone
 #  18 Sep 2013 - M. Long     - Add Makefile target "hpc"
 #  15 Jan 2014 - R. Yantosca - Updated comments
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -49,9 +50,11 @@ GEOSAPM :=GeosApm
 GEOSDIR :=GeosCore
 GTMM    :=GTMM
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete list!
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete list!                ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: all lib libkpp libnc libutil exe clean realclean doc docclean help
 .PHONY: tauclean
@@ -110,9 +113,11 @@ tauclean:
 help:
 	@$(MAKE) -C $(GEOSDIR) help
 
-#=============================================================================
-# Targets for mercury simulation (ccc, 6/7/10)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Targets for Hg simulation w/ Global Terrestrial Mercury Model (GTMM)   ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: allhg libhg libgtmm exehg
 
@@ -128,9 +133,11 @@ ligbtmm:
 exehg:
 	@$(MAKE) -C $(GEOSDIR) exehg
 
-#=============================================================================
-# Targets for APM aerosol microphysics code (bmy, 2/16/11)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Targets for APM aerosol microphysics simulations                       ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: apm libapm exeapm cleanapm
 

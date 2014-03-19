@@ -135,13 +135,19 @@
 #  08 Nov 2013 - R. Yantosca - Add FPEX flag to avoid conflicting with the
 #                              ESMF/MAPL environment variable FPE
 #  18 Mar 2014 - R. Yantosca - Now add TAU_PROF=y flag to invoke TAU profiler
+#  19 Mar 2014 - R. Yantosca - Move library link commands after the sections
+#                              that set the C-preprocessor switches
+#  19 Mar 2014 - R. Yantosca - Restore GTMM compilation funcitonality
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-#==============================================================================
-# Default values for variables
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Set the default Unix shell and some error message variables            ###
+###                                                                         ###
+###############################################################################
 
 # Set default shell to bash, for use with the Makefile conditionals
 SHELL          :=/bin/bash
@@ -158,43 +164,17 @@ ERR_GRID       :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, G
 # Error message for bad NEST input
 ERR_NEST       :="Select a nested grid: NEST=ch, NEST=eu, NEST=na"
 
-# Library include path
-NCI            := -I$(GC_INCLUDE)
-
-# Library link path: first try to get the list of proper linking flags
-# for this build of netCDF with nf-config and nc-config. 
-NCL            := $(shell $(GC_BIN)/nf-config --flibs)
-NCL            += $(shell $(GC_BIN)/nc-config --libs)
-NCL            := $(filter -l%,$(NCL))
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#%%%% NOTE TO GEOS-CHEM USERS: If you do not have netCDF-4.2 installed
-#%%%% Then you can add/modify the linking sequence here.  (This sequence
-#%%%% is a guess, but is probably good enough for other netCDF builds.)
-ifeq ($(NCL),) 
-NCL            :=-lnetcdf -lhdf5_hl -lhdf5 -lz
-endif
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-# Prepend the library directory path to the linking sequence
-NCL            :=-L$(GC_LIB) $(NCL)
-
-# Command to link to the various library files (-lHeaders should be last!)
-LINK           :=-L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
-LINK           :=$(LINK) -lNcUtils $(NCL)
-
-# Commands to link to libraries, for GTMM code (-lHeaders should be last!)
-LHG            :=-L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
-LHG            :=$(LINK) -lNcUtils $(NCL)
-
-#==============================================================================
-# Set C-preprocessor switches representing user options.  These are not
-# specific to any compiler, but are general options for the simulation.
-#
-# NOTE: To make the user input more robust, we use regular expression syntax
-# to match characters in the various Makefile variables.  See this web page
-# for more info: http://www.tldp.org/LDP/abs/html/x17046.html
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Set C-preprocessor switches representing user options.  These are not  ###
+###  specific to any compiler, but are general options for the simulation.  ###
+###                                                                         ###
+###  NOTE: To make the user input more robust, we use regular expression    ###
+###  syntax to match characters in the various Makefile variables.  See     ###
+###  this web page for more info:                                           ###
+###  http://www.tldp.org/LDP/abs/html/x17046.html                           ###
+###                                                                         ###
+###############################################################################
 
 #------------------------------------------------------------------------------
 # Compiler settings
@@ -204,22 +184,30 @@ LHG            :=$(LINK) -lNcUtils $(NCL)
 ifndef OMP
 OMP            :=yes
 endif
+
+# %%%%% Disable OpenMP for HPC; we use MPI parallelizaiton instead %%%%%
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
-OMP       := no
+OMP            :=no
 endif
 
-# %%%%% IFORT compiler (default) %%%%%
+# %%%%% Set default compiler %%%%%
 ifndef COMPILER
 COMPILER       :=ifort
 endif
+
+# %%%%% Test if IFORT compiler is selected %%%%%
 REGEXP         :=(^[Ii][Ff][Oo][Rr][Tt])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
+COMPLER        :=ifort
+COMPILE_CMD    :=ifort
 USER_DEFS      += -DLINUX_IFORT
 endif
 
-# %%%%% PGI compiler %%%%%
+# %%%%% Test if PGI compiler is selected  %%%%%
 REGEXP         :=(^[Pp][Gg][Ii])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
+COMPILER       :=pgi
+COMPILE_CMD    :=pgf90
 USER_DEFS      += -DLINUX_PGI
 endif
 
@@ -487,9 +475,11 @@ endif
 # Special chemistry settings
 #------------------------------------------------------------------------------
 
-# Specify GTMM mercury model
+# Activate Global Terrestrial Mercury Model (GTMM) if necessary
+GTMM_NEEDED    :=0
 REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(GTMM_Hg)" =~ $(REGEXP) ]] && echo true),true)
+GTMM_NEEDED    :=1
 USER_DEFS      += -DGTMM_Hg
 endif
 
@@ -502,20 +492,64 @@ endif
 #------------------------------------------------------------------------------
 # TAU Performance Profiling (only works w/ IFORT for now)
 #------------------------------------------------------------------------------
-TAU_NEEDED     :=0
+ifeq ($(COMPILER),ifort)
 REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
-TAU_NEEDED     :=1
+COMPILE_CMD    :=tau_f90.sh
+endif
 endif
 
+###############################################################################
+###                                                                         ###
+###  Set linker commands for local and external libraries (incl. netCDF)    ###
+###                                                                         ###
+###############################################################################
+
+# Library include path
+NCI            := -I$(GC_INCLUDE)
+
+# Library link path: first try to get the list of proper linking flags
+# for this build of netCDF with nf-config and nc-config. 
+NCL            := $(shell $(GC_BIN)/nf-config --flibs)
+NCL            += $(shell $(GC_BIN)/nc-config --libs)
+NCL            := $(filter -l%,$(NCL))
+
 #------------------------------------------------------------------------------
-# HPC Settings: Build & use ESMF & MAPL for the Grid-Independent GEOS-Chem
+# NOTE TO GEOS-CHEM USERS: If you do not have netCDF-4.2 installed
+# Then you can add/modify the linking sequence here.  (This sequence
+# is a guess, but is probably good enough for other netCDF builds.)
+ifeq ($(NCL),) 
+NCL            :=-lnetcdf -lhdf5_hl -lhdf5 -lz
+endif
 #------------------------------------------------------------------------------
+
+# Prepend the library directory path to the linking sequence
+NCL            :=-L$(GC_LIB) $(NCL)
+
+# Command to link to local library files
+ifeq ($(GTMM_NEEDED),1)
+LINK           :=-L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
+else
+LINK           :=-L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
+endif
+
+# Append command to link to netCDF etc library files
+LINK           :=$(LINK) -lNcUtils $(NCL)
+
+###############################################################################
+###                                                                         ###
+###  HPC Settings: Build & use ESMF & MAPL for Grid-Independent GEOS-Chem   ###
+###                                                                         ###
+###############################################################################
+
+# If we are building w/ the HPC target, then include GIGC.mk as well
+# Determine if we are building with the hpc target
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
 include $(ROOTDIR)/GIGC/GIGC.mk
 HPC            :=yes
 endif
 
+# If HPC=yes then set 
 REGEXP         := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS      += -DESMF_
@@ -530,9 +564,12 @@ MPI_LIB        := -L$(dir $(shell which mpif90))../lib -lmpi -lmpi_cxx -lmpi_f77
 LINK           := $(LINK) -lGIGC $(ESMF_LIB) $(MAPL_LIB) $(MPI_LIB)
 endif
 
-#==============================================================================
-# IFORT compilation options (default)
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  IFORT compilation options.  This is the default compiler.              ###
+###                                                                         ###
+###############################################################################
+
 ifeq ($(COMPILER),ifort) 
 
 # Default optimization level for all routines (-O2)
@@ -544,8 +581,9 @@ endif
 REGEXP         := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS         :=-cpp -w -O0 -auto -noalign -convert big_endian
-FFLAGS         += -g -DDEBUG -check arg_temp_created -debug all
+FFLAGS         += -g -check arg_temp_created -debug all
 TRACEBACK      := yes
+USER_DEFS      := -DDEBUG
 else
 FFLAGS         :=-cpp -w $(OPT) -auto -noalign -convert big_endian
 FFLAGS         += -vec-report0
@@ -619,21 +657,19 @@ endif
 
 # Set the standard compiler variables
 CC             :=
-ifeq ($(TAU_NEEDED),1)
-F90            :=tau_f90.sh $(FFLAGS) $(INCLUDE)
-LD             :=tau_f90.sh $(FFLAGS)
-else
-F90            :=ifort $(FFLAGS) $(INCLUDE)
-LD             :=ifort $(FFLAGS)
-endif
+F90            :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
+LD             :=$(COMPILE_CMD) $(FFLAGS)
 FREEFORM       := -free
 R8             := -r8
 
 endif
 
-#==============================================================================
-# Portland Group (PGI) compilation options
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Portland Group (PGF90) compilation options                             ###
+###                                                                         ###
+###############################################################################
+
 ifeq ($(COMPILER),pgi) 
 
 # Default optimization level for all routines (-fast)
@@ -645,6 +681,7 @@ endif
 REGEXP         := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS         :=-byteswapio -Mpreprocess -Bstatic -g -O0 
+USER_DEFS      += -DDEBUG
 else
 FFLAGS         :=-byteswapio -Mpreprocess -Bstatic $(OPT)
 endif
@@ -685,17 +722,20 @@ INCLUDE        := -I$(HDR) -module $(MOD) $(NCI)
 
 # Set the standard compiler variables
 CC             :=gcc
-F90            :=pgf90 $(FFLAGS) $(INCLUDE)
-LD             :=pgf90 $(FFLAGS)
+F90            :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
+LD             :=$(COMPILE_CMD) $(FFLAGS)
 FREEFORM       := -Mfree
 R8             := -Mextend -r8
 
 endif
 
-#==============================================================================
-# Specify pattern rules for compiliation 
-# (i.e. tell "make" how to compile different types of source code files)
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Specify pattern rules for compiliation                                 ###
+###  (i.e. tell "make" how to compile files w/ different extensions)        ###
+###                                                                         ###
+###############################################################################
+
 %.o : %.f
 	$(F90) -c $<
 %.o : %.F
@@ -707,9 +747,12 @@ endif
 %.o : %.c
 	$(CC) -c $*.c
 
-#==============================================================================
-# Export global variables so that the main Makefile will see these
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Export global variables so that the main Makefile will see these       ###
+###                                                                         ###
+###############################################################################
+
 export CC
 export F90
 export FREEFORM
@@ -721,9 +764,14 @@ export NCL
 export HPC
 
 #EOC
-#==============================================================================
-# Print variables for testing/debugging purposes (uncomment if necessary)
-#=============================================================================
+
+###############################################################################
+###                                                                         ###
+###  Debug print output.  Normally you will leave the following lines       ###
+###  commented out.  Uncomment these lines for testing.                     ###
+###                                                                         ###
+###############################################################################
+
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########' 
 #	@@echo "compiler: $(COMPILER)"

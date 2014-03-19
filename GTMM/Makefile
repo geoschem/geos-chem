@@ -39,9 +39,16 @@
 #  18 Sep 2009 - P. Le Sager - Added kppintegrator target & commented
 #                              "make -C int" calls
 #  21 Sep 2009 - C. Carouge  - Adapted to use with GTMM model. 
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #EOP
 #------------------------------------------------------------------------------
 #BOC
+
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
 
 # Define variables
 SHELL   = /bin/sh
@@ -52,15 +59,9 @@ LIB     = $(ROOTDIR)/lib
 MOD     = $(ROOTDIR)/mod
 LGTMM   = -L$(LIB) -lHg
 
-
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
-
-#=============================================================================
-# List of files to compile.  Here the order is not important,
-# as we will explicity define the dependencies listing below.
-#=============================================================================
 
 # Source code files
 SRC  = $(wildcard *.F90)
@@ -68,9 +69,11 @@ SRC  = $(wildcard *.F90)
 # Object files
 OBJ  = $(SRC:.F90=.o)
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: clean help gtmm
 
@@ -91,12 +94,23 @@ clean:
 help:
 	@$(MAKE) -C $(HELP)
 
-#=============================================================================
-# Dependencies listing (grep "USE " to get the list of module references!)
-#
-# From this list of dependencies, the "make" utility will figure out the
-# correct order of compilation (so we don't have to do that ourselves!)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
 
 CleanupCASAarrays.o            : CleanupCASAarrays.F90 defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
