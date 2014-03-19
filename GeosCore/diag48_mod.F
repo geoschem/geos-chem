@@ -74,6 +74,7 @@
 !  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND48 a local module variable
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
