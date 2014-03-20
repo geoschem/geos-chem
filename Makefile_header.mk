@@ -139,6 +139,7 @@
 #                              that set the C-preprocessor switches
 #  19 Mar 2014 - R. Yantosca - Restore GTMM compilation funcitonality
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  20 Mar 2014 - R. Yantosca - Bug fix: "+= -DDEBUG" instead of ":= -DDEBUG"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -583,7 +584,7 @@ ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
 FFLAGS         :=-cpp -w -O0 -auto -noalign -convert big_endian
 FFLAGS         += -g -check arg_temp_created -debug all
 TRACEBACK      := yes
-USER_DEFS      := -DDEBUG
+USER_DEFS      += -DDEBUG
 else
 FFLAGS         :=-cpp -w $(OPT) -auto -noalign -convert big_endian
 FFLAGS         += -vec-report0
