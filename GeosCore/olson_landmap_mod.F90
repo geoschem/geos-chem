@@ -263,6 +263,20 @@ CONTAINS
     INTEGER, POINTER :: ILAND(:,:,:)
     INTEGER, POINTER :: IUSE(:,:,:)
     REAL*8,  POINTER :: FRCLND(:,:)
+!
+! !DEFINED PARAMETERS:
+!
+! The following parameters are used to skip over Olson NATIVE GRID boxes
+! that are too far away from the GEOS-CHEM GRID BOX.  This can speed up
+! the Olson computation by a factor of 100 or more!
+!
+#if defined( GRID05x0666 ) || defined( GRID025x03125 )
+    REAL*8, PARAMETER :: latThresh = 1d0   ! Lat threshold, nested grid
+    REAL*8, PARAMETER :: lonThresh = 1d0   ! Lon threshold, nested grid
+#else
+    REAL*8, PARAMETER :: latThresh = 5d0   ! Lat threshold, global
+    REAL*8, PARAMETER :: lonThresh = 6d0   ! Lon threshold, global
+#endif
 
     !======================================================================
     ! NATIVE GRID parameters (i.e. 0.5 x 0.5 "GENERIC")
@@ -352,13 +366,11 @@ CONTAINS
 
           !%%%%%% LATITUDE SHUNT TO REDUCE WALL TIME (bmy, 3/20/14) %%%%%%%%%%
           !%%%
-          !%%% Don't do further computations unless we are within 5 degrees
-          !%%% of the southern edge of box (I,J).  This will prevent excess
-          !%%% computations and the overhead of many subroutine calls.  5 
-          !%%% degrees is a good choice because the largest GEOS-Chem grid 
-          !%%% box is 4 degrees in latitude. (bmy, 3/20/14)
+          !%%% Skip further computations unless we are within LATTHRESH 
+          !%%% degrees of the western edge of box (I,J).  This prevents 
+          !%%% excess computations and subroutine calls.
           !%%%
-          IF ( ABS( yedge_s - yedgeC_s ) > 5d0 ) CYCLE
+          IF ( ABS( yedge_s - yedgeC_s ) > latThresh ) CYCLE
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
           ! Loop over longitudes on the NATIVE GRID
@@ -391,12 +403,11 @@ CONTAINS
          
              !%%%%%% LONGITUDE SHUNT TO REDUCE WALL TIME (bmy, 3/20/14) %%%%%%
              !%%%
-             !%%% Don't do further computations unless we are within 6 degrees
-             !%%% of the western edge of box (I,J).  This will prevent excess
-             !%%% computations.  6 degrees is a good choice since the largest
-             !%%% GEOS-Chem grid box is 5 degrees in latitude. (bmy, 3/20/14)
+             !%%% Skip further computations unless we are within LONTHRESH 
+             !%%% degrees of the western edge of box (I,J).  This prevents 
+             !%%% excess computations and subroutine calls.
              !%%%
-             IF ( ABS( xedge_w - xedgeC_w ) > 6d0 ) CYCLE
+             IF ( ABS( xedge_w - xedgeC_w ) > lonThresh ) CYCLE
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
              ! "Area" of the GEOS-CHEM GRID BOX in degrees (DLON * DLAT)
