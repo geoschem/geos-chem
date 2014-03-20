@@ -106,6 +106,8 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  20 Mar 2014 - K. Travis   - Scaled down Geos-FP lightning by 2 at 4x5 and
+!          2x25 constrained by SEAC4RS NO profiles
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1551,7 +1553,7 @@
       ! met fields become available (ltm, 11/07/13).
       IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or.
      &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN
-         BETA = ANN_AVG_FLASHRATE / 82.003230d0
+         BETA = ANN_AVG_FLASHRATE / 82.003230d0 / 2 !/2 krt, 3/13/14
       ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1565,7 +1567,7 @@
       ! met fields become available (ltm, 01/15/14).
       IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or.
      &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN
-         BETA = ANN_AVG_FLASHRATE / 257.93269d0
+         BETA = ANN_AVG_FLASHRATE / 257.93269d0/ 2 !/2 krt, 3/17/14
       ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
