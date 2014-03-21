@@ -12,3 +12,8 @@ geosapm
 *.pdf
 *.tex
 *.toc
+*.pp.*
+*.pdb
+*.inst.*
+*.continue.*
+*.ppk

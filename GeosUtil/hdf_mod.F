@@ -1,6 +1,5 @@
-! $Id: hdf_mod.f,v 1.1 2010/02/02 16:57:46 bmy Exp $
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -17,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -69,13 +67,14 @@
 !                                   so that users w/o HDF5 library can still
 !                                   compile & run GEOS-Chem
 !  21 Dec 2009 - R. Yantosca      - Updated comments
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -203,7 +202,7 @@
 #endif
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -261,7 +260,7 @@
 #endif
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -502,7 +501,7 @@
 #endif
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -578,7 +577,7 @@
       END SUBROUTINE INIT_HDF
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

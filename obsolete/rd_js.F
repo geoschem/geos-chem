@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -15,8 +15,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_FJ_MOD, ONLY : JPMAX,  JPPJ
       USE CMN_FJ_MOD, ONLY : RNAMES, BRANCH
       USE JV_CMN_MOD
@@ -42,7 +40,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Add reference to findFreeLUN under DEVEL tag
-!   3 Aug 2012 - R. Yantosca - Restore NJ1 to INTENT(IN) status
+!  03 Aug 2012 - R. Yantosca - Restore NJ1 to INTENT(IN) status
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

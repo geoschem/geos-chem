@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -57,12 +57,10 @@
 !BOC
       CONTAINS
 
-!-----------------------------------------------------------------------
-#if defined( DEVEL )
-      SUBROUTINE EMISS_RETRO( EMISSIONS )
-#else
-      SUBROUTINE EMISS_RETRO
-#endif
+!----------------------------------------------------------------------- 
+
+      SUBROUTINE EMISS_RETRO( am_I_Root, Input_Opt, State_Chm, RC )
+!
 !***********************************************************************
 !  Subroutine EMISS_RETRO reads all RETRO emissions at the beginning of
 !  each month. (wfr, 3/8/11)
@@ -80,23 +78,38 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C3H8ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE TIME_MOD,             ONLY : EXPAND_DATE
       USE TIME_MOD,             ONLY : GET_MONTH
-      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_SIZE_MOD
 
 #if defined( DEVEL )
       USE TRACERID_MOD,         ONLY : IDTALK4, IDTACET, IDTMEK,
      & IDTALD2, IDTPRPE, IDTC3H8, IDTC2H6, IDTCH2O, IDTBENZ,
      & IDTTOLU, IDTXYLE, IDTC2H4, IDTC2H2
-      USE TRACER_MOD,           ONLY : N_TRACERS, TRACER_MW_KG
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE ERROR_MOD,            ONLY : ALLOC_ERR
 #endif
-! 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!    
 ! !REVISION HISTORY: 
 !  08 Mar 2011 - W. Reinhart - Initial version
-!  22 Aug 2011 - R. Yantosca - Added ProTeX headers
+!  22 Aug 2011 - R. Yantosca - Added ProTeX header
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,13 +122,26 @@
       CHARACTER(LEN=255) :: FILENAME
 
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)         :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
       REAL*8, ALLOCATABLE   :: A(:,:)
       INTEGER AS
 #endif
+
+      ! For fields from Input_Opt
+      LOGICAL         :: LFUTURE
+      INTEGER         :: N_TRACERS
+      REAL*8          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+
       !=================================================================
       !  EMISS_RETRO begins here
       !=================================================================
+
+      ! Assume success
+      RC           =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFUTURE      = Input_Opt%LFUTURE
+      N_TRACERS    = Input_Opt%N_TRACERS
+      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -127,7 +153,7 @@
          A = 0d0
 #endif         
 
-         CALL INIT_RETRO
+         CALL INIT_RETRO( am_I_Root, Input_Opt, RC )
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -204,37 +230,65 @@
       WRITE(6, '(a)' ) REPEAT( '=', 79)
 
 #if defined( DEVEL )
+      write(6,*)' ##### DEVEL BLOCK'
+      call flush(6)
       DO I=1,IIPAR
       DO J=1,JJPAR
          A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
       ENDDO
       ENDDO
 
-      IF ( IDTALK4 > 0 ) EMISSIONS(:,:,IDTALK4) = RETRO_ALK4(:,:) * 
+
+      IF ( IDTALK4 > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTALK4) = RETRO_ALK4(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTALK4)
-      IF ( IDTACET > 0 ) EMISSIONS(:,:,IDTACET) = RETRO_ACET(:,:) * 
+
+      IF ( IDTACET > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTACET) = RETRO_ACET(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTACET)
-      IF ( IDTMEK  > 0 ) EMISSIONS(:,:,IDTMEK)  = RETRO_MEK(:,:)  * 
+
+      IF ( IDTMEK  > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTMEK)  = RETRO_MEK(:,:)  * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTMEK)
-      IF ( IDTALD2 > 0 ) EMISSIONS(:,:,IDTALD2) = RETRO_ALD2(:,:) * 
+
+      IF ( IDTALD2 > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTALD2) = RETRO_ALD2(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTALD2)
-      IF ( IDTPRPE > 0 ) EMISSIONS(:,:,IDTPRPE) = RETRO_PRPE(:,:) * 
+
+      IF ( IDTPRPE > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTPRPE) = RETRO_PRPE(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTPRPE)
-      IF ( IDTC3H8 > 0 ) EMISSIONS(:,:,IDTC3H8) = RETRO_C3H8(:,:) * 
+
+      IF ( IDTC3H8 > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTC3H8) = RETRO_C3H8(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTC3H8)
-      IF ( IDTC2H6 > 0 ) EMISSIONS(:,:,IDTC2H6) = RETRO_C2H6(:,:) * 
+
+      IF ( IDTC2H6 > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = RETRO_C2H6(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H6)
-      IF ( IDTCH2O > 0 ) EMISSIONS(:,:,IDTCH2O) = RETRO_CH2O(:,:) * 
+
+      IF ( IDTCH2O > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTCH2O) = RETRO_CH2O(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTCH2O)
-      IF ( IDTBENZ > 0 ) EMISSIONS(:,:,IDTBENZ) = RETRO_BENZ(:,:) * 
+
+      IF ( IDTBENZ > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTBENZ) = RETRO_BENZ(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTBENZ)
-      IF ( IDTTOLU > 0 ) EMISSIONS(:,:,IDTTOLU) = RETRO_TOLU(:,:) * 
+
+      IF ( IDTTOLU > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTTOLU) = RETRO_TOLU(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTTOLU)
-      IF ( IDTXYLE > 0 ) EMISSIONS(:,:,IDTXYLE) = RETRO_XYLE(:,:) * 
+
+      IF ( IDTXYLE > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTXYLE) = RETRO_XYLE(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTXYLE)
-      IF ( IDTC2H4 > 0 ) EMISSIONS(:,:,IDTC2H4) = RETRO_C2H4(:,:) * 
+
+      IF ( IDTC2H4 > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTC2H4) = RETRO_C2H4(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H4)
-      IF ( IDTC2H2 > 0 ) EMISSIONS(:,:,IDTC2H2) = RETRO_C2H2(:,:) * 
+
+      IF ( IDTC2H2 > 0 ) 
+     & State_Chm%TRAC_TEND(:,:,1,IDTC2H2) = RETRO_C2H2(:,:) * 
      & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H2)
 
 #endif
@@ -243,7 +297,7 @@
       END SUBROUTINE EMISS_RETRO
 !EOC
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -408,7 +462,7 @@
       END SUBROUTINE READ_RETRO
 !EOC
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -566,7 +620,7 @@
       END SUBROUTINE TOTAL_ANTHRO_TG
 !EOC
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -618,6 +672,13 @@
 
       IF ( N == IDTALK4 )      THEN
          RETRO = RETRO_ALK4(I,J)
+!------------------------------------------------------------------------------
+!      ! Partition RETRO ketones into 75% acetone and 25% MEK (dbm, 8/18/2011)
+!      ELSE IF ( N == IDTACET ) THEN
+!         RETRO = RETRO_ACET(I,J)
+!      ELSE IF ( N == IDTMEK )  THEN
+!         RETRO = RETRO_MEK(I,J)
+!------------------------------------------------------------------------------
       ELSE IF ( N == IDTACET ) THEN
          RETRO = 0.75d0*RETRO_MEK(I,J)   ! RETRO ketones --> 75% ACET
       ELSE IF ( N == IDTMEK )  THEN
@@ -649,7 +710,7 @@
       END FUNCTION GET_RETRO_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -660,13 +721,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_RETRO
+      SUBROUTINE INIT_RETRO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LRETRO
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  08 Mar 2011 - W. Reinhart - Initial Version 
@@ -684,8 +755,11 @@
       !  INIT_RETRO begins here
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+      
       ! Return if we LRETRO = .FALSE.
-      IF (.not. LRETRO ) RETURN
+      IF (.not. Input_Opt%LRETRO ) RETURN
 
       ALLOCATE( RETRO_ALK4( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RETRO_ALK4' )
@@ -742,7 +816,7 @@
       END SUBROUTINE INIT_RETRO
 !EOC
 !------------------------------------------------------------------------------
-!             University of Minnesota Atmospheric Chemistry Group
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

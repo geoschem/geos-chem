@@ -6,3 +6,8 @@ geos
 geostomas
 geosapm
 *.nc
+*.pp.*
+*.pdb
+*.inst.*
+*.continue.*
+*.ppk

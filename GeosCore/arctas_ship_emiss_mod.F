@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -36,6 +35,7 @@
 !  31 Aug 2010 - R. Yantosca - Updated comments
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use the new function
 !                              GET_AREA_CM2( I, J, L ) from grid_mod.F90 
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !
 ! !REMARKS:
 !  (1) Part of the ARCTAS pre-campaign composite inventory distributed by
@@ -74,7 +74,7 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -183,7 +183,7 @@
       END FUNCTION GET_ARCTAS_SHIP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -195,27 +195,31 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_ARCTAS_SHIP( YEAR, EMISSIONS )
-#else
-      SUBROUTINE EMISS_ARCTAS_SHIP( YEAR )
-#endif
+      SUBROUTINE EMISS_ARCTAS_SHIP( am_I_Root, YEAR, 
+     &                              Input_Opt, State_Chm, RC )
 !
 ! !USES:
 ! 
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
-      USE TRACER_MOD,     ONLY : ITS_A_CO2_SIM, N_TRACERS
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTSO2
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)     :: YEAR   ! Year of data to read
-
-#if defined( DEVEL )
-      REAL*8,  INTENT(INOUT)  :: EMISSIONS(IIPAR,JJPAR)
-#endif
-
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: YEAR        ! Year of data to read
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
@@ -225,16 +229,25 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE           :: FIRST = .TRUE.
-      CHARACTER(LEN=255)      :: FILENAME, DIR
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      CHARACTER(LEN=255) :: FILENAME, DIR
+
+      ! For fields from Input_Opt
+      INTEGER            :: N_TRACERS
 
       !=================================================================
       ! EMISS_ARCTAS_SHIP begins here!
       !=================================================================
 
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_ARCTAS_SHIP
+         CALL INIT_ARCTAS_SHIP( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -244,7 +257,7 @@
       DIR = TRIM( DATA_DIR_1x1 ) // 'ARCTAS_SHIP_2008/'
       
 
-      IF ( ITS_A_CO2_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
 
          !--------------------------
          ! Read CO2 and regrid
@@ -259,8 +272,8 @@
      $        YEAR )
             
 #if defined( DEVEL )
-         EMISSIONS(:,:) = EMISSIONS(:,:) +
-     &                           CO2_SHIP(:,:)
+         State_Chm%TRAC_TEND(:,:,1,N_TRACERS+1) = 
+     &   State_Chm%TRAC_TEND(:,:,1,N_TRACERS+1) + CO2_SHIP(:,:)
 #endif
       ELSE
 
@@ -277,8 +290,8 @@
      $        YEAR )
          
 #if defined( DEVEL )
-         EMISSIONS(:,:) = EMISSIONS(:,:) +
-     &                           SO2_SHIP(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &   State_Chm%TRAC_TEND(:,:,1,IDTSO2) + SO2_SHIP(:,:)
 #endif
 
       ENDIF
@@ -286,12 +299,12 @@
       !--------------------------
       ! Print emission totals
       !--------------------------
-      CALL TOTAL_EMISS_Tg
+      CALL TOTAL_EMISS_Tg( Input_Opt )
 
       END SUBROUTINE EMISS_ARCTAS_SHIP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -345,6 +358,7 @@
 !  14 May 2012 - R. Yantosca - Bug fix: SC should be defined w/ IIPAR,JJPAR
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -365,7 +379,7 @@
       ! Initialize
       SC = 1d0
 
-      ! Read data
+      ! Read data [kg/yr]
       CALL READ_BPCH2( FILENAME,  CATEGORY,  TRACERN, 
      &                 TAU2008,   I1x1,      J1x1-1,     
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
@@ -380,7 +394,7 @@
       ! Regrid from GENERIC 1x1 --> Current Model Resolution
       INGRID => GEN_1x1(:,:)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1, 
+     &                    INGRID,     OUTGRID, IS_MASS=1, 
      &                    netCDF=.TRUE. )
 
       ! Get & apply scaling factor
@@ -394,7 +408,7 @@
       END SUBROUTINE READ_ARCTAS_SHIP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -406,13 +420,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TOTAL_EMISS_TG
+      SUBROUTINE TOTAL_EMISS_TG( Input_Opt )
 !
 ! !USES:
 ! 
-      USE TRACER_MOD, ONLY : ITS_A_CO2_SIM 
-
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
@@ -435,7 +452,7 @@
 
 
       ! Test for simulation type
-      IF ( ITS_A_CO2_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
 
          !-----------------------
          ! CO2 simulation
@@ -471,7 +488,7 @@
       END SUBROUTINE TOTAL_EMISS_Tg
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -483,45 +500,54 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_ARCTAS_SHIP
+      SUBROUTINE INIT_ARCTAS_SHIP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 ! 
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LARCSHIP
-      USE TRACER_MOD,  ONLY : ITS_A_CO2_SIM 
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: AS, J
+
+      ! Assume success
+      RC =  GIGC_SUCCESS
 
       !=================================================================
       ! INIT_ARCTAS_SHIP begins here!
       !=================================================================
 
       ! Allocate ANTHRO arrays if LARCTAS_SHIP is TRUE
-      IF ( LARCSHIP ) THEN
+      IF ( Input_Opt%LARCSHIP ) THEN
       
          !--------------------------------------------------
          ! Allocate and zero arrays for SHIP emissions
          !--------------------------------------------------
          ! Test for simulation type
-         IF ( ITS_A_CO2_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
 
             !-----------------------
             ! CO2 simulation
             !-----------------------
-            ALLOCATE( CO2_SHIP( IIPAR, JJPAR ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO2_SHIP' )
+            ALLOCATE( CO2_SHIP( IIPAR, JJPAR ), STAT=RC )
+            IF ( RC /= 0 ) CALL ALLOC_ERR( 'CO2_SHIP' )
             CO2_SHIP = 0d0
 
          ELSE
@@ -529,8 +555,8 @@
             !-----------------------
             ! Other simulations
             !-----------------------
-            ALLOCATE( SO2_SHIP( IIPAR, JJPAR ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2_SHIP' )
+            ALLOCATE( SO2_SHIP( IIPAR, JJPAR ), STAT=RC )
+            IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2_SHIP' )
             SO2_SHIP = 0d0
 
          ENDIF
@@ -540,7 +566,7 @@
       END SUBROUTINE INIT_ARCTAS_SHIP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

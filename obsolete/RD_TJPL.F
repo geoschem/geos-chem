@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,8 +16,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
 
@@ -67,8 +65,10 @@
 !        (tmf, ccc, 1/7/09)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
-!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - AddedoTeX headers
 !  01 Aug 2012 - R. Yantosca - Now restore NJ1 to INTENT(IN) status
+!  01 Mar 2013 - R. Yantosca - Block some extra print statements w/ am_I_Root
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,7 +82,9 @@
 !-------------spectral data---------------------------------------------
       open(NJ1, FILE=NAMFIL)
       read(NJ1,'(A)') TITLE0
-      write(6,'(1X,A)') TITLE0
+      IF ( am_I_Root ) THEN
+         write(6,'(1X,A)') TITLE0
+      ENDIF
       read(NJ1,'(10X,14I5)') NJVAL,NWWW,NW1,NW2
       if(NJVAL.gt.NS) then
         IF ( am_I_Root ) write(6,300) NJVAL,NS
@@ -109,9 +111,11 @@ c
       do K=1,3
         read(NJ1,103) TITLEJ(K,3),TQQ(K,3), (Q1D(IW,K),IW=1,NWWW)
       enddo
-      do K=1,3
-        write(6,200) titlej(1,k),(tqq(i,k),i=1,3)
-      enddo
+      IF ( am_I_Root ) THEN
+         do K=1,3
+            write(6,200) titlej(1,k),(tqq(i,k),i=1,3)
+         enddo
+      ENDIF
 c
 !---Read remaining species:  X-sections at 2 T's
       do J=1,NQQQ
@@ -163,14 +167,16 @@ c
         enddo
       enddo
       do k=1,jppj
-        if(jfacta(k).eq.0.d0)
+        if(jfacta(k).eq.0.d0 .and. am_I_Root )
      &             write(6,*) 'Not using photolysis reaction ',k
         if(jind(k).eq.0) then
           if(jfacta(k).eq.0.d0) then
             jind(k)=1
           else
-            write(6,*) 'Which J-rate for photolysis reaction ',k,' ?'
-            stop
+            IF ( am_I_Root ) THEN
+             write(6,*) 'Which J-rate for photolysis reaction ',k,' ?'
+             stop
+            ENDIF
           endif
         endif
       enddo

@@ -7,7 +7,6 @@
       USE JV_MIE_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
       integer i, j, k, id
       real*8  sum

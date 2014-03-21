@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -19,7 +19,6 @@ MODULE Olson_LandMap_Mod
 ! !USES:
 !
   USE CMN_GCTM_MOD                      ! Physical constants
-  USE CMN_DEP_MOD                       ! IREG, ILAND, IUSE, FRCLND arrays
   USE CMN_SIZE_MOD                      ! Size parameters
   USE DIRECTORY_MOD                     ! Disk directory paths   
   USE ERROR_MOD                         ! Error checking routines
@@ -150,6 +149,7 @@ MODULE Olson_LandMap_Mod
 !  09 Apr 2012 - R. Yantosca - Removed IJREG, IJUSE, IJLAND; these are now
 !                              replaced by IREG, IUSE, ILAND arrays
 !  09 Apr 2012 - R. Yantosca - Removed reference to CMN_VEL_mod.F
+!  20 Mar 2014 - R. Yantosca - Speed up Olson computation by skipping boxes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -172,7 +172,7 @@ MODULE Olson_LandMap_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -187,11 +187,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_LandMap( mapping )
+  SUBROUTINE Compute_Olson_LandMap( am_I_Root, mapping, State_Met )
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MapWeight), POINTER :: mapping(:,:)   ! "fine" -> "coarse" mapping
+    TYPE(MapWeight), POINTER       :: mapping(:,:) ! "fine" -> "coarse" mapping
+    TYPE(MetState),  INTENT(INOUT) :: State_Met    ! Meteorology State object
 !
 ! !REMARKS:
 !  This routine supplies arrays that are required for legacy code routines:
@@ -214,6 +223,11 @@ CONTAINS
 !                              are replaced by IREG, ILAND, IUSE arrays
 !  17 Apr 2012 - R. Yantosca - Rename "map" object to "mapping" to avoid name
 !                              confusion with an F90 intrinsic function
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  29 Nov 2012 - R. Yantosca - Added am_I_Root argument
+!  12 Dec 2012 - R. Yantosca - Now get IREG, ILAND, IUSE from State_Met
+!  20 Mar 2014 - R. Yantosca - Add shunts in lat & lon to reduce wall time
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -224,7 +238,7 @@ CONTAINS
     LOGICAL :: isGlobal
     INTEGER :: I,         J,         II,       III
     INTEGER :: JJ,        T,         N,        type
-    INTEGER :: uniqOlson, sumIuse,   C
+    INTEGER :: uniqOlson, sumIuse,   C,        IG
     REAL*4  :: xedge_w,   xedge_e,   yedge_s,  yedge_n
     REAL*4  :: xedgeC_w,  xedgeC_e,  yedgeC_s, yedgeC_n
     REAL*4  :: dxdy,      dxdy4,     mapWt,    area
@@ -243,6 +257,26 @@ CONTAINS
     INTEGER :: ctOlson (IIPAR,    JJPAR, 0:N_OLSON-1) ! Count of land types/box
     REAL*4  :: frOlson (IIPAR,    JJPAR, 0:N_OLSON-1) ! Frac of land types/box
     INTEGER :: ordOlson(IIPAR,    JJPAR, 0:N_OLSON-1) ! Order of land types
+
+    ! Pointers
+    INTEGER, POINTER :: IREG(:,:)
+    INTEGER, POINTER :: ILAND(:,:,:)
+    INTEGER, POINTER :: IUSE(:,:,:)
+    REAL*8,  POINTER :: FRCLND(:,:)
+!
+! !DEFINED PARAMETERS:
+!
+! The following parameters are used to skip over Olson NATIVE GRID boxes
+! that are too far away from the GEOS-CHEM GRID BOX.  This can speed up
+! the Olson computation by a factor of 100 or more!
+!
+#if defined( GRID05x0666 ) || defined( GRID025x03125 )
+    REAL*8, PARAMETER :: latThresh = 1d0   ! Lat threshold, nested grid
+    REAL*8, PARAMETER :: lonThresh = 1d0   ! Lon threshold, nested grid
+#else
+    REAL*8, PARAMETER :: latThresh = 5d0   ! Lat threshold, global
+    REAL*8, PARAMETER :: lonThresh = 6d0   ! Lon threshold, global
+#endif
 
     !======================================================================
     ! NATIVE GRID parameters (i.e. 0.5 x 0.5 "GENERIC")
@@ -267,27 +301,38 @@ CONTAINS
     !======================================================================
     ! Initialize variables outside of the main loop 
     !======================================================================
-    ctOlson            = 0
-    frOlson            = 0e0
-    ordOlson           = -999
-    IREG               = 0
-    ILAND              = 0
-    IUSE               = 0
-    FRCLND             = 1000e0
-    isGlobal           = ( .not. ITS_A_NESTED_GRID() )
+
+    ! Initialize pointers
+    IREG    => State_Met%IREG
+    ILAND   => State_Met%ILAND
+    IUSE    => State_Met%IUSE
+    FRCLND  => State_Met%FRCLND
+
+    IREG     = 0
+    ILAND    = 0
+    IUSE     = 0
+    FRCLND   = 1000e0
+    ctOlson  = 0
+    frOlson  = 0e0
+    ordOlson = -999
+    isGlobal = ( .not. ITS_A_NESTED_GRID() )
 
     !======================================================================
     ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
     !======================================================================
-    !$OMP PARALLEL DO                                                &
-    !$OMP DEFAULT( SHARED )                                          &
-    !$OMP PRIVATE( I,        J,       xedgeC_w, yedgeC_s, xedgeC_e ) &
-    !$OMP PRIVATE( yedgeC_n, dxdy4,   sumArea,  JJ,       III      ) &
-    !$OMP PRIVATE( dxdy,     mapWt,   II,       xedge_w,  yedge_s  ) &
-    !$OMP PRIVATE( xedge_e,  yedge_n, area,     type,     maxIuse  ) &
-    !$OMP PRIVATE( sumIUse,  uniqOlson, C                          )
+    !$OMP PARALLEL DO                                                  &
+    !$OMP DEFAULT( SHARED )                                            &
+    !$OMP PRIVATE( I,        J,         xedgeC_w, yedgeC_s, xedgeC_e ) &
+    !$OMP PRIVATE( yedgeC_n, dxdy4,     sumArea,  JJ,       III      ) &
+    !$OMP PRIVATE( dxdy,     mapWt,     II,       xedge_w,  yedge_s  ) &
+    !$OMP PRIVATE( xedge_e,  yedge_n,   area,     type,     maxIuse  ) &
+    !$OMP PRIVATE( sumIUse,  uniqOlson, C,        IG                 ) &
+    !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, JJPAR
     DO I = 1, IIPAR
+
+       ! Global lon index (needed for when running in ESMF)
+       IG = I + I_LO - 1
 
        ! Edges of this GEOS-CHEM GRID box
        xedgeC_w  = GET_XEDGE( I,   J,   1 )          ! W edge
@@ -308,90 +353,115 @@ CONTAINS
        C         = 0
 
        !===================================================================
-       ! Find each 0.5 x 0.5 NATIVE GRID BOX that fits into the GEOS-CHEM
-       ! GRID BOX.  Keep track of the land types and coverage fractions.
+       ! Find each NATIVE GRID BOX that fits into the GEOS-CHEM GRID BOX.  
+       ! Keep track of the land types and coverage fractions.
        !===================================================================
-       DO JJ  = 1, J_OLSON
-       DO III = 1, I_OLSON
 
-          ! Initialize
-          dxdy       = 0e0
-          mapWt      = 0e0
-       
-          ! Find the NATIVE GRID longitude index for use below.  Account for 
-          ! the first GEOS-CHEM GRID box, which straddles the date line.
-          IF ( isGlobal .and.  I == 1 ) THEN
-             II      = shiftLon(III)
-          ELSE
-             II      = indLon(III)
-          ENDIF
-          
-          ! Edges of this NATIVE GRID box
-          xedge_w    = lonedge(II  )                ! W edge
+       ! Loop over latitudes on the NATIVE GRID
+       DO JJ  = 1, J_OLSON
+
+          ! Latitude edges of this NATIVE GRID box
           yedge_s    = latedge(JJ  )                ! S edge
-          xedge_e    = lonedge(II+1)                ! E edge
           yedge_n    = latedge(JJ+1)                ! N edge
 
-          ! Because the first GEOS-CHEM GRID BOX straddles the date line,
-          ! we have to adjust the W and E edges of the NATIVE GRID BOX to
-          ! be in monotonically increasing order.  This will prevent
-          ! erronous results from being returned by GET_MAP_WT below.
-          IF ( isGlobal .and.  I == 1 .and. II >= shiftLon(1) ) THEN
-             xedge_w = xedge_w - 360e0
-             xedge_e = xedge_e - 360e0
-          ENDIF
+          !%%%%%% LATITUDE SHUNT TO REDUCE WALL TIME (bmy, 3/20/14) %%%%%%%%%%
+          !%%%
+          !%%% Skip further computations unless we are within LATTHRESH 
+          !%%% degrees of the western edge of box (I,J).  This prevents 
+          !%%% excess computations and subroutine calls.
+          !%%%
+          IF ( ABS( yedge_s - yedgeC_s ) > latThresh ) CYCLE
+          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+          ! Loop over longitudes on the NATIVE GRID
+          DO III = 1, I_OLSON
+
+             ! Initialize
+             dxdy       = 0e0
+             mapWt      = 0e0
+             
+             ! Find the NATIVE GRID longitude index for use below.  Account for 
+             ! the first GEOS-CHEM GRID box, which straddles the date line.
+             IF ( isGlobal .and.  IG == 1 ) THEN
+                II      = shiftLon(III)
+             ELSE
+                II      = indLon(III)
+             ENDIF
+             
+             ! Edges of this NATIVE GRID box
+             xedge_w    = lonedge(II  )                ! W edge
+             xedge_e    = lonedge(II+1)                ! E edge
+
+             ! Because the first GEOS-CHEM GRID BOX straddles the date line,
+             ! we have to adjust the W and E edges of the NATIVE GRID BOX to
+             ! be in monotonically increasing order.  This will prevent
+             ! erronous results from being returned by GET_MAP_WT below.
+             IF ( isGlobal .and. IG == 1 .and. II >= shiftLon(1) )  THEN
+                xedge_w = xedge_w - 360e0
+                xedge_e = xedge_e - 360e0
+             ENDIF
          
-          ! "Area" of the GEOS-CHEM GRID BOX in degrees (DLON * DLAT)
-          dxdy       = ( xedge_e - xedge_w ) * ( yedge_n - yedge_s )
+             !%%%%%% LONGITUDE SHUNT TO REDUCE WALL TIME (bmy, 3/20/14) %%%%%%
+             !%%%
+             !%%% Skip further computations unless we are within LONTHRESH 
+             !%%% degrees of the western edge of box (I,J).  This prevents 
+             !%%% excess computations and subroutine calls.
+             !%%%
+             IF ( ABS( xedge_w - xedgeC_w ) > lonThresh ) CYCLE
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-          ! Get the mapping weight (i.e. The fraction of the NATIVE 
-          ! GRID BOX that lies w/in the GEOS-CHEM GRID BOX)
-          CALL GET_MAP_WT( xedge_w, xedge_e, xedgeC_w, xedgeC_e,  &
-                           yedge_s, yedge_n, yedgeC_s, yedgeC_n,  &
-                           mapWt                                 )
+             ! "Area" of the GEOS-CHEM GRID BOX in degrees (DLON * DLAT)
+             dxdy       = ( xedge_e - xedge_w ) * ( yedge_n - yedge_s )
 
-          ! Skip unless part (or all) of the NATIVE GRID BOX
-          ! actually fits into the GEOS-CHEM GRID BOX
-          IF ( mapWt <= 0e0 .or. mapWt > 1e0 ) CYCLE
+             ! Get the mapping weight (i.e. The fraction of the NATIVE 
+             ! GRID BOX that lies w/in the GEOS-CHEM GRID BOX)
+             CALL GET_MAP_WT( xedge_w, xedge_e, xedgeC_w, xedgeC_e,  &
+                              yedge_s, yedge_n, yedgeC_s, yedgeC_n,  &
+                              mapWt                                 )
 
-          ! Area of the NATIVE GRID BOX that lies w/in the GEOS-CHEM GRID BOX
-          area              = A_CM2(II,JJ,1) * mapWt
+             ! Skip unless part (or all) of the NATIVE GRID BOX
+             ! actually fits into the GEOS-CHEM GRID BOX
+             IF ( mapWt <= 0e0 .or. mapWt > 1e0 ) CYCLE
+
+             ! Area of the NATIVE GRID BOX that lies
+             ! within the GEOS-CHEM GRID BOX
+             area              = A_CM2(II,JJ,1) * mapWt
            
-          ! Keep a total of the area
-          sumArea           = sumArea + area
+             ! Keep a total of the area
+             sumArea           = sumArea + area
 
-          ! Olson land map type on the NATIVE GRID
-          type              = OLSON(II,JJ,1)
+             ! Olson land map type on the NATIVE GRID
+             type              = OLSON(II,JJ,1)
            
-          ! Increment count of Olson types
-          ctOlson(I,J,type) = ctOlson(I,J,type) + 1
+             ! Increment count of Olson types
+             ctOlson(I,J,type) = ctOlson(I,J,type) + 1
 
-          ! Add area covered by this olson type
-          frOlson(I,J,type) = frOlson(I,J,type) + area
+             ! Add area covered by this olson type
+             frOlson(I,J,type) = frOlson(I,J,type) + area
 
-          ! Preserve ordering for backwards-compatibility w/ LAI data
-          IF ( ordOlson(I,J,type) < 0 ) THEN 
+             ! Preserve ordering for backwards-compatibility w/ LAI data
+             IF ( ordOlson(I,J,type) < 0 ) THEN 
 
-             ! Counter of land types we have encountered for the first time
-             uniqOlson          = uniqOlson + 1
+                ! Counter of land types we have encountered for the first time
+                uniqOlson          = uniqOlson + 1
 
-             ! Record the order in which this land type was first encountered
-             ordOlson(I,J,type) = uniqOlson
+                ! Record the order in which this land type was first encountered
+                ordOlson(I,J,type) = uniqOlson
 
-          ENDIF
+             ENDIF
+             
+             ! Save mapping information for later use in modis_lai_mod.F90
+             ! in order to prepare the State_Met%XLAI array for use with the 
+             ! legacy dry-deposition and soil NOx emissions codes.
+             C                     = C + 1
+             mapping(I,J)%count    = C
+             mapping(I,J)%II(C)    = II
+             mapping(I,J)%JJ(C)    = JJ
+             mapping(I,J)%olson(C) = type
+             mapping(I,J)%area(C)  = area
+             mapping(I,J)%sumarea  = sumarea
 
-          ! Save mapping information for later use in modis_lai_mod.F90
-          ! in order to prepare the XLAI array for use with the legacy 
-          ! dry-deposition and soil NOx emissions codes.
-          C                     = C + 1
-          mapping(I,J)%count    = C
-          mapping(I,J)%II(C)    = II
-          mapping(I,J)%JJ(C)    = JJ
-          mapping(I,J)%olson(C) = type
-          mapping(I,J)%area(C)  = area
-          mapping(I,J)%sumarea  = sumarea
-
-       ENDDO
+          ENDDO
        ENDDO
 
        !===================================================================
@@ -417,7 +487,7 @@ CONTAINS
           ! If land type T is represented in this box ...
           IF ( ctOlson(I,J,T) > 0 .and. ordOlson(I,J,T) > 0 ) THEN 
  
-             ! Increment the count of Olson types in the box
+             ! Increment the count of Olson types in the box 
              IREG(I,J)                  = IREG(I,J) + 1
              
              ! Save land type into ILAND
@@ -430,16 +500,17 @@ CONTAINS
        ENDDO
 
        ! Land type with the largest coverage in the GEOS-CHEM GRID BOX
-       maxIuse              = MAXLOC( IUSE( I, J, 1:IREG(I,J) ) )
+       maxIuse = MAXLOC( IUSE( I, J, 1:IREG(I,J) ) )
 
        ! Sum of all land types in the GEOS-CHEM GRID BOX (should be 1000)
-       sumIUse              = SUM( IUSE( I, J, 1:IREG(I,J) ) )
+       sumIUse = SUM   ( IUSE( I, J, 1:IREG(I,J) ) )
 
        ! Make sure everything adds up to 1000.  If not, then adjust
        ! the land type w/ the largest coverage accordingly.
        ! This follows the algorithm from "regridh_lai.pro".
        IF ( sumIUse /= 1000 ) THEN
-          IUSE(I,J,maxIUse) = IUSE(I,J,maxIUse) + ( 1000 - sumIUse )
+          IUSE(I,J,maxIUse) = IUSE(I,J,maxIUse) &
+                            + ( 1000 - sumIUse )
        ENDIF
       
        ! Loop over land types in the GEOS-CHEM GRID BOX
@@ -448,7 +519,7 @@ CONTAINS
           ! If the current Olson land type is water (type 0),
           ! subtract the coverage fraction (IUSE) from FRCLND.
           IF ( ILAND(I,J,T) == 0 ) THEN
-             FRCLND(I,J) = FRCLND(I,J) - IUSE(I,J,T)
+             FRCLND(I,J) = FRCLND(I,J)  - IUSE(I,J,T)
           ENDIF
        ENDDO
 
@@ -472,17 +543,17 @@ CONTAINS
 !###    enddo
 !###   
 !###    ! ### DEBUG OUTPUT
-!###    C = map(23,34)%count
+!###    C = mapping(23,34)%count
 !###    print*, '### count   : ', C
-!###    print*, '### II      : ', map(23,34)%II(1:C)
-!###    print*, '### JJ      : ', map(23,34)%JJ(1:C)
-!###    print*, '### area    : ', map(23,34)%area(1:C)
-!###    print*, '### sumarea : ', map(23,34)%sumarea
+!###    print*, '### II      : ', mapping(23,34)%II(1:C)
+!###    print*, '### JJ      : ', mapping(23,34)%JJ(1:C)
+!###    print*, '### area    : ', mapping(23,34)%area(1:C)
+!###    print*, '### sumarea : ', mapping(23,34)%sumarea
 
   END SUBROUTINE Compute_Olson_LandMap
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -494,7 +565,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Olson_LandMap()
+  SUBROUTINE Init_Olson_LandMap( am_I_Root, DATA_DIR_1x1 )
 !
 ! !USES:
 !
@@ -507,6 +578,11 @@ CONTAINS
     
 #   include "netcdf.inc"
 !
+! !INPUT PARAMETERS:
+!
+    LOGICAL,            INTENT(IN) :: am_I_Root
+    CHARACTER(LEN=255), INTENT(IN) :: DATA_DIR_1x1
+!
 ! !REMARKS:
 !  Assumes that you have:
 !  (1) A netCDF library (either v3 or v4) installed on your system
@@ -518,6 +594,8 @@ CONTAINS
 !  27 Mar 2012 - R. Yantosca - Now read the "units" attribute of each variable
 !  27 Mar 2012 - R. Yantosca - Now echo file I/O status info to stdout
 !  27 Mar 2012 - R. Yantosca - Now can read Olson 1992 or Olson 2001 land map
+!  29 Nov 2012 - R. Yantosca - Add am_I_Root to the argument list
+!  26 Feb 2013 - M. Long     - Now pass DATA_DIR_1x1 via the argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -592,9 +670,11 @@ CONTAINS
     CALL Ncop_Rd( fId, TRIM(nc_path) )
      
     ! Echo info to stdout
-    WRITE( 6, 100 ) REPEAT( '%', 79 )
-    WRITE( 6, 110 ) TRIM(nc_file)
-    WRITE( 6, 120 ) TRIM(nc_dir)
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 100 ) REPEAT( '%', 79 )
+       WRITE( 6, 110 ) TRIM(nc_file)
+       WRITE( 6, 120 ) TRIM(nc_dir)
+    ENDIF
 
     !----------------------------------------
     ! VARIABLE: lon
@@ -613,7 +693,9 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
     
     ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)     
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)     
+    ENDIF
 
     !----------------------------------------
     ! VARIABLE: lat
@@ -632,7 +714,9 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
     
     ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    ENDIF
 
     !----------------------------------------
     ! VARIABLE: OLSON
@@ -651,7 +735,9 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
     
     ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    ENDIF
 
     !----------------------------------------
     ! VARIABLE: DXYP 
@@ -671,7 +757,9 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
     
     ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+    ENDIF
 
     ! Convert from [m2] to [cm2]
     A_CM2  = A_CM2 * 1e4
@@ -684,8 +772,10 @@ CONTAINS
     CALL NcCl( fId )
     
     ! Echo info to stdout
-    WRITE( 6, 140 )
-    WRITE( 6, 100 ) REPEAT( '%', 79 )
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 140 )
+       WRITE( 6, 100 ) REPEAT( '%', 79 )
+    ENDIF
 
     ! FORMAT statements
 100 FORMAT( a                                              )
@@ -697,7 +787,7 @@ CONTAINS
   END SUBROUTINE Init_Olson_LandMap
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -709,10 +799,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Olson_LandMap
+  SUBROUTINE Cleanup_Olson_LandMap( am_I_Root )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
 !
 ! !REVISION HISTORY:'
 !  22 Mar 2012 - R. Yantosca - Initial version
+!  29 Nov 2012 - R. Yantosca - Add am_I_Root as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,7 +16,13 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS NOW OBSOLETE AND IS SLATED TO BE REMOVED!   %%%
+!  %%%  WE NOW USE THE LOGICALS FROM Input_Opt INSTEAD OF FROM HERE.     %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  05 Nov 2004 - R. Yantosca - Added LNEI99 switch to toggle EPA/NEI emissions 
@@ -57,6 +63,7 @@
 !  18 Dec 2009 - Aaron van D - Added logicals for NA, EU, CH, CU nested grids
 !  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
 !  29 Jan 2009 - F. Paulot   - Added LFERTILIZERNOX.
+!  22 Jan 2010 - R. Yantosca - Added LTOMAS switch
 !  26 Feb 2010 - R. Yantosca - Remove obsolete LEMBED flag
 !  18 May 2010 - R. Nassar   - Add logical flags for CO2 offline simulation
 !  20 Jul 2010 - C. Carouge  - Add LPREINDHG and LGTMM for updated mercury.
@@ -65,6 +72,13 @@
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !  26 Mar 2012 - R. Yantosca - Add USE_OLSON_2001 switch, which will use the
 !                              newer Olson 2001 land map & drydep inputs
+!  26 Apr 2013 - R. Yantosca - Remove LTOMAS; we now use #if defined( TOMAS )
+!  07 Aug 2013 - M. Sulprizio- Move NAPEMISS and POAEMISSSCALE for SOA + SVPOA
+!                              simulation to Headers/gigc_input_opt_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Added LSVPOA switch for semivolatile POA (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
+!  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -83,10 +97,12 @@
       LOGICAL :: LSOA            ! Use secondary organic aerosol tracers?
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
       LOGICAL :: LDICARB         ! Use dicarbonyl chemistry mechanism?
+      LOGICAL :: LSVPOA          ! Switch for semi-volatile POA (hotp 8/9/09)
       LOGICAL :: LGRAVSTRAT      ! Perform graviational settling in strat?
       LOGICAL :: LSOLIDPSC       ! Allow solid PSC formation?
       LOGICAL :: LHOMNUCNAT      ! Allow homogeneous NAT nucleation?
       LOGICAL :: LPSCCHEM        ! Perform PSC heterogeneous chemistry?
+      LOGICAL :: LSTRATOD        ! Add stratospheric aerosolsin OD calculation?
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
@@ -95,7 +111,6 @@
       LOGICAL :: LLINOZ          ! T = Linoz O3; F = Synoz O3
       LOGICAL :: LCH4CHEM        ! Online CH4 chemistry
       LOGICAL :: LUCX            ! Unified trop-strat chemistry
-      LOGICAL :: LFUTURECFC      ! Use future CFC+ emissions
       LOGICAL :: LACTIVEH2O      ! Allow active H2O?
       LOGICAL :: LO3FJX          ! Use online ozone for FAST-JX?
 
@@ -114,7 +129,6 @@
       LOGICAL :: USE_OLSON_2001  ! Use the Olson 2001 land map & drydep info?
 
       !%%%% Emissions %%%%
-      LOGICAL :: LACSO2          ! Use non-AIEC aircraft SO2?
       LOGICAL :: LAEIC           ! Use aircraft emissions from AEIC?
       LOGICAL :: LANTHRO         ! Turns all anthropogenic emissions on/off
       LOGICAL :: LBBSEA          ! Use seasonal biomass burning emissions?
@@ -149,7 +163,6 @@
       LOGICAL :: LFERTILIZERNOX  ! Use fertilizer NOx emissions
       LOGICAL :: LTOMSAI         ! Scale biomass burning to TOMS AI index?
       LOGICAL :: LWOODCO         ! <-- deprecated: replace w/ LBIOFUEL soon
-      LOGICAL :: LAVHRRLAI       ! Use AVHRR leaf-area-indices?
       LOGICAL :: LGFED2BB        ! Use GFED2 biomass burning?
       LOGICAL :: LGFED3BB        ! Use GFED3 biomass burning?
       LOGICAL :: LFUTURE         ! Use future-years emission scaling (GCAP)?
@@ -161,7 +174,6 @@
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
       LOGICAL :: LDAYBB3         ! Use GFED3 daily biomass burning?
       LOGICAL :: L3HRBB3         ! Use GFED3 3-hr biomass burning?
-      LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)
 ![eml
@@ -170,6 +182,10 @@
       LOGICAL :: LWARWICK_VSLS   ! Use Warwick_s3 R(Br)n? (jpp 8/23/07)
       LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
       LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)
+      LOGICAL :: LRCP            ! RCP anthro emissions (cdh, 10/14/11)
+      LOGICAL :: LRCPSHIP        ! RCP anthro SHIP emissions (cdh, 10/14/11)
+      LOGICAL :: LRCPAIR         ! RCP anthro AIRCRAFT emissions (cdh, 10/14/11)
+      LOGICAL :: LFIXEDYR        ! Use fixed year for RCP?
       LOGICAL :: LCH4EMIS        ! Use methane emissions? (SDE 03/25/13)
       LOGICAL :: LCH4SBC         ! Use methane surface BC? (SDE 2013-12-18)
       LOGICAL :: LN2OEMIS        ! N2O emissions?
@@ -189,16 +205,10 @@
       LOGICAL :: LSETNOYSTRAT    ! Initialize strat. NOx/HNO3 to generic conditions?
       LOGICAL :: LSETOCS         ! Initialize OCS to generic conditions?
       LOGICAL :: LSETH2SO4       ! Initialize H2SO4 to generic conditions?
-      LOGICAL :: LSTRATOD        ! Add stratospheric aerosolsin OD calculation?
-      LOGICAL :: LGEOENG         ! Apply geoengineering emissions?
-      LOGICAL :: LCC_UNIFORMT    ! Apply uniform temperature delta at all altitudes?
-      LOGICAL :: LCC_SFCT        ! Apply temperature delta at the surface only?
-      LOGICAL :: LCC_AR5T        ! Apply temperature delta scaled according to AR5 Fig 10.8?
-      LOGICAL :: LCC_QQ          ! Apply a precipitation delta?
+      LOGICAL :: LFUTURECFC      ! Use future CFC+ emissions
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
-      LOGICAL :: LMFCT           ! Turns TPCORE MFCT option on/off
       LOGICAL :: LTRAN           ! Turns advection on/off
       LOGICAL :: LTPFV           ! Are we using the GEOS-4 
       LOGICAL :: LWINDO          ! Use nested-grid simulation?

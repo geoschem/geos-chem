@@ -1,10 +1,9 @@
-! $Id: unix_cmds_mod.f,v 1.1 2009/11/20 21:43:01 bmy Exp $
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: unix_cmds_mod.f
+! !MODULE: unix_cmds_mod
 !
 ! !DESCRIPTION: Module UNIX\_CMDS\_MOD contains variables which contain file 
 !  suffixes and various Unix command strings.
@@ -17,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC DATA MEMBERS:
@@ -38,9 +36,18 @@
       CHARACTER(LEN=255) :: GRID_SUFFIX  ! !%%% OBSOLETE %%%
       CHARACTER(LEN=255) :: ZIP_SUFFIX   ! Zipped file suffix   ( '.gz'   )
 !
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS NOW OBSOLETE AND IS SLATED TO BE REMOVED!   %%%
+!  %%%  WE NOW USE THE UNIX CMDS FROM Input_Opt INSTEAD OF FROM HERE.    %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 ! !REVISION HISTORY:
 !  09 Jul 2004 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

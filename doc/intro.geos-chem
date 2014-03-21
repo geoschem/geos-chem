@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOI
-! !TITLE: GEOS-Chem Reference, Vol. 3: "Core" Modules and Routines
+! !TITLE: GEOS-Chem Reference, Volume 3:\\"Core" Modules and Routines
 ! !AUTHORS: GEOS-Chem Support Team
-! !DATE: 24 July 2012
+! !DATE: 25 Feb 2014
 !EOI
 !------------------------------------------------------------------------------

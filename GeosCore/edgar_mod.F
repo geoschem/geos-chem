@@ -65,10 +65,10 @@
 !        They are PUBLIC routines as they are used by anthroems.f.(ccc, 3/2/09)
 !  (6 ) Fixed typos in READ_C2H2 and READ_C2H4 (tmf, bmy, 12/20/10)
 !  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
@@ -122,6 +122,14 @@
       REAL*8,  ALLOCATABLE :: EDGAR_CO_SHIP(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_TODN(:,:,:)
 
+      ! To shadow logical values from Input_Opt
+      LOGICAL              :: LEDGARCO
+      LOGICAL              :: LEDGARNOx
+      LOGICAL              :: LEDGARSHIP
+      LOGICAL              :: LEDGARSOx
+      LOGICAL              :: LFUTURE
+      LOGICAL              :: LHIST
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -129,11 +137,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE EMISS_EDGAR( YEAR, MONTH, EMISSIONS )
-#else
-      SUBROUTINE EMISS_EDGAR( YEAR, MONTH )
-#endif
+      SUBROUTINE EMISS_EDGAR( am_I_Root, YEAR,      MONTH,
+     &                        Input_Opt, State_Chm, RC     )
 !
 !******************************************************************************
 !  Subroutine EMISS_EDGAR fills emission arrays with emissions based upon 
@@ -145,27 +150,42 @@
 !  (2 ) MONTH (INTEGER) :  ... and for this month
 !
 !  NOTES:
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
-      ! Reference to F90 modules
-      USE BPCH2_MOD,      ONLY : GET_TAU0
-      USE LOGICAL_MOD,    ONLY : LEDGARCO,        LEDGARNOx
-      USE LOGICAL_MOD,    ONLY : LEDGARSHIP,      LEDGARSOx
-
-      USE CMN_SIZE_MOD       ! Size parameters
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 
 #if defined( DEVEL )
-      USE TRACERID_MOD,   ONLY : IDTCO, IDTSO2, IDTNOX
-      USE TRACER_MOD,     ONLY : N_TRACERS
+      USE TRACERID_MOD,   ONLY : IDTCO, IDTSO2, IDTNO
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
-#endif 
-      ! Arguments
-      INTEGER, INTENT(IN)     :: YEAR, MONTH
-
-      ! Local variables
+#endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: YEAR        ! Year to read
+      INTEGER,        INTENT(IN)    :: MONTH       ! Month to read
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE           :: FIRST      = .TRUE.
       INTEGER, SAVE           :: YEAR_SAVE  = -1
       INTEGER, SAVE           :: MONTH_SAVE = -1
@@ -185,19 +205,33 @@
      &                                        'OCT', 'NOV', 'DEC' /)
 
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)  :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
       REAL*8  :: SO2_FUTURE_SCALE(IIPAR,JJPAR)
       REAL*8  :: NOX_FUTURE_SCALE(IIPAR,JJPAR)
       REAL*8  :: CO_FUTURE_SCALE(IIPAR,JJPAR)
       INTEGER :: I, J
 #endif
+
+      ! For fields from Input_Opt
+      INTEGER :: N_TRACERS
+
       !=================================================================
       ! EMISS_EDGAR begins here!
       !=================================================================
 
+      ! Assume success
+      RC         =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt to module vars for use in other routines
+      LEDGARCO   = Input_Opt%LEDGARCO
+      LEDGARNOx  = Input_Opt%LEDGARNOx
+      LEDGARSHIP = Input_Opt%LEDGARSHIP
+      LEDGARSOx  = Input_Opt%LEDGARSOx
+      LHIST      = Input_Opt%LHIST
+      N_TRACERS  = Input_Opt%N_TRACERS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_EDGAR
+         CALL INIT_EDGAR( Input_Opt )
          FIRST = .FALSE.
       ENDIF
 
@@ -254,20 +288,20 @@
          ! Now always read NOX to get TODN (amv, phs, 3/10/08)
          IF ( LEDGARSHIP ) THEN
             CALL COMPUTE_EDGAR_NOX( YEAR,      MONTH, 
-     &           EDGAR_NOx, EDGAR_NOx_SHIP )
+     &                              EDGAR_NOx, EDGAR_NOx_SHIP    )
          ELSE
             CALL COMPUTE_EDGAR_NOX( YEAR,      MONTH, 
-     &           EDGAR_NOx )
+     &                              EDGAR_NOx                    )
          ENDIF
          
          ! SO2
          IF ( LEDGARSOx ) THEN
             IF ( LEDGARSHIP ) THEN
                CALL COMPUTE_EDGAR_SO2( YEAR,      MONTH, 
-     &              EDGAR_SO2, EDGAR_SO2_SHIP )
+     &                                 EDGAR_SO2, EDGAR_SO2_SHIP )
             ELSE
                CALL COMPUTE_EDGAR_SO2( YEAR,      MONTH, 
-     &              EDGAR_SO2 )
+     &                                 EDGAR_SO2                 )
             ENDIF
          ENDIF
          
@@ -288,8 +322,8 @@
 #if defined( DEVEL )
 
       IF ( LFUTURE ) THEN
+         DO J=1,JJPAR
          DO I=1,IIPAR
-            DO J=1,JJPAR
                SO2_FUTURE_SCALE(I,J) = GET_FUTURE_SCALE_SO2ff(I,J)
                CO_FUTURE_SCALE(I,J)  = GET_FUTURE_SCALE_COff(I,J)
                NOX_FUTURE_SCALE(I,J) = GET_FUTURE_SCALE_NOXff(I,J)
@@ -301,47 +335,60 @@
       ! NOx and anthro SOx are seasonal
       ! Ship SOx are monthly
       ! Result is emission tendency in kg/gridbox/s
+      ! Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
       IF (LEDGARSHIP) THEN
          IF ( LFUTURE ) THEN
-            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+            State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTSO2) +
      &    (((EDGAR_SO2/SEC_IN_SEASON)+(EDGAR_SO2_SHIP/SEC_IN_MONTH)) *
      &      SO2_FUTURE_SCALE )
 
-            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+            State_Chm%TRAC_TEND(:,:,1,IDTCO) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTCO) +
      &    ((EDGAR_CO+EDGAR_CO_SHIP)   * (1.d0/SEC_IN_2000) *
      &      CO_FUTURE_SCALE )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+            State_Chm%TRAC_TEND(:,:,1,IDTNO)  = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTNO)  +
      &    ((EDGAR_NOX+EDGAR_NOX_SHIP) * (1.d0/SEC_IN_SEASON) *
      &      NOX_FUTURE_SCALE )
          ELSE
-            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+            State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTSO2) +
      &    (((EDGAR_SO2/SEC_IN_SEASON)+(EDGAR_SO2_SHIP/SEC_IN_MONTH)) )
 
-            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+            State_Chm%TRAC_TEND(:,:,1,IDTCO) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTCO) +
      &    ((EDGAR_CO+EDGAR_CO_SHIP)   * (1.d0/SEC_IN_2000) )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+            State_Chm%TRAC_TEND(:,:,1,IDTNO)  = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTNO)  +
      &    ((EDGAR_NOX+EDGAR_NOX_SHIP) * (1.d0/SEC_IN_SEASON) )
          ENDIF
       ELSE
          IF ( LFUTURE ) THEN
-            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+            State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTSO2) +
      &    ((EDGAR_SO2/SEC_IN_SEASON) * SO2_FUTURE_SCALE )
 
-            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+            State_Chm%TRAC_TEND(:,:,1,IDTCO) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTCO) +
      &    (EDGAR_CO*(1.d0/SEC_IN_2000) * CO_FUTURE_SCALE )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+            State_Chm%TRAC_TEND(:,:,1,IDTNO)  = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTNO)  +
      &    (EDGAR_NOX*(1.d0/SEC_IN_SEASON) * NOX_FUTURE_SCALE )
          ELSE
-            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+            State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTSO2) +
      &    (EDGAR_SO2/SEC_IN_SEASON)
 
-            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+            State_Chm%TRAC_TEND(:,:,1,IDTCO) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTCO) +
      &    (EDGAR_CO * (1.d0/SEC_IN_2000) )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+            State_Chm%TRAC_TEND(:,:,1,IDTNO)  = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTNO)  +
      &    (EDGAR_NOX * (1.d0/SEC_IN_SEASON) )
          ENDIF
       ENDIF
@@ -352,7 +399,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE COMPUTE_EDGAR_NOx( YEAR, MONTH, E_NOx, E_NOx_SHIP )
+      SUBROUTINE COMPUTE_EDGAR_NOx( YEAR,  MONTH, 
+     &                              E_NOx, E_NOx_SHIP )
 !
 !******************************************************************************
 !  Subroutine COMPUTE_EDGAR_NOx computes the total EDGAR NOx emissions 
@@ -378,24 +426,20 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,       ONLY : LEDGARSHIP
-      USE TIME_MOD,          ONLY : EXPAND_DATE
-      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR
-![eml
-      USE LOGICAL_MOD,       ONLY : LHIST
-!eml]
-
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
+      USE CMN_SIZE_MOD
 
       ! Arguments
-      INTEGER, INTENT(IN)            :: YEAR, MONTH
-      REAL*8,  INTENT(OUT)           :: E_NOX(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: E_NOX_SHIP(IIPAR,JJPAR)
+      INTEGER,        INTENT(IN)            :: YEAR, MONTH
+      REAL*8,         INTENT(OUT)           :: E_NOX(IIPAR,JJPAR)
+      REAL*8,         INTENT(OUT), OPTIONAL :: E_NOX_SHIP(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER                    :: I, J, H, YYYYMMDD
@@ -438,7 +482,7 @@
       ! Regrid anthro emissions to current resolution
       INGRID => E_NOx_1x1(:,:)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1, 
-     &                    INGRID,     TEMP_TOT, PERAREA=1,
+     &                    INGRID,     TEMP_TOT, IS_MASS=1,
      &                    netCDF=.TRUE.                    )
       NULLIFY( INGRID )
 
@@ -448,7 +492,7 @@
          ! Regrid hourly emissions to current resolution
          INGRID => E_NOx_HRLY_1x1(:,:,H)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1-1, 
-     &                       INGRID,     TEMP_HRLY, PERAREA=1,
+     &                       INGRID,     TEMP_HRLY, IS_MASS=1,
      &                       netCDF=.TRUE.                     )
          NULLIFY( INGRID )
 
@@ -476,7 +520,7 @@
       ! Regrid NOx emissions to current model resolution [kg/yr]
       INGRID => E_NOx_1x1(:,:)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, IS_MASS=1,
      &                    netCDF=.TRUE.                   )
       NULLIFY( INGRID )
 
@@ -498,7 +542,7 @@
          ! Regrid NOX emissions to current model resolution [kg/yr]
          INGRID => E_NOX_SHIP_1x1(:,:)
          CALL DO_REGRID_A2A( LLFILENAME,  I1x1,    J1x1-1, 
-     &                       INGRID,      OUTGRID, PERAREA=1,
+     &                       INGRID,      OUTGRID, IS_MASS=1,
      &                       netCDF=.TRUE. )
 
          E_NOX_SHIP = OUTGRID * SC_NOX(:,:) 
@@ -535,11 +579,9 @@
 !
       ! References to F90 modules
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,    ONLY : LEDGARSHIP
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
 ![eml
       USE TIME_MOD,       ONLY : GET_HISTYR
-      USE LOGICAL_MOD,    ONLY : LHIST
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
 !eml]
 
@@ -785,7 +827,7 @@
          ! Get TAU0 for this year
          TAU0 = GET_TAU0( 1, 1, GET_HISTYR() )
 
-         ! Read fossil fuel combustion NOx
+         ! Read fossil fuel combustion NOx [kg/yr]
          FILENAME = TRIM( DATA_DIR_1x1 )                       // 
      &              'historical_emissions_201203/NOx/'         //
      &              'EDGAR.FCNOX.' // CHISTYR // 'generic.1x1'
@@ -798,7 +840,7 @@
 
          CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
 
-         ! Read industrial NOx
+         ! Read industrial NOx [kg/yr]
          FILENAME = TRIM( DATA_DIR_1x1 )                       // 
      &              'historical_emissions_201203/NOx/'         //
      &              'EDGAR.INNOX.' // CHISTYR // 'generic.1x1'
@@ -949,11 +991,11 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,      ONLY : LEDGARSHIP
       USE TIME_MOD,         ONLY : EXPAND_DATE
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
@@ -999,7 +1041,7 @@
       ! Regrid CO emissions to current model resolution [kg/yr]
       INGRID => E_CO_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, IS_MASS=1,
      &                    netCDF=.TRUE.                   )
       E_CO = OUTGRID
 
@@ -1023,7 +1065,7 @@
          ! Regrid CO emissions to current model resolution [kg/yr]
          INGRID => E_CO_SHIP_1x1
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, IS_MASS=1,
      &                       netCDF=.TRUE.                   )
 
          ! Apply scale factors
@@ -1056,8 +1098,6 @@
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE LOGICAL_MOD, ONLY : LEDGARSHIP
-
       USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
@@ -1166,19 +1206,18 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  12 Jun 2013 - R. Yantosca - Remove local declaration of LEDGARSHIP & LHIST,
+!                              which obscures the module variable definitions
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,       ONLY : LEDGARSHIP
-      USE TIME_MOD,          ONLY : EXPAND_DATE
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR
-      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A      
-![eml
-      USE LOGICAL_MOD,       ONLY : LHIST
-      USE BPCH2_MOD,         ONLY : READ_BPCH2
-!eml]
-
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A      
+      USE BPCH2_MOD,          ONLY : READ_BPCH2
       USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
@@ -1217,7 +1256,7 @@
       ! Regrid SO2 emissions to current model resolution [kg/yr]
       INGRID => E_SO2_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, IS_MASS=1,
      &                    netCDF=.TRUE.                   )
 
       ! Free pointer
@@ -1250,7 +1289,7 @@
          ! Regrid SO2 emissions to current model resolution [kg/yr]
          INGRID => E_SO2_SHIP_1x1
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, IS_MASS=1,
      &                       netCDF=.TRUE.                   )
                 
          ! Apply scale factors
@@ -1290,9 +1329,7 @@
 !
       ! Reference to F90 modules
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,    ONLY : LEDGARSHIP
 ![eml
-      USE LOGICAL_MOD,    ONLY : LHIST
       USE TIME_MOD,       ONLY : GET_HISTYR
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
 !eml]
@@ -1554,6 +1591,9 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Bug fix for regridding. Changed to PERAREA=0
+!                              since data is unitless.
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1601,7 +1641,7 @@
       ! Regrid to current model resolution
       INGRID = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       ! Apply monthly scale factors to ship SO2
@@ -1674,7 +1714,7 @@
       ! Use TAU0 for year 2000
       TAU0 = GET_TAU0( 1, 1, 2000 )
 
-      ! Read data
+      ! Read data [kg/yr]
       CALL READ_BPCH2( FILENAME, 'EDGAR-2D', TRACER, 
      &                 TAU0,      I1x1,      J1x1-1,     
      &                 1,         E_1x1,     QUIET=.TRUE. ) 
@@ -1847,7 +1887,6 @@
       ! References to F90 modules
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
@@ -1904,6 +1943,8 @@
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert to [molec/cm2/s]
+         ! Convert NOx using XNUMOL for NO2 since original NOx
+         ! emissions are in mass units of NO2 (mpayer, 4/18/13)
          NOx = NOx * XNUMOL_NO2 
      &       / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_SEASON )
 
@@ -1936,7 +1977,6 @@
       ! References to F90 modules
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
@@ -2013,7 +2053,6 @@
       ! References to F90 modules
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
@@ -2083,7 +2122,6 @@
       ! References to F90 modules
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
@@ -2186,11 +2224,11 @@
 !       (jensberg, bmy, 8/4/10)
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              NOx and SO2 (E. Leibensperger)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
-      USE LOGICAL_MOD, ONLY : LEDGARSHIP
 ![eml
-      USE LOGICAL_MOD, ONLY : LHIST
       USE TIME_MOD,    ONLY : GET_HISTYR
 !eml]
 
@@ -2245,9 +2283,9 @@
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
 
       ! FORMAT statements
- 100  FORMAT( 'NOx        for year ', i4, ' and season ', a3, 
+ 100  FORMAT( 'NO         for year ', i4, ' and season ', a3, 
      &         ' : ', f10.4, ' [Tg N    ]' )
- 105  FORMAT( 'NOx Ship   for year ', i4, ' and season ', a3, 
+ 105  FORMAT( 'NO  Ship   for year ', i4, ' and season ', a3, 
      &         ' : ', f10.4, ' [Tg N    ]' )
  110  FORMAT( 'CO         for year ', i4, ' (annual total)',
      &         ' : ', f10.4, ' [Tg CO/yr]' )
@@ -2284,6 +2322,8 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2292,9 +2332,6 @@
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD         ! Size parameters
-
-!      IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*4, INTENT(OUT)     :: E_BENZ(IIPAR,JJPAR )
@@ -2340,7 +2377,7 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0, 
+     &                    INGRID,     OUTGRID, IS_MASS=0, 
      &                    netCDF=.TRUE.                   )
       E_BENZ = OUTGRID
 
@@ -2361,7 +2398,7 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       E_TOLU = OUTGRID
 
@@ -2382,7 +2419,7 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       E_XYLE = OUTGRID
 
@@ -2411,6 +2448,8 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2419,9 +2458,6 @@
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD         ! Size parameters
-
-!      IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*4, INTENT(OUT)     :: E_C2H4(IIPAR,JJPAR )
@@ -2463,7 +2499,7 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       E_C2H4 = OUTGRID
@@ -2490,6 +2526,8 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2498,9 +2536,6 @@
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD         ! Size parameters
-
-!      IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       REAL*4, INTENT(OUT)     :: E_C2H2(IIPAR,JJPAR )
@@ -2542,7 +2577,7 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       E_C2H2 = OUTGRID
@@ -2570,15 +2605,12 @@
 !                         [molec/cm2/s]  (tmf, 7/8/05)
 !
 !  NOTES:
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-
-!      IMPLICIT NONE
-#     include "define.h"
-
       USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
@@ -2665,15 +2697,12 @@
 !                         [molec/cm2/s] (tmf, 7/8/05)
 !
 !  NOTES:
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-
-!      IMPLICIT NONE
-#     include "define.h"
-
       USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
@@ -2726,16 +2755,13 @@
 !                         [molec/cm2/s] (tmf, 7/8/05)
 !
 !  NOTES:
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       ! References to F90 modules
       USE TIME_MOD,      ONLY : GET_MONTH
       USE BPCH2_MOD  
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-
-!      IMPLICIT NONE
-#     include "define.h"
-
       USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
@@ -2911,7 +2937,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_EDGAR
+      SUBROUTINE INIT_EDGAR( Input_Opt )
 !
 !******************************************************************************
 !  Subroutine INIT_EDGAR allocates and initializes all module arrays.
@@ -2920,13 +2946,16 @@
 !  NOTES:
 !  (1 ) Now allocates SHIP arrays only if LEDGARSHIP is TRUE (5/13/08)
 !  01 Mar 2012 - R. Yantosca - Removed ref to GET_AREA_CM2 and A_CM2 array
+!  12 Jun 2013 - R. Yantosca - Now use Input_Opt%LEDGARSHIP
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LEDGARSHIP
-
       USE CMN_SIZE_MOD  ! Size parameters
+      
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
 
       ! Local Variables
       INTEGER            :: AS, J
@@ -2947,7 +2976,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2' )
       EDGAR_SO2 = 0d0
 
-      IF ( LEDGARSHIP ) THEN
+      IF ( Input_Opt%LEDGARSHIP ) THEN
 
          ALLOCATE( EDGAR_SO2_SHIP( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2_SHIP' )

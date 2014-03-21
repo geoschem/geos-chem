@@ -1,5 +1,5 @@
 ! $Id: smvgear.f,v 1.1 2009/09/16 14:06:08 bmy Exp $
-      SUBROUTINE SMVGEAR
+      SUBROUTINE SMVGEAR( am_I_root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine SMVGEAR solves ODE's for chemical reactions using a GEAR-type
@@ -30,19 +30,28 @@
 !        with smaller timestep.  Now stop at the end of the code if negative 
 !        values are encountered in CNEW.  Do not reset negative CNEW values
 !        to zero.  (tmf, 11/1/07)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE COMODE_MOD, ONLY : ERRMX2, IXSAVE, IYSAVE, IZSAVE
-      USE ERROR_MOD, ONLY  : IT_IS_NAN, GEOS_CHEM_STOP
-
-#     include "define.h"
-
+! !USES:
+!
       USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : ERRMX2, IXSAVE, IYSAVE, IZSAVE
       USE COMODE_LOOP_MOD
+      USE ERROR_MOD,          ONLY  : IT_IS_NAN, GEOS_CHEM_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       IMPLICIT NONE
-
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -314,6 +323,10 @@
       !=================================================================
       ! SMVGEAR begins here!
       !=================================================================
+      
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
       COUNTER   = 0
       ICOUNT    = 0
       NSUBFUN   = 0
@@ -637,7 +650,10 @@
 ! *********************************************************************
 !
       IF (DELT.LT.HMIN) THEN
-       WRITE(6,233)DELT,KBLK,KTLOOP,NCS,TIME,TIMREMAIN,YFAC,ERRMAX(NCS)
+! Add CPU # to output (bmy, 3/8/13)
+!       WRITE(6,233)DELT,KBLK,KTLOOP,NCS,TIME,TIMREMAIN,YFAC,ERRMAX(NCS)
+       WRITE(6,233) DELT,Input_Opt%myCpu,KBLK,KTLOOP,NCS,TIME,
+     &             TIMREMAIN,YFAC,ERRMAX(NCS)
        NYLOWDEC  = NYLOWDEC + 1
        YFAC      = YFAC  * 0.01d0
 !
@@ -652,13 +668,19 @@
          MLOOP       = JLOOP - (K - 1) * NLOOP
          M1          = (MLOOP - 1) / NLONG + 1
          M2          = MLOOP - (M1 - 1) * NLONG
-         WRITE(6,685) M1, M2, K, ERRHOLD(KLOOP)
+! Add CPU # to output (bmy, 3/8/13)
+!         WRITE(6,685) M1, M2, K, ERRHOLD(KLOOP)
+         WRITE(6,685) Input_Opt%myCpu, M1, M2, K, ERRHOLD(KLOOP)
  177    CONTINUE
 !
         DO 178 JNEW = 1, ISCHAN
          JOLD       = INEWOLD(JNEW,NCS)
-         WRITE(6,690) JNEW, NCS, NAMENCS(JOLD,NCS),CORIG(LLOOPA,JNEW),
-     1                CORIG(LLOOPB,JNEW)
+! Add CPU # to output (bmy, 3/8/13)
+!         WRITE(6,690) JNEW, NCS, NAMENCS(JOLD,NCS),CORIG(LLOOPA,JNEW),
+!     1                CORIG(LLOOPB,JNEW)
+         WRITE(6,690) Input_Opt%myCpu, JNEW, NCS, 
+     &                NAMENCS(JOLD,NCS),CORIG(LLOOPA,JNEW),
+     &                CORIG(LLOOPB,JNEW)
  178    CONTINUE
 
         ! Stop run w/ error msg
@@ -1738,15 +1760,16 @@
 !                             FORMATS
 ! *********************************************************************
 !
- 233  FORMAT('SMVGEAR: DELT= ',1PE8.2,' TOO LOW DEC YFAC. KBLK, ', 
+      ! Also add CPU # to formats 233, 685, 690 (bmy, 3/8/13)
+ 233  FORMAT('SMVGEAR: DELT= ',1PE8.2,' TOO LOW DEC YFAC. CPU, KBLK, ', 
      1       'KTLOOP, NCS, TIME, TIMREMAIN, YFAC, ', 
-     2       'EPS = ',/3(1X,I4),2X,4(1PE9.3,1X))
+     2       'EPS = ',/4(1X,I4),2X,4(1PE9.3,1X))
  234  FORMAT('SMVGEAR: TOO MANY DECREASES OF YFAC ')
  670  FORMAT('DELT DEC TO =',E13.5,'; TIME ',E13.5,' BECAUSE ',
      1       'EXCESSIVE ERRORS')
  680  FORMAT('SMVGEAR: STOP BECAUSE OF EXCESSIVE ERRORS.')
- 685  FORMAT('M1,M2,K,ERR = ',3(I4),2X,1PE10.4)
- 690  FORMAT('CONC WHEN STOP = ',2(I4,1X),A14,2(1X,1PE10.2))
+ 685  FORMAT('CPU,M1,M2,K,ERR = ',4(I4),2X,1PE10.4)
+ 690  FORMAT('CPU,CONC WHEN STOP = ',3(I4,1X),A14,2(1X,1PE10.2))
 !
 ! *********************************************************************
 ! ***************     END OF SUBROUTINE SMVGEAR     *******************

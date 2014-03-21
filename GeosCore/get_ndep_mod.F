@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !     
@@ -34,7 +34,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -52,7 +52,7 @@
 !
       USE TRACERID_MOD, ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
       USE TRACERID_MOD, ONLY : IDTHNO3,   IDTNH3, IDTNITs
-      USE TRACERID_MOD, ONLY : IDTNOx,    IDTPAN
+      USE TRACERID_MOD, ONLY : IDTNO2,     IDTPAN
       USE COMMSOIL_MOD
 !
 ! !INPUT PARAMETERS: 
@@ -65,11 +65,13 @@
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
+!  14 Mar 2013 - M. Payer    - Replace NOx with NO2 as part of removal of
+!                              NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-      IF ( NN == IDTNOx   ) DRY_NO2(I,J)  = DRY_NO2(I,J)  + TDRYFX 
+      IF ( NN == IDTNO2   ) DRY_NO2(I,J)  = DRY_NO2(I,J)  + TDRYFX 
       IF ( NN == IDTPAN   ) DRY_PAN(I,J)  = DRY_PAN(I,J)  + TDRYFX 
       IF ( NN == IDTHNO3  ) DRY_HNO3(I,J) = DRY_HNO3(I,J) + TDRYFX 
       IF ( NN == IDTNH3   ) DRY_NH3(I,J)  = DRY_NH3(I,J)  + TDRYFX 
@@ -81,7 +83,7 @@
       END SUBROUTINE   SOIL_DRYDEP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -125,7 +127,7 @@
       END SUBROUTINE   SOIL_WETDEP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -209,7 +211,7 @@
       END SUBROUTINE  GET_DEP_N
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -260,7 +262,7 @@
       END FUNCTION SOURCE_DRYN
 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -320,7 +322,9 @@
 
       ! In my code and I think as it should be in everyones 
       ! EMIS TS = 2 x DYN TS 
-      IF (NTS /= 2.) WRITE(6,*) 'ERROR! CHECK THIS'
+      ! Comment out for test simulations where transport is not done
+      ! (skim, 1/14/13)
+      ! IF (NTS /= 2.) WRITE(6,*) 'ERROR! CHECK THIS'
 
       ! Convert kg species/s * xx dyn t.s --> ng N/m2/s
       HNO3NG  = WET_HNO3(I,J) * CONVHNO3 * 1.d12 / 

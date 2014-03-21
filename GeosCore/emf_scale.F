@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -22,7 +22,7 @@
 ! !USES:
 !
       USE TRACERID_MOD, ONLY : IDTALK4, IDTC3H8, IDTISOP, IDTCO
-      USE TRACERID_MOD, ONLY : IDTNOX,  IDTOX,   IDTPRPE
+      USE TRACERID_MOD, ONLY : IDTNO,   IDTO3,   IDTPRPE
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTC2H2, IDTC2H4, IDTACET
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE, IDTC2H6
 
@@ -31,8 +31,6 @@
       USE CMN_O3_MOD
 
       IMPLICIT NONE
-#     include "define.h"
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -69,6 +67,10 @@
 !  (8 ) Modified to add weekday/weekend scaling to aromatics,
 !        C2H4, C2H2 (tmf, 1/7/09)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox emissions with NO and O3
+!                              emissions as part of removal of NOx-Ox
+!                              partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -90,7 +92,8 @@
       ! restored later.   Use the appropriate multi-level arrays for 
       ! NOx emissions
       !=================================================================
-      IF ( NN == IDTNOX ) THEN
+      ! Replaced NOx with NO (mpayer, 3/14/13)
+      IF ( NN == IDTNO ) THEN
          XEMISRN(1:NOXLEVELS) = EMISRN(IREF,JREF,1:NOXLEVELS)
       ELSE
          XEMISR = EMISR(IREF,JREF,N)
@@ -102,7 +105,8 @@
       !=================================================================
 
       ! NOx weekday/weekend emissions: Use SCNR89(1,JSCEN) as scale factor 
-      IF ( NN == IDTNOX ) THEN   
+      ! Replaced NOx with NO (mpayer, 3/14/13)
+      IF ( NN == IDTNO ) THEN   
          SFAC89 = SCNR89(1,JSCEN) 
 
          EMISRN(IREF,JREF,1:NOXLEVELS) = 
@@ -113,7 +117,8 @@
       ! HC weekday/weekend emissions: Use SCNR89(3,JSCEN) as scale factor
       ! Otherwise:                    Use 1d0             as scale factor
       ELSE 
-         IF ( NN == IDTOX ) THEN 
+         ! Replaced Ox with O3 (mpayer, 3/14/13)
+         IF ( NN == IDTO3 ) THEN 
             SFAC89 = SCNR89(1,JSCEN)
 
          ELSE IF ( NN == IDTCO ) THEN

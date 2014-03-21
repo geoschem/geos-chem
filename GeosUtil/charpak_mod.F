@@ -1,10 +1,9 @@
-! $Id: charpak_mod.f,v 1.1 2009/11/20 21:43:07 bmy Exp $
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: charpak_mod.f
+! !MODULE: charpak_mod
 !
 ! !DESCRIPTION: Module CHARPAK\_MOD contains routines from the CHARPAK 
 !  string and character manipulation package used by GEOS-Chem.
@@ -17,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -55,6 +53,7 @@
 !  (6 ) Added function ISDIGIT.  Also replace LEN_TRIM with LEN in routine
 !        STRREPL, to allow us to replace tabs w/ spaces. (bmy, 7/20/04)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

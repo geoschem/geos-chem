@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Prasad Kasibhatla - Duke University                                !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !     
@@ -18,7 +18,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 
 !
@@ -85,6 +84,9 @@
 !  06 Mar 2012 - P. Kasibhatla - Final version
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -167,7 +169,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -199,7 +201,7 @@
       END FUNCTION GFED3_IS_NEW
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -281,7 +283,7 @@
       END SUBROUTINE CHECK_GFED3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -340,7 +342,7 @@
       END SUBROUTINE GFED3_AVAILABLE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -404,6 +406,9 @@
 !                                use 1D indices for routines GET_XEDGE_G and
 !                                GET_YEDGE_G found in global_grid_mod.90. This
 !                                will maintain grid-independent functionality.
+!  06 Jun 2013 - M. Payer      - Set TAU0 to first of month for 3-hr emissions
+!                                to match time stamp of data file (C. Keller)
+!  02 Jul 2013 - M. Payer      - Update GFED3 emissions to 2011 (P. Kasibhatla)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -868,7 +873,7 @@
       END SUBROUTINE GFED3_COMPUTE_BIOMASS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -894,7 +899,7 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
       USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM 
       USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
-      USE TRACERID_MOD,           ONLY : IDBNOx,  IDBCO,   IDBSO2 
+      USE TRACERID_MOD,           ONLY : IDBNO,   IDBCO,   IDBSO2 
       USE TRACERID_MOD,           ONLY : IDBNH3,  IDBBC,   IDBOC 
 
       USE CMN_SIZE_MOD                 ! Size parameters
@@ -907,6 +912,8 @@
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!  14 Mar 2013 - M. Payer      - Replace NOx emissions with NO emissions as part
+!                                of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -935,7 +942,7 @@
       DO I = 1, IIPAR 
 
          ! Scale each species to IPCC future scenario
-         IF ( BIO_SAVE(N) == IDBNOx ) THEN
+         IF ( BIO_SAVE(N) == IDBNO ) THEN
 
             ! Future biomass NOx [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NOxbb( I, J )
@@ -985,7 +992,7 @@
       END SUBROUTINE GFED3_SCALE_FUTURE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1053,7 +1060,7 @@
       END SUBROUTINE GFED3_TOTAL_Tg
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1076,7 +1083,7 @@
       USE LOGICAL_MOD,     ONLY : LDICARB
       USE LOGICAL_MOD,     ONLY : LDAYBB3
       USE LOGICAL_MOD,     ONLY : L3HRBB3, LCH4EMIS
-      USE TRACERID_MOD,    ONLY : IDBNOx,  IDBCO,   IDBALK4
+      USE TRACERID_MOD,    ONLY : IDBNO,   IDBCO,   IDBALK4
       USE TRACERID_MOD,    ONLY : IDBACET, IDBMEK,  IDBALD2
       USE TRACERID_MOD,    ONLY : IDBPRPE, IDBC3H8, IDBCH2O
       USE TRACERID_MOD,    ONLY : IDBC2H6, IDBBC,   IDBOC
@@ -1085,6 +1092,7 @@
       USE TRACERID_MOD,    ONLY : IDBTOLU, IDBXYLE, IDBC2H4
       USE TRACERID_MOD,    ONLY : IDBC2H2, IDBGLYC, IDBHAC
       USE TRACERID_MOD,    ONLY : IDBCH4   !kjw
+      USE TRACER_MOD,      ONLY : ITS_A_CH4_SIM
       USE GLOBAL_GRID_MOD, ONLY : GET_IIIPAR
       USE GLOBAL_GRID_MOD, ONLY : GET_JJJPAR
       USE CMN_SIZE_MOD          ! Size parameters
@@ -1094,6 +1102,8 @@
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1273,7 +1283,8 @@
       DO N = 1, N_SPEC
          SELECT CASE ( TRIM( GFED3_SPEC_NAME(N) ) ) 
             CASE( 'NOx'  )
-               BIO_SAVE(N)         = IDBNOX
+               ! Replaced NOx with NO (mpayer, 3/14/13)
+               BIO_SAVE(N)         = IDBNO
                GFED3_SPEC_MOLWT(N) = 14d-3
                GFED3_SPEC_UNIT(N)  = '[Tg N]'
             CASE( 'CO'   )
@@ -1371,7 +1382,7 @@
                GFED3_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'CH4' )
                ! Only emit if we have LCH4EMIS
-               IF (LCH4EMIS) THEN
+               IF ( LCH4EMIS .or. ITS_A_CH4_SIM() ) THEN
                   BIO_SAVE(N)         = IDBCH4
                   GFED3_SPEC_MOLWT(N) = 16d-3
                   GFED3_SPEC_UNIT(N)  = '[Tg  ]'
@@ -1387,7 +1398,7 @@
       END SUBROUTINE INIT_GFED3_BIOMASS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1439,7 +1450,7 @@
       END SUBROUTINE REARRANGE_BIOM
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1471,7 +1482,7 @@
       END SUBROUTINE CLEANUP_GFED3_BIOMASS
 !EOC
 !------------------------------------------------------------------------------
-!          Prasad Kasibhatla - Duke University                                !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1492,8 +1503,6 @@
       USE ERROR_MOD, ONLY : ERROR_STOP
       USE FILE_MOD,  ONLY : IOERROR
       USE BPCH2_MOD, ONLY : OPEN_BPCH2_FOR_READ
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1510,6 +1519,7 @@
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Adapted from READ_BPCH2 to facilitate reading of 0.5x0.5 GFED3 files (psk, 2/7/12)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

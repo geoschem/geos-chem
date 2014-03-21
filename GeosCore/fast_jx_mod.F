@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -17,10 +17,8 @@
 ! !USES:
 !
       USE CMN_FJX_MOD
-      USE LOGICAL_MOD, ONLY : LO3FJX
 
       IMPLICIT NONE
-#     include "define.h"
 
       PRIVATE
 !
@@ -53,20 +51,17 @@
       PRIVATE :: SET_AER
 !
 ! !REVISION HISTORY:
-!  27 Mar 2013 - S. D. Eastham - Initial version (based on original GEOS-
-!  Chem files and instructions from J. Mao)
+!  27 Mar 2013 - S. D. Eastham - Initial version (based on original GEOS-Chem
+!                                files and instructions from J. Mao)
 !  28 Mar 2013 - S. D. Eastham - Upgraded to Fast-JX v7.0
-!  
+!  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
       CONTAINS      
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -79,55 +74,65 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, PEDGE, WLAOD, am_I_Root )  
-#else
-      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, WLAOD, am_I_Root )  
-#endif
+      SUBROUTINE FAST_JX( WLAOD, am_I_Root, Input_Opt, State_Met,
+     &                    State_Chm, RC )
 !
 ! !USES:
 !
-#     include "define.h"
-
-      USE DAO_MOD,        ONLY : T, CLDF
-      USE ERROR_MOD,      ONLY : ERROR_STOP, ALLOC_ERR
-      USE GRID_MOD,       ONLY : GET_YMID
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TIME_MOD,       ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
-      USE TIME_MOD,       ONLY : GET_TAU,   GET_YEAR
-      USE TOMS_MOD,       ONLY : GET_OVERHEAD_O3
-
-      USE CMN_SIZE_MOD,   ONLY : IIPAR,   JJPAR, LLPAR
-      USE CMN_SIZE_MOD,   ONLY : NDUST,   MAXIJ
-      USE COMODE_MOD,     ONLY : JLOP, CSPEC, AIRDENS, ABSHUM
-      USE COMODE_LOOP_MOD,ONLY : CONSVAP,AVG,RSTARG
-      USE ERROR_MOD,      ONLY : DEBUG_MSG
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
-      USE LOGICAL_MOD,    ONLY : LPRT
+      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
+      USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR, LLPAR
+      USE CMN_SIZE_MOD,       ONLY : NDUST,   MAXIJ
+      USE COMODE_MOD,         ONLY : JLOP, CSPEC, AIRDENS, ABSHUM
+      USE COMODE_LOOP_MOD,    ONLY : CONSVAP,AVG,RSTARG
+      USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
+      USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
+      USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
+      USE TRACERID_MOD,       ONLY : IDTO3
 
       IMPLICIT NONE
+
+!==============================================================================
+! Uncomment the appropriate #define statement to denote which of the
+! available cloud overlap options that you wish to use.
+
+!! Linear overlap
+!#define USE_LINEAR_OVERLAP 1
+
+! Approximate random overlap (balance between accuracy & speed)
+#define USE_APPROX_RANDOM_OVERLAP 1
+
+!! Maximum random cloud overlap (most computationally intensive)
+!#define USE_MAXIMUM_RANDOM_OVERLAP 1
+!==============================================================================
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Is this the root CPU?
-      LOGICAL, INTENT(IN) :: am_I_Root
-
-      ! Cosine of solar zenith angle [unitless]
-      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)   
-
-      ! Cloud optical depth [unitless]
-      REAL*8,  INTENT(IN) :: OD(LLPAR,IIPAR,JJPAR) 
-
-      ! UV albedo [unitless]
-      REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)    
-
       ! How was AOD calculated? (1: 550 nm, 0: 999 nm)
-      INTEGER, INTENT(IN) :: WLAOD
+      INTEGER,        INTENT(IN)  :: WLAOD
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Pressure at gridbox interfaces
-      REAL*8,  INTENT(IN) :: PEDGE(IIPAR, JJPAR, LLPAR+1)
-#endif
+      ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+
+      ! Input options
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
+
+      ! Chemistry State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !
@@ -191,70 +196,63 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
-!  27 Mar 2013 - S. D. Eastham - Rolled in FAST_JX_MOD
+!  27 Mar 2013 - S.D. Eastham- Rolled in FAST_JX_MOD
+!  21 Feb 2014 - M. Sulprizio- Replaced all met field arrays with State_Met
+!                              derived type object
+!  28 Feb 2014 - M. Sulprizio- Now obtain O3_CTM directly from State_Chm%Tracers
+!  05 Mar 2014 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER, SAVE      :: LASTMONTH = -1
-      INTEGER            :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
-      REAL*8             :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
-      REAL*8             :: O3_CTM(LLPAR+1)
-      REAL*8             :: T_CTM(LLPAR+1), OPTD(LLPAR)
-      REAL*8             :: OPTDUST(LLPAR,NDUST)
-      REAL*8             :: OPTAER(LLPAR,NALLAER)
+      INTEGER, SAVE :: LASTMONTH = -1
+      INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
+      REAL*8        :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
+      REAL*8        :: O3_CTM(LLPAR+1)
+      REAL*8        :: T_CTM(LLPAR+1), OPTD(LLPAR)
+      REAL*8        :: OPTDUST(LLPAR,NDUST)
+      REAL*8        :: OPTAER(LLPAR,NALLAER)
 
       ! Local variables for cloud overlap (hyl, phs)
-      INTEGER            :: NUMB, KK, I
-      INTEGER            :: INDIC(LLPAR+1)
-!#if defined( DEVEL )
-!      INTEGER, ALLOCATABLE :: INDGEN(:)
-!      INTEGER              :: AS
-!#else
-      INTEGER            :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
-!#endif
-      INTEGER            :: KBOT(LLPAR)
-      INTEGER            :: KTOP(LLPAR)
-      INTEGER            :: INDICATOR(LLPAR+2)
-      REAL*8             :: FMAX(LLPAR)  ! maximum cloud fraction 
-                                            !  in a block, size can be to 
-                                            !  FIX(LLPAR)+1
-      REAL*8             :: CLDF1D(LLPAR)
-      REAL*8             :: ODNEW(LLPAR)
-      REAL*8             :: P_CTM(LLPAR+2)
+      INTEGER       :: NUMB, KK, I
+      INTEGER       :: INDIC(LLPAR+1)
+      INTEGER       :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
+      INTEGER       :: KBOT(LLPAR)
+      INTEGER       :: KTOP(LLPAR)
+      INTEGER       :: INDICATOR(LLPAR+2)
+      REAL*8        :: FMAX(LLPAR)     ! maximum cloud fraction 
+                                       !  in a block, size can be to 
+                                       !  FIX(LLPAR)+1
+      REAL*8        :: CLDF1D(LLPAR)
+      REAL*8        :: ODNEW(LLPAR)
+      REAL*8        :: P_CTM(LLPAR+2)
 
-      LOGICAL            :: AOD999
+      LOGICAL       :: AOD999
 
-      ! NOTE: Switch from linear approximation (OVERLAP=1) to approximate
-      ! random overlap (OVERLAP=2) because we have re-processed the GEOS-5
-      ! met data such that OPTDEPTH, TAUCLI, and TAUCLW are now the in-cloud
-      ! optical depths rather than the grid-box optical depths. 
-      ! (hyl, phs, bmy, 10/7/08)
-      INTEGER, PARAMETER :: OVERLAP = 2
-      
-      LOGICAL, SAVE      :: FIRST = .true.
+      LOGICAL, SAVE :: FIRST = .true.
 
-      ! For setting O1D
-      INTEGER            :: JLOOP
-      REAL*8             :: H2OFACTOR,CONSEXP,TLOCAL,TINV, ADLOCAL
+      ! Local variables for quantities from Input_Opt
+      LOGICAL       :: LPRT
 
       !=================================================================
       ! FAST_JX begins here!
       !=================================================================
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      IF ( FIRST ) THEN
+      ! Assume success
+      RC = GIGC_SUCCESS
 
-!         ALLOCATE ( INDGEN(LLPAR+1), STAT=AS)
-!         IF ( AS /=0 ) CALL ALLOC_ERR( 'INDGEN' )
+      ! Copy fields from INPUT_OPT
+      LPRT = ( am_I_Root .and. Input_Opt%LPRT )
+
+#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+      IF ( FIRST ) THEN
 
          DO i = 1,LLPAR+1
             INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
          ENDDO
-         ! FIRST now reset later
-         !FIRST = .FALSE.
+         FIRST = .FALSE.
 
       ENDIF
 #endif
@@ -263,13 +261,13 @@
       DAY_OF_YR = GET_DAY_OF_YEAR()
 
       ! Get current month
-      MONTH = GET_MONTH()
+      MONTH     = GET_MONTH()
 
       ! Get day of month
       DAY       = GET_DAY()
 
       ! Was AOD calculated at 999 nm or reference?
-      AOD999=(WLAOD.eq.0)
+      AOD999    = ( WLAOD == 0 )
 
       !=================================================================
       ! For each (NLON,NLAT) location, call subroutine PHOTO_JX (in a 
@@ -279,12 +277,14 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( NLON,  NLAT,   YLAT,  CSZA,      OPTAER  )
-!$OMP+PRIVATE( PRES,  T_CTM,  OPTD,  SFCA,      OPTDUST )
-!$OMP+PRIVATE( FMAX,  CLDF1D, KK,    NUMB,      L       )
-!$OMP+PRIVATE( KBOT,  KTOP,   ODNEW, INDICATOR, INDIC   )
-!$OMP+PRIVATE( O3_TOMS,P_CTM, JLOOP, H2OFACTOR, CONSEXP )
-!$OMP+PRIVATE( TLOCAL,O3_CTM                            )
+!$OMP+PRIVATE( NLAT,    NLON,   YLAT,      CSZA,   P_CTM   )
+!$OMP+PRIVATE( T_CTM,   SFCA,   O3_TOMS,   O3_CTM, OPTAER  )
+!$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                     )
+#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+!$OMP+PRIVATE( FMAX,    KK,     NUMB,      L       KBOT    )
+!$OMP+PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC           )
+!$OMP+PRIVATE( O3_TOMS, P_CTM,  JLOOP                      ) 
+#endif
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
@@ -294,20 +294,20 @@
          DO NLON = 1, IIPAR
 
             ! Grid box latitude [degrees]
-            YLAT         = GET_YMID( NLON, NLAT, 1 )
+            YLAT            = GET_YMID( NLON, NLAT, 1 )
 
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
-            CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
+            CSZA            = State_Met%SUNCOSmid(NLON,NLAT)
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             ! Define the P array here, using GCM pressures
             DO L = 1, LLPAR+1
-               P_CTM(L)  = PEDGE( NLON, NLAT, L )
+               P_CTM(L)     = State_Met%PEDGE( NLON, NLAT, L )
             ENDDO
 #else
             ! Define the P array here, using Ap and Bp from GEOS-Chem
             DO L = 1, LLPAR+1
-               P_CTM(L)  = GET_PEDGE( NLON, NLAT, L )
+               P_CTM(L)     = GET_PEDGE( NLON, NLAT, L )
             ENDDO
 #endif
 
@@ -315,29 +315,30 @@
             P_CTM(LLPAR+2)  = 0d0
 
             ! Temperature profile [K] at (NLON,NLAT)
-            T_CTM(1:LLPAR) = T(NLON,NLAT,1:LLPAR)
+            T_CTM(1:LLPAR)  = State_Met%T(NLON,NLAT,1:LLPAR)
 
             ! Top of atmosphere
-            T_CTM(LLPAR+1) = T_CTM(LLPAR)
+            T_CTM(LLPAR+1)  = T_CTM(LLPAR)
 
             ! Surface albedo [unitless] at (NLON,NLAT)
-            SFCA         = ALBD(NLON,NLAT)
+            SFCA            = State_Met%UVALBEDO(NLON,NLAT)
 
             ! Overhead ozone column [DU] at (NLON, NLAT)
-            O3_TOMS      = GET_OVERHEAD_O3( NLON, NLAT )
+            O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
-            O3_CTM(:) = 0d0
-            O3_CTM(1:LLPAR) = O3GRID(NLON,NLAT,:)
+            O3_CTM          = 0d0
+            L               = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
+            O3_CTM(1:L)     = State_Chm%Tracers(NLON,NLAT,1:L,IDTO3)
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
-            OPTAER(:,:)  = ODAER(NLON,NLAT,:,:)
+            OPTAER          = ODAER(NLON,NLAT,:,:)
 
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-            OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,:)
+            OPTDUST         = ODMDUST(NLON,NLAT,:,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
-            OPTD         = OD(1:LLPAR,NLON,NLAT)
+            OPTD            = State_Met%OPTD(1:LLPAR,NLON,NLAT)
 
             !-----------------------------------------------------------
             !### If you want to exclude aerosol OD, mineral dust OD,
@@ -346,73 +347,76 @@
             !OPTDUST = 0d0
             !OPTD    = 0d0
             !-----------------------------------------------------------
+
+#if defined( USE_LINEAR_OVERLAP )
             !===========================================================
-            ! CLOUD OVERLAP : LINEAR ASSUMPTION 
+            ! %%%% CLOUD OVERLAP: LINEAR ASSUMPTION %%%%
+            !
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
-            ! 
-            ! NOTE: Use this option if you want to compare to results
-            !       from GEOS-Chem v7-04-12 and prior versions.
             !===========================================================
-            IF ( OVERLAP == 1 ) then
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
-               ! Column cloud fraction (not less than zero)
-               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
-               WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
+            ! Column cloud fraction (not less than zero)
+            CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
+            WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-               ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
-               ! optical depth & cloud fractions regridded with RegridTau)
-               ! OPTD is the in-cloud optical depth.  At this point it has
-               ! NOT been multiplied by cloud fraction yet.  Therefore,
-               ! we can just apply the linear overlap formula as written 
-               ! above (i.e. multiply by cloud fraction). (hyl, bmy, 10/24/08)
-               OPTD = OPTD * CLDF1D
+            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! depth is the in-cloud optical depth.  At this point it has 
+            ! NOT been multiplied by cloud fraction yet.  Therefore, we can
+            ! just apply the ! we can just apply the linear overlap formula 
+            ! as written above (i.e. multiply by cloud fraction).
+            OPTD = OPTD * CLDF1D
+
 #endif
 
-               ! Call FAST-JX routines to compute J-values
-               CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3_CTM,O3_TOMS,
-     &            AOD999,OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
-     &            MONTH,DAY,am_I_Root)
+            ! Call FAST-JX routines to compute J-values
+            CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
+     &                     O3_CTM,    O3_TOMS,   AOD999, OPTAER,
+     &                     OPTDUST,   OPTD,      NLON,   NLAT,
+     &                     YLAT,      DAY_OF_YR, MONTH,  DAY,
+     &                     am_I_Root, Input_Opt  )
 
+
+#elif defined( USE_APPROX_RANDOM_OVERLAP )
             !===========================================================
-            ! CLOUD OVERLAP : APPROXIMATE RANDOM OVERLAP
+            ! %%%% CLOUD OVERLAP: APPROX RANDOM OVERLAP ASSUMPTION %%%%
+            !
             ! Use OPTDEPTH = TAUCLD * CLDTOT**1.5
             !===========================================================
-            ELSE IF ( OVERLAP == 2 ) THEN
 
-               ! Column cloud fraction (not less than zero)
-               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
-               WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
+            ! Column cloud fraction (not less than zero)
+            CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
+            WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
-               ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
-               ! optical depth & cloud fractions regridded with RegridTau)
-               ! OPTD is the in-cloud optical depth.  At this point it has
-               ! NOT been multiplied by cloud fraction yet.  Therefore,
-               ! we can just apply the approximate random overlap formula
-               ! as written above (i.e. multiply by cloud fraction^1.5).
-               ! (hyl, bmy, 10/24/08)
-               OPTD = OPTD * ( CLDF1D )**1.5d0
-               
+            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! depth is the in-cloud optical depth.  At this point it has 
+            ! NOT been multiplied by cloud fraction yet.  Therefore, we can
+            ! just apply the approximate random overlap formula as written 
+            ! above (i.e. multiply by cloud fraction^1.5).
+            OPTD = OPTD * ( CLDF1D )**1.5d0
+            
 #else
-               ! Otherwise, OPTD is the grid-box optical depth and has 
-               ! already been multiplied by  the cloud fraction.  Therefore 
-               ! we only need to multiply by the square root of the cloud 
-               ! fraction here for the approximate random overlap option. 
-               ! (hyl, bmy, 10/24/08)
-               OPTD = OPTD * SQRT( CLDF1D )
+            ! Otherwise, OPTD is the grid-box optical depth and has 
+            ! already been multiplied by  the cloud fraction.  Therefore 
+            ! we only need to multiply by the square root of the cloud 
+            ! fraction here for the approximate random overlap option. 
+            OPTD = OPTD * SQRT( CLDF1D )
 
 #endif
 
-               ! Call FAST-JX routines to compute J-values
-               CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3_CTM,O3_TOMS,
-     &            AOD999,OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
-     &            MONTH,DAY,am_I_Root)
+            ! Call FAST-JX routines to compute J-values
+            CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
+     &                     O3_CTM,    O3_TOMS,   AOD999, OPTAER,
+     &                     OPTDUST,   OPTD,      NLON,   NLAT,
+     &                     YLAT,      DAY_OF_YR, MONTH,  DAY,
+     &                     am_I_Root, Input_Opt  )
 
+#elif defined( USE_MAXIMUM_RANDOM_OVERLAP )
             !===========================================================
-            ! CLOUD OVERLAP : MAXIMUM RANDOM OVERLAP
+            ! %%%% CLOUD OVERLAP: MAXIMUM RANDOM OVERLAP %%%%
             !
             ! The Maximum-Random Overlap (MRAN) scheme assumes that 
             ! clouds in adjacent layers are maximally overlapped to 
@@ -444,7 +448,6 @@
             ! Use cloud fraction, instead of OPTD, to form cloud blocks
             ! (hyl,06/19/04)
             !===========================================================
-            ELSE IF ( OVERLAP == 3 ) THEN
 
                ! Sort this out later
                CALL ERROR_STOP('MMRAN_16 not yet FJX compatible.',
@@ -452,7 +455,7 @@
 !               ! Initialize
 !               FMAX(:)   = 0d0  ! max cloud fraction in each cloud block
 !               ODNEW(:)  = 0d0  ! in-cloud optical depth
-!               CLDF1D    = CLDF(1:LLPAR,NLON,NLAT)
+!               CLDF1D    = State_Met%CLDF(1:LLPAR,NLON,NLAT)
 !               INDICATOR = 0
 !
 !               ! set small negative CLDF or OPTD to zero. 
@@ -534,7 +537,8 @@
 !     &                              KTOP,  O3COL, am_I_Root )
 !
 !               END SELECT
-            ENDIF
+!           ENDIF
+#endif
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -545,15 +549,15 @@
       ! END OF SUBROUTINE FAST-J
       !-----------------------------------------------------------
       END SUBROUTINE FAST_JX
+!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: blkslv
 !
 ! !DESCRIPTION: Subroutine BLKSLV solves the block tri-diagonal system
-!  $A(I)\timesX(I-1) + B(I)\timesX(I) + C(I)\timesX(I+1) = H(I)$.
 !\\
 !\\
 ! !INTERFACE:
@@ -576,7 +580,9 @@
       REAL*8, INTENT(OUT) ::  FJ(N_,W_),FJTOP(W_),FJBOT(W_)
 !
 ! !REMARKS:
-! 
+! The block tri-diagonal system:
+!       A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
+!
 ! !REVISION HISTORY: 
 !  27 Mar 2013 - S. D. Eastham - Copied from GEOS-Chem v9-01-03
 !EOP
@@ -840,10 +846,9 @@ c---SUMBX = flux from Lambert reflected I+
       enddo
 
       END SUBROUTINE BLKSLV
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1107,7 +1112,7 @@ C------------lower boundary, 2nd-order, A-matrix is full (AA)
       END SUBROUTINE GEN_ID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1224,10 +1229,9 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
       endif
 
       END SUBROUTINE JRATET
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1286,40 +1290,15 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
       endif
 
       END SUBROUTINE X_INTERP
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: sphere2
 !
-! !DESCRIPTION: Subroutine SPHERE2 is an AMF2. Quoting from the original:
-!  New v6.2: does AirMassFactors for mid-layer, needed for SZA ~ 90
-!  This new AMF2 does each of the half-layers of the CTM separately,
-!     whereas the original, based on the pratmo code did the whole layers
-!     and thus calculated the ray-path to the CTM layre edges, NOT the middle.
-!  Since fast-JX is meant to calculate the intensity at the mid-layer, the
-!     solar beam at low sun (interpolated between layer edges) was incorrect.
-!  This new model does make some approximations of the geometry of the layers:
-!     the CTM layer is split evenly in mass (good) and in height (approx).
-!
-!  Calculation of spherical geometry; derive tangent heights, slant path
-!  lengths and air mass factor for each layer. Not called when
-!  SZA > 98 degrees.  Beyond 90 degrees, include treatment of emergent
-!  beam (where tangent height is below altitude J-value desired at).
-!  ---------------------------------------------------------------------
-!  Inputs:
-!     U0      cos(solar zenith angle)
-!     RAD  radius of Earth mean sea level (cm)
-!     ZHL(L)  height (cm) of the bottom edge of CTM level L
-!     ZZHT    scale height (cm) used above top of CTM (ZHL(L_+1))
-!     L1U     dimension of CTM = levels +1 (L+1 = above-CTM level)
-!  Outputs:
-!     AMF2(I,J) = air mass factor for CTM level I for sunlight reaching J
-!         ( these are calculated for both layer middle and layer edge)
-!  ---------------------------------------------------------------------
+! !DESCRIPTION: Subroutine SPHERE2 is an AMF2.
 !\\
 !\\
 ! !INTERFACE:
@@ -1339,6 +1318,32 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
       REAL*8, INTENT(OUT) ::   AMF2(2*LJX1U+1,2*LJX1U+1)
 !
 ! !REMARKS:
+! Quoting from the original:
+!  New v6.2: does AirMassFactors for mid-layer, needed for SZA ~ 90
+!  This new AMF2 does each of the half-layers of the CTM separately,
+!     whereas the original, based on the pratmo code did the whole layers
+!     and thus calculated the ray-path to the CTM layre edges, NOT the middle.
+!  Since fast-JX is meant to calculate the intensity at the mid-layer, the
+!     solar beam at low sun (interpolated between layer edges) was incorrect.
+!  This new model does make some approximations of the geometry of the layers:
+!     the CTM layer is split evenly in mass (good) and in height (approx).
+!                                                                             .
+!  Calculation of spherical geometry; derive tangent heights, slant path
+!  lengths and air mass factor for each layer. Not called when
+!  SZA > 98 degrees.  Beyond 90 degrees, include treatment of emergent
+!  beam (where tangent height is below altitude J-value desired at).
+!                                                                             .
+!  ---------------------------------------------------------------------
+!  Inputs:
+!     U0      cos(solar zenith angle)
+!     RAD  radius of Earth mean sea level (cm)
+!     ZHL(L)  height (cm) of the bottom edge of CTM level L
+!     ZZHT    scale height (cm) used above top of CTM (ZHL(L_+1))
+!     L1U     dimension of CTM = levels +1 (L+1 = above-CTM level)
+!  Outputs:
+!     AMF2(I,J) = air mass factor for CTM level I for sunlight reaching J
+!         ( these are calculated for both layer middle and layer edge)
+!  ---------------------------------------------------------------------
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -1438,10 +1443,9 @@ c  Lowest level intersected by emergent beam
    16 continue
 
       END SUBROUTINE SPHERE2
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1449,19 +1453,6 @@ c  Lowest level intersected by emergent beam
 !
 ! !DESCRIPTION: Subroutine EXTRAL adds sub-layers to thick cloud/aerosol layers
 !  using log-spacing for sub-layers of increasing thickness ATAU.
-!
-!     DTAUX(L=1:L1X) = Optical Depth in layer L (generally 600 nm OD)
-!        This can be just cloud or cloud+aerosol, it is used only to set
-!        the number in levels to insert in each layer L
-!        Set for log-spacing of tau levels, increasing top-down.
-!
-!     N.B. the TTAU, etc calculated here are NOT used elsewhere
-!
-!   The log-spacing parameters have been tested for convergence and chosen
-!     to be within 0.5% for ranges OD=1-500, rflect=0-100%, mu0=0.1-1.0
-!     use of ATAU = 1.18 and min = 0.01, gives at most +135 pts for OD=100
-!     ATAU = 1.12 now recommended for more -accurate heating rates (not J's)
-!   --------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
@@ -1482,6 +1473,17 @@ c  Lowest level intersected by emergent beam
       integer, intent(out)::  JXTRA(L2X+1)    !number of sub-layers to be added
 !
 ! !REMARKS:
+!     DTAUX(L=1:L1X) = Optical Depth in layer L (generally 600 nm OD)
+!        This can be just cloud or cloud+aerosol, it is used only to set
+!        the number in levels to insert in each layer L
+!        Set for log-spacing of tau levels, increasing top-down.
+!                                                                             .
+!     N.B. the TTAU, etc calculated here are NOT used elsewhere
+!                                                                             .
+!   The log-spacing parameters have been tested for convergence and chosen
+!     to be within 0.5% for ranges OD=1-500, rflect=0-100%, mu0=0.1-1.0
+!     use of ATAU = 1.18 and min = 0.01, gives at most +135 pts for OD=100
+!     ATAU = 1.12 now recommended for more -accurate heating rates (not J's)
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -1554,10 +1556,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
   10  continue
 
       END SUBROUTINE EXTRAL
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1598,10 +1599,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       CALL ERROR_STOP( T_EXIT, 'fast_jx_mod.F' )
 
       END SUBROUTINE EXITC
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1630,6 +1630,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  05 Mar 2014 - R. Yantosca - Use correct filenames for use w/ ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1663,9 +1664,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in fast-J X-sections (spectral data)
       FILENAME = 'FJX_spec.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -1688,9 +1689,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in 5-wavelength scattering data
       FILENAME = 'jv_spec_mie.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -1703,9 +1704,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in AOD data
       FILENAME = 'jv_spec_aod.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -1730,9 +1731,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! CTM call:  read in J-values names and link to fast-JX names
       FILENAME = 'FJX_j2j.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -1746,10 +1747,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       call JV_INDEX(am_I_Root)
 
       END SUBROUTINE INIT_FJX
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1757,32 +1757,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !DESCRIPTION: Subroutine RD\_XXX reads in wavelength bins, solar fluxes,
 !  Rayleigh and temperature-dependent cross-sections.
-!    NEW v-6.8  now allow 1 to 3 sets of X-sects for T or P
-!           LQQ = 1, 2, or 3 to determine interpolation with T or P
-!           IF the temperatures TQQQ are <0, then use as pressure interp (hPa)
-!           NB - the temperatures and pressures must be increasing
-!    NEW v-6.4  changed to collapse wavelengths & x-sections to Trop-only:
-!           WX_ = 18 should match the JX_spec.dat wavelengths
-!           W_ = 12 (Trop-only) or 18 (std) is set in (cmn_FXJ.f).
-!       if W_=12 then drop strat wavels, and drop x-sects (e.g. N2O, ...)
-!           W_ = 8, reverts to quick fix:  fast-J (12-18) plus bin (5) scaled
-!
-!   --------------------------------------------------------------------
-!     NAMFIL   Name of spectral data file (JX_spec.dat) >> j2 for fast-J2
-!     NUN      Channel number for reading data file
-!
-!     NJX    Number of species to calculate J-values for
-!     NWWW     Number of wavelength bins, from 1:NWWW
-!     WBIN     Boundaries of wavelength bins
-!     WL       Centres of wavelength bins - 'effective wavelength'
-!     FL       Solar flux incident on top of atmosphere (cm-2.s-1)
-!     QRAYL    Rayleigh parameters (effective cross-section) (cm2)
-!     QO2      O2 cross-sections
-!     QO3      O3 cross-sections
-!     Q1D      O3 => O(1D) quantum yield
-!     TQQ      Temperature for supplied cross sections
-!     QQQ      Supplied cross sections in each wavelength bin (cm2)
-!   --------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
@@ -1802,6 +1776,32 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 !
 ! !REMARKS:
+!    NEW v-6.8  now allow 1 to 3 sets of X-sects for T or P
+!           LQQ = 1, 2, or 3 to determine interpolation with T or P
+!           IF the temperatures TQQQ are <0, then use as pressure interp (hPa)
+!           NB - the temperatures and pressures must be increasing
+!    NEW v-6.4  changed to collapse wavelengths & x-sections to Trop-only:
+!           WX_ = 18 should match the JX_spec.dat wavelengths
+!           W_ = 12 (Trop-only) or 18 (std) is set in (CMN_FJX.F).
+!       if W_=12 then drop strat wavels, and drop x-sects (e.g. N2O, ...)
+!           W_ = 8, reverts to quick fix:  fast-J (12-18) plus bin (5) scaled
+!                                                                             .
+!   --------------------------------------------------------------------
+!     NAMFIL   Name of spectral data file (FJX_spec.dat) >> j2 for fast-J2
+!     NUN      Channel number for reading data file
+!
+!     NJX    Number of species to calculate J-values for
+!     NWWW     Number of wavelength bins, from 1:NWWW
+!     WBIN     Boundaries of wavelength bins
+!     WL       Centres of wavelength bins - 'effective wavelength'
+!     FL       Solar flux incident on top of atmosphere (cm-2.s-1)
+!     QRAYL    Rayleigh parameters (effective cross-section) (cm2)
+!     QO2      O2 cross-sections
+!     QO3      O3 cross-sections
+!     Q1D      O3 => O(1D) quantum yield
+!     TQQ      Temperature for supplied cross sections
+!     QQQ      Supplied cross sections in each wavelength bin (cm2)
+!   --------------------------------------------------------------------
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -2023,23 +2023,13 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       END SUBROUTINE RD_XXX
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: rd_mie
 !
 ! !DESCRIPTION: Subroutine RD\_MIE retrieves aerosol scattering data for FJX.
-!   --------------------------------------------------------------------
-!     NAMFIL   Name of scattering data file (e.g., FJX_scat.dat)
-!     NUN      Channel number for reading data file
-!     NAA      Number of categories for scattering phase functions
-!     QAA      Aerosol scattering phase functions
-!     WAA      5 Wavelengths for the supplied phase functions
-!     PAA      Phase function: first 8 terms of expansion
-!     RAA      Effective radius associated with aerosol type
-!     SAA      Single scattering albedo
-!   --------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
@@ -2060,7 +2050,17 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 !
 ! !REMARKS:
-! 
+!   --------------------------------------------------------------------
+!     NAMFIL   Name of scattering data file (e.g., FJX_scat.dat)
+!     NUN      Channel number for reading data file
+!     NAA      Number of categories for scattering phase functions
+!     QAA      Aerosol scattering phase functions
+!     WAA      5 Wavelengths for the supplied phase functions
+!     PAA      Phase function: first 8 terms of expansion
+!     RAA      Effective radius associated with aerosol type
+!     SAA      Single scattering albedo
+!   --------------------------------------------------------------------
+!
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Adapted from GEOS-Chem v9-1-3
 !EOP
@@ -2109,10 +2109,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
   110 format(3x,a20)
 
       END SUBROUTINE RD_MIE
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2232,16 +2231,16 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       END SUBROUTINE RD_AOD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: rd_js_jx
 !
-! !DESCRIPTION: Subroutine RD\_JS\_JX reads in 'FJX_j2j.dat', which defines 
+! !DESCRIPTION: Subroutine RD\_JS\_JX reads in 'FJX\_j2j.dat', which defines 
 !  the mapping of Fast-JX J's (TITLEJX(1:NJX)) onto the CTM reactions.
-!  Reaction number JJ, named T_REACT, uses Fast-JX's T_FJX (including scaling
-!  factor F_FJX).
+!  Reaction number JJ, named T\_REACT, uses Fast-JX's T\_FJX (including scaling
+!  factor F\_FJX).
 !\\
 !\\
 ! !INTERFACE:
@@ -2282,11 +2281,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! RD_JS_JX begins here!
       !=================================================================
 
-c Read the FJX_j2j.dat file to map model specific J's onto fast-JX J's
-c The chemistry code title describes fully the reaction (a50)
-c Blank (unfilled) chemistry J's are unmapped
-c The number NRATJ is the last JJ readin that is .le. JVN
-c   include fractional quantum yield for the fast-JX J's
+! Read the FJX_j2j.dat file to map model specific J's onto fast-JX J's
+! The chemistry code title describes fully the reaction (a50)
+! Blank (unfilled) chemistry J's are unmapped
+! The number NRATJ is the last JJ readin that is .le. JVN
+!   include fractional quantum yield for the fast-JX J's
 
       JLABEL(:) = '------'
       JMAP(:)   = '------'
@@ -2349,22 +2348,15 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       enddo
 
       END SUBROUTINE RD_JS_JX
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: solar_jx
 !
 ! !DESCRIPTION: Subroutine SOLAR\_JX handles solar zenith angles.
-!  ---------------------------------------------------------------------
-!     NDAY   = integer day of the year (used for solar lat and declin)
-!     SZA = solar zenith angle in degrees
-!     COSSZA = U0 = cos(SZA)
-!     SOLFX = Solar function
-!  ---------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
@@ -2384,6 +2376,12 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       REAL*8, INTENT(OUT) ::  SZA,SOLFX
 !
 ! !REMARKS:
+!  ---------------------------------------------------------------------
+!     NDAY   = integer day of the year (used for solar lat and declin)
+!     SZA = solar zenith angle in degrees
+!     COSSZA = U0 = cos(SZA)
+!     SOLFX = Solar function
+!  ---------------------------------------------------------------------
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Adapted from Fast-JX v7.0
@@ -2408,10 +2406,9 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       SOLFX  = 1.d0-(0.034d0*cos(dble(NDAY-172)*2.d0*PI/365.d0))
 
       END SUBROUTINE SOLAR_JX
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2425,14 +2422,18 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PHOTO_JX(U0,REFLB,P_COL,T_COL,O3_COL,O3_TOMS,AOD999,
-     &              ODAER_COL,ODMDUST_COL,ODCLOUD_COL_IN,ILON,ILAT,YLAT,
-     &              DAY_OF_YR,MONTH,DAY,am_I_Root)
+      SUBROUTINE PHOTO_JX( U0,             REFLB,     P_COL,
+     &                     T_COL,          O3_COL,    O3_TOMS,
+     &                     AOD999,         ODAER_COL, ODMDUST_COL,
+     &                     ODCLOUD_COL_IN, ILON,      ILAT,
+     &                     YLAT,           DAY_OF_YR, MONTH,
+     &                     DAY,            am_I_Root, Input_Opt )
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD,   ONLY : LD64, ND64
-      USE DIAG_MOD,       ONLY : AD64
+      USE CMN_DIAG_MOD,       ONLY : LD64, ND64
+      USE DIAG_MOD,           ONLY : AD64
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2450,14 +2451,13 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       REAL*8,  INTENT(IN),DIMENSION(L_)             :: ODCLOUD_COL_IN
       LOGICAL, INTENT(IN)                           :: AOD999
       LOGICAL, INTENT(IN)                           :: am_I_Root
-!
-! !OUTPUT VARIABLES:
-!
+      TYPE(OptInput), INTENT(IN)                    :: Input_Opt
 !
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  05 Mar 2014 - R. Yantosca - Now only save ND64 with LD64 specified levels
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2467,23 +2467,26 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 c-----------------------------------------------------------------------
 c---key LOCAL atmospheric data needed to solve plane-parallel J----
 c-----these are dimensioned JXL_, and must have JXL_ .ge. LLPAR
-      real*8, dimension(JXL1_+1) :: DDJ,OOJ,ZZJ
-      real*8, dimension(JXL1_+1) :: PPJ
-      integer,dimension(JXL2_+1) :: JXTRA
-      real*8, dimension(W_)     :: FJTOP,FJBOT,FSBOT,FLXD0,RFL
-      real*8, dimension(JXL_, W_)   ::  AVGF, FJFLX
-      real*8, dimension(JXL1_,W_)   ::  DTAUX, FLXD
-      real*8, dimension(8,JXL1_,W_) ::  POMEGAX
+      real*8, dimension(JXL1_)      :: DDJ,OOJ
+      real*8, dimension(JXL1_+1)    :: PPJ,ZZJ
+      integer,dimension(JXL2_+1)    :: JXTRA
+      real*8, dimension(W_)         :: FJTOP,FJBOT,FSBOT,FLXD0,RFL
+      real*8, dimension(JXL_, W_)   :: AVGF, FJFLX
+      real*8, dimension(JXL1_,W_)   :: DTAUX, FLXD
+      real*8, dimension(8,JXL1_,W_) :: POMEGAX
+
 c---flux/heating arrays (along with FJFLX,FLXD,FLXD0)
-      real*8             :: ODABS,ODRAY
-      real*8             :: RFLECT
-      real*8             :: AMF2(2*JXL1_+1,2*JXL1_+1)
+      real*8 :: ODABS,ODRAY
+      real*8 :: RFLECT
+      real*8 :: AMF2(2*JXL1_+1,2*JXL1_+1)
+
 c------------key SCATTERING arrays for clouds+aerosols------------------
-      real*8             :: OD(5,JXL1_),SSA(5,JXL1_),SLEG(8,5,JXL1_)
-      real*8             :: OD600(JXL1_)
+      real*8 :: OD(5,JXL1_),SSA(5,JXL1_),SLEG(8,5,JXL1_)
+      real*8 :: OD600(JXL1_)
+
 c------------key arrays AFTER solving for J's---------------------------
-      real*8  FFF(W_,JXL_),VALJ(X_)
-      real*8  VALJL(JXL_,X_) !2-D array of J_s returned by JRATET
+      real*8   FFF(W_,JXL_),VALJ(X_)
+      real*8   VALJL(JXL_,X_) !2-D array of J_s returned by JRATET
 
       integer  L2EDGE, I,J,K,L,M,KMIE,IDXAER
       real*8   XQO3,XQO2,WAVE, TTTX
@@ -2493,8 +2496,10 @@ C-----------------------------------------------------------------------
       REAL*8   AERX_COL(A_,L1_) ! Accumulated aerosol array
       REAL*8   ODCLOUD_COL(L_)
       REAL*8   VALJXX(L_,JVN_)
+
       ! T_CLIM: Climatology data temperature (K)
-      REAL*8   T_CLIM(JXL1_+1)
+      REAL*8   T_CLIM(JXL1_)
+
       ! T_INPUT: Input temperature (K) with extra layer for compatibility
       REAL*8   T_INPUT(JXL1_+1)
 
@@ -2531,9 +2536,12 @@ c                        or         99.0                 80 km
       ! Path density  (DDJ)    [# molec/cm2]
       ! New methodology for:
       ! Ozone density (OOJ)    [# O3 molec/cm2]
-      CALL SET_PROF (YLAT,MONTH,DAY,T_COL,P_COL,
-     &               ODCLOUD_COL,ODMDUST_COL,ODAER_COL,
-     &               O3_COL,O3_TOMS,AERX_COL,T_CLIM,OOJ,ZZJ,DDJ)
+      CALL SET_PROF (YLAT,        MONTH,     DAY,
+     &               T_COL,       P_COL,     ODCLOUD_COL,
+     &               ODMDUST_COL, ODAER_COL, O3_COL,
+     &               O3_TOMS,     AERX_COL,  T_CLIM,
+     &               OOJ,         ZZJ,       DDJ,
+     &               Input_Opt )
 
       ! Fill out PPJ and TTJ with CTM data to replace fixed climatology
       DO L=1,L1_
@@ -2543,7 +2551,7 @@ c                        or         99.0                 80 km
       
       ! Ensure TOA pressure is zero
       PPJ(L1_+1) = 0.d0
-      T_INPUT(L1_+1) = T_CLIM(L1_+1)
+      T_INPUT(L1_+1) = T_CLIM(L1_)
 
 c---calculate spherical weighting functions (AMF: Air Mass Factor)
         RFLECT = REFLB
@@ -2674,7 +2682,7 @@ C-----------------------------------------------------------------------
       call OPMIE (DTAUX,POMEGAX,U0,RFL,AMF2,JXTRA,
      &        AVGF,FJTOP,FJBOT,FSBOT,FJFLX,FLXD,FLXD0,LLPAR)
 
-C-----------------------------------------------------------------------
+!C-----------------------------------------------------------------------
 
       do K = 1,W_
 
@@ -2708,14 +2716,10 @@ C-----------------------------------------------------------------------
       ENDIF
 
       !---------------------------------------------------------------
-      ! Majority of heating code ignored by GEOS-Chem
-      ! Everything from here until statement number 99 is ignored
-      ! (SDE 03/31/13)
-      !---------------------------------------------------------------
+      ! New diagnostic (SDE 2013-10-25) 
       ! Use it to calculate fluxes for output if necessary
       !---------------------------------------------------------------
-      ! New diagnostic (SDE 2013-10-25)
-      IF ( ND64 > 0) THEN! .and. L <= LD64 ) THEN
+      IF ( ND64 > 0 .and. L <= LD64 ) THEN
          ! Get net direct and net diffuse fluxes separately
          ! Order:
          !    1 - Net flux
@@ -2742,6 +2746,15 @@ C-----------------------------------------------------------------------
             ENDDO
          ENDDO
       ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% COMMENT OUT FAST-J DIAGNOSTICS FOR NOW (bmy, 3/5/14)
+!%%% LEAVE CODE HERE SO THAT IT CAN BE RESTORED 
+!      !---------------------------------------------------------------
+!      ! Majority of heating code ignored by GEOS-Chem
+!      ! Everything from here until statement number 99 is ignored
+!      ! (SDE 03/31/13)
+!      !---------------------------------------------------------------
 !      IF (LFJXDIAG) THEN
 !         DO K=1,W_
 !c----direct(DIR) and diffuse(FLX) fluxes at top(UP) (solar = negative by convention)
@@ -2894,14 +2907,15 @@ C-----------------------------------------------------------------------
 !         endif
 !
 !      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
    99 continue
 
       END SUBROUTINE PHOTO_JX
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3337,10 +3351,9 @@ c---diffuse fluxes reflected at top, incident at bottom
       enddo  ! wavelength loop!
 
       END SUBROUTINE OPMIE
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3348,19 +3361,6 @@ c---diffuse fluxes reflected at top, incident at bottom
 !
 ! !DESCRIPTION: Subroutine MIESCT is an adaptation of the Prather radiative
 !  transfer code (mjp, 10/95).
-!     Prather, 1974, Astrophys. J. 192, 787-792.
-!         Solution of inhomogeneous Rayleigh scattering atmosphere.
-!         (original Rayleigh w/ polarization)
-!     Cochran and Trafton, 1978, Ap.J., 219, 756-762.
-!         Raman scattering in the atmospheres of the major planets.
-!         (first use of anisotropic code)
-!     Jacob, Gottlieb and Prather, 1989, J.Geophys.Res., 94, 12975-13002.
-!         Chemistry of a polluted cloudy boundary layer,
-!         (documentation of extension to anisotropic scattering)
-!
-!    takes atmospheric structure and source terms from std J-code
-!    ALSO limited to 4 Gauss points, only calculates mean field! (M=1)
-!   --------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
@@ -3381,6 +3381,18 @@ c---diffuse fluxes reflected at top, incident at bottom
       REAL*8, INTENT(OUT) ::  FJ(N_,W_),FJT(W_),FJB(W_)
 !
 ! !REMARKS:
+!     Prather, 1974, Astrophys. J. 192, 787-792.
+!         Solution of inhomogeneous Rayleigh scattering atmosphere.
+!         (original Rayleigh w/ polarization)
+!     Cochran and Trafton, 1978, Ap.J., 219, 756-762.
+!         Raman scattering in the atmospheres of the major planets.
+!         (first use of anisotropic code)
+!     Jacob, Gottlieb and Prather, 1989, J.Geophys.Res., 94, 12975-13002.
+!         Chemistry of a polluted cloudy boundary layer,
+!         (documentation of extension to anisotropic scattering)
+!                                                                             .
+!    takes atmospheric structure and source terms from std J-code
+!    ALSO limited to 4 Gauss points, only calculates mean field! (M=1)
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -3414,10 +3426,9 @@ c---BLKSLV now called with all the wavelength arrays (K=1:W_)
       call BLKSLV(FJ,POMEGA,FZ,ZTAU,ZFLUX,RFL,PM,PM0,FJT,FJB, ND)
 
       END SUBROUTINE MIESCT
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3469,10 +3480,9 @@ C---Always does PL(2) = P[1]
         enddo
 
       END SUBROUTINE LEGND0
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3484,33 +3494,36 @@ C---Always does PL(2) = P[1]
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_PROF (YLAT,MONTH,DAY,T_CTM,P_CTM,
-     &                     CLDOD,DSTOD,AEROD,O3_CTM,O3_TOMS,AERCOL,
-     &                     T_CLIM,O3_CLIM,Z_CLIM,AIR_CLIM)
+      SUBROUTINE SET_PROF (YLAT,     MONTH,  DAY,     T_CTM,  P_CTM,
+     &                     CLDOD,    DSTOD,  AEROD,   O3_CTM, O3_TOMS,
+     &                     AERCOL,   T_CLIM, O3_CLIM, Z_CLIM, AIR_CLIM,
+     &                     Input_Opt )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(IN)    :: YLAT                  ! Latitude (degrees)
-      INTEGER,INTENT(IN)    :: MONTH
-      INTEGER,INTENT(IN)    :: DAY                   ! Day *of month*
-      REAL*8, INTENT(IN)    :: T_CTM(L1_)            ! CTM temperatures (K)
-      REAL*8, INTENT(IN)    :: O3_TOMS               ! O3 column (DU)
-      REAL*8, INTENT(IN)    :: P_CTM(L1_+1)          ! CTM edge pressures (hPa)
-      REAL*8, INTENT(INOUT) :: CLDOD(L_)             ! Cloud optical depth
-      REAL*8, INTENT(IN)    :: DSTOD(L_,NDUST)       ! Mineral dust OD
-      REAL*8, INTENT(IN)    :: AEROD(L_,NALLAER)     ! Aerosol OD
-      REAL*8, INTENT(IN)    :: O3_CTM(L1_)           ! CTM ozone (molec/cm3)
+      REAL*8, INTENT(IN)         :: YLAT              ! Latitude (degrees)
+      INTEGER,INTENT(IN)         :: MONTH             ! Month
+      INTEGER,INTENT(IN)         :: DAY               ! Day *of month*
+      REAL*8, INTENT(IN)         :: T_CTM(L1_)        ! CTM temperatures (K)
+      REAL*8, INTENT(IN)         :: O3_TOMS           ! O3 column (DU)
+      REAL*8, INTENT(IN)         :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
+      REAL*8, INTENT(INOUT)      :: CLDOD(L_)         ! Cloud optical depth
+      REAL*8, INTENT(IN)         :: DSTOD(L_,NDUST)   ! Mineral dust OD
+      REAL*8, INTENT(IN)         :: AEROD(L_,NALLAER) ! Aerosol OD
+      REAL*8, INTENT(IN)         :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL*8, INTENT(OUT)   :: AERCOL(A_,L1_)        ! Aerosol column
-      REAL*8, INTENT(OUT)   :: T_CLIM(L1_)           ! Clim. temperatures (K)
-      REAL*8, INTENT(OUT)   :: Z_CLIM(L1_+1)         ! Edge altitudes (cm)
-      REAL*8, INTENT(OUT)   :: O3_CLIM(L1_)          ! O3 column depth (#/cm2)
-      REAL*8, INTENT(OUT)   :: AIR_CLIM(L1_)         ! O3 column depth (#/cm2)
+      REAL*8, INTENT(OUT)        :: AERCOL(A_,L1_)    ! Aerosol column
+      REAL*8, INTENT(OUT)        :: T_CLIM(L1_)       ! Clim. temperatures (K)
+      REAL*8, INTENT(OUT)        :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
+      REAL*8, INTENT(OUT)        :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
+      REAL*8, INTENT(OUT)        :: AIR_CLIM(L1_)     ! O3 column depth (#/cm2)
 !
 ! !REMARKS:
 ! 
@@ -3528,9 +3541,15 @@ C---Always does PL(2) = P[1]
       REAL*8                 :: PROFCOL, ODSUM
       REAL*8, PARAMETER      :: ODMAX = 200.0d0
 
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LO3FJX
+
       !=================================================================
       ! SET_PROF begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LO3FJX = Input_Opt%LO3FJX
 
       ! Zero aerosol column
       DO K=1,A_
@@ -3722,12 +3741,12 @@ C---Always does PL(2) = P[1]
       ! Updated with UCX
       ! Since we now have stratospheric ozone calculated online, use
       ! this instead of archived profiles for all chemistry-grid cells
-      ! The variable O3GRID is set in "partition.F", and will be 0
+      ! The variable O3_CTM is obtained from State_Met%Tracers, and will be 0
       ! outside the chemgrid (in which case we use climatology)
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)
       DO I = 1, L1_
-         IF ((O3_CTM(I) > 0d0) .and. (LO3FJX)) THEN
+         IF ((LO3FJX) .and. (I.le.LLCHEM) .and. (O3_CTM(I) > 0d0)) THEN
             ! Convert from molec/cm3 to molec/cm2
             O3_CLIM(I) = O3_CTM(I) * (Z_CLIM(I+1)-Z_CLIM(I))
          ELSEIF (O3_TOMS > 0d0) THEN
@@ -3736,10 +3755,9 @@ C---Always does PL(2) = P[1]
       ENDDO
 
       END SUBROUTINE SET_PROF
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3834,10 +3852,9 @@ c  Ensure all 'AN_' types are valid selections
      $       'between 1 and ',i3)
 
       END SUBROUTINE SET_AER
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3916,11 +3933,10 @@ c  Ensure all 'AN_' types are valid selections
 !         CALL EXITC('Bad photorate')
 !      ENDIF
 
-      ! Return to calling program
       END FUNCTION FJXFUNC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3928,7 +3944,7 @@ c  Ensure all 'AN_' types are valid selections
 !
 ! !DESCRIPTION: Subroutine JV\_INDEX computes the mapping between the CTM 
 !  indices (from "globchem.dat") for J-values to the FAST-JX indices 
-!  (from "FJX_j2j.dat") for J-values.  (bmy, 10/5/98, 4/27/10)
+!  (from "FJX\_j2j.dat") for J-values.  (bmy, 10/5/98, 4/27/10)
 !\\
 !\\
 ! !INTERFACE:
@@ -4032,7 +4048,7 @@ c  Ensure all 'AN_' types are valid selections
       END SUBROUTINE JV_INDEX
 !EOC
 !------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4180,57 +4196,5 @@ c  Ensure all 'AN_' types are valid selections
  140  FORMAT( '%% Successfully closed file!'                 )
 
       END SUBROUTINE RD_PROF_NC
-!
 !EOC
-!!------------------------------------------------------------------------------
-!!               MIT Laboratory for Aviation and the Environment               !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: srtn
-!!
-!! !DESCRIPTION: Subroutine SRTN is a reference subroutine, with more than one
-!!  line of description.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE SRTN (INARG1,IOARG2,OARG3)
-!!
-!! !USES:
-!!
-!      USE THIS_MOD, ONLY : THIS_FN
-!!
-!! !INPUT PARAMETERS:
-!!
-!      REAL*8, INTENT(IN)          :: INARG1     ! Description of INARG1
-!      REAL*8, INTENT(INOUT)       :: IOARG2     ! Description of IOARG2
-!!
-!! !OUTPUT VARIABLES:
-!!
-!      REAL*8, INTENT(OUT)         :: OARG3      ! Description of OARG3
-!!
-!! !REMARKS:
-!! (1) A remark
-!! 
-!! !REVISION HISTORY: 
-!!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER, PARAMETER    :: IPARAM1=2
-!
-!      !=================================================================
-!      ! SRTN begins here!
-!      !=================================================================
-!
-!      OARG3 = INARG1 + IOARG2
-!      IOARG2 = OARG3/2.d0*IPARAM1
-!
-!      END SUBROUTINE SRTN
-!!
-!!EOC
       END MODULE FAST_JX_MOD

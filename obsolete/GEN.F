@@ -7,7 +7,6 @@
       USE JV_MIE_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
 
       integer id, id0, id1, im, i, j, k, mstart

@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -19,7 +19,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -43,7 +42,9 @@
       REAL*8, ALLOCATABLE, PUBLIC :: EMIS_LI_NOx(:,:,:)
 !
 ! !REMARKS:
-!  %%% NOTE: MFLUX and PRECON methods are now deprecated (ltm, bmy, 7/9/09)
+!  (1) MFLUX and PRECON methods are now deprecated (ltm, bmy, 7/9/09)
+!  (2) Starting w/ GEOS-Chem v9-02, we read OTD-LIS local redistribution
+!       data files contained in subdirectory lightning_NOx_201311/.
 !                                                                             .
 !  References:
 !  ============================================================================
@@ -104,6 +105,7 @@
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,7 +140,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -150,19 +152,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LIGHTNING
+      SUBROUTINE LIGHTNING( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    PRECON,   T, ZMMU
-      USE DIAG56_MOD,   ONLY : AD56,      ND56
-      USE GRID_MOD,     ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
-      USE LOGICAL_MOD,  ONLY : LOTDLOC
-      USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
+      USE DIAG56_MOD,         ONLY : AD56,      ND56
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
+      USE LOGICAL_MOD,        ONLY : LOTDLOC
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_GCTM_MOD     ! Physical constants
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_GCTM_MOD             ! Physical constants
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Output Lightning NOX [molec/cm3/s] is stored in the EMIS_NOX_LI array.
@@ -186,6 +192,8 @@
 !        Reprocessed for bug in CLDTOPS calculation. See PDF on wiki for
 !        full description of changes for v9-01-01. (ltm, bmy, 1/25,11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,6 +216,11 @@
       REAL*8        :: XMID
       REAL*8        :: VERTPROF(LLPAR)
 
+      ! Pointers
+      INTEGER, POINTER :: CLDTOPS(:,:)
+      REAL*8,  POINTER :: BXHEIGHT(:,:,:)
+      REAL*8,  POINTER :: T(:,:,:)
+
       !=================================================================
       ! LIGHTNING begins here!
       !=================================================================
@@ -217,6 +230,11 @@
          CALL INIT_LIGHTNING_NOX
          FIRST = .FALSE.
       ENDIF
+
+      ! Initialize pointers
+      BXHEIGHT => State_Met%BXHEIGHT
+      CLDTOPS  => State_Met%CLDTOPS
+      T        => State_Met%T
 
       ! LMAX: the highest L-level to look for lightning (usually LLPAR-1)
       LMAX   = LLPAR - 1
@@ -515,7 +533,8 @@
   
             ! Cold cloud thickness is difference of cloud top 
             ! height (H0) and the height to the bottom.
-            CC = H0 - SUM( BXHEIGHT(I,J,1:LBOTTOM-1) ) - HBOTTOM 
+            CC = H0 - SUM( BXHEIGHT(I,J,1:LBOTTOM-1) ) -
+     &           HBOTTOM 
 
             !===========================================================
             ! (4) COMPUTE IC/CG FLASH_RATIO FROM COLD-CLOUD DEPTH
@@ -551,7 +570,7 @@
             !--------------------------------------------------------
 
             ! Get lightning flash rate per minute and IC/CG ratio
-            CALL FLASHES_CTH( I, J, H0, FLASHRATE )
+            CALL FLASHES_CTH( I, J, H0, FLASHRATE, State_Met )
 
             !===========================================================
             ! (6) COMPUTE TOTAL LNOx AND PARTITION INTO VERTICAL LAYERS
@@ -756,7 +775,8 @@
 
                ! Partition the column total NOx [molec/6h] from lightning 
                ! into the vertical using Pickering PDF functions
-               CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF )
+               CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF,
+     &                         State_Met )
 
                ! Add vertically partitioned NOx into SLBASE array
                DO L = 1, LLPAR
@@ -768,10 +788,15 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointers
+      NULLIFY( BXHEIGHT )
+      NULLIFY( CLDTOPS  )
+      NULLIFY( T        )
+
       END SUBROUTINE LIGHTNING
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -783,32 +808,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF )
+      SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF,
+     &                      State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : BXHEIGHT, IS_ICE,  IS_LAND
-      USE DAO_MOD,       ONLY : IS_NEAR,  IS_WATER
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,      ONLY : IOERROR
-      USE GRID_MOD,      ONLY : GET_YMID
-      USE TIME_MOD,      ONLY : GET_MONTH
+      USE DAO_MOD,            ONLY : IS_LAND,  IS_WATER
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE TIME_MOD,           ONLY : GET_MONTH
 
-      USE CMN_SIZE_MOD                        ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I                 ! Longitude index
-      INTEGER, INTENT(IN)  :: J                 ! Latitude index 
-      INTEGER, INTENT(IN)  :: LTOP              ! Level of conv cloud top
-      REAL*8,  INTENT(IN)  :: H0                ! Conv cloud top height [m]
-      REAL*8,  INTENT(IN)  :: XLAT              ! Latitude value [degrees]
-      REAL*8,  INTENT(IN)  :: TOTAL             ! Column Total # of LNOx molec 
+      INTEGER,        INTENT(IN)  :: I          ! Longitude index
+      INTEGER,        INTENT(IN)  :: J          ! Latitude index 
+      INTEGER,        INTENT(IN)  :: LTOP       ! Level of conv cloud top
+      REAL*8,         INTENT(IN)  :: H0         ! Conv cloud top height [m]
+      REAL*8,         INTENT(IN)  :: XLAT       ! Latitude value [degrees]
+      REAL*8,         INTENT(IN)  :: TOTAL      ! Column Total # of LNOx molec 
+      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: VERTPROF(LLPAR)   ! Vertical profile of LNOx
+      REAL*8,         INTENT(OUT) :: VERTPROF(LLPAR) ! Vertical profile of LNOx
 !
 ! !REMARKS:
 !  References:
@@ -846,6 +873,8 @@
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  15 Jun 2012 - Nielsen - INQUIRE finds free logical unit number for IU_FILE
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -894,7 +923,7 @@
       CASE ( 1,2,3,12 )
 
          IF ( ABS(YMID) .le. 15 ) THEN
-            IF ( IS_LAND(I,J) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
                MTYPE = 2        ! Tropical continental
             ELSE
                MTYPE = 1        ! Tropical marine
@@ -911,7 +940,7 @@
       CASE ( 4,5,10,11 )
 
          IF ( ABS(YMID) .le. 15 ) THEN
-            IF ( IS_LAND(I,J) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
                MTYPE = 2        ! Tropical continental
             ELSE
                MTYPE = 1        ! Tropical marine
@@ -926,7 +955,7 @@
       CASE ( 6,7,8,9 )
 
          IF ( ABS(YMID) .le. 15 ) THEN
-            IF ( IS_LAND(I,J) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
                MTYPE = 2        ! Tropical continental
             ELSE
                MTYPE = 1        ! Tropical marine
@@ -953,7 +982,7 @@
       ! Compute the height [km] at the top of each vertical level.
       ! Look up the cumulative fraction of NOx for each vertical level
       DO L = 1, LTOP
-         ZHEIGHT = ZHEIGHT + BXHEIGHT(I,J,L)
+         ZHEIGHT = ZHEIGHT + State_Met%BXHEIGHT(I,J,L)
          FRAC(L) = PROFILE( NINT( ( ZHEIGHT/H0 )*3200. ), MTYPE ) *0.01
       ENDDO
 
@@ -970,7 +999,7 @@
       END SUBROUTINE LIGHTDIST
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -983,25 +1012,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FLASHES_CTH( I, J, HEIGHT, FLASHRATE )
+      SUBROUTINE FLASHES_CTH( I, J, HEIGHT, FLASHRATE, State_Met )
 !
 ! !USES:
 !
-#     include "define.h"
 
-      USE DAO_MOD, ONLY : IS_ICE
-      USE DAO_MOD, ONLY : IS_LAND
-      USE DAO_MOD, ONLY : IS_WATER
+      USE DAO_MOD,            ONLY : IS_ICE
+      USE DAO_MOD,            ONLY : IS_LAND
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I           ! Longitude index
-      INTEGER, INTENT(IN)  :: J           ! Latitude index
-      REAL*8,  INTENT(IN)  :: HEIGHT      ! Height of conv cloud top [m]
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      REAL*8,         INTENT(IN)  :: HEIGHT      ! Height of conv cloud top [m]
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: FLASHRATE   ! Lightning flash rate [flashes/min]
+      REAL*8,         INTENT(OUT) :: FLASHRATE   ! Lightning flast rate
+                                                 !  [flashes/min]
 !
 ! !REVISION HISTORY: 
 !  10 May 2006 - L. Murray - Initial version
@@ -1011,6 +1042,7 @@
 !  (3  ) Remove the near-land formulation (i.e. use function IS_LAND 
 !         instead of IS_NEAR).(ltm, bmy, 9/24/07)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1036,17 +1068,17 @@
       !================================================================
 
       ! Test for land type
-      IF ( IS_LAND( I, J ) ) THEN
+      IF ( IS_LAND( I, J, State_Met ) ) THEN
 
          ! Flashes/min over land boxes
          FLASHRATE   = 3.44d-5 * ( ( HEIGHT * 1d-3 )**4.9d0  )
 
-      ELSE IF ( IS_WATER( I, J ) ) THEN
+      ELSE IF ( IS_WATER( I, J, State_Met ) ) THEN
 
          ! Flahes/min over water
          FLASHRATE   = 6.4d-4  * ( ( HEIGHT * 1d-3 )**1.73d0 )
 
-      ELSE IF ( IS_ICE( I, J ) ) THEN
+      ELSE IF ( IS_ICE( I, J, State_Met ) ) THEN
 
          ! Suppress lightning over snow/ice
          FLASHRATE   = 0d0
@@ -1056,7 +1088,7 @@
       END SUBROUTINE FLASHES_CTH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1171,7 +1203,7 @@
       END FUNCTION GET_IC_CG_RATIO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1221,6 +1253,10 @@
 !       (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met
+!  18 Apr 2013 - R. Yantosca - Bug fix, prefix DATA_DIR to GEOS-5.7.x file
+!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  07 Nov 2013 - R. Yantosca - Now read files from lightning_NOx_201311 dir
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1239,8 +1275,8 @@
       ! Get model name
 #if   defined( MERRA )
       MODELNAME = 'merra'
-#elif defined( GEOS_57 )
-         MODELNAME = 'geos5.7.2'
+#elif defined( GEOS_FP )
+      MODELNAME = 'geosfp'
 #elif defined( GEOS_5 )
       ! GEOS-5 convection scheme changed in GCM post 9/1/2008
       IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
@@ -1252,28 +1288,33 @@
       MODELNAME = GET_NAME_EXT()
 #endif
 
-      ! Get file name
-      ! OTD-LIS Local file for CTH parameterization
-      FILENAME = 
-     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' // 
+      ! OTD-LIS local redist filename for CTH parameterization
+      ! Now read from lightning_NOx_201301 for GEOS-Chem v9-02+ (bmy, 11/7/13)
+#if defined( GEOS_5 ) && defined( NESTED_EU ) 
+      FILENAME =
+     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' //
      &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
+#else
+      FILENAME = 
+     &        'lightning_NOx_201311/OTD-LIS-Local-Redist.CTH.v5.' // 
+     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
+#endif
 
       ! Prefix directory to file name
-#if !defined( GEOS_57 )
-
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-#endif      
 
-      ! For GEOS-57 nested grids, append a suffix to denote either
-      ! SEAC4RS or the China domain (skim, 5/29/12)
-#if   defined( GEOS_57 ) && defined( NESTED_CH )
+      ! Append suffix for GEOS-FP nested grids
+#if   defined( GEOS_FP ) && defined( NESTED_CH )
       FILENAME = TRIM( FILENAME ) // '.CH'
-#elif defined( GEOS_57 ) && defined( SEAC4RS )
+#elif defined( GEOS_FP ) && defined( NESTED_NA )
+      FILENAME = TRIM( FILENAME ) // '.NA'
+#elif defined( GEOS_FP ) && defined( NESTED_EU ) 
+      FILENAME = TRIM( FILENAME ) // '.EU'
+#elif defined( GEOS_FP ) && defined( NESTED_SE ) 
       FILENAME = TRIM( FILENAME ) // '.SE'
 #endif
 
-      ! For GEOS-5 nested grids, append the a suffix to denote either 
-      ! CHINA or NORTH AMERICA nested regions (ltm, bmy, 11/14/08)
+      ! Append suffix for GEOS-5 nested grids
 #if   defined( GEOS_5 ) && defined( NESTED_CH ) 
       FILENAME = TRIM( FILENAME ) // '.CH'
 #elif defined( GEOS_5 ) && defined( NESTED_NA ) 
@@ -1300,7 +1341,7 @@
       END SUBROUTINE READ_LOCAL_REDIST
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1313,63 +1354,26 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMLIGHTNING( EMISS )
+      SUBROUTINE EMLIGHTNING( State_Met, State_Chm )
 
 !
 ! !USES:
 !
-      USE DAO_MOD,  ONLY : BXHEIGHT
-      USE DIAG_MOD, ONLY : AD32_li
-
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! ND32
-
-      REAL*8, INTENT(INOUT) :: EMISS(:,:,:)
-
-      INTEGER             :: I,J,L
-      REAL*8              :: TMP
-
-      ! External functions
-      REAL*8, EXTERNAL    :: BOXVL
-
-      !=================================================================
-      ! EMLIGHTNING begins here!
-      !=================================================================
-      DO I = 1, IIPAR
-         DO J = 1,JJPAR
-            DO L = 1, LLCONVM 
-               
-! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
-! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
-               TMP         = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L) )
-
-               EMIS_LI_NOx(I,J,L) = TMP
-               EMISS      (I,J,L) = TMP
-               
-! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
-               IF ( ND32 > 0 ) THEN
-                  AD32_li(I,J,L) = AD32_li(I,J,L) + 
-     &                 ( TMP * BXHEIGHT(I,J,L) * 1d2 )
-               ENDIF
-            ENDDO
-         ENDDO
-      ENDDO
-#else
-      SUBROUTINE EMLIGHTNING( I, J )
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD32_li
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTNO
 !
-! !USES:
+! !INPUT PARAMETERS:
 !
-      USE DAO_MOD,  ONLY : BXHEIGHT
-      USE DIAG_MOD, ONLY : AD32_li
-
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! ND32
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: I   ! Longitude index
-      INTEGER, INTENT(IN) :: J   ! Latitude index
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  09 Oct 1997 - R. Yantosca - Initial version
@@ -1383,13 +1387,16 @@
 !  (5 ) Renamed from EMLIGHTNING_NL to EMLIGHTNING.  Now replace GEMISNOX
 !        (from CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-!     
-      INTEGER             :: L
+!   
+      INTEGER             :: I,J,L
       REAL*8              :: TMP
 
       ! External functions
@@ -1399,23 +1406,42 @@
       ! EMLIGHTNING begins here!
       !=================================================================
       DO L = 1, LLCONVM 
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+                
+         ! No lightning emissions in the stratosphere (cdh, 4/25/2013)
+         IF ( ITS_IN_THE_STRAT(I, J, L, State_Met) ) EXIT
 
-          ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
-          ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
-          TMP             = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L) )
-          EMIS_LI_NOx(I,J,L) = TMP
+         ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
+         ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
+         TMP = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L,State_Met) )
 
-          ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
-          IF ( ND32 > 0 ) THEN
-             AD32_li(I,J,L) = AD32_li(I,J,L) + 
-     &                        ( TMP * BXHEIGHT(I,J,L) * 1d2 )
-          ENDIF
-      ENDDO
+         EMIS_LI_NOx(I,J,L)                = TMP
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS (bmy, 9/25/13)
+!%%% For SEAC4RS, knock the emissions down by a factor of 5. Keep code here.
+!%%%         ! ( skim, 8/15/13)
+!%%%         EMIS_LI_NOx(I,J,L)                = TMP / 5.0
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#if defined( DEVEL ) 
+         State_Chm%TRAC_TEND(I,J,L,IDTNO)  = TMP
 #endif
+
+         ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
+         IF ( ND32 > 0 ) THEN
+            AD32_li(I,J,L) = AD32_li(I,J,L) + 
+     &                     ( TMP * State_Met%BXHEIGHT(I,J,L) * 1d2 )
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+
       END SUBROUTINE EMLIGHTNING
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1435,8 +1461,6 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE BPCH2_MOD,   ONLY : GET_TAU0
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,    ONLY : GET_TAU, GET_MONTH, GET_YEAR
@@ -1446,7 +1470,7 @@
       REAL*8 :: BETA    ! Scale factor
 !
 ! !REMARKS:
-! 
+!  (1) Starting in G-C v9-02, we now read data from lightning_NOx_201311.
 ! 
 ! !REVISION HISTORY: 
 !  24 Sep 2007 - L. Murray - Initial version
@@ -1466,6 +1490,8 @@
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Compute BETA for MERRA 2 x 2.5
 !  02 Feb 2012 - R. Yantosca - Compute BETA for GEOS-5.7.x
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1488,12 +1514,14 @@
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
+#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
 #endif
 
 #if   defined( GEOS_5 )
 
       ! Are we using GEOS 5.2.0 or GEOS 5.1.0?
-      LOGICAL :: GEOS_520
+      LOGICAL               :: GEOS_520
 
       ! Lightning is sensitive to which convection scheme
       ! is used in the GCM used for the data assimilation.
@@ -1532,48 +1560,54 @@
       ! Initialize
       BETA = 1d0
 
-#if   defined( GEOS_57 ) && defined( GRID4x5 ) 
+#if   defined( GEOS_FP ) && defined( GRID4x5 ) 
 
       !---------------------------------------
-      ! GEOS-5.7.x: 4 x 5 global simulation
+      ! GEOS-FP: 4 x 5 global simulation
       !---------------------------------------
 
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.63453405d0
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 11/07/13).
+      IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or.
+     &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN
+         BETA = ANN_AVG_FLASHRATE / 82.003230d0
       ENDIF
 
-#elif defined( GEOS_57 ) && defined( GRID2x25 )
+#elif defined( GEOS_FP ) && defined( GRID2x25 )
 
       !---------------------------------------
-      ! GEOS-5.7.x: 2 x 2.5 global simulation
+      ! GEOS-FP: 2 x 2.5 global simulation
       !---------------------------------------
-      
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
+
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 01/15/14).
+      IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or.
+     &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN
+         BETA = ANN_AVG_FLASHRATE / 257.93269d0
       ENDIF
 
-#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( NESTED_CH )
+#elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
 
       !---------------------------------------
-      ! GEOS-5.7.x: Nested China simulation
+      ! GEOS-FP: Nested China simulation
       !---------------------------------------
       
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
-      ENDIF
+      ! ltm: Will need to be determined when met fields become available.
 
-#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( SEAC4RS )
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
 
       !---------------------------------------
-      ! GEOS-5.7.x: Nested SEAC4RS simulation
+      ! GEOS-FP: Nested SEAC4RS simulation
       !---------------------------------------
-      
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
-         BETA = 0.20604515d0
+
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 11/14/13).
+      IF ( ( GET_YEAR() .eq. 2012 .and. GET_MONTH() .ge. 4 ) .or. 
+     &     ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .le. 9 ) ) THEN
+         BETA = ANN_AVG_FLASHRATE / 652.44105d0
       ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )
@@ -1583,7 +1617,7 @@
       !---------------------------------------
       BETA = ANN_AVG_FLASHRATE / 253.55888d0
 
-#elif   defined( MERRA ) && defined( GRID4x5 )
+#elif defined( MERRA ) && defined( GRID4x5 )
 
       !---------------------------------------
       ! MERRA: 4 x 5 global simulation
@@ -1597,10 +1631,18 @@
       ! Nested grid simulation: North America
       !---------------------------------------
       if ( GEOS_520 ) then
-         BETA = 1d0
+         ! Constrained with simulated climatology for
+         ! Sept 2009 - May 2013 (ltm, 11/07/13)
+         BETA = ANN_AVG_FLASHRATE / 170.05559d0
       else
          BETA = ANN_AVG_FLASHRATE / 160.51908d0
       endif
+
+      ! Discourage users from using lightning outside the constraint period.
+      ! You may comment out these lines, but should verify that lightning
+      ! doesn't become unreasonably high anywere in the domain. (ltm, 11/07/13)
+      IF (   GET_YEAR() .ge. 2014 .or.
+     &    ( GET_YEAR() .eq. 2013 .and. GET_MONTH() .gt. 5 ) ) BETA = 1d0
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
 
@@ -1683,7 +1725,7 @@
       END FUNCTION GET_OTD_LIS_SCALE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1816,7 +1858,7 @@
       END SUBROUTINE INIT_LIGHTNING_NOx
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

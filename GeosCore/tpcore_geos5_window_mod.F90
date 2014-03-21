@@ -484,8 +484,8 @@ CONTAINS
 
  real, intent(in):: ak(km+1)              ! See below
  real, intent(in):: bk(km+1)              ! See below
- real, intent(in):: u(im,jfirst:jlast,km) ! u-wind (m/s) at mid-time-level (t=t+dt/2)
- real, intent(inout):: v(im,jfirst-mg:jlast+mg,km) ! v-wind (m/s) at mid-time-level (t=t+dt/2)
+ real, intent(in):: u(:,:,:)    ! u-wind (m/s) at mid-time-level (t=t+dt/2)
+ real, intent(inout):: v(:,:,:) ! v-wind (m/s) at mid-time-level (t=t+dt/2)
 
 !------------------------------------------------------
 ! The hybrid ETA-coordinate:
@@ -530,8 +530,9 @@ CONTAINS
  real, intent(in):: dt                    ! Transport time step in seconds
  real, intent(in):: ae                    ! Earth's radius (m)
 
- real, intent(inout):: q(im,jfirst-ng:jlast+ng,km,nq)  ! Tracer "mixing ratios"
+ real, intent(inout):: q(:,:,:,:)         ! Tracer "mixing ratios"
                                           ! q could easily be re-dimensioned
+
  real, intent(out):: ps(im,jfirst:jlast)  ! "predicted" surface pressure
 
  real  delp(im,jfirst:jlast,km)    ! Predicted thickness at future time (t=t+dt)
@@ -545,7 +546,7 @@ CONTAINS
  !%%%
  !%%% Added XMASS, YMASS for the PJC pressure-fixer (bdf, bmy, 5/7/03)
  !%%%
- REAL,    INTENT(IN)    :: XMASS(IM,JM,KM), YMASS(IM,JM,KM)
+ REAL,    INTENT(IN)    :: XMASS(:,:,:), YMASS(:,:,:)
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -630,13 +631,13 @@ CONTAINS
   enddo
 
   if ( jfirst == 1 ) then
-       call xpavg(psg(1,1,1), im)
-       call xpavg(psg(1,1,2), im)
+       call xpavg(psg(:,1,1), im)
+       call xpavg(psg(:,1,2), im)
   endif
 
   if ( jlast == jm ) then
-       call xpavg(psg(1,jm,1), im)
-       call xpavg(psg(1,jm,2), im)
+       call xpavg(psg(:,jm,1), im)
+       call xpavg(psg(:,jm,2), im)
   endif
 
 #if defined(SPMD)
@@ -657,10 +658,10 @@ CONTAINS
 !$omp private(k)
      do k=1,km
         if ( jfirst == 1 ) then
-             call xpavg(q(1,1,k,iq), im)
+             call xpavg(q(:,1,k,iq), im)
         endif
         if ( jlast == jm ) then
-             call xpavg(q(1,jm,k,iq), im)
+             call xpavg(q(:,jm,k,iq), im)
         endif
      enddo
   enddo

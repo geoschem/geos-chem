@@ -1,6 +1,5 @@
-!$ID$
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -32,11 +31,11 @@ MODULE GCKPP_COMODE_MOD
 !                               (use RRATE_FOR_KPP instead)
 !EOP
 !------------------------------------------------------------------------------
-    
+!BOC
 CONTAINS
-  
+!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -112,7 +111,7 @@ CONTAINS
 !EOC
 !  
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

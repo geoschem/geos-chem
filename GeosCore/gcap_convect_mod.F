@@ -31,10 +31,10 @@
 !  (3 ) More bug fixes for SUN 4100 platform.  Make SMALLEST = 1d-60 to avoid 
 !        problems (bmy, 12/19/06)
 !  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !  
       IMPLICIT NONE
-#     include "define.h"
       
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -108,6 +108,9 @@
 !        subroutines instead of array slices such as (:,J,:).  This can cause
 !        problems with OpenMP for some compilers. (bmy, 12/13/05)
 !  (2 ) Now don't call CONVTRAN if LENGATH=0 (bmy, 12/19/06)
+!  04 Nov 2013 - M. Sulprizio- Eliminate array temporaries by accepting
+!                              pointer-valued arguments via assumed-shape dummy
+!                              arguments
 !******************************************************************************
 !
 
@@ -122,13 +125,25 @@
       REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
       INTEGER, INTENT(IN)    :: INDEXSOL(NTRACE) 
-      REAL*8,  INTENT(IN)    :: UPDE(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: DNDE(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: ENTRAIN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: DETRAINE(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: UPDN(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: DNDN(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: DETRAINN(IIPAR,JJPAR,LLPAR)
+!------------------------------------------------------------------------------
+! Prior to 11/4/13:
+! Eliminate array temporary by accepting pointer variables into this routine
+! via assumed-shape arguments. (mpayer, 11/4/13)
+!      REAL*8,  INTENT(IN)    :: UPDE(IIPAR,JJPAR,LLPAR)     
+!      REAL*8,  INTENT(IN)    :: DNDE(IIPAR,JJPAR,LLPAR)     
+!      REAL*8,  INTENT(IN)    :: ENTRAIN(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)    :: DETRAINE(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)    :: UPDN(IIPAR,JJPAR,LLPAR)     
+!      REAL*8,  INTENT(IN)    :: DNDN(IIPAR,JJPAR,LLPAR)     
+!      REAL*8,  INTENT(IN)    :: DETRAINN(IIPAR,JJPAR,LLPAR)
+!------------------------------------------------------------------------------
+      REAL*8,  INTENT(IN)    :: UPDE(:,:,:)
+      REAL*8,  INTENT(IN)    :: DNDE(:,:,:)
+      REAL*8,  INTENT(IN)    :: ENTRAIN(:,:,:)
+      REAL*8,  INTENT(IN)    :: DETRAINE(:,:,:)
+      REAL*8,  INTENT(IN)    :: UPDN(:,:,:)
+      REAL*8,  INTENT(IN)    :: DNDN(:,:,:)
+      REAL*8,  INTENT(IN)    :: DETRAINN(:,:,:)
 
       ! Local variables
       INTEGER                :: I, J, L, N, LENGATH, ISTEP
@@ -136,11 +151,7 @@
       INTEGER                :: MX(IIPAR)
       INTEGER                :: IDEEP(IIPAR)
       INTEGER                :: IL1G=1
-#if defined( DEVEL )
       INTEGER                :: IL2G
-#else
-      INTEGER                :: IL2G=JJPAR
-#endif
       REAL*8                 :: DPG(IIPAR,LLPAR)
       REAL*8                 :: ED(IIPAR,LLPAR)
       REAL*8                 :: UPDEG(IIPAR,LLPAR)
@@ -161,9 +172,7 @@
 
       ! Fake entrainment in non-entraining plumes (swu, bmy, 6/9/05)
       ENTRAINN = 0d0
-#if defined( DEVEL )
       IL2G=JJPAR
-#endif
 
       ! Loop over latitudes
 !$OMP PARALLEL DO
@@ -273,6 +282,9 @@
 !  (1 ) Now dimension DP, MU, MD, DU, EU as (IIPAR,JJPAR,LLPAR) to avoid seg 
 !        fault error in OpenMP.  Also now pass the GEOS-CHEM latitude index J 
 !        via the argument list.  Add comments. (bmy, 12/13/05)
+!  04 Nov 2013 - M. Sulprizio- Eliminate array temporaries by accepting
+!                              pointer-valued arguments via assumed-shape dummy
+!                              arguments
 !******************************************************************************
 !
       USE CMN_SIZE_MOD    ! Size parameters
@@ -281,10 +293,19 @@
       INTEGER, INTENT(IN)  :: J
       INTEGER, INTENT(IN)  :: NSTEP
       REAL*8,  INTENT(IN)  :: DP(IIPAR,JJPAR,LLPAR) 
-      REAL*8,  INTENT(IN)  :: MU(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: MD(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: DU(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: EU(IIPAR,JJPAR,LLPAR) 
+!------------------------------------------------------------------------------
+! Prior to 11/4/13:
+! Eliminate array temporary by accepting pointer variables into this routine
+! via assumed-shape arguments. (mpayer, 11/4/13)
+!      REAL*8,  INTENT(IN)  :: MU(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)  :: MD(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)  :: DU(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)  :: EU(IIPAR,JJPAR,LLPAR) 
+!------------------------------------------------------------------------------
+      REAL*8,  INTENT(IN)  :: MU(:,:,:)
+      REAL*8,  INTENT(IN)  :: MD(:,:,:)
+      REAL*8,  INTENT(IN)  :: DU(:,:,:)
+      REAL*8,  INTENT(IN)  :: EU(:,:,:)
       REAL*8,  INTENT(OUT) :: MUG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: MDG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: DUG(IIPAR,LLPAR)      
@@ -432,7 +453,6 @@
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD38, CONVFLUP
       USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE DAO_MOD,      ONLY : AD
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD     ! Size parameters

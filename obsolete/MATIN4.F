@@ -4,7 +4,6 @@
 !  invert 4x4 matrix A(4,4) in place with L-U decomposition (mjp, old...)
 !-----------------------------------------------------------------------
       IMPLICIT NONE
-#     include "define.h"
       REAL*8 A(4,4)
 !---SETUP L AND U
       A(2,1) = A(2,1)/A(1,1)

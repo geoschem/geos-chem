@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -12,11 +12,11 @@
 #\\
 # !REMARKS:
 # To build the documentation, call "make" with the following syntax:
-#
+#                                                                             .
 #   make TARGET [ OPTIONAL-FLAGS ]
-#
+#                                                                             .
 # To display a complete list of options, type "make help".
-#
+#                                                                             .
 # You must have the LaTeX utilities (latex, dvips, dvipdf) installed
 # on your system in order to build the documentation.
 #
@@ -51,6 +51,7 @@
 #  05 Mar 2012 - M. Payer    - Added tracer_mod
 #  06 Mar 2012 - R. Yantosca - Added photoj.F and set_prof.F
 #  07 Mar 2012 - M. Payer    - Added global_ch4_mod
+#  19 Mar 2012 - M. Payer    - Added EF_MGN20_mod
 #  22 Mar 2012 - M. Payer    - Added c2h6_mod, olson_landmap_mod
 #  29 Mar 2012 - R. Yantosca - Added lai_mod
 #  29 Mar 2012 - R. Yantosca - Added modis_lai_mod and mapping_mod
@@ -68,6 +69,18 @@
 #  23 Oct 2012 - R. Yantosca - Added tagged_co_mod
 #  23 Oct 2012 - M. Payer    - Added soil NOx modules; Removed upbdflx_mod.F
 #  27 Nov 2012 - M. Payer    - Added modules for POPs simulation
+#  13 Dec 2012 - R. Yantosca - Added biofit, sunparam, and removed some 
+#                              obsolete functions
+#  22 Jul 2013 - M. Sulprizio- Added rcp_mod
+#  01 Aug 2013 - M. Sulprizio- Added aeic_mod
+#  20 Aug 2013 - M. Sulprizio- Added carbon_mod
+#  20 Aug 2013 - R. Yantosca - Remove reference to "define.h"
+#  05 Sep 2013 - M. Sulprizio- Added global_hno3_mod
+#  15 Jan 2014 - R. Yantosca - Now only create *.pdf file output
+#  25 Feb 2014 - M. Sulprizio- Added a3_read_mod, a6_read_mod, and i6_read_mod
+#  25 Feb 2014 - M. Sulprizio- Added chemgrid_mod, fast_jx_mod, and ucx_mod.
+#                              Removed references to tropopause_mod and routines
+#                              for Fast-J.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -76,26 +89,26 @@
 SRC1 :=                               \
 ./intro.geos-chem                     \
 ./headers.geos-chem                   \
-$(HDR)/define.h                       \
 $(HDR)/CMN_SIZE_mod.F                 \
-$(HDR)/CMN_DEP_mod.F                  \
 $(HDR)/CMN_DIAG_mod.F                 \
 $(HDR)/CMN_GCTM_mod.F                 \
 $(HDR)/CMN_NOX_mod.F                  \
 $(HDR)/CMN_O3_mod.F                   \
+$(HDR)/CMN_FJX_MOD.F                  \
 $(HDR)/CMN_mod.F                      \
-$(HDR)/cmn_fj_mod.F                   \
 $(HDR)/commsoil_mod.F                 \
 $(HDR)/comode_loop_mod.F              \
+$(HDR)/EF_MGN20_mod.F                 \
 $(HDR)/gigc_errcode_mod.F90           \
 $(HDR)/gigc_state_chm_mod.F90         \
 $(HDR)/gigc_state_met_mod.F90         \
-$(HDR)/jv_cmn_mod.F                   \
-$(HDR)/jv_mie_mod.F                   \
 $(HDR)/smv_dimension_mod.F            \
 $(HDR)/smv_physconst_mod.F            \
 $(CORE)/main.F                        \
+$(CORE)/a3_read_mod.F                 \
+$(CORE)/a6_read_mod.F                 \
 $(CORE)/acetone_mod.F                 \
+$(CORE)/aeic_mod.F                    \
 $(CORE)/aerosol_mod.F                 \
 $(CORE)/arctas_ship_emiss_mod.F	      \
 $(CORE)/benchmark_mod.F               \
@@ -104,6 +117,8 @@ $(CORE)/bromocarb_mod.F               \
 $(CORE)/c2h6_mod.F                    \
 $(CORE)/cac_anthro_mod.F              \
 $(CORE)/canopy_nox_mod.F              \
+$(CORE)/carbon_mod.F                  \
+$(CORE)/chemgrid_mod.F                \
 $(CORE)/chemistry_mod.F               \
 $(CORE)/co2_mod.F                     \
 $(CORE)/comode_mod.F                  \
@@ -127,18 +142,19 @@ $(CORE)/drydep_mod.F                  \
 $(CORE)/dust_mod.F                    \
 $(CORE)/emep_mod.F                    \
 $(CORE)/emissions_mod.F               \
-$(CORE)/fjx_acet_mod.F                \
+$(CORE)/fast_jx_mod.F                 \
 $(CORE)/gamap_mod.F                   \
 $(CORE)/gcap_read_mod.F               \
 $(CORE)/get_ndep_mod.F                \
 $(CORE)/gigc_environment_mod.F90      \
 $(CORE)/gc_type_mod.F                 \
-$(CORE)/geos57_read_mod.F90           \
+$(CORE)/geosfp_read_mod.F90           \
 $(CORE)/get_popsinfo_mod.F            \
 $(CORE)/gfed3_biomass_mod.F           \
 $(CORE)/global_bc_mod.F               \
 $(CORE)/global_br_mod.F               \
 $(CORE)/global_ch4_mod.F              \
+$(CORE)/global_hno3_mod.F             \
 $(CORE)/global_no3_mod.F              \
 $(CORE)/global_nox_mod.F              \
 $(CORE)/global_o1d_mod.F              \
@@ -146,6 +162,7 @@ $(CORE)/global_o3_mod.F               \
 $(CORE)/global_oc_mod.F               \
 $(CORE)/global_oh_mod.F               \
 $(CORE)/h2_hd_mod.F                   \
+$(CORE)/i6_read_mod.F                 \
 $(CORE)/icoads_ship_mod.F             \
 $(CORE)/input_mod.F                   \
 $(CORE)/isoropiaII_mod.F              \
@@ -169,6 +186,7 @@ $(CORE)/pbl_mix_mod.F                 \
 $(CORE)/pjc_pfix_mod.F                \
 $(CORE)/planeflight_mod.F             \
 $(CORE)/pops_mod.F                    \
+$(CORE)/rcp_mod.F                     \
 $(CORE)/retro_mod.F                   \
 $(CORE)/RnPbBe_mod.F                  \
 $(CORE)/scale_anthro_mod.F            \
@@ -183,15 +201,16 @@ $(CORE)/tagged_ox_mod.F               \
 $(CORE)/toms_mod.F                    \
 $(CORE)/tpcore_bc_mod.F               \
 $(CORE)/tracer_mod.F                  \
-$(CORE)/tropopause_mod.F              \
 $(CORE)/tpcore_fvdas_mod.F90          \
 $(CORE)/tpcore_geos5_window_mod.F90   \
 $(CORE)/transport_mod.F               \
+$(CORE)/ucx_mod.F                     \
 $(CORE)/vdiff_mod.F90                 \
 $(CORE)/vdiff_pre_mod.F               \
 $(CORE)/vistas_anthro_mod.F           \
 ./subs.geos-chem                      \
 $(CORE)/anthroems.F                   \
+$(CORE)/biofit.F                      \
 $(CORE)/boxvl.F                       \
 $(CORE)/cldice_HBrHOBr_rxn.F          \
 $(CORE)/diag1.F                       \
@@ -200,48 +219,24 @@ $(CORE)/diag_2pm.F                    \
 $(CORE)/diagoh.F                      \
 $(CORE)/emfossil.F                    \
 $(CORE)/emf_scale.F                   \
-$(CORE)/fast_j.F                      \
 $(CORE)/gasconc.F                     \
-$(CORE)/JRATET.F                      \
-$(CORE)/JVALUE.F                      \
-$(CORE)/jv_index.F                    \
 $(CORE)/initialize.F                  \
-$(CORE)/inphot.F                      \
 $(CORE)/lump.F                        \
 $(CORE)/ndxx_setup.F                  \
 $(CORE)/ohsave.F                      \
-$(CORE)/OPMIE.F                       \
 $(CORE)/partition.F                   \
-$(CORE)/photoj.F                      \
 $(CORE)/physproc.F                    \
-$(CORE)/RD_AOD.F                      \
-$(CORE)/rd_js.F                       \
-$(CORE)/RD_TJPL.F                     \
-$(CORE)/rdsoil.F                      \
-$(CORE)/read_jv_atms_dat.F90          \
-$(CORE)/set_aer.F                     \
 $(CORE)/setemdep.F                    \
-$(CORE)/set_prof.F                    \
-$(CORE)/SPHERE.F                      \
-$(CORE)/rdsoil.F                      \
-$(CORE)/read_jv_atms_dat.F90          \
 $(CORE)/ruralbox.F                    \
 $(CORE)/setemis.F                     \
 $(CORE)/sfcwindsqr.F                  \
-$(ESMF)/gigc_chem_utils.F90           \
-$(ESMF)/gigc_chemdr.F90               \
-$(ESMF)/gigc_chunk_mod.F90            \
-$(ESMF)/gigc_esmf_utils.F90           \
-$(ESMF)/gigc_finalization_mod.F90     \
-$(ESMF)/gigc_initialization_mod.F90   \
-$(ESMF)/gigc_test_utils.F90
+$(CORE)/sunparam.F
 
 
 # Output file names
 TEX1 := GC_Ref_Vol_3.tex
 DVI1 := GC_Ref_Vol_3.dvi
 PDF1 := GC_Ref_Vol_3.pdf
-PS1  := GC_Ref_Vol_3.ps
 
 
 # Make commands
@@ -252,7 +247,6 @@ srcdoc:
 	latex $(TEX1)
 	latex $(TEX1)
 	dvipdf $(DVI1) $(PDF1)
-	dvips $(DVI1) -o $(PS1)
 	rm -f *.aux *.dvi *.log *.toc
 
 #EOC

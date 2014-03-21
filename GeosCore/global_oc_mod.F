@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -44,7 +44,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -117,7 +117,7 @@
       ENDIF
 
       ! Get the TAU0 value for the start of the given month
-      XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+      XTAU = GET_TAU0( THISMONTH, 1, YEAR )
 
       ! Read in OC data from the binary punch file
       CALL READ_BPCH2( FILENAME, 'IJ-24H-$', 14,     
@@ -130,7 +130,7 @@
       END SUBROUTINE GET_GLOBAL_OC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -182,7 +182,7 @@
       END SUBROUTINE INIT_GLOBAL_OC    
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

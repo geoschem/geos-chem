@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: transfer_mod.f
+! !MODULE: transfer_mod
 !
 ! !DESCRIPTION: Module TRANSFER\_MOD contains routines used to copy data 
 !  from REAL*4 to REAL*8 arrays after being read from disk.  Also, vertical 
@@ -17,11 +17,9 @@
 ! 
 ! !USES:
 !
+      USE CMN_SIZE_MOD              
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-#     include "define.h"
-      USE CMN_SIZE_MOD              
 
       IMPLICIT NONE
 
@@ -156,6 +154,9 @@
 !  01 Mar 2012 - R. Yantosca - Updated to use grid_mod.F90 for the GI model
 !  20 Jul 2012 - R. Yantosca - Add routine TRANSFER_3D_Bry, which takes
 !                              data sized (144,91,:) as inputs & outputs
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  29 Oct 2013 - R. Yantosca - Remove TRANSFER_3D_NOLUMP routine, we can just
+!                              instead do a direct cast assignment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -173,7 +174,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -216,6 +217,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -280,7 +282,7 @@
          OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -311,11 +313,11 @@
       END SUBROUTINE TRANSFER_A6
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: transfer_3d
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D transfers 3-dimensional data from a 
 !  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB
@@ -349,6 +351,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -404,7 +407,7 @@
          OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
@@ -435,11 +438,11 @@
       END SUBROUTINE TRANSFER_3D
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: transfer_3d_bry
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_Bry transfers 3-dimensional data 
 !  from a REAL*4 array to a REAL*8 array.  Vertical layers are collapsed 
@@ -461,6 +464,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2012 - R. Yantosca - Initial version, based on TRANSFER_3D
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -516,7 +520,7 @@
          OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
@@ -547,7 +551,7 @@
       END SUBROUTINE TRANSFER_3D_Bry
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -575,6 +579,7 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -597,7 +602,7 @@
       ! Return GEOS-5 pressure edges for reduced grid
       !================================================================
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -630,7 +635,7 @@
       END SUBROUTINE TRANSFER_G5_PLE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -659,6 +664,7 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -689,7 +695,7 @@
       ! %%% above about 120 hPa. (bmy, 2/8/07)
       !=================================================================
       
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -722,7 +728,7 @@
       END SUBROUTINE TRANSFER_3D_Lp1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -770,7 +776,7 @@
       END SUBROUTINE TRANSFER_3D_TROP 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -807,6 +813,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -861,7 +868,7 @@
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -891,7 +898,7 @@
       END SUBROUTINE TRANSFER_ZONAL_R4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -929,6 +936,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -983,7 +991,7 @@
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -1012,7 +1020,7 @@
       END SUBROUTINE TRANSFER_ZONAL_R8
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1054,7 +1062,7 @@
       END SUBROUTINE TRANSFER_2D_INT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1096,7 +1104,7 @@
       END SUBROUTINE TRANSFER_2D_R4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1138,7 +1146,7 @@
       END SUBROUTINE TRANSFER_2D_R8
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1196,7 +1204,7 @@
       END SUBROUTINE TRANSFER_TO_1D
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1300,7 +1308,7 @@
       END FUNCTION LUMP_2_R4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1407,7 +1415,7 @@
       END FUNCTION LUMP_2_R8
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1518,7 +1526,7 @@
       END FUNCTION LUMP_4_R4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1629,7 +1637,7 @@
       END FUNCTION LUMP_4_R8
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1670,6 +1678,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1706,8 +1715,8 @@
          L_COPY = 19       ! GEOS-4: Copy up to L=19
 #elif defined( GEOS_5  )
          L_COPY = 36       ! GEOS-5: Copy up to L=36
-#elif defined( GEOS_57 )
-         L_COPY = 36       ! GEOS-5.7.x: Copy up to L=36
+#elif defined( GEOS_FP )
+         L_COPY = 36       ! GEOS-FP: Copy up to L=36
 #elif defined( MERRA   )
          L_COPY = 36       ! MERRA: Copy up to L=36
 #elif defined( GCAP    )
@@ -1725,7 +1734,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
       EDGE_IN = 0d0
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-----------------------------------------------------------------
       ! For GEOS-5/MERRA, levels 1-31 are "terrain-following" 
@@ -1796,7 +1805,7 @@
       END SUBROUTINE INIT_TRANSFER
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

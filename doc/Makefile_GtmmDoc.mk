@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -25,6 +25,7 @@
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
 #  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_4.*"
 #  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
+#  15 Jan 2014 - R. Yantosca - Now only save *.pdf output 
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -75,7 +76,6 @@ $(GTMM)/sort_pick_veg.F90
 TEX4 := GC_Ref_Vol_4.tex
 DVI4 := GC_Ref_Vol_4.dvi
 PDF4 := GC_Ref_Vol_4.pdf
-PS4  := GC_Ref_Vol_4.ps
 
 
 # Make commands
@@ -86,7 +86,6 @@ gtmmdoc:
 	latex $(TEX4)
 	latex $(TEX4)
 	dvipdf $(DVI4) $(PDF4)
-	dvips $(DVI4) -o $(PS4)
 	rm -f *.aux *.dvi *.log *.toc
 
 #EOC

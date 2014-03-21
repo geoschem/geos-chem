@@ -8,13 +8,13 @@
 !  NOTES:
 !  (1 ) Comment out counter variable NUM_BACKSUB, you can get the same info
 !        w/ a profiling run. (bmy, 7/9/03)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Local variables
       INTEGER IJ,I,KZT,KL5,KH5,KL4,KH4,KL3,KH3,KL2,KH2,KL1,KH1,KC

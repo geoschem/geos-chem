@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -72,6 +71,9 @@
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.
 !  24 May 2012 - R. Yantosca - Make all module arrays targets for pointers
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -111,6 +113,11 @@
       REAL*8,  ALLOCATABLE, TARGET :: C2H6_WKEND(:,:,:) ! 121
       REAL*8,  ALLOCATABLE, TARGET :: C3H8_WKEND(:,:,:) ! 119
       REAL*8,  ALLOCATABLE, TARGET :: CH2O_WKEND(:,:,:) ! 120
+
+      ! Shadow logical variables from Input_Opt
+      LOGICAL                      :: LBRAVO
+      LOGICAL                      :: LCAC
+      LOGICAL                      :: LFUTURE
 !
 ! !DEFINED PARAMETERS:
 !
@@ -119,7 +126,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -141,8 +148,8 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4
+      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
+      USE TRACERID_MOD, ONLY : IDTSO4,  IDTNO2
 !
 ! !INPUT PARAMETERS: 
 !
@@ -166,6 +173,8 @@
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.  
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -187,7 +196,8 @@
       IF ( PRESENT( MOLEC_CM2_S ) ) DO_MCS = MOLEC_CM2_S
 
       IF ( WEEKDAY ) THEN
-         IF ( N == IDTNOx ) THEN
+         ! Replaced NOx with NO (mpayer, 3/14/13)
+         IF ( N == IDTNO ) THEN
 
             ! NOx [kg/yr]
             VALUE = NOx(I,J,L)
@@ -260,7 +270,8 @@
          ENDIF
 
       ELSE
-         IF ( N == IDTNOx ) THEN
+         ! Replaced NOx with NO (mpayer, 3/14/13)
+         IF ( N == IDTNO ) THEN
 
             ! NOx [kg/yr]
             VALUE = NOx_WKEND(I,J,L)
@@ -344,18 +355,24 @@
 
       ELSE IF ( DO_MCS ) THEN
 
-         ! Convert NOx from [kg/yr] to [molec/cm2/s] or from
+         ! Convert from [kg/yr] to [molec/cm2/s] or from
          ! [kg C/yr] to [atom C/cm2/s] 
-         VALUE = ( VALUE                   * XNUMOL(N)   )
-     &         / ( GET_AREA_CM2( I, J, L ) * SEC_IN_YEAR )
-
+         IF ( N == IDTNO ) THEN
+            ! Convert NOx using XNUMOL for NO2 since original NOx emissions
+            ! are in mass units of NO2 (mpayer, 4/18/13)
+            VALUE = ( VALUE                   * XNUMOL(IDTNO2)  )
+     &            / ( GET_AREA_CM2( I, J, L ) * SEC_IN_YEAR )
+         ELSE
+            VALUE = ( VALUE                   * XNUMOL(N)   )
+     &            / ( GET_AREA_CM2( I, J, L ) * SEC_IN_YEAR )
+         ENDIF
       ENDIF
 
       ! Return to calling program
       END FUNCTION GET_NEI2005_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -368,38 +385,43 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_NEI2005_ANTHRO( EMISS )
-#else
-      SUBROUTINE EMISS_NEI2005_ANTHRO
-#endif
+      SUBROUTINE EMISS_NEI2005_ANTHRO( am_I_Root, Input_Opt,
+     &                                 State_Chm, RC         )
 !
 ! !USES:
 ! 
-      USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
-      USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
-      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD,      ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD,      ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD,      ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD,      ONLY : IDTSO4,  IDTOCPI, IDTBCPI
-
-      USE CMN_SIZE_MOD            ! Size parameters
-      USE CMN_O3_MOD              ! FSCALYR
-
+      USE BPCH2_MOD,          ONLY : GET_TAU0,      READ_BPCH2
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_1x1
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD,       ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+      USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
+      ! added POA (jje 8/19/10)
+      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI, IDTPOA1
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
 #endif
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
 ! !REVISION HISTORY: 
 !  07 Oct 2009 - A. van Donkelaar - initial version
 !  20 Oct 2009 - P. Le Sager - added VOC, account for mask to get better total
@@ -412,41 +434,61 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time).
+!  13 Aug 2013 - M. Sulprizio- Re-define SPECIES_ID for semivolatile POA (H.Pye
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      INTEGER                    :: I, J,   THISYEAR,       SNo, ScNo
-      INTEGER                    :: L, KLM, SPECIES_ID(15), ID,  MN
-      INTEGER                    :: OFFLINE_ID(15)
-      REAL*4                     :: ARRAY(I1x1,J1x1,5)
-      REAL*8, TARGET             :: GEOS_1x1(I1x1,J1x1,5)
-      REAL*8                     :: SC_1x1(I1x1,J1x1)
-      REAL*8                     :: TAU2005, TAU
-      CHARACTER(LEN=255)         :: FILENAME
-      CHARACTER(LEN=4)           :: SYEAR
-      CHARACTER(LEN=5)           :: SNAME
-      CHARACTER(LEN=1)           :: SSMN
-      CHARACTER(LEN=2)           :: SMN
-      CHARACTER(LEN=255)         :: LLFILENAME
-      REAL*8, POINTER            :: OUTGRID(:,:) => NULL()
-      REAL*8, POINTER            :: INGRID (:,:) => NULL()
-
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: I, J,   THISYEAR,       SNo, ScNo
+      INTEGER            :: L, KLM, SPECIES_ID(15), ID,  MN
+      INTEGER            :: OFFLINE_ID(15)
+      REAL*4             :: ARRAY(I1x1,J1x1,5)
+      REAL*8, TARGET     :: GEOS_1x1(I1x1,J1x1,5)
+      REAL*8             :: SC_1x1(I1x1,J1x1)
+      REAL*8             :: TAU2005, TAU
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=4)   :: SYEAR
+      CHARACTER(LEN=5)   :: SNAME
+      CHARACTER(LEN=1)   :: SSMN
+      CHARACTER(LEN=2)   :: SMN
+      CHARACTER(LEN=255) :: LLFILENAME
+      REAL*8, POINTER    :: OUTGRID(:,:) => NULL()
+      REAL*8, POINTER    :: INGRID (:,:) => NULL()
 #if defined( DEVEL )
-      INTEGER               :: DAY_NUM
-      LOGICAL               :: WEEKDAY
-      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, LLPAR, N_TRACERS)
+      INTEGER            :: DOW_LT
+      LOGICAL            :: WEEKDAY
 #endif
+
+      ! For fields from Input_Opt
+      INTEGER            :: N_TRACERS
+
       !=================================================================
       ! EMISS_NEI2005_ANTHRO begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LBRAVO    = Input_Opt%LBRAVO
+      LCAC      = Input_Opt%LCAC
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_NEI2005_ANTHRO
+         CALL INIT_NEI2005_ANTHRO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -457,7 +499,7 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       SNAME = 'GEOS5'
 #elif defined( GCAP  )
       SNAME = 'GEOS4'
@@ -465,12 +507,21 @@
       SNAME = 'GEOS4'
 #endif
 
-      ! list of ID of available species
-      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
-     &                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
-     &                IDTOCPI, IDTBCPI,
-     &                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-     &     /)
+      ! List of ID of available species
+      ! For non-volatile POA
+      IF ( IDTOCPI > 0 ) THEN
+         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, 
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+      ENDIF
+      ! For semi-volatile POA (jje 8/19/10)
+      IF ( IDTPOA1 > 0 ) THEN
+         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4,  
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+      ENDIF
 
       ! ID #'s for that are not tied to IDTxxxx flags
       OFFLINE_ID = (/ 1,       4,       26,      27,      30,
@@ -558,7 +609,7 @@
 
 !               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
 
@@ -576,7 +627,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -604,7 +655,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -621,7 +672,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -649,7 +700,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -665,7 +716,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -693,7 +744,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -710,7 +761,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -737,7 +788,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -754,7 +805,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -773,7 +824,7 @@
             DO L = 1, 5
 
                !-----------------
-               ! OC
+               ! OC or POA1
                !-----------------
 
                ! Point to array slices
@@ -782,7 +833,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -799,7 +850,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -827,7 +878,7 @@
                
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -843,7 +894,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
 
@@ -870,7 +921,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -887,7 +938,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -915,7 +966,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -932,7 +983,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -960,7 +1011,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -977,7 +1028,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
 
@@ -1004,7 +1055,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1021,7 +1072,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1047,7 +1098,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1064,7 +1115,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1092,7 +1143,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1109,7 +1160,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1137,7 +1188,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1154,7 +1205,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1181,7 +1232,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1198,7 +1249,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1224,38 +1275,46 @@
       ENDIF
 
 #if defined( DEVEL )
-      DAY_NUM = GET_DAY_OF_WEEK()
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-      IF ( WEEKDAY ) THEN       !Kg/Yr
-         EMISS(:,:,1:5,IDTNOx)  = NOx
-         EMISS(:,:,1:5,IDTCO)   = CO
-         EMISS(:,:,1:5,IDTSO2)  = SO2
-         EMISS(:,:,1:5,IDTSO4)  = SO4
-         EMISS(:,:,1:5,IDTNH3)  = NH3
-         EMISS(:,:,1:5,IDTALK4) = ALK4
-         EMISS(:,:,1:5,IDTACET) = ACET
-         EMISS(:,:,1:5,IDTMEK)  = MEK
-         EMISS(:,:,1:5,IDTPRPE) = PRPE
-         EMISS(:,:,1:5,IDTC3H8) = C3H8
-         EMISS(:,:,1:5,IDTCH2O) = CH2O
-         EMISS(:,:,1:5,IDTC2H6) = C2H6
-         EMISS(:,:,1:5,IDTALD2) = ALD2
-      ELSE
-         EMISS(:,:,1:5,IDTNOx)  = NOx_WKEND
-         EMISS(:,:,1:5,IDTCO)   = CO_WKEND
-         EMISS(:,:,1:5,IDTSO2)  = SO2_WKEND
-         EMISS(:,:,1:5,IDTSO4)  = SO4_WKEND
-         EMISS(:,:,1:5,IDTNH3)  = NH3_WKEND
-         EMISS(:,:,1:5,IDTALK4) = ALK4_WKEND
-         EMISS(:,:,1:5,IDTACET) = ACET_WKEND
-         EMISS(:,:,1:5,IDTMEK)  = MEK_WKEND
-         EMISS(:,:,1:5,IDTPRPE) = PRPE_WKEND
-         EMISS(:,:,1:5,IDTC3H8) = C3H8_WKEND
-         EMISS(:,:,1:5,IDTCH2O) = CH2O_WKEND
-         EMISS(:,:,1:5,IDTC2H6) = C2H6_WKEND
-         EMISS(:,:,1:5,IDTALD2) = ALD2_WKEND
-      ENDIF
+         ! Determine if we should use weekday or weekend NEI
+         ! emissions at grid box (I,J,L).  Since NEI is over
+         ! the US, then weekend is Sat/Sun.
+         DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
+         IF ( WEEKDAY ) THEN    !Kg/Yr
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNO)   = NOx(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCO)   = CO(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO2)  = SO2(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO4)  = SO4(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNH3)  = NH3(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALK4) = ALK4(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTACET) = ACET(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTMEK)  = MEK(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTPRPE) = PRPE(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC3H8) = C3H8(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCH2O) = CH2O(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC2H6) = C2H6(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALD2) = ALD2(I,J,1:5)
+         ELSE
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNO)   = NOx_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCO)   = CO_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO2)  = SO2_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO4)  = SO4_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNH3)  = NH3_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALK4) = ALK4_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTACET) = ACET_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTMEK)  = MEK_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTPRPE) = PRPE_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC3H8) = C3H8_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCH2O) = CH2O_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC2H6) = C2H6_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALD2) = ALD2_WKEND(I,J,1:5)
+         ENDIF
+      ENDDO
+      ENDDO
 #endif
       !--------------------------
       ! Print emission totals
@@ -1266,7 +1325,7 @@
       END SUBROUTINE EMISS_NEI2005_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!       Dalhousie University Atmospheric Compositional Analysis Group         !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1278,37 +1337,42 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666( EMISS )
-#else
-      SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666
-#endif
+      SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666( am_I_Root, Input_Opt,
+     &                                         State_Chm, RC         )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR
-      USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
-      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
-
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_O3_MOD            ! FSCALYR
-
+      USE BPCH2_MOD,          ONLY : GET_TAU0,      READ_BPCH2
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD,       ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+      USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
+      ! added POA (jje 8/19/10)
+      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI, IDTPOA1
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
 #endif
-
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  03 Nov 2009 - A. van Donkelaar - initial version
@@ -1320,40 +1384,52 @@
 !                              data directory NEI2005_101007/
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x like MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  13 Aug 2013 - M. Sulprizio- Re-define SPECIES_ID for semivolatile POA (H.Pye)
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      INTEGER                    :: I, J,   THISYEAR,       SNo, ScNo
-      INTEGER                    :: L, KLM, SPECIES_ID(15), ID,  MN
-      INTEGER                    :: OFFLINE_ID(15)
-      REAL*4                     :: ARRAY(IIPAR,JJPAR,5)
-      REAL*8                     :: GEOS_05x0666(IIPAR,JJPAR,5)
-      REAL*4                     :: SC_05x0666(IIPAR,JJPAR)
-      REAL*8                     :: TAU2005, TAU
-      CHARACTER(LEN=255)         :: FILENAME
-      CHARACTER(LEN=4)           :: SYEAR
-      CHARACTER(LEN=5)           :: SNAME
-      CHARACTER(LEN=1)           :: SSMN
-      CHARACTER(LEN=2)           :: SMN
-
-
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      INTEGER             :: I, J,   THISYEAR,       SNo, ScNo
+      INTEGER             :: L, KLM, SPECIES_ID(15), ID,  MN
+      INTEGER             :: OFFLINE_ID(15)
+      REAL*4              :: ARRAY(IIPAR,JJPAR,5)
+      REAL*8              :: GEOS_05x0666(IIPAR,JJPAR,5)
+      REAL*4              :: SC_05x0666(IIPAR,JJPAR)
+      REAL*8              :: TAU2005, TAU
+      CHARACTER(LEN=255)  :: FILENAME
+      CHARACTER(LEN=4)    :: SYEAR
+      CHARACTER(LEN=5)    :: SNAME
+      CHARACTER(LEN=1)    :: SSMN
+      CHARACTER(LEN=2)    :: SMN
 #if defined( DEVEL )
-      INTEGER               :: DAY_NUM
-      LOGICAL               :: WEEKDAY
-      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, LLPAR, N_TRACERS)
+      INTEGER             :: DOW_LT
+      LOGICAL             :: WEEKDAY
 #endif
+
+      ! For fields from Input_Opt
+      INTEGER             :: N_TRACERS
 
       !=================================================================
       ! EMISS_NEI2005_ANTHRO begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LBRAVO    = Input_Opt%LBRAVO
+      LCAC      = Input_Opt%LCAC
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_NEI2005_ANTHRO
+         CALL INIT_NEI2005_ANTHRO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -1364,7 +1440,7 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       SNAME = 'GEOS5'
 #elif defined( GCAP   )
       SNAME = 'GEOS4'
@@ -1372,12 +1448,22 @@
       SNAME = 'GEOS4'
 #endif
 
-      ! list of ID of available species
-      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
-     &                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
-     &                IDTOCPI, IDTBCPI,
-     &                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-     &     /)
+      ! List of ID of available species
+      ! For non-volatile POA
+      IF ( IDTOCPI > 0 ) THEN
+         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, 
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+
+      ENDIF
+      ! For semi-volatile POA (jje 8/19/10)
+      IF ( IDTPOA1 > 0 ) THEN
+         SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4,  
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+      ENDIF
 
       ! ID #'s for that are not tied to IDTxxxx flags
       OFFLINE_ID = (/ 1,       4,       26,      27,      30,
@@ -1609,38 +1695,46 @@
       ENDIF
 
 #if defined( DEVEL )
-      DAY_NUM = GET_DAY_OF_WEEK()
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-      IF ( WEEKDAY ) THEN       !Kg/Yr
-         EMISS(:,:,:,IDTNOx)  = NOx
-         EMISS(:,:,:,IDTCO)   = CO
-         EMISS(:,:,:,IDTSO2)  = SO2
-         EMISS(:,:,:,IDTSO4)  = SO4
-         EMISS(:,:,:,IDTNH3)  = NH3
-         EMISS(:,:,:,IDTALK4) = ALK4
-         EMISS(:,:,:,IDTACET) = ACET
-         EMISS(:,:,:,IDTMEK)  = MEK
-         EMISS(:,:,:,IDTPRPE) = PRPE
-         EMISS(:,:,:,IDTC3H8) = C3H8
-         EMISS(:,:,:,IDTCH2O) = CH2O
-         EMISS(:,:,:,IDTC2H6) = C2H6
-         EMISS(:,:,:,IDTALD2) = ALD2
-      ELSE
-         EMISS(:,:,:,IDTNOx)  = NOx_WKEND
-         EMISS(:,:,:,IDTCO)   = CO_WKEND
-         EMISS(:,:,:,IDTSO2)  = SO2_WKEND
-         EMISS(:,:,:,IDTSO4)  = SO4_WKEND
-         EMISS(:,:,:,IDTNH3)  = NH3_WKEND
-         EMISS(:,:,:,IDTALK4) = ALK4_WKEND
-         EMISS(:,:,:,IDTACET) = ACET_WKEND
-         EMISS(:,:,:,IDTMEK)  = MEK_WKEND
-         EMISS(:,:,:,IDTPRPE) = PRPE_WKEND
-         EMISS(:,:,:,IDTC3H8) = C3H8_WKEND
-         EMISS(:,:,:,IDTCH2O) = CH2O_WKEND
-         EMISS(:,:,:,IDTC2H6) = C2H6_WKEND
-         EMISS(:,:,:,IDTALD2) = ALD2_WKEND
-      ENDIF
+         ! Determine if we should use weekday or weekend NEI
+         ! emissions at grid box (I,J,L).  Since NEI is over
+         ! the US, then weekend is Sat/Sun.
+         DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
+         IF ( WEEKDAY ) THEN    !Kg/Yr
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNO)   = NOx(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCO)   = CO(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO2)  = SO2(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO4)  = SO4(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNH3)  = NH3(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALK4) = ALK4(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTACET) = ACET(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTMEK)  = MEK(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTPRPE) = PRPE(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC3H8) = C3H8(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCH2O) = CH2O(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC2H6) = C2H6(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALD2) = ALD2(I,J,1:5)
+         ELSE
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNO)   = NOx_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCO)   = CO_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO2)  = SO2_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO4)  = SO4_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNH3)  = NH3_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALK4) = ALK4_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTACET) = ACET_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTMEK)  = MEK_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTPRPE) = PRPE_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC3H8) = C3H8_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCH2O) = CH2O_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC2H6) = C2H6_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALD2) = ALD2_WKEND(I,J,1:5)
+         ENDIF
+      ENDDO
+      ENDDO
 #endif
 
       !--------------------------
@@ -1652,7 +1746,7 @@
       END SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1671,10 +1765,6 @@
       USE BPCH2_MOD,     ONLY : GET_TAU0,    READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE TIME_MOD,      ONLY : GET_MONTH
-      USE TRACERID_MOD,  ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD,  ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD,  ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD,  ONLY : IDTSO4
 
       USE CMN_SIZE_MOD                         ! Size parameters
 !
@@ -1691,6 +1781,8 @@
 !   3 Nov 2009 - P. Le Sager      - update handling of boxes w/ zero emissions
 !  10 Dec 2009 - D. Millet        - Now scale to August, not an annual average
 !  11 Dec 2009 - L. Zhang, A. van Donkelaar - Add seasonality for NH3
+!  12 Jun 2013 - M. Payer         - Update  NH3 seasonal scaling factors over
+!                                   the US (L. Zhang)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1707,10 +1799,16 @@
       INTEGER                :: MN, ThisMN, L
 
       ! seasonal scalar for NH3 emission (lzh, amv, 12/11/2009)
-      REAL*8, PARAMETER :: NH3_SCALE(12) = (/ 
-     &     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0, 
-     &     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
+!      REAL*8, PARAMETER :: NH3_SCALE(12) = (/ 
+!     &     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0, 
+!     &     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
  
+      ! New seasonal NH3 emission scalar based on
+      ! Zhang et al. ACP 2012 (lzh, 03/2012)
+       REAL*8, PARAMETER :: NH3_SCALE(12) = (/ 
+     &     0.216d0, 0.418d0, 0.622d0, 0.815d0, 0.982d0, 0.974d0, 
+     &     1.000d0, 0.900d0, 0.960d0, 0.600d0, 0.280d0, 0.236d0 /)
+
       !=================================================================
       ! GET_NEI99_SEASON begins here!
       !=================================================================
@@ -1727,7 +1825,8 @@
          AS = 1.d0
          RETURN
       ELSEIF ( TRACER == 30 ) THEN
-         AS = NH3_SCALE(ThisMN) / NH3_SCALE(8)   ! Normalize to August
+!         AS = NH3_SCALE(ThisMN) / NH3_SCALE(8)   ! Normalize to August
+         AS = NH3_SCALE(ThisMN)    ! (lzh, 03/2012)
          RETURN
       ENDIF 
 
@@ -1790,7 +1889,7 @@
       END SUBROUTINE GET_NEI99_SEASON
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1823,6 +1922,7 @@
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca      - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer         - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1851,7 +1951,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       INGRID,     OUTGRID, IS_MASS=0,
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
@@ -1859,7 +1959,7 @@
       END SUBROUTINE GET_NEI99_SEASON_05x0666
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2038,7 +2138,7 @@
       END SUBROUTINE GET_VISTAS_SEASON
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2069,6 +2169,7 @@
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca      - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer         - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2097,7 +2198,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       INGRID,     OUTGRID, IS_MASS=0,
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
@@ -2105,7 +2206,7 @@
       END SUBROUTINE GET_VISTAS_SEASON_05x0666
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2125,10 +2226,6 @@
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
       USE TIME_MOD,          ONLY : GET_MONTH
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4
 
       USE CMN_SIZE_MOD                         ! Size parameters
 !
@@ -2223,7 +2320,7 @@
       END SUBROUTINE GET_NEI99_WKSCALE
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2257,6 +2354,9 @@
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca      - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer         - Bug fix for regridding. Changed to
+!                                   PERAREA=0 since scale factors are unitless.
+!  03 Jan 2013 - M. Payer         - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2285,7 +2385,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, IS_MASS=0,
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
@@ -2293,7 +2393,7 @@
       END SUBROUTINE GET_NEI99_WKSCALE_05x0666
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2311,7 +2411,6 @@
       ! Reference to F90 modules
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
-      USE LOGICAL_MOD,    ONLY : LCAC,            LBRAVO
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
@@ -2329,6 +2428,7 @@
 !  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also
 !                              set mask to 1 if greater than 0 (L. Murray)
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2378,7 +2478,7 @@
       ! Regrid from GEOS 1x1 --> current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1,
-     &                    INGRID,     USA_MASK, PERAREA=0,
+     &                    INGRID,     USA_MASK, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       ! Free pointer
@@ -2393,7 +2493,7 @@
 ! Leave for future use (bmy, 12/3/09)
 !!EOC
 !!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!                  GEOS-Chem Global Chemical Transport Model                  !
 !!------------------------------------------------------------------------------
 !!BOP
 !!
@@ -2433,7 +2533,7 @@
 !------------------------------------------------------------------------------
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2514,7 +2614,7 @@
       END SUBROUTINE NEI2005_SCALE_FUTURE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2539,6 +2639,8 @@
 ! !REVISION HISTORY: 
 !   7 Oct 2009 - A. van Donkelaar - initial version
 !  22 Mar 2012 - M. Payer         - Remove print for C2H6 emissions.
+!  14 Mar 2013 - M. Payer         - Replace NOx emissions with NO emissions as
+!                                   part of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2610,7 +2712,7 @@
 
       
       ! Print totals in [Tg]
-      WRITE( 6, 110 ) 'NOx ',  YEAR, T_NOx,  '[Tg N  ]'
+      WRITE( 6, 110 ) 'NO  ',  YEAR, T_NOx,  '[Tg N  ]'
       WRITE( 6, 110 ) 'CO  ',  YEAR, T_CO,   '[Tg CO ]'
       WRITE( 6, 110 ) 'SO2 ',  YEAR, T_SO2,  '[Tg S  ]'
       WRITE( 6, 110 ) 'SO4 ',  YEAR, T_SO4,  '[Tg S  ]'
@@ -2640,7 +2742,7 @@
       END SUBROUTINE TOTAL_ANTHRO_Tg
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2652,168 +2754,177 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_NEI2005_ANTHRO
+      SUBROUTINE INIT_NEI2005_ANTHRO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 ! 
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LNEI05
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  02 Mar 2012 - R. Yantosca - Remove A_CM2 array
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt,  RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: AS, J
 
       !=================================================================
       ! INIT_NEI2005_ANTHRO begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Return if LNEI05 is false
-      IF ( .not. LNEI05 ) RETURN
+      IF ( .not. Input_Opt%LNEI05 ) RETURN
       
       !--------------------------------------------------
       ! Allocate and zero arrays for emissions
       !--------------------------------------------------
 
       ! allocate and read USA Mask
-      ALLOCATE( USA_MASK( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USA_MASK' )
+      ALLOCATE( USA_MASK( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'USA_MRCK' )
       USA_MASK = 0d0
 
       CALL READ_NEI2005_MASK
 
-      ALLOCATE( NOx( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOx' )
+      ALLOCATE( NOx( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NOx' )
       NOx = 0d0
 
-      ALLOCATE( CO( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO' )
+      ALLOCATE( CO( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CO' )
       CO = 0d0
 
-      ALLOCATE( SO2( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2' )
+      ALLOCATE( SO2( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2' )
       SO2 = 0d0
 
-      ALLOCATE( SO4( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4' )
+      ALLOCATE( SO4( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4' )
       SO4 = 0d0
 
-      ALLOCATE( NH3( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NH3' )
+      ALLOCATE( NH3( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NH3' )
       NH3 = 0d0
 
-      ALLOCATE( OC( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC' )
+      ALLOCATE( OC( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'OC' )
       OC = 0d0 
 
-      ALLOCATE( BC( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
+      ALLOCATE( BC( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BC' )
       BC = 0d0 
 
-      ALLOCATE( ALK4( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALK4' )
+      ALLOCATE( ALK4( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ALK4' )
       ALK4 = 0d0
 
-      ALLOCATE( ACET( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ACET' )
+      ALLOCATE( ACET( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ACET' )
       ACET = 0d0
 
-      ALLOCATE( MEK( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MEK' )
+      ALLOCATE( MEK( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MEK' )
       MEK = 0d0
 
-      ALLOCATE( ALD2( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALD2' )
+      ALLOCATE( ALD2( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ALD2' )
       ALD2 = 0d0
 
-      ALLOCATE( PRPE( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRPE' )
+      ALLOCATE( PRPE( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'PRPE' )
       PRPE = 0d0
 
-      ALLOCATE( C2H6( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'C2H6' )
+      ALLOCATE( C2H6( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'C2H6' )
       C2H6 = 0d0 
 
-      ALLOCATE( C3H8( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'C3H8' )
+      ALLOCATE( C3H8( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'C3H8' )
       C3H8 = 0d0 
 
-      ALLOCATE( CH2O( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH2O' )
+      ALLOCATE( CH2O( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CH2O' )
       CH2O = 0d0 
 
-      ALLOCATE( NOx_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOx_WKEND' )
+      ALLOCATE( NOx_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NOx_WKEND' )
       NOx_WKEND = 0d0
 
-      ALLOCATE( CO_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_WKEND' )
+      ALLOCATE( CO_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CO_WKEND' )
       CO_WKEND = 0d0
 
-      ALLOCATE( SO2_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2_WKEND' )
+      ALLOCATE( SO2_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2_WKEND' )
       SO2_WKEND = 0d0
 
-      ALLOCATE( SO4_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_WKEND' )
+      ALLOCATE( SO4_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_WKEND' )
       SO4_WKEND = 0d0
 
-      ALLOCATE( NH3_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NH3_WKEND' )
+      ALLOCATE( NH3_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NH3_WKEND' )
       NH3_WKEND = 0d0
 
-      ALLOCATE( OC_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC_WKEND' )
+      ALLOCATE( OC_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'OC_WKEND' )
       OC_WKEND = 0d0 
 
-      ALLOCATE( BC_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_WKEND' )
+      ALLOCATE( BC_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BC_WKEND' )
       BC_WKEND = 0d0 
 
-      ALLOCATE( ALK4_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALK4_WKEND' )
+      ALLOCATE( ALK4_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ALK4_WKEND' )
       ALK4_WKEND = 0d0
 
-      ALLOCATE( ACET_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ACET_WKEND' )
+      ALLOCATE( ACET_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ACET_WKEND' )
       ACET_WKEND = 0d0
 
-      ALLOCATE( MEK_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MEK_WKEND' )
+      ALLOCATE( MEK_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MEK_WKEND' )
       MEK_WKEND = 0d0
 
-      ALLOCATE( ALD2_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALD2_WKEND' )
+      ALLOCATE( ALD2_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ALD2_WKEND' )
       ALD2_WKEND = 0d0
 
-      ALLOCATE( PRPE_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRPE_WKEND' )
+      ALLOCATE( PRPE_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'PRPE_WKEND' )
       PRPE_WKEND = 0d0
 
-      ALLOCATE( C2H6_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'C2H6_WKEND' )
+      ALLOCATE( C2H6_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'C2H6_WKEND' )
       C2H6_WKEND = 0d0 
 
-      ALLOCATE( C3H8_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'C3H8_WKEND' )
+      ALLOCATE( C3H8_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'C3H8_WKEND' )
       C3H8_WKEND = 0d0 
 
-      ALLOCATE( CH2O_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH2O_WKEND' )
+      ALLOCATE( CH2O_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CH2O_WKEND' )
       CH2O_WKEND = 0d0 
 
       ! Return to calling program
       END SUBROUTINE INIT_NEI2005_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

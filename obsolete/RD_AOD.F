@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,23 +16,17 @@
 !
 ! !USES:
 !
-#     include "define.h"
-
       USE ERROR_MOD,  ONLY : ERROR_STOP
       USE FILE_MOD,   ONLY : IOERROR
       USE CMN_FJX_MOD
 
       IMPLICIT NONE
-
 !
 ! !INPUT PARAMETERS:
 !     
       INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
       CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! Name of file to open
       LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
 !
 ! !REMARKS:
 !  The jv_spec_aod.dat file contains the optical properties for aerosols 
@@ -64,6 +58,7 @@
 !  10 May 2010 - C. Heald    - Initial version
 !  06 Aug 2010 - C. Carouge  - Add an error check when opening the file
 !  01 Aug 2012 - R. Yantosca - Now restore NJ1 to INTENT(IN) status
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

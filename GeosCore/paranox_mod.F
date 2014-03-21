@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -24,9 +24,21 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: READ_PARANOX_LUT
+!##############################################
+! Prior to 5/31/13:
+! Comment out, this is not used (bmy, 5/31/13)
 !      PUBLIC  :: INTERPOLATE_LUT
+!##############################################
       PUBLIC  :: INTERPOLATE_LUT2
-
+!
+! !MODULE VARIABLES
+!
+      ! fracnox                 = look up table for fraction of NOx remaining
+      !                           for ship emissions (gvinken, 6/6/10)
+      ! intope                  = look up table for integrated Ozone Production
+      !                           Efficiency for ship emiss (gvinken, 6/6/10)
+      REAL*4 ::   fracnox(4,4,4,12,12,4,5)
+      REAL*4 ::   intope(4,4,4,12,12,4,5)
 !
 ! !REMARKS
 !  References:
@@ -46,7 +58,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -64,7 +76,6 @@
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE FILE_MOD,      ONLY : IOERROR
-      USE CMN_O3_MOD          ! FRACNOX, INTOPE
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - M. Payer    - Initial version modified from code provided by
@@ -145,8 +156,11 @@
 
       END SUBROUTINE READ_PARANOX_LUT
 !EOC
+!###############################################################################
+! Prior to 5/31/13:
+! Comment out, this subroutine is not used here (bmy, 5/31/13)
 !!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!                  GEOS-Chem Global Chemical Transport Model                  !
 !!------------------------------------------------------------------------------
 !!BOP
 !!
@@ -158,33 +172,49 @@
 !!\\
 !! !INTERFACE:
 !!
-!      SUBROUTINE INTERPOLATE_LUT( I, J, fraction_nox, int_ope ) 
+!      SUBROUTINE INTERPOLATE_LUT( I, J, JO1D, JNO2, fraction_nox, int_ope,
+!     &                            Input_Opt, State_Met, State_Chm ) 
 !!
 !! !USES:
 !!
-!      USE DAO_MOD,      ONLY : TS,   AD
-!      USE DAO_MOD,      ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
-!      USE TRACERID_MOD, ONLY : IDO3, IDTOX, IDTCO
-!      USE TRACER_MOD,   ONLY : STT,  TCVV
-!      USE TIME_MOD,     ONLY : GET_LOCALTIME
-!      USE ERROR_MOD,    ONLY : ERROR_STOP
+!      USE TRACERID_MOD,       ONLY : IDO3, IDTO3, IDTCO
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!      USE TIME_MOD,           ONLY : GET_LOCALTIME
+!      USE ERROR_MOD,          ONLY : ERROR_STOP
+!      USE GIGC_State_Met_Mod, ONLY : MetState
 !
-!      USE CMN_SIZE_MOD, ONLY : IIPAR
-!      USE CMN_O3_MOD         ! fracnox, intope, jvalues
+!      USE CMN_FJ_MOD               ! Photolysis parameters
+!      USE CMN_SIZE_MOD
 !!
 !! !INPUT PARAMETERS: 
 !!
-!      INTEGER, INTENT(IN)        :: I, J
+!      INTEGER,        INTENT(IN)    :: I, J
+!      REAL*8,         INTENT(IN)    :: JO1D, JNO2
+!      TYPE(OptInput), INTENT(IN)    :: OptInput    ! Input options object
+!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS: 
+!!
+!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !!
 !! !OUTPUT PARAMETERS: 
 !!
-!      REAL,    INTENT(OUT)       :: fraction_nox, int_ope
+!      REAL,           INTENT(OUT)   :: fraction_nox, int_ope
 !!
 !! !REVISION HISTORY:
 !!     Jun 2010 - G.C.M. Vinken - Initial version
 !!  06 Feb 2012 - M. Payer      - Moved from emissions_mod.F to paranox_mod.F;
 !!                                Added ProTeX headers 
 !!  15 Feb 2012 - M. Payer      - Add error trap to ensure 0 < fracnox < 1.
+!!  09 Nov 2012 - M. Payer      - Replaced all met field arrays with State_Met
+!!                                derived type object
+!!  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID w/ State_Met%SUNCOSmid
+!!  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID_5hr w/ State_Met%SUNCOSmid5
+!!  14 Mar 2013 - M. Payer      - Replace Ox with O3 as part of removal of
+!!                                NOx-Ox partitioning
+!!  30 May 2013 - R. Yantosca   - Replace TCVV with Input_Opt%TCVV
+!
 !!EOP
 !!------------------------------------------------------------------------------
 !!BOC
@@ -237,9 +267,16 @@
 !
 !      CHARACTER(LEN=255)         :: MSG
 !
+!      ! Pointers
+!      ! We need to define local arrays to hold corresponding values 
+!      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+!      REAL*8, POINTER :: STT(:,:,:,:)
+!
 !      !=================================================================
 !      ! INTERPOLATE_LUT begins here!
 !      !=================================================================
+!
+!      stt => State_Chm%TRACERS
 !
 !      ! Set the levels that were chosen in the look up table
 !      templev  = (/ 275.,  280.,   285.,   300.   /)
@@ -258,40 +295,44 @@
 !!      PRINT*,"This is grid cell: ",I,J
 !      
 !      ! Temperature
-!!      PRINT*,"Temperature here is: ",TS(I,J)
-!!      PRINT*,"USA: ",TS(32,64)
+!!      PRINT*,"Temperature here is: ",State_Met%TS(I,J)
+!!      PRINT*,"USA: ", State_Met%TS(32,64)
 !
 !      ! Tracer concentrations in v/v
-!!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX)
-!!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ AD(I,J,1) * TCVV(IDTCO)
-!!      PRINT*,"IDTOX is: ", IDTOX
+!!      PRINT*,"[O3] is: ",STT(I,J,1,IDTO3)/ State_Met%AD(I,J,1) * TCVV(IDTO3)
+!!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ State_Met%AD(I,J,1) * TCVV(IDTCO)
+!!      PRINT*,"IDTO3 is: ", IDTO3
 !!      PRINT*,"IDO3 is: ", IDO3
-!!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/ AD(32,64,1) * TCVV(IDTOX)
-!      
+!!      PRINT*,"In USA: ",STT(32,64,1,IDTO3)/State_Met%AD(32,64,1) * TCVV(IDTO3)
+!
 !      ! SOLAR ZENITH ANGLES IN DEGREES
 !!      IJLOOP = ( (J-1) * IIPAR ) + I
 !!      PRINT*,"Local Time: ",GET_LOCALTIME(I,1,1)
 !!      PRINT*,"Solar Zenith Angle at this location: ", 
-!!     $            ASIND(SUNCOS_MID(IJLOOP))
+!!     $            ASIND(State_Met%SUNCOSmid(I,J))
 !!      IJLOOP = ( (64-1) * IIPAR ) + 32
 !!      PRINT*,"Local USA time: ", GET_LOCALTIME(32,1,1)
-!!      PRINT*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS_MID(IJLOOP))
-!!      PRINT*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS_MID_5hr(IJLOOP))
+!!      PRINT*,"Solar Zenith Angle at USA: ", 
+!!    &   ASIND(State_Met%SUNCOSmid(I,J))
+!!      PRINT*,"Solar Zenith Angle at USA - 5: ",
+!!    &   ASIND(State_Met%SUNCOSmid5(I,J))
 !      
 !      ! Set the variables
 !      IJLOOP       = ( (J-1) * IIPAR ) + I 
-!      var_array(1) = TS(I,J)                          ! Temperature
-!      var_array(2) = jvalues(I,J,1)                   ! J(NO2)
-!      var_array(3) = STT(I,J,1,IDTOX)/ AD(I,J,1) *    ! [O3] in ppbv 
-!     $               TCVV(IDTOX) * 1.E9   
-!      var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))    ! alfa0
-!      var_array(5) = ASIND(SUNCOS_MID(IJLOOP))        ! alfa5
-!      var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
-!      var_array(7) = STT(I,J,1,IDTCO)/ AD(I,J,1) *    ! [CO] in ppbv
-!     $               TCVV(IDTCO) * 1.E9   
+!      var_array(1) = State_Met%TS(I,J)                ! Temperature
+!      var_array(2) = JNO2                             ! J(NO2)
+!      var_array(3) = STT(I,J,1,IDTO3)    /            ! [O3] in ppbv 
+!     $               State_Met%AD(I,J,1) *
+!     $               Input_OPt%TCVV(IDTO3)         * 1.E9
+!      var_array(4) = ASIND(State_Met%SUNCOSmid5(I,J)) ! alfa0
+!      var_array(5) = ASIND(State_Met%SUNCOSmid(I,J))  ! alfa5
+!      var_array(6) = JO1D / JNO2                      ! J(O1D)/J(NO2)
+!      var_array(7) = STT(I,J,1,IDTCO)    /            ! [CO] in ppbv
+!     $               State_Met%AD(I,J,1) *
+!     $               Input_Opt%TCVV(IDTCO)         * 1.E9   
 !
 !      ! prevent NaN when jvalues are 0.
-!      IF (jvalues(I,J,1) .eq. 0.) var_array(6) = 0.
+!      IF (JNO2 .eq. 0.) var_array(6) = 0.
 !      
 !      ! First some error checking
 !      ! ########### MAYBE CHECK HERE FOR NEGATIVE VALUES?##########
@@ -535,10 +576,13 @@
 !!      PRINT*,"fraction_nox is: ",fraction_nox
 !!      PRINT*,"integrated OPE: ",int_ope
 !      
+!      NULLIFY( STT )
+!
 !      END SUBROUTINE INTERPOLATE_LUT
 !!EOC
+!##############################################################################
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -551,27 +595,25 @@
 ! !INTERFACE:
 !
       SUBROUTINE INTERPOLATE_LUT2( I, J, o3, no, no2, dens, JO1D, JNO2,
-     &                             fraction_nox, int_ope ) 
+     &                             fraction_nox, int_ope, State_Met ) 
 !
 ! !USES:
 !
-      USE DAO_MOD,   ONLY : TS
-      USE DAO_MOD,   ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
-      USE TIME_MOD,  ONLY : GET_LOCALTIME
-      USE ERROR_MOD, ONLY : ERROR_STOP, SAFE_DIV
-
-!      USE CMN_FJX_MOD
-      USE CMN_O3_MOD      ! fracnox, intope, jvalues
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : SAFE_DIV
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)        :: I, J
-      REAL*8,  INTENT(IN)        :: o3, no, no2, dens, JNO2, JO1D
+      INTEGER,        INTENT(IN)  :: I, J
+      REAL*8,         INTENT(IN)  :: o3, no, no2, dens, JNO2, JO1D
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL,    INTENT(OUT)       :: fraction_nox, int_ope
-
+      REAL*4,         INTENT(OUT) :: fraction_nox, int_ope
 !
 ! !REVISION HISTORY:
 !     Jun 2010 - G.C.M. Vinken - Initial version
@@ -579,6 +621,16 @@
 !  06 Feb 2012 - M. Payer      - Moved from emissions_mod.F to paranox_mod.F;
 !                                Added ProTeX headers
 !  15 Feb 2012 - M. Payer      - Add error trap to ensure 0 < fracnox < 1.
+!  09 Nov 2012 - M. Payer      - Replaced all met field arrays with State_Met
+!                                derived type object
+!  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID w/ State_Met%SUNCOSmid
+!  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID_5hr w/ State_Met%SUNCOSmid5
+!  17 Jun 2013 - R. Yantosca   - Bug fix: declare all REAL variables with
+!                                REAL*4 in order to avoid numerical precision
+!                                errors when compiling with OMP=yes.
+!  23 Aug 2013 - R. Yantosca   - Avoid numerical instability when computing
+!                                the ratio JO1D/JNO2.  J-values go to zero
+!                                at night, which can lead to a div-by-zero.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -610,22 +662,22 @@
       INTEGER, PARAMETER         :: njo1d  = 4
       INTEGER, PARAMETER         :: ncanox = 5 
  
-      REAL,    DIMENSION(ntemp)  :: templev
-      REAL,    DIMENSION(njno2)  :: jno2lev
-      REAL,    DIMENSION(ncao3)  :: cao3lev
-      REAL,    DIMENSION(nalfa0) :: alfa0lev
-      REAL,    DIMENSION(nalfa5) :: alfa5lev      
-      REAL,    DIMENSION(njo1d)  :: jo1dlev
-      REAL,    DIMENSION(ncanox) :: canoxlev
+      REAL*4,  DIMENSION(ntemp)  :: templev
+      REAL*4,  DIMENSION(njno2)  :: jno2lev
+      REAL*4,  DIMENSION(ncao3)  :: cao3lev
+      REAL*4,  DIMENSION(nalfa0) :: alfa0lev
+      REAL*4,  DIMENSION(nalfa5) :: alfa5lev      
+      REAL*4,  DIMENSION(njo1d)  :: jo1dlev
+      REAL*4,  DIMENSION(ncanox) :: canoxlev
 
       ! Temporary variable storage
-      REAL                       :: temp_tmp,  jno2_tmp,  cao3_tmp
-      REAL                       :: alfa0_tmp, alfa5_tmp, jo1d_tmp
-      REAL                       :: canox_tmp
+      REAL*4                     :: temp_tmp,  jno2_tmp,  cao3_tmp
+      REAL*4                     :: alfa0_tmp, alfa5_tmp, jo1d_tmp
+      REAL*4                     :: canox_tmp
       
       ! Interpolation parameters
-      REAL,    DIMENSION(2)      :: xtemp,     xjno2,     xcao3, xalfa0
-      REAL,    DIMENSION(2)      :: xalfa5,    xjo1d,     xcanox
+      REAL*4,  DIMENSION(2)      :: xtemp,     xjno2,     xcao3, xalfa0
+      REAL*4,  DIMENSION(2)      :: xalfa5,    xjo1d,     xcanox
       
       ! For loops
       INTEGER                    :: itemp,     ijno2,     icao3, ialfa0
@@ -633,7 +685,7 @@
       INTEGER                    :: i0,i1,i2,i3,i4,i5,i6,i7
  
       ! array contain temp, jno2, cao3, alfa_0, alfa_5, jo1d, canox
-      REAL,DIMENSION(7)          :: var_array
+      REAL*4,  DIMENSION(7)      :: var_array
 
       CHARACTER(LEN=255)         :: MSG
 
@@ -658,38 +710,41 @@
 !      PRINT*,"This is grid cell: ",I,J
       
       ! Temperature
-!      PRINT*,"Temperature here is: ",TS(I,J)
-!      PRINT*,"USA: ",TS(32,64)
+!      PRINT*,"Temperature here is: ",State_Met%TS(I,J)
+!      PRINT*,"USA: ",State_Met%TS(32,64)
 
       ! Tracer concentrations in v/v
-!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX)
-!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ AD(I,J,1) * TCVV(IDTCO)
-!      PRINT*,"IDTOX is: ", IDTOX
+!      PRINT*,"[O3] is: ",STT(I,J,1,IDTO3)/ State_Met%AD(I,J,1) * TCVV(IDTO3)
+!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ State_Met%AD(I,J,1) * TCVV(IDTCO)
+!      PRINT*,"IDTO3 is: ", IDTO3
 !      PRINT*,"IDO3 is: ", IDO3
-!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/ AD(32,64,1) * TCVV(IDTOX)
+!      PRINT*,"In USA: ",STT(32,64,1,IDTO3)/State_Met%AD(32,64,1) * TCVV(IDTO3)
       
       ! SOLAR ZENITH ANGLES IN DEGREES
 !      IJLOOP = ( (J-1) * IIPAR ) + I
 !      PRINT*,"Local Time: ",GET_LOCALTIME(I,1,1)
 !      PRINT*,"Solar Zenith Angle at this location: ", 
-!     $            ASIND(SUNCOS_MID(IJLOOP))
+!     $            ASIND(State_Met%SUNCOSmid(I,J))
 !      IJLOOP = ( (64-1) * IIPAR ) + 32
 !      PRINT*,"Local USA time: ", GET_LOCALTIME(32,1,1)
-!      PRINT*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS_MID(IJLOOP))
-!      PRINT*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS_MID_5hr(IJLOOP))
+!      PRINT*,"Solar Zenith Angle at USA: ", 
+!     &  ASIND(State_Met%SUNCOSmid(I,J))
+!      PRINT*,"Solar Zenith Angle at USA - 5: ",
+!     &  ASIND(State_Met%SUNCOSmid5(I,J))
       
       ! Set the variables
       IJLOOP       = ( (J-1) * IIPAR ) + I
-      var_array(1) = TS(I,J)                          ! Temperature
-      var_array(2) = JNO2                             ! J(NO2)
+      var_array(1) = State_Met%TS(I,J)                ! Temperature
+      var_array(2) = JNO2                             ! J(NO2), 1/s
       var_array(3) = o3 / dens * 1.E9                 ! [O3] in ppbv
-      var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))    ! alfa0
-      var_array(5) = ASIND(SUNCOS_MID(IJLOOP))        ! alfa5
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% THIS BUG FIX WAS APPLIED IN GEOS-CHEM v9-02 (bmy, 10/2/13)
-!%%% Prevent a div-by-zero condition
-      var_array(6) = SAFE_DIV(JO1D,JNO2,0d0)
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      var_array(4) = ASIND(State_Met%SUNCOSmid5(I,J)) ! alfa0
+      var_array(5) = ASIND(State_Met%SUNCOSmid(I,J))  ! alfa5
+      !--------------------------------------------------------------------
+      ! Bug fix!  Make sure JNO2 is not zero so that it is safe to divide
+      ! This was found by compiling with FPE=yes. (bmy, 8/23/13)
+      !var_array(6) = JO1D / JNO2                      ! J(O1D)/J(NO2)
+      !--------------------------------------------------------------------
+      var_array(6) = SAFE_DIV( JO1D, JNO2, 0d0 )      ! J(O1D)/J(NO2)
       var_array(7) = (no + no2) / dens * 1.E12        ! [NOx] in pptv
       
       ! prevent NaN when jvalues are 0.
@@ -922,7 +977,7 @@
 !         PRINT*,"-----INTERPOLATE_LUT2, for 108,49-----"
 !         PRINT*,"Fraction_nox and int_OPE: ", fraction_nox,
 !     &                                        int_ope
-!         PRINT*,"Jvalues are: ",              jvalues(I, J,:)
+!         PRINT*,"Jvalues are: ",              JNO2, JO1D
 !         PRINT*,"Vars are: ",                 var_array
 !         PRINT*,"[O3] in interpolate_lut: ",  var_array(3)
 !         PRINT*,"[NOx] in interpolate_lut: ", var_array(7)
@@ -940,7 +995,7 @@
 !         PRINT*,"-----INTERPOLATE_LUT2, for 73,76-----"
 !         PRINT*,"Fraction_nox and int_OPE: ", fraction_nox,
 !     &                                        int_ope
-!         PRINT*,"Jvalues are: ",              jvalues(I, J,:)
+!         PRINT*,"Jvalues are: ",              JNO2, JO1D
 !         PRINT*,"Vars are: ",                 var_array
 !         PRINT*,"[O3] in interpolate_lut: ",  var_array(3)
 !         PRINT*,"[NOx] in interpolate_lut: ", var_array(7)

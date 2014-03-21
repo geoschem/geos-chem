@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: setemis.f
+! !ROUTINE: setemis
 !
 ! !DESCRIPTION: Subroutine SETEMIS places emissions computed from GEOS-Chem
 !  subroutines into arrays for SMVGEAR II chemistry. 
@@ -17,30 +17,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETEMIS( EMISRR, EMISRRN, am_I_Root )
+      SUBROUTINE SETEMIS( EMISRR,    EMISRRN,   am_I_Root,
+     &                    Input_Opt, State_Met, RC         )
 !
 ! !USES:
 !
-      USE BIOFUEL_MOD,       ONLY : BIOFUEL,   BFTRACE, NBFTRACE
-      USE BIOMASS_MOD,       ONLY : BIOMASS,   BIOTRCE
-      ! Use this array to determine if emissions are handled here (hotp 8/3/09)
-      USE BIOMASS_MOD,       ONLY : BIOBGAS
-      USE COMODE_MOD,        ONLY : JLOP,      REMIS,   VOLUME
-      USE COMODE_MOD,        ONLY : IXSAVE,    IYSAVE,  IZSAVE
-      USE DIAG_MOD,          ONLY : AD12
-      USE GRID_MOD,          ONLY : GET_AREA_CM2
-      USE LIGHTNING_NOX_MOD, ONLY : EMIS_LI_NOx
-      USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
-      USE PRESSURE_MOD,      ONLY : GET_PEDGE
-      USE TRACERID_MOD,      ONLY : CTRMB,     IDEMIS,  IDENOX
-      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
-      USE LOGICAL_MOD,       ONLY : LNLPBL ! (Lin, 03/31/09)
-      USE LOGICAL_MOD,       ONLY : LPRT
-
-      ! RCP upgrades (CDH/SDE 2013-11-15)
-      USE RCP_MOD,           ONLY : GET_RCP_EMISSION, RCP_AC_NOx
-      USE RCP_MOD,           ONLY : OPTIONS_RCP
-      USE DAO_MOD,           ONLY : SUNCOS_MID, BXHEIGHT
+      USE BIOFUEL_MOD,        ONLY : BIOFUEL,   BFTRACE, NBFTRACE
+      USE BIOMASS_MOD,        ONLY : BIOMASS,   BIOTRCE
+      USE BIOMASS_MOD,        ONLY : BIOBGAS
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE COMODE_MOD,         ONLY : JLOP,      REMIS,   VOLUME
+      USE COMODE_MOD,         ONLY : IXSAVE,    IYSAVE,  IZSAVE
+      USE DIAG_MOD,           ONLY : AD12
+      USE EMISSIONS_MOD,      ONLY : NOx_SCALING
+      USE FAST_JX_MOD,        ONLY : FJXFUNC
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LIGHTNING_NOX_MOD,  ONLY : EMIS_LI_NOx
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TRACERID_MOD,       ONLY : CTRMB,     IDEMIS,  IDENO
 
       ! Ship plume emissions moved from calcrate.F (cdh, 4/24/2013)
       USE DRYDEP_MOD,         ONLY : SHIPO3DEP
@@ -49,27 +47,20 @@
       USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE TRACERID_MOD,       ONLY : IDTNOx, IDTOx,  IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDTNO,  IDTO3,  IDTHNO3
       USE TRACERID_MOD,       ONLY : IDNO,   IDO3,   IDHNO3, IDNO2
-      USE TRACERID_MOD,       ONLY : IDEOx,  IDEHNO3
+      USE TRACERID_MOD,       ONLY : IDENO,  IDEO3,  IDEHNO3
       USE DIAG_MOD,           ONLY : AD32_SHIP, AD32_SHIP_COUNT 
       USE DIAG_MOD,           ONLY : AD36_SHIP, AD36_SHIP_COUNT
       USE DIAG_MOD,           only : AD63,      AD63_COUNT
       USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
       USE PARANOX_MOD,        ONLY : INTERPOLATE_LUT2
       USE COMODE_MOD,         ONLY : CSPEC, AIRDENS
-      USE FAST_JX_MOD,        ONLY : FJXFUNC
-      USE LOGICAL_MOD,        ONLY : LICOADSSHIP, LEDGARSHIP, LEMEPSHIP
-      USE LOGICAL_MOD,        ONLY : LDRYD
-
-      ! NOx emissions scaling FP 15/12/09
-      USE EMISSIONS_MOD,     ONLY : NOx_SCALING
-
-#     include "define.h"
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE COMODE_LOOP_MOD  ! IDEMS, NEMIS
-      USE CMN_DIAG_MOD  ! Diagnostic flags
-      USE CMN_NOX_MOD   ! GEMISNOX2
+      USE RCP_MOD,            ONLY : GET_RCP_EMISSION, RCP_AC_NOx
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! IDEMS, NEMIS
+      USE CMN_DIAG_MOD             ! Diagnostic flags
+      USE CMN_NOX_MOD              ! GEMISNOX2
 
       IMPLICIT NONE
 
@@ -77,13 +68,24 @@
 ! !INPUT PARAMETERS:
 !
       ! CO, hydrocarbon emission   [molec tracer/box/s]
-      REAL*8,  INTENT(IN) :: EMISRR(IIPAR,JJPAR,NEMPARA+NEMPARB)
+      REAL*8,         INTENT(IN)  :: EMISRR(IIPAR,JJPAR,NEMPARA+NEMPARB)
 
       ! Multi-level NOx emissions  [molec NOx/box/s]
-      REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
+      REAL*8,         INTENT(IN)  :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
 
       ! Is this the root CPU?
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+
+      ! Input Options object
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC 
 !
 ! !REMARKS:
 !  Developers: lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 6/11/08
@@ -168,6 +170,23 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  02 Aug 2012 - R. Yantosca - Add error trap for JLOOP=0 under DEVEL tag
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LPRT and Input_Opt%LNLPBL
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
+!  17 Jun 2013 - R. Yantosca - Bug fix: declare FRACTION_NOX, INT_OPE with
+!                              REAL*4 explicitly to avoid numerical errors
+!                              when OMP=yes.
+!  18 Jun 2013 - R. Yantosca - Bug fix: always add into REMIS to better ensure
+!                              that identical results will be obtained when
+!                              compiling with OMP=no vs. OMP=yes.
+!  18 Jun 2013 - R. Yantosca - Remove COEF11 variable, that is always =1 for
+!                              O3, HNO3, and NO.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCPSHIP from Input_Opt
+!  31 Jul 2013 - M. Sulprizio- Now only add aircraft emissions to REMIS if using
+!                              RCP aircraft emissions. Emissions are added
+!                              directly to STT in aeic_mod.F when using AEIC
+!                              aircraft emissions.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,24 +194,35 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: IS_LI_NOx
-      INTEGER :: I, J,  JLOOP, JLOOP1, LTROP
-      INTEGER :: L, LL, N, NN,  NBB, NBF, TOP, TOPMIX
-      REAL*8  :: COEF1,   TOTPRES, DELTPRES
-      REAL*8  :: EMIS_BL, NOXTOT,  TOTAL, A_CM2
+      LOGICAL          :: IS_LI_NOx
+      INTEGER          :: I, J,  JLOOP, JLOOP1, LTROP
+      INTEGER          :: L, LL, N, NN,  NBB, NBF, TOP, TOPMIX
+      REAL*8           :: COEF1,   TOTPRES, DELTPRES
+      REAL*8           :: EMIS_BL, NOXTOT,  TOTAL, A_CM2
 
       ! Added by G. Vinken, C. Holmes
-      REAL*8           :: SHIP,   TOTO3
-      REAL*8           :: DTSRCE, AREA_CM2, JO1D, JNO2
+      REAL*8           :: SHIP,   TOTO3, JNO2, JO1D
+      REAL*8           :: DTSRCE, AREA_CM2
       REAL*4           :: FRACTION_NOX, INT_OPE 
       INTEGER          :: NK
       CHARACTER*8      :: SPECNAME
-      REAL*8, EXTERNAL :: FJFUNC
       
+      ! For fields from Input_Opt
+      LOGICAL          :: LDRYD,       LNLPBL,     LPRT
+      LOGICAL          :: LICOADSSHIP, LEDGARSHIP, LEMEPSHIP     
+      LOGICAL          :: LRCPSHIP,    LRCPAIR
+
+      !%%% BMY KLUDGE to only print out warning message about 
+      !%%% non-emitted tracers on the first timestep (bmy, 5/28/13)
+      LOGICAL, SAVE    :: FIRST = .TRUE.
+
       !=================================================================
       ! SETEMIS begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+      
       ! some ajdustments for non-local PBL (Lin, 03/31/09)
       ! NOTE: If NCS=0 and we are NOT doing a full-chemistry run, then
       ! setting REMIS=0 can lead to a seg-fault error.  Therefore, you should
@@ -203,18 +233,36 @@
          RETURN
       ENDIF
 
-      ! Test if the EMIS_LI_NOx allocated
-      IS_LI_NOx = ALLOCATED( EMIS_LI_NOx )
+      ! Test if the EMIS_LI_NOx array is allocated
+      IS_LI_NOx   = ALLOCATED( EMIS_LI_NOx )
+      
+      ! Now use logical fields from Input_Opt
+      LDRYD       = Input_Opt%LDRYD
+      LNLPBL      = Input_Opt%LNLPBL
+      LPRT        = Input_Opt%LPRT
+      LICOADSSHIP = Input_Opt%LICOADSSHIP
+      LEDGARSHIP  = Input_Opt%LEDGARSHIP 
+      LEMEPSHIP   = Input_Opt%LEMEPSHIP
+      LRCPSHIP    = Input_Opt%LRCPSHIP
+      LRCPAIR     = Input_Opt%LRCPAIR
+
+      ! Emission timestep [s]
+      DTSRCE = GET_TS_EMIS() * 60d0
 
       IF ( LPRT .and. am_I_Root ) THEN
-         WRITE(*,*) 'SCALE NOx emissions by', NOx_SCALING
+         WRITE(6,*) 'SCALE NOx emissions by', NOx_SCALING
       ENDIF
 
-!$OMP PARALLEL DO 
+      ! Initialize REMIS(*,N) -- the emission rate array
+      REMIS = 0d0
+
+!$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( N,     NN,  NBB,     NBF,    I,        J,     L, JLOOP )
-!$OMP+PRIVATE( COEF1, TOP, TOTPRES, NOXTOT, DELTPRES, EMIS_BL,  A_CM2 )
-!$OMP+PRIVATE( TOPMIX )
+!$OMP+PRIVATE( N,       NN,     NBB,      NBF,          I       )
+!$OMP+PRIVATE( J,       L,      JLOOP,    COEF1,        TOP     )
+!$OMP+PRIVATE( TOTPRES, NOXTOT, DELTPRES, EMIS_BL,      A_CM2   )
+!$OMP+PRIVATE( TOTO3,   SHIP,   AREA_CM2, FRACTION_NOX, INT_OPE )
+!$OMP+PRIVATE( NK,      JNO2,   JO1D,     SPECNAME,     TOPMIX  )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over emission species
@@ -255,15 +303,10 @@
             ENDDO
          ENDIF            
 
-         ! Initialize REMIS(*,N) -- the emission rate array
-         DO JLOOP = 1, NTTLOOP
-            REMIS(JLOOP,N) = 0d0
-         ENDDO       
-
          ! Skip to next tracer if IDEMIS(NN) is not defined in 
          ! order to avoid array-out-of-bounds errors (bmy, 8/6/04)
          IF ( IDEMIS(NN) <= 0 ) THEN
-            IF ( am_I_Root ) THEN
+            IF ( FIRST .and. am_I_Root ) THEN
                PRINT*, 'Tracer ', NN, ' is not an emitted species!'
             ENDIF
             CYCLE
@@ -297,7 +340,8 @@
             TOTPRES = GET_PEDGE(I,J,1) - GET_PEDGE(I,J,TOP+1)
 
             ! For NOx only....
-            IF ( N == IDENOX ) THEN
+            ! Replaced NOx with NO (mpayer, 3/14/13)
+            IF ( N == IDENO ) THEN
 
                !========================================================
                ! Anthropogenic NOx emissions [molec/box/s]
@@ -309,7 +353,7 @@
                DO L = 1, TOPMIX
                   NOXTOT = NOXTOT + EMISRRN(I,J,L)
                ENDDO
-
+               
                ! Loop over the boundary layer
                DO L = 1, TOP
                   JLOOP   = JLOP(I,J,L)
@@ -334,6 +378,7 @@
                      ! Convert anthro NOx emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
                      REMIS(JLOOP,N) = EMIS_BL / VOLUME(JLOOP)
+
                   ENDIF
                ENDDO
 
@@ -389,11 +434,12 @@
                      ! Store in the REMIS array for SMVGEAR.
                      REMIS(JLOOP,N) = REMIS(JLOOP,N) + 
      &                                ( EMIS_BL / VOLUME(JLOOP) ) 
+
                   ENDIF
                ENDDO
 
                !========================================================
-               ! Lightning NOx [molec/cm3/s]
+               ! Aircraft and Lightning NOx [molec/cm3/s]
                ! Distribute emissions in the chemistry grid
                !========================================================
                DO L = 1, LLCHEM
@@ -401,7 +447,7 @@
                   ! Now use ITS_IN_THE_NOCHEMGRID to check whether
                   ! we are in a region where partitioning is valid
                   ! (SDE 03/24/13)
-                  IF ( ITS_IN_THE_NOCHEMGRID(I,J,L) ) EXIT
+                  IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,State_Met) ) EXIT
                   
                   JLOOP   = JLOP(I,J,L)
                   EMIS_BL = 0d0
@@ -420,10 +466,21 @@
 
                         ! Save lightning NOx [molec NO/cm3/s] in REMIS
                         REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
+
                      ENDIF
 
-                     ! RCP aircraft emissions
-                     IF ( OPTIONS_RCP%LRCPAIR ) THEN
+                     !-----------------
+                     ! Aircraft NOx
+                     !-----------------
+
+                     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                     !% NOTE: Aircraft emissions from the AEIC     %
+                     !% inventory are added directly into the STT  %
+                     !% array in aeic_mod.F (mpayer, 7/31/13)      %
+                     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                     ! If using aircraft emissions from RCP scenarios
+                     IF ( LRCPAIR ) THEN
 
                         ! Divide aircraft NOx by COEF1 to convert
                         ! from [molec NOx/cm3/s] to [molec NO/cm3/s], since
@@ -437,7 +494,7 @@
 
                      ! NOx scaling moved here for optimisation. (ccc, 11/10/10)
                      ! Add possible scaling of NOx emissions
-                     REMIS(JLOOP,N) = NOx_SCALING * REMIS(JLOOP,N)
+                     REMIS(JLOOP,N) = NOx_SCALING * REMIS(JLOOP,N)             
 
                   ENDIF
                ENDDO
@@ -450,7 +507,7 @@
                 
                ! Update only if ship emissions are turned on
                IF ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP .or. 
-     &                               OPTIONS_RCP%LRCPSHIP ) THEN
+     &              LRCPSHIP ) THEN
 
                   ! Surface area of grid box
                   AREA_CM2 = GET_AREA_CM2( I, J, 1 )
@@ -470,14 +527,14 @@
                   ELSE IF ( LICOADSSHIP ) THEN
 
                      ! Get ICOADS  emissions for NOx [molec/cm2/s]
-                     SHIP = GET_ICOADS_SHIP( I, J, IDTNOx, 
+                     SHIP = GET_ICOADS_SHIP( I, J, IDTNO, 
      &                      MOLEC_CM2_S=.TRUE. )
                   
                   ! RCP ship emissions (cdh, 10/14/11)
-                  ELSE IF ( OPTIONS_RCP%LRCPSHIP ) THEN
+                  ELSE IF ( LRCPSHIP ) THEN
 
                      ! Get SHIP RCP emissions for NOx [molec/cm2/s]
-                     SHIP = GET_RCP_EMISSION( I, J, IDTNOx,  
+                     SHIP = GET_RCP_EMISSION( I, J, IDTNO,  
      &                      LAND=.FALSE., SHIP=.TRUE.)
 
                   ENDIF
@@ -489,7 +546,7 @@
                      IF (GET_EUROPE_MASK( I, J ) > 0d0) THEN
            
                         ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
-                        SHIP = GET_EMEP_ANTHRO( I, J, IDTNOx, 
+                        SHIP = GET_EMEP_ANTHRO( I, J, IDTNO, 
      &                         SHIP=.TRUE. )
 
                      ENDIF
@@ -504,7 +561,7 @@
                   !----------------------------------
 
                   ! Check if sun is up
-                  IF ( SUNCOS_MID(((J-1)*IIPAR) + I) > 0d0 ) THEN
+                  IF ( State_Met%SUNCOSmid(I,J) > 0d0 ) THEN
 
                      ! Loop over photolysis reactions to find NO2, O3
                      DO L = 1, JPHOTRAT(NCS)
@@ -549,7 +606,8 @@
      &                 CSPEC(JLOOP,IDO3),  CSPEC(JLOOP,IDNO),
      &                 CSPEC(JLOOP,IDNO2), AIRDENS(JLOOP),
      &                 JO1D,               JNO2, 
-     &                 FRACTION_NOx,       INT_OPE)
+     &                 FRACTION_NOx,       INT_OPE,
+     &                 State_Met           )
 
                   !-----------------
                   ! Ship NO
@@ -579,7 +637,7 @@
 
                      ! Convert anthro NOx emissions from [molec NO/cm2/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,IDENOx) = REMIS(JLOOP,IDENOx) 
+                     REMIS(JLOOP,IDENO) = REMIS(JLOOP,IDENO) 
      &                                  + ( EMIS_BL * AREA_CM2 ) 
      &                                  / VOLUME(JLOOP)
 
@@ -662,7 +720,7 @@
                         ! The ratio ( AREA_CM2 / VOLUME(JLOOP) ) converts
                         ! molec/cm2 to molec/cm3
                         ! Final units: molec(O3)/cm3/s
-                        REMIS(JLOOP,IDEOx) = REMIS(JLOOP,IDEOx) 
+                        REMIS(JLOOP,IDEO3) = REMIS(JLOOP,IDEO3) 
      &                                     + EMIS_BL 
      &                                     * ( DELTPRES / TOTPRES ) 
      &                                     * AREA_CM2 / VOLUME(JLOOP) 
@@ -684,7 +742,7 @@
                         IF ( JLOOP == 0 ) CYCLE
 
                         ! Cumulative O3 in the PBL, molec(O3)/cm2
-                        TOTO3 = TOTO3 + ( BXHEIGHT(I,J,L) *
+                        TOTO3 = TOTO3 + ( State_Met%BXHEIGHT(I,J,L) *
      &                          1d2 ) * CSPEC(JLOOP,IDO3)
                         
                      ENDDO
@@ -712,10 +770,10 @@
                      AD36_SHIP(I,J,IDEHNO3) = AD36_SHIP(I,J,IDEHNO3) + 
      &                    SHIP * (1D0 - FRACTION_NOx)
                      
-                     AD36_SHIP(I,J,IDEOx)  = AD36_SHIP(I,J,IDEOx) + 
+                     AD36_SHIP(I,J,IDEO3)  = AD36_SHIP(I,J,IDEO3) + 
      &                    SHIP * (1D0 - FRACTION_NOx) * INT_OPE
     
-                     AD36_SHIP(I,J,IDENOx) = AD36_SHIP(I,J,IDENOx) + 
+                     AD36_SHIP(I,J,IDENO) = AD36_SHIP(I,J,IDENO) + 
      &                    SHIP * FRACTION_NOx
 
                      ! Increment counter, only once per time step
@@ -802,7 +860,9 @@
 
                      ! Convert emissions from [molec species/box/s] to 
                      ! [molec species/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,N) = EMIS_BL / VOLUME(JLOOP)
+                     REMIS(JLOOP,N) = REMIS(JLOOP,N) 
+     &                              + ( EMIS_BL / VOLUME(JLOOP) )
+
                   ENDIF
                ENDDO
             ENDIF
@@ -910,6 +970,10 @@
          ENDDO  ! J
       ENDDO     ! N
 !$OMP END PARALLEL DO
+
+      !%%% BMY KLUDGE to only print out warning message about 
+      !%%% non-emitted tracers on the first timestep (bmy, 5/28/13)
+      FIRST = .FALSE.
 
       END SUBROUTINE SETEMIS
 !EOC

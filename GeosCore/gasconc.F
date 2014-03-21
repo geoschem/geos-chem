@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -11,42 +11,49 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GASCONC( am_I_Root, 
-     &                    FIRSTCHEM, NTRACER,   STT, 
-     &                    XNUMOL,    FRCLND,    READ_CSPEC )
+      SUBROUTINE GASCONC( am_I_Root, FIRSTCHEM, READ_CSPEC, 
+     &                    Input_Opt, State_Met, State_Chm,  RC )
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE
-      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
-      USE COMODE_MOD,     ONLY : CSPEC_FULL, JLOP
-      USE DRYDEP_MOD,     ONLY : NUMDEP
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_TROP, COPY_FULL_CHEMGRID
-      USE LOGICAL_MOD,    ONLY : LVARTROP
-      USE DAO_MOD,        ONLY : T
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE ERROR_MOD,      ONLY : ERROR_STOP ! (dkh, 10/06/06)  
-      USE LOGICAL_MOD,    ONLY : LSOA ! (dkh, 10/06/06) 
-      
-      USE CMN_SIZE_MOD                                ! Size parameters
-      USE COMODE_LOOP_MOD                             ! SMVGEAR II arrays
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,       ONLY : COPY_FULL_CHEMGRID
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE COMODE_MOD,         ONLY : ABSHUM
+      USE COMODE_MOD,         ONLY : AIRDENS
+      USE COMODE_MOD,         ONLY : CSPEC
+      USE COMODE_MOD,         ONLY : IXSAVE
+      USE COMODE_MOD,         ONLY : IYSAVE
+      USE COMODE_MOD,         ONLY : IZSAVE
+      USE COMODE_MOD,         ONLY : JLOP
+      USE COMODE_MOD,         ONLY : PRESS3
+      USE COMODE_MOD,         ONLY : T3
+      USE DRYDEP_MOD,         ONLY : NUMDEP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)     :: am_I_Root            ! Is this the root CPU?
-      LOGICAL, INTENT(IN)     :: FIRSTCHEM            ! First-time flag
-      INTEGER, INTENT(IN)     :: NTRACER              ! # of tracers
-      REAL*8,  INTENT(IN)     :: XNUMOL(NTRACER)      ! Molec tracer/kg tracer
-      REAL*8,  INTENT(IN)     :: FRCLND(IIPAR,JJPAR)  ! Land fraction
-      LOGICAL, INTENT(IN)     :: READ_CSPEC           ! Is 
+      LOGICAL,        INTENT(IN)    :: am_I_Root       ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: FIRSTCHEM       ! First-time flag
+      LOGICAL,        INTENT(IN)    :: READ_CSPEC      ! Is 
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt       ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met       ! Met State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! Tracer concentrations 
-      REAL*8,  INTENT(INOUT)  :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+      INTEGER,        INTENT(OUT)   :: RC              ! Success or failure?
 !
 ! !REMARKS:
 !
@@ -109,12 +116,22 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA and Input_Opt%LVARTROP
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  25 Mar 2013 - R. Yantosca - Now get XNUMOL, N_TRACERS from Input_Opt
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
+      LOGICAL :: LSOA
+      LOGICAL :: LVARTROP
       INTEGER :: IX, IY, IZ, N, NK, JJ
       INTEGER :: JGAS,JLOOP,NGASMIX,JALTS,K,J,NM,L,JN,MLOOP,I
       INTEGER :: IPCOMPAR,JRUN,JNEW,JOLD,NGCOUNT,IAVG,KN,SUM,SUM1
@@ -123,13 +140,36 @@
       REAL*8  :: QACC,FRACDIF,FRACABS,AVGERR,RMSCUR
       REAL*8  :: TK,CONSEXP,VPRESH2O,CONST
 
+      ! For fields from Input_Opt
+      INTEGER         :: NTRACER
+      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+
       !=================================================================
       ! GASCONC begins here!
       !=================================================================
 
+      ! Assume success
+      RC         =  GIGC_SUCCESS
+
       ! Set NCS=NCSURBAN here since we have defined our tropospheric
       ! chemistry mechanism in the urban slot of SMVGEAR II
-      NCS = NCSURBAN
+      NCS        =  NCSURBAN
+
+      ! Now use l ogical fields from the Input_Opt object
+      LSOA       =  Input_Opt%LSOA
+      LVARTROP   =  Input_Opt%LVARTROP
+      NTRACER    =  Input_Opt%N_TRACERS
+      XNUMOL     =  Input_Opt%XNUMOL(1:NTRACER)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      ! NOTE: May only need to do this for traditional G-C runs
+      CSPEC_FULL => State_Chm%Species
 
       !=================================================================
       ! First time through here, copy initial conditions from QBKCHEM
@@ -172,7 +212,8 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-                  CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
+                  CONST = GET_PCENTER(IX,IY,IZ) * 1000D0 / 
+     &                  ( State_Met%T(IX,IY,IZ) * BK )
                 
                   !------------------------------
                   ! Test for altitude
@@ -183,7 +224,7 @@
                      !---------------------------
                      ! Test for ocean/land boxes
                      !---------------------------
-                     IF ( FRCLND(IX,IY) >= 0.5 ) THEN
+                     IF ( State_Met%FRCLND(IX,IY) >= 0.5 ) THEN
 
                          ! Continental boundary layer: 2 ppbv MOH
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 2.000d-9 * CONST
@@ -207,7 +248,8 @@
                      !---------------------------
                      ! Test for troposphere
                      !---------------------------
-                     IF ( ITS_IN_THE_TROP( IX, IY, IZ ) ) THEN
+                     IF ( ITS_IN_THE_TROP( IX, IY, IZ, 
+     &                                     State_Met ) ) THEN
                       
                         ! Free troposphere: 0.6 ppbv MOH
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 0.600d-9 * CONST
@@ -238,7 +280,8 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-                  CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
+                  CONST = GET_PCENTER(IX,IY,IZ) * 1000D0 /
+     &                  ( State_Met%T(IX,IY,IZ) * BK )
                 
                   ! Copy default background conc. from "globchem.dat" to CSPEC
                   CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)* CONST
@@ -258,14 +301,40 @@
  28      CONTINUE
       ENDIF        !(FIRSTCHEM)
       
-      ! If it's the first chemistry timestep then we need to copy the
-      ! concentrations from CSPEC_FULL into CSPEC.  We also need to do
-      ! this on subsequent chemistry timesteps if the variable tropopause
-      ! is turned on. (bdf, phs, bmy, 10/3/06)
-      ! NOTE : 
-      ! (1 ) copy CSPEC_FULL to CSPEC depending on READ_CSPEC (hotp, 2/25/09)
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! When we connect to the ESMF interface, the CSPEC_FULL array
+      ! is defined from the values in the Chemistry State.  We need
+      ! to copy these values to the CSPEC array for the rest of the
+      ! chemistry routines to function properly.  Therefore, call
+      ! COPY_FULL_TROP from tropopause_mod.F every time.
+      !-----------------------------------------------------------------
+      CALL COPY_FULL_TROP( State_Chm )
 
-      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_CHEMGRID
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Preserve current practice in the std GEOS-Chem: (bmy, 10/24/12)
+      !
+      !    If it's the first chemistry timestep then we need to copy
+      !    the concentrations from CSPEC_FULL into CSPEC.  We also
+      !    need to do this on subsequent chemistry timesteps if the
+      !    variable tropopause is turned on. (bdf, phs, bmy, 10/3/06)
+      !
+      !    NOTE:
+      !    (1 ) copy CSPEC_FULL to CSPEC depending on
+      !         READ_CSPEC (hotp, 2/25/09)
+      !-----------------------------------------------------------------
+      IF ( FIRSTCHEM .or. READ_CSPEC )
+     &     CALL COPY_FULL_CHEMGRID( State_Chm )
+
+#endif
+
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
 
 !  ********************************************************************
 !  *            Update starting concentrations for plumes             *
@@ -276,7 +345,7 @@
 !   should be added as needed to other chemistries.
 !      if (NCS .eq. 1) then
 !  maybe??
-      CALL PARTITION( NTRACER, STT, XNUMOL, am_I_Root ) 
+      CALL PARTITION( NTRACER, XNUMOL, am_I_Root, State_Chm ) 
 !      endif
 
 ! 
@@ -359,6 +428,20 @@
       ENDIF 
 !
 ! *********************************************************************
+! *         ZERO OUT ISOPRENE-NO3 OXIDATION COUNTER SPECIES
+! *                    SOAupdate (hotp 6/1/10)  
+! *********************************************************************
+! LISOPNO3  = Dummy species for tracking loss of isoprene due to rxn w/ NO3
+! ILISOPNO3 = Location of LISOPNO3 in CSPEC (tracerid_mod.f)
+! updated 6/11/10 hotp
+!
+      IF ( ILISOPNO3 > 0 ) THEN
+         DO JLOOP = 1, NTLOOP
+            CSPEC(JLOOP,ILISOPNO3) = 0d0
+         ENDDO
+      ENDIF 
+!
+! *********************************************************************
 ! *           zero out aromatic oxidation counter species
 ! *            (dkh, 10/06/06)  
 ! *********************************************************************
@@ -374,6 +457,10 @@
 ! ILTRO2N Location of LTRO2N in CSPEC
 ! ILXRO2H Location of LXRO2H in CSPEC
 ! ILXRO2N Location of LXRO2N in CSPEC
+!
+! SOAupdate: Now also zero out LNRO2H and LNRO2N in CPSEC for NAP (hotp 6/25/09)
+! ILNRO2H Location of LNRO2H in CSPEC
+! ILNRO2N Location of LNRO2N in CSPEC
 !
 
       ! Check if we have 2dy organic aerosols
@@ -396,6 +483,15 @@
                CSPEC(JLOOP,ILXRO2H) = 0d0
                CSPEC(JLOOP,ILXRO2N) = 0d0
             ENDDO
+
+            ! SOAupdate: allow NAP to be present or not in rxns (9/13/09)
+            IF ( ILNRO2H > 0 .and. ILNRO2N > 0  ) THEN
+               DO JLOOP = 1, NTLOOP
+                  ! add NAP species (hotp 6/25/09)
+                  CSPEC(JLOOP,ILNRO2H) = 0d0
+                  CSPEC(JLOOP,ILNRO2N) = 0d0
+               ENDDO
+            ENDIF
 
          ! Exit with an error message if it is not. 
          ELSE
@@ -559,7 +655,7 @@
         ENDIF
        ENDIF
       ENDIF
-!
+
  475  FORMAT(4X,'SPECIES',5X,'GEARCONC     chem.dat    % ERROR IFAVG')
  495  FORMAT(A14,2(1X,1PE11.4),2X,0PF8.2,'%',3X,I1)
  505  FORMAT(I3,37X,F8.2,'%   AVERAGE OF ',I5,' SPECIES')

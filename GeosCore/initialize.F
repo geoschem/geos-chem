@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -38,8 +38,6 @@
       USE LOGICAL_MOD
 
       IMPLICIT NONE
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -118,13 +116,21 @@
 !  (44) Add initialization of counter for diag time steps. (ccc, 7/20/09)
 !  (45) Define new diagnostics, ND19, ND58, ND60 for methane 
 !       (kjw, 8/18/09)
-!  (46) Add potential temperature diagnostic. (fp, 06/09)
+!  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
+!  (47) Add potential temperature diagnostic. (fp, 06/09)
+!  (48) Add TOMAS diags using ifdefs. (sfarina, 01/13)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
 !  08 Feb 2012 - R. Yantosca - Rewrote USE statements, for clarity
 !  08 Feb 2012 - R. Yantosca - Now also reset the counter for I3 timesteps
 !  15 Oct 2012 - R. Yantosca - Bug fix, make sure Counter arrays CTLBRO2H etc. 
 !                              are allocated before we use them
+!  02 Apr 2013 - M. Payer    - Remove code for CTNO, CTNO2, and CTNO3. These
+!                              are no onger needed because NO, NO2, and NO3
+!                              are now tracers.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  08 Nov 2013 - M. Sulprizio- Removed CTO3. It is no longer used because O3
+!                              is now a tracer.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -171,7 +177,6 @@
          IF ( ND33 > 0 ) AD33     = 0e0
          IF ( ND34 > 0 ) AD34     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0
-         IF ( ND36 > 0 ) AD36     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
          IF ( ND38 > 0 ) AD38     = 0e0
          IF ( ND39 > 0 ) AD39     = 0e0
@@ -302,6 +307,30 @@
             CALL ZERO_DIAG56
          ENDIF
 
+#if   defined( TOMAS )
+         ! For ND59 - size-resolved primary aerosol emissions (win, 7/28/09)
+         IF ( ND59 > 0 ) THEN 
+            AD59_NUMB = 0e0
+            AD59_SULF = 0e0
+            AD59_SALT = 0e0
+            AD59_ECIL = 0e0
+            AD59_ECOB = 0e0
+            AD59_OCIL = 0e0
+            AD59_OCOB = 0e0
+            AD59_DUST = 0e0
+         ENDIF
+
+         ! For ND60 - aerosol microphysics (win, 7/28/09)
+         IF ( ND60 > 0 ) THEN
+            AD60_COND = 0e0
+            AD60_COAG = 0e0
+            AD60_NUCL = 0e0
+            AD60_AQOX = 0e0
+            AD60_ERROR = 0e0
+            AD60_SOA   = 0e0
+         ENDIF
+#endif
+
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)
          IF ( ND65 > 0 ) THEN
             AD65  = 0d0
@@ -340,28 +369,13 @@
          IF ( ND17 >               0 ) CT17       = 0
          IF ( ND18 >               0 ) CT18       = 0
          IF ( ND22 >               0 ) CTJV       = 0
-         IF ( ND43 >               0 ) CTNO       = 0
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND43 >               0 ) CTO1D      = 0
          IF ( ND43 >               0 ) CTO3P      = 0
          IF ( ND45 >               0 ) CTOTH      = 0
-         IF ( ND45 >               0 ) CTO3       = 0
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
-         IF ( ND43 >               0 ) CTNO2      = 0
          IF ( ND43 >               0 ) CTHO2      = 0
-         IF ( ND43 >               0 ) CTNO3      = 0
          ! update for arom (dkh, 06/21/07)  
-!-----------------------------------------------------------------------------
-! Prior to 10/15/12:
-! Test if each of these are allocated before using them.  Otherwise the 
-! code will fail in the ESMF sandbox. (bmy, 10/15/12)
-!         IF ( ND43 >               0 ) CTLBRO2H   = 0
-!         IF ( ND43 >               0 ) CTLBRO2N   = 0
-!         IF ( ND43 >               0 ) CTLTRO2H   = 0
-!         IF ( ND43 >               0 ) CTLTRO2N   = 0
-!         IF ( ND43 >               0 ) CTLXRO2H   = 0
-!         IF ( ND43 >               0 ) CTLXRO2N   = 0
-!-----------------------------------------------------------------------------
          IF ( ND43 > 0 ) THEN
             IF ( ALLOCATED( CTLBRO2H ) ) CTLBRO2H   = 0
             IF ( ALLOCATED( CTLBRO2N ) ) CTLBRO2N   = 0
