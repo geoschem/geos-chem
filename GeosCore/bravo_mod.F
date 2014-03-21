@@ -603,7 +603,6 @@
       REAL*8                  :: XTAU
       CHARACTER(LEN=255)      :: FILENAME 
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*4                  :: J
 
       !=================================================================
       ! READ_BRAVO_MASK begins here!

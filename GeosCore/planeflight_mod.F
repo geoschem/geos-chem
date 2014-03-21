@@ -2024,7 +2024,7 @@
       ! Arrays for netCDF start and count values
       INTEGER            :: st1d(1), ct1d(1)
       INTEGER            :: st2d(2), ct2d(2)
-      INTEGER            :: st3d(3), ct3d(3), dummy(80)
+      INTEGER            :: st3d(3), ct3d(3), dummy(81)
        
       !=================================================================
       ! SAVE_CURTAIN begins here!
@@ -2085,7 +2085,7 @@
 
       ! Define the tracer number - currently hardwired for SEAC4RS
       v_name = 'tracers'
-      CALL NcDef_Dimension( fId, TRIM(v_name), 80, id_tracers )
+      CALL NcDef_Dimension( fId, TRIM(v_name), 81, id_tracers )
 
       !--------------------------------
       ! VARIABLE: lon
@@ -2369,8 +2369,8 @@
 
       ! Write dummy tracer number to netCDF file
       st1d   = (/ 1  /)
-      ct1d   = (/ 80 /)
-      dummy  = (/( I, I = 1, 80 )/)
+      ct1d   = (/ 81 /)
+      dummy  = (/( I, I = 1, 81 )/)
       v_name = "tracers" 
       CALL NcWr( dummy, fId, TRIM(v_name), st1d, ct1d )
 
@@ -2386,7 +2386,7 @@
       CALL NcWr( HEIGHT_CURTAIN, fId, TRIM(v_name), st2d, ct2d )
 
       st3d   = (/ 1, 1, 1 /)
-      ct3d   = (/ size(TRACER_CURTAIN,1), size(TRACER_CURTAIN,2), 80 /)
+      ct3d   = (/ size(TRACER_CURTAIN,1), size(TRACER_CURTAIN,2), 81 /)
       v_name = "t_curtain"
       CALL NcWr( TRACER_CURTAIN, fId, TRIM(v_name), st3d, ct3d )
 
@@ -2832,7 +2832,7 @@
       ALLOCATE( HEIGHT_CURTAIN( NPOINTS, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HEIGHT_CURTAIN' )
 
-      ALLOCATE( TRACER_CURTAIN( NPOINTS, LLPAR, 80 ), STAT=AS )
+      ALLOCATE( TRACER_CURTAIN( NPOINTS, LLPAR, 81 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_CURTAIN' )
 
       ALLOCATE( SNA_CURTAIN ( NPOINTS, LLPAR ), STAT=AS )

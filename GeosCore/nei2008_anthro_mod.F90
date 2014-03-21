@@ -703,8 +703,10 @@
          FILENAMEWE_NH3ag = TRIM(DATA_DIR_NH3_ag) // &
                             'NEI08_2010_1x1_'     // &
                             TRIM( TTMON        )  // '_wkend_regrid.nc'
-         FILENAME_ScAg    = TRIM(DATA_DIR_NH3_ag) // &
-                            'MASAGE_NEI08_Ratio.geos.1x1.nc'
+!        Kludge for SEAC4RS (skim, 3/6/14)
+        FILENAME_ScAg    = TRIM(DATA_DIR_NH3_ag) // &
+!       FILENAME_ScAg    = '/home/jaf/emissions/NH3/NH3_MASAGE/' // &
+                           'MASAGE_NEI08_Ratio.geos.1x1.nc'
          CALL Ncop_Rd(fId1e, TRIM(FILENAMEWD_NH3ag)) ! NH3ag weekday
          CALL Ncop_Rd(fId2e, TRIM(FILENAMEWE_NH3ag)) ! NH3ag weekend
       ENDIF
@@ -2234,8 +2236,10 @@
          FILENAMEWE_NH3ag = TRIM(DATA_DIR_NH3_ag) // &
                             'NEI08_2010_25x3125_' // &
                             TRIM( TTMON        )  // '_wkend_regrid.nc'
-         FILENAME_ScAg    = TRIM(DATA_DIR_NH3_ag) // &
-                            'MASAGE_NEI08_Ratio.geos.025x03125.nc'
+!        Kludge for SEAC4RS (skim, 3/6/14)
+        FILENAME_ScAg    = TRIM(DATA_DIR_NH3_ag) // &
+!       FILENAME_ScAg    = '/home/jaf/emissions/NH3/NH3_MASAGE/' // &
+                           'MASAGE_NEI08_Ratio.geos.025x03125.nc'
          CALL Ncop_Rd(fId1e, TRIM(FILENAMEWD_NH3ag)) ! NH3ag weekday
          CALL Ncop_Rd(fId2e, TRIM(FILENAMEWE_NH3ag)) ! NH3ag weekend
       ENDIF

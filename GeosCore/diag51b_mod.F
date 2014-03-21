@@ -767,7 +767,9 @@
      &                         ( GET_PBL_TOP_L( I, J ) * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 80 ) THEN
+            ! Needed as a kludge for the SEAC4RS code since we 
+            !   we now have 81 tracers (skim, 3/4/14)
+            ELSE IF ( N == 101 ) THEN
 
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
@@ -1608,6 +1610,8 @@
             GMNL     = 1
             GMTRC    = 2
 
+         ! Needed as a kludge for the SEAC4RS code since we
+         !   we now have 81 tracers (skim, 3/4/14)
          ELSE IF ( N == 80 ) THEN
 
             !---------------------

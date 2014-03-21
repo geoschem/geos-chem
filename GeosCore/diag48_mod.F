@@ -426,7 +426,7 @@
             ! Free pointer
             NULLIFY( STT )
 
-         ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 106 .and. IS_FULLCHEM ) THEN
 
             !------------------------------------
             ! OH CONCENTRATION [molec/cm3]
@@ -440,7 +440,7 @@
             ENDDO
 
 
-         ELSE IF ( N == 77 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 107 .and. IS_FULLCHEM ) THEN
 
             !------------------------------------
             ! NO2 CONCENTRATION [molec/cm3]
@@ -454,7 +454,7 @@
      &                State_Met%AD(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 78 ) THEN
+         ELSE IF ( N == 108 ) THEN
 
             !-------------------------------------
             ! PBL HEIGHTS [m] 
@@ -467,7 +467,7 @@
                Q(1) = GET_PBL_TOP_m( I, J )
             ENDIF
                
-         ELSE IF ( N == 79 ) THEN
+         ELSE IF ( N == 109 ) THEN
 
             !-------------------------------------
             ! PBL HEIGHTS [layers] 
@@ -480,7 +480,7 @@
                Q(1) = GET_PBL_TOP_L( I, J )
             ENDIF
 
-         ELSE IF ( N == 80 ) THEN 
+         ELSE IF ( N == 110 ) THEN 
 
             !-------------------------------------
             ! AIR DENSITY [molec/cm3]
@@ -493,7 +493,7 @@
                Q(L) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
             ENDDO
 
-         ELSE IF ( N == 81 ) THEN
+         ELSE IF ( N == 111 ) THEN
 
             !-------------------------------------
             ! CLOUD FRACTIONS [unitless]

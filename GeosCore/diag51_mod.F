@@ -769,7 +769,9 @@
      &                         ( GET_PBL_TOP_L( I, J ) * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 80 ) THEN
+            ! Change to 100 from 80 because we have more than 80 tracers
+            ! now (skim, 3/2/14)
+            ELSE IF ( N == 101 ) THEN
 
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
@@ -1604,7 +1606,9 @@
             GMNL     = 1
             GMTRC    = 2
 
-         ELSE IF ( N == 80 ) THEN
+         ! Change to 100 because we have more than 80 tracers
+         ! (skim, 3/2/14)
+         ELSE IF ( N == 101 ) THEN
 
             !---------------------
             ! Air Density 

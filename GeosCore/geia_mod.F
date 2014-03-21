@@ -413,7 +413,7 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:7' )      
 
       ! Close the file
-      CLOSE( IUNIT 
+      CLOSE( IUNIT )
 
 #elif defined( GRID05x0666 )
 
