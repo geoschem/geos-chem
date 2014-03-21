@@ -1046,8 +1046,8 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #else 
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
-            ! ... convection or wet scavenging are turned on ...
-            IF ( LCONV .or. LWETD ) THEN
+            ! ... convection or wet scavenging or chemistry are turned on ...
+            IF ( LCONV .or. LWETD .or. LCHEM ) THEN
                CALL INIT_WETSCAV
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF

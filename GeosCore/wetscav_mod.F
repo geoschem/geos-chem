@@ -8743,26 +8743,6 @@
          ! (mpayer, 12/6/12)
          STT => State_Chm%Tracers
 
-         ! Allocate Vud on first call
-         ALLOCATE( Vud( IIPAR, JJPAR ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'Vud' )
-         Vud = 0d0
-
-         ! Allocate C_H2O on first call
-         ALLOCATE( C_H2O( IIPAR, JJPAR, LLPAR ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'C_H2O' )
-         C_H2O = 0d0
-
-         ! Allocate CLDLIQ on first call
-         ALLOCATE( CLDLIQ( IIPAR, JJPAR, LLPAR ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDLIQ' )
-         CLDLIQ = 0d0
-
-         ! Allocate CLDICE on first call
-         ALLOCATE( CLDICE( IIPAR, JJPAR, LLPAR ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDICE' )
-         CLDICE = 0d0
-
          ! Allocate H2O2s for wet deposition 
          ALLOCATE( H2O2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'H2O2s' )
@@ -8787,11 +8767,35 @@
             SO2s = 0d0
          ENDIF
 
+         ! Free pointer
+         NULLIFY( STT )
+
+         ! Only allocate these if wetdep is turned on (mpayer, 3/21/14)
+         IF ( Input_Opt%LWETD ) THEN
+            ! Allocate Vud on first call
+            ALLOCATE( Vud( IIPAR, JJPAR ), STAT=RC )
+            IF ( RC /= 0 ) CALL ALLOC_ERR( 'Vud' )
+            Vud = 0d0
+            
+            ! Allocate C_H2O on first call
+            ALLOCATE( C_H2O( IIPAR, JJPAR, LLPAR ), STAT=RC )
+            IF ( RC /= 0 ) CALL ALLOC_ERR( 'C_H2O' )
+            C_H2O = 0d0
+            
+            ! Allocate CLDLIQ on first call
+            ALLOCATE( CLDLIQ( IIPAR, JJPAR, LLPAR ), STAT=RC )
+            IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDLIQ' )
+            CLDLIQ = 0d0
+            
+            ! Allocate CLDICE on first call
+            ALLOCATE( CLDICE( IIPAR, JJPAR, LLPAR ), STAT=RC )
+            IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDICE' )
+            CLDICE = 0d0
+         ENDIF
+
          ! Reset flag
          FIRST = .FALSE. 
 
-         ! Free pointer
-         NULLIFY( STT )
       ENDIF
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -8813,76 +8817,81 @@
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================
+
+      ! Only do computation if wetdep is turned on (mpayer, 3/21/14)
+      IF ( Input_Opt%LWETD ) THEN
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, TK, PL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Compute Temp [K] and Pressure [hPa]
-         TK = State_Met%T(I,J,L)
-         PL = GET_PCENTER(I,J,L)
-
-         !==============================================================
-         ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
-         ! Assume Vud is the same at all altitudes; the array can be 2-D
-         !==============================================================
-         IF ( L == 1 ) THEN
-            IF ( IS_WATER( I, J, State_Met ) ) THEN
-               Vud(I,J) = 5d0
-            ELSE
-               Vud(I,J) = 10d0
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         
+            ! Compute Temp [K] and Pressure [hPa]
+            TK = State_Met%T(I,J,L)
+            PL = GET_PCENTER(I,J,L)
+         
+            !==============================================================
+            ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
+            ! Assume Vud is the same at all altitudes; the array can be 2-D
+            !==============================================================
+            IF ( L == 1 ) THEN
+               IF ( IS_WATER( I, J, State_Met ) ) THEN
+                  Vud(I,J) = 5d0
+               ELSE
+                  Vud(I,J) = 10d0
+               ENDIF
             ENDIF
-         ENDIF
-
-         !==============================================================
-         ! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 
-         ! is a function of the local Kelvin temperature:
-         ! Tunable parameter and use 1e-6 here (qq,10/14/2011) 
-         !    CLDLIQ = 1e-6                    [     T >= 268 K    ]
-         !    CLDLIQ = 1e-6 * ((T - 248) / 20) [ 248 K < T < 268 K ]
-         !    CLDLIQ = 0                       [     T <= 248 K    ]
-         !
-         !==============================================================
-         IF ( TK >= 268d0 ) THEN
-            CLDLIQ(I,J,L) = 1d-6
-
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            CLDLIQ(I,J,L) = 1d-6 * ( ( TK - 248d0 ) / 20d0 )
-
-         ELSE
-            CLDLIQ(I,J,L) = 0d0
-            
-         ENDIF
-           
-         !=============================================================
-         ! CLDICE, the cloud ice content [cm3 ice/cm3 air] is given by:
-         !
-         !    CLDICE = 1.0e-6 - CLDLIQ
-         !=============================================================
-         CLDICE(I,J,L) = 1d-6 - CLDLIQ(I,J,L)
-
-         !=============================================================
-         ! C_H2O is given by Dalton's Law as:
-         !
-         !       C_H2O = Eice( Tk(I,J,L) ) / P(I,J,L)
-         !
-         ! where P(L) = pressure in grid box (I,J,L)
-         !
-         ! and   Tk(I,J,L) is the Kelvin temp. of grid box (I,J,L).
-         !
-         ! and   Eice( Tk(I,J,L) ) is the saturation vapor pressure 
-         !       of ice [hPa] at temperature Tk(I,J,L) -- computed in 
-         !       routine E_ICE above.
-         !==============================================================
-         C_H2O(I,J,L) = E_ICE( TK ) / PL
-
-      ENDDO
-      ENDDO
-      ENDDO
+         
+            !==============================================================
+            ! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 
+            ! is a function of the local Kelvin temperature:
+            ! Tunable parameter and use 1e-6 here (qq,10/14/2011) 
+            !    CLDLIQ = 1e-6                    [     T >= 268 K    ]
+            !    CLDLIQ = 1e-6 * ((T - 248) / 20) [ 248 K < T < 268 K ]
+            !    CLDLIQ = 0                       [     T <= 248 K    ]
+            !
+            !==============================================================
+            IF ( TK >= 268d0 ) THEN
+               CLDLIQ(I,J,L) = 1d-6
+         
+            ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+               CLDLIQ(I,J,L) = 1d-6 * ( ( TK - 248d0 ) / 20d0 )
+         
+            ELSE
+               CLDLIQ(I,J,L) = 0d0
+               
+            ENDIF
+              
+            !=============================================================
+            ! CLDICE, the cloud ice content [cm3 ice/cm3 air] is given by:
+            !
+            !    CLDICE = 1.0e-6 - CLDLIQ
+            !=============================================================
+            CLDICE(I,J,L) = 1d-6 - CLDLIQ(I,J,L)
+         
+            !=============================================================
+            ! C_H2O is given by Dalton's Law as:
+            !
+            !       C_H2O = Eice( Tk(I,J,L) ) / P(I,J,L)
+            !
+            ! where P(L) = pressure in grid box (I,J,L)
+            !
+            ! and   Tk(I,J,L) is the Kelvin temp. of grid box (I,J,L).
+            !
+            ! and   Eice( Tk(I,J,L) ) is the saturation vapor pressure 
+            !       of ice [hPa] at temperature Tk(I,J,L) -- computed in 
+            !       routine E_ICE above.
+            !==============================================================
+            C_H2O(I,J,L) = E_ICE( TK ) / PL
+         
+         ENDDO
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
+      ENDIF
 #endif
       END SUBROUTINE INIT_WETSCAV
 !EOC
