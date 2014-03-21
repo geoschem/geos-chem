@@ -663,6 +663,7 @@
          CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
       ENDIF
 
+#if defined( UCX )
       ! Stratospheric aerosol graviational settling
       IF ( LGRAVSTRAT ) THEN
          CALL SETTLE_STRAT_AER( Input_Opt, State_Met, State_Chm )
@@ -670,6 +671,7 @@
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
          ENDIF
       ENDIF
+#endif
 
       ! Convert all tracers in STT from [kg] -> [v/v]
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )

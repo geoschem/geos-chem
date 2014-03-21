@@ -281,7 +281,6 @@
       LOGICAL       :: LVARTROP
       LOGICAL       :: LFUTURE
       LOGICAL       :: LSVCSPEC
-      LOGICAL       :: LUCX
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -307,7 +306,6 @@
       LVARTROP  = Input_Opt%LVARTROP
       LFUTURE   = Input_Opt%LFUTURE
       LSVCSPEC  = Input_Opt%LSVCSPEC
-      LUCX      = Input_Opt%LUCX
 
       ! Do we need to print debug output?
       prtDebug  = ( LPRT .and. am_I_Root )
@@ -562,13 +560,13 @@
       !=================================================================
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
+#if defined( UCX )
          ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-         IF (LUCX) THEN
-            CALL CALC_STRAT_AER( am_I_Root, Input_Opt, 
-     &                           State_Met, State_Chm, RC )
-            IF ( prtDebug ) 
-     &         CALL DEBUG_MSG( '### CHEMDR: after CALC_PSC' )
-         ENDIF
+         CALL CALC_STRAT_AER( am_I_Root, Input_Opt, 
+     &                        State_Met, State_Chm, RC )
+         IF ( prtDebug ) 
+     &      CALL DEBUG_MSG( '### CHEMDR: after CALC_PSC' )
+#endif
 
          ! Skip this section if all these are turned off
          CALL AEROSOL_CONC
@@ -773,19 +771,20 @@
          CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
       ENDIF
 
+#if defined( UCX )
       ! If using stratospheric chemistry, applying high-altitude
       ! active nitrogen partitioning and H2SO4 photolysis
       ! approximations  outside the chemgrid
-      IF ( LUCX ) THEN
-         CALL UCX_NOX( Input_Opt, State_Met, State_Chm )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
-         ENDIF
-         CALL UCX_H2SO4PHOT( Input_Opt, State_Met, State_Chm )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
-         ENDIF
+      CALL UCX_NOX( Input_Opt, State_Met, State_Chm )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
       ENDIF
+
+      CALL UCX_H2SO4PHOT( Input_Opt, State_Met, State_Chm )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
+      ENDIF
+#endif
 
       !=================================================================
       ! Call OHSAVE which saves info on OH AND HO2 concentrations 
