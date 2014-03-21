@@ -22,8 +22,15 @@
       USE LOGICAL_MOD,ONLY : LPRT
       USE CMN_SIZE_MOD
 
+      ! NcdfUtil modules for netCDF I/O
+      USE m_netcdf_io_open                    ! netCDF open
+      USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
+      USE m_netcdf_io_read                    ! netCDF data reads
+      USE m_netcdf_io_close                   ! netCDF close
+
       IMPLICIT NONE
 #     include "define.h"
+#     include "netcdf.inc"
       PRIVATE
 
 !
@@ -63,7 +70,11 @@
 !
       PRIVATE :: APPLY_2DTRAC
       PRIVATE :: READ_SFC
+      PRIVATE :: SET_MONTREAL
       PRIVATE :: GET_MONTREAL
+      PRIVATE :: SET_MONTREAL_NCDF
+      PRIVATE :: GET_MONTREAL_NCDF
+      PRIVATE :: MONTREAL_SCALEFAC
       PRIVATE :: TERNARY
       PRIVATE :: READ_PSC_FILE
       PRIVATE :: CARSLAW_DENSITY
@@ -83,7 +94,8 @@
       !=================================================================
       ! MODULE PARAMETERS
       !
-      ! AER_NLEVS       : Number of levels in AER data
+      ! UCX_NLEVS       : Number of levels in AER data
+      ! UCX_NLAT        : Number of latitudes in AER data
       ! T_STS           : Maximum temperature of STS formation (K)
       ! I_SLA           : Index of liquid aerosols
       ! I_SPA           : Index of particulate PSCs
@@ -91,16 +103,20 @@
       ! R_UNIV          : Universal gas constant (J/mol K)
       ! INITMR_BASIS    : Year for which the initializing mixing ratios
       !                   were calculated (needed for future-scaling)
+      ! UCXNETCDF       : Read data from NetCDF
       !
       !=================================================================
 
-      INTEGER, PARAMETER            :: AER_NLEVS=51
+      INTEGER, PARAMETER            :: UCX_NLEVS=51
+      INTEGER, PARAMETER            :: UCX_NLAT=19
       REAL*8, PARAMETER             :: T_STS=240.0d0
       INTEGER, PARAMETER            :: I_SLA=1
       INTEGER, PARAMETER            :: I_SPA=2
       REAL*8,  PARAMETER            :: AVOGADRO=6.022d23
       REAL*8, PARAMETER             :: R_UNIV = 8.31448d0
       INTEGER, PARAMETER            :: INITMR_BASIS = 2005
+      LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
+      !LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
 
 !
 ! PRIVATE TYPES:
@@ -115,6 +131,7 @@
       ! MAX_EMIT           : Limit on tracer emission count
       ! SFC_MONTH          : Current month
       ! OFFSETYEAR         : Number of year-ends since simulation start
+      ! MONTH_STR_INT      : Current month
       ! SLA_VA             : SLA volume-area conversion
       ! SLA_RR             : SLA effective-liquid radius conversion
       ! SLA_VR             : SLA volume-effective radius conversion
@@ -131,8 +148,9 @@
       !
       ! Arrays
       !
-      ! AER_MR             : AER 2D mixing ratios (v/v)
-      ! AER_PLEVS          : Pressure levels of AER data (hPa)
+      ! UCX_MR             : AER 2D mixing ratios (v/v)
+      ! UCX_PLEVS          : Pressure levels of 2D data (hPa)
+      ! UCX_LATS           : Latitude edges of 2D data (deg)
       ! IDT_EMIT           : IDs of emitted tracers
       ! GRID_EMIT          : Surface CFC mixing ratios
       ! SFC_MONTH          : Month of last read-in
@@ -169,6 +187,7 @@
       INTEGER, PARAMETER                :: MAX_EMIT=50
       INTEGER                           :: SFC_MONTH
       INTEGER                           :: OFFSETYEAR
+      INTEGER                           :: MONTH_STR_INT
       REAL*8                            :: SLA_VA
       REAL*8                            :: SLA_RR
       REAL*8                            :: SLA_VR
@@ -184,8 +203,11 @@
       REAL*8                            :: CLOCKMR
 
       ! Arrays
-      REAL*8,DIMENSION(:,:),ALLOCATABLE     :: AER_MR
-      REAL*8,DIMENSION(:),ALLOCATABLE       :: AER_PLEVS
+      REAL*8,DIMENSION(:,:),ALLOCATABLE     :: UCX_MR_IN
+      REAL*8,DIMENSION(:,:),ALLOCATABLE     :: UCX_MR
+      REAL*8,DIMENSION(:,:),ALLOCATABLE     :: UCX_REGRID
+      REAL*8,DIMENSION(:),ALLOCATABLE       :: UCX_PLEVS
+      REAL*8,DIMENSION(:),ALLOCATABLE       :: UCX_LATS
       INTEGER,DIMENSION(MAX_EMIT)           :: IDT_EMIT
       REAL*8,DIMENSION(:,:),ALLOCATABLE     :: GRID_EMIT
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: RAD_AER
@@ -301,7 +323,7 @@
       CHARACTER(LEN=255) :: MSG
       LOGICAL            :: USE2DDATA
       REAL*8             :: C3090S, C0030S, C0030N, C3090N
-      INTEGER            :: CH4_YEAR
+      INTEGER            :: CH4_YEAR, INIT_MO
       LOGICAL,INTENT(IN) :: am_I_Root
       REAL*8             :: SCALEFAC
       INTEGER            :: FUTURE_LINE
@@ -319,7 +341,8 @@
  120  FORMAT( 'Last modified: 03/26/13' )
 
       ! Get current month string
-      WRITE( MONTH_STR, '(i0.2)' ) GET_MONTH()
+      MONTH_STR_INT = GET_MONTH()
+      WRITE( MONTH_STR, '(i0.2)' ) MONTH_STR_INT
 
       ! Are we using 2D data?
       USE2DDATA = (LSETOCS.or.LSETCFC.or.LSETCL.or.LSETBR.or.LSETH2SO4)
@@ -330,12 +353,17 @@
       IF (USE2DDATA) THEN
 
          ! Calculate future scaling factor
-         FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + GET_MONTH()
-         BASIS_LINE = (12*(INITMR_BASIS-1959)) + GET_MONTH()
+         INIT_MO = GET_MONTH()
+         FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + INIT_MO
+         BASIS_LINE = (12*(INITMR_BASIS-1959)) + INIT_MO
 
-         ALLOCATE( AER_MR( JGLOB, AER_NLEVS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AER_MR' )
-         AER_MR = 0d0
+         ALLOCATE( UCX_MR_IN( UCX_NLAT, UCX_NLEVS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UCX_MR_IN' )
+         UCX_MR_IN = 0d0
+
+         ALLOCATE( UCX_MR( JJPAR, UCX_NLEVS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UCX_MR' )
+         UCX_MR = 0d0
 
          IF ( am_I_Root ) THEN
             WRITE(6,*) 'Setting initial values for:'
@@ -393,8 +421,8 @@
      
             TRAC_IDX = IDTCH3Br
             TRAC_SET  = 'CH3BR'
-            SCALEFAC = GET_MONTREAL('CH3Br',FUTURE_LINE)/
-     &                    GET_MONTREAL('CH3Br',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('CH3Br',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.,SCALEFAC)
          ENDIF
 
@@ -483,20 +511,20 @@
             ! Handle chloroalkanes      
             TRAC_IDX = IDTCH3Cl
             TRAC_SET  = 'CH3CL'
-            SCALEFAC = GET_MONTREAL('CH3Cl',FUTURE_LINE)/
-     &                    GET_MONTREAL('CH3Cl',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('CH3Cl',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTCH3CCl3
             TRAC_SET  = 'CH3CCL3'
-            SCALEFAC = GET_MONTREAL('CH3CCl3',FUTURE_LINE)/
-     &                    GET_MONTREAL('CH3CCl3',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('CH3CCl3',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
      
             TRAC_IDX = IDTCCl4
             TRAC_SET  = 'CCL4'
-            SCALEFAC = GET_MONTREAL('CCl4',FUTURE_LINE)/
-     &                    GET_MONTREAL('CCl4',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('CCl4',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
          ENDIf
          
@@ -512,55 +540,60 @@
             ! H-1211, 1301 and 2402
             TRAC_IDX = IDTH1211
             TRAC_SET  = 'CBRCLF2'
-            SCALEFAC = GET_MONTREAL('H1211',FUTURE_LINE)/
-     &                    GET_MONTREAL('H1211',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('H1211',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTH1301
             TRAC_SET  = 'CBRF3'
-            SCALEFAC = GET_MONTREAL('H1301',FUTURE_LINE)/
-     &                    GET_MONTREAL('H1301',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('H1301',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_IDX = IDTH2402
             TRAC_SET  = 'C2BR2F4'
 
-            SCALEFAC=GET_MONTREAL('C2BR2F4',CFCYEAR+OFFSETYEAR-1949)/
+            IF (UCXNETCDF) THEN
+               SCALEFAC = MONTREAL_SCALEFAC('C2BR2F4',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
+            ELSE
+               SCALEFAC=GET_MONTREAL('C2BR2F4',CFCYEAR+OFFSETYEAR-1949)/
      &               GET_MONTREAL('C2BR2F4',INITMR_BASIS-1949)
+            ENDIF
 
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
      
             ! CFC  11, 12, and [113/114/115]
             TRAC_IDX = IDTCFC11
             TRAC_SET  = 'CFCL3'
-            SCALEFAC = GET_MONTREAL('CFC11',FUTURE_LINE)/
-     &                    GET_MONTREAL('CFC11',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('CFC11',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
 
             TRAC_IDX = IDTCFC12
             TRAC_SET  = 'CF2CL2'
-            SCALEFAC = GET_MONTREAL('CFC12',FUTURE_LINE)/
-     &                    GET_MONTREAL('CFC12',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('CFC12',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
 
             TRAC_IDX = IDTCFCX
             TRAC_SET  = 'C2CL3F3'
-            SCALEFAC = GET_MONTREAL('CFC113',FUTURE_LINE)/
-     &                    GET_MONTREAL('CFC113',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('CFC113',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
 
             TRAC_SET  = 'C2CL2F4'
-            SCALEFAC = GET_MONTREAL('CFC114',FUTURE_LINE)/
-     &                    GET_MONTREAL('CFC114',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('CFC114',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_SET  = 'C2CLF5'
-            SCALEFAC = GET_MONTREAL('CFC115',FUTURE_LINE)/
-     &                    GET_MONTREAL('CFC115',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('CFC115',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
      
             ! HCFC 22, 123, 141b and 142b
             TRAC_IDX = IDTHCFC22
             TRAC_SET  = 'CHCLF2'
-            SCALEFAC = GET_MONTREAL('HCFC22',FUTURE_LINE)/
-     &                    GET_MONTREAL('HCFC22',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('HCFC22',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
 
             TRAC_IDX = IDTHCFCX
@@ -568,13 +601,13 @@
             ! Take scaling factor for HCFC22 (no data for 123)
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
             TRAC_SET  = 'C2H3FCL2'
-            SCALEFAC = GET_MONTREAL('HCFC141b',FUTURE_LINE)/
-     &                    GET_MONTREAL('HCFC141b',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('HCFC141b',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
 
             TRAC_SET  = 'C2H3F2CL'
-            SCALEFAC = GET_MONTREAL('HCFC142b',FUTURE_LINE)/
-     &                    GET_MONTREAL('HCFC142b',BASIS_LINE)
+            SCALEFAC = MONTREAL_SCALEFAC('HCFC142b',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.,SCALEFAC)
          ENDIF
 
@@ -616,8 +649,8 @@
 
          TRAC_IDX = IDTN2O
          TRAC_SET  = 'N2O'
-         SCALEFAC = GET_MONTREAL('N2O',FUTURE_LINE)/
-     &                 GET_MONTREAL('N2O',BASIS_LINE)
+         SCALEFAC = MONTREAL_SCALEFAC('N2O',
+     &            CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
          CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC)
       ENDIF
 
@@ -678,6 +711,67 @@
       ENDIF
  
       END SUBROUTINE SET_INITIAL_MIXRATIOS
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: montreal_scalefac
+!
+! !DESCRIPTION: Function MONTREAL\_SCALEFAC calculates a scaling factor for  
+!  long-lived species between a future year and a reference year, based
+!  on WMO projections.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION MONTREAL_SCALEFAC(MS_TRAC,MS_FUTRYR,
+     &                 MS_INITYR,MS_TARGMO) RESULT(SCALEFAC)
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+      CHARACTER(*),INTENT(IN)     :: MS_TRAC
+      INTEGER,INTENT(IN)          :: MS_FUTRYR  ! Future year
+      INTEGER,INTENT(IN)          :: MS_INITYR  ! Future year
+      INTEGER,INTENT(IN)          :: MS_TARGMO  ! Target month
+!
+! !OUTPUT VARIABLES:
+!
+      REAL*8                      :: SCALEFAC   ! Scaling factor
+!
+! !REMARKS:
+! (1) A remark
+! 
+! !REVISION HISTORY: 
+!  28 Mar 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: FUTURE_LINE, BASIS_LINE
+
+      !=================================================================
+      ! MONTREAL_SCALEFAC begins here!
+      !=================================================================
+       
+      IF (UCXNETCDF) THEN
+         SCALEFAC = GET_MONTREAL_NCDF(MS_TRAC,MS_FUTRYR,MS_TARGMO)/
+     &              GET_MONTREAL_NCDF(MS_TRAC,MS_INITYR,MS_TARGMO)
+      ELSE
+         FUTURE_LINE = (12*(MS_FUTRYR-1959)) + MS_TARGMO
+         BASIS_LINE = (12*(MS_INITYR-1959)) + MS_TARGMO
+         SCALEFAC = GET_MONTREAL(MS_TRAC,FUTURE_LINE)/
+     &              GET_MONTREAL(MS_TRAC,BASIS_LINE)
+      ENDIF
+
+      END FUNCTION MONTREAL_SCALEFAC
+!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -1044,12 +1138,14 @@
       REAL*8  :: CURRVAL
       INTEGER :: VERTCOUNT, AS
       LOGICAL :: FOUNDLEV,EXTRAP
-      INTEGER :: IU_FILE
+      INTEGER :: IU_FILE, fId
+      INTEGER :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
       LOGICAL :: ISRATE
       CHARACTER(LEN=255) :: NOX_FILE
       CHARACTER(LEN=255) :: TARG_TRAC
       CHARACTER(LEN=255) :: DBGMSG
       REAL*8,DIMENSION(:,:,:),ALLOCATABLE :: NOXDATA2D
+      REAL*8,DIMENSION(:,:),ALLOCATABLE :: NOXD2D_IN
       INTEGER :: LSTART
 
       !=================================================================
@@ -1065,51 +1161,121 @@
       NOX_O = 0d0
       NOX_J = 0d0
 
-      DO ITRAC = 1,6
-         SELECT CASE (ITRAC)
-            CASE ( 1 )
-               TARG_TRAC = 'O'
-            CASE ( 2 )
-               TARG_TRAC = 'O1D'
-            CASE ( 3 )
-               TARG_TRAC = 'JNO'
-            CASE ( 4 )
-               TARG_TRAC = 'JNO2'
-            CASE ( 5 )
-               TARG_TRAC = 'JNO3'
-            CASE ( 6 )
-               TARG_TRAC = 'JN2O'
-         END SELECT
-         WRITE(NOX_FILE,'(a,a,a,I0.2,a)') TRIM(NOON_FILE_ROOT),
-     &    TRIM(TARG_TRAC), '_', TARG_MONTH, '.dat'
-!         NOX_FILE = TRIM(NOON_FILE_ROOT)//TRIM(TARG_TRAC)
-!         NOX_FILE = TRIM(NOX_FILE)//'_'//TRIM(TARG_MONTH)//'.dat'
+      IF (UCXNETCDF) THEN
+         ! Allocate and zero 2D input array
+         ALLOCATE( NOXD2D_IN( UCX_NLAT, UCX_NLEVS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXD2D_IN' )
+         NOXD2D_IN = 0d0
+         
+         NOX_FILE = TRIM(NOON_FILE_ROOT)
 
-         ! Get a free LUN
-         IU_FILE = findFreeLUN()
+         IF (LPRT) THEN
+            WRITE(DBGMSG,'(a,a,I02,a,a)') ' ### UCX: Reading ', 
+     &           'mesospheric NOx coeff for month ', MONTH_STR_INT ,
+     &           ' from ', TRIM( NOX_FILE )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
+         ENDIF
 
-         IOS = 1
-         OPEN( IU_FILE, FILE=TRIM( NOX_FILE ),STATUS='OLD',IOSTAT=IOS) 
-         IF ( IOS /= 0 ) THEN
-            WRITE(6,*) 'UCX_MOD: Could not read ', TRIM(NOX_FILE)
-            CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
-         ENDIF
-  
-        IF (LPRT) THEN
-            WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
-     &        TRIM( NOX_FILE )
-            CALL DEBUG_MSG( DBGMSG )
-         ENDIF
- 
-      ! Read in data
-         DO ILEV = 1,51
-            READ(IU_FILE, 110, IOSTAT=IOS ) NOXDATA2D(:,ILEV,ITRAC)
+         CALL NcOp_Rd (fId,TRIM(NOX_FILE))
+
+         ! Start and count indices
+         st3d = (/ 1,        1,          TARG_MONTH /)
+         ct3d = (/ UCX_NLAT, UCX_NLEVS,  1          /)
+
+         DO ITRAC = 1,6
+            SELECT CASE (ITRAC)
+               CASE ( 1 )
+                  TARG_TRAC = 'O'
+               CASE ( 2 )
+                  TARG_TRAC = 'O1D'
+               CASE ( 3 )
+                  TARG_TRAC = 'JNO'
+               CASE ( 4 )
+                  TARG_TRAC = 'JNO2'
+               CASE ( 5 )
+                  TARG_TRAC = 'JNO3'
+               CASE ( 6 )
+                  TARG_TRAC = 'JN2O'
+            END SELECT
+            CALL NcRd( NOXD2D_IN, fId, TRIM(TARG_TRAC), st3d, ct3d )
+
+!            ! Debug
+!            IF (LPRT) THEN
+!               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', 
+!     &            TRIM(TARG_TRAC), ', native: '
+!               CALL DEBUG_MSG( DBGMSG )
+!               DO J=1,19
+!                  WRITE(DBGMSG,'(I02,x,E16.4)') J,NOXD2D_IN(J,1)
+!                  CALL DEBUG_MSG( DBGMSG )
+!               ENDDO
+!            ENDIF
+
+            ! Regrid each level from 19 to JJPAR latitudes
+            ! Precalculated matrix for simple linear algebra
+            ! Need to reverse levels - have layer 1 = TOA
+            DO ILEV = 1,51
+               NOXDATA2D(:,UCX_NLEVS+1-ILEV,ITRAC) = 
+     &            MATMUL(UCX_REGRID,NOXD2D_IN(:,ILEV))
+            ENDDO
+
+!            ! Debug
+!            IF (LPRT) THEN
+!               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', 
+!     &            TRIM(TARG_TRAC), ', regridded: '
+!               CALL DEBUG_MSG( DBGMSG )
+!               DO J=1,JJPAR
+!                  WRITE(DBGMSG,'(I02,x,E16.4)') J,NOXDATA2D(J,1,ITRAC)
+!                  CALL DEBUG_MSG( DBGMSG )
+!               ENDDO
+!            ENDIF
+         ENDDO
+
+         DEALLOCATE( NOXD2D_IN )
+         CALL NcCl( fId )
+      ELSE
+         DO ITRAC = 1,6
+            SELECT CASE (ITRAC)
+               CASE ( 1 )
+                  TARG_TRAC = 'O'
+               CASE ( 2 )
+                  TARG_TRAC = 'O1D'
+               CASE ( 3 )
+                  TARG_TRAC = 'JNO'
+               CASE ( 4 )
+                  TARG_TRAC = 'JNO2'
+               CASE ( 5 )
+                  TARG_TRAC = 'JNO3'
+               CASE ( 6 )
+                  TARG_TRAC = 'JN2O'
+            END SELECT
+            WRITE(NOX_FILE,'(a,a,a,I0.2,a)') TRIM(NOON_FILE_ROOT),
+     &       TRIM(TARG_TRAC), '_', TARG_MONTH, '.dat'
+
+            ! Get a free LUN
+            IU_FILE = findFreeLUN()
+
+            IOS = 1
+            OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS) 
             IF ( IOS /= 0 ) THEN
-               WRITE(6,'(a,a,I4,a,1x,a)') 'UCX_MOD: Error reading '
-     & , 'line ', ILEV, ' in file ', TRIM( NOX_FILE )
+               WRITE(6,*) 'UCX_MOD: Could not read ', TRIM(NOX_FILE)
                CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
             ENDIF
-         ENDDO
+  
+           IF (LPRT) THEN
+               WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
+     &           TRIM( NOX_FILE )
+               CALL DEBUG_MSG( TRIM(DBGMSG) )
+            ENDIF
+ 
+            ! Read in data
+            DO ILEV = 1,51
+               READ(IU_FILE, 110, IOSTAT=IOS ) NOXDATA2D(:,ILEV,ITRAC)
+               IF ( IOS /= 0 ) THEN
+                  WRITE(6,'(a,a,I4,a,1x,a)') 'UCX_MOD: Error reading '
+     &    , 'line ', ILEV, ' in file ', TRIM( NOX_FILE )
+                  CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
+               ENDIF
+            ENDDO
 
 #if defined(GRID2x25)
 110   FORMAT(91E10.3)
@@ -1117,8 +1283,20 @@
 110   FORMAT(46E10.3)
 #endif
 
-         CLOSE(IU_FILE)
-      ENDDO 
+            CLOSE(IU_FILE)
+
+!            ! Debug
+!            IF (LPRT) THEN
+!               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', 
+!     &            TRIM(TARG_TRAC), ', regridded: '
+!               CALL DEBUG_MSG( DBGMSG )
+!               DO J=1,JJPAR
+!                  WRITE(DBGMSG,'(I02,x,E16.4)') J,NOXDATA2D(J,1,ITRAC)
+!                  CALL DEBUG_MSG( DBGMSG )
+!               ENDDO
+!            ENDIF
+         ENDDO
+      ENDIF
 
 
       ! Scan through target array, element by element
@@ -1134,7 +1312,7 @@
             IF (ITS_IN_THE_CHEMGRID(I,J,L)) CYCLE
             ! Pressure at center of cell
             PCENTER = GET_PCENTER(I,J,L)
-            FOUNDLEV = (PCENTER.gt.AER_PLEVS(VERTCOUNT))
+            FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
             DO WHILE (.not. FOUNDLEV)
                IF (VERTCOUNT.eq.1) THEN
                  ! At top layer; use it anyway
@@ -1142,7 +1320,7 @@
                  EXTRAP = .TRUE.
                ELSE
                  VERTCOUNT = VERTCOUNT - 1
-                 FOUNDLEV = (PCENTER.gt.AER_PLEVS(VERTCOUNT))
+                 FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
                  EXTRAP = .FALSE.
                ENDIF
             ENDDO
@@ -1155,9 +1333,9 @@
                   CURRVAL = NOXDATA2D(J,VERTCOUNT,ITRAC)
                ELSE
                   ! Interpolate by pressure
-                  CURRVAL = (AER_PLEVS(VERTCOUNT+1)-PCENTER)
-                  CURRVAL = CURRVAL/(AER_PLEVS(VERTCOUNT+1)-
-     &                               AER_PLEVS(VERTCOUNT))
+                  CURRVAL = (UCX_PLEVS(VERTCOUNT+1)-PCENTER)
+                  CURRVAL = CURRVAL/(UCX_PLEVS(VERTCOUNT+1)-
+     &                               UCX_PLEVS(VERTCOUNT))
                   CURRVAL = CURRVAL * 
      &               (NOXDATA2D(J,VERTCOUNT+1,ITRAC)-
      &                NOXDATA2D(J,VERTCOUNT,ITRAC))
@@ -1204,6 +1382,7 @@
       USE TRACER_MOD,    ONLY : STT, TCVV
       USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRATMESO
       USE DAO_MOD,       ONLY : AD
+      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1233,13 +1412,12 @@
       INTEGER :: IU_FILE
       INTEGER :: L_MAX
       CHARACTER(LEN=255) :: DBGMSG
+      INTEGER :: fId
+      INTEGER :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
 
       !=================================================================
       ! APPLY_2DTRAC begins here!
       !=================================================================
-
-      TRAC_FILE = TRIM(AVG_FILE_ROOT)//TRIM(TRAC_SET )
-      TRAC_FILE = TRIM(TRAC_FILE)//'_'//TRIM(MONTH_STR)//'.dat'
 
       ! Error check
       IF ((STRAT_ONLY).and.(SFC_ONLY)) THEN
@@ -1247,31 +1425,67 @@
      &                           'APPLY_2DTRAC(UCX_mod.F)')
       ENDIF
 
-      ! Get a free LUN
-      IU_FILE = findFreeLUN()
+      IF (UCXNETCDF) THEN
+         ! Read from NetCDF
+         TRAC_FILE = TRIM(AVG_FILE_ROOT)
 
-      IOS = 1
-      OPEN( IU_FILE, FILE=TRIM( TRAC_FILE ),STATUS='OLD',IOSTAT=IOS) 
-      IF ( IOS /= 0 ) THEN
-         WRITE(6,*) 'UCX_MOD: Could not read ', TRIM( TRAC_FILE )
-         CALL IOERROR( IOS, IU_FILE,'UCX_MOD:APPLY_2DTRAC')
-      ENDIF
-  
-      IF (LPRT) THEN
-         WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
-     &        TRIM( TRAC_FILE )
-         CALL DEBUG_MSG( DBGMSG )
-      ENDIF
- 
-      ! Read in mixing ratios
-      DO ILEV = 1,51
-         READ(IU_FILE, 110, IOSTAT=IOS ) AER_MR(:,ILEV)
+         IF (LPRT) THEN
+            WRITE(DBGMSG,'(a,a,a,I02,a,a)') ' ### UCX: Reading ', 
+     &           TRIM(TRAC_SET), ' for month ', MONTH_STR_INT ,
+     &           ' from ', TRIM( TRAC_FILE )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
+         ENDIF
+
+         ! By the end of this, need to have data in the form
+         ! of an array size JJPARx51 [LAT x LEV]
+
+         ! UCX_MR:      JJPARx51
+         ! UCX_MR_IN:   19x51
+         CALL NcOp_Rd (fId,TRIM(TRAC_FILE))
+
+         ! Start and count indices
+         st3d = (/ 1,                1,  MONTH_STR_INT /)
+         ct3d = (/ UCX_NLAT, UCX_NLEVS,  1             /)
+
+         CALL NcRd( UCX_MR_IN, fId, TRIM(TRAC_SET), st3d, ct3d )
+         CALL NcCl( fId )
+
+         ! Regrid each level from 19 to JJPAR latitudes
+         ! Precalculated matrix for simple linear algebra
+         ! Need to reverse levels - have layer 1 = TOA
+         DO ILEV = 1,UCX_NLEVS
+            UCX_MR(:,UCX_NLEVS+1-ILEV) = 
+     &         MATMUL(UCX_REGRID,UCX_MR_IN(:,ILEV))
+         ENDDO
+      ELSE
+         TRAC_FILE = TRIM(AVG_FILE_ROOT)//TRIM(TRAC_SET )
+         TRAC_FILE = TRIM(TRAC_FILE)//'_'//TRIM(MONTH_STR)//'.dat'
+
+         ! Get a free LUN
+         IU_FILE = findFreeLUN()
+
+         IOS = 1
+         OPEN( IU_FILE, FILE=TRIM( TRAC_FILE ),STATUS='OLD',IOSTAT=IOS) 
          IF ( IOS /= 0 ) THEN
-            WRITE(6,'(a,I4,a,1x,a)') 'UCX_MOD: Error reading line '
-     & , ILEV, ' in file ', TRIM( TRAC_FILE )
+            WRITE(6,*) 'UCX_MOD: Could not read ', TRIM( TRAC_FILE )
             CALL IOERROR( IOS, IU_FILE,'UCX_MOD:APPLY_2DTRAC')
          ENDIF
-      ENDDO
+  
+         IF (LPRT) THEN
+            WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
+     &           TRIM( TRAC_FILE )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
+         ENDIF
+ 
+         ! Read in mixing ratios
+         DO ILEV = 1,51
+            READ(IU_FILE, 110, IOSTAT=IOS ) UCX_MR(:,ILEV)
+            IF ( IOS /= 0 ) THEN
+               WRITE(6,'(a,I4,a,1x,a)') 'UCX_MOD: Error reading line '
+     &    , ILEV, ' in file ', TRIM( TRAC_FILE )
+               CALL IOERROR( IOS, IU_FILE,'UCX_MOD:APPLY_2DTRAC')
+            ENDIF
+         ENDDO
 
 #if defined(GRID2x25)
 110   FORMAT(91E10.3)
@@ -1279,7 +1493,8 @@
 110   FORMAT(46E10.3)
 #endif
 
-      CLOSE(IU_FILE)    
+         CLOSE(IU_FILE)    
+      ENDIF
  
       IF (SFC_ONLY) THEN
          L_MAX = 1
@@ -1303,7 +1518,7 @@
                ENDIF
                ! Pressure at center of cell
                PCENTER = GET_PCENTER(I,J,L)
-               FOUNDLEV = (PCENTER.gt.AER_PLEVS(VERTCOUNT))
+               FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
                DO WHILE (.not. FOUNDLEV)
                   IF (VERTCOUNT.eq.1) THEN
                     ! At top layer; use it anyway
@@ -1311,7 +1526,7 @@
                     EXTRAP = .TRUE.
                   ELSE
                     VERTCOUNT = VERTCOUNT - 1
-                    FOUNDLEV = (PCENTER.gt.AER_PLEVS(VERTCOUNT))
+                    FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
                     EXTRAP = .FALSE.
                   ENDIF
                ENDDO
@@ -1319,15 +1534,15 @@
                ! Interpolate mixing ratio
                IF (EXTRAP) THEN
                   ! Just take outside value if at edges
-                  TRACMR = AER_MR(J,VERTCOUNT)
+                  TRACMR = UCX_MR(J,VERTCOUNT)
                ELSE
                   ! Interpolate by pressure
-                  TRACMR = (AER_PLEVS(VERTCOUNT+1)-PCENTER)
-                  TRACMR = TRACMR/(AER_PLEVS(VERTCOUNT+1)-
-     &                               AER_PLEVS(VERTCOUNT))
+                  TRACMR = (UCX_PLEVS(VERTCOUNT+1)-PCENTER)
+                  TRACMR = TRACMR/(UCX_PLEVS(VERTCOUNT+1)-
+     &                               UCX_PLEVS(VERTCOUNT))
                   TRACMR = TRACMR * 
-     &               (AER_MR(J,VERTCOUNT+1)-AER_MR(J,VERTCOUNT))
-                  TRACMR = AER_MR(J,VERTCOUNT+1) - TRACMR
+     &               (UCX_MR(J,VERTCOUNT+1)-UCX_MR(J,VERTCOUNT))
+                  TRACMR = UCX_MR(J,VERTCOUNT+1) - TRACMR
                ENDIF
                ! Send to STT (currently kg/box)
                IF (SET_CELL) THEN
@@ -1467,6 +1682,7 @@
       REAL*8           :: MR90S,MR30S,MR30N,MR90N
       INTEGER          :: N, TARG_LINE, J
       CHARACTER(LEN=20):: LOCAL_NAME
+      INTEGER          :: TARG_YR_NC, TARG_MO_NC
 
       !=================================================================
       ! READ_SFC begins here!
@@ -1475,69 +1691,270 @@
       ! Re-zero GRID_EMIT
       GRID_EMIT = 0d0
 
-      ! Determine which line needs to be read in
-      TARG_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + SFC_MONTH
+      IF (UCXNETCDF) THEN
+         TARG_YR_NC = CFCYEAR+OFFSETYEAR
+         TARG_MO_NC = SFC_MONTH
+         DO N=1,N_EMIT
+            LOCAL_NAME = TRIM(TRAC_EMIT(N))
+            SELECT CASE (LOCAL_NAME)
+               CASE ('CFCX')
+                  ! Add 3 CFCs
+                  LOCAL_NAME = TRIM('CFC113')
+                  CALL SET_MONTREAL_NCDF(LOCAL_NAME,
+     &                    TARG_YR_NC,TARG_MO_NC,N)
+                  LOCAL_NAME = TRIM('CFC114')
+                  CALL SET_MONTREAL_NCDF(LOCAL_NAME,
+     &                    TARG_YR_NC,TARG_MO_NC,N)
+                  LOCAL_NAME = TRIM('CFC115')
+                  CALL SET_MONTREAL_NCDF(LOCAL_NAME,
+     &                    TARG_YR_NC,TARG_MO_NC,N)
+               CASE ('HCFCX')
+                  ! Add 2 HCFCs
+                  LOCAL_NAME = TRIM('HCFC141b')
+                  CALL SET_MONTREAL_NCDF(LOCAL_NAME,
+     &                    TARG_YR_NC,TARG_MO_NC,N)
+                  LOCAL_NAME = TRIM('HCFC142b')
+                  CALL SET_MONTREAL_NCDF(LOCAL_NAME,
+     &                    TARG_YR_NC,TARG_MO_NC,N)
+                  ! Also need HCFC123 - no Montreal data
+                  ! Use surface-level MR from 2D data instead
+                  !TRAC_IDX = IDTHCFCX
+                  !TRAC_SET  = 'C2HF3CL2'
+                  !CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
+                  ! Ignore HCFC123 for the moment
+               CASE ('H2402')
+                  ! Limited data available for H2402
+                  LOCAL_NAME = TRIM('C2BR2F4')
+                  CALL SET_MONTREAL_NCDF(LOCAL_NAME,
+     &                    TARG_YR_NC,TARG_MO_NC,N)
+               CASE ('OCS')
+                  ! Simple boundary condition
+                  GRID_EMIT(:,N) = OCS_MR
+               CASE ('H2')
+                  ! Simple boundary condition
+                  GRID_EMIT(:,N) = H2_MR
+               CASE ('CH4')
+                  ! Get the 4 major mixing ratios
+                  CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
+     &                        MR90S,MR30S,MR30N,MR90N)
+                  ! Figure out which box each is in
+                  DO J=1,JJPAR   
+                     ! Grid-box latitude index
+                     YLAT  = GET_YMID( 1,J,1 )
+                     IF ( YLAT < -30d0 ) THEN
+                        GRID_EMIT(J,N) = MR90S
+                     ELSE IF ( YLAT >= -30d0 .and. YLAT < 0d0  ) THEN
+                        GRID_EMIT(J,N) = MR30S
+                     ELSE IF ( YLAT >=   0d0 .and. YLAT < 30d0 ) THEN
+                        GRID_EMIT(J,N) = MR30N
+                     ELSE
+                        GRID_EMIT(J,N) = MR90N
+                     ENDIF
+                  ENDDO
+               CASE DEFAULT
+                  ! Standard 1:1
+                  CALL SET_MONTREAL_NCDF(LOCAL_NAME,
+     &                    TARG_YR_NC,TARG_MO_NC,N)
+            END SELECT
+         ENDDO
+      ELSE
+         ! Read from ASCII
+         ! Determine which line needs to be read in
+         TARG_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + SFC_MONTH
 
-      ! Loop over tracer IDs pegged for emissions
-      DO N=1,N_EMIT
-         LOCAL_NAME = TRIM(TRAC_EMIT(N))
-         SELECT CASE (LOCAL_NAME)
-            CASE ('CFCX')
-               ! Add 3 CFCs
-               LOCAL_NAME = TRIM('CFC113')
-               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-               LOCAL_NAME = TRIM('CFC114')
-               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-               LOCAL_NAME = TRIM('CFC115')
-               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-            CASE ('HCFCX')
-               ! Add 2 HCFCs
-               LOCAL_NAME = TRIM('HCFC141b')
-               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-               LOCAL_NAME = TRIM('HCFC142b')
-               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-               ! Also need HCFC123 - no Montreal data
-               ! Use surface-level MR from 2D data instead
-               !TRAC_IDX = IDTHCFCX
-               !TRAC_SET  = 'C2HF3CL2'
-               !CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
-               ! Ignore HCFC123 for the moment
-            CASE ('H2402')
-               ! Limited data available for H2402
-               LOCAL_NAME = TRIM('C2BR2F4')
-               CALL SET_MONTREAL(LOCAL_NAME,
-     &                      CFCYEAR+OFFSETYEAR-1949,N)
-            CASE ('OCS')
-               ! Simple boundary condition
-               GRID_EMIT(:,N) = OCS_MR
-            CASE ('H2')
-               ! Simple boundary condition
-               GRID_EMIT(:,N) = H2_MR
-            CASE ('CH4')
-               ! Get the 4 major mixing ratios
-               CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
-     &                     MR90S,MR30S,MR30N,MR90N)
-               ! Figure out which box each is in
-               DO J=1,JJPAR   
-                  ! Grid-box latitude index
-                  YLAT  = GET_YMID( 1,J,1 )
-                  IF ( YLAT < -30d0 ) THEN
-                     GRID_EMIT(J,N) = MR90S
-                  ELSE IF ( YLAT >= -30d0 .and. YLAT < 0d0  ) THEN
-                     GRID_EMIT(J,N) = MR30S
-                  ELSE IF ( YLAT >=   0d0 .and. YLAT < 30d0 ) THEN
-                     GRID_EMIT(J,N) = MR30N
-                  ELSE
-                     GRID_EMIT(J,N) = MR90N
-                  ENDIF
-               ENDDO
-            CASE DEFAULT
-               ! Standard 1:1
-               CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-         END SELECT
-      ENDDO
+         ! Loop over tracer IDs pegged for emissions
+         DO N=1,N_EMIT
+            LOCAL_NAME = TRIM(TRAC_EMIT(N))
+            SELECT CASE (LOCAL_NAME)
+               CASE ('CFCX')
+                  ! Add 3 CFCs
+                  LOCAL_NAME = TRIM('CFC113')
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+                  LOCAL_NAME = TRIM('CFC114')
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+                  LOCAL_NAME = TRIM('CFC115')
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               CASE ('HCFCX')
+                  ! Add 2 HCFCs
+                  LOCAL_NAME = TRIM('HCFC141b')
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+                  LOCAL_NAME = TRIM('HCFC142b')
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+                  ! Also need HCFC123 - no Montreal data
+                  ! Use surface-level MR from 2D data instead
+                  !TRAC_IDX = IDTHCFCX
+                  !TRAC_SET  = 'C2HF3CL2'
+                  !CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
+                  ! Ignore HCFC123 for the moment
+               CASE ('H2402')
+                  ! Limited data available for H2402
+                  LOCAL_NAME = TRIM('C2BR2F4')
+                  CALL SET_MONTREAL(LOCAL_NAME,
+     &                         CFCYEAR+OFFSETYEAR-1949,N)
+               CASE ('OCS')
+                  ! Simple boundary condition
+                  GRID_EMIT(:,N) = OCS_MR
+               CASE ('H2')
+                  ! Simple boundary condition
+                  GRID_EMIT(:,N) = H2_MR
+               CASE ('CH4')
+                  ! Get the 4 major mixing ratios
+                  CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
+     &                        MR90S,MR30S,MR30N,MR90N)
+                  ! Figure out which box each is in
+                  DO J=1,JJPAR   
+                     ! Grid-box latitude index
+                     YLAT  = GET_YMID( 1,J,1 )
+                     IF ( YLAT < -30d0 ) THEN
+                        GRID_EMIT(J,N) = MR90S
+                     ELSE IF ( YLAT >= -30d0 .and. YLAT < 0d0  ) THEN
+                        GRID_EMIT(J,N) = MR30S
+                     ELSE IF ( YLAT >=   0d0 .and. YLAT < 30d0 ) THEN
+                        GRID_EMIT(J,N) = MR30N
+                     ELSE
+                        GRID_EMIT(J,N) = MR90N
+                     ENDIF
+                  ENDDO
+               CASE DEFAULT
+                  ! Standard 1:1
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+            END SELECT
+         ENDDO
+      ENDIF
 
       END SUBROUTINE READ_SFC
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_montreal_ncdf
+!
+! !DESCRIPTION: Subroutine SET\_MONTREAL\_NCDF calls GET\_MONTREAL\_NCDF
+!  for the surface mixing ratio for a specific year, and applies it to
+!  GRID_EMIT.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_MONTREAL_NCDF (TRAC_NAME,TARG_YR_NC,TARG_MO_NC,N)
+!
+! !USES:
+!
+! !INPUT PARAMETERS:
+!
+      CHARACTER(LEN=20),INTENT(IN)   :: TRAC_NAME
+      INTEGER,INTENT(IN)             :: TARG_YR_NC
+      INTEGER,INTENT(IN)             :: TARG_MO_NC
+      INTEGER,INTENT(IN)             :: N
+!
+! !REVISION HISTORY: 
+!  10 Oct 2013 - S. D. Eastham - Wrapper built from edges of original GET
+!  04 Mar 2014 - S. D. Eastham - Updated to NetCDF
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+      !=================================================================
+      ! SET_MONTREAL_NCDF begins here!
+      !=================================================================
+
+      GRID_EMIT(:,N) = GRID_EMIT(:,N) + 
+     &      GET_MONTREAL_NCDF(TRAC_NAME,TARG_YR_NC,TARG_MO_NC)
+
+      ! Return to calling routine
+      END SUBROUTINE SET_MONTREAL_NCDF
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_montreal_ncdf
+!
+! !DESCRIPTION: Function GET\_MONTREAL\_NCDF gets mean surface mixing ratio
+!  of a given species based on forecasts from WHO estimates. Values are
+!  interpolated between two monthly averages.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_MONTREAL_NCDF (TRAC_NAME,TARG_YR_NC,TARG_MO_NC)
+     &                            RESULT (MEAN_MIXRATIO)
+!
+! !USES:
+!
+      USE FILE_MOD,  ONLY : IOERROR
+      USE ERROR_MOD, ONLY : ERROR_STOP, ALLOC_ERR
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8                         :: MEAN_MIXRATIO
+      CHARACTER*(*),INTENT(IN)       :: TRAC_NAME
+      INTEGER,INTENT(IN)             :: TARG_YR_NC
+      INTEGER,INTENT(IN)             :: TARG_MO_NC
+!
+! !REVISION HISTORY: 
+!  04 Apr 2013 - S. D. Eastham - Initial version
+!  10 Oct 2013 - S. D. Eastham - Split into two routines (GET and SET)
+!  04 Mar 2014 - S. D. Eastham - Added NetCDF compatibility
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=255)             :: FILENAME, DBGMSG
+      ! For NetCDF
+      INTEGER                        :: fId
+      INTEGER                        :: st1d(1), ct1d(1)   ! Start + count, for 3D arrays 
+      REAL*8                         :: ncTemp(1)
+
+      !=================================================================
+      ! GET_MONTREAL_NCDF begins here!
+      !=================================================================
+
+      ! Read direct from master file
+      FILENAME = TRIM(MONTREAL_FILE_ROOT)
+
+      IF (LPRT) THEN
+         WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
+     &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
+         CALL DEBUG_MSG( TRIM(DBGMSG) )
+      ENDIF
+
+      ! By the end of this, need to have data in the form
+      ! of an array size JJPARx51 [LAT x LEV]
+
+      ! UCX_MR:      JJPARx51
+      ! UCX_MR_IN:   19x51
+      CALL NcOp_Rd (fId,TRIM(FILENAME))
+
+      ! Start and count indices
+      st1d(1) = (12*(TARG_YR_NC-1959)) + TARG_MO_NC
+      ct1d(1) = 1
+
+      ! Data is stored as v/v, so no adjustment necessary
+      ! Seems to be having difficulties with overloaded function
+      !CALL Ncrd_1d_R8( MIXRATIO_MEAN, fId, TRIM(TRAC_NAME), st1d, ct1d )
+      CALL NcRd( ncTemp, fId, TRIM(TRAC_NAME), st1d, ct1d )
+      MEAN_MIXRATIO = ncTemp(1)
+      CALL NcCl( fId )
+
+!      IF (LPRT) THEN
+!         WRITE(DBGMSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', 
+!     &        MEAN_MIXRATIO
+!         CALL DEBUG_MSG( TRIM(DBGMSG) )
+!      ENDIF
+
+      ! Return to calling program
+      END FUNCTION GET_MONTREAL_NCDF
 !
 !EOC
 !------------------------------------------------------------------------------
@@ -1618,19 +2035,28 @@
 !
 ! !LOCAL VARIABLES:
 !
-      CHARACTER(LEN=255)             :: FILENAME
+      CHARACTER(LEN=255)             :: FILENAME, DBGMSG
       REAL*8                         :: CURRLINE
       REAL*8                         :: SCALEFAC
       REAL*8                         :: TEMPMR,TEMPYR
       INTEGER                        :: ILINE
       INTEGER                        :: IU_FILE, IOS, AS
+      ! For NetCDF
+      INTEGER                        :: fId, st1d, ct1d
 
       !=================================================================
-      ! SET_MONTREAL begins here!
+      ! GET_MONTREAL begins here!
       !=================================================================
 
+      ! Read from ASCII files
       FILENAME = TRIM(MONTREAL_FILE_ROOT) // TRIM(TRAC_NAME) // 
-     &             '_boundary'
+     &          '_boundary'
+
+      IF (LPRT) THEN
+         WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
+     &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
+         CALL DEBUG_MSG( TRIM(DBGMSG) )
+      ENDIF
 
       ! Get a free LUN
       IU_FILE = findFreeLUN()
@@ -1692,6 +2118,12 @@
 102   FORMAT(F7.2,F11.2)
       ! C2Br2F4 only
 103   FORMAT(F7.2,F8.2)
+
+      IF (LPRT) THEN
+         WRITE(DBGMSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', 
+     &        MEAN_MIXRATIO
+         CALL DEBUG_MSG( TRIM(DBGMSG) )
+      ENDIF
 
       ! Return to calling program
       END FUNCTION GET_MONTREAL
@@ -4130,31 +4562,31 @@
       DO I=1,11
          IF (IT_IS_NAN(RXNGAMMA(I))) THEN
             WRITE(DBGMSG,'(a,I2)') 'RXNGAMMA NaN: ', I
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'NDENS: ', NDENS
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'T: ', T
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'P: ', P
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'WT_FRC: ', WT_FRC
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'H2OSUM: ', H2OSUM
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'HClSUM: ', HClSUM
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'HBrSUM: ', HBrSUM
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'HOBrSUM: ', HOBrSUM
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'ClNO3SUM: ', ClNO3SUM
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'BrNO3SUM: ', BrNO3SUM
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'RHO: ', RHO
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             WRITE(DBGMSG,'(a,E10.4)') 'ARAD: ', ARAD
-            CALL DEBUG_MSG( DBGMSG )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
             CALL ERROR_STOP('BAD GAMMA','UCX_mod')
          ENDIF
       ENDDO
@@ -4864,10 +5296,16 @@
          ! Using just one month's data to be consistent with
          ! base GEOS-Chem approach to CH4 (1-yr resolution)
          IF (CH4_YEAR > BASE_YEAR) THEN
-            FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + 1
-            BASIS_LINE = (12*(REF_YEAR-1959)) + 1
-            CH4_SCALE = (1.0d-9)*GET_MONTREAL('CH4',FUTURE_LINE)/
+            IF (UCXNETCDF) THEN
+               CH4_SCALE = (1.0d-9)*
+     &               GET_MONTREAL_NCDF('CH4',CFCYEAR+OFFSETYEAR,1)/
+     &               GET_MONTREAL_NCDF('CH4',REF_YEAR,1)
+            ELSE
+               FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + 1
+               BASIS_LINE = (12*(REF_YEAR-1959)) + 1
+               CH4_SCALE = (1.0d-9)*GET_MONTREAL('CH4',FUTURE_LINE)/
      &                       GET_MONTREAL('CH4',BASIS_LINE)
+            ENDIF
          ELSE
             CH4_SCALE = 1.0d-9
          ENDIF
@@ -4963,7 +5401,9 @@
       USE TRACERID_MOD
       USE LOGICAL_MOD
       USE TIME_MOD,     ONLY : GET_YEAR
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE ERROR_MOD,    ONLY : ALLOC_ERR,IS_SAFE_DIV
+      USE DIRECTORY_MOD,ONLY : DATA_DIR_1x1
+      USE GRID_MOD,     ONLY : GET_YEDGE
 !
 ! !INPUT PARAMETERS:
 !
@@ -4985,6 +5425,12 @@
       INTEGER :: N, AS
       LOGICAL :: IT_EXISTS, USE2DDATA
       CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC
+      INTEGER            :: JIN, JOUT
+      REAL*8             :: JMIN_IN, JMAX_IN, JDIF_IN
+      REAL*8             :: JMIN_OUT,JMAX_OUT,JDIF_OUT
+      REAL*8             :: JMIN_TMP,JMAX_TMP,JDIF_TMP
+      REAL*8             :: JRATIO
+      REAL*8             :: DEG_SUM
 
       !=================================================================
       ! INIT_UCX begins here!
@@ -5011,6 +5457,8 @@
       GRIDSPEC = 'Grid2x25/InitCFC_'
 #elif defined(GRID4x5)
       GRIDSPEC = 'Grid4x5/InitCFC_'
+#else
+      GRIDSPEC = ''
 #endif
 
 !      !-----SDE DEBUG
@@ -5022,34 +5470,45 @@
 !      !-----SDE DEBUG
 
       ! Determine folder paths from root folder
-      WRITE(     AVG_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT),
-     &   '/DiurnalAvg/', TRIM(GRIDSPEC)
-      WRITE(    NOON_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT), 
-     &   '/NoonTime/', TRIM(GRIDSPEC)
-      WRITE(MONTREAL_FILE_ROOT,'(a,a)') TRIM(TRAC_FILE_ROOT), 
-     &   '/Montreal/'
+      IF (UCXNETCDF) THEN
+         WRITE(     AVG_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1),
+     &      '/UCX/Init2D/DiurnalAvg.nc'
+         WRITE(    NOON_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
+     &      '/UCX/Init2D/Noontime.nc'
+         WRITE(MONTREAL_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
+     &      '/UCX/Init1D/Montreal.nc'
+      ELSE
+         WRITE(     AVG_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT),
+     &      '/DiurnalAvg/', TRIM(GRIDSPEC)
+         WRITE(    NOON_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT), 
+     &      '/NoonTime/', TRIM(GRIDSPEC)
+         WRITE(MONTREAL_FILE_ROOT,'(a,a)') TRIM(TRAC_FILE_ROOT), 
+     &      '/Montreal/'
+      ENDIF
   
       IF ( LPRT ) THEN
          WRITE(DBGMSG,'(a,a)') '### UCX: Reading O1D/O3P from ',
      &     TRIM(NOON_FILE_ROOT)
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,a)') '### UCX: Initializing CFCs from ',
+         CALL DEBUG_MSG( TRIM(DBGMSG) )
+         WRITE(DBGMSG,'(a,a)') 
+     &     '### UCX: Initializing long-lived species from ',
      &     TRIM(AVG_FILE_ROOT)
-         CALL DEBUG_MSG( DBGMSG )
-         WRITE(DBGMSG,'(a,a)') '### UCX: Projecting CFCs from ',
+         CALL DEBUG_MSG( TRIM(DBGMSG) )
+         WRITE(DBGMSG,'(a,a)') 
+     &     '### UCX: Setting long-lived species BCs from ',
      &     TRIM(MONTREAL_FILE_ROOT)
-         CALL DEBUG_MSG( DBGMSG )
+         CALL DEBUG_MSG( TRIM(DBGMSG) )
       ENDIF
-      
-      MONTREAL_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
-     &      // '/Montreal/'
 
-      ! Allocate array of input pressure levels
-      ALLOCATE( AER_PLEVS( AER_NLEVS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AER_PLEVS' )
+      ! Allocate arrays of input pressure levels and lat edges
+      ALLOCATE( UCX_PLEVS( UCX_NLEVS ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UCX_PLEVS' )
+
+      ALLOCATE( UCX_LATS( UCX_NLAT+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UCX_LATS' )
 
       ! Set input pressure levels (hPa)
-      AER_PLEVS = (/ 0.2200d+00, 0.2600d+00, 0.3100d+00, 0.3600d+00,
+      UCX_PLEVS = (/ 0.2200d+00, 0.2600d+00, 0.3100d+00, 0.3600d+00,
      &               0.4300d+00, 0.5100d+00, 0.6000d+00, 0.7100d+00,
      &               0.8400d+00, 0.9900d+00, 1.1700d+00, 1.3800d+00,
      &               1.6300d+00, 1.9300d+00, 2.2800d+00, 2.6900d+00,
@@ -5062,7 +5521,15 @@
      &               1.7377d+02, 2.0529d+02, 2.4252d+02, 2.8650d+02,
      &               3.3847d+02, 3.9985d+02, 4.7237d+02, 5.5804d+02,
      &               6.5924d+02, 7.7880d+02, 9.2004d+02 /)
- 
+
+      ! Set input latitude edges (degrees)
+      UCX_LATS(1)  = -90.0d0
+      UCX_LATS(2)  = (-90.0d0) + (9.5d0/2.0d0)
+      UCX_LATS(20) = 90.0d0
+      DO N=2,18
+         UCX_LATS(N+1) = UCX_LATS(N) + 9.5d0
+      ENDDO
+
       ! Calculate conversion factors for SLA
       ! Factor to convert volume (m3 SLA/m3 air) to
       ! surface area density (cm2 SLA/cm3 air)
@@ -5262,6 +5729,52 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_TOPPHOT' )
       SO4_TOPPHOT = 0.d0
 
+      ALLOCATE( UCX_REGRID( JGLOB, UCX_NLAT ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UCX_REGRID' )
+      UCX_REGRID = 0d0
+
+      ! Calculate the scaling matrix
+      ! Note cosine (area-weighted)
+      JMAX_OUT = GET_YEDGE(1,1,1)
+      DO JOUT=1,JJPAR
+         JMIN_OUT = JMAX_OUT
+         JMAX_OUT = GET_YEDGE(1,JOUT+1,1)
+         JDIF_OUT = SIND(JMAX_OUT)-SIND(JMIN_OUT)
+         DEG_SUM = 0d0
+         DO JIN=1,UCX_NLAT
+            JMIN_IN = UCX_LATS(JIN)
+            JMAX_IN = UCX_LATS(JIN+1)
+            IF ((JMAX_OUT.ge.JMIN_IN).and.(JMIN_OUT.le.JMAX_IN)) THEN
+               JMAX_TMP = MIN(JMAX_IN,JMAX_OUT)
+               JMIN_TMP = MAX(JMIN_IN,JMIN_OUT)
+               JDIF_TMP = SIND(JMAX_TMP)-SIND(JMIN_TMP)
+               IF (IS_SAFE_DIV(JDIF_TMP,JDIF_OUT)) THEN
+                  JRATIO = JDIF_TMP/JDIF_OUT
+                  UCX_REGRID(JOUT,JIN) = JRATIO
+                  DEG_SUM = DEG_SUM + JRATIO
+               ENDIF
+            ENDIF
+         ENDDO
+         ! Normalize
+         IF (DEG_SUM.gt.0d0) THEN
+            DO JIN=1,UCX_NLAT
+               UCX_REGRID(JOUT,JIN) = UCX_REGRID(JOUT,JIN)/DEG_SUM
+            ENDDO
+         ELSE
+            UCX_REGRID(JOUT,:) = 0d0
+         ENDIF
+
+!         ! Debug
+!         IF ( LPRT ) THEN
+!            WRITE(DBGMSG,'(a,I03,a,3(F6.2,x))') '### UCX: Exgrid: J-',
+!     &        JOUT, '->',JMIN_OUT,JMAX_OUT,JDIF_OUT
+!            CALL DEBUG_MSG( TRIM(DBGMSG) )
+!            WRITE(DBGMSG,'(a,I03,a,F6.2)') '### UCX: Regrid: J-',
+!     &        JOUT, '->',DEG_SUM
+!            CALL DEBUG_MSG( TRIM(DBGMSG) )
+!         ENDIF
+      ENDDO
+
       END SUBROUTINE INIT_UCX
 !
 !EOC
@@ -5300,8 +5813,11 @@
       IF ( ALLOCATED( AERFRAC    ) ) DEALLOCATE( AERFRAC    )
       IF ( ALLOCATED( AERFRACIND ) ) DEALLOCATE( AERFRACIND )
       IF ( ALLOCATED( KHETI_SLA  ) ) DEALLOCATE( KHETI_SLA  )
-      IF ( ALLOCATED( AER_MR     ) ) DEALLOCATE( AER_MR     )
-      IF ( ALLOCATED( AER_PLEVS  ) ) DEALLOCATE( AER_PLEVS  )
+      IF ( ALLOCATED( UCX_MR     ) ) DEALLOCATE( UCX_MR     )
+      IF ( ALLOCATED( UCX_MR_IN  ) ) DEALLOCATE( UCX_MR_IN  )
+      IF ( ALLOCATED( UCX_REGRID ) ) DEALLOCATE( UCX_REGRID )
+      IF ( ALLOCATED( UCX_PLEVS  ) ) DEALLOCATE( UCX_PLEVS  )
+      IF ( ALLOCATED( UCX_LATS   ) ) DEALLOCATE( UCX_LATS   )
       IF ( ALLOCATED( NOX_O      ) ) DEALLOCATE( NOX_O      )
       IF ( ALLOCATED( NOX_J      ) ) DEALLOCATE( NOX_J      )
       IF ( ALLOCATED( SO4_TOPPHOT) ) DEALLOCATE( SO4_TOPPHOT)

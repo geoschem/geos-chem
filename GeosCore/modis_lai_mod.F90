@@ -533,12 +533,12 @@ CONTAINS
        ! so we have to read data from a different year.
        IF ( USE_OLSON_2001 ) THEN
           IF ( yyyy > MODIS_END ) THEN                    !%%% OLSON 2001 %%%
-             yyyymmdd = MODIS_END*10000   + Pmm*100 + 01  ! Use final year
+             yyyymmdd = MODIS_END*10000   + mm*100 + 01   ! Use final year
           ELSE IF ( yyyy < MODIS_START ) THEN             !
-             yyyymmdd = MODIS_START*10000 + Pmm*100 + 01  ! Use 1st year
+             yyyymmdd = MODIS_START*10000 + mm*100 + 01   ! Use 1st year
           ENDIF
        ELSE                                               !%%% OLSON 1992 %%%
-          yyyymmdd = 19850001 + Pmm*100                   ! Use climatology
+          yyyymmdd = 19850001 + mm*100                    ! Use climatology
        ENDIF
 
        ! Expand date tokens in filename
