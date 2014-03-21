@@ -332,7 +332,7 @@
       INTEGER           :: IU_FILE
       REAL*4            :: SCALE_NEW
       CHARACTER(LEN=2)  :: C
-      CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW
+      CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW, FNAME_NEW
 
       !=================================================================
       ! CREATE_TINFO begins here!
@@ -582,31 +582,35 @@
          CALL WRITE_SEPARATOR( IU_FILE, 999 )
 
          ! Dry period [h]
-         NAME_NEW = 'P_DRY'
-         UNIT_NEW = 'hours'
+         NAME_NEW  = 'P_DRY'
+         FNAME_NEW = 'Dry period'
+         UNIT_NEW  = 'hours'
          CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
-     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      FNAME_NEW,   REAL(1e0,4), 1,            
      &                      REAL(1e0,4), UNIT_NEW,    60001  )
 
          ! Pulse factor [unitless]
-         NAME_NEW = 'PFACTOR'
-         UNIT_NEW = 'unitless'
+         NAME_NEW  = 'PFACTOR'
+         FNAME_NEW = 'Pulsing factor'
+         UNIT_NEW  = 'unitless'
          CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
-     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      FNAME_NEW,   REAL(1e0,4), 1,            
      &                      REAL(1e0,4), UNIT_NEW,    60002  )
 
          ! GWET from previous timestep [unitless]
-         NAME_NEW = 'GWET_PRV'
-         UNIT_NEW = 'unitless'
+         NAME_NEW  = 'GWET_PRV'
+         FNAME_NEW = 'Soil moisture'
+         UNIT_NEW  = 'unitless'
          CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
-     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      FNAME_NEW,   REAL(1e0,4), 1,            
      &                      REAL(1e0,4), UNIT_NEW,    60003  )
 
          ! Reservoir of deposited N [ng N/m2]
-         NAME_NEW = 'N_RESVR'
-         UNIT_NEW = 'ng N/m2'
+         NAME_NEW  = 'N_RESVR'
+         FNAME_NEW = 'N reservoir'
+         UNIT_NEW  = 'ng N/m2'
          CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
-     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      FNAME_NEW,   REAL(1e0,4), 1,            
      &                      REAL(1e0,4), UNIT_NEW,    60004  )
 
       ENDIF
@@ -5050,7 +5054,7 @@
       ENDIF
 
       !-------------------------------------      
-      ! J-rates (ND22)
+      ! J-Values (ND22)
       !-------------------------------------
       IF ( ND22 > 0 ) THEN
 
@@ -5670,7 +5674,7 @@
       !-------------------------------------      
       ! Chemically-produced OH, etc (ND43)
       !-------------------------------------      
-      IF ( ND43 > 0 ) THEN 
+      IF ( ND43 > 0 .or. DO_TIMESERIES ) THEN 
 
          ! Number of tracers
          ! update for arom (dkh, 06/22/07)  
@@ -6079,7 +6083,7 @@
       !-------------------------------------      
       ! Biogenic emissions (ND46)
       !-------------------------------------      
-      IF ( ND46 > 0 ) THEN 
+      IF ( ND46 > 0 .or. DO_TIMESERIES ) THEN 
 
          ! Number of tracers
          IF ( IDBCH4 == 0 ) THEN
@@ -6200,7 +6204,7 @@
 
          ! Number of tracers
          ! Increased from 26 to 32 (mpb,2009)
-         NTRAC(48) = 32
+         NTRAC(48) = 14
 
          ! Loop over tracers
          DO T = 1, NTRAC(48)
@@ -6214,150 +6218,64 @@
             ! Get name, long-name (and others where necessary)
             SELECT CASE( T )
                CASE( 1  )
-                  NAME (T,48) = 'O3'
-                  FNAME(T,48) = 'O3 time series'
-                  UNIT (T,48) = 'ppbv'
-                  MWT  (T,48) = 48e-3
-                  SCALE(T,48) = 1.0e+9
-               CASE( 2  )
                   NAME (T,48) = 'OH'
                   FNAME(T,48) = 'OH time series'
                   UNIT (T,48) = 'molec/cm3'
-               CASE( 3  )
+               CASE( 2  )
                   NAME (T,48) = 'NOy'
                   FNAME(T,48) = 'NOy time series'
                   UNIT (T,48) = 'ppbv'
                   SCALE(T,48) = 1.0e+9
-               CASE( 4  )
-                  NAME (T,48) = 'NO2dv'
-                  FNAME(T,48) = 'NO2 drydep vel'
-                  UNIT (T,48) = 'cm/s'
-               CASE( 5  )
-                  NAME (T,48) = 'O3dv'
-                  FNAME(T,48) = 'O3 drydep vel'
-                  UNIT (T,48) = 'cm/s'
-               CASE( 6  )
-                  NAME (T,48) = 'PANdv'
-                  FNAME(T,48) = 'PAN drydep vel'
-                  UNIT (T,48) = 'cm/s'
-               CASE( 7  )
-                  NAME (T,48) = 'HNO3dv'
-                  FNAME(T,48) = 'HNO3 drydep vel'
-                  UNIT (T,48) = 'cm/s'
-               CASE( 8  )
-                  NAME (T,48) = 'H2O2dv'
-                  FNAME(T,48) = 'H2O2 drydep vel'
-                  UNIT (T,48) = 'cm/s'
-               CASE( 9  )
-                  NAME (T,48) = 'NO'
-                  FNAME(T,48) = 'NO time series'
-                  UNIT (T,48) = 'ppbv'
-                  MWT  (T,48) = 30e-3
-                  SCALE(T,48) = 1.0e+9
-               CASE( 10  )
-                  NAME (T,48) = 'PBLTOP'
-                  FNAME(T,48) = 'PBL top pressure'
-                  UNIT (T,48) = 'hPa'
-               CASE( 11  )
-                  NAME (T,48) = 'LT'
-                  FNAME(T,48) = 'Station local time'
-                  UNIT (T,48) = 'h'
-               CASE( 12 )
-                  NAME (T,48) = 'ISOPf'
-                  FNAME(T,48) = 'ISOP emission flux'
-                  UNIT (T,48) = 'molec/cm2/s'
-                  MWT  (T,48) = 12e-3
-               CASE( 13 )
-                  NAME (T,48) = 'MOLEN'
-                  FNAME(T,48) = 'Monin-Obhukov length'
-                  UNIT (T,48) = 'm'
-               CASE( 14 )
-                  NAME (T,48) = 'NO3'
-                  FNAME(T,48) = 'NO3 time series'
-                  UNIT (T,48) = 'ppbv'
-                  MWT  (T,48) = 62e-3
-                  SCALE(T,48) = 1.0e+9
-               CASE( 15 )
-                  NAME (T,48) = 'PS'
-                  FNAME(T,48) = 'Surface pressure'
-                  UNIT (T,48) = 'hPa'
-               CASE( 16 )
-                  NAME (T,48) = 'AVGW'
-                  FNAME(T,48) = 'Water vapor mixing ratio'
-                  UNIT (T,48) = 'ppbv'
-                  MWT  (T,48) = 33e-3
-                  SCALE(T,48) = 1.0e+9
-               CASE( 17 )
+               CASE( 3  )
                   NAME (T,48) = 'RH'
                   FNAME(T,48) = 'Relative humidity'
                   UNIT (T,48) = '%'
-               CASE( 18 )
-                  NAME (T,48) = 'HCNcol'
-                  FNAME(T,48) = 'HCN column density'
-                  UNIT (T,48) = 'molec/cm2'
-               CASE( 19 )
+               CASE( 4  )
                   NAME (T,48) = 'CF'
                   FNAME(T,48) = 'Cloud fraction'
                   UNIT (T,48) = 'unitless'
-               CASE( 20 )
+               CASE( 5  )
                   NAME (T,48) = 'ODCOL'
                   FNAME(T,48) = 'Cloud optical depth'
                   UNIT (T,48) = 'unitless'
-               CASE( 21 )
+               CASE( 6  )
                   NAME (T,48) = 'CThgt'
                   FNAME(T,48) = 'Cloud top height'
                   UNIT (T,48) = 'hPa'
-               CASE( 22 )
+               CASE( 7  )
                   NAME (T,48) = 'AIRDEN'
                   FNAME(T,48) = 'Air density'
                   UNIT (T,48) = 'molec/cm3'
-               CASE( 23 )
-                  NAME (T,48) = 'TOTDUST'
-                  FNAME(T,48) = 'Total dust opt depth'
-                  UNIT (T,48) = 'unitless'
-               CASE( 24 )
+               CASE( 8  )
                   NAME (T,48) = 'TOTSALT'
                   FNAME(T,48) = 'Total seasalt tracer'
                   UNIT (T,48) = 'ppbv'
                   MWT  (T,48) = 36e-3
                   SCALE(T,48) = 1.0e+9
-               CASE( 25 )
-                  NAME (T,48) = 'NO2'
-                  FNAME(T,48) = 'NO2 concentration'
-                  UNIT (T,48) = 'ppbv'
-                  MWT  (T,48) = 46e-3
-                  SCALE(T,48) = 1.0e+9                  
-               CASE( 26 )
-                  NAME (T,48) = 'TOTAOD'
-                  FNAME(T,48) = 'Total aerosol opt depth'
-                  UNIT (T,48) = 'unitless'
-                  ! +++++++++++++++++++++++++++++++++++++
-                  ! Add in gamma factors (mpb,2008)
-                  ! +++++++++++++++++++++++++++++++++++++
-               CASE( 27 )
-                  NAME (T,48) = 'G_T'
-                  FNAME(T,48) = 'Temperature activity factor'
-                  UNIT (T,48) = 'unitless'
-               CASE( 28 )
-                  NAME (T,48) = 'G_PAR'
-                  FNAME(T,48) = 'Light activity factor'
-                  UNIT (T,48) = 'unitless'
-               CASE( 29 )              
-                  NAME (T,48) = 'G_AGE'
-                  FNAME(T,48) = 'Leaf-age activity factor'
-                  UNIT (T,48) = 'unitless'
-               CASE( 30 )
-                  NAME (T,48) = 'G_LAI'
-                  FNAME(T,48) = 'LAI activity factor'
-                  UNIT (T,48) = 'unitless'
-               CASE( 31 )
-                  NAME (T,48) = 'G_SM'
-                  FNAME(T,48) = 'Soil-moisture activity factor'
-                  UNIT (T,48) = 'unitless'
-               CASE( 32 )
+               CASE( 9  )
                   NAME (T,48) = 'D_LAI'
                   FNAME(T,48) = 'Daily LAI'
                   UNIT (T,48) = 'm2/m2'
+               CASE( 10 )
+                  NAME (T,48) = 'NO-SOIL'
+                  FNAME(T,48) = 'Soil NO'
+                  UNIT (T,48) = 'molec/cm2/s'
+               CASE( 11 )
+                  NAME (T,48) = 'NO-FERT'
+                  FNAME(T,48) = 'Fertilizer NO'
+                  UNIT (T,48) = 'molec/cm2/s'
+               CASE( 12 )
+                  NAME (T,48) = 'P_DRY'
+                  FNAME(T,48) = 'Dry period'
+                  UNIT (T,48) = 'hours'
+               CASE( 13 )
+                  NAME (T,48) = 'PFACTOR'
+                  FNAME(T,48) = 'Pulsing factor'
+                  UNIT (T,48) = 'unitless'
+               CASE( 14 )
+                  NAME (T,48) = 'GWET_PRV'
+                  FNAME(T,48) = 'Soil moisture'
+                  UNIT (T,48) = 'unitless'
                CASE DEFAULT
                   ! Nothing
             END SELECT

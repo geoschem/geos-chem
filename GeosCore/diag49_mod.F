@@ -37,52 +37,50 @@
 !  ND49 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v        ]
-!  61            : Soil NOx                                 [molec/cm2/s]
-!  62            : Fertilizer NOx                           [molec/cm2/s]
-!  63            : Dry Period                               [hours]
-!  64            : PFactor                                  [unitless]
-!  65            : Soil Moisture                            [unitless]
-!  76            : OH concentration                         [molec/cm3  ]
-!  77            : NO2 concentration                        [v/v        ]
-!  78            : PBL heights                              [m          ]
-!  79            : PBL heights                              [levels     ]
-!  80            : Air density                              [molec/cm3  ]
-!  81            : 3-D Cloud fractions                      [unitless   ]
-!  82            : Column optical depths                    [unitless   ]
-!  83            : Cloud top heights                        [hPa        ]
-!  84            : Sulfate aerosol optical depth            [unitless   ]
-!  85            : Black carbon aerosol optical depth       [unitless   ]
-!  86            : Organic carbon aerosol optical depth     [unitless   ]
-!  87            : Accumulation mode seasalt optical depth  [unitless   ]
-!  88            : Coarse mode seasalt optical depth        [unitless   ]
-!  89            : Total dust optical depth                 [unitless   ]
-!  90            : Total seasalt tracer concentration       [unitless   ]
-!  91            : Pure O3 (not Ox) concentration           [v/v        ]
-!  92            : NO concentration                         [v/v        ]
-!  93            : NOy concentration                        [v/v        ]
-!  94            : Grid box heights                         [m          ]
-!  95            : Relative Humidity                        [%          ]
-!  96            : Sea level pressure                       [hPa        ]
-!  97            : Zonal wind (a.k.a. U-wind)               [m/s        ]
-!  98            : Meridional wind (a.k.a. V-wind)          [m/s        ]
-!  99            : PEDGE-$ (Pressure @ level edges          [hPa        ]
-!  100           : Temperature                              [K          ]
-!  101           : PAR direct                               [hPa        ]
-!  102           : PAR diffuse                              [hPa        ]
-!  103           : Daily LAI                                [hPa        ]
-!  104           : Temperature at 2m                        [K          ]
-!  105           : Isoprene emissions                       [atomC/cm2/s]
-!  106           : Total Monoterpene emissions              [atomC/cm2/s]
-!  107           : Methyl Butanol emissions                 [atomC/cm2/s]
-!  108           : Alpha-Pinene emissions                   [atomC/cm2/s]
-!  109           : Beta-Pinene emissions                    [atomC/cm2/s]
-!  110           : Limonene emissions                       [atomC/cm2/s]
-!  111           : Sabinene emissions                       [atomC/cm2/s]
-!  112           : Myrcene emissions                        [atomC/cm2/s]
-!  113           : 3-Carene emissions                       [atomC/cm2/s]
-!  114           : Ocimene emissions                        [atomC/cm2/s]
-!  115           : Farnesene emissions                      [atomC/cm2/s]
-!  116-122       : size resolved dust optical depth         [unitless   ]
+!  151           : OH concentration                         [molec/cm3  ]
+!  152           : NOy concentration                        [v/v        ]
+!  153           : Relative Humidity                        [%          ]
+!  154           : 3-D Cloud fractions                      [unitless   ]
+!  155           : Column optical depths                    [unitless   ]
+!  156           : Cloud top heights                        [hPa        ]
+!  157           : Air density                              [molec/cm3  ]
+!  158           : Total seasalt tracer concentration       [unitless   ]
+!  159           : PBL heights                              [m          ]
+!  160           : PBL heights                              [levels     ]
+!  161           : Grid box heights                         [m          ]
+!  162           : PEDGE-$ (Pressure @ level edges          [hPa        ]
+!  163           : Sea level pressure                       [hPa        ]
+!  164           : Zonal wind (a.k.a. U-wind)               [m/s        ]
+!  165           : Meridional wind (a.k.a. V-wind)          [m/s        ]
+!  166           : Temperature                              [K          ]
+!  167           : Sulfate aerosol optical depth            [unitless   ]
+!  168           : Black carbon aerosol optical depth       [unitless   ]
+!  169           : Organic carbon aerosol optical depth     [unitless   ]
+!  170           : Accumulation mode seasalt optical depth  [unitless   ]
+!  171           : Coarse mode seasalt optical depth        [unitless   ]
+!  172           : Total dust optical depth                 [unitless   ]
+!  173-179       : Size resolved dust optical depth         [unitless   ]
+!  180           : PAR direct                               [hPa        ]
+!  181           : PAR diffuse                              [hPa        ]
+!  182           : Daily LAI                                [hPa        ]
+!  183           : Temperature at 2m                        [K          ]
+!  184           : Isoprene emissions                       [atomC/cm2/s]
+!  185           : Total Monoterpene emissions              [atomC/cm2/s]
+!  186           : Methyl Butanol emissions                 [atomC/cm2/s]
+!  187           : Alpha-Pinene emissions                   [atomC/cm2/s]
+!  188           : Beta-Pinene emissions                    [atomC/cm2/s]
+!  189           : Limonene emissions                       [atomC/cm2/s]
+!  190           : Sabinene emissions                       [atomC/cm2/s]
+!  191           : Myrcene emissions                        [atomC/cm2/s]
+!  192           : 3-Carene emissions                       [atomC/cm2/s]
+!  193           : Ocimene emissions                        [atomC/cm2/s]
+!  194           : Farnesene emissions                      [atomC/cm2/s]
+!  195           : Accumulated precip.                      [mm/day     ]
+!  196           : Soil NOx                                 [molec/cm2/s]
+!  197           : Fertilizer NOx                           [molec/cm2/s]
+!  198           : Dry Period                               [hours      ]
+!  199           : PFactor                                  [unitless   ]
+!  200           : Soil Moisture                            [unitless   ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -110,6 +108,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -265,7 +264,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE            :: FIRST  = .TRUE.
-      LOGICAL, SAVE            :: IS_FULLCHEM, IS_NO,      IS_O3
+      LOGICAL, SAVE            :: IS_FULLCHEM
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
       LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
@@ -315,8 +314,6 @@
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_O3       = ( IS_FULLCHEM .and. IDTO3   > 0 )
-         IS_NO       = ( IS_FULLCHEM .and. IDTNO   > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
      &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
@@ -406,41 +403,16 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 91 .and. IS_O3 ) THEN
+         ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
-            !-------------------------------------
-            ! PURE O3 CONCENTRATION [v/v]
-            !-------------------------------------
-            CATEGORY = 'IJ-AVG-$'
-            UNIT     = ''           ! Let GAMAP pick the unit
-            GMNL     = ND49_NL
-            GMTRC    = N_TRACERS + 1
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,IDTO3) * TCVV(IDTO3) / AD(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 92 .and. IS_NO ) THEN
-            
-            !-------------------------------------
-            ! NO CONCENTRATION [v/v]
-            !-------------------------------------
+            !--------------------------------------
+            ! OH CONCENTRATION [molec/cm3]
+            !--------------------------------------
             CATEGORY = 'TIME-SER'
-            UNIT     = ''           ! Let GAMAP pick the unit
+            UNIT     = 'molec/cm3'
             GMNL     = ND49_NL
-            GMTRC    = 9
-               
+            GMTRC    = 1
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -450,13 +422,13 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,IDTNO) * TCVV(IDTNO) / AD(I,J,L)
+               Q(X,Y,K) = SAVEOH(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 93 .and. IS_NOy ) THEN
+         ELSE IF ( N == 152 .and. IS_NOy ) THEN
 
             !--------------------------------------
             ! NOy CONCENTRATION [v/v]
@@ -464,7 +436,7 @@
             CATEGORY = 'TIME-SER'
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND49_NL
-            GMTRC    = 3
+            GMTRC    = 2
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -532,15 +504,112 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 153 ) THEN
 
-            !-------------------------------------
-            ! OH CONCENTRATION [molec/cm3]
-            !-------------------------------------              
+            !--------------------------------------
+            ! RELATIVE HUMIDITY [%]
+            !--------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = '%'
+            GMNL     = ND49_NL
+            GMTRC    = 3
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = State_Met%RH(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 154 ) THEN 
+
+            !--------------------------------------
+            ! 3-D CLOUD FRACTIONS [unitless]
+            !--------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMNL     = ND49_NL
+            GMTRC    = 4
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = State_Met%CLDF(K,I,J)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 155 .and. IS_OPTD ) THEN 
+
+            !--------------------------------------
+            ! COLUMN OPTICAL DEPTHS [unitless]
+            !--------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMNL     = 1
+            GMTRC    = 5
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) = SUM( State_Met%OPTD(:,I,J) )
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN 
+
+            !--------------------------------------
+            ! CLOUD TOP HEIGHTS [hPa]
+            !--------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'hPa'
+            GMNL     = ND49_NL
+            GMTRC    = 6
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 157 ) THEN
+
+            !--------------------------------------
+            ! AIR DENSITY [molec/cm3]
+            !--------------------------------------
             CATEGORY = 'TIME-SER'
             UNIT     = 'molec/cm3'
             GMNL     = ND49_NL
-            GMTRC    = 2
+            GMTRC    = 7
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -551,21 +620,21 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = SAVEOH(I,J,L)
+               Q(X,Y,K) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 77 .and. IS_FULLCHEM ) THEN
-
-            !-------------------------------------
-            ! NO2 CONCENTRATION [molec/cm3]
-            !-------------------------------------
+         ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
+            
+            !--------------------------------------
+            ! TOTAL SEASALT TRACER [v/v]
+            !--------------------------------------
             CATEGORY = 'TIME-SER'
-            UNIT     = ''           ! Let GAMAP pick the unit
+            UNIT     = ''        ! Let GAMAP pick unit
             GMNL     = ND49_NL
-            GMTRC    = 25
+            GMTRC    = 8
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -576,13 +645,14 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,IDTNO2) * TCVV(IDTNO2) / AD(I,J,L)
+               Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
+     &                      TCVV(IDTSALA)      / AD(I,J,L) 
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 78 ) THEN
+         ELSE IF ( N == 159 ) THEN
 
             !--------------------------------------
             ! PBL HEIGHTS [m] 
@@ -604,7 +674,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 79 ) THEN
+         ELSE IF ( N == 160 ) THEN
 
             !--------------------------------------
             ! PBL HEIGHTS [levels] 
@@ -626,15 +696,15 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 80 ) THEN
+         ELSE IF ( N == 161 ) THEN
 
             !--------------------------------------
-            ! AIR DENSITY [molec/cm3]
+            ! GRID BOX HEIGHT [m]
             !--------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm3'
+            CATEGORY = 'BXHGHT-$'
+            UNIT     = 'm'
             GMNL     = ND49_NL
-            GMTRC    = 22
+            GMTRC    = 1
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -645,22 +715,22 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+               Q(X,Y,K) = State_Met%BXHEIGHT(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 81 ) THEN 
+         ELSE IF ( N == 162) THEN 
 
             !--------------------------------------
-            ! 3-D CLOUD FRACTIONS [unitless]
+            ! PEDGE-$ (Prs @ level edges) [hPa]
             !--------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
+            CATEGORY = 'PEDGE-$'
+            UNIT     = 'hPa'
             GMNL     = ND49_NL
-            GMTRC    = 19
-
+            GMTRC    = 1
+                  
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -670,21 +740,21 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Met%CLDF(K,I,J)
+               Q(X,Y,K) = GET_PEDGE(I,J,K)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 82 .and. IS_OPTD ) THEN 
+         ELSE IF ( N == 163 .and. IS_SLP ) THEN
 
             !--------------------------------------
-            ! COLUMN OPTICAL DEPTHS [unitless]
+            ! SEA LEVEL PRESSURE [hPa]
             !--------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
+            CATEGORY = 'DAO-FLDS'
+            UNIT     = 'hPa'
             GMNL     = 1
-            GMTRC    = 20
+            GMTRC    = 18
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -693,20 +763,20 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = SUM( State_Met%OPTD(:,I,J) )
+               Q(X,Y,1) = State_Met%SLP(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN 
+         ELSE IF ( N == 164 ) THEN
 
             !--------------------------------------
-            ! CLOUD TOP HEIGHTS [hPa]
+            ! ZONAL (U) WIND [m/s]
             !--------------------------------------
-            CATEGORY = 'TIME_SER'
-            UNIT     = 'hPa'
+            CATEGORY = 'DAO-3D-$'
+            UNIT     = 'm/s'
             GMNL     = ND49_NL
-            GMTRC    = 21
+            GMTRC    = 1
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -717,13 +787,63 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
+               Q(X,Y,K) = State_Met%U(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 84 ) THEN
+         ELSE IF ( N == 165 ) THEN 
+
+            !--------------------------------------
+            ! MERIDIONAL (V) WIND [m/s]
+            !--------------------------------------
+            CATEGORY = 'DAO-3D-$'
+            UNIT     = 'm/s'
+            GMNL     = ND49_NL
+            GMTRC    = 2
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = State_Met%V(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+        ELSE IF ( N == 166 ) THEN
+
+            !--------------------------------------
+            ! TEMPERATURE [K]
+            !--------------------------------------
+            CATEGORY = 'DAO-3D-$'
+            UNIT     = 'K'
+            GMNL     = ND49_NL
+            GMTRC    = 3
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = State_Met%T(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 167 ) THEN
 
             !--------------------------------------
             ! SULFATE AOD @ jv_spec_aod.dat wavelength [unitless]
@@ -757,7 +877,7 @@
 
             ENDDO
 
-         ELSE IF ( N == 85 ) THEN
+         ELSE IF ( N == 168 ) THEN
 
             !--------------------------------------
             ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
@@ -793,11 +913,11 @@
 !$OMP END PARALLEL DO
             ENDDO
 
-         ELSE IF ( N == 86 ) THEN
+         ELSE IF ( N == 169 ) THEN
 
             !--------------------------------------
             ! ORGANIC CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
-            !--------------------------------------            
+            !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
@@ -829,7 +949,7 @@
 !$OMP END PARALLEL DO
             ENDDO
 
-         ELSE IF ( N == 87 ) THEN
+         ELSE IF ( N == 170 ) THEN
             
             !--------------------------------------
             ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
@@ -865,11 +985,11 @@
 !$OMP END PARALLEL DO
             ENDDO
 
-         ELSE IF ( N == 88 ) THEN
+         ELSE IF ( N == 171 ) THEN
 
             !--------------------------------------
             ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
-            !--------------------------------------            
+            !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
@@ -901,11 +1021,11 @@
 !$OMP END PARALLEL DO
             ENDDO
 
-         ELSE IF ( N == 89 ) THEN
+         ELSE IF ( N == 172 ) THEN
 
-            !-----------------------------------
+            !--------------------------------------
             ! TOTAL DUST OPT DEPTH [unitless]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
             GMNL      = ND49_NL
@@ -934,7 +1054,7 @@
 !$OMP END PARALLEL DO
             ENDDO
 
-         ELSE IF (N > 115 ) THEN
+         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
 
             !--------------------------------------
             ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
@@ -943,9 +1063,9 @@
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
             GMNL      = ND49_NL
-            GMTRC     = 21+(N-116)
+            GMTRC     = 21+(N-173)
 
-            R = N - 115
+            R = N - 172
 
             ! Scaling factor for AOD wavelength (clh, 05/09)
             ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(IND999,IND(6)+R-1)
@@ -967,209 +1087,11 @@
                ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
-            
-            !-----------------------------------
-            ! TOTAL SEASALT TRACER [v/v]
-            !-----------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = ''        ! Let GAMAP pick unit
-            GMNL     = ND49_NL
-            GMTRC    = 24
+         ELSE IF ( N == 180 ) THEN
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                      TCVV(IDTSALA)      / AD(I,J,L) 
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 94 ) THEN
-
-            !-----------------------------------
-            ! GRID BOX HEIGHT [m]
-            !----------------------------------- 
-            CATEGORY = 'BXHGHT-$'
-            UNIT     = 'm'
-            GMNL     = ND49_NL
-            GMTRC    = 1
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,K) = State_Met%BXHEIGHT(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 95 ) THEN
-
-            !-----------------------------------
-            ! RELATIVE HUMIDITY [%]
-            !----------------------------------- 
-            CATEGORY = 'TIME-SER'
-            UNIT     = '%'
-            GMNL     = ND49_NL
-            GMTRC    = 17
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,K) = State_Met%RH(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 96 .and. IS_SLP ) THEN
-
-            !-----------------------------------
-            ! SEA LEVEL PRESSURE [hPa]
-            !----------------------------------- 
-            CATEGORY = 'DAO-FLDS'
-            UNIT     = 'hPa'
-            GMNL     = 1
-            GMTRC    = 18
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = State_Met%SLP(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-               
-         ELSE IF ( N == 97 ) THEN
-
-            !-----------------------------------
-            ! ZONAL (U) WIND [m/s]
-            !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
-            UNIT     = 'm/s'
-            GMNL     = ND49_NL
-            GMTRC    = 1
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,K) = State_Met%U(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 98 ) THEN 
-
-            !-----------------------------------
-            ! MERIDIONAL (V) WIND [m/s]
-            !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
-            UNIT     = 'm/s'
-            GMNL     = ND49_NL
-            GMTRC    = 2
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,K) = State_Met%V(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 99 ) THEN 
-
-            !-----------------------------------
-            ! PEDGE-$ (Prs @ level edges) [hPa]
-            !----------------------------------- 
-            CATEGORY = 'PEDGE-$'
-            UNIT     = 'hPa'
-            GMNL     = ND49_NL
-            GMTRC    = 1
-                  
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,K) = GET_PEDGE(I,J,K)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 100 ) THEN
-
-            !-----------------------------------
-            ! TEMPERATURE [K]
-            !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
-            UNIT     = 'K'
-            GMNL     = ND49_NL
-            GMTRC    = 3
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,K) = State_Met%T(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 101 ) THEN
-
-            !-----------------------------------
+            !--------------------------------------
             ! PAR Diffuse [hPa]
-            !----------------------------------- 
+            !--------------------------------------
             CATEGORY = 'DAO-FLDS'
             UNIT     = 'W/m2'
             GMNL     = ND49_NL
@@ -1187,11 +1109,11 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 102 ) THEN
+         ELSE IF ( N == 181 ) THEN
 
-            !-----------------------------------
+            !--------------------------------------
             ! PAR Direct [hPa]
-            !----------------------------------- 
+            !--------------------------------------
             CATEGORY = 'DAO-FLDS'
             UNIT     = 'W/m2'
             GMNL     = ND49_NL
@@ -1209,147 +1131,15 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 61 .and.  LSOILNOX  ) THEN
+         ELSE IF ( N == 182 ) THEN
 
-            !-----------------------------------
-            ! SOIL NOX EMISSIONS [molec/cm2/s]
-            !----------------------------------- 
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm2/s'
-            GMNL     = 1
-            GMTRC    = 27
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) =  INST_SOIL(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 62 .and.  LSOILNOX  ) THEN
-
-            !-----------------------------------
-            ! FERTILIZER SOIL NOX EMISSIONS [molec/cm2/s]
-            !----------------------------------- 
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm2/s'
-            GMNL     = 1
-            GMTRC    = 28 
-
-!$OMP PARALLEL DO!
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) =  INST_FERT(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 63 .and.  LSOILNOX  ) THEN
-
-            !-----------------------------------
-            !DRY PERIOD [hours]
-            !----------------------------------- 
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'hours'
-            GMNL     = 1
-            GMTRC    = 29
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) =  DRYPERIOD(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 64 .and.  LSOILNOX  ) THEN
-
-            !-----------------------------------
-            !PFACTOR [unitless]
-            !----------------------------------- 
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
-            GMNL     = 1
-            GMTRC    = 30
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = PFACTOR(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 65 .and.  LSOILNOX  ) THEN
-
-            !-----------------------------------
-            !GWET_PREV [unitless]
-            !----------------------------------- 
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
-            GMNL     = 1
-            GMTRC    = 31
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) =  GWET_PREV(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-
-
-         ELSE IF ( N == 66 .and.  LSOILNOX  ) THEN
-
-            !-----------------------------------
-            !Accumulated Precip [mm/day]
-            !----------------------------------- 
-            CATEGORY = 'DAO-FLDS'
-            UNIT     = 'mm/day'
-            GMNL     = 1
-            GMTRC    = 3
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) =  State_Met%PRECTOT(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 103 ) THEN
-
-            !-----------------------------------
+            !--------------------------------------
             ! Daily LAI [hPa]
-            !----------------------------------- 
+            !--------------------------------------
             CATEGORY = 'TIME-SER'
             UNIT     = 'm2/m2'
             GMNL     = ND49_NL
-            GMTRC    = 32
+            GMTRC    = 9
            
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1363,12 +1153,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 104 ) THEN
+         ELSE IF ( N == 183 ) THEN
             
-            !-----------------------------------
+            !--------------------------------------
             ! T @ 2m (mpb,2008)
             ! [K]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'DAO-FLDS'
             UNIT     = 'K'     
             GMNL     = ND49_NL
@@ -1386,12 +1176,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 105 ) THEN
+         ELSE IF ( N == 184 ) THEN
             
-            !-----------------------------------
+            !--------------------------------------
             ! ISOPRENE EMISSIONS (mpb,2008)
             ! [atom C/cm2/s]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'BIOGSRCE'
             UNIT     = 'atomC/cm2/s'    
             GMNL     = ND49_NL
@@ -1409,7 +1199,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 106 ) THEN
+         ELSE IF ( N == 185 ) THEN
             
             !--------------------------------------
             ! TOTAL MONTERPENE EMISSIONS (mpb,2008)
@@ -1432,12 +1222,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 107 ) THEN
+         ELSE IF ( N == 186 ) THEN
             
-            !-----------------------------------
+            !--------------------------------------
             ! MBO EMISSIONS  (mpb,2008)
             ! [atom C/cm2/s]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'BIOGSRCE'
             UNIT     = 'atomC/cm2/s'     
             GMNL     = ND49_NL
@@ -1455,12 +1245,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 108 ) THEN
+         ELSE IF ( N == 187 ) THEN
             
-            !-----------------------------------
+            !--------------------------------------
             ! Alpha-Pinene EMISSIONS  (mpb,2008)
             ! [atom C/cm2/s]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'BIOGSRCE'
             UNIT     = 'atomC/cm2/s'     
             GMNL     = ND49_NL
@@ -1478,12 +1268,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 109 ) THEN
+         ELSE IF ( N == 188 ) THEN
             
-            !-----------------------------------
+            !--------------------------------------
             ! Beta-Pinene EMISSIONS  (mpb,2008)
             ! [atom C/cm2/s]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'BIOGSRCE'
             UNIT     = 'atomC/cm2/s'     
             GMNL     = ND49_NL
@@ -1501,13 +1291,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-
-         ELSE IF ( N == 110 ) THEN
+         ELSE IF ( N == 189 ) THEN
             
-            !-----------------------------------
+            !--------------------------------------
             ! Limonene EMISSIONS  (mpb,2008)
             ! [atom C/cm2/s]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'BIOGSRCE'
             UNIT     = 'atomC/cm2/s'     
             GMNL     = ND49_NL
@@ -1525,13 +1314,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-
-         ELSE IF ( N == 111 ) THEN
+         ELSE IF ( N == 190 ) THEN
             
-            !-----------------------------------
+            !--------------------------------------
             ! Sabinene EMISSIONS  (mpb,2008)
             ! [atom C/cm2/s]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'BIOGSRCE'
             UNIT     = 'atomC/cm2/s'     
             GMNL     = ND49_NL
@@ -1549,13 +1337,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-
-         ELSE IF ( N == 112 ) THEN
+         ELSE IF ( N == 191 ) THEN
             
-            !-----------------------------------
+            !--------------------------------------
             ! Myrcene EMISSIONS  (mpb,2008)
             ! [atom C/cm2/s]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'BIOGSRCE'
             UNIT     = 'atomC/cm2/s'     
             GMNL     = ND49_NL
@@ -1573,13 +1360,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-
-         ELSE IF ( N == 113 ) THEN
+         ELSE IF ( N == 192 ) THEN
             
-            !-----------------------------------
+            !--------------------------------------
             ! 3-Carene EMISSIONS  (mpb,2008)
             ! [atom C/cm2/s]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'BIOGSRCE'
             UNIT     = 'atomC/cm2/s'     
             GMNL     = ND49_NL
@@ -1597,12 +1383,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 114 ) THEN
+         ELSE IF ( N == 193 ) THEN
             
-            !-----------------------------------
+            !--------------------------------------
             ! Ocimene EMISSIONS  (mpb,2008)
             ! [atom C/cm2/s]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'BIOGSRCE'
             UNIT     = 'atomC/cm2/s'     
             GMNL     = ND49_NL
@@ -1620,12 +1406,12 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 115 ) THEN ! SOAupdate
+         ELSE IF ( N == 194 ) THEN ! SOAupdate
             
-            !-----------------------------------
+            !--------------------------------------
             ! Farnesene EMISSIONS  (hotp 3/5/10)
             ! [atom C/cm2/s]
-            !-----------------------------------
+            !--------------------------------------
             CATEGORY = 'BIOGSRCE'
             UNIT     = 'atomC/cm2/s'     
             GMNL     = ND49_NL
@@ -1643,11 +1429,143 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ! SOAupdate: Can add BCARYO, OSQT, OMTP if desired (hotp 7/25/10)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !% SOAupdate: Can add BCARYO, OSQT, OMTP if desired (hotp 7/25/10) %
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ELSE IF ( N == 195 ) THEN
+
+            !--------------------------------------
+            ! Accumulated Precip [mm/day]
+            !--------------------------------------
+            CATEGORY = 'DAO-FLDS'
+            UNIT     = 'mm/day'
+            GMNL     = 1
+            GMTRC    = 3
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) =  State_Met%PRECTOT(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 196 .and. LSOILNOX ) THEN
+
+            !--------------------------------------
+            ! SOIL NOX EMISSIONS [molec/cm2/s]
+            !--------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'molec/cm2/s'
+            GMNL     = 1
+            GMTRC    = 10
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) =  INST_SOIL(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 197 .and. LSOILNOX ) THEN
+
+            !--------------------------------------
+            ! FERTILIZER SOIL NOX EMISSIONS [molec/cm2/s]
+            !--------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'molec/cm2/s'
+            GMNL     = 1
+            GMTRC    = 11
+
+!$OMP PARALLEL DO!
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) =  INST_FERT(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 198 .and. LSOILNOX ) THEN
+
+            !--------------------------------------
+            ! DRY PERIOD [hours]
+            !--------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'hours'
+            GMNL     = 1
+            GMTRC    = 12
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) =  DRYPERIOD(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 199 .and. LSOILNOX ) THEN
+
+            !--------------------------------------
+            ! PFACTOR [unitless]
+            !--------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMNL     = 1
+            GMTRC    = 13
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) = PFACTOR(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 200 .and. LSOILNOX ) THEN
+
+            !--------------------------------------
+            ! GWET_PREV [unitless]
+            !--------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMNL     = 1
+            GMTRC    = 14
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) =  GWET_PREV(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
 
          ELSE
 
-            ! Skip
+            ! Skip other tracers
             CYCLE
 
          ENDIF

@@ -40,13 +40,17 @@
 #  05 Apr 2012 - R. Yantosca - Change BL_LIB_HDF5   to LIB_HDF5
 #  11 May 2012 - R. Yantosca - Now use exported NCL from Makefile_header.mk
 #  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-#==============================================================================
-# Initialization
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
+
 # Define variables
 ROOTDIR := ..
 BIN     := $(ROOTDIR)/bin
@@ -60,18 +64,6 @@ MOD     := $(ROOTDIR)/mod
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 
-#==============================================================================
-# Filename section
-#
-# NOTES:
-# (1) The function $(wildcard m_*.F90) returns all files matching m_*.F90, etc.
-# (2) The syntax $(SRC:.F90=.o) is a shorthand for the "patsubst" function. 
-#==============================================================================
-
-#-----------------
-# Objects
-#-----------------
-
 # Files for library build (code & objects)
 SRC  = $(wildcard m_*.F90)
 OBJ  = $(SRC:.F90=.o)
@@ -80,9 +72,24 @@ MOD  = $(SRC:.F90=.mod)
 # Files for standalone test driver (code, object, exe)
 OBJx = $(EXE:.x=.o)
 
-#-----------------
-# Dependencies
-#-----------------
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
+
 m_do_err_out.o           : m_do_err_out.F90
 
 m_netcdf_io_checks.o     : m_netcdf_io_checks.F90
@@ -126,9 +133,11 @@ TestNcdfUtil.o           : TestNcdfUtil.F90             \
                            m_netcdf_io_read.o           \
                            m_netcdf_io_readattr.o
 
-#==============================================================================
-# Makefile targets
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: clean help libnc ncdfcheck test
 
@@ -151,9 +160,11 @@ clean:
 print:
 	@echo $(LINK)
 
-#==============================================================================
-# HELP Screen
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Help screen                                                            ###
+###                                                                         ###
+###############################################################################
 
 help:
 	@echo 'Usage: make TARGET [ OPTIONAL-FLAGS ]'

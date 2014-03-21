@@ -40,6 +40,7 @@
 #  18 Sep 2013 - R. Yantosca - Remove GeosTomas, that is now gone
 #  18 Sep 2013 - M. Long     - Add Makefile target "hpc"
 #  15 Jan 2014 - R. Yantosca - Updated comments
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -49,11 +50,14 @@ GEOSAPM :=GeosApm
 GEOSDIR :=GeosCore
 GTMM    :=GTMM
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete list!
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete list!                ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: all lib libkpp libnc libutil exe clean realclean doc docclean help
+.PHONY: tauclean
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all
@@ -103,30 +107,37 @@ doc:
 docclean: 
 	@$(MAKE) -C $(GEOSDIR) docclean
 
+tauclean:
+	find . -name '*.pdb' -o -name '*.inst.*' -o -name '*.pp.*' -o -name '*.continue.*' | xargs rm -f
+
 help:
 	@$(MAKE) -C $(GEOSDIR) help
 
-#=============================================================================
-# Targets for mercury simulation (ccc, 6/7/10)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Targets for Hg simulation w/ Global Terrestrial Mercury Model (GTMM)   ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: allhg libhg libgtmm exehg
 
 allhg:
-	@$(MAKE) -C $(GEOSDIR) allhg
+	@$(MAKE) -C $(GEOSDIR) GTMM_Hg=yes allhg
 
 libhg:
-	@$(MAKE) -C $(GEOSDIR) libhg
+	@$(MAKE) -C $(GEOSDIR) GTMM_Hg=yes libhg
 
 ligbtmm:
-	@$(MAKE) -C $(GEOSDIR) libgtmm
+	@$(MAKE) -C $(GEOSDIR) GTMM_Hg=yes libgtmm
 
 exehg:
-	@$(MAKE) -C $(GEOSDIR) exehg
+	@$(MAKE) -C $(GEOSDIR) GTMM_Hg=yes exehg
 
-#=============================================================================
-# Targets for APM aerosol microphysics code (bmy, 2/16/11)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Targets for APM aerosol microphysics simulations                       ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: apm libapm exeapm cleanapm
 

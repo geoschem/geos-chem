@@ -1290,9 +1290,15 @@
 
       ! OTD-LIS local redist filename for CTH parameterization
       ! Now read from lightning_NOx_201301 for GEOS-Chem v9-02+ (bmy, 11/7/13)
+#if defined( GEOS_5 ) && defined( NESTED_EU ) 
+      FILENAME =
+     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' //
+     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
+#else
       FILENAME = 
      &        'lightning_NOx_201311/OTD-LIS-Local-Redist.CTH.v5.' // 
      &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
+#endif
 
       ! Prefix directory to file name
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
@@ -1853,7 +1859,7 @@
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
-!---<---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: cleanup_lightning_NOx

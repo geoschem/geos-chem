@@ -58,9 +58,16 @@
 #                              needed) (SOAupdate, hotp 7/25/10)
 #  22 Aug 2013 - R. Yantosca - Bug fix: when making realclean, also do
 #                              a "make clean" in the Headers directory
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #EOP
 #------------------------------------------------------------------------------
 #BOC
+
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
 
 # Define variables
 SHELL   := /bin/sh
@@ -90,12 +97,9 @@ VPATH   := ../GeosCore
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 
-#=============================================================================
 # List of files to compile (the order is important!).  We specify these as
 # a list of object files (*.o).  For each object file, the "make" utility
 # will find the corresponding source code file (*.f, *.f90) and compile it. 
-#=============================================================================
-
 OBJ =                                                                        \
 a3_read_mod.o            a6_read_mod.o           acetone_mod.o		     \
 aerosol_mod.o            aeic_mod.o              airmas.o                    \
@@ -170,9 +174,11 @@ chemgrid_mod.o           ucx_mod.o                                           \
 tpcore_geosfp_window_mod.o                                                   \
 pjc_pfix_geosfp_window_mod.o
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: clean realclean doc docclean help
 
@@ -239,12 +245,23 @@ docclean:                                          # Remove documentation
 help:                                              # Show help screen
 	@$(MAKE) -C $(HELP)
 
-#=============================================================================
-# Dependencies listing (grep "USE " to get the list of module references!)
-#
-# From this list of dependencies, the "make" utility will figure out the
-# correct order of compilation (so we don't have to do that ourselves!)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
 
 a3_read_mod.o               : a3_read_mod.F                                  \
                               dao_mod.o               diag_mod.o
@@ -1097,9 +1114,11 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               tracer_mod.o            tomas_mod.o            \
                               apm_init_mod.o
 
-#------------------------------------------------------------------------------
-# Dependencies of files specific to TOMAS microphysics (bmy, 1/25/10)
-#------------------------------------------------------------------------------
+###############################################################################
+###                                                                         ###
+###  Dependencies of files specific to the TOMAS microphysics simulation    ###
+###                                                                         ###
+###############################################################################
 
 tomas_mod.o                 : tomas_mod.F                                    \
                               dao_mod.o               diag_mod.o             \

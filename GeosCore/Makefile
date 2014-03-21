@@ -119,9 +119,18 @@
 #  03 Feb 2014 - R. Yantosca - Add linoz_mod.o to input_mod.o dependency list
 #  21 Feb 2014 - M. Sulprizio- Removed reference to tropopause_mod.F. It is now
 #                              obsolete because of the UCX updates.
+#  18 Mar 2014 - R. Yantosca - Add tauclean target to remove TAU profile files
+#  19 Mar 2014 - R. Yantosca - Now restore GTMM functionality
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #EOP
 #------------------------------------------------------------------------------
 #BOC
+
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
 
 # Define variables
 ROOTDIR := ..
@@ -146,25 +155,20 @@ GIGC    := $(ROOTDIR)/GIGC
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 
-#=============================================================================
-# List of files to compile (the order is important!).  We specify these as
-# a list of object files (*.o).  For each object file, the "make" utility
-# will find the corresponding source code file (*.f, *.f90) and compile it. 
-#=============================================================================
-
 # List of source files
 SRC := $(wildcard *.F) $(wildcard *.F90)
-
 
 # Replace .f and .f90 extensions with *.o
 TMP := $(SRC:.F=.o)
 OBJ := $(TMP:.F90=.o)
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
-.PHONY: clean realclean doc docclean help distclean
+.PHONY: clean realclean doc docclean help distclean tauclean
 
 all:                                               # Build libraries
 	@$(MAKE) lib                               #  and the executable
@@ -276,38 +280,44 @@ help:                                              # Show help screen
 debug:
 	@@echo "targets: $(MAKECMDGOALS)"
 
-#=============================================================================
-# Targets for mercury simulation (ccc, 6/7/10)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Targets for Hg simulation with Global Terrestrial Mercury Model        ###
+###                                                                         ###
+###############################################################################
 
 allhg:                                             # Build Hg/GTMM executable
-	@$(MAKE) libhg
-	@$(MAKE) exehg
+	@$(MAKE) GTMM_Hg=yes libhg
+	@$(MAKE) GTMM_Hg=yes exehg
 
 libhg:                                             # Compile HG/GTMM code
-	@$(MAKE) libgtmm           		     
-	@$(MAKE) lib
+	@$(MAKE) GTMM_Hg=yes libgtmm           		     
+	@$(MAKE) GTMM_Hg=yes lib
 
 libgtmm:                                           # Compile GTMM model code
-	@$(MAKE) -C $(GTMM)
+	@$(MAKE) -C $(GTMM) GTMM_Hg=yes
 
 exehg:                                             # Create Hg/GTMM exec file
-	$(LD) $(OBJ) $(LHG) -o $(EXE)
+	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
-#==============================================================================
-# Dependencies listing (grep "USE " to get the list of module references!)
-#
-# From this list of dependencies, the "make" utility will figure out the
-# correct order of compilation (so we don't have to do that ourselves).
-# This also allows us to compile on multiple processors with "make -j".
-#
-# NOTES:
-# (1) Only specify object-file dependencies that are within this directory.  
-#      Object files in other directories will be referenced at link-time.
-# (2) For "make -j" to work, all files in this directory must have a 
-#      listed dependency.
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
 
 a3_read_mod.o               : a3_read_mod.F                                  \
                               diag_mod.o
@@ -1119,9 +1129,11 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               get_popsinfo_mod.o      tracerid_mod.o         \
                               tracer_mod.o            tomas_mod.o
 
-#------------------------------------------------------------------------------
-# Dependencies of files specific to TOMAS microphysics (bmy, 1/25/10)
-#------------------------------------------------------------------------------
+###############################################################################
+###                                                                         ###
+###  Dependencies of files specific to the TOMAS microphysics simulation    ###
+###                                                                         ###
+###############################################################################
 
 tomas_mod.o                 : tomas_mod.F                                    \
                               chemgrid_mod.o          dao_mod.o              \

@@ -39,32 +39,29 @@
 !  ND50 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
-!  76            : OH concentration                         [molec/cm3]
-!  77            : NO2 concentration                        [v/v      ]
-!  78            : PBL heights                              [m        ]
-!  79            : PBL heights                              [levels   ]
-!  80            : Air density                              [molec/cm3]
-!  81            : 3-D Cloud fractions                      [unitless ]
-!  82            : Column optical depths                    [unitless ]
-!  83            : Cloud top heights                        [hPa      ]
-!  84            : Sulfate aerosol optical depth            [unitless ]
-!  85            : Black carbon aerosol optical depth       [unitless ]
-!  86            : Organic carbon aerosol optical depth     [unitless ]
-!  87            : Accumulation mode seasalt optical depth  [unitless ]
-!  88            : Coarse mode seasalt optical depth        [unitless ]
-!  89            : Total dust optical depth                 [unitless ]
-!  90            : Total seasalt tracer concentration       [unitless ]
-!  91            : Pure O3 (not Ox) concentration           [v/v      ]
-!  92            : NO concentration                         [v/v      ]
-!  93            : NOy concentration                        [v/v      ]
-!  94            : Grid box height                          [m        ]
-!  95            : Relative humidity                        [%        ]
-!  96            : Sea level pressure                       [hPa      ]
-!  97            : Zonal wind (a.k.a. U-wind)               [m/s      ]
-!  98            : Meridional wind (a.k.a. V-wind)          [m/s      ]
-!  99            : P(surface) - PTOP                        [hPa      ]
-!  100           : Temperature                              [K        ]
-!  115-121       : size resolved dust optical depth         [unitless ]
+!  151           : OH concentration                         [molec/cm3]
+!  152           : NOy concentration                        [v/v      ]
+!  153           : Relative Humidity                        [%        ]
+!  154           : 3-D Cloud fractions                      [unitless ]
+!  155           : Column optical depths                    [unitless ]
+!  156           : Cloud top heights                        [hPa      ]
+!  157           : Air density                              [molec/cm3]
+!  158           : Total seasalt tracer concentration       [unitless ]
+!  159           : PBL heights                              [m        ]
+!  160           : PBL heights                              [levels   ]
+!  161           : Grid box heights                         [m        ]
+!  162           : PEDGE-$ (Pressure @ level edges          [hPa      ]
+!  163           : Sea level pressure                       [hPa      ]
+!  164           : Zonal wind (a.k.a. U-wind)               [m/s      ]
+!  165           : Meridional wind (a.k.a. V-wind)          [m/s      ]
+!  166           : Temperature                              [K        ]
+!  167           : Sulfate aerosol optical depth            [unitless ]
+!  168           : Black carbon aerosol optical depth       [unitless ]
+!  169           : Organic carbon aerosol optical depth     [unitless ]
+!  170           : Accumulation mode seasalt optical depth  [unitless ]
+!  171           : Coarse mode seasalt optical depth        [unitless ]
+!  172           : Total dust optical depth                 [unitless ]
+!  173-179       : Size resolved dust optical depth         [unitless ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -97,6 +94,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND50 a local module variable
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,7 +314,6 @@
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_SEASALT
-      LOGICAL, SAVE       :: IS_NO,       IS_O3,     IS_NO2
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
@@ -356,9 +353,6 @@
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
          IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_NO       = ( IS_FULLCHEM .and. IDTNO   > 0 )
-         IS_NO2      = ( IS_FULLCHEM .and. IDTNO2  > 0 )
-         IS_O3       = ( IS_FULLCHEM .and. IDTO3   > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
      &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
@@ -447,25 +441,15 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( STT(I,J,L,N) * 
      &                      TCVV(N)    /   AD(I,J,L) )
 
-            ELSE IF ( N == 91 .and. IS_O3 ) THEN
+            ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
                !--------------------------------------
-               ! PURE O3 CONCENTRATION [v/v]
+               ! OH CONCENTRATION [molec/cm3]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W)  + ( STT(I,J,L,IDTO3)    *
-     &                      TCVV(IDTO3) /   AD(I,J,L) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
 
-            ELSE IF ( N == 92 .and. IS_NO ) THEN
-
-               !--------------------------------------
-               ! NO CONCENTRATION [v/v]
-               ! NOTE: Only archive at chem timestep
-               !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W)  + ( STT(I,J,L,IDTNO)    *
-     &                      TCVV(IDTNO) /   AD(I,J,L) )
-
-            ELSE IF ( N == 93 .and. IS_NOy ) THEN
+            ELSE IF ( N == 152 .and. IS_NOy ) THEN
 
                !--------------------------------------
                ! NOy CONCENTRATION [v/v]
@@ -520,65 +504,29 @@
 
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
-    
-            ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
+
+            ELSE IF ( N == 153 ) THEN
 
                !--------------------------------------
-               ! OH CONCENTRATION [molec/cm3]
-               ! NOTE: Only archive at chem timestep
+               ! RELATIVE HUMIDITY [%]
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
-              
-            ELSE IF ( N == 77 .and. IS_NO2 ) THEN
+               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%RH(I,J,L)
+
+            ELSE IF ( N == 154 ) THEN
 
                !--------------------------------------
-               ! NO2 CONCENTRATION [v/v]
-               ! NOTE: Only archive at chem timestep
-               !--------------------------------------     
-               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTNO2)   *
-     &                      TCVV(IDTNO2) /   AD(I,J,L) )
-
-            ELSE IF ( N == 78 ) THEN
-
-               !--------------------------------------
-               ! PBL HEIGHTS [m] 
-               !--------------------------------------
-               IF ( K == 1 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PBL_TOP_m( I, J )
-               ENDIF
- 
-            ELSE IF ( N == 79 ) THEN
-
-               !--------------------------------------
-               ! PBL HEIGHTS [layers] 
-               !--------------------------------------
-               IF ( K == 1 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PBL_TOP_L( I, J )
-               ENDIF
-
-            ELSE IF ( N == 80 ) THEN
-
-               !--------------------------------------
-               ! AIR DENSITY [molec/cm3] 
-               !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(L,I,J) *
-     &                      XNUMOLAIR  * 1d-6 )
-
-            ELSE IF ( N == 81 ) THEN
-
-               !--------------------------------------
-               ! 3_D CLOUD FRACTION [unitless]
+               ! 3-D CLOUD FRACTIONS [unitless]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%CLDF(L,I,J)
 
-            ELSE IF ( N == 82 .and. IS_OPTD ) THEN
+            ELSE IF ( N == 155 .and. IS_OPTD ) THEN
 
                !--------------------------------------
-               ! COLUMN OPTICAL DEPTH [unitless]
+               ! COLUMN OPTICAL DEPTHS [unitless]
                !--------------------------------------
                Q(X,Y,1,W) = Q(X,Y,1,W) + State_Met%OPTD(L,I,J)
 
-            ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN
+            ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
 
                !--------------------------------------
                ! CLOUD TOP HEIGHTS [mb]
@@ -587,11 +535,91 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                         GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
                ENDIF
-
-            ELSE IF ( N == 84 ) THEN
+              
+            ELSE IF ( N == 157 ) THEN
 
                !--------------------------------------
-               ! SULFATE AOD @ jv_spec_aod.dat wavelength[unitless]
+               ! AIR DENSITY [molec/cm3] 
+               !--------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(L,I,J) *
+     &                      XNUMOLAIR  * 1d-6 )
+
+            ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
+
+               !--------------------------------------
+               ! TOTAL SEASALT TRACER [v/v]
+               !--------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                      ( STT(I,J,L,IDTSALA) + 
+     &                        STT(I,J,L,IDTSALC) ) *
+     &                        TCVV(IDTSALA)  / AD(I,J,L)
+
+            ELSE IF ( N == 159 ) THEN
+
+               !--------------------------------------
+               ! PBL HEIGHTS [m] 
+               !--------------------------------------
+               IF ( K == 1 ) THEN
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PBL_TOP_m( I, J )
+               ENDIF
+ 
+            ELSE IF ( N == 160 ) THEN
+
+               !--------------------------------------
+               ! PBL HEIGHTS [levels] 
+               !--------------------------------------
+               IF ( K == 1 ) THEN
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PBL_TOP_L( I, J )
+               ENDIF
+
+            ELSE IF ( N == 161 ) THEN
+
+               !--------------------------------------
+               ! GRID BOX HEIGHTS [m]
+               !--------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%BXHEIGHT(I,J,L)
+
+            ELSE IF ( N == 162 ) THEN
+
+               !--------------------------------------
+               ! PEDGE-$ [hPa]
+               !--------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PEDGE( I, J, K )
+
+            ELSE IF ( N == 163 .and. IS_SLP ) THEN
+
+               !--------------------------------------
+               ! SEA LEVEL PRESSURE [hPa]
+               !--------------------------------------
+               IF ( K == 1 ) THEN
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%SLP(I,J)
+               ENDIF
+
+            ELSE IF ( N == 164 ) THEN
+
+               !--------------------------------------
+               ! ZONAL (U) WIND [m/s]
+               !--------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%U(I,J,L)
+
+            ELSE IF ( N == 165 ) THEN
+
+               !--------------------------------------
+               ! MERIDIONAL (V) WIND [m/s]
+               !--------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%V(I,J,L)
+
+            ELSE IF ( N == 166 ) THEN 
+
+               !--------------------------------------
+               ! TEMPERATURE [K]
+               !--------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%T(I,J,L)
+
+            ELSE IF ( N == 167 ) THEN
+
+               !--------------------------------------
+               ! SULFATE AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -605,7 +633,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,R) * SCALEAODnm
                ENDDO
 
-            ELSE IF ( N == 85 ) THEN
+            ELSE IF ( N == 168 ) THEN
 
                !--------------------------------------
                ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
@@ -625,10 +653,10 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
                ENDDO
 
-            ELSE IF ( N == 86 ) THEN
+            ELSE IF ( N == 169 ) THEN
 
                !--------------------------------------
-               ! ORG CARBON AOD @ jv_spec_aod.dat wavelength[unitless]
+               ! ORG CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -645,10 +673,10 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
                ENDDO
 
-            ELSE IF ( N == 87 ) THEN
+            ELSE IF ( N == 170 ) THEN
 
                !--------------------------------------
-               ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
+               ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -665,10 +693,10 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
                ENDDO
 
-            ELSE IF ( N == 88 ) THEN
+            ELSE IF ( N == 171 ) THEN
 
                !--------------------------------------
-               ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
+               ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -685,10 +713,10 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
                ENDDO
 
-            ELSE IF ( N == 89 ) THEN
+            ELSE IF ( N == 172 ) THEN
                
                !--------------------------------------
-               ! TOTAL DUST OPTD @ jv_spec_aod.dat wavelength[unitless]
+               ! TOTAL DUST OPTD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NDUST
@@ -702,13 +730,13 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALEAODnm
                ENDDO
 
-            ELSE IF (N > 114) THEN
+            ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
 
                !--------------------------------------
                ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               R = N - 114
+               R = N - 172
 
                ! Scaling factor to AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(IND999,IND(6)+R-1)
@@ -718,66 +746,10 @@
                ! Accumulate
                Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALEAODnm
 
-            ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
+            ELSE
 
-               !--------------------------------------
-               ! TOTAL SEASALT TRACER [v/v]
-               !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                      ( STT(I,J,L,IDTSALA) + 
-     &                        STT(I,J,L,IDTSALC) ) *
-     &                        TCVV(IDTSALA)  / AD(I,J,L) 
-
-            ELSE IF ( N == 94 ) THEN
-
-               !--------------------------------------
-               ! GRID BOX HEIGHTS [m]
-               !--------------------------------------               
-               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%BXHEIGHT(I,J,L)
-
-            ELSE IF ( N == 95 ) THEN
-
-               !--------------------------------------
-               ! RELATIVE HUMIDITY [%]
-               !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%RH(I,J,L)
-
-            ELSE IF ( N == 96 .and. IS_SLP ) THEN
-
-               !--------------------------------------
-               ! SEA LEVEL PRESSURE [hPa]
-               !--------------------------------------            
-               IF ( K == 1 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%SLP(I,J)
-               ENDIF
-
-            ELSE IF ( N == 97 ) THEN
-
-               !--------------------------------------
-               ! ZONAL (U) WIND [m/s]
-               !--------------------------------------               
-               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%U(I,J,L)
-
-            ELSE IF ( N == 98 ) THEN
-
-               !--------------------------------------
-               ! MERIDIONAL (V) WIND [m/s]
-               !--------------------------------------            
-               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%V(I,J,L)
-
-            ELSE IF ( N == 99 ) THEN
-
-               !--------------------------------------
-               ! PEDGE-$ [hPa]
-               !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PEDGE( I, J, K )
-
-            ELSE IF ( N == 100 ) THEN 
-
-               !--------------------------------------
-               ! TEMPERATURE [K]
-               !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%T(I,J,L)
+               ! Skip other tracers
+               CYCLE
 
             ENDIF
          ENDDO
@@ -1048,37 +1020,7 @@
             GMNL     = ND50_NL
             GMTRC    = N
 
-         ELSE IF ( N == 91 ) THEN
-
-            !---------------------
-            ! Pure O3
-            !---------------------
-            CATEGORY = 'IJ-AVG-$'
-            UNIT     = ''              ! Let GAMAP pick unit
-            GMNL     = ND50_NL
-            GMTRC    = N_TRACERS + 1
-
-         ELSE IF ( N == 92 ) THEN
-
-            !---------------------
-            ! Pure NO 
-            !---------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = ''              ! Let GAMAP pick unit
-            GMNL     = ND50_NL
-            GMTRC    = 9
-
-         ELSE IF ( N == 93 ) THEN
-
-            !---------------------
-            ! NOy 
-            !---------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = ''              ! Let GAMAP pick unit
-            GMNL     = ND50_NL
-            GMTRC    = 3
-
-         ELSE IF ( N == 76 ) THEN
+         ELSE IF ( N == 151 ) THEN
 
             !---------------------
             ! OH 
@@ -1088,17 +1030,77 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 77 ) THEN
+         ELSE IF ( N == 152 ) THEN
 
             !---------------------
-            ! NO2 
+            ! NOy 
             !---------------------
             CATEGORY = 'TIME-SER'
-            UNIT     = ''
+            UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND50_NL
-            GMTRC    = 25
+            GMTRC    = 2
 
-         ELSE IF ( N == 78 ) THEN 
+         ELSE IF ( N == 153 ) THEN
+
+            !---------------------
+            ! Relative humidity
+            !---------------------            
+            CATEGORY = 'TIME-SER'
+            UNIT     = '%'
+            GMNL     = ND50_NL
+            GMTRC    = 3
+
+         ELSE IF ( N == 154 ) THEN
+
+            !---------------------
+            ! 3-D Cloud fractions
+            !---------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMNL     = ND50_NL
+            GMTRC    = 4
+
+         ELSE IF ( N == 155 ) THEN
+
+            !---------------------
+            ! Column opt depths 
+            !---------------------
+            CATEGORY  = 'TIME-SER'
+            UNIT      = 'unitless'
+            GMNL      = 1
+            GMTRC     = 5
+            
+         ELSE IF ( N == 156 ) THEN
+        
+            !---------------------
+            ! Cloud top heights 
+            !---------------------
+            CATEGORY  = 'TIME-SER'
+            UNIT      = 'hPa'
+            GMNL      = 1
+            GMTRC     = 6
+
+         ELSE IF ( N == 157 ) THEN
+
+            !---------------------
+            ! Air Density 
+            !---------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'molec/cm3'
+            GMNL     = ND50_NL
+            GMTRC    = 7
+
+         ELSE IF ( N == 158 ) THEN
+
+            !----------------------
+            ! Total Seasalt
+            !----------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = ''              ! Let GAMAP pick unit
+            GMNL     = ND50_NL
+            GMTRC    = 8
+
+         ELSE IF ( N == 159 ) THEN 
 
             !---------------------
             ! PBL Height [m] 
@@ -1108,136 +1110,17 @@
             GMNL     = 1
             GMTRC    = 1
 
-         ELSE IF ( N == 79 ) THEN
+         ELSE IF ( N == 160 ) THEN
 
             !---------------------
-            ! PBL Height [layers]
+            ! PBL Height [levels]
             !---------------------
             CATEGORY = 'PBLDEPTH'
             UNIT     = 'levels'
             GMNL     = 1
             GMTRC    = 2
 
-         ELSE IF ( N == 80 ) THEN
-
-            !---------------------
-            ! Air Density 
-            !---------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm3'
-            GMNL     = ND50_NL
-            GMTRC    = 22
-
-         ELSE IF ( N == 81 ) THEN
-
-            !---------------------
-            ! 3-D Cloud fractions
-            !---------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
-            GMNL     = ND50_NL
-            GMTRC    = 19
-
-         ELSE IF ( N == 82 ) THEN
-
-            !---------------------
-            ! Column opt depths 
-            !---------------------
-            CATEGORY  = 'TIME-SER'
-            UNIT      = 'unitless'
-            GMNL      = 1
-            GMTRC     = 20
-            
-         ELSE IF ( N == 83 ) THEN
-        
-            !---------------------
-            ! Cloud top heights 
-            !---------------------
-            CATEGORY  = 'TIME-SER'
-            GMNL      = 1
-            GMTRC     = 21
-
-         ELSE IF ( N == 84 ) THEN
-
-            !---------------------
-            ! Sulfate AOD
-            !---------------------            
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND50_ NL
-            GMTRC     = 6
-
-         ELSE IF ( N == 85 ) THEN
-
-            !---------------------
-            ! Black Carbon AOD
-            !---------------------            
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND50_NL
-            GMTRC     = 9
-
-         ELSE IF ( N == 86 ) THEN
-
-            !---------------------
-            ! Organic Carbon AOD
-            !---------------------            
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND50_ NL
-            GMTRC     = 12
-            
-         ELSE IF ( N == 87 ) THEN
-
-            !---------------------
-            ! SS Accum AOD
-            !---------------------            
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND50_NL
-            GMTRC     = 15
-
-         ELSE IF ( N == 88 ) THEN
-
-            !---------------------
-            ! SS Coarse AOD
-            !---------------------            
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND50_NL
-            GMTRC     = 18
-
-         ELSE IF ( N == 89 ) THEN
-
-            !---------------------
-            ! Total dust OD
-            !---------------------   
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND50_NL
-            GMTRC     = 4
-
-         ELSE IF ( N > 114 ) THEN
-
-            !---------------------
-            ! Dust OD (bins 1-7)
-            !---------------------
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND50_NL
-            GMTRC     = N - 94
-
-         ELSE IF ( N == 90 ) THEN
-
-            !----------------------
-            ! Total Seasalt
-            !----------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = ''              ! Let GAMAP pick unit
-            GMNL     = ND50_NL
-            GMTRC    = 24
-
-         ELSE IF ( N == 94 ) THEN
+         ELSE IF ( N == 161 ) THEN
 
             !---------------------
             ! Grid box heights
@@ -1247,47 +1130,7 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 95 ) THEN
-
-            !---------------------
-            ! Relative humidity
-            !---------------------            
-            CATEGORY = 'TIME-SER'
-            UNIT     = '%'
-            GMNL     = ND50_NL
-            GMTRC    = 17
-
-         ELSE IF ( N == 96 ) THEN
-
-            !---------------------
-            ! Sea level prs [hPa]
-            !---------------------            
-            CATEGORY = 'DAO-FLDS'
-            UNIT     = 'hPa'
-            GMNL     = 1
-            GMTRC    = 18
-
-         ELSE IF ( N == 97 ) THEN
-
-            !---------------------
-            ! U-wind [m/s]
-            !---------------------            
-            CATEGORY = 'DAO-3D-$'
-            UNIT     = 'm/s'
-            GMNL     = ND50_NL
-            GMTRC    = 1
-
-         ELSE IF ( N == 98 ) THEN
-
-            !---------------------
-            ! V-wind [m/s]
-            !---------------------
-            CATEGORY  = 'DAO-3D-$'
-            UNIT      = 'm/s'
-            GMNL      = ND50_NL
-            GMTRC     = 2
-
-         ELSE IF ( N == 99 ) THEN
+        ELSE IF ( N == 162 ) THEN
 
             !---------------------
             ! PEDGE-$ [hPa] 
@@ -1297,16 +1140,116 @@
             GMNL      = ND50_NL
             GMTRC     = 1
 
-         ELSE IF ( N == 100 ) THEN
+          ELSE IF ( N == 163 ) THEN
+
+            !---------------------
+            ! Sea level prs [hPa]
+            !---------------------            
+            CATEGORY = 'DAO-FLDS'
+            UNIT     = 'hPa'
+            GMNL     = 1
+            GMTRC    = 18
+
+         ELSE IF ( N == 164 ) THEN
+
+            !---------------------
+            ! U-wind [m/s]
+            !---------------------            
+            CATEGORY = 'DAO-3D-$'
+            UNIT     = 'm/s'
+            GMNL     = ND50_NL
+            GMTRC    = 1
+
+         ELSE IF ( N == 165 ) THEN
+
+            !---------------------
+            ! V-wind [m/s]
+            !---------------------
+            CATEGORY  = 'DAO-3D-$'
+            UNIT      = 'm/s'
+            GMNL      = ND50_NL
+            GMTRC     = 2
+
+          ELSE IF ( N == 166 ) THEN
 
             !---------------------
             ! Temperature
             !---------------------
             CATEGORY  = 'DAO-3D-$'
-            UNIT      = 'K'          ! Add unit string (bmy, 10/13/09)
+            UNIT      = 'K'
             GMNL      = ND50_NL
             GMTRC     = 3
+
+         ELSE IF ( N == 167 ) THEN
+
+            !---------------------
+            ! Sulfate AOD
+            !---------------------            
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_ NL
+            GMTRC     = 6
+
+         ELSE IF ( N == 168 ) THEN
+
+            !---------------------
+            ! Black Carbon AOD
+            !---------------------            
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 9
+
+         ELSE IF ( N == 169 ) THEN
+
+            !---------------------
+            ! Organic Carbon AOD
+            !---------------------            
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_ NL
+            GMTRC     = 12
             
+         ELSE IF ( N == 170 ) THEN
+
+            !---------------------
+            ! SS Accum AOD
+            !---------------------            
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 15
+
+         ELSE IF ( N == 171 ) THEN
+
+            !---------------------
+            ! SS Coarse AOD
+            !---------------------            
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 18
+
+         ELSE IF ( N == 172 ) THEN
+
+            !---------------------
+            ! Total dust OD
+            !---------------------   
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 4
+
+         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+
+            !---------------------
+            ! Dust OD (bins 1-7)
+            !---------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = 21+(N-173)
+
          ELSE
 
             ! Otherwise skip

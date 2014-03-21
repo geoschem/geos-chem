@@ -7,7 +7,7 @@
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) DO_SAVE_DIAG48 (LOGICAL ) : Switch to turn ND49 timeseries on/off 
+!  (1 ) DO_SAVE_DIAG48 (LOGICAL ) : Switch to turn ND48 timeseries on/off 
 !  (2 ) I0             (INTEGER ) : Lon offset between global & nested grid
 !
 !  Module Routines:
@@ -31,32 +31,29 @@
 !  ND48 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
-!  76            : OH concentration                         [molec/cm3]
-!  77            : NO2 concentration                        [v/v      ]
-!  78            : PBL heights                              [m        ]
-!  79            : PBL heights                              [levels   ]
-!  80            : Air density                              [molec/cm3]
-!  81            : 3-D Cloud fractions                      [unitless ]
-!  82            : Column optical depths                    [unitless ]
-!  83            : Cloud top heights                        [hPa      ]
-!  84            : Sulfate aerosol optical depth            [unitless ]
-!  85            : Black carbon aerosol optical depth       [unitless ]
-!  86            : Organic carbon aerosol optical depth     [unitless ]
-!  87            : Accumulation mode seasalt optical depth  [unitless ]
-!  88            : Coarse mode seasalt optical depth        [unitless ]
-!  89            : Total dust optical depth                 [unitless ]
-!  90            : Total seasalt tracer concentration       [unitless ]
-!  91            : Pure O3 (not Ox) concentration           [v/v      ]
-!  92            : NO concentration                         [v/v      ]
-!  93            : NOy concentration                        [v/v      ]
-!  94            : Grid box heights                         [m        ]
-!  95            : Relative humidity                        [%        ]
-!  96            : Sea level pressure                       [hPa      ]
-!  97            : Zonal wind (a.k.a. U-wind)               [m/s      ]
-!  98            : Meridional wind (a.k.a. V-wind)          [m/s      ]
-!  99            : PEDGE-$ (Pressure at level edges)        [hPa      ]
-!  100           : Temperature                              [K        ]
-!  115-121       : size resolved dust optical depth         [unitless   ]
+!  151           : OH concentration                         [molec/cm3]
+!  152           : NOy concentration                        [v/v      ]
+!  153           : Relative Humidity                        [%        ]
+!  154           : 3-D Cloud fractions                      [unitless ]
+!  155           : Column optical depths                    [unitless ]
+!  156           : Cloud top heights                        [hPa      ]
+!  157           : Air density                              [molec/cm3]
+!  158           : Total seasalt tracer concentration       [unitless ]
+!  159           : PBL heights                              [m        ]
+!  160           : PBL heights                              [levels   ]
+!  161           : Grid box heights                         [m        ]
+!  162           : PEDGE-$ (Pressure @ level edges          [hPa      ]
+!  163           : Sea level pressure                       [hPa      ]
+!  164           : Zonal wind (a.k.a. U-wind)               [m/s      ]
+!  165           : Meridional wind (a.k.a. V-wind)          [m/s      ]
+!  166           : Temperature                              [K        ]
+!  167           : Sulfate aerosol optical depth            [unitless ]
+!  168           : Black carbon aerosol optical depth       [unitless ]
+!  169           : Organic carbon aerosol optical depth     [unitless ]
+!  170           : Accumulation mode seasalt optical depth  [unitless ]
+!  171           : Coarse mode seasalt optical depth        [unitless ]
+!  172           : Total dust optical depth                 [unitless ]
+!  173-179       : Size resolved dust optical depth         [unitless ]
 !  
 !  NOTES:
 !  (1 ) Now save out cld frac and grid box heights (bmy, 4/20/05)
@@ -77,6 +74,7 @@
 !  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND48 a local module variable
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -206,7 +204,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
-      LOGICAL, SAVE      :: IS_FULLCHEM, IS_O3,   IS_NO,      IS_NOy
+      LOGICAL, SAVE      :: IS_FULLCHEM, IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
       INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W
       REAL*8             :: LT, TAU, Q(LLPAR), SCALEAODnm
@@ -255,8 +253,6 @@
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_O3       = ( IS_FULLCHEM .and. IDTO3   > 0 )
-         IS_NO       = ( IS_FULLCHEM .and. IDTNO   > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
      &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
@@ -313,40 +309,27 @@
                Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 91 .and. IS_O3 ) THEN
- 
-            !------------------------------------
-            ! PURE O3 CONCENTRATION [v/v]
-            !------------------------------------
-            CATEGORY = 'IJ-AVG-$'
-            UNIT     = ''              ! Let GAMAP pick the unit
-            GMTRC    = N_TRACERS + 1
+         ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
-            DO L = 1, K
-               Q(L) = STT(I,J,L,IDTO3) * TCVV(IDTO3) / AD(I,J,L)
-            ENDDO
-               
-         ELSE IF ( N == 92 .and. IS_NO ) THEN
-
-            !------------------------------------
-            ! NO CONCENTRATION [v/v]
-            !------------------------------------ 
+            !-------------------------------------
+            ! OH CONCENTRATION [molec/cm3]
+            !-------------------------------------
             CATEGORY = 'TIME-SER'
-            UNIT     = ''           ! Let GAMAP pick the unit
-            GMTRC    = 9
+            UNIT     = 'molec/cm3'
+            GMTRC    = 1
 
             DO L = 1, K
-               Q(L) = STT(I,J,L,IDTNO) * TCVV(IDTNO) / AD(I,J,L)
+               Q(L) = SAVEOH(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 93 .and. IS_NOy ) THEN
+         ELSE IF ( N == 152 .and. IS_NOy ) THEN
 
             !-------------------------------------
             ! NOy CONCENTRATION [v/v]
             !-------------------------------------
             CATEGORY = 'TIME-SER'
             UNIT     = ''              ! Let GAMAP pick unit
-            GMTRC    = 3
+            GMTRC    = 2
 
             DO L = 1, K
 
@@ -399,34 +382,84 @@
      &                         AD(I,J,L) )
             ENDDO
 
-         ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 153 ) THEN 
 
-            !------------------------------------
-            ! OH CONCENTRATION [molec/cm3]
-            !------------------------------------ 
+            !-------------------------------------
+            ! RELATIVE HUMIDITY [%]
+            !-------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = '%'
+            GMTRC    = 3
+
+            DO L = 1, K
+               Q(L) = State_Met%RH(I,J,L)
+            ENDDO
+
+         ELSE IF ( N == 154 ) THEN
+
+            !-------------------------------------
+            ! 3-D CLOUD FRACTIONS [unitless]
+            !-------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMTRC    = 4
+
+            DO L = 1, K
+               Q(L) = State_Met%CLDF(L,I,J)
+            ENDDO
+
+         ELSE IF ( N == 155 .and. IS_OPTD ) THEN
+            
+            !-------------------------------------
+            ! COLUMN OPTICAL DEPTHS [unitless]
+            !-------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMTRC    = 5
+
+            Q(1) = SUM( State_Met%OPTD(:,I,J) )
+
+         ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
+
+            !-------------------------------------
+            ! CLOUD TOP HEIGHTS [hPa]
+            !-------------------------------------
+            CATEGORY = 'TIME_SER'
+            UNIT     = 'hPa'
+            GMTRC    = 6
+
+            IF ( K == 1 ) THEN
+               Q(1) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
+            ENDIF
+
+         ELSE IF ( N == 157 ) THEN 
+
+            !-------------------------------------
+            ! AIR DENSITY [molec/cm3]
+            !-------------------------------------
             CATEGORY = 'TIME-SER'
             UNIT     = 'molec/cm3'
-            GMTRC    = 2
+            GMTRC    = 7
 
             DO L = 1, K
-               Q(L) = SAVEOH(I,J,L)
+               Q(L) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
             ENDDO
 
+         ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
 
-         ELSE IF ( N == 77 .and. IS_FULLCHEM ) THEN
-
-            !------------------------------------
-            ! NO2 CONCENTRATION [molec/cm3]
-            !------------------------------------ 
+            !-------------------------------------
+            ! TOTAL SEASALT TRACER [v/v]
+            !-------------------------------------
             CATEGORY = 'TIME-SER'
-            UNIT     = ''           ! Let GAMAP pick the unit
-            GMTRC    = 19
+            UNIT     = ''              ! Let GAMAP pick unit
+            GMTRC    = 8
 
             DO L = 1, K
-               Q(L) = STT(I,J,L,IDTNO2) * TCVV(IDTNO2) / AD(I,J,L)
+               Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
+     &                  TCVV(IDTSALA)      / AD(I,J,L) 
             ENDDO
 
-         ELSE IF ( N == 78 ) THEN
+         ELSE IF ( N == 159 ) THEN
 
             !-------------------------------------
             ! PBL HEIGHTS [m] 
@@ -439,11 +472,11 @@
                Q(1) = GET_PBL_TOP_m( I, J )
             ENDIF
                
-         ELSE IF ( N == 79 ) THEN
+         ELSE IF ( N == 160 ) THEN
 
             !-------------------------------------
-            ! PBL HEIGHTS [layers] 
-            !-------------------------------------    
+            ! PBL HEIGHTS [levels] 
+            !-------------------------------------   
             CATEGORY = 'PBLDEPTH'
             UNIT     = 'levels'
             GMTRC    = 2
@@ -452,61 +485,89 @@
                Q(1) = GET_PBL_TOP_L( I, J )
             ENDIF
 
-         ELSE IF ( N == 80 ) THEN 
+         ELSE IF ( N == 161 ) THEN 
 
             !-------------------------------------
-            ! AIR DENSITY [molec/cm3]
+            ! GRID BOX HEIGHT [m]
             !-------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm3'
-            GMTRC    = 22
+            CATEGORY = 'BXHGHT-$'
+            UNIT     = 'm'
+            GMTRC    = 1
 
             DO L = 1, K
-               Q(L) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+               Q(L) = State_Met%BXHEIGHT(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 81 ) THEN
+         ELSE IF ( N == 162 ) THEN
 
             !-------------------------------------
-            ! CLOUD FRACTIONS [unitless]
-            !------------------------------------- 
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
-            GMTRC    = 19
-
-            DO L = 1, K
-               Q(L) = State_Met%CLDF(L,I,J)
-            ENDDO
-
-         ELSE IF ( N == 82 .and. IS_OPTD ) THEN
-            
-            !---------------------------------------
-            ! COLUMN OPTICAL DEPTHS [unitless]
-            !---------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
-            GMTRC    = 20
-
-            Q(1) = SUM( State_Met%OPTD(:,I,J) )
-
-         ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN
-
-            !---------------------------------------
-            ! CLOUD TOP HEIGHTS [hPa]
-            !---------------------------------------
-            CATEGORY = 'TIME_SER'
+            ! PEDGE-$ [hPa]
+            !-------------------------------------
+            CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
-            GMTRC    = 21
+            GMTRC    = 1            
+            
+            DO L = 1, K
+               Q(L) = GET_PEDGE( I, J, L )
+            ENDDO
+
+         ELSE IF ( N == 163 .and. IS_SLP ) THEN
+
+            !-------------------------------------
+            ! SEA LEVEL PRESSURE [hPa]
+            !-------------------------------------
+            CATEGORY = 'DAO-FLDS'
+            UNIT     = 'hPa'
+            GMTRC    = 18
 
             IF ( K == 1 ) THEN
-               Q(1) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
+               Q(1) = State_Met%SLP(I,J)
             ENDIF
 
-         ELSE IF ( N == 84 ) THEN
+         ELSE IF ( N == 164 ) THEN
 
-            !---------------------------------------
-            ! SULFATE AOD @ jv_spec_aod.dat wavelength[unitless]
-            !--------------------------------------- 
+            !-------------------------------------
+            ! ZONAL (U) WIND [m/s]
+            !-------------------------------------
+            CATEGORY = 'DAO-3D-$'
+            UNIT     = 'm/s'
+            GMTRC    = 1
+
+            DO L = 1, K
+               Q(L) = State_Met%U(I,J,L)
+            ENDDO
+            
+         ELSE IF ( N == 165 ) THEN 
+
+            !-------------------------------------
+            ! MERIDIONAL (V) WIND [m/s]
+            !-------------------------------------
+            CATEGORY = 'DAO-3D-$'
+            UNIT     = 'm/s'
+            GMTRC    = 2
+
+            DO L = 1, K
+               Q(L) = State_Met%V(I,J,L)
+            ENDDO
+
+         ELSE IF ( N == 166 ) THEN
+
+            !-------------------------------------
+            ! TEMPERATURE [K]
+            !-------------------------------------
+            CATEGORY = 'DAO-3D-$'
+            UNIT     = 'K'
+            GMTRC    = 3            
+
+            DO L = 1, K
+               Q(L) = State_Met%T(I,J,L)
+            ENDDO
+
+         ELSE IF ( N == 167 ) THEN
+
+            !-------------------------------------
+            ! SULFATE AOD @ jv_spec_aod.dat wavelength [unitless]
+            !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMTRC    = 6
@@ -523,10 +584,10 @@
                ENDDO
             ENDDO
 
-         ELSE IF ( N == 85 ) THEN
+         ELSE IF ( N == 168 ) THEN
 
             !-------------------------------------
-            ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength[unitless]
+            ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
             !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -544,11 +605,11 @@
                ENDDO
             ENDDO
 
-         ELSE IF ( N == 86 ) THEN
+         ELSE IF ( N == 169 ) THEN
 
-            !-----------------------------------
+            !-------------------------------------
             ! ORGANIC CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
-            !-----------------------------------            
+            !-------------------------------------       
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMTRC    = 12
@@ -565,10 +626,10 @@
                ENDDO
             ENDDO
 
-         ELSE IF ( N == 87 ) THEN
+         ELSE IF ( N == 170 ) THEN
             
             !-------------------------------------
-            ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
+            ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
             !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -586,11 +647,11 @@
                ENDDO
             ENDDO
 
-         ELSE IF ( N == 88 ) THEN
+         ELSE IF ( N == 171 ) THEN
 
             !-------------------------------------
-            ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
-            !-------------------------------------            
+            ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
+            !-------------------------------------    
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMTRC    = 18
@@ -607,11 +668,11 @@
                ENDDO
             ENDDO
 
-         ELSE IF ( N == 89 ) THEN
+         ELSE IF ( N == 172 ) THEN
 
-            !-----------------------------------
-            ! TOTAL DUST OPT DEPTH @ jv_spec_aod.dat wavelength[unitless]
-            !-----------------------------------
+            !-------------------------------------
+            ! TOTAL DUST OPT DEPTH @ jv_spec_aod.dat wavelength [unitless]
+            !-------------------------------------
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
             GMTRC     = 4
@@ -628,16 +689,16 @@
                ENDDO
             ENDDO
 
-         ELSE IF ( N > 114 ) THEN
+         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
 
-            !-----------------------------------
+            !-------------------------------------
             ! DUST BINS 1-7 OPT DEPTH @ jv_spec_aod.dat wavelength [unitless]
-            !-----------------------------------
+            !-------------------------------------
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
-            GMTRC     = 21+(N-115)
+            GMTRC     = 21+(N-173)
 
-            R = N - 114
+            R = N - 172
 
             ! Scaling factor for AOD wavelength (clh, 05/09)
             ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(IND999,IND(6)+R-1)
@@ -646,111 +707,6 @@
 
             DO L = 1, K
                Q(L) = ODMDUST(I,J,L,R) * SCALEAODnm
-            ENDDO
-
-         ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
-
-            !-----------------------------------
-            ! TOTAL SEASALT TRACER [v/v]
-            !-----------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = ''              ! Let GAMAP pick unit
-            GMTRC    = 24
-
-            DO L = 1, K
-               Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                  TCVV(IDTSALA)      / AD(I,J,L) 
-            ENDDO
-
-         ELSE IF ( N == 94 ) THEN 
-
-            !-----------------------------------
-            ! GRID BOX HEIGHTS [m]
-            !----------------------------------- 
-            CATEGORY = 'BXHGHT-$'
-            UNIT     = 'm'
-            GMTRC    = 1
-
-            DO L = 1, K
-               Q(L) = State_Met%BXHEIGHT(I,J,L)
-            ENDDO
-
-         ELSE IF ( N == 95 ) THEN 
-
-            !-----------------------------------
-            ! RELATIVE HUMIDITY [%]
-            !----------------------------------- 
-            CATEGORY = 'TIME-SER'
-            UNIT     = '%'
-            GMTRC    = 17
-
-            DO L = 1, K
-               Q(L) = State_Met%RH(I,J,L)
-            ENDDO
-
-         ELSE IF ( N == 96 .and. IS_SLP ) THEN
-
-            !-----------------------------------
-            ! SEA LEVEL PRESSURE [hPa]
-            !----------------------------------- 
-            CATEGORY = 'DAO-FLDS'
-            UNIT     = 'hPa'
-            GMTRC    = 18
-
-            IF ( K == 1 ) THEN
-               Q(1) = State_Met%SLP(I,J)
-            ENDIF
-
-         ELSE IF ( N == 97 ) THEN
-
-            !-----------------------------------
-            ! ZONAL (U) WIND [M/S]
-            !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
-            UNIT     = 'm/s'
-            GMTRC    = 1
-
-            DO L = 1, K
-               Q(L) = State_Met%U(I,J,L)
-            ENDDO
-            
-         ELSE IF ( N == 98 ) THEN 
-
-            !-----------------------------------
-            ! MERIDIONAL (V) WIND [M/S]
-            !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
-            UNIT     = 'm/s'
-            GMTRC    = 2
-
-            DO L = 1, K
-               Q(L) = State_Met%V(I,J,L)
-            ENDDO
-
-         ELSE IF ( N == 99 ) THEN
-
-            !-----------------------------------
-            ! PSURFACE - PTOP [hPa]
-            !----------------------------------- 
-            CATEGORY = 'PEDGE-$'
-            UNIT     = 'hPa'
-            GMTRC    = 1            
-            
-            DO L = 1, K
-               Q(L) = GET_PEDGE( I, J, L )
-            ENDDO
-
-         ELSE IF ( N == 100 ) THEN
-
-            !-----------------------------------
-            ! TEMPERATURE [K]
-            !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
-            UNIT     = 'K'
-            GMTRC    = 3            
-
-            DO L = 1, K
-               Q(L) = State_Met%T(I,J,L)
             ENDDO
 
          ELSE

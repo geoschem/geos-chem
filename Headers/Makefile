@@ -44,9 +44,16 @@
 #  15 Jan 2013 - R. Yantosca - Removed CMN_DEP_mod.F, it's obsolete
 #  15 Jan 2013 - R. Yantosca - Added dependency for gigc_input_opt_mod.o
 #                              to comode_loop_mod.F, to make it compile
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #EOP
 #------------------------------------------------------------------------------
 #BOC
+
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
 
 # Define variables
 ROOTDIR = ..
@@ -59,11 +66,6 @@ MOD     = $(ROOTDIR)/mod
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 
-#=============================================================================
-# List of files to compile.  Here the order is not important,
-# as we will explicity define the dependencies listing below.
-#=============================================================================
-
 # List of source files
 SRC = $(wildcard *.F) $(wildcard *.F90)
 
@@ -71,9 +73,11 @@ SRC = $(wildcard *.F) $(wildcard *.F90)
 TMP = $(SRC:.F=.o)
 OBJ = $(TMP:.F90=.o)
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: clean help
 
@@ -87,19 +91,23 @@ clean:
 help:
 	@$(MAKE) -C $(HELP)
 
-#=============================================================================
-# Dependencies listing (grep "USE " to get the list of module references!)
-#
-# From this list of dependencies, the "make" utility will figure out the
-# correct order of compilation (so we don't have to do that ourselves).
-# This also allows us to compile on multiple processors with "make -j".
-#
-# NOTES:
-# (1) Only specify object-file dependencies that are within this directory.  
-#      Object files in other directories will be referenced at link-time.
-# (2) For "make -j" to work, all files in this directory must have a 
-#      listed dependency.
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
 
 CMN_DIAG_mod.o       : CMN_DIAG_mod.F           \
                        CMN_SIZE_mod.o           \

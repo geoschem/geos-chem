@@ -1813,6 +1813,7 @@
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND59
+      USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
@@ -1854,6 +1855,7 @@
 !  16 Feb 2012 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - A_M2 is now a scalar
+!  10 Mar 2014 - J. Pierce   - Avoid sea salt emissions over ice
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1950,9 +1952,14 @@
          A_M2  = GET_AREA_M2( I, J, 1 )
          
          ! Check if over ocean assuming only gridcells that are
-         ! at least 50% water are oceans
-         FOCEAN   = 1d0 - State_Met%FRCLND(I,J) 
-         IF (FOCEAN > 0.5) THEN 
+         ! at least 50% water are oceans (J. Pierce, 3/10/14)
+         IF ( IS_WATER( I, J, State_Met ) ) THEN
+            FOCEAN = 1d0 - State_Met%FRCLND(I,J)
+         ELSE
+            FOCEAN = 0.d0
+         ENDIF
+
+         IF (FOCEAN > 0.5d0) THEN 
 
             ! Wind speed at 10 m altitude [m/s]
 !            W10M = SQRT( SFCWINDSQR( I, J ) )
