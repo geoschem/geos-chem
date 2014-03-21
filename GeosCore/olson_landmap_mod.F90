@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -149,6 +149,7 @@ MODULE Olson_LandMap_Mod
 !  09 Apr 2012 - R. Yantosca - Removed IJREG, IJUSE, IJLAND; these are now
 !                              replaced by IREG, IUSE, ILAND arrays
 !  09 Apr 2012 - R. Yantosca - Removed reference to CMN_VEL_mod.F
+!  20 Mar 2014 - R. Yantosca - Speed up Olson computation by skipping boxes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -171,7 +172,7 @@ MODULE Olson_LandMap_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -226,6 +227,7 @@ CONTAINS
 !                              derived type object
 !  29 Nov 2012 - R. Yantosca - Added am_I_Root argument
 !  12 Dec 2012 - R. Yantosca - Now get IREG, ILAND, IUSE from State_Met
+!  20 Mar 2014 - R. Yantosca - Add shunts in lat & lon to reduce wall time
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -256,6 +258,26 @@ CONTAINS
     REAL*4  :: frOlson (IIPAR,    JJPAR, 0:N_OLSON-1) ! Frac of land types/box
     INTEGER :: ordOlson(IIPAR,    JJPAR, 0:N_OLSON-1) ! Order of land types
 
+    ! Pointers
+    INTEGER, POINTER :: IREG(:,:)
+    INTEGER, POINTER :: ILAND(:,:,:)
+    INTEGER, POINTER :: IUSE(:,:,:)
+    REAL*8,  POINTER :: FRCLND(:,:)
+!
+! !DEFINED PARAMETERS:
+!
+! The following parameters are used to skip over Olson NATIVE GRID boxes
+! that are too far away from the GEOS-CHEM GRID BOX.  This can speed up
+! the Olson computation by a factor of 100 or more!
+!
+#if defined( GRID05x0666 ) || defined( GRID025x03125 )
+    REAL*8, PARAMETER :: latThresh = 1d0   ! Lat threshold, nested grid
+    REAL*8, PARAMETER :: lonThresh = 1d0   ! Lon threshold, nested grid
+#else
+    REAL*8, PARAMETER :: latThresh = 5d0   ! Lat threshold, global
+    REAL*8, PARAMETER :: lonThresh = 6d0   ! Lon threshold, global
+#endif
+
     !======================================================================
     ! NATIVE GRID parameters (i.e. 0.5 x 0.5 "GENERIC")
     !======================================================================
@@ -279,14 +301,21 @@ CONTAINS
     !======================================================================
     ! Initialize variables outside of the main loop 
     !======================================================================
-    ctOlson            = 0
-    frOlson            = 0e0
-    ordOlson           = -999
-    State_Met%IREG     = 0
-    State_Met%ILAND    = 0
-    State_Met%IUSE     = 0
-    State_Met%FRCLND   = 1000e0
-    isGlobal           = ( .not. ITS_A_NESTED_GRID() )
+
+    ! Initialize pointers
+    IREG    => State_Met%IREG
+    ILAND   => State_Met%ILAND
+    IUSE    => State_Met%IUSE
+    FRCLND  => State_Met%FRCLND
+
+    IREG     = 0
+    ILAND    = 0
+    IUSE     = 0
+    FRCLND   = 1000e0
+    ctOlson  = 0
+    frOlson  = 0e0
+    ordOlson = -999
+    isGlobal = ( .not. ITS_A_NESTED_GRID() )
 
     !======================================================================
     ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
@@ -297,7 +326,8 @@ CONTAINS
     !$OMP PRIVATE( yedgeC_n, dxdy4,     sumArea,  JJ,       III      ) &
     !$OMP PRIVATE( dxdy,     mapWt,     II,       xedge_w,  yedge_s  ) &
     !$OMP PRIVATE( xedge_e,  yedge_n,   area,     type,     maxIuse  ) &
-    !$OMP PRIVATE( sumIUse,  uniqOlson, C,        IG                 )
+    !$OMP PRIVATE( sumIUse,  uniqOlson, C,        IG                 ) &
+    !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
@@ -323,91 +353,119 @@ CONTAINS
        C         = 0
 
        !===================================================================
-       ! Find each 0.5 x 0.5 NATIVE GRID BOX that fits into the GEOS-CHEM
-       ! GRID BOX.  Keep track of the land types and coverage fractions.
+       ! Find each NATIVE GRID BOX that fits into the GEOS-CHEM GRID BOX.  
+       ! Keep track of the land types and coverage fractions.
        !===================================================================
-       DO JJ  = 1, J_OLSON
-       DO III = 1, I_OLSON
 
-          ! Initialize
-          dxdy       = 0e0
-          mapWt      = 0e0
-       
-          ! Find the NATIVE GRID longitude index for use below.  Account for 
-          ! the first GEOS-CHEM GRID box, which straddles the date line.
-          IF ( isGlobal .and.  IG == 1 ) THEN
-             II      = shiftLon(III)
-          ELSE
-             II      = indLon(III)
-          ENDIF
-          
-          ! Edges of this NATIVE GRID box
-          xedge_w    = lonedge(II  )                ! W edge
+       ! Loop over latitudes on the NATIVE GRID
+       DO JJ  = 1, J_OLSON
+
+          ! Latitude edges of this NATIVE GRID box
           yedge_s    = latedge(JJ  )                ! S edge
-          xedge_e    = lonedge(II+1)                ! E edge
           yedge_n    = latedge(JJ+1)                ! N edge
 
-          ! Because the first GEOS-CHEM GRID BOX straddles the date line,
-          ! we have to adjust the W and E edges of the NATIVE GRID BOX to
-          ! be in monotonically increasing order.  This will prevent
-          ! erronous results from being returned by GET_MAP_WT below.
-          IF ( isGlobal .and. IG == 1 .and. II >= shiftLon(1) )  THEN
-             xedge_w = xedge_w - 360e0
-             xedge_e = xedge_e - 360e0
-          ENDIF
+          !%%%%%% LATITUDE SHUNT TO REDUCE WALL TIME (bmy, 3/20/14) %%%%%%%%%%
+          !%%%
+          !%%% Don't do further computations unless we are within 5 degrees
+          !%%% of the southern edge of box (I,J).  This will prevent excess
+          !%%% computations and the overhead of many subroutine calls.  5 
+          !%%% degrees is a good choice because the largest GEOS-Chem grid 
+          !%%% box is 4 degrees in latitude. (bmy, 3/20/14)
+          !%%%
+          IF ( ABS( yedge_s - yedgeC_s ) > latThresh ) CYCLE
+          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+          ! Loop over longitudes on the NATIVE GRID
+          DO III = 1, I_OLSON
+
+             ! Initialize
+             dxdy       = 0e0
+             mapWt      = 0e0
+             
+             ! Find the NATIVE GRID longitude index for use below.  Account for 
+             ! the first GEOS-CHEM GRID box, which straddles the date line.
+             IF ( isGlobal .and.  IG == 1 ) THEN
+                II      = shiftLon(III)
+             ELSE
+                II      = indLon(III)
+             ENDIF
+             
+             ! Edges of this NATIVE GRID box
+             xedge_w    = lonedge(II  )                ! W edge
+             xedge_e    = lonedge(II+1)                ! E edge
+
+             ! Because the first GEOS-CHEM GRID BOX straddles the date line,
+             ! we have to adjust the W and E edges of the NATIVE GRID BOX to
+             ! be in monotonically increasing order.  This will prevent
+             ! erronous results from being returned by GET_MAP_WT below.
+             IF ( isGlobal .and. IG == 1 .and. II >= shiftLon(1) )  THEN
+                xedge_w = xedge_w - 360e0
+                xedge_e = xedge_e - 360e0
+             ENDIF
          
-          ! "Area" of the GEOS-CHEM GRID BOX in degrees (DLON * DLAT)
-          dxdy       = ( xedge_e - xedge_w ) * ( yedge_n - yedge_s )
+             !%%%%%% LONGITUDE SHUNT TO REDUCE WALL TIME (bmy, 3/20/14) %%%%%%
+             !%%%
+             !%%% Don't do further computations unless we are within 6 degrees
+             !%%% of the western edge of box (I,J).  This will prevent excess
+             !%%% computations.  6 degrees is a good choice since the largest
+             !%%% GEOS-Chem grid box is 5 degrees in latitude. (bmy, 3/20/14)
+             !%%%
+             IF ( ABS( xedge_w - xedgeC_w ) > lonThresh ) CYCLE
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-          ! Get the mapping weight (i.e. The fraction of the NATIVE 
-          ! GRID BOX that lies w/in the GEOS-CHEM GRID BOX)
-          CALL GET_MAP_WT( xedge_w, xedge_e, xedgeC_w, xedgeC_e,  &
-                           yedge_s, yedge_n, yedgeC_s, yedgeC_n,  &
-                           mapWt                                 )
+             ! "Area" of the GEOS-CHEM GRID BOX in degrees (DLON * DLAT)
+             dxdy       = ( xedge_e - xedge_w ) * ( yedge_n - yedge_s )
 
-          ! Skip unless part (or all) of the NATIVE GRID BOX
-          ! actually fits into the GEOS-CHEM GRID BOX
-          IF ( mapWt <= 0e0 .or. mapWt > 1e0 ) CYCLE
+             ! Get the mapping weight (i.e. The fraction of the NATIVE 
+             ! GRID BOX that lies w/in the GEOS-CHEM GRID BOX)
+             CALL GET_MAP_WT( xedge_w, xedge_e, xedgeC_w, xedgeC_e,  &
+                              yedge_s, yedge_n, yedgeC_s, yedgeC_n,  &
+                              mapWt                                 )
 
-          ! Area of the NATIVE GRID BOX that lies w/in the GEOS-CHEM GRID BOX
-          area              = A_CM2(II,JJ,1) * mapWt
+             ! Skip unless part (or all) of the NATIVE GRID BOX
+             ! actually fits into the GEOS-CHEM GRID BOX
+             IF ( mapWt <= 0e0 .or. mapWt > 1e0 ) CYCLE
+
+             ! Area of the NATIVE GRID BOX that lies
+             ! within the GEOS-CHEM GRID BOX
+             area              = A_CM2(II,JJ,1) * mapWt
            
-          ! Keep a total of the area
-          sumArea           = sumArea + area
+             ! Keep a total of the area
+             sumArea           = sumArea + area
 
-          ! Olson land map type on the NATIVE GRID
-          type              = OLSON(II,JJ,1)
+             ! Olson land map type on the NATIVE GRID
+             type              = OLSON(II,JJ,1)
            
-          ! Increment count of Olson types
-          ctOlson(I,J,type) = ctOlson(I,J,type) + 1
+             ! Increment count of Olson types
+             ctOlson(I,J,type) = ctOlson(I,J,type) + 1
 
-          ! Add area covered by this olson type
-          frOlson(I,J,type) = frOlson(I,J,type) + area
+             ! Add area covered by this olson type
+             frOlson(I,J,type) = frOlson(I,J,type) + area
 
-          ! Preserve ordering for backwards-compatibility w/ LAI data
-          IF ( ordOlson(I,J,type) < 0 ) THEN 
+             ! Preserve ordering for backwards-compatibility w/ LAI data
+             IF ( ordOlson(I,J,type) < 0 ) THEN 
 
-             ! Counter of land types we have encountered for the first time
-             uniqOlson          = uniqOlson + 1
+                ! Counter of land types we have encountered for the first time
+                uniqOlson          = uniqOlson + 1
 
-             ! Record the order in which this land type was first encountered
-             ordOlson(I,J,type) = uniqOlson
+                ! Record the order in which this land type was first encountered
+                ordOlson(I,J,type) = uniqOlson
 
-          ENDIF
+             ENDIF
+             
+             ! Save mapping information for later use in modis_lai_mod.F90
+             ! in order to prepare the State_Met%XLAI array for use with the 
+             ! legacy dry-deposition and soil NOx emissions codes.
+             C                     = C + 1
+             mapping(I,J)%count    = C
+             mapping(I,J)%II(C)    = II
+             mapping(I,J)%JJ(C)    = JJ
+             mapping(I,J)%olson(C) = type
+             mapping(I,J)%area(C)  = area
+             mapping(I,J)%sumarea  = sumarea
 
-          ! Save mapping information for later use in modis_lai_mod.F90
-          ! in order to prepare the State_Met%XLAI array for use with the 
-          ! legacy dry-deposition and soil NOx emissions codes.
-          C                     = C + 1
-          mapping(I,J)%count    = C
-          mapping(I,J)%II(C)    = II
-          mapping(I,J)%JJ(C)    = JJ
-          mapping(I,J)%olson(C) = type
-          mapping(I,J)%area(C)  = area
-          mapping(I,J)%sumarea  = sumarea
-
+          ENDDO
        ENDDO
-    ENDDO
 
        !===================================================================
        ! Construct GEOS-Chem type output arrays from the binning that we 
@@ -433,45 +491,44 @@ CONTAINS
           IF ( ctOlson(I,J,T) > 0 .and. ordOlson(I,J,T) > 0 ) THEN 
  
              ! Increment the count of Olson types in the box 
-             State_Met%IREG(I,J)                  = State_Met%IREG(I,J) + 1
+             IREG(I,J)                  = IREG(I,J) + 1
              
              ! Save land type into ILAND
-             State_Met%ILAND(I,J,ordOlson(I,J,T)) = T
+             ILAND(I,J,ordOlson(I,J,T)) = T
              
              ! Save the fraction (in mils) of this land type
-             State_Met%IUSE(I,J,ordOlson(I,J,T))  = frOlson(I,J,T)
+             IUSE(I,J,ordOlson(I,J,T))  = frOlson(I,J,T)
 
           ENDIF
        ENDDO
 
        ! Land type with the largest coverage in the GEOS-CHEM GRID BOX
-       maxIuse = MAXLOC( State_Met%IUSE( I, J, 1:State_Met%IREG(I,J) ) )
+       maxIuse = MAXLOC( IUSE( I, J, 1:IREG(I,J) ) )
 
        ! Sum of all land types in the GEOS-CHEM GRID BOX (should be 1000)
-       sumIUse = SUM   ( State_Met%IUSE( I, J, 1:State_Met%IREG(I,J) ) )
+       sumIUse = SUM   ( IUSE( I, J, 1:IREG(I,J) ) )
 
        ! Make sure everything adds up to 1000.  If not, then adjust
        ! the land type w/ the largest coverage accordingly.
        ! This follows the algorithm from "regridh_lai.pro".
        IF ( sumIUse /= 1000 ) THEN
-          State_Met%IUSE(I,J,maxIUse) = State_Met%IUSE(I,J,maxIUse) &
-                                      + ( 1000 - sumIUse )
+          IUSE(I,J,maxIUse) = IUSE(I,J,maxIUse) &
+                            + ( 1000 - sumIUse )
        ENDIF
       
        ! Loop over land types in the GEOS-CHEM GRID BOX
-       DO T = 1, State_Met%IREG(I,J)
+       DO T = 1, IREG(I,J)
 
           ! If the current Olson land type is water (type 0),
           ! subtract the coverage fraction (IUSE) from FRCLND.
-          IF ( State_Met%ILAND(I,J,T) == 0 ) THEN
-             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J)  &
-                                   - State_Met%IUSE(I,J,T)
+          IF ( ILAND(I,J,T) == 0 ) THEN
+             FRCLND(I,J) = FRCLND(I,J)  - IUSE(I,J,T)
           ENDIF
        ENDDO
 
        ! Normalize FRCLND into the range of 0-1
        ! NOTE: Use REAL*4 for backwards compatibility w/ existing code!
-       State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) / 1000e0
+       FRCLND(I,J) = FRCLND(I,J) / 1000e0
 
     ENDDO
     ENDDO
@@ -489,17 +546,17 @@ CONTAINS
 !###    enddo
 !###   
 !###    ! ### DEBUG OUTPUT
-!###    C = map(23,34)%count
+!###    C = mapping(23,34)%count
 !###    print*, '### count   : ', C
-!###    print*, '### II      : ', map(23,34)%II(1:C)
-!###    print*, '### JJ      : ', map(23,34)%JJ(1:C)
-!###    print*, '### area    : ', map(23,34)%area(1:C)
-!###    print*, '### sumarea : ', map(23,34)%sumarea
+!###    print*, '### II      : ', mapping(23,34)%II(1:C)
+!###    print*, '### JJ      : ', mapping(23,34)%JJ(1:C)
+!###    print*, '### area    : ', mapping(23,34)%area(1:C)
+!###    print*, '### sumarea : ', mapping(23,34)%sumarea
 
   END SUBROUTINE Compute_Olson_LandMap
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -733,7 +790,7 @@ CONTAINS
   END SUBROUTINE Init_Olson_LandMap
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
