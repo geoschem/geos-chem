@@ -737,7 +737,11 @@
 
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
+#if defined (UCX )
+         RTOL(i) = 2.d-2
+#else
          RTOL(i) = 2.d-1
+#endif
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: This update was made in the SEAC4RS code.  Leave here in case we
 !%%% need to restore this. (bmy, 9/25/13)
