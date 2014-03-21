@@ -334,7 +334,7 @@
          !==============================================================
          ! Make sure we do not use this segment of code for SEAC4RS
          ! (skim, 6/21/13)
-         IF ( USE_GFED2 .AND. .FALSE. ) THEN
+         IF ( USE_GFED2  ) THEN
 
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED2_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
@@ -360,7 +360,7 @@
          !==============================================================
          ! Make sure we do not use this segment of code for SEAC4RS
          ! (skim, 6/21/13)
-         ELSE IF ( USE_GFED3 .AND. .FALSE. ) THEN
+         ELSE IF ( USE_GFED3 ) THEN
 
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED3_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
@@ -478,7 +478,7 @@
          ! Compute the FLAMBE biomass burning emissions (skim, 6/21/13)
          ! IF ( ITS_A_NEW_HOUR() .AND. .FALSE. ) THEN
          ! Now use the FINN inventory (7/27/13)
-         IF ( ITS_A_NEW_DAY() ) THEN
+         IF ( ITS_A_NEW_DAY() .and. LFINN ) THEN
 
 !            ! Compute the FLAMBE emissions
 !            CALL FLAMBE_COMPUTE_BIOMASS( BIOMASS, YEAR, MONTH, 

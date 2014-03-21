@@ -6026,12 +6026,14 @@
 #endif
 
             CALL READ_ANTHRO_NH3( Input_Opt, MONTH )
-
+            WRITE(*,*) 'OUT OF READ_ANTHRO_NH3'
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 
          !CALL READ_SHIP_SO2( MONTH )
          CALL READ_SHIP_SO2( Input_Opt, MONTH )
+         WRITE(*,*) 'OUT OF SHIP SO2'
+
 #if defined( TOMAS )
          ! Scale anthro SO2 for TOMAS
          ESO2_sh  = ESO2_sh * scaleanthso2
@@ -6201,8 +6203,7 @@
         
       ! Get total emiss SULFATE in PBL
       TSULFATE = SUM( EMISS(1:TOPMIX) ) 
-
-      
+            
       ! Partition if local scheme
       IF ( IS_LOCAL ) THEN
 
@@ -6218,16 +6219,6 @@
       ! Do not touch emissions above PBL, regardless of mixing scheme
       IF ( TOPEMISS > TOPMIX )
      $     SULFATE( TOPMIX+1 : TOPEMISS ) = EMISS( TOPMIX+1 : TOPEMISS )
-        
-!#### DEBUG
-!      IF ( ABS( SUM( SULFATE(1:TOPMIX) ) - TSULFATE ) > 1.D-5 ) THEN
-!         PRINT*, '### ERROR in SULFATE_PBL_MIX!'
-!         PRINT*, '### SUM(SULFATE) : ', SUM( SULFATE(1:TOPMIX) )
-!         PRINT*, '### TSULFATE     : ', TSULFATE
-!         CALL ERROR_STOP( 'Check SULFATE PBL EMISSIONS MIXING',
-!     &                    'SULFATE_PBL_MIX (sulfate_mod.f)' )
-!      ENDIF
-!#### DEBUG
 
       END SUBROUTINE SULFATE_PBL_MIX
 !EOC    
@@ -7116,17 +7107,6 @@
             ENDIF
 
          ENDDO
-#if defined( DEVEL )
-         ! kg/m2/s
-         State_Chm%TRAC_TEND(:,J,1,IDTSO2) = 
-     &   State_Chm%TRAC_TEND(:,J,1,IDTSO2) + 
-     &       ( SO2an(:,J,1) + Eso2_bb(:,J) +
-     &         SO2bf(:,J)   + ESO2_sh(:,J) )
-
-         State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTSO2) = 
-     &   State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTSO2) + SO2an(:,J,2:)
-
-#endif
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -8474,7 +8454,7 @@
                   ! Convert from [molec NH3/cm2/s] to [kg NH3/box/sec]
                   NH3an(I,J,L) = EPA_AN * AREA_CM2 / XNUMOL(IDTNH3)
                ENDDO
-
+ 
                ! Also overwrite natural emissions so that crop NH3
                ! emissions aren't double-counted (jaf, 12/2/13)
                NH3na(I,J) = ENH3_na_orig(I,J)
@@ -8537,16 +8517,6 @@
             ENDIF
             
          ENDDO
-#if defined( DEVEL )
-         State_Chm%TRAC_TEND(:,J,1,IDTNH3) = 
-     &   State_Chm%TRAC_TEND(:,J,1,IDTNH3) + 
-     &        ( NH3an(:,J,1) + ENH3_bb(:,J) + 
-!     &          NH3bf(:,J)   + ENH3_na(:,J) )
-     &          NH3bf(:,J)   + NH3na(:,J) )
-
-         State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTNH3) = 
-     &   State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTNH3) + NH3an(:,J,2:)
-#endif
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -11111,7 +11081,7 @@
             ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
-
+         
       !----------------------------------------
       ! Or Corbett et al ship SO2 emissions
       !----------------------------------------
@@ -11218,7 +11188,6 @@
 !$OMP END PARALLEL DO
          
       ENDIF
-
       END SUBROUTINE READ_SHIP_SO2
 !EOC
 !------------------------------------------------------------------------------
