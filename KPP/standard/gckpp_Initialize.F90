@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Thu Aug 29 17:08:07 2013
+! Time                 : Fri Mar 21 14:26:58 2014
 ! Working directory    : /home/mpayer/KPP
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -51,16 +51,6 @@ SUBROUTINE Initialize ( )
   DO i = 1, NFIX
      FIX(i) = 1.d0
   END DO
-   
-  ! these two loops are for the adjoint only
-  DO I =1, NVAR
-     C(I)=VAR(I)
-  ENDDO
-   
-  DO I = 1, NFIX
-     C(NVAR+I) = FIX(I)
-  END DO
-           
 
 END SUBROUTINE Initialize
 
