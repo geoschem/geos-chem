@@ -531,11 +531,11 @@
          ! Compute the FLAMBE biomass burning emissions (skim, 6/21/13)
          ! IF ( ITS_A_NEW_HOUR() .AND. .FALSE. ) THEN
          ! Now use the FINN inventory (7/27/13)
-         IF ( LFINN ) THEN
+         IF ( ITS_A_FULLCHEM_SIM ) THEN !LFINN ) THEN
 
             ! Zero the array for biomass burning fire injection
             BBFIRE = 0d0
-
+            WRITE(*,*) 'SEAC4RS Code - Calling FINN for Fire Injection'
             ! Compute the FINN emissions
             CALL FINN_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
 
