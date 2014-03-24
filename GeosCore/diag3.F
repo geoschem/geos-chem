@@ -765,7 +765,7 @@
          IF ( IDTAVOC > 0 ) THEN
             CATEGORY     = 'ANVOCSRC'
             N            = IDTAVOC
-            ARRAY(:,:,1) = AD07(:,:,13)
+            ARRAY(:,:,1) = AD07(:,:,1,13)
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
@@ -779,7 +779,7 @@
          IF ( IDTBBVOC > 0 ) THEN
             CATEGORY     = 'BBVOCSRC'
             N            = IDTBBVOC
-            ARRAY(:,:,1) = AD07(:,:,14)
+            ARRAY(:,:,1) = AD07(:,:,1,14)
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
@@ -793,7 +793,7 @@
          IF ( IDTBGSOA > 0 ) THEN
             CATEGORY     = 'BGSOASRC'
             N            = IDTBGSOA
-            ARRAY(:,:,1) = AD07(:,:,15)
+            ARRAY(:,:,1) = AD07(:,:,1,15)
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,

@@ -341,9 +341,8 @@
             FIRST     = .FALSE.
             USE_GFED2 = LGFED2BB  .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
             USE_GFED3 = LGFED3BB  .or. LDAYBB3 .or. L3HRBB3
-            USE_GFED  = USE_GFED2 .or. USE_GFED3
-!           USE_FINN  = LFINN 
-         ENDIF
+            USE_GFED  = USE_GFED2 .or. USE_GFED3 
+            !USE_FINN  = LFINN 
          
             ! CALL NEI08 to initialize mask for fire injection over U.S. 
             CALL GET_MASK_FORFIRE( RC )
