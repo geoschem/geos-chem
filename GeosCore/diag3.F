@@ -507,7 +507,7 @@
          !-------------------
          CATEGORY     = 'BC-ANTH'
          N            = IDTBCPI
-         ARRAY(:,:,1) = AD07(:,:,1) 
+         ARRAY(:,:,1) = AD07(:,:,1,1) 
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -520,20 +520,22 @@
          !-------------------
          CATEGORY     = 'BC-BIOB'
          N            = IDTBCPI
-         ARRAY(:,:,1) = AD07(:,:,2) 
-            
+         DO L=1, LLTROP
+            ARRAY(:,:,L) = AD07(:,:,L,2)
+         ENDDO
+                     
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               IIPAR,     JJPAR,     LLTROP,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
 
          !------------------- 
          ! BC BIOFUEL source
          !------------------- 
          CATEGORY     = 'BC-BIOF'
          N            = IDTBCPI
-         ARRAY(:,:,1) = AD07(:,:,3) 
+         ARRAY(:,:,1) = AD07(:,:,1,3) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -550,7 +552,7 @@
          DO L = 1, LD07
             ARRAY(:,:,L) = AD07_BC(:,:,L) 
          ENDDO
-            
+                     
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -566,7 +568,7 @@
          IF ( IDTOCPI > 0 ) N = IDTOCPI
          IF ( IDTPOA1 > 0 ) N = IDTPOA1
 
-         ARRAY(:,:,1) = AD07(:,:,4) 
+         ARRAY(:,:,1) = AD07(:,:,1,4) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -578,19 +580,21 @@
          ! OC BIOMASS source
          !------------------------------
          CATEGORY     = 'OC-BIOB'
-         ARRAY(:,:,1) = AD07(:,:,5) 
-            
+         
+         DO L=1,LLTROP
+            ARRAY(:,:,L) = AD07(:,:,L,5)
+         ENDDO
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
      &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
 
          !------------------------------ 
          ! OC BIOFUEL source
          !------------------------------
          CATEGORY     = 'OC-BIOF'
-         ARRAY(:,:,1) = AD07(:,:,6) 
+         ARRAY(:,:,1) = AD07(:,:,1,6) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -602,7 +606,7 @@
          ! OC BIOGENIC source
          !------------------------------
          CATEGORY     = 'OC-BIOG'
-         ARRAY(:,:,1) = AD07(:,:,7) 
+         ARRAY(:,:,1) = AD07(:,:,1,7) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -665,7 +669,7 @@
 
                END SELECT
 
-               ARRAY(:,:,1) = AD07(:,:,N)
+               ARRAY(:,:,1) = AD07(:,:,1,N)
                   
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -1155,14 +1159,16 @@
          ! Biomass SO2 
          !==============================================================
          CATEGORY     = 'SO2-BIOB'
-         ARRAY(:,:,1) = AD13_SO2_bb(:,:)
+         DO L = 1, LLTROP
+            ARRAY(:,:,L) = AD13_SO2_bb(:,:,L)
+         ENDDO
          N            = IDTSO2
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               IIPAR,     JJPAR,     LLTROP,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
 
 
          !==============================================================
@@ -1297,14 +1303,16 @@
          ! Biomass NH3
          !==============================================================
          CATEGORY     = 'NH3-BIOB'
-         ARRAY(:,:,1) = AD13_NH3_bb(:,:)
+         DO L=1, LLTROP
+            ARRAY(:,:,L) = AD13_NH3_bb(:,:,L)
+         ENDDO
          N            = IDTNH3
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               IIPAR,     JJPAR,     LLTROP,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
 
          !==============================================================
          ! Biofuel NH3 
@@ -2081,14 +2089,16 @@
                   EXIT
                ENDIF
             ENDDO
-
-            ARRAY(:,:,1) = AD28(:,:,MMB) / SCALESRCE 
+            
+            DO L = 1, LLTROP
+               ARRAY(:,:,L) = AD28(:,:,L,MMB) / SCALESRCE 
+            ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &                  IIPAR,     JJPAR,     LLTROP,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
 
          ENDDO
       ENDIF

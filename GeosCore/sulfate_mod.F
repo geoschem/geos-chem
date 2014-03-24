@@ -222,13 +222,13 @@
       ! Allocatable arrays
       REAL*8,  ALLOCATABLE :: DMSo(:,:) 
       REAL*8,  ALLOCATABLE :: ENH3_an(:,:)
-      REAL*8,  ALLOCATABLE :: ENH3_bb(:,:)
+      REAL*8,  ALLOCATABLE :: ENH3_bb(:,:,:)
       REAL*8,  ALLOCATABLE :: ENH3_bf(:,:)
       REAL*8,  ALLOCATABLE :: ENH3_na(:,:)
       REAL*8,  ALLOCATABLE :: ENH3_na_orig(:,:)
       REAL*8,  ALLOCATABLE :: ESO2_ac(:,:,:) 
       REAL*8,  ALLOCATABLE :: ESO2_an(:,:,:)
-      REAL*8,  ALLOCATABLE :: ESO2_bb(:,:)     
+      REAL*8,  ALLOCATABLE :: ESO2_bb(:,:,:)     
       REAL*8,  ALLOCATABLE :: ESO2_bf(:,:)
       REAL*8,  ALLOCATABLE :: ESO2_ev(:,:,:)
       REAL*8,  ALLOCATABLE :: ESO2_nv(:,:,:)
@@ -6060,12 +6060,13 @@
 
       ENDIF
 
-      IF(  ( GFED2_IS_NEW()      .or. GFED3_IS_NEW()  .or.
-     &       ITS_A_NEW_MONTH()   .or. FLAMBE_IN_USE() .or.
-     &       FINN_IS_NEW() ) .AND. ( LBIOMASS )  ) THEN
+      IF(  ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or.
+     &       ITS_A_NEW_MONTH() .or. FINN_IS_NEW() ) .AND. 
+     &     ( LBIOMASS )  ) THEN 
+         ESO2_bb = 0d0
          CALL GET_BIOMASS_SO2
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_SO2')
-         
+         ENH3_bb = 0d0
          CALL GET_BIOMASS_NH3
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_NH3')         
       ENDIF
@@ -6519,7 +6520,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GRID_MOD,       ONLY     : GET_AREA_CM2
+      USE GRID_MOD,       ONLY     : GET_AREA_CM2, GET_XMID, GET_YMID
       USE GRID_MOD,       ONLY     : GET_XOFFSET, GET_YOFFSET
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
@@ -6612,7 +6613,7 @@
       REAL*8                 :: AREA_CM2,    AN,        BF
       REAL*8                 :: SO2an(IIPAR,JJPAR,NOXLEVELS)
       REAL*8                 :: SO2bf(IIPAR,JJPAR)
-      REAL*8                 :: TEMPEMISS(NOXLEVELS)
+      REAL*8                 :: TEMPEMISS(LLTROP)
       REAL*8                 :: T_DIFF, T_SUM
 
       ! New variables for volcanic emissions (jaf, 10/15/09)
@@ -6670,165 +6671,6 @@
       ! is it local PBL mixing scheme?
       IS_LOCAL  = ( .NOT. LNLPBL )
 
-!------- Prior to 6/17/12 (jaf)      
-!      !=================================================================
-!      ! SO2 emissions from volcanoes [kg SO2/box/s].
-!      ! 
-!      ! SO2 emissions are saved separately for eruptive and non-eruptive
-!      ! volcanoes, but in both cases they have been gridded onto a
-!      ! 1 degree x 1 degree by 0.5 km grid. Horizontal regridding is
-!      ! done in READ_NONERUP_VOLC and READ_ERUP_VOLC. Here we do the
-!      ! vertical regridding, with the scheme based on that in AIREMISS
-!      ! in aircraft_nox_mod.f. Since both types of volcanoes are on the
-!      ! same grid and have been similarly pre-processed, we can treat
-!      ! them simultaneously here.
-!      !
-!      ! As before, non-eruptive volcanic emissions are injected into the
-!      ! model layer corresponding to the altitude of the volcanic
-!      ! crater. Eruptive emissions are injected into the top third of
-!      ! the volcanic plume. These steps were performed in the pre-
-!      ! processing and hence are not done here. 
-!      !
-!      ! (jaf, bmy, 10/15/09)
-!      !=================================================================
-!      ESO2_ev = 0d0
-!      ESO2_nv = 0d0
-!
-!      ! Get nested-grid offsets
-!      I0 = GET_XOFFSET()
-!      J0 = GET_YOFFSET()
-!    
-!      ! Loop over surface grid boxes
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!    
-!         !==============================================================
-!         ! Loop over tropospheric GEOS-CHEM levels 
-!         !==============================================================
-!         DO L = 1, LLTROP
-!
-!            ! PLOW  is the pressure at the bottom edge of sigma level L
-!            ! PHIGH is the pressure at the top    edge of sigma level L 
-!            PLOW  = GET_PEDGE(I,J,L)
-!            PHIGH = GET_PEDGE(I,J,L+1)
-!
-!            ! Make sure PLOW is not smaller than VOLCPRESS(1)
-!            IF ( L == 1 .AND. PLOW < VOLCPRESS(1) ) PLOW = VOLCPRESS(1)
-!
-!            ! Exit loop if GEOS-Chem level is higher than top of grid
-!            IF ( PLOW .LE. VOLCPRESS(LVOLC+1) ) EXIT
-!
-!            !===========================================================
-!            ! Loop over the native 1-km volcanic SO2 grid layers
-!            !===========================================================
-!            DO K = 1, LVOLC
-!
-!               ! PVOLCLOW  is pressure at the bottom of 1-km grid layer K
-!               ! PVOLCHIGH is pressure at the top    of 1-km grid layer K
-!               PVOLCLOW = VOLCPRESS(K)
-!               PVOLCHIGH = VOLCPRESS(K+1)
-!
-!               ! Compute the fraction of each 1-km layer K that
-!               ! lies within the given GEOS-CHEM layer L
-!               FRAC = 0.0d0
-!
-!               ! GC grid box is completely below volcanic grid box
-!               IF ( PHIGH >= PVOLCLOW ) THEN
-!                  GOTO 10
-!
-!               ! Bottom of GC grid box is in volcanic grid box
-!               ELSE IF ( PLOW < PVOLCLOW .AND. PLOW > PVOLCHIGH ) THEN
-!                  ! Only part of GC box is in volcanic box
-!                  IF ( PHIGH < PVOLCHIGH ) THEN
-!                     FRAC = (PLOW-PVOLCHIGH) / (PVOLCLOW-PVOLCHIGH)
-!                  ! All of GC box is in volcanic box
-!                  ELSE
-!                     FRAC =  (PLOW-PHIGH) / (PVOLCLOW-PVOLCHIGH)
-!                  ENDIF
-!
-!               ! Top of GC grid box is in volcanic box (bottom isn't)
-!               ELSE IF ( PHIGH <  PVOLCLOW .AND. 
-!     &                   PHIGH >  PVOLCHIGH .AND.
-!     &                   PLOW  >= PVOLCLOW) THEN
-!                  FRAC = (PVOLCLOW-PHIGH) / (PVOLCLOW-PVOLCHIGH)
-!
-!               ! All of volcanic box in GC box
-!               ELSE IF ( PHIGH <= PVOLCHIGH .AND. 
-!     &                   PLOW >= PVOLCLOW ) THEN
-!                  FRAC = 1.0d0
-!
-!               ENDIF
-!
-!               ! Add contribution from this layer of volcanic grid (K)
-!               ! to non-eruptive SO2 in model grid layer L.
-!               ESO2_nv(I,J,L) = ESO2_nv(I,J,L) +
-!     &                          FRAC * ENV(I,J,K)
-!  
-!               ! Add contribution from this layer of volcanic grid (K)
-!               ! to eruptive SO2 in model grid layer L.
-!               ESO2_ev(I,J,L) = ESO2_ev(I,J,L) +
-!     &                          FRAC * EEV(I,J,K)
-!
-!            ENDDO ! K
-!
-!10          CONTINUE
-!         ENDDO    ! L
-!
-!         !===========================================================
-!         ! Consistency check: columns before and after regridding 
-!         ! should be equal.  Be careful not to divide by zero!
-!         !===========================================================
-!
-!         ! Non-eruptive volcanoes
-!         T_SUM  = SUM( ENV(I,J,:) )
-!         T_DIFF = ABS( SUM( ESO2_nv(I,J,:) ) - T_SUM )         
-!
-!         IF ( IS_SAFE_DIV( T_DIFF, T_SUM ) ) THEN
-!            IF ( T_DIFF / T_SUM > 1d-5 ) THEN
-!               PRINT*, 'Non-eruptive volcanic SO2 emissions before ' //
-!     &                 'and after regridding are not equivalent!'
-!               CALL FLUSH(6)
-!               CALL GEOS_CHEM_STOP
-!            ENDIF
-!         ENDIF
-!
-!         ! Eruptive volcanoes
-!         T_SUM  = SUM( EEV(I,J,:) )
-!         T_DIFF = ABS( SUM( ESO2_ev(I,J,:) ) - T_SUM )         
-!
-!         IF ( IS_SAFE_DIV( T_DIFF, T_SUM ) ) THEN
-!            IF ( T_DIFF / T_SUM > 1d-5 ) THEN
-!               PRINT*, 'Eruptive volcanic SO2 emissions before ' //
-!     &                 'and after regridding are not equivalent!'
-!               CALL FLUSH(6)
-!               CALL GEOS_CHEM_STOP
-!            ENDIF
-!         ENDIF
-!
-!      ENDDO       ! I
-!      ENDDO       ! J
-!------- Prior to 6/17/12 (jaf)
-
-      !=================================================================
-      ! Overwrite USA    w/ EPA/NEI99 (anthro+biofuel) SO2 emissions 
-      ! Overwrite MEXICO w/ BRAVO     (anthro only   ) SO2 emissions
-      ! Overwrite CANADA w/ CAC       (anthro only   ) SO2 emissions
-      !-----------------------------------------------------------------
-      ! Note that we:
-      ! Overwrite ASIA w/ STREETS and EUROPE w/ EMEP 
-      !  in READ_ANTHRO_SOx.
-      !
-      ! In both cases, SO4 is a fraction of provided SO2 (except for
-      ! EPA). It is done in READ_ANTHRO_SOX in the 1st case, and in
-      ! SRCSO4 for inventories dealt with here. EPA is the only one to
-      ! provide direct SO4, which is why we deal with it here, even
-      ! though it does not have to be like that. Historical.
-      !
-      ! So, since we have EPA here, we have to deal with BRAVO and
-      ! CAC here to deal with their overlaping mask.
-      !
-      ! (amv, phs, 3/12/08, 8/24/09)
-      !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, AREA_CM2, AN, BF, DOW_LT, WEEKDAY )
@@ -6843,88 +6685,6 @@
 
             ! Grid box surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-!------- Prior to 3/8/07 (phs)         
-            !!-----------------------------------------------------------
-            !! If we are using EPA/NEI99 (anthro + biofuel) ...
-            !!-----------------------------------------------------------
-            !IF ( LNEI99 ) THEN
-            !
-            !   ! If we are over the USA ...
-            !   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
-            !
-            !      ! Determine if we should use weekday or weekend NEI
-            !      ! emissions at grid box (I,J,L).  Since NEI is over
-            !      ! the US, then weekend is Sat/Sun.
-            !      DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
-            !      WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
-            !
-            !      ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
-            !      AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
-            !      BF           = GET_EPA_BIOFUEL(I, J, IDTSO2, WEEKDAY )
-            !   
-            !      ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
-            !      ! Place all anthro SO2 into surface layer
-            !      SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
-            !      SO2an(I,J,2) = 0d0
-            !   
-            !      ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
-            !      SO2bf(I,J)   = BF * AREA_CM2 / XNUMOL(IDTSO2)
-            !
-            !   ELSE
-            !
-            !      ! If we are not over the USA, then just use the regular 
-            !      ! emissions from ESO2_an and ESO2_bf (bmy, 11/16/04)
-            !      SO2an(I,J,1) = ESO2_an(I,J,1)
-            !      SO2an(I,J,2) = ESO2_an(I,J,2)
-            !      SO2bf(I,J)   = ESO2_bf(I,J)
-            !
-            !   ENDIF
-            !
-            !ELSE
-            ! 
-            !   ! If we are not using EPA/NEI99 emissions, then just copy 
-            !   ! ESO2_an and ESO2_bf into local arrays (bmy, 11/16/04)
-            !   SO2an(I,J,1) = ESO2_an(I,J,1)
-            !   SO2an(I,J,2) = ESO2_an(I,J,2)
-            !   SO2bf(I,J)   = ESO2_bf(I,J)
-            !
-            !ENDIF
-            !
-            !!-----------------------------------------------------------
-            !! If we are using BRAVO emissions over Mexico ...
-            !!-----------------------------------------------------------
-            !IF ( LBRAVO ) THEN
-            !
-            !   ! If we are over Mexico ...
-            !   IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
-            !
-            !      ! Read BRAVO SO2 emissions in [molec/cm2/s]
-            !      AN           = GET_BRAVO_ANTHRO( I, J, IDTSO2 )
-            !   
-            !      ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
-            !      ! Place all anthro SO2 into surface layer
-            !      SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
-            !      SO2an(I,J,2) = 0d0
-            !
-            !   ELSE
-            !
-            !      ! If we are not over MEXICO, then just use 
-            !      ! the regular emissions from ESO2_an
-            !      SO2an(I,J,1) = ESO2_an(I,J,1)
-            !      SO2an(I,J,2) = ESO2_an(I,J,2)
-            !
-            !   ENDIF
-            !
-            !ELSE
-            ! 
-            !   ! If we are not using BRAVO emissions, then just copy 
-            !   ! ESO2_an and ESO2_bf into local arrays
-            !   SO2an(I,J,1) = ESO2_an(I,J,1)
-            !   SO2an(I,J,2) = ESO2_an(I,J,2)
-            !   SO2bf(I,J)   = ESO2_bf(I,J)
-            !
-            !ENDIF
 
             !-----------------------------------------------------------
             ! Default SO2 from GEIA or EDGAR (w/ optional STREETS for 
@@ -7009,7 +6769,6 @@
 
             ENDIF
             ENDIF
-
 
             !-----------------------------------------------------------
             ! If we are using CAC emissions over Canada ...
@@ -7133,23 +6892,22 @@
          ! Do PBL mixing of anthro (multilevel) + biomass + biofuel +
          ! ship exhaust SO2 at (I,J)
          !=============================================================
-         TEMPEMISS(1) = SO2an(I,J,1) + Eso2_bb(I,J) +
-     $                  SO2bf(I,J)   + ESO2_sh(I,J)
-
-         TEMPEMISS(2:)= SO2an(I,J,2:)
+         TEMPEMISS(1) = SO2an(I,J,1) + ESO2_bb(I,J,1) +
+     $        SO2bf(I,J)   + ESO2_sh(I,J)
+         TEMPEMISS(2:NOXLEVELS)=SO2an(I,J,2:) + ESO2_bb(I,J,2:NOXLEVELS)
+         TEMPEMISS(NOXLEVELS+1:)= ESO2_bb(I,J,NOXLEVELS+1: )
          
-         call SULFATE_PBL_MIX( TEMPEMISS, SO2, 
-     $                         FEMIS,     NTOP, IS_LOCAL )
-
-         
+      call SULFATE_PBL_MIX( TEMPEMISS, SO2, 
+     $     FEMIS,     NTOP, IS_LOCAL )
+                  
          !==============================================================
          ! Add anthro SO2, aircraft SO2, volcano SO2, and biomass SO2
          ! Convert from [kg SO2/box/s] -> [kg SO2/box/timestep]
          !==============================================================
-         DO L = 1, LLPAR
+      DO L = 1, LLPAR
             
             ! SO2 emissions [kg/box/s]
-            SO2SRC = SO2(L)         + ESO2_ac(I,J,L) + 
+         SO2SRC = SO2(L)         + ESO2_ac(I,J,L) + 
      &               ESO2_nv(I,J,L) + ESO2_ev(I,J,L) 
 
             ! Add SO2 to TC array [kg/box/timestep]
@@ -7170,44 +6928,44 @@
          !==============================================================
          ! ND13 Diagnostic: SO2 emissions in [kg S/box/timestep]
          !==============================================================
-         IF ( ND13 > 0 ) THEN 
+      IF ( ND13 > 0 ) THEN 
 
             ! Anthropogenic SO2 -- Levels 1-NOXLEVELS
-            DO L = 1, NOXLEVELS
-               AD13_SO2_an(I,J,L) = AD13_SO2_an(I,J,L) +
-     &                              ( SO2an(I,J,L) * S_SO2 * DTSRCE )
-            ENDDO
-
+         DO L = 1, NOXLEVELS
+            AD13_SO2_an(I,J,L) = AD13_SO2_an(I,J,L) +
+     &           ( SO2an(I,J,L) * S_SO2 * DTSRCE )
+         ENDDO
+         DO L = 1, LLTROP
             ! SO2 from biomass burning
-            AD13_SO2_bb(I,J)      = AD13_SO2_bb(I,J) +
-     &                              ( ESO2_bb(I,J) * S_SO2 * DTSRCE )
- 
+            AD13_SO2_bb(I,J,L)      = AD13_SO2_bb(I,J,L) +
+     &           ( ESO2_bb(I,J,L) * S_SO2 * DTSRCE )
+         ENDDO
             ! SO2 from biofuel burning
-            AD13_SO2_bf(I,J)      = AD13_SO2_bf(I,J) +
-     &                              ( SO2bf(I,J)   * S_SO2 * DTSRCE )
+         AD13_SO2_bf(I,J)      = AD13_SO2_bf(I,J) +
+     &        ( SO2bf(I,J)   * S_SO2 * DTSRCE )
 
             ! SO2 from ship emissions (bec, bmy, 5/20/04)
             ! Always fill the diagnostic array since
             ! it is allocated anyway (phs, 2/27/09) 
-            AD13_SO2_sh(I,J)      = AD13_SO2_sh(I,J) +
-     &                              ( ESO2_sh(I,J) * S_SO2 * DTSRCE )
+         AD13_SO2_sh(I,J)      = AD13_SO2_sh(I,J) +
+     &        ( ESO2_sh(I,J) * S_SO2 * DTSRCE )
 
             ! Loop thru LD13 levels
-            DO L = 1, LD13 
+         DO L = 1, LD13 
 
                ! SO2 from aircraft emissions
-               AD13_SO2_ac(I,J,L) = AD13_SO2_ac(I,J,L) +
-     &                              ( ESO2_ac(I,J,L) * S_SO2 * DTSRCE )
+            AD13_SO2_ac(I,J,L) = AD13_SO2_ac(I,J,L) +
+     &           ( ESO2_ac(I,J,L) * S_SO2 * DTSRCE )
 
                ! SO2 from non-eruptive volcanoes
-               AD13_SO2_nv(I,J,L) = AD13_SO2_nv(I,J,L) +
-     &                              ( ESO2_nv(I,J,L) * S_SO2 * DTSRCE )
+            AD13_SO2_nv(I,J,L) = AD13_SO2_nv(I,J,L) +
+     &           ( ESO2_nv(I,J,L) * S_SO2 * DTSRCE )
 
                ! SO2 from eruptive volcanoes
-               AD13_SO2_ev(I,J,L) = AD13_SO2_ev(I,J,L) +
-     &                              ( ESO2_ev(I,J,L) * S_SO2 * DTSRCE )
-            ENDDO
-         ENDIF
+            AD13_SO2_ev(I,J,L) = AD13_SO2_ev(I,J,L) +
+     &           ( ESO2_ev(I,J,L) * S_SO2 * DTSRCE )
+         ENDDO
+      ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -7247,7 +7005,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GRID_MOD,           ONLY : GET_AREA_CM2, GET_XMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
@@ -7558,7 +7316,7 @@
                   
                ENDIF
             ENDIF
-
+   
             !=============================================================
             ! Do PBL mixing of emissions
             !=============================================================
@@ -8179,7 +7937,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GRID_MOD,           ONLY : GET_AREA_CM2, GET_XMID, GET_YMID
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -8188,6 +7946,7 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TRACERID_MOD,       ONLY : IDTNH3
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13
@@ -8255,7 +8014,7 @@
       REAL*8                 :: NEI2008(IIPAR,JJPAR,NOXLEVELS)
       REAL*8                 :: NH3bf(IIPAR,JJPAR)
       REAL*8                 :: NH3na(IIPAR,JJPAR)
-      REAL*8                 :: TEMPEMISS(NOXLEVELS)
+      REAL*8                 :: TEMPEMISS(LLTROP)
       
       ! For fields from Input_Opt
       LOGICAL                :: LNEI99, LCAC, LNEI05, LNEI08, LNLPBL
@@ -8403,9 +8162,7 @@
                NH3an(I,J,1) = CAC_AN * AREA_CM2 / XNUMOL(IDTNH3)
 
             ENDIF
-            ENDIF
-
-            
+            ENDIF           
 
             ! If we are using NEI 2005 over North America
             IF ( LNEI05 ) THEN
@@ -8446,35 +8203,36 @@
                WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
                
                DO L = 1, NOXLEVELS 
-                  IF ( L .gt. 3 ) CYCLE
+                  IF ( L .le. 3 ) THEN
                   ! Read NH3 anthro emissions in [molec NH3/cm2/s]                  
-                  EPA_AN = GET_NEI2008_ANTHRO( I, J, L, IH, IDTNH3, 
-     &                                   WEEKDAY )
+                     EPA_AN = GET_NEI2008_ANTHRO( I, J, L, IH, IDTNH3, 
+     &                    WEEKDAY )
      
                   ! Convert from [molec NH3/cm2/s] to [kg NH3/box/sec]
-                  NH3an(I,J,L) = EPA_AN * AREA_CM2 / XNUMOL(IDTNH3)
-               ENDDO
- 
+                     NH3an(I,J,L) = EPA_AN * AREA_CM2 / XNUMOL(IDTNH3)
+                  ENDIF
+               ENDDO 
+
                ! Also overwrite natural emissions so that crop NH3
                ! emissions aren't double-counted (jaf, 12/2/13)
                NH3na(I,J) = ENH3_na_orig(I,J)
 
             ENDIF
             ENDIF
+
             !=============================================================
             ! Do PBL mixing of all types of NH3 emission [kg/box/s]
             !=============================================================
             ! Now overwrite natural emissions when using NEI08 (jaf,
             ! 12/2/13)
-            TEMPEMISS(1) = NH3an(I,J,1) + ENH3_bb(I,J) + 
-!     &                     NH3bf(I,J)   + ENH3_na(I,J)
+            TEMPEMISS(1) = NH3an(I,J,1) + ENH3_bb(I,J,1) + 
      &                     NH3bf(I,J)   + NH3na(I,J)
+            TEMPEMISS(2:NOXLEVELS)= NH3an(I,J,2:) + 
+     &           ENH3_bb(I,J,2:NOXLEVELS)
+            TEMPEMISS(NOXLEVELS+1:)= ENH3_bb(I,J,NOXLEVELS+1:)
 
-            TEMPEMISS(2:)= NH3an(I,J,2:)
-            
             call SULFATE_PBL_MIX( TEMPEMISS, NH3, 
      $                            FEMIS,     NTOP, IS_LOCAL )
-
 
             !=============================================================
             ! Add NH3 emissions to tracer/emission arrays, and
@@ -8496,11 +8254,14 @@
                DO L = 1, NOXLEVELS      
                   AD13_NH3_an(I,J,L) = AD13_NH3_an(I,J,L) + 
      &                              ( NH3an(I,J,L)   * DTSRCE )            
+              
                ENDDO
-
+               DO L = 1, LLTROP
                ! Biomass NH3
-               AD13_NH3_bb(I,J) = AD13_NH3_bb(I,J) + 
-     &                         ( ENH3_bb(I,J) * DTSRCE )
+                  AD13_NH3_bb(I,J,L) = AD13_NH3_bb(I,J,L) + 
+     &                         ( ENH3_bb(I,J,L) * DTSRCE )
+               
+               ENDDO
 
                ! Biofuel NH3
                AD13_NH3_bf(I,J) = AD13_NH3_bf(I,J) +
@@ -10706,7 +10467,7 @@
 !
 ! !USES:
 !
-      USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE BIOMASS_MOD,          ONLY : BIOMASS, BBFIRE
       USE CMN_SIZE_MOD
       USE TRACERID_MOD,         ONLY : IDBSO2
       USE GRID_MOD,             ONLY : GET_AREA_CM2
@@ -10726,7 +10487,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                       :: I, J
+      INTEGER                       :: I, J,L
       REAL*8                        :: CONV
                                     
       !=================================================================
@@ -10737,19 +10498,19 @@
   
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, CONV )
+!$OMP+PRIVATE( I, J, L, CONV )
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
+      DO L = 1, LLTROP
          ! Conversion factor for [cm2 * kg/molec]
          CONV = GET_AREA_CM2( I, J, 1 ) / XNUMOL(IDTSO2)
 
          ! Convert biomass SO2 from [molec SO2/cm2/s] -> [kg SO2/s] 
          ! NOTE: Future scale has already been applied by this point
-         ESO2_bb(I,J) = BIOMASS(I,J,IDBSO2) * CONV
-            
+         ESO2_bb(I,J,L) = BBFIRE(I,J,L,IDBSO2) * CONV
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -11708,7 +11469,7 @@
 !
 ! !USES:
 !
-      USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE BIOMASS_MOD,          ONLY : BIOMASS, BBFIRE
       USE CMN_SIZE_MOD
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE TRACER_MOD,           ONLY : XNUMOL
@@ -11726,7 +11487,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                       :: I, J
+      INTEGER                       :: I, J,L
       REAL*8                        :: CONV
       
       !=================================================================
@@ -11734,19 +11495,19 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, CONV )
+!$OMP+PRIVATE( I, J, L, CONV )
 
       ! Loop over surface grid boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
          ! Conversion factor for [cm2 * kg/molec]
          CONV = GET_AREA_CM2( I, J, 1 ) / XNUMOL(IDTNH3)
+         DO L = 1, LLTROP
 
          ! Convert biomass NH3 from [molec NH3/cm2/s] -> [kg NH3/s]
          ! NOTE: Future scale is applied by this point (if necessary)
-         ENH3_bb(I,J) = BIOMASS(I,J,IDBNH3) * CONV
-
+            ENH3_bb(I,J,L) = BBFIRE(I,J,L,IDBNH3) * CONV
+         ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -12121,7 +11882,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_an' )
       ENH3_an = 0d0
 
-      ALLOCATE( ENH3_bb( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( ENH3_bb( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_bb' )
       ENH3_bb = 0d0
 
@@ -12145,7 +11906,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_an' )
       ESO2_an = 0d0
 
-      ALLOCATE( ESO2_bb( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( ESO2_bb( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_bb' )
       ESO2_bb = 0d0
 

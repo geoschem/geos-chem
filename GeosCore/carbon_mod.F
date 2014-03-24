@@ -242,8 +242,8 @@
       ! Arrays
       REAL*8, ALLOCATABLE :: ANTH_BLKC(:,:,:)
       REAL*8, ALLOCATABLE :: ANTH_ORGC(:,:,:)
-      REAL*8, ALLOCATABLE :: BIOB_BLKC(:,:,:)
-      REAL*8, ALLOCATABLE :: BIOB_ORGC(:,:,:)
+      REAL*8, ALLOCATABLE :: BIOB_BLKC(:,:,:,:)
+      REAL*8, ALLOCATABLE :: BIOB_ORGC(:,:,:,:)
       REAL*8, ALLOCATABLE :: BIOF_BLKC(:,:,:)
       REAL*8, ALLOCATABLE :: BIOF_ORGC(:,:,:)
       REAL*8, ALLOCATABLE :: EF_BLKC(:,:)
@@ -268,7 +268,7 @@
       REAL*8, ALLOCATABLE :: ISOP_PRIOR(:,:,:)  ! (dkh, 10/09/05)  
 
       ! SEAC4RS SOA tracers (jaf, 6/25/13)
-      REAL*8, ALLOCATABLE :: BBVOC_EMIS(:,:)
+      REAL*8, ALLOCATABLE :: BBVOC_EMIS(:,:,:)
       REAL*8, ALLOCATABLE :: AVOC_EMIS(:,:)
       REAL*8, ALLOCATABLE :: BGSOA_EMIS(:,:)
 
@@ -714,6 +714,7 @@
       N_TRACERS = Input_Opt%N_TRACERS
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
       LNLPBL    = Input_Opt%LNLPBL
+     
 
       ! Initialize
       KBC       = 1.D0 / ( 86400d0 * BC_LIFE )
@@ -4828,12 +4829,18 @@ c
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
       USE FINN_BIOMASS_MOD,   ONLY : FINN_IS_NEW
+      USE NEI2008_ANTHRO_MOD, ONLY : NEI08_MASK => USA_MASK
+      USE GRID_MOD,           ONLY : GET_XMID, GET_YMID
+
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : ITS_A_NEW_HOUR
+
 #if defined( TOMAS )
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE DIAG_MOD,           ONLY : AD59_ECIL, AD59_ECOB
@@ -4911,24 +4918,24 @@ c
 !
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
-      INTEGER              :: I, J, MONTH, N
-      REAL*8               :: BCSRC(IIPAR,JJPAR,2)
-      REAL*8               :: OCSRC(IIPAR,JJPAR,2)
+      INTEGER              :: I, J, L,LL, MONTH, N
+      REAL*8               :: BCSRC(IIPAR,JJPAR,LLTROP,2)
+      REAL*8               :: OCSRC(IIPAR,JJPAR,LLTROP,2)
 
 #if   defined( TOMAS )
       ! more variables (win, 9/4/07)
-      REAL*8               :: EC30SRC(IIPAR, JJPAR, IBINS, 2)
-      REAL*8               :: OC30SRC(IIPAR, JJPAR, IBINS, 2)
+      REAL*8               :: EC30SRC(IIPAR, JJPAR,LLTROP, IBINS, 2)
+      REAL*8               :: OC30SRC(IIPAR, JJPAR,LLTROP, IBINS, 2)
       REAL*8               :: NUMBSRC(IIPAR, JJPAR, IBINS )
       REAL*8               :: ECFF(IIPAR,JJPAR,IBINS,2)
       REAL*8               :: ECBF(IIPAR,JJPAR,IBINS,2)
-      REAL*8               :: ECBB(IIPAR,JJPAR,IBINS,2)
+      REAL*8               :: ECBB(IIPAR,JJPAR,LLTROP,IBINS,2)
       REAL*8               :: OCFF(IIPAR,JJPAR,IBINS,2)
       REAL*8               :: OCBF(IIPAR,JJPAR,IBINS,2)
-      REAL*8               :: OCBB(IIPAR,JJPAR,IBINS,2)
+      REAL*8               :: OCBB(IIPAR,JJPAR,LLTROP,IBINS,2)
       INTEGER              :: K
       LOGICAL              :: SGCOAG = .TRUE.
-      REAL*8               :: SOASRC(IIPAR, JJPAR), SFRAC
+      REAL*8               :: SOASRC(IIPAR, JJPAR, LLTROP), SFRAC
       LOGICAL              :: PSTEST = .FALSE. ! POA/SOA sentivity test switch
       REAL*8               :: OC2OM = 1.8d0 ! Converting OC to OM mass 
                                             ! (win, 2/26/08)
@@ -4949,6 +4956,7 @@ c
       LOGICAL         :: LSOA
       LOGICAL         :: LRCP
       LOGICAL         :: LNEI08CARB
+      LOGICAL         :: LNLPBL
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -4963,6 +4971,10 @@ c
       ! ORDERED AS Hydrophilic(BC[1], OC[2]) Hydrophobic(BC[3], OC[4]).
       !=================================================================      
 
+      ! Initialize
+      BCSRC = 0d0
+      OCSRC = 0d0
+
       ! Assume success
       RC        = GIGC_SUCCESS
 
@@ -4973,6 +4985,7 @@ c
       LSOA      = Input_Opt%LSOA
       LRCP      = Input_Opt%LRCP
       LNEI08CARB= Input_Opt%LNEI08CARB
+      LNLPBL    = Input_Opt%LNLPBL
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -5073,15 +5086,15 @@ c
       !-----------------------------------
       IF ( .not. USE_BOND_BIOBURN ) THEN
 
-         IF ( GFED2_IS_NEW()    .or. GFED3_IS_NEW()  .or.
-     &        ITS_A_NEW_MONTH() .or. FLAMBE_IN_USE() .or.
-     &        FINN_IS_NEW() ) THEN
+         IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
+     &        ITS_A_NEW_MONTH() .or. FINN_IS_NEW() ) THEN 
+            BIOB_BLKC = 0d0
+            BIOB_ORGC = 0d0
             CALL BIOMASS_CARB_GEOS( Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF
             
       ENDIF
-
            
       !--------------------------
       ! Compute biogenic OC
@@ -5108,45 +5121,78 @@ c
       ! variation on carbon concentrations, so please keep using the 
       ! current setup until we decide otherwise. (rjp, 4/2/02)
       !=================================================================
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, L )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
          ! Total HYDROPHILIC BC source [kg]
-         BCSRC(I,J,1) = ANTH_BLKC(I,J,1) + 
-     &                  BIOF_BLKC(I,J,1) + 
-     &                  BIOB_BLKC(I,J,1)   
+         BCSRC(I,J,1,1) = ANTH_BLKC(I,J,1) + 
+     &        BIOF_BLKC(I,J,1) +  BIOB_BLKC(I,J,1,1)
 
-         ! Total HYDROPHOBIC BC source [kg]
-         BCSRC(I,J,2) = ANTH_BLKC(I,J,2) +
-     &                  BIOF_BLKC(I,J,2) +
-     &                  BIOB_BLKC(I,J,2)  
-
+               ! Total HYDROPHOBIC BC source [kg]
+         BCSRC(I,J,1,2) = ANTH_BLKC(I,J,2) +
+     &        BIOF_BLKC(I,J,2) +  BIOB_BLKC(I,J,1,2)
+         
          IF ( LSOA ) THEN
-
-            ! Total HYDROPHILIC OC source [kg]
-            ! (Don't use archived TERP_ORGC if LSOA=T)
-            OCSRC(I,J,1) = ANTH_ORGC(I,J,1) + 
-     &                     BIOF_ORGC(I,J,1) + 
-     &                     BIOB_ORGC(I,J,1)
-
+                  ! Total HYDROPHILIC OC source [kg]
+                  ! (Don't use archived TERP_ORGC if LSOA=T)
+            OCSRC(I,J,1,1) = ANTH_ORGC(I,J,1) + 
+     &              BIOF_ORGC(I,J,1) + BIOB_ORGC(I,J,1,1)
+         
          ELSE
-
-            ! Total HYDROPHILIC OC source [kg]
-            ! (Use archived TERP_ORGC for if LSOA=F)
-            OCSRC(I,J,1) = ANTH_ORGC(I,J,1) + 
-     &                     BIOF_ORGC(I,J,1) + 
-     &                     BIOB_ORGC(I,J,1) + 
-     &                     TERP_ORGC(I,J)
-
+                  ! Total HYDROPHILIC OC source [kg]
+                  ! (Use archived TERP_ORGC for if LSOA=F)
+            OCSRC(I,J,1,1) = ANTH_ORGC(I,J,1) + 
+     &              BIOF_ORGC(I,J,1) + 
+     &              BIOB_ORGC(I,J,1,1) + TERP_ORGC(I,J)
          ENDIF
 
-         ! Total HYDROPHOBIC OC source [kg]
-         OCSRC(I,J,2) = ANTH_ORGC(I,J,2) + 
-     &                  BIOF_ORGC(I,J,2) + 
-     &                  BIOB_ORGC(I,J,2) 
+              ! Total HYDROPHOBIC OC source [kg]
+         OCSRC(I,J,1,2) = ANTH_ORGC(I,J,2) + 
+     &           BIOF_ORGC(I,J,2) + BIOB_ORGC(I,J,1,2)
+
+         IF (ND07 > 0) THEN
+            ! Biomass BC source
+            AD07(I,J,1,2) = AD07(I,J,1,2)        +
+     &           ( BIOB_BLKC(I,J,1,1) + BIOB_BLKC(I,J,1,2) )
+
+            ! Biomass OC source
+            AD07(I,J,1,5) = AD07(I,J,1,5)       +
+     &           ( BIOB_ORGC(I,J,1,1) + BIOB_ORGC(I,J,1,2) )
+         ENDIF
+
+         DO L = 2, LLTROP 
+           ! Total HYDROPHILIC BC source [kg]
+            BCSRC(I,J,L,1) = BIOB_BLKC(I,J,L,1)
+
+            ! Total HYDROPHOBIC BC source [kg]
+            BCSRC(I,J,L,2) = BIOB_BLKC(I,J,L,2)
+         
+            IF ( LSOA ) THEN
+                  ! Total HYDROPHILIC OC source [kg]
+                  ! (Don't use archived TERP_ORGC if LSOA=T)
+               OCSRC(I,J,L,1) = BIOB_ORGC(I,J,L,1)
+            ELSE
+                  ! Total HYDROPHILIC OC source [kg]
+                  ! (Use archived TERP_ORGC for if LSOA=F)
+               OCSRC(I,J,L,1) = BIOB_ORGC(I,J,L,1)
+            ENDIF
+
+              ! Total HYDROPHOBIC OC source [kg]
+            OCSRC(I,J,L,2) = BIOB_ORGC(I,J,L,2)
+
+            IF (ND07 > 0) THEN
+                  ! Biomass BC source
+               AD07(I,J,L,2) = AD07(I,J,L,2)        +
+     &              ( BIOB_BLKC(I,J,L,1) + BIOB_BLKC(I,J,L,2) )
+                  ! Biomass OC source
+               AD07(I,J,L,5) = AD07(I,J,L,5)       +
+     &              ( BIOB_ORGC(I,J,L,1) + BIOB_ORGC(I,J,L,2) )
+            ENDIF
+              ! END L statements
+         ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -5155,93 +5201,69 @@ c
       CALL EMITHIGH( BCSRC, OCSRC, Input_Opt, State_Chm )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGH' )
 
-#if defined( DEVEL )
-      IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTBCPI) = 
-     &   State_Chm%TRAC_TEND(:,:,1,IDTBCPI) + BCSRC(:,:,1) ! Hydrophylic BC
-      ENDIF
-
-      IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTBCPO) = 
-     &   State_Chm%TRAC_TEND(:,:,1,IDTBCPO) + BCSRC(:,:,2) ! Hydrophobic BC
-      ENDIF
-
-      IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTOCPI) = 
-     &   State_Chm%TRAC_TEND(:,:,1,IDTOCPI) + OCSRC(:,:,1) ! Hydrophylic OC
-      ENDIF
-
-      IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTOCPO) = 
-     &   State_Chm%TRAC_TEND(:,:,1,IDTOCPO) + OCSRC(:,:,2) ! Hydrophylic OC
-      ENDIF
-#endif
-
       !=================================================================
       ! ND07 diagnostic: Carbon aerosol emissions [kg/timestep]
       !=================================================================
+      
       IF ( ND07 > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-
-            ! Anthropogenic BC source
-            AD07(I,J,1) = AD07(I,J,1)        +
+ 
+           ! Anthropogenic BC source
+            AD07(I,J,1,1) = AD07(I,J,1,1)        +
      &                    ( ANTH_BLKC(I,J,1) + ANTH_BLKC(I,J,2) )
             
-            ! Biogenic BC source
-            AD07(I,J,2) = AD07(I,J,2)        +
-     &                    ( BIOB_BLKC(I,J,1) + BIOB_BLKC(I,J,2) )
-
             ! Biofuel BC source
-            AD07(I,J,3) = AD07(I,J,3)        +
+            AD07(I,J,1,3) = AD07(I,J,1,3)        +
      &                    ( BIOF_BLKC(I,J,1) + BIOF_BLKC(I,J,2) )
 
             ! Anthropogenic OC source
-            AD07(I,J,4) = AD07(I,J,4)        +
+            AD07(I,J,1,4) = AD07(I,J,1,4)        +
      &                    ( ANTH_ORGC(I,J,1) + ANTH_ORGC(I,J,2) )
 
-            ! Biomass OC source
-            AD07(I,J,5) = AD07(I,J,5)        +
-     &                    ( BIOB_ORGC(I,J,1) + BIOB_ORGC(I,J,2) )
-
+                       
             ! Biofuel OC source
-            AD07(I,J,6) = AD07(I,J,6)        + 
+            AD07(I,J,1,6) = AD07(I,J,1,6)        + 
      &                    ( BIOF_ORGC(I,J,1) + BIOF_ORGC(I,J,2) )
 
             ! Terpene source
-            AD07(I,J,7) = AD07(I,J,7)        + TERP_ORGC(I,J)
+            AD07(I,J,1,7) = AD07(I,J,1,7)        + TERP_ORGC(I,J)
 
             IF ( LSOA ) THEN
 
                ! ALPHA-PINENE
-               AD07(I,J,8)  = AD07(I,J,8)    + BIOG_ALPH(I,J)
+               AD07(I,J,1,8)  = AD07(I,J,1,8)    + BIOG_ALPH(I,J)
 
                ! LIMONENE
-               AD07(I,J,9)  = AD07(I,J,9)    + BIOG_LIMO(I,J)
+               AD07(I,J,1,9)  = AD07(I,J,1,9)    + BIOG_LIMO(I,J)
 
                ! TERPENE
-               AD07(I,J,10) = AD07(I,J,10)   + BIOG_TERP(I,J)
+               AD07(I,J,1,10) = AD07(I,J,1,10)   + BIOG_TERP(I,J)
 
                ! ALCOHOL
-               AD07(I,J,11) = AD07(I,J,11)   + BIOG_ALCO(I,J)
+               AD07(I,J,1,11) = AD07(I,J,1,11)   + BIOG_ALCO(I,J)
 
                ! SESQTERPENE
-               AD07(I,J,12) = AD07(I,J,12)   + BIOG_SESQ(I,J)
+               AD07(I,J,1,12) = AD07(I,J,1,12)   + BIOG_SESQ(I,J)
 
             ENDIF
 
-            IF ( IDTAVOC  > 0 ) AD07(I,J,13) =
-     &                          AD07(I,J,13) + AVOC_EMIS(I,J)
-            IF ( IDTBBVOC > 0 ) AD07(I,J,14) =
-     &                          AD07(I,J,14) + BBVOC_EMIS(I,J)
-            IF ( IDTBGSOA > 0 ) AD07(I,J,15) =
-     &                          AD07(I,J,15) + BGSOA_EMIS(I,J)
+            IF ( IDTAVOC  > 0 ) AD07(I,J,1,13) =
+     &                          AD07(I,J,1,13) + AVOC_EMIS(I,J)
+            DO L = 1, LLTROP
+               IF ( IDTBBVOC > 0 ) AD07(I,J,L,14) =
+     &              AD07(I,J,L,14) + BBVOC_EMIS(I,J,L)
+            ENDDO
+
+            IF ( IDTBGSOA > 0 ) AD07(I,J,1,15) =
+     &                          AD07(I,J,1,15) + BGSOA_EMIS(I,J)
 
          ENDDO
-         ENDDO
+         ENDDO 
+   
 !$OMP END PARALLEL DO
 
          !### Debug
@@ -5261,41 +5283,65 @@ c
 
       IF ( IDTNK1 > 0 .AND. IDTECIL1 > 0 .AND. 
      &     IDTECOB1 > 0 .AND. IDTOCIL1 > 0 .AND. IDTOCOB1 > 1 ) THEN
-         
+        
          !Scale the emission of each source to 30 size bins [kg]
          ! Hydryphilic EC (internally-mixed)
          ECFF(:,:,:,1) = SCALECARB( ANTH_BLKC(:,:,1), 1, 1 )
          ECBF(:,:,:,1) = SCALECARB( BIOF_BLKC(:,:,1), 2, 1 )
-         ECBB(:,:,:,1) = SCALECARB( BIOB_BLKC(:,:,1), 3, 1 )
-
+         DO L = 1, LLTROP ! One  bin for now
+            ECBB(:,:,:,1) = ECBB(:,:,:,1)+
+     &           SCALECARB( BIOB_BLKC(:,:,L,1), 3, 1 )
+         ENDDO
          ! Hydrophobic EC (externally-mixed)
          ECFF(:,:,:,2) = SCALECARB( ANTH_BLKC(:,:,2), 1, 1 )
          ECBF(:,:,:,2) = SCALECARB( BIOF_BLKC(:,:,2), 2, 1 )
-         ECBB(:,:,:,2) = SCALECARB( BIOB_BLKC(:,:,2), 3, 1 )
+         DO L = 1, LLTROP       ! One  bin for now
+            ECBB(:,:,:,2) = ECBB(:,:,:,2) + 
+     &           SCALECARB( BIOB_BLKC(:,:,L,2), 3, 1 )
+         ENDDO
 
          ! Hydryphilic OC
          !  NOTE: now the mass is emitted by increasing amount by 1.8 (win,26/2008)
          OCFF(:,:,:,1) = OC2OM * SCALECARB( ANTH_ORGC(:,:,1), 1, 2 )
          OCBF(:,:,:,1) = OC2OM * SCALECARB( BIOF_ORGC(:,:,1), 2, 2 )
-         OCBB(:,:,:,1) = OC2OM * SCALECARB( BIOB_ORGC(:,:,1), 3, 2 )
+         DO L = 1, LLTROP       ! One  bin for now
+            OCBB(:,:,:,1) = OCBB(:,:,:,1) + 
+     &           OC2OM * SCALECARB( BIOB_ORGC(:,:,L,1), 3, 2 )
+         ENDDO
 
          ! Hydrophobic OC 
          OCFF(:,:,:,2) = OC2OM * SCALECARB( ANTH_ORGC(:,:,2), 1, 2 )
          OCBF(:,:,:,2) = OC2OM * SCALECARB( BIOF_ORGC(:,:,2), 2, 2 )
-         OCBB(:,:,:,2) = OC2OM * SCALECARB( BIOB_ORGC(:,:,2), 3, 2 )
+         DO L = 1, LLTROP       ! One  bin for now
+            OCBB(:,:,:,2) = OCBB(:,:,:,2) + 
+     &           OC2OM *SCALECARB( BIOB_ORGC(:,:,L,2), 3,2)
+         ENDDO
 
-         EC30SRC(:,:,:,1) = ECFF(:,:,:,1) + ECBF(:,:,:,1) + 
-     &                      ECBB(:,:,:,1) 
-
-         EC30SRC(:,:,:,2) = ECFF(:,:,:,2) + ECBF(:,:,:,2) + 
-     &                      ECBB(:,:,:,2)
+         DO L = 1, LLTROP
+            IF ( L .eq. 1 ) THEN
+               EC30SRC(:,:,L,:,1) = ECFF(:,:,:,1) + ECBF(:,:,:,1) + 
+     &              ECBB(:,:,L,:,1) 
+              
+               EC30SRC(:,:,L,:,2) = ECFF(:,:,:,2) + ECBF(:,:,:,2) + 
+     &              ECBB(:,:,L,:,2)
 
          ! Default is to use all three sources of OC
-         OC30SRC(:,:,:,1) = OCFF(:,:,:,1) + OCBF(:,:,:,1) + 
-     &                      OCBB(:,:,:,1)
-
-         OC30SRC(:,:,:,2) = OCFF(:,:,:,2) + OCBF(:,:,:,2) + 
-     &                      OCBB(:,:,:,2)
+               OC30SRC(:,:,L,:,1) = OCFF(:,:,:,1) + OCBF(:,:,:,1) + 
+     &              OCBB(:,:,L,:,1)
+               
+               OC30SRC(:,:,L,:,2) = OCFF(:,:,:,2) + OCBF(:,:,:,2) + 
+     &              OCBB(:,:,L,:,2)
+            ENDIF
+            IF ( L .gt. 1 ) THEN
+               EC30SRC(:,:,L,:,1) =  ECBB(:,:,L,:,1) 
+               EC30SRC(:,:,L,:,2) = ECBB(:,:,L,:,2)
+              ! Default is to use all three sources of OC
+               OC30SRC(:,:,L,:,1) = OCBB(:,:,L,:,1)
+               
+               OC30SRC(:,:,L,:,2) = OCBB(:,:,L,:,2)
+               
+            ENDIF
+         ENDIF
          ! For a sensitivity run, use only one source
 !         OC30SRC(:,:,:,1) = 0.d0*OCFF(:,:,:,1) + OCBF(:,:,:,1) + 
 !     &                      0.d0*OCBB(:,:,:,1)
@@ -5313,13 +5359,14 @@ c
          IF ( PSTEST ) THEN 
             SFRAC = 100.d-2 ! <------ change this number for SOA fraction
             DO K = 1, IBINS
+               DO L = 1, LLTROP
                ! Fraction of POA evaporated and act like SOA
-               SOASRC(:,:) = SOASRC(:,:) + (OC30SRC(:,:,K,1) + 
-     &                                      OC30SRC(:,:,K,2)  ) * SFRAC
-            ENDDO 
-         
+                  SOASRC(:,:,:) = SOASRC(:,:,:) + (OC30SRC(:,:,L,K,1) + 
+     &                 OC30SRC(:,:,L,K,2)  ) * SFRAC
+               ENDDO 
+            ENDDO
             ! Fraction of POA remained as POA
-            OC30SRC(:,:,:,:) = OC30SRC(:,:,:,:)* (1d0 - SFRAC)
+            OC30SRC(:,:,:,:,:) = OC30SRC(:,:,:,:,:)* (1d0 - SFRAC)
 
             IF ( PSTEST ) PRINT 77, SFRAC*100.
  77         FORMAT( '>>>>> POA/SOA SENSITIVITY TEST: ', F5.1,
@@ -5436,12 +5483,14 @@ c
          IF ( PSTEST ) THEN 
             DO J = 1, JJPAR
             DO I = 1, IIPAR  
-               BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3 
-               TEMPTMS = State_Met%T(I,J,1)
-               PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa       
-               IF ( SOASRC(I,J) > 0.d0 ) 
-     &            CALL SOACOND( SOASRC(I,J), I, J, 1,
+            DO L = 1, LLTROP
+               BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
+               TEMPTMS = State_Met%T(I,J,L)
+               PRES    = GET_PCENTER(I,J,L)*100.0 ! in Pa       
+               IF ( SOASRC(I,J,L) > 0.d0 ) 
+     &            CALL SOACOND( SOASRC(I,J,L), I, J, L,
      &               BOXVOL, TEMPTMS, PRES, State_Chm )
+            ENDDO
             ENDDO
             ENDDO
             IF ( LPRT ) 
@@ -5494,6 +5543,7 @@ c
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
       USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
@@ -7086,7 +7136,7 @@ ccc
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      INTEGER                       :: I, J
+      INTEGER                       :: I, J, L
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: XTAU, STEPS_PER_YR, FUT_SCL
       REAL*8                        :: FD2D(IIPAR,JJPAR)
@@ -7136,21 +7186,20 @@ ccc
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, FUT_SCL )
+!$OMP+PRIVATE( I, J, L, FUT_SCL )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         
          ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
-         BIOB_BLKC(I,J,1) =          FHB   * FD2D(I,J) / STEPS_PER_YR
+         BIOB_BLKC(I,J,1,1) =  FHB   * FD2D(I,J) / STEPS_PER_YR
 
          ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
-         BIOB_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
+         BIOB_BLKC(I,J,1,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
 
          ! Compute future emissions of BLACK CARBON (if necessary)
          IF ( LFUTURE ) THEN
             FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
-            BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
-            BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
+            BIOB_BLKC(I,J,1,1) = BIOB_BLKC(I,J,1,1) * FUT_SCL
+            BIOB_BLKC(I,J,1,2) = BIOB_BLKC(I,J,1,2) * FUT_SCL
          ENDIF
       ENDDO
       ENDDO
@@ -7175,16 +7224,16 @@ ccc
       DO I = 1, IIPAR
          
          ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
-         BIOB_ORGC(I,J,1) =          FHO   * FD2D(I,J) / STEPS_PER_YR
+         BIOB_ORGC(I,J,1,1) =          FHO   * FD2D(I,J) / STEPS_PER_YR
 
          ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
-         BIOB_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
+         BIOB_ORGC(I,J,1,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
 
          ! Compute future emissions of ORGANIC CARBON (if necessary)
          IF ( LFUTURE ) THEN
             FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
-            BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
-            BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
+            BIOB_ORGC(I,J,1,1) = BIOB_ORGC(I,J,1,1) * FUT_SCL
+            BIOB_ORGC(I,J,1,2) = BIOB_ORGC(I,J,1,2) * FUT_SCL
          ENDIF
       ENDDO
       ENDDO
@@ -7232,7 +7281,7 @@ ccc
 !
 ! !USES:
 !
-      USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE BIOMASS_MOD,          ONLY : BIOMASS, BBFIRE
       USE CMN_SIZE_MOD
       USE TRACERID_MOD,         ONLY : IDBBC, IDBOC
       USE GRID_MOD,             ONLY : GET_AREA_CM2
@@ -7255,7 +7304,7 @@ ccc
       ! Hydrophilic fraction of ORGANIC CARBON
       REAL*8, PARAMETER     :: FHO = 0.5d0 
                                     
-      INTEGER               :: I,       J
+      INTEGER               :: I,       J,      L
       REAL*8                :: A_CM2,   BIOBC,   BIOOC
       REAL*8                :: CONV_BC, CONV_OC, DTSRCE, FUT_SCL
       CHARACTER(LEN=255)    :: BC_FILE, OC_FILE
@@ -7285,49 +7334,50 @@ ccc
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, BIOBC, BIOOC, A_CM2, FUT_SCL )
+!$OMP+PRIVATE( I, J, L, BIOBC, BIOOC, A_CM2, FUT_SCL )
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
+         DO L = 1, LLTROP
          ! Grid box area [cm2]
-         A_CM2 = GET_AREA_CM2( I, J, 1 )
-      
+            A_CM2 = GET_AREA_CM2( I, J, L )
+   
          ! Convert [molec/cm2/s] --> [kg C/timestep]
-         IF ( LBIOMASS ) THEN
-            BIOBC         = BIOMASS(I,J,IDBBC) * A_CM2 * CONV_BC
-            BIOOC         = BIOMASS(I,J,IDBOC) * A_CM2 * CONV_OC
-         ELSE
-            BIOBC         = 0d0
-            BIOOC         = 0d0
-         ENDIF
+            IF ( LBIOMASS ) THEN
+               BIOBC         = BBFIRE(I,J,L,IDBBC) * A_CM2 * CONV_BC
+               BIOOC         = BBFIRE(I,J,L,IDBOC) * A_CM2 * CONV_OC
+            ELSE
+               BIOBC         = 0d0
+               BIOOC         = 0d0
+            ENDIF
 
-         ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
-         BIOB_BLKC(I,J,1) =          FHB   * BIOBC
+            ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
+            BIOB_BLKC(I,J,L,1) =          FHB   * BIOBC
       
-         ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
-         BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * BIOBC
+            ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
+            BIOB_BLKC(I,J,L,2) = ( 1.D0 - FHB ) * BIOBC
 
-         ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
-         BIOB_ORGC(I,J,1) =          FHO   * BIOOC
+            ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
+            BIOB_ORGC(I,J,L,1) =          FHO   * BIOOC
 
-         ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
-         BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * BIOOC
+            ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
+            BIOB_ORGC(I,J,L,2) = ( 1.D0 - FHO ) * BIOOC
 
          ! Apply future emissions for GCAP (if necessary)
-         IF ( LFUTURE ) THEN
+            IF ( LFUTURE ) THEN
 
             ! Compute future emissions of ORGANIC CARBON
-            FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
-            BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
-            BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
+               FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
+               BIOB_ORGC(I,J,L,1) = BIOB_ORGC(I,J,L,1) * FUT_SCL
+               BIOB_ORGC(I,J,L,2) = BIOB_ORGC(I,J,L,2) * FUT_SCL
 
             ! Compute future emissions of BLACK CARBON
-            FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
-            BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
-            BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
-         ENDIF 
+               FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
+               BIOB_BLKC(I,J,L,1) = BIOB_BLKC(I,J,L,1) * FUT_SCL
+               BIOB_BLKC(I,J,L,2) = BIOB_BLKC(I,J,L,2) * FUT_SCL
+            ENDIF 
+         ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
@@ -7353,7 +7403,7 @@ ccc
 ! !USES:
 !
       USE BIOFUEL_MOD,          ONLY : BIOFUEL
-      USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE BIOMASS_MOD,          ONLY : BIOMASS, BBFIRE
       USE CMN_O3_MOD,           ONLY : EMISRR
       USE CMN_SIZE_MOD
       USE GRID_MOD,             ONLY : GET_AREA_CM2
@@ -7362,6 +7412,10 @@ ccc
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRACERID_MOD,         ONLY : IDTCO, IDECO, IDBFCO, IDBCO
       USE TRACERID_MOD,         ONLY : IDTAVOC, IDTBBVOC
+      USE PRESSURE_MOD,         ONLY : GET_PEDGE
+      USE PBL_MIX_MOD,          ONLY : GET_PBL_TOP_L
+      USE GRID_MOD,             ONLY : GET_XMID, GET_YMID
+      USE NEI2008_ANTHRO_MOD,   ONLY : NEI08_MASK => USA_MASK
 
 !
 ! !INPUT PARAMETERS:
@@ -7375,13 +7429,13 @@ ccc
       ! Divide by 2.1 (skim, 6/26/13)
       REAL*8, PARAMETER     :: ER_VOC_CO = 5.5D-2/2.1
 
-      INTEGER               :: I,     J
+      INTEGER               :: I,     J,     L
       REAL*8                :: A_CM2, DTSRCE, CONV
 
       ! For fields from Input_Opt
-      LOGICAL         :: LBIOMASS,  LBIOFUEL,    LANTHRO
-      REAL*8          :: XNUMOL_CO, BXHT
-
+      LOGICAL               :: LBIOMASS,  LBIOFUEL,    LANTHRO
+      REAL*8                :: XNUMOL_CO, BXHT
+      
       !=================================================================
       ! EMISS_AVOC_BBVOC begins here!
       !=================================================================
@@ -7413,12 +7467,11 @@ ccc
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, A_CM2, BXHT )
+!$OMP+PRIVATE( I, J, L, A_CM2, BXHT )
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
          ! Grid box area [cm2]
          A_CM2 = GET_AREA_CM2( I, J, 1 )
       
@@ -7428,11 +7481,13 @@ ccc
          ! Biofuel emissions are in molec/cm3/s, so also require
          ! multiplication by boxheight
          IF ( LBIOFUEL .and. (IDTAVOC > 0) )
-     &       AVOC_EMIS(I,J) = BIOFUEL(IDBFCO,I,J) * CONV * A_CM2 * BXHT
+     &        AVOC_EMIS(I,J) = BIOFUEL(IDBFCO,I,J) * CONV * A_CM2 * BXHT
 
-         IF ( LBIOMASS .and. (IDTBBVOC > 0) )
-     &       BBVOC_EMIS(I,J) = BIOMASS(I,J,IDBCO) * CONV * A_CM2
-
+         IF ( LBIOMASS .and. (IDTBBVOC > 0) ) THEN
+            DO L = 1, LLTROP
+               BBVOC_EMIS(I,J,L) =   BBFIRE(I,J,L,IDBCO) * CONV * A_CM2
+            ENDDO
+         ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
@@ -7487,8 +7542,8 @@ ccc
 !
 ! !INPUT PARAMETERS:
 !      
-      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,2)
-      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,2)
+      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,LLTROP,2)
+      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,LLTROP,2)
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -7505,7 +7560,7 @@ ccc
 !      LOGICAL         :: IS_MTPA, IS_LIMO, IS_MTPO ! hotp 5/20/10
 !      LOGICAL         :: IS_POA ! for poa (hotp 8/24/09)
 !------------------------------------------------------------------------------
-      INTEGER         :: I,       J,       L,       PBL_MAX
+      INTEGER         :: I,       J,       L,  LL,     PBL_MAX
       REAL*8          :: F_OF_PBL
 
       ! For fields from Input_Opt
@@ -7519,7 +7574,7 @@ ccc
       !=================================================================
       ! EMITHIGH begins here!
       !=================================================================
-
+      
       ! Copy values from Input_Opt
       LNLPBL  = Input_Opt%LNLPBL
 
@@ -7549,40 +7604,57 @@ ccc
       ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
       ! (units: kg) (Lin, 06/09/08) 
 
-      IF ( LNLPBL ) THEN
+      ! Maximum extent of PBL [model levels]
+      PBL_MAX = GET_PBL_MAX_L()
 
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J )
+      ! Initialize
+      IF ( IS_BCPI  ) EMIS_SAVE(:,:,IDTBCPI)  = 0d0
+      IF ( IS_OCPI  ) EMIS_SAVE(:,:,IDTOCPI)  = 0d0
+      IF ( IS_BCPO  ) EMIS_SAVE(:,:,IDTBCPO)  = 0d0
+      IF ( IS_OCPO  ) EMIS_SAVE(:,:,IDTOCPO)  = 0d0
+      IF ( IS_BBVOC ) EMIS_SAVE(:,:,IDTBBVOC) = 0d0
+
+      IF ( LNLPBL ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, PBL_MAX
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-   
-            IF ( IS_BCPI ) EMIS_SAVE(I,J,IDTBCPI) = BCSRC(I,J,1)
-            IF ( IS_OCPI ) EMIS_SAVE(I,J,IDTOCPI) = OCSRC(I,J,1)
-            IF ( IS_BCPO ) EMIS_SAVE(I,J,IDTBCPO) = BCSRC(I,J,2)
-            IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO) = OCSRC(I,J,2)
-            IF ( IS_ALPH ) EMIS_SAVE(I,J,IDTALPH) = BIOG_ALPH(I,J)
-            IF ( IS_LIMO ) THEN
-               EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
 
+            IF ( IS_BCPI ) EMIS_SAVE(I,J,IDTBCPI)  = 
+     &                     EMIS_SAVE(I,J,IDTBCPI)  + BCSRC(I,J,L,1)
+            IF ( IS_OCPI ) EMIS_SAVE(I,J,IDTOCPI)  =
+     &                     EMIS_SAVE(I,J,IDTOCPI)  + OCSRC(I,J,L,1)
+            IF ( IS_BCPO ) EMIS_SAVE(I,J,IDTBCPO)  =
+     &                     EMIS_SAVE(I,J,IDTBCPO)  + BCSRC(I,J,L,2)
+            IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO)  =
+     &                     EMIS_SAVE(I,J,IDTOCPO)  + OCSRC(I,J,L,2)
+            IF ( IS_BBVOC) EMIS_SAVE(I,J,IDTBBVOC) =
+     &                     EMIS_SAVE(I,J,IDTBBVOC) + BBVOC_EMIS(I,J,L)
+            
+            IF ( L == 1 ) THEN 
+               IF ( IS_ALPH  ) EMIS_SAVE(I,J,IDTALPH) = BIOG_ALPH(I,J)
+               IF ( IS_LIMO ) THEN
+                  EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
                ! lead to too much ORVC_TERP in the 1st layer?
-               ORVC_TERP(I,J,1)   = ORVC_TERP(I,J,1) + BIOG_TERP(I,J)
-            ENDIF
-            IF ( IS_ALCO ) THEN
-               EMIS_SAVE(I,J,IDTALCO) = BIOG_ALCO(I,J)
-
-               ! lead to too much ORVC_SESQ in the 1st layer?
-               ORVC_SESQ(I,J,1)   = ORVC_SESQ(I,J,1) + BIOG_SESQ(I,J)
-            ENDIF
-
-            ! SEAC4RS SOA Tracers (jaf, 6/25/13)
-            IF ( IS_AVOC  ) EMIS_SAVE(I,J,IDTAVOC)  = AVOC_EMIS(I,J)
-            IF ( IS_BBVOC ) EMIS_SAVE(I,J,IDTBBVOC) = BBVOC_EMIS(I,J)
-            IF ( IS_BGSOA ) EMIS_SAVE(I,J,IDTBGSOA) = BGSOA_EMIS(I,J)
-   
-         ENDDO
+                  ORVC_TERP(I,J,1) = ORVC_TERP(I,J,1)+ BIOG_TERP(I,J)
+               ENDIF
+               IF ( IS_ALCO ) THEN
+                  EMIS_SAVE(I,J,IDTALCO) = BIOG_ALCO(I,J)
+                  ! lead to too much ORVC_SESQ in the 1st layer?
+                  ORVC_SESQ(I,J,1) = ORVC_SESQ(I,J,1)+ BIOG_SESQ(I,J)
+               ENDIF
+               ! SEAC4RS SOA Tracers (jaf, 6/25/13)
+               IF (IS_AVOC ) EMIS_SAVE(I,J,IDTAVOC) = AVOC_EMIS(I,J)
+               IF (IS_BGSOA) EMIS_SAVE(I,J,IDTBGSOA)= BGSOA_EMIS(I,J)
+               ENDIF
+               ENDDO
+            ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-         RETURN ! we don't need to use below
+      
+         RETURN                 ! we don't need to use below
 
       ENDIF
 
@@ -7595,41 +7667,41 @@ ccc
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_OF_PBL )
-      DO L = 1, PBL_MAX
+      DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
+         !F_OF_PBL = GET_FRAC_OF_PBL( I, J, L ) ALREADY TAKEN CARE OF BY FIRE INJECTION
 
          ! Hydrophilic BLACK CARBON
          IF ( IS_BCPI ) THEN
             STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) + 
-     &                           ( F_OF_PBL * BCSRC(I,J,1) )
+     &           (  BCSRC(I,J,L,1) )
          ENDIF
 
          ! Hydrophilic ORGANIC CARBON
          IF ( IS_OCPI ) THEN
             STT(I,J,L,IDTOCPI) = STT(I,J,L,IDTOCPI) + 
-     &                           ( F_OF_PBL * OCSRC(I,J,1) )
+     &                           (  OCSRC(I,J,L,1) )
          ENDIF
             
          ! Hydrophobic BLACK CARBON
          IF ( IS_BCPO ) THEN
             STT(I,J,L,IDTBCPO) = STT(I,J,L,IDTBCPO) + 
-     &                           ( F_OF_PBL * BCSRC(I,J,2) )
+     &                           (  BCSRC(I,J,L,2) )
          ENDIF
 
          ! Hydrophobic ORGANIC CARBON
          IF ( IS_OCPO ) THEN
             STT(I,J,L,IDTOCPO) = STT(I,J,L,IDTOCPO) + 
-     &                           ( F_OF_PBL * OCSRC(I,J,2) )
+     &                           (  OCSRC(I,J,L,2) )
          ENDIF
 
          ! ALPHA-PINENE
-         IF ( IS_ALPH ) THEN
+         IF ( IS_ALPH .and. L == 1) THEN
             STT(I,J,L,IDTALPH) = STT(I,J,L,IDTALPH) + 
-     &                           ( F_OF_PBL * BIOG_ALPH(I,J) )
+     &                           ( BIOG_ALPH(I,J) )
          ENDIF
 
          ! LIMONENE
@@ -7659,7 +7731,7 @@ ccc
          ! Biomass burning SOA precursor tracer
          IF ( IS_BBVOC ) THEN
             STT(I,J,L,IDTBBVOC) = STT(I,J,L,IDTBBVOC) + 
-     &                           ( F_OF_PBL * BBVOC_EMIS(I,J) )
+     &                           ( BBVOC_EMIS(I,J,L) )
          ENDIF
 
          ! Biogenic SOA tracer
@@ -7728,8 +7800,8 @@ ccc
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
 
       ! Arguments
-      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,IBINS, 2)
-      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,IBINS, 2)
+      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,LLTROP,IBINS,2)
+      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,LLTROP,IBINS,2)
       REAL*8,         INTENT(IN)    :: NUMBSRC(IIPAR,JJPAR,IBINS)
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
@@ -7780,19 +7852,19 @@ ccc
 
          ! Hydrophilic ELEMENTAL CARBON
          STT(I,J,L,IDTECIL1-1+K) =  STT(I,J,L,IDTECIL1-1+K) +
-     &                            ( F_OF_PBL * BCSRC(I,J,K,1) )
+     &                            ( F_OF_PBL * BCSRC(I,J,L,K,1) )
 
          ! Hydrophobic ELEMENTAL CARBON
          STT(I,J,L,IDTECOB1-1+K) =  STT(I,J,L,IDTECOB1-1+K) +
-     &                            ( F_OF_PBL * BCSRC(I,J,K,2) )
+     &                            ( F_OF_PBL * BCSRC(I,J,L,K,2) )
 
          ! Hydrophilic ORGANIC CARBON
          STT(I,J,L,IDTOCIL1-1+K) =  STT(I,J,L,IDTOCIL1-1+K) +
-     &                            ( F_OF_PBL * OCSRC(I,J,K,1) )
+     &                            ( F_OF_PBL * OCSRC(I,J,L,K,1) )
 
          ! Hydrophobic ORGANIC CARBON
          STT(I,J,L,IDTOCOB1-1+K) =  STT(I,J,L,IDTOCOB1-1+K) +
-     &                            ( F_OF_PBL * OCSRC(I,J,K,2) )
+     &                            ( F_OF_PBL * OCSRC(I,J,L,K,2) )
 
          ! Number corresponding to EC + OC [No.]
          STT(I,J,L,IDTNK1-1+K)   = STT(I,J,L,IDTNK1-1+K) + 
@@ -9230,11 +9302,11 @@ ccc
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_ORGC' )
       ANTH_ORGC = 0d0
 
-      ALLOCATE( BIOB_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
+      ALLOCATE( BIOB_BLKC( IIPAR, JJPAR, LLTROP, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOB_BLKC' )
       BIOB_BLKC = 0d0
 
-      ALLOCATE( BIOB_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
+      ALLOCATE( BIOB_ORGC( IIPAR, JJPAR, LLTROP, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOB_ORGC' )
       BIOB_ORGC = 0d0
 
@@ -9344,7 +9416,7 @@ ccc
          AVOC_EMIS = 0d0
       ENDIF
       IF ( IDTBBVOC > 0 ) THEN
-         ALLOCATE( BBVOC_EMIS( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( BBVOC_EMIS( IIPAR, JJPAR, LLTROP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BBVOC_EMIS' )
          BBVOC_EMIS = 0d0
       ENDIF

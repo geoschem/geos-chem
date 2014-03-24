@@ -91,6 +91,8 @@
 !  14 Feb 2012 - M. Payer    - Add modifications for CH4 simulation (K. Wecht)
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  26 Nov 2013 - K. Travis   - Inject fire emissions according to Val Martin 
+!                              et al, 2012 and SEAC4RS fire plume data
 !******************************************************************************
 !
       USE CMN_SIZE_MOD               ! Size parameters
@@ -109,6 +111,7 @@
       ! and is determined online FP (hotp 7/30/09)
       PUBLIC :: NBIOTRCE
       PUBLIC :: BIOMASS
+      PUBLIC :: BBFIRE
       PUBLIC :: BIOTRCE
 
       ! Logical array to determine if species is treated in setemis 
@@ -135,6 +138,7 @@
       ! Arrays
       INTEGER              :: BIOTRCE(NBIOMAX)
       REAL*8,  ALLOCATABLE :: BIOMASS(:,:,:)
+      REAL*8,  ALLOCATABLE :: BBFIRE(:,:,:,:) !Added L dimension, (krt 2/7/14)
 
       ! Logical array to determine if an emission should be treated
       ! in setemis or elsewhere (hotp 8/3/09)
@@ -234,8 +238,16 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_HOUR
       USE TRACERID_MOD,       ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
       USE TRACERID_MOD,       ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
-      USE TRACERID_MOD,       ONLY : IDBCO, IDBNO
-      USE TRACERID_MOD,       ONLY : IDBCO2
+      USE TRACERID_MOD,       ONLY : IDBCO, IDBNO, IDBHNO3 ! HNO3 (evf,9/15/11)
+      USE TRACERID_MOD,       ONLY : IDBCO2,IDBPAN ! add for PAN (evf, 9/9/11)
+      !USE TRACERID_MOD,       ONLY : IDBFIRE, IDTFIRE! add FIRE (evf, 8/20/12)
+      !USE TRACERID_MOD,       ONLY : IDBEOH, IDTEOH ! add  EOH (evf, 1/19/12)
+      !USE TRACERID_MOD,       ONLY : IDBAPINE, IDTAPINE! add for APINE (evf, 1/1
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      ! for fire injection (krt, 2/9/14)
+      ! To allocate mask, need to call emissions
+      USE NEI2008_ANTHRO_MOD, ONLY : GET_MASK_FORFIRE
+      USE NEI2008_ANTHRO_MOD, ONLY : NEI08_MASK => USA_MASK 
 
       ! SEAC4RS passive tracers (jaf, 6/14/13)
       USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
@@ -269,16 +281,23 @@
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: DO_ND28, DO_ND29, DO_ND32
+      LOGICAL             :: LNEI08
       LOGICAL, SAVE       :: USE_GFED
       LOGICAL, SAVE       :: USE_GFED2
       LOGICAL, SAVE       :: USE_GFED3
 !     Comment back in later when we add this as an option to input.geos
 !     (skim, 3/1/14)
 !     LOGICAL, SAVE       :: USE_FINN
-      INTEGER             :: I,       J,       N,      N_BIOB
+      INTEGER             :: I,   J,  L, TOP,  N,  N_BIOB
       REAL*8              :: BXHT_CM, DTSRCE
+      REAL*8              :: TEMP
       REAL*8              :: X,       Y
-      
+      ! For fire injection scheme
+      REAL*8           :: EMIS_BL, DELTPRES, DELTPRESFT, DELTPRESUS
+      REAL*8           :: TOTPRES, TOTPRESFT, TOTPRESFTUS !evf, krt, 2/7/14
+      INTEGER          :: BOTS,TOPS  !evf, krt, 5/26/2012
+      REAL*4           :: BLFrac, FTFrac
+
       ! For fields from Input_Opt
       LOGICAL             :: ITS_A_CO2_SIM
       LOGICAL             :: ITS_A_H2HD_SIM
@@ -287,6 +306,7 @@
       LOGICAL             :: LBIOMASS, LGFED2BB, LGFED3BB
       LOGICAL             :: L8DAYBB,  LSYNOPBB, L3HRBB
       LOGICAL             :: LDAYBB3,  L3HRBB3 !, LFINN
+      LOGICAL             :: LNLPBL
 
       !=================================================================
       ! COMPUTE_BIOMASS_EMISSIONS begins here!
@@ -310,6 +330,7 @@
       L3HRBB3             = Input_Opt%L3HRBB3  
 !     This needs to be defined in input.geos first
 !     LFINN               = Input_Opt%LFINN
+      LNLPBL              = Input_Opt%LNLPBL
 
       ! If there are biomass emissions ...
       IF ( LBIOMASS ) THEN
@@ -324,6 +345,10 @@
 !           USE_FINN  = LFINN 
          ENDIF
          
+            ! CALL NEI08 to initialize mask for fire injection over U.S. 
+            CALL GET_MASK_FORFIRE( RC )
+         ENDIF
+
          ! Define diagnostic flags
          DO_ND28 = ( ND28 > 0 )
          DO_ND29 = ( ND29 > 0 )
@@ -375,6 +400,34 @@
             ELSE IF ( ITS_A_TAGCO_SIM ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
             ENDIF
+           ! ----------------Fire Emissions ---------------
+            ! Put 40% of NOx Biomass emissions into PAN
+            ! and 20% into HNO3 (evf, 9/9/11, 9/15/11) per Alvarado et al, 2010
+            ! Do not do this in the extratropics per Mauzerall et al, 1998
+            ! Sensitivity study with Hudman 2007 recommendation
+            ! of 80% of NOX as PAN. (evf, 4/25/12)
+             ! Don't do this for now - krt, 2/13/14
+            IF ( ITS_A_FULLCHEM_SIM ) THEN
+               IF ( IDBNO > 0 .and. IDBPAN > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, TEMP )
+                  DO J = 1, JJPAR
+                     DO I = 1, IIPAR
+                     ! Latitude in the extratropics
+                        IF ( ABS( GET_YMID(I,J,1) ) .ge. 30 ) THEN
+                           TEMP                = BIOMASS(I,J,IDBNO)
+                           BIOMASS(I,J,IDBNO)  = TEMP * 0.40d0
+                           BIOMASS(I,J,IDBPAN) = TEMP * 0.40d0
+                           BIOMASS(I,J,IDBHNO3) = TEMP * 0.20d0
+                        ENDIF
+                     ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ENDIF
+            ENDIF
+
+            ! ---------------- END Fire -------------------
 
          !==============================================================
          ! Read GC biomass emissions at the start of a new month
@@ -478,11 +531,10 @@
          ! Compute the FLAMBE biomass burning emissions (skim, 6/21/13)
          ! IF ( ITS_A_NEW_HOUR() .AND. .FALSE. ) THEN
          ! Now use the FINN inventory (7/27/13)
-         IF ( ITS_A_NEW_DAY() .and. LFINN ) THEN
+         IF ( LFINN ) THEN
 
-!            ! Compute the FLAMBE emissions
-!            CALL FLAMBE_COMPUTE_BIOMASS( BIOMASS, YEAR, MONTH, 
-!     &                                            DAY,  HOUR )
+            ! Zero the array for biomass burning fire injection
+            BBFIRE = 0d0
 
             ! Compute the FINN emissions
             CALL FINN_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
@@ -497,6 +549,35 @@
             ELSE IF ( ITS_A_TAGCO_SIM ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
             ENDIF
+
+            ! ----------------Fire Emissions ---------------
+            ! Put 40% of NOx Biomass emissions into PAN
+            ! and 20% into HNO3 (evf, 9/9/11, 9/15/11) per Alvarado et al, 2010
+            ! Do not do this in the extratropics per Mauzerall et al, 1998
+            ! Sensitivity study with Hudman 2007 recommendation
+            ! of 80% of NOX as PAN. (evf, 4/25/12)
+             ! Don't do this for now - krt, 2/13/14
+            IF ( ITS_A_FULLCHEM_SIM ) THEN
+               IF ( IDBNO > 0 .and. IDBPAN > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, TEMP )
+                  DO J = 1, JJPAR
+                     DO I = 1, IIPAR
+                     ! Latitude in the extratropics
+                        IF ( ABS( GET_YMID(I,J,1) ) .ge. 30 ) THEN
+                           TEMP                = BIOMASS(I,J,IDBNO)
+                           BIOMASS(I,J,IDBNO)  = TEMP * 0.40d0
+                           BIOMASS(I,J,IDBPAN) = TEMP * 0.40d0
+                           BIOMASS(I,J,IDBHNO3) = TEMP * 0.20d0
+                        ENDIF
+                     ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ENDIF
+            ENDIF
+
+            ! ---------------- END Fire -------------------
 
             ! SEAC4RS passive tracers (jaf, 6/14/13)
             IF ( (IDBPCOBCN > 0) .or. (IDBPCOBSE > 0) .or.
@@ -540,37 +621,104 @@
          !
          ! ND28, ND29, ND32 diags [molec/cm2/s] or [atoms C/cm2/s] 
          !==============================================================
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, N )
+!$OMP+PRIVATE( I, J, L, N, TOP )
+!$OMP+PRIVATE( EMIS_BL, TOTPRES, TOTPRESFT, TOTPRESFTUS, DELTPRES )
+!$OMP+PRIVATE( DELTPRESFT, DELTPRESUS, BLFrac, FTFrac  )
+
          DO N = 1, NBIOMAX
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+            ! FIRE INJECTION VARIABLES
+            ! Hardcoded levels for SEAC4RS fire injection heights
+            ! krt, 11/26/13
+            BOTS = 18d0         ! closest to 3km in GEOS5
+            TOPS = 23d0         ! closest to 5km in GEOS5
 
-            ! ND28: biomass emissions in [molec/cm2/s]
-            IF ( DO_ND28 ) THEN 
-               AD28(I,J,N)  = AD28(I,J,N)  + BIOMASS(I,J,N)
+            ! Fire injection scheme - krt, 11/26/13
+            ! initialize emission fractions
+            BLFrac = 1.0d0 ! Default is 100% of emissions in the BL
+            FTFrac = 0.0d0
+
+            ! Latitude in the extratropics
+            IF ( ABS( GET_YMID(I,J,1) ) .ge. 30 ) THEN
+               BLFrac = 0.85d0
+               FTFrac = 0.15d0
             ENDIF
+
+            ! Latitude in the tropics
+            IF ( ABS(  GET_YMID(I,J,1) ) .lt. 30 ) THEN
+               BLFrac = 1.0d0 !0.95d0
+               FTFrac = 0.0d0 !0.05d0
+            ENDIF
+            ! END FIRE INJECTION VARIABLES
+            ! Add option for non-local PBL (Lin, 03/31/09)
+            IF (LNLPBL) TOP = 1
+
+            ! Pressure thickness of entire boundary layer [hPa]
+            TOTPRES = GET_PEDGE(I,J,1) - GET_PEDGE(I,J,TOP+1)
+            ! Or first 10 levels of FT
+            TOTPRESFT  = GET_PEDGE(I,J,TOP+1)-GET_PEDGE(I,J,TOP+10)
+            DELTPRESFT = TOTPRESFT/10d0
+            ! Or for SEAC4RS Region
+            TOTPRESFTUS  = GET_PEDGE(I,J,BOTS) - GET_PEDGE(I,J,TOPS)
+            DELTPRESUS = TOTPRESFTUS/(TOPS-BOTS+1)
+
+            DO L=1,TOPS
+               EMIS_BL = 0d0
+               
+               IF ( L .le. TOP ) THEN 
+                  ! Thickness of level L [mb]
+                  DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
+                  ! Add option for non-local PBL (Lin, 03/31/09)
+                  IF (LNLPBL) DELTPRES = TOTPRES
+                  EMIS_BL  = BIOMASS(I,J,N) *BLFRAC* DELTPRES/TOTPRES 
+               ELSE IF ( L .gt. TOP ) THEN
+               ! IF We are in the Western U.S. put emissions between 3 and 5km
+                  IF (NEI08_MASK(I,J) > 0.1d0 .and. 
+     &                 GET_XMID(I,J,1) .lt. -98 ) THEN
+                     IF ( L .le. TOPS .and. L .ge. BOTS ) THEN 
+                     ! krt - otherwise we are a few % off (10/3/13)
+                        EMIS_BL  = BIOMASS(I,J,N) *FTFRAC* 
+     &                       DELTPRESUS/TOTPRESFTUS
+                     ENDIF
+                     ! IF we are not in the SEAC4RS region/Western U.S.
+                     ! Pressure thickness of first 10 layers of FT [hPa]
+                  ELSE IF ( L .le. TOP+10 .and. L .ge. TOP+1) THEN 
+                           ! krt - otherwise we are a few % off (10/3/13)
+                     EMIS_BL  = BIOMASS(I,J,N) *FTFRAC* 
+     &                    DELTPRESFT/TOTPRESFT
+                  ENDIF
+               ENDIF
+                                   
+               BBFIRE(I,J,L,N) = BBFIRE(I,J,L,N) + EMIS_BL
+                  ! ND32: NOx biomass emissions in [molec/cm2/s]
+
+               IF ( DO_ND32 .and. N == IDBNO ) THEN
+                  AD32_bb(I,J,L) = AD32_bb(I,J,L) + EMIS_BL
+               ENDIF
+
+                 ! ND28: biomass emissions in [molec/cm2/s]
+               IF ( DO_ND28 ) THEN 
+                  AD28(I,J,L,N)  = AD28(I,J,L,N)  + EMIS_BL
+               ENDIF
             
             ! ND29: CO biomass emissions [molec/cm2/s]
-            IF ( DO_ND29 .and. N == IDBCO ) THEN 
+               IF ( DO_ND29 .and. N == IDBCO ) THEN 
 
-               IF ( ITS_A_H2HD_SIM .and. (.not. USE_GFED ) ) THEN
-                  AD29(I,J,1,2) = AD29(I,J,1,2) + 
-     &                          BIOMASS(I,J,IDBCO) * 1.11d0
-               ELSE
-                  AD29(I,J,1,2) = AD29(I,J,1,2) + BIOMASS(I,J,IDBCO)
+                  IF ( ITS_A_H2HD_SIM .and. (.not. USE_GFED ) ) THEN
+                     AD29(I,J,L,2) = AD29(I,J,L,2) + 
+     &                   EMIS_BL * 1.11d0
+                  ELSE
+                     AD29(I,J,L,2) = AD29(I,J,L,2) + EMIS_BL
+                  ENDIF
                ENDIF
-            ENDIF
-            
-            ! ND32: NOx biomass emissions in [molec/cm2/s]
-            IF ( DO_ND32 .and. N == IDBNO ) THEN
-               AD32_bb(I,J,1) = AD32_bb(I,J,1) + BIOMASS(I,J,IDBNO)
-            ENDIF
-
          ENDDO
          ENDDO
          ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
       ENDIF
 
@@ -606,7 +754,7 @@
       USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
       USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
       USE TRACERID_MOD, ONLY : IDBBC,   IDBOC
-      USE TRACERID_MOD, ONLY : IDBCO2
+      USE TRACERID_MOD, ONLY : IDBCO2,  IDBPAN, IDBHNO3 !(evf, 9/9/11, 9/15/11)
       USE TRACERID_MOD, ONLY : IDBCH4   !kjw
       USE TRACERID_MOD, ONLY : IDBBENZ, IDBTOLU, IDBXYLE
       ! Add dicarbonyls
@@ -625,11 +773,14 @@
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       USE TRACERID_MOD, ONLY : IDTHAC, IDTGLYC, IDTMGLY, IDTGLYX
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
-
+      USE TRACERID_MOD, ONLY : IDBCO2
       ! SEAC4RS tracers (jaf, 6/14/13)
       USE TRACERID_MOD, ONLY : IDTPCOBCN, IDTPCOBSE
       USE TRACERID_MOD, ONLY : IDTPCOBW, IDTPCOBRW
 
+      USE TRACERID_MOD, only : IDTPAN   ! (evf, 9/15/11)
+      USE TRACERID_MOD, only : IDTHNO3  ! (evf, 9/15/11)
+   
       USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
 
       LOGICAL, INTENT(IN) :: am_I_Root
@@ -644,6 +795,8 @@
       ! Increment NBIOTRCE for each turned on biomass burning tracer
       ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( IDBNO    /= 0 ) NBIOTRCE = NBIOTRCE + 1
+      IF ( IDBPAN   /= 0 ) NBIOTRCE = NBIOTRCE + 1    ! (evf, 9/9/11)
+      IF ( IDBHNO3  /= 0 ) NBIOTRCE = NBIOTRCE + 1    ! (evf, 9/15/11)
       IF ( IDBCO    /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBALK4  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBACET  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
@@ -680,6 +833,8 @@
       ! Fill BIOTRCE w/ appropriate TRACER ID #'s
       ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( IDBNO    /= 0 ) BIOTRCE(IDBNO  ) = IDTNO
+      IF ( IDBPAN   /= 0 ) BIOTRCE(IDBPAN ) = IDTPAN   ! (evf, 9/9/11)
+      IF ( IDBHNO3  /= 0 ) BIOTRCE(IDBHNO3) = IDTHNO3  ! (evf, 9/15/11)
       IF ( IDBCO    /= 0 ) BIOTRCE(IDBCO  ) = IDTCO
       IF ( IDBALK4  /= 0 ) BIOTRCE(IDBALK4) = IDTALK4
       IF ( IDBACET  /= 0 ) BIOTRCE(IDBACET) = IDTACET
@@ -725,7 +880,9 @@
       BIOBGAS = .FALSE.
       ! Original gas phase emissions handled in setemis
       ! Replaced NOx with NO (mpayer, 3/14/13)
-      IF ( IDBNO    /= 0 ) BIOBGAS(IDBNO  ) = .TRUE.
+      IF ( IDBNO    /= 0 ) BIOBGAS(IDBNO ) = .TRUE.
+      IF ( IDBPAN   /= 0 ) BIOBGAS(IDBPAN ) = .TRUE. !(evf, 9/15/11)
+      IF ( IDBHNO3  /= 0 ) BIOBGAS(IDBHNO3) = .TRUE. !(evf, 9/15/11)
       IF ( IDBCO    /= 0 ) BIOBGAS(IDBCO  ) = .TRUE.
       IF ( IDBALK4  /= 0 ) BIOBGAS(IDBALK4) = .TRUE.
       IF ( IDBACET  /= 0 ) BIOBGAS(IDBACET) = .TRUE.
@@ -883,9 +1040,13 @@
 !     &                   55, 56, 57, 58, 59, 63, 64, 
 !     &                   66, 67, 1/)
          ! Allocate array to hold monthly biomass emissions
-         ALLOCATE( BIOMASS( IIPAR, JJPAR, NBIOMAX ), STAT=AS )
+         ALLOCATE( BIOMASS( IIPAR, JJPAR,NBIOMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOMASS' )
          BIOMASS = 0d0
+         ! Allocate array to hold monthly biomass emissions for fire inj
+         ALLOCATE( BBFIRE( IIPAR, JJPAR, LLTROP,NBIOMAX ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BBFIRE' )
+         BBFIRE = 0d0
 
       ENDIF
       
@@ -908,6 +1069,7 @@
       ! CLEANUP_BIOMASS begins here!
       !=================================================================
       IF ( ALLOCATED( BIOMASS ) ) DEALLOCATE( BIOMASS )
+      IF ( ALLOCATED( BBFIRE  ) ) DEALLOCATE( BBFIRE )
       ! Return to calling program
       END SUBROUTINE CLEANUP_BIOMASS
 

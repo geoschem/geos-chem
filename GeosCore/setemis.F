@@ -23,11 +23,11 @@
 ! !USES:
 !
       USE BIOFUEL_MOD,        ONLY : BIOFUEL,   BFTRACE, NBFTRACE
-      USE BIOMASS_MOD,        ONLY : BIOMASS,   BIOTRCE
+      USE BIOMASS_MOD,        ONLY : BIOMASS,   BIOTRCE, BBFIRE
       USE BIOMASS_MOD,        ONLY : BIOBGAS
       USE COMODE_MOD,         ONLY : JLOP,      REMIS,   VOLUME
       USE COMODE_MOD,         ONLY : IXSAVE,    IYSAVE,  IZSAVE
-      USE DIAG_MOD,           ONLY : AD12
+      USE DIAG_MOD,           ONLY : AD28, AD29, AD12, AD32_bb
       USE EMISSIONS_MOD,      ONLY : NOx_SCALING
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE GIGC_ErrCode_Mod
@@ -47,7 +47,7 @@
       USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE TRACERID_MOD,       ONLY : IDTNO,  IDTO3,  IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDTNO, IDTO3, IDTHNO3, IDBNO, IDBCO
       USE TRACERID_MOD,       ONLY : IDNO,   IDO3,   IDHNO3, IDNO2
       USE TRACERID_MOD,       ONLY : IDENO,  IDEO3,  IDEHNO3
       USE DIAG_MOD,           ONLY : AD32_SHIP, AD32_SHIP_COUNT 
@@ -61,6 +61,8 @@
       USE COMODE_LOOP_MOD          ! IDEMS, NEMIS
       USE CMN_DIAG_MOD             ! Diagnostic flags
       USE CMN_NOX_MOD              ! GEMISNOX2
+
+      USE NEI2008_ANTHRO_MOD, ONLY : NEI08_MASK => USA_MASK
 
       IMPLICIT NONE
 
@@ -886,18 +888,13 @@
             ! Distribute emissions thru the entire boundary layer
             !===========================================================
             IF ( NBB /= 0 ) THEN
-               DO L = 1, TOP
+               
+               DO L = 1, LLTROP
                   JLOOP   = JLOP(I,J,L)
                   EMIS_BL = 0d0
-
+                 
                   IF ( JLOOP /= 0 ) THEN
 
-                     ! Thickness of level L [mb]
-                     DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
-
-                     ! Add option for non-local PBL (Lin, 03/31/09)
-                     IF (LNLPBL) DELTPRES = TOTPRES
- 
                      ! Grid box area [cm2]
                      A_CM2    = GET_AREA_CM2( IXSAVE(JLOOP),
      &                                        IYSAVE(JLOOP),
@@ -911,9 +908,8 @@
                      ! DELTPRES/TOTPRES goes into level L, since that is the 
                      ! fraction of the boundary layer occupied by level L.  
                      ! Store in EMIS_BL.
-                     EMIS_BL  = ( BIOMASS(I,J,NBB) * A_CM2 / COEF1   ) *
-     &                          ( DELTPRES                 / TOTPRES )
-
+                     EMIS_BL  = ( BBFIRE(I,J,L,NBB) * A_CM2/COEF1)
+                  
                      ! Since EMIS_BL is in [molec species/box/s], we 
                      ! have to divide by VOLUME(JLOOP), which is the 
                      ! volume of the grid box (I,J,L) to convert back to 
