@@ -520,8 +520,10 @@
          !-------------------
          CATEGORY     = 'BC-BIOB'
          N            = IDTBCPI
-         ARRAY(:,:,1:LLTROP) = AD07(:,:,1:LLTROP,2) 
-            
+         DO L=1, LLTROP
+            ARRAY(:,:,L) = AD07(:,:,L,2)
+         ENDDO
+                     
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -550,7 +552,7 @@
          DO L = 1, LD07
             ARRAY(:,:,L) = AD07_BC(:,:,L) 
          ENDDO
-            
+                     
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -578,13 +580,15 @@
          ! OC BIOMASS source
          !------------------------------
          CATEGORY     = 'OC-BIOB'
-         ARRAY(:,:,1) = AD07(:,:,1,5) 
-            
+         
+         DO L=1,LLTROP
+            ARRAY(:,:,L) = AD07(:,:,L,5)
+         ENDDO
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
      &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
 
          !------------------------------ 
          ! OC BIOFUEL source
@@ -1078,7 +1082,9 @@
          ! Biomass SO2 
          !==============================================================
          CATEGORY     = 'SO2-BIOB'
-         ARRAY(:,:,1:LLTROP) = AD13_SO2_bb(:,:,:)
+         DO L = 1, LLTROP
+            ARRAY(:,:,L) = AD13_SO2_bb(:,:,L)
+         ENDDO
          N            = IDTSO2
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -1220,7 +1226,9 @@
          ! Biomass NH3
          !==============================================================
          CATEGORY     = 'NH3-BIOB'
-         ARRAY(:,:,1:LLTROP) = AD13_NH3_bb(:,:,:)
+         DO L=1, LLTROP
+            ARRAY(:,:,L) = AD13_NH3_bb(:,:,L)
+         ENDDO
          N            = IDTNH3
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,

@@ -6051,9 +6051,10 @@
       IF(  ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or.
      &       ITS_A_NEW_MONTH() .or. FINN_IS_NEW() ) .AND. 
      &     ( LBIOMASS )  ) THEN 
+         ESO2_bb = 0d0
          CALL GET_BIOMASS_SO2
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_SO2')
-         
+         ENH3_bb = 0d0
          CALL GET_BIOMASS_NH3
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_NH3')         
       ENDIF
@@ -6881,14 +6882,9 @@
          !=============================================================
          TEMPEMISS(1) = SO2an(I,J,1) + ESO2_bb(I,J,1) +
      $        SO2bf(I,J)   + ESO2_sh(I,J)
-         DO L = 1, LLTROP
-            IF ( L .gt. 1 .and. L .le. NOXLEVELS ) THEN 
-               TEMPEMISS(L)= SO2an(I,J,L) + ESO2_bb(I,J,L )
-            ELSE
-               TEMPEMISS(L)= ESO2_bb(I,J,L )
-            ENDIF
-         ENDDO
-
+         TEMPEMISS(2:NOXLEVELS)=SO2an(I,J,2:) + ESO2_bb(I,J,2:NOXLEVELS)
+         TEMPEMISS(NOXLEVELS+1:)= ESO2_bb(I,J,NOXLEVELS+1: )
+         
       call SULFATE_PBL_MIX( TEMPEMISS, SO2, 
      $     FEMIS,     NTOP, IS_LOCAL )
                   
@@ -6904,18 +6900,18 @@
 
             ! Add SO2 to TC array [kg/box/timestep]
             ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (.NOT. LNLPBL) THEN
-            TC(I,J,L) = TC(I,J,L) + ( SO2SRC * DTSRCE )
-         ELSE
-            IF (L /= 1) then
+            IF (.NOT. LNLPBL) THEN
                TC(I,J,L) = TC(I,J,L) + ( SO2SRC * DTSRCE )
             ELSE
-              ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
+               IF (L /= 1) then
+                  TC(I,J,L) = TC(I,J,L) + ( SO2SRC * DTSRCE )
+               ELSE
+                  ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
                   ! (units: kg) (Lin, 06/09/08)
-               EMIS_SAVE(I,J,IDTSO2) = SO2SRC * DTSRCE
+                  EMIS_SAVE(I,J,IDTSO2) = SO2SRC * DTSRCE
+               ENDIF
             ENDIF
-         ENDIF
-      ENDDO
+         ENDDO
 
          !==============================================================
          ! ND13 Diagnostic: SO2 emissions in [kg S/box/timestep]
@@ -8218,16 +8214,10 @@
             ! Now overwrite natural emissions when using NEI08 (jaf,
             ! 12/2/13)
             TEMPEMISS(1) = NH3an(I,J,1) + ENH3_bb(I,J,1) + 
-!     &                     NH3bf(I,J)   + ENH3_na(I,J)
      &                     NH3bf(I,J)   + NH3na(I,J)
-
-            DO L = 2, LLTROP
-               IF ( L .le. NOXLEVELS ) THEN 
-                  TEMPEMISS(L)= NH3an(I,J,L) + ENH3_bb(I,J,L)
-               ELSE
-                  TEMPEMISS(L)= ENH3_bb(I,J,L)
-               ENDIF
-            ENDDO
+            TEMPEMISS(2:NOXLEVELS)= NH3an(I,J,2:) + 
+     &           ENH3_bb(I,J,2:NOXLEVELS)
+            TEMPEMISS(NOXLEVELS+1:)= ENH3_bb(I,J,NOXLEVELS+1:)
 
             call SULFATE_PBL_MIX( TEMPEMISS, NH3, 
      $                            FEMIS,     NTOP, IS_LOCAL )
