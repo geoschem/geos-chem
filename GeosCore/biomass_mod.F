@@ -288,7 +288,7 @@
       INTEGER             :: I,   J,  L, TOP,  N,  N_BIOB
       LOGICAL, SAVE       :: USE_FINN
       REAL*8              :: BXHT_CM, DTSRCE
-      REAL*8              :: TEMP(IIPAR,JJPAR)
+      REAL*8              :: TEMP
       REAL*8              :: X,       Y
       ! For fire injection scheme
       REAL*8           :: EMIS_BL, DELTPRES, DELTPRESFT, DELTPRESUS
@@ -340,11 +340,11 @@
             USE_GFED3 = LGFED3BB  .or. LDAYBB3 .or. L3HRBB3
             USE_GFED  = USE_GFED2 .or. USE_GFED3 
             USE_FINN  = LFINN 
-         ENDIF
          
             ! CALL NEI08 to initialize mask for fire injection over U.S. 
             CALL GET_MASK_FORFIRE( RC )
          ENDIF
+
          ! Define diagnostic flags
          DO_ND28 = ( ND28 > 0 )
          DO_ND29 = ( ND29 > 0 )
@@ -396,21 +396,34 @@
             ELSE IF ( ITS_A_TAGCO_SIM ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
             ENDIF
-
-            ! ----------------Fire Emissions ---------------
+           ! ----------------Fire Emissions ---------------
             ! Put 40% of NOx Biomass emissions into PAN
-            ! and 20% into HNO3 (evf, 9/9/11, 9/15/11)
+            ! and 20% into HNO3 (evf, 9/9/11, 9/15/11) per Alvarado et al, 2010
+            ! Do not do this in the extratropics per Mauzerall et al, 1998
             ! Sensitivity study with Hudman 2007 recommendation
             ! of 80% of NOX as PAN. (evf, 4/25/12)
-            ! Don't do this for now - krt, 2/13/14
+             ! Don't do this for now - krt, 2/13/14
             IF ( ITS_A_FULLCHEM_SIM ) THEN
                IF ( IDBNO > 0 .and. IDBPAN > 0 ) THEN
-                  TEMP                = BIOMASS(:,:,IDBNO)
-                  BIOMASS(:,:,IDBNO) = TEMP * 0.40d0
-                  BIOMASS(:,:,IDBPAN) = TEMP * 0.40d0
-                  BIOMASS(:,:,IDBHNO3) = TEMP * 0.20d0
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, TEMP )
+                  DO J = 1, JJPAR
+                     DO I = 1, IIPAR
+                     ! Latitude in the extratropics
+                        IF ( ABS( GET_YMID(I,J,1) ) .ge. 30 ) THEN
+                           TEMP                = BIOMASS(I,J,IDBNO)
+                           BIOMASS(I,J,IDBNO)  = TEMP * 0.40d0
+                           BIOMASS(I,J,IDBPAN) = TEMP * 0.40d0
+                           BIOMASS(I,J,IDBHNO3) = TEMP * 0.20d0
+                        ENDIF
+                     ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
                ENDIF
             ENDIF
+
+            ! ---------------- END Fire -------------------
 
          !==============================================================
          ! Read GC biomass emissions at the start of a new month
@@ -514,11 +527,10 @@
          ! Compute the FLAMBE biomass burning emissions (skim, 6/21/13)
          ! IF ( ITS_A_NEW_HOUR() .AND. .FALSE. ) THEN
          ! Now use the FINN inventory (7/27/13)
-         IF ( ITS_A_NEW_DAY() .and. LFINN ) THEN
+         IF ( LFINN ) THEN
 
-!            ! Compute the FLAMBE emissions
-!            CALL FLAMBE_COMPUTE_BIOMASS( BIOMASS, YEAR, MONTH, 
-!     &                                            DAY,  HOUR )
+            ! Zero the array for biomass burning fire injection
+            BBFIRE = 0d0
 
             ! Compute the FINN emissions
             CALL FINN_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
@@ -536,18 +548,31 @@
 
             ! ----------------Fire Emissions ---------------
             ! Put 40% of NOx Biomass emissions into PAN
-            ! and 20% into HNO3 (evf, 9/9/11, 9/15/11)
+            ! and 20% into HNO3 (evf, 9/9/11, 9/15/11) per Alvarado et al, 2010
+            ! Do not do this in the extratropics per Mauzerall et al, 1998
             ! Sensitivity study with Hudman 2007 recommendation
             ! of 80% of NOX as PAN. (evf, 4/25/12)
              ! Don't do this for now - krt, 2/13/14
             IF ( ITS_A_FULLCHEM_SIM ) THEN
                IF ( IDBNO > 0 .and. IDBPAN > 0 ) THEN
-                  TEMP                = BIOMASS(:,:,IDBNO)
-                  BIOMASS(:,:,IDBNO) = TEMP * 0.40d0
-                  BIOMASS(:,:,IDBPAN) = TEMP * 0.40d0
-                  BIOMASS(:,:,IDBHNO3) = TEMP * 0.20d0
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, TEMP )
+                  DO J = 1, JJPAR
+                     DO I = 1, IIPAR
+                     ! Latitude in the extratropics
+                        IF ( ABS( GET_YMID(I,J,1) ) .ge. 30 ) THEN
+                           TEMP                = BIOMASS(I,J,IDBNO)
+                           BIOMASS(I,J,IDBNO)  = TEMP * 0.40d0
+                           BIOMASS(I,J,IDBPAN) = TEMP * 0.40d0
+                           BIOMASS(I,J,IDBHNO3) = TEMP * 0.20d0
+                        ENDIF
+                     ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
                ENDIF
             ENDIF
+
             ! ---------------- END Fire -------------------
 
             ! SEAC4RS passive tracers (jaf, 6/14/13)
@@ -621,8 +646,8 @@
 
             ! Latitude in the tropics
             IF ( ABS(  GET_YMID(I,J,1) ) .lt. 30 ) THEN
-               BLFrac = 0.95d0
-               FTFrac = 0.05d0
+               BLFrac = 1.0d0 !0.95d0
+               FTFrac = 0.0d0 !0.05d0
             ENDIF
             ! END FIRE INJECTION VARIABLES
             ! Add option for non-local PBL (Lin, 03/31/09)
@@ -686,7 +711,6 @@
                      AD29(I,J,L,2) = AD29(I,J,L,2) + EMIS_BL
                   ENDIF
                ENDIF
-     
          ENDDO
          ENDDO
          ENDDO
