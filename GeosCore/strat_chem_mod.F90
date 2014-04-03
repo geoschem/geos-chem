@@ -1277,7 +1277,12 @@ CONTAINS
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
        ptr_3d => LOSS(:,:,:,N)
-       call transfer_3D( array, array2 )
+!-----------------------------------------------
+! Prior to 4/3/14:
+! Array2 should be ptr_3d (bmy, 4/3/14)
+!       call transfer_3D( array, array2 )
+!-----------------------------------------------
+       call transfer_3D( array, ptr_3D )
        NULLIFY( ptr_3D )
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
