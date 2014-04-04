@@ -34,7 +34,6 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      CHARACTER(LEN=255), PUBLIC :: TRAC_FILE_ROOT ! Root directory of 2D data
       CHARACTER(LEN=255), PUBLIC :: AVG_FILE_ROOT ! Directory for diurnal avg data
       CHARACTER(LEN=255), PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
       CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
@@ -6023,9 +6022,6 @@
      &              LSETBRSTRAT .or. LSETNOYSTRAT .or. LSETN2O    .or.
      &              LBASICEMIS  )
 
-      ! Define data directory
-      TRAC_FILE_ROOT = TRIM( DATA_DIR_1x1 ) // 'UCX_201403'
-
 #if !defined(GRID4x5) && !defined(GRID2x25)
       IF ( LUCX .and. USE2DDATA ) THEN
        DBGMSG = 'Zonal means preprocessed only for 2x2.5 and 4x5 grid.'
@@ -6041,29 +6037,21 @@
       GRIDSPEC = ''
 #endif
 
-!      !-----SDE DEBUG
-!      ! Check - and write - the `record length' of AVG_FILE_ROOT
-!      WRITE(6,*) TRIM(TRAC_FILE_ROOT)
-!      WRITE(6,*) '/DiurnalAvg/'
-!      WRITE(6,*) TRIM(GRIDSPEC)
-!      WRITE(6,*) TRIM(TRAC_FILE_ROOT), '/DiurnalAvg/', TRIM(GRIDSPEC)
-!      !-----SDE DEBUG
-
       ! Determine folder paths from root folder
       IF (UCXNETCDF) THEN
          WRITE(      AVG_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1),
-     &      '/UCX/Init2D/DiurnalAvg.nc'
+     &      'UCX_201403/Init2D/DiurnalAvg.nc'
          WRITE(     NOON_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
-     &      '/UCX/Init2D/Noontime.nc'
+     &      'UCX_201403/Init2D/Noontime.nc'
          WRITE( MONTREAL_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
-     &      '/UCX/Init1D/Montreal.nc'
+     &      'UCX_201403/Init1D/Montreal.nc'
       ELSE
-         WRITE(      AVG_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT),
-     &      '/DiurnalAvg/', TRIM(GRIDSPEC)
-         WRITE(     NOON_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT), 
-     &      '/NoonTime/', TRIM(GRIDSPEC)
-         WRITE( MONTREAL_FILE_ROOT,'(a,a)'  ) TRIM(TRAC_FILE_ROOT), 
-     &      '/Montreal/'
+         WRITE(    AVG_FILE_ROOT,'(a,a,a)') TRIM(DATA_DIR_1x1),
+     &      'UCX_201403/DiurnalAvg/', TRIM(GRIDSPEC)
+         WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(DATA_DIR_1x1), 
+     &      'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
+         WRITE( MONTREAL_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
+     &      'UCX_201403/Montreal/'
       ENDIF
   
       IF ( LPRT ) THEN
