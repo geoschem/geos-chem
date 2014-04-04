@@ -309,9 +309,9 @@
       ! is defined from the values in the Chemistry State.  We need
       ! to copy these values to the CSPEC array for the rest of the
       ! chemistry routines to function properly.  Therefore, call
-      ! COPY_FULL_TROP from tropopause_mod.F every time.
+      ! COPY_FULL_CHEMGRID from chemgrid_mod.F every time.
       !-----------------------------------------------------------------
-      CALL COPY_FULL_TROP( State_Chm )
+      CALL COPY_FULL_CHEMGRID( State_Chm )
 
 #else
       !-----------------------------------------------------------------

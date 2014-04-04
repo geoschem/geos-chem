@@ -589,7 +589,7 @@
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
       ! Call GASCONC with FIRSTCHEM = .FALSE. and IS_EXISTS = .FALSE.
-      ! Within GASCONC, we will call COPY_FULL_TROP to make sure that
+      ! Within GASCONC, we will call COPY_FULL_CHEMGRID to make sure that
       ! the CSPEC_FULL array gets copied to the CSPEC array.
       ! (bmy, 10/24/12)
       !-----------------------------------------------------------------
@@ -852,13 +852,13 @@
       ! is defined from the values in the Chemistry State.  We need
       ! to copy these values to the CSPEC array for the rest of the
       ! chemistry routines to function properly.  Therefore, call
-      ! COPY_FULL_TROP from tropopause_mod.F every time.
+      ! COPY_FULL_CHEMGRID from chemgrid_mod.F every time.
       !-----------------------------------------------------------------
-      CALL SAVE_FULL_TROP( State_Chm )
+      CALL SAVE_FULL_CHEMGRID( State_Chm )
 
       !###  Debug
       IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP' )
+         CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_CHEMGRID' )
       ENDIF
 
 #else
