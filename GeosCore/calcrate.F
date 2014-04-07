@@ -1446,9 +1446,10 @@ c new OH+CO rate from JPL2006.
             ! Free pointer
             NULLIFY( STT )
 
+#if defined( UCX )
             ! SDE 05/30/13: Loop through PSC het. chem. and limit rates
             ! to prevent solver failure
-#if defined( UCX )
+
             ! Set PSC educt concentrations (SDE 04/24/13)
             PSCEDUCTCONC( 1,1) = CSPEC(JLOOP,IDN2O5)
             PSCEDUCTCONC( 1,2) = CSPEC(JLOOP,IH2O)
@@ -1483,7 +1484,7 @@ c new OH+CO rate from JPL2006.
             ! This is still pseudo-first-order - ignore            
             PSCEDUCTCONC(11,1) = CSPEC(JLOOP,IDHOBr)
             PSCEDUCTCONC(11,2) = CSPEC(JLOOP,IDHBr)
-#endif
+
             DO PSCIDX=1,10
                NK = NKPSC(NCS,PSCIDX)
                ! Pseudo-first-order reactions - divide by number-conc
@@ -1551,6 +1552,7 @@ c new OH+CO rate from JPL2006.
                   RRATE(KLOOP,NK) = ADJUSTEDRATE
                ENDIF
             ENDDO
+#endif
 
          ELSE
 
@@ -1667,7 +1669,9 @@ c new OH+CO rate from JPL2006.
          ENDIF
 
          !==============================================================
-         ! SPECIAL TREATMENT FOR O3+hv -> O+O2
+         ! SPECIAL TREATMENT FOR O3+hv -> OH+OH (trop-only simulation)
+         !                    or O3+hv -> O+O2  (UCX simulation)
+         !
          ! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
          ! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
          !
@@ -1783,7 +1787,7 @@ c new OH+CO rate from JPL2006.
          SPECNAME = NAMEGAS(IRM(1,NK,NCS))
 
          SELECT CASE ( TRIM( SPECNAME ) )
-            CASE ( 'NO' )
+            CASE ( 'NO2' )
                INDEX = 1
             CASE ( 'HNO3' )
                INDEX = 2
@@ -1814,7 +1818,7 @@ c new OH+CO rate from JPL2006.
                INDEX = 15
             CASE ( 'N2O' )
                INDEX = 16
-            CASE ( 'NO2' )
+            CASE ( 'NO' )
                INDEX = 17
             CASE ( 'NO3' )
                INDEX = 18
