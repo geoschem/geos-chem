@@ -49,6 +49,12 @@
          MODULE PROCEDURE TRANSFER_ZONAL_R4
          MODULE PROCEDURE TRANSFER_ZONAL_R8
       END INTERFACE
+
+      INTERFACE TRANSFER_3D
+         MODULE PROCEDURE TRANSFER_3D_R4
+         MODULE PROCEDURE TRANSFER_3D_R8
+      END INTERFACE
+
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
@@ -61,6 +67,8 @@
       PRIVATE :: TRANSFER_2D_INT
       PRIVATE :: TRANSFER_2D_R4
       PRIVATE :: TRANSFER_2D_R8
+      PRIVATE :: TRANSFER_3D_R4
+      PRIVATE :: TRANSFER_3D_R8
       PRIVATE :: TRANSFER_ZONAL_R4
       PRIVATE :: TRANSFER_ZONAL_R8
 
@@ -157,6 +165,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  29 Oct 2013 - R. Yantosca - Remove TRANSFER_3D_NOLUMP routine, we can just
 !                              instead do a direct cast assignment
+!  03 Apr 2014 - R. Yantosca - Add TRANSFER_3D_R4 and TRANSFER_3D_R8 routines
+!                              so that they can be overloaded w/ an interface
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -317,16 +327,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: transfer_3d
+! !IROUTINE: transfer_3d_r4
 !
-! !DESCRIPTION: Subroutine TRANSFER\_3D transfers 3-dimensional data from a 
-!  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB
+! !DESCRIPTION: Subroutine TRANSFER\_3D\_R8 transfers 3-dimensional data from a 
+!  REAL*4  array to a REAL*4 array.  Vertical layers are collapsed (from LGLOB
 !  to LLPAR) if necessary.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TRANSFER_3D( IN, OUT )
+      SUBROUTINE TRANSFER_3D_R4( IN, OUT )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -334,24 +344,10 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR)   ! Output data
+      REAL*4,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR)   ! Output data
 ! 
 ! !REVISION HISTORY: 
-!  19 Sep 2001 - R. Yantosca - Initial version
-!  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
-!        (bmy, 9/21/01)
-!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
-!  (3 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
-!        Now I0, J0 are local variables. (bmy, 3/11/03)
-!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
-!  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
-!  (6 ) Rewritten for clarity (bmy, 2/8/07)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
-!                              the vertical grids are identical
-!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  03 Apr 2014 - R. Yantosca - Initial version, based on TRANSFER_3D_R8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -435,7 +431,134 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      END SUBROUTINE TRANSFER_3D
+      END SUBROUTINE TRANSFER_3D_R4
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_3d_r8
+!
+! !DESCRIPTION: Subroutine TRANSFER\_3D\_R8 transfers 3-dimensional data from a 
+!  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB
+!  to LLPAR) if necessary.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE TRANSFER_3D_R8( IN, OUT )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB)    ! Input data
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR)   ! Output data
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
+!  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
+!        (bmy, 9/21/01)
+!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
+!  (3 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
+!        Now I0, J0 are local variables. (bmy, 3/11/03)
+!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
+!  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
+!  (6 ) Rewritten for clarity (bmy, 2/8/07)
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
+!                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  03 Apr 2014 - R. Yantosca - Renamed to TRANSFER_3D_R8 so that it can
+!                              be overloaded with an interface
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J
+      REAL*4  :: INCOL(LGLOB)
+     
+      !================================================================
+      ! TRANSFER_3D begins here!
+      !================================================================
+
+      ! Copy the first L_COPY levels
+      OUT(:,:,1:L_COPY) = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0, 1:L_COPY )
+
+      ! Exit if we are running at full vertical resolution
+      IF ( LLPAR == LGLOB ) RETURN
+
+      !================================================================
+      ! Collapse levels in the stratosphere
+      !================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, INCOL )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Copy a vertical column into INCOL
+         INCOL = IN( I+I0, J+J0, 1:LGLOB )
+
+#if   defined( GEOS_4 )
+
+         !--------------------------------------------------------------
+         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
+         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
+         !--------------------------------------------------------------
+
+         ! Lump 2 levels together at a time, starting at L=20
+         OUT(I,J,20) = LUMP_2( INCOL, LGLOB, 20 )
+         OUT(I,J,21) = LUMP_2( INCOL, LGLOB, 22 )
+         OUT(I,J,22) = LUMP_2( INCOL, LGLOB, 24 )
+         OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 26 )
+
+         ! Lump 4 levels together at a time, starting at L=28
+         OUT(I,J,24) = LUMP_4( INCOL, LGLOB, 28 )
+         OUT(I,J,25) = LUMP_4( INCOL, LGLOB, 32 )
+         OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
+         OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
+         OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
+         OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
+         OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
+
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+
+         !--------------------------------------------------------------
+         ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
+         ! L=36.  Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
+         !--------------------------------------------------------------
+
+         ! Lump 2 levels together at a time
+         OUT(I,J,37) = LUMP_2( INCOL, LGLOB, 37 )
+         OUT(I,J,38) = LUMP_2( INCOL, LGLOB, 39 )
+         OUT(I,J,39) = LUMP_2( INCOL, LGLOB, 41 )
+         OUT(I,J,40) = LUMP_2( INCOL, LGLOB, 43 )
+
+         ! Lump 4 levels together at a time
+         OUT(I,J,41) = LUMP_4( INCOL, LGLOB, 45 )
+         OUT(I,J,42) = LUMP_4( INCOL, LGLOB, 49 )
+         OUT(I,J,43) = LUMP_4( INCOL, LGLOB, 53 ) 
+         OUT(I,J,44) = LUMP_4( INCOL, LGLOB, 57 ) 
+         OUT(I,J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
+         OUT(I,J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
+         OUT(I,J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
+
+#endif
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE TRANSFER_3D_R8
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
