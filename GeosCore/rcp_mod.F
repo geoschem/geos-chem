@@ -105,7 +105,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE                 :: FIRST = .TRUE.
-      INTEGER                       :: THISMONTH, I
+      INTEGER                       :: THISMONTH, I, RCPLOADYEAR
       CHARACTER(LEN=20)             :: RCPSPECIES, YEARSTR
       CHARACTER(LEN=255)            :: FILENAME
       REAL*8                        :: XTAU
@@ -145,14 +145,20 @@
       THISMONTH = GET_MONTH()      
 
       ! Calculate which year we're in
-      IF (.not. LFIXEDYR) THEN
-         RCPOFFSETYEAR = RCPYEAR + (INITYEAR - GET_YEAR())
+      ! No interpolation (yet)
+      RCPOFFSETYEAR = RCPYEAR + (GET_YEAR()-INITYEAR)
+
+      ! RCPOFFSETYEAR: Year if 1st simulation year is the
+      ! year specified in input.geos
+      ! RCPLOADYEAR: The year actually loaded
+      IF (.not. Input_Opt%LFIXEDYR) THEN
+         RCPLOADYEAR = RCP_NEAREST(RCPOFFSETYEAR)
       ELSE
-         RCPOFFSETYEAR = RCPYEAR
+         RCPLOADYEAR = RCP_NEAREST(RCPYEAR)
       ENDIF
 
       ! Convert to string
-      WRITE( YEARSTR, '(I4)' ) RCPOFFSETYEAR
+      WRITE( YEARSTR, '(I4)' ) RCPLOADYEAR
 
       !=================================================================
       ! Land and ship emissions
@@ -168,7 +174,7 @@
      &                     GET_RES_EXT()    // '.bpch' 
          ! Date for emissions
          ! Land emissions dated Jan 1 because all months are the same
-         XTAU = GET_TAU0( 1, 1, RCPOFFSETYEAR ) 
+         XTAU = GET_TAU0( 1, 1, RCPLOADYEAR ) 
 
          ! Read data (LAND -> TYPE=1)
          CALL READ_RCP_BPCH( FILENAME, TYPE=1, TAU0=XTAU )
@@ -181,7 +187,7 @@
      &                     GET_RES_EXT()    // '.bpch' 
 
          ! Date for emissions
-         XTAU = GET_TAU0( THISMONTH, 1, RCPOFFSETYEAR )  
+         XTAU = GET_TAU0( THISMONTH, 1, RCPLOADYEAR )  
 
          ! Read data (SHIP -> TYPE=2)
          CALL READ_RCP_BPCH( FILENAME, TYPE=2, TAU0=XTAU )
@@ -200,7 +206,7 @@
      &                  GET_RES_EXT()    // '.bpch' 
 
          ! Date for emissions
-         XTAU = GET_TAU0( THISMONTH, 1, RCPOFFSETYEAR ) 
+         XTAU = GET_TAU0( THISMONTH, 1, RCPLOADYEAR ) 
 
          ! Read data (AIRCRAFT -> TYPE=3)
          CALL READ_RCP_BPCH( FILENAME, TYPE=3, TAU0=XTAU )
@@ -905,6 +911,64 @@
       IF (.NOT. TRACERFOUND) EMISS = -1d0
       
       END FUNCTION GET_RCP_EMISSION
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rcp_nearest
+!
+! !DESCRIPTION: Function RCP\_NEAREST finds the nearest valid year to
+! the given date when loading from RCP BPCH files.
+!  (SDE 2014-03-28)
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION RCP_NEAREST( INYEAR ) RESULT( OUTYEAR )
+!
+! !USES:
+!
+      USE TRACERID_MOD
+      USE ERROR_MOD,            ONLY : ERROR_STOP
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)           :: INYEAR
+!
+! !REVISION HISTORY: 
+!  28 Mar 2014 - S. D.Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                       :: OUTYEAR, LOWYEAR, MODYEAR
+
+      !=================================================================
+      !  RCP_NEAREST begins here
+      !=================================================================
+
+      ! Round to nearest valid year for BPCH files
+      MODYEAR = MOD(INYEAR,10)
+      LOWYEAR = 10*(INYEAR/10) ! Will round down (integer division)
+      
+      IF (MODYEAR.gt.4) THEN
+         OUTYEAR = LOWYEAR + 10
+      ELSE
+         OUTYEAR = LOWYEAR
+      ENDIF
+
+      IF (.NOT.(TRIM(RCPNAME) == 'RCP26')) THEN
+         ! Also have 2005 information
+         IF ((INYEAR.gt.2002).and.(INYEAR.lt.2008)) THEN
+            OUTYEAR = 2005
+         ENDIF
+      ENDIF
+
+      END FUNCTION RCP_NEAREST
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
