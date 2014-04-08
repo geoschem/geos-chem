@@ -8770,8 +8770,8 @@
          ! Free pointer
          NULLIFY( STT )
 
-         ! Only allocate these if wetdep is turned on (mpayer, 3/21/14)
-         IF ( Input_Opt%LWETD ) THEN
+         ! Only allocate these if wetdep or convection is turned on
+         IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
             ! Allocate Vud on first call
             ALLOCATE( Vud( IIPAR, JJPAR ), STAT=RC )
             IF ( RC /= 0 ) CALL ALLOC_ERR( 'Vud' )
@@ -8818,8 +8818,8 @@
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================
 
-      ! Only do computation if wetdep is turned on (mpayer, 3/21/14)
-      IF ( Input_Opt%LWETD ) THEN
+      ! Only do computation if wetdep or convection is turned on
+      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
