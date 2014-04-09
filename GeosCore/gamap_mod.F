@@ -86,6 +86,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  09 Apr 2014 - R. Yantosca - Increase MAXCAT to 160 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,7 +94,8 @@
 ! !PRIVATE TYPES:
 !
       ! For "diaginfo.dat"
-      INTEGER,           PARAMETER   :: MAXCAT    = 150
+!      INTEGER,           PARAMETER   :: MAXCAT    = 150
+      INTEGER,           PARAMETER   :: MAXCAT    = 160
       INTEGER,           PARAMETER   :: SPACING   = 1000
       INTEGER                        :: NCATS
       INTEGER,           ALLOCATABLE :: OFFSET(:)

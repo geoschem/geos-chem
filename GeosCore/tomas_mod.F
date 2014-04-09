@@ -466,7 +466,7 @@
          AD61_INST(I,J,L,:) = 0e0
 
          ! Skip non-chemgrid boxes
-         IF ( ITS_N_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
 cvbn         write(890,89)I,J,L,STT(i,j,l,IDTH2SO4)
 
