@@ -863,6 +863,7 @@
 !                              ground. Also updated MOIST_SCALE and EMIT_FACT.
 !                              (K. Wecht, C. Pickett-Heaps)
 !  12 Feb 2014 - K. Wecht    - Updated for 0.25 x 0.3125 NA grid
+!  09 Apr 2014 - R. Yantosca - Bug fix, extend #ifdef for MERRA met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1111,7 +1112,7 @@
          ! No TSKIN data for years before 2000 or after 2010
          YEAR = GET_YEAR()
 
-#if   defined( GEOS_5 ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
          IF ( YEAR .LT. 2004 ) YEAR  = 2004
          IF ( YEAR .GT. 2010 ) YEAR  = 2010
          WRITE( CYEAR, '(i4)' ) YEAR
@@ -1421,6 +1422,7 @@
 !  (2 ) Corrected ordering of DO loops (bmy, 10/1/09)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  09 Apr 2014 - R. Yantosca - Bug fix, extend #ifdef for MERRA met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1498,7 +1500,7 @@
       ! Get annual and monthly mean soil wetness from GEOS
       ! One file contains both monthly and annual mean GWETTOP
       YEAR = GET_YEAR()
-#if   defined( GEOS_5 ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
       IF ( YEAR .LT. 2004 ) YEAR  = 2004
       IF ( YEAR .GT. 2010 ) YEAR  = 2010
       WRITE( CYEAR, '(i4)' ) YEAR
