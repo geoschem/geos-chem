@@ -1004,11 +1004,11 @@
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN
             CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, State_Met%AD, STT )
+
             !### Debug
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
             ENDIF
-            
          ENDIF
 
          !==============================================================

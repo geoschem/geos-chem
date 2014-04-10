@@ -8813,6 +8813,7 @@
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
+      USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
 !
 ! !INPUT PARAMETERS:
 !
@@ -8841,6 +8842,7 @@
 !  15 Mar 2013 - R. Yantosca - Now call INIT_LINOZ (GeosCore/linoz_mod.F)
 !  29 Mar 2013 - R. Yantosca - Now call INIT_TROPOPAUSE (so that we can pass
 !                              a LVARTROP from Input_Opt and not logical_mod.F)
+!  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_CO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8899,6 +8901,12 @@
       IF ( Input_Opt%LLINOZ ) THEN
          CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
+      ENDIF
+
+      ! Initialize "tagged_co_mod.F"
+      IF ( Input_Opt%ITS_A_TAGCO_SIM   .or.
+     &     Input_Opt%ITS_A_H2HD_SIM  ) THEN
+         CALL INIT_TAGGED_CO( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)

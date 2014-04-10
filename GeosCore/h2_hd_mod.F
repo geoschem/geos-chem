@@ -241,7 +241,11 @@
 
          ! Allocate all module arrays
          CALL INIT_H2_HD
-         CALL INIT_TAGGED_CO
+!----------------------------------------------------------------
+! Prior to 4/10/14:
+! This is now called from GIGC_Init_Extra (bmy, 4/10/14) 
+!         CALL INIT_TAGGED_CO
+!----------------------------------------------------------------
 
          !! Define geographic regions for both fossil fuel & biomass burning
          !CALL DEFINE_FF_CO_REGIONS( FF_REGION )         

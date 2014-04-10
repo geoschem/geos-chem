@@ -115,14 +115,15 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  23 Oct 2012 - R. Yantosca - Update prod/loss for new GMI strat chem
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  10 Apr 2014 - R. Yantosca - Now change CO_PRODS and CO_LOSSS to REAL*4
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL*8,  ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
-      REAL*8,  ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
+      REAL*4,  ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
+      REAL*4,  ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
       REAL*8,  ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
       REAL*8,  ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
       REAL*8,  ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
@@ -461,13 +462,13 @@
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  10 Apr 2014 - R. Yantosca - Removed call to INIT_TAGGED_CO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE    :: FIRSTEMISS = .TRUE.
       INTEGER          :: I, J, L, N, I0, J0
       INTEGER          :: AS, IREF, JREF, IJLOOP, PBL_MAX
       INTEGER, SAVE    :: LASTMONTH = -999
@@ -507,22 +508,6 @@
       LBIOFUEL  = Input_Opt%LBIOFUEL
       LBIOGENIC = Input_Opt%LBIOGENIC
       LMEGAN    = Input_Opt%LMEGAN
-
-      !=================================================================
-      ! Do the following only on the first call to EMISS_TAGGED_CO...
-      !=================================================================
-      IF ( FIRSTEMISS ) THEN 
-
-         ! Allocate all module arrays
-         CALL INIT_TAGGED_CO
-
-         ! Define geographic regions for both fossil fuel & biomass burning
-         CALL DEFINE_FF_CO_REGIONS( FF_REGION )         
-         CALL DEFINE_BB_CO_REGIONS( BB_REGION )
-
-         ! Set first-time flag to false
-         FIRSTEMISS = .FALSE.
-      ENDIF
 
       !=================================================================
       ! Once a month, read acetone from disk.  For GEOS-3, also read 
@@ -904,13 +889,14 @@
 !  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOX
 !  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  10 Apr 2014 - R. Yantosca - Now use pointers to fields in State_Met
+!  10 Apr 2014 - R. Yantosca - Bug fix: DTSRCE should be DTCHEM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
       LOGICAL                :: LSPLIT
       INTEGER                :: N_TRACERS
       INTEGER                :: I, J, L, N, MONTH
@@ -929,7 +915,7 @@
       REAL*8                 :: FEXP2,     KCO1,       KCO2
 
       ! For storing CO sources (jaf, 3/10/09)
-      REAL*8                 :: DTSRCE, AREA_CM2
+      REAL*8                 :: AREA_CM2
 
       ! For saving CH4 latitudinal gradient
       REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
@@ -939,19 +925,22 @@
       CHARACTER(LEN=255)     :: ERR_VAR
       CHARACTER(LEN=255)     :: ERR_MSG
 
+      ! Pointers to fields in State_Met and State_Chm
+      REAL*8,  POINTER       :: AD    (:,:,:  )
+      REAL*8,  POINTER       :: AIRVOL(:,:,:  )
+      REAL*8,  POINTER       :: STT   (:,:,:,:)
+      REAL*8,  POINTER       :: T     (:,:,:  )
+
       ! External functions
       REAL*8,  EXTERNAL      :: BOXVL
-
+!
+! !DEFINED PARAMETERS:
+!
       ! WTAIR = molecular weight of air (g/mole)
       REAL*8,  PARAMETER     :: WTAIR = 28.966d0
       
       ! Switch to scale yield of isoprene from NOx concentration or not
       LOGICAL, PARAMETER     :: ALPHA_ISOP_FROM_NOX = .FALSE.
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEM_TAGGED_CO begins here!
@@ -966,16 +955,14 @@
       LSPLIT    = Input_Opt%LSPLIT
       N_TRACERS = Input_Opt%N_TRACERS
 
-      IF ( FIRSTCHEM ) THEN
-         FIRSTCHEM = .FALSE.
-      ENDIF
+      ! DTCHEM is the number of seconds per chemistry timestep
+      DTCHEM    = GET_TS_EMIS() * 60d0
 
-      ! DTSRCE is the number of seconds per emission timestep
-      DTSRCE = GET_TS_EMIS() * 60d0
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Point to fields in the State_Met and State_Chm objects (bmy, 4/10/14)
+      AD        => State_Met%AD
+      AIRVOL    => State_Met%AIRVOL
+      STT       => State_Chm%Tracers
+      T         => State_Met%T
 
       !=================================================================
       ! Read in OH, NOx, P(CO), and L(CO) fields for the current month
@@ -986,10 +973,6 @@
          MONTH = GET_MONTH()
 
          ! Global OH 
-!-----------------------------------------------------------------------------
-! Prior to 10/23/13:
-!         CALL GET_GLOBAL_OH( MONTH, State_Met )
-!-----------------------------------------------------------------------------
          CALL GET_GLOBAL_OH
      &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
 
@@ -1034,7 +1017,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
+         
          ! Latitude of grid box
          YMID     = GET_YMID( I, J, L )
 
@@ -1047,14 +1030,14 @@
 
          ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
          ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
-         STTCO = 1d0     / State_Met%AIRVOL(I,J,L) / 1d6 /
+         STTCO = 1d0     / AIRVOL(I,J,L) / 1d6 /
      &           FMOL_CO * 6.023d23
 
          ! GCO is CO concentration in [molec CO/cm3]
          GCO   = STT(I,J,L,1) * STTCO
-
+         
          ! DENS is the number density of air [molec air/cm3]
-         DENS  = State_Met%AD(I,J,L)    * 1000.d0   /
+         DENS  = AD(I,J,L)              * 1000.d0   /
      &           BOXVL(I,J,L,State_Met) * 6.023d23  / WTAIR
 
          !==============================================================
@@ -1097,7 +1080,7 @@
             ALPHA_CH4 = 1d0
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
-            KRATE = 2.45D-12 * EXP( -1775.d0 / State_Met%T(I,J,L) ) 
+            KRATE = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
 
             ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt 
             ! Units are [molec CO/cm3]
@@ -1407,19 +1390,18 @@
 
             ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
             ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO1   = 5.9D-33 * ( State_Met%T(I,J,L) / 300 )**(-1.4D0)
+            KLO1   = 5.9D-33 * ( T(I,J,L) / 300 )**(-1.4D0)
             ! KHI1 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI1   = 1.1D-12 * ( State_Met%T(I,J,L) / 300 )**(1.3D0)
+            KHI1   = 1.1D-12 * ( T(I,J,L) / 300 )**(1.3D0)
             XYRAT1 = KLO1 * DENS / KHI1
             BLOG1  = LOG10(XYRAT1)
             FEXP1  = 1.D0 / ( 1.D0 + BLOG1 * BLOG1 )
             ! KCO1 = k_f([M],T) from JPL Data Eval (page 2-1)
             KCO1   = KLO1 * DENS * 0.6**FEXP1 / ( 1.d0 + XYRAT1 )
-
             ! KLO2 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO2   = 1.5D-13 * ( State_Met%T(I,J,L) / 300 )**(0.6D0)
+            KLO2   = 1.5D-13 * ( T(I,J,L) / 300 )**(0.6D0)
             ! KHI2 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI2   = 2.1D09  * ( State_Met%T(I,J,L) / 300 )**(6.1D0)
+            KHI2   = 2.1D09  * ( T(I,J,L) / 300 )**(6.1D0)
             XYRAT2 = KLO2 * DENS / KHI2
             BLOG2  = LOG10(XYRAT2)
             FEXP2  = 1.D0 / ( 1.D0 + BLOG2 * BLOG2 )
@@ -1507,8 +1489,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Free pointer
-      NULLIFY( STT )
+      ! Free pointers
+      NULLIFY( AD, AIRVOL, STT, T )
 
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC
@@ -1671,6 +1653,8 @@
       !=================================================================
       ! Read in CO production rates [v/v/s]
       !=================================================================
+      print*, '### coprod'
+      call flush(6)
 
       ! Read P(CO)
       call NcRd( array, fileID, 'prod',
@@ -1683,6 +1667,8 @@
       !=================================================================
       ! Read in CO loss frequency [s^-1]
       !=================================================================
+      print*, '### coloss'
+      call flush(6)
 
       ! Read P(CO)
       call NcRd( array, fileID, 'loss',
@@ -1882,13 +1868,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_CO
+      SUBROUTINE INIT_TAGGED_CO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE TRACER_MOD,   ONLY : ITS_A_H2HD_SIM
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_MOd
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?      
 ! 
 ! !REVISION HISTORY: 
 !  19 Jul 2000 - R. Yantosca - Initial version
@@ -1904,6 +1900,9 @@
 !  23 Oct 2012 - R. Yantosca - Added ProTeX headers
 !  23 Oct 2012 - J. Fisher   - Dimension CO_PRODS and CO_LOSSS with
 !                              (IIPAR,JJPAR,LLPAR) for new GMI strat chem
+!  10 Apr 2014 - R. Yantosca - Now call DEFINE* routines to define the
+!                              fossil fuel and biofuel regions
+!  10 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1916,6 +1915,9 @@
       ! INIT_TAGGED_CO begins here!
       !=================================================================
 
+      ! Assume success until otherwise known
+      RC = GIGC_SUCCESS
+
       ! Allocate SUMACETCO -- array for CO from isoprene
       ALLOCATE( EMACET( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMACET' )         
@@ -1924,15 +1926,17 @@
       ! Allocate and initialize IJLOOP_CO -- 1-D array index
       ALLOCATE( CO_PRODS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )    
-      CO_PRODS = 0d0
+!      CO_PRODS = 0d0
+      CO_PRODS = 0e0
 
       ! Allocate and initialize IJLOOP_CO -- 1-D array index
       ALLOCATE( CO_LOSSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_LOSSS' )    
-      CO_LOSSS = 0d0
+!      CO_LOSSS = 0d0
+      CO_PRODS = 0e0
 
       ! Allocate only what is needed
-      IF ( ITS_A_H2HD_SIM() ) RETURN
+      IF ( Input_Opt%ITS_A_H2HD_SIM ) RETURN
 
       ! Allocate BB_REGION -- array for biomass burning regions
       ALLOCATE( BB_REGION( IIPAR, JJPAR ), STAT=AS )
@@ -1963,6 +1967,10 @@
       ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
       SUMACETCO = 0d0 
+
+      ! Define geographic regions for both fossil fuel & biomass burning
+      CALL DEFINE_FF_CO_REGIONS( FF_REGION )         
+      CALL DEFINE_BB_CO_REGIONS( BB_REGION )
 
       END SUBROUTINE INIT_TAGGED_CO
 !EOC
