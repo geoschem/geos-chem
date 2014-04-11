@@ -397,6 +397,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  11 Apr 2014 - R. Yantosca - Remove call to INIT_GLOBAL_CH4
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -478,17 +479,6 @@
 
       IF ( ITS_A_CH4_SIM ) THEN
          print*,'BEGIN SUBROUTINE: EMISSCH4' 
-      ENDIF
-
-      ! Initialization - only necessary for online simulations
-      IF ( ITS_A_FULLCHEM_SIM .and. FIRST ) THEN
-
-         ! Allocate arrays
-         CALL INIT_GLOBAL_CH4
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
-
       ENDIF
 
       ! ==================================================================
