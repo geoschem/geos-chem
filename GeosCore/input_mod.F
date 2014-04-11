@@ -8814,6 +8814,7 @@
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
+      USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
 !
 ! !INPUT PARAMETERS:
 !
@@ -8843,6 +8844,7 @@
 !  29 Mar 2013 - R. Yantosca - Now call INIT_TROPOPAUSE (so that we can pass
 !                              a LVARTROP from Input_Opt and not logical_mod.F)
 !  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_CO
+!  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_OX and INIT_TAGGED_CH4
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8902,12 +8904,25 @@
          CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
+      
+      !-----------------------------------------------------------------
+      ! Also initialize specialty simulation modules here
+      !-----------------------------------------------------------------
 
       ! Initialize "tagged_co_mod.F"
       IF ( Input_Opt%ITS_A_TAGCO_SIM   .or.
      &     Input_Opt%ITS_A_H2HD_SIM  ) THEN
          CALL INIT_TAGGED_CO( am_I_Root, Input_Opt, RC )
       ENDIF
+
+      ! Initialize "tagged_ox_mod.F"
+      IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+         CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
+      ENDIF
+
+      !IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+      !   CALL INIT_CH4
+      !ENDIF
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
       CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )

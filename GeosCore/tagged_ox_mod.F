@@ -18,18 +18,62 @@
 !
       IMPLICIT NONE
       PRIVATE
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% If you want to the EXTENDED SIMULATION with all 13 tagged O3 tracers, 
+!%%% then uncomment this #ifdef statement. (bmy, 4/11/14)
+!%%% tracers. (bmy, 4/11/14)
+!#define USE_ALL_TAGO3_TRACERS 1
+!%%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% If you want to read archived O3 prod/loss data from a different year
+!%%% than the met field dates, then use this #ifdef.  Otherwise, just
+!%%% comment this flag out. (bmy, 11/6/13)
+#define USE_THIS_O3_YEAR 2004
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
       PUBLIC  :: ADD_STRAT_POX 
       PUBLIC  :: CHEM_TAGGED_OX 
       PUBLIC  :: CLEANUP_TAGGED_OX 
+      PUBLIC  :: INIT_TAGGED_OX
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
       PRIVATE :: GET_REGIONAL_POX
-      PRIVATE :: INIT_TAGGED_OX
       PRIVATE :: READ_POX_LOX
+!
+! !REMARKS:
+!  THE SIMPLE TAGGED O3 SIMULATION (default setting) HAS THESE TRACERS:
+!  ----------------------------------------------------------------------------
+!  (1 ) O3      : Total O3
+!  (2 ) O3Strt  : Stratospheric O3
+!                                                                             .
+!  THE EXTENDED TAGGED O3 SIMULATION HAS THESE TRACERS:
+!  ----------------------------------------------------------------------------
+!  (1 ) O3      : Total O3
+!  (2 ) O3Strt  : O3 from the Stratosphere      (tropopause - atm top   )
+!  (3 ) O3Ut    : O3 produced in Upper Trop     (350 hPa    - tropopause) 
+!  (4 ) O3Mt    : O3 produced in Middle Trop    (PBL top    - 350 hPa   )
+!  (5 ) O3Row   : O3 produced in Rest of World  (surface    - PBL top   )
+!  (6 ) O3PcBl  : O3 produced in Pacific BL     (surface    - PBL top   )
+!  (7 ) O3NaBl  : O3 produced in N. American BL (surface    - PBL top   )
+!  (8 ) O3AtBl  : O3 produced in Atlantic BL    (surface    - PBL top   )
+!  (9 ) O3EuBl  : O3 produced in European BL    (surface    - PBL top   )
+!  (10) O3AfBl  : O3 produced in N. African BL  (surface    - PBL top   )
+!  (11) O3AsBl  : O3 produced in Asian          (surface    - PBL top   )
+!  (12) O3Init  : O3 initial conditions         (all levels             )
+!  (13) O3USA   : O3 produced over the USA      (all levels             )
+!                                                                             .
+!  NOTES:
+!  ----------------------------------------------------------------------------
+!  (1) The stratospheric O3 tracer must be tracer #2.  This is due to how
+!       the Linoz stratospheric O3 chemistry scheme is written.  We have
+!       accordingly reorganized the tracer numbers below.
+!  (2) The name "tagged_ox_mod.F" is historical.  The Ox tracer in GEOS-Chem 
+!       has now been replaced with O3.  O3 usually makes up about 95% of Ox.
+!       The nomenclature "tagged Ox" is interchangeable with "tagged O3".
 !
 ! !REVISION HISTORY:
 !  20 Aug 2003 - A. Fiore    - Initial version  
@@ -54,30 +98,42 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 or LLTROP_FIX
 !                              everywhere (hyl, bmy, 11/3/11)
+!  11 Apr 2014 - R. Yantosca - Add #ifdef USE_ALL_TAGO3_TRACERS to select
+!                              between the simple and extended simulations
+!  11 Apr 2014 - R. Yantosca - Updated comments
+!  11 Apr 2014 - R. Yantosca - Now make the O3Strt tracer #2 for both the
+!                              simple and extended tagged O3 simulations
+!  11 Apr 2014 - R. Yantosca - Now make INIT_TAGGED_OX a public routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL*8,  ALLOCATABLE, PRIVATE :: P24H(:,:,:)
-      REAL*8,  ALLOCATABLE, PRIVATE :: L24H(:,:,:)
+      REAL*8,  ALLOCATABLE, PRIVATE :: P24H(:,:,:)     ! O3 production rate
+      REAL*8,  ALLOCATABLE, PRIVATE :: L24H(:,:,:)     ! O3 loss rate
 !
 ! !DEFINED PARAMETERS:
 ! 
-      !------------------------------------------------------
-      !%%% Modification for quick Ox spinup (bmy, 5/31/07) 
-      !%%%INTEGER, PARAMETER, PRIVATE :: N_TAGGED = 13
-      !%%%INTEGER, PARAMETER, PRIVATE :: N_STRAT  = 11
-      !%%%INTEGER, PARAMETER, PRIVATE :: N_INIT   = 12
-      !%%%INTEGER, PARAMETER, PRIVATE :: N_USA    = 13
-      !------------------------------------------------------
-      ! dbj: stratospheric tracers must be tracer 2
-      !------------------------------------------------------
-      INTEGER, PARAMETER,   PRIVATE :: N_TAGGED = 2
-      INTEGER, PARAMETER,   PRIVATE :: N_STRAT  = 2
-      INTEGER, PARAMETER,   PRIVATE :: N_INIT   = 3
-      INTEGER, PARAMETER,   PRIVATE :: N_USA    = -1
+#if defined( USE_ALL_TAGO3_TRACERS )
+
+      !-----------------------------------------------------------------
+      ! EXTENDED SIMULATION : Total, strat, and regional O3 tracers
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER,   PRIVATE :: N_TAGGED = 13   ! # of tracers
+      INTEGER, PARAMETER,   PRIVATE :: N_STRAT  = 2    ! Stratospheric O3
+
+#else
+
+      !-----------------------------------------------------------------
+      ! SIMPLE SIMULATION: Total and strat O3 tracers only
+      !
+      ! %%% THIS IS THE DEFAULT %%%
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER,   PRIVATE :: N_TAGGED = 2    ! # of tracers
+      INTEGER, PARAMETER,   PRIVATE :: N_STRAT  = 2    ! Stratospheric O3
+
+#endif
 
       CONTAINS
 !EOC
@@ -115,6 +171,10 @@
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
+! !REMARKS:
+!  This routine is only called if you are using the Synoz stratospheric
+!  ozone chemistry.  Synoz is now obsolete and has been replaced by Linoz.
+!
 ! !REVISION HISTORY:
 !  19 Aug 2003 - R. Yantosca - Initial version
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
@@ -175,13 +235,6 @@
            
       USE CMN_SIZE_MOD ! Size parameters
       USE CMN_DIAG_MOD ! LD65
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% If you want to read archived O3 prod/loss data from a different year
-!%%% than the met field dates, then use this #ifdef.  Otherwise, just
-!%%% comment this flag out. (bmy, 11/6/13)
-#define USE_THIS_O3_YEAR 2004
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
@@ -411,7 +464,7 @@
       REAL*8, EXTERNAL :: BOXVL
 
       !=================================================================
-      ! GET_REGIONAL_POX begins here!
+      ! Initialization
       !=================================================================
 
       ! Initialize
@@ -423,12 +476,7 @@
       ! Skip stratospheric boxes
       IF ( .not. ITS_IN_TROP ) RETURN
 
-      !=================================================================
-      ! Get lon, lat, alt coordinates; test for specific regions
-      ! NOTE: You can update the lat/lon & alt boundaries as needed!
-      !=================================================================      
-
-      ! Longitude [degrees]
+      ! Longitude and latitude [degrees]
       X          = GET_XMID( I, J, L )   
       Y          = GET_YMID( I, J, L )
 
@@ -442,23 +490,32 @@
       MTTOP  = 10
 #endif
 
-!      ! Define flags for various geographic & altitude regions
-!      ITS_IN_PBL = ( L <= PBLTOP                                       )
-!      ITS_IN_MT  = ( L >  PBLTOP .and. L <= MTTOP                      )
-!      ITS_IN_UT  = ( L >  MTTOP  .and. ITS_IN_TROP                     )
-!
-!      ITS_IN_NH  = ( Y >=   0.0                                        )
-!      ITS_IN_EUR = ( Y >=  36.0 .and. ( X >  -15.0 .and. X >=   55.0 ) )
-!      ITS_IN_NAM = ( Y >=  15.0 .and. ( X > -127.5 .and. X <=  -65.0 ) )
-!      ITS_IN_AS  = ( Y >= -10.0 .and. ( X >   55.0 .and. X <=  145.0 ) )
-!      ITS_IN_ATL = ( ITS_IN_NH  .and. ( X >  -65.0 .and. X <=  -15.0 ) )
-!      ITS_IN_PAC = ( ITS_IN_NH  .and. ( X >  145.0  .or. X <= -127.5 ) )
-!
-!      ITS_IN_NAF = ( ( X >= -15.0 .and. X <=  55.0 ) .and. 
-!     &               ( Y >=   0.0 .and. Y <   36.0 ) )  
-!
-!      ITS_IN_USA = ( ( X > -127.5 .and. X <= -65.0 ) .and. 
-!     &               ( Y >   22.0 .and. Y <=  50.0 ) )
+#if defined( USE_ALL_TAGO3_TRACERS )
+
+      !=================================================================
+      ! For the simulation with all tagged O3 tracers: find the 
+      ! regions corresponding to this particular longitude & latitude
+      !=================================================================
+
+      ! Define flags for various geographic & altitude regions
+      ITS_IN_PBL = ( L <= PBLTOP                                       )
+      ITS_IN_MT  = ( L >  PBLTOP .and. L <= MTTOP                      )
+      ITS_IN_UT  = ( L >  MTTOP  .and. ITS_IN_TROP                     )
+
+      ITS_IN_NH  = ( Y >=   0.0                                        )
+      ITS_IN_EUR = ( Y >=  36.0 .and. ( X >  -15.0 .and. X >=   55.0 ) )
+      ITS_IN_NAM = ( Y >=  15.0 .and. ( X > -127.5 .and. X <=  -65.0 ) )
+      ITS_IN_AS  = ( Y >= -10.0 .and. ( X >   55.0 .and. X <=  145.0 ) )
+      ITS_IN_ATL = ( ITS_IN_NH  .and. ( X >  -65.0 .and. X <=  -15.0 ) )
+      ITS_IN_PAC = ( ITS_IN_NH  .and. ( X >  145.0  .or. X <= -127.5 ) )
+
+      ITS_IN_NAF = ( ( X >= -15.0 .and. X <=  55.0 ) .and. 
+     &               ( Y >=   0.0 .and. Y <   36.0 ) )  
+
+      ITS_IN_USA = ( ( X > -127.5 .and. X <= -65.0 ) .and. 
+     &               ( Y >   22.0 .and. Y <=  50.0 ) )
+
+#endif
 
       !=================================================================
       ! Assign P(Ox) to tagged tracers by geographic/altitude regions
@@ -473,68 +530,72 @@
       !-----------------------
       PP(I,J,L,1) = PPROD
 
-!      !-----------------------
-!      ! #2: P(Ox) in UT
-!      !-----------------------
-!      IF ( ITS_IN_UT ) THEN
-!         PP(I,J,L,2) = PPROD
-!         
-!      !-----------------------
-!      ! #3: P(Ox) in MT 
-!      !-----------------------
-!      ELSE IF ( ITS_IN_MT ) THEN
-!         PP(I,J,L,3) = PPROD
-!                                
-!      !-----------------------
-!      ! #5: P(Ox) in Pac BL
-!      !-----------------------
-!      ELSE IF ( ITS_IN_PAC .and. ITS_IN_PBL ) THEN
-!         PP(I,J,L,5) = PPROD
-!
-!      !-----------------------
-!      ! #6: P(Ox) in NAm BL
-!      !-----------------------
-!      ELSE IF ( ITS_IN_NAM .and. ITS_IN_PBL ) THEN     
-!         PP(I,J,L,6) = PPROD
-!                  
-!      !-----------------------
-!      ! #7: P(Ox) in Atl BL
-!      !-----------------------
-!      ELSE IF ( ITS_IN_ATL .and. ITS_IN_PBL ) THEN
-!         PP(I,J,L,7) = PPROD  
-!         
-!      !-----------------------
-!      ! #8: P(Ox) in Eur BL
-!      !-----------------------
-!      ELSE IF ( ITS_IN_EUR .and. ITS_IN_PBL ) THEN
-!         PP(I,J,L,8) = PPROD
-!                  
-!      !-----------------------
-!      ! #9: P(Ox) in NAfr BL
-!      !-----------------------
-!      ELSE IF ( ITS_IN_NAF .and. ITS_IN_PBL ) THEN
-!         PP(I,J,L,9) = PPROD
-! 
-!      !-----------------------
-!      ! #10: P(Ox) in Asia BL
-!      !-----------------------          
-!      ELSE IF ( ITS_IN_AS .and. ITS_IN_PBL ) THEN
-!         PP(I,J,L,10) = PPROD                   
-!
-!      !-----------------------
-!      ! #4: P(Ox) in R.O.W
-!      !-----------------------
-!      ELSE 
-!         PP(I,J,L,4) = PPROD
-!
-!      ENDIF
-!
-!      !-------------------------
-!      ! #13: P(Ox) in USA
-!      !-------------------------
-!      IF ( ITS_IN_USA ) THEN
-!         PP(I,J,L,N_USA) = PPROD               
-!      ENDIF
+#if defined( USE_ALL_TAGO3_TRACERS )
+
+      !-----------------------
+      ! #2: P(Ox) in UT
+      !-----------------------
+      IF ( ITS_IN_UT ) THEN
+         PP(I,J,L,3) = PPROD
+         
+      !-----------------------
+      ! #3: P(Ox) in MT 
+      !-----------------------
+      ELSE IF ( ITS_IN_MT ) THEN
+         PP(I,J,L,4) = PPROD
+                                
+      !-----------------------
+      ! #5: P(Ox) in Pac BL
+      !-----------------------
+      ELSE IF ( ITS_IN_PAC .and. ITS_IN_PBL ) THEN
+         PP(I,J,L,6) = PPROD
+
+      !-----------------------
+      ! #6: P(Ox) in NAm BL
+      !-----------------------
+      ELSE IF ( ITS_IN_NAM .and. ITS_IN_PBL ) THEN     
+         PP(I,J,L,7) = PPROD
+                  
+      !-----------------------
+      ! #7: P(Ox) in Atl BL
+      !-----------------------
+      ELSE IF ( ITS_IN_ATL .and. ITS_IN_PBL ) THEN
+         PP(I,J,L,8) = PPROD  
+         
+      !-----------------------
+      ! #8: P(Ox) in Eur BL
+      !-----------------------
+      ELSE IF ( ITS_IN_EUR .and. ITS_IN_PBL ) THEN
+         PP(I,J,L,9) = PPROD
+                  
+      !-----------------------
+      ! #9: P(Ox) in NAfr BL
+      !-----------------------
+      ELSE IF ( ITS_IN_NAF .and. ITS_IN_PBL ) THEN
+         PP(I,J,L,10) = PPROD
+ 
+      !-----------------------
+      ! #10: P(Ox) in Asia BL
+      !-----------------------          
+      ELSE IF ( ITS_IN_AS .and. ITS_IN_PBL ) THEN
+         PP(I,J,L,11) = PPROD                   
+
+      !-----------------------
+      ! #4: P(Ox) in R.O.W
+      !-----------------------
+      ELSE 
+         PP(I,J,L,5) = PPROD
+
+      ENDIF
+
+      !-------------------------
+      ! #13: P(Ox) in USA
+      !-------------------------
+      IF ( ITS_IN_USA ) THEN
+         PP(I,J,L,13) = PPROD               
+      ENDIF
+
+#endif
 
       END SUBROUTINE GET_REGIONAL_POX
 !EOC
@@ -619,7 +680,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
-
+!  11 Apr 2014 - R. Yantosca - Remove call to INIT_TAGGED_OX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -667,17 +728,10 @@
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      STT       => State_Chm%Tracers
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
-
-      ! First-time initialization only
-      !%%% NOTE: Need to eventually move this to the init stage %%%
-      IF ( FIRST ) THEN 
-         CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
-         FIRST = .FALSE.
-      ENDIF
+      DTCHEM    = GET_TS_CHEM() * 60d0
 
       ! Read P(Ox) and L(Ox) if it's a new day
       IF ( ITS_A_NEW_DAY() ) THEN
@@ -699,25 +753,7 @@
       ! Tagged Ox tracers are defined by both geographic location and
       ! altitude, as listed below:
       !
-      !%%% Modification for quicker spinup
-      !%%% (1 ) Total Ox
-      !%%% (2 ) Ox produced in Upper Trop     (350 hPa    - tropopause) 
-      !%%% (3 ) Ox produced in Middle Trop    (PBL top    - 350 hPa   )
-      !%%% (4 ) Ox produced in Rest of World  (surface    - PBL top   )
-      !%%% (5 ) Ox produced in Pacific BL     (surface    - PBL top   )
-      !%%% (6 ) Ox produced in N. American BL (surface    - PBL top   )
-      !%%% (7 ) Ox produced in Atlantic BL    (surface    - PBL top   )
-      !%%% (8 ) Ox produced in European BL    (surface    - PBL top   )
-      !%%% (9 ) Ox produced in N. African BL  (surface    - PBL top   )
-      !%%% (10) Ox produced in Asian          (surface    - PBL top   )
-      !%%% (11) Ox from the Stratosphere      (tropopause - atm top   )
-      !%%% (12) Ox initial conditions         (all levels             )        
-      !%%% (13) Ox produced over the USA      (all levels             )
-      !
-      ! NOTE: MODIFIED FOR QUICKER SPINUP:
-      ! (1 ) Total Ox
-      ! (2 ) Ox from the Stratosphere      (tropopause - atm top   )
-      ! (3 ) Ox initial conditions         (all levels             )        
+      ! EXTENDED SIMUATION: Modification for quicker spinup
       !=================================================================
       DO N = 1, N_TRACERS
 
@@ -882,8 +918,8 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
-! !LOCAL VARIABLES:
-!
+! !REMARKS:
+!  This routine is now called from GIGC_INIT_EXTRA in GeosCore/input_mod.F.
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version

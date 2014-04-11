@@ -799,7 +799,8 @@ input_mod.o                 : input_mod.F                                    \
                               sulfate_mod.o           tomas_mod.o            \
                               tpcore_bc_mod.o         tracerid_mod.o         \
                               tracer_mod.o            transport_mod.o        \
-                              wetscav_mod.o           tagged_co_mod.o
+                              wetscav_mod.o           tagged_co_mod.o        \
+                              tagged_ox_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          global_hno3_mod.o      \
