@@ -143,6 +143,7 @@
 !  24 Jun 2013 - J.A. Fisher - Modifications for SEAC4RS SOA tracers
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  10 Apr 2013 - K. Travis   - Add HAC wet dep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,7 +164,8 @@
 #else
       ! +3 for SEAC4RS SOA tracers (jaf, 6/24/13)
       !INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
-      INTEGER, PARAMETER   :: NSOLMAX = 63      ! Max # of soluble tracers
+      ! + 1 for HAC - krt, 4/10/14
+      INTEGER, PARAMETER   :: NSOLMAX = 64      ! Max # of soluble tracers
 !------------------------------------------------------------------------------
 ! This is in the std code (bmy, 10/30/13)
 !      ! SOAupdate: Increase NSOLMAX from 60 to 110 for SOA + semivol POA
@@ -844,6 +846,7 @@
       USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC      
       USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
       USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
+      USE TRACERID_MOD,       ONLY : IDTHAC  !krt, 4/10/14
       USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN,    IDTETHLN
       USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP
       USE TRACERID_MOD,       ONLY : IDTMAP
@@ -1486,6 +1489,63 @@
      &                      State_Met%BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of MGLY scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N ) 
+      
+      !-------------------------------
+      ! HACC (liquid phase only)
+      !-------------------------------
+      ELSE IF ( N == IDTHAC ) THEN 
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for HAC, using
+            ! the appropriate parameters for Henry's law
+            ! from O'Connor et al, 2014
+            ! Kstar298 =1.4d2 M/atm;  H298_R = -7200 K
+             CALL COMPUTE_L2G( 1.4d2, -7.2d3, State_Met%T(I,J,L),
+     &                        CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of HAC in liquid phase 
+            ! NOTE: CH2O does not exist in the ice phase!
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! assume same retention factor as CH2O
+            ! Compute the rate constant K.  The retention factor 
+            ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
+            ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+
+            ELSE
+               K = 0d0
+
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
+               
+            ! F is the fraction of HAC scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
             F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
 
@@ -3053,6 +3113,7 @@
       USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
       USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
       USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN,    IDTETHLN
+      USE TRACERID_MOD,       ONLY : IDTHAC
       USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
@@ -3361,7 +3422,39 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
-  
+       !------------------------------
+      ! HAC (liquid phase only)
+      !------------------------------     
+      ELSE IF ( N == IDTHAC ) THEN 
+
+         ! Compute liquid to gas ratio for HAC
+         CALL COMPUTE_L2G( 1.4d2, -7.2d3, TK, CLDLIQ(I,J,L), L2G )
+            
+         ! Fraction of GLYC in liquid phase 
+         ! NOTE: CH2O does not exist in the ice phase!
+         ! (Eqs. 4, 5, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! assume same retention factor as CH2O
+         ! Compute the rate constant K.  The retention factor  
+         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+               
+         ELSE
+            K = 0d0
+
+         ENDIF
+
+         ! Compute RAINFRAC, the fraction of rained-out HAC
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
+ 
       !------------------------------
       ! CH3OOH (liquid phase only)
       !------------------------------
@@ -4391,6 +4484,7 @@
       USE TRACERID_MOD, ONLY : IDTSALC
       USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC
+      USE TRACERID_MOD, ONLY : IDTHAC !krt, 4/10/14
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN, IDTETHLN
@@ -4624,6 +4718,17 @@
          ! H298_R = -4.6d3 K
          KIN      = .FALSE.
          CALL WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
+
+      !------------------------------
+      !HAC (liquid & gas phases)
+      !------------------------------
+      ELSE IF ( N == IDTHAC ) THEN 
+         ! Compute liquid to gas ratio for HAC, using
+         ! the appropriate parameters for Henry's law
+         ! from O'Conner et al, 2014
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 1.4d4, -7.2d3, PP,       DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -7938,6 +8043,7 @@
       USE TRACERID_MOD, ONLY : IDTSALC
       USE TRACERID_MOD, ONLY : IS_Hg2,    IS_HgP
       USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
+      USE TRACERID_MOD, ONLY : IDTHAC !krt, 4/10/14
       USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
       USE TRACERID_MOD, ONLY : IDTMOBA,   IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN,    IDTETHLN
@@ -8058,6 +8164,10 @@
          ELSE IF ( N == IDTGLYC ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTGLYC
+
+         ELSE IF ( N == IDTHAC ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHAC
 
          !---------------------------------------
          ! jpp, 10/21/08: adding bromine species
@@ -8614,7 +8724,7 @@
                                                      ! IEPOX, PMNN,
                                                      ! ETHLN (jaf, 2/27/14)
 
-         NMAX = NMAX + 3                             ! HBr,   HOBr,   Br2
+         NMAX = NMAX + 4                             ! HBr,   HOBr,   Br2, HAC
 
          IF ( LSULF )    NMAX = NMAX + 8             ! SO2,   SO4,    MSA,
                                                      ! NH3,   NH4,    NIT
