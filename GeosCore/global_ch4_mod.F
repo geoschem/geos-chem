@@ -4002,25 +4002,39 @@
 ! !IROUTINE: init_global_ch4
 !
 ! !DESCRIPTION: Subroutine INIT\_GLOBAL\_CH4 allocates and zeroes module 
-!  arrays. (bmy, 1/16/01, 10/15/02)
+!  arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GLOBAL_CH4
+      SUBROUTINE INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine is called from GIGC_INIT_EXTRA (in GeosCore/input_mod.f)
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
-!                              code out with #ifdef blocks so it can be used)
+!                              code out with #ifdef blocks so it can be used
+!  11 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4032,6 +4046,9 @@
       !=================================================================
       ! INIT_GLOBAL_CH4 begins here!
       !=================================================================
+
+      ! Assume Success
+      RC = GIGC_SUCCESS
 
       ALLOCATE( AVGOH( NSEAS, NCMSLATS, NCMSALTS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGOH' )

@@ -122,6 +122,7 @@
 #  18 Mar 2014 - R. Yantosca - Add tauclean target to remove TAU profile files
 #  19 Mar 2014 - R. Yantosca - Now restore GTMM functionality
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  11 Apr 2014 - R. Yantosca - Add modules to input_mod.o dependencies list
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -800,7 +801,7 @@ input_mod.o                 : input_mod.F                                    \
                               tpcore_bc_mod.o         tracerid_mod.o         \
                               tracer_mod.o            transport_mod.o        \
                               wetscav_mod.o           tagged_co_mod.o        \
-                              tagged_ox_mod.o
+                              tagged_ox_mod.o         global_ch4_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          global_hno3_mod.o      \
