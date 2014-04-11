@@ -2970,13 +2970,6 @@
                ! skip the second tracer. (ccc, 2/3/10)
                !IF ( MMB /= NN ) CYCLE
                IF ( MMB /= NN                       .OR.
-!-----------------------------------------------------------------------------
-! Prior to 1/29/14:
-! Now use DRYDEP_NAME, which is defined above.  This avoids an out-of-bounds
-! error on DEPNAME(N) when using TOMAS simulations. (bmy, 1/29/14)
-!     &              DEPNAME( N ) == 'ISOPNB' .OR.
-!     &              DEPNAME( N ) == 'MVKN'       ) CYCLE
-!-----------------------------------------------------------------------------
      &              TRIM( DRYDEP_NAME ) == 'ISOPNB' .OR.
      &              TRIM( DRYDEP_NAME ) == 'MVKN'       ) CYCLE
             ENDIF
@@ -3005,12 +2998,6 @@
             ! MACRN above.  Therefore, also write the drydep velocities
             ! for the second species (ISOPNB and MVKN) here.
             !-----------------------------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 1/29/14:
-! Now use DRYDEP_NAME, which is defined above.  This avoids an out-of-bounds
-! error on DEPNAME(N) when using TOMAS simulations. (bmy, 1/29/14)
-!            SELECT CASE( TRIM( DEPNAME( N ) ) )
-!------------------------------------------------------------------------------
             SELECT CASE( TRIM( DRYDEP_NAME ) )
 
                CASE( 'ISOPND' ) 

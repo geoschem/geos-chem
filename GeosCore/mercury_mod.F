@@ -577,10 +577,6 @@
          MONTH = GET_MONTH()
 
          ! Read monthly mean OH and O3 from disk
-!-----------------------------------------------------------------------------
-! Prior to 10/23/13:
-!         CALL GET_GLOBAL_OH( MONTH, State_Met  )
-!-----------------------------------------------------------------------------
          CALL GET_GLOBAL_OH
      &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_OH' )

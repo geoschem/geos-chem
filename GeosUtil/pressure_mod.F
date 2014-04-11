@@ -219,13 +219,6 @@
 !
 ! !INPUT PARAMETERS: 
 !
-!------------------------------------------------------------------------------
-! Prior to 11/4/13:
-! Eliminate array temporary by accepting assumed-shape argument into this
-! routine. (mpayer, 11/4/13)
-!      ! Array containing pressure with which to initialize PFLT [hPa]
-!      REAL*8, INTENT(IN) :: PS(IIPAR,JJPAR)  
-!------------------------------------------------------------------------------
       ! Array containing pressure with which to initialize PFLT [hPa]
       REAL*8, INTENT(IN) :: PS(:,:)  
 !

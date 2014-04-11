@@ -648,10 +648,6 @@
             THISMONTH = GET_MONTH()
 
             IF ( ITS_A_NEW_MONTH() ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 10/23/13:
-!               CALL GET_GLOBAL_OH(  THISMONTH, State_Met )
-!-----------------------------------------------------------------------------
                CALL GET_GLOBAL_OH ( am_I_Root, Input_Opt, 
      &                              State_Met, THISMONTH, RC )
                CALL GET_GLOBAL_NO3( THISMONTH )
@@ -5803,12 +5799,6 @@
          enddo
       endif
 !temp debug --------
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 1/28/14:
-!%%% Avoid the creation of array temporaries in call to EMITSGC (bmy, 1/28/14)
-!%%%            CALL EMITSGC( EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2), 1,
-!%%%     &                    Input_Opt, State_Met, State_Chm )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Now sum mass terms into TEMP_MASS and then pass to EMITSGC
             ! This avoids the creation of an array temporary. (bmy, 1/28/14)
@@ -5827,12 +5817,6 @@
          enddo
       endif
 !temp debug --------
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 1/28/14:
-!%%% Avoid the creation of array temporaries in call to EMITSGC (bmy, 1/28/14)
-!%%%          CALL EMITSGC( OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2), 2,
-!%%%     &                    Input_Opt, State_Met, State_Chm )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Now sum mass terms into TEMP_MASS and then pass to EMITSGC
             ! This avoids the creation of an array temporary. (bmy, 1/28/14)
@@ -6091,14 +6075,6 @@
             MADDFINAL(K) = 0d0
          ENDDO
 
-!------------------------------------------------------------------------------
-! Prior to 1/29/14:
-! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
-!         IF( SRTNH4 > 0 ) 
-!     &        CALL NH4BULKTOBIN( MDIST(1:IBINS,SRTSO4),
-!     &                           STT(I,J,L,IDTNH4),
-!     &                           MDIST(1:IBINS,SRTNH4) )
-!------------------------------------------------------------------------------
          IF ( SRTNH4 > 0 ) THEN
             CALL NH4BULKTOBIN( MDIST(:,SRTSO4),
      &                         STT(I,J,L,IDTNH4),

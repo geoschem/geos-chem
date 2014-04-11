@@ -164,10 +164,6 @@
          YEAR = GET_YEAR()
 
          ! Read monthly mean OH from disk [molecule/cm3]
-!-----------------------------------------------------------------------------
-! Prior to 10/23/13:
-!         CALL GET_GLOBAL_OH( MONTH, State_Met )
-!-----------------------------------------------------------------------------
          CALL GET_GLOBAL_OH
      &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
 

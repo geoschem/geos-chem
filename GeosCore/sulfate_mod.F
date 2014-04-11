@@ -615,10 +615,6 @@
 
          ! Then read monthly data files ...
          IF ( ITS_A_NEW_MONTH() ) THEN 
-!-----------------------------------------------------------------------------
-! Prior to 10/23/13:
-!            CALL GET_GLOBAL_OH( MONTH, State_Met )
-!-----------------------------------------------------------------------------
             CALL GET_GLOBAL_OH
      &           ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
             CALL GET_GLOBAL_NO3( MONTH )
@@ -6136,13 +6132,6 @@
             DO L=1,LLPAR
             DO J=1,JJPAR
             DO I=1,IIPAR
-
-!-----------------------------------------------------------------------------
-! Prior to 1/29/14:
-! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
-!               CALL NH4BULKTOBIN( STT(I,J,L,IDTSF1:IDTSF1-1+IBINS), 
-!     &              STT(I,J,L,IDTNH4), TEMPNH4(1:IBINS) )
-!-----------------------------------------------------------------------------
 
                ! Take a slice of size IBINS from STT
                MK_TEMP = STT(I,J,L,IDTSF1:IDTSF1-1+IBINS)

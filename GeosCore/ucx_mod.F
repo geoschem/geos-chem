@@ -974,12 +974,6 @@
 
       ! Grid indexing
       INTEGER :: I,J,L
-!------------------------------------------------------------------------------
-! Prior to 2/14/14:
-! Now make ZMID a 3-D array so that we can now compute it outside the 
-! main parallel DO loop.  (bmy, 2/14/14)
-!      REAL*8  :: MIDLAT, ZMID, ZDEL, ZBASE
-!------------------------------------------------------------------------------
       REAL*8  :: MIDLAT, ZDEL, ZBASE
       REAL*8  :: ZMID(IIPAR,JJPAR,LLPAR)
 
@@ -1094,16 +1088,6 @@
          TSTART = GET_LOCALTIME(I,J,1,GMTSTART)
          TEND = TSTART + DTCHEM_HR
          !DAYFRAC = SOLFUNC
-!------------------------------------------------------------------------------
-! Prior to 2/14/14:
-! Now move computation of ZMID out of this loop, so that we can change
-! the loop order to a more optimal L-J-L (bmy, 2/14/14)
-!      ZBASE = 0d0
-!      DO L=1,LLPAR
-!         ZDEL = State_Met%BXHEIGHT(I,J,L)
-!         ZMID = ZBASE + (ZDEL/2.d0)
-!         ZBASE = ZBASE + ZDEL
-!------------------------------------------------------------------------------
          CYCLEBOX = .FALSE.
          ! Are the pre-calculated J-rates zero (ie in darkness)?
          CYCLEBOX = (ANY(NOX_J(I,J,L,:).lt.TINY(1d0)))
@@ -1111,12 +1095,6 @@
             CYCLE
          ENDIF
          ! Calculate daylight fraction
-!------------------------------------------------------------------------------
-! Prior to 2/14/14:
-! Now use ZMID(I,J,L) instead of ZMID (bmy, 2/14/14)
-!         SOL_TEST = (-SOL_B) - SQRT(ZMID*(ZMID+2.d0*RE)/
-!    &     ((ZMID+RE)*(ZMID+RE)))/SOL_C
-!------------------------------------------------------------------------------
          SOL_TEST = (-SOL_B) 
      &            - SQRT( ZMID(I,J,L) * ( ZMID(I,J,L) + 2.d0*RE )
      &            / ( ( ZMID(I,J,L) +RE ) * ( ZMID(I,J,L) +RE ) ) )
@@ -3210,30 +3188,15 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-!-----------------------------------------------------------------------------
-! Prior to 2/14/14:
-! Now put the L-loop as the outermost loop, for efficiency (bmy, 2/14/14)
-!      LLOOP: DO L=1, LLPAR
-!-----------------------------------------------------------------------------
          ! Only interested in low-pressure boxes
          PCENTER = GET_PCENTER(I,J,L)
          TCENTER = State_Met%T(I,J,L)
          INVAIR  = AIRMW / State_Met%AD(I,J,L)
          IF (PCENTER.ge.1.d2) THEN
             AERFRAC(I,J,L,1) = 1d0
-!-----------------------------------------------------------------------------
-! Prior to 2/14/14:
-! The IF statement means we don't have to cycle (bmy, 2/14/14)
-!            CYCLE LLOOP
-!-----------------------------------------------------------------------------
          ELSEIF (ITS_IN_THE_TROP(I,J,L,State_Met)) THEN
             ! Don't want to interfere with tropospheric aerosols
             AERFRAC(I,J,L,1) = 1d0
-!-----------------------------------------------------------------------------
-! Prior to 2/14/14:
-! The IF statement means we don't have to cycle (bmy, 2/14/14)
-!            CYCLE LLOOP
-!-----------------------------------------------------------------------------
          ELSE
             H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/TRACER_MW_G(IDTSO4  )
             ! Use approximation from Kumala (1990)
@@ -3253,11 +3216,6 @@
                AERFRAC(I,J,L,1) = 0d0
             ENDIF
          ENDIF
-!-----------------------------------------------------------------------------
-! Prior to 2/14/14:
-! The IF statement means we don't have to cycle (bmy, 2/14/14)
-!      ENDDO  LLOOP
-!-----------------------------------------------------------------------------
       ENDDO
       ENDDO
       ENDDO
@@ -3543,12 +3501,6 @@
          IS_POLAR = ((BOX_LAT_S.lt.PSC_MINLAT).or.
      &               (BOX_LAT_N.gt.PSC_MAXLAT))
          ! Loop over longitudinal boxes
-!-----------------------------------------------------------------------------
-! Prior to 2/14/14:
-! Need to pull the L-loop to the top; this is more efficient (bmy, 2/14/14)
-!         DO I=1,IIPAR
-!            LLOOP: DO L=1,LLPAR
-!-----------------------------------------------------------------------------
          DO I = 1, IIPAR
 
                ! Get local conditions
@@ -4015,13 +3967,6 @@
                NDENS_AER(I,J,L,I_SLA)= NDENS_AER_BOX    ! #/m3
                SAD_AER(I,J,L,I_SLA)  = SAD_AER_BOX      ! cm2/cm3
 
-!-----------------------------------------------------------------------------
-! Prior to 2/14/14:
-! We don't need to label LLOOP anymore (bmy, 2/14/14)
-!            ENDDO LLOOP ! L
-!         ENDDO ! I
-!      ENDDO ! J
-!-----------------------------------------------------------------------------
          ENDDO
       ENDDO
       ENDDO
@@ -5418,17 +5363,6 @@
      &     NN            == ILAT       .and. 
      &     NL            == IPVERT            ) THEN
 
-!----------------------------------------------------------------------------
-! Prior to 2/14/14:
-! Now order the DO loops L-J-I, this is most efficient (bmy, 2/14/14)
-!         DO I=1,NTL
-!         DO J=1,NN
-!         DO L=1,NL
-!         STATE_PSC(I,J,L) = INT(FLOOR(TMP(I,J,L)))
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!----------------------------------------------------------------------------
          DO L = 1, NL
          DO J = 1, NN
          DO I = 1, NTL
@@ -5514,11 +5448,6 @@
       DO L=1,LCLOCK
       DO J=1,JJPAR
       DO I=1,IIPAR
-!-----------------------------------------------------------------------------
-! Prior to 2/14/14:
-! Make the L-Loop the outermost loop, for efficiency (bmy, 2/14/14)
-!      DO L=1,LCLOCK
-!-----------------------------------------------------------------------------
          State_Chm%Tracers(I,J,L,IDTCLOCK) = CLOCKMR
       ENDDO ! L
       ENDDO ! I
@@ -5608,13 +5537,6 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-!---------------------------------------------------------------------------
-! Prior to 2/14/14:
-! Need to pull the L-loop to the top for efficiency (bmy, 2/14/14)
-!      DO J=1,JJPAR
-!      DO I=1,IIPAR
-!      DO L=1,LLPAR
-!---------------------------------------------------------------------------
          READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
@@ -5757,12 +5679,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, IJWINDOW, DAYCOLUMN, GMU )
 !$OMP+PRIVATE( LMINPHOT, PHOTDELTA, SO4_IN, SO4_DELTA )
-!----------------------------------------------------------------------------
-! Prior to 2/14/14:
-! Change loop order to J-I, which is more efficient (bmy, 2/14/14)
-!      DO I=1,IIPAR
-!      DO J=1,JJPAR
-!----------------------------------------------------------------------------
       DO J=1,JJPAR
       DO I=1,IIPAR
 

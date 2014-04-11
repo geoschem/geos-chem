@@ -1211,15 +1211,6 @@
                !========================================================
                IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
                   CALL SET_CH3Br( N_TRACERS, TCVV,
-!-----------------------------------------------------------------------------
-! Prior to 1/29/14:
-! Now pass .FALSE. in place of ITS_TIME_FOR_UNIT() to SET_CH3Br.  At this
-! point in the code, STT is in kg.  But passing a .TRUE. value to SET_CH3Br
-! will cause mixing ratios to be overwritten to STT withn the PBL.  Because
-! full-PBL mixing is not used for most fullchem simulations, we don't
-! anticipate that many fullchem runs have been affected. (bmy, 1/29/14)
-!     &                            STT,       ITS_TIME_FOR_UNIT(),
-!-----------------------------------------------------------------------------
      &                            STT,       .FALSE.,
      &                            State_Met  )
                ENDIF
@@ -1232,15 +1223,6 @@
                   CALL SET_BrO( N_TRACERS,
      &                          TCVV,
      &                          STT,
-!-----------------------------------------------------------------------------
-! Prior to 1/29/14:
-! Now pass .FALSE. in place of ITS_TIME_FOR_UNIT() to SET_BrO.  At this
-! point in the code, STT is in kg.  But passing a .TRUE. value to SET_BrO
-! will cause mixing ratios to be overwritten to STT withn the PBL.  Because
-! full-PBL mixing is not used for most fullchem simulations, we don't
-! anticipate that many fullchem runs have been affected. (bmy, 1/29/14)
-!     &                          ITS_TIME_FOR_UNIT(),
-!-----------------------------------------------------------------------------
      &                          .FALSE.,
      &                          State_Met            )
                ENDIF

@@ -492,11 +492,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: IOS
-!------------------------------------------------------------------------------
-! Prior to 9/17/13:
-! Need to extend the line length for many more tracers (bmy, 9/17/13)
-!      CHARACTER(LEN=255) :: LINE, MSG
-!------------------------------------------------------------------------------
       CHARACTER(LEN=500) :: LINE, MSG
 
       !=================================================================
@@ -587,11 +582,6 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                         :: EOF
-!----------------------------------------------------------------------------
-! Prior to 9/17/13:
-! Extend LINE to 500 chars to allow more tracers (bmy, 9/17/13)
-!      CHARACTER(LEN=255)              :: LINE, MSG
-!----------------------------------------------------------------------------
       CHARACTER(LEN=MAXDIM)           :: LINE
       CHARACTER(LEN=255)              :: MSG
 
@@ -4839,15 +4829,6 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! NDxx flags
-!-----------------------------------------------------------------------------
-! Prior to 2/3/14:
-! NOTE: These variables are in Headers/CMN_DIAG_mod.F, so we don't need
-! to reference these.  Lee Murray says that this causes the code to choke
-! when compiling GEOS-Chem on Mac. (bmy, 2/3/14)
-!      USE DIAG_MOD,           ONLY: TINDEX
-!      USE DIAG_MOD,           ONLY: TCOUNT
-!      USE DIAG_MOD,           ONLY: TMAX
-!-----------------------------------------------------------------------------
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -8810,6 +8791,7 @@
       USE Error_Mod,          ONLY : Debug_Msg
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Global_CH4_Mod,     ONLY : Init_Global_CH4
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
@@ -8844,7 +8826,7 @@
 !  29 Mar 2013 - R. Yantosca - Now call INIT_TROPOPAUSE (so that we can pass
 !                              a LVARTROP from Input_Opt and not logical_mod.F)
 !  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_CO
-!  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_OX and INIT_TAGGED_CH4
+!  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_OX and INIT_GLOBAL_CH4
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8920,9 +8902,16 @@
          CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
       ENDIF
 
-      !IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-      !   CALL INIT_CH4
-      !ENDIF
+      ! Initialize "global_ch4_mod.F"
+      IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+         CALL INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
+      ENDIF
+
+      ! Initialize "global_ch4_mod.F"
+      IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+         CALL INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
+      ENDIF
+
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
       CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )

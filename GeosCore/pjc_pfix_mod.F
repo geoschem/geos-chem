@@ -184,16 +184,6 @@
       ! Dynamic timestep [s]
       REAL*8,  INTENT(IN)  :: D_DYN
 
-!------------------------------------------------------------------------------
-! Prior to 11/4/13:
-! Eliminate array temporaries by accepting assumed-shape arguments into this
-! routine. (mpayer, 11/4/13)
-!      ! True PSurface at middle of dynamic timestep [hPa]
-!      REAL*8,  INTENT(IN)  :: P1(IIPAR,JJPAR)
-!
-!      ! True PSurface at end    of dynamic timestep [hPa]
-!      REAL*8,  INTENT(IN)  :: P2(IIPAR,JJPAR)
-!------------------------------------------------------------------------------
       ! True PSurface at middle of dynamic timestep [hPa]
       REAL*8,  INTENT(IN)  :: P1(:,:)
 

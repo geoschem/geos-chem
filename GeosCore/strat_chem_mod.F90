@@ -81,13 +81,6 @@ MODULE STRAT_CHEM_MOD
   INTEGER              :: NSCHEM          ! Number of species upon which to 
                                           ! apply P's & k's in GEOS-Chem
   ! Arrays
-!------------------------------------------------------------------------------
-! Prior to 4/3/14:
-! Change arrays from REAL*8 to REAL*4 to reduce memory footprint (bmy, 4/3/14)
-!  REAL*8,  ALLOCATABLE, TARGET :: PROD(:,:,:,:)   ! Production rate [v/v/s]
-!  REAL*8,  ALLOCATABLE, TARGET :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
-!  REAL*8,  ALLOCATABLE, TARGET :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
-!------------------------------------------------------------------------------
   REAL*4,  ALLOCATABLE, TARGET :: PROD(:,:,:,:)   ! Production rate [v/v/s]
   REAL*4,  ALLOCATABLE, TARGET :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
   REAL*4,  ALLOCATABLE, TARGET :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
@@ -110,12 +103,6 @@ MODULE STRAT_CHEM_MOD
   INTEGER              :: NymdInit, NhmsInit  ! Initial date
   REAL*8               :: TpauseL_Cnt         ! Tropopause counter
   REAL*8, ALLOCATABLE  :: TpauseL(:,:)        ! Tropopause level aggregator
-!----------------------------------------------------------------------------
-! Prior to 4/3/14:
-! Change arrays from REAL*8 to REAL*4 to reduce memory footprint (bmy, 4/3/14)
-!  REAL*8, ALLOCATABLE  :: MInit(:,:,:,:)      ! Init. atm. state for STE period
-!  REAL*8, ALLOCATABLE  :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
-!----------------------------------------------------------------------------
   REAL*4, ALLOCATABLE  :: MInit(:,:,:,:)      ! Init. atm. state for STE period
   REAL*4, ALLOCATABLE  :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                               !   (total P - L) [kg period-1]
@@ -779,11 +766,6 @@ CONTAINS
     INTEGER            :: st4d(4)                        ! netCDF start
     INTEGER            :: ct4d(4)                        ! netCDF count
     REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
-!------------------------------------------------------------------------------
-! Prior to 4/3/14:
-! We no longer need this (bmy, 4/3/14)
-!    REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR )  ! Actual vertical res
-!------------------------------------------------------------------------------
     CHARACTER(LEN=14)  :: TRACER_NAME(Input_Opt%N_TRACERS)
 
     ! Pointers
@@ -794,12 +776,6 @@ CONTAINS
     !=================================================================
 
     ! Intialize arrays
-!------------------------------------------------------------------------------
-! Prior to 4/3/14:
-! Initialize w/ 0e0 for REAL*4 (bmy, 4/3/14)
-!    LOSS = 0d0
-!    PROD = 0d0
-!------------------------------------------------------------------------------
     LOSS = 0e0
     PROD = 0e0
 
@@ -855,14 +831,6 @@ CONTAINS
     call NcRd( array, fileID, 'species', st4d, ct4d )
     call NcCl( fileID )
 
-!------------------------------------------------------------------------------
-! Prior to 4/3/14:
-!   ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
-!   call transfer_3D( array, array2 )
-!
-!    STRAT_OH(:,:,:) = ARRAY2
-!------------------------------------------------------------------------------
-
     ! Resize to LLPAR
     CALL TRANSFER_3D( array, STRAT_OH )
 
@@ -894,14 +862,6 @@ CONTAINS
        ct4d = (/ IIPAR, JJPAR, LGLOB,  1  /)              ! Count
        call NcRd( array, fileID, 'prod', st4d, ct4d )
 
-!-----------------------------------------------------------------------------
-! Prior to 4/3/14:
-! PROD is now REAL*4 (bmy, 4/13/14)
-!       ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
-!       call transfer_3D( array, array2 )
-!
-!       PROD(:,:,:,N) = ARRAY2
-!-----------------------------------------------------------------------------
        ! Resize the data to LLPAR levels (if necessary)
        ptr_3D => PROD(:,:,:,N)
        CALL TRANSFER_3D( array, ptr_3D )
@@ -918,14 +878,6 @@ CONTAINS
        ct4d = (/ IIPAR, JJPAR, LGLOB,  1  /)              ! Count
        call NcRd( array, fileID, 'loss', st4d, ct4d )
 
-!-----------------------------------------------------------------------------
-! Prior to 4/3/14:
-! LOSS is now REAL*4 (bmy, 4/13/14)
-!       ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
-!       call transfer_3D( array, array2 )
-!
-!       LOSS(:,:,:,N) = ARRAY2
-!-----------------------------------------------------------------------------
        ! Resize the data to LLPAR levels (if necessary)
        ptr_3D => LOSS(:,:,:,N)
        CALL TRANSFER_3D( array, ptr_3D )
@@ -1085,20 +1037,9 @@ CONTAINS
     INTEGER            :: J_f2c       (        JJPAR           )
     REAL*4             :: COLUMN      (               LGLOB    )
     REAL*4             :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
-!---------------------------------------------------------------------------
-! Prior to 4/3/14:
-! This is no longer needed (bmy, 4/3/14)
-!    REAL*8             :: ARRAY2      ( IIPAR, JJPAR, LLPAR    )
-!---------------------------------------------------------------------------
 
     ! Pointers
-!---------------------------------------------------------------------------
-! Prior to 4/3/14:
-! This can now be made REAL*4 (bmy, 4/3/14)
-!    REAL*8, POINTER    :: ptr_3D(:,:,:)
-!---------------------------------------------------------------------------
     REAL*4, POINTER    :: ptr_3D(:,:,:)
-
 
     !=================================================================
     ! GET_RATES_INTERP begins here
@@ -1169,12 +1110,6 @@ CONTAINS
     ENDDO
     ENDDO
     call NcCl( fileID )
-!-----------------------------------------------------------------------------
-! Prior to 4/3/14:
-!    ptr_3D => STRAT_OH
-!    call transfer_3D( array, ptr_3D )
-!    NULLIFY( ptr_3D )
-!-----------------------------------------------------------------------------
 
     ! Resize column to 1:LLPAR
     CALL TRANSFER_3D( array, STRAT_OH )
@@ -1290,11 +1225,6 @@ CONTAINS
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
        ptr_3d => LOSS(:,:,:,N)
-!-----------------------------------------------
-! Prior to 4/3/14:
-! Array2 should be ptr_3d (bmy, 4/3/14)
-!       call transfer_3D( array, array2 )
-!-----------------------------------------------
        call transfer_3D( array, ptr_3D )
        NULLIFY( ptr_3D )
 
@@ -1738,10 +1668,6 @@ CONTAINS
        ! Allocate array to hold monthly mean OH mixing ratio
        ALLOCATE( STRAT_OH( IIPAR, JJPAR, LLPAR ), STAT=AS )
        IF ( AS /=0 ) CALL ALLOC_ERR( 'STRAT_OH' )
-!-----------------------------------------------------------------------------
-! Prior to 4/3/14:
-!       STRAT_OH = 0d0
-!-----------------------------------------------------------------------------
        STRAT_OH = 0e0
 
        !===========!
@@ -1777,19 +1703,11 @@ CONTAINS
     ! Allocate PROD -- array for clim. production rates [v/v/s]
     ALLOCATE( PROD( IIPAR, JJPAR, LLPAR, NSCHEM ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'PROD' )
-!-----------------------------------------------------------------------------
-! Prior to 4/3/14:
-!    PROD = 0d0
-!-----------------------------------------------------------------------------
     PROD = 0e0
 
     ! Allocate LOSS -- array for clim. loss freq [s-1]
     ALLOCATE( LOSS( IIPAR, JJPAR, LLPAR, NSCHEM ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'LOSS' )
-!-----------------------------------------------------------------------------
-! Prior to 4/3/14:
-!    LOSS = 0d0
-!-----------------------------------------------------------------------------
     LOSS = 0e0
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
@@ -1812,10 +1730,6 @@ CONTAINS
     ! Array to aggregate the stratospheric chemical tendency [kg period-1]
     ALLOCATE( SCHEM_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCHEM_TEND' )
-!-----------------------------------------------------------------------------
-! Prior to 4/3/14:
-!    SCHEM_TEND = 0d0
-!-----------------------------------------------------------------------------
     SCHEM_TEND = 0e0
 
     ! Allocate and initialize bromine arrays

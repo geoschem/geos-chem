@@ -769,13 +769,6 @@
          ! If change in soil moisture is > 0.01 (rains)
          IF ( GDIFF > 0.01 ) THEN
 
-!-----------------------------------------------------------------------------
-! Prior to 10/28/13:
-! Now add a numerical trap to prevent log(0) from occurring, which would
-! cause a floating-point error. (mpayer, bmy, 10/28/13)
-!            !Initialize new pulse factor (dry period hours)
-!            PFACTOR = 13.01 * LOG( DRYPERIOD ) - 53.6
-!-----------------------------------------------------------------------------
             ! Initialize new pulse factor (dry period hours)
             IF ( DRYPERIOD > 0 ) THEN
                PFACTOR = 13.01 * LOG( DRYPERIOD ) - 53.6

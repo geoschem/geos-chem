@@ -587,17 +587,6 @@
      &         ( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
-!-----------------------------------------------------------------------------
-! Prior to 10/15/13:
-! PARANOX is not needed for offline aerosol simulations, which do not
-! carry NO or O3.  Remove this subroutine call. (bmy, 10/15/13)
-!         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-!        IF ( ( LICOADSSHIP .or.  LEDGARSHIP .or. 
-!     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
-!            CALL READ_PARANOX_LUT
-!         ENDIF
-!-----------------------------------------------------------------------------
-
          ! Seasalt aerosol emission
          IF ( LSSALT ) THEN 
             CALL EMISSSEASALT
@@ -725,17 +714,6 @@
             CALL EMISS_ICOADS_SHIP( am_I_Root, Input_Opt,
      &                              State_Chm, RC         )
          ENDIF
-
-!-----------------------------------------------------------------------------
-! Prior to 10/15/13:
-! NOTE: PARANOX does not apply to tagged CO simulations, which do not carry
-! NO or O3 tracers.  Disable this subroutine call (bmy, 10/15/13)
-!         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-!         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
-!     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
-!            CALL READ_PARANOX_LUT
-!         ENDIF
-!-----------------------------------------------------------------------------
 
          ! Now call EMISSDR for Tagged CO fossil fuel emissions, 
          ! so that we get the same emissions for Tagged CO as 
@@ -899,17 +877,6 @@
             CALL EMISS_ICOADS_SHIP
      &         ( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
-
-!-----------------------------------------------------------------------------
-! Prior to 10/15/13:
-! NOTE: PARANOX does not apply to tagged CO simulations, which do not carry
-! NO or O3 tracers.  Disable this subroutine call (bmy, 10/15/13)
-!         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-!         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
-!     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
-!            CALL READ_PARANOX_LUT
-!         ENDIF
-!-----------------------------------------------------------------------------
 
          ! Emit H2/HD
          CALL EMISS_H2_HD

@@ -545,13 +545,6 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
          ! Get NH4 mass from the bulk mass and scale to bin with sulfate
          IF ( SRTNH4 > 0 ) THEN
-
-!------------------------------------------------------------------------------
-! Prior to 1/29/14:
-! Rewrite subroutine call to avoid array temporaries
-!            CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4),
-!     &                         TRANSFER(1:IBINS)  )
-!------------------------------------------------------------------------------
             CALL NH4BULKTOBIN( MK(:,SRTSO4), STT(I,J,L,IDTNH4), 
      &                         TRANSFER )
             MK(1:IBINS,SRTNH4) = TRANSFER(1:IBINS)
@@ -662,15 +655,6 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
            ERR_MSG = 'After COND_NUC'
             ! check for NaN and Inf (win, 10/4/08)
             do jc = 1, icomp-1
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 1/28/14:
-!%%% Eliminate array temporary in call to CHECK_VALUE.  Now use ERR_IND
-!%%% array instead of a constructor list (/I,J,L,0/).  (bmy, 1/28/14)
-!%%%              call check_value(Gcout(jc),(/I,J,L,0/),ERR_VAR,
-!%%%    &              ERR_MSG)
-!%%%!               call check_value(Gcout(jc),(/I,J,L,0/),'Gcout',
-!%%%!     &              'After COND_NUC')
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                ERR_IND(1) = I
                ERR_IND(2) = J
                ERR_IND(3) = L
@@ -1188,13 +1172,6 @@ c      print*,'mcond',mcond,'mcond1',mcond1
 c      if (CSch.gt.CSch_tol) then ! condensation sink didn't change much use whole timesteps
          ! get starting adaptive timestep to not allow condensationk sink
          ! to change that much
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 1/28/14:
-!%%% BUG FIX: Do not allow a division by zero to occur.  Set ADDT to zero
-!%%% if CSCH is zero.  ADDT is reset to MIN_TSTEP below so that should be OK.
-!%%% (bmy, 1/28/14)
-!%%%      addt = addt*CSch_tol/CSch/2
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Avoid div-by-zero (bmy, 1/28/14)
          IF ( ABS( CSch ) > 0d0 ) THEN
             addt = addt*CSch_tol/CSch/2d0
@@ -1407,14 +1384,6 @@ Cjrp                  print*,''
 Cjrp
 Cjrp                  addt = min(addt,time_rem)
 Cjrp               else
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 1/28/14:
-!%%% BUG FIX: Do not allow a division by zero to occur.  Set ADDT to zero
-!%%% if CSCH is zero.  ADDT is reset to MIN_TSTEP below so that should be OK.
-!%%% (bmy, 1/28/14)
-!%%%               addt = min(addt*CSch_tol/CSch,addt*1.5d0) ! allow adaptive timestep to change
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                ! Allow adaptive timestep to change
                ! Avoid div-by-zero error
@@ -3399,13 +3368,6 @@ Cjrp      endif
       ENDDO
 
       ! Take the bulk NH4 and allocate to size-resolved NH4
-!-----------------------------------------------------------------------------
-! Prior to 1/29/14:
-! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
-!      IF ( SRTNH4 > 0 ) 
-!     &     CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4), 
-!    &                        MK(1:IBINS,SRTNH4) )
-!-----------------------------------------------------------------------------
       IF ( SRTNH4 > 0 ) THEN
          CALL NH4BULKTOBIN( MK(:,SRTSO4), STT(I,J,L,IDTNH4), 
      &                      MK(:,SRTNH4) )
@@ -3687,13 +3649,6 @@ Cjrp      endif
       ENDDO
 
       ! Take the bulk NH4 and allocate to size-resolved NH4
-!-----------------------------------------------------------------------------
-! Prior to 1/29/14:
-! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
-!      IF ( SRTNH4 > 0 ) 
-!     &     CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4), 
-!     &                        MK(1:IBINS,SRTNH4) )
-!-----------------------------------------------------------------------------
       IF ( SRTNH4 > 0 ) THEN
          CALL NH4BULKTOBIN( MK(:,SRTSO4), STT(I,J,L,IDTNH4), 
      &                      MK(:,SRTNH4) )
@@ -4832,12 +4787,6 @@ C original         call mnfix(Nkf,Mkf)
          if (printdebug) negvalue=.true. !signal received to printdebug (win, 4/8/06)
          call mnfix(Nkf,Mkf,negvalue) !<step5.1> bug fix call argument (win, 4/15/06) !<step4.2> Add call argument to carry tell where mnfix found
                                 ! the negative value (win, 9/12/05)
-         !-------------------------------------------------------------------
-         ! Prior to 1/25/10:
-         ! Bug fix: You can't use == to compare logicals, you have to either
-         ! use IF ( negvalue .eqv. .TRUE. ) or IF ( negvalue ) (bmy, 1/25/10)
-         !if(negvalue==.true.)STOP 'MNFIX terminate' !(win, 9/12/05)
-         !-------------------------------------------------------------------
          if ( negvalue ) STOP 'MNFIX terminate' !(win, 9/12/05)
 
          !Call condensation routine
@@ -5908,11 +5857,6 @@ c
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
-!------------------------------------------------------------------------------
-! Prior to 1/30/14:
-! Now use Input_Opt for the data directory (bmy, 1/30/14)
-!      USE DIRECTORY_MOD,      ONLY: DATA_DIR
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDTSF1, IDTSS1, IDTECIL1, IDTECOB1
       USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTDUST1
 !
@@ -5929,12 +5873,6 @@ c
 !
       INTEGER              :: AS, K, I,J,L, dum1, dum2, dum3, LUN
       REAL*8               :: Mo
-!------------------------------------------------------------------------------
-! Prior to 1/30/14:
-! Make all character strings 255 chars wide (bmy, 1/30/14)
-!      character*80         :: filename
-!      character*80         :: fname(4)
-!------------------------------------------------------------------------------
       CHARACTER(LEN=255)   :: filename
       CHARACTER(LEN=255)   :: fname(4)     
       CHARACTER(LEN=255)   :: DATA_DIR
@@ -6063,28 +6001,12 @@ c         SRTH2O = ICOMP
       ! fraction as a function of chemical composition.
       !=================================================================
       IF ( IBINS == 12 .OR. IBINS == 15 ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 1/30/14:
-! Now read big files from a shared data directory (bmy, 1/30/14)
-!         fname(1) = 'binact02_12.dat'
-!         fname(2) = 'binact10_12.dat'
-!         fname(3) = 'fraction02_12.dat'
-!         fname(4) = 'fraction10_12.dat'
-!-----------------------------------------------------------------------------
          fname(1) = TRIM( DATA_DIR ) // 'binact02_12.dat'
          fname(2) = TRIM( DATA_DIR ) // 'binact10_12.dat'
          fname(3) = TRIM( DATA_DIR ) // 'fraction02_12.dat'
          fname(4) = TRIM( DATA_DIR ) // 'fraction10_12.dat'
 
       ELSE IF ( IBINS == 30 .OR. IBINS == 40 ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 1/30/14:
-! Now read big files from a shared data directory (bmy, 1/30/14)
-!         fname(1) = 'binact02.dat'
-!         fname(2) = 'binact10.dat'
-!         fname(3) = 'fraction02.dat'
-!         fname(4) = 'fraction10.dat'
-!-----------------------------------------------------------------------------
          fname(1) = TRIM( DATA_DIR ) // 'binact02.dat'
          fname(2) = TRIM( DATA_DIR ) // 'binact10.dat'
          fname(3) = TRIM( DATA_DIR ) // 'fraction02.dat'
@@ -6909,12 +6831,6 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
          ! Get NH4 mass from the bulk mass and scale to bin with sulfate
          IF ( SRTNH4 > 0 ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 1/29/14:
-! Rewrite subroutine call to avoid array temporaries (bmy, 1/29/14)
-!            CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4),
-!     &                         XFER(1:IBINS)  )
-!-----------------------------------------------------------------------------
             CALL NH4BULKTOBIN( MK(:,SRTSO4), STT(I,J,L,IDTNH4), XFER  )
             MK(1:IBINS,SRTNH4) = XFER(1:IBINS)
             Gc(SRTNH4) = STT(I,J,L,IDTNH3) 

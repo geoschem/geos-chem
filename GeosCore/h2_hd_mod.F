@@ -241,15 +241,6 @@
 
          ! Allocate all module arrays
          CALL INIT_H2_HD
-!----------------------------------------------------------------
-! Prior to 4/10/14:
-! This is now called from GIGC_Init_Extra (bmy, 4/10/14) 
-!         CALL INIT_TAGGED_CO
-!----------------------------------------------------------------
-
-         !! Define geographic regions for both fossil fuel & biomass burning
-         !CALL DEFINE_FF_CO_REGIONS( FF_REGION )         
-         !CALL DEFINE_BB_CO_REGIONS( BB_REGION )
 
          ! Set first-time flag to false
          FIRSTEMISS = .FALSE.
@@ -851,10 +842,6 @@
          MONTH = GET_MONTH()
 
          ! Global OH 
-!-----------------------------------------------------------------------------
-! Prior to 10/23/13:
-!         CALL GET_GLOBAL_OH( MONTH, State_Met )
-!-----------------------------------------------------------------------------
          CALL GET_GLOBAL_OH
      &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
 

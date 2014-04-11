@@ -32,18 +32,6 @@
       ! Required size of aerosol arrays
       INTEGER, PARAMETER :: NALLAER = (NRHAER*NRH)+NSTRATAER
 
-!------------------------------------------------------------------------------
-! Prior to 2/21/14:
-! These are no longer parameters, but are set in Init_CMN_FJ below. LLPAR is
-! no longer a parameter in CMN_SIZE_mod, so it can't be used to define a
-! parameter (mps, 2/21/14)
-!      INTEGER, PARAMETER :: L_=LLPAR   ! Number of CTM layers
-!      INTEGER, PARAMETER :: L1_=L_+1   ! Number of CTM layer edges
-!      INTEGER, PARAMETER :: L2_=L1_*2  ! Number of levels in FJX grid that
-!                                       ! inc. both edges and mid-points
-!      INTEGER, PARAMETER :: JVL_=LLPAR ! Vertical levels for J-values
-!------------------------------------------------------------------------------
-
       INTEGER            :: L_             ! Number of CTM layers
 
       INTEGER            :: L1_            ! Number of CTM layer edges
@@ -91,17 +79,6 @@
       ! Label of J-value used in the main chem model
       CHARACTER*50       :: JLABEL(JVN_)
 
-!------------------------------------------------------------------------------
-! Prior to 2/21/14:
-! These are no longer parameters, but are set in Init_CMN_FJ below. LLPAR is
-! no longer a parameter in CMN_SIZE_mod, so it can't be used to define a
-! parameter (mps, 2/21/14)
-!      ! JXL_: vertical(levels) dim for J-values computed within fast-JX
-!!      INTEGER, PARAMETER ::  JXL_=100, JXL1_=JXL_+1
-!     INTEGER, PARAMETER ::  JXL_=LLPAR, JXL1_=JXL_+1
-!     ! JXL2_: 2*JXL_ + 2 = mx no. levels in the basic Fast-JX grid (mid-level)
-!     INTEGER, PARAMETER ::  JXL2_=2*JXL_+2
-!------------------------------------------------------------------------------
       ! JXL_: vertical(levels) dim for J-values computed within fast-JX
       INTEGER            ::  JXL_
       INTEGER            ::  JXL1_
@@ -157,13 +134,6 @@
       ! ATAU0: minimum heating rate
       REAL*8, PARAMETER  :: ATAU0  = 0.010d0
 
-!------------------------------------------------------------------------------
-! Prior to 2/21/14:
-! These are no longer parameters, but are set in Init_CMN_FJ below. JXL is no
-! longer a parameter, so it can't be used to define a parameter (mps, 2/21/14)
-!      ! JTAUMX = maximum number of divisions (i.e., may not get to ATAUMN)
-!      INTEGER, PARAMETER  :: JTAUMX = (N_ - 4*JXL_)/2
-!------------------------------------------------------------------------------
       ! JTAUMX = maximum number of divisions (i.e., may not get to ATAUMN)
       INTEGER            :: JTAUMX
 

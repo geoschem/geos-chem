@@ -603,10 +603,6 @@
 
       ! Read offline OH fields once per month
       IF ( ITS_A_NEW_MONTH() ) THEN 
-!----------------------------------------------------------------------------
-! Prior to 10/23/13:
-!         CALL GET_GLOBAL_OH( GET_MONTH(), State_Met )
-!----------------------------------------------------------------------------
          CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, 
      &                       State_Met, GET_MONTH(), RC )
 
