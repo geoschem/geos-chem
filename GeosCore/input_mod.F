@@ -8785,6 +8785,7 @@
 !
       USE Aerosol_Mod,        ONLY : Init_Aerosol
       USE Carbon_Mod,         ONLY : Init_Carbon
+      USE C2H6_Mod,           ONLY : Init_C2H6
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
@@ -8792,6 +8793,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
+      USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
@@ -8827,6 +8829,7 @@
 !                              a LVARTROP from Input_Opt and not logical_mod.F)
 !  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_CO
 !  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_OX and INIT_GLOBAL_CH4
+!  11 Apr 2014 - R. Yantosca - Now call INIT_C2H6 and INIT_HCN_CH3CN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8886,10 +8889,32 @@
          CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
-      
+
+      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
+      CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CHEMGRID' )
+
       !-----------------------------------------------------------------
       ! Also initialize specialty simulation modules here
+      !
+      ! Hg modules are initialized in READ_MERCURY_MENU
+      ! POPS modules are initialized in READ_POPS_MENU
       !-----------------------------------------------------------------
+
+      ! Initialize "c2h6_mod.F"
+      IF ( Input_Opt%ITS_A_C2H6_SIM ) THEN
+         CALL INIT_C2H6( am_I_Root, Input_Opt, RC )
+      ENDIF
+
+      ! Initialize "global_ch4_mod.F"
+      IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+         CALL INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
+      ENDIF
+
+      ! Initialize "hcn_ch3cn_mod.F"
+      IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
+         CALL INIT_HCN_CH3CN( am_I_Root, Input_Opt, RC )
+      ENDIF
 
       ! Initialize "tagged_co_mod.F"
       IF ( Input_Opt%ITS_A_TAGCO_SIM   .or.
@@ -8901,21 +8926,6 @@
       IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
          CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
       ENDIF
-
-      ! Initialize "global_ch4_mod.F"
-      IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-         CALL INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
-      ENDIF
-
-      ! Initialize "global_ch4_mod.F"
-      IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-         CALL INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
-      ENDIF
-
-
-      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
-      CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CHEMGRID' )
 
       END SUBROUTINE GIGC_Init_Extra
 !EOC

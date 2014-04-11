@@ -95,6 +95,7 @@
       PUBLIC :: CHEM_HCN_CH3CN
       PUBLIC :: CLEANUP_HCN_CH3CN
       PUBLIC :: EMISS_HCN_CH3CN
+      PUBLIC :: INIT_HCN_CH3CN
 
       !=================================================================
       ! MODULE VARIABLES
@@ -286,6 +287,7 @@
 !  (4 ) IDBCO is now defined in TRACERID_MOD. (fp, 6/2009)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  11 Apr 2014 - R. Yantosca - Remove call to INIT_HCN_CH3CN
 !******************************************************************************
 !
 ! !USES:
@@ -363,12 +365,6 @@
 
       ! Current TAU value (integer)
       NTAU    = GET_TAU()
-
-      ! First-time initialization
-      IF ( FIRST ) THEN 
-         CALL INIT_HCN_CH3CN
-         FIRST = .FALSE.
-      ENDIF
 
       !=================================================================
       ! Process biomass burning/domestic fossil fuel HCN/CH3CN emissions
@@ -524,6 +520,7 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  11 Apr 2014 - R. Yantosca - Remove call to INIT_HCN_CH3CN
 !******************************************************************************
 ! 
 ! !USES:
@@ -594,12 +591,6 @@
 
       ! Assume success
       RC = GIGC_SUCCESS
-
-      ! First-time initialization (if not already done)
-      IF ( FIRST ) THEN
-         CALL INIT_HCN_CH3CN
-         FIRST = .FALSE.
-      ENDIF
 
       ! Read offline OH fields once per month
       IF ( ITS_A_NEW_MONTH() ) THEN 
@@ -903,46 +894,54 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_HCN_CH3CN
+      SUBROUTINE INIT_HCN_CH3CN( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine INIT_TAGGED_HCN_CH3CN allocates memory to module arrays.
 !  (bmy, 6/29/05)
 ! 
 !  NOTES:
+!  This routine is now called from GIGC_Init_Extra in input_mod.F. 
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
-      USE CMN_SIZE_MOD  ! Size parameters
-
-      ! Local variables
-      LOGICAL, SAVE      :: IS_INIT = .FALSE.
-      INTEGER            :: AS
-      
       !=================================================================
       ! INIT_TAGGED_CO begins here!
       !=================================================================
 
-      ! Return if we have already allocated arrays
-      IF ( IS_INIT ) RETURN
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Allocate arrays
-      ALLOCATE( HCN_REG_bb( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HCN_REG_bb' )         
+      ALLOCATE( HCN_REG_bb( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'HCN_REG_bb' )         
 
-      ALLOCATE( HCN_REG_df( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HCN_REG_df' )
+      ALLOCATE( HCN_REG_df( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'HCN_REG_df' )
 
-      ALLOCATE( CH3CN_REG_bb( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH3CN_REG_bb' )         
+      ALLOCATE( CH3CN_REG_bb( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CH3CN_REG_bb' )         
 
-      ALLOCATE( CH3CN_REG_df( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH3CN_REG_df' )
+      ALLOCATE( CH3CN_REG_df( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CH3CN_REG_df' )
       
-      ALLOCATE( EMIS_CO_df( IIPAR, JJPAR ), STAT=as )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMIS_CO_df' )
+      ALLOCATE( EMIS_CO_df( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMIS_CO_df' )
 
       ! Define geographic regions for biomass burning
       CALL DEFINE_BB_REGIONS
@@ -958,9 +957,6 @@
 
       ! Index of CH3CN tracers
       CH3CN_INDEX(:) = (/ 2, 7, 8, 9, 10 /)
-
-      ! Set flag
-      IS_INIT = .TRUE.
 
       ! Return to calling program
       END SUBROUTINE INIT_HCN_CH3CN

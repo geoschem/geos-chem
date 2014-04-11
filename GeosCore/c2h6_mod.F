@@ -24,6 +24,7 @@
       PUBLIC  :: EMISSC2H6
       PUBLIC  :: CHEMC2H6
       PUBLIC  :: CLEANUP_C2H6
+      PUBLIC  :: INIT_C2H6
 !
 ! PRIVATE DATA MEMBERS:
 !
@@ -56,6 +57,8 @@
 !  22 Mar 2012 - M. Payer    - Add function GET_C2H6_ANTHRO
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  11 Apr 2014 - R. Yantosca - Now declare INIT_C2H6 public, so that it can
+!                              be called from input_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -155,6 +158,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  11 Apr 2014 - R. Yantosca - Now call INIT_C2H6 from input_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,21 +201,12 @@
       LBIOFUEL       = Input_Opt%LBIOFUEL
       LANTHRO        = Input_Opt%LANTHRO
 
-      IF ( FIRSTEMISS ) THEN 
-
-         ! Allocate NGASC2H6 array, if this is the first emission 
-         CALL INIT_C2H6
-
-         ! Set first-time flag to false
-         FIRSTEMISS = .FALSE.
-      ENDIF
-
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      STT            => State_Chm%Tracers
 
       ! DTSRCE is the number of seconds per emission timestep
-      DTSRCE = GET_TS_EMIS() * 60d0
+      DTSRCE         = GET_TS_EMIS() * 60d0
 
       !=================================================================
       ! Process biomass C2H6 emissions ored in BURNEMIS(IDBC2H6,:,:) 
@@ -580,38 +575,52 @@
 ! !IROUTINE: init_c2h6
 !
 ! !DESCRIPTION: Subroutine INIT\_C2H6 allocates and zeroes the NGASC2H6 array,
-!  which holds global monthly mean natural gas C2H6 emissions. (qli, bmy,
-!  1/1/01, 10/15/02)
+!  which holds global monthly mean natural gas C2H6 emissions.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_C2H6
+      SUBROUTINE INIT_C2H6( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
-! 
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?! 
+!
+! !REMARKS:
+!  This routine is now called from GIGC_INIT_EXTRA (in GeosCore/input_mod.F).
+!
 ! !REVISION HISTORY:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
+!  11 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
-
       !=================================================================
       !  INIT_C2H6 begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Allocate NGASC2H6 array
-      ALLOCATE( NGASC2H6( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NGASC2H6' )
+      ALLOCATE( NGASC2H6( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NGASC2H6' )
 
       ! Zero NGASC2H6 array
       NGASC2H6 = 0d0

@@ -229,6 +229,8 @@
 !  23 Oct 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, RC to INIT_DAO
 !  13 Dec 2013 - M. Sulprizio- Now set USE_O3_FROM_MET logical flag during
 !                              initialization stage
+!  11 Apr 2014 - R. Yantosca - Now remove call to INIT_GLOBAL_CH4; this is
+!                              now done from routine GIGC_Init_Extra
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -486,9 +488,6 @@
       IF ( LLINOZ ) THEN
          CALL LINOZ_READ( am_I_Root, Input_Opt, RC )
       ENDIF
-
-      ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
-      IF ( ITS_A_CH4_SIM ) CALL INIT_GLOBAL_CH4
 
       ! Initialize MEGAN arrays, get 15-day avg temperatures
       IF ( LMEGAN ) THEN
