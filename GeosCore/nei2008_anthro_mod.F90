@@ -610,7 +610,7 @@
          ScNH3       = 0.996
          ScNH3_Ag    = 1.000
          ScNH3_NonAg = 0.952
-      ELSEIF ( THISYEAR == 2012 ) THEN ! scale based on 2010
+      ELSEIF ( THISYEAR .ge. 2012 ) THEN ! scale based on 2010
          ScCO        = 0.820
          ScNOx       = 0.794
          ScPM10      = 0.995
@@ -2142,7 +2142,7 @@
          ScNH3  = 0.996
          ScNH3_Ag    = 1.000
          ScNH3_NonAg = 0.952
-      ELSEIF ( THISYEAR == 2012 ) THEN ! scale based on 2010
+      ELSEIF ( THISYEAR .ge. 2012 ) THEN ! scale based on 2010
          ScCO   = 0.820
          ScNOx  = 0.794
          ScPM10 = 0.995
