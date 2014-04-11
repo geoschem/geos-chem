@@ -956,7 +956,7 @@
       N_TRACERS = Input_Opt%N_TRACERS
 
       ! DTCHEM is the number of seconds per chemistry timestep
-      DTCHEM    = GET_TS_EMIS() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60d0
 
       ! Point to fields in the State_Met and State_Chm objects (bmy, 4/10/14)
       AD        => State_Met%AD
