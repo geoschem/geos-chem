@@ -91,7 +91,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_FVDAS_CONVECT
+      SUBROUTINE INIT_FVDAS_CONVECT( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine INIT_FVDAS_CONVECT initializes the HACK and 
@@ -106,10 +106,15 @@
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD  ! Size parameters
-      
-      ! Local variables
-      INTEGER            :: I, J, L, L2
-      REAL*8             :: HYPI(LLPAR+1)
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I, J, L, L2
+      REAL*8              :: HYPI(LLPAR+1)
 
       !=================================================================
       ! INIT_FVDAS_CONVECT begins here!
@@ -148,10 +153,11 @@
       !=================================================================
       ! Echo output
       !=================================================================
-
-      WRITE( 6, 100 )  LIMCNV, HYPI(LIMCNV) 
- 100  FORMAT( '     - GEOS-4 convection is capped at L = ', i3, 
-     &       ', or approx ', f6.1, ' hPa' )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 )  LIMCNV, HYPI(LIMCNV) 
+ 100     FORMAT( '     - GEOS-4 convection is capped at L = ', i3, 
+     &          ', or approx ', f6.1, ' hPa' )
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE INIT_FVDAS_CONVECT

@@ -802,7 +802,8 @@ input_mod.o                 : input_mod.F                                    \
                               tracer_mod.o            transport_mod.o        \
                               wetscav_mod.o           tagged_co_mod.o        \
                               tagged_ox_mod.o         global_ch4_mod.o       \
-                              c2h6_mod.o              hcn_ch3cn_mod.o
+                              c2h6_mod.o              hcn_ch3cn_mod.o        \
+                              fvdas_convect_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          global_hno3_mod.o      \

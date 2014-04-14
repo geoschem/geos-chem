@@ -544,6 +544,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  14 Apr 2014 - R. Yantosca - Remove array temporary in call to FVDAS_CONVECT
+!  14 Apr 2014 - R. Yantosca - Also call INIT_FVDAS_CONVECT from input_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -552,20 +554,18 @@
 !
       LOGICAL, SAVE   :: FIRST = .TRUE.
       INTEGER         :: I, ISOL, J, L, L2, N, NSTEP
-      !INTEGER         :: INDEXSOL(N_TRACERS)
       INTEGER         :: CONVDT
-      !REAL*8          :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
       REAL*8          :: RPDEL(IIPAR,JJPAR,LLPAR)
       REAL*8          :: DP(IIPAR,JJPAR,LLPAR)
       REAL*8          :: P1, P2, TDT
       INTEGER         :: N_TOT_TRC
 #if   defined( APM )  
       INTEGER         :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA)
-      REAL*8          :: F       (IIPAR,JJPAR,LLPAR,
+      REAL*8, TARGET  :: F       (IIPAR,JJPAR,LLPAR,
      &                            Input_Opt%N_TRACERS+N_APMTRA)
 #else                 
       INTEGER         :: INDEXSOL(Input_Opt%N_TRACERS)
-      REAL*8          :: F       (IIPAR,JJPAR,LLPAR,
+      REAL*8, TARGET  :: F       (IIPAR,JJPAR,LLPAR,
      &                            Input_Opt%N_TRACERS)
 #endif
 
@@ -575,12 +575,14 @@
       REAL*8          :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL*8, POINTER :: STT     (:,:,:,:)   ! Ptr to Tracer concentrations
-      REAL*8, POINTER :: p_HKETA (:,:,:  )   ! Ptr to HKETA  met field
-      REAL*8, POINTER :: p_HKBETA(:,:,:  )   ! Ptr to HKBETA met field
-      REAL*8, POINTER :: p_ZMMU  (:,:,:  )   ! Ptr to ZMMU   met field
-      REAL*8, POINTER :: p_ZMMD  (:,:,:  )   ! Ptr to ZMMD   met field
-      REAL*8, POINTER :: p_ZMEU  (:,:,:  )   ! Ptr to ZMEU   met field
+      REAL*8, POINTER :: STT     (:,:,:,:)   ! Ptr to State_Chm%TRACERS
+      REAL*8, POINTER :: p_HKETA (:,:,:  )   ! Ptr to HKETA  (flipped in vert)
+      REAL*8, POINTER :: p_HKBETA(:,:,:  )   ! Ptr to HKBETA (flipped in vert)
+      REAL*8, POINTER :: p_ZMMU  (:,:,:  )   ! Ptr to ZMMU   (flipped in vert)
+      REAL*8, POINTER :: p_ZMMD  (:,:,:  )   ! Ptr to ZMMD   (flipped in vert)
+      REAL*8, POINTER :: p_ZMEU  (:,:,:  )   ! Ptr to ZMEU   (flipped in vert)
+      REAL*8, POINTER :: p_STT   (:,:,:,:)   ! Ptr to STT    (flipped in vert)
+      REAL*8, POINTER :: p_F     (:,:,:,:)   ! Ptr to F      (flipped in vert)
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
@@ -612,11 +614,15 @@
       ! TIMESTEP*2; will be divided by 2 before passing to CONVTRAN 
       TDT    = DBLE( CONVDT ) * 2.0D0 / DBLE( NSTEP )
 
-      ! First-time initialization
-      IF ( FIRST ) THEN
-         CALL INIT_FVDAS_CONVECT
-         FIRST = .FALSE.
-      ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 4/14/14:
+! Now call this from input_mod.F (bmy, 4/14/14)
+!      ! First-time initialization
+!      IF ( FIRST ) THEN
+!         CALL INIT_FVDAS_CONVECT
+!         FIRST = .FALSE.
+!      ENDIF
+!-----------------------------------------------------------------------------
          
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a INIT_FV' )
@@ -702,17 +708,25 @@
       ! (mpayer, 12/6/12)
       STT      => State_Chm%Tracers
 
-      ! Point to met fields and flip in vertical
-      p_HKETA  => State_Met%HKETA (:,:,LLPAR:1:-1  )
-      p_HKBETA => State_Met%HKBETA(:,:,LLPAR:1:-1  )
-      p_ZMMU   => State_Met%ZMMU  (:,:,LLPAR:1:-1  )
-      p_ZMMD   => State_Met%ZMMD  (:,:,LLPAR:1:-1  )
-      p_ZMEU   => State_Met%ZMEU  (:,:,LLPAR:1:-1  )
+      ! Point to various fields and flip in vertical.  This avoids 
+      ! array temporaries in the call to FVDAS_CONVECT (bmy, 4/14/14)
+      p_HKETA  => State_Met%HKETA  (:,:,LLPAR:1:-1  )
+      p_HKBETA => State_Met%HKBETA (:,:,LLPAR:1:-1  )
+      p_ZMMU   => State_Met%ZMMU   (:,:,LLPAR:1:-1  )
+      p_ZMMD   => State_Met%ZMMD   (:,:,LLPAR:1:-1  )
+      p_ZMEU   => State_Met%ZMEU   (:,:,LLPAR:1:-1  )
+      p_STT    => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_F      => F                (:,:,LLPAR:1:-1,:)
 
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,   
      &                    N_TOT_TRC, 
-     &                    STT   (:,:,LLPAR:1:-1,:),    
+!----------------------------------------------------------------------------
+! Prior to 4/14/14:
+! Eliminate an array temporary (bmy, 4/14/14)
+!     &                    STT   (:,:,LLPAR:1:-1,:),    
+!----------------------------------------------------------------------------
+     &                    p_STT,
      &                    RPDEL,         
      &                    p_HKETA,
      &                    p_HKBETA,
@@ -721,7 +735,12 @@
      &                    p_ZMEU,
      &                    DP,     
      &                    NSTEP,    
-     &                    F     (:,:,LLPAR:1:-1,:),         
+!----------------------------------------------------------------------------
+! Prior to 4/14/14:
+! Eliminate an array temporary (bmy, 4/14/14)
+!     &                    F     (:,:,LLPAR:1:-1,:),         
+!----------------------------------------------------------------------------
+     &                    p_F,
      &                    TCVV,   
      &                    INDEXSOL,
      &                    State_Met )
@@ -745,7 +764,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointers
-      NULLIFY( STT                                       )
+      NULLIFY( STT,     p_STT,    p_F                    )
       NULLIFY( p_HKETA, p_HKBETA, p_ZMMU, p_ZMMD, p_ZMEU )
 
       !### Debug! 

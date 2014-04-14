@@ -4278,6 +4278,7 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FVDAS_CONVECT_MOD,  ONLY : INIT_FVDAS_CONVECT
       USE LOGICAL_MOD,        ONLY : LCONV, LTURB
       USE LOGICAL_MOD,        ONLY : LNLPBL        ! (Lin, 03/31/09)
       USE GIGC_ErrCode_Mod
@@ -4311,7 +4312,8 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
-!                              when connecting to the GEOS-5 GCM.         
+!                              when connecting to the GEOS-5 GCM. 
+!  14 Apr 2014 - R. Yantosca - Now call INIT_FVDAS_CONVECT if using GEOS-4 met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4350,8 +4352,12 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
 
+      !=================================================================
+      ! Further error checks and initializations
+      !=================================================================
+
+#if !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
       ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-FP
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
       IF ( LNLPBL ) THEN
          IF( am_I_Root ) THEN
             WRITE(6,*) REPEAT( '=', 79 )
@@ -4362,6 +4368,11 @@
          ENDIF
          LNLPBL = .FALSE.
       ENDIF
+#endif
+
+#if defined( GEOS_4 ) 
+      ! Initialize GEOS-4 convection module here
+      CALL INIT_FVDAS_CONVECT( am_I_Root )
 #endif
 
       !=================================================================
