@@ -4313,7 +4313,6 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
 !                              when connecting to the GEOS-5 GCM. 
-!  14 Apr 2014 - R. Yantosca - Now call INIT_FVDAS_CONVECT if using GEOS-4 met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4368,11 +4367,6 @@
          ENDIF
          LNLPBL = .FALSE.
       ENDIF
-#endif
-
-#if defined( GEOS_4 ) 
-      ! Initialize GEOS-4 convection module here
-      CALL INIT_FVDAS_CONVECT( am_I_Root )
 #endif
 
       !=================================================================

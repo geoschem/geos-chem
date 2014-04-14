@@ -237,16 +237,6 @@
       REAL*8,         INTENT(IN)    :: TDT                
       REAL*8,         INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
       REAL*8,         INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)  
-!-----------------------------------------------------------------------------
-! Prior to 10/28/13:
-! Eliminate array temporary by accepting pointer variables into this routine
-! via assumed-shape arguments.  This is more efficient. (bmy, 10/28/13)
-!      REAL*8,         INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)
-!      REAL*8,         INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)
-!      REAL*8,         INTENT(IN)    :: MU(IIPAR,JJPAR,LLPAR)
-!      REAL*8,         INTENT(IN)    :: MD(IIPAR,JJPAR,LLPAR)
-!      REAL*8,         INTENT(IN)    :: EU(IIPAR,JJPAR,LLPAR)
-!-----------------------------------------------------------------------------
       REAL*8,         INTENT(IN)    :: ETA (:,:,:)
       REAL*8,         INTENT(IN)    :: BETA(:,:,:)
       REAL*8,         INTENT(IN)    :: MU  (:,:,:)
@@ -376,13 +366,6 @@
       INTEGER, INTENT(IN)    :: J, NTRACE
       REAL*8,  INTENT(IN)    :: TDT
       REAL*8,  INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)
-!-----------------------------------------------------------------------------
-! Prior to 10/28/13:
-! Eliminate array temporary by accepting pointer variables into this routine
-! via assumed-shape arguments.  This is more efficient. (bmy, 10/28/13)
-!      REAL*8,  INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)
-!      REAL*8,  INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)
-!-----------------------------------------------------------------------------
       REAL*8,  INTENT(IN)    :: ETA (:,:,:)
       REAL*8,  INTENT(IN)    :: BETA(:,:,:)
       REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
@@ -579,14 +562,6 @@
       ! Arguments
       INTEGER, INTENT(IN)  :: J 
       REAL*8,  INTENT(IN)  :: DP(IIPAR,JJPAR,LLPAR) 
-!------------------------------------------------------------------------------
-! Prior to 10/28/13:
-! Eliminate array temporary by accepting pointer variables into this routine
-! via assumed-shape arguments.  This is more efficient. (bmy, 10/28/13)
-!      REAL*8,  INTENT(IN)  :: MU(IIPAR,JJPAR,LLPAR)
-!      REAL*8,  INTENT(IN)  :: MD(IIPAR,JJPAR,LLPAR)
-!      REAL*8,  INTENT(IN)  :: EU(IIPAR,JJPAR,LLPAR)
-!------------------------------------------------------------------------------
       REAL*8,  INTENT(IN)  :: MU (:,:,:)
       REAL*8,  INTENT(IN)  :: MD (:,:,:)
       REAL*8,  INTENT(IN)  :: EU (:,:,:)

@@ -545,7 +545,6 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  14 Apr 2014 - R. Yantosca - Remove array temporary in call to FVDAS_CONVECT
-!  14 Apr 2014 - R. Yantosca - Also call INIT_FVDAS_CONVECT from input_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -614,16 +613,12 @@
       ! TIMESTEP*2; will be divided by 2 before passing to CONVTRAN 
       TDT    = DBLE( CONVDT ) * 2.0D0 / DBLE( NSTEP )
 
-!-----------------------------------------------------------------------------
-! Prior to 4/14/14:
-! Now call this from input_mod.F (bmy, 4/14/14)
-!      ! First-time initialization
-!      IF ( FIRST ) THEN
-!         CALL INIT_FVDAS_CONVECT
-!         FIRST = .FALSE.
-!      ENDIF
-!-----------------------------------------------------------------------------
-         
+      ! First-time initialization
+      IF ( FIRST ) THEN
+         CALL INIT_FVDAS_CONVECT( am_I_Root )
+         FIRST = .FALSE.
+      ENDIF
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a INIT_FV' )
 
