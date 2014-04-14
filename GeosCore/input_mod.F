@@ -8025,20 +8025,22 @@
 !  26 Nov 2012 - M. Payer    - Added ProTeX headers
 !  29 Nov 2012 - M. Payer    - Now pass Input_Opt, RC as arguments
 !  26 Mar 2013 - R. Yantosca - Now pass Input_Opt to INIT_POPS
+!  14 Apr 2014 - R. Yantosca - Now echo all POPs parameters to log file
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                    :: N
-      LOGICAL                    :: CHEM_PROCESS
-      CHARACTER(LEN=255)         :: SUBSTRS(MAXDIM)
-      CHARACTER(LEN=3)           :: POP_TYPE
-      REAL*8                     :: POP_XMW, POP_KOA, POP_KBC
-      REAL*8                     :: POP_K_POPG_OH
-      REAL*8                     :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL*8                     :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      INTEGER            :: N
+      LOGICAL            :: CHEM_PROCESS
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+      CHARACTER(LEN=3)   :: POP_TYPE
+      REAL*8             :: POP_XMW, POP_KOA, POP_KBC
+      REAL*8             :: POP_K_POPG_OH
+      REAL*8             :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8             :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
 
       !=================================================================
       ! READ_POPS_MENU begins here!
@@ -8101,12 +8103,19 @@
       IF( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'POPS MENU'
          WRITE( 6, '(  a)' ) '------------'
-         WRITE( 6, 120     ) 'Species of POP    : ', 
-     &                        POP_TYPE
-         WRITE( 6, 110     ) 'Chemistry on? : ', CHEM_PROCESS
-         WRITE( 6, 120     ) '=> POP Emissions file       : ',
-     &                        TRIM( POP_EMISDIR )
-         WRITE( 6, 130     ) 'Param 1:', POP_XMW
+         WRITE( 6, 120     ) 'Species of POP        : ', POP_TYPE
+         WRITE( 6, 110     ) 'Chemistry on?         : ', CHEM_PROCESS
+         WRITE( 6, 120     ) '=> POP Emissions file : ',
+     &                        TRIM( POP_EMISDIR )     
+         WRITE( 6, 130     ) 'POP_XMW               : ', POP_XMW
+         WRITE( 6, 130     ) 'POP_KOA               : ', POP_KOA
+         WRITE( 6, 130     ) 'POP_KBC               : ', POP_KBC
+         WRITE( 6, 130     ) 'POP_K_POPG_OH         : ', POP_K_POPG_OH
+         WRITE( 6, 130     ) 'POP_K_POPP_O3A        : ', POP_K_POPP_O3A
+         WRITE( 6, 130     ) 'POP_K_POPP_O3B        : ', POP_K_POPP_O3B
+         WRITE( 6, 130     ) 'POP_HSTAR             : ', POP_HSTAR
+         WRITE( 6, 130     ) 'POP_DEL_H             : ', POP_DEL_H
+         WRITE( 6, 130     ) 'POP_DEL_Hw            : ', POP_DEL_Hw 
       ENDIF
 
       ! FORMAT statements
@@ -8830,6 +8839,8 @@
 !  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_CO
 !  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_OX and INIT_GLOBAL_CH4
 !  11 Apr 2014 - R. Yantosca - Now call INIT_C2H6 and INIT_HCN_CH3CN
+!  14 Apr 2014 - R. Yantosca - Also call INIT_C2H6 if it's a fullchem sim
+!                              since we read C2H6 emissions from c2h6_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8902,7 +8913,8 @@
       !-----------------------------------------------------------------
 
       ! Initialize "c2h6_mod.F"
-      IF ( Input_Opt%ITS_A_C2H6_SIM ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. 
+     &     Input_Opt%ITS_A_C2H6_SIM     ) THEN
          CALL INIT_C2H6( am_I_Root, Input_Opt, RC )
       ENDIF
 

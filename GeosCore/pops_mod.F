@@ -333,6 +333,7 @@
       USE DIAG53_MOD,         ONLY : AD53_POPP_OC_O3
       USE DIAG53_MOD,         ONLY : AD53_POPP_BC_O3
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_H
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_KOA
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_KBC
@@ -378,6 +379,7 @@
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on CHEM_HG0_HG2
 !  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  14 Apr 2014 - R. Yantosca - Now prevent div-by-zero in computations below
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -517,6 +519,8 @@
       LOGICAL         :: LNLPBL
       LOGICAL         :: LGTMM
       REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+
+      REAL*8          :: DENOM
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -671,27 +675,59 @@
          ! Get AIRVOL
          AIR_VOL = State_Met%AIRVOL(I,J,L)
 
+!-----------------------------------------------------------------------------
+! Prior to 4/14/14:
+! Need to put error traps to prevent div-by-zero (bmy, 4/14/14)
+!         ! Define volume ratios:
+!         ! VR_OC_AIR = volume ratio of OC to air [unitless]     
+!         VR_OC_AIR   = C_OC_CHEM1 / AIR_VOL ! could be zero
+!
+!         ! VR_OC_BC  = volume ratio of OC to BC [unitless]
+!         VR_OC_BC = C_OC_CHEM1 / C_BC_CHEM1 ! could be zero or undefined
+!
+!         ! VR_BC_AIR = volume ratio of BC to air [unitless]
+!         VR_BC_AIR   = VR_OC_AIR / VR_OC_BC ! could be zero or undefined
+!
+!         ! VR_BC_OC  = volume ratio of BC to OC [unitless]
+!         VR_BC_OC    = 1d0 / VR_OC_BC ! could be zero or undefined
+!
+!         ! Redefine fractions of total POPs in box (I,J,L) that are OC-phase, 
+!         ! BC-phase, and gas phase with new time step (should only change if 
+!         ! temp changes or OC/BC concentrations change) 
+!         OC_AIR_RATIO = 1d0 / (KOA_T * VR_OC_AIR) 
+!         OC_BC_RATIO = 1d0 / (KOC_BC_T * VR_OC_BC) 
+!
+!         BC_AIR_RATIO = 1d0 / (KBC_T * VR_BC_AIR) 
+!         BC_OC_RATIO = 1d0 / (KBC_OC_T * VR_BC_OC)
+!-----------------------------------------------------------------------------
+
          ! Define volume ratios:
          ! VR_OC_AIR = volume ratio of OC to air [unitless]     
-         VR_OC_AIR   = C_OC_CHEM1 / AIR_VOL ! could be zero
+         VR_OC_AIR     = C_OC_CHEM1 / AIR_VOL ! could be zero
 
-         ! VR_OC_BC  = volume ratio of OC to BC [unitless]
-         VR_OC_BC    = C_OC_CHEM1 / C_BC_CHEM1 ! could be zero or undefined
+         ! VR_OC_BC = volume ratio of OC to BC [unitless]
+         VR_OC_BC      = SAFE_DIV( C_OC_CHEM1, C_BC_CHEM1, 0d0 )
 
          ! VR_BC_AIR = volume ratio of BC to air [unitless]
-         VR_BC_AIR   = VR_OC_AIR / VR_OC_BC ! could be zero or undefined
+         VR_BC_AIR     = SAFE_DIV( VR_OC_AIR,  VR_OC_BC,   0d0 )
 
-         ! VR_BC_OC  = volume ratio of BC to OC [unitless]
-         VR_BC_OC    = 1d0 / VR_OC_BC ! could be zero or undefined
+         ! VR_BC_OC = volume ratio of BC to OC [unitless]
+         VR_BC_OC      = SAFE_DIV( 1d0,        VR_OC_BC,   0d0 ) 
 
          ! Redefine fractions of total POPs in box (I,J,L) that are OC-phase, 
          ! BC-phase, and gas phase with new time step (should only change if 
          ! temp changes or OC/BC concentrations change) 
-         OC_AIR_RATIO = 1d0 / (KOA_T * VR_OC_AIR) 
-         OC_BC_RATIO = 1d0 / (KOC_BC_T * VR_OC_BC) 
+         DENOM         = KOA_T * VR_OC_AIR
+         OC_AIR_RATIO  = SAFE_DIV( 1d0,        DENOM,      0d0 )
 
-         BC_AIR_RATIO = 1d0 / (KBC_T * VR_BC_AIR) 
-         BC_OC_RATIO = 1d0 / (KBC_OC_T * VR_BC_OC)
+         DENOM         = KOC_BC_T * VR_OC_BC
+         OC_BC_RATIO   = SAFE_DIV( 1d0,        DENOM,      0d0 )
+
+         DENOM         = KBC_T * VR_BC_AIR
+         BC_AIR_RATIO  = SAFE_DIV( 1d0,        DENOM,      0d0 )
+
+         DENOM         = KBC_OC_T * VR_BC_OC
+         BC_OC_RATIO   = SAFE_DIV( 1d0,        DENOM,      0d0 )
 
          ! If there are zeros in OC or BC concentrations, make sure they
          ! don't cause problems with phase fractions
@@ -1311,6 +1347,7 @@
 !                              derived type object
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  14 Apr 2014 - R. Yantosca - Prevent div-by-zero error w/ SUM_OF_ALL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1622,8 +1659,10 @@
      &                      SUM_G_EM(I,J)
 
          ! Check that sum thru PBL is equal to original emissions array
-         SUM_OF_ALL(I,J) = POP_TOT_EM(I,J) / SUM_OF_ALL(I,J)
-        
+         ! NOTE: Prevent div-by-zero floating point error (bmy, 4/14/14)
+         IF ( SUM_OF_ALL(I,J) > 0d0 ) THEN 
+            SUM_OF_ALL(I,J) = POP_TOT_EM(I,J) / SUM_OF_ALL(I,J)
+         ENDIF
 
          !==============================================================
          ! ND53 diagnostic: POP emissions [kg]
