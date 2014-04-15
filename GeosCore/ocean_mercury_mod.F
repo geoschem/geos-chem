@@ -322,6 +322,7 @@
 !  25 Oct 2011 - H Amos - brought into v9-01-02
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  15 Apr 2014 - R. Yantosca - Eliminate array temporaries 
 !*****************************************************************************
      
       ! References F90 modules
@@ -351,6 +352,7 @@
       REAL*4               :: ARRAYbcpo( IGLOB, JGLOB, LGLOB )  ! bcpo
       REAL*4               :: ARRAYocpo( IGLOB, JGLOB, LGLOB )  ! ocpo
       REAL*4               :: ARRAYdst1( IGLOB, JGLOB, LGLOB )  ! dst1
+      REAL*4               :: ARRAYtemp( IGLOB, JGLOB, LGLOB )  ! temporary
 
       ! Arrays to hold bulk concentration and surface area
       REAL*4               :: ARRAYconc(IGLOB,JGLOB,LGLOB)  ! concentration
@@ -444,7 +446,13 @@
      &                 LGLOB,     ARRAYbcpo, QUIET=.TRUE. )
 
       ! convert REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAYbcpi + ARRAYbcpo , BC_CONC ) 
+!-----------------------------------------------------------------------------
+! Prior to 4/15/14:
+! Remove an array temporary (bmy, 4/15/14)
+!      CALL TRANSFER_3D_TROP( ARRAYbcpi + ARRAYbcpo , BC_CONC ) 
+!-----------------------------------------------------------------------------
+      ARRAYtemp = ARRAYbcpi + ARRAYbcpo
+      CALL TRANSFER_3D_TROP( ARRAYtemp, BC_CONC ) 
 
       ! ocpi, tracer = 35
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 35,      
@@ -457,7 +465,13 @@
      &                 LGLOB,     ARRAYocpo, QUIET=.TRUE. )
 
       ! convert REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAYocpi + ARRAYocpo , OC_CONC ) 
+!-----------------------------------------------------------------------------
+! Prior to 4/15/14:
+! Remove an array temporary (bmy, 4/15/14)
+!      CALL TRANSFER_3D_TROP( ARRAYocpi + ARRAYocpo , OC_CONC ) 
+!-----------------------------------------------------------------------------
+      ARRAYtemp = ARRAYocpi + ARRAYocpo
+      CALL TRANSFER_3D_TROP( ARRAYtemp, OC_CONC ) 
 
       ! dst1, tracer = 38   
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 49,  

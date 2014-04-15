@@ -741,7 +741,7 @@
             ! Stop w/ error if tropopause not found
             ! (i.e. in case TROPP value is bad)
             IF ( L .GT. LLPAR ) THEN
-               WRITE( 6, '(a)' ) 'GET_TPAUSE_LEVEL: CANNOT ' //
+               WRITE( 6, '(a)' ) 'CGM: GET_TPAUSE_LEVEL: CANNOT ' //
      &              'FIND T-PAUSE !'
                WRITE( 6, 160   ) L
  160           FORMAT( 'L reaches ', i3 )

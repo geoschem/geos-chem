@@ -830,45 +830,46 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Nov 2013 - M. Sulprizio- Now use pointer variables to flip met fields in
 !                              the vertical
+!  15 Apr 2014 - R. Yantosca - Remove array temporaries in call to GCAP_CONVECT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
-      !INTEGER       :: INDEXSOL(N_TRACERS) 
-      INTEGER       :: CONVDT    
-      !REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: P1, P2, TDT   
-      REAL*8        :: GAINMASS
-      INTEGER       :: N_TOT_TRC      
+      LOGICAL, SAVE    :: FIRST = .TRUE.
+      INTEGER          :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER          :: CONVDT    
+      REAL*8           :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8           :: P1, P2, TDT   
+      REAL*8           :: GAINMASS
+      INTEGER          :: N_TOT_TRC      
 #if   defined( APM )
-      INTEGER       :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA) 
-      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,
-     &                          Input_Opt%N_TRACERS+N_APMTRA)
+      INTEGER          :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA) 
+      REAL*8,  TARGET  :: F       (IIPAR,JJPAR,LLPAR,
+     &                            Input_Opt%N_TRACERS+N_APMTRA)
 #else
-      INTEGER       :: INDEXSOL(Input_Opt%N_TRACERS) 
-      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,
-     &                          Input_Opt%N_TRACERS)
+      INTEGER          :: INDEXSOL(Input_Opt%N_TRACERS) 
+      REAL*8,  TARGET  :: F       (IIPAR,JJPAR,LLPAR,
+     &                            Input_Opt%N_TRACERS)
 #endif
 
       ! For fields from Input_Opt
-      LOGICAL       :: LPRT
-      INTEGER       :: N_TRACERS
-      REAL*8        :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL          :: LPRT
+      INTEGER          :: N_TRACERS
+      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL*8, POINTER :: STT        (:,:,:,:)   ! Ptr to Tracer concentrations
-      REAL*8, POINTER :: p_UPDE     (:,:,:  )   ! Ptr to UPDE     met field
-      REAL*8, POINTER :: p_DNDE     (:,:,:  )   ! Ptr to DNDE     met field
-      REAL*8, POINTER :: p_ENTRAIN  (:,:,:  )   ! Ptr to ENTRAIN  met field
-      REAL*8, POINTER :: p_DETRAINE (:,:,:  )   ! Ptr to DETRAINE met field
-      REAL*8, POINTER :: p_UPDN     (:,:,:  )   ! Ptr to UPDN     met field
-      REAL*8, POINTER :: p_DNDN     (:,:,:  )   ! Ptr to DNDN     met field
-      REAL*8, POINTER :: p_DETRAINN (:,:,:  )   ! Ptr to DETRAINN met field
+      REAL*8,  POINTER :: STT        (:,:,:,:)   ! Ptr to Tracer concentrations
+      REAL*8,  POINTER :: p_UPDE     (:,:,:  )   ! Ptr to UPDE     met field
+      REAL*8,  POINTER :: p_DNDE     (:,:,:  )   ! Ptr to DNDE     met field
+      REAL*8,  POINTER :: p_ENTRAIN  (:,:,:  )   ! Ptr to ENTRAIN  met field
+      REAL*8,  POINTER :: p_DETRAINE (:,:,:  )   ! Ptr to DETRAINE met field
+      REAL*8,  POINTER :: p_UPDN     (:,:,:  )   ! Ptr to UPDN     met field
+      REAL*8,  POINTER :: p_DNDN     (:,:,:  )   ! Ptr to DNDN     met field
+      REAL*8,  POINTER :: p_DETRAINN (:,:,:  )   ! Ptr to DETRAINN met field
+      REAL*8,  POINTER :: p_STT      (:,:,:,:)   ! Ptr to STT (flipped)
+      REAL*8,  POINTER :: p_F        (:,:,:,:)   ! Ptr to F   (flipped)
 
       !=================================================================
       ! DO_GCAP_CONVECT begins here!
@@ -986,7 +987,7 @@
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      STT        => State_Chm%Tracers
 
       ! Point to met fields and flip in vertical
       p_UPDE     => State_Met%UPDE     (:,:,LLPAR:1:-1  )
@@ -996,14 +997,27 @@
       p_UPDN     => State_Met%UPDN     (:,:,LLPAR:1:-1  )
       p_DNDN     => State_Met%DNDN     (:,:,LLPAR:1:-1  )
       p_DETRAINN => State_Met%DETRAINN (:,:,LLPAR:1:-1  )
+      p_STT      => State_Chm%Tracers  (:,:,LLPAR:1:-1,:)
+      p_F        => F                  (:,:,LLPAR:1:-1,:)
 
       ! Call the GCAP convection routines 
       CALL GCAP_CONVECT( TDT, 
-     &                   STT      (:,:,LLPAR:1:-1,:), 
+!-----------------------------------------------------------------------------
+! Prior to 4/15/14:
+! Eliminate array temporary (bmy, 4/15/14)
+!     &                   STT      (:,:,LLPAR:1:-1,:), 
+!-----------------------------------------------------------------------------
+
+     &                   p_STT,
      &                   N_TOT_TRC,
      &                   DP, ! I think this is the correct way (bmy, 5/25/05)
      &                   NSTEP, 
-     &                   F        (:,:,LLPAR:1:-1,:),     
+!-----------------------------------------------------------------------------
+! Prior to 4/15/14:
+! Eliminate array temporary (bmy, 4/15/14)
+!     &                   F        (:,:,LLPAR:1:-1,:),     
+!-----------------------------------------------------------------------------
+     &                   p_F,
      &                   TCVV,   
      &                   INDEXSOL, 
      &                   p_UPDE,
@@ -1031,7 +1045,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT                                   )
+      NULLIFY( STT,    p_STT,  p_F                   )
       NULLIFY( p_UPDE, p_DNDE, p_ENTRAIN, p_DETRAINE )
       NULLIFY( p_UPDN, p_DNDN, p_DETRAINN            )
 
