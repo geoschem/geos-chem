@@ -551,11 +551,11 @@ CONTAINS
 
     ! fx, fy, fz and qtemp are now 4D arrays for parallelization purposes.
     ! (ccc, 4/1/09) 
-    REAL*8             :: fx (im, jm, km, nq)
-    REAL*8             :: fy (im, jm+1, km, nq)           ! one more for edges
-    REAL*8             :: fz  (im, jm, km, nq)
-    REAL*8             :: qtemp (im, jm, km, nq)
-    REAL*8             :: DTC(IM,JM,KM)               ! up/down flux temp array
+    REAL*8             :: fx    (im, jm,   km, nq)
+    REAL*8             :: fy    (im, jm+1, km, nq)    ! one more for edges
+    REAL*8             :: fz    (im, jm,   km, nq)
+    REAL*8             :: qtemp (im, jm,   km, nq)
+    REAL*8             :: DTC   (IM, JM,   KM    )    ! up/down flux temp array
     REAL*8             :: TRACE_DIFF                  ! up/down flux variable
                        
     LOGICAL, SAVE      :: first = .true.
@@ -5441,7 +5441,13 @@ CONTAINS
     REAL*8,  INTENT(IN)    :: wz(I1:I2, JU1:J2, K1:K2)
 
     ! Species concentration [mixing ratio]
-    REAL*8,  INTENT(IN)    :: qq1(ILO:IHI, JULO:JHI, K1:K2)
+!-----------------------------------------------------------------------------
+! Prior to 4/16/14:
+! QQ1 accepts a pointer argument, so it should be declared as assumed-shape,
+! which is more efficient of memory (bmy, 4/16/14)
+!    REAL*8,  INTENT(IN)    :: qq1(ILO:IHI, JULO:JHI, K1:K2)
+!-----------------------------------------------------------------------------
+    REAL*8,  INTENT(IN)    :: qq1(:,:,:)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -5452,7 +5458,7 @@ CONTAINS
 !
     ! Vertical flux [mixing ratio]
     REAL*8,  INTENT(OUT)   :: fz(ILO:IHI, JULO:JHI,  K1:K2)
-
+!
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
 !   John Tannahill, LLNL (jrt@llnl.gov)
