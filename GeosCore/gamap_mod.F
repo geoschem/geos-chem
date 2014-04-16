@@ -617,6 +617,26 @@
 
       ENDIF
 
+#if defined( UCX)
+      !-------------------------------------      
+      ! SPACING*55: PSC restart file
+      !-------------------------------------   
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+         
+         ! Write separator line
+         CALL WRITE_SEPARATOR( IU_FILE, 999 )
+
+         ! Instantaneous PSC state [unitless]
+         NAME_NEW  = 'STATEPSC'
+         FNAME_NEW = 'Instantaneous PSC state'
+         UNIT_NEW  = 'unitless'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      FNAME_NEW,   REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    55001  )
+
+      ENDIF
+#endif
+
       !-------------------------------------
       ! All other diagnostics 
       !-------------------------------------
@@ -1628,6 +1648,11 @@
       CATEGORY(N) = 'FJX-FLUX-$'
       DESCRIPT(N) = 'Radiative flux from FAST-JX'
       OFFSET(N)   = SPACING * 54
+
+      N           = N + 1
+      CATEGORY(N) = 'IJ-PSC-$'
+      DESCRIPT(N) = 'PSC restart file'
+      OFFSET(N)   = SPACING * 55
 
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC

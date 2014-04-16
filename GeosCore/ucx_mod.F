@@ -5136,7 +5136,6 @@
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
      &           'Instantaneous PSC state (unitless)'
-      CATEGORY = 'IJ-PSC-$'
       LONRES   = DISIZE
       LATRES   = DJSIZE
       ! get value of HALFPOLAR hotp 2/25/09
@@ -5177,8 +5176,10 @@
       !=================================================================
 
       ! Checkpt additional values for full chem simulation
-      UNIT = '-'
-          
+      UNIT     = 'unitless'
+      CATEGORY = 'IJ-PSC-$'
+      N        = 1
+    
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -5193,9 +5194,6 @@
          ENDDO
 !$OMP END PARALLEL DO
  
-      ! Save the species name to the RESERVED slot of the bpch file
-      RESERVED = 'STATE_PSC'
-
       ! Write the data block to the CSPEC checkpoint file
       CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
