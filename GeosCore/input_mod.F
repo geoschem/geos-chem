@@ -1654,6 +1654,7 @@
 !  11 Apr 2013 - S.D. Eastham- Added gravitational settling flag
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
+!  16 Apr 2014 - M. Sulprizio- Now read path for PSC restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1661,7 +1662,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: N, T, I
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION, PSC_RST_FILE
 
       !=================================================================
       ! READ_AEROSOL_MENU begins here!
@@ -1742,6 +1743,10 @@
       ! Use solid polar stratospheric clouds (PSCs)?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
       READ( SUBSTRS(1:N), * ) LSOLIDPSC   
+
+      ! PSC restart file name
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15b' )
+      READ( SUBSTRS(1:N), '(a)' ) PSC_RST_FILE
 
       ! Allow homogeneous nucleation of NAT?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
@@ -1993,6 +1998,7 @@
       Input_Opt%SALC_REDGE_um(1:2) = SALC_REDGE_um(1:2)
       Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
       Input_Opt%LSOLIDPSC          = LSOLIDPSC
+      Input_Opt%PSC_RST_FILE       = PSC_RST_FILE
       Input_Opt%LHOMNUCNAT         = LHOMNUCNAT
       Input_Opt%T_NAT_SUPERCOOL    = T_NAT_SUPERCOOL
       Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT
@@ -2026,6 +2032,8 @@
      &                        SALC_REDGE_um(1), SALC_REDGE_um(2)
          WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
          WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',LSOLIDPSC
+         WRITE( 6, 130     ) 'PSC restart file name?      : ',
+     7        TRIM( PSC_RST_FILE )
          WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT
          WRITE( 6, 120     ) 'NAT supercooling requirement: ',
      &                                                 T_NAT_SUPERCOOL
@@ -2039,6 +2047,7 @@
  110  FORMAT( A, f6.2, ' - ', f6.2 )
  120  FORMAT( A, f6.2, 'K' )
  105  FORMAT( A, f6.2 )
+ 130  FORMAT( A, A   )
 
       END SUBROUTINE READ_AEROSOL_MENU
 !EOC

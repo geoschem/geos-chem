@@ -114,6 +114,7 @@ MODULE GIGC_Input_Opt_Mod
      REAL*8,             POINTER :: SALC_REDGE_um(:)   
      LOGICAL                     :: LGRAVSTRAT
      LOGICAL                     :: LSOLIDPSC
+     CHARACTER(LEN=255)          :: PSC_RST_FILE
      LOGICAL                     :: LHOMNUCNAT
      REAL*8                      :: T_NAT_SUPERCOOL
      REAL*8                      :: P_ICE_SUPERSAT
@@ -636,6 +637,7 @@ MODULE GIGC_Input_Opt_Mod
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
 !  13 Dec 2013 - M. Sulprizio- Add USE_O3_FROM_MET logical flag
+!  16 Apr 2014 - M. Sulprizio- Add field for PSC restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -815,6 +817,7 @@ CONTAINS
     Input_Opt%SALC_REDGE_um          = 0d0
     Input_Opt%LGRAVSTRAT             = .FALSE.
     Input_Opt%LSOLIDPSC              = .FALSE.
+    Input_Opt%PSC_RST_FILE           = ''
     Input_Opt%LHOMNUCNAT             = .FALSE.
     Input_Opt%T_NAT_SUPERCOOL        = 0d0
     Input_Opt%P_ICE_SUPERSAT         = 0d0
