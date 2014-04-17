@@ -156,6 +156,9 @@
 !  31 May 2013 - R. Yantosca - Now pass objects to NFCLDMX
 !  03 Jun 2013 - R. Yantosca - Bug fix: pass State_Chm to DO_MERRA_CONVECTION
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  17 Apr 2014 - R. Yantosca - Speed up MERRA and GEOS-FP convection by
+!                              adding !$OMP+SCHEDULE( DYNAMIC )
+!  17 Apr 2014 - R. Yantosca - Test if (ND14>0) and (ND38>0) outside OMP loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -252,7 +255,9 @@
       ! Scalars          
       INTEGER            :: I, J, L, N, NN, TS_DYN
       REAL*8             :: AREA_M2, DT
-                         
+      LOGICAL            :: DO_ND14
+      LOGICAL            :: DO_ND38
+      
       ! Arrays           
       REAL*8             :: DIAG14 ( LLPAR,   Input_Opt%N_TRACERS )
       REAL*8             :: DIAG38 ( LLPAR,   Input_Opt%N_TRACERS )
@@ -276,7 +281,7 @@
       REAL*8,  POINTER   :: p_SO2s    (:    )
       REAL*8,  POINTER   :: p_STT     (:,:  )
       REAL*8,  POINTER   :: p_T       (:    )
-      
+
       ! Parameters
       LOGICAL, PARAMETER :: FIRST = .TRUE.
 
@@ -286,6 +291,11 @@
 
       ! Assume success
       RC                =  GIGC_SUCCESS
+
+      ! Set up logical flags to determine if we need to save diagnostics.
+      ! Pull these outside of the DO loop to avoid excess computation.
+      DO_ND14           = ( ND14 > 0 )
+      DO_ND38           = ( ND38 > 0 )
 
       ! Copy values from Input_Opt
       LDYNOCEAN         = Input_Opt%LDYNOCEAN
@@ -310,8 +320,8 @@
       IDT%HgP                 = IDTHgP               ! Tracer ID flag for HgP
       OPTIONS%USE_Hg          = ITS_A_MERCURY_SIM    ! Mercury simulation?
       OPTIONS%USE_Hg_DYNOCEAN = LDYNOCEAN            !  with dynamic ocean?
-      OPTIONS%USE_DIAG14      = ( ND14 > 0 )         ! Use ND14 diagnostic?
-      OPTIONS%USE_DIAG38      = ( ND38 > 0 )         ! Use ND38 diagnostic?
+      OPTIONS%USE_DIAG14      = DO_ND14              ! Use ND14 diagnostic?
+      OPTIONS%USE_DIAG38      = DO_ND38              ! Use ND38 diagnostic?
 
       ! Allocate the pointer array
       ALLOCATE( COEF%MOLWT_KG( N_TRACERS ), STAT=RC )
@@ -345,6 +355,7 @@
 !$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
 !$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
 !$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -447,7 +458,7 @@
          !--------------------------
          ! ND14 diagnostic [kg/s]
          !--------------------------
-         IF ( ND14 > 0 ) THEN
+         IF ( DO_ND14 ) THEN
             DO N = 1, N_TRACERS
             DO L = 1, LD14
                CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,N)
@@ -458,7 +469,7 @@
          !--------------------------
          ! ND38 diagnostic [kg/s]
          !--------------------------
-         IF ( ND38 > 0 ) THEN
+         IF ( DO_ND38 ) THEN
             DO N = 1, N_TRACERS
 
                ! Wetdep species for each tracer N
