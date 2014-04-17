@@ -1451,10 +1451,20 @@
                ENDIF
             ENDDO
 
-#if defined(GRID2x25)
+#if defined( GRID2x25 )
 110   FORMAT(91E10.3)
-#elif defined(GRID4x5)
+#elif defined( GRID4x5 )
 110   FORMAT(46E10.3)
+#elif defined( GRID05x0666 )   && defined( NESTED_CH )
+110   FORMAT(133E10.3)
+#elif defined( GRID05x0666 )   && defined( NESTED_NA )
+110   FORMAT(121E10.3)
+#elif defined( GRID05x0666 )   && defined( NESTED_EU )
+110   FORMAT(81E10.3)
+#elif defined( GRID025x03125 ) && defined( NESTED_CH )
+110   FORMAT(161E10.3)
+#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+110   FORMAT(202E10.3)
 #endif
 
             CLOSE(IU_FILE)
@@ -1701,10 +1711,20 @@
             ENDIF
          ENDDO
 
-#if defined(GRID2x25)
+#if defined( GRID2x25 )
 110   FORMAT(91E10.3)
-#elif defined(GRID4x5)
+#elif defined( GRID4x5 )
 110   FORMAT(46E10.3)
+#elif defined( GRID05x0666 )   && defined( NESTED_CH )
+110   FORMAT(133E10.3)
+#elif defined( GRID05x0666 )   && defined( NESTED_NA )
+110   FORMAT(121E10.3)
+#elif defined( GRID05x0666 )   && defined( NESTED_EU )
+110   FORMAT(81E10.3)
+#elif defined( GRID025x03125 ) && defined( NESTED_CH )
+110   FORMAT(161E10.3)
+#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+110   FORMAT(202E10.3)
 #endif
 
          CLOSE(IU_FILE)    
@@ -5842,6 +5862,7 @@
       USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_YEDGE
       USE TIME_MOD,           ONLY : GET_YEAR
