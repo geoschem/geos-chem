@@ -16,7 +16,7 @@
 ! 
 ! !USES:
 !
-      USE GC_TYPE_MOD
+      !USE GC_TYPE_MOD
       USE GIGC_ERRCODE_MOD
       USE SMV_PHYSCONST_MOD
 
@@ -245,13 +245,6 @@
       ! MERRA met fields
       !=================================================================
       
-      ! Objects
-      TYPE(GC_IDENT)     :: IDENT
-      TYPE(GC_DIMS )     :: DIMINFO
-      TYPE(SPEC_2_TRAC)  :: COEF
-      TYPE(GC_OPTIONS)   :: OPTIONS
-      TYPE(ID_TRAC)      :: IDT
-                   
       ! Scalars          
       INTEGER            :: I, J, L, N, NN, TS_DYN
       REAL*8             :: AREA_M2, DT
@@ -268,19 +261,10 @@
       REAL*8             :: PEDGE  ( LLPAR+1                      )
 
       ! Pointers
-      REAL*8,  POINTER   :: p_AD      (:    )   
-      REAL*8,  POINTER   :: p_BXHEIGHT(:    )
-      REAL*8,  POINTER   :: p_CMFMC   (:    )
-      REAL*8,  POINTER   :: p_DQRCU   (:    )
-      REAL*8,  POINTER   :: p_DTRAIN  (:    )
-      REAL*8,  POINTER   :: p_H2O2s   (:    )
-      REAL*8,  POINTER   :: p_FSOL    (:,:,:)
-      REAL*8,  POINTER   :: p_PFICU   (:    )   
-      REAL*8,  POINTER   :: p_PFLCU   (:    )
-      REAL*8,  POINTER   :: p_REEVAPCN(:    )
-      REAL*8,  POINTER   :: p_SO2s    (:    )
-      REAL*8,  POINTER   :: p_STT     (:,:  )
-      REAL*8,  POINTER   :: p_T       (:    )
+      REAL*8,  POINTER   :: p_FSOL (:,:,:)
+      REAL*8,  POINTER   :: p_H2O2s(:    )
+      REAL*8,  POINTER   :: p_SO2s (:    )
+      REAL*8,  POINTER   :: p_F    (:    )
 
       ! Parameters
       LOGICAL, PARAMETER :: FIRST = .TRUE.
@@ -292,17 +276,12 @@
       ! Assume success
       RC                =  GIGC_SUCCESS
 
-      ! Set up logical flags to determine if we need to save diagnostics.
-      ! Pull these outside of the DO loop to avoid excess computation.
+      ! Define local variables
       DO_ND14           = ( ND14 > 0 )
       DO_ND38           = ( ND38 > 0 )
-
-      ! Copy values from Input_Opt
-      LDYNOCEAN         = Input_Opt%LDYNOCEAN
-      ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
+      TS_DYN            = GET_TS_DYN()          ! Dynamic timestep [min]
+      DT                = DBLE( TS_DYN )        ! Dynamic timestep [min]
       N_TRACERS         = Input_Opt%N_TRACERS
-      TCVV              = Input_Opt%TCVV(1:N_TRACERS)
-      TRACER_MW_KG      = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )  
@@ -311,28 +290,8 @@
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
 #endif
 
-      ! Define variables and object fields
-      TS_DYN                  = GET_TS_DYN()         ! Dynamic timestep [min]
-      DT                      = DBLE( TS_DYN )       ! Dynamic timestep [min]
-      DIMINFO%L_COLUMN        = LLPAR                ! # of vertical levels
-      DIMINFO%N_TRACERS       = N_TRACERS            ! # of tracers
-      IDT%Hg2                 = IDTHg2               ! Tracer ID flag for Hg2
-      IDT%HgP                 = IDTHgP               ! Tracer ID flag for HgP
-      OPTIONS%USE_Hg          = ITS_A_MERCURY_SIM    ! Mercury simulation?
-      OPTIONS%USE_Hg_DYNOCEAN = LDYNOCEAN            !  with dynamic ocean?
-      OPTIONS%USE_DIAG14      = DO_ND14              ! Use ND14 diagnostic?
-      OPTIONS%USE_DIAG38      = DO_ND38              ! Use ND38 diagnostic?
-
-      ! Allocate the pointer array
-      ALLOCATE( COEF%MOLWT_KG( N_TRACERS ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-      COEF%MOLWT_KG = 0d0
-
       ! Loop over advected tracers
       DO N = 1, N_TRACERS
-
-         ! Molecular weight [kg]
-         COEF%MOLWT_KG(N) = TRACER_MW_KG(N)
 
          ! Set a pointer to each 3D slice of FSOL
          p_FSOL => FSOL(:,:,:,N)
@@ -350,11 +309,9 @@
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J,          AREA_M2,  I,       IDENT,      L       )
-!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14,     DIAG38  )
-!$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
-!$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
-!$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
+!$OMP+PRIVATE( J,          AREA_M2,  I,       L               )
+!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14, DIAG38  )
+!$OMP+PRIVATE( RC,         NN,       p_H2O2s, p_SO2s, p_F     )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -362,88 +319,45 @@
          ! Grid box surface area [m2]
          AREA_M2           =  GET_AREA_M2( I, J, 1 ) 
 
-         ! Initialize the IDENT object for error I/O
-         IDENT%STDOUT_FILE =  ''                     ! Write to
-         IDENT%STDOUT_LUN  =  6                      !  stdout
-         IDENT%PET         =  0                      ! CPU #
-         IDENT%I_AM(1)     =  'MAIN'                 ! Main routine
-         IDENT%I_AM(2)     =  'DO_CONVECTION'        ! This routine
-         IDENT%LEV         =  2                      ! This level
-         IDENT%ERRMSG      =  ''                     ! Error msg
-        !IDENT%VERBOSE     =  ( I==23 .and. J==34 )  ! Debug box
-         IDENT%VERBOSE     =  ( I==67 .and. J==31 )  ! Debug box
-
          ! Pressure edges
          DO L = 1, LLPAR+1
             PEDGE(L)       =  GET_PEDGE( I, J, L )
          ENDDO
 
-         ! For some reason, the parallelization chokes if we pass an array 
-         ! slice of FSOL to DO_MERRA_CONVECTION.  It works if we manually 
-         ! copy the data into a local array and then pass that to the routine.
-         DO N = 1, N_TRACERS
-         DO L = 1, LLPAR
-            F(L,N)         =  FSOL(I,J,L,N)
-         ENDDO
-         ENDDO
+!         ! For some reason, the parallelization chokes if we pass an array 
+!         ! slice of FSOL to DO_MERRA_CONVECTION.  It works if we manually 
+!         ! copy the data into a local array and then pass that to the routine.
+!         DO N = 1, N_TRACERS
+!         DO L = 1, LLPAR
+!            F(L,N)         =  FSOL(I,J,L,N)
+!         ENDDO
+!         ENDDO
 
-#if   defined( GEOS_FP )
+         ! Point to fields
+         p_H2O2s => H2O2s(I,J,:  )
+         p_SO2s  => SO2s (I,J,:  )
+         p_F     => FSOL (I,J,:,:)
 
-         ! For GEOS-5.7, PFICU and PFLCU are defined on level edges
-         p_PFICU           => State_Met%PFICU   ( I, J, 2:LLPAR+1   )
-         p_PFLCU           => State_Met%PFLCU   ( I, J, 2:LLPAR+1   )
-
-#elif defined( MERRA   )
-
-         ! For MERRA, PFICU and PFLCU are defined on level centers
-         p_PFICU           => State_Met%PFICU   ( I, J, 1:LLPAR     )
-         p_PFLCU           => State_Met%PFLCU   ( I, J, 1:LLPAR     )
-
-#endif
-
-         ! Pointers to slices of larger arrays
-         p_AD              => State_Met%AD      ( I, J,  :          )
-         p_BXHEIGHT        => State_Met%BXHEIGHT( I, J,  :          )
-         p_CMFMC           => State_Met%CMFMC   ( I, J, 2:LLPAR+1   )
-         p_DQRCU           => State_Met%DQRCU   ( I, J,  :          )
-         p_DTRAIN          => State_Met%DTRAIN  ( I, J,  :          )
-         p_H2O2s           =>           H2O2s   ( I, J,  :          )
-         p_REEVAPCN        => State_Met%REEVAPCN( I, J,  :          )
-         p_SO2s            =>           SO2s    ( I, J,  :          )
-         p_STT             => State_Chm%Tracers ( I, J,  :,       : )
-         p_T               => State_Met%T       ( I, J,  :          )
-         
          !--------------------------
          ! Do the cloud convection
          !--------------------------
-         CALL DO_MERRA_CONVECTION( IDENT     = IDENT,
-     &                             DIMINFO   = DIMINFO,
-     &                             COEF      = COEF,
-     &                             IDT       = IDT,
-     &                             OPTIONS   = OPTIONS,
-     &                             AREA_M2   = AREA_M2,
-     &                             PEDGE     = PEDGE,
-     &                             TS_DYN    = DT, 
-     &                             F         = F,
-     &                             AD        = p_AD,
-     &                             BXHEIGHT  = p_BXHEIGHT,
-     &                             CMFMC     = p_CMFMC,
-     &                             DQRCU     = p_DQRCU,
-     &                             DTRAIN    = p_DTRAIN,
-     &                             H2O2s     = p_H2O2s,
-     &                             PFICU     = p_PFICU,
-     &                             PFLCU     = p_PFLCU,
-     &                             REEVAPCN  = p_REEVAPCN,            
-     &                             SO2s      = p_SO2s,
-     &                             T         = p_T,
-     &                             Q         = p_STT,
-     &                             DIAG14    = DIAG14,
-     &                             DIAG38    = DIAG38,
-     &                             I         = I,
-     &                             J         = J,
-     &                             State_Met = State_Met,
-     &                             State_Chm = State_Chm,
-     &                             RC        = RC         )
+         CALL DO_MERRA_CONVECTION( am_I_Root  = am_I_Root,
+     &                             Input_Opt  = Input_Opt,
+     &                             State_Met  = State_Met,
+     &                             State_Chm  = State_Chm,
+     &                             I          = I,
+     &                             J          = J,
+     &                             AREA_M2    = AREA_M2,
+     &                             F          = p_F,
+     &                             PEDGE      = PEDGE,
+     &                             H2O2s      = p_H2O2s,
+     &                             SO2s       = p_SO2s,
+     &                             TS_DYN     = DT, 
+     &                             USE_DIAG14 = DO_ND14,
+     &                             DIAG14     = DIAG14,
+     &                             USE_DIAG38 = DO_ND38,
+     &                             DIAG38     = DIAG38,
+     &                             RC         = RC         )
 
          ! Stop if error is encountered
          IF ( RC /= GIGC_SUCCESS ) THEN
@@ -451,9 +365,7 @@
          ENDIF
 
          ! Free pointer memory
-         NULLIFY( p_AD,       p_BXHEIGHT, p_CMFMC, p_DQRCU )
-         NULLIFY( p_DTRAIN,   p_H2O2s,    p_PFICU, p_PFLCU )
-         NULLIFY( p_REEVAPCN, p_SO2s,     p_STT,   p_T     )
+         NULLIFY( p_H2O2s, p_SO2s, p_F )
 
          !--------------------------
          ! ND14 diagnostic [kg/s]
@@ -486,9 +398,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Free the memory
-      DEALLOCATE( COEF%MOLWT_KG )
 
 #endif
 
@@ -1917,24 +1826,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_MERRA_CONVECTION( IDENT,    DIMINFO,  COEF, 
-     &                                IDT,      OPTIONS,  AD,      
-     &                                AREA_M2,  BXHEIGHT, CMFMC,   
-     &                                DQRCU,    DTRAIN,   F,       
-     &                                PEDGE,    PFICU,    PFLCU,   
-     &                                REEVAPCN, T,        TS_DYN,   
-     &                                Q,        DIAG14,   DIAG38,   
-     &                                H2O2s,    SO2s,     I,        
-     &                                J,        RC,       State_Met,
-     &                                State_Chm                      )
+      SUBROUTINE DO_MERRA_CONVECTION( am_I_Root,
+     &                                Input_Opt,
+     &                                State_Met,
+     &                                State_Chm,
+     &                                I,        
+     &                                J,        
+     &                                AREA_M2,  
+     &                                F,  
+     &                                PEDGE,
+     &                                H2O2s,    
+     &                                SO2s,     
+     &                                TS_DYN,   
+     &                                USE_DIAG14,
+     &                                DIAG14,
+     &                                USE_DIAG38,   
+     &                                DIAG38,   
+     &                                RC          )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
-      USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE ERROR_MOD,          ONLY : IT_IS_FINITE
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  ! hma Nov 3, debug
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IS_Hg2
@@ -1945,47 +1864,32 @@
 !
 ! !INPUT PARAMETERS:
 !  
-      TYPE(SPEC_2_TRAC), INTENT(IN) :: COEF        ! Obj w/ spec <-> trac map
-      TYPE(GC_DIMS),     INTENT(IN) :: DIMINFO     ! Obj w/ array dimensions
-      TYPE(ID_TRAC),     INTENT(IN) :: IDT         ! Obj w/ tracer ID flags
-      TYPE(GC_OPTIONS),  INTENT(IN) :: OPTIONS     ! Obj w/ logical switches
-      TYPE(MetState),    INTENT(IN) :: State_Met   ! Meteorology State object
-      REAL*8,            INTENT(IN) :: AD(:)       ! Air mass [kg]    
-      REAL*8,            INTENT(IN) :: AREA_M2     ! Surface area [m2]
-      REAL*8,            INTENT(IN) :: BXHEIGHT(:) ! Box height [m]
-      REAL*8,            INTENT(IN) :: CMFMC(:)    ! Cloud mass flux [kg/m2/s] 
-      REAL*8,            INTENT(IN) :: DQRCU(:)    ! Precip production rate:
-                                                   !  convective [kg/kg/s]
-      REAL*8,            INTENT(IN) :: DTRAIN(:)   ! Detrainment flux [kg/m2/s]
-      REAL*8,            INTENT(IN) :: F(:,:)      ! Fraction of soluble tracer
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      REAL*8,         INTENT(IN)    :: AREA_M2     ! Surface area [m2]
+      REAL*8,         INTENT(IN)    :: F(:,:)      ! Fraction of soluble tracer
                                                    !  for updraft scavenging 
                                                    !  [unitless].  ! This is 
                                                    !  computed by routine 
                                                    !  COMPUTE_UPDRAFT_FSOL
-      REAL*8,            INTENT(IN) :: PEDGE(:)    ! P @ level box edges [hPa]
-      REAL*8,            INTENT(IN) :: PFICU(:)    ! Dwnwd flux of convective
-                                                   !  ice precip [kg/m2/s]
-      REAL*8,            INTENT(IN) :: PFLCU(:)    ! Dwnwd flux of convective
-                                                   !  liquid precip [kg/m2/s]
-      REAL*8,            INTENT(IN) :: REEVAPCN(:) ! Evap of precip'ing conv.
-                                                   !  condensate [kg/kg/s]
-      REAL*8,            INTENT(IN) :: T(:)        ! air temperature [K]
-      REAL*8,            INTENT(IN) :: TS_DYN      ! Dynamic timestep [min]
-      INTEGER,           INTENT(IN) :: I, J        ! Lon & lat indices
+      REAL*8,         INTENT(IN)    :: PEDGE(:)    ! P @ level box edges [hPa]
+      REAL*8,         INTENT(IN)    :: TS_DYN      ! Dynamic timestep [min]
+      INTEGER,        INTENT(IN)    :: I, J        ! Lon & lat indices
+      LOGICAL,        INTENT(IN)    :: USE_DIAG14  ! Archive DIAG14?
+      LOGICAL,        INTENT(IN)    :: USE_DIAG38  ! Archive DIAG38?
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
 !        
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(GC_IDENT), INTENT(INOUT) :: IDENT       ! Obj w/ info from ESMF etc.
-      REAL*8,         INTENT(INOUT) :: H2O2s(:)
-      REAL*8,         INTENT(INOUT) :: SO2s(:)  
-      REAL*8,         INTENT(INOUT) :: Q(:,:)      ! Tracer conc. [mol/mol]  
+      REAL*8,         INTENT(INOUT) :: H2O2s(:)    ! H2O2s from sulfate_mod
+      REAL*8,         INTENT(INOUT) :: SO2s(:)     ! SO2s from sulfate_mod
 !                                                  
 ! !OUTPUT PARAMETERS:                              
 !                     
-      REAL*8,           INTENT(OUT) :: DIAG14(:,:) ! Array for ND14 diagnostic
-      REAL*8,           INTENT(OUT) :: DIAG38(:,:) ! Array for ND38 diagnostic
-      INTEGER,          INTENT(OUT) :: RC          ! Return code
+      REAL*8,         INTENT(OUT)   :: DIAG14(:,:) ! Array for ND14 diagnostic
+      REAL*8,         INTENT(OUT)   :: DIAG38(:,:) ! Array for ND38 diagnostic
+      INTEGER,        INTENT(OUT)   :: RC          ! Return code
 !
 ! !REMARKS:
 !  Reference:
@@ -2065,63 +1969,63 @@
       REAL*8            :: MB,          QB
 
       ! Arrays
-      REAL*8            :: BMASS ( DIMINFO%L_COLUMN  )   
-      REAL*8            :: PDOWN ( DIMINFO%L_COLUMN  )
-      REAL*8            :: QB_NUM( DIMINFO%N_TRACERS )
+      REAL*8            :: BMASS  ( LLPAR              )    
+      REAL*8            :: PDOWN  ( LLPAR              )
+      REAL*8            :: QB_NUM ( Input_Opt%N_TRACERS)
+
+      ! Pointers for fields in State_Met and State_Chm objects
+      REAL*8,  POINTER  :: AD       (:  )
+      REAL*8,  POINTER  :: BXHEIGHT (:  )
+      REAL*8,  POINTER  :: CMFMC    (:  )
+      REAL*8,  POINTER  :: DQRCU    (:  )
+      REAL*8,  POINTER  :: DTRAIN   (:  )
+      REAL*8,  POINTER  :: PFICU    (:  )
+      REAL*8,  POINTER  :: PFLCU    (:  )
+      REAL*8,  POINTER  :: REEVAPCN (:  )
+      REAL*8,  POINTER  :: T        (:  )
+      REAL*8,  POINTER  :: Q        (:,:)
 
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
       !========================================================================
       
-      ! Put this routine name on error trace stack
-      IDENT%LEV               = IDENT%LEV + 1
-      IDENT%I_AM( IDENT%LEV ) = 'DO_MERRA_CONVECTION'
+      ! Point to columns of derived-type object fields
+      AD       => State_Met%AD      (I,J,:  )       ! Air mass [kg]    
+      BXHEIGHT => State_Met%BXHEIGHT(I,J,:  )       ! Box height [m]
+      CMFMC    => State_Met%CMFMC   (I,J,:  )       ! Cloud mass flux [kg/m2/s] 
+      DQRCU    => State_Met%DQRCU   (I,J,:  )       ! Precip production rate:
+      DTRAIN   => State_Met%DTRAIN  (I,J,:  )       ! Detrainment flux [kg/m2/s]
+      REEVAPCN => State_Met%REEVAPCN(I,J,:  )       ! Evap of precip'ing conv.
+      T        => State_Met%T       (I,J,:  )       ! air temperature [K]
+      Q        => State_Chm%TRACERS (I,J,:,:)       ! Tracer conc. [mol/mol] 
+
+#if   defined( GEOS_FP )
+      PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 
+                                                    !  ice precip [kg/m2/s]
+      PFLCU    => State_Met%PFLCU   (I,J,2:LLPAR+1) ! Dwnwd flux of conv   
+                                                    !  liquid precip
+#elif defined( MERRA   )                              
+      PFICU    => State_Met%PFICU   (I,J,:        )
+      PFLCU    => State_Met%PFLCU   (I,J,:        )
+#endif
 
       ! # of levels and # of tracers
-      NLAY = DIMINFO%L_COLUMN
-      NC   = DIMINFO%N_TRACERS
-
-      ! Safety check #1: Invalid NLAY w/r/t Q
-      IF ( NLAY < 1 .or. NLAY > SIZE( Q, 1 ) ) THEN
-         WRITE( IDENT%ERRMSG, 200 ) NLAY, SIZE( Q, 1 )
-         RC = GIGC_FAILURE
-         RETURN
-      ENDIF
-
-      ! Safety check #2: Invalid NC w/r/t Q
-      IF ( NC < 1 .or. NC > SIZE( Q, 2 ) ) THEN
-         WRITE( IDENT%ERRMSG, 200 ) NC, SIZE( Q, 2 )
-         RC = GIGC_FAILURE
-         RETURN
-      ENDIF
-
-      ! Safety check #3: Invalid NLAY & NC w/r/t F
-      IF ( NLAY > SIZE( F, 1 ) .or. NC > SIZE( F, 2 ) ) THEN
-         WRITE( IDENT%ERRMSG, 220 ) NLAY, SIZE( F, 1 ),
-     &                              NC,   SIZE( F, 2 )
-         RC = GIGC_FAILURE
-         RETURN
-      ENDIF
-
-      ! Formats
- 200  FORMAT( 'Error: NLAY = ',  i5, ' but SIZE( Q,1 ) = ', i5 )
- 210  FORMAT( 'Error: NC = ',    i5, ' but SIZE( Q,2 ) = ', i5 )
- 220  FORMAT( 'Error: NLAY = ',  i5, ' but SIZE( F,1 ) = ', i5,
-     &        '  or NC = ',      i5, ' but SIZE( F,2 ) = ', i5 )
+      NLAY     = LLPAR
+      NC       = Input_Opt%N_TRACERS
 
       ! Top level for convection
-      KTOP   = NLAY - 1
+      KTOP     = NLAY - 1
 
       ! Convection timestep [s]
-      NDT    = TS_DYN * 60d0
+      NDT      = TS_DYN * 60d0
 
       ! Internal time step for convective mixing is 300 sec.
       ! Doug Rotman (LLNL) says that 450 sec works just as well.       
-      NS     = NDT / 300
-      NS     = MAX( NS, 1 )
-      SDT    = DBLE( NDT ) / DBLE( NS )
-      DNS    = DBLE( NS )
-      DT_DNS = NDT * DNS
+      NS       = NDT / 300
+      NS       = MAX( NS, 1 )
+      SDT      = DBLE( NDT ) / DBLE( NS )
+      DNS      = DBLE( NS )
+      DT_DNS   = NDT * DNS
       
       !-----------------------------------------------------------------
       ! Determine location of the cloud base, which is the level where
@@ -2178,7 +2082,7 @@
       ENDDO
 
       ! Is this a Hg simulation?
-      IS_Hg = ( OPTIONS%USE_Hg .and. OPTIONS%USE_Hg_DYNOCEAN )
+      IS_Hg = ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LDYNOCEAN )
 
       !========================================================================
       ! (1)  T r a c e r   L o o p 
@@ -2188,7 +2092,7 @@
          ! Initialize
          DIAG14(:,IC) = 0d0                            ! ND14 diag array      
          DIAG38(:,IC) = 0d0                            ! ND38 diag array
-         TCVV         = MW_AIR / COEF%MOLWT_KG(IC)     ! Air MW/tracer MW
+         TCVV         = Input_Opt%TCVV(IC)             ! Air MW/tracer MW
          TCVV_DNS     = TCVV * DNS                     ! TCVV * DNS
 
          !=====================================================================
@@ -2495,7 +2399,7 @@
                   ! for the tracer IC going out of the top of the layer K 
                   ! to the layer above (K+1)  (bey, 11/10/99). 
                   !------------------------------------------------------------
-                  IF ( OPTIONS%USE_DIAG14 ) THEN
+                  IF ( USE_DIAG14 ) THEN
                      DIAG14(K,IC) = DIAG14(K,IC) 
      &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
                   ENDIF
@@ -2507,7 +2411,7 @@
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
                   !------------------------------------------------------------
-                  IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
+                  IF ( USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
      &                            + ( T0 * AREA_M2 / TCVV_DNS )
 
@@ -2680,7 +2584,7 @@
                   ! for the tracer IC going out of the top of the layer K 
                   ! to the layer above (K+1)  (bey, 11/10/99). 
                   !------------------------------------------------------------
-                  IF ( OPTIONS%USE_DIAG14 ) THEN
+                  IF ( USE_DIAG14 ) THEN
                      DIAG14(K,IC) = DIAG14(K,IC) 
      &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
                   ENDIF
@@ -2692,7 +2596,7 @@
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
                   !------------------------------------------------------------
-                  IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
+                  IF ( USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
      &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
                   ENDIF
@@ -2752,13 +2656,21 @@
       !================================================================
       ! Succesful return!
       !================================================================
+      
+      ! Nullify pointers
+      NULLIFY( AD       )
+      NULLIFY( BXHEIGHT )
+      NULLIFY( CMFMC    )
+      NULLIFY( DQRCU    )
+      NULLIFY( DTRAIN   )
+      NULLIFY( PFICU    )
+      NULLIFY( PFLCU    )
+      NULLIFY( REEVAPCN )
+      NULLIFY( T        )
+      NULLIFY( Q        )
 
       ! Set error code to success
       RC                      = GIGC_SUCCESS
-
-      ! Remove this routine name from error trace stack
-      IDENT%I_AM( IDENT%LEV ) = ''
-      IDENT%LEV               = IDENT%LEV - 1
 
       END SUBROUTINE DO_MERRA_CONVECTION
 !EOC

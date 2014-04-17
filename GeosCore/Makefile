@@ -494,10 +494,9 @@ comode_mod.o                : comode_mod.F
 
 convection_mod.o            : convection_mod.F                               \
                               diag_mod.o              depo_mercury_mod.o     \
-                              fvdas_convect_mod.o     gc_type_mod.o          \
+                              fvdas_convect_mod.o     wetscav_mod.o          \
                               gcap_convect_mod.o      mercury_mod.o          \
-                              tracer_mod.o            tracerid_mod.o         \
-                              wetscav_mod.o          
+                              tracer_mod.o            tracerid_mod.o
 
 dao_mod.o                   : dao_mod.F                                      \
                               logical_mod.o
@@ -689,8 +688,6 @@ gasconc.o                   : gasconc.F                                      \
 gc_biomass_mod.o            : gc_biomass_mod.F                               \
                               future_emissions_mod.o  logical_mod.o          \
                               tracerid_mod.o          tracer_mod.o    
-
-gc_type_mod.o               : gc_type_mod.F
 
 gcap_convect_mod.o          : gcap_convect_mod.F                             \
                               diag_mod.o
