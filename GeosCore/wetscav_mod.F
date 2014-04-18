@@ -823,50 +823,10 @@
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_Hw
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTPB,     IDTBE7,    IDTHNO3 
-      USE TRACERID_MOD,       ONLY : IDTH2O2,   IDTCH2O,   IDTMP
-      USE TRACERID_MOD,       ONLY : IDTSO2,    IDTSO4,    IDTSO4s
-      USE TRACERID_MOD,       ONLY : IDTSO4aq,  IDTMSA,    IDTNH3   
-      USE TRACERID_MOD,       ONLY : IDTNH4,    IDTNH4aq,  IDTNIT  
-      USE TRACERID_MOD,       ONLY : IDTNITs,   IDTAS,     IDTAHS
-      USE TRACERID_MOD,       ONLY : IDTLET,    IDTBCPI,   IDTOCPI
-      USE TRACERID_MOD,       ONLY : IDTBCPO,   IDTOCPO,   IDTDST1 
-      USE TRACERID_MOD,       ONLY : IDTDST2,   IDTDST3,   IDTDST4 
-      USE TRACERID_MOD,       ONLY : IDTSALA,   IDTSALC
-      USE TRACERID_MOD,       ONLY : IS_Hg2,    IS_HgP
-      USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC      
-      USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
-      USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
-      USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN
-      USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP
-      USE TRACERID_MOD,       ONLY : IDTMAP
-      USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
-      ! SDE 04/17/13
-      USE TRACERID_MOD,       ONLY : IDTHCl
-      USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG 
-      ! SOAupdate: update biogenics (new mtp) (hotp 5/24/10)
-      USE TRACERID_MOD,       ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-      ! SOAupdate
-      ! MERGE2 (hotp 6/15/09)
-      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
-      USE TRACERID_MOD,       ONLY : IDTPOG1,  IDTPOG2
-      ! semivolpoa4opoa: add OPOA,OPOG (hotp 3/18/09)
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
-      USE TRACERID_MOD,       ONLY : IDTOPOG1, IDTOPOG2
-      ! lumped aromatic and IVOC tracer (hotp 5/12/10)
-      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-
+      USE TRACERID_MOD
 #if defined( TOMAS )
-      USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
-      USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1,IDTDUST1
-      USE TOMAS_MOD,    ONLY : IBINS,    GETFRACTION
+      USE TOMAS_MOD,          ONLY : IBINS
+      USE TOMAS_MOD,          ONLY : GETFRACTION
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -881,7 +841,12 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: ISOL                 ! Index for ND38 diag
-      REAL*8,         INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR) ! Fraction of tracer
+!------------------------------------------------------------------------------
+! Prior to 4/18/14:
+! Now make F an assumed-shape array, so it can accept a pointer (bmy, 4/18/14)
+!     REAL*8,         INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR) ! Fraction of tracer
+!------------------------------------------------------------------------------
+      REAL*8,         INTENT(OUT) :: F(:,:,:)             ! Fraction of tracer
 !
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - H. Liu, R. Yantosca - Initial version
@@ -945,42 +910,43 @@
 !  31 May 2013 - R. Yantosca - Now accept State_Chm, and pass it to TOMAS code
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  18 Apr 2014 - R. Yantosca - Now make the F argument an assumed-shape array
+!                              so that we can pass a pointer array slice to it
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: I, J, L, NN
-      REAL*8               :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
+      ! Scalars
+      INTEGER             :: I, J, L, NN
+      REAL*8              :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
+      REAL*8,  SAVE       :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8              :: DUM
+#if defined( TOMAS )
+      ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
+      REAL*8              :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
+      REAL*8              :: SOLFRAC, XFRAC
+#endif
+
+      ! Pointers
+      REAL*8, POINTER     :: BXHEIGHT(:,:,:)
+      REAL*8, POINTER     :: T       (:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
       ! Kc is the conversion rate from cloud condensate to precip [s^-1]
-      REAL*8, PARAMETER    :: KC        = 5d-3
+      REAL*8,  PARAMETER  :: KC        = 5d-3
 
       ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
       ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
       ! 1.9 is ( molecular weight H2O2 / molecular weight water )
-      REAL*8, PARAMETER    :: CONV_H2O2 = 8.27042925126d-1
+      REAL*8,  PARAMETER  : CONV_H2O2 = 8.27042925126d-1
 
       ! CONV_NH3 = 0.6 * SQRT( 0.9 ), used for the ice to gas ratio for NH3
       ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
-      REAL*8, PARAMETER    :: CONV_NH3  = 5.69209978831d-1
-
-      REAL*8,   SAVE       :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-      REAL*8               :: DUM
-
-#if defined( TOMAS )
-      ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
-      REAL*8         :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
-      REAL*8         :: SOLFRAC, XFRAC
-#endif
-
-      ! Pointers
-      REAL*8, POINTER :: BXHEIGHT(:,:,:)
-      REAL*8, POINTER :: T(:,:,:)
+      REAL*8,  PARAMETER  :: CONV_NH3  = 5.69209978831d-1
 
       !=================================================================
       ! COMPUTE_F begins here!

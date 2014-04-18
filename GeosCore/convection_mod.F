@@ -99,8 +99,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
-      USE TRACERID_MOD,       ONLY : IDTHg2
-      USE TRACERID_MOD,       ONLY : IDTHgP
+      USE TRACERID_MOD
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE WETSCAV_MOD,        ONLY : H2O2s
@@ -159,17 +158,20 @@
 !  17 Apr 2014 - R. Yantosca - Speed up MERRA and GEOS-FP convection by
 !                              adding !$OMP+SCHEDULE( DYNAMIC )
 !  17 Apr 2014 - R. Yantosca - Test if (ND14>0) and (ND38>0) outside OMP loop
+!  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
+!                              F array to subroutine COMPUTE_F
+!  18 Apr 2014 - R. Yantosca - Clean up call to DO_MERRA_CONVECTION, remove
+!                              stuff that was leftover from the column code
+!  18 Apr 2014 - R. Yantosca - Now use proper # of tracers for APM in the
+!                              call to DO_MERRA_CONVECTION (MERRA & GEOS-FP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N_TOT_TRC               ! # of tracers to convect
- 
-      ! For fields from Input_Opt
-      LOGICAL         :: LDYNOCEAN
-      LOGICAL         :: ITS_A_MERCURY_SIM
+      ! Scalars
+      INTEGER         :: N_TOT_TRC             ! # of tracers to convect
       INTEGER         :: N_TRACERS
       REAL*8          :: TCVV(Input_Opt%N_TRACERS)
       REAL*8          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
@@ -242,64 +244,65 @@
 #elif defined( MERRA ) || defined( GEOS_FP )
 
       !=================================================================
-      ! MERRA met fields
+      ! MERRA or GEOS-FP met fields
       !=================================================================
       
       ! Scalars          
-      INTEGER            :: I, J, L, N, NN, TS_DYN
-      REAL*8             :: AREA_M2, DT
-      LOGICAL            :: DO_ND14
-      LOGICAL            :: DO_ND38
+      INTEGER         :: I, J, L, N, NN, TS_DYN
+      REAL*8          :: AREA_M2, DT
+      LOGICAL         :: DO_ND14
+      LOGICAL         :: DO_ND38
       
-      ! Arrays           
-      REAL*8             :: DIAG14 ( LLPAR,   Input_Opt%N_TRACERS )
-      REAL*8             :: DIAG38 ( LLPAR,   Input_Opt%N_TRACERS )
-      REAL*8             :: F      ( LLPAR,   Input_Opt%N_TRACERS )
-      REAL*8,  TARGET    :: FSOL   ( IIPAR, JJPAR, LLPAR,   
-     &                                        Input_Opt%N_TRACERS )
-      INTEGER            :: ISOL   (          Input_Opt%N_TRACERS )
-      REAL*8             :: PEDGE  ( LLPAR+1                      )
+      ! Arrays        
+      REAL*8          :: PEDGE  (LLPAR+1)
+#if defined( APM )
+      INTEGER         :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
+      REAL*8          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL*8          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL*8          :: F      (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL*8, TARGET  :: FSOL   ( IIPAR, JJPAR, LLPAR,   
+     &                                 Input_Opt%N_TRACERS+N_APMTRA)
+#else
+      INTEGER         :: ISOL   (      Input_Opt%N_TRACERS )
+      REAL*8          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS )
+      REAL*8          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS )
+      REAL*8          :: F      (LLPAR,Input_Opt%N_TRACERS )
+      REAL*8, TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,
+     &                                 Input_Opt%N_TRACERS )
+#endif
 
       ! Pointers
-      REAL*8,  POINTER   :: p_FSOL (:,:,:)
-      REAL*8,  POINTER   :: p_H2O2s(:    )
-      REAL*8,  POINTER   :: p_SO2s (:    )
-      REAL*8,  POINTER   :: p_F    (:    )
-
-      ! Parameters
-      LOGICAL, PARAMETER :: FIRST = .TRUE.
+      REAL*8, POINTER :: p_FSOL (:,:,:)
 
       !-----------------------------------------------------------------
       ! Initialization
       !-----------------------------------------------------------------
 
-      ! Assume success
-      RC                =  GIGC_SUCCESS
-
-      ! Define local variables
-      DO_ND14           = ( ND14 > 0 )
-      DO_ND38           = ( ND38 > 0 )
-      TS_DYN            = GET_TS_DYN()          ! Dynamic timestep [min]
-      DT                = DBLE( TS_DYN )        ! Dynamic timestep [min]
-      N_TRACERS         = Input_Opt%N_TRACERS
+      ! Initialize
+      RC        =  GIGC_SUCCESS                   ! Assume success
+      DO_ND14   = ( Input_Opt%ND14 > 0 )          ! Should we use ND14 diat?
+      DO_ND38   = ( Input_Opt%ND38 > 0 )          ! Should we use ND38 diag?
+      TS_DYN    = GET_TS_DYN()                    ! Dynamic timestep [min]
+      DT        = DBLE( TS_DYN )                  ! Dynamic timestep [min]
+      FSOL      = 0d0                             ! Zero the FSOL array
 
       ! Pick the proper # of tracers
 #if   defined( APM )  
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                    !  the G-C advected tracers +
-      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+      N_TOT_TRC = Input_Opt%N_TRACERS + N_APMTRA  ! With APM microphysics
+#else
+      N_TOT_TRC = Input_Opt%N_TRACERS             ! Without APM microphysics
 #endif
 
       ! Loop over advected tracers
-      DO N = 1, N_TRACERS
+      DO N = 1, N_TOT_TRC
 
-         ! Set a pointer to each 3D slice of FSOL
+         ! Now point to a 3D slice of the FSOL array
          p_FSOL => FSOL(:,:,:,N)
 
          ! Fraction of soluble tracer
          CALL COMPUTE_F( N, p_FSOL, ISOL(N), State_Met, State_Chm ) 
 
-         ! Nullify the pointer
+         ! Free pointer memory
          NULLIFY( p_FSOL )
 
       ENDDO
@@ -309,35 +312,23 @@
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J,          AREA_M2,  I,       L               )
-!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14, DIAG38  )
-!$OMP+PRIVATE( RC,         NN,       p_H2O2s, p_SO2s, p_F     )
+!$OMP+PRIVATE( J,  I, AREA_M2, L, PEDGE, F, DIAG14, DIAG38, RC, N, NN )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2           =  GET_AREA_M2( I, J, 1 ) 
+         AREA_M2     =  GET_AREA_M2( I, J, 1 ) 
 
          ! Pressure edges
          DO L = 1, LLPAR+1
-            PEDGE(L)       =  GET_PEDGE( I, J, L )
+            PEDGE(L) =  GET_PEDGE( I, J, L )
          ENDDO
 
-!         ! For some reason, the parallelization chokes if we pass an array 
-!         ! slice of FSOL to DO_MERRA_CONVECTION.  It works if we manually 
-!         ! copy the data into a local array and then pass that to the routine.
-!         DO N = 1, N_TRACERS
-!         DO L = 1, LLPAR
-!            F(L,N)         =  FSOL(I,J,L,N)
-!         ENDDO
-!         ENDDO
-
-         ! Point to fields
-         p_H2O2s => H2O2s(I,J,:  )
-         p_SO2s  => SO2s (I,J,:  )
-         p_F     => FSOL (I,J,:,:)
-
+         ! NOTE: For some reason the code chokes when we try
+         ! to use a pointer, so we'll use a 2D array here.
+         F           =  FSOL(I,J,:,:)
+         
          !--------------------------
          ! Do the cloud convection
          !--------------------------
@@ -347,11 +338,10 @@
      &                             State_Chm  = State_Chm,
      &                             I          = I,
      &                             J          = J,
+     &                             N_TRACERS  = N_TOT_TRC,
      &                             AREA_M2    = AREA_M2,
-     &                             F          = p_F,
+     &                             F          = F,
      &                             PEDGE      = PEDGE,
-     &                             H2O2s      = p_H2O2s,
-     &                             SO2s       = p_SO2s,
      &                             TS_DYN     = DT, 
      &                             USE_DIAG14 = DO_ND14,
      &                             DIAG14     = DIAG14,
@@ -364,14 +354,11 @@
             CALL GEOS_CHEM_STOP
          ENDIF
 
-         ! Free pointer memory
-         NULLIFY( p_H2O2s, p_SO2s, p_F )
-
          !--------------------------
          ! ND14 diagnostic [kg/s]
          !--------------------------
          IF ( DO_ND14 ) THEN
-            DO N = 1, N_TRACERS
+            DO N = 1, N_TOT_TRC
             DO L = 1, LD14
                CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,N)
             ENDDO
@@ -382,7 +369,7 @@
          ! ND38 diagnostic [kg/s]
          !--------------------------
          IF ( DO_ND38 ) THEN
-            DO N = 1, N_TRACERS
+            DO N = 1, N_TOT_TRC
 
                ! Wetdep species for each tracer N
                NN = ISOL(N)
@@ -465,6 +452,8 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  14 Apr 2014 - R. Yantosca - Remove array temporary in call to FVDAS_CONVECT
+!  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
+!                              F array to subroutine COMPUTE_F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -502,6 +491,7 @@
       REAL*8, POINTER :: p_ZMEU  (:,:,:  )   ! Ptr to ZMEU   (flipped in vert)
       REAL*8, POINTER :: p_STT   (:,:,:,:)   ! Ptr to STT    (flipped in vert)
       REAL*8, POINTER :: p_F     (:,:,:,:)   ! Ptr to F      (flipped in vert)
+      REAL*8, POINTER :: p_FSOL  (:,:,:  )   ! Ptr to F      (for COMPUTE_F)
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
@@ -549,14 +539,27 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, ISOL )
+!$OMP+PRIVATE( I, J, L, N, ISOL, p_FSOL )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, N_TOT_TRC
 
+!-----------------------------------------------------------------------------
+! Prior to 4/18/14:
+!         ! Get fraction of tracer scavenged and the soluble tracer 
+!         ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
+!         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met, State_Chm ) 
+!-----------------------------------------------------------------------------
+
+         ! Point to array slice of F
+         p_FSOL => F(:,:,:,N)
+
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met, State_Chm ) 
+         CALL COMPUTE_F( N, p_FSOL, ISOL, State_Met, State_Chm ) 
          
+         ! Free pointer memory
+         NULLIFY( p_FSOL )
+
          ! Store ISOL in an array for later use
          INDEXSOL(N) = ISOL
 
@@ -751,6 +754,8 @@
 !  04 Nov 2013 - M. Sulprizio- Now use pointer variables to flip met fields in
 !                              the vertical
 !  15 Apr 2014 - R. Yantosca - Remove array temporaries in call to GCAP_CONVECT
+!  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
+!                              F array to subroutine COMPUTE_F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -790,6 +795,7 @@
       REAL*8,  POINTER :: p_DETRAINN (:,:,:  )   ! Ptr to DETRAINN met field
       REAL*8,  POINTER :: p_STT      (:,:,:,:)   ! Ptr to STT (flipped)
       REAL*8,  POINTER :: p_F        (:,:,:,:)   ! Ptr to F   (flipped)
+      REAL*8,  POINTER :: p_FSOL     (:,:,:  )   ! Ptr to F   (for COMPUTE_F)
 
       !=================================================================
       ! DO_GCAP_CONVECT begins here!
@@ -834,14 +840,27 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, ISOL )
+!$OMP+PRIVATE( I, J, L, N, ISOL, p_FSOL )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, N_TOT_TRC
 
+!------------------------------------------------------------------------------
+! Prior to 4/18/14:
+!         ! Get fraction of tracer scavenged and the soluble tracer 
+!         ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
+!         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met, State_Chm ) 
+!------------------------------------------------------------------------------
+
+         ! Point to 3D slice of F
+         p_FSOL => F(:,:,:,N)
+
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met, State_Chm ) 
+         CALL COMPUTE_F( N, p_FSOL, ISOL, State_Met, State_Chm ) 
          
+         ! Free pointer memory
+         NULLIFY( p_FSOL )
+
          ! Store ISOL in an array for later use
          INDEXSOL(N) = ISOL
 
@@ -1192,6 +1211,8 @@
 !                              separate parallel loop.  Also save the values
 !                              of ISOL in the ISOL_SAVE array so that we can
 !                              pass them to the parallel tracer loop.
+!  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
+!                              F array to subroutine COMPUTE_F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1211,7 +1232,7 @@
       REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
-      REAL*8                 :: F(IIPAR,JJPAR,LLPAR,
+      REAL*8, TARGET         :: F(IIPAR,JJPAR,LLPAR,
      &                            Input_Opt%N_TRACERS)
 
       ! Local Work arrays
@@ -1252,8 +1273,9 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER        :: Q(:,:,:,:)
-
+      REAL*8, POINTER        :: Q     (:,:,:,:)
+      REAL*8, POINTER        :: p_FSOL(:,:,:  ) 
+      
       !=================================================================
       ! NFCLDMX begins here!
       !=================================================================
@@ -1389,12 +1411,18 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED   )
-!$OMP+PRIVATE( IC, ISOL, I, J, K ) 
+!$OMP+PRIVATE( IC, ISOL, I, J, K, p_FSOL ) 
 !$OMP+SCHEDULE( DYNAMIC )
       DO IC = 1, NC
 
+         ! Point to 3D slice of F
+         p_FSOL => F(:,:,:,IC)
+
          ! Compute the fraction of tracer IC scavenged in updrafts
-         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, State_Met, State_Chm ) 
+         CALL COMPUTE_F( IC, p_FSOL, ISOL, State_Met, State_Chm ) 
+
+         ! Free pointer memory
+         NULLIFY( p_FSOL )
 
          ! Save ISOL values in an array for use below
          ISOL_SAVE(IC) = ISOL
@@ -1826,22 +1854,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_MERRA_CONVECTION( am_I_Root,
+      SUBROUTINE DO_MERRA_CONVECTION( am_I_Root,  
      &                                Input_Opt,
-     &                                State_Met,
+     &                                State_Met,  
      &                                State_Chm,
-     &                                I,        
-     &                                J,        
-     &                                AREA_M2,  
-     &                                F,  
-     &                                PEDGE,
-     &                                H2O2s,    
-     &                                SO2s,     
+     &                                I,          
+     &                                J,
+     &                                N_TRACERS,  
+     &                                AREA_M2,    
+     &                                F,          
+     &                                PEDGE,      
      &                                TS_DYN,   
-     &                                USE_DIAG14,
+     &                                USE_DIAG14, 
      &                                DIAG14,
-     &                                USE_DIAG38,   
-     &                                DIAG38,   
+     &                                USE_DIAG38, 
+     &                                DIAG38,
      &                                RC          )
 !
 ! !USES:
@@ -1858,6 +1885,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
+      USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s
+      USE WETSCAV_MOD,        ONLY : SO2s_3D  => SO2s
       USE WETSCAV_MOD,        ONLY : WASHOUT
       USE WETSCAV_MOD,        ONLY : LS_K_RAIN
       USE WETSCAV_MOD,        ONLY : LS_F_PRIME
@@ -1867,23 +1896,21 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: I, J        ! Lon & lat indices
+      INTEGER,        INTENT(IN)    :: N_TRACERS   ! # of convected tracers
       REAL*8,         INTENT(IN)    :: AREA_M2     ! Surface area [m2]
       REAL*8,         INTENT(IN)    :: F(:,:)      ! Fraction of soluble tracer
                                                    !  for updraft scavenging 
-                                                   !  [unitless].  ! This is 
-                                                   !  computed by routine 
-                                                   !  COMPUTE_UPDRAFT_FSOL
+                                                   !  [unitless].  Computed by
+                                                   !  routine  COMPUTE_F.
       REAL*8,         INTENT(IN)    :: PEDGE(:)    ! P @ level box edges [hPa]
       REAL*8,         INTENT(IN)    :: TS_DYN      ! Dynamic timestep [min]
-      INTEGER,        INTENT(IN)    :: I, J        ! Lon & lat indices
       LOGICAL,        INTENT(IN)    :: USE_DIAG14  ! Archive DIAG14?
       LOGICAL,        INTENT(IN)    :: USE_DIAG38  ! Archive DIAG38?
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
 !        
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      REAL*8,         INTENT(INOUT) :: H2O2s(:)    ! H2O2s from sulfate_mod
-      REAL*8,         INTENT(INOUT) :: SO2s(:)     ! SO2s from sulfate_mod
 !                                                  
 ! !OUTPUT PARAMETERS:                              
 !                     
@@ -1942,6 +1969,9 @@
 !  05 Sep 2013 - R. Yantosca - Bug fix: DT is apparently undefined, but still
 !                              passed to WASHOUT.  Use SDT instead.  This
 !                              avoids a floating-point error.
+!  18 Apr 2014 - R. Yantosca - Now point to 3-D arrays internally
+!  18 Apr 2014 - R. Yantosca - Now also pass N_TRACERS (to facilitate APM)
+!  18 Apr 2014 - R. Yantosca - Remove code that we don't need anymore
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1969,49 +1999,58 @@
       REAL*8            :: MB,          QB
 
       ! Arrays
-      REAL*8            :: BMASS  ( LLPAR              )    
-      REAL*8            :: PDOWN  ( LLPAR              )
-      REAL*8            :: QB_NUM ( Input_Opt%N_TRACERS)
+      REAL*8            :: BMASS    (LLPAR        )    
+      REAL*8            :: PDOWN    (LLPAR        )
+      REAL*8            :: QB_NUM   (N_TRACERS    )
 
-      ! Pointers for fields in State_Met and State_Chm objects
-      REAL*8,  POINTER  :: AD       (:  )
-      REAL*8,  POINTER  :: BXHEIGHT (:  )
-      REAL*8,  POINTER  :: CMFMC    (:  )
-      REAL*8,  POINTER  :: DQRCU    (:  )
-      REAL*8,  POINTER  :: DTRAIN   (:  )
-      REAL*8,  POINTER  :: PFICU    (:  )
-      REAL*8,  POINTER  :: PFLCU    (:  )
-      REAL*8,  POINTER  :: REEVAPCN (:  )
-      REAL*8,  POINTER  :: T        (:  )
-      REAL*8,  POINTER  :: Q        (:,:)
+      ! Pointers
+      REAL*8,  POINTER  :: AD       (:            )
+      REAL*8,  POINTER  :: BXHEIGHT (:            )
+      REAL*8,  POINTER  :: CMFMC    (:            )
+      REAL*8,  POINTER  :: DQRCU    (:            )
+      REAL*8,  POINTER  :: DTRAIN   (:            )
+      REAL*8,  POINTER  :: PFICU    (:            )
+      REAL*8,  POINTER  :: PFLCU    (:            )
+      REAL*8,  POINTER  :: REEVAPCN (:            )
+      REAL*8,  POINTER  :: T        (:            )
+      REAL*8,  POINTER  :: H2O2s    (:            )
+      REAL*8,  POINTER  :: SO2s     (:            )
+      REAL*8,  POINTER  :: Q        (:,:          )
 
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
       !========================================================================
       
       ! Point to columns of derived-type object fields
-      AD       => State_Met%AD      (I,J,:  )       ! Air mass [kg]    
-      BXHEIGHT => State_Met%BXHEIGHT(I,J,:  )       ! Box height [m]
-      CMFMC    => State_Met%CMFMC   (I,J,:  )       ! Cloud mass flux [kg/m2/s] 
-      DQRCU    => State_Met%DQRCU   (I,J,:  )       ! Precip production rate:
-      DTRAIN   => State_Met%DTRAIN  (I,J,:  )       ! Detrainment flux [kg/m2/s]
-      REEVAPCN => State_Met%REEVAPCN(I,J,:  )       ! Evap of precip'ing conv.
-      T        => State_Met%T       (I,J,:  )       ! air temperature [K]
-      Q        => State_Chm%TRACERS (I,J,:,:)       ! Tracer conc. [mol/mol] 
+      AD       => State_Met%AD      (I,J,:        ) ! Air mass [kg]    
+      BXHEIGHT => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
+      CMFMC    => State_Met%CMFMC   (I,J,2:LLPAR+1) ! Cloud mass flux [kg/m2/s] 
+      DQRCU    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
+      DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
+      REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
+      T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
+      H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
+      SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
+      Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer conc. [mol/mol] 
 
 #if   defined( GEOS_FP )
+
+      !%%%%% FOR GEOS-FP, PFICU and PFLCU are on level edges %%%%%
       PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 
                                                     !  ice precip [kg/m2/s]
       PFLCU    => State_Met%PFLCU   (I,J,2:LLPAR+1) ! Dwnwd flux of conv   
-                                                    !  liquid precip
+                                                    !  liquid precip [kg/m2/s]
 #elif defined( MERRA   )                              
+
+      !%%%%% FOR MERRA, PFICU and PFLCU are on level centers %%%%%
       PFICU    => State_Met%PFICU   (I,J,:        )
       PFLCU    => State_Met%PFLCU   (I,J,:        )
-#endif
 
+#endif
+        
       ! # of levels and # of tracers
       NLAY     = LLPAR
-      NC       = Input_Opt%N_TRACERS
+      NC       = N_TRACERS
 
       ! Top level for convection
       KTOP     = NLAY - 1
@@ -2667,6 +2706,8 @@
       NULLIFY( PFLCU    )
       NULLIFY( REEVAPCN )
       NULLIFY( T        )
+      NULLIFY( H2O2s    )
+      NULLIFY( SO2s     )
       NULLIFY( Q        )
 
       ! Set error code to success
