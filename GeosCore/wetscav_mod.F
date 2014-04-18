@@ -941,7 +941,7 @@
       ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
       ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
       ! 1.9 is ( molecular weight H2O2 / molecular weight water )
-      REAL*8,  PARAMETER  : CONV_H2O2 = 8.27042925126d-1
+      REAL*8,  PARAMETER  :: CONV_H2O2 = 8.27042925126d-1
 
       ! CONV_NH3 = 0.6 * SQRT( 0.9 ), used for the ice to gas ratio for NH3
       ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
