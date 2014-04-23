@@ -241,7 +241,12 @@
       REAL*8  :: DUMMYO2(KBLOOP)
       REAL*8  :: EDUCTCONC, LIMITCONC
       INTEGER :: PSCIDX
-      REAL*8  :: PSCEDUCTCONC(13,2)
+!-----------------------------------------------------------------------------
+! Prior to 4/23/13:
+! Seb Eastham says we can resize this to (11,2) (bmy, 4/23/13)
+!      REAL*8  :: PSCEDUCTCONC(13,2)
+!-----------------------------------------------------------------------------
+      REAL*8  :: PSCEDUCTCONC(11,2)
       LOGICAL :: NATSURFACE
       REAL*8  :: ADJUSTEDRATE
       LOGICAL :: KII_KI, PSCBOX, STRATBOX
@@ -1140,7 +1145,12 @@ c new OH+CO rate from JPL2006.
                            XSTKCF = 0.3d0
                         ENDIF
                      ELSE
-                        XSTKCF = TINY(1d0) ! avoid divide by zero
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 4/22/14:
+!%%% TINY(1d0) may cause XSTCF to underflow (bmy, 4/22/14)
+!%%%                        XSTKCF = TINY(1d0) ! avoid divide by zero
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                        XSTKCF = 0d0
                      ENDIF
 
                   ELSE IF ( NK == NKHOBr .OR. NK == NK1HBr) THEN
@@ -1159,7 +1169,12 @@ c new OH+CO rate from JPL2006.
                      ELSEIF ( N == 14 ) THEN
                         XSTKCF = 0.1d0
                      ELSE
-                        XSTKCF = TINY(1d0) ! avoid divide by zero
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 4/22/14:
+!%%% TINY(1d0) may cause XSTCF to underflow (bmy, 4/22/14)
+!%%%                        XSTKCF = TINY(1d0) ! avoid divide by zero
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                        XSTKCF = 0d0
                      ENDIF
 
                   ! Only consider PSC reactions in strat
@@ -1523,7 +1538,15 @@ c new OH+CO rate from JPL2006.
                   IF (PSCIDX.eq.1) THEN
                      ! N2O5 + H2O is an old reaction, allow to proceed
                      ! as it did in base GEOS-Chem
-                     IF (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)) THEN
+!------------------------------------------------------------------------------
+! Prior to 4/23/14:
+! Replace IF test with a simple greater than a small #.  If EDUCTCONC is very 
+! small (i.e. if it == SMAL2), then the division could still be numerically
+! allowed, but it would produce a result so large as to cause the solver
+! to choke. (bmy, mps, 4/23/14)
+!                     IF (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)) THEN
+!------------------------------------------------------------------------------
+                     IF ( EDUCTCONC > 1d-36 ) THEN 
                         ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
                      ELSE
                         ADJUSTEDRATE = 0d0
