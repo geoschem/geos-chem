@@ -27,9 +27,10 @@
 !%%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% If you want to read archived O3 prod/loss data from a different year
-!%%% than the met field dates, then use this #ifdef.  Otherwise, just
-!%%% comment this flag out. (bmy, 11/6/13)
-#define USE_THIS_O3_YEAR 2004
+!%%% than the met field dates, then use this #ifdef.  You can also leave this
+!%%% flag commented out and set its value by compiling with the TAGO3YR=2004
+!%%% (etc. for other years) Makefile option.  (bmy, 4/24/14)
+!#define USE_THIS_O3_YEAR 2004
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !PUBLIC MEMBER FUNCTIONS:

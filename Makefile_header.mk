@@ -503,6 +503,11 @@ ifeq ($(shell [[ "$(NO_ISO)" =~ $(REGEXP) ]] && echo true),true)
 USER_DEFS      += -DNO_ISORROPIA
 endif
 
+# Specify year of tagged O3 prod/loss data
+ifdef TAGO3YR
+USER_DEFS      += -DUSE_THIS_O3_YEAR=$(TAGO3YR)
+endif
+
 #------------------------------------------------------------------------------
 # TAU Performance Profiling (only works w/ IFORT for now)
 #------------------------------------------------------------------------------

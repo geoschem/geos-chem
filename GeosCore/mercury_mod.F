@@ -3104,6 +3104,8 @@
 !  06 Jun 2013 - R. Yantosca - Get ANTHRO_Hg_YEAR, Hg_SCENARIO from Input_Opt
 !  06 Sep 2013 - R. Yantosca - Kludge: use MERRA soil file for GEOS-FP testing
 !                              and debugging.  Worry about this later.
+!  06 Sep 2013 - R. Yantosca - Kludge: use GEOS-5 soil file for GEOS-4 testing
+!                              and debugging.  Worry about this later.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5683,6 +5685,14 @@
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201203/soilhg.preind.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
+#elif defined( GEOS_4 ) && defined( GRID4x5 )
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%   KLUDGE: For unit-testing, use the GEOS-5 soil file!    %%%
+         !%%%   Ask Team Hg to produce a new GEOS4 soil file later  .  %%%
+         !%%%   (bmy, 9/6/13)                                          %%%
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201203/0soilhg.preind.v9-02c.geos5.4x5'
 #elif defined( MERRA ) && defined( GRID4x5 )
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.preind.bpch'
@@ -5693,7 +5703,7 @@
          !%%%   (bmy, 9/6/13)                                          %%%
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          FILENAME= TRIM( DATA_DIR )            //
-     &             'mercury_201110/soilHg.merra.preind.bpch'
+     &             'mercury_201203/soilHg.merra.preind.bpch'
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
          ! Need to read nested-grid files, yzh
          FILENAME= TRIM( DATA_DIR )           //
@@ -5717,6 +5727,14 @@
          FILENAME= TRIM( DATA_DIR )                           //
      &             'mercury_201203/soilhg.presentday.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
+#elif defined( GEOS_4 ) && defined( GRID4x5 )
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%   KLUDGE: For unit-testing, use the GEOS-5 soil file!    %%%
+         !%%%   Ask Team Hg to produce a new GEOS4 soil file later  .  %%%
+         !%%%   (bmy, 9/6/13)                                          %%%
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201203/soilhg.presentday.v9-02c.geos5.4x5'
 #elif defined( MERRA ) && defined( GRID4x5 )
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.presentday.bpch'
