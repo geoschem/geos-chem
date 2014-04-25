@@ -1656,7 +1656,7 @@
 !
 !   #  : Field : Description                   : Units : Scale factor
 !  --------------------------------------------------------------------------
-!  (1  ) JNO   : NO    J-Value                 : s-1   : SCALE_JV
+!  (1  ) JNO2  : NO2   J-Value                 : s-1   : SCALE_JV
 !  (2  ) JHNO3 : HNO3  J-Value                 : s-1   : SCALE_JV
 !  (3  ) JH2O2 : H2O2  J-Value                 : s-1   : SCALE_JV
 !  (4  ) JCH2O : CH2O  J-Value                 : s-1   : SCALE_JV
@@ -1672,12 +1672,13 @@
 !  (14 ) Br2   : Br2   J-Value                 : s-1   : SCALE_JV
 !  (15 ) JO2   : O2    J-value                 : s-1   : SCALE_JV
 !  (16 ) JN2O  : N2O   J-value                 : s-1   : SCALE_JV
-!  (17 ) JNO2  : NO2   J-Value                 : s-1   : SCALE_JV
+!  (17 ) JNO   : NO    J-Value                 : s-1   : SCALE_JV
 !  (18 ) JNO3  : NO3   J-Value                 : s-1   : SCALE_JV
 !  (19 ) JCFC11: CFC11 J-value                 : s-1   : SCALE_JV
 !  (20 ) JCFC12: CFC11 J-value                 : s-1   : SCALE_JV
 !  (21 ) JCCl4 : CCl4  J-value                 : s-1   : SCALE_JV
 !  (22 ) JCH3Cl: CH3Cl J-value                 : s-1   : SCALE_JV
+!  (23 ) JACET : ACET  J-value                 : s-1   : SCALE_JV
 !  (71 ) JCH3I : CH3I  J-value (s^-1)          : s-1   : SCALE_JV
 !  (81 ) JHCN  : HCN   J-value (s^-1)          : s-1   : SCALE_JV
 !
@@ -1689,6 +1690,7 @@
 !       are requested to be printed out. (ccc, 12/15/08)
 !  (3) Add GLYX and MGLY tracers (tmf, 3/6/09)
 !  (4) Replaced NOx with NO2 (mpayer, 3/14/13)
+!  25 Apr 2014 - M. Sulprizio- Now include J-values for ACET
 !******************************************************************************
 !
       IF ( ND22 > 0 ) THEN
@@ -1704,10 +1706,12 @@
             ! NOTE: We can no longer select "all" in "input.geos", but we
             ! must specify the tracer #'s for ND22 explicitly:
             !
-            ! Fullchem:                CH3I         HCN
-            ! 1           = NO         1 = CH3I     1 = HCN
+            ! Fullchem:
+            ! 1           = NO
+            ! 2           = O3 & OH (trop-only); O3_O1D & O3_O3P (UCX)
             ! 7           = HNO3
             ! 8           = H2O2
+            ! 9           = ACET
             ! 20          = CH2O
             ! 44          = Br2
             ! 46          = BrO
@@ -1717,25 +1721,28 @@
             ! 51          = CHBr3
             ! 64          = NO2
             ! 65          = NO3
-            ! 67          = N2O
-            ! 72          = CCl4
-            ! 73          = CH3Cl
-            ! 77          = CFC11
-            ! 78          = CFC12
-            ! -1          = O2
-            ! 94          = GLYX (dicarbonyl simulation only)
-            ! 95          = MGLY (dicarbonyl simulation only)
-            ! N_TRACERS+1 = O3 & OH
+            ! 67          = N2O   (UCX simulation only)
+            ! 72          = CCl4  (UCX simulation only)
+            ! 73          = CH3Cl (UCX simulation only)
+            ! 77          = CFC11 (UCX simulation only)
+            ! 78          = CFC12 (UCX simulation only)
+            ! -1          = O2    (UCX simulation only)
+            ! 94          = GLYX  (dicarbonyl simulation only)
+            ! 95          = MGLY  (dicarbonyl simulation only)
             !
-            ! (ccc, bmy, 12/15/08)
+            ! HCN simulation:
+            ! 1           = HCN
+            !
+            ! CH3I simulation:
+            ! 1           = CH3I 
+            !
+            ! (ccc, bmy, 12/15/08; mps 4/25/14)
             !-----------------------------------------------------------------
-            IF ( NN >= N_TRACERS+1 ) THEN
-               MM = 5    ! Write 'O3' and 'OH'
-            ELSEIF ( NN == -1 ) THEN
+            IF ( NN == -1 ) THEN
                MM = 15   ! Write 'O2'
             ELSE
                SELECT CASE ( TRIM( Input_Opt%TRACER_NAME(NN) ) )
-                  CASE ( 'NO', 'HCN', 'CH3I' )
+                  CASE ( 'NO2', 'HCN', 'CH3I' )
                      MM = 1
                   CASE ( 'HNO3' )
                      MM = 2
@@ -1743,6 +1750,8 @@
                      MM = 3
                   CASE ( 'CH2O' )
                      MM = 4
+                  CASE ( 'O3'   )
+                     MM = 5
                   CASE ( 'GLYX' )
                      MM = 7
                   CASE ( 'MGLY' )
@@ -1761,7 +1770,7 @@
                      MM = 14
                   CASE ( 'N2O' )
                      MM = 16
-                  CASE ( 'NO2' )
+                  CASE ( 'NO' )
                      MM = 17
                   CASE ( 'NO3' )
                      MM = 18
@@ -1773,6 +1782,8 @@
                      MM = 21
                   CASE ( 'CH3Cl' )
                      MM = 22
+                  CASE ( 'ACET' )
+                     MM = 23
                   CASE DEFAULT
                      MM = 0
                END SELECT

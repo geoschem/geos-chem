@@ -97,6 +97,7 @@
 !                              SETEMIS (C. Holmes)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  25 Apr 2014 - M. Sulprizio- Now store J-values for ACET
 !******************************************************************************
 !
 ! !USES:
@@ -1810,24 +1811,24 @@ c new OH+CO rate from JPL2006.
          SPECNAME = NAMEGAS(IRM(1,NK,NCS))
 
          SELECT CASE ( TRIM( SPECNAME ) )
-            CASE ( 'NO2' )
+            CASE ( 'NO2'   )
                INDEX = 1
-            CASE ( 'HNO3' )
+            CASE ( 'HNO3'  )
                INDEX = 2
-            CASE ( 'H2O2' )
+            CASE ( 'H2O2'  )
                INDEX = 3
-            CASE ( 'CH2O' )
-            !CASE ( 'ACET' )  ! for testing (bey, 1/7/99)
+            CASE ( 'CH2O'  )
                INDEX = 4
-            CASE ( 'O3'   )
+            CASE ( 'O3'    )
                INDEX = 5
-            CASE ( 'GLYX' )
+            !  INDEX = 6 for POH (trop-only) or JO3_O3P (UCX)
+            CASE ( 'GLYX'  )
                INDEX = 7
-            CASE ( 'MGLY' )
+            CASE ( 'MGLY'  )
                INDEX = 8
-            CASE ( 'BrO' )
+            CASE ( 'BrO'   )
                INDEX = 9
-            CASE ( 'HOBr' )
+            CASE ( 'HOBr'  )
                INDEX = 10
             CASE ( 'BrNO2' )
                INDEX = 11
@@ -1835,24 +1836,26 @@ c new OH+CO rate from JPL2006.
                INDEX = 12
             CASE ( 'CHBr3' )
                INDEX = 13
-            CASE ( 'Br2' )
+            CASE ( 'Br2'   )
                INDEX = 14
-            CASE ( 'O2' )
+            CASE ( 'O2'    )
                INDEX = 15
-            CASE ( 'N2O' )
+            CASE ( 'N2O'   )
                INDEX = 16
-            CASE ( 'NO' )
+            CASE ( 'NO'    )
                INDEX = 17
-            CASE ( 'NO3' )
+            CASE ( 'NO3'   )
                INDEX = 18
             CASE ( 'CFC11' )
                INDEX = 19
             CASE ( 'CFC12' )
                INDEX = 20
-            CASE ( 'CCl4' )
+            CASE ( 'CCl4'  )
                INDEX = 21
             CASE ( 'CH3Cl' )
                INDEX = 22
+            CASE ( 'ACET'  )
+               INDEX = 23
             CASE DEFAULT
                INDEX = 0
          END SELECT
@@ -1870,7 +1873,7 @@ c new OH+CO rate from JPL2006.
             IZ = IZSAVE(JLOOP)   
              
             !===========================================================
-            ! Store J-values for 5 rxns + POH in ND22 diagnostic 
+            ! Store J-values in ND22 diagnostic 
             !===========================================================
             IF ( ND22 > 0 ) THEN
                ! Save J-values for 2PM diagnostic boxes

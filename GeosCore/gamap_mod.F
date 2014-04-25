@@ -1769,6 +1769,7 @@
 !  04 Sep 2013 - R. Yantosca - Bug fix: # of ND46 tracers should be 20
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  31 Jan 2014 - R. Yantosca - Now save out tracerinfo.dat properly for TOMAS
+!  25 Apr 2014 - M. Sulprizio- Now include J-values for ACET in ND22
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5092,7 +5093,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 22 ! Increase for strat-chem (SDE, 03/28/13)
+            NTRAC(22) = 23
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -5100,7 +5101,7 @@
                ! Get name
                SELECT CASE( T )
                   CASE( 1  )
-                     NAME(T,22) = 'JNO'
+                     NAME(T,22) = 'JNO2'
                   CASE( 2  )
                      NAME(T,22) = 'JHNO3'
                   CASE( 3  )
@@ -5139,7 +5140,7 @@
                   CASE( 16 )
                      NAME(T,22) = 'JN2O'
                   CASE( 17 )
-                     NAME(T,22) = 'JNO2'
+                     NAME(T,22) = 'JNO'
                   CASE( 18 )
                      NAME(T,22) = 'JNO3'
                   CASE( 19 )
@@ -5150,6 +5151,8 @@
                      NAME(T,22) = 'JCCl4'
                   CASE( 22 )
                      NAME(T,22) = 'JCH3Cl'
+                  CASE( 23 )
+                     NAME(T,22) = 'JACET'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
