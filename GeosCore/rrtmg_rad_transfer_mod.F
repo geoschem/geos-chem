@@ -1126,14 +1126,17 @@
      &            'modis_surf_201210/' //
 ! the 02-07 file contains our regridded and filled emissivity
 ! and albedo climatology for 2002-2007 direct from MODIS products
-! N.B. this does NOT contain snow cover so gives flux in absence of snow
-! (DAR 10/2013)
-!     &            'modis_surf_02-07_' //
+! N.B. this is raw MODIS data so contains snow cover but may have more
+! filled missing value data.
+     &            'modis_surf_02-07_' //
 
 ! the 01-04 file contains our regridded and filled emissivity
 ! for 2002-2007 and eco-type filled albedo produced by MODIS averaged over
-! 2001-2004 data. This is the preferred data (DAR)
-     &            'modis_surf_01-04_' //
+! 2001-2004 data.
+! N.B. this does NOT contain snow cover so gives flux in absence of snow
+! Needs combining with the FRSNO met field! (DAR 03/2014)
+
+!     &            'modis_surf_01-04_' //
 
      &            STHISDOFY//'.'// GET_RES_EXT()
 
