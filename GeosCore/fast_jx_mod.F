@@ -1805,6 +1805,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  09 May 2014 - S. D. Eastham - Fixed bug when using <18 wavelengths
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1949,8 +1950,9 @@ c---TROP-ONLY
           Q1D(IW,K) = Q1D(IW+4,K)
          enddo
          do J = 4,NJX
-          QQQ(IW,1,J) = QQQ(IW+4,1,J)
-          QQQ(IW,2,J) = QQQ(IW+4,2,J)
+          do LQ=1,LQQ(J) 
+           QQQ(IW,LQ,J) = QQQ(IW+4,LQ,J)
+          enddo
          enddo
         enddo
         do IW = 5,12
@@ -1963,8 +1965,9 @@ c---TROP-ONLY
           Q1D(IW,K) = Q1D(IW+6,K)
          enddo
          do J = 4,NJX
-          QQQ(IW,1,J) = QQQ(IW+6,1,J)
-          QQQ(IW,2,J) = QQQ(IW+6,2,J)
+          do LQ=1,LQQ(J) 
+           QQQ(IW,LQ,J) = QQQ(IW+6,LQ,J)
+          enddo
          enddo
         enddo
 c---TROP-QUICK  (must scale solar flux for W=5)
@@ -1984,8 +1987,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
           Q1D(IW,K) = Q1D(IW+4,K)
          enddo
          do J = 4,NJX
-          QQQ(IW,1,J) = QQQ(IW+4,1,J)
-          QQQ(IW,2,J) = QQQ(IW+4,2,J)
+          do LQ=1,LQQ(J) 
+           QQQ(IW,LQ,J) = QQQ(IW+4,LQ,J)
+          enddo
          enddo
         enddo
         do IW = 2,8
@@ -1998,8 +2002,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
           Q1D(IW,K) = Q1D(IW+10,K)
          enddo
          do J = 4,NJX
-          QQQ(IW,1,J) = QQQ(IW+10,1,J)
-          QQQ(IW,2,J) = QQQ(IW+10,2,J)
+          do LQ=1,LQQ(J) 
+           QQQ(IW,LQ,J) = QQQ(IW+10,LQ,J)
+          enddo
          enddo
         enddo
 
