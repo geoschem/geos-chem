@@ -1537,17 +1537,30 @@ c new OH+CO rate from JPL2006.
                   ! If all these checks are passed, we set k = ki/[B].
                   ! Rxn 11 is first-order - ignore
                   IF (PSCIDX.eq.1) THEN
-                     ! N2O5 + H2O is an old reaction, allow to proceed
-                     ! as it did in base GEOS-Chem
 !------------------------------------------------------------------------------
-! Prior to 4/23/14:
-! Replace IF test with a simple greater than a small #.  If EDUCTCONC is very 
-! small (i.e. if it == SMAL2), then the division could still be numerically
-! allowed, but it would produce a result so large as to cause the solver
-! to choke. (bmy, mps, 4/23/14)
+! Prior to 5/12/14:
+! Use same treatmens used for other aerosol reactions (not including the
+! check against PSCMINLIFE) (sde, mps, 5/12/14)
+!                     ! N2O5 + H2O is an old reaction, allow to proceed
+!                     ! as it did in base GEOS-Chem
 !                     IF (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)) THEN
+!                        ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
+!                     ELSE
+!                        ADJUSTEDRATE = 0d0
+!                     ENDIF
 !------------------------------------------------------------------------------
-                     IF ( EDUCTCONC > 1d-36 ) THEN 
+                     ! Convert from 1st-order to 2nd-order
+                     IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
+                        ! Temporarily store [B]/(T*[A])
+                        LIMITCONC = EDUCTCONC/(PSCMINLIFE*LIMITCONC)
+                        IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
+                           ADJUSTEDRATE = LIMITCONC
+                        ENDIF
+                     ELSE
+                        ADJUSTEDRATE = 0d0
+                     ENDIF
+                     IF ((EDUCTCONC.gt.1.d2).and.
+     &                      (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
                         ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
                      ELSE
                         ADJUSTEDRATE = 0d0
