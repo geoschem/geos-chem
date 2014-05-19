@@ -1738,6 +1738,7 @@
 !  (6  ) POH   : OH-source from O3 photolysis  : s-1   : SCALE_JV
 !  (7  ) JGLYX : GLYX  J-Value                 : s-1   : SCALE
 !  (8  ) JMGLY : MGLY  J-Value                 : s-1   : SCALE
+!  (23 ) JACET : ACET  J-value                 : s-1   : SCALE_JV
 !  (71 ) JCH3I : CH3I  J-value (s^-1)          : s-1   : SCALE_JV
 !  (81 ) JHCN  : HCN   J-value (s^-1)          : s-1   : SCALE_JV
 !
@@ -1749,6 +1750,7 @@
 !       are requested to be printed out. (ccc, 12/15/08)
 !  (3) Add GLYX and MGLY tracers (tmf, 3/6/09)
 !  (4) Replaced NOx with NO2 (mpayer, 3/14/13)
+!  25 Apr 2014 - M. Sulprizio- Now include J-values for ACET
 !******************************************************************************
 !
       IF ( ND22 > 0 ) THEN
@@ -1768,12 +1770,13 @@
             ! 1           = NOx        1 = CH3I     1 = HCN
             ! 7           = HNO3
             ! 8           = H2O2
+            ! 9           = ACET
             ! 20          = CH2O
             ! 55          = GLYX
             ! 56          = MGLY
             ! N_TRACERS+1 = O3 & OH
             !
-            ! (ccc, bmy, 12/15/08)
+            ! (ccc, bmy, 12/15/08; mps 4/25/14)
             !-----------------------------------------------------------------
             IF ( NN >= N_TRACERS+1 ) THEN
                MM = 5    ! Write 'O3' and 'OH'
@@ -1803,6 +1806,8 @@
                      MM = 13
                   CASE ( 'Br2' )
                      MM = 14
+                  CASE ( 'ACET' )
+                     MM = 23
                   CASE DEFAULT
                      MM = 0
                END SELECT
