@@ -1727,6 +1727,7 @@
 !  04 Sep 2013 - R. Yantosca - Bug fix: # of ND46 tracers should be 20
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  31 Jan 2014 - R. Yantosca - Now save out tracerinfo.dat properly for TOMAS
+!  25 Apr 2014 - M. Sulprizio- Now include J-values for ACET in ND22
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5017,7 +5018,7 @@
       ENDIF
 
       !-------------------------------------      
-      ! Optical depths (ND22)
+      ! J-values (ND22)
       !-------------------------------------
       IF ( ND22 > 0 ) THEN
 
@@ -5028,7 +5029,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 14 ! Increase for bromine (jpp, mpayer, 12/28/11)
+            NTRAC(22) = 23
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -5063,6 +5064,8 @@
                      NAME(T,22) = 'JCHBr3'
                   CASE( 14 )
                      NAME(T,22) = 'JBr2'
+                  CASE( 23 )
+                     NAME(T,22) = 'JACET'
                  CASE DEFAULT
                   ! Nothing
                END SELECT

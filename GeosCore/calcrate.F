@@ -97,6 +97,7 @@
 !                              SETEMIS (C. Holmes)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  25 Apr 2014 - M. Sulprizio- Now store J-values for ACET
 !******************************************************************************
 !
 ! !USES:
@@ -1376,6 +1377,8 @@ c new OH+CO rate from JPL2006.
                INDEX = 13
             CASE ( 'Br2' )
                INDEX = 14
+            CASE ( 'ACET'  )
+               INDEX = 23
             CASE DEFAULT
                INDEX = 0
          END SELECT

@@ -69,6 +69,7 @@
       ! Now set PD46 to 16 (jpp, 6/7/09)
       ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
       ! SOAupdate: PD46 increased from 16 to 20 (hotp 3/1/10)
+      ! Changed PD22 from 14 to 23 for ACET (mps, 4/25/14)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -90,7 +91,7 @@
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
       INTEGER, PARAMETER :: PD21=27
-      INTEGER, PARAMETER :: PD22=14      !jpp replaced 8, 4/24/2011... for Br.
+      INTEGER, PARAMETER :: PD22=23
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
       INTEGER, PARAMETER :: PD25=NNPAR       
