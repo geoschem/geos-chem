@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7,9 +7,9 @@
 !
 ! !DESCRIPTION: \subsection*{Overview}
 !  This module contains functions used for the new acetone pressure
-!  dependency calculation in JRATET.f introduced in FAST-JX version 6.4
-!  The temperature interpolation factors and the Xsect are different for
-!  both acetone photolysis reactions and interdependant. See use in JRATET.f
+!  dependency calculation in JRATET.f introduced in FAST-JX version 6.7
+!  This is a hack to effectively implement Fast-JX v7.0b acetone
+!  photolysis into Fast-J. See use in JRATET.f
 !
 !\subsection*{Reference}
 !  Blitz, M. A., D. E. Heard, M. J. Pilling, S. R. Arnold, M. P. Chipperfield
@@ -30,11 +30,8 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: QQ2_F
-      PUBLIC :: QQ1_F
-      PUBLIC :: TFACA_F
-      PUBLIC :: TFAC0_F
-      PUBLIC :: TFAC_F
+      PUBLIC :: QQA
+      PUBLIC :: QQB
 !
 ! !AUTHOR:
 ! Original code from Michael Prather.
@@ -43,246 +40,171 @@
 ! !REVISION HISTORY:
 !  20 Apr 2009 - C. Carouge - Created the module from fastJX64.f code.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 May 2014 - M. Sulprizio- Update acetone photolysis to Fast-JX v7.0b
+!                              (S.D. Eastham)
 !EOP
 !------------------------------------------------------------------------------
+!BOC
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: tfaca_f
+! !IROUTINE: QQA
 !
-! !DESCRIPTION: Calculates temperature interpolation factors for acetone
+! !DESCRIPTION: 
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION TFACA_F(TTT, IV)
-!
-! !USES
-!
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
-!
-! !INPUT PARAMETERS:
-!
-      ! Index of the specie in jv_spec.dat (should be between 4 and NJVAL)
-      INTEGER :: IV
-
-      ! Temperature in 1 grid box
-      REAL*8  :: TTT
-!
-! !OUTPUT VALUE:
-!
-      ! Temperature interpolation factor
-      REAL*8  :: TFACA_F 
-!                               with the "D" double-precision exponent.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      TFACA_F = (TTT-TQQ(1,IV))/(TQQ(2,IV)-TQQ(1,IV))
-      TFACA_F = max(0.d0, min(1.d0, TFACA_F))
-
-      RETURN
-      
-      END FUNCTION TFACA_F
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: tfac0_f
-!
-! !DESCRIPTION: Calculates temperature interpolation factors for acetone
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION TFAC0_F(TTT, IV)
+      subroutine QQA(PP,QQQT,K)
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
+      implicit none
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Index of the specie in jv_spec.dat (should be between 4 and NJVAL)
-      INTEGER :: IV
-
-      ! Temperature in 1 grid box
-      REAL*8  :: TTT
+      real*8,  intent(in)  :: PP
+      integer, intent(in)  :: K
 !
-! !OUTPUT VALUE:
+! !OUTPUT PARAMETERS: 
 !
-      ! Temperature interpolation factor
-      REAL*8  :: TFAC0_F 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      TFAC0_F = ( (TTT-TQQ(1,IV))/(TQQ(2,IV)-TQQ(1,IV)) )**2
-      if (TTT .lt. TQQ(1,IV)) then
-         TFAC0_F = (TTT - 210.d0)/(TQQ(1,IV)-210.d0)
-      endif
-      TFAC0_F = max(0.d0, min(1.d0, TFAC0_F))
-
-      RETURN
-      
-      END FUNCTION TFAC0_F
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: tfac_f
-!
-! !DESCRIPTION: Calculates temperature interpolation factors for acetone
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION TFAC_F(TTT, IV)
-!
-! !USES:
-!
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
-!
-! !INPUT PARAMETERS: 
-!
-      ! Index of the specie in jv_spec.dat (should be between 4 and NJVAL)
-      INTEGER :: IV
-
-      ! Temperature in 1 grid box
-      REAL*8  :: TTT
-
-!
-! !OUTPUT VALUE:
-!
-      ! Temperature interpolation factor
-      REAL*8  :: TFAC_F 
+      real*8,  intent(out) :: QQQT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8  :: TT200
+      logical,save::FIRST=.TRUE.
+      real*8,dimension(7,3),save::QQQ
+      real*8,dimension(3),save::TQQ
 
-      TT200 = min(300.d0, max(200.d0, TTT))
-      TFAC_F = (TT200-TQQ(1,IV))/(TQQ(2,IV)-TQQ(1,IV))
+      if (FIRST) then
+         FIRST=.false.
+         ! Declare arrays
+         ! Pressure at which cross-sections calculated
+         TQQ = (/177.0d0,566.0d0,999.0d0/)
+         ! Taking only the last 7 bins from Fast-JX (!)
+         QQQ(:,1) = (/ 1.980d-20,  5.927d-21,  6.000d-22,  5.868d-23,
+     &                 5.934d-25,  0.000d0,    0.000d0              /)
+         QQQ(:,2) = (/ 1.240d-20,  4.464d-21,  7.146d-22,  1.171d-22,
+     &                 2.202d-24,  0.000d0,    0.000d0              /)
+         QQQ(:,3) = (/ 9.213d-21,  3.702d-21,  7.100d-22,  1.357d-22,
+     &                 3.115d-24,  0.000d0,    0.000d0              /)
+      endif
+      call X_interp_FJX (PP,QQQT, TQQ(1),QQQ(K,1),
+     &        TQQ(2),QQQ(K,2), TQQ(3),QQQ(K,3), 3)
 
-      RETURN
-      
-      END FUNCTION TFAC_F
+      end subroutine QQA
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: qq2_f
+! !IROUTINE: QQB
 !
-! !DESCRIPTION: This routine computes the cross-section for acetone.
+! !DESCRIPTION: 
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION QQ2_F(TFAC0, IV, K, TTT)
+      subroutine QQB(TT,QQQT,K)
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
+      implicit none
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Index of the specie in jv_spec.dat (should be between 4 and NJVAL)
-      INTEGER :: IV
-
-      ! Wavelength
-      INTEGER :: K
-
-      ! Temperature in 1 grid box
-      REAL*8  :: TTT
-
-      ! Temperature interpolation factor from TFAC0_F function
-      REAL*8  :: TFAC0
+      real*8,  intent(in)  :: TT
+      integer, intent(in)  :: K
 !
-! !OUTPUT VALUE:
+! !OUTPUT PARAMETERS: 
 !
-      ! Xsect (total abs) for Acetone
-      REAL*8  :: QQ2_F
-!
-! !NOTES:
-!  (1 ) We use IV-3 and not IV because there is no QQQ values for O2, O3 
-!        and O1-D. (ccc, 4/20/19)
+      real*8,  intent(out) :: QQQT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-      QQ2_F  = QQQ(K,1,IV-3) + (QQQ(K,2,IV-3)-QQQ(K,1,IV-3))*TFAC0
-      if (TTT .lt. TQQ(1,IV)) then
-         QQ2_F = QQQ(K,1,IV-3)*TFAC0
+! !LOCAL VARIABLES:
+!
+      logical,save::FIRST=.TRUE.
+      real*8,dimension(7,3),save::QQQ
+      real*8,dimension(3),save::TQQ
+
+      if (FIRST) then
+         FIRST=.false.
+         ! Declare arrays
+         ! Temperature at which cross-sections calculated
+         TQQ = (/235.0d0,260.0d0,298.0d0/)
+         ! Taking only the last 7 bins from Fast-JX (!)
+         QQQ(:,1) = (/ 1.158d-22,  2.648d-23,  6.014d-24,  1.502d-24,
+     &                 4.211d-26,  0.000d0,    0.000d0              /)
+         QQQ(:,2) = (/ 5.664d-22,  1.681d-22,  4.919d-23,  1.477d-23,
+     &                 5.602d-25,  0.000d0,    0.000d0              /)
+         QQQ(:,3) = (/ 2.804d-21,  1.092d-21,  4.079d-22,  1.496d-22,
+     &                 7.707d-24,  0.000d0,    0.000d0              /)
+      endif
+      call X_interp_FJX (TT,QQQT, TQQ(1),QQQ(K,1), 
+     &        TQQ(2),QQQ(K,2), TQQ(3),QQQ(K,3), 3)
+
+      end subroutine QQB
+!EOC 
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: x_interp_fjx
+!
+! !DESCRIPTION: Up-to-three-point linear interpolation function for X-sections
+!\\
+!\\
+! !INTERFACE:
+!
+      subroutine X_interp_FJX (TINT,XINT, T1,X1, T2,X2, T3,X3, L123)
+!
+! !USES:
+!
+      implicit none
+!
+! !INPUT PARAMETERS: 
+!
+      real*8, intent(in)::  TINT,T1,T2,T3, X1,X2,X3
+      integer,intent(in)::  L123
+!
+! !OUTPUT PARAMETERS: 
+!
+      real*8,intent(out)::  XINT
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      real*8  TFACT
+
+      if (L123 .le. 1) then
+           XINT = X1
+      elseif (L123 .eq. 2) then
+             TFACT = max(0.d0,min(1.d0,(TINT-T1)/(T2-T1) ))
+           XINT = X1 + TFACT*(X2 - X1)
+      else
+        if (TINT.le. T2) then
+             TFACT = max(0.d0,min(1.d0,(TINT-T1)/(T2-T1) ))
+           XINT = X1 + TFACT*(X2 - X1)
+        else
+             TFACT = max(0.d0,min(1.d0,(TINT-T2)/(T3-T2) ))
+           XINT = X2 + TFACT*(X3 - X2)
+        endif
       endif
 
-      RETURN
-
-      END FUNCTION QQ2_F
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: qq1_f
-!
-! !DESCRIPTION: This routine computes the cross-section for acetone.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION QQ1_F(TFAC, IV, K)
-!
-! !USES:
-!
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
-!
-! !INPUT PARAMETERS: 
-!
-      ! Index of the specie in jv_spec.dat (should be between 4 and NJVAL)
-      INTEGER :: IV
-
-      ! Wavelength
-      INTEGER :: K
-
-      ! Temperature interpolation factor from TFAC_F function
-      REAL*8  :: TFAC
-!
-! !OUTPUT VALUE:
-!
-      ! Xsect (total abs) for Acetone
-      REAL*8  :: QQ1_F 
-!
-! !NOTES:
-!  (1 ) We use IV-3 and not IV because there is no QQQ values for O2, O3 
-!        and O1-D. (ccc, 4/20/19)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      QQ1_F = QQQ(K,1,IV-3) + (QQQ(K,2,IV-3)-QQQ(K,1,IV-3))*TFAC
-
-      RETURN
-
-      END FUNCTION QQ1_F
+      END SUBROUTINE X_interp_FJX
 !EOC
       END MODULE FJX_ACET_MOD 
 

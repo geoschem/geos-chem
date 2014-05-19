@@ -50,6 +50,8 @@
 !                              never being initialized.
 !  31 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  10 Aug 2012 - R. Yantosca - Replace LPAR with LLPAR
+!  19 May 2014 - M. Sulprizio- Update acetone photolysis to Fast-JX v7.0b
+!                              (S.D. Eastham)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,17 +121,21 @@
          if(TQQ(2,J).gt.TQQ(1,J)) TFACT = max(0.d0,min(1.d0,
      $        (T(I)-TQQ(1,J))/(TQQ(2,J)-TQQ(1,J)) ))
 
-!        FAST_JX introduces a new pres. dependancy for acetone (ccc, 4/20/09)
-!        Special calculations for the temperature interpolation factors
-         if ( PF.eq.2 ) then
-            TFACA=TFACA_F(dble(T(I)), J      )
-            TFAC0=TFAC0_F(dble(T(I)), J+1    )
-            TFAC1=TFAC_F (dble(T(I)), NJVAL+1)
-            TFAC2=TFAC_F (dble(T(I)), NJVAL+2)
-         else if ( PF.eq.3 ) then
-            TFACA=TFACA_F(dble(T(I)), J-1    )
-            TFAC0=TFAC0_F(dble(T(I)), J      )
-         endif
+!------------------------------------------------------------------------------
+! Prior to 5/19/14:
+! Update acetone photolysis to Fast-JX v7.0b (sde, mps, 5/19/14)
+!!        FAST_JX introduces a new pres. dependancy for acetone (ccc, 4/20/09)
+!!        Special calculations for the temperature interpolation factors
+!         if ( PF.eq.2 ) then
+!            TFACA=TFACA_F(dble(T(I)), J      )
+!            TFAC0=TFAC0_F(dble(T(I)), J+1    )
+!            TFAC1=TFAC_F (dble(T(I)), NJVAL+1)
+!            TFAC2=TFAC_F (dble(T(I)), NJVAL+2)
+!         else if ( PF.eq.3 ) then
+!            TFACA=TFACA_F(dble(T(I)), J-1    )
+!            TFAC0=TFAC0_F(dble(T(I)), J      )
+!         endif
+!------------------------------------------------------------------------------
 
          do K=NW1,NW2
            QQQT = QQQ(K,1,J-3) + (QQQ(K,2,J-3) - QQQ(K,1,J-3))*TFACT
@@ -179,25 +185,37 @@
                  VALJ(J) = VALJ(J) + QQQT*FFF(K,I)*qptemp
 
               else if ( PF.eq.2 ) then
-!             Acetone pressure dependency from FAST-JX (ccc, 4/20/09)
-!             J1(acetone-a) ==> CH3CO + CH3
-!             Special values for Xsect
-                 QQQA = QQ1_F (TFACA, J      , K            )
-                 QQ2  = QQ2_F (TFAC0, J+1    , K, dble(T(I)))
-                 QQ1A = QQ1_F (TFAC1, NJVAL+1, K            )
-                 QQ1B = QQ1_F (TFAC2, NJVAL+2, K            ) * 4.d-20
-
-                 VALJ(J) = VALJ(J) + FFF(K,L)*QQQA *
-     &            (1.d0-QQ2)/(QQ1A + (QQ1B*Na*1d-6 /(R*T(I))) * 
-     $            (pj(i)+pj(i+1))*0.5d0*1d2)
+!------------------------------------------------------------------------------
+! Prior to 5/19/14:
+! Update acetone photolysis to Fast-JX v7.0b (sde, mps, 5/19/14)
+!!             Acetone pressure dependency from FAST-JX (ccc, 4/20/09)
+!!             J1(acetone-a) ==> CH3CO + CH3
+!!             Special values for Xsect
+!                 QQQA = QQ1_F (TFACA, J      , K            )
+!                 QQ2  = QQ2_F (TFAC0, J+1    , K, dble(T(I)))
+!                 QQ1A = QQ1_F (TFAC1, NJVAL+1, K            )
+!                 QQ1B = QQ1_F (TFAC2, NJVAL+2, K            ) * 4.d-20
+!
+!                 VALJ(J) = VALJ(J) + FFF(K,L)*QQQA *
+!     &            (1.d0-QQ2)/(QQ1A + (QQ1B*Na*1d-6 /(R*T(I))) * 
+!     $            (pj(i)+pj(i+1))*0.5d0*1d2)
+!------------------------------------------------------------------------------
+                 call QQA(pj(i),QQQA,K)
+                 VALJ(J) = VALJ(J) + FFF(K,I)*QQQA
               else if ( PF.eq.3 ) then
-!             Second acetone pressure dependency from FAST-JX (ccc, 4/20/09)
-!             J2(acetone-b) ==> CH3 + CO + CH3
-!             Special values for Xsect
-                 QQQA = QQ1_F (TFACA, J-1    , K            )
-                 QQ2  = QQ2_F (TFAC0, J      , K, dble(T(I)))
-
-                 VALJ(J) = VALJ(J) + FFF(K,L)*QQQA*QQ2
+!------------------------------------------------------------------------------
+! Prior to 5/19/14:
+! Update acetone photolysis to Fast-JX v7.0b (sde, mps, 5/19/14)
+!!             Second acetone pressure dependency from FAST-JX (ccc, 4/20/09)
+!!             J2(acetone-b) ==> CH3 + CO + CH3
+!!             Special values for Xsect
+!                 QQQA = QQ1_F (TFACA, J-1    , K            )
+!                 QQ2  = QQ2_F (TFAC0, J      , K, dble(T(I)))
+!
+!                 VALJ(J) = VALJ(J) + FFF(K,L)*QQQA*QQ2
+!------------------------------------------------------------------------------
+                 call QQB(T(i),QQQA,K)
+                 VALJ(J) = VALJ(J) + FFF(K,I)*QQQA
               endif
            endif
          enddo
