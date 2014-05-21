@@ -368,10 +368,6 @@
                CALL GC_READ_BIOMASS_CO2( YEAR, MONTH,
      &                                   BIOMASS(:,:,IDBCO2) )
 
-#if defined( DEVEL )
-               State_Chm%TRAC_BTEND(:,:,1,IDBCO2) = 
-     &         State_Chm%TRAC_BTEND(:,:,1,IDBCO2) + BIOMASS(:,:,IDBCO2)
-#endif
             ELSE
 
                !------------------------------
@@ -394,21 +390,11 @@
      &                                      BIOMASS(:,:,IDBSO2) )
                ENDIF
 
-#if defined( DEVEL )
-               State_Chm%TRAC_BTEND(:,:,1,IDBSO2) =
-     &         State_Chm%TRAC_BTEND(:,:,1,IDBSO2) + BIOMASS(:,:,IDBSO2)
-#endif
-
                ! Get biomass NH3 [molec/cm2/s]
                IF ( IDTNH3 > 0 ) THEN
                   CALL GC_READ_BIOMASS_NH3( YEAR, MONTH,
      &                                      BIOMASS(:,:,IDBNH3) )
                ENDIF
-
-#if defined( DEVEL )
-               State_Chm%TRAC_BTEND(:,:,1,IDBNH3) = 
-     &         State_Chm%TRAC_BTEND(:,:,1,IDBNH3) +BIOMASS(:,:,IDBNH3)
-#endif
 
                ! Get biomass BC & OC [molec/cm2/s]
                ! SOAupdate: OC emissions now are nonvolatile (OCPO defined) or
@@ -420,12 +406,6 @@
      &                                       BIOMASS(:,:,IDBOC) ) 
                   ENDIF
                ENDIF
-#if defined( DEVEL )
-               State_Chm%TRAC_BTEND(:,:,1,IDBBC) =  
-     &         State_Chm%TRAC_BTEND(:,:,1,IDBBC) + BIOMASS(:,:,IDBBC)
-               State_Chm%TRAC_BTEND(:,:,1,IDBOC) = 
-     &         State_Chm%TRAC_BTEND(:,:,1,IDBOC) + BIOMASS(:,:,IDBOC)
-#endif
             ENDIF
 
             ! Irrespective of inventory type, we need to scale biomass
@@ -442,10 +422,6 @@
                ELSE IF ( ITS_A_TAGCO_SIM ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
                ENDIF
-#if defined( DEVEL )
-               State_Chm%TRAC_BTEND(:,:,1,IDBCO) = 
-     &         State_Chm%TRAC_BTEND(:,:,1,IDBCO) + BIOMASS(:,:,IDBCO)
-#endif
             ENDIF
          ENDIF
 

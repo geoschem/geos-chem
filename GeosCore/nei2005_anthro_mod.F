@@ -1274,48 +1274,6 @@
          CALL NEI2005_SCALE_FUTURE
       ENDIF
 
-#if defined( DEVEL )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Determine if we should use weekday or weekend NEI
-         ! emissions at grid box (I,J,L).  Since NEI is over
-         ! the US, then weekend is Sat/Sun.
-         DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
-         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
-
-         IF ( WEEKDAY ) THEN    !Kg/Yr
-            State_Chm%TRAC_TEND(I,J,1:5,IDTNO)   = NOx(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTCO)   = CO(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTSO2)  = SO2(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTSO4)  = SO4(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTNH3)  = NH3(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTALK4) = ALK4(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTACET) = ACET(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTMEK)  = MEK(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTPRPE) = PRPE(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTC3H8) = C3H8(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTCH2O) = CH2O(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTC2H6) = C2H6(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTALD2) = ALD2(I,J,1:5)
-         ELSE
-            State_Chm%TRAC_TEND(I,J,1:5,IDTNO)   = NOx_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTCO)   = CO_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTSO2)  = SO2_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTSO4)  = SO4_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTNH3)  = NH3_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTALK4) = ALK4_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTACET) = ACET_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTMEK)  = MEK_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTPRPE) = PRPE_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTC3H8) = C3H8_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTCH2O) = CH2O_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTC2H6) = C2H6_WKEND(I,J,1:5)
-            State_Chm%TRAC_TEND(I,J,1:5,IDTALD2) = ALD2_WKEND(I,J,1:5)
-         ENDIF
-      ENDDO
-      ENDDO
-#endif
       !--------------------------
       ! Print emission totals
       !--------------------------

@@ -38,7 +38,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine Ncget_Dimlen (ncid, dim_name, dim_len)
+      subroutine Ncget_Dimlen (ncid, dim_name, dim_len )
 !
 ! !USES:
 !
@@ -58,7 +58,10 @@ CONTAINS
 !!  dim_len: netCDF dimension length
       integer,           intent(out)   :: dim_len
 !
-! !DESCRIPTION: Returns the length of a given netCDF dimension.
+! !DESCRIPTION: Returns the length of a given netCDF dimension. 
+!               If err_stop is set to FALSE, -1 is returned if 
+!               the given dimension cannot be found. Otherwise,
+!               an error is prompted and the program stops.
 !\\
 !\\
 ! !AUTHOR: 
@@ -66,6 +69,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  Initial code.
+!  26 Dec 2012 - C.Keller - err_stop argument added
 !
 !EOP
 !-------------------------------------------------------------------------
@@ -75,10 +79,10 @@ CONTAINS
       character (len=128) :: err_msg
       integer             :: dimid
       integer             :: ierr
-!
+
       ierr = Nf_Inq_Dimid  (ncid, dim_name, dimid)
 
-      if (ierr /= NF_NOERR) then 
+      if (ierr /= NF_NOERR ) then 
         err_msg = 'In Ncget_Dimlen #1:  ' // Trim (dim_name) // &
                    ', ' // Nf_Strerror (ierr)
         call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
@@ -87,8 +91,8 @@ CONTAINS
       ierr = Nf_Inq_Dimlen (ncid, dimid, dim_len)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncget_Dimlen #2:  ' // Nf_Strerror (ierr)
-        call Do_Err_Out (err_msg, .true., 2, ncid, dimid, 0, 0.0d0, 0.0d0)
+         err_msg = 'In Ncget_Dimlen #2:  ' // Nf_Strerror (ierr)
+         call Do_Err_Out (err_msg, .true., 2, ncid, dimid, 0, 0.0d0, 0.0d0)
       end if
 
       return

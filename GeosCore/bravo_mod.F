@@ -382,17 +382,6 @@
       !=================================================================
       CALL TOTAL_ANTHRO_TG( SCALEYEAR )
 
-#if defined( DEVEL )
-      State_Chm%TRAC_TEND(:,:,1,IDTNO)  =
-     &State_Chm%TRAC_TEND(:,:,1,IDTNO)  + BRAVO_NOx
-
-      State_Chm%TRAC_TEND(:,:,1,IDTCO)  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTCO)  + BRAVO_CO
-
-      State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTSO2) + BRAVO_SO2
-#endif      
-
       END SUBROUTINE EMISS_BRAVO
 !EOC
 !------------------------------------------------------------------------------

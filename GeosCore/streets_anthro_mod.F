@@ -1091,44 +1091,6 @@
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( SIM_YEAR, BASE_YEAR )
 
-#if defined( DEVEL )
-      State_Chm%TRAC_TEND(:,:,1,IDTNO )  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTNO )  + NOX
-
-      State_Chm%TRAC_TEND(:,:,1,IDTCO)   = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTCO)   + CO
-
-      State_Chm%TRAC_TEND(:,:,1,IDTSO2)  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTSO2)  + SO2
-
-      State_Chm%TRAC_TEND(:,:,1,IDTNH3)  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTNH3)  + NH3
-
-      State_Chm%TRAC_TEND(:,:,1,IDTACET) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTACET) + ACET
-
-      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTC2H6) + C2H6
-
-      State_Chm%TRAC_TEND(:,:,1,IDTCH2O) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTCH2O) + CH2O
-
-      State_Chm%TRAC_TEND(:,:,1,IDTC3H8) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTC3H8) + C3H8
-
-      State_Chm%TRAC_TEND(:,:,1,IDTPRPE) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTPRPE) + PRPE
-
-      State_Chm%TRAC_TEND(:,:,1,IDTALD2) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTALD2) + ALD2
-
-      State_Chm%TRAC_TEND(:,:,1,IDTMEK)  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTMEK)  + MEK
-
-      State_Chm%TRAC_TEND(:,:,1,IDTALK4) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTALK4) + ALK4
-#endif
-
       ! Return to calling program
       END SUBROUTINE EMISS_STREETS_ANTHRO
 
@@ -2040,44 +2002,6 @@
       ! Print emission totals
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( SIM_YEAR, BASE_YEAR )
-
-#if defined( DEVEL )
-      State_Chm%TRAC_TEND(:,:,1,IDTNO)   = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTNO)   + NOX
-
-      State_Chm%TRAC_TEND(:,:,1,IDTCO)   = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTCO)   + CO
-
-      State_Chm%TRAC_TEND(:,:,1,IDTSO2)  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTSO2)  + SO2
-
-      State_Chm%TRAC_TEND(:,:,1,IDTNH3)  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTNH3)  + NH3
-
-      State_Chm%TRAC_TEND(:,:,1,IDTACET) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTACET) + ACET
-
-      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTC2H6) + C2H6
-
-      State_Chm%TRAC_TEND(:,:,1,IDTCH2O) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTCH2O) + CH2O
-
-      State_Chm%TRAC_TEND(:,:,1,IDTC3H8) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTC3H8) + C3H8
-
-      State_Chm%TRAC_TEND(:,:,1,IDTPRPE) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTPRPE) + PRPE
-
-      State_Chm%TRAC_TEND(:,:,1,IDTALD2) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTALD2) + ALD2
-
-      State_Chm%TRAC_TEND(:,:,1,IDTMEK)  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTMEK)  + MEK
-
-      State_Chm%TRAC_TEND(:,:,1,IDTALK4) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTALK4) + ALK4
-#endif
 
       END SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
 

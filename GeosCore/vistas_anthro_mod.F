@@ -372,38 +372,6 @@
          CALL VISTAS_SCALE_FUTURE
       ENDIF
 
-#if defined( DEVEL )
-      !--------------------------
-      ! Give to global bundle
-      !--------------------------
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Determine if we should use weekday or weekend NEI
-         ! emissions at grid box (I,J,L).  Since NEI is over
-         ! the US, then weekend is Sat/Sun.
-         DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
-         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
-
-         ! Surface area
-         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
-
-         ! Sum into the tracer tendencies
-         IF ( WEEKDAY ) THEN
-            IF ( IDTNO > 0 ) THEN
-               State_Chm%TRAC_TEND(I,J,1,IDTNO) =
-     &           VISTAS_WD_NOx(I,J) * A(I,J) / XNUMOL(IDTNO)
-            ENDIF
-         ELSE
-            IF ( IDTNO > 0 ) THEN
-               State_Chm%TRAC_TEND(I,J,1,IDTNO) =
-     &           VISTAS_WE_NOx(I,J) * A(I,J) / XNUMOL(IDTNO)
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-#endif
-
       !--------------------------
       ! Print emission totals
       !--------------------------

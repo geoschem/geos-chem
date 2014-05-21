@@ -31,6 +31,8 @@
 !
       ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
       PUBLIC :: BETANOSAVE
+      PUBLIC :: BIOG_MTPO
+      PUBLIC :: BIOG_SESQ
 !
 ! !REMARKS:
 !  4 Aerosol species : Organic and Black carbon 
@@ -290,8 +292,8 @@
       ! new mtp precursors (hotp 5/20/10)
       REAL*8, ALLOCATABLE :: BIOG_MTPA(:,:)
       REAL*8, ALLOCATABLE :: BIOG_LIMO(:,:)
-      REAL*8, ALLOCATABLE :: BIOG_MTPO(:,:)
-      REAL*8, ALLOCATABLE :: BIOG_SESQ(:,:)
+      REAL*8, ALLOCATABLE, TARGET :: BIOG_MTPO(:,:,:)
+      REAL*8, ALLOCATABLE, TARGET :: BIOG_SESQ(:,:,:)
       REAL*8, ALLOCATABLE :: DIUR_ORVC(:,:)
       REAL*8, ALLOCATABLE :: GEIA_ORVC(:,:)
       REAL*8, ALLOCATABLE :: TCOSZ(:,:)
@@ -5608,28 +5610,6 @@
       CALL EMITHIGH( BCSRC, OCSRC, Input_Opt, State_Chm )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGH' )
 
-#if defined( DEVEL )
-      IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTBCPI) = 
-     &   State_Chm%TRAC_TEND(:,:,1,IDTBCPI) + BCSRC(:,:,1) ! Hydrophylic BC
-      ENDIF
-
-      IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTBCPO) = 
-     &   State_Chm%TRAC_TEND(:,:,1,IDTBCPO) + BCSRC(:,:,2) ! Hydrophobic BC
-      ENDIF
-
-      IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTOCPI) = 
-     &   State_Chm%TRAC_TEND(:,:,1,IDTOCPI) + OCSRC(:,:,1) ! Hydrophylic OC
-      ENDIF
-
-      IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTOCPO) = 
-     &   State_Chm%TRAC_TEND(:,:,1,IDTOCPO) + OCSRC(:,:,2) ! Hydrophylic OC
-      ENDIF
-#endif
-
       !=================================================================
       ! ND07 diagnostic: Carbon aerosol emissions [kg/timestep]
       !=================================================================
@@ -5678,10 +5658,10 @@
 
                ! MTPO = terpinene, terpinolene, myrcene, ocimene,
                ! terpenoid alcohols, and all other monoterpenes (hotp 7/28/10)
-               AD07(I,J,10) = AD07(I,J,10)   + BIOG_MTPO(I,J)
+               AD07(I,J,10) = AD07(I,J,10)   + BIOG_MTPO(I,J,1)
 
                ! SESQTERPENE moved (hotp 7/28/10)
-               AD07(I,J,11) = AD07(I,J,11)   + BIOG_SESQ(I,J)
+               AD07(I,J,11) = AD07(I,J,11)   + BIOG_SESQ(I,J,1)
 
             ENDIF
 
@@ -6693,15 +6673,15 @@ ccc
             ! MTPO is all other monoterpenes
             !---------------------------------
             ! TERPINENE is lumped with TERPINOLENE
-            BIOG_MTPO(I,J) = TERP_ORGC(I,J) * FC1 * 0.03D0
+            BIOG_MTPO(I,J,1) = TERP_ORGC(I,J) * FC1 * 0.03D0
 
             ! MYRCENE is lumped with TERPENOID ALCOHOL (0.05)
             ! OCIMENE is lumped with TERPENOID ALCOHOL (0.02)
-            BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
+            BIOG_MTPO(I,J,1) = BIOG_MTPO(I,J,1) +
      &                       TERP_ORGC(I,J) * FC1 * 0.07D0
 
             ! Other reactive volatile organic carbon emissions
-            BIOG_MTPO(I,J) = BIOG_MTPO(I,J)
+            BIOG_MTPO(I,J,1) = BIOG_MTPO(I,J,1)
      &                     + ( DIUR_ORVC(I,J) * FC2 * 0.09D0 ) !using LINALOOL
 
             !---------------------------------
@@ -6710,7 +6690,7 @@ ccc
             ! SESQ is same (hotp 5/20/10)
             ! We do not transport SESQ (C15H24) 
             ! because its chemical lifetime is short (reactive)
-            BIOG_SESQ(I,J) = DIUR_ORVC(I,J) * FC3 * 0.05D0
+            BIOG_SESQ(I,J,1) = DIUR_ORVC(I,J) * FC3 * 0.05D0
 
 
             ! The new MEGAN implementation has speciated information
@@ -6796,17 +6776,17 @@ ccc
                ! All other monoterpenes (mostly camphene, linalool,
                ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
                ! 14-18% of OMTP is terpinene and terpinolene
-               BIOG_MTPO(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
+               BIOG_MTPO(I,J,1) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
      &                          PDR, PDF, 1d0, 'OMTPE') * FC1 
 
                ! ALCO in kg compound (no more)
 
                ! myrcene
-               BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
+               BIOG_MTPO(I,J,1) = BIOG_MTPO(I,J,1) +
      &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
      &                                   PDR, PDF, 1d0, 'MYRCN') * FC1
                ! ocimene
-               BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
+               BIOG_MTPO(I,J,1) = BIOG_MTPO(I,J,1) +
      &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
      &                                   PDR, PDF, 1d0, 'OCIMN') * FC1
 
@@ -6819,14 +6799,14 @@ ccc
                !----------------------------------------
                ! Sesquiterpenes from MEGAN (hotp 3/10/10)
                ! Farnesene
-               BIOG_SESQ(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
+               BIOG_SESQ(I,J,1) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
      &                          PDR, PDF, 1d0, 'FARNE' ) * FC3
                ! beta-caryophyllene
-               BIOG_SESQ(I,J) = BIOG_SESQ(I,J) +
+               BIOG_SESQ(I,J,1) = BIOG_SESQ(I,J,1) +
      &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0, 'BCARE' ) * FC3
                ! other sesquiterpenes
-               BIOG_SESQ(I,J) = BIOG_SESQ(I,J) +
+               BIOG_SESQ(I,J,1) = BIOG_SESQ(I,J,1) +
      &                          GET_EMTERP_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0, 'OSQTE' ) * FC3
 
@@ -8061,7 +8041,7 @@ ccc
             ! TERP and ALCO no longer used
             IF ( IS_LIMO ) EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
             IF ( IS_MTPA ) EMIS_SAVE(I,J,IDTMTPA) = BIOG_MTPA(I,J)
-            IF ( IS_MTPO ) EMIS_SAVE(I,J,IDTMTPO) = BIOG_MTPO(I,J)
+            IF ( IS_MTPO ) EMIS_SAVE(I,J,IDTMTPO) = BIOG_MTPO(I,J,1)
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -8088,7 +8068,7 @@ ccc
             IF ( IS_LIMO ) THEN
                ! Sesquiterpenes
                ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                           ( F_OF_PBL * BIOG_SESQ(I,J) )
+     &                           ( F_OF_PBL * BIOG_SESQ(I,J,1) )
             ENDIF
 
             ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
@@ -8165,11 +8145,11 @@ ccc
          ! Lumped MTPO (hotp 5/20/10) new mtp
          IF ( IS_MTPO ) THEN
             STT(I,J,L,IDTMTPO) = STT(I,J,L,IDTMTPO) + 
-     &                           ( F_OF_PBL * BIOG_MTPO(I,J) )
+     &                           ( F_OF_PBL * BIOG_MTPO(I,J,1) )
 
             ! sesquiterpenes (no change)
             ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                           ( F_OF_PBL * BIOG_SESQ(I,J) )
+     &                           ( F_OF_PBL * BIOG_SESQ(I,J,1) )
          ENDIF
 
          ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
@@ -11336,11 +11316,11 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_LIMO' )
          BIOG_LIMO = 0d0
 
-         ALLOCATE( BIOG_MTPO( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( BIOG_MTPO( IIPAR, JJPAR, 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPO' )
          BIOG_MTPO = 0d0
 
-         ALLOCATE( BIOG_SESQ( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( BIOG_SESQ( IIPAR, JJPAR, 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_SESQ' )
          BIOG_SESQ = 0d0
 

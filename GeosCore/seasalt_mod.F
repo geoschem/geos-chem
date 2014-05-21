@@ -1014,13 +1014,6 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
 
-#if defined( DEVEL )
-      State_Chm%TRAC_TEND(:,:,1,IDTSALA) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
-      State_Chm%TRAC_TEND(:,:,1,IDTSALC) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
-#endif
-
       IF ( PRESENT ( SSA_Br2 ) ) THEN
          ! 2. add in contributions of Br2 emissions
          !    from the coarse mode: (jpp, 3/2/10)

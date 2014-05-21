@@ -359,11 +359,6 @@
       ! Free pointer
       NULLIFY( STT )
 
-#if defined( DEVEL )
-      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTC2H6) + NGASC2H6(:,:)
-#endif
-
       END SUBROUTINE EMISSC2H6
 !EOC
 !------------------------------------------------------------------------------

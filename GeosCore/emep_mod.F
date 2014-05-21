@@ -610,63 +610,6 @@
          CALL EMEP_SCALE_FUTURE
       ENDIF
 
-#if defined( DEVEL )
-      DO I=1,IIPAR
-      DO J=1,JJPAR
-         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
-      ENDDO
-      ENDDO
-
-      IF ( LEMEPSHIP ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTNO) = EMEP_NOx_SHIP(:,:)
-     &        * A / XNUMOL(IDTNO2)
-      ELSE 
-         State_Chm%TRAC_TEND(:,:,1,IDTNO) = EMEP_NOx(:,:)
-     &        * A / XNUMOL(IDTNO2)
-      ENDIF
-
-      IF ( LEMEPSHIP ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTCO) = EMEP_CO_SHIP(:,:)
-     &        * A / XNUMOL(IDTCO)
-      ELSE 
-         State_Chm%TRAC_TEND(:,:,1,IDTCO) = EMEP_CO(:,:)
-     &        * A / XNUMOL(IDTCO)
-      ENDIF
-
-      ! ALK4 (>= C4 alkanes)
-      State_Chm%TRAC_TEND(:,:,1,IDTALK4) = EMEP_ALK4(:,:)
-     &        * A / XNUMOL(IDTALK4)
-
-      ! MEK
-      State_Chm%TRAC_TEND(:,:,1,IDTMEK) = EMEP_MEK(:,:)
-     &        * A / XNUMOL(IDTMEK)
-
-      ! ALD2 (acetaldehyde)
-      State_Chm%TRAC_TEND(:,:,1,IDTALD2) = EMEP_ALD2(:,:)
-     &        * A / XNUMOL(IDTALD2)
-
-      ! PRPE (>= C3 alkenes)
-      State_Chm%TRAC_TEND(:,:,1,IDTPRPE) = EMEP_PRPE(:,:)
-     &        * A / XNUMOL(IDTPRPE)
-
-      ! C2H6 
-      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = EMEP_C2H6(:,:)
-     &        * A / XNUMOL(IDTC2H6)
-         
-      ! SO2
-      IF ( LEMEPSHIP ) THEN
-         State_Chm%TRAC_TEND(:,:,1,IDTSO2) = EMEP_SO2_SHIP(:,:)
-     &        * A / XNUMOL(IDTSO2)
-      ELSE 
-         State_Chm%TRAC_TEND(:,:,1,IDTSO2) = EMEP_SO2(:,:)
-     &        * A / XNUMOL(IDTSO2)
-      ENDIF
-
-      ! NH3
-      State_Chm%TRAC_TEND(:,:,1,IDTNH3) = EMEP_NH3(:,:)
-     &        * A / XNUMOL(IDTNH3)
-#endif
-
       !=================================================================
       ! Print emission totals
       !=================================================================

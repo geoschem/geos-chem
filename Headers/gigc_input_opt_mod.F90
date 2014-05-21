@@ -64,6 +64,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LVARTROP           
      INTEGER                     :: NESTED_I0          
      INTEGER                     :: NESTED_J0          
+     CHARACTER(LEN=255)          :: HcoConfigFile
 
      !----------------------------------------
      ! TRACER MENU fields
@@ -753,6 +754,7 @@ CONTAINS
     Input_Opt%LVARTROP               = .FALSE.
     Input_Opt%NESTED_I0              = 0
     Input_Opt%NESTED_J0              = 0
+    Input_Opt%HcoConfigFile          = ''
      
     !----------------------------------------
     ! TRACER MENU fields

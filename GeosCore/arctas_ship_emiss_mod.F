@@ -271,10 +271,6 @@
          CALL READ_ARCTAS_SHIP( FILENAME, 'CO2-SRCE', 1, CO2_SHIP,
      $        YEAR )
             
-#if defined( DEVEL )
-         State_Chm%TRAC_TEND(:,:,1,N_TRACERS+1) = 
-     &   State_Chm%TRAC_TEND(:,:,1,N_TRACERS+1) + CO2_SHIP(:,:)
-#endif
       ELSE
 
          !--------------------------
@@ -288,11 +284,6 @@
          ! Read data
          CALL READ_ARCTAS_SHIP( FILENAME, 'ANTHSRCE', 26, SO2_SHIP,
      $        YEAR )
-         
-#if defined( DEVEL )
-         State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
-     &   State_Chm%TRAC_TEND(:,:,1,IDTSO2) + SO2_SHIP(:,:)
-#endif
 
       ENDIF
      

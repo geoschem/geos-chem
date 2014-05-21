@@ -347,17 +347,18 @@
       !
       ! Call READER to read chemistry options from mglob.dat.  This is
       ! current practice in the std GEOS-Chem (bmy, 10/24/12)
+      ! ==> Now do in INIT_CHEMISTRY (ckeller, 5/19/14)
       !-----------------------------------------------------------------
       IF ( FIRSTCHEM ) THEN
 
-         ! Read from data file mglob.dat
-         CALL READER( FIRSTCHEM, am_I_Root )
-
-         !### Debug
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after READER' )
-         ENDIF
-
+!         ! Read from data file mglob.dat
+!         CALL READER( FIRSTCHEM, am_I_Root )
+!
+!         !### Debug
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMDR: after READER' )
+!         ENDIF
+!
          ! Set NCS for urban chemistry only (since that is where we
          ! have defined the GEOS-CHEM mechanism) (bdf, bmy, 4/21/03)
          NCS = NCSURBAN
@@ -432,7 +433,8 @@
          !---------------------------------
 
          ! Read "globchem.dat" chemistry mechanism
-         CALL READCHEM( am_I_Root, Input_Opt, RC )
+         ! Now do in INIT_CHEMISTRY (ckeller, 05/19/14)
+!         CALL READCHEM( am_I_Root, Input_Opt, RC )
 
          ! Set NCS=NCSURBAN here since we have defined our tropospheric
          ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
@@ -489,23 +491,25 @@
 
          !-------------------------------
          ! Initialize FAST-JX photolysis
+         ! Now done in INIT_CHEMISTRY (ckeller, 05/19/14)
          !-------------------------------
-         CALL INIT_FJX(am_I_Root) 
-         
-         !### Debug
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after INIT_FJX' )        
-         ENDIF
+!         CALL INIT_FJX(am_I_Root) 
+!         
+!         !### Debug
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMDR: after INIT_FJX' )        
+!         ENDIF
 
          !-------------------------------
          ! Flag certain chemical species
+         ! Now done in INIT_CHEMISTRY (ckeller, 05/19/14)
          !-------------------------------
-         CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
+!         CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
 
-         !### Debug
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
-         ENDIF
+!         !### Debug
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
+!         ENDIF
 
          !-------------------------------
          ! Flag emission & drydep rxns
@@ -739,8 +743,9 @@
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
       !=================================================================
-      CALL SETEMIS( EMISRR,    EMISRRN,   am_I_Root, 
-     &              Input_Opt, State_Met, RC         )
+      CALL SETEMIS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!      CALL SETEMIS( EMISRR,    EMISRRN,   am_I_Root, 
+!     &              Input_Opt, State_Met, RC         )
       
       !### Debug
       IF ( prtDebug ) THEN

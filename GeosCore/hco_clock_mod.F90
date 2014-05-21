@@ -1,0 +1,984 @@
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: hco_clock_mod 
+!
+! !DESCRIPTION: Module HCO\_CLOCK\_MOD contains routines and variables
+! to handle the HEMCO time and calendar settings through the HEMCO clock
+! object. The HEMCO clock carries information of the current UTC/local
+! time as well as the UTC times from the previous time step. These 
+! values should be updated on every time step (--> HcoClock\_Set).\\
+! The HEMCO clock object HcoClock is a private object and cannot be
+! accessed directly from outside of this module. The HcoClock\_Get 
+! routine should be used instead. There are also some wrapper routines
+! for frequently used checks, i.e. if this is a new year, month, etc.
+!
+! !NOTES: The current local time implementation assumes a regular grid,
+! i.e. local time does not change with latitude! 
+! \\
+! !INTERFACE: 
+!
+      MODULE HCO_CLOCK_MOD
+!
+! !USES:
+!
+      USE HCO_ERROR_MOD
+      USE JULDAY_MOD
+
+      IMPLICIT NONE
+      PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      ! HEMCO Clock object:
+      PUBLIC :: HcoClock_Init
+      PUBLIC :: HcoClock_Set
+      PUBLIC :: HcoClock_Get
+      PUBLIC :: HcoClock_GetLocal
+      PUBLIC :: HcoClock_Cleanup
+      PUBLIC :: HcoClock_NewYear
+      PUBLIC :: HcoClock_NewMonth
+      PUBLIC :: HcoClock_NewDay
+      PUBLIC :: HcoClock_NewHour
+      PUBLIC :: HcoClock_First
+      PUBLIC :: HcoClock_GetMinResetFlag
+!
+! !REVISION HISTORY:
+!  29 Dec 2012 - C. Keller - Initialization
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      ! HEMCO time clock object.
+      TYPE HCO_Clock
+
+         ! Current emission time stamp (UTC)
+         INTEGER            :: ThisYear     ! year 
+         INTEGER            :: ThisMonth    ! month
+         INTEGER            :: ThisDay      ! day
+         INTEGER            :: ThisHour     ! hour
+         INTEGER            :: ThisMin      ! minute
+         INTEGER            :: ThisSec      ! second
+         INTEGER            :: ThisDOY      ! day of year
+         INTEGER            :: ThisWD       ! weekday (0=Sun,...,6=Sat)
+         INTEGER            :: MonthLastDay ! Last day of month: 28,29,30,31
+
+         ! Current local times
+         INTEGER            :: nx              ! vector length == # of lons
+         INTEGER,  POINTER  :: ThisLocYear(:)  ! local year 
+         INTEGER,  POINTER  :: ThisLocMonth(:) ! local month 
+         INTEGER,  POINTER  :: ThisLocDay(:)   ! local day
+         INTEGER,  POINTER  :: ThisLocWD(:)    ! local weekday
+         REAL(sp), POINTER  :: ThisLocHour(:)  ! local hour
+
+         ! Previous emission time stamp (UTC)
+         INTEGER            :: PrevYear 
+         INTEGER            :: PrevMonth   
+         INTEGER            :: PrevDay  
+         INTEGER            :: PrevHour    
+         INTEGER            :: PrevMin 
+         INTEGER            :: PrevSec 
+         INTEGER            :: PrevDOY 
+         INTEGER            :: PrevWD
+
+         ! total number of emission time steps 
+         INTEGER            :: nSteps
+      ENDTYPE HCO_Clock
+
+      ! HcoClock is the variable for the HEMCO clock object 
+      TYPE(HCO_Clock),         POINTER       :: HcoClock => NULL()
+
+      ! Reset flags used by diagnostics. These are used to identify
+      ! the diagnostics that are at the end of their averaging interval.
+      INTEGER, PARAMETER, PUBLIC  :: ResetFlagAnnually = 1
+      INTEGER, PARAMETER, PUBLIC  :: ResetFlagMonthly  = 10
+      INTEGER, PARAMETER, PUBLIC  :: ResetFlagDaily    = 100
+      INTEGER, PARAMETER, PUBLIC  :: ResetFlagHourly   = 1000
+
+      ! Current minimum reset flag. This value will be reevaluated on 
+      ! every time step. If we enter a new month, for instance, it will
+      ! be set to ResetFlagMonthly, so that all diagnostics with a reset
+      ! flag equal or higher than this value will be written to disk.
+      INTEGER  :: CurrMinResetFlag  = ResetFlagHourly + 1
+
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HcoClock_Init
+!
+! !DESCRIPTION: Subroutine HcoClock\_Init initializes the HEMCO clock. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HcoClock_Init ( HcoState, RC )
+!
+! !USES:
+!
+      USE HCO_STATE_MOD, ONLY   : HCO_State
+!
+! !ARGUMENTS:
+!
+      TYPE(HCO_State), POINTER       :: HcoState  ! HcoState object
+      INTEGER,        INTENT(INOUT)  :: RC
+!
+! !REVISION HISTORY:
+!  10 Sep 2013 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      INTEGER :: AS
+
+      !======================================================================
+      ! HcoClock_Init begins here!
+      !======================================================================
+
+      ! Enter
+      CALL HCO_ENTER ( 'HcoClock_Init (HCO_CLOCK_MOD.F90)', RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Eventually allocate clock object and set all values to -1
+      IF ( .NOT. ASSOCIATED ( HcoClock ) ) THEN
+         ALLOCATE ( HcoClock )
+         HcoClock%PrevYear     = -1
+         HcoClock%PrevMonth    = -1
+         HcoClock%PrevDay      = -1
+         HcoClock%PrevHour     = -1
+         HcoClock%PrevMin      = -1
+         HcoClock%PrevSec      = -1
+         HcoClock%PrevDOY      = -1
+         HcoClock%PrevWD       = -1
+
+         HcoClock%ThisYear     = -1
+         HcoClock%ThisMonth    = -1
+         HcoClock%ThisDay      = -1
+         HcoClock%ThisHour     = -1
+         HcoClock%ThisMin      = -1
+         HcoClock%ThisSec      = -1
+         HcoClock%ThisDOY      = -1
+         HcoClock%ThisWD       = -1
+         HcoClock%MonthLastDay = -1
+
+         ! local time vectors
+         HcoClock%NX = HcoState%NX
+
+         ALLOCATE ( HcoClock%ThisLocYear(HcoClock%NX), STAT=AS )
+         IF ( AS /= 0 ) THEN
+            CALL HCO_ERROR ( 'ThisLocYear', RC )
+            RETURN
+         ENDIF
+         HcoClock%ThisLocYear(:) = -1
+
+         ALLOCATE ( HcoClock%ThisLocMonth(HcoClock%NX), STAT=AS )
+         IF ( AS /= 0 ) THEN
+            CALL HCO_ERROR ( 'ThisLocMonth', RC )
+            RETURN
+         ENDIF
+         HcoClock%ThisLocMonth(:) = -1
+
+         ALLOCATE ( HcoClock%ThisLocDay(HcoClock%NX), STAT=AS )
+         IF ( AS /= 0 ) THEN
+            CALL HCO_ERROR ( 'ThisLocDay', RC )
+            RETURN
+         ENDIF
+         HcoClock%ThisLocDay(:) = -1
+
+         ALLOCATE ( HcoClock%ThisLocWD(HcoClock%NX), STAT=AS )
+         IF ( AS /= 0 ) THEN
+            CALL HCO_ERROR ( 'ThisLocWD', RC )
+            RETURN
+         ENDIF
+         HcoClock%ThisLocWD(:) = -1
+
+         ALLOCATE ( HcoClock%ThisLocHour(HcoClock%NX), STAT=AS )
+         IF ( AS /= 0 ) THEN
+            CALL HCO_ERROR ( 'ThisLocHour', RC )
+            RETURN
+         ENDIF
+         HcoClock%ThisLocHour(:) = -1.0_sp
+
+         HcoClock%nSteps = 0
+      ENDIF
+
+      ! Return w/ success
+      CALL HCO_LEAVE ( RC )
+
+      END SUBROUTINE HcoClock_Init
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HcoClock_Set
+!
+! !DESCRIPTION: Subroutine HcoClock\_Set updates the HEMCO clock. These
+! routine should be called at the beginning of every emission time step! 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HcoClock_Set ( am_I_Root, HcoState, cYr, cMt, cDy, &
+                                cHr, cMin, cSec, cDOY, RC    )
+!
+! !USES:
+!
+      USE HCO_STATE_MOD, ONLY   : HCO_State
+!
+! !ARGUMENTS:
+!
+      LOGICAL,         INTENT(IN   ) :: am_I_Root ! Root CPU?
+      TYPE(HCO_State), POINTER       :: HcoState  ! HcoState object
+      INTEGER,         INTENT(IN   ) :: cYr       ! Current year 
+      INTEGER,         INTENT(IN   ) :: cMt       ! Current month 
+      INTEGER,         INTENT(IN   ) :: cDy       ! Current day 
+      INTEGER,         INTENT(IN   ) :: cHr       ! Current hour 
+      INTEGER,         INTENT(IN   ) :: cMin      ! Current minute 
+      INTEGER,         INTENT(IN   ) :: cSec      ! Current second 
+      INTEGER,         INTENT(IN   ) :: cDoy      ! Current day of year 
+      INTEGER,         INTENT(INOUT) :: RC        ! Success or failure?
+!
+! !REVISION HISTORY:
+!  29 Dec 2012 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL ARGUMENTS:
+!
+      REAL(sp) :: UTC
+
+      !======================================================================
+      ! HcoClock_Set begins here!
+      !======================================================================
+
+      ! Assume success until otherwise
+      RC = HCO_SUCCESS
+
+      ! ----------------------------------------------------------------
+      ! Don't update if this date is already in memory 
+      ! ----------------------------------------------------------------
+      IF ( HcoClock%ThisYear==cYr  .AND. HcoClock%ThisMonth==cMt .AND. &
+           HcoClock%ThisDay ==cDy  .AND. HcoClock%ThisHour ==cHr .AND. &
+           HcoClock%ThisMin ==cMin .AND. HcoClock%ThisSec  ==cSec ) THEN
+         RETURN
+      ENDIF
+
+      ! ----------------------------------------------------------------
+      ! Update current and previous time stamps 
+      ! ----------------------------------------------------------------
+      HcoClock%PrevYear   = HcoClock%ThisYear
+      HcoClock%PrevMonth  = HcoClock%ThisMonth
+      HcoClock%PrevDay    = HcoClock%ThisDay
+      HcoClock%PrevHour   = HcoClock%ThisHour
+      HcoClock%PrevMin    = HcoClock%ThisMin
+      HcoClock%PrevSec    = HcoClock%ThisSec
+      HcoClock%PrevDOY    = HcoClock%ThisDOY
+      HcoClock%PrevWD     = HcoClock%ThisWD
+
+      HcoClock%ThisYear   = cYr 
+      HcoClock%ThisMonth  = cMt 
+      HcoClock%ThisDay    = cDy 
+      HcoClock%ThisHour   = cHr 
+      HcoClock%ThisMin    = cMin 
+      HcoClock%ThisSec    = cSec 
+      HcoClock%ThisDOY    = cDOY 
+
+      ! UTC decimal time
+      UTC = ( REAL( HcoClock%ThisHour, sp )             ) + &
+            ( REAL( HcoClock%ThisMin , sp ) / 60.0_sp   ) + &
+            ( REAL( HcoClock%ThisSec , sp ) / 3600.0_sp )
+      HcoClock%ThisWD = HCO_GetWeekday ( cYr, cMt, cDy, UTC ) 
+
+      ! ----------------------------------------------------------------
+      ! Get last day of this month (only if month has changed)
+      ! ----------------------------------------------------------------
+      IF ( HcoClock%ThisMonth /= HcoClock%PrevMonth ) THEN 
+         HcoClock%MonthLastDay = &
+            Get_LastDayOfMonth( HcoClock%ThisMonth, HcoClock%ThisYear )
+      ENDIF
+
+      ! ----------------------------------------------------------------
+      ! Set local times 
+      ! ----------------------------------------------------------------
+      CALL Set_LocalTime ( HcoState, UTC, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! ----------------------------------------------------------------
+      ! Update diagnostics reset flag 
+      ! ----------------------------------------------------------------
+      CurrMinResetFlag = HcoClock_SetMinResetFlag()
+
+      ! ----------------------------------------------------------------
+      ! Leave w/ success
+      ! ----------------------------------------------------------------
+      HcoClock%nSteps = HcoClock%nSteps + 1
+
+      END SUBROUTINE HcoClock_Set
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HcoClock_Get
+!
+! !DESCRIPTION: Subroutine HcoClock\_Get returns the selected UTC variables 
+! from the HEMCO clock object. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HcoClock_Get ( cYYYY, cMM, cDD,  cH,           & 
+                                cM,    cS,  cDOY, cWEEKDAY,     &
+                                pYYYY, pMM, pDD,  pH,           &
+                                pM,    pS,  pDOY, pWEEKDAY,     &
+                                LMD,   nSteps,    RC             ) 
+!
+! !ARGUMENTS:
+!
+      INTEGER, INTENT(  OUT), OPTIONAL     :: cYYYY     ! Current year   
+      INTEGER, INTENT(  OUT), OPTIONAL     :: cMM       ! Current month 
+      INTEGER, INTENT(  OUT), OPTIONAL     :: cDD       ! Current day     
+      INTEGER, INTENT(  OUT), OPTIONAL     :: cH        ! Current hour   
+      INTEGER, INTENT(  OUT), OPTIONAL     :: cM        ! Current minute 
+      INTEGER, INTENT(  OUT), OPTIONAL     :: cS        ! Current second 
+      INTEGER, INTENT(  OUT), OPTIONAL     :: cDOY      ! Current day of year
+      INTEGER, INTENT(  OUT), OPTIONAL     :: cWEEKDAY  ! Current weekday
+      INTEGER, INTENT(  OUT), OPTIONAL     :: pYYYY     ! Previous year   
+      INTEGER, INTENT(  OUT), OPTIONAL     :: pMM       ! Previous month  
+      INTEGER, INTENT(  OUT), OPTIONAL     :: pDD       ! Previous day    
+      INTEGER, INTENT(  OUT), OPTIONAL     :: pH        ! Previous hour   
+      INTEGER, INTENT(  OUT), OPTIONAL     :: pM        ! Previous minute 
+      INTEGER, INTENT(  OUT), OPTIONAL     :: pS        ! Previous second 
+      INTEGER, INTENT(  OUT), OPTIONAL     :: pDOY      ! Previous day of year
+      INTEGER, INTENT(  OUT), OPTIONAL     :: pWEEKDAY  ! Previous weekday
+      INTEGER, INTENT(  OUT), OPTIONAL     :: LMD       ! Last day of month 
+      INTEGER, INTENT(  OUT), OPTIONAL     :: nSteps    ! # of passed steps 
+      INTEGER, INTENT(INOUT)               :: RC        ! Success or failure?
+!
+! !REVISION HISTORY:
+!  29 Dec 2012 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL ARGUMENTS:
+!
+
+      !======================================================================
+      ! HcoClock_Get begins here!
+      !======================================================================
+
+      IF ( PRESENT(cYYYY   ) ) cYYYY    = HcoClock%ThisYear
+      IF ( PRESENT(cMM     ) ) cMM      = HcoClock%ThisMonth
+      IF ( PRESENT(cDD     ) ) cDD      = HcoClock%ThisDay 
+      IF ( PRESENT(cH      ) ) cH       = HcoClock%ThisHour
+      IF ( PRESENT(cM      ) ) cM       = HcoClock%ThisMin 
+      IF ( PRESENT(cS      ) ) cS       = HcoClock%ThisSec 
+      IF ( PRESENT(cDOY    ) ) cDOY     = HcoClock%ThisDOY
+      IF ( PRESENT(cWEEKDAY) ) cWEEKDAY = HcoClock%ThisWD
+
+      IF ( PRESENT(pYYYY   ) ) pYYYY    = HcoClock%PrevYear
+      IF ( PRESENT(pMM     ) ) pMM      = HcoClock%PrevMonth
+      IF ( PRESENT(pDD     ) ) pDD      = HcoClock%PrevDay 
+      IF ( PRESENT(pH      ) ) pH       = HcoClock%PrevHour
+      IF ( PRESENT(pM      ) ) pM       = HcoClock%PrevMin 
+      IF ( PRESENT(pS      ) ) pS       = HcoClock%PrevSec 
+      IF ( PRESENT(pDOY    ) ) pDOY     = HcoClock%PrevDOY
+      IF ( PRESENT(pWEEKDAY) ) pWEEKDAY = HcoClock%PrevWD
+
+      IF ( PRESENT(LMD     ) ) LMD      = HcoClock%MonthLastDay
+
+      IF ( PRESENT(nSteps  ) ) nSteps   = HcoClock%nSteps
+
+      ! Return w/ success
+      RC = HCO_SUCCESS 
+
+      END SUBROUTINE HcoClock_Get
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HcoClock_GetLocal
+!
+! !DESCRIPTION: Subroutine HcoClock\_GetLocal returns the selected local
+! time variables from the HEMCO clock object. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HcoClock_GetLocal ( IX,  cYYYY, cMM,        &
+                                     cDD, cH,    CWEEKDAY, RC )
+!
+! !ARGUMENTS:
+!
+      INTEGER,  INTENT(IN   )               :: IX        ! Latitude index
+      INTEGER,  INTENT(  OUT), OPTIONAL     :: cYYYY     ! Current year   
+      INTEGER,  INTENT(  OUT), OPTIONAL     :: cMM       ! Current month 
+      INTEGER,  INTENT(  OUT), OPTIONAL     :: cDD       ! Current day     
+      REAL(sp), INTENT(  OUT), OPTIONAL     :: cH        ! Current hour   
+      INTEGER,  INTENT(  OUT), OPTIONAL     :: cWEEKDAY  ! Current weekday
+      INTEGER,  INTENT(INOUT)               :: RC        ! Success or failure?
+!
+! !REVISION HISTORY:
+!  29 Dec 2012 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL ARGUMENTS:
+!
+
+      !======================================================================
+      ! HcoClock_GetLocal begins here!
+      !======================================================================
+      
+      ! Check passed index
+      IF ( IX > HcoClock%NX ) THEN
+          CALL HCO_ERROR ( 'longitude index too big!', RC )
+          RETURN
+      ENDIF
+
+      ! Set defined variables
+      IF ( PRESENT(cYYYY   ) ) cYYYY    = HcoClock%ThisLocYear(IX)
+      IF ( PRESENT(cMM     ) ) cMM      = HcoClock%ThisLocMonth(IX)
+      IF ( PRESENT(cDD     ) ) cDD      = HcoClock%ThisLocDay(IX)
+      IF ( PRESENT(cH      ) ) cH       = HcoClock%ThisLocHour(IX)
+      IF ( PRESENT(cWEEKDAY) ) cWEEKDAY = HcoClock%ThisLocWD(IX)
+
+      ! Return w/ success
+      RC = HCO_SUCCESS 
+
+      END SUBROUTINE HcoClock_GetLocal
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HcoClock_First
+!
+! !DESCRIPTION: Function HcoClock\_First returns TRUE on the first HEMCO
+! time step, FALSE otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HcoClock_First() RESULT ( First )
+!
+! !OUTPUT ARGUMENT:
+!
+      LOGICAL  :: First
+!
+! !REVISION HISTORY:
+!  29 Dec 2012 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      First = ( HcoClock%PrevYear < 0 )      
+
+      END FUNCTION HcoClock_First
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HcoClock_NewYear
+!
+! !DESCRIPTION: Function HcoClock\_NewYear returns TRUE if this is a new 
+! year (compared to the previous emission time step), FALSE otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HcoClock_NewYear() RESULT ( NewYear )
+!
+! !OUTPUT ARGUMENT:
+!
+      LOGICAL  :: NewYear
+!
+! !REVISION HISTORY:
+!  29 Dec 2012 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      NewYear = ( HcoClock%ThisYear /= HcoClock%PrevYear )      
+
+      END FUNCTION HcoClock_NewYear
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HcoClock_NewMonth
+!
+! !DESCRIPTION: Function HcoClock\_NewMonth returns TRUE if this is a new 
+! month (compared to the previous emission time step), FALSE otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HcoClock_NewMonth() RESULT ( NewMonth )
+!
+! !OUTPUT ARGUMENT:
+!
+      LOGICAL  :: NewMonth
+!
+! !REVISION HISTORY:
+!  29 Dec 2012 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      NewMonth = ( HcoClock%ThisMonth /= HcoClock%PrevMonth )      
+
+      END FUNCTION HcoClock_NewMonth
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HcoClock_NewDay
+!
+! !DESCRIPTION: Function HcoClock\_NewDay returns TRUE if this is a new 
+! day (compared to the previous emission time step), FALSE otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HcoClock_NewDay() RESULT ( NewDay )
+!
+! !OUTPUT ARGUMENT:
+!
+      LOGICAL  :: NewDay
+!
+! !REVISION HISTORY:
+!  29 Dec 2012 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      NewDay = ( HcoClock%ThisDay /= HcoClock%PrevDay )      
+
+      END FUNCTION HcoClock_NewDay
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HcoClock_NewHour
+!
+! !DESCRIPTION: Function HcoClock\_NewHour returns TRUE if this is a new 
+! hour (compared to the previous emission time step), FALSE otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HcoClock_NewHour() RESULT ( NewHour )
+!
+! !OUTPUT ARGUMENT:
+!
+      LOGICAL  :: NewHour
+!
+! !REVISION HISTORY:
+!  29 Dec 2012 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      NewHour = ( HcoClock%ThisHour /= HcoClock%PrevHour )      
+
+      END FUNCTION HcoClock_NewHour
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HcoClock_Cleanup
+!
+! !DESCRIPTION: Subroutine HcoClock\_Cleanup removes the given HcoHcoClock
+! type.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HcoClock_Cleanup
+!
+! !REVISION HISTORY:
+!  29 Dec 2012 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !======================================================================
+      ! HcoClock_Cleanup begins here!
+      !======================================================================
+
+      IF ( ASSOCIATED( HcoClock ) ) THEN
+         DEALLOCATE ( HcoClock )
+      ENDIF
+
+      END SUBROUTINE HcoClock_Cleanup
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !FUNCTION: HCO_GetWeekday
+!
+! !DESCRIPTION: Function HCO\_GetWeekday returns the weekday for the 
+! given date (year, month, day).
+! 0 = Sunday, 1 = Monday, ..., 6 = Saturday. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HCO_GetWeekday( year, month, day, gmt ) &
+         RESULT ( weekday )
+!
+! !ARGUMENTS:
+!
+      INTEGER,  INTENT(IN)     :: year  
+      INTEGER,  INTENT(IN)     :: month 
+      INTEGER,  INTENT(IN)     :: day   
+      REAL(sp), INTENT(IN)     :: gmt
+!
+! !OUTPUT ARGUMENT
+!
+      INTEGER                 :: weekday 
+!
+! ! NOTES: This function is largely based on the GEOS-Chem functions 
+! in time_mod.F.
+!
+! !REVISION HISTORY:
+!  18 Dec 2013 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(dp) :: A, B, JD, THISDAY, TMP
+
+      !--------------------------
+      ! HCO_GetWeekday begins here
+      !--------------------------
+
+      ! Day of week w/r/t the GMT date  
+      ! Use same algorithm as in routine SET_CURRENT_TIME
+      THISDAY     = DAY + ( GMT / 24.0_dp )
+      JD          = JULDAY( YEAR, MONTH, THISDAY )
+      A           = ( JD + 1.5_dp ) / 7_dp
+      B           = ( A - INT( A ) ) * 7_dp
+      B           = INT( NINT( B* 1e5_dp + SIGN(5.0_dp,B) ) / 10_dp ) / 1e4_dp
+      weekday     = INT( B )
+
+      END FUNCTION HCO_GetWeekday
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_lastdayofmonth 
+!
+! !DESCRIPTION: Function GET\_LASTDAYOFMONTH returns the last day of MONTH. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION Get_LastDayOfMonth( Month, Year ) RESULT ( LastDay )
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: Month
+      INTEGER, INTENT(IN) :: Year
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: LastDay 
+!
+! !REVISION HISTORY: 
+!  13 Jan 2014 - C. Keller - Initial version 
+
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !-----------------------------------
+      ! GET_LASTDAYOFMONTH begins here! 
+      !-----------------------------------
+
+         ! Select month
+         SELECT CASE ( Month ) 
+   
+            ! Months with 31 days
+            CASE (1,3,5,7,8,10,12)
+               LastDay = 31                  
+   
+            ! Months with 30 days
+            CASE (4,6,9,11)
+               LastDay = 30
+   
+            ! February
+            CASE (2)
+               LastDay = 28
+   
+               ! Check for leap years:
+               IF ( (MOD(Year,4  ) == 0) .AND. &
+                    (MOD(Year,400) /= 0)        ) THEN 
+                  LastDay = 29
+               ENDIF
+
+         END SELECT 
+
+      END FUNCTION Get_LastDayOfMonth 
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HcoClock_SetMinResetFlag
+!
+! !DESCRIPTION: Function HcoClock\_SetMinResetFlag sets the minimum ResetFlag
+! for the current HEMCO time, as used by the HEMCO diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HcoClock_SetMinResetFlag RESULT ( MinResetFlag ) 
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: MinResetFlag 
+!
+! !REVISION HISTORY: 
+!  13 Jan 2014 - C. Keller - Initial version 
+
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !-----------------------------------
+      ! HCOCLOCK_SETMINRESETFLAG begins here! 
+      !-----------------------------------
+
+      MinResetFlag = ResetFlagHourly + 1
+
+      ! MinResetFlag is the smallest ResetFlag number that has to
+      ! be considered for the current time stamp. ResetFlag increases
+      ! with reset frequency (1 = annually, 2 = monthly, etc.), so 
+      ! if MinResetFlag is 2 (new month), all containers with 
+      ! ResetFlag 2, 3, and 4 (monthly, daily, hourly) should be 
+      ! considered.
+      IF ( HcoClock_First() ) THEN
+         ! MinResetFlag should be default on first HEMCO call! 
+      ELSEIF ( HcoClock_NewYear() ) THEN
+         MinResetFlag = ResetFlagAnnually 
+      ELSEIF ( HcoClock_NewMonth() ) THEN
+         MinResetFlag = ResetFlagMonthly
+      ELSEIF ( HcoClock_NewDay() ) THEN
+         MinResetFlag = ResetFlagDaily
+      ELSEIF ( HcoClock_NewHour() ) THEN
+         MinResetFlag = ResetFlagHourly
+      ENDIF
+
+      END FUNCTION HcoClock_SetMinResetFlag 
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HcoClock_GetMinResetFlag
+!
+! !DESCRIPTION: Function HcoClock\_GetMinResetFlag returns the minimum 
+! ResetFlag for the current HEMCO time, as used by the HEMCO diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HcoClock_GetMinResetFlag RESULT ( MinResetFlag ) 
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: MinResetFlag 
+!
+! !REVISION HISTORY: 
+!  13 Jan 2014 - C. Keller - Initial version 
+
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !-----------------------------------
+      ! HCOCLOCK_GETMINRESETFLAG begins here! 
+      !-----------------------------------
+
+      MinResetFlag = CurrMinResetFlag 
+
+      END FUNCTION HcoClock_GetMinResetFlag 
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_localtime 
+!
+! !DESCRIPTION: Subroutine SET\_LOCALTIME sets the local time vectors in 
+! the HEMCO clock object. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Set_LocalTime ( HcoState, UTC, RC ) 
+!
+! !USES:
+!
+      USE HCO_STATE_MOD, ONLY : HCO_State
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(HCO_State), POINTER       :: HcoState  ! Hemco state
+      REAL(sp),        INTENT(IN   ) :: UTC       ! UTC 
+      INTEGER,         INTENT(INOUT) :: RC        ! Success or failure?
+!
+! !REVISION HISTORY: 
+!  13 Jan 2014 - C. Keller - Initial version 
+
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I,      MtLastDay
+      REAL(sp)           :: DECloc
+      REAL(sp)           :: ThisLocHour
+      INTEGER            :: ThisLocYear, ThisLocMonth
+      INTEGER            :: ThisLocDay,  ThisLocWD
+
+      !-----------------------------------
+      ! SET_LOCALTIME begins here! 
+      !-----------------------------------
+
+      ! Enter
+      CALL HCO_ENTER ( 'SET_LOCALTIME (HCO_CLOCK_MOD.F90)', RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Loop over longitude to account for different local times.
+      DO I = 1, HcoState%NX
+
+         ! local decimal time 
+         DECloc = UTC + ( HcoState%Grid%XMID( I, 1 ) / 15_sp )
+
+         ! Extract local dates
+         
+         ! defaults
+         ThisLocYear  = HcoClock%ThisYear
+         ThisLocMonth = HcoClock%ThisMonth
+
+         ! Case 1: Local time is one day behind UTC.  
+         IF ( DECloc < 0.0 ) THEN
+            ThisLocHour = DECloc + 24_sp
+
+            ! Adjust local weekday
+            ThisLocWD = HcoClock%ThisWD - 1
+            IF ( ThisLocWD < 0 ) ThisLocWD = 6
+
+            ! Adjust local day. Also correct local
+            ! month/year if needed!
+            ThisLocDay = HcoClock%ThisDay - 1
+            IF ( ThisLocDay == 0 ) THEN
+               ThisLocMonth = ThisLocMonth - 1
+               IF ( ThisLocMonth == 0 ) THEN
+                  ThisLocMonth = 12
+                  ThisLocYear  = HcoClock%ThisYear - 1
+               ENDIF
+               ThisLocDay = Get_LastDayOfMonth( ThisLocMonth, &
+                                                ThisLocYear  ) 
+            ENDIF
+
+         ! Case 2: Local time is one day ahead UTC.
+         ELSEIF ( DECloc >= 24.0 ) THEN
+            ThisLocHour = DECloc - 24_sp
+
+            ! Adjust local weekday 
+            ThisLocWD  = HcoClock%ThisWD + 1
+            IF ( ThisLocWD > 6 ) ThisLocWD = 0
+
+            ! Adjust local day. Also correct local
+            ! month/year if needed!
+            ThisLocDay = HcoClock%ThisDay + 1
+            IF ( ThisLocDay > HcoClock%MonthLastDay ) THEN
+               ThisLocMonth = ThisLocMonth + 1
+               IF ( ThisLocMonth == 13 ) THEN
+                  ThisLocMonth = 1
+                  ThisLocYear  = HcoClock%ThisYear + 1
+               ENDIF
+               ThisLocDay = Get_LastDayOfMonth( ThisLocMonth, &
+                                                ThisLocYear  ) 
+            ENDIF
+
+         ! Case 3: Local time is same day as UTC.
+         ELSE
+            ThisLocHour = DECloc
+
+            ! local day same as utc day
+            ThisLocWD   = HcoClock%ThisWD
+            ThisLocDay  = HcoClock%ThisDay
+         ENDIF
+ 
+         ! Error trap: prevent local time from being 24
+         ! (can occur due to rounding errors)
+         IF ( ThisLocHour == 24.0 ) THEN
+            ThisLocHour = 0.0_sp
+         ENDIF
+ 
+         ! Pass to HcoClock
+         HcoClock%ThisLocYear(I)  = ThisLocYear
+         HcoClock%ThisLocMonth(I) = ThisLocMonth
+         HcoClock%ThisLocDay(I)   = ThisLocDay
+         HcoClock%ThisLocWD(I)    = ThisLocWD
+         HcoClock%ThisLocHour(I)  = ThisLocHour
+      ENDDO !I
+
+      ! Leave w/ success
+      CALL HCO_LEAVE ( RC )
+
+      END SUBROUTINE Set_LocalTime 
+!EOC
+      END MODULE HCO_CLOCK_MOD
+!EOM

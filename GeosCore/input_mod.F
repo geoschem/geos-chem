@@ -704,6 +704,7 @@
 !                              environment when connecting to the GEOS-5 GCM
 !  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
 !                              to ACCEPT_EXTERNAL_DATE_TIME
+!  19 May 2014 - C. Keller   - Now read HEMCO configuration file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -717,6 +718,7 @@
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
       CHARACTER(LEN=255) :: IN_RST_FILE
       CHARACTER(LEN=255) :: OUT_RST_FILE
+      CHARACTER(LEN=255) :: HcoConfigFile
 
       !=================================================================
       ! READ_SIMULATION_MENU begins here!
@@ -794,8 +796,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
-      ! Separator line
+      ! HEMCO Input file 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
+      READ( SUBSTRS(1:N), '(a)' ) HcoConfigFile
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
 
       !=================================================================
       ! Add safety checks for logical switches
@@ -872,6 +878,9 @@
       Input_Opt%NESTED_I0     = I0
       Input_Opt%NESTED_J0     = J0 
 
+      ! HEMCO configuration file
+      Input_Opt%HcoConfigFile = HcoConfigFile
+
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -910,6 +919,8 @@
          WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
          WRITE( 6, 130 ) 'Global offsets I0, J0       : ', I0, J0
+         WRITE( 6, 110 ) 'HEMCO Configuration file    : ',
+     &                    TRIM( HcoConfigFile )
       ENDIF
 
       ! Format statements
@@ -8822,6 +8833,7 @@
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
       USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
+      USE HENRY_MOD,          ONLY : Init_Henry
 !
 ! !INPUT PARAMETERS:
 !
@@ -8855,6 +8867,7 @@
 !  11 Apr 2014 - R. Yantosca - Now call INIT_C2H6 and INIT_HCN_CH3CN
 !  14 Apr 2014 - R. Yantosca - Also call INIT_C2H6 if it's a fullchem sim
 !                              since we read C2H6 emissions from c2h6_mod.F
+!  19 May 2014 - C. Keller   - Now call INIT_HENRY (GeosCore/henry_mod.F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8914,6 +8927,10 @@
          CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
+
+      ! Initialize "henry_mod.F"
+      CALL INIT_HENRY ( Input_Opt%TRACER_NAME, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_HENRY' )
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
       CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )

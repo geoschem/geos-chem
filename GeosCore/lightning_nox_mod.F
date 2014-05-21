@@ -1425,10 +1425,6 @@
 !%%%         EMIS_LI_NOx(I,J,L)                = TMP / 5.0
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#if defined( DEVEL ) 
-         State_Chm%TRAC_TEND(I,J,L,IDTNO)  = TMP
-#endif
-
          ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
          IF ( ND32 > 0 ) THEN
             AD32_li(I,J,L) = AD32_li(I,J,L) + 

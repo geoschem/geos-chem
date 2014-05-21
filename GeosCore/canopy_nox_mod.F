@@ -106,6 +106,7 @@
 ! !USES:
 !
       USE DRYDEP_MOD,         ONLY : DRYCOEFF	!todo
+      USE DRYDEP_TOOLBOX_MOD, ONLY : BIOFIT
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE MODIS_LAI_MOD
 
@@ -129,13 +130,14 @@
 !  09 Nov 2012 - M. Payer        - Replaced all met field arrays with State_Met
 !                                   derived type object
 !  13 Dec 2012 - R. Yantosca     - Removed ref to obsolete CMN_DEP_mod.F
+!  19 May 2014 - C. Keller       - Now call BIOFIT from drydep_toolbox_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !EXTERNAL FUNCTIONS:
 !
-      REAL*8,  EXTERNAL:: BIOFIT
+!      REAL*8,  EXTERNAL:: BIOFIT
 !
 ! !DEFINED PARAMETERS:
 !
@@ -148,7 +150,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER          :: I,      IJLOOP, J, K, KK
+      INTEGER          :: I,      IJLOOP, J, K, KK, NN
       REAL*8           :: F0,     HSTAR, XMW              
       REAL*8           :: DTMP1,  DTMP2, DTMP3,  DTMP4, GFACT, GFACI
       REAL*8           :: RT,     RAD0,  RIX,    RIXX,  RDC,   RLUXX
@@ -178,6 +180,9 @@
          CALL READ_RESISTANCES
          FIRSTCANOPY = .FALSE.    ! Now only read resistances once
       ENDIF
+
+      ! Size of DRYCOEFF
+      NN = SIZE(DRYCOEFF)
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -310,7 +315,8 @@
      &                   BIOFIT( DRYCOEFF,       
      &                           GC_LAI(I,J),
      &                           State_Met%SUNCOS(I,J), 
-     &                           State_Met%CLDFRC(I,J)  )
+     &                           State_Met%CLDFRC(I,J),
+     &                           NN )
                ENDIF
             
                RIX = RIX * GFACT * GFACI

@@ -37,11 +37,11 @@ MODULE Modis_Lai_Mod
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  INTEGER, PUBLIC              :: DAYS_BTW_MON    ! Days btw LAI midmonths
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
+  INTEGER, PUBLIC,              TARGET :: DAYS_BTW_MON    ! Days btw LAI midmonths
+  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
+  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
+  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
+  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !

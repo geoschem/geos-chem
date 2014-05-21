@@ -6471,10 +6471,6 @@
 
             DMSSRC = ERATE * GET_AREA_M2( I, J, 1 )
 
-#if defined( DEVEL )
-            State_Chm%TRAC_TEND(I,J,1,IDTDMS) = 
-     &      State_Chm%TRAC_TEND(I,J,1,IDTDMS) + DMSSRC/DTSRCE ! kg DMS/grid/s
-#endif
             !===========================================================
             ! Add DMS emissions [kg DMS/box] into the tracer array
             !===========================================================

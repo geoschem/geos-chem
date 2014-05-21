@@ -1022,13 +1022,6 @@
       ENDIF    
 #endif
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! EXPERIMENTAL: Compute dust tendency
-      State_Chm%TRAC_TEND(:,:,:,IDTDST1:IDTDST4) =
-     &              ( STT(:,:,:,IDTDST1:IDTDST4) - STT_TMP )
-     &            / ( GET_TS_EMIS()              * 60.d0   )
-#endif
-
       ! Free pointer
       NULLIFY( STT )
 

@@ -1776,7 +1776,7 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR( as2, Input_Opt, State_Met )
+  SUBROUTINE VDIFFDR( as2, Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 ! 
@@ -1791,11 +1791,13 @@ contains
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GRID_MOD,           ONLY : GET_AREA_M2
     USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
-                                   GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
+                                   GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP, &
+                                   GET_PBL_TOP_L
     USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
     USE TRACER_MOD,         ONLY : N_MEMBERS
@@ -1812,6 +1814,9 @@ contains
     
     ! Meteorology State object
     TYPE(MetState), INTENT(INOUT)         :: State_Met   
+
+    ! Chemistry State object
+    TYPE(ChmState), INTENT(INOUT)         :: State_Chm
 
     ! Advected species
     REAL*8,         intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,&
@@ -1916,6 +1921,10 @@ contains
     REAL*8             :: TRACER_MW_KG(Input_Opt%N_TRACERS)
     CHARACTER(LEN=255) :: TRACER_NAME (Input_Opt%N_TRACERS)
     REAL*8             :: TCVV        (Input_Opt%N_TRACERS)
+
+    ! Total PBL emissions
+    INTEGER            :: topmix
+    REAL*8             :: tmpflx
 
     !=================================================================
     ! vdiffdr begins here!
@@ -2036,108 +2045,127 @@ contains
     do I = 1, IIPAR
 
        !----------------------------------------------------------------
-       ! Add emissions for full-chemistry simulation
+       ! Add emissions & deposition values calculated in HEMCO 
        !----------------------------------------------------------------
-       IF ( IS_FULLCHEM .and. NCS > 0 ) THEN
+       DO N = 1, N_TRACERS
+          topmix      = MAX( 1, FLOOR( GET_PBL_TOP_L(I,J) ) )
+          tmpflx      = SUM(State_Chm%Trac_Tend(I,J,1:topmix,N))
+          eflx(I,J,N) = eflx(I,J,N) + tmpflx
 
-          do N = 1, NEMIS(NCS)
-             NN = IDEMS(N)
+          ! Also add drydep frequencies calculated by HEMCO. These values are 
+          ! in m/s. Convert to s-1, then add as other drydep frequencies 
+          ! afterwards. dflx will be converted to kg/m2/s lateron. 
+          ! (ckeller, 04/01/2014)
+          dflx(I,J,N) = dflx(I,J,N)                  &
+                      + ( State_Chm%DepSav(I,J,N)    &
+                        / State_Met%BXHEIGHT(I,J,1)  &
+                        * as2_scal(I,J,N) / TCVV(N) )
 
-             ! for emissions in the lowest model layer only
-             IF ( NN > 0 ) THEN
-                JLOOP = JLOP(I,J,1)
-                eflx(I,J,NN) = REMIS(JLOOP,N) * TRACER_MW_KG(NN)
-             ENDIF
+       ENDDO
 
-          enddo
-
-          ! additional step to convert from molec spec/cm3/s to kg/m2/s
-          eflx(I,J,:) = eflx(I,J,:) * State_Met%BXHEIGHT(I,J,1) / &
-                        6.022d23    * 1.d6
-
-          !add the tracer coef. (i.e., one ISOP molecule has five carbon atoms)
-          ! (lin, 06/07/08) 
-          do N = 1, N_TRACERS
-             if ( ID_EMITTED(N) .le. 0 ) cycle
-             eflx(I,J,N) = eflx(I,J,N) * TRACER_COEFF(N,ID_EMITTED(N))
-          enddo
-
-          ! add surface emis of aerosols 
-          ! (after converting kg/box/timestep to kg/m2/s)
-          ! Should NOT use ID_EMITTED here, since it is only for gases 
-          ! for SMVGEAR. (Lin, 06/10/08)
-          do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
-                                       / GET_AREA_M2( I, J, 1 ) &
-                                       / GET_TS_EMIS() / 60.d0
-          enddo
-
-       ENDIF
-
-       !----------------------------------------------------------------
-       ! Add emissions for Rn-Pb-Be simulation
-       !----------------------------------------------------------------
-       IF ( IS_RnPbBe ) THEN
-          do N = 1, N_TRACERS
-             eflx(I,J,N) = emis_save(I,J,N) / GET_AREA_M2(I,J,1)
-          enddo
-       ENDIF
-
-       !----------------------------------------------------------------
-       ! Add emissions for offline aerosol simulation
-       !----------------------------------------------------------------
-       IF ( IS_AEROSOL ) THEN
-
-          ! add surface emis of aerosols 
-          ! (after converting kg/box/timestep to kg/m2/s)
-          ! Should NOT use ID_EMITTED here, since it is only for gases 
-          ! for SMVGEAR. (Lin, 06/10/08)
-          do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
-                                       / GET_AREA_M2( I, J, 1 ) &
-                                       / GET_TS_EMIS() / 60.d0
-          enddo
-
-       ENDIF
-
-       !----------------------------------------------------------------
-       ! Zero emissions for tagged CO simulation
-       !
-       ! CO emis are considered in tagged_co_mod.f.  This over-
-       ! simplified treatment may be inconsistent with the full 
-       ! chemistry simulation. Hopefully this simplification wouldn't 
-       ! cause too much problem, since the std. tagged_co simulation 
-       ! is also approximate, anyway. (Lin, 06/20/09) 
-       !----------------------------------------------------------------
-       IF ( IS_TAGCO ) THEN
-          eflx(I,J,:) = 0d0 
-       ENDIF
-
-       !----------------------------------------------------------------
-       ! Add emissions for offline CH4 simulation
-       !----------------------------------------------------------------
-       IF ( IS_CH4 ) THEN
-          ! add surface emis
-          ! (after converting kg/box/timestep to kg/m2/s)
-          ! Should NOT use ID_EMITTED here, since it is only for gases 
-          ! for SMVGEAR. (Lin, 06/10/08)
-          do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) &
-                         / GET_AREA_M2( I, J, 1 )         &
-                         / GET_TS_EMIS() / 60.d0
-          enddo
-       endif
-
-       !----------------------------------------------------------------
-       ! Add emissions for offline mercury simulation
-       !----------------------------------------------------------------
-       IF ( IS_Hg ) THEN
-          do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) & 
-                         / GET_AREA_M2( I, J, 1 )         &
-                         / GET_TS_EMIS() / 60.d0
-          enddo
-       ENDIF
+!       !----------------------------------------------------------------
+!       ! Add emissions for full-chemistry simulation
+!       !----------------------------------------------------------------
+!       IF ( IS_FULLCHEM .and. NCS > 0 ) THEN
+!
+!          do N = 1, NEMIS(NCS)
+!             NN = IDEMS(N)
+!
+!             ! for emissions in the lowest model layer only
+!             IF ( NN > 0 ) THEN
+!                JLOOP = JLOP(I,J,1)
+!                eflx(I,J,NN) = REMIS(JLOOP,N) * TRACER_MW_KG(NN)
+!             ENDIF
+!
+!          enddo
+!
+!          ! additional step to convert from molec spec/cm3/s to kg/m2/s
+!          eflx(I,J,:) = eflx(I,J,:) * State_Met%BXHEIGHT(I,J,1) / &
+!                        6.022d23    * 1.d6
+!
+!          !add the tracer coef. (i.e., one ISOP molecule has five carbon atoms)
+!          ! (lin, 06/07/08) 
+!          do N = 1, N_TRACERS
+!             if ( ID_EMITTED(N) .le. 0 ) cycle
+!             eflx(I,J,N) = eflx(I,J,N) * TRACER_COEFF(N,ID_EMITTED(N))
+!          enddo
+!
+!          ! add surface emis of aerosols 
+!          ! (after converting kg/box/timestep to kg/m2/s)
+!          ! Should NOT use ID_EMITTED here, since it is only for gases 
+!          ! for SMVGEAR. (Lin, 06/10/08)
+!          do N = 1, N_TRACERS
+!             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
+!                                       / GET_AREA_M2( I, J, 1 ) &
+!                                       / GET_TS_EMIS() / 60.d0
+!          enddo
+!
+!       ENDIF
+!
+!       !----------------------------------------------------------------
+!       ! Add emissions for Rn-Pb-Be simulation
+!       !----------------------------------------------------------------
+!       IF ( IS_RnPbBe ) THEN
+!          do N = 1, N_TRACERS
+!             eflx(I,J,N) = emis_save(I,J,N) / GET_AREA_M2(I,J,1)
+!          enddo
+!       ENDIF
+!
+!       !----------------------------------------------------------------
+!       ! Add emissions for offline aerosol simulation
+!       !----------------------------------------------------------------
+!       IF ( IS_AEROSOL ) THEN
+!
+!          ! add surface emis of aerosols 
+!          ! (after converting kg/box/timestep to kg/m2/s)
+!          ! Should NOT use ID_EMITTED here, since it is only for gases 
+!          ! for SMVGEAR. (Lin, 06/10/08)
+!          do N = 1, N_TRACERS
+!             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
+!                                       / GET_AREA_M2( I, J, 1 ) &
+!                                       / GET_TS_EMIS() / 60.d0
+!          enddo
+!
+!       ENDIF
+!
+!       !----------------------------------------------------------------
+!       ! Zero emissions for tagged CO simulation
+!       !
+!       ! CO emis are considered in tagged_co_mod.f.  This over-
+!       ! simplified treatment may be inconsistent with the full 
+!       ! chemistry simulation. Hopefully this simplification wouldn't 
+!       ! cause too much problem, since the std. tagged_co simulation 
+!       ! is also approximate, anyway. (Lin, 06/20/09) 
+!       !----------------------------------------------------------------
+!       IF ( IS_TAGCO ) THEN
+!          eflx(I,J,:) = 0d0 
+!       ENDIF
+!
+!       !----------------------------------------------------------------
+!       ! Add emissions for offline CH4 simulation
+!       !----------------------------------------------------------------
+!       IF ( IS_CH4 ) THEN
+!          ! add surface emis
+!          ! (after converting kg/box/timestep to kg/m2/s)
+!          ! Should NOT use ID_EMITTED here, since it is only for gases 
+!          ! for SMVGEAR. (Lin, 06/10/08)
+!          do N = 1, N_TRACERS
+!             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) &
+!                         / GET_AREA_M2( I, J, 1 )         &
+!                         / GET_TS_EMIS() / 60.d0
+!          enddo
+!       endif
+!
+!       !----------------------------------------------------------------
+!       ! Add emissions for offline mercury simulation
+!       !----------------------------------------------------------------
+!       IF ( IS_Hg ) THEN
+!          do N = 1, N_TRACERS
+!             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) & 
+!                         / GET_AREA_M2( I, J, 1 )         &
+!                         / GET_TS_EMIS() / 60.d0
+!          enddo
+!       ENDIF
 
        !----------------------------------------------------------------
        ! Apply dry deposition frequencies
@@ -2185,9 +2213,10 @@ contains
              ! emissions, which were used previously by PARANOX,
              ! but caused instability in the chemical solver
              ! (cdh, 3/21/2013)
-             IF (TRIM( DEPNAME(N) ) == 'O3') THEN
-                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * (wk1/(wk2+1.d-30)) / TCVV(NN)
-             ENDIF
+             ! Now done through HEMCO (ckeller, 5/19/14).
+!             IF (TRIM( DEPNAME(N) ) == 'O3') THEN
+!                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * (wk1/(wk2+1.d-30)) / TCVV(NN)
+!             ENDIF
 
              ! consistency with the standard GEOS-Chem setup (Lin, 07/14/08)
              if (drydep_back_cons) then 
@@ -2210,9 +2239,10 @@ contains
              ! emissions, which were used previously by PARANOX,
              ! but caused instability in the chemical solver
              ! (cdh, 3/21/2013)
-             IF ( (TRIM( DEPNAME(N) ) == 'O3') .and. (SHIPO3DEP(I,J) > 0d0) ) THEN
-                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * as2_scal(I,J,NN) / TCVV(NN)
-             ENDIF
+             ! Now done through HEMCO (ckeller, 5/19/14).
+!             IF ( (TRIM( DEPNAME(N) ) == 'O3') .and. (SHIPO3DEP(I,J) > 0d0) ) THEN
+!                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * as2_scal(I,J,NN) / TCVV(NN)
+!             ENDIF
 
              !------------------------------------------------------------------
              !Prior to 25 Oct 2011, H Amos
@@ -2411,6 +2441,12 @@ contains
     enddo
 !$OMP END PARALLEL DO
 
+    ! testing only: write out eflx
+    write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
+    do N=1,N_TRACERS
+       write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
+       write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
+    enddo
 
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
@@ -2657,7 +2693,7 @@ contains
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE TRACER_MOD,         ONLY : N_TRACERS, TCVV, ITS_A_FULLCHEM_SIM
-    USE VDIFF_PRE_MOD,      ONLY : EMISRR, EMISRRN
+!    USE VDIFF_PRE_MOD,      ONLY : EMISRR, EMISRRN
 
     IMPLICIT NONE
 !
@@ -2725,27 +2761,29 @@ contains
     !=================================================================
     ! For full-chemistry simulations, call routine SETEMIS
     ! which sets up the emission rates array REMIS
+    ! Not needed anymore, emissions passed to vdiffdr through
+    ! State_Chm (ckeller, 05/19/14).
     !=================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
-       ! If it's time to do emissions ...
-       IF ( ITS_TIME_FOR_EMIS() ) THEN 
-
-          ! Call SETEMIS to set up the emissions
-          CALL SETEMIS( EMISRR,    EMISRRN,   .TRUE.,  &
-                        Input_Opt, State_Met, RC      )  
-
-          ! Debug output
-          IF ( LPRT .and. am_I_Root ) THEN
-             CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
-          ENDIF
-       ENDIF
-
-    ENDIF
+!    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+!
+!       ! If it's time to do emissions ...
+!       IF ( ITS_TIME_FOR_EMIS() ) THEN 
+!
+!          ! Call SETEMIS to set up the emissions
+!          CALL SETEMIS( EMISRR,    EMISRRN,   .TRUE.,  &
+!                        Input_Opt, State_Met, RC      )  
+!
+!          ! Debug output
+!          IF ( LPRT .and. am_I_Root ) THEN
+!             CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
+!          ENDIF
+!       ENDIF
+!
+!    ENDIF
 
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_TURBDAY ) THEN
-       CALL VDIFFDR( STT, Input_Opt, State_Met )
+       CALL VDIFFDR( STT, Input_Opt, State_Met, State_Chm )
        IF( LPRT .and. am_I_Root ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF

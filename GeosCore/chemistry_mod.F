@@ -20,6 +20,7 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+      PUBLIC :: INIT_CHEMISTRY
       PUBLIC :: DO_CHEMISTRY
       PUBLIC :: GCKPP_DRIVER
       PUBLIC :: RECOMPUTE_OD
@@ -51,6 +52,7 @@
 !  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm to several routines
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,7 +93,6 @@
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE FAST_JX_MOD,        ONLY : INIT_FJX
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -212,6 +213,8 @@
 !  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to DRYFLX
 !  28 Mar 2013 - S.D. Eastham- Updated to use FAST_JX_MOD
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to DO_TOMAS
+!  19 May 2014 - C. Keller   - Removed call for acetone ocean sink - now done
+!                              in HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -400,8 +403,9 @@
             CALL DIAGOH
  
             ! Remove acetone ocean sink
+            ! Now done within HEMCO (ckeller, 05/19/14)
             IF ( IDTACET /= 0 ) THEN
-               CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET), State_Met ) 
+!               CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET), State_Met ) 
             ENDIF
              
          !---------------------------------
@@ -417,13 +421,14 @@
             ! Initialize FAST-JX quantities for computing AOD's
             IF ( FIRST ) THEN
 
-               ! Init chem mechanism and photolysis
-               CALL READER  ( FIRST,     am_I_Root            )
-               CALL READCHEM( am_I_Root, Input_Opt, RC        )
-               CALL INIT_FJX( am_I_Root  )
+!               ! Init chem mechanism and photolysis
+                ! Now done in INIT_CHEMISTRY
+!               CALL READER  ( FIRST,     am_I_Root            )
+!               CALL READCHEM( am_I_Root, Input_Opt, RC        )
+!               CALL INIT_FJX( am_I_Root  )
  
-               ! Reset NCS with NCSURBAN
-               NCS     = NCSURBAN
+!               ! Reset NCS with NCSURBAN
+!               NCS     = NCSURBAN
  
                ! Reset NTLOOP and NTTLOOP after call to READER
                ! with the actual # of boxes w/in the ann mean trop
@@ -1095,5 +1100,78 @@
       ENDIF
 
       END SUBROUTINE RECOMPUTE_OD
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: INIT_CHEMISTRY
+!
+! !DESCRIPTION: Subroutine INIT\_CHEMISTRY initializes chemistry
+! variables.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_CHEMISTRY( am_I_Root, Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE CMN_SIZE_MOD,       ONLY : LLTROP
+      USE TRACERID_MOD,       ONLY : SETTRACE
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE FAST_JX_MOD,        ONLY : INIT_FJX
+      USE COMODE_LOOP_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry State object
+      INTEGER,        INTENT(INOUT)  :: RC         ! Success or failure?
+!
+! !OUTPUT PARAMETERS:
+!
+!
+! !REVISION HISTORY: 
+!  19 May 2014 - C. Keller - Initial version (stripped from do_chemistry
+!                            and chemdr.F)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE   :: FIRST = .TRUE.
+
+      !=================================================================
+      ! INIT_CHEMISTRY begins here!
+      !=================================================================
+
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+
+      IF ( FIRST ) THEN
+
+         ! Init chem mechanism and photolysis
+         CALL READER  ( FIRST,     am_I_Root                )
+         CALL READCHEM( am_I_Root, Input_Opt, RC            )
+         CALL INIT_FJX( am_I_Root  )
+         CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
+
+         ! Reset NCS with NCSURBAN
+         NCS     = NCSURBAN
+
+         ! Adjust first flag
+         FIRST = .FALSE.
+      ENDIF
+
+      END SUBROUTINE INIT_CHEMISTRY
 !EOC
       END MODULE CHEMISTRY_MOD

@@ -100,6 +100,9 @@
       USE SOILNOX_RESTART_MOD   ! For reading and writing soil NOx restart
       USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
 
+      ! HEMCO
+      USE HCOI_GC_MAIN_MOD
+
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
       !-----------------------------------------------------------------
@@ -231,6 +234,8 @@
 !                              initialization stage
 !  11 Apr 2014 - R. Yantosca - Now remove call to INIT_GLOBAL_CH4; this is
 !                              now done from routine GIGC_Init_Extra
+!  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY 
+!  19 May 2014 - C. Keller   - Added HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -553,6 +558,18 @@
      &                      State_Met, State_Chm, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
+
+      ! Initialize chemistry
+      ! Moved here (from chemistry_mod.F and chemdr.F) because some
+      ! of the variables are used for non-local PBL mixing BEFORE 
+      ! the first call of the chemistry routines (ckeller, 05/19/14).
+      IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
+         CALL INIT_CHEMISTRY ( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
+
+      ! Initialize HEMCO.
+      CALL HCOI_GC_INIT( am_I_Root, Input_Opt,
+     &                   State_Chm, State_Met, RC )
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -1082,7 +1099,9 @@
             !             ***** E M I S S I O N S *****
             !===========================================================
             IF ( LEMIS ) THEN
-               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
+!               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
+!     &                            State_Met, State_Chm, RC )
+               CALL HCOI_GC_RUN ( am_I_Root, Input_Opt, 
      &                            State_Met, State_Chm, RC )
             ENDIF
 
@@ -1196,8 +1215,10 @@
             !             ***** E M I S S I O N S *****
             !===========================================================
             IF ( LEMIS ) THEN
-               CALL DO_EMISSIONS
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!               CALL DO_EMISSIONS
+!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL HCOI_GC_RUN ( am_I_Root, Input_Opt, 
+     &                            State_Met, State_Chm, RC )
             ENDIF
 
             IF ( ITS_A_FULLCHEM_SIM ) THEN
