@@ -624,14 +624,14 @@ CONTAINS
         psg(i,j,2) = ps2(i,j)
      enddo
   enddo
-  if ( jfirst == 1 ) then
-       call xpavg(psg(:,1,1), im)
-       call xpavg(psg(:,1,2), im)
-  endif
-  if ( jlast == jm ) then
-       call xpavg(psg(:,jm,1), im)
-       call xpavg(psg(:,jm,2), im)
-  endif
+!  if ( jfirst == 1 ) then
+!       call xpavg(psg(:,1,1), im)
+!       call xpavg(psg(:,1,2), im)
+!  endif
+!  if ( jlast == jm ) then
+!       call xpavg(psg(:,jm,1), im)
+!       call xpavg(psg(:,jm,2), im)
+!  endif
 #if defined(SPMD)
 ! Ghost v, psm and psn north/south --> now in one array psg
 #if defined(PILGRIM)
@@ -643,20 +643,19 @@ CONTAINS
 #endif
 #endif
 ! Average q at both poles
-  do iq=1,nq
-!$omp parallel do   &
-!$omp shared(im)    &
-!$omp private(k)
-     do k=1,km
-        if ( jfirst == 1 ) then
-             call xpavg(q(:,1,k,iq), im)
-        endif
-        if ( jlast == jm ) then
-             call xpavg(q(:,jm,k,iq), im)
-
-        endif
-     enddo
-  enddo
+!  do iq=1,nq
+!!$omp parallel do   &
+!!$omp shared(im)    &
+!!$omp private(k)
+!     do k=1,km
+!        if ( jfirst == 1 ) then
+!             call xpavg(q(:,1,k,iq), im)
+!        endif
+!        if ( jlast == jm ) then
+!             call xpavg(q(:,jm,k,iq), im)
+!        endif
+!     enddo
+!  enddo
 #if defined(SPMD)
 #if defined(PILGRIM)
   call parendtransfer(pattern2dmg, km, v, v)
@@ -723,14 +722,19 @@ CONTAINS
  endif
 #endif
 #endif
+
 !$omp parallel do                                   &
-!$omp shared(im,jm,iv,iord,jord,ng,mg,jfirst,jlast) &
-!$omp private(i, j, k, q2)
+!$omp default( shared ) &
+!$omp private(i, j, k, q2, MFLEW, MFLNS)
 
 ! Vertical_OMP:  
 
    do k=1,km
 
+
+    q2(:,:) = 0.d0
+    MFLEW(:,:) = 0.d0
+    MFLNS(:,:) = 0.d0
 
 
 ! Copying q to 2d work array for transport. This allows q to be dimensioned
@@ -798,7 +802,8 @@ CONTAINS
        MASSFLNS(:,:,K,IQ) = MFLNS
     ENDIF
 
-    do j=jfirst,jlast
+    !do j=jfirst,jlast
+    do j=max(jfirst,jord+1),min(jlast,jm-jord+1)   ! Lin_20140518
        do i=1,im
           q(i,j,k,iq) = q2(i,j)
        enddo
@@ -1171,14 +1176,14 @@ CONTAINS
           do i=1,im
              delp(i,1,k) = delp1(i,1,k) - fy(i,2,k)*rgw(1)
           enddo
-             call xpavg(delp(1,1,k), im)
+!             call xpavg(delp(:,1,k), im)
       endif
 
       if ( jlast == jm ) then
           do i=1,im
              delp(i,jm,k) = delp1(i,jm,k) + fy(i,jm,k)*rgw(jm)
           enddo
-             call xpavg(delp(1,jm,k), im)
+!             call xpavg(delp(:,jm,k), im)
       endif
 
      if ( n_adj == 0 ) then
@@ -1304,14 +1309,14 @@ CONTAINS
         do i=1,im
            h(i,1) = h(i,1)*dp(i,1) - fy(i,2)*rgw(1)
         enddo
-        call xpavg(h(1, 1), im)
+!        call xpavg(h(:, 1), im)
    endif
    
    if ( jlast == jm ) then
         do i=1,im
            h(i,jm) = h(i,jm)*dp(i,jm) + fy(i,jm)*rgw(jm)
         enddo
-        call xpavg(h(1,jm), im)
+!        call xpavg(h(:,jm), im)
    endif
 
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2253,15 +2258,17 @@ CONTAINS
       integer i
       real sum1
 
-      sum1 = 0.
-      do i=1,im
-         sum1 = sum1 + p(i)
-      enddo
-      sum1 = sum1 / im
+      p(1:im) = sum(p(1:im))/im
 
-      do i=1,im
-         p(i) = sum1
-      enddo
+!      sum1 = 0.
+!      do i=1,im
+!         sum1 = sum1 + p(i)
+!      enddo
+!      sum1 = sum1 / im
+
+!      do i=1,im
+!         p(i) = sum1
+!      enddo
  end subroutine xpavg
 
  subroutine qmap(pe,  q, im, jm, km, nx, jfirst, jlast, ng, nq,       &
@@ -3294,13 +3301,13 @@ CONTAINS
        do i=1,im
           delp(i,1,k) = delp(i,1,k) - fy(i,2)*rgw(1)
        enddo
-       call xpavg(delp(1,1,k), im)
+!       call xpavg(delp(:,1,k), im)
     endif
     if ( jlast == jm ) then
        do i=1,im
           delp(i,jm,k) = delp(i,jm,k) + fy(i,jm)*rgw(jm)
        enddo
-       call xpavg(delp(1,jm,k), im)
+!       call xpavg(delp(:,jm,k), im)
     endif
 
     endif
