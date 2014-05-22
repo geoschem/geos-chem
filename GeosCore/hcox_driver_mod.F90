@@ -76,6 +76,7 @@
       USE HcoX_DustDead_Mod,     ONLY : HcoX_DustDead_Init
       USE HcoX_DustGinoux_Mod,   ONLY : HcoX_DustGinoux_Init
       USE HcoX_SeaSalt_Mod,      ONLY : HcoX_SeaSalt_Init
+      USE HcoX_GFED3_Mod,        ONLY : HcoX_GFED3_Init
       USE HcoX_Megan_Mod,        ONLY : HcoX_Megan_Init
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -171,6 +172,12 @@
       IF( RC /= HCO_SUCCESS ) RETURN 
 
       !-----------------------------------------------------------------
+      ! GFED3 extension
+      !-----------------------------------------------------------------
+      CALL HcoX_GFED3_Init( amIRoot, HcoState, 'GFED3', ExtState, RC ) 
+      IF( RC /= HCO_SUCCESS ) RETURN 
+
+      !-----------------------------------------------------------------
       ! Add extensions here ...
       !-----------------------------------------------------------------
 
@@ -219,6 +226,7 @@
       USE HcoX_DustGinoux_Mod, ONLY : HcoX_DustGinoux_Run 
       USE HcoX_SeaSalt_Mod,    ONLY : HcoX_SeaSalt_Run 
       USE HcoX_Megan_Mod,      ONLY : HcoX_Megan_Run 
+      USE HcoX_GFED3_Mod,      ONLY : HcoX_GFED3_Run 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -324,6 +332,14 @@
       ENDIF
 
       ! ----------------------------------------------------------------
+      ! GFED3 biomass burning emissions 
+      ! ----------------------------------------------------------------
+      IF ( ExtState%GFED3 ) THEN
+         CALL HcoX_GFED3_Run( amIRoot, ExtState, HcoState, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+      ENDIF
+
+      ! ----------------------------------------------------------------
       ! Add extensions here ...
       ! ----------------------------------------------------------------
       
@@ -360,6 +376,7 @@
       USE HcoX_DustGinoux_Mod, ONLY : HcoX_DustGinoux_Final
       USE HcoX_SeaSalt_Mod,    ONLY : HcoX_SeaSalt_Final
       USE HcoX_Megan_Mod,      ONLY : HcoX_Megan_Final
+      USE HcoX_GFED3_Mod,      ONLY : HcoX_GFED3_Final
       USE Hcox_ExtList_Mod,    ONLY : ExtFinal
 
       USE TIME_MOD,            ONLY : GET_NYMD, GET_NHMS, GET_TAU
@@ -397,6 +414,7 @@
       IF( ExtState%DustGinoux ) CALL HcoX_DustGinoux_Final
       IF( ExtState%SeaSalt    ) CALL HcoX_SeaSalt_Final
       IF( ExtState%Megan      ) CALL HcoX_Megan_Final
+      IF( ExtState%GFED3      ) CALL HcoX_GFED3_Final
 
       ! For soil NOx, write restart file before cleanup 
       IF ( ExtState%SoilNOx ) THEN 

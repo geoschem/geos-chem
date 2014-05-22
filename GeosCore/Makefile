@@ -866,7 +866,7 @@ hcox_driver_mod.o           : hcox_driver_mod.F90                            \
                               hco_error_mod.o         hco_state_mod.o        \
                               hcox_state_mod.o        hcox_custom_mod.o      \
                               hcox_dustdead_mod.o     hcox_dustginoux_mod.o  \
-                              hcox_extlist_mod.o                             \
+                              hcox_extlist_mod.o      hcox_gfed3_mod.o       \
                               hcox_lightnox_mod.o     hcox_paranox_mod.o     \
 			      hcox_seaflux_mod.o      hcox_seasalt_mod.o     \
                               hcox_soilnox_mod.o      hcox_megan_mod.o
@@ -885,6 +885,12 @@ hcox_dustginoux_mod.o       : hcox_dustginoux_mod.F90                        \
 
 hcox_extlist_mod.o          : hcox_extlist_mod.F90                           \
                               hco_error_mod.o         hco_state_mod.o
+
+hcox_gfed3_mod.o            : hcox_gfed3_mod.F90                             \
+                              hco_diagn_mod.o         hco_emislist_mod.o     \
+                              hco_error_mod.o         hco_fluxarr_mod.o      \
+                              hco_state_mod.o         hcox_extlist_mod.o     \
+                              hcox_state_mod.o
 
 hcox_lightnox_mod.o         : hcox_lightnox_mod.F90                          \
                               hco_clock_mod.o         hco_diagn_mod.o        \

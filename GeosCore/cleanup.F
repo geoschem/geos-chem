@@ -111,6 +111,11 @@
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
 
+      ! HEMCO
+#if !defined(ESMF_) 
+      USE HCOI_GC_MAIN_MOD,       ONLY : HCOI_GC_FINAL
+#endif
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
@@ -243,6 +248,11 @@
       ! Echo info
       WRITE( 6, 100 ) 
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
+
+      ! Cleanup HEMCO 
+#if !defined(ESMF_) 
+      CALL HCOI_GC_FINAL ( am_I_Root )
+#endif
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL

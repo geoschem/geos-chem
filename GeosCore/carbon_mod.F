@@ -31,7 +31,9 @@
 !
       ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
       PUBLIC :: BETANOSAVE
-      PUBLIC :: BIOG_MTPO
+
+      ! Make BIOG_SESQ array public so that it can be used by HEMCO
+      ! (ckeller, 05/19/14)
       PUBLIC :: BIOG_SESQ
 !
 ! !REMARKS:
@@ -292,7 +294,10 @@
       ! new mtp precursors (hotp 5/20/10)
       REAL*8, ALLOCATABLE :: BIOG_MTPA(:,:)
       REAL*8, ALLOCATABLE :: BIOG_LIMO(:,:)
-      REAL*8, ALLOCATABLE, TARGET :: BIOG_MTPO(:,:,:)
+      REAL*8, ALLOCATABLE :: BIOG_MTPO(:,:)
+
+      ! BIOG_SESQ is now 3D so that it can be used by HEMCO
+      ! (ckeller, 05/19/14)
       REAL*8, ALLOCATABLE, TARGET :: BIOG_SESQ(:,:,:)
       REAL*8, ALLOCATABLE :: DIUR_ORVC(:,:)
       REAL*8, ALLOCATABLE :: GEIA_ORVC(:,:)
@@ -5658,7 +5663,7 @@
 
                ! MTPO = terpinene, terpinolene, myrcene, ocimene,
                ! terpenoid alcohols, and all other monoterpenes (hotp 7/28/10)
-               AD07(I,J,10) = AD07(I,J,10)   + BIOG_MTPO(I,J,1)
+               AD07(I,J,10) = AD07(I,J,10)   + BIOG_MTPO(I,J)
 
                ! SESQTERPENE moved (hotp 7/28/10)
                AD07(I,J,11) = AD07(I,J,11)   + BIOG_SESQ(I,J,1)
@@ -6673,15 +6678,15 @@ ccc
             ! MTPO is all other monoterpenes
             !---------------------------------
             ! TERPINENE is lumped with TERPINOLENE
-            BIOG_MTPO(I,J,1) = TERP_ORGC(I,J) * FC1 * 0.03D0
+            BIOG_MTPO(I,J) = TERP_ORGC(I,J) * FC1 * 0.03D0
 
             ! MYRCENE is lumped with TERPENOID ALCOHOL (0.05)
             ! OCIMENE is lumped with TERPENOID ALCOHOL (0.02)
-            BIOG_MTPO(I,J,1) = BIOG_MTPO(I,J,1) +
+            BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
      &                       TERP_ORGC(I,J) * FC1 * 0.07D0
 
             ! Other reactive volatile organic carbon emissions
-            BIOG_MTPO(I,J,1) = BIOG_MTPO(I,J,1)
+            BIOG_MTPO(I,J) = BIOG_MTPO(I,J)
      &                     + ( DIUR_ORVC(I,J) * FC2 * 0.09D0 ) !using LINALOOL
 
             !---------------------------------
@@ -6776,17 +6781,17 @@ ccc
                ! All other monoterpenes (mostly camphene, linalool,
                ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
                ! 14-18% of OMTP is terpinene and terpinolene
-               BIOG_MTPO(I,J,1) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
+               BIOG_MTPO(I,J) = GET_EMTERP_MEGAN( I, J, SC, TMMP,
      &                          PDR, PDF, 1d0, 'OMTPE') * FC1 
 
                ! ALCO in kg compound (no more)
 
                ! myrcene
-               BIOG_MTPO(I,J,1) = BIOG_MTPO(I,J,1) +
+               BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
      &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
      &                                   PDR, PDF, 1d0, 'MYRCN') * FC1
                ! ocimene
-               BIOG_MTPO(I,J,1) = BIOG_MTPO(I,J,1) +
+               BIOG_MTPO(I,J) = BIOG_MTPO(I,J) +
      &                          GET_EMTERP_MEGAN( I, J, SC, TMMP, 
      &                                   PDR, PDF, 1d0, 'OCIMN') * FC1
 
@@ -7951,6 +7956,9 @@ ccc
       ! Add POA treatment (hotp 8/24/09)
       USE TRACERID_MOD,       ONLY : IDTPOA1
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (Lin, 03/31/09)
+      ! HEMCO update ( ckeller 05/19.2014)
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
 !      
@@ -7976,6 +7984,7 @@ ccc
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  19 May 2014 - C. Keller   - Updates SESQ emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7986,7 +7995,7 @@ ccc
       LOGICAL         :: IS_MTPA, IS_LIMO, IS_MTPO ! hotp 5/20/10
       LOGICAL         :: IS_POA ! for poa (hotp 8/24/09)
       INTEGER         :: I,       J,       L,       PBL_MAX
-      REAL*8          :: F_OF_PBL
+      REAL*8          :: F_OF_PBL, TMPFLX
 
       ! For fields from Input_Opt
       LOGICAL         :: LNLPBL
@@ -8041,7 +8050,7 @@ ccc
             ! TERP and ALCO no longer used
             IF ( IS_LIMO ) EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
             IF ( IS_MTPA ) EMIS_SAVE(I,J,IDTMTPA) = BIOG_MTPA(I,J)
-            IF ( IS_MTPO ) EMIS_SAVE(I,J,IDTMTPO) = BIOG_MTPO(I,J,1)
+            IF ( IS_MTPO ) EMIS_SAVE(I,J,IDTMTPO) = BIOG_MTPO(I,J)
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -8066,9 +8075,12 @@ ccc
             F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
             IF ( IS_LIMO ) THEN
-               ! Sesquiterpenes
+               ! Sesquiterpenes. BIOG_SESQ is calculated in HEMCO. Units
+               ! are kgC/m2/s, convert to kgC/box here.
+               TMPFLX = BIOG_SESQ(I,J,1) * GET_TS_EMIS()   * 
+     &                  60.0d0           * GET_AREA_M2(I,J,1)
                ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                           ( F_OF_PBL * BIOG_SESQ(I,J,1) )
+     &                            ( F_OF_PBL * TMPFLX )
             ENDIF
 
             ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
@@ -8145,11 +8157,14 @@ ccc
          ! Lumped MTPO (hotp 5/20/10) new mtp
          IF ( IS_MTPO ) THEN
             STT(I,J,L,IDTMTPO) = STT(I,J,L,IDTMTPO) + 
-     &                           ( F_OF_PBL * BIOG_MTPO(I,J,1) )
+     &                           ( F_OF_PBL * BIOG_MTPO(I,J) )
 
-            ! sesquiterpenes (no change)
+            ! Sesquiterpenes. BIOG_SESQ is calculated in HEMCO. Units
+            ! are kgC/m2/s, convert to kgC/box here.
+            TMPFLX = BIOG_SESQ(I,J,1) * GET_TS_EMIS()   * 
+     &               60.0d0           * GET_AREA_M2(I,J,1)
             ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                           ( F_OF_PBL * BIOG_SESQ(I,J,1) )
+     &                           ( F_OF_PBL * TMPFLX ) 
          ENDIF
 
          ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
@@ -11316,7 +11331,7 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_LIMO' )
          BIOG_LIMO = 0d0
 
-         ALLOCATE( BIOG_MTPO( IIPAR, JJPAR, 1 ), STAT=AS )
+         ALLOCATE( BIOG_MTPO( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPO' )
          BIOG_MTPO = 0d0
 

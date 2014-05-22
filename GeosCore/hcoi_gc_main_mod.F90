@@ -89,7 +89,7 @@
       USE DRYDEP_MOD,            ONLY : NUMDEP, NTRAIND
 
       ! For SOA mechanism
-      USE CARBON_MOD,            ONLY : BIOG_MTPO, BIOG_SESQ
+      USE CARBON_MOD,            ONLY : BIOG_SESQ
 
       ! HEMCO routines 
       USE HCO_CHARTOOLS_MOD,     ONLY : HCO_CharMatch
@@ -191,19 +191,15 @@
       IF ( nnMatch == 0 ) CALL ERROR_STOP ('No matching species!', LOC)
 
 !=============================================================================
-      ! KLUDGE for TERP and SESQ: These are not transported due to the short
-      ! lifetime, but emissions are still calculated (in MEGAN). Are emitted
-      ! together with LIMO (TERP) and ALCO (SESQ), hence check if these
-      ! species are defined. Add species to HEMCO if necessary.
-      IDX=Get_Indx('ALCO',Input_Opt%ID_TRACER,Input_Opt%TRACER_NAME)
-      IF ( IDX > 0 ) THEN
-         nnMatch = nnMatch + 1 
-      ENDIF
+      ! KLUDGE for SESQ: SESQ is not transported due to its short lifetime,
+      ! but emissions are still calculated (in MEGAN). SESQ is only used
+      ! in the SOA simulation, i.e. if LIMO is defined. Thus, add one more
+      ! species here if LIMO is a model species and calculate SESQ emissions
+      ! along with LIMO!
       IDX=Get_Indx('LIMO',Input_Opt%ID_TRACER,Input_Opt%TRACER_NAME)
       IF ( IDX > 0 ) THEN
          nnMatch = nnMatch + 1 
       ENDIF
-!=============================================================================
 
       ! Now initialize HCO state. Use only species that are used
       ! in GEOS-Chem and are also found in the HEMCO config. file.
@@ -324,19 +320,13 @@
          ENDIF
 
 !=============================================================================
-         ! KLUDGE for TERP and SESQ
-         IF ( TRIM(HcoState%Spc(cnt)%SpcName) == 'ALCO' .OR. &
-              TRIM(HcoState%Spc(cnt)%SpcName) == 'LIMO'       ) THEN
+         ! KLUDGE for SESQ
+         IF ( TRIM(HcoState%Spc(cnt)%SpcName) == 'LIMO' ) THEN 
 
             cnt = cnt + 1
             HcoState%Spc(cnt)%ModID    = -1
-            IF( TRIM(HcoState%Spc(cnt)%SpcName) == 'ALCO' ) THEN 
-               HcoState%Spc(cnt)%SpcName  = 'SESQ'
-               HcoState%Spc(cnt)%Emis%Val => BIOG_SESQ 
-            ELSE
-               HcoState%Spc(cnt)%SpcName  = 'TERP'
-               HcoState%Spc(cnt)%Emis%Val => BIOG_MTPO 
-            ENDIF
+            HcoState%Spc(cnt)%SpcName  = 'SESQ'
+            HcoState%Spc(cnt)%Emis%Val => BIOG_SESQ 
             HcoState%Spc(cnt)%MW_g       = 150.0d0 
             HcoState%Spc(cnt)%EmMW_g     = 150.0d0
             HcoState%Spc(cnt)%MolecRatio = 1.0d0
@@ -347,8 +337,6 @@
             MSG = 'Species ' // TRIM(HcoState%Spc(cnt)%SpcName)
             CALL HCO_MSG(MSG)
             IF ( verb ) THEN
-               write(MSG,*) 'Added `dummy` species:'
-               CALL HCO_MSG(MSG)
                write(MSG,*) '--> HcoID         : ', HcoState%Spc(cnt)%HcoID
                CALL HCO_MSG(MSG)
                write(MSG,*) '--> ModID         : ', HcoState%Spc(cnt)%ModID

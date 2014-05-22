@@ -539,6 +539,7 @@
            TRIM(tmpU) == 'factor'   .OR. &
            TRIM(tmpU) == 'scale'    .OR. &
            TRIM(tmpU) == 'hours'    .OR. &
+           TRIM(tmpU) == 'm2/m2'    .OR. &
            TRIM(tmpU) == '1'            ) THEN
          Flag = 0
 

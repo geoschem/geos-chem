@@ -73,6 +73,7 @@
          LOGICAL                   :: Megan       ! MEGAN biogenic emissions
          LOGICAL                   :: SeaFlux     ! air-sea exchange
          LOGICAL                   :: SeaSalt     ! Seasalt emissions
+         LOGICAL                   :: GFED3       ! GFED3 biomass burning 
 
          !--------------------------------------------------------------
          ! Met fields
@@ -202,6 +203,7 @@
       ExtState%Megan      = .FALSE.
       ExtState%SeaFlux    = .FALSE.
       ExtState%SeaSalt    = .FALSE.
+      ExtState%GFED3      = .FALSE.
 
       ! ----------------------------------------------------------------------
       ! Initialize all met arrays.

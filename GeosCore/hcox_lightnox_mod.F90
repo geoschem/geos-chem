@@ -1597,48 +1597,54 @@
       ! Initialize
       BETA = 1d0
 
-#if   defined( GEOS_57 ) && defined( GRID4x5 ) 
+#if   defined( GEOS_FP ) && defined( GRID4x5 ) 
 
       !---------------------------------------
-      ! GEOS-5.7.x: 4 x 5 global simulation
+      ! GEOS-FP: 4 x 5 global simulation
       !---------------------------------------
 
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( cYr == 2011 .and. cMt == 9 ) THEN
-         BETA = 0.63453405d0
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 11/07/13).
+      IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
+           ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
+         BETA = ANN_AVG_FLASHRATE / 82.003230d0
       ENDIF
 
-#elif defined( GEOS_57 ) && defined( GRID2x25 )
+#elif defined( GEOS_FP ) && defined( GRID2x25 )
 
       !---------------------------------------
-      ! GEOS-5.7.x: 2 x 2.5 global simulation
+      ! GEOS-FP: 2 x 2.5 global simulation
       !---------------------------------------
-      
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( cYr == 2011 .and. cMt == 9 ) THEN
-         BETA = 0.20604515d0
+
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 01/15/14).
+      IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
+           ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
+         BETA = ANN_AVG_FLASHRATE / 257.93269d0
       ENDIF
 
-#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( NESTED_CH )
+#elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
 
       !---------------------------------------
-      ! GEOS-5.7.x: Nested China simulation
+      ! GEOS-FP: Nested China simulation
       !---------------------------------------
-      
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( cYr == 2011 .and. cMt == 9 ) THEN
-         BETA = 0.20604515d0
-      ENDIF
 
-#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( SEAC4RS )
+      ! ltm: Will need to be determined when met fields become available.
+
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
 
       !---------------------------------------
-      ! GEOS-5.7.x: Nested SEAC4RS simulation
+      ! GEOS-FP: Nested SEAC4RS simulation
       !---------------------------------------
-      
-      ! ltm: Will need to be updated when other months/years become available
-      IF ( cYr == 2011 .and. cMt == 9 ) THEN
-         BETA = 0.20604515d0
+
+      ! Constrained with simulated "climatology" for
+      ! April 2012 - Sept 2013. Will need to be updated as more
+      ! met fields become available (ltm, 11/14/13).
+      IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
+           ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
+         BETA = ANN_AVG_FLASHRATE / 652.44105d0
       ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )
@@ -1648,7 +1654,7 @@
       !---------------------------------------
       BETA = ANN_AVG_FLASHRATE / 253.55888d0
 
-#elif   defined( MERRA ) && defined( GRID4x5 )
+#elif defined( MERRA ) && defined( GRID4x5 )
 
       !---------------------------------------
       ! MERRA: 4 x 5 global simulation
@@ -1662,10 +1668,18 @@
       ! Nested grid simulation: North America
       !---------------------------------------
       if ( GEOS_520 ) then
-         BETA = 1d0
+         ! Constrained with simulated climatology for
+         ! Sept 2009 - May 2013 (ltm, 11/07/13)
+         BETA = ANN_AVG_FLASHRATE / 170.05559d0
       else
          BETA = ANN_AVG_FLASHRATE / 160.51908d0
       endif
+
+      ! Discourage users from using lightning outside the constraint period.
+      ! You may comment out these lines, but should verify that lightning
+      ! doesn't become unreasonably high anywere in the domain. (ltm, 11/07/13)
+      IF (   cYr .ge. 2014 .or. &
+           ( cYr .eq. 2013 .and. cMt .gt. 5 ) ) BETA = 1d0
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
 
@@ -1677,7 +1691,7 @@
          BETA = ANN_AVG_FLASHRATE / 573.24835d0
       else
          BETA = ANN_AVG_FLASHRATE / 546.56367d0
-      endif  
+      endif
 
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
 
@@ -1691,7 +1705,7 @@
       endif
 
 #elif defined( GEOS_5 ) && defined( GRID4x5 )
-      
+
       !---------------------------------------
       ! GEOS 5: 4 x 5 global simulation
       !---------------------------------------
@@ -1702,7 +1716,7 @@
       endif
 
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
-      
+
       !---------------------------------------
       ! GEOS 4: 2 x 2.5 global simulation
       !---------------------------------------
@@ -1716,7 +1730,7 @@
       BETA = ANN_AVG_FLASHRATE / 29.359449d0
 
 #elif   defined( GCAP )
-      
+
       !---------------------------------------
       ! GCAP: 4 x 5 global simulation
       !---------------------------------------
