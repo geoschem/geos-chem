@@ -113,14 +113,14 @@
       INTEGER, PARAMETER           :: NBIOM_HSN = 24 
 
       ! Dry period length (from restart)
-      REAL*4,  ALLOCATABLE         :: DRYPERIOD_HSN    (:,:  )
+      REAL(hp), ALLOCATABLE, TARGET :: DRYPERIOD_HSN    (:,:  )
 
       ! Pulse factors (from restart)
-      REAL*4,  ALLOCATABLE         :: PFACTOR_HSN      (:,:  )
-      REAL*4,  ALLOCATABLE         :: GWET_PREV_HSN    (:,:  )
+      REAL(hp), ALLOCATABLE, TARGET :: PFACTOR_HSN      (:,:  )
+      REAL(hp), ALLOCATABLE, TARGET :: GWET_PREV_HSN    (:,:  )
 
       ! Deposition reservoir (from restart)
-      REAL*8,  ALLOCATABLE         :: DEP_RESERVOIR_HSN(:,:  )
+      REAL(hp), ALLOCATABLE, TARGET :: DEP_RESERVOIR_HSN(:,:  )
 
       ! Instantaneous soil NOx and fertilizer
       REAL*8,  ALLOCATABLE         :: INST_SOIL_HSN    (:,:  )
@@ -247,6 +247,9 @@
                              100,  100,  100,  100,  100, &
                              100,  100,  100,  100,  100, &
                              100,  100,  100,  100         /)
+
+      ! Conversion factor from kg NO to ng N
+      REAL*8, PARAMETER   :: kgNO_to_ngN = 4.666d11 !(14/30 * 1e12)
 
       CONTAINS
 !EOC
@@ -409,10 +412,11 @@
       ! restart file! 
       IF ( FIRST ) THEN
 
-         ! DEP_RESERVOIR [kg NO/m2]
+         ! DEP_RESERVOIR. HEMCO converts this to kgNO/m2. Convert here
+         ! back to ngN/m2.
          CALL EmisList_GetDataArr ( aIR, 'SOILNOX_DEPRES', TmpArr, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-         DEP_RESERVOIR_HSN(:,:) = TmpArr(:,:)
+         DEP_RESERVOIR_HSN(:,:) = TmpArr(:,:) * kgNO_to_ngN
          TmpArr => NULL()
 
          ! GWET_PREV [unitless]
@@ -547,7 +551,6 @@
 !
 ! !USES:
 !
-      USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get
       USE HCOX_ExtList_Mod, ONLY : GetExtNr, GetExtHcoID, GetExtOpt
 !
 ! !ARGUMENTS:
@@ -609,23 +612,6 @@
       ENDIF
       IDTNO = HcoIDs(1)
 
-!      ! ---------------------------------------------------------------------- 
-!      ! Read restart file
-!      ! ---------------------------------------------------------------------- 
-!      RstFile = 'restart.soilnox.YYYYMMDDhh.nc'
-!      RstFile = TRIM(RstFile)
-!#if !defined(ESMF_)
-!      CALL EXPAND_DATE( RstFile, GET_NYMDb(), GET_NHMSb() )
-!
-!      ! Current time
-!      CALL HcoClock_Get ( cYYYY=cYr, cMM=cMt, cDD=cDy, cH=cHr, RC=RC )
-!      IF ( RC /= HCO_SUCCESS ) RETURN
-!
-!      CALL READ_SOIL_RESTART_NC ( RstFile, cYr, cMt, cDy, cHr, RC ) 
-!      IF ( RC /= HCO_SUCCESS ) RETURN
-!#endif
-
-      ! Verbose 
       ! Verbose mode
       MSG = 'Use soil NOx emissions (extension module)'
       CALL HCO_MSG( MSG )
@@ -704,24 +690,91 @@
       ENDDO
 
       ! Zero arrays
-      DRYPERIOD_HSN     = 0d0
-      PFACTOR_HSN       = 0d0
-      GWET_PREV_HSN     = 0d0
+      DRYPERIOD_HSN     = 0.0_hp
+      PFACTOR_HSN       = 0.0_hp
+      GWET_PREV_HSN     = 0.0_hp
       INST_SOIL_HSN     = 0d0
       INST_FERT_HSN     = 0d0
       CANOPYNOX         = 0d0
-      DEP_RESERVOIR_HSN = 0d0
+      DEP_RESERVOIR_HSN = 0.0_hp
+
+      ! ---------------------------------------------------------------------- 
+      ! Set diagnostics 
+      ! ---------------------------------------------------------------------- 
+      CALL Diagn_Create ( am_I_Root, HcoState,      &    
+                          cName      = 'PFACTOR',   &
+                          ExtNr      = ExtNr,       &
+                          Cat        = -1,          &
+                          Hier       = -1,          &
+                          HcoID      = IDTNO,       &
+                          SpaceDim   = 2,           &
+                          OutUnit    = 'unitless',  &
+                          WriteFreq  = 'End',       &
+                          AutoFill   = 0,           &
+                          Trgt2D     = PFACTOR_HSN, &
+                          cID        = II,          &
+                          RC         = RC            )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL Diagn_Create ( am_I_Root, HcoState,        &    
+                          cName      = 'DRYPERIOD',   &
+                          ExtNr      = ExtNr,         &
+                          Cat        = -1,            &
+                          Hier       = -1,            &
+                          HcoID      = IDTNO,         &
+                          SpaceDim   = 2,             &
+                          OutUnit    = 'unitless',    &
+                          WriteFreq  = 'End',         &
+                          AutoFill   = 0,             &
+                          Trgt2D     = DRYPERIOD_HSN, &
+                          cID        = II,            &
+                          RC         = RC              )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL Diagn_Create ( am_I_Root, HcoState,        &    
+                          cName      = 'GWET_PREV',   &
+                          ExtNr      = ExtNr,         &
+                          Cat        = -1,            &
+                          Hier       = -1,            &
+                          HcoID      = IDTNO,         &
+                          SpaceDim   = 2,             &
+                          OutUnit    = 'unitless',    &
+                          WriteFreq  = 'End',         &
+                          AutoFill   = 0,             &
+                          Trgt2D     = GWET_PREV_HSN, &
+                          cID        = II,            &
+                          RC         = RC              )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL Diagn_Create ( am_I_Root, HcoState,            &    
+                          cName      = 'DEP_RESERVOIR',   &
+                          ExtNr      = ExtNr,             &
+                          Cat        = -1,                &
+                          Hier       = -1,                &
+                          HcoID      = IDTNO,             &
+                          SpaceDim   = 2,                 &
+                          OutUnit    = 'ngN/m2',          &
+                          WriteFreq  = 'End',             &
+                          AutoFill   = 0,                 &
+                          Trgt2D     = DEP_RESERVOIR_HSN, &
+                          cID        = II,                &
+                          RC         = RC                  )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! ---------------------------------------------------------------------- 
+      ! Set HEMCO extensions variables 
+      ! ---------------------------------------------------------------------- 
 
       ! Activate required met fields
-      ExtState%TSURFK%DoUse = .TRUE. 
-      ExtState%GWETTOP%DoUse = .TRUE. 
+      ExtState%TSURFK%DoUse    = .TRUE. 
+      ExtState%GWETTOP%DoUse   = .TRUE. 
       ExtState%SUNCOSmid%DoUse = .TRUE. 
-      ExtState%U10M%DoUse = .TRUE. 
-      ExtState%V10M%DoUse = .TRUE. 
-      ExtState%GC_LAI%DoUse = .TRUE. 
-      ExtState%ALBD%DoUse = .TRUE. 
-      ExtState%RADSWG%DoUse = .TRUE. 
-      ExtState%CLDFRC%DoUse = .TRUE. 
+      ExtState%U10M%DoUse      = .TRUE. 
+      ExtState%V10M%DoUse      = .TRUE. 
+      ExtState%GC_LAI%DoUse    = .TRUE. 
+      ExtState%ALBD%DoUse      = .TRUE. 
+      ExtState%RADSWG%DoUse    = .TRUE. 
+      ExtState%CLDFRC%DoUse    = .TRUE. 
 
       ! Activate required deposition parameter
       ExtState%DRY_TOTN%DoUse = .TRUE.
@@ -750,14 +803,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_SoilNox_Final ( HcoState, RstFile, RstTau, TauUnit ) 
-!
-! !ARGUMENTS:
-!
-      TYPE(HCO_State),  POINTER       :: HcoState     ! Output obj
-      CHARACTER(LEN=*), INTENT(IN)    :: RstFile
-      REAL*8,           INTENT(IN)    :: RstTau
-      CHARACTER(LEN=*), INTENT(IN)    :: TauUnit
+      SUBROUTINE HcoX_SoilNox_Final
 !
 ! !REVISION HISTORY:
 !  05 Nov 2013 - C. Keller - Initial Version
@@ -774,11 +820,6 @@
       !=================================================================
       ! HCOX_SOILNOX_FINAL begins here!
       !=================================================================
-
-      ! Write restart here
-#if !defined(ESMF_)
-      CALL WRITE_SOIL_RESTART_NC( HcoState, RstFile, RstTau, TauUnit )
-#endif
 
       ! Deallocate arrays
       IF ( ALLOCATED(DRYPERIOD_HSN) ) DEALLOCATE ( DRYPERIOD_HSN )
@@ -879,11 +920,11 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: SOILNOx     ! Soil NOx emissions [molec/cm2/s]
-      REAL*4,  INTENT(OUT) :: GWET_PREV_HSN   ! Soil Moisture Prev timestep
-      REAL*4,  INTENT(OUT) :: DRYPERIOD_HSN   ! Dry period length in hours
-      REAL*4,  INTENT(OUT) :: PFACTOR_HSN     ! Pulsing Factor
-      REAL*8,  INTENT(OUT) :: FERTDIAG    ! Fert emissions [molec/cm2/s
+      REAL*8,   INTENT(OUT) :: SOILNOx         ! Soil NOx emissions [molec/cm2/s]
+      REAL(hp), INTENT(OUT) :: GWET_PREV_HSN   ! Soil Moisture Prev timestep
+      REAL(hp), INTENT(OUT) :: DRYPERIOD_HSN   ! Dry period length in hours
+      REAL(hp), INTENT(OUT) :: PFACTOR_HSN     ! Pulsing Factor
+      REAL*8,   INTENT(OUT) :: FERTDIAG        ! Fert emissions [molec/cm2/s
 !
 ! !REMARKS:
 !  R_CANOPY is computed in routine GET_CANOPY_NOX of "canopy_nox_mod.f". 
@@ -1409,12 +1450,12 @@
       C1 = EXP( - TS_SEC / TAU_SEC)
       C2 = 1.d0 - C1        
 
-      ! kg NO/m2
-      DEP_RESERVOIR_HSN(I,J) = DEP_RESERVOIR_HSN (I,J) * C1 &
-                         + DEPN * TAU_SEC * C2
+      ! ngN/m2
+      DEP_RESERVOIR_HSN(I,J) = ( DEP_RESERVOIR_HSN (I,J) * C1 ) &
+                             + DEPN * TAU_SEC * C2
 
-      ! 40% runoff 
-      DEP_FERT = DEP_RESERVOIR_HSN(I,J) * 0.6d0   
+      ! 40% runoff. Convert ngN/m2 to kgNO/m2
+      DEP_FERT = DEP_RESERVOIR_HSN(I,J) * 0.6d0 / kgNO_to_ngN 
 
       END SUBROUTINE  GET_DEP_N
 !EOC
@@ -1920,9 +1961,9 @@
 
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*4, INTENT(INOUT) :: GWET_PREV_HSN   ! soil moisture from prev. timestep
-      REAL*4, INTENT(INOUT) :: PFACTOR_HSN     ! pulsing factor
-      REAL*4, INTENT(INOUT) :: DRYPERIOD_HSN   ! dry period in # timesteps
+      REAL(hp), INTENT(INOUT) :: GWET_PREV_HSN   ! Soil Moisture Prev timestep
+      REAL(hp), INTENT(INOUT) :: PFACTOR_HSN     ! Pulsing Factor
+      REAL(hp), INTENT(INOUT) :: DRYPERIOD_HSN   ! Dry period length in hours
 !  
 ! !RETURN VALUE:
 !
@@ -2019,298 +2060,5 @@
 
       END FUNCTION PULSING
 !EOC
-#if !defined(ESMF_)
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_soil_restart_nc
-!
-! !DESCRIPTION: Subroutine READ\_SOIL\_RESTART\_NC initializes GEOS-CHEM 
-!  Soil NOx parameters (netCDF file format)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_SOIL_RESTART_NC ( RstFile, YYYY, MM, DD, HH, RC )
-! 
-! !USES:
-!
-      USE NCDF_MOD,    ONLY : NC_READ
-!
-! !INPUT PARAMETERS:
-!
-      CHARACTER(LEN=*), INTENT(IN)    :: RstFile
-      INTEGER,          INTENT(IN)    :: YYYY
-      INTEGER,          INTENT(IN)    :: MM
-      INTEGER,          INTENT(IN)    :: DD
-      INTEGER,          INTENT(IN)    :: HH
-      INTEGER,          INTENT(INOUT) :: RC
-!
-! !REVISION HISTORY:
-!  13 Nov 2013 - C. Keller    - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: NLON, NLAT, NLEV, NTIME
-      INTEGER             :: NCRC
-      REAL*4, POINTER     :: ncArr(:,:,:,:) => NULL()
-      CHARACTER(LEN=31 )  :: ncPara, UNTS
-      CHARACTER(LEN=255)  :: MSG, LOC
-
-      !=================================================================
-      ! READ_SOIL_RESTART_NC begins here!
-      !=================================================================
-
-      ! Enter
-      LOC = 'READ_SOIL_RESTART_NC'
-
-      !-----------------------------------------------------------------
-      ! Read "DRYPERIOD"
-      !-----------------------------------------------------------------
-      ncPara = "DRYPERIOD"
-      CALL NC_READ ( FILENAME = TRIM(RstFile), &
-                     PARA     = TRIM(ncPara),        &
-                     YEAR     = YYYY,                &
-                     MONTH    = MM,                  &
-                     DAY      = DD,                  &
-                     HOUR     = HH,                  &
-                     UNITS    = UNTS,                &
-                     NLON     = NLON,                &
-                     NLAT     = NLAT,                &
-                     NLEV     = NLEV,                &
-                     NTIME    = NTIME,               &
-                     ARRAY    = ncARR,               &
-                     RC       = NCRC                  )
-      IF ( NCRC /= 0 ) THEN
-         CALL HCO_ERROR('DRYPERIOD', RC )
-         RETURN
-      ENDIF
-
-      ! Pass to DRYPERIOD_HSN array
-      IF ( SIZE(ncArr,1) /= SIZE(DRYPERIOD_HSN,1) .OR. &
-           SIZE(ncArr,2) /= SIZE(DRYPERIOD_HSN,2)       ) THEN
-         MSG = 'DRYPERIOD HAS WRONG DIMENSIONS IN ' // TRIM(RstFile)
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF 
-      DRYPERIOD_HSN(:,:) = ncArr(:,:,1,1)
-
-      ! Free pointer 
-      ncArr => NULL()
-
-      !-----------------------------------------------------------------
-      ! Read "PFACTOR"
-      !-----------------------------------------------------------------
-      ncPara = "PFACTOR"
-      CALL NC_READ ( FILENAME = TRIM(RstFile), &
-                     PARA     = TRIM(ncPara),        &
-                     YEAR     = YYYY,        &
-                     MONTH    = MM,          &
-                     DAY      = DD,          &
-                     HOUR     = HH,          &
-                     UNITS    = UNTS,                &
-                     NLON     = NLON,                &
-                     NLAT     = NLAT,                &
-                     NLEV     = NLEV,                &
-                     NTIME    = NTIME,               &
-                     ARRAY    = ncARR,               &
-                     RC       = NCRC                  )
-      IF ( NCRC /= 0 ) THEN
-         CALL HCO_ERROR('PFACTOR', RC)
-         RETURN
-      ENDIF
-
-      ! Pass to PFACTOR_HSN array
-      IF ( SIZE(ncArr,1) /= SIZE(PFACTOR_HSN,1) .OR. &
-           SIZE(ncArr,2) /= SIZE(PFACTOR_HSN,2)       ) THEN
-         MSG = 'PFACTOR HAS WRONG DIMENSIONS IN ' // TRIM(RstFile)
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF 
-      PFACTOR_HSN(:,:) = ncArr(:,:,1,1)
-
-      ! Free pointer 
-      ncArr => NULL()
-
-      !-----------------------------------------------------------------
-      ! Read "GWET_PREV"
-      !-----------------------------------------------------------------
-      ncPara = "GWET_PREV"
-      CALL NC_READ ( FILENAME = TRIM(RstFile), &
-                     PARA     = TRIM(ncPara),        &
-                     YEAR     = YYYY,        &
-                     MONTH    = MM,          &
-                     DAY      = DD,          &
-                     HOUR     = HH,          &
-                     UNITS    = UNTS,                &
-                     NLON     = NLON,                &
-                     NLAT     = NLAT,                &
-                     NLEV     = NLEV,                &
-                     NTIME    = NTIME,               &
-                     ARRAY    = ncARR,               &
-                     RC       = NCRC                  )
-      IF ( NCRC /= 0 ) THEN
-         CALL HCO_ERROR('GWET_PREV',RC)
-         RETURN
-      ENDIF
-
-      ! Pass to GWET_PREV_HSN array
-      IF ( SIZE(ncArr,1) /= SIZE(GWET_PREV_HSN,1) .OR. &
-           SIZE(ncArr,2) /= SIZE(GWET_PREV_HSN,2)       ) THEN
-         MSG = 'GWET_PREV HAS WRONG DIMENSIONS IN ' // &
-               TRIM(RstFile)
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF 
-      GWET_PREV_HSN(:,:) = ncArr(:,:,1,1)
-
-      ! Free pointer 
-      ncArr => NULL()
-
-      !-----------------------------------------------------------------
-      ! Read "DEP_RESERVOIR"
-      !-----------------------------------------------------------------
-      ncPara = "DEP_RESERVOIR"
-      CALL NC_READ ( FILENAME = TRIM(RstFile), &
-                     PARA     = TRIM(ncPara),        &
-                     YEAR     = YYYY,        &
-                     MONTH    = MM,          &
-                     DAY      = DD,          &
-                     HOUR     = HH,          &
-                     UNITS    = UNTS,                &
-                     NLON     = NLON,                &
-                     NLAT     = NLAT,                &
-                     NLEV     = NLEV,                &
-                     NTIME    = NTIME,               &
-                     ARRAY    = ncARR,               &
-                     RC       = NCRC                  )
-      IF ( NCRC /= 0 ) THEN
-         CALL HCO_ERROR('DEP_RESERVOIR',RC)
-         RETURN
-      ENDIF
-
-      ! Pass to DEP_RESERVOIR_HSN array
-      IF ( SIZE(ncArr,1) /= SIZE(DEP_RESERVOIR_HSN,1) .OR. &
-           SIZE(ncArr,2) /= SIZE(DEP_RESERVOIR_HSN,2)       ) THEN
-         MSG = 'DEP_RESERVOIR HAS WRONG DIMENSIONS IN ' // &
-               TRIM(RstFile)
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF 
-      DEP_RESERVOIR_HSN(:,:) = ncArr(:,:,1,1)
-
-      ! Free pointer 
-      ncArr => NULL()
-
-      ! Return 
-      RC = HCO_SUCCESS
-
-      END SUBROUTINE READ_SOIL_RESTART_NC
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: write_soil_restart_nc
-!
-! !DESCRIPTION: Subroutine WRITE\_SOIL\_RESTART\_NC writes a new soil NOx
-!  restart file (netCDF file format).
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE WRITE_SOIL_RESTART_NC ( HcoState, RstFile, &
-                                         RstTau,   TauUnit )
-! 
-! !USES:
-!
-      USE NCDF_MOD,    ONLY : NC_WRITE
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(HCO_State),  POINTER       :: HcoState   ! Output obj
-      CHARACTER(LEN=*), INTENT(IN)    :: RstFile
-      REAL*8,           INTENT(IN)    :: RstTau
-      CHARACTER(LEN=*), INTENT(IN)    :: TauUnit
-!
-! !REVISION HISTORY:
-!  13 Nov 2013 - C. Keller    - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*4              :: lon(HcoState%NX)
-      REAL*4              :: lat(HcoState%NY)
-      REAL*4              :: time(1)
-      REAL*4, ALLOCATABLE :: Array(:,:,:,:)
-      CHARACTER(LEN=255)  :: timeUnit
-      CHARACTER(LEN=255)  :: ncVar(4), ncUnit(4), ncLong(4), ncShort(4)
-      CHARACTER(LEN=255)  :: MSG
-      INTEGER             :: RC 
-      REAL*8, PARAMETER   :: kgNO_to_ngN = 4.666d11 !(14/30 * 1e12)
-
-      !=================================================================
-      ! WRITE_SOIL_RESTART_NC begins here!
-      !=================================================================
-
-      ! Enter
-      CALL HCO_ENTER ( 'WRITE_SOIL_RESTART_NC', RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! Define variables 
-      lon(:)   = HcoState%Grid%XMID(:,1)
-      lat(:)   = HcoState%Grid%YMID(1,:)
-      time     = RstTau
-      timeUnit = TauUnit 
-      
-      ncVar    = (/ "PFACTOR",   "DRYPERIOD",    &
-                    "GWET_PREV", "DEP_RESERVOIR"  /)
-      ncUnit   = (/ "unitless",  "unitless",     &
-                    "unitless",  "ngN/m2"         /) 
-      ncLong   = (/ "soil NOx PFACTOR",   "soil NOx DRYPERIOD",   &
-                    "soil NOx GWET_PREV", "soil NOx DEP_RESERVOIR" /)
-      ncShort  = (/ "PFACTOR",   "DRYPERIOD",    &
-                    "GWET_PREV", "DEP_RESERVOIR"  /)
-
-      ! Set array
-      ALLOCATE ( Array(HcoState%NX,HcoState%NY,1,4) )
-      Array(:,:,1,1) = PFACTOR_HSN(:,:)
-      Array(:,:,1,2) = DRYPERIOD_HSN(:,:)
-      Array(:,:,1,3) = GWET_PREV_HSN(:,:)
-      Array(:,:,1,4) = DEP_RESERVOIR_HSN(:,:) * kgNO_to_ngN
-
-      ! Write data into netCDF
-      CALL NC_WRITE ( ncFile   = RstFile,        &
-                      I        = HcoState%NX, &
-                      J        = HcoState%NY, &
-                      T        = 1,              &
-                      N        = 4,              &
-                      lon      = lon,            &
-                      lat      = lat,            &
-                      time     = time,           &
-                      timeUnit = timeUnit,       &
-                      ncVars   = ncVar,          &
-                      ncUnits  = ncUnit,         &
-                      ncLongs  = ncLong,         &
-                      ncShorts = ncShort,        &
-                      ncArrays = Array            )
-
-      ! Cleanup
-      IF ( ALLOCATED ( Array ) ) DEALLOCATE ( Array ) 
-
-      ! Return w/ success
-      CALL HCO_LEAVE ( RC )
-
-      END SUBROUTINE WRITE_SOIL_RESTART_NC
-!EOC
-# endif
       END MODULE HCOX_SOILNOX_MOD
 !EOM

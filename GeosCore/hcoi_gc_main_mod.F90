@@ -716,6 +716,7 @@
       USE ERROR_MOD,           ONLY : ERROR_STOP
       USE CMN_SIZE_MOD,        ONLY : IIPAR, JJPAR, LLPAR
       USE HCO_DRIVER_MOD,      ONLY : HCO_FINAL
+      USE HCO_DIAGN_MOD,       ONLY : Diagn_Cleanup
       USE HCOX_DRIVER_MOD,     ONLY : HCOX_FINAL
       USE HCO_STATE_MOD,       ONLY : HcoState_Final
       USE HCOI_GC_DIAGN_MOD,   ONLY : HCOI_DIAGN_WRITEOUT
@@ -743,10 +744,13 @@
       IF ( HMRC /= HCO_SUCCESS ) THEN
          CALL ERROR_STOP('HCOI_DIAGN_FINAL', 'HCOI_GC_FINAL' )
       ENDIF 
-   
+ 
+      ! Cleanup diagnostics
+      CALL Diagn_Cleanup
+ 
       ! Cleanup extensions and ExtState object
       ! This will also nullify all pointer to the met fields. 
-      CALL HCOX_FINAL ( HcoState, ExtState ) 
+      CALL HCOX_FINAL ( ExtState ) 
 
       ! Cleanup HCO core
       CALL HCO_FINAL

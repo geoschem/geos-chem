@@ -483,7 +483,8 @@ cleanup.o                   : cleanup.F                                      \
                               uvalbedo_mod.o          vistas_anthro_mod.o    \
                               wetscav_mod.o           tpcore_fvdas_mod.o     \
                               tpcore_geos5_window_mod.o                      \
-                              tpcore_geosfp_window_mod.o
+                              tpcore_geosfp_window_mod.o                     \
+                              hcoi_gc_main_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -846,7 +847,7 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               hco_clock_mod.o         hco_chartools_mod.o    \
                               hco_driver_mod.o        hco_state_mod.o        \
                               hco_error_mod.o         hco_fluxarr_mod.o      \
-                              hcoi_gc_diagn_mod.o                            \
+                              hcoi_gc_diagn_mod.o     hco_diagn_mod.o        \
 			      hcox_driver_mod.o       hcox_state_mod.o       \
                               drydep_mod.o            modis_lai_mod.o        \
                               tracerid_mod.o          bromocarb_mod.o        \
@@ -927,7 +928,7 @@ hcox_seasalt_mod.o          : hcox_seasalt_mod.F90                           \
                               hcox_extlist_mod.o      hcox_state_mod.o
 
 hcox_soilnox_mod.o          : hcox_soilnox_mod.F90                           \
-                              hco_clock_mod.o         hco_diagn_mod.o        \
+                              hco_diagn_mod.o                                \
                               hco_emislist_mod.o      hco_error_mod.o        \
                               hco_fluxarr_mod.o       hco_state_mod.o        \
                               hcox_extlist_mod.o      hcox_state_mod.o       \

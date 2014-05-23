@@ -59,6 +59,8 @@
       PRIVATE :: DiagnCont_Init
       PRIVATE :: DiagnCont_Find
       PRIVATE :: DiagnCont_PrepareOutput
+      PRIVATE :: DiagnCont_Link_2D
+      PRIVATE :: DiagnCont_Link_3D
       PRIVATE :: DiagnCont_Cleanup
 !
 ! !REVISION HISTORY:
@@ -84,6 +86,7 @@
          REAL(hp)                    :: Scalar         ! 1D scalar 
          TYPE(Arr2D_HP), POINTER     :: Arr2D          ! 2D array
          TYPE(Arr3D_HP), POINTER     :: Arr3D          ! 3D array
+         LOGICAL                     :: DtaIsPtr       ! Data is just a pointer?
          INTEGER                     :: LevIdx         ! Level index to be used 
          CHARACTER(LEN= 31)          :: OutUnit        ! Output unit 
          LOGICAL                     :: PerArea        ! Is output unit per area?
@@ -157,6 +160,11 @@
 !      matically updated by the HEMCO standard diagnostics calls
 !      (e.g. in hco\_calc\_mod.F90). If set to 0, the diagnostics 
 !      updates have to be set manually.
+!\item Trgt2D: 2D target array. If specified, the diagnostics array
+!      will point to this data. This disables all time averaging, 
+!      unit conversions, etc., and the data will be written to disk
+!      as is.
+!\item Trgt3D: as Trgt2D, but for 3D data. 
 !\item cID: assigned container ID. Useful for later reference to this
 !      diagnostics container.
 !\item RC: HEMCO return code.
@@ -169,7 +177,8 @@
                                ExtNr,     Cat,       Hier,       &
                                HcoID,     SpaceDim,  OutUnit,    &  
                                WriteFreq, OutOper,   LevIdx,     &
-                               AutoFill,  cID,       RC           )
+                               AutoFill,  Trgt2D,    Trgt3D,     &
+                               cID,       RC                      )
 !
 ! !USES:
 !
@@ -182,21 +191,23 @@
 !
 ! !ARGUMENTS:
 !
-      LOGICAL,          INTENT(IN   )           :: am_I_Root ! Root CPU?
-      TYPE(HCO_State),  POINTER                 :: HcoState  ! HEMCO state object
-      CHARACTER(LEN=*), INTENT(IN   )           :: cName     ! Diagnostics name
-      INTEGER,          INTENT(IN   )           :: ExtNr     ! Extension number
-      INTEGER,          INTENT(IN   )           :: Cat       ! Category 
-      INTEGER,          INTENT(IN   )           :: Hier      ! Hierarchy 
-      INTEGER,          INTENT(IN   )           :: HcoID     ! HEMCO species ID 
-      INTEGER,          INTENT(IN   )           :: SpaceDim  ! Spatial dimension 
-      CHARACTER(LEN=*), INTENT(IN   )           :: OutUnit   ! Output units
-      CHARACTER(LEN=*), INTENT(IN   )           :: WriteFreq ! Write out frequency
-      CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: OutOper   ! Output operation 
-      INTEGER,          INTENT(IN   ), OPTIONAL :: LevIdx    ! Level index to use
-      INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill  ! 1=fill automatically; 0=don't 
-      INTEGER,          INTENT(  OUT)           :: cID       ! Assigned container ID
-      INTEGER,          INTENT(INOUT)           :: RC        ! Return code 
+      LOGICAL,          INTENT(IN   )           :: am_I_Root     ! Root CPU?
+      TYPE(HCO_State),  POINTER                 :: HcoState      ! HEMCO state object
+      CHARACTER(LEN=*), INTENT(IN   )           :: cName         ! Diagnostics name
+      INTEGER,          INTENT(IN   )           :: ExtNr         ! Extension number
+      INTEGER,          INTENT(IN   )           :: Cat           ! Category 
+      INTEGER,          INTENT(IN   )           :: Hier          ! Hierarchy 
+      INTEGER,          INTENT(IN   )           :: HcoID         ! HEMCO species ID 
+      INTEGER,          INTENT(IN   )           :: SpaceDim      ! Spatial dimension 
+      CHARACTER(LEN=*), INTENT(IN   )           :: OutUnit       ! Output units
+      CHARACTER(LEN=*), INTENT(IN   )           :: WriteFreq     ! Write out frequency
+      CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: OutOper       ! Output operation 
+      INTEGER,          INTENT(IN   ), OPTIONAL :: LevIdx        ! Level index to use
+      INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill      ! 1=fill automatically; 0=don't 
+      REAL(hp),         INTENT(IN   ), OPTIONAL :: Trgt2D(:,:)   ! 2D target data
+      REAL(hp),         INTENT(IN   ), OPTIONAL :: Trgt3D(:,:,:) ! 3D target data
+      INTEGER,          INTENT(  OUT)           :: cID           ! Assigned container ID
+      INTEGER,          INTENT(INOUT)           :: RC            ! Return code 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -239,6 +250,19 @@
       ThisDiagn%OutUnit  = TRIM(OutUnit)
       IF ( PRESENT(LevIdx)   ) ThisDiagn%LevIdx   = LevIdx
       IF ( PRESENT(AutoFill) ) ThisDiagn%AutoFill = AutoFill 
+
+      !----------------------------------------------------------------------
+      ! Eventually link to data array. This will disable all time averaging,
+      ! unit conversions, etc. (data will just be returned as is). 
+      !----------------------------------------------------------------------
+      IF ( PRESENT(Trgt2D) ) THEN
+         CALL DiagnCont_Link_2D ( am_I_Root, HcoState, ThisDiagn, Trgt2D, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+      ENDIF
+      IF ( PRESENT(Trgt3D) ) THEN
+         CALL DiagnCont_Link_3D ( am_I_Root, HcoState, ThisDiagn, Trgt3D, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+      ENDIF
 
       !----------------------------------------------------------------------
       ! Determine output frequency. This is the frequency with which the
@@ -307,102 +331,106 @@
       ! the output unit is ignored and the specified operation ('mean' or 
       ! 'sum') is performed. This is particular useful for data with 
       ! non-standard units, e.g. unitless data. 
+      ! Don't need to be done for pointer data, which ignores all time 
+      ! averaging, unit conversions, etc.
       !----------------------------------------------------------------------
-
-      ! Enforce specified output operator 
-      IF ( PRESENT(OutOper) ) THEN
-         IF ( TRIM(OutOper) == 'Mean' ) THEN
-            ThisDiagn%AvgFlag = AvgFlagMean
-         ELSEIF ( TRIM(OutOper) == 'Sum' ) THEN
-            ThisDiagn%AvgFlag = AvgFlagSum
+      IF ( .NOT. ThisDiagn%DtaIsPtr ) THEN
+ 
+         ! Enforce specified output operator 
+         IF ( PRESENT(OutOper) ) THEN
+            IF ( TRIM(OutOper) == 'Mean' ) THEN
+               ThisDiagn%AvgFlag = AvgFlagMean
+            ELSEIF ( TRIM(OutOper) == 'Sum' ) THEN
+               ThisDiagn%AvgFlag = AvgFlagSum
+            ELSE
+               MSG = 'Illegal output operator: ' // TRIM(OutOper)
+               CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+            ENDIF
+   
+         ! If OutOper is not set, determine scale factors from output unit:
          ELSE
-            MSG = 'Illegal output operator: ' // TRIM(OutOper)
-            CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         ENDIF
-
-      ! If OutOper is not set, determine scale factors from given output unit:
-      ELSE
-
-         !-------------------------------------------------------------------
-         ! Scale factor for mass. This determines the scale factor from HEMCO
-         ! mass unit (kg) to the desired output unit. HCO_UNIT_MassScal 
-         ! returns the mass scale factor from OutUnit to HEMCO unit, hence 
-         ! need to invert this value!
-         !-------------------------------------------------------------------
-         Scal = HCO_UNIT_GetMassScal(                          &
-                   unt         = OutUnit,                      &
-                   MW_IN       = HcoState%Spc(HcoID)%MW_g,     &
-                   MW_OUT      = HcoState%Spc(HcoID)%EmMW_g,   &
-                   MOLEC_RATIO = HcoState%Spc(HcoID)%MolecRatio )
-         IF ( Scal <= 0.0_hp ) THEN
-            MSG = 'Cannot find mass scale factor for unit '//TRIM(OutUnit)
-            CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-            RETURN
-         ENDIF
-         ThisDiagn%MassScal = 1.0_hp / Scal
    
-         !-------------------------------------------------------------------
-         ! Scale factor for area. This determines the scale factor from HEMCO
-         ! area unit (m2) to the desired output unit. HCO_UNIT_AreaScal 
-         ! returns the area scale factor from OutUnit to HEMCO unit, hence 
-         ! need to invert this value!
-         ! Returns a negative scale factor if no valid area unit is found in
-         ! OutUnit. In this case, set PerArea to False so that the final 
-         ! diagnostics will be multiplied by the surface grid box area!
-         !-------------------------------------------------------------------
-         Scal =  HCO_UNIT_GetAreaScal( OutUnit )
-         IF ( Scal < 0.0_hp ) THEN
-            ThisDiagn%PerArea  = .FALSE.
-         ELSE
-            ThisDiagn%AreaScal = 1.0_hp / Scal
-         ENDIF
-   
-         !-------------------------------------------------------------------
-         ! Determine the normalization factors applied to the diagnostics 
-         ! before they are written out. Diagnostics are always stored 
-         ! internally in units of kg/m2, and the following flags make sure 
-         ! that they are normalized by the desired time interval, e.g. to get 
-         ! units of per second, per hour, etc.
-         !-------------------------------------------------------------------
-   
-         ! HCO_UNIT_GetTimeScal returns 1.0 for units of per second, 1/3600
-         ! for per hour, etc. Returns -999.0 if no time unit could be found.
-         Scal = HCO_UNIT_GetTimeScal( OutUnit, 1, 2001 )
-         Scal = 1.0_dp / Scal
-     
-         ! No time unit found: don't enable any switch
-         IF ( Scal < 0.0_dp ) THEN 
-            ! Nothing to do
+            !----------------------------------------------------------------
+            ! Scale factor for mass. This determines the scale factor from 
+            ! HEMCO mass unit (kg) to the desired output unit. 
+            ! HCO_UNIT_MassCal returns the mass scale factor from OutUnit to
+            ! HEMCO unit, hence need to invert this value!
+            !----------------------------------------------------------------
+            Scal = HCO_UNIT_GetMassScal(                          &
+                      unt         = OutUnit,                      &
+                      MW_IN       = HcoState%Spc(HcoID)%MW_g,     &
+                      MW_OUT      = HcoState%Spc(HcoID)%EmMW_g,   &
+                      MOLEC_RATIO = HcoState%Spc(HcoID)%MolecRatio )
+            IF ( Scal <= 0.0_hp ) THEN
+               MSG = 'Cannot find mass scale factor for unit '//TRIM(OutUnit)
+               CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+               RETURN
+            ENDIF
+            ThisDiagn%MassScal = 1.0_hp / Scal
       
-         ! Normalize by seconds
-         ELSEIF ( Scal == 1.0_dp ) THEN
-            ThisDiagn%TimeAvg = 1 
-               
-         ! Normalize by hours 
-         ELSEIF ( Scal == 3600.0_dp ) THEN
-            ThisDiagn%TimeAvg = 2 
+            !----------------------------------------------------------------
+            ! Scale factor for area. This determines the scale factor from 
+            ! HEMCO area unit (m2) to the desired output unit. 
+            ! HCO_UNIT_AreaScal returns the area scale factor from OutUnit to
+            ! HEMCO unit, hence need to invert this value!
+            ! Returns a negative scale factor if no valid area unit is found 
+            ! in OutUnit. In this case, set PerArea to False so that the final 
+            ! diagnostics will be multiplied by the surface grid box area!
+            !----------------------------------------------------------------
+            Scal =  HCO_UNIT_GetAreaScal( OutUnit )
+            IF ( Scal < 0.0_hp ) THEN
+               ThisDiagn%PerArea  = .FALSE.
+            ELSE
+               ThisDiagn%AreaScal = 1.0_hp / Scal
+            ENDIF
+      
+            !----------------------------------------------------------------
+            ! Determine the normalization factors applied to the diagnostics 
+            ! before they are written out. Diagnostics are always stored 
+            ! internally in units of kg/m2, and the following flags make sure 
+            ! that they are normalized by the desired time interval, e.g. to 
+            ! get units of per second, per hour, etc.
+            !----------------------------------------------------------------
+      
+            ! HCO_UNIT_GetTimeScal returns 1.0 for units of per second, 1/3600
+            ! for per hour, etc. Returns -999.0 if no time unit could be found.
+            Scal = HCO_UNIT_GetTimeScal( OutUnit, 1, 2001 )
+            Scal = 1.0_dp / Scal
+        
+            ! No time unit found: don't enable any switch
+            IF ( Scal < 0.0_dp ) THEN 
+               ! Nothing to do
+         
+            ! Normalize by seconds
+            ELSEIF ( Scal == 1.0_dp ) THEN
+               ThisDiagn%TimeAvg = 1 
+                  
+            ! Normalize by hours 
+            ELSEIF ( Scal == 3600.0_dp ) THEN
+               ThisDiagn%TimeAvg = 2 
+      
+            ! Normalize by days 
+            ELSEIF ( Scal == 86400.0_dp ) THEN
+               ThisDiagn%TimeAvg = 3 
+      
+            ! Normalize by months 
+            ELSEIF ( Scal == 2678400.0_dp ) THEN
+               ThisDiagn%TimeAvg = 4 
+      
+            ! Normalize by years 
+            ELSEIF ( Scal == 31536000.0_dp ) THEN
+               ThisDiagn%TimeAvg = 5 
+      
+            ! Error otherwise
+            ELSE
+               MSG = 'Cannot determine time normalization: '//TRIM(OutUnit)
+               CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+               RETURN
+            ENDIF
    
-         ! Normalize by days 
-         ELSEIF ( Scal == 86400.0_dp ) THEN
-            ThisDiagn%TimeAvg = 3 
+         ENDIF ! OutOper not set
+      ENDIF ! DtaIsPtr
    
-         ! Normalize by months 
-         ELSEIF ( Scal == 2678400.0_dp ) THEN
-            ThisDiagn%TimeAvg = 4 
-   
-         ! Normalize by years 
-         ELSEIF ( Scal == 31536000.0_dp ) THEN
-            ThisDiagn%TimeAvg = 5 
-   
-         ! Error otherwise
-         ELSE
-            MSG = 'Cannot determine time normalization: '//TRIM(OutUnit)
-            CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-            RETURN
-         ENDIF
-
-      ENDIF ! OutOper not set
-
       !-----------------------------------------------------------------------
       ! Make sure that there is no duplicate entry (for AutoFill only)
       !-----------------------------------------------------------------------
@@ -548,6 +576,16 @@
          RETURN
       ENDIF
 
+      ! If container holds just a pointer to external data, don't do
+      ! anything!
+      IF ( ThisDiagn%DtaIsPtr ) THEN
+         MSG = 'You try to update a container that holds a '  // &
+               'pointer to data - this should never happen! ' // &
+               TRIM(ThisDiagn%cName)
+         CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+         RETURN
+      ENDIF
+
       ! Get current minimum reset flag as well as the update time ID.
       MinResetFlag = HcoClock_GetMinResetFlag()
       CALL HcoClock_Get ( nSteps = ThisUpdateID, RC=RC )
@@ -569,7 +607,7 @@
       ! Determine scale factor to be applied to data. Diagnostics are
       ! stored in kg/m2, hence need to multiply HEMCO emissions, which
       ! are in kg/m2/s, by emission time step. Don't do anything for 
-      ! data with non-standard units (e.g. unitless factors).
+      ! data with non-standard units (e.g. unitless factors) or pointers.
       ! Note: conversion to final output units is done when writing out
       ! the diagnostics.
       !----------------------------------------------------------------------
@@ -1163,12 +1201,13 @@
       ALLOCATE( DgnCont )
 
       ! Initialize ponters and scalar value 
-      DgnCont%NextCont     => NULL()
-      DgnCont%Arr2D        => NULL()
-      DgnCont%Arr3D        => NULL()
-      DgnCont%Scalar       =  0.0_hp
-      DgnCont%LevIdx       = -1
-      DgnCont%AutoFill     =  1
+      DgnCont%NextCont => NULL()
+      DgnCont%Arr2D    => NULL()
+      DgnCont%Arr3D    => NULL()
+      DgnCont%DtaIsPtr = .FALSE.
+      DgnCont%Scalar   =  0.0_hp
+      DgnCont%LevIdx   = -1
+      DgnCont%AutoFill =  1
 
       ! Default values for unit conversion factors 
       DgnCont%MassScal  = 1.0_dp
@@ -1221,14 +1260,21 @@
 !------------------------------------------------------------------------------
 !BOC
 
+      LOGICAL :: DeepClean
+
       !======================================================================
       ! DiagnCont_Cleanup begins here!
       !======================================================================
 
       ! Only if associated... 
       IF ( ASSOCIATED( DgnCont ) ) THEN
-         CALL HCO_ArrCleanup( DgnCont%Arr2D )
-         CALL HCO_ArrCleanup( DgnCont%Arr3D )
+         IF ( DgnCont%DtaIsPtr ) THEN
+            DeepClean = .FALSE.
+         ELSE
+            DeepClean = .TRUE.
+         ENDIF
+         CALL HCO_ArrCleanup( DgnCont%Arr2D, DeepClean )
+         CALL HCO_ArrCleanup( DgnCont%Arr3D, DeepClean )
          DgnCont%NextCont => NULL()
          DEALLOCATE ( DgnCont )
       ENDIF
@@ -1290,6 +1336,11 @@
          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
          RETURN
       ENDIF
+
+      !-----------------------------------------------------------------------
+      ! Don't do anything for pointer data
+      !-----------------------------------------------------------------------
+      IF ( DgnCont%DtaIsPtr ) RETURN
 
       !-----------------------------------------------------------------------
       ! Output data is calculated as: 
@@ -1517,6 +1568,174 @@
       CurrCnt => NULL()
 
       END SUBROUTINE DiagnCont_Find
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: DiagnCont_Link_2D 
+!
+! !DESCRIPTION: Subroutine DiagnCont\_Link\_2D links the data of container
+! DgnCont to the 2D array Tgt2D. This will disable all time averaging, 
+! unit conversion, etc., i.e. the data will returned as is.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DiagnCont_Link_2D ( am_I_Root, HcoState,   &
+                                     DgnCont,   Tgt2D,    RC )
+!
+! !USES:
+!
+      USE HCO_STATE_MOD,       ONLY : HCO_State
+!
+! !ARGUMENTS:
+!
+      LOGICAL,           INTENT(IN   )         :: am_I_Root  ! Root CPU?
+      TYPE(HCO_State),   POINTER               :: HcoState   ! HEMCO state object
+      TYPE(DiagnCont),   POINTER               :: DgnCont    ! diagnostics container
+      REAL(hp),          INTENT(IN   ), TARGET :: Tgt2D(:,:) ! 2D target data 
+      INTEGER,           INTENT(INOUT)         :: RC         ! Return code 
+!
+! !REVISION HISTORY:
+!  04 Dec 2012 - C. Keller: Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL ARGUMENTS:
+!
+      CHARACTER(LEN=255)   :: MSG, LOC 
+
+      !======================================================================
+      ! DiagnCont_Link_2D begins here!
+      !======================================================================
+
+      ! Init
+      LOC = 'DiagnCont_Link_2D (HCO_DIAGN_MOD.F90)'
+
+      ! Check if dimensions match. Also, containers with pointers must not
+      ! be set to AutoFill
+      IF ( DgnCont%AutoFill == 1 ) THEN
+         MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
+         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+         RETURN
+      ENDIF
+      IF ( DgnCont%SpaceDim /= 2 ) THEN
+         MSG = 'Diagnostics is not 2D: ' // TRIM(DgnCont%cName)
+         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+         RETURN
+      ENDIF
+      IF ( SIZE(Tgt2D,1) /= HcoState%NX .OR. SIZE(Tgt2D,2) /= HcoState%NY ) THEN
+         MSG = 'Incorrect target array size: ' // TRIM(DgnCont%cName)
+         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+         RETURN
+      ENDIF 
+
+      ! Define 2D array pointer
+      CALL HCO_ArrInit( DgnCont%Arr2D, 0, 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Point to data
+      DgnCont%Arr2D%Val => Tgt2D
+
+      ! Update pointer switch. This will make sure that data is not modified. 
+      ! Also set counter to non-zero to make sure that diagnostics will be 
+      ! correctly written. 
+      DgnCont%DtaIsPtr = .TRUE. 
+      DgnCont%Counter  = 1
+
+      ! Return
+      RC = HCO_SUCCESS
+
+      END SUBROUTINE DiagnCont_Link_2D
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: DiagnCont_Link_3D 
+!
+! !DESCRIPTION: Subroutine DiagnCont\_Link\_3D links the data of container
+! DgnCont to the 3D array Tgt3D. This will disable all time averaging, 
+! unit conversion, etc., i.e. the data will returned as is.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DiagnCont_Link_3D ( am_I_Root, HcoState,   &
+                                     DgnCont,   Tgt3D,    RC )
+!
+! !USES:
+!
+      USE HCO_STATE_MOD,       ONLY : HCO_State
+!
+! !ARGUMENTS:
+!
+      LOGICAL,           INTENT(IN   )         :: am_I_Root    ! Root CPU?
+      TYPE(HCO_State),   POINTER               :: HcoState     ! HEMCO state object
+      TYPE(DiagnCont),   POINTER               :: DgnCont      ! diagnostics container
+      REAL(hp),          INTENT(IN   ), TARGET :: Tgt3D(:,:,:) ! 3D target data 
+      INTEGER,           INTENT(INOUT)         :: RC           ! Return code 
+!
+! !REVISION HISTORY:
+!  04 Dec 2012 - C. Keller: Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL ARGUMENTS:
+!
+      CHARACTER(LEN=255)   :: MSG, LOC 
+
+      !======================================================================
+      ! DiagnCont_Link_3D begins here!
+      !======================================================================
+
+      ! Init
+      LOC = 'DiagnCont_Link_3D (HCO_DIAGN_MOD.F90)'
+
+      ! Check if dimensions match. Also, containers with pointers must not
+      ! be set to AutoFill
+      IF ( DgnCont%AutoFill == 1 ) THEN
+         MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
+         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+         RETURN
+      ENDIF
+      IF ( DgnCont%SpaceDim /= 3 ) THEN
+         MSG = 'Diagnostics is not 3D: ' // TRIM(DgnCont%cName)
+         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+         RETURN
+      ENDIF
+      IF ( SIZE(Tgt3D,1) /= HcoState%NX .OR. &
+           SIZE(Tgt3D,2) /= HcoState%NY .OR. &
+           SIZE(Tgt3D,3) /= HcoState%NZ       ) THEN
+         MSG = 'Incorrect target array size: ' // TRIM(DgnCont%cName)
+         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+         RETURN
+      ENDIF 
+
+      ! Define 3D array pointer
+      CALL HCO_ArrInit( DgnCont%Arr3D, 0, 0, 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Point to data
+      DgnCont%Arr3D%Val => Tgt3D
+
+      ! Update pointer switch. This will make sure that data is not modified.
+      ! Also set counter to non-zero to make sure that diagnostics will be 
+      ! correctly written. 
+      DgnCont%DtaIsPtr = .TRUE. 
+      DgnCont%Counter  = 1
+
+      ! Return
+      RC = HCO_SUCCESS
+
+      END SUBROUTINE DiagnCont_Link_3D
 !EOC
       END MODULE HCO_DIAGN_MOD
 !EOF

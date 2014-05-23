@@ -222,7 +222,6 @@
       USE HCO_READLIST_MOD,  ONLY : ReadList_Cleanup
       USE HCO_CONFIG_MOD,    ONLY : Config_Cleanup
       USE HCO_DATACONT_MOD,  ONLY : cIDList_Cleanup
-      USE HCO_DIAGN_MOD,     ONLY : Diagn_Cleanup
 !
 ! !ARGUMENTS:
 !
@@ -246,7 +245,6 @@
       !   pointers to them. Hence, we have to call these routines
       !   before ConfigFile_Cleanup! 
       ! - HcoState is cleaned up in the HEMCO-module interface. 
-      CALL Diagn_Cleanup
       CALL cIDList_Cleanup
       CALL HcoClock_Cleanup
       CALL tIDx_Cleanup

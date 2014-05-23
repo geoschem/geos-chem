@@ -146,9 +146,9 @@
       REAL(hp),ALLOCATABLE, TARGET :: SLBASE(:,:,:)
 
       ! testing only
-      integer, parameter :: ix = -1 !43
-      integer, parameter :: iy = -1 !25 
-      integer, parameter :: iz = -1 !30
+      integer, parameter :: ix = 43
+      integer, parameter :: iy = 25 
+      integer, parameter :: iz = 30
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -254,6 +254,9 @@
       !=================================================================
       IF ( IDTNO > 0 ) THEN
 
+         ! testing only
+         write(*,*) 'lightning NOx emissions: ', SUM(SLBASE)
+
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, SLBASE, IDTNO, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -266,6 +269,10 @@
                                AutoFill=1, Array3D=Arr3D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
             Arr3D => NULL() 
+
+            ! testing only
+            write(*,*) 'ExtNr, SLBASE: ', ExtNr, SUM(SLBASE)
+
          ENDIF
       ENDIF
 
@@ -301,7 +308,7 @@
 !
 ! !USES:
 !
-      USE HCO_DRIVER_MOD,   ONLY : HCO_RUN
+      USE HCO_EMISLIST_MOD, ONLY : EmisList_GetDataArr      
       USE HCO_GEOTOOLS_MOD, ONLY : HCO_LANDTYPE
       USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get
 !
@@ -342,19 +349,20 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: I,         J,           L,        LCHARGE
-      INTEGER       :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
-      INTEGER       :: cMt 
-      REAL*8        :: A_KM2,     A_M2,        CC,       DLNP     
-      REAL*8        :: DZ,        FLASHRATE,   H0,       HBOTTOM
-      REAL*8        :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
-      REAL*8        :: P2,        P3,          RAIN,     RATE
-      REAL*8        :: RATE_SAVE, REDIST,      T1,       T2
-      REAL*8        :: TOTAL,     TOTAL_CG,    TOTAL_IC, X       
-      REAL*8        :: YMID,      Z_IC,        Z_CG,     ZUP
-      REAL*8        :: XMID
-      REAL*8        :: VERTPROF(HcoState%NZ)
-      INTEGER       :: LNDTYPE, SFCTYPE
+      INTEGER           :: I,         J,           L,        LCHARGE
+      INTEGER           :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
+      INTEGER           :: cMt 
+      REAL*8            :: A_KM2,     A_M2,        CC,       DLNP     
+      REAL*8            :: DZ,        FLASHRATE,   H0,       HBOTTOM
+      REAL*8            :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
+      REAL*8            :: P2,        P3,          RAIN,     RATE
+      REAL*8            :: RATE_SAVE, REDIST,      T1,       T2
+      REAL*8            :: TOTAL,     TOTAL_CG,    TOTAL_IC, X       
+      REAL*8            :: YMID,      Z_IC,        Z_CG,     ZUP
+      REAL*8            :: XMID
+      REAL*8            :: VERTPROF(HcoState%NZ)
+      INTEGER           :: LNDTYPE, SFCTYPE
+      REAL(hp), POINTER :: OTDLIS(:,:) => NULL()
 
       !=================================================================
       ! LIGHTNOX begins here!
@@ -372,30 +380,10 @@
 
       ! ----------------------------------------------------------------
       ! Eventually get OTD-LIS local redistribution factors from HEMCO.
-      ! The HCO_RUN call below will only return the emission arrays 
-      ! assigned to the lightnox extension (i.e. same extension number), 
-      ! which is just the gridded redistribution factors. Temporarily  
-      ! store these data in SLBASE - will be passed to variable REDIST 
-      ! in the grid box loop below (ckeller, 10/22/13).
       ! ----------------------------------------------------------------
       IF ( LOTDLOC ) THEN
-         HcoState%Options%SpcMin        =  1
-         HcoState%Options%SpcMax        = -1
-         HcoState%Options%CatMin        =  1 
-         HcoState%Options%CatMax        = -1
-         HcoState%Options%ExtNr         =  ExtNr
-         HcoState%Options%FillBuffer    = .TRUE.
-         HcoState%Options%AutoFillDiagn = .FALSE.
-         HcoState%Buffer3D%Val          => SLBASE 
-
-         CALL HCO_RUN ( am_I_Root, HcoState, RC ) 
-         IF ( RC /= HCO_SUCCESS ) RETURN
-
-         ! Reset settings to standard
-         HcoState%Buffer3D%Val          => NULL()
-         HcoState%Options%FillBuffer    = .FALSE.
-         HcoState%Options%AutoFillDiagn = .TRUE.
-         HcoState%Options%ExtNr         = 0
+         CALL EmisList_GetDataArr( am_I_Root, 'LIGHTNOX_OTDLIS', OTDLIS, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN 
       ENDIF
 
 #if defined( GEOS_5 ) 
@@ -403,7 +391,7 @@
       ! this value is different before and after Sept 1, 2008. 
       ! So reset value at start of each month, just in case it's
       ! a 2008 simulation. (ltm,1/26/11)
-      CALL GET_OTD_LIS_SCALE( ExtState, HcoState, OTD_LIS_SCALE, RC )
+      CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 #endif
 
@@ -465,14 +453,15 @@
             ENDIF
 
             ! Initialize
-            LBOTTOM  = 0
-            LCHARGE  = 0
-            CC       = 0d0
-            HCHARGE  = 0d0
-            HBOTTOM  = 0d0
-            TOTAL    = 0d0
-            TOTAL_IC = 0d0
-            TOTAL_CG = 0d0
+            LBOTTOM       = 0 
+            LCHARGE       = 0
+            CC            = 0d0
+            HCHARGE       = 0d0
+            HBOTTOM       = 0d0
+            TOTAL         = 0d0
+            TOTAL_IC      = 0d0
+            TOTAL_CG      = 0d0
+            SLBASE(I,J,1) = 0.0_hp
 
             ! Get factors for OTD-LIS local redistribution or none.
             ! This constrains the seasonality and spatial distribution
@@ -480,15 +469,8 @@
             ! product from LIS/OTD, while still allowing the model to
             ! place lightnox locally within deep convective events.
             ! (ltm, bmy, 1/31/07)
-            ! We now get the scale factors through the HEMCO framework.
-            ! The values are written into the first level of SLBASE
-            ! in the HCO_RUN call above. Write the scale factor for
-            ! this grid box into REDIST and reset SLBASE. Do this here 
-            ! to make sure that all SLBASE values will be reset.
-            ! (ckeller, 10/22/13)
             IF ( LOTDLOC ) THEN
-               REDIST        = SLBASE(I,J,1)
-               SLBASE(I,J,1) = 0.0d0
+               REDIST = OTDLIS(I,J)
             ELSE
                REDIST = 1.0d0
             ENDIF
@@ -1068,6 +1050,7 @@
 !$OMP END PARALLEL DO
 
       ! Return w/ success
+      OTDLIS => NULL()
       CALL HCO_LEAVE ( RC ) 
 
       END SUBROUTINE LIGHTNOX
@@ -1484,7 +1467,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_OTD_LIS_SCALE( ExtState, HcoState, BETA, RC ) 
+      SUBROUTINE GET_OTD_LIS_SCALE( BETA, RC ) 
 !
 ! !USES:
 !
@@ -1492,8 +1475,6 @@
 !
 ! !ARGUMENTS:
 !
-      TYPE(Ext_State),  POINTER        :: ExtState    ! Module options
-      TYPE(HCO_State),  POINTER        :: HcoState   ! Hemco options 
       REAL*8,           INTENT(  OUT)  :: BETA       ! Scale factor
       INTEGER,          INTENT(INOUT)  :: RC 
 !
@@ -1547,8 +1528,6 @@
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
 #endif
 
-#if   defined( GEOS_5 )
-
       ! Are we using GEOS 5.2.0 or GEOS 5.1.0?
       LOGICAL :: GEOS_520
 
@@ -1564,6 +1543,7 @@
       CALL HcoClock_Get( cYYYY=cYr, cMM=cMt, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
+#if   defined( GEOS_5 )
       ! LightNOX is sensitive to which convection scheme
       ! is used in the GCM used for the data assimilation.
       ! GEOS-5 changed its scheme in met fields following 9/1/2008,
@@ -1573,7 +1553,6 @@
       ELSE
          GEOS_520 = .FALSE.     ! Using GEOS 5.1.0
       ENDIF
-
 #endif
 
       ! The lightnox flash rate equations are sensitive to model resolution
@@ -1875,7 +1854,8 @@
 
       ! Get scaling factor to match annual average global flash rate
       ! (ltm, 09/24/07)
-      OTD_LIS_SCALE = 1d0 
+      CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! NNLIGHT is the number of points for the lightnox CDF's
       NNLIGHT = 3200

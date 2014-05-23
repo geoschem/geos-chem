@@ -362,7 +362,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCOX_FINAL( HcoState, ExtState )
+      SUBROUTINE HCOX_FINAL( ExtState )
 !
 ! !USES:
 !
@@ -378,13 +378,9 @@
       USE HcoX_Megan_Mod,      ONLY : HcoX_Megan_Final
       USE HcoX_GFED3_Mod,      ONLY : HcoX_GFED3_Final
       USE Hcox_ExtList_Mod,    ONLY : ExtFinal
-
-      USE TIME_MOD,            ONLY : GET_NYMD, GET_NHMS, GET_TAU
-      USE TIME_MOD,            ONLY : EXPAND_DATE
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
       TYPE(Ext_State),  POINTER        :: ExtState     ! Extension options object 
 !
 ! !REVISION HISTORY: 
@@ -395,8 +391,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8                    :: RstTau
-      CHARACTER(LEN=255)        :: RstFile, TauUnit
 
       !=================================================================
       ! HCOX_FINAL begins here!
@@ -415,17 +409,7 @@
       IF( ExtState%SeaSalt    ) CALL HcoX_SeaSalt_Final
       IF( ExtState%Megan      ) CALL HcoX_Megan_Final
       IF( ExtState%GFED3      ) CALL HcoX_GFED3_Final
-
-      ! For soil NOx, write restart file before cleanup 
-      IF ( ExtState%SoilNOx ) THEN 
-         ! Restart file
-         RstFile = 'restart.soilnox.YYYYMMDDhh.nc'
-         RstFile = TRIM(RstFile)
-         CALL EXPAND_DATE( RstFile, GET_NYMD(), GET_NHMS() )
-         RstTau  = GET_TAU()
-         TauUnit = 'Hours since 1985-01-01 00:00:00 GMT'
-         CALL HcoX_SoilNOx_Final( HcoState, RstFile, RstTau, TauUnit ) 
-      ENDIF
+      IF( ExtState%SoilNOx    ) CALL HcoX_SoilNox_Final 
      
       ! Remove ExtState object 
       CALL ExtStateFinal( ExtState ) 
