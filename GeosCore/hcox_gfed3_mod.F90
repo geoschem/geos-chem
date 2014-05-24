@@ -274,10 +274,6 @@
                END WHERE 
             ENDIF
 
-            ! testing only
-            write(*,*) 'gfed3: spec, type, factors: ', &
-               TRIM(SpcNames(N)), M, GFED3_EMFAC(GfedIDs(N),M)
-
             ! Eventually add daily / 3-hourly scale factors. These scale
             ! factors are unitless.
             IF ( DoDay ) TypArr = TypArr * DAYSCAL

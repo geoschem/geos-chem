@@ -7609,9 +7609,9 @@
          ENDIF
 
          ! Archive wet loss in kg/s
-         IF ( LSOILNOX ) THEN
+!         IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
-         ENDIF
+!         ENDIF
 
          !-----------------------------------------------------
          ! Dirty kludge to prevent wet deposition from removing 

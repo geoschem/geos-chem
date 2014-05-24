@@ -339,8 +339,8 @@
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE BIOFUEL_MOD,        ONLY : BIOFUEL,   BIOFUEL_BURN
-      USE BIOMASS_MOD,        ONLY : BIOMASS
+!      USE BIOFUEL_MOD,        ONLY : BIOFUEL,   BIOFUEL_BURN
+!      USE BIOMASS_MOD,        ONLY : BIOMASS
       USE DIAG_MOD,           ONLY : AD29,      AD36
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -748,8 +748,8 @@
          !-----------------------------------------------------------------
 
          ! Convert [molec/cm2/s] to [kg/cm3/timestep]
-         FLUX = ECH3I * BIOMASS(I,J,IDBCO) / BXHEIGHT_CM
-         FLUX = FLUX * 1.0D-3 * FMOL_CH3I * XMOL * DTSRCE
+!         FLUX = ECH3I * BIOMASS(I,J,IDBCO) / BXHEIGHT_CM
+!         FLUX = FLUX * 1.0D-3 * FMOL_CH3I * XMOL * DTSRCE
 
          ! Add to diagnostic array as kg/m2/time step
          IF ( ND36 > 0 ) THEN
@@ -780,8 +780,8 @@
       ENDIF
 
       ! Now reference routine BIOFUEL_BURN from "biofuel_mod.f" (bmy, 9/12/00)
-      CALL BIOFUEL_BURN
-     &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!      CALL BIOFUEL_BURN
+!     &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       N = 3
       L = 1
@@ -790,8 +790,8 @@
  
          ! Get flux as kg/cm3/time step
          ! Now use IDBFCO to index biofuel burning CO (bmy, 3/20/01)
-         FLUX = ECH3I * BIOFUEL(IDBFCO,I,J)
-         FLUX = FLUX * 1.0D-3 * FMOL_CH3I * XMOL * DTSRCE
+!         FLUX = ECH3I * BIOFUEL(IDBFCO,I,J)
+!         FLUX = FLUX * 1.0D-3 * FMOL_CH3I * XMOL * DTSRCE
 
          ! Add to diagnostic array as kg/m2/time step
          IF ( ND36 > 0 ) THEN
@@ -829,8 +829,8 @@
             AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! First compute flux as kg/m2/time step
-            FLUX = EFCH4R(I,J)
-            FLUX = FLUX * DTSRCE
+!            FLUX = EFCH4R(I,J)
+!            FLUX = FLUX * DTSRCE
 
             ! Add to diagnostic array as kg/m2/time step
             IF ( ND36 > 0 ) THEN
@@ -867,8 +867,8 @@
             AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! First compute flux as kg/m2/time step
-            FLUX = EFCH4W(I,J)
-            FLUX = FLUX * DTSRCE
+!            FLUX = EFCH4W(I,J)
+!            FLUX = FLUX * DTSRCE
 
             ! Add to diagnostic array as kg/m2/time step
             IF ( ND36 > 0 ) THEN

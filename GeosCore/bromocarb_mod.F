@@ -20,18 +20,18 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: EMIS_CHBr3
-      PUBLIC :: EMIS_CH2Br2
+!      PUBLIC :: EMIS_CHBr3
+!      PUBLIC :: EMIS_CH2Br2
       PUBLIC :: SET_CH3Br
       PUBLIC :: SET_BrO
-      PUBLIC :: SEA_SURFACE
+!      PUBLIC :: SEA_SURFACE
       PUBLIC :: INIT_BROMOCARB
       PUBLIC :: CLEANUP_BROMOCARB
 !
 ! !PUBLIC DATA MEMBERS:
 !
       ! For scaling bromine emissions (mpayer, 5/15/12)
-      REAL*8, PUBLIC :: Br_SCALING
+!      REAL*8, PUBLIC :: Br_SCALING
 !
 ! !REVISION HISTORY:
 !  13 Aug 2007 - J. Parrella - Initial version
@@ -58,356 +58,356 @@
       ! For TOT_OC_AREA:
       ! If Region = 1, band between 20S and 20N
       !    Region = 2, band between 20  and 50  degrees, NH + SH
-      REAL*8,  ALLOCATABLE :: TOT_OC_AREA(:)
-      REAL*8,  ALLOCATABLE :: FRAC_IN_ab(:,:,:)  ! (region, I, J)
+!      REAL*8,  ALLOCATABLE :: TOT_OC_AREA(:)
+!      REAL*8,  ALLOCATABLE :: FRAC_IN_ab(:,:,:)  ! (region, I, J)
 
       ! Surface area of the box; only depends on latitude
       REAL*8               :: A_M2
 
       ! Qing Liang's emissions variables
-      REAL*8,  ALLOCATABLE :: chbr3_emiss(:,:)
-      REAL*8,  ALLOCATABLE :: ch2br2_emiss(:,:)
+!      REAL*8,  ALLOCATABLE :: chbr3_emiss(:,:)
+!      REAL*8,  ALLOCATABLE :: ch2br2_emiss(:,:)
 
       LOGICAL, SAVE        :: FIRST_INIT = .TRUE.
 
       CONTAINS
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: emiss_ch3br
+!!
+!! !DESCRIPTION: Function EMIS\_CHBr3 is the emissions driver for very short
+!!  lived bromocarbon (VSLB) species and the one long-lived compound, methyl
+!!  bromide (CH3Br).
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      FUNCTION EMIS_CHBr3( I, J, State_Met ) RESULT( E_R_CHBr3 )
+!! 
+!! !USES:
+!!
+!      USE LOGICAL_MOD,        ONLY : LWARWICK_VSLS
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE GRID_MOD,           ONLY : GET_YMID
+!      USE TIME_MOD,           ONLY : GET_MONTH
 !
-! !IROUTINE: emiss_ch3br
+!      USE CMN_SIZE_MOD             ! Size parameters
+!      USE CMN_DIAG_MOD             ! ND57 -- diagnostics
+!      USE COMODE_LOOP_MOD          ! Avogadro's #, called 'AVG' = 6.02252d+23
+!!
+!! !INPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+!      INTEGER,        INTENT(IN)  :: J           ! Latitude  index
+!      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!!
+!! !RETURN VALUE:
+!!
+!      REAL*8                      :: E_R_CHBr3
+!!
+!! !REMARKS:
+!! only ocean emissions for all bromocarbons
+!! plan: (1) Bromoform: 400 Gg CHBr3/yr emitted from ocean, broken into
+!!              latitudinal bands: 75% between 20deg south and 20deg north
+!!                 25% between 20deg and 50deg north and south
+!!              - This emission scheme follows the work of
+!!                Warwick et al. (2006) Global Modeling of Bromocarbons
+!!                   --> scheme A (eventually, should try B as well,
+!!                       with coastal and shelf emissions...)
+!!                & Yang et al. (2005) Tropospheric Bromine Chemistry
+!!       (2) Dibromomethane:
+!!              - Warwick et al. use same spatial scheme as used for
+!!                bromoform in scenario 3 (lat bands above...)
+!!                   --> schemes A & B: 113 Gg CH2Br2/yr global flux
+!!              - they say they require higher emissions than some previous
+!!                lit probably because they center emissions in the tropics,
+!!                yielding shorter lifetimes for bromocarbons...
+!!
+!! !REVISION HISTORY:
+!!  23 Aug 2007 - J. Parrella - Initial version
+!!  22 May 2012 - M. Payer    - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      ! Northern lats (>30 degrees) seasonal cycle scaling
+!      REAL*8,  DIMENSION(12) :: nh_scale
+!      INTEGER                :: this_month
 !
-! !DESCRIPTION: Function EMIS\_CHBr3 is the emissions driver for very short
-!  lived bromocarbon (VSLB) species and the one long-lived compound, methyl
-!  bromide (CH3Br).
-!\\
-!\\
-! !INTERFACE:
+!      !=================================================================
+!      ! EMIS_CHBr3 begins here!
+!      !=================================================================
 !
-      FUNCTION EMIS_CHBr3( I, J, State_Met ) RESULT( E_R_CHBr3 )
+!      ! set the scaling factors: jan to december
+!      ! see Parrella et al. [2011]
+!      nh_scale( 1) = 0.51d0
+!      nh_scale( 2) = 0.56d0
+!      nh_scale( 3) = 0.61d0
+!      nh_scale( 4) = 0.80d0
+!      nh_scale( 5) = 0.96d0
+!      nh_scale( 6) = 1.12d0
+!      nh_scale( 7) = 1.11d0
+!      nh_scale( 8) = 1.07d0
+!      nh_scale( 9) = 1.027d0
+!      nh_scale(10) = 0.94d0
+!      nh_scale(11) = 0.78d0
+!      nh_scale(12) = 0.671d0
+!
+!      !----------------------------------------------------------------------
+!      ! Initialize arrays: SEA_SURFACE is also called within INIT_BROMOCARB 
+!      ! to retrieve surface areas for chosen lat-band regions
+!      !----------------------------------------------------------------------
+!
+!      ! Pull out CHBr3 and CH2Br2 emissions
+!      IF (FIRST_INIT) THEN
+!         CALL INIT_BROMOCARB( State_Met )
+!         FIRST_INIT = .FALSE.
+!      ENDIF
+!
+!      !----------------------
+!      ! CHBr3 Emissions
+!      !----------------------
+!      this_month = get_month()
+!
+!      ! --------------------------------------------
+!      ! Return with 0'd emission if the VSL source
+!      ! has been turned off inside input.geos
+!      ! --------------------------------------------
+!      IF ( .not. LWARWICK_VSLS ) THEN
+!         E_R_CHBr3 = 0.d0
+!         RETURN
+!      ENDIF
+!
+!      ! --------------------------------------------------------
+!      ! Calculating the CHBr3 emission rate [molecules/box/s]
+!      ! from Qing Liang's emissions distribution.
+!      ! --------------------------------------------------------
+!      IF ( GET_YMID(I,J,1) > 30.d0 ) THEN
+!         ! use seasonal scaling
+!         E_R_CHBr3 = chbr3_emiss(I,J) * nh_scale(this_month)
+!      ELSE
+!         E_R_CHBr3 = chbr3_emiss(I,J)
+!      ENDIF
+!
+!      RETURN
+!
+!      END FUNCTION EMIS_CHBr3
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: emis_ch2br2
+!!
+!! !DESCRIPTION: Function EMIS\_CH2Br2 is the emissions driver for very short
+!! lived bromocarbon (VSLB) species and the one long-lived compound,
+!! dibromomethane (CH2Br2)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      FUNCTION EMIS_CH2Br2( I, J ) RESULT( E_R_CH2Br2 )
+!! 
+!! !USES:
+!!
+!      USE LOGICAL_MOD,   ONLY : LWARWICK_VSLS
+!
+!      USE CMN_SIZE_MOD        ! Size parameters
+!      USE CMN_DIAG_MOD        ! ND57 -- diagnostics
+!      USE COMODE_LOOP_MOD     ! Avogadro's #, called 'AVG' = 6.02252d+23
+!!
+!! !INPUT PARAMETERS:
+!!
+!      INTEGER, INTENT(IN)    :: I        ! Longitude index
+!      INTEGER, INTENT(IN)    :: J        ! Latitude  index
+!!
+!! !RETURN VALUE:
+!!
+!      REAL*8                 :: E_R_CH2Br2
+!!
+!! !REMARKS:
+!! only ocean emissions for all bromocarbons
+!! plan: (1) Bromoform: 400 Gg CHBr3/yr emitted from ocean, broken into
+!!              latitudinal bands: 75% between 20deg south and 20deg north
+!!                 25% between 20deg and 50deg north and south
+!!              - This emission scheme follows the work of
+!!                Warwick et al. (2006) Global Modeling of Bromocarbons
+!!                   --> scheme A (eventually, should try B as well,
+!!                       with coastal and shelf emissions...)
+!!                & Yang et al. (2005) Tropospheric Bromine Chemistry
+!!       (2) Dibromomethane:
+!!              - Warwick et al. use same spatial scheme as used for
+!!                bromoform in scenario 3 (lat bands above...)
+!!                   --> schemes A & B: 113 Gg CH2Br2/yr global flux
+!!              - they say they require higher emissions than some previous
+!!                lit probably because they center emissions in the tropics,
+!!                yielding shorter lifetimes for bromocarbons...
+!!
+!! !REVISION HISTORY:
+!!  23 Aug 2007 - J. Parrella - Initial version
+!!  22 May 2012 - M. Payer    - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!      !=================================================================
+!      ! EMIS_CH2Br2 begins here!
+!      !=================================================================
+!
+!      ! --------------------------------------------
+!      ! Return with 0'd emission if the VSL source
+!      ! has been turned off inside input.geos
+!      ! --------------------------------------------
+!      IF ( .not. LWARWICK_VSLS ) THEN
+!         E_R_CH2Br2 = 0.d0
+!         RETURN
+!      ENDIF
+!
+!      E_R_CH2Br2 = ch2br2_emiss(I,J)
+!
+!      END FUNCTION EMIS_CH2Br2
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: sea_surface
+!!
+!! !DESCRIPTION: Subroutine SEA\_SURFACE calculates the total sea surface area
+!!  within two specified regions:
+!!     (1) total area between 20S and 20N
+!!     (2) total area between 20 and 50 degrees, North + South
+!!  These surface area values are used to set the emission fluxes for each of
+!!  the aforementioned regions.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE SEA_SURFACE( State_Met )
+!! 
+!! !USES:
+!!
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_YEDGE
+!
+!      USE CMN_SIZE_MOD      ! Size parameters
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+!!
+!! !REVISION HISTORY:
+!!  16 Aug 2007 - J. Parrella - Initial version
+!!  22 May 2012 - M. Payer    - Added ProTeX headers
+!!  27 Aug 2012 - M. Payer    - Added parallel DO loop
+!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER :: I,          J
+!      REAL*8  :: LAT_H,      LAT_L,      F_LAND,    F_WATER
+!      REAL*8  :: F_ABOVE_50, F_BELOW_20
+!      REAL*8  :: LAT_S,      LAT_N
+!
+!      !===================================
+!      ! Initializing Variables
+!      !===================================
+!
+!      F_ABOVE_50    = 0d0
+!      F_BELOW_20    = 0d0
+!      LAT_N         = 0d0
+!      LAT_S         = 0d0
+!      F_LAND        = 0d0
+!      F_WATER       = 0d0
+!
+!      !=================================================================
+!      !  SEA_SURFACE begins here!
+!      !=================================================================
+!
+!      ! Loop over grid boxes
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J,        LAT_S,      LAT_N,  LAT_H,   LAT_L )
+!!$OMP+PRIVATE( F_ABOVE_50,  F_BELOW_20, F_LAND, F_WATER, A_M2  )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Get ABS( latitude ) at S and N edges of grid box
+!         LAT_S      = ABS( GET_YEDGE(I,J,1)   ) 
+!         LAT_N      = ABS( GET_YEDGE(I,J+1,1) )
+!         LAT_H      = MAX( LAT_S, LAT_N )
+!         LAT_L      = MIN( LAT_S, LAT_N ) 
+!
+!         IF ( LAT_L >= 50d0 ) THEN
+!            F_ABOVE_50 = 1d0
+!            F_BELOW_20 = 0d0
+!         ELSE IF ( (LAT_H > 50d0) .and. (LAT_L < 50d0) ) THEN
+!            F_ABOVE_50 = ( LAT_H - 50d0 ) / ( LAT_H - LAT_L )
+!            F_BELOW_20 = 0d0
+!         ELSE IF ( (LAT_H <= 50d0) .and. (LAT_L >= 20d0) ) THEN
+!            F_ABOVE_50 = 0d0
+!            F_BELOW_20 = 0d0
+!         ELSE IF ( (LAT_H > 20d0) .and. (LAT_L < 20d0) ) THEN
+!            F_ABOVE_50 = 0d0
+!            F_BELOW_20 = ( 20d0 - LAT_L )/ ( LAT_H - LAT_L )
+!         ELSE IF ( LAT_H <= 20d0 ) THEN
+!            F_ABOVE_50 = 0d0
+!            F_BELOW_20 = 1d0
+!         END IF
+!
+!         ! Grid box surface area [m2]-- it's only a fn' of latitude
+!         A_M2 = GET_AREA_M2( I, J, 1 )
+!
+!
+!! use this if you have problems selecting only ocean.
+!! they used something like this in ocean_mercury_mod.
+!!jp         !======================================
+!!jp         ! Make sure we are in an ocean box     
+!!jp         !======================================
+!!jp         IF ( ( ALBD(I,J) <= 0.4d0 ) .and.      
+!!jp     &        ( FRAC_L    <  0.8d0 )  THEN
+!
+!
+!         ! Fraction of grid box that is land
+!         F_LAND  = State_Met%FRCLND(I,J)
+!
+!         ! Fraction of grid box that is water
+!         F_WATER = 1d0 - F_LAND
+!
+!         ! Find the ocean fraction for box in region a:
+!         ! Between 20S and 20N
+!         FRAC_IN_ab(1,I,J) = F_BELOW_20 * F_WATER
+!
+!         ! Find the ocean fraction for box in region b:
+!         ! Between 20 and 50, N + S
+!         FRAC_IN_ab(2,I,J) = (1d0 - F_BELOW_20 - F_ABOVE_50) * F_WATER
+!            ! note: if we just add the fractions of box below 50
+!            ! and above 20, then we would need to subtract the
+!            ! union to avoid double counting. Trick to get around
+!            ! this is subtracting the total area outside of b from
+!            ! 1d0
 ! 
-! !USES:
+!         ! sum up the total areas in both reagions
+!         TOT_OC_AREA(1) = TOT_OC_AREA(1) + FRAC_IN_ab(1,I,J) * A_M2
+!         TOT_OC_AREA(2) = TOT_OC_AREA(2) + FRAC_IN_ab(2,I,J) * A_M2
 !
-      USE LOGICAL_MOD,        ONLY : LWARWICK_VSLS
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_YMID
-      USE TIME_MOD,           ONLY : GET_MONTH
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND57 -- diagnostics
-      USE COMODE_LOOP_MOD          ! Avogadro's #, called 'AVG' = 6.02252d+23
+!      ENDDO                 !END i-loop over longitudes
+!      ENDDO                 !END j-loop over latitudes
+!!$OMP END PARALLEL DO
 !
-! !INPUT PARAMETERS:
-!
-      INTEGER,        INTENT(IN)  :: I           ! Longitude index
-      INTEGER,        INTENT(IN)  :: J           ! Latitude  index
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !RETURN VALUE:
-!
-      REAL*8                      :: E_R_CHBr3
-!
-! !REMARKS:
-! only ocean emissions for all bromocarbons
-! plan: (1) Bromoform: 400 Gg CHBr3/yr emitted from ocean, broken into
-!              latitudinal bands: 75% between 20deg south and 20deg north
-!                 25% between 20deg and 50deg north and south
-!              - This emission scheme follows the work of
-!                Warwick et al. (2006) Global Modeling of Bromocarbons
-!                   --> scheme A (eventually, should try B as well,
-!                       with coastal and shelf emissions...)
-!                & Yang et al. (2005) Tropospheric Bromine Chemistry
-!       (2) Dibromomethane:
-!              - Warwick et al. use same spatial scheme as used for
-!                bromoform in scenario 3 (lat bands above...)
-!                   --> schemes A & B: 113 Gg CH2Br2/yr global flux
-!              - they say they require higher emissions than some previous
-!                lit probably because they center emissions in the tropics,
-!                yielding shorter lifetimes for bromocarbons...
-!
-! !REVISION HISTORY:
-!  23 Aug 2007 - J. Parrella - Initial version
-!  22 May 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Northern lats (>30 degrees) seasonal cycle scaling
-      REAL*8,  DIMENSION(12) :: nh_scale
-      INTEGER                :: this_month
-
-      !=================================================================
-      ! EMIS_CHBr3 begins here!
-      !=================================================================
-
-      ! set the scaling factors: jan to december
-      ! see Parrella et al. [2011]
-      nh_scale( 1) = 0.51d0
-      nh_scale( 2) = 0.56d0
-      nh_scale( 3) = 0.61d0
-      nh_scale( 4) = 0.80d0
-      nh_scale( 5) = 0.96d0
-      nh_scale( 6) = 1.12d0
-      nh_scale( 7) = 1.11d0
-      nh_scale( 8) = 1.07d0
-      nh_scale( 9) = 1.027d0
-      nh_scale(10) = 0.94d0
-      nh_scale(11) = 0.78d0
-      nh_scale(12) = 0.671d0
-
-      !----------------------------------------------------------------------
-      ! Initialize arrays: SEA_SURFACE is also called within INIT_BROMOCARB 
-      ! to retrieve surface areas for chosen lat-band regions
-      !----------------------------------------------------------------------
-
-      ! Pull out CHBr3 and CH2Br2 emissions
-      IF (FIRST_INIT) THEN
-         CALL INIT_BROMOCARB( State_Met )
-         FIRST_INIT = .FALSE.
-      ENDIF
-
-      !----------------------
-      ! CHBr3 Emissions
-      !----------------------
-      this_month = get_month()
-
-      ! --------------------------------------------
-      ! Return with 0'd emission if the VSL source
-      ! has been turned off inside input.geos
-      ! --------------------------------------------
-      IF ( .not. LWARWICK_VSLS ) THEN
-         E_R_CHBr3 = 0.d0
-         RETURN
-      ENDIF
-
-      ! --------------------------------------------------------
-      ! Calculating the CHBr3 emission rate [molecules/box/s]
-      ! from Qing Liang's emissions distribution.
-      ! --------------------------------------------------------
-      IF ( GET_YMID(I,J,1) > 30.d0 ) THEN
-         ! use seasonal scaling
-         E_R_CHBr3 = chbr3_emiss(I,J) * nh_scale(this_month)
-      ELSE
-         E_R_CHBr3 = chbr3_emiss(I,J)
-      ENDIF
-
-      RETURN
-
-      END FUNCTION EMIS_CHBr3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: emis_ch2br2
-!
-! !DESCRIPTION: Function EMIS\_CH2Br2 is the emissions driver for very short
-! lived bromocarbon (VSLB) species and the one long-lived compound,
-! dibromomethane (CH2Br2)
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION EMIS_CH2Br2( I, J ) RESULT( E_R_CH2Br2 )
-! 
-! !USES:
-!
-      USE LOGICAL_MOD,   ONLY : LWARWICK_VSLS
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND57 -- diagnostics
-      USE COMODE_LOOP_MOD     ! Avogadro's #, called 'AVG' = 6.02252d+23
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN)    :: I        ! Longitude index
-      INTEGER, INTENT(IN)    :: J        ! Latitude  index
-!
-! !RETURN VALUE:
-!
-      REAL*8                 :: E_R_CH2Br2
-!
-! !REMARKS:
-! only ocean emissions for all bromocarbons
-! plan: (1) Bromoform: 400 Gg CHBr3/yr emitted from ocean, broken into
-!              latitudinal bands: 75% between 20deg south and 20deg north
-!                 25% between 20deg and 50deg north and south
-!              - This emission scheme follows the work of
-!                Warwick et al. (2006) Global Modeling of Bromocarbons
-!                   --> scheme A (eventually, should try B as well,
-!                       with coastal and shelf emissions...)
-!                & Yang et al. (2005) Tropospheric Bromine Chemistry
-!       (2) Dibromomethane:
-!              - Warwick et al. use same spatial scheme as used for
-!                bromoform in scenario 3 (lat bands above...)
-!                   --> schemes A & B: 113 Gg CH2Br2/yr global flux
-!              - they say they require higher emissions than some previous
-!                lit probably because they center emissions in the tropics,
-!                yielding shorter lifetimes for bromocarbons...
-!
-! !REVISION HISTORY:
-!  23 Aug 2007 - J. Parrella - Initial version
-!  22 May 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! EMIS_CH2Br2 begins here!
-      !=================================================================
-
-      ! --------------------------------------------
-      ! Return with 0'd emission if the VSL source
-      ! has been turned off inside input.geos
-      ! --------------------------------------------
-      IF ( .not. LWARWICK_VSLS ) THEN
-         E_R_CH2Br2 = 0.d0
-         RETURN
-      ENDIF
-
-      E_R_CH2Br2 = ch2br2_emiss(I,J)
-
-      END FUNCTION EMIS_CH2Br2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: sea_surface
-!
-! !DESCRIPTION: Subroutine SEA\_SURFACE calculates the total sea surface area
-!  within two specified regions:
-!     (1) total area between 20S and 20N
-!     (2) total area between 20 and 50 degrees, North + South
-!  These surface area values are used to set the emission fluxes for each of
-!  the aforementioned regions.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SEA_SURFACE( State_Met )
-! 
-! !USES:
-!
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_YEDGE
-
-      USE CMN_SIZE_MOD      ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-!
-! !REVISION HISTORY:
-!  16 Aug 2007 - J. Parrella - Initial version
-!  22 May 2012 - M. Payer    - Added ProTeX headers
-!  27 Aug 2012 - M. Payer    - Added parallel DO loop
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,          J
-      REAL*8  :: LAT_H,      LAT_L,      F_LAND,    F_WATER
-      REAL*8  :: F_ABOVE_50, F_BELOW_20
-      REAL*8  :: LAT_S,      LAT_N
-
-      !===================================
-      ! Initializing Variables
-      !===================================
-
-      F_ABOVE_50    = 0d0
-      F_BELOW_20    = 0d0
-      LAT_N         = 0d0
-      LAT_S         = 0d0
-      F_LAND        = 0d0
-      F_WATER       = 0d0
-
-      !=================================================================
-      !  SEA_SURFACE begins here!
-      !=================================================================
-
-      ! Loop over grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J,        LAT_S,      LAT_N,  LAT_H,   LAT_L )
-!$OMP+PRIVATE( F_ABOVE_50,  F_BELOW_20, F_LAND, F_WATER, A_M2  )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Get ABS( latitude ) at S and N edges of grid box
-         LAT_S      = ABS( GET_YEDGE(I,J,1)   ) 
-         LAT_N      = ABS( GET_YEDGE(I,J+1,1) )
-         LAT_H      = MAX( LAT_S, LAT_N )
-         LAT_L      = MIN( LAT_S, LAT_N ) 
-
-         IF ( LAT_L >= 50d0 ) THEN
-            F_ABOVE_50 = 1d0
-            F_BELOW_20 = 0d0
-         ELSE IF ( (LAT_H > 50d0) .and. (LAT_L < 50d0) ) THEN
-            F_ABOVE_50 = ( LAT_H - 50d0 ) / ( LAT_H - LAT_L )
-            F_BELOW_20 = 0d0
-         ELSE IF ( (LAT_H <= 50d0) .and. (LAT_L >= 20d0) ) THEN
-            F_ABOVE_50 = 0d0
-            F_BELOW_20 = 0d0
-         ELSE IF ( (LAT_H > 20d0) .and. (LAT_L < 20d0) ) THEN
-            F_ABOVE_50 = 0d0
-            F_BELOW_20 = ( 20d0 - LAT_L )/ ( LAT_H - LAT_L )
-         ELSE IF ( LAT_H <= 20d0 ) THEN
-            F_ABOVE_50 = 0d0
-            F_BELOW_20 = 1d0
-         END IF
-
-         ! Grid box surface area [m2]-- it's only a fn' of latitude
-         A_M2 = GET_AREA_M2( I, J, 1 )
-
-
-! use this if you have problems selecting only ocean.
-! they used something like this in ocean_mercury_mod.
-!jp         !======================================
-!jp         ! Make sure we are in an ocean box     
-!jp         !======================================
-!jp         IF ( ( ALBD(I,J) <= 0.4d0 ) .and.      
-!jp     &        ( FRAC_L    <  0.8d0 )  THEN
-
-
-         ! Fraction of grid box that is land
-         F_LAND  = State_Met%FRCLND(I,J)
-
-         ! Fraction of grid box that is water
-         F_WATER = 1d0 - F_LAND
-
-         ! Find the ocean fraction for box in region a:
-         ! Between 20S and 20N
-         FRAC_IN_ab(1,I,J) = F_BELOW_20 * F_WATER
-
-         ! Find the ocean fraction for box in region b:
-         ! Between 20 and 50, N + S
-         FRAC_IN_ab(2,I,J) = (1d0 - F_BELOW_20 - F_ABOVE_50) * F_WATER
-            ! note: if we just add the fractions of box below 50
-            ! and above 20, then we would need to subtract the
-            ! union to avoid double counting. Trick to get around
-            ! this is subtracting the total area outside of b from
-            ! 1d0
- 
-         ! sum up the total areas in both reagions
-         TOT_OC_AREA(1) = TOT_OC_AREA(1) + FRAC_IN_ab(1,I,J) * A_M2
-         TOT_OC_AREA(2) = TOT_OC_AREA(2) + FRAC_IN_ab(2,I,J) * A_M2
-
-      ENDDO                 !END i-loop over longitudes
-      ENDDO                 !END j-loop over latitudes
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE SEA_SURFACE
-!EOC
+!      END SUBROUTINE SEA_SURFACE
+!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -429,7 +429,7 @@
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
-      USE LOGICAL_MOD,        ONLY : LWARWICK_VSLS
+!      USE LOGICAL_MOD,        ONLY : LWARWICK_VSLS
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACER_MOD,         ONLY : TRACER_NAME
 
@@ -507,10 +507,10 @@
       ! If we aren't using bromocarbons, then
       ! set the CH3Br equal to zero.
       ! -----------------------------------------
-      IF ( .not. LWARWICK_VSLS ) THEN
-         STT(:,:,:,CH3Br_sel) = 0.d0
-         RETURN
-      ENDIF
+!      IF ( .not. LWARWICK_VSLS ) THEN
+!         STT(:,:,:,CH3Br_sel) = 0.d0
+!         RETURN
+!      ENDIF
 
       !=================================================================
       ! SET_CH3Br begins here!
@@ -743,19 +743,20 @@
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR, DATA_DIR_1x1
+!      USE DIRECTORY_MOD,      ONLY : DATA_DIR, DATA_DIR_1x1
       USE ERROR_MOD,          ONLY : ALLOC_ERR, DEBUG_MSG
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,        ONLY : LPRT,      LWARWICK_VSLS
-      USE REGRID_A2A_MOD
+!      USE GRID_MOD,           ONLY : GET_AREA_M2
+!      USE LOGICAL_MOD,        ONLY : LPRT,      LWARWICK_VSLS
+      USE LOGICAL_MOD,        ONLY : LPRT
+!      USE REGRID_A2A_MOD
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! Avogadro's #, called 'AVG' = 6.02252d+23
 
-      USE m_netcdf_io_open
-      USE m_netcdf_io_read
-      USE m_netcdf_io_close
+!      USE m_netcdf_io_open
+!      USE m_netcdf_io_read
+!      USE m_netcdf_io_close
 !
 ! !INPUT PARAMETERS: 
 !
@@ -778,113 +779,113 @@
       ! Scalars
       INTEGER            :: I, J, fileID
       INTEGER            :: AS
-      CHARACTER(len=60)  :: vsl_file, fmt, vsldir
-      CHARACTER(len=10)  :: cnlon
-      CHARACTER(len=255) :: LLFILENAME, FILENAME
+!      CHARACTER(len=60)  :: vsl_file, fmt, vsldir
+!      CHARACTER(len=10)  :: cnlon
+!      CHARACTER(len=255) :: LLFILENAME, FILENAME
 
-      ! Arrays
-      INTEGER            :: st2d(2)
-      INTEGER            :: ct2d(2)
-      REAL*8             :: ARRAY2x25(144,91)
+!      ! Arrays
+!      INTEGER            :: st2d(2)
+!      INTEGER            :: ct2d(2)
+!      REAL*8             :: ARRAY2x25(144,91)
 
       !=================================================================
       ! INIT_BROMOCARB begins here!
       !=================================================================
 
-      ! Start and count arrays for netCDF reads
-      st2d = (/ 1,   1  /)
-      ct2d = (/ 144, 91 /)
-
-      !--------------------------
-      ! Allocate and zero arrays
-      !--------------------------
-
-      ! Total regional areas
-      ALLOCATE( TOT_OC_AREA( NUM_REGIONS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TOT_OC_AREA' )
-      TOT_OC_AREA = 0d0
-
-      ! Fraction of box in a or b regions
-      ALLOCATE( FRAC_IN_ab( NUM_REGIONS, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_IN_ab' )
-      FRAC_IN_ab = 0d0
-
-      ! CHBr3 emissions [kg(CHBr3)/m2/s]
-      ALLOCATE( chbr3_emiss(IIPAR, JJPAR), STAT=AS)
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'chbr3_emiss' )
-      chbr3_emiss = 0d0
-
-      ! CH2Br2 emissions [kg(CH2Br2)/m2/s]
-      ALLOCATE( ch2br2_emiss(IIPAR, JJPAR), STAT=AS)
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ch2br2_emiss' )
-      ch2br2_emiss = 0d0
-
-      ! Do not read bromine files if emissions are off or if Br_SCALING = 0
-      IF ( .not. LWARWICK_VSLs               ) RETURN
-      IF ( .not. ( ABS( Br_SCALING ) > 0d0 ) ) RETURN
-
-      !------------------------------------------
-      ! Call Sea Surface to start filling arrays
-      !------------------------------------------
-
-      CALL SEA_SURFACE( State_Met )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSBROMOCARB: SEA_SURFACE' )
-
-      ! ----------------------------------------------------
-      ! Now read in Qing Liang's CHBr3 and CH2Br2 Emissions
-      ! **
-      !  These emissions are in 2 x 2.5 (lat x lon) and 
-      !  regridded to current model resolution
-      ! ----------------------------------------------------
-
-      ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &     'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos2x25.nc'
-      
-      ! Input file name
-      FILENAME = TRIM( DATA_DIR_1x1 ) //
-     &     'bromine_201205/VSL_emissions/SLBromine_Emission.2x25.nc'
-      
-      ! Read in CHBr3 emission file ([kg(CHBr3)/m2/s]), regrid
-      call NcOp_Rd( fileID, TRIM( FILENAME ) )
-      call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', st2d, ct2d )
-      CALL DO_REGRID_A2A( LLFILENAME, 144,         91, 
-     &                    ARRAY2x25,  CHBr3_EMISS, IS_MASS=0,
-     &                    netCDF=.TRUE.                       )
-
-
-      ! Read in CH2Br2 emission file ([kg(CH2Br2)/m2/s]), regrid
-      call NcOp_Rd( fileID, TRIM( FILENAME ) )
-      call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission', st2d, ct2d )
-      CALL DO_REGRID_A2A( LLFILENAME, 144,          91,
-     &                    ARRAY2x25,  CH2Br2_EMISS, IS_MASS=0,
-     &                    netCDF=.TRUE.                        )
-
-      ! Close emission file
-      call NcCl( fileID )
-
-      ! Calculating the CHBr3 emission rate [molecules/box/s]
-      ! from Qing Liang's emissions distribution...
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, A_M2 )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Grid box surface area [m2]-- it's only a fn' of latitude
-         A_M2 = GET_AREA_M2( I, J, 1 )
-
-         ! Conversions:
-         ! kg/m2/s ---> molecules/box/second
-         chbr3_emiss(I,J) = chbr3_emiss(I,J) / MWT_CHBr3
-     &                    * AVG * A_M2
-
-         ch2br2_emiss(I,J) = ch2br2_emiss(I,J) / MWT_CH2Br2
-     &                     * AVG * A_M2
-
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+!      ! Start and count arrays for netCDF reads
+!      st2d = (/ 1,   1  /)
+!!      ct2d = (/ 144, 91 /)
+!
+!      !--------------------------
+!      ! Allocate and zero arrays
+!      !--------------------------
+!
+!      ! Total regional areas
+!      ALLOCATE( TOT_OC_AREA( NUM_REGIONS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TOT_OC_AREA' )
+!      TOT_OC_AREA = 0d0
+!
+!      ! Fraction of box in a or b regions
+!      ALLOCATE( FRAC_IN_ab( NUM_REGIONS, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_IN_ab' )
+!      FRAC_IN_ab = 0d0
+!
+!      ! CHBr3 emissions [kg(CHBr3)/m2/s]
+!      ALLOCATE( chbr3_emiss(IIPAR, JJPAR), STAT=AS)
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'chbr3_emiss' )
+!      chbr3_emiss = 0d0
+!
+!      ! CH2Br2 emissions [kg(CH2Br2)/m2/s]
+!      ALLOCATE( ch2br2_emiss(IIPAR, JJPAR), STAT=AS)
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ch2br2_emiss' )
+!      ch2br2_emiss = 0d0
+!
+!      ! Do not read bromine files if emissions are off or if Br_SCALING = 0
+!      IF ( .not. LWARWICK_VSLs               ) RETURN
+!      IF ( .not. ( ABS( Br_SCALING ) > 0d0 ) ) RETURN
+!
+!      !------------------------------------------
+!      ! Call Sea Surface to start filling arrays
+!      !------------------------------------------
+!
+!      CALL SEA_SURFACE( State_Met )
+!      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSBROMOCARB: SEA_SURFACE' )
+!
+!      ! ----------------------------------------------------
+!      ! Now read in Qing Liang's CHBr3 and CH2Br2 Emissions
+!      ! **
+!      !  These emissions are in 2 x 2.5 (lat x lon) and 
+!      !  regridded to current model resolution
+!      ! ----------------------------------------------------
+!
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &     'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos2x25.nc'
+!      
+!      ! Input file name
+!      FILENAME = TRIM( DATA_DIR_1x1 ) //
+!     &     'bromine_201205/VSL_emissions/SLBromine_Emission.2x25.nc'
+!      
+!      ! Read in CHBr3 emission file ([kg(CHBr3)/m2/s]), regrid
+!      call NcOp_Rd( fileID, TRIM( FILENAME ) )
+!      call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', st2d, ct2d )
+!      CALL DO_REGRID_A2A( LLFILENAME, 144,         91, 
+!     &                    ARRAY2x25,  CHBr3_EMISS, IS_MASS=0,
+!     &                    netCDF=.TRUE.                       )
+!
+!
+!      ! Read in CH2Br2 emission file ([kg(CH2Br2)/m2/s]), regrid
+!      call NcOp_Rd( fileID, TRIM( FILENAME ) )
+!      call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission', st2d, ct2d )
+!      CALL DO_REGRID_A2A( LLFILENAME, 144,          91,
+!     &                    ARRAY2x25,  CH2Br2_EMISS, IS_MASS=0,
+!     &                    netCDF=.TRUE.                        )
+!
+!      ! Close emission file
+!      call NcCl( fileID )
+!
+!      ! Calculating the CHBr3 emission rate [molecules/box/s]
+!      ! from Qing Liang's emissions distribution...
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, A_M2 )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Grid box surface area [m2]-- it's only a fn' of latitude
+!         A_M2 = GET_AREA_M2( I, J, 1 )
+!
+!         ! Conversions:
+!         ! kg/m2/s ---> molecules/box/second
+!         chbr3_emiss(I,J) = chbr3_emiss(I,J) / MWT_CHBr3
+!     &                    * AVG * A_M2
+!
+!         ch2br2_emiss(I,J) = ch2br2_emiss(I,J) / MWT_CH2Br2
+!     &                     * AVG * A_M2
+!
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
 
       IF ( LPRT ) CALL DEBUG_MSG( ' ### Post-Reading VSL files' )
 
@@ -914,10 +915,10 @@
       !=================================================================
       ! CLEANUP_BROMOCARB begins here!
       !=================================================================
-      IF ( ALLOCATED( TOT_OC_AREA   ) ) DEALLOCATE( TOT_OC_AREA   )
-      IF ( ALLOCATED( FRAC_IN_ab    ) ) DEALLOCATE( FRAC_IN_ab    )
-      IF ( ALLOCATED( chbr3_emiss   ) ) DEALLOCATE( chbr3_emiss   )
-      IF ( ALLOCATED( ch2br2_emiss  ) ) DEALLOCATE( ch2br2_emiss  )
+!      IF ( ALLOCATED( TOT_OC_AREA   ) ) DEALLOCATE( TOT_OC_AREA   )
+!      IF ( ALLOCATED( FRAC_IN_ab    ) ) DEALLOCATE( FRAC_IN_ab    )
+!      IF ( ALLOCATED( chbr3_emiss   ) ) DEALLOCATE( chbr3_emiss   )
+!      IF ( ALLOCATED( ch2br2_emiss  ) ) DEALLOCATE( ch2br2_emiss  )
 
       END SUBROUTINE CLEANUP_BROMOCARB
 !EOC

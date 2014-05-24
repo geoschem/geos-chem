@@ -1785,8 +1785,8 @@ contains
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
     USE DIAG_MOD,           ONLY : AD44
-    USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV, &
-                                   SHIPO3DEP
+    USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
+!                                   SHIPO3DEP
     USE DRYDEP_MOD,         ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -2052,10 +2052,10 @@ contains
           tmpflx      = SUM(State_Chm%Trac_Tend(I,J,1:topmix,N))
           eflx(I,J,N) = eflx(I,J,N) + tmpflx
 
-          ! Also add drydep frequencies calculated by HEMCO. These values are 
-          ! in m/s. Convert to s-1, then add as other drydep frequencies 
-          ! afterwards. dflx will be converted to kg/m2/s lateron. 
-          ! (ckeller, 04/01/2014)
+          ! Also add drydep frequencies calculated by HEMCO. These values 
+          ! are in m/s. Convert to s-1, then add in the same manner as all 
+          ! other drydep frequencies below. dflx will be converted to 
+          ! kg/m2/s lateron. (ckeller, 04/01/2014)
           dflx(I,J,N) = dflx(I,J,N)                  &
                       + ( State_Chm%DepSav(I,J,N)    &
                         / State_Met%BXHEIGHT(I,J,1)  &

@@ -76,7 +76,7 @@
 !
 ! !USES:
 !
-      USE ACETONE_MOD,        ONLY : OCEAN_SINK_ACET
+!      USE ACETONE_MOD,        ONLY : OCEAN_SINK_ACET
       USE AEROSOL_MOD,        ONLY : AEROSOL_CONC
       USE AEROSOL_MOD,        ONLY : AEROSOL_RURALBOX
       USE AEROSOL_MOD,        ONLY : RDAER
@@ -113,7 +113,7 @@
       USE TAGGED_OX_MOD,      ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTACET
+!      USE TRACERID_MOD,       ONLY : IDTACET
       USE TRACERID_MOD,       ONLY : IDTISOP
       USE TRACERID_MOD,       ONLY : IDTDST1
 #if defined (UCX )
@@ -404,9 +404,9 @@
  
             ! Remove acetone ocean sink
             ! Now done within HEMCO (ckeller, 05/19/14)
-            IF ( IDTACET /= 0 ) THEN
+!            IF ( IDTACET /= 0 ) THEN
 !               CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET), State_Met ) 
-            ENDIF
+!            ENDIF
              
          !---------------------------------
          ! Offline aerosol simulation

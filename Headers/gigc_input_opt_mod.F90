@@ -125,6 +125,14 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! EMISSIONS MENU fields
      !----------------------------------------
+
+! --- TODO --- !
+! Almost all of the emissions switches are obsolete
+! under HEMCO. Keep them in here because many parts
+! of the code (diagnostics, chemistry, etc.) still
+! depend on them. We have to rehaul these parts soon!
+! ckeller, 05/21/14.
+
      LOGICAL                     :: LEMIS
      INTEGER                     :: TS_EMIS
      LOGICAL                     :: LANTHRO
@@ -831,61 +839,61 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LEMIS                  = .FALSE.
     Input_Opt%TS_EMIS                = 0
-    Input_Opt%LANTHRO                = .FALSE.
-    Input_Opt%FSCALYR                = .FALSE.
-    Input_Opt%LEMEP                  = .FALSE.
-    Input_Opt%LBRAVO                 = .FALSE.
-    Input_Opt%LEDGAR                 = .FALSE.
-    Input_Opt%LSTREETS               = .FALSE.
-    Input_Opt%LCAC                   = .FALSE.
-    Input_Opt%LNEI05                 = .FALSE.
-    Input_Opt%LNEI08                 = .FALSE.
-    Input_Opt%LRETRO                 = .FALSE.
-    Input_Opt%LNEI99                 = .FALSE.
-    Input_Opt%LICARTT                = .FALSE.
-    Input_Opt%LVISTAS                = .FALSE.
-    Input_Opt%LBIOFUEL               = .FALSE.
-    Input_Opt%LBIOGENIC              = .FALSE.
-    Input_Opt%LMEGAN                 = .FALSE.
-    Input_Opt%LPECCA                 = .FALSE.
-    Input_Opt%LMEGANMONO             = .FALSE.
-    Input_Opt%ISOP_SCALING           = 0d0
-    Input_Opt%LBIOMASS               = .FALSE.
-    Input_Opt%LBBSEA                 = .FALSE.
-    Input_Opt%LTOMSAI                = .FALSE.
-    Input_Opt%LGFED2BB               = .FALSE.
-    Input_Opt%L8DAYBB                = .FALSE.
-    Input_Opt%L3HRBB                 = .FALSE.
-    Input_Opt%LSYNOPBB               = .FALSE.
-    Input_Opt%LGFED3BB               = .FALSE.
-    Input_Opt%LDAYBB3                = .FALSE.
-    Input_Opt%L3HRBB3                = .FALSE.
-    Input_Opt%LAEIC                  = .FALSE.
-    Input_Opt%LLIGHTNOX              = .FALSE.
-    Input_Opt%LOTDLOC                = .FALSE.
+     Input_Opt%LANTHRO                = .FALSE.
+     Input_Opt%FSCALYR                = .FALSE.
+     Input_Opt%LEMEP                  = .FALSE.
+     Input_Opt%LBRAVO                 = .FALSE.
+     Input_Opt%LEDGAR                 = .FALSE.
+     Input_Opt%LSTREETS               = .FALSE.
+     Input_Opt%LCAC                   = .FALSE.
+     Input_Opt%LNEI05                 = .FALSE.
+     Input_Opt%LNEI08                 = .FALSE.
+     Input_Opt%LRETRO                 = .FALSE.
+     Input_Opt%LNEI99                 = .FALSE.
+     Input_Opt%LICARTT                = .FALSE.
+     Input_Opt%LVISTAS                = .FALSE.
+     Input_Opt%LBIOFUEL               = .FALSE.
+     Input_Opt%LBIOGENIC              = .FALSE.
+     Input_Opt%LMEGAN                 = .FALSE.
+     Input_Opt%LPECCA                 = .FALSE.
+     Input_Opt%LMEGANMONO             = .FALSE.
+     Input_Opt%ISOP_SCALING           = 0d0
+     Input_Opt%LBIOMASS               = .FALSE.
+     Input_Opt%LBBSEA                 = .FALSE.
+     Input_Opt%LTOMSAI                = .FALSE.
+     Input_Opt%LGFED2BB               = .FALSE.
+     Input_Opt%L8DAYBB                = .FALSE.
+     Input_Opt%L3HRBB                 = .FALSE.
+     Input_Opt%LSYNOPBB               = .FALSE.
+     Input_Opt%LGFED3BB               = .FALSE.
+     Input_Opt%LDAYBB3                = .FALSE.
+     Input_Opt%L3HRBB3                = .FALSE.
+     Input_Opt%LAEIC                  = .FALSE.
+     Input_Opt%LLIGHTNOX              = .FALSE.
+     Input_Opt%LOTDLOC                = .FALSE.
     Input_Opt%LSOILNOX               = .FALSE.
-    Input_Opt%SOIL_RST_FILE          = ''
-    Input_Opt%LFERTILIZERNOX         = .FALSE.
-    Input_Opt%NOx_SCALING            = 0d0
-    Input_Opt%LEDGARSHIP             = .FALSE.
-    Input_Opt%LICOADSSHIP            = .FALSE.
-    Input_Opt%LEMEPSHIP              = .FALSE.
-    Input_Opt%LSHIPSO2               = .FALSE.
-    Input_Opt%LARCSHIP               = .FALSE.
-    Input_Opt%LCOOKE                 = .FALSE.
-    Input_Opt%LHIST                  = .FALSE.
-    Input_Opt%HISTYR                 = .FALSE.
+     Input_Opt%SOIL_RST_FILE          = ''
+     Input_Opt%LFERTILIZERNOX         = .FALSE.
+     Input_Opt%NOx_SCALING            = 0d0
+     Input_Opt%LEDGARSHIP             = .FALSE.
+     Input_Opt%LICOADSSHIP            = .FALSE.
+     Input_Opt%LEMEPSHIP              = .FALSE.
+     Input_Opt%LSHIPSO2               = .FALSE.
+     Input_Opt%LARCSHIP               = .FALSE.
+     Input_Opt%LCOOKE                 = .FALSE.
+     Input_Opt%LHIST                  = .FALSE.
+     Input_Opt%HISTYR                 = .FALSE.
     Input_Opt%LWARWICK_VSLS          = .FALSE.
     Input_Opt%LSSABr2                = .FALSE.
     Input_Opt%LFIX_PBL_BRO           = .FALSE.
-    Input_Opt%Br_SCALING             = 0d0    
-    Input_Opt%LEDGARNOx              = .FALSE.
-    Input_Opt%LEDGARCO               = .FALSE. 
-    Input_Opt%LEDGARSOX              = .FALSE.
-    Input_Opt%LRCP                   = .FALSE.
-    Input_Opt%LRCPSHIP               = .FALSE.
-    Input_Opt%LRCPAIR                = .FALSE.
-    Input_Opt%LFIXEDYR               = .FALSE.
+     Input_Opt%Br_SCALING             = 0d0    
+     Input_Opt%LEDGARNOx              = .FALSE.
+     Input_Opt%LEDGARCO               = .FALSE. 
+     Input_Opt%LEDGARSOX              = .FALSE.
+     Input_Opt%LRCP                   = .FALSE.
+     Input_Opt%LRCPSHIP               = .FALSE.
+     Input_Opt%LRCPAIR                = .FALSE.
+     Input_Opt%LFIXEDYR               = .FALSE.
     Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LOCSEMIS               = .FALSE.

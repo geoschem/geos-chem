@@ -1073,7 +1073,6 @@
       USE TIME_MOD,              ONLY : GET_YEAR, GET_MONTH,  GET_DAY
       USE TIME_MOD,              ONLY : GET_HOUR, GET_MINUTE, GET_SECOND
       USE TIME_MOD,              ONLY : GET_DAY_OF_YEAR, GET_DAY_OF_WEEK
-      USE CMN_O3_MOD,            ONLY : FSCALYR
 !
 ! !ARGUMENTS:
 !
@@ -1096,11 +1095,7 @@
       ! SET_CURRENT_TIME begins here
       !=================================================================
 
-      IF ( FSCALYR < 0 ) THEN
-         cYr = GET_YEAR()
-      ELSE
-         cYr = FSCALYR
-      ENDIF
+      cYr      = GET_YEAR()
       cMt      = GET_MONTH()
       cDy      = GET_DAY()
       cHr      = GET_HOUR()

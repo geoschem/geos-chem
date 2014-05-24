@@ -269,8 +269,8 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       LOGICAL :: LKPP
       LOGICAL :: LNLPBL
-      LOGICAL :: LVISTAS
-      LOGICAL :: LWARWICK_VSLS
+!      LOGICAL :: LVISTAS
+!      LOGICAL :: LWARWICK_VSLS
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
@@ -291,8 +291,8 @@
       ! Save fields from Input_Opt into local variables
       LKPP          = Input_Opt%LKPP
       LNLPBL        = Input_Opt%LNLPBL
-      LVISTAS       = Input_Opt%LVISTAS
-      LWARWICK_VSLS = Input_Opt%LWARWICK_VSLS
+!      LVISTAS       = Input_Opt%LVISTAS
+!      LWARWICK_VSLS = Input_Opt%LWARWICK_VSLS
       XNUMOL        = Input_Opt%XNUMOL
 
       ! Initialize pointers
@@ -508,13 +508,16 @@
       ! equal to zero or not: (jpp, 4/15/10)
       ! ---------------------------------------------------------
       IF ( ( ICHBr3 > 0 ) .and. ( ICH2Br2 > 0 ) ) THEN
-         IF ( .not. LWARWICK_VSLS ) THEN
-            ! Loop over boxes per grid block
-            DO KLOOP = 1, KTLOOP 
-               CBLK(KLOOP, ICHBr3)  = 0.d0
-               CBLK(KLOOP, ICH2Br2) = 0.d0
-            ENDDO
-         ENDIF
+
+! TODO: testing only
+! --- comment for now, not sure if this is important (ckeller) ---
+!         IF ( .not. LWARWICK_VSLS ) THEN
+!            ! Loop over boxes per grid block
+!            DO KLOOP = 1, KTLOOP 
+!               CBLK(KLOOP, ICHBr3)  = 0.d0
+!               CBLK(KLOOP, ICH2Br2) = 0.d0
+!            ENDDO
+!         ENDIF
       ENDIF
 
 !

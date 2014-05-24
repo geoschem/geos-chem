@@ -146,9 +146,9 @@
       REAL(hp),ALLOCATABLE, TARGET :: SLBASE(:,:,:)
 
       ! testing only
-      integer, parameter :: ix = 43
-      integer, parameter :: iy = 25 
-      integer, parameter :: iz = 30
+      integer, parameter :: ix = -1 !30 !19 
+      integer, parameter :: iy = -1 !6  !33 
+      integer, parameter :: iz = -1 !9  !9
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -670,6 +670,12 @@
                   EXIT
                ENDIF
             ENDDO
+
+            ! testing only
+            if(i==ix.and.j==iy)then
+               write(*,*) 'LBOTTOM: ', LBOTTOM
+               write(*,*) 'LMAX   : ', LMAX
+            endif
 
             ! Error check LBOTTOM as described above
             IF ( LBOTTOM >= LMAX ) LBOTTOM = LMAX

@@ -22,7 +22,7 @@
 ! 
       PUBLIC  :: CHEM_H2_HD
       PUBLIC  :: CLEANUP_H2_HD
-      PUBLIC  :: EMISS_H2_HD
+!      PUBLIC  :: EMISS_H2_HD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
@@ -97,606 +97,606 @@
       !=================================================================
       CONTAINS
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: emiss_h2_hd
+!!
+!! !DESCRIPTION: Subroutine EMISS\_H2\_HD reads in emissions for the H2/HD 
+!!  simulation.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE EMISS_H2_HD( am_I_Root, Input_Opt,
+!     &                        State_Met, State_Chm, RC )
+!!
+!! !USES:
+!!
+!      USE BIOFUEL_MOD,        ONLY : BIOFUEL,     BIOFUEL_BURN
+!      USE BIOMASS_MOD,        ONLY : BIOMASS
+!      USE CMN_DIAG_MOD
+!      USE CMN_O3_MOD
+!      USE CMN_SIZE_MOD
+!      USE DIAG_MOD,           ONLY : AD29,        AD46,         AD10em
+!      USE GEIA_MOD,           ONLY : GET_IHOUR,   GET_DAY_INDEX
+!      USE GEIA_MOD,           ONLY : READ_GEIA,   READ_TODX
+!      USE GEIA_MOD,           ONLY : READ_LIQCO2, READ_TOTCO2
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET  
+!      USE GRID_MOD,           ONLY : GET_AREA_CM2
+!      USE MEGANUT_MOD,        ONLY : XLTMMP
+!      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
+!      USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
+!      USE TRACERID_MOD,       ONLY : IDBCO
+!      USE TIME_MOD,           ONLY : GET_MONTH,   GET_TAU 
+!      USE TIME_MOD,           ONLY : GET_YEAR,    GET_TS_EMIS  
+!      USE TRACERID_MOD,       ONLY : IDBFCO,      IDTH2,        IDTHD
+!      USE TAGGED_CO_MOD,      ONLY : INIT_TAGGED_CO
+!      USE TAGGED_CO_MOD,      ONLY : READ_ACETONE,  EMACET
+!      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!! 
+!! !REVISION HISTORY: 
+!!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
+!!  (1 ) Now references GET_ANNUAL_SCALAR (phs, 3/11/08)
+!!  (2 ) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
+!!  (3 ) IDBCO is in TRACERID_MOD now (hotp 7/31/09)
+!!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!!  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions and add
+!!                              MEGAN biogenic emissions.
+!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!  27 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOS_MID
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER                :: I, J, L, N, I0, J0
+!      INTEGER                :: AS, IREF, JREF, IJLOOP
+!      INTEGER                :: SCALEYEAR, IHOUR, NTAU, MONTH
 !
-! !IROUTINE: emiss_h2_hd
+!      ! SAVED variables
+!      LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
+!      INTEGER, SAVE          :: LASTYEAR = -999, LASTMONTH = -999
 !
-! !DESCRIPTION: Subroutine EMISS\_H2\_HD reads in emissions for the H2/HD 
-!  simulation.
-!\\
-!\\
-! !INTERFACE:
+!      ! For now these are defined in CMN_O3_mod
+!      !REAL*4                 :: EMISTCO(IIPAR,JJPAR)
+!      !REAL*4                 :: FLIQCO2(IIPAR,JJPAR)
 !
-      SUBROUTINE EMISS_H2_HD( am_I_Root, Input_Opt,
-     &                        State_Met, State_Chm, RC )
+!      REAL*8                 :: TMMP, EMXX,   EMX,  EMMO,   EMME   
+!      REAL*8                 :: EMAC, SFAC89, E_CO, E_H2, E_HD, DTSRCE 
+!      REAL*8                 :: AREA_CM2, EMOC
+!      REAL*8                 :: CONVERT(NVEGTYPE) 
+!      REAL*8                 :: GMONOT(NVEGTYPE)
 !
-! !USES:
+!      ! Cosine SZA & PAR (for calculation of monoterpenes)
+!      REAL*8                 :: SC, PDF, PDR
 !
-      USE BIOFUEL_MOD,        ONLY : BIOFUEL,     BIOFUEL_BURN
-      USE BIOMASS_MOD,        ONLY : BIOMASS
-      USE CMN_DIAG_MOD
-      USE CMN_O3_MOD
-      USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD29,        AD46,         AD10em
-      USE GEIA_MOD,           ONLY : GET_IHOUR,   GET_DAY_INDEX
-      USE GEIA_MOD,           ONLY : READ_GEIA,   READ_TODX
-      USE GEIA_MOD,           ONLY : READ_LIQCO2, READ_TOTCO2
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET  
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE MEGANUT_MOD,        ONLY : XLTMMP
-      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
-      USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
-      USE TRACERID_MOD,       ONLY : IDBCO
-      USE TIME_MOD,           ONLY : GET_MONTH,   GET_TAU 
-      USE TIME_MOD,           ONLY : GET_YEAR,    GET_TS_EMIS  
-      USE TRACERID_MOD,       ONLY : IDBFCO,      IDTH2,        IDTHD
-      USE TAGGED_CO_MOD,      ONLY : INIT_TAGGED_CO
-      USE TAGGED_CO_MOD,      ONLY : READ_ACETONE,  EMACET
-      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
+!      ! For fields from Input_Opt
+!      LOGICAL                :: LANTHRO,     LGFED2BB,     LGFED3BB
+!      LOGICAL                :: LBIOMASS,    LBIOFUEL,     LNEI99
+!      LOGICAL                :: LSTREETS,    LEDGAR,       LBRAVO
+!      LOGICAL                :: LMEGAN
 !
-! !INPUT PARAMETERS:
+!      ! Pointers
+!      ! We need to define local arrays to hold corresponding values 
+!      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+!      REAL*8, POINTER        :: STT(:,:,:,:)
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!      ! External functions
+!      REAL*8, EXTERNAL       :: BOXVL
+!      REAL*8, EXTERNAL       :: EMCH3OH
 !
-! !INPUT/OUTPUT PARAMETERS:
+!      !=================================================================
+!      ! EMISS_H2_HD begins here!
+!      !=================================================================
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!      ! Assume success
+!      RC       =  GIGC_SUCCESS
 !
-! !OUTPUT PARAMETERS:
+!      ! Copy values from Input_Opt
+!      LANTHRO  = Input_Opt%LANTHRO
+!      LGFED2BB = Input_Opt%LGFED2BB
+!      LGFED3BB = Input_Opt%LGFED3BB
+!      LBIOMASS = Input_Opt%LBIOMASS
+!      LBIOFUEL = Input_Opt%LBIOFUEL
+!      LNEI99   = Input_Opt%LNEI99 
+!      LSTREETS = Input_Opt%LSTREETS
+!      LEDGAR   = Input_Opt%LEDGAR
+!      LBRAVO   = Input_Opt%LBRAVO
+!      LMEGAN   = Input_Opt%LMEGAN
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
-!  (1 ) Now references GET_ANNUAL_SCALAR (phs, 3/11/08)
-!  (2 ) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
-!  (3 ) IDBCO is in TRACERID_MOD now (hotp 7/31/09)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions and add
-!                              MEGAN biogenic emissions.
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  27 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOS_MID
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      !=================================================================
+!      ! Do the following only on the first call to EMISS_H2_HD...
+!      !=================================================================
+!      IF ( FIRSTEMISS ) THEN
 !
-! !LOCAL VARIABLES:
+!         ! Read time-of-day and day-of-week scale factors for GEIA emissions
+!         CALL READ_TODX( TODN, TODH, TODB, SCNR89 )
 !
-      INTEGER                :: I, J, L, N, I0, J0
-      INTEGER                :: AS, IREF, JREF, IJLOOP
-      INTEGER                :: SCALEYEAR, IHOUR, NTAU, MONTH
-
-      ! SAVED variables
-      LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
-      INTEGER, SAVE          :: LASTYEAR = -999, LASTMONTH = -999
-
-      ! For now these are defined in CMN_O3_mod
-      !REAL*4                 :: EMISTCO(IIPAR,JJPAR)
-      !REAL*4                 :: FLIQCO2(IIPAR,JJPAR)
-
-      REAL*8                 :: TMMP, EMXX,   EMX,  EMMO,   EMME   
-      REAL*8                 :: EMAC, SFAC89, E_CO, E_H2, E_HD, DTSRCE 
-      REAL*8                 :: AREA_CM2, EMOC
-      REAL*8                 :: CONVERT(NVEGTYPE) 
-      REAL*8                 :: GMONOT(NVEGTYPE)
-
-      ! Cosine SZA & PAR (for calculation of monoterpenes)
-      REAL*8                 :: SC, PDF, PDR
-
-      ! For fields from Input_Opt
-      LOGICAL                :: LANTHRO,     LGFED2BB,     LGFED3BB
-      LOGICAL                :: LBIOMASS,    LBIOFUEL,     LNEI99
-      LOGICAL                :: LSTREETS,    LEDGAR,       LBRAVO
-      LOGICAL                :: LMEGAN
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER        :: STT(:,:,:,:)
-
-      ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
-      REAL*8, EXTERNAL       :: EMCH3OH
-
-      !=================================================================
-      ! EMISS_H2_HD begins here!
-      !=================================================================
-
-      ! Assume success
-      RC       =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LANTHRO  = Input_Opt%LANTHRO
-      LGFED2BB = Input_Opt%LGFED2BB
-      LGFED3BB = Input_Opt%LGFED3BB
-      LBIOMASS = Input_Opt%LBIOMASS
-      LBIOFUEL = Input_Opt%LBIOFUEL
-      LNEI99   = Input_Opt%LNEI99 
-      LSTREETS = Input_Opt%LSTREETS
-      LEDGAR   = Input_Opt%LEDGAR
-      LBRAVO   = Input_Opt%LBRAVO
-      LMEGAN   = Input_Opt%LMEGAN
-
-      !=================================================================
-      ! Do the following only on the first call to EMISS_H2_HD...
-      !=================================================================
-      IF ( FIRSTEMISS ) THEN
-
-         ! Read time-of-day and day-of-week scale factors for GEIA emissions
-         CALL READ_TODX( TODN, TODH, TODB, SCNR89 )
-
-         ! Read anthropogenic CO emissions from GEIA
-         CALL READ_GEIA( E_CO=EMISTCO )
-
-         ! Allocate all module arrays
-         CALL INIT_H2_HD
-
-         ! Set first-time flag to false
-         FIRSTEMISS = .FALSE.
-      ENDIF
-
-      MONTH = GET_MONTH()
-
-      !=================================================================
-      ! Once a month, read acetone from disk.  For GEOS-3, also read 
-      ! P(CO) from ISOPRENE, MONOTERPENES, and METHANOL from 1996.
-      ! Also read ocean H2 source and the relative H2/CO 
-      ! photochemical yield.
-      !=================================================================
-      IF ( MONTH /= LASTMONTH ) THEN
-      
-         ! Read acetone for this month
-         CALL READ_ACETONE( MONTH )
-      
-         ! Read ocean emissions
-         CALL READ_OCEAN_H2( MONTH )
-
-         ! Read H2/CO photochemical yield
-         CALL READ_H2YIELD( MONTH )
-
-         ! Save month for next iteration
-         LASTMONTH = MONTH
-      ENDIF
-
-      !=================================================================
-      ! If FSCALYR < 0 then use this year (JYEAR) for scaling the
-      ! fossil fuel emissions.  Otherwise, use the value of FSCALYR 
-      ! as specified in 'input.ctm'.
-      !
-      ! Modified to use new scaling factor (phs, 3/11/08)
-      !=================================================================
-      IF ( FSCALYR < 0 ) THEN
-         SCALEYEAR = GET_YEAR()
-      ELSE
-         SCALEYEAR = FSCALYR
-      ENDIF
-
-      IF ( SCALEYEAR /= LASTYEAR ) THEN
-         ! now use updated scalars (phs, 3/11/08)
-         CALL GET_ANNUAL_SCALAR( 72, 1985, SCALEYEAR, FLIQCO2 )
-         LASTYEAR = SCALEYEAR
-      ENDIF
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
-      ! DTSRCE is the number of seconds per emission timestep
-      DTSRCE = GET_TS_EMIS() * 60d0
-
-      ! Get nested-grid offsets
-      I0 = GET_XOFFSET()
-      J0 = GET_YOFFSET()
-
-      !=================================================================
-      ! Process Anthropogenic (Fossil Fuel) H2 emissions based on
-      ! CO emissions scaled by H2/CO emission ratio of 0.042 H2/CO 
-      ! from the GEIA/Piccot inventory (Hauglustaine and Ehhalt, 2002).
-      !
-      ! Anthropogenic emissions are enhanced by 18.5% below.  This
-      ! accounts for production of H2 from oxidation of certain VOC's,
-      ! which are not explicitly carried by GEOS-CHEM as anthropogenic
-      ! species.  This needs to be done here since a different scale
-      ! factor for the full chemistry run is used. The 18.5% is further
-      ! multiplied by the relative H2/CO photochemical yield.  Also update
-      ! the ND29 diagnostic below, in order to archive the correct 
-      ! emissions. (bmy, 6/14/01)
-      !
-      ! For HD, we include an isotopic signature of -196 permil from
-      ! Quay and Gerst (2001).
-      !
-      ! NOTES: 
-      ! (1) Anthro CO emissions come from the GEIA/Piccot inventory.
-      !     (bmy, 1/2/01)
-      ! (2) Need to save ND29 diagnostics here (bmy, 1/2/01)
-      !=================================================================
-      IF ( LANTHRO ) THEN
-
-         ! NTAU is just the integral value of TAU (ave, bmy, 6/10/03)
-         NTAU = GET_TAU()
-
-         ! SFAC89 is the Weekday/Saturday/Sunday scale factor
-         SFAC89 = SCNR89( 2, GET_DAY_INDEX( NTAU ) ) 
-
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( E_CO, E_H2, E_HD, AREA_CM2, I, IHOUR, IREF, J, JREF, N )
-         DO J = 1, JJPAR
-            JREF = J + J0
-
-            DO I = 1, IIPAR
-               IREF = I + I0
-
-               ! Grid box surface areas [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-               ! E_CO is FF CO emissions in [molec CO/cm^2/s]
-               ! Scale E_CO by the day-of-week scale factor SFAC89
-               E_CO = EMISTCO(IREF,JREF) * SFAC89
-
-               ! Scale E_CO by the time-of-day scale factor TODH
-               ! IHOUR is the index for the time-of-day scale factor TODH
-               IHOUR = GET_IHOUR( I )
-               E_CO  = E_CO * TODH(IHOUR)
-
-               ! Scale E_CO by FLIQCO2, which reflects the yearly 
-               ! increase in FF CO emissions for each country
-               E_CO = E_CO * FLIQCO2(IREF,JREF)
-
-
-               !%%%  Need to also overwrite emissions with EDGAR etc %%% 
-               IF ( LEDGAR ) THEN
-                  ! etc
-               ENDIF
-      
-               IF ( LSTREETS ) THEN
-                  ! etc
-               ENDIF
-      
-               IF ( LBRAVO ) THEN
-                  ! etc
-               ENDIF
-      
-               IF ( LNEI99 ) THEN
-                  ! etc
-               ENDIF
-
-
-               ! ND29 diagnostic -- store Fossil Fuel CO [molec/cm2/s] 
-               IF ( ND29 > 0 ) THEN
-                  AD29(I,J,1) = AD29(I,J,1) + E_CO * 1.185d0
-               ENDIF
-
-               ! To obtain H2 FF emissions, scale E_CO by Anthropogenic ratio 
-               ! H2/CO of 0.042 from Hauglustaine and Ehhalt, 2002
-               ! Convert from mass to molecules
-	       ! 0.042 gH2/gCO x (28 mol/g)/(2 mol/g) = 0.588 molec H2/CO 
-               ! Enhance H2 by 18.5% to account for oxidation
-               ! from Anthropogenic VOC's (bnd, bmy, 6/8/01) and
-               ! multiply with H2/CO photochemical yield
-               ! (hup, jaegle 4/20/2007)
-               E_H2 = E_CO * ( 0.185d0 * H2CO_YIELD(I,J,1) + 0.588d0 )
-	       
-	       ! Calculate FF emissions for HD, using the -196 permil 
-               ! signature measured by (Gerst & Quay, 2001).
-               ! Convert permil to D/H ratio
-               ! (D/H)ff = (delD/1000d0+1d0)*vsmow =  1.2523d-4 
-               ! with vsmow = 155.76d-6 [ Vienna Mean Standard Ocean
-               ! Water] and delD = -196 permil
-               ! We further need to multiply by 2 to get the DH/H2
-               ! ratio (we count the hydrogens vs the deuteriums).
-               ! (DH/H2)ff = 1.2523d-4 * 2.d0
-	       ! (hup, jaegle, 11/16/2003) 
-	       E_HD = E_H2 * 1.2523d-4 * 2.d0
-
-               ! ND10 diagnostic -- store Fossil Fuel H2,HD [molec/cm2/s]
-               IF ( ND10 > 0 ) THEN
-                  AD10em(I,J,1) = AD10em(I,J,1) + E_H2
-               ENDIF
-	       
-               ! Convert E_H2 from [molec H2/cm2/s] to [kg H2]
-               E_H2 = E_H2 * ( AREA_CM2 * DTSRCE / XNUMOL_H2 )
-	       
-	       ! Convert E_HD from [molec HD/cm2/s] to [kg HD]
-	       E_HD = E_HD * ( AREA_CM2 * DTSRCE / XNUMOL_HD )
-
-               ! Add FF H2 to Tracer #1 -- total H2 [kg H2]
-	       ! Add FF HD to Tracer #2 -- total HD [kg HD]
-               STT(I,J,1,IDTH2) = STT(I,J,1,IDTH2) + E_H2
-	       STT(I,J,1,IDTHD) = STT(I,J,1,IDTHD) + E_HD
-
-            ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-
-      !=================================================================
-      ! Process biomass burning CO emissions, stored in array
-      ! BIOMASS(:,:,IDBCO) which has units of [molec/cm2/s]
-      ! To obtain the H2 biomass burning emissions, the CO emissions
-      ! are scaled by a molar ratio of 0.29 molH2/molCO based on
-      ! Andreae and Merlet (2001, Table 2). This value is obtained
-      ! by taking the mean of Savannah, Grassland, Tropical Forest
-      ! and Extratropical Forest H2/CO ratios weighted by Dry
-      ! Matter Burned.
-      !
-      ! The default Duncan et al 2001 biomass burning emissions are
-      ! enhanced by 11.% within here to account for the VOC.
-      !
-      ! For HD, we include an isotopic signature of -290 permil from
-      ! Quay and Gerst (2001).
-      !
-      ! GFED CO biomass burning emissions are not scaled in a full
-      ! chemistry, meaning that VOC oxidation is already included.
-      ! Then formula below for CO->H2 is modified to account for 
-      ! that assumption (phs).
-      !
-      ! NOTES:
-      ! (1) Some forest fires generate strong convection columns.  
-      !      However, we release biomass burning emissions only into 
-      !      the surface layer. (bnd, bmy, 1/3/01)
-      !=================================================================
-      IF ( LBIOMASS ) THEN
-
+!         ! Read anthropogenic CO emissions from GEIA
+!         CALL READ_GEIA( E_CO=EMISTCO )
+!
+!         ! Allocate all module arrays
+!         CALL INIT_H2_HD
+!
+!         ! Set first-time flag to false
+!         FIRSTEMISS = .FALSE.
+!      ENDIF
+!
+!      MONTH = GET_MONTH()
+!
+!      !=================================================================
+!      ! Once a month, read acetone from disk.  For GEOS-3, also read 
+!      ! P(CO) from ISOPRENE, MONOTERPENES, and METHANOL from 1996.
+!      ! Also read ocean H2 source and the relative H2/CO 
+!      ! photochemical yield.
+!      !=================================================================
+!      IF ( MONTH /= LASTMONTH ) THEN
+!      
+!         ! Read acetone for this month
+!         CALL READ_ACETONE( MONTH )
+!      
+!         ! Read ocean emissions
+!         CALL READ_OCEAN_H2( MONTH )
+!
+!         ! Read H2/CO photochemical yield
+!         CALL READ_H2YIELD( MONTH )
+!
+!         ! Save month for next iteration
+!         LASTMONTH = MONTH
+!      ENDIF
+!
+!      !=================================================================
+!      ! If FSCALYR < 0 then use this year (JYEAR) for scaling the
+!      ! fossil fuel emissions.  Otherwise, use the value of FSCALYR 
+!      ! as specified in 'input.ctm'.
+!      !
+!      ! Modified to use new scaling factor (phs, 3/11/08)
+!      !=================================================================
+!      IF ( FSCALYR < 0 ) THEN
+!         SCALEYEAR = GET_YEAR()
+!      ELSE
+!         SCALEYEAR = FSCALYR
+!      ENDIF
+!
+!      IF ( SCALEYEAR /= LASTYEAR ) THEN
+!         ! now use updated scalars (phs, 3/11/08)
+!         CALL GET_ANNUAL_SCALAR( 72, 1985, SCALEYEAR, FLIQCO2 )
+!         LASTYEAR = SCALEYEAR
+!      ENDIF
+!
+!      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+!      ! (mpayer, 12/6/12)
+!      STT => State_Chm%Tracers
+!
+!      ! DTSRCE is the number of seconds per emission timestep
+!      DTSRCE = GET_TS_EMIS() * 60d0
+!
+!      ! Get nested-grid offsets
+!      I0 = GET_XOFFSET()
+!      J0 = GET_YOFFSET()
+!
+!      !=================================================================
+!      ! Process Anthropogenic (Fossil Fuel) H2 emissions based on
+!      ! CO emissions scaled by H2/CO emission ratio of 0.042 H2/CO 
+!      ! from the GEIA/Piccot inventory (Hauglustaine and Ehhalt, 2002).
+!      !
+!      ! Anthropogenic emissions are enhanced by 18.5% below.  This
+!      ! accounts for production of H2 from oxidation of certain VOC's,
+!      ! which are not explicitly carried by GEOS-CHEM as anthropogenic
+!      ! species.  This needs to be done here since a different scale
+!      ! factor for the full chemistry run is used. The 18.5% is further
+!      ! multiplied by the relative H2/CO photochemical yield.  Also update
+!      ! the ND29 diagnostic below, in order to archive the correct 
+!      ! emissions. (bmy, 6/14/01)
+!      !
+!      ! For HD, we include an isotopic signature of -196 permil from
+!      ! Quay and Gerst (2001).
+!      !
+!      ! NOTES: 
+!      ! (1) Anthro CO emissions come from the GEIA/Piccot inventory.
+!      !     (bmy, 1/2/01)
+!      ! (2) Need to save ND29 diagnostics here (bmy, 1/2/01)
+!      !=================================================================
+!      IF ( LANTHRO ) THEN
+!
+!         ! NTAU is just the integral value of TAU (ave, bmy, 6/10/03)
+!         NTAU = GET_TAU()
+!
+!         ! SFAC89 is the Weekday/Saturday/Sunday scale factor
+!         SFAC89 = SCNR89( 2, GET_DAY_INDEX( NTAU ) ) 
+!
+!!$OMP PARALLEL DO 
+!!$OMP+DEFAULT( SHARED ) 
+!!$OMP+PRIVATE( E_CO, E_H2, E_HD, AREA_CM2, I, IHOUR, IREF, J, JREF, N )
+!         DO J = 1, JJPAR
+!            JREF = J + J0
+!
+!            DO I = 1, IIPAR
+!               IREF = I + I0
+!
+!               ! Grid box surface areas [cm2]
+!               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+!
+!               ! E_CO is FF CO emissions in [molec CO/cm^2/s]
+!               ! Scale E_CO by the day-of-week scale factor SFAC89
+!               E_CO = EMISTCO(IREF,JREF) * SFAC89
+!
+!               ! Scale E_CO by the time-of-day scale factor TODH
+!               ! IHOUR is the index for the time-of-day scale factor TODH
+!               IHOUR = GET_IHOUR( I )
+!               E_CO  = E_CO * TODH(IHOUR)
+!
+!               ! Scale E_CO by FLIQCO2, which reflects the yearly 
+!               ! increase in FF CO emissions for each country
+!               E_CO = E_CO * FLIQCO2(IREF,JREF)
+!
+!
+!               !%%%  Need to also overwrite emissions with EDGAR etc %%% 
+!               IF ( LEDGAR ) THEN
+!                  ! etc
+!               ENDIF
+!      
+!               IF ( LSTREETS ) THEN
+!                  ! etc
+!               ENDIF
+!      
+!               IF ( LBRAVO ) THEN
+!                  ! etc
+!               ENDIF
+!      
+!               IF ( LNEI99 ) THEN
+!                  ! etc
+!               ENDIF
+!
+!
+!               ! ND29 diagnostic -- store Fossil Fuel CO [molec/cm2/s] 
+!               IF ( ND29 > 0 ) THEN
+!                  AD29(I,J,1) = AD29(I,J,1) + E_CO * 1.185d0
+!               ENDIF
+!
+!               ! To obtain H2 FF emissions, scale E_CO by Anthropogenic ratio 
+!               ! H2/CO of 0.042 from Hauglustaine and Ehhalt, 2002
+!               ! Convert from mass to molecules
+!	       ! 0.042 gH2/gCO x (28 mol/g)/(2 mol/g) = 0.588 molec H2/CO 
+!               ! Enhance H2 by 18.5% to account for oxidation
+!               ! from Anthropogenic VOC's (bnd, bmy, 6/8/01) and
+!               ! multiply with H2/CO photochemical yield
+!               ! (hup, jaegle 4/20/2007)
+!               E_H2 = E_CO * ( 0.185d0 * H2CO_YIELD(I,J,1) + 0.588d0 )
+!	       
+!	       ! Calculate FF emissions for HD, using the -196 permil 
+!               ! signature measured by (Gerst & Quay, 2001).
+!               ! Convert permil to D/H ratio
+!               ! (D/H)ff = (delD/1000d0+1d0)*vsmow =  1.2523d-4 
+!               ! with vsmow = 155.76d-6 [ Vienna Mean Standard Ocean
+!               ! Water] and delD = -196 permil
+!               ! We further need to multiply by 2 to get the DH/H2
+!               ! ratio (we count the hydrogens vs the deuteriums).
+!               ! (DH/H2)ff = 1.2523d-4 * 2.d0
+!	       ! (hup, jaegle, 11/16/2003) 
+!	       E_HD = E_H2 * 1.2523d-4 * 2.d0
+!
+!               ! ND10 diagnostic -- store Fossil Fuel H2,HD [molec/cm2/s]
+!               IF ( ND10 > 0 ) THEN
+!                  AD10em(I,J,1) = AD10em(I,J,1) + E_H2
+!               ENDIF
+!	       
+!               ! Convert E_H2 from [molec H2/cm2/s] to [kg H2]
+!               E_H2 = E_H2 * ( AREA_CM2 * DTSRCE / XNUMOL_H2 )
+!	       
+!	       ! Convert E_HD from [molec HD/cm2/s] to [kg HD]
+!	       E_HD = E_HD * ( AREA_CM2 * DTSRCE / XNUMOL_HD )
+!
+!               ! Add FF H2 to Tracer #1 -- total H2 [kg H2]
+!	       ! Add FF HD to Tracer #2 -- total HD [kg HD]
+!               STT(I,J,1,IDTH2) = STT(I,J,1,IDTH2) + E_H2
+!	       STT(I,J,1,IDTHD) = STT(I,J,1,IDTHD) + E_HD
+!
+!            ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
+!
+!      !=================================================================
+!      ! Process biomass burning CO emissions, stored in array
+!      ! BIOMASS(:,:,IDBCO) which has units of [molec/cm2/s]
+!      ! To obtain the H2 biomass burning emissions, the CO emissions
+!      ! are scaled by a molar ratio of 0.29 molH2/molCO based on
+!      ! Andreae and Merlet (2001, Table 2). This value is obtained
+!      ! by taking the mean of Savannah, Grassland, Tropical Forest
+!      ! and Extratropical Forest H2/CO ratios weighted by Dry
+!      ! Matter Burned.
+!      !
+!      ! The default Duncan et al 2001 biomass burning emissions are
+!      ! enhanced by 11.% within here to account for the VOC.
+!      !
+!      ! For HD, we include an isotopic signature of -290 permil from
+!      ! Quay and Gerst (2001).
+!      !
+!      ! GFED CO biomass burning emissions are not scaled in a full
+!      ! chemistry, meaning that VOC oxidation is already included.
+!      ! Then formula below for CO->H2 is modified to account for 
+!      ! that assumption (phs).
+!      !
+!      ! NOTES:
+!      ! (1) Some forest fires generate strong convection columns.  
+!      !      However, we release biomass burning emissions only into 
+!      !      the surface layer. (bnd, bmy, 1/3/01)
+!      !=================================================================
+!      IF ( LBIOMASS ) THEN
+!
+!!!$OMP PARALLEL DO
+!!!$OMP+DEFAULT( SHARED )
+!!!$OMP+PRIVATE( E_H2, E_HD, I, J, N, AREA_CM2 )
+!
+!         ! Loop over surface boxes
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! Grid box surface area [cm2]
+!            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+!
+!            ! Convert [molec CO/cm2/s] to [molec H2/cm2/s]
+!            ! Scale by 0.29 mol H2/mol CO and increase by 
+!            ! 0.11*H2CO_YIELD to account for voc oxidation.
+!            IF ( LGFED2BB ) THEN
+!               BIOMASS(I,J,IDBCO) = BIOMASS(I,J,IDBCO) *
+!     &              ( H2CO_YIELD(I,J,1) + ( 0.29d0 / 0.11d0 ) )
+!            ELSE IF ( LGFED3BB ) THEN
+!               BIOMASS(I,J,IDBCO) = BIOMASS(I,J,IDBCO) *
+!     &              ( H2CO_YIELD(I,J,1) + ( 0.29d0 / 0.11d0 ) )
+!            ELSE
+!               BIOMASS(I,J,IDBCO) = BIOMASS(I,J,IDBCO) *
+!     &              ( ( 0.11d0 * H2CO_YIELD(I,J,1) ) + 0.29d0 )
+!            ENDIF
+!
+!
+!            ! ND10 diagnostic -- store biomass burning of H2 [molec H2/cm2/s]
+!            IF ( ND10 > 0 ) AD10em(I,J,2) = AD10em(I,J,2) + 
+!     &                                      BIOMASS(I,J,IDBCO)
+!
+!            ! Convert [molec H2/cm2/s] to [kg H2] and store in E_H2.
+!            E_H2 = ( BIOMASS(I,J,IDBCO) / XNUMOL_H2 ) *
+!     &             ( AREA_CM2           * DTSRCE    )
+!
+!           ! Convert [molec H2/cm3/s] to [kg HD] and store in E_HD.
+!	   ! Scale E_HD by biomass burning ratio 1.1d-4 molecules HD/H2 
+!	   ! accd isotopic signature of -293permil (Gerst & Quay, 2001)
+!           ! change to -290 permil (as in Gerst and Quay) - jaegle
+!           ! add missing factor of 2
+!	   ! Calculate BF emissions for HD, using the -290 permil 
+!           ! isotopic signature measured by (Gerst & Quay, 2001).
+!           ! Convert permil to D/H ratio
+!           ! (D/H)ff = (delD/1000d0+1d0)*vsmow =  1.1059d-4
+!           ! with vsmow = 155.76d-6 [ Vienna Mean Standard Ocean
+!           ! Water] and delD = -290 permil
+!           ! We further need to multiply by 2 to get the DH/H2
+!           ! ratio (we count the hydrogens vs the deuteriums).
+!           ! (DH/H2)ff = 1.1059d-4 * 2.d0
+!           
+!            E_HD = ( ( BIOMASS(I,J,IDBCO) * 1.1059d-4 * 2.d0) 
+!     &                / XNUMOL_HD ) * ( AREA_CM2 * DTSRCE )
+!
+!            ! Add H2 HD biomass burning to corresponding tracers -
+!            ! - total H2/HD [kg H2/HD]
+!            STT(I,J,1,IDTH2) = STT(I,J,1,IDTH2) + E_H2
+!            STT(I,J,1,IDTHD) = STT(I,J,1,IDTHD) + E_HD
+!
+!            ENDDO
+!         ENDDO
+!!!$OMP END PARALLEL DO
+!      ENDIF
+!
+!      !=================================================================
+!      ! Process biofuel (formerly wood burning) CO emissions
+!      ! stored in BIOFUEL(IDBCO,IREF,JREF) in [molec/cm3/s]
+!      !
+!      ! Biofuel burning emissions must be enhanced by 18.9% 
+!      ! to account for CO production from oxidation of certain VOC's, 
+!      ! which are not explicitly carried by GEOS-CHEM as biofuel burning
+!      ! species.
+!      ! In case of H2/HD simulation,the scaling is done here.
+!      !
+!      ! Scale CO emissions by 0.322 molH2/molCO from 
+!      ! Andreae and Merlet [2001].
+!      ! Scaled by the relative H2 to CO photochemical yield.
+!      !
+!      ! For HD, we include an isotopic signature of -290 permil from
+!      ! Quay and Gerst (2001) - we assume that biofuel isotopic
+!      ! signature is the same as biomass burning.
+!      !
+!      ! NOTES:
+!      ! (1 ) Use IDBFCO to index the proper element of the 
+!      !       biofuel burning array (bmy, 6/8/01).
+!      !=================================================================
+!      IF ( LBIOFUEL ) THEN
+!         CALL BIOFUEL_BURN
+!     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( E_H2, E_HD, I, J, N, AREA_CM2 )
-
-         ! Loop over surface boxes
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-            ! Convert [molec CO/cm2/s] to [molec H2/cm2/s]
-            ! Scale by 0.29 mol H2/mol CO and increase by 
-            ! 0.11*H2CO_YIELD to account for voc oxidation.
-            IF ( LGFED2BB ) THEN
-               BIOMASS(I,J,IDBCO) = BIOMASS(I,J,IDBCO) *
-     &              ( H2CO_YIELD(I,J,1) + ( 0.29d0 / 0.11d0 ) )
-            ELSE IF ( LGFED3BB ) THEN
-               BIOMASS(I,J,IDBCO) = BIOMASS(I,J,IDBCO) *
-     &              ( H2CO_YIELD(I,J,1) + ( 0.29d0 / 0.11d0 ) )
-            ELSE
-               BIOMASS(I,J,IDBCO) = BIOMASS(I,J,IDBCO) *
-     &              ( ( 0.11d0 * H2CO_YIELD(I,J,1) ) + 0.29d0 )
-            ENDIF
-
-
-            ! ND10 diagnostic -- store biomass burning of H2 [molec H2/cm2/s]
-            IF ( ND10 > 0 ) AD10em(I,J,2) = AD10em(I,J,2) + 
-     &                                      BIOMASS(I,J,IDBCO)
-
-            ! Convert [molec H2/cm2/s] to [kg H2] and store in E_H2.
-            E_H2 = ( BIOMASS(I,J,IDBCO) / XNUMOL_H2 ) *
-     &             ( AREA_CM2           * DTSRCE    )
-
-           ! Convert [molec H2/cm3/s] to [kg HD] and store in E_HD.
-	   ! Scale E_HD by biomass burning ratio 1.1d-4 molecules HD/H2 
-	   ! accd isotopic signature of -293permil (Gerst & Quay, 2001)
-           ! change to -290 permil (as in Gerst and Quay) - jaegle
-           ! add missing factor of 2
-	   ! Calculate BF emissions for HD, using the -290 permil 
-           ! isotopic signature measured by (Gerst & Quay, 2001).
-           ! Convert permil to D/H ratio
-           ! (D/H)ff = (delD/1000d0+1d0)*vsmow =  1.1059d-4
-           ! with vsmow = 155.76d-6 [ Vienna Mean Standard Ocean
-           ! Water] and delD = -290 permil
-           ! We further need to multiply by 2 to get the DH/H2
-           ! ratio (we count the hydrogens vs the deuteriums).
-           ! (DH/H2)ff = 1.1059d-4 * 2.d0
-           
-            E_HD = ( ( BIOMASS(I,J,IDBCO) * 1.1059d-4 * 2.d0) 
-     &                / XNUMOL_HD ) * ( AREA_CM2 * DTSRCE )
-
-            ! Add H2 HD biomass burning to corresponding tracers -
-            ! - total H2/HD [kg H2/HD]
-            STT(I,J,1,IDTH2) = STT(I,J,1,IDTH2) + E_H2
-            STT(I,J,1,IDTHD) = STT(I,J,1,IDTHD) + E_HD
-
-            ENDDO
-         ENDDO
+!!$OMP+PRIVATE( E_H2, E_HD, I, J, N )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! Convert from [molec CO/cm3/s] to [kg H2]
+!            ! BIOFUEL(IDBFCO,I,J) contains biofuel CO emissions.
+!            ! Scale by 0.322d0 H2/CO from Andreae and Merlet
+!            ! and enhance by 18.9% * yield h2/co from photochemical
+!            ! oxidation (lyj, 2/10/07)
+!            E_H2 = BIOFUEL(IDBFCO,I,J)    / XNUMOL_H2 *
+!     &             BOXVL(I,J,1,State_Met) * DTSRCE    *
+!     &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 )
+!
+!
+!            ! Calculate the HD emissions using a -290 permil
+!            ! isotopic signature (see BB emissions above).
+!            ! jaegle (4/20/07)
+!
+!            E_HD = ( BIOFUEL(IDBFCO,I,J) * 1.1059d-4 )    * 
+!     &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) )      + 0.322d0 ) /
+!     &             XNUMOL_HD   * ( BOXVL(I,J,1,State_Met) * DTSRCE  ) *
+!     &             2.d0
+!
+!            ! ND10 -- store Biofuel Fuel H2 [molec/cm2/s]
+!            IF ( ND10 > 0 ) THEN
+!               AD10em(I,J,3) = AD10em(I,J,3) + ( BIOFUEL(IDBFCO,I,J) *
+!     &                 ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 ) *
+!     &                       State_Met%BXHEIGHT(I,J,1)   * 100d0 )
+!            ENDIF 
+!
+!            ! Add H2 HD biomass burning to corresponding tracers -
+!            ! - total H2/HD [kg H2/HD]
+!            STT(I,J,1,IDTH2) = STT(I,J,1,IDTH2) + E_H2
+!            STT(I,J,1,IDTHD) = STT(I,J,1,IDTHD) + E_HD
+!
+!         ENDDO
+!         ENDDO
 !!$OMP END PARALLEL DO
-      ENDIF
-
-      !=================================================================
-      ! Process biofuel (formerly wood burning) CO emissions
-      ! stored in BIOFUEL(IDBCO,IREF,JREF) in [molec/cm3/s]
-      !
-      ! Biofuel burning emissions must be enhanced by 18.9% 
-      ! to account for CO production from oxidation of certain VOC's, 
-      ! which are not explicitly carried by GEOS-CHEM as biofuel burning
-      ! species.
-      ! In case of H2/HD simulation,the scaling is done here.
-      !
-      ! Scale CO emissions by 0.322 molH2/molCO from 
-      ! Andreae and Merlet [2001].
-      ! Scaled by the relative H2 to CO photochemical yield.
-      !
-      ! For HD, we include an isotopic signature of -290 permil from
-      ! Quay and Gerst (2001) - we assume that biofuel isotopic
-      ! signature is the same as biomass burning.
-      !
-      ! NOTES:
-      ! (1 ) Use IDBFCO to index the proper element of the 
-      !       biofuel burning array (bmy, 6/8/01).
-      !=================================================================
-      IF ( LBIOFUEL ) THEN
-         CALL BIOFUEL_BURN
-     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( E_H2, E_HD, I, J, N )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Convert from [molec CO/cm3/s] to [kg H2]
-            ! BIOFUEL(IDBFCO,I,J) contains biofuel CO emissions.
-            ! Scale by 0.322d0 H2/CO from Andreae and Merlet
-            ! and enhance by 18.9% * yield h2/co from photochemical
-            ! oxidation (lyj, 2/10/07)
-            E_H2 = BIOFUEL(IDBFCO,I,J)    / XNUMOL_H2 *
-     &             BOXVL(I,J,1,State_Met) * DTSRCE    *
-     &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 )
-
-
-            ! Calculate the HD emissions using a -290 permil
-            ! isotopic signature (see BB emissions above).
-            ! jaegle (4/20/07)
-
-            E_HD = ( BIOFUEL(IDBFCO,I,J) * 1.1059d-4 )    * 
-     &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) )      + 0.322d0 ) /
-     &             XNUMOL_HD   * ( BOXVL(I,J,1,State_Met) * DTSRCE  ) *
-     &             2.d0
-
-            ! ND10 -- store Biofuel Fuel H2 [molec/cm2/s]
-            IF ( ND10 > 0 ) THEN
-               AD10em(I,J,3) = AD10em(I,J,3) + ( BIOFUEL(IDBFCO,I,J) *
-     &                 ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 ) *
-     &                       State_Met%BXHEIGHT(I,J,1)   * 100d0 )
-            ENDIF 
-
-            ! Add H2 HD biomass burning to corresponding tracers -
-            ! - total H2/HD [kg H2/HD]
-            STT(I,J,1,IDTH2) = STT(I,J,1,IDTH2) + E_H2
-            STT(I,J,1,IDTHD) = STT(I,J,1,IDTHD) + E_HD
-
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-
-      !=================================================================
-      ! Process emissions of ISOPRENE, MONOTERPENES, METHANOL
-      ! and ACETONE -- save into summing arrays for later use
-      ! Also process ocean emissions for H2.
-      !=================================================================
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMXX, EMMO, EMAC, EMOC )
-!$OMP+PRIVATE( E_H2, E_HD )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-            ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-            ! 1-D array index 
-            IJLOOP = ( (J-1) * IIPAR ) + I
-
-            !===========================================================
-            ! The CO and H2 yields from ISOP, MONOTERPENES, and CH3OH will be
-            ! computed in subroutine CHEM_H2_HD.  P(CO) from CH3OH
-            ! will be scaled to isoprene emissions within subroutine
-            ! CHEM_H2_HD 
-            !===========================================================
-
-            ! Surface air temperature [K]
-            TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
-
-            ! MEGAN biogenic emissions (mpayer,12/8/11)
-            IF ( LMEGAN ) THEN
-
-               ! Cosine of solar zenith angle
-               SC   = State_Met%SUNCOSmid(I,J)
-
-               ! Diffuse and direct PAR
-               PDR  = State_Met%PARDR(I,J)
-               PDF  = State_Met%PARDF(I,J)
-
-               ! ISOP and MONOTERPENE emissions in [atoms C/box/time step]
-               EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
-     &                                   PDR, PDF, XNUMOL_ISOP )
-               EMMO = GET_EMMONOT_MEGAN( I,   J,   SC,    TMMP,
-     &                                   PDR, PDF, XNUMOL_MONO )
-
-            ENDIF
-
-            ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]
-            ! for later use in the subroutine CHEM_H2_HD
-            SUMISOPCO(I,J) = SUMISOPCO(I,J) + EMXX
-            SUMMONOCO(I,J) = SUMMONOCO(I,J) + EMMO
-
-            ! ND46 -- save biogenic emissions [atoms C/cm2/s] here 
-            IF ( ND46 > 0 ) THEN
-
-               ! Isoprene 
-               AD46(I,J,1) = AD46(I,J,1) + ( EMXX / AREA_CM2 / DTSRCE )
-
-               ! Monoterpenes 
-               AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 / DTSRCE )
-
-            ENDIF
-
-            !===========================================================
-            ! For GEOS-1, GEOS-STRAT, GEOS-3, extract acetone emission
-            ! fluxes the EMACET array for the current month
-            !===========================================================
-
-            ! EMAC = [atoms C/box/s] from acetone
-            EMAC = EMACET( I, J )
-
-            ! Sum acetone loss for use in chemco_decay
-            ! Units = [atoms C/box/timestep]
-            SUMACETCO(I,J) = SUMACETCO(I,J) + (EMAC * DTSRCE * AREA_CM2) 
-
-	    !===========================================================
-            ! For GEOS-4 (?) and GEOS-3, extract ocean emissions
-            ! fluxes the EMOCEAN array for the current month
-            !===========================================================
-
-            ! EMOC = [molec/cm2/s] Ocean emissions of H2 from N-fixation
-            EMOC = EMOCEAN( I, J )
-	    
-	    ! Calculate HD ocean source (molec HD/cm2/s)
-            ! assume delD=-628 permil
-            ! add missing factor of 2 (jaegle 12/23/05)
-	    
-	    E_HD = EMOC * 5.79427d-5 * 2.d0
-	    
-            ! diag 10 
-            IF ( ND10 > 0 ) THEN
-                 AD10em(I,J,4) = AD10em(I,J,4) + EMOC
-                 AD10em(I,J,5) = AD10em(I,J,5) + E_HD	  
-            ENDIF
-
-            ! Convert ocean H2 source from [molec H2/cm2/s] to [kg H2]
-            E_H2 =  EMOC  * ( AREA_CM2 * DTSRCE / XNUMOL_H2 ) 
-            
-	    ! Scale E_HD by ocean isotopic signature ratio 
-	    ! of -628 permil (Rice & Quay, 2007)
-            ! (DH/H2)ocean = 5.79427d-5 * 2
-            
-            E_HD =  ( EMOC * 5.79427d-5 * 2d0) * 
-     &              ( AREA_CM2 * DTSRCE / XNUMOL_HD )  
-            
-            ! Add H2 HD biomass burning to corresponding tracers -
-            ! - total H2/HD [kg H2/HD]
-            STT(I,J,1,IDTH2) = STT(I,J,1,IDTH2) + E_H2
-            STT(I,J,1,IDTHD) = STT(I,J,1,IDTHD) + E_HD
-
-            
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      END SUBROUTINE EMISS_H2_HD
+!      ENDIF
+!
+!      !=================================================================
+!      ! Process emissions of ISOPRENE, MONOTERPENES, METHANOL
+!      ! and ACETONE -- save into summing arrays for later use
+!      ! Also process ocean emissions for H2.
+!      !=================================================================
+!!$OMP PARALLEL DO 
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMXX, EMMO, EMAC, EMOC )
+!!$OMP+PRIVATE( E_H2, E_HD )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!            ! Grid box surface area [cm2]
+!            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+!
+!            ! 1-D array index 
+!            IJLOOP = ( (J-1) * IIPAR ) + I
+!
+!            !===========================================================
+!            ! The CO and H2 yields from ISOP, MONOTERPENES, and CH3OH will be
+!            ! computed in subroutine CHEM_H2_HD.  P(CO) from CH3OH
+!            ! will be scaled to isoprene emissions within subroutine
+!            ! CHEM_H2_HD 
+!            !===========================================================
+!
+!            ! Surface air temperature [K]
+!            TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
+!
+!            ! MEGAN biogenic emissions (mpayer,12/8/11)
+!            IF ( LMEGAN ) THEN
+!
+!               ! Cosine of solar zenith angle
+!               SC   = State_Met%SUNCOSmid(I,J)
+!
+!               ! Diffuse and direct PAR
+!               PDR  = State_Met%PARDR(I,J)
+!               PDF  = State_Met%PARDF(I,J)
+!
+!               ! ISOP and MONOTERPENE emissions in [atoms C/box/time step]
+!               EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
+!     &                                   PDR, PDF, XNUMOL_ISOP )
+!               EMMO = GET_EMMONOT_MEGAN( I,   J,   SC,    TMMP,
+!     &                                   PDR, PDF, XNUMOL_MONO )
+!
+!            ENDIF
+!
+!            ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]
+!            ! for later use in the subroutine CHEM_H2_HD
+!            SUMISOPCO(I,J) = SUMISOPCO(I,J) + EMXX
+!            SUMMONOCO(I,J) = SUMMONOCO(I,J) + EMMO
+!
+!            ! ND46 -- save biogenic emissions [atoms C/cm2/s] here 
+!            IF ( ND46 > 0 ) THEN
+!
+!               ! Isoprene 
+!               AD46(I,J,1) = AD46(I,J,1) + ( EMXX / AREA_CM2 / DTSRCE )
+!
+!               ! Monoterpenes 
+!               AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 / DTSRCE )
+!
+!            ENDIF
+!
+!            !===========================================================
+!            ! For GEOS-1, GEOS-STRAT, GEOS-3, extract acetone emission
+!            ! fluxes the EMACET array for the current month
+!            !===========================================================
+!
+!            ! EMAC = [atoms C/box/s] from acetone
+!            EMAC = EMACET( I, J )
+!
+!            ! Sum acetone loss for use in chemco_decay
+!            ! Units = [atoms C/box/timestep]
+!            SUMACETCO(I,J) = SUMACETCO(I,J) + (EMAC * DTSRCE * AREA_CM2) 
+!
+!	    !===========================================================
+!            ! For GEOS-4 (?) and GEOS-3, extract ocean emissions
+!            ! fluxes the EMOCEAN array for the current month
+!            !===========================================================
+!
+!            ! EMOC = [molec/cm2/s] Ocean emissions of H2 from N-fixation
+!            EMOC = EMOCEAN( I, J )
+!	    
+!	    ! Calculate HD ocean source (molec HD/cm2/s)
+!            ! assume delD=-628 permil
+!            ! add missing factor of 2 (jaegle 12/23/05)
+!	    
+!	    E_HD = EMOC * 5.79427d-5 * 2.d0
+!	    
+!            ! diag 10 
+!            IF ( ND10 > 0 ) THEN
+!                 AD10em(I,J,4) = AD10em(I,J,4) + EMOC
+!                 AD10em(I,J,5) = AD10em(I,J,5) + E_HD	  
+!            ENDIF
+!
+!            ! Convert ocean H2 source from [molec H2/cm2/s] to [kg H2]
+!            E_H2 =  EMOC  * ( AREA_CM2 * DTSRCE / XNUMOL_H2 ) 
+!            
+!	    ! Scale E_HD by ocean isotopic signature ratio 
+!	    ! of -628 permil (Rice & Quay, 2007)
+!            ! (DH/H2)ocean = 5.79427d-5 * 2
+!            
+!            E_HD =  ( EMOC * 5.79427d-5 * 2d0) * 
+!     &              ( AREA_CM2 * DTSRCE / XNUMOL_HD )  
+!            
+!            ! Add H2 HD biomass burning to corresponding tracers -
+!            ! - total H2/HD [kg H2/HD]
+!            STT(I,J,1,IDTH2) = STT(I,J,1,IDTH2) + E_H2
+!            STT(I,J,1,IDTHD) = STT(I,J,1,IDTHD) + E_HD
+!
+!            
+!         ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      ! Free pointer
+!      NULLIFY( STT )
+!
+!      END SUBROUTINE EMISS_H2_HD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
