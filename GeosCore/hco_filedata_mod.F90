@@ -9,7 +9,10 @@
 ! variables to handle the HEMCO file data object FileData.
 ! FileData holds all information of source file data, such as file 
 ! name, update frequency, temporal resolution, the data array itself, 
-! etc. These values are specified in the HEMCO configuration file.\\ 
+! etc. These values are specified in the HEMCO configuration file. Many
+! of these attributes are primarily used for reading/updating the data
+! from file using the HEMCO generic file reading routines. Within an
+! ESMF environment, these attributes may be obsolete.\\ 
 ! FileData consists of the following elements:
 ! \begin{itemize}
 ! \item ncFile: path and filename to the source file, as specified in
@@ -24,6 +27,14 @@
 !       configuration file through the timestamp attribute.
 ! \item ncHrs: range of hours in the source file, as specified in the 
 !       configuration file through the timestamp attribute.
+! \item CycleFlag: determines how to deal with time stamps that do not
+!       correspond to one of the source file time slices. If set to 1,
+!       the closest available time slice (in the past) is used (or the
+!       first available time slice if model time is before first
+!       available time slice). If set to 2, the file data is ignored if
+!       model time is outside of the source file range. If CycleFlag is
+!       set to 3, an error is returned if none of the file time slices
+!       matches the model time. 
 ! \item ncRead: logical denoting whether or not we need to read this
 !       data container. ncRead is set to false for containers whose
 !       data is directly specified in the configuration file. For
@@ -88,6 +99,7 @@
          INTEGER                     :: ncMts(2)       ! month range
          INTEGER                     :: ncDys(2)       ! day range
          INTEGER                     :: ncHrs(2)       ! hour range
+         INTEGER                     :: CycleFlag      ! cycle flag
          LOGICAL                     :: ncRead         ! read from source?
          TYPE(Arr3D_HP),     POINTER :: V3(:)          ! vector of 3D fields
          TYPE(Arr2D_HP),     POINTER :: V2(:)          ! vector of 2D fields
@@ -165,6 +177,7 @@
       NewFDta%ncMts(:)     = -999
       NewFDta%ncDys(:)     = -999
       NewFDta%ncHrs(:)     = -999
+      NewFDta%CycleFlag    = 1
       NewFDta%ncRead       = .TRUE.
       NewFDta%Cover        = -999 
       NewFDta%DeltaT       = 0

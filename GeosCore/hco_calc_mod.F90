@@ -96,6 +96,7 @@
       USE HCO_STATE_MOD,    ONLY : HCO_State
       USE HCO_ARR_MOD,      ONLY : Hco_ArrAssert
       USE HCO_EMISLIST_MOD, ONLY : EmisList_NextCont
+      USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
 !
 ! !ARGUMENTS:
 !
@@ -229,10 +230,11 @@
             CYCLE
          ENDIF
 
-         ! Sanity check: Make sure this container holds data. 
-         ! Note: there shouldn't be any 'empty' arrays in EmisList 
-         ! since those containers are not passed to it. 
-         IF( Dct%targetID /= Dct%cID ) THEN
+         ! Sanity check: Make sure this container holds data.
+         ! 'Empty' containers are possible if the simulation time
+         ! is outside of the specified data time range and time
+         ! slice cycling is deactivated (CycleFlag > 1). 
+         IF( .NOT. FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
             CALL EmisList_NextCont ( Lct, FLAG )
             CYCLE
          ENDIF

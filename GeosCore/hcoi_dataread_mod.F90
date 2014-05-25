@@ -182,7 +182,7 @@ MODULE HCOI_DATAREAD_MOD
 ! !IROUTINE: HCOI_DATAREAD 
 !
 ! !DESCRIPTION: Reads a netCDF file and returns the regridded array in proper
-! units. This is an interface to the GEOS-Chem reading and regridding 
+! units. This routine uses the HEMCO generic data reading and regridding
 ! routines. 
 !\\
 !\\
@@ -199,6 +199,7 @@ MODULE HCOI_DATAREAD_MOD
       USE REGRID_A2A_MOD,     ONLY : MAP_A2A
       USE HCO_FILEDATA_MOD,   ONLY : FileData_ArrCheck2D
       USE HCO_FILEDATA_MOD,   ONLY : FileData_ArrCheck3D
+      USE HCO_FILEDATA_MOD,   ONLY : FileData_Cleanup
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -273,6 +274,37 @@ MODULE HCOI_DATAREAD_MOD
                          ncLun,     tidx1,    tidx2,   &
                          ncYr,      ncMt,     RC        )
       IF ( RC /= HCO_SUCCESS ) RETURN
+
+      !-----------------------------------------------------------------
+      ! Check for negative tidx1. tidx1 can still be negative if: 
+      ! (a) CycleFlag is set to 2 and the current simulation time is 
+      ! outside of the data time range. In this case, we prompt a 
+      ! warning and make sure that there is no data associated with
+      ! this FileData container.
+      ! (b) CycleFlag is set to 3 and none of the data time stamps 
+      ! matches the current simulation time exactly. Return with 
+      ! error!
+      !-----------------------------------------------------------------
+      IF ( tidx1 < 0 ) THEN
+         IF ( Lct%Dct%Dta%CycleFlag == 3 ) THEN
+            MSG = 'Exact time not found in ' // TRIM(Lct%Dct%Dta%ncFile) 
+            CALL HCO_ERROR( MSG, RC )
+            RETURN
+         ELSEIF ( Lct%Dct%Dta%CycleFlag == 1 ) THEN
+            MSG = 'You broke HEMCO! Invalid time index: ' // &
+               TRIM(Lct%Dct%Dta%ncFile)
+            CALL HCO_ERROR( MSG, RC )
+            RETURN
+         ELSEIF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN
+            CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
+            MSG = 'Simulation time is outside of time range of file ' // &
+               TRIM(Lct%Dct%Dta%ncFile) // ' - ignore these data!'
+            CALL HCO_WARNING ( MSG, RC )
+            CALL NC_CLOSE ( ncLun ) 
+            CALL HCO_LEAVE ( RC ) 
+            RETURN
+         ENDIF
+      ENDIF
 
       ! ----------------------------------------------------------------
       ! Read data 
@@ -527,7 +559,7 @@ MODULE HCOI_DATAREAD_MOD
 !
       LOGICAL,          INTENT(IN   )  :: am_I_Root ! Root CPU?
       TYPE(HCO_State),  POINTER        :: HcoState  ! HcoState object
-      TYPE(ListCont),   POINTER        :: Lct   ! List container
+      TYPE(ListCont),   POINTER        :: Lct       ! List container
       INTEGER,          INTENT(IN   )  :: ncLun     ! open ncLun
       INTEGER,          INTENT(  OUT)  :: tidx1     ! lower time idx
       INTEGER,          INTENT(  OUT)  :: tidx2     ! upper time idx
@@ -594,6 +626,25 @@ MODULE HCOI_DATAREAD_MOD
       ! Select time slices to read
       ! ---------------------------------------------------------------- 
 
+      ! ------------------------------------------------------------- 
+      ! Get preferred time stamp to read based upon the specs set
+      ! in the config. file. 
+      ! This can return value -1 for prefHr, indicating that all 
+      ! hourly slices shall be read. Will always return a valid 
+      ! attribute for Yr, Mt, and Dy.
+      ! ------------------------------------------------------------- 
+      CALL HCO_GetPrefTimeAttr ( Lct,    prefYr, prefMt, &
+                                 prefDy, prefHr, RC       )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      prefYMDh = prefYr*1000000 + prefMt*10000 + &
+                 prefDy*100     + max(prefHr,0)
+
+      ! verbose mode
+      IF ( verb ) THEN
+         write(MSG,'(A30,I12)') 'preferred datetime: ', prefYMDh
+         CALL HCO_MSG(MSG)
+      ENDIF
+
       ! ================================================================
       ! Case 1: Only one time slice available. 
       ! ================================================================
@@ -612,37 +663,21 @@ MODULE HCOI_DATAREAD_MOD
          tidx2 = -1 
 
          ! ------------------------------------------------------------- 
-         ! Get preferred time stamp to read based upon the specs set
-         ! in the config. file. 
-         ! This can return value -1 for prefHr, indicating that all 
-         ! hourly slices shall be read. Will always return a valid 
-         ! attribute for Yr, Mt, and Dy.
-         ! ------------------------------------------------------------- 
-         CALL HCO_GetPrefTimeAttr ( Lct,    prefYr, prefMt, &
-                                    prefDy, prefHr, RC       )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         prefYMDh = prefYr*1000000 + prefMt*10000 + &
-                    prefDy*100     + max(prefHr,0)
-
-         ! verbose mode
-         IF ( verb ) THEN
-            write(MSG,'(A30,I12)') 'preferred datetime: ', prefYMDh
-            CALL HCO_MSG(MSG)
-         ENDIF
-
-         ! ------------------------------------------------------------- 
          ! Check if preferred datetime is within the range of available
          ! time slices. In this case, set tidx1 to the index of the 
-         ! closest time slice that is not in the future. 
+         ! closest time slice that is not in the future. If CycleFlag
+         ! is set to 3 (= exact match), tidx1 is only adjusted if the
+         ! file time stamp matches exactly with prefYMDh!
          ! ------------------------------------------------------------- 
-         CALL Check_availYMDh ( nTime, availYMDh, prefYMDh, tidx1 )
+         CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
 
          ! ------------------------------------------------------------- 
          ! If tidx1 couldn't be set in the call above, re-adjust 
          ! preferred year to the closest available year in the 
-         ! time slices. Then repeat the check. 
+         ! time slices. Then repeat the check. Do only if time slice
+         ! cycling is enabled, i.e. CycleFlag set to 1. 
          ! ------------------------------------------------------------- 
-         IF ( tidx1 < 0 ) THEN
+         IF ( tidx1 < 0 .AND. Lct%Dct%Dta%CycleFlag == 1 ) THEN
             CALL prefYMDh_adjustYear ( nTime, availYMDh, prefYMDh )
 
             ! verbose mode 
@@ -651,15 +686,16 @@ MODULE HCOI_DATAREAD_MOD
                CALL HCO_MSG(MSG)
             ENDIF
 
-            CALL Check_availYMDh ( nTime, availYMDh, prefYMDh, tidx1 )
+            CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
          ENDIF
 
          ! ------------------------------------------------------------- 
-         ! If tidx1 still isn't defined yet, i.e. prefYMDh is still 
+         ! If tidx1 still isn't defined, i.e. prefYMDh is still 
          ! outside the range of availYMDh, set tidx1 to the closest
-         ! available date. This must be 1 or nTime!
+         ! available date. This must be 1 or nTime! Do only if time
+         ! slice cycling is enabled, i.e. CycleFlag set to 1. 
          ! ------------------------------------------------------------- 
-         IF ( tidx1 < 0 ) THEN
+         IF ( tidx1 < 0 .AND. Lct%Dct%Dta%CycleFlag == 1 ) THEN
             IF ( prefYMDh < availYMDh(1) ) THEN
                tidx1 = 1
             ELSE
@@ -679,7 +715,7 @@ MODULE HCOI_DATAREAD_MOD
          ! read (--> prefHr = -1). In this case, check if there are 
          ! multiple time slices for the selected date (y/m/d). 
          ! ------------------------------------------------------------- 
-         IF ( prefHr < 0 ) THEN
+         IF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
             CALL SET_TIDX2 ( nTime, availYMDH, tidx1, tidx2 ) 
 
             ! verbose mode 
@@ -700,6 +736,17 @@ MODULE HCOI_DATAREAD_MOD
       ENDIF
 
       !-----------------------------------------------------------------
+      ! Sanity check: if CycleFlag is set to 3, the file time stamp
+      ! must exactly match the current time.
+      !-----------------------------------------------------------------
+      IF ( Lct%Dct%Dta%CycleFlag == 3 .AND. tidx1 > 0 ) THEN
+         IF ( availYMDh(tidx1) /= prefYMDh ) THEN
+            tidx1 = -1
+            tidx2 = -1
+         ENDIF
+      ENDIF
+
+      !-----------------------------------------------------------------
       ! If multiple time slices are read, extract time interval between
       ! time slices in memory (in hours). This is to make sure that the
       ! cycling between the slices will be done at the correct rate 
@@ -712,10 +759,10 @@ MODULE HCOI_DATAREAD_MOD
       ENDIF
 
       ! verbose 
-      IF ( verb ) THEN
+      IF ( verb .and. tidx1 > 0 ) THEN
+         write(MSG,'(A30,I12)') 'corresponding datetime 1: ', availYMDh(tidx1)
+         CALL HCO_MSG(MSG)
          if ( nTime > 1 ) THEN
-            write(MSG,'(A30,I12)') 'corresponding datetime 1: ', availYMDh(tidx1)
-            CALL HCO_MSG(MSG)
             write(MSG,'(A30,I12)') 'corresponding datetime 2: ', availYMDh(tidx2)
             CALL HCO_MSG(MSG)
          endif
@@ -767,14 +814,15 @@ MODULE HCOI_DATAREAD_MOD
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Check_availYMDh ( N, availYMDh, prefYMDh, tidx1 )
+      SUBROUTINE Check_availYMDh ( Lct, N, availYMDh, prefYMDh, tidx1 )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)   :: N
-      INTEGER, INTENT(IN)   :: availYMDh(N)
-      INTEGER, INTENT(IN)   :: prefYMDh
-      INTEGER, INTENT(OUT)  :: tidx1
+      TYPE(ListCont),   POINTER      :: Lct 
+      INTEGER,          INTENT(IN)   :: N
+      INTEGER,          INTENT(IN)   :: availYMDh(N)
+      INTEGER,          INTENT(IN)   :: prefYMDh
+      INTEGER,          INTENT(OUT)  :: tidx1
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
@@ -803,7 +851,10 @@ MODULE HCOI_DATAREAD_MOD
             EXIT
          ENDIF
 
-         IF ( availYMDh(I+1) > prefYMDh ) THEN
+         ! Check if next time slice is in the future, in which case the
+         ! current slice is selected. Don't do this for a CycleFlag of
+         ! 3 (==> exact match).
+         IF ( availYMDh(I+1) > prefYMDh .AND. Lct%Dct%Dta%CycleFlag < 3 ) THEN
             tidx1 = I
             EXIT
          ENDIF

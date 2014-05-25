@@ -378,6 +378,7 @@
       CHARACTER(LEN=255)        :: srcFile
       CHARACTER(LEN= 31)        :: srcVar
       CHARACTER(LEN= 31)        :: srcTime
+      CHARACTER(LEN=  1)        :: TmCycle 
       CHARACTER(LEN= 31)        :: srcDim
       CHARACTER(LEN= 31)        :: srcUnit
       CHARACTER(LEN= 31)        :: SpcName 
@@ -385,6 +386,7 @@
       INTEGER                   :: Int1
       INTEGER                   :: Int2
       INTEGER                   :: Int3
+      INTEGER                   :: Int4
       INTEGER                   :: SplitInts(SclMax)
       INTEGER                   :: N
       CHARACTER(LEN=255)        :: LOC, MSG 
@@ -411,29 +413,29 @@
          IF ( DctType == 1 ) THEN
             CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
                                      srcFile,   3,      srcVar,   4,  &
-                                     srcTime,   5,      srcDim,   6,  & 
-                                     srcUnit,   7,      SpcName,  8,  &
-                                     Char1,     9,      Int1,     10, &
-                                     Int2,      11,     Int3,     1,  &
-                                     STAT                            )
+                                     srcTime,   5,      TmCycle,  6,  &
+                                     srcDim,    7,      srcUnit,  8,  &
+                                     SpcName,   9,      Char1,   10,  &
+                                     Int1,     11,      Int2,    12,  &
+                                     Int3,      1,      STAT           )
 
          ELSEIF ( DctType == 2 ) THEN
-            CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,     2, &
-                                     srcFile,   3,      srcVar,    4, &
-                                     srcTime,   5,      srcDim,    6, & 
-                                     srcUnit,   7,      SpcName,  -1, &
-                                     Char1,    -1,      Int1,      1, &
-                                     Int2,      8,      Int3,     -1, &
-                                     STAT                              )
+            CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
+                                     srcFile,   3,      srcVar,   4,  &
+                                     srcTime,   5,      TmCycle,  6,  &
+                                     srcDim,    7,      srcUnit,  8,  &
+                                     SpcName,  -1,      Char1,   -1,  &
+                                     Int1,      1,      Int2,     9,  &
+                                     Int3,     -1,      STAT           )
 
          ELSEIF ( DctType == 3 ) THEN
-            CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,     2, &
-                                     srcFile,   3,      srcVar,    4, &
-                                     srcTime,   5,      srcDim,    6, & 
-                                     srcUnit,   7,      SpcName,  -1, &
-                                     Char1,     9,      Int1,      1, &
-                                     Int2,      8,      Int3,     -1, &
-                                     STAT                              )
+            CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
+                                     srcFile,   3,      srcVar,   4,  &
+                                     srcTime,   5,      TmCycle,  6,  &
+                                     srcDim,    7,      srcUnit,  8,  &
+                                     SpcName,  -1,      Char1,   10,  &
+                                     Int1,      1,      Int2,     9,  &
+                                     Int3,     -1,      STAT           )
          ENDIF
 
          !--------------------------------------------------------------
@@ -489,7 +491,7 @@
          ! Attributes used by all data types: data type number and 
          ! container name.
          Lct%Dct%DctType      = DctType
-         Lct%Dct%cName         = cName
+         Lct%Dct%cName        = cName
 
          ! Base container specific attributes
          IF ( DctType == 1 ) THEN       
@@ -564,6 +566,25 @@
             ELSE
                CALL HCO_ExtractTime( srcTime, Dta, RC ) 
                IF ( RC /= HCO_SUCCESS ) RETURN
+            ENDIF
+
+            ! Set time cycling behaviour. Possible values are: 
+            ! - "C": cycling (CycleFlag = 1) --> Default
+            ! - "R": range   (CycleFlag = 2)
+            ! - "E": exact   (CycleFlag = 3)
+            IF ( TRIM(TmCycle) == "R" ) THEN
+               Dta%CycleFlag = 2
+            ELSEIF ( TRIM(TmCycle) == "E" ) THEN
+               Dta%CycleFlag = 3
+            ELSEIF ( TRIM(TmCycle) == "C" ) THEN
+               Dta%CycleFlag = 1
+            ELSEIF ( TRIM(TmCycle) == "-" ) THEN
+               Dta%CycleFlag = 1
+            ELSE
+               MSG = 'Invalid time cycling attribute: ' // &
+                  TRIM(TmCycle) // ' --> ' // TRIM(cName)
+               CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+               RETURN
             ENDIF
 
             ! Set space dimension. This will determine the dimension of the
@@ -1850,9 +1871,10 @@
                                      char2,   chr2cl,  char3, chr3cl, &
                                      char4,   chr4cl,  char5, chr5cl, &
                                      char6,   chr6cl,  char7, chr7cl, &
-                                     char8,   chr8cl,  int1,  int1cl, &
-                                     int2,    int2cl,  int3,  int3cl, &
-                                     STAT,    inLine,  outLine         )
+                                     char8,   chr8cl,  char9, chr9cl, &
+                                     int1,    int1cl,  int2,  int2cl, &
+                                     int3,    int3cl,  STAT,  inLine, &
+                                     outLine                           )
 !
 ! !USES:
 !
@@ -1878,6 +1900,8 @@
       INTEGER,            INTENT(IN   )           :: chr7cl
       CHARACTER(LEN=*),   INTENT(  OUT)           :: char8
       INTEGER,            INTENT(IN   )           :: chr8cl
+      CHARACTER(LEN=*),   INTENT(  OUT)           :: char9
+      INTEGER,            INTENT(IN   )           :: chr9cl
       INTEGER,            INTENT(  OUT)           :: int1
       INTEGER,            INTENT(IN   )           :: int1cl
       INTEGER,            INTENT(  OUT)           :: int2
@@ -1954,6 +1978,7 @@
       ! Character 1 
       IF ( chr1cl > 0 ) THEN
          IF ( chr1cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
@@ -1964,6 +1989,7 @@
       ! Character 2 
       IF ( chr2cl > 0 ) THEN
          IF ( chr2cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
@@ -1974,6 +2000,7 @@
       ! Character 3 
       IF ( chr3cl > 0 ) THEN
          IF ( chr3cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
@@ -1984,6 +2011,7 @@
       ! Character 4 
       IF ( chr4cl > 0 ) THEN
          IF ( chr4cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
@@ -1994,6 +2022,7 @@
       ! Character 5 
       IF ( chr5cl > 0 ) THEN
          IF ( chr5cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
@@ -2004,6 +2033,7 @@
       ! Character 6 
       IF ( chr6cl > 0 ) THEN
          IF ( chr6cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
@@ -2014,6 +2044,7 @@
       ! Character 7 
       IF ( chr7cl > 0 ) THEN
          IF ( chr7cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
@@ -2024,10 +2055,22 @@
       ! Character 8 
       IF ( chr8cl > 0 ) THEN
          IF ( chr8cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
             READ( SUBSTR(chr8cl), '(a)' ) char8
+         ENDIF
+      ENDIF 
+
+      ! Character 9 
+      IF ( chr9cl > 0 ) THEN
+         IF ( chr9cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
+            STAT = 100
+            RETURN
+         ELSE
+            READ( SUBSTR(chr9cl), '(a)' ) char9
          ENDIF
       ENDIF 
 
@@ -2038,6 +2081,7 @@
       ! Integer 1 
       IF ( int1cl > 0 ) THEN
          IF ( int1cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
@@ -2048,6 +2092,7 @@
       ! Integer 2 
       IF ( int2cl > 0 ) THEN
          IF ( int2cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
@@ -2058,6 +2103,7 @@
       ! Integer 3 
       IF ( int3cl > 0 ) THEN
          IF ( int3cl > N ) THEN
+            WRITE(*,*) TRIM(LINE)
             STAT = 100
             RETURN
          ELSE
