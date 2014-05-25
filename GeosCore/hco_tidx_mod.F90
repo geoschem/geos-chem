@@ -819,14 +819,39 @@
       ! HCO_GetPrefTimeAttr begins here! 
       !-----------------------------------
 
+      ! Init 
+      RC = HCO_SUCCESS
+
+      ! Get current time
       CALL HcoClock_Get ( cYYYY = cYr, cMM = cMt,        &
                           cDD   = cDy, cH  = cHr, RC = RC ) 
       IF ( RC /= HCO_SUCCESS ) RETURN 
 
       ! ------------------------------------------------------------- 
-      ! Get preferred time stamp to read based upon the specs
-      ! in the config. file.
+      ! If CycleFlag is set to 2 or 3, the preferred datetime is 
+      ! always the current date.
       ! ------------------------------------------------------------- 
+      IF ( Lct%Dct%Dta%CycleFlag > 1 ) THEN
+         readYr = cYr
+         readMt = cMt
+         readDy = cDy
+         IF ( Lct%Dct%Dta%ncHrs(1) == -1 ) THEN
+            readHr = -1
+         ELSE
+            readHr = cHr
+         ENDIF
+
+         ! Don't need below
+         RETURN
+      ENDIF 
+
+      ! ------------------------------------------------------------- 
+      ! If CycleFlag is set to 1, select the time attributes
+      ! as specified in the configuration file and closest to 
+      ! current simulation date.
+      ! ------------------------------------------------------------- 
+
+      ! Year
       IF ( Lct%Dct%Dta%ncYrs(1) == Lct%Dct%Dta%ncYrs(2) ) THEN
          readYr = Lct%Dct%Dta%ncYrs(1)
       ELSE
@@ -865,9 +890,6 @@
       if ( readYr < 0 ) readYr = cYr 
       if ( readMt < 0 ) readMt = cMt
       if ( readDy < 0 ) readDy = cDy
-
-      ! Return w/ success
-      RC = HCO_SUCCESS
 
       END SUBROUTINE HCO_GetPrefTimeAttr 
 !EOC
