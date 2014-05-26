@@ -107,7 +107,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-      TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input opts
+      TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
       TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
       TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
       INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
@@ -397,6 +397,11 @@
       !=================================================================
       CALL HCOX_INIT ( am_I_Root, HcoState, ExtState, HMRC )
       IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCO_INIT', LOC )
+
+      !-----------------------------------------------------------------
+      ! Update logical switches in Input_Opt 
+      !-----------------------------------------------------------------
+      Input_Opt%LSOILNOX = ExtState%SoilNOx
 
       !-----------------------------------------------------------------
       ! Set pointers to met fields.

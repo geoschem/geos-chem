@@ -718,7 +718,6 @@
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
       CHARACTER(LEN=255) :: IN_RST_FILE
       CHARACTER(LEN=255) :: OUT_RST_FILE
-      CHARACTER(LEN=255) :: HcoConfigFile
 
       !=================================================================
       ! READ_SIMULATION_MENU begins here!
@@ -796,12 +795,8 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
-      ! HEMCO Input file 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
-      READ( SUBSTRS(1:N), '(a)' ) HcoConfigFile
-
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
 
       !=================================================================
       ! Add safety checks for logical switches
@@ -878,9 +873,6 @@
       Input_Opt%NESTED_I0     = I0
       Input_Opt%NESTED_J0     = J0 
 
-      ! HEMCO configuration file
-      Input_Opt%HcoConfigFile = HcoConfigFile
-
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -919,8 +911,6 @@
          WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
          WRITE( 6, 130 ) 'Global offsets I0, J0       : ', I0, J0
-         WRITE( 6, 110 ) 'HEMCO Configuration file    : ',
-     &                    TRIM( HcoConfigFile )
       ENDIF
 
       ! Format statements
@@ -2337,6 +2327,7 @@
 !
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC, SOIL_RST_FILE
+      CHARACTER(LEN=255) :: HcoConfigFile
 ![eml
       INTEGER            :: HISTYR
 !eml]
@@ -2360,6 +2351,10 @@
       ! Emissions timestep
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:2' )
       READ( SUBSTRS(1:N), * ) TS_EMIS
+
+      ! HEMCO Input file 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:3' )
+      READ( SUBSTRS(1:N), '(a)' ) HcoConfigFile
 
       ! Include anthropogenic emissions?
 !      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:3' )
@@ -2518,10 +2513,10 @@
 !      ! seasonal constraint
 !      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
 !      READ( SUBSTRS(1:N), * ) LOTDLOC
-
-      ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
-      READ( SUBSTRS(1:N), * ) LSOILNOX
+!
+!      ! Use soil NOx
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+!      READ( SUBSTRS(1:N), * ) LSOILNOX
 !
 !      ! Soil NOx restart file name
 !      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37a' )
@@ -2740,7 +2735,7 @@
 !      ! Other
 !      LLIGHTNOX         = ( LLIGHTNOX      .and. LEMIS     )
 !      LOTDLOC           = ( LOTDLOC        .and. LEMIS     )
-      LSOILNOX          = ( LSOILNOX       .and. LEMIS     )
+!      LSOILNOX          = ( LSOILNOX       .and. LEMIS     )
 !      LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS     )
 !      LSETBRSTRAT       = ( (.not.LSETBR)  .and. LSETBRSTRAT)
 !
@@ -3159,6 +3154,8 @@
       !=================================================================
       Input_Opt%LEMIS          = LEMIS
       Input_Opt%TS_EMIS        = TS_EMIS
+      Input_Opt%HcoConfigFile  = HcoConfigFile
+
 !      Input_Opt%LANTHRO        = LANTHRO
 !      Input_Opt%FSCALYR        = FSCALYR
 !      Input_Opt%LEMEP          = LEMEP 
@@ -3190,7 +3187,7 @@
 !      Input_Opt%LAEIC          = LAEIC
 !      Input_Opt%LLIGHTNOX      = LLIGHTNOX
 !      Input_Opt%LOTDLOC        = LOTDLOC
-      Input_Opt%LSOILNOX       = LSOILNOX
+!      Input_Opt%LSOILNOX       = LSOILNOX
 !      Input_Opt%SOIL_RST_FILE  = SOIL_RST_FILE
 !      Input_Opt%LFERTILIZERNOX = LFERTILIZERNOX
 !      Input_Opt%NOx_SCALING    = NOx_SCALING
@@ -3252,6 +3249,8 @@
         WRITE( 6, '(  a)' ) '--------------'
         WRITE( 6, 100 ) 'Turn on emissions?          : ', LEMIS
         WRITE( 6, 110 ) 'Emissions timestep [min]    : ', TS_EMIS
+        WRITE( 6, 130 ) 'HEMCO Configuration file    : ',
+     &                    TRIM( HcoConfigFile )
 !        WRITE( 6, 100 ) 'Turn on ANTHRO emissions    : ', LANTHRO
 !        WRITE( 6, 110 ) '  ANTHRO scale factor year  : ', FSCALYR
 !        WRITE( 6, 100 ) '  Use EDGAR anthro emissions: ', LEDGAR
@@ -3292,7 +3291,7 @@
 !        WRITE( 6, 100 ) '    3hr GFED3 emission?     : ', L3HRBB3
 !        WRITE( 6, 100 ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
 !        WRITE( 6, 100 ) 'Use OTD-LIS local redist?   : ', LOTDLOC
-        WRITE( 6, 100 ) 'Turn on SOIL NOx?           : ', LSOILNOX
+!        WRITE( 6, 100 ) 'Turn on SOIL NOx?           : ', LSOILNOX
 !        WRITE( 6, 130 ) 'Soil NOx restart file name? : ', 
 !     &       TRIM( SOIL_RST_FILE )
 !        WRITE( 6, 100 ) 'Turn on Fertilizer NOx?     : ', 

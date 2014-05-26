@@ -567,9 +567,14 @@
          CALL INIT_CHEMISTRY ( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
 
-      ! Initialize HEMCO.
-      CALL HCOI_GC_INIT( am_I_Root, Input_Opt,
-     &                   State_Chm, State_Met, RC )
+      ! Initialize HEMCO. This reads the HEMCO configuration file
+      ! and creates entries for all data files needed for emission
+      ! calculation. Also sets some logical switches in Input_Opt
+      ! (e.g. LSOILNOX).
+      IF ( LEMIS ) THEN
+         CALL HCOI_GC_INIT( am_I_Root, Input_Opt,
+     &                      State_Chm, State_Met, RC )
+      ENDIF
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -599,14 +604,14 @@
       ENDIF
 
       ! Read soil NOx initial conditions
-      IF ( LSOILNOX ) THEN
+!      IF ( LSOILNOX ) THEN
 !         CALL READ_SOIL_RESTART
 !     &      ( am_I_Root, Input_Opt, NYMDb , NHMSb, RC )
-
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
-         ENDIF
-      ENDIF
+!
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+!         ENDIF
+!      ENDIF
 
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
@@ -715,11 +720,11 @@
      &              TAU,       State_Met, State_Chm, RC    )
                   
                ! Make soil restart file
-               IF ( LSOILNOX ) THEN
+!               IF ( LSOILNOX ) THEN
 !                  CALL MAKE_SOILNOx_RESTART
 !     &               ( am_I_Root, Input_Opt, NYMD, 
 !     &                 NHMS,      TAU,       RC    )
-               ENDIF
+!               ENDIF
 
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
