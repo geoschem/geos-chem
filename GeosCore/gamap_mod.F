@@ -1770,6 +1770,8 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  31 Jan 2014 - R. Yantosca - Now save out tracerinfo.dat properly for TOMAS
 !  25 Apr 2014 - M. Sulprizio- Now include J-values for ACET in ND22
+!  27 May 2014 - M. Sulprizio- Now include J-values for ALD2, MVK, MACR, HAC,
+!                              and GLYC in ND22
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5093,7 +5095,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 23
+            NTRAC(22) = 28
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -5153,6 +5155,16 @@
                      NAME(T,22) = 'JCH3Cl'
                   CASE( 23 )
                      NAME(T,22) = 'JACET'
+                  CASE( 24 )
+                     NAME(T,22) = 'JALD2'
+                  CASE( 25 )
+                     NAME(T,22) = 'JMVK'
+                  CASE( 26 )
+                     NAME(T,22) = 'JMACR'
+                  CASE( 27 )
+                     NAME(T,22) = 'JHAC'
+                  CASE( 28 )
+                     NAME(T,22) = 'JGLYC'
                  CASE DEFAULT
                   ! Nothing
                END SELECT

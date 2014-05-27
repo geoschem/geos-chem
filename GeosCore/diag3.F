@@ -1679,6 +1679,11 @@
 !  (21 ) JCCl4 : CCl4  J-value                 : s-1   : SCALE_JV
 !  (22 ) JCH3Cl: CH3Cl J-value                 : s-1   : SCALE_JV
 !  (23 ) JACET : ACET  J-value                 : s-1   : SCALE_JV
+!  (24 ) JALD2 : ALD2  J-value                 : s-1   : SCALE_JV
+!  (25 ) JMVK  : MVK   J-value                 : s-1   : SCALE_JV
+!  (26 ) JMACR : MACR  J-value                 : s-1   : SCALE_JV
+!  (27 ) JHAC  : HAC   J-value                 : s-1   : SCALE_JV
+!  (28 ) JGLYC : GLYC  J-value                 : s-1   : SCALE_JV
 !  (71 ) JCH3I : CH3I  J-value (s^-1)          : s-1   : SCALE_JV
 !  (81 ) JHCN  : HCN   J-value (s^-1)          : s-1   : SCALE_JV
 !
@@ -1691,6 +1696,8 @@
 !  (3) Add GLYX and MGLY tracers (tmf, 3/6/09)
 !  (4) Replaced NOx with NO2 (mpayer, 3/14/13)
 !  25 Apr 2014 - M. Sulprizio- Now include J-values for ACET
+!  27 May 2014 - M. Sulprizio- Now include J-values for ALD2, MVK, MACR, HAC, 
+!                              and GLYC
 !******************************************************************************
 !
       IF ( ND22 > 0 ) THEN
@@ -1712,6 +1719,9 @@
             ! 7           = HNO3
             ! 8           = H2O2
             ! 9           = ACET
+            ! 11          = ALD2
+            ! 13          = MVK
+            ! 14          = MACR
             ! 20          = CH2O
             ! 44          = Br2
             ! 46          = BrO
@@ -1719,6 +1729,8 @@
             ! 49          = BrNO2
             ! 50          = BrNO3
             ! 51          = CHBr3
+            ! 58          = HAC
+            ! 59          = GLYC
             ! 64          = NO2
             ! 65          = NO3
             ! 67          = N2O   (UCX simulation only)
@@ -1736,7 +1748,7 @@
             ! CH3I simulation:
             ! 1           = CH3I 
             !
-            ! (ccc, bmy, 12/15/08; mps 4/25/14)
+            ! (ccc, bmy, 12/15/08; mps 5/27/14)
             !-----------------------------------------------------------------
             IF ( NN == -1 ) THEN
                MM = 15   ! Write 'O2'
@@ -1784,6 +1796,16 @@
                      MM = 22
                   CASE ( 'ACET' )
                      MM = 23
+                  CASE ( 'ALD2' )
+                     MM = 24
+                  CASE ( 'MVK' )
+                     MM = 25
+                  CASE ( 'MACR' )
+                     MM = 26
+                  CASE ( 'HAC' )
+                     MM = 27
+                  CASE ( 'GLYC' )
+                     MM = 28
                   CASE DEFAULT
                      MM = 0
                END SELECT

@@ -98,6 +98,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Apr 2014 - M. Sulprizio- Now store J-values for ACET
+!  27 May 2014 - M. Sulprizio- Now store J-values for ALD2, MVK, MACR, HAC, GLYC
 !******************************************************************************
 !
 ! !USES:
@@ -1864,6 +1865,16 @@ c new OH+CO rate from JPL2006.
                INDEX = 22
             CASE ( 'ACET'  )
                INDEX = 23
+            CASE ( 'ALD2'  )
+               INDEX = 24
+            CASE ( 'MVK'  )
+               INDEX = 25
+            CASE ( 'MACR'  )
+               INDEX = 26
+            CASE ( 'HAC'  )
+               INDEX = 27
+            CASE ( 'GLYC'  )
+               INDEX = 28
             CASE DEFAULT
                INDEX = 0
          END SELECT
