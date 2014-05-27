@@ -894,78 +894,73 @@ c new OH+CO rate from JPL2006.
 ! FP_ISOP 
 ! Change yield for HAC  
 
-!-----------------------------------------------------------------------------
-! The following T and P dependencies are directly included in Fast-JX v7.0, 
-! and are ignored in the standard GC mechanism in any case (SDE 04/01/13)
-!
-!         ! Questions for Fabien: (hotp 7/31/09)
-!         ! What are HAC, MCO3, and GLYC? Can you provide some comments for
-!         ! this new code?
-!
-!         IF (NKHAC(NCS,1) .GT. 0 .AND. NKHAC(NCS,2) .GT. 0) THEN
-!            DO KLOOP   = 1, KTLOOP
-!               HAC_FRAC=1d0-23.7d0*EXP(-ONE_SIXTY*T3K(KLOOP)) !FRAC MGLY 
-!
-!               IF (HAC_FRAC<0d0) HAC_FRAC=0d0
-!
-!              RRATE(KLOOP,NKHAC(NCS,1))=RRATE(KLOOP,NKHAC(NCS,1))
-!     &                                  *HAC_FRAC
-!              RRATE(KLOOP,NKHAC(NCS,2))=RRATE(KLOOP,NKHAC(NCS,2))
-!     &                                  *(1d0-HAC_FRAC)
-!
-!            ENDDO
-!         ENDIF
-!
-!         IF (NKMCO3(NCS,1) .GT. 0 .AND. NKMCO3(NCS,2) .GT. 0 .AND. 
-!     &       NKMCO3(NCS,3) .GT. 0) THEN
-!
-!            DO KLOOP   = 1, KTLOOP
-!              
-!              JLOOP           = LREORDER(JLOOPLO + KLOOP)
-!              PTEMP=CONSTC*PRESS3(JLOOP)
-!
-!              YA=-4.262d-1*PTEMP**2.925d0+7.42d-1
-!              YB=1.834d-1*PTEMP**1.396d0+5.069d-3
-!              YC=1d0-YA-YB
-!
-!              ! YA,YB, and YC capitalized (hotp 7/31/09)
-!              IF (YA<0d0) YA=0d0
-!              IF (YB<0d0) YB=0d0
-!              IF (YC<0d0) YC=0d0
-!              IF (YA>1d0) YA=1d0
-!              IF (YB<0d0) YB=1d0
-!              IF (YC<0d0) YC=1d0
-!
-!              !WRITE(*,*) 'P=',PTEMP
-!              !WRITE(*,*) 'Ya=',Ya
-!              !WRITE(*,*) 'Yb=',Yb
-!              !WRITE(*,*) 'Yc=',Yc
-!
-!              RRATE(KLOOP,NKMCO3(NCS,1))=RRATE(KLOOP,NKMCO3(NCS,1))
-!     &                                  *YA
-!              RRATE(KLOOP,NKMCO3(NCS,2))=RRATE(KLOOP,NKMCO3(NCS,2))
-!     &                                  *YB
-!              RRATE(KLOOP,NKMCO3(NCS,3))=RRATE(KLOOP,NKMCO3(NCS,2))
-!     &                                  *YC
-!
-!
-!            ENDDO
-!         ENDIF
-!
-!         IF (NKGLYC(NCS,1) .GT. 0 .AND. NKGLYC(NCS,2) .GT. 0) THEN
-!            DO KLOOP   = 1, KTLOOP
-!               GLYC_FRAC=1d0-11.0729d0*EXP(-ONE_SEVENTYTHREE*T3K(KLOOP)) !FRAC HCOOH
-!
-!              IF (GLYC_FRAC<0d0) GLYC_FRAC=0d0
-!
-!              RRATE(KLOOP,NKGLYC(NCS,1))=RRATE(KLOOP,NKGLYC(NCS,1))
-!     &                                  *GLYC_FRAC
-!              RRATE(KLOOP,NKGLYC(NCS,2))=RRATE(KLOOP,NKGLYC(NCS,2))
-!     &                                  *(1d0-GLYC_FRAC)
-!
-!            ENDDO
-!         ENDIF
-!------------------------------------------------------------------------------
+         ! Questions for Fabien: (hotp 7/31/09)
+         ! What are HAC, MCO3, and GLYC? Can you provide some comments for
+         ! this new code?
+
+         IF (NKHAC(NCS,1) .GT. 0 .AND. NKHAC(NCS,2) .GT. 0) THEN
+            DO KLOOP   = 1, KTLOOP
+               HAC_FRAC=1d0-23.7d0*EXP(-ONE_SIXTY*T3K(KLOOP)) !FRAC MGLY 
+
+               IF (HAC_FRAC<0d0) HAC_FRAC=0d0
+
+              RRATE(KLOOP,NKHAC(NCS,1))=RRATE(KLOOP,NKHAC(NCS,1))
+     &                                  *HAC_FRAC
+              RRATE(KLOOP,NKHAC(NCS,2))=RRATE(KLOOP,NKHAC(NCS,2))
+     &                                  *(1d0-HAC_FRAC)
+
+            ENDDO
+         ENDIF
+
+         IF (NKMCO3(NCS,1) .GT. 0 .AND. NKMCO3(NCS,2) .GT. 0 .AND. 
+     &       NKMCO3(NCS,3) .GT. 0) THEN
+
+            DO KLOOP   = 1, KTLOOP
+              
+              JLOOP           = LREORDER(JLOOPLO + KLOOP)
+              PTEMP=CONSTC*PRESS3(JLOOP)
+
+              YA=-4.262d-1*PTEMP**2.925d0+7.42d-1
+              YB=1.834d-1*PTEMP**1.396d0+5.069d-3
+              YC=1d0-YA-YB
+
+              ! YA,YB, and YC capitalized (hotp 7/31/09)
+              IF (YA<0d0) YA=0d0
+              IF (YB<0d0) YB=0d0
+              IF (YC<0d0) YC=0d0
+              IF (YA>1d0) YA=1d0
+              IF (YB<0d0) YB=1d0
+              IF (YC<0d0) YC=1d0
+
+              !WRITE(*,*) 'P=',PTEMP
+              !WRITE(*,*) 'Ya=',Ya
+              !WRITE(*,*) 'Yb=',Yb
+              !WRITE(*,*) 'Yc=',Yc
+
+              RRATE(KLOOP,NKMCO3(NCS,1))=RRATE(KLOOP,NKMCO3(NCS,1))
+     &                                  *YA
+              RRATE(KLOOP,NKMCO3(NCS,2))=RRATE(KLOOP,NKMCO3(NCS,2))
+     &                                  *YB
+              RRATE(KLOOP,NKMCO3(NCS,3))=RRATE(KLOOP,NKMCO3(NCS,2))
+     &                                  *YC
+
+
+            ENDDO
+         ENDIF
+
+         IF (NKGLYC(NCS,1) .GT. 0 .AND. NKGLYC(NCS,2) .GT. 0) THEN
+            DO KLOOP   = 1, KTLOOP
+               GLYC_FRAC=1d0-11.0729d0*EXP(-ONE_SEVENTYTHREE*T3K(KLOOP)) !FRAC HCOOH
+
+              IF (GLYC_FRAC<0d0) GLYC_FRAC=0d0
+
+              RRATE(KLOOP,NKGLYC(NCS,1))=RRATE(KLOOP,NKGLYC(NCS,1))
+     &                                  *GLYC_FRAC
+              RRATE(KLOOP,NKGLYC(NCS,2))=RRATE(KLOOP,NKGLYC(NCS,2))
+     &                                  *(1d0-GLYC_FRAC)
+
+            ENDDO
+         ENDIF
 
       !=================================================================
       ! Perform loss on wet aerosol 
