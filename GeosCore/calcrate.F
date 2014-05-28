@@ -272,6 +272,7 @@
       LOGICAL :: LNLPBL
       LOGICAL :: LVISTAS
       LOGICAL :: LWARWICK_VSLS
+      LOGICAL :: LDICARB
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
@@ -294,6 +295,7 @@
       LNLPBL        = Input_Opt%LNLPBL
       LVISTAS       = Input_Opt%LVISTAS
       LWARWICK_VSLS = Input_Opt%LWARWICK_VSLS
+      LDICARB       = Input_Opt%LDICARB
       XNUMOL        = Input_Opt%XNUMOL
 
       ! Initialize pointers
@@ -1614,43 +1616,46 @@ c new OH+CO rate from JPL2006.
       ! Special photorates
       IF (IFSUN.EQ.1) THEN
 
-!------------------------------------------------------------------------------
-! Not yet modified this for compatibility with Fast-JX v7.0. (SDE 04/01/13)
-!
-!         !==============================================================
-!         ! HARDWIRE the effect of branching ratio of HOC2H4O in EP photolysis
-!         !   HOC2H4O ------> HO2 + 2CH2O    : marked as I in P column of 
-!         !                                    'globchem.dat'
-!         !   HOC2H4O --O2--> HO2 + GLYC     : marked as J in P column of 
-!         !                                    'globchem.dat'
-!         !
-!         ! Add NCS index to NKHOROI and HKHOROJ for SMVGEAR II (tmf, 12/16/06)
-!         !==============================================================
-!
-!        IF ( NKHOROI(NCS) > 0 ) THEN
-!
-!           ! Put J(EP) in correct spot for SMVGEAR II
-!           PHOTVAL = NKHOROI(NCS) - NRATES(NCS)
-!           NKN     = NKNPHOTRT(PHOTVAL,NCS)
-!
-!           DO KLOOP=1,KTLOOP
-!              RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN) *
-!    +            ( 1.D0-FYHORO(DENAIR(KLOOP), T3K(KLOOP)) )
-!           ENDDO
-!        ENDIF
-!
-!        IF ( NKHOROJ(NCS) > 0 ) THEN
-!
-!           ! Put J(EP) in correct spot for SMVGEAR II
-!           PHOTVAL = NKHOROJ(NCS) - NRATES(NCS)
-!           NKN     = NKNPHOTRT(PHOTVAL,NCS)
-!
-!           DO KLOOP=1,KTLOOP
-!              RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN) *
-!    +            FYHORO(DENAIR(KLOOP), T3K(KLOOP)) 
-!           ENDDO
-!        ENDIF
-!------------------------------------------------------------------------------
+         !==============================================================
+         ! HARDWIRE the effect of branching ratio of HOC2H4O in EP photolysis
+         !   HOC2H4O ------> HO2 + 2CH2O    : marked as I in P column of 
+         !                                    'globchem.dat'
+         !   HOC2H4O --O2--> HO2 + GLYC     : marked as J in P column of 
+         !                                    'globchem.dat'
+         !
+         ! Add NCS index to NKHOROI and HKHOROJ for SMVGEARII (tmf, 12/16/06)
+         !==============================================================
+
+         ! Not yet modified this for compatibility with Fast-JX v7.0.
+         ! (SDE 04/01/13)
+
+         ! Now only do the following if using the dicarbonyls mechanism
+         ! (sde, mps, 5/28/14)
+         IF ( LDICARB ) THEN
+            IF ( NKHOROI(NCS) > 0 ) THEN
+
+               ! Put J(EP) in correct spot for SMVGEAR II
+               PHOTVAL = NKHOROI(NCS) - NRATES(NCS)
+               NKN     = NKNPHOTRT(PHOTVAL,NCS)
+
+               DO KLOOP=1,KTLOOP
+                  RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN) *
+     +               ( 1.D0-FYHORO(DENAIR(KLOOP), T3K(KLOOP)) )
+               ENDDO
+            ENDIF
+
+            IF ( NKHOROJ(NCS) > 0 ) THEN
+
+               ! Put J(EP) in correct spot for SMVGEAR II
+               PHOTVAL = NKHOROJ(NCS) - NRATES(NCS)
+               NKN     = NKNPHOTRT(PHOTVAL,NCS)
+
+               DO KLOOP=1,KTLOOP
+                  RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN) *
+     +               FYHORO(DENAIR(KLOOP), T3K(KLOOP)) 
+               ENDDO
+            ENDIF
+         ENDIF
 
          !==============================================================
          ! SPECIAL TREATMENT FOR H2SO4+hv -> SO2 + 2OH

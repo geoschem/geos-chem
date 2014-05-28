@@ -50,6 +50,9 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  28 May 2014 - M. Sulprizio- Changed HOC2H4O reaction flag from 'F' to 'FF'
+!                              to avoid conflict with HAC + OH reaction. Now
+!                              initialize NKHAC, NKMCO3, NKGLYC. (S.D. Eastham)
 !******************************************************************************
 !
 ! !USES:
@@ -209,6 +212,11 @@
 
       ! Initialize flags for PSC reactions (SDE 04/17/13)
       NKPSC(:,:)     = 0
+
+      ! Initialize flags for VOC photolysis (sde, mps, 5/28/14)
+      NKHAC(:,:)     = 0
+      NKMCO3(:,:)    = 0
+      NKGLYC(:,:)    = 0
 
       DO 44 I            = 1, NMDEAD
        NAMD(I)           = ' '
@@ -963,10 +971,10 @@
 
 !FLAG HACET AND GLYC reaction to modify yield according to temperature
 ! (fp, 8/09)
-            IF (SPECL(1).EQ.'N') NKGLYC(NCS,1)=NK !Flag GLYC 
-            IF (SPECL(1).EQ.'O') NKGLYC(NCS,2)=NK !Flag GLYC 
-            IF (SPECL(1).EQ.'F') NKHAC(NCS,1)  =NK !Flag HAC photolysis
-            IF (SPECL(1).EQ.'L') NKHAC(NCS,2)  =NK !Flag HAC photolysis
+            IF (SPECL(1).EQ.'N') NKGLYC(NCS,1)=NK  !Flag GLYC + OH
+            IF (SPECL(1).EQ.'O') NKGLYC(NCS,2)=NK  !Flag GLYC + OH
+            IF (SPECL(1).EQ.'F') NKHAC(NCS,1)  =NK !Flag HAC  + OH
+            IF (SPECL(1).EQ.'L') NKHAC(NCS,2)  =NK !Flag HAC  + OH
 
 !FP_ISOP FLAG FOR MCO3
             IF (SPECL(1).EQ.'DA') NKMCO3(NCS,1)=NK 
@@ -1150,7 +1158,9 @@
                ENDIF
 
                ! F: HOC2H4O ------> HO2 + 2CH2O
-               IF (SPECL(1).EQ.'F') THEN
+               ! Now use FF to avoid conflict with HAC + OH reaction
+               !  (sde, mps, 5/28/14)
+               IF (SPECL(1).EQ.'FF') THEN
                    NNADDF(NCS)               = NNADDF(NCS) + 1
                    NKSPECF( NNADDF(NCS),NCS) = NK
                ENDIF
