@@ -42,7 +42,7 @@
 ! !PRIVATE MODULE VARIABLES:
 !
       ! Toggle for testing
-      LOGICAL  :: DoDiagn = .TRUE.
+      LOGICAL  :: DoDiagn = .FALSE.
 
       CONTAINS
 !------------------------------------------------------------------------------
@@ -110,6 +110,7 @@
                           Hier     = -1, &
                           HcoID    = I, &
                           SpaceDim = 2, &
+                          LevIDx   = -1, &
                           OutUnit  = 'kg/m2/s', &
                           WriteFreq = 'Hourly',  &
                           AutoFill  = 1, &
@@ -133,13 +134,30 @@
                           RC        = RC ) 
       IF ( RC /= HCO_SUCCESS ) RETURN 
 
+      ! NO from aircrafts (AEIC) 
+      CALL Diagn_Create ( am_I_Root, &
+                          HcoState,  &
+                          cName     = 'NO_aircraft', &
+                          ExtNr     = 0,  &
+                          Cat       = 20, &
+                          Hier      = -1, &
+                          HcoID     = I, &
+                          SpaceDim  = 2, &
+                          LevIdx    = -1, &
+                          OutUnit   = 'kg/m2/s', &
+                          WriteFreq = 'Hourly',  &
+                          AutoFill  = 1, &
+                          cID       = N, & 
+                          RC        = RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN 
+
       ! NO from biomass burning 
       CALL Diagn_Create ( am_I_Root, &
                           HcoState,  &
                           cName    = 'NO_biomass', &
-                          ExtNr    = 0,  &
-                          Cat      = 30, &
-                          Hier     = -1, &
+                          ExtNr    = 111, &
+                          Cat      = -1,  &
+                          Hier     = -1,  &
                           HcoID    = I, &
                           SpaceDim = 2, &
                           OutUnit  = 'kg/m2/s', &
@@ -177,7 +195,6 @@
                           Hier     = -1, &
                           HcoID    = I, &
                           SpaceDim = 2, &
-                          LevIDx   = -1, &
                           OutUnit  = 'kg/m2/s', &
                           WriteFreq = 'Hourly',  &
                           AutoFill  = 1, &
@@ -202,6 +219,24 @@
                           cID       = N, & 
                           RC        = RC ) 
       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+!      ! Total SO2
+!      I = HCO_GetHcoID( 'SO2', HcoState )
+!      CALL Diagn_Create ( am_I_Root, &
+!                          HcoState,  &
+!                          cName    = 'SO2total', &
+!                          ExtNr    = -1, &
+!                          Cat      = -1, &
+!                          Hier     = -1, &
+!                          HcoID    = I, &
+!                          SpaceDim = 2, &
+!                          LevIDx   = -1, &
+!                          OutUnit  = 'kg/m2/s', &
+!                          WriteFreq = 'Hourly',  &
+!                          AutoFill  = 1, &
+!                          cID       = N, & 
+!                          RC        = RC ) 
+!      IF ( RC /= HCO_SUCCESS ) RETURN 
 
       ! Toggle for testing
       ENDIF
@@ -319,7 +354,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll, RC )
+      SUBROUTINE HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll, &
+                                       RC,        PREFIX,   UsePrevTime)
 !
 ! !USES:
 !
@@ -333,10 +369,12 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-      TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
-      LOGICAL,          INTENT(IN   )  :: WriteAll   ! Write all diagnostics? 
-      INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+      LOGICAL,          INTENT(IN   )           :: am_I_Root   ! root CPU?
+      TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object 
+      LOGICAL,          INTENT(IN   )           :: WriteAll    ! Write all diagnostics? 
+      INTEGER,          INTENT(INOUT)           :: RC          ! Failure or success
+      CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: PREFIX      ! File prefix
+      LOGICAL,          INTENT(IN   ), OPTIONAL :: UsePrevTime ! Use previous time in filename?
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller    - Initial version 
@@ -358,7 +396,7 @@
       TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
       INTEGER                   :: FLAG
       CHARACTER(LEN=255)        :: ncFile
-      CHARACTER(LEN=255)        :: Prefix 
+      CHARACTER(LEN=255)        :: Pfx 
       CHARACTER(LEN=4 )         :: Yrs
       CHARACTER(LEN=2 )         :: Mts, Dys, hrs, mns 
       CHARACTER(LEN=31)         :: timeunit, myName, myUnit
@@ -367,7 +405,7 @@
       INTEGER                   :: nLon, nLat, nLev, nTime 
       INTEGER                   :: Prc
       INTEGER                   :: MinResetFlag, MaxResetFlag
-      LOGICAL                   :: EOI
+      LOGICAL                   :: EOI, PrevTime
  
       !=================================================================
       ! HCOI_DIAGN_WRITEOUT begins here!
@@ -396,13 +434,20 @@
       MaxResetFlag = Diagn_GetMaxResetFlag()
       IF ( MinResetFlag > MaxResetFlag ) RETURN
 
+      ! Get PrevTime flag from input argument or set to default (=> TRUE)
+      IF ( PRESENT(UsePrevTime) ) THEN
+         PrevTime = UsePrevTime
+      ELSE
+         PrevTime = .TRUE.
+      ENDIF
+
       !-----------------------------------------------------------------
       ! Create output file
       !-----------------------------------------------------------------
 
       ! Get HEMCO time: if this is the last call (WriteAll flag
       ! true), get current time. Use previous time otherwise.
-      IF ( WriteAll ) THEN
+      IF ( .NOT. PrevTime ) THEN
          CALL HcoClock_Get(cYYYY=YYYY,cMM=MM,cDD=DD,cH=h,cM=m,cS=s,RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
          EOI = .FALSE.
@@ -425,14 +470,26 @@
       Arr4D = 0.0_hp
 
       ! Construct filename: diagnostics will be written into file
-      ! HEMCO_diagnostics.YYYYMMDDhm.nc.
+      ! PREFIX.YYYYMMDDhm.nc, where PREFIX is the input argument or
+      ! (if not present) obtained from the HEMCO configuration file.
+  
+      ! Write datetime
       WRITE( Yrs, '(i4.4)' ) YYYY
       WRITE( Mts, '(i2.2)' ) MM
       WRITE( Dys, '(i2.2)' ) DD
       WRITE( hrs, '(i2.2)' ) h
       WRITE( mns, '(i2.2)' ) m
-      CALL Diagn_GetDiagnPrefix( Prefix )
-      ncFile = TRIM(Prefix)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
+
+      ! Get prefix
+      IF ( PRESENT(PREFIX) ) THEN
+         Pfx = PREFIX
+      ELSE
+         CALL Diagn_GetDiagnPrefix( Pfx )
+      ENDIF
+      ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
+
+      ! testing only
+      write(*,*) 'write diagnostics to ', TRIM(ncFile)
 
       ! Create output file
       CALL NC_CREATE( ncFile, nLon,  nLat,  nLev,  nTime, &
@@ -518,11 +575,6 @@
          ! have no time information!
          IF ( ThisDiagn%SpaceDim == 3 ) THEN
             Arr4D(:,:,:,1) = thisdiagn%Arr3D%val
-
-            write(*,*) 'writing 3D diagnostics: ', TRIM(myName)
-            write(*,*) 'total array: ', SUM(Arr4D)
-            write(*,*) 'total array at surface: ', SUM(Arr4D(:,:,1,1))
- 
             CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
          ELSE
             Arr3D(:,:,1) = thisdiagn%Arr2D%val 

@@ -735,11 +735,13 @@
             RETURN
          ENDIF
 
-         ! Check if field data is defined
+         ! Skip this scale factor if no data defined. This is possible
+         ! if scale factors are only defined for a given time range and
+         ! the simulation datetime is outside of this range.
          IF ( .NOT. FileData_ArrIsDefined(ScalDct%Dta) ) THEN
-            MSG = 'Array not defined: ' // TRIM(ScalDct%cName)
-            CALL HCO_ERROR ( MSG, RC )
-            RETURN
+            MSG = 'Scale factor not defined: ' // TRIM(ScalDct%cName)
+            CALL HCO_WARNING ( MSG, RC )
+            CYCLE
          ENDIF
 
          ! Get vertical extension of this scale factor array.
@@ -1113,12 +1115,13 @@
                EXIT 
             ENDIF
  
-            ! Check if field data is defined
+            ! Skip this scale factor if no data defined. This is possible
+            ! if scale factors are only defined for a given time range and
+            ! the simulation datetime is outside of this range.
             IF ( .NOT. FileData_ArrIsDefined(ScalDct%Dta) ) THEN
                MSG = 'Array not defined: ' // TRIM(ScalDct%cName)
-               CALL HCO_ERROR ( MSG, RC )
-               ERR = .TRUE.
-               EXIT
+               CALL HCO_WARNING ( MSG, RC )
+               CYCLE
             ENDIF
 
             ! Get vertical extension of this scale factor array.

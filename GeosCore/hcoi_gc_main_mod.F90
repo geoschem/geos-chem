@@ -553,11 +553,6 @@
       ! Use temporary array?
       HcoState%Options%FillBuffer = .FALSE. 
 
-      ! testing only
-      HcoDST1 = HCO_GetHcoID( 'NO', HcoState ) 
-      write(*,*) 'NO Trac_Tend before HCO_RUN: ', &
-         SUM(HcoState%Spc(HcoDst1)%Emis%Val)
-
       ! ================================================================
       ! Run HCO core module
       ! Emissions will be written into the corresponding flux arrays 
@@ -568,11 +563,6 @@
          CALL ERROR_STOP('HCO_RUN', LOC )
          RETURN 
       ENDIF
-
-      ! testing only
-      HcoDST1 = HCO_GetHcoID( 'NO', HcoState ) 
-      write(*,*) 'NO Trac_Tend after HCO_RUN: ', &
-         SUM(HcoState%Spc(HcoDst1)%Emis%Val)
 
       ! ================================================================
       ! Run HCO extensions
@@ -739,16 +729,24 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, HMRC
+      CHARACTER(LEN=255) :: LOC
 
       !=================================================================
       ! HCOI_GC_FINAL begins here!
       !=================================================================
 
-      ! Write all diagnostics into netCDF file
-      CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC )
-      IF ( HMRC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP('HCOI_DIAGN_FINAL', 'HCOI_GC_FINAL' )
-      ENDIF 
+      ! Init
+      LOC = 'HCOI_GC_FINAL (hcoi_gc_main.F90)'
+
+      ! Write out 'standard' diagnostics
+      CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC, &
+                                 UsePrevTime=.FALSE. )
+      IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
+ 
+      ! Also write all other diagnostics into netCDF file
+      CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC, &
+                                 PREFIX='HEMCO_restart', UsePrevTime=.FALSE.)
+      IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
  
       ! Cleanup diagnostics
       CALL Diagn_Cleanup
