@@ -1997,6 +1997,7 @@
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
 !  31 Jan 2011 - R. Hudman   - Rewrote pulsing scheme
 !  31 Jan 2011 - R. Hudman   - Updated ProTex header
+!  29 May 2013 - R. Yantosca - Bug fix: prevent log(0) from happening
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2024,8 +2025,12 @@
             !Initialize new pulse factor (dry period hours)
             PFACTOR_HSN = 13.01 * LOG( DRYPERIOD_HSN ) - 53.6
 
-            ! If dry period < ~3 days then no pulse
-            IF ( PFACTOR_HSN < 1.0 ) PFACTOR_HSN = 1.0
+            ! Initialize new pulse factor (dry period hours)
+            IF ( DRYPERIOD_HSN > 0 ) THEN
+               PFACTOR_HSN = 13.01 * LOG( DRYPERIOD_HSN ) - 53.6
+            ELSE
+               PFACTOR_HSN = -53.6
+            ENDIF
 
             ! Reinitialize dry period
             DRYPERIOD_HSN = 0
