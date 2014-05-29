@@ -287,6 +287,13 @@ CONTAINS
     CALL NcDef_Var_Attributes( fId, vId, '_FillValue',      1e15              )
     CALL NcDef_Var_Attributes( fId, vId, 'valid_range',     (/-1e15, +1e15/)  )
     
+    !=========================================================================
+    ! %%% TEST RE-OPENING OF DEFINE MODE %%%
+    !=========================================================================
+    CALL NcEnd_Def( fId )
+    WRITE( 6, '(a)' ) 'Testing re-opening of define mode'
+    CALL NcBegin_Def( fId )
+
     ! Define temperature variable
     vId  = vId + 1
     var4 = (/ idLon, idLat, idLev, idTime /)

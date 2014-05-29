@@ -8,55 +8,58 @@
 !
 ! !INTERFACE:
 !
-      module m_netcdf_io_define
+MODULE m_netcdf_io_define
 !
-      implicit none
+! !USES:
+!
+  IMPLICIT NONE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      public  NcDef_dimension
-      public  NcDef_variable
-      public  NcSetFill
-      public  NcEnd_def
+  PUBLIC :: NcDef_Dimension
+  PUBLIC :: NcDef_Variable
+  PUBLIC :: NcSetFill
+  PUBLIC :: NcEnd_Def
+  PUBLIC :: NcBegin_Def
 
-      PUBLIC :: NcDef_glob_attributes
-      INTERFACE NcDef_glob_attributes
-         MODULE PROCEDURE NcDef_glob_attributes_c
-         MODULE PROCEDURE NcDef_glob_attributes_i
-         MODULE PROCEDURE NcDef_glob_attributes_r4
-         MODULE PROCEDURE NcDef_glob_attributes_r8
-         MODULE PROCEDURE NcDef_glob_attributes_i_arr
-         MODULE PROCEDURE NcDef_glob_attributes_r4_arr
-         MODULE PROCEDURE NcDef_glob_attributes_r8_arr
-      END INTERFACE
-
-      PUBLIC :: NcDef_var_attributes
-      INTERFACE NcDef_var_attributes
-         MODULE PROCEDURE NcDef_var_attributes_c
-         MODULE PROCEDURE NcDef_var_attributes_i
-         MODULE PROCEDURE NcDef_var_attributes_r4
-         MODULE PROCEDURE NcDef_var_attributes_r8
-         MODULE PROCEDURE NcDef_var_attributes_i_arr
-         MODULE PROCEDURE NcDef_var_attributes_r4_arr
-         MODULE PROCEDURE NcDef_var_attributes_r8_arr
-      END INTERFACE
+  PUBLIC :: NcDef_glob_attributes
+  INTERFACE NcDef_glob_attributes
+     MODULE PROCEDURE NcDef_glob_attributes_c
+     MODULE PROCEDURE NcDef_glob_attributes_i
+     MODULE PROCEDURE NcDef_glob_attributes_r4
+     MODULE PROCEDURE NcDef_glob_attributes_r8
+     MODULE PROCEDURE NcDef_glob_attributes_i_arr
+     MODULE PROCEDURE NcDef_glob_attributes_r4_arr
+     MODULE PROCEDURE NcDef_glob_attributes_r8_arr
+  END INTERFACE NcDef_glob_attributes
+  
+  PUBLIC :: NcDef_var_attributes
+  INTERFACE NcDef_var_attributes
+     MODULE PROCEDURE NcDef_var_attributes_c
+     MODULE PROCEDURE NcDef_var_attributes_i
+     MODULE PROCEDURE NcDef_var_attributes_r4
+     MODULE PROCEDURE NcDef_var_attributes_r8
+     MODULE PROCEDURE NcDef_var_attributes_i_arr
+     MODULE PROCEDURE NcDef_var_attributes_r4_arr
+     MODULE PROCEDURE NcDef_var_attributes_r8_arr
+  END INTERFACE NcDef_var_attributes
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: NcDef_glob_attributes_c
-      PRIVATE :: NcDef_glob_attributes_i
-      PRIVATE :: NcDef_glob_attributes_r4
-      PRIVATE :: NcDef_glob_attributes_r8
-      PRIVATE :: NcDef_glob_attributes_i_arr
-      PRIVATE :: NcDef_glob_attributes_r4_arr
-      PRIVATE :: NcDef_glob_attributes_r8_arr
-      PRIVATE :: NcDef_var_attributes_c
-      PRIVATE :: NcDef_var_attributes_i
-      PRIVATE :: NcDef_var_attributes_r4
-      PRIVATE :: NcDef_var_attributes_r8
-      PRIVATE :: NcDef_var_attributes_i_arr
-      PRIVATE :: NcDef_var_attributes_r4_arr
-      PRIVATE :: NcDef_var_attributes_r8_arr
+  PRIVATE :: NcDef_glob_attributes_c
+  PRIVATE :: NcDef_glob_attributes_i
+  PRIVATE :: NcDef_glob_attributes_r4
+  PRIVATE :: NcDef_glob_attributes_r8
+  PRIVATE :: NcDef_glob_attributes_i_arr
+  PRIVATE :: NcDef_glob_attributes_r4_arr
+  PRIVATE :: NcDef_glob_attributes_r8_arr
+  PRIVATE :: NcDef_var_attributes_c
+  PRIVATE :: NcDef_var_attributes_i
+  PRIVATE :: NcDef_var_attributes_r4
+  PRIVATE :: NcDef_var_attributes_r8
+  PRIVATE :: NcDef_var_attributes_i_arr
+  PRIVATE :: NcDef_var_attributes_r4_arr
+  PRIVATE :: NcDef_var_attributes_r8_arr
 !
 ! !DESCRIPTION: Provides netCDF utility routines to define dimensions, 
 !  variables and attributes.
@@ -69,38 +72,40 @@
 !  Initial code.
 !  26 Sep 2013 - R. Yantosca - Add routines to save attributes of different
 !                              numerical types
+!  14 May 2014 - R. Yantosca - Add function NcBegin_Def to reopen define mode
+!  14 May 2014 - R. Yantosca - Now use F90 free formatting
 !EOP
-!-------------------------------------------------------------------------
-
+!------------------------------------------------------------------------------
+!BOC
 CONTAINS
-
-!-------------------------------------------------------------------------
+!EOC
+!-----------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_dimension
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_dimension(ncid,name,len,id)
+  SUBROUTINE NcDef_dimension(ncid,name,len,id)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT NONE
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid  : netCDF file id
-!!    name  : dimension name
-!!    len   : dimension number
-      character (len=*), intent(in) :: name
-      integer,           intent(in) :: ncid, len
+!!  ncid  : netCDF file id
+!!  name  : dimension name
+!!  len   : dimension number
+    CHARACTER (LEN=*), INTENT(IN) :: name
+    INTEGER,           INTENT(IN) :: ncid, len
 !
 ! !OUTPUT PARAMETERS:
-!!    id    : dimension id
-      integer,           intent(out) :: id
+!!  id    : dimension id
+    INTEGER,           INTENT(OUT) :: id
 !
 ! !DESCRIPTION: Defines dimension.
 !\\
@@ -116,18 +121,17 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer :: ierr
+    CHARACTER (len=128) :: err_msg
+    INTEGER :: ierr
 !
-      ierr = Nf_Def_Dim (ncid, name, len, id)
+    ierr = Nf_Def_Dim (ncid, name, len, id)
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'Nf_Def_Dim: can not define dimension : '// Trim (name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) then
+       err_msg = 'Nf_Def_Dim: can not define dimension : '// Trim (name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-      end subroutine NcDef_dimension
+  END SUBROUTINE NcDef_dimension
 !EOC
 !-------------------------------------------------------------------------
 !BOP
@@ -136,30 +140,30 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_variable(ncid,name,type,ndims,dims,var_id)
+  SUBROUTINE NcDef_variable(ncid,name,type,ndims,dims,var_id)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT NONE
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !
-!!    ncid   : netCDF file id
-!!    name   : name of the variable
-!!    type   : type of the variable 
-!!             (NF_FLOAT, NF_CHAR, NF_INT, NF_DOUBLE, NF_BYTE, NF_SHORT)
-!!    ndims  : number of dimensions of the variable
-!!    dims   : netCDF dimension id of the variable
-!!    varid  : netCDF varid id
+!!  ncid   : netCDF file id
+!!  name   : name of the variable
+!!  type   : type of the variable 
+!!           (NF_FLOAT, NF_CHAR, NF_INT, NF_DOUBLE, NF_BYTE, NF_SHORT)
+!!  ndims  : number of dimensions of the variable
+!!  dims   : netCDF dimension id of the variable
+!!  varid  : netCDF varid id
 
-      character (len=*), intent(in) :: name
-      integer,           intent(in) :: ncid, ndims, var_id
-      integer,           intent(in) :: dims(ndims)
-      integer,           intent(in) :: type
+    CHARACTER (LEN=*), INTENT(IN) :: name
+    INTEGER,           INTENT(IN) :: ncid, ndims, var_id
+    INTEGER,           INTENT(IN) :: dims(ndims)
+    INTEGER,           INTENT(IN) :: type
 !
 ! !DESCRIPTION: Defines a netCDF variable.
 !\\
@@ -175,19 +179,17 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer ::  ierr
+    character (len=128) :: err_msg
+    integer ::  ierr
 !
-      ierr = Nf_Def_Var (ncid, name, type, ndims, dims, var_id)
+    ierr = Nf_Def_Var (ncid, name, type, ndims, dims, var_id)
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'Nf_Def_Var: can not define variable : '// Trim (name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'Nf_Def_Var: can not define variable : '// Trim (name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_variable
+  END SUBROUTINE NcDef_variable
 !EOC
 !------------------------------------------------------------------------------
 !BOP
@@ -196,22 +198,22 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_var_attributes_c(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_c(ncid,var_id,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
-      include 'netcdf.inc'
+    IMPLICIT none
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id
-!!    var_id  : netCDF variable id
-!!    att_name: attribute name
-!!    att_val : attribute value
-      character (len=*), intent(in) :: att_name, att_val
-      integer,           intent(in) :: ncid, var_id
+!!  ncid    : netCDF file id
+!!  var_id  : netCDF variable id
+!!  att_name: attribute name
+!!  att_val : attribute value
+    CHARACTER (LEN=*), INTENT(IN) :: att_name, att_val
+    INTEGER,           INTENT(IN) :: ncid, var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: CHARACTER.
 !\\
@@ -228,21 +230,19 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             ::  mylen, ierr
+    CHARACTER (LEN=128) :: err_msg
+    INTEGER             :: mylen, ierr
 !
-      mylen = len(att_val)
-      ierr = Nf_Put_Att_Text (ncid, var_id, att_name, mylen, att_val)
+    mylen = LEN(att_val)
+    ierr = Nf_Put_Att_Text (ncid, var_id, att_name, mylen, att_val)
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_var_attributes_c: can not define attribute : ' // &
-                   Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_var_attributes_c: can not define attribute : ' // &
+            TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_var_attributes_c
+  END SUBROUTINE NcDef_var_attributes_c
 !EOC
 !------------------------------------------------------------------------------
 !BOP
@@ -251,23 +251,23 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_var_attributes_i(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_i(ncid,var_id,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
-      include 'netcdf.inc'
+    IMPLICIT NONE
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id
-!!    var_id  : netCDF variable id
-!!    att_name: attribute name
-!!    att_val : attribute value
-      INTEGER,           INTENT(IN) :: att_val
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid, var_id
+!!  ncid    : netCDF file id
+!!  var_id  : netCDF variable id
+!!  att_name: attribute name
+!!  att_val : attribute value
+    INTEGER,           INTENT(IN) :: att_val
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid, var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: INTEGER.
 !\\
@@ -282,22 +282,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             :: mylen, ierr
+    character (len=128) :: err_msg
+    integer             :: mylen, ierr
 !
-      mylen = 1
-      ierr  = Nf_Put_Att_Real( ncid,   var_id, att_name, &
+    mylen = 1
+    ierr  = Nf_Put_Att_Real( ncid,   var_id, att_name, &
                                NF_INT, mylen,  att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_var_attributes_i: can not define attribute : ' // &
-                    Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_var_attributes_i: can not define attribute : ' // &
+            TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_var_attributes_i
+  END SUBROUTINE NcDef_var_attributes_i
 !EOC
 !------------------------------------------------------------------------------
 !BOP
@@ -306,23 +304,23 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_var_attributes_r4(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_r4(ncid,var_id,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
-!
-      implicit none
-      include 'netcdf.inc'
+    USE m_do_err_out
+   
+    IMPLICIT NONE
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id
-!!    var_id  : netCDF variable id
-!!    att_name: attribute name
-!!    att_val : attribute value
-      REAL*4,            INTENT(IN) :: att_val
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid, var_id
+!!  ncid    : netCDF file id
+!!  var_id  : netCDF variable id
+!!  att_name: attribute name
+!!  att_val : attribute value
+    REAL*4,            INTENT(IN) :: att_val
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid, var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: REAL*4.
 !\\
@@ -337,22 +335,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             :: mylen, ierr
+    CHARACTER (LEN=128) :: err_msg
+    INTEGER             :: mylen, ierr
 !
-      mylen = 1
-      ierr  = Nf_Put_Att_Real( ncid,     var_id, att_name, &
+    mylen = 1
+    ierr  = Nf_Put_Att_Real( ncid,     var_id, att_name, &
                                NF_FLOAT, mylen,  att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_var_attributes_r4: can not define attribute : ' // &
-                    Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_var_attributes_r4: can not define attribute : ' // &
+            TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_var_attributes_r4
+  END SUBROUTINE NcDef_var_attributes_r4
 !EOC
 !-----------------------------------------------------------------------------
 !BOP
@@ -361,23 +357,23 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_var_attributes_r8(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_r8(ncid,var_id,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
-      include 'netcdf.inc'
+    IMPLICIT none
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id
-!!    var_id  : netCDF variable id
-!!    att_name: attribute name
-!!    att_val : attribute value
-      REAL*8,            INTENT(IN) :: att_val
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid, var_id
+!!  ncid    : netCDF file id
+!!  var_id  : netCDF variable id
+!!  att_name: attribute name
+!!  att_val : attribute value
+    REAL*8,            INTENT(IN) :: att_val
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid, var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: REAL*4.
 !\\
@@ -392,22 +388,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             ::  mylen, ierr
+    CHARACTER (LEN=128) :: err_msg
+    INTEGER             ::  mylen, ierr
 !
-      mylen = 1
-      ierr  = Nf_Put_Att_Double( ncid,      var_id, att_name, &
+    mylen = 1
+    ierr  = Nf_Put_Att_Double( ncid,      var_id, att_name, &
                                  NF_DOUBLE, mylen,  att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_var_attributes_r8: can not define attribute : ' // &
-                    Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_var_attributes_r8: can not define attribute : ' // &
+            TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_var_attributes_r8
+  END SUBROUTINE NcDef_var_attributes_r8
 !EOC
 !------------------------------------------------------------------------------
 !BOP
@@ -416,23 +410,23 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_var_attributes_i_arr(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_i_arr(ncid,var_id,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
-      include 'netcdf.inc'
+    IMPLICIT none
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id
-!!    var_id  : netCDF variable id
-!!    att_name: attribute name
-!!    att_val : attribute value
-      INTEGER,           INTENT(IN) :: att_val(:)
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid, var_id
+!!  ncid    : netCDF file id
+!!  var_id  : netCDF variable id
+!!  att_name: attribute name
+!!  att_val : attribute value
+    INTEGER,           INTENT(IN) :: att_val(:)
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid, var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: INTEGER vector.
 !\\
@@ -447,22 +441,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             :: mylen, ierr
+    CHARACTER (LEN=128) :: err_msg
+    INTEGER             :: mylen, ierr
 !
-      mylen = SIZE( att_val )
-      ierr  = Nf_Put_Att_Real( ncid,   var_id, att_name, &
+    mylen = SIZE( att_val )
+    ierr  = Nf_Put_Att_Real( ncid,   var_id, att_name, &
                                NF_INT, mylen,  att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_var_attributes_i_arr: can not define attribute : ' &
-                    // Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    iF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_var_attributes_i_arr: can not define attribute : ' &
+            // TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_var_attributes_i_arr
+  END SUBROUTINE NcDef_var_attributes_i_arr
 !EOC
 !------------------------------------------------------------------------------
 !BOP
@@ -471,23 +463,23 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_var_attributes_r4_arr(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_r4_arr(ncid,var_id,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
-      include 'netcdf.inc'
+    IMPLICIT none
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id
-!!    var_id  : netCDF variable id
-!!    att_name: attribute name
-!!    att_val : attribute value
-      REAL*4,            INTENT(IN) :: att_val(:)
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid, var_id
+!!  ncid    : netCDF file id
+!!  var_id  : netCDF variable id
+!!  att_name: attribute name
+!!  att_val : attribute value
+    REAL*4,            INTENT(IN) :: att_val(:)
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid, var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: REAL*4 vector
 !\\
@@ -502,22 +494,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             :: mylen, ierr
+    CHARACTER (LEN=128) :: err_msg
+    INTEGER             :: mylen, ierr
 !
-      mylen = SIZE( att_val )
-      ierr  = Nf_Put_Att_Real( ncid,     var_id, att_name, &
+    mylen = SIZE( att_val )
+    ierr  = Nf_Put_Att_Real( ncid,     var_id, att_name, &
                                NF_FLOAT, mylen,  att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_var_attributes_r4_arr: can not define attribute : ' &
-                    // Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_var_attributes_r4_arr: can not define attribute : ' &
+                    // TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_var_attributes_r4_arr
+  END SUBROUTINE NcDef_var_attributes_r4_arr
 !EOC
 !-----------------------------------------------------------------------------
 !BOP
@@ -526,23 +516,23 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_var_attributes_r8_arr(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_r8_arr(ncid,var_id,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
-      include 'netcdf.inc'
+    IMPLICIT NONE
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!    ncid    : netCDF file id
 !!    var_id  : netCDF variable id
 !!    att_name: attribute name
 !!    att_val : attribute value
-      REAL*8,            INTENT(IN) :: att_val(:)
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid, var_id
+    REAL*8,            INTENT(IN) :: att_val(:)
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid, var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: REAL*8 vector
 !\\
@@ -557,22 +547,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             ::  mylen, ierr
+    character (len=128) :: err_msg
+    integer             ::  mylen, ierr
 !
-      mylen = size( att_val )
-      ierr  = Nf_Put_Att_Double( ncid,      var_id, att_name, &
+    mylen = size( att_val )
+    ierr  = Nf_Put_Att_Double( ncid,      var_id, att_name, &
                                  NF_DOUBLE, mylen,  att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_var_attributes_r4_arr: can not define attribute : '&
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_var_attributes_r4_arr: can not define attribute : '&
                      // Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_var_attributes_r8_arr
+  END SUBROUTINE NcDef_var_attributes_r8_arr
 !EOC
 !-------------------------------------------------------------------------
 !BOP
@@ -581,24 +569,24 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_glob_attributes_c(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_c(ncid,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT NONE
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id
-!!    att_name: attribute name
-!!    att_val : attribute value
+!!  ncid    : netCDF file id
+!!  att_name: attribute name
+!!  att_val : attribute value
 !
-      character (len=*), intent(in) :: att_val
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid
+    CHARACTER (LEN=*), INTENT(IN) :: att_val
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid
 !
 ! !DESCRIPTION: Defines global attributes of type: CHARACTER
 !\\
@@ -613,21 +601,19 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             ::  mylen, ierr
+    CHARACTER (LEN=128) :: err_msg
+    INTEGER             ::  mylen, ierr
 !
-      mylen = len(att_val)
-      ierr = Nf_Put_Att_Text (ncid, NF_GLOBAL, att_name, mylen, att_val)
+    mylen = len(att_val)
+    ierr = Nf_Put_Att_Text (ncid, NF_GLOBAL, att_name, mylen, att_val)
+    
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_glob_attributes_c: can not define attribute : ' // &
+            TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_glob_attributes_c: can not define attribute : ' // &
-                   Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
-
-      return
-
-      end subroutine NcDef_glob_attributes_c
+  END SUBROUTINE NcDef_glob_attributes_c
 !EOC
 !-------------------------------------------------------------------------
 !BOP
@@ -636,24 +622,24 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_glob_attributes_i(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_i(ncid,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT none
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!    ncid    : netCDF file id
 !!    att_name: attribute name
 !!    att_val : attribute value
 !
-      INTEGER,           intent(in) :: att_val
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid
+    INTEGER,           INTENT(IN) :: att_val
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: NCID
 !
 ! !DESCRIPTION: Defines global attributes of type: INTEGER
 !\\
@@ -668,22 +654,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             :: mylen, ierr
+    CHARACTER (LEN=128) :: err_msg
+    INTEGER             :: mylen, ierr
 !
-      mylen = 1
-      ierr  = Nf_Put_Att_Int( ncid,   NF_GLOBAL, att_name, &
-                              NF_INT, mylen,     att_val )
+    mylen = 1
+    ierr  = Nf_Put_Att_Int( ncid,   NF_GLOBAL, att_name, &
+                            NF_INT, mylen,     att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_glob_attributes_i: can not define attribute : ' // &
-                   Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_glob_attributes_i: can not define attribute : ' // &
+            TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_glob_attributes_i
+  END SUBROUTINE NcDef_glob_attributes_i
 !EOC
 !-------------------------------------------------------------------------
 !BOP
@@ -692,24 +676,24 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_glob_attributes_r4(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_r4(ncid,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT NONE
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id
-!!    att_name: attribute name
-!!    att_val : attribute value
+!!  ncid    : netCDF file id
+!!  att_name: attribute name
+!!  att_val : attribute value
 !
-      REAL*4,            intent(in) :: att_val
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid
+    REAL*4,            INTENT(IN) :: att_val
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid
 !
 ! !DESCRIPTION: Defines global attributes of type: REAL*4
 !\\
@@ -724,22 +708,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             :: mylen, ierr
+    character (len=128) :: err_msg
+    integer             :: mylen, ierr
 !
-      mylen = 1
-      ierr  = Nf_Put_Att_Real( ncid,     NF_GLOBAL, att_name, &
-                               NF_FLOAT, mylen,     att_val )
+    mylen = 1
+    ierr  = Nf_Put_Att_Real( ncid,     NF_GLOBAL, att_name, &
+                             NF_FLOAT, mylen,     att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_glob_attributes_r4: can not define attribute : ' // &
-                   Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_glob_attributes_r4: can not define attribute : ' // &
+            TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_glob_attributes_r4
+  END SUBROUTINE NcDef_glob_attributes_r4
 !EOC
 !-------------------------------------------------------------------------
 !BOP
@@ -748,24 +730,24 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_glob_attributes_r8(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_r8(ncid,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT NONE
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!    ncid    : netCDF file id
 !!    att_name: attribute name
 !!    att_val : attribute value
 !
-      REAL*8,            intent(in) :: att_val
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid
+    REAL*8,            INTENT(IN) :: att_val
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid
 !
 ! !DESCRIPTION: Defines global attributes of type: REAL*4
 !\\
@@ -780,22 +762,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             :: mylen, ierr
+    character (len=128) :: err_msg
+    integer             :: mylen, ierr
 !
-      mylen = 1
-      ierr  = Nf_Put_Att_Double( ncid,     NF_GLOBAL, att_name, &
-                                 NF_FLOAT, mylen,     att_val )
+    mylen = 1
+    ierr  = Nf_Put_Att_Double( ncid,     NF_GLOBAL, att_name, &
+                               NF_FLOAT, mylen,     att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_glob_attributes_r8: can not define attribute : ' // &
-                   Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_glob_attributes_r8: can not define attribute : ' // &
+            TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_glob_attributes_r8
+  END SUBROUTINE NcDef_glob_attributes_r8
 !EOC
 !-------------------------------------------------------------------------
 !BOP
@@ -804,24 +784,24 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_glob_attributes_i_arr(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_i_arr(ncid,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT NONE
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!    ncid    : netCDF file id
 !!    att_name: attribute name
 !!    att_val : attribute value
 !
-      INTEGER,           intent(in) :: att_val(:)
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid
+    INTEGER,           INTENT(IN) :: att_val(:)
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid
 ! 
 ! !DESCRIPTION: Defines global attributes of type: INTEGER vector
 !\\
@@ -836,22 +816,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             :: mylen, ierr
+    CHARACTER (LEN=128) :: err_msg
+    INTEGER             :: mylen, ierr
 !
-      mylen = SIZE( att_val )
-      ierr  = Nf_Put_Att_Int( ncid,   NF_GLOBAL, att_name, &
-                              NF_INT, mylen,     att_val )
+    mylen = SIZE( att_val )
+    ierr  = Nf_Put_Att_Int( ncid,   NF_GLOBAL, att_name, &
+                            NF_INT, mylen,     att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_glob_attributes_i_arr: can not define attribute : ' &
-                    // Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_glob_attributes_i_arr: can not define attribute : ' &
+            // Trim (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_glob_attributes_i_arr
+  END SUBROUTINE NcDef_glob_attributes_i_arr
 !EOC
 !-------------------------------------------------------------------------
 !BOP
@@ -860,24 +838,24 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_glob_attributes_r4_arr(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_r4_arr(ncid,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT none
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id
-!!    att_name: attribute name
-!!    att_val : attribute value
+!!  ncid    : netCDF file id
+!!  att_name: attribute name
+!!  att_val : attribute value
 !
-      REAL*4,            intent(in) :: att_val(:)
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid
+    REAL*4,            INTENT(IN) :: att_val(:)
+    CHARACTER (LEN=*), INTENT(IN) :: att_name
+    INTEGER,           INTENT(IN) :: ncid
 !
 ! !DESCRIPTION: Defines global attributes of type: REAL*4 vector
 !\\
@@ -892,22 +870,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             :: mylen, ierr
+    character (len=128) :: err_msg
+    integer             :: mylen, ierr
 !
-      mylen = SIZE( att_val )
-      ierr  = Nf_Put_Att_Real( ncid,     NF_GLOBAL, att_name, &
-                               NF_FLOAT, mylen,     att_val )
+    mylen = SIZE( att_val )
+    ierr  = Nf_Put_Att_Real( ncid,     NF_GLOBAL, att_name, &
+                             NF_FLOAT, mylen,     att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_glob_attributes_r4_arr: can not define attribute : ' &
-                   // Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_glob_attributes_r4_arr: can not define attribute : ' &
+              // TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_glob_attributes_r4_arr
+  END SUBROUTINE NcDef_glob_attributes_r4_arr
 !EOC
 !-------------------------------------------------------------------------
 !BOP
@@ -916,24 +892,24 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcDef_glob_attributes_r8_arr(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_r8_arr(ncid,att_name,att_val)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT none
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id
-!!    att_name: attribute name
-!!    att_val : attribute value
+!!  ncid    : netCDF file id
+!!  att_name: attribute name
+!!  att_val : attribute value
 !
-      REAL*8,            intent(in) :: att_val(:)
-      character (len=*), intent(in) :: att_name
-      integer,           intent(in) :: ncid
+    REAL*8,            intent(in) :: att_val(:)
+    character (len=*), intent(in) :: att_name
+    integer,           intent(in) :: ncid
 !
 ! !DESCRIPTION: Defines global attributes of type: REAL*8 vector
 !\\
@@ -948,22 +924,20 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             :: mylen, ierr
+    character (len=128) :: err_msg
+    integer             :: mylen, ierr
 !
-      mylen = SIZE( att_val )
-      ierr  = Nf_Put_Att_Double( ncid,     NF_GLOBAL, att_name, &
-                                 NF_FLOAT, mylen,     att_val )
+    mylen = SIZE( att_val )
+    ierr  = Nf_Put_Att_Double( ncid,     NF_GLOBAL, att_name, &
+                               NF_FLOAT, mylen,     att_val )
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'NcDef_glob_attributes_r8_arr: can not define attribute : ' &
-                    // Trim (att_name)
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'NcDef_glob_attributes_r8_arr: can not define attribute : ' &
+            // TRIM (att_name)
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcDef_glob_attributes_r8_arr
+  END SUBROUTINE NcDef_glob_attributes_r8_arr
 !EOC
 !-------------------------------------------------------------------------
 !BOP
@@ -972,19 +946,19 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine NcSetFill(ncid,ifill,omode)
+  SUBROUTINE NcSetFill(ncid,ifill,omode)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT NONE
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !
-      integer,           intent(in) :: ncid, ifill,omode
+    INTEGER, INTENT(in) :: ncid, ifill,omode
 !
 ! !DESCRIPTION: Sets fill method.
 !\\
@@ -1000,40 +974,38 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             ::  mylen, ierr
+    character (len=128) :: err_msg
+    integer             ::  mylen, ierr
 !
-      ierr = Nf_Set_Fill (ncid, NF_NOFILL, omode)
+    ierr = Nf_Set_Fill (ncid, NF_NOFILL, omode)
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'Nf_Put_Att_Text: Error in omode  '
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'Nf_Set_FIll: Error in omode  '
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
-
-      end subroutine NcSetFill
+  END SUBROUTINE NcSetFill
 !EOC
 !-------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: NcEnd_def
+! !IROUTINE: NcEnd_Def
 !
 ! !INTERFACE:
 !
-      subroutine NcEnd_def(ncid)
+  SUBROUTINE NcEnd_Def(ncid)
 !
 ! !USES:
 !
-      use m_do_err_out
+    USE m_do_err_out
 !
-      implicit none
+    IMPLICIT NONE
 !
-      include 'netcdf.inc'
+    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !
-      integer,           intent(in) :: ncid
+    INTEGER, INTENT(IN) :: ncid
 !
 ! !DESCRIPTION: Ends definitions of variables and their attributes.
 !\\
@@ -1049,19 +1021,64 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
-      integer             ::  ierr
+    CHARACTER (LEN=128) :: err_msg
+    INTEGER             ::  ierr
 !
-      ierr = Nf_Enddef (ncid)
+    ierr = Nf_Enddef (ncid)
 
-      if (ierr.ne.NF_NOERR) then
-         err_msg = 'Nf_Put_Att_Text: Error in closing global attribute'
-         call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-      end if
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'Nf_EndDef: Error in closing netCDF define mode!'
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
 
-      return
+  END SUBROUTINE NcEnd_def
+!EOC
+!-------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: NcBegin_Def
+!
+! !INTERFACE:
+!
+  SUBROUTINE NcBegin_Def(ncid)
+!
+! !USES:
+!
+    USE m_do_err_out
+!
+    IMPLICIT none
+!
+    INCLUDE 'netcdf.inc'
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN) :: ncid
+!
+! !DESCRIPTION: Opens (or re-opens) netCDF define mode, where variables
+!  and attributes can be defined.
+!\\
+!\\
+! !AUTHOR: 
+!  Jules Kouatchou
+!
+! !REVISION HISTORY:
+!  14 May 2014 - R. Yantosca - Initial version
+!EOP
+!-------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+    character (len=128) :: err_msg
+    integer             :: ierr
+!
+    ierr = Nf_Redef (ncid)
 
-      end subroutine NcEnd_def
+    IF (ierr.ne.NF_NOERR) THEN
+       err_msg = 'Nf_ReDef: Error in opening netCDF define mode!'
+       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    END IF
+
+  END SUBROUTINE NcBegin_Def
 !EOC
 !------------------------------------------------------------------------
-end module m_netcdf_io_define
+END MODULE m_netcdf_io_define
