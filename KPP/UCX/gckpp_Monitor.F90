@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Fri May 23 15:43:16 2014
+! Time                 : Mon Jun  2 11:01:28 2014
 ! Working directory    : /home/mpayer/KPP
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -171,7 +171,7 @@ MODULE gckpp_Monitor
      '     ATO2 + NO --> 0.04 R4N2 + 0.96 MCO3 + 0.96 CH2O + 0.96 NO2                                     ', &
      '      KO2 + NO --> 0.07 R4N2 + 0.93 MCO3 + 0.93 ALD2 + 0.93 NO2                                     ', &
      '     RIO2 + NO --> 0.047 ISOPNB + 0.1 DIBOO + 0.07 ISOPND + 0.123 HC5 + 0.4 MVK ... etc.            ', &
-     '          RIO2 --> 0.5 GLYC + GLYX + 0.5 MGLY + 0.5 HAC + CH2O + 2 HO2 ... etc.                     ', &
+     '          RIO2 --> 0.5 GLYC + 0.5 GLYX + 0.5 MGLY + 0.5 HAC + CH2O + 2 HO2 ... etc.                 ', &
      '     VRO2 + NO --> 0.12 MVKN + 0.53 GLYC + 0.35 MGLY + 0.53 MCO3 + 0.35 CH2O ... etc.               ', &
      '     MRO2 + NO --> 0.728 CO + 0.15 MACRN + 0.122 MGLY + 0.728 HAC + 0.122 CH2O ... etc.             ', &
      '          MRO2 --> CO + HAC + OH                                                                    ' /)
@@ -590,7 +590,7 @@ MODULE gckpp_Monitor
      '          N2O5 --> NO2 + NO3                                                                        ', &
      '          ALD2 --> CO + MO2 + HO2                                                                   ', &
      '          ALD2 --> CH4 + CO                                                                         ', &
-     '           PAN --> 0.6 MCO3 + 0.4 MO2 + 0.6 NO2 + 0.4 NO3                                           ', &
+     '           PAN --> 0.7 MCO3 + 0.3 MO2 + 0.7 NO2 + 0.3 NO3                                           ', &
      '          RCHO --> CO + ETO2 + HO2                                                                  ', &
      '          ACET --> MCO3 + MO2                                                                       ', &
      '          ACET --> CO + 2 MO2                                                                       ', &
