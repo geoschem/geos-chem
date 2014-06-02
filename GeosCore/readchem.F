@@ -184,39 +184,65 @@
       !=================================================================
 
       ! Assume success
-      RC             = GIGC_SUCCESS
+      RC                 = GIGC_SUCCESS
 
       ! Copy logical fields from INPUT_OPT to local variables for use below
-      LPRT           = Input_Opt%LPRT
+      LPRT               = Input_Opt%LPRT
 
-      NINAC          = 0
-      NACTIVE        = 0 
-      NSDEAD         = 0 
-      NOTHGS         = 0 
-      NPHOTALL       = 0 
-      IDOPHOT        = 0
+      NINAC              = 0
+      NACTIVE            = 0 
+      NSDEAD             = 0 
+      NOTHGS             = 0 
+      NPHOTALL           = 0 
+      IDOPHOT            = 0
 !
-      NAMEGAS(0)     = ' '
+      NAMEGAS(0)         = ' '
 !
       ! Initialize flag for N2O5 hydrolysis rxn (bmy, 8/7/03)
-      NKN2O5         = 0
+      NKN2O5             = 0
 
       ! Initialize flag for HO2 hydrolysis rxn (jaegle, 02/26/09)
-      NKHO2          = 0
+      NKHO2              = 0
 
       ! Initialize flag for BrNO3 hydrolysis rxn (jpp, 5/4/10)
-      NKBrNO3        = 0
+      NKBrNO3            = 0
       ! Initialize flags for HOBr + HBr het. pseudo-rxns (jpp, 3/22/11)
-      NKHOBr         = 0
-      NK1HBr         = 0
+      NKHOBr             = 0
+      NK1HBr             = 0
 
       ! Initialize flags for PSC reactions (SDE 04/17/13)
-      NKPSC(:,:)     = 0
+      NKPSC(:,:)         = 0
 
       ! Initialize flags for VOC photolysis (sde, mps, 5/28/14)
-      NKHAC(:,:)     = 0
-      NKMCO3(:,:)    = 0
-      NKGLYC(:,:)    = 0
+      NKHAC(:,:)         = 0
+      NKMCO3(:,:)        = 0
+      NKGLYC(:,:)        = 0
+
+      ! Initialize rest of flags for safety (sde, mps, 6/2/14)
+      NNADDA(:)          = 0
+      NKSPECA(:,:)       = 0
+      NNADDB(:)          = 0
+      NKSPECB(:,:)       = 0
+      NNADDC(:)          = 0
+      NKSPECC(:,:)       = 0
+      NNADDD(:)          = 0
+      NKSPECD(:,:)       = 0
+      NNADDF(:)          = 0
+      NKSPECF(:,:)       = 0
+      NNADDG(:)          = 0
+      NKSPECG(:,:)       = 0
+      NNADDH(:)          = 0
+      NKSPECH(:,:)       = 0
+      NNADDK(:)          = 0
+      NKSPECK(:,:)       = 0
+      NNADDV (:)         = 0
+      NNRO2HO2(:)        = 0
+      NKSPECRO2HO2(:,:)  = 0
+      NKHNO4(:)          = 0
+      NKHOROI(:)         = 0
+      NKHOROJ(:)         = 0
+      NK2HOBr            = 0
+      NK2HBr             = 0
 
       DO 44 I            = 1, NMDEAD
        NAMD(I)           = ' '
@@ -239,7 +265,7 @@
  48   CONTINUE
 !
       DO 49 I            = 1, IPHOT
-       DEFPRAT(I,:)        = 0.d0
+       DEFPRAT(I,:)      = 0.d0
  49   CONTINUE
 !
 !
