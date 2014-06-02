@@ -868,7 +868,8 @@
 !$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD44(I,J,IDDEP(N),1) = SUM( ND44_TMP(I,J,:) ) 
+            AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) +
+     &                             SUM( ND44_TMP(I,J,:) )
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
