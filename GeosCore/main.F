@@ -1529,7 +1529,7 @@
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_met' )
 
       ! Deallocate dynamic module arrays
-      CALL CLEANUP( am_I_Root, RC )
+      CALL CLEANUP( am_I_Root, Input_Opt, RC )
 
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )

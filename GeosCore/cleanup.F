@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP( am_I_Root, RC )
+      SUBROUTINE CLEANUP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -120,11 +120,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object 
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC           ! Success or failure
+      INTEGER,        INTENT(OUT) :: RC           ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version
@@ -238,6 +239,8 @@
 !  26 Sep 2013 - R. Yantosca - Now reference EXIT_GEOSFP_TPCORE_WINDOW
 !  29 Oct 2013 - R. Yantosca - Now call CLEANUP_DAO for all simulations (if
 !                              arrays are not allocated it'll exit gracefully)
+!  03 Jun 2014 - R. Yantosca - Don't finalize HEMCO if emissions are turned
+!                              off.  This prevents a seg fault error.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -251,7 +254,9 @@
 
       ! Cleanup HEMCO 
 #if !defined(ESMF_) 
-      CALL HCOI_GC_FINAL ( am_I_Root )
+      IF ( Input_Opt%LEMIS ) THEN
+         CALL HCOI_GC_FINAL ( am_I_Root )
+      ENDIF
 #endif
 
       ! Call cleanup routines from individual F90 modules
