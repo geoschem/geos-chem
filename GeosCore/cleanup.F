@@ -110,6 +110,7 @@
       USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
+      USE GIGC_Input_Opt_Mod,      ONLY : OptInput
 
       ! HEMCO
 #if !defined(ESMF_) 
@@ -241,6 +242,9 @@
 !                              arrays are not allocated it'll exit gracefully)
 !  03 Jun 2014 - R. Yantosca - Don't finalize HEMCO if emissions are turned
 !                              off.  This prevents a seg fault error.
+!  03 Jun 2014 - R. Yantosca - Now pass Input_Opt via the argument list
+!  03 Jun 2014 - R. Yantosca - Remove references to emissions modules that
+!                              HEMCO renders obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -261,14 +265,10 @@
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL
-!      CALL CLEANUP_AEIC
-!      CALL CLEANUP_ARCTAS_SHIP
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
-!      CALL CLEANUP_BRAVO
       CALL CLEANUP_BROMOCARB  ! jpp, 6/17/09
       CALL CLEANUP_C2H6
-!      CALL CLEANUP_CAC_ANTHRO
       CALL CLEANUP_CARBON
       CALL CLEANUP_CHEMGRID
       CALL CLEANUP_CO2
@@ -285,14 +285,7 @@
       CALL CLEANUP_DIAG_OH
       CALL CLEANUP_DIAG_PL
       CALL CLEANUP_DRYDEP
-!      CALL CLEANUP_DUST_DEAD
       CALL CLEANUP_DUST
-!      CALL CLEANUP_EDGAR
-!      CALL CLEANUP_EMEP
-!      CALL CLEANUP_EPA_NEI
-!      CALL CLEANUP_GC_BIOMASS
-!      CALL CLEANUP_GFED2_BIOMASS
-!      CALL CLEANUP_GFED3_BIOMASS
       CALL CLEANUP_GLOBAL_CH4
       CALL CLEANUP_GLOBAL_HNO3
       CALL CLEANUP_GLOBAL_NO3
@@ -308,9 +301,7 @@
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF
       CALL CLEANUP_ISOROPIAII
-!      CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_LINOZ
-!      CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
       CALL CLEANUP_MODIS_LAI
       CALL CLEANUP_OCEAN_MERCURY
@@ -332,11 +323,7 @@
       CALL CLEANUP_TRACER
       CALL CLEANUP_UCX
       CALL CLEANUP_UVALBEDO
-!      CALL CLEANUP_VISTAS_ANTHRO
       CALL CLEANUP_WETSCAV
-!      CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
-!      CALL CLEANUP_RETRO
-!      CALL CLEANUP_RCP !(cdh, 10/14/11)
 
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
