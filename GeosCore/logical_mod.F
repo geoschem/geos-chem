@@ -128,6 +128,12 @@
       LOGICAL :: LWETD           ! Use wet deposition?
       LOGICAL :: USE_OLSON_2001  ! Use the Olson 2001 land map & drydep info?
 
+! --- TODO --- !
+! Almost all of the emissions switches are obsolete
+! under HEMCO. Keep them in here because many parts
+! of the code (diagnostics, chemistry, etc.) still
+! depend on them. We have to rehaul these parts soon!
+! ckeller, 05/21/14.
       !%%%% Emissions %%%%
       LOGICAL :: LAEIC           ! Use aircraft emissions from AEIC?
       LOGICAL :: LANTHRO         ! Turns all anthropogenic emissions on/off

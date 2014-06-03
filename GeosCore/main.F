@@ -93,12 +93,15 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem emissions modules
       !-----------------------------------------------------------------
-      USE EMISSIONS_MOD         ! Driver routines for emissions
+!      USE EMISSIONS_MOD         ! Driver routines for emissions
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
-      USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
-      USE MEGAN_MOD             ! For biogenic emissions
-      USE SOILNOX_RESTART_MOD   ! For reading and writing soil NOx restart
+!      USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
+!      USE MEGAN_MOD             ! For biogenic emissions
+!      USE SOILNOX_RESTART_MOD   ! For reading and writing soil NOx restart
       USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
+
+      ! HEMCO
+      USE HCOI_GC_MAIN_MOD
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -231,6 +234,8 @@
 !                              initialization stage
 !  11 Apr 2014 - R. Yantosca - Now remove call to INIT_GLOBAL_CH4; this is
 !                              now done from routine GIGC_Init_Extra
+!  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY 
+!  19 May 2014 - C. Keller   - Added HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -490,12 +495,12 @@
       ENDIF
 
       ! Initialize MEGAN arrays, get 15-day avg temperatures
-      IF ( LMEGAN ) THEN
-         CALL INIT_MEGAN( Input_Opt, State_Met )
-         CALL INITIALIZE( 2, am_I_Root )
-         CALL INITIALIZE( 3, am_I_Root )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
-      ENDIF
+!      IF ( LMEGAN ) THEN
+!         CALL INIT_MEGAN( Input_Opt, State_Met )
+!         CALL INITIALIZE( 2, am_I_Root )
+!         CALL INITIALIZE( 3, am_I_Root )
+!         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
+!      ENDIF
 
       ! Define time variables for use below
       NHMS  = GET_NHMS()
@@ -524,10 +529,10 @@
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Compute lightning NOx emissions [molec/box/6h]
-      IF ( LLIGHTNOX ) THEN
-         CALL LIGHTNING( State_Met )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
-      ENDIF
+!      IF ( LLIGHTNOX ) THEN
+!         CALL LIGHTNING( State_Met )
+!         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
+!      ENDIF
 
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
@@ -552,6 +557,23 @@
          CALL DO_PBL_MIX_2( am_I_Root, .FALSE.,   Input_Opt,
      &                      State_Met, State_Chm, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
+      ENDIF
+
+      ! Initialize chemistry
+      ! Moved here (from chemistry_mod.F and chemdr.F) because some
+      ! of the variables are used for non-local PBL mixing BEFORE 
+      ! the first call of the chemistry routines (ckeller, 05/19/14).
+      IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
+         CALL INIT_CHEMISTRY ( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
+
+      ! Initialize HEMCO. This reads the HEMCO configuration file
+      ! and creates entries for all data files needed for emission
+      ! calculation. Also sets some logical switches in Input_Opt
+      ! (e.g. LSOILNOX).
+      IF ( LEMIS ) THEN
+         CALL HCOI_GC_INIT( am_I_Root, Input_Opt,
+     &                      State_Chm, State_Met, RC )
       ENDIF
 
       !=================================================================
@@ -582,14 +604,14 @@
       ENDIF
 
       ! Read soil NOx initial conditions
-      IF ( LSOILNOX ) THEN
-         CALL READ_SOIL_RESTART
-     &      ( am_I_Root, Input_Opt, NYMDb , NHMSb, RC )
-
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
-         ENDIF
-      ENDIF
+!      IF ( LSOILNOX ) THEN
+!         CALL READ_SOIL_RESTART
+!     &      ( am_I_Root, Input_Opt, NYMDb , NHMSb, RC )
+!
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+!         ENDIF
+!      ENDIF
 
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
@@ -698,11 +720,11 @@
      &              TAU,       State_Met, State_Chm, RC    )
                   
                ! Make soil restart file
-               IF ( LSOILNOX ) THEN
-                  CALL MAKE_SOILNOx_RESTART
-     &               ( am_I_Root, Input_Opt, NYMD, 
-     &                 NHMS,      TAU,       RC    )
-               ENDIF
+!               IF ( LSOILNOX ) THEN
+!                  CALL MAKE_SOILNOx_RESTART
+!     &               ( am_I_Root, Input_Opt, NYMD, 
+!     &                 NHMS,      TAU,       RC    )
+!               ENDIF
 
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
@@ -826,7 +848,7 @@
          IF ( ITS_A_FULLCHEM_SIM .or. ITS_A_TAGCO_SIM ) THEN
             IF ( ITS_TIME_FOR_EMIS() ) THEN 
                IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
-                  CALL ANTHROEMS( SEASON, Input_Opt )              
+!                  CALL ANTHROEMS( SEASON, Input_Opt )              
                ENDIF
             ENDIF
 
@@ -926,10 +948,10 @@
      &                              day_of_year,  laiMM,     
      &                              mapping,      wasModisRead, RC )
 
-            ! For MEGAN biogenics, compute 15-day average temperature
-            IF ( LMEGAN ) THEN
-               CALL UPDATE_T_15_AVG
-            ENDIF
+!            ! For MEGAN biogenics, compute 15-day average temperature
+!            IF ( LMEGAN ) THEN
+!               CALL UPDATE_T_15_AVG
+!            ENDIF
 
             ! Note: this daily call to rdsoil left for backward compatibility.
             ! To be revised later.
@@ -1082,7 +1104,9 @@
             !             ***** E M I S S I O N S *****
             !===========================================================
             IF ( LEMIS ) THEN
-               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
+!               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
+!     &                            State_Met, State_Chm, RC )
+               CALL HCOI_GC_RUN ( am_I_Root, Input_Opt, 
      &                            State_Met, State_Chm, RC )
             ENDIF
 
@@ -1196,8 +1220,10 @@
             !             ***** E M I S S I O N S *****
             !===========================================================
             IF ( LEMIS ) THEN
-               CALL DO_EMISSIONS
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!               CALL DO_EMISSIONS
+!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL HCOI_GC_RUN ( am_I_Root, Input_Opt, 
+     &                            State_Met, State_Chm, RC )
             ENDIF
 
             IF ( ITS_A_FULLCHEM_SIM ) THEN
@@ -1884,11 +1910,11 @@
       CALL GET_A3_FIELDS(  DATE(1), DATE(2), State_Met               )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
 
-      ! For MEGAN biogenics, update hourly temps w/in 15-day window
-      IF ( Input_Opt%LMEGAN ) THEN
-         CALL UPDATE_T_DAY( State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: UPDATE T_DAY' )
-      ENDIF
+!      ! For MEGAN biogenics, update hourly temps w/in 15-day window
+!      IF ( Input_Opt%LMEGAN ) THEN
+!         CALL UPDATE_T_DAY( State_Met )
+!         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: UPDATE T_DAY' )
+!      ENDIF
 
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
@@ -1972,7 +1998,7 @@
 
          ! Update daily mean temperature archive for MEGAN biogenics
          ! (tmf, 1/4/2012) This should be turned on!
-         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+!         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
       ENDIF
 
       !----------------------------------
@@ -1984,7 +2010,7 @@
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
-         IF ( LLIGHTNOX ) CALL LIGHTNING( State_Met )
+!         IF ( LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !----------------------------------
@@ -2018,7 +2044,7 @@
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
          ! (tmf, 1/4/2012) This should be turned on!
-         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+!         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
       ENDIf
 
       !==============================================================
@@ -2038,7 +2064,7 @@
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
-         IF ( Input_Opt%LLIGHTNOX ) CALL LIGHTNING( State_Met )
+!         IF ( Input_Opt%LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !==============================================================
@@ -2118,7 +2144,7 @@
          CALL GET_A3_FIELDS ( DATE(1), DATE(2), State_Met )
 
          ! Update daily mean temperature archive for MEGAN biogenics
-         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+!         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
 
       ENDIF
 
@@ -2138,7 +2164,7 @@
 
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]
-         IF ( Input_Opt%LLIGHTNOX ) CALL LIGHTNING( State_Met )
+!         IF ( Input_Opt%LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !==============================================================

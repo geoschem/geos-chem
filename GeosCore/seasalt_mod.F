@@ -24,7 +24,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: CHEMSEASALT
-      PUBLIC :: EMISSSEASALT
+!      PUBLIC :: EMISSSEASALT
       PUBLIC :: CLEANUP_SEASALT
       PUBLIC :: GET_ALK
       PUBLIC :: INIT_SEASALT
@@ -877,571 +877,564 @@
 
       END SUBROUTINE DRY_DEPOSITION
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: emissseasalt
+!!
+!! !DESCRIPTION: Subroutine EMISSSEASALT is the interface between the GEOS-Chem
+!!  model and the SEASALT emissions routines in "seasalt\_mod.f".
+!!  (bec, rjp, bmy, 3/24/03, 2/22/05)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE EMISSSEASALT( am_I_Root, Input_Opt, State_Met, 
+!     &                         State_Chm, RC,        SSA_Br2    )
+!!
+!! !USES:
+!!
+!      USE CMN_SIZE_MOD
+!      USE ERROR_MOD,          ONLY : DEBUG_MSG
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
+!      USE VDIFF_PRE_MOD,      ONLY : emis_save ! (Lin, 03/31/09)
+!#if   defined( TOMAS )
+!      USE TRACERID_MOD,       ONLY : IDTNK1 ! (win, 7/17/09)
+!      USE TRACERID_MOD,       ONLY : IDTSS1 ! (win, 7/17/09)
+!      USE TOMAS_MOD,          ONLY : IBINS  ! (win, 7/17/09)
+!#endif
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,           INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput),    INTENT(IN)    :: Input_Opt   ! Input Options object
+!      TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,           INTENT(OUT)   :: RC          ! Success or failure?
+!      REAL*8,  OPTIONAL, INTENT(OUT)   :: SSA_Br2(IIPAR, JJPAR)
+!!
+!! !REVISION HISTORY: 
+!!  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
+!!        (bmy, 7/20/04)
+!!  (2 ) Now make sure IDTSALA, IDTSALC are nonzero before calling SRCSALT.
+!!        (bmy, 1/26/05)
+!!  (3 ) Remove reference to header file "CMN" (bmy, 2/22/05)
+!!  (4 ) Now call INIT_SEASALT on the first timestep.  Also initialize ALK_EMIS
+!!        and N_DENS on each timestep. (bec, bmy, 4/13/05)
+!!  (5 ) Call SRCSALT30 for size-resolved sea-salt emission (win, 7/17/09)
+!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      LOGICAL, SAVE   :: FIRST = .TRUE.
+!      INTEGER         :: I, J, L, N
 !
-! !IROUTINE: emissseasalt
+!      ! jpp, 3/2/10
+!      REAL*8          :: tmpbr2(IIPAR, JJPAR)
 !
-! !DESCRIPTION: Subroutine EMISSSEASALT is the interface between the GEOS-Chem
-!  model and the SEASALT emissions routines in "seasalt\_mod.f".
-!  (bec, rjp, bmy, 3/24/03, 2/22/05)
-!\\
-!\\
-! !INTERFACE:
+!      ! For fields from Input_Opt
+!      LOGICAL         :: LNLPBL
+!      LOGICAL         :: LPRT
 !
-      SUBROUTINE EMISSSEASALT( am_I_Root, Input_Opt, State_Met, 
-     &                         State_Chm, RC,        SSA_Br2    )
+!      ! Pointers
+!      ! We need to define local arrays to hold corresponding values 
+!      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+!      REAL*8, POINTER :: STT(:,:,:,:)
 !
-! !USES:
+!      !=================================================================
+!      ! EMISSSEASALT begins here! 
+!      !=================================================================
 !
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
-      USE VDIFF_PRE_MOD,      ONLY : emis_save ! (Lin, 03/31/09)
-#if   defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTNK1 ! (win, 7/17/09)
-      USE TRACERID_MOD,       ONLY : IDTSS1 ! (win, 7/17/09)
-      USE TOMAS_MOD,          ONLY : IBINS  ! (win, 7/17/09)
-#endif
+!      ! Assume success
+!      RC          =  GIGC_SUCCESS
 !
-! !INPUT PARAMETERS:
+!      ! Copy values from Input_Opt
+!      LNLPBL      = Input_Opt%LNLPBL
+!      LPRT        = Input_Opt%LPRT
 !
-      LOGICAL,           INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput),    INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology State object
+!      ! Initialize Br2 emission arrays
+!      tmpbr2(:,:) = 0.d0
+!      IF ( PRESENT ( SSA_Br2 ) ) SSA_Br2(:,:) = 0.d0
 !
-! !INPUT/OUTPUT PARAMETERS:
+!      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+!      ! (mpayer, 12/6/12)
+!      STT => State_Chm%Tracers
 !
-      TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!      !### Debug
+!      IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
 !
-! !OUTPUT PARAMETERS:
+!      ! Initialize for each timestep (bec, bmy, 4/13/05)
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N )
+!      DO N = 1, NSALT
+!      DO L = 1, LLCHEM
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         ALK_EMIS(I,J,L,N) = 0d0
+!         N_DENS(I,J,L,N)   = 0d0
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
 !
-      INTEGER,           INTENT(OUT)   :: RC          ! Success or failure?
-      REAL*8,  OPTIONAL, INTENT(OUT)   :: SSA_Br2(IIPAR, JJPAR)
+!      ! Accumulation mode emissions
+!      IF ( IDTSALA > 0 ) THEN
+!         CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1, State_Met )
+!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
+!      ENDIF
 !
-! !REVISION HISTORY: 
-!  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
-!        (bmy, 7/20/04)
-!  (2 ) Now make sure IDTSALA, IDTSALC are nonzero before calling SRCSALT.
-!        (bmy, 1/26/05)
-!  (3 ) Remove reference to header file "CMN" (bmy, 2/22/05)
-!  (4 ) Now call INIT_SEASALT on the first timestep.  Also initialize ALK_EMIS
-!        and N_DENS on each timestep. (bec, bmy, 4/13/05)
-!  (5 ) Call SRCSALT30 for size-resolved sea-salt emission (win, 7/17/09)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      IF ( PRESENT ( SSA_Br2 ) ) THEN
+!         ! 1. store contributions of Br2 emissions
+!         !    from accumulation mode: (jpp, 3/2/10)
+!         SSA_Br2(:,:) = tmpbr2(:,:)
 !
-! !LOCAL VARIABLES:
+!         ! reset the temporary variable
+!         tmpbr2(:,:)  = 0.d0
+!      ENDIF
 !
-      LOGICAL, SAVE   :: FIRST = .TRUE.
-      INTEGER         :: I, J, L, N
-
-      ! jpp, 3/2/10
-      REAL*8          :: tmpbr2(IIPAR, JJPAR)
-
-      ! For fields from Input_Opt
-      LOGICAL         :: LNLPBL
-      LOGICAL         :: LPRT
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! EMISSSEASALT begins here! 
-      !=================================================================
-
-      ! Assume success
-      RC          =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LNLPBL      = Input_Opt%LNLPBL
-      LPRT        = Input_Opt%LPRT
-
-      ! Initialize Br2 emission arrays
-      tmpbr2(:,:) = 0.d0
-      IF ( PRESENT ( SSA_Br2 ) ) SSA_Br2(:,:) = 0.d0
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
-
-      ! Initialize for each timestep (bec, bmy, 4/13/05)
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, NSALT
-      DO L = 1, LLCHEM
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         ALK_EMIS(I,J,L,N) = 0d0
-         N_DENS(I,J,L,N)   = 0d0
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Accumulation mode emissions
-      IF ( IDTSALA > 0 ) THEN
-         CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1, State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
-      ENDIF
-
-      IF ( PRESENT ( SSA_Br2 ) ) THEN
-         ! 1. store contributions of Br2 emissions
-         !    from accumulation mode: (jpp, 3/2/10)
-         SSA_Br2(:,:) = tmpbr2(:,:)
-
-         ! reset the temporary variable
-         tmpbr2(:,:)  = 0.d0
-      ENDIF
-
-      ! Coarse mode emissions
-      IF ( IDTSALC > 0 ) THEN
-         CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2, State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
-      ENDIF
-
-#if defined( DEVEL )
-      State_Chm%TRAC_TEND(:,:,1,IDTSALA) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
-      State_Chm%TRAC_TEND(:,:,1,IDTSALC) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
-#endif
-
-      IF ( PRESENT ( SSA_Br2 ) ) THEN
-         ! 2. add in contributions of Br2 emissions
-         !    from the coarse mode: (jpp, 3/2/10)
-         SSA_Br2(:,:) = SSA_Br2(:,:) + tmpbr2(:,:)
-      ENDIF
-
-#if   defined( TOMAS )
-      ! 30-bin Sea-salt emissions
-      IF ( IDTSS1 > 0 ) THEN
-
-         ! For now, stop the run if choose to use Lin's PBL scheme 
-         ! when running TOMAS aerosols (win, 7/17/09)
-         IF( LNLPBL ) THEN
-            print *,'Currently the TOMAS size-resolved sea salt ',
-     &           'emission code does not support the option to do',
-     &           'non-local PBL scheme (convection menu)!  Try not ',
-     &           'using the non-local PBL or modify SRCSALT30!'
-            stop
-         ENDIF
-         
-         CALL SRCSALT30( STT(:,:,:,IDTNK1:IDTNK1+IBINS-1), 
-     &                   STT(:,:,:,IDTSS1:IDTSS1+IBINS-1 ),
-     &                   State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSEASALT: TOMAS' )
-      ENDIF
-#endif
-
-      ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
-      ! (Lin, 06/09/08) 
-      IF ( LNLPBL ) THEN
-!$OMP PARALLEL DO
-!$OMP+PRIVATE( I, J )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            emis_save(I,J,IDTSALA) = ALK_EMIS(I,J,1,1)
-            emis_save(I,J,IDTSALC) = ALK_EMIS(I,J,1,2)
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      END SUBROUTINE EMISSSEASALT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!      ! Coarse mode emissions
+!      IF ( IDTSALC > 0 ) THEN
+!         CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2, State_Met )
+!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
+!      ENDIF
 !
-! !IROUTINE: srcsalt
+!      IF ( PRESENT ( SSA_Br2 ) ) THEN
+!         ! 2. add in contributions of Br2 emissions
+!         !    from the coarse mode: (jpp, 3/2/10)
+!         SSA_Br2(:,:) = SSA_Br2(:,:) + tmpbr2(:,:)
+!      ENDIF
 !
-! !DESCRIPTION: Subroutine SRCSALT is based on the sea salt source function of
-!  Gong (2003) with the empirical sea surface temperature (SST) dependence of
-!  Jaegle et al. (2011). This SST dependence was derived based on comparisons
-!  to cruise observations of coarse mode sea salt mass concentrations.
-! 
-!  Contact: Lyatt Jaegle (jaegle@uw.edu)
-!\\
-!\\
-! !INTERFACE:
+!#if   defined( TOMAS )
+!      ! 30-bin Sea-salt emissions
+!      IF ( IDTSS1 > 0 ) THEN
 !
-      SUBROUTINE SRCSALT( TC, SSA_Br2, N, State_Met )
+!         ! For now, stop the run if choose to use Lin's PBL scheme 
+!         ! when running TOMAS aerosols (win, 7/17/09)
+!         IF( LNLPBL ) THEN
+!            print *,'Currently the TOMAS size-resolved sea salt ',
+!     &           'emission code does not support the option to do',
+!     &           'non-local PBL scheme (convection menu)!  Try not ',
+!     &           'using the non-local PBL or modify SRCSALT30!'
+!            stop
+!         ENDIF
+!         
+!         CALL SRCSALT30( STT(:,:,:,IDTNK1:IDTNK1+IBINS-1), 
+!     &                   STT(:,:,:,IDTSS1:IDTSS1+IBINS-1 ),
+!     &                   State_Met )
+!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSEASALT: TOMAS' )
+!      ENDIF
+!#endif
 !
-! !USES:
+!      ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
+!      ! (Lin, 06/09/08) 
+!      IF ( LNLPBL ) THEN
+!!$OMP PARALLEL DO
+!!$OMP+PRIVATE( I, J )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!            emis_save(I,J,IDTSALA) = ALK_EMIS(I,J,1,1)
+!            emis_save(I,J,IDTSALC) = ALK_EMIS(I,J,1,2)
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
 !
-      USE DAO_MOD,            ONLY : IS_WATER
-      USE DIAG_MOD,           ONLY : AD08
-      USE ERROR_MOD,          ONLY : DEBUG_MSG, ERROR_STOP
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE SSA_BROMINE_MOD,    ONLY : EMISS_SSA_BROMINE
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : SALA_REDGE_um, SALC_REDGE_um
-      USE TRACER_MOD,         ONLY : XNUMOL
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44, ND08
-      USE CMN_GCTM_MOD             ! PI
-
-      !%%% NOTE: Keep this here as a placeholder, but we should
-      !%%% eventually replace this with Input_Opt%LNLPBL
-      USE LOGICAL_MOD,         ONLY : LNLPBL
+!      ! Free pointer
+!      NULLIFY( STT )
 !
-! !INPUT PARAMETERS: 
+!      END SUBROUTINE EMISSSEASALT
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: srcsalt
+!!
+!! !DESCRIPTION: Subroutine SRCSALT is based on the sea salt source function of
+!!  Gong (2003) with the empirical sea surface temperature (SST) dependence of
+!!  Jaegle et al. (2011). This SST dependence was derived based on comparisons
+!!  to cruise observations of coarse mode sea salt mass concentrations.
+!! 
+!!  Contact: Lyatt Jaegle (jaegle@uw.edu)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE SRCSALT( TC, SSA_Br2, N, State_Met )
+!!
+!! !USES:
+!!
+!      USE DAO_MOD,            ONLY : IS_WATER
+!      USE DIAG_MOD,           ONLY : AD08
+!      USE ERROR_MOD,          ONLY : DEBUG_MSG, ERROR_STOP
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE GRID_MOD,           ONLY : GET_AREA_M2
+!      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+!      USE SSA_BROMINE_MOD,    ONLY : EMISS_SSA_BROMINE
+!      USE TIME_MOD,           ONLY : GET_TS_EMIS
+!      USE TRACER_MOD,         ONLY : SALA_REDGE_um, SALC_REDGE_um
+!      USE TRACER_MOD,         ONLY : XNUMOL
 !
-      INTEGER,        INTENT(IN)  :: N  ! N=1 is accum mode; N=2 is coarse mode
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!      USE CMN_SIZE_MOD             ! Size parameters
+!      USE CMN_DIAG_MOD             ! ND44, ND08
+!      USE CMN_GCTM_MOD             ! PI
 !
-! !INPUT/OUTPUT PARAMETERS: 
+!      !%%% NOTE: Keep this here as a placeholder, but we should
+!      !%%% eventually replace this with Input_Opt%LNLPBL
+!      USE LOGICAL_MOD,         ONLY : LNLPBL
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER,        INTENT(IN)  :: N  ! N=1 is accum mode; N=2 is coarse mode
+!      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS: 
+!!
+!      REAL*8,       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [v/v]
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      !jpp, 3/2/10
+!      REAL*8,       INTENT(OUT)   :: SSA_Br2(IIPAR,JJPAR)  ! Br2 sea salt emissions
+!!
+!! !REMARKS:
+!!  References:
+!!  ============================================================================
+!!  (1 ) Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
+!!        J. Logan, A. Higurashi, and T. Nakajima, "Tropospheric aerosol
+!!        optical thickness from the GOCART model and comparisons with
+!!        satellite and sunphotometers measurements", J. Atmos Sci., 2001.
+!!  (2 ) Gong, S., L. Barrie, and J.-P. Blanchet, "Modeling sea-salt
+!!        aerosols in the atmosphere. 1. Model development", J. Geophys. Res.,
+!!        v. 102, 3805-3818, 1997.
+!!  (3 ) Gong, S. L., "A parameterization of sea-salt aerosol source function
+!!        for sub- and super-micron particles", Global Biogeochem.  Cy., 17(4), 
+!!        1097, doi:10.1029/2003GB002079, 2003.
+!!  (4 ) Jaegle, L., P.K. Quinn, T.S. Bates, B. Alexander, J.-T. Lin, "Global
+!!        distribution of sea salt aerosols: New constraints from in situ and 
+!!        remote sensing observations", Atmos. Chem. Phys., 11, 3137-3157, 
+!!        doi:10.5194/acp-11-3137-2011.
+!!
+!! !REVISION HISTORY: 
+!!  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
+!!        (bmy, 7/20/04)
+!!  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_TOP_L from "pbl_mix_mod.f".
+!!        Removed reference to header file CMN.  Removed reference to 
+!!        "pressure_mod.f".  (bmy, 2/22/05)
+!!  (3 ) Now also compute alkalinity and number density of seasalt emissions.
+!!        (bec, bmy, 4/13/05)
+!!  (4 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!!  (5 ) The source function is for wet aerosol radius (RH=80%, with a radius
+!!        twice the size of dry aerosols) so BETHA should be set to 2 
+!!        instead of 1.  Also now use LOG10 instead of LOG in the expressions
+!!        for the seasalt base source, since we need the logarithm to the base
+!!        10. (jaegle, bec, bmy, 11/23/09)
+!!  (6 ) Update to use the Gong (2003) source function (jaegle 5/11/11)
+!!  (7 ) Apply an empirical sea surface temperature dependence to Gong (2003)
+!!       (jaegle 5/11/11)
+!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      LOGICAL, SAVE          :: FIRST = .TRUE.
+!      INTEGER                :: I,     J,      L
+!      INTEGER                :: R,     NR,     NTOP
+!      REAL*8                 :: W10M,  DTEMIS, R0
+!      REAL*8                 :: R1,    CONST,  CONST_N
+!      REAL*8                 :: FEMIS, A_M2
+!      REAL*8                 :: SALT(IIPAR,JJPAR)
+!      REAL*8                 :: SALT_N(IIPAR,JJPAR)
+!      ! New variables (jaegle 5/11/11)
+!      REAL*8                 :: A, B, SST, SCALE
+!      ! jpp, 3/2/10
+!      REAL*8                 :: br2_kg_emiss, salt_current
 !
-      REAL*8,       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [v/v]
+!      ! Increment of radius for Emission integration (um)
+!      REAL*8, PARAMETER      :: DR    = 5.d-2
+!      REAL*8, PARAMETER      :: BETHA = 2.d0
 !
-! !OUTPUT PARAMETERS:
+!      ! External functions
+!      REAL*8,  EXTERNAL      :: SFCWINDSQR
 !
-      !jpp, 3/2/10
-      REAL*8,       INTENT(OUT)   :: SSA_Br2(IIPAR,JJPAR)  ! Br2 sea salt emissions
+!      !=================================================================
+!      ! SRCSALT begins here!
+!      !=================================================================
 !
-! !REMARKS:
-!  References:
-!  ============================================================================
-!  (1 ) Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
-!        J. Logan, A. Higurashi, and T. Nakajima, "Tropospheric aerosol
-!        optical thickness from the GOCART model and comparisons with
-!        satellite and sunphotometers measurements", J. Atmos Sci., 2001.
-!  (2 ) Gong, S., L. Barrie, and J.-P. Blanchet, "Modeling sea-salt
-!        aerosols in the atmosphere. 1. Model development", J. Geophys. Res.,
-!        v. 102, 3805-3818, 1997.
-!  (3 ) Gong, S. L., "A parameterization of sea-salt aerosol source function
-!        for sub- and super-micron particles", Global Biogeochem.  Cy., 17(4), 
-!        1097, doi:10.1029/2003GB002079, 2003.
-!  (4 ) Jaegle, L., P.K. Quinn, T.S. Bates, B. Alexander, J.-T. Lin, "Global
-!        distribution of sea salt aerosols: New constraints from in situ and 
-!        remote sensing observations", Atmos. Chem. Phys., 11, 3137-3157, 
-!        doi:10.5194/acp-11-3137-2011.
+!      ! initialize the Br2 sea-salt emissions
+!      SSA_Br2(:,:) = 0.d0
+!      
+!      ! Emission timestep [s]
+!      DTEMIS = GET_TS_EMIS() * 60d0
 !
-! !REVISION HISTORY: 
-!  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
-!        (bmy, 7/20/04)
-!  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_TOP_L from "pbl_mix_mod.f".
-!        Removed reference to header file CMN.  Removed reference to 
-!        "pressure_mod.f".  (bmy, 2/22/05)
-!  (3 ) Now also compute alkalinity and number density of seasalt emissions.
-!        (bec, bmy, 4/13/05)
-!  (4 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (5 ) The source function is for wet aerosol radius (RH=80%, with a radius
-!        twice the size of dry aerosols) so BETHA should be set to 2 
-!        instead of 1.  Also now use LOG10 instead of LOG in the expressions
-!        for the seasalt base source, since we need the logarithm to the base
-!        10. (jaegle, bec, bmy, 11/23/09)
-!  (6 ) Update to use the Gong (2003) source function (jaegle 5/11/11)
-!  (7 ) Apply an empirical sea surface temperature dependence to Gong (2003)
-!       (jaegle 5/11/11)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      ! no longer used (jaegle 5/11/11)
+!      ! Constant [volume * time * other stuff??] 
+!      !CONST   = 4d0/3d0 * PI * DR * DTEMIS * 1.d-18 * 1.373d0
 !
-! !LOCAL VARIABLES:
+!      !CONST_N = DTEMIS * DR * 1.373d0
+!      !  Constant for converting from [#/m2/s/um] to [#/m2]
+!      CONST_N = DTEMIS * (DR * BETHA)
 !
-      LOGICAL, SAVE          :: FIRST = .TRUE.
-      INTEGER                :: I,     J,      L
-      INTEGER                :: R,     NR,     NTOP
-      REAL*8                 :: W10M,  DTEMIS, R0
-      REAL*8                 :: R1,    CONST,  CONST_N
-      REAL*8                 :: FEMIS, A_M2
-      REAL*8                 :: SALT(IIPAR,JJPAR)
-      REAL*8                 :: SALT_N(IIPAR,JJPAR)
-      ! New variables (jaegle 5/11/11)
-      REAL*8                 :: A, B, SST, SCALE
-      ! jpp, 3/2/10
-      REAL*8                 :: br2_kg_emiss, salt_current
-
-      ! Increment of radius for Emission integration (um)
-      REAL*8, PARAMETER      :: DR    = 5.d-2
-      REAL*8, PARAMETER      :: BETHA = 2.d0
-
-      ! External functions
-      REAL*8,  EXTERNAL      :: SFCWINDSQR
-
-      !=================================================================
-      ! SRCSALT begins here!
-      !=================================================================
-
-      ! initialize the Br2 sea-salt emissions
-      SSA_Br2(:,:) = 0.d0
-      
-      ! Emission timestep [s]
-      DTEMIS = GET_TS_EMIS() * 60d0
-
-      ! no longer used (jaegle 5/11/11)
-      ! Constant [volume * time * other stuff??] 
-      !CONST   = 4d0/3d0 * PI * DR * DTEMIS * 1.d-18 * 1.373d0
-
-      !CONST_N = DTEMIS * DR * 1.373d0
-      !  Constant for converting from [#/m2/s/um] to [#/m2]
-      CONST_N = DTEMIS * (DR * BETHA)
-
-      ! Lower and upper limit of size bin N [um]
-      ! Note that these are dry size bins. In order to
-      ! get wet (RH=80%) sizes, we need to multiply by
-      ! BETHA.
-      SELECT CASE( N ) 
-       
-         ! Accum mode
-         CASE( 1 )
-            R0 = SALA_REDGE_um(1)
-            R1 = SALA_REDGE_um(2)
-          
-         ! Coarse mode
-         CASE( 2 )
-            R0 = SALC_REDGE_um(1)
-            R1 = SALC_REDGE_um(2)
-            
-      END SELECT
-
-      ! Number of radius size bins
-      NR = INT( ( ( R1 - R0 ) / DR ) + 0.5d0 ) 
-
-      ! Error check
-      IF ( NR > NR_MAX ) THEN
-         CALL ERROR_STOP( 'Too many bins!', 'SRCSALT (seasalt_mod.f)' )
-      ENDIF
-
-      ! Initialize source
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         SALT(I,J)   = 0d0
-         SALT_N(I,J) = 0d0
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !=================================================================
-      ! Define edges and midpoints of each incrmental radius bin
-      ! This only has to be done once per sea salt type
-      !=================================================================
-      IF ( FIRST ) THEN 
-
-         ! Lower edge of 0th bin
-         REDGE(0,N) = R0
-      
-         ! Loop over the # of radius bins
-         DO R = 1, NR
-
-            ! Midpoint of IRth bin
-            RMID(R,N)  = REDGE(R-1,N) + ( DR / 2d0 )
-
-            ! Upper edge of IRth bin
-            REDGE(R,N) = REDGE(R-1,N) + DR 
-
-
-            ! Sea salt base source [#/m2]. Note that the Gong formulation
-            ! is for r80 (radius at 80% RH), so we need to multiply RMID
-            ! by the scaling factor BETHA=2.
-            A =  4.7*(1.+30.*(BETHA*RMID(R,N)))
-     &                       **(-0.017*(BETHA*RMID(R,N))**(-1.44))
-            B =  (0.433d0-LOG10(BETHA*RMID(R,N))) / 0.433d0
-            SRC_N(R,N) = CONST_N * 1.373 * (1.d0/(BETHA*RMID(R,N))**(A))
-     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**3.45d0)
-     &           * 10d0**(1.607d0*EXP(-(B**2)))
-
-            ! Sea salt base source [kg/m2]: multiply the number of particles
-            ! by the dry volume multiplied by the dry density of sea-salt.
-            SRC(R,N)  =   SRC_N(R,N) * 4d0/3d0 * PI * 1.d-18
-     &           *  SS_DEN( N )  *  (RMID(R,N))**3
-
-
-            !-----------------------------------------------------------
-            ! IMPORTANT NOTE!
-            !
-            ! In mathematics, "LOG" means "log10". 
-            ! In Fortran,     "LOG" means "ln" (and LOG10 is "log10").
-            !
-            ! The following equations require log to the base 10, so 
-            ! we need to use the Fortran function LOG10 instead of LOG. 
-            ! (jaegle, bmy, 11/23/09)
-            !-----------------------------------------------------------
-
-!            ! Old Monahan et al. (1986) formulation
-!            ! Sea salt base source [kg/m2]
-!            CONST_N = DTEMIS * (DR * BETHA)
-!            SRC(R,N)  = CONST * SS_DEN( N )
-!     &           * ( 1.d0 + 0.057d0*( BETHA * RMID(R,N) )**1.05d0 )
-!     &           * 10d0**( 1.19d0*
-!     &             EXP(-((0.38d0-LOG10(BETHA*RMID(R,N)))/0.65d0)**2))
-!     &           / BETHA**2
-
-!            ! Sea salt base source [#/m2] (bec, bmy, 4/13/05)
-!            SRC_N(R,N) = CONST_N * (1.d0/RMID(R,N)**3)
-!     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**1.05d0)
-!     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG10(BETHA*RMID(R,N)))
-!     &           /0.65d0)**2))/ BETHA**2
-
-!### Debug
-!###           WRITE( 6, 100 ) R,REDGE(R-1,N),RMID(R,N),REDGE(R,N),SRC(R,N)
-!### 100        FORMAT( 'IR, R0, RMID, R1: ', i3, 3f11.4,2x,es13.6 )
-         ENDDO
-      
-         ! Reset only after N=NSALT
-         IF ( FIRST .and.  N == NSALT ) FIRST = .FALSE.
-      ENDIF
-    
-      !=================================================================
-      ! Emission is integrated over a given size range for each bin
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, R, A_M2, W10M )
-!$OMP+PRIVATE( SST , SCALE         ) !(jaegle 5/11/11)
-!$OMP+PRIVATE( salt_current, br2_kg_emiss )
-!$OMP+SCHEDULE( DYNAMIC )
-
-      ! Loop over latitudes
-      DO J = 1, JJPAR
-            
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Grid box surface area [m2]
-            A_M2 = GET_AREA_M2( I, J, 1 )
-
-            ! Test if this is a water box
-            IF ( IS_WATER( I, J, State_Met ) ) THEN
-
-               ! Wind speed at 10 m altitude [m/s]
-               W10M = SQRT( SFCWINDSQR( I, J,
-     &                                  State_Met%U10M,
-     &                                  State_Met%V10M) )
-
-               ! Sea surface temperature in Celcius (jaegle 5/11/11)
-               SST = State_Met%TSKIN(I,J) - 273.15d0
-
-               ! Limit SST to 0-30C range
-               SST = MAX( SST , 0d0 )  ! limit to  0C
-               SST = MIN( SST , 30d0 ) ! limit to 30C
-
-               ! Empirical SST scaling factor (jaegle 5/11/11)
-               SCALE = 0.329d0 + 0.0904d0*SST -
-     &                 0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
-
-               ! Reset to using original Gong (2003) emissions (jaegle 6/30/11)
-               !SCALE = 1.0d0
-
-               ! The source function calculated with GEOS-4 2x2.5 wind speeds
-               ! is too high compared to GEOS-5 at the same resolution. The 10m
-               ! winds in GEOS-4 are too rapid. To correct this, apply a global
-               ! scaling factor of 0.72 (jaegle 5/11/11)
-#if   defined( GEOS_4 )
-                SCALE = SCALE * 0.72d0
-#endif
-
-               ! Loop over size bins
-               DO R = 1, NR
-
-                  ! Update seasalt source into SALT [kg]
-                  SALT(I,J)   = SALT(I,J) + 
-     &               ( SCALE * SRC(R,N)   * A_M2 * W10M**3.41d0 )
-
-                  ! Update seasalt source into SALT_N [#] 
-                  ! (bec, bmy, 4/13/05)
-                  SALT_N(I,J) = SALT_N(I,J) +
-     &               ( SCALE * SRC_N(R,N) * A_M2 * W10M**3.41d0 )
-
-                  ! jpp, 3/3/10: since the SALT arrays are integrations
-                  !              I cannot use them for each independent
-                  !              radius... that's why I'm getting too
-                  !              much bromine. So I'm making a tmp
-                  !              array to store only the current
-                  !              Dry Radius bin. [kg]
-                  salt_current = ( SRC(R,N)   * A_M2 * W10M**3.41d0 )
-
-                  ! --------------------------------------------------
-                  ! jpp, 3/2/10: Accounting for the bromine emissions
-                  ! now. Store mass flux [kg] of Br2 based on how much
-                  ! aerosol there is emitted in this box.
-                  ! --------------------------------------------------
-                  CALL EMISS_SSA_BROMINE( J, RMID(R, N), 
-     &                  salt_current, br2_kg_emiss )
-
-                  SSA_Br2(I,J) = SSA_Br2(I,J) + br2_kg_emiss
-
-               ENDDO
-            ENDIF
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !=================================================================
-      ! Now partition seasalt emissions through boundary layer
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NTOP, L, FEMIS )
-!$OMP+SCHEDULE( DYNAMIC ) 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Layer in which the PBL top occurs
-         NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
-        
-         ! Loop thru the boundary layer
-         DO L = 1, NTOP
-
-            ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-            FEMIS             = GET_FRAC_OF_PBL( I, J, L )
-
-            ! Move surface emis to vdiff_mod.f for non-local PBL mixing
-            ! --- emis is saved in emis_save(:,:,:) in SUBROUTINE EMISSSEASALT 
-            ! (Lin, 06/09/08) 
-            IF ( LNLPBL ) FEMIS = 0.D0
-
-            ! Add seasalt emissions into box (I,J,L) [kg]
-            TC(I,J,L)         = TC(I,J,L) + ( FEMIS * SALT(I,J) )
-
-            ! Alkalinity [kg] (bec, bmy, 4/13/05)
-            ALK_EMIS(I,J,L,N) = SALT(I,J)
-
-            ! Number density [#/m3] (bec, bmy, 4/13/05)
-            N_DENS(I,J,L,N)   = SALT_N(I,J) / State_Met%AIRVOL(I,J,L)
-
-         ENDDO
-
-         ! ND08 diagnostic: sea salt emissions [kg]
-         IF ( ND08 > 0 ) THEN
-            AD08(I,J,N) = AD08(I,J,N) + SALT(I,J)
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO  
-
-      END SUBROUTINE SRCSALT
+!      ! Lower and upper limit of size bin N [um]
+!      ! Note that these are dry size bins. In order to
+!      ! get wet (RH=80%) sizes, we need to multiply by
+!      ! BETHA.
+!      SELECT CASE( N ) 
+!       
+!         ! Accum mode
+!         CASE( 1 )
+!            R0 = SALA_REDGE_um(1)
+!            R1 = SALA_REDGE_um(2)
+!          
+!         ! Coarse mode
+!         CASE( 2 )
+!            R0 = SALC_REDGE_um(1)
+!            R1 = SALC_REDGE_um(2)
+!            
+!      END SELECT
+!
+!      ! Number of radius size bins
+!      NR = INT( ( ( R1 - R0 ) / DR ) + 0.5d0 ) 
+!
+!      ! Error check
+!      IF ( NR > NR_MAX ) THEN
+!         CALL ERROR_STOP( 'Too many bins!', 'SRCSALT (seasalt_mod.f)' )
+!      ENDIF
+!
+!      ! Initialize source
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         SALT(I,J)   = 0d0
+!         SALT_N(I,J) = 0d0
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      !=================================================================
+!      ! Define edges and midpoints of each incrmental radius bin
+!      ! This only has to be done once per sea salt type
+!      !=================================================================
+!      IF ( FIRST ) THEN 
+!
+!         ! Lower edge of 0th bin
+!         REDGE(0,N) = R0
+!      
+!         ! Loop over the # of radius bins
+!         DO R = 1, NR
+!
+!            ! Midpoint of IRth bin
+!            RMID(R,N)  = REDGE(R-1,N) + ( DR / 2d0 )
+!
+!            ! Upper edge of IRth bin
+!            REDGE(R,N) = REDGE(R-1,N) + DR 
+!
+!
+!            ! Sea salt base source [#/m2]. Note that the Gong formulation
+!            ! is for r80 (radius at 80% RH), so we need to multiply RMID
+!            ! by the scaling factor BETHA=2.
+!            A =  4.7*(1.+30.*(BETHA*RMID(R,N)))
+!     &                       **(-0.017*(BETHA*RMID(R,N))**(-1.44))
+!            B =  (0.433d0-LOG10(BETHA*RMID(R,N))) / 0.433d0
+!            SRC_N(R,N) = CONST_N * 1.373 * (1.d0/(BETHA*RMID(R,N))**(A))
+!     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**3.45d0)
+!     &           * 10d0**(1.607d0*EXP(-(B**2)))
+!
+!            ! Sea salt base source [kg/m2]: multiply the number of particles
+!            ! by the dry volume multiplied by the dry density of sea-salt.
+!            SRC(R,N)  =   SRC_N(R,N) * 4d0/3d0 * PI * 1.d-18
+!     &           *  SS_DEN( N )  *  (RMID(R,N))**3
+!
+!
+!            !-----------------------------------------------------------
+!            ! IMPORTANT NOTE!
+!            !
+!            ! In mathematics, "LOG" means "log10". 
+!            ! In Fortran,     "LOG" means "ln" (and LOG10 is "log10").
+!            !
+!            ! The following equations require log to the base 10, so 
+!            ! we need to use the Fortran function LOG10 instead of LOG. 
+!            ! (jaegle, bmy, 11/23/09)
+!            !-----------------------------------------------------------
+!
+!!            ! Old Monahan et al. (1986) formulation
+!!            ! Sea salt base source [kg/m2]
+!!            CONST_N = DTEMIS * (DR * BETHA)
+!!            SRC(R,N)  = CONST * SS_DEN( N )
+!!     &           * ( 1.d0 + 0.057d0*( BETHA * RMID(R,N) )**1.05d0 )
+!!     &           * 10d0**( 1.19d0*
+!!     &             EXP(-((0.38d0-LOG10(BETHA*RMID(R,N)))/0.65d0)**2))
+!!     &           / BETHA**2
+!
+!!            ! Sea salt base source [#/m2] (bec, bmy, 4/13/05)
+!!            SRC_N(R,N) = CONST_N * (1.d0/RMID(R,N)**3)
+!!     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**1.05d0)
+!!     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG10(BETHA*RMID(R,N)))
+!!     &           /0.65d0)**2))/ BETHA**2
+!
+!!### Debug
+!!###           WRITE( 6, 100 ) R,REDGE(R-1,N),RMID(R,N),REDGE(R,N),SRC(R,N)
+!!### 100        FORMAT( 'IR, R0, RMID, R1: ', i3, 3f11.4,2x,es13.6 )
+!         ENDDO
+!      
+!         ! Reset only after N=NSALT
+!         IF ( FIRST .and.  N == NSALT ) FIRST = .FALSE.
+!      ENDIF
+!    
+!      !=================================================================
+!      ! Emission is integrated over a given size range for each bin
+!      !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, R, A_M2, W10M )
+!!$OMP+PRIVATE( SST , SCALE         ) !(jaegle 5/11/11)
+!!$OMP+PRIVATE( salt_current, br2_kg_emiss )
+!!$OMP+SCHEDULE( DYNAMIC )
+!
+!      ! Loop over latitudes
+!      DO J = 1, JJPAR
+!            
+!         ! Loop over longitudes
+!         DO I = 1, IIPAR
+!
+!            ! Grid box surface area [m2]
+!            A_M2 = GET_AREA_M2( I, J, 1 )
+!
+!            ! Test if this is a water box
+!            IF ( IS_WATER( I, J, State_Met ) ) THEN
+!
+!               ! Wind speed at 10 m altitude [m/s]
+!               W10M = SQRT( SFCWINDSQR( I, J,
+!     &                                  State_Met%U10M,
+!     &                                  State_Met%V10M) )
+!
+!               ! Sea surface temperature in Celcius (jaegle 5/11/11)
+!               SST = State_Met%TSKIN(I,J) - 273.15d0
+!
+!               ! Limit SST to 0-30C range
+!               SST = MAX( SST , 0d0 )  ! limit to  0C
+!               SST = MIN( SST , 30d0 ) ! limit to 30C
+!
+!               ! Empirical SST scaling factor (jaegle 5/11/11)
+!               SCALE = 0.329d0 + 0.0904d0*SST -
+!     &                 0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
+!
+!               ! Reset to using original Gong (2003) emissions (jaegle 6/30/11)
+!               !SCALE = 1.0d0
+!
+!               ! The source function calculated with GEOS-4 2x2.5 wind speeds
+!               ! is too high compared to GEOS-5 at the same resolution. The 10m
+!               ! winds in GEOS-4 are too rapid. To correct this, apply a global
+!               ! scaling factor of 0.72 (jaegle 5/11/11)
+!#if   defined( GEOS_4 )
+!                SCALE = SCALE * 0.72d0
+!#endif
+!
+!               ! Loop over size bins
+!               DO R = 1, NR
+!
+!                  ! Update seasalt source into SALT [kg]
+!                  SALT(I,J)   = SALT(I,J) + 
+!     &               ( SCALE * SRC(R,N)   * A_M2 * W10M**3.41d0 )
+!
+!                  ! Update seasalt source into SALT_N [#] 
+!                  ! (bec, bmy, 4/13/05)
+!                  SALT_N(I,J) = SALT_N(I,J) +
+!     &               ( SCALE * SRC_N(R,N) * A_M2 * W10M**3.41d0 )
+!
+!                  ! jpp, 3/3/10: since the SALT arrays are integrations
+!                  !              I cannot use them for each independent
+!                  !              radius... that's why I'm getting too
+!                  !              much bromine. So I'm making a tmp
+!                  !              array to store only the current
+!                  !              Dry Radius bin. [kg]
+!                  salt_current = ( SRC(R,N)   * A_M2 * W10M**3.41d0 )
+!
+!                  ! --------------------------------------------------
+!                  ! jpp, 3/2/10: Accounting for the bromine emissions
+!                  ! now. Store mass flux [kg] of Br2 based on how much
+!                  ! aerosol there is emitted in this box.
+!                  ! --------------------------------------------------
+!                  CALL EMISS_SSA_BROMINE( J, RMID(R, N), 
+!     &                  salt_current, br2_kg_emiss )
+!
+!                  SSA_Br2(I,J) = SSA_Br2(I,J) + br2_kg_emiss
+!
+!               ENDDO
+!            ENDIF
+!         ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      !=================================================================
+!      ! Now partition seasalt emissions through boundary layer
+!      !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, NTOP, L, FEMIS )
+!!$OMP+SCHEDULE( DYNAMIC ) 
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Layer in which the PBL top occurs
+!         NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+!        
+!         ! Loop thru the boundary layer
+!         DO L = 1, NTOP
+!
+!            ! Fraction of the PBL spanned by box (I,J,L) [unitless]
+!            FEMIS             = GET_FRAC_OF_PBL( I, J, L )
+!
+!            ! Move surface emis to vdiff_mod.f for non-local PBL mixing
+!            ! --- emis is saved in emis_save(:,:,:) in SUBROUTINE EMISSSEASALT 
+!            ! (Lin, 06/09/08) 
+!            IF ( LNLPBL ) FEMIS = 0.D0
+!
+!            ! Add seasalt emissions into box (I,J,L) [kg]
+!            TC(I,J,L)         = TC(I,J,L) + ( FEMIS * SALT(I,J) )
+!
+!            ! Alkalinity [kg] (bec, bmy, 4/13/05)
+!            ALK_EMIS(I,J,L,N) = SALT(I,J)
+!
+!            ! Number density [#/m3] (bec, bmy, 4/13/05)
+!            N_DENS(I,J,L,N)   = SALT_N(I,J) / State_Met%AIRVOL(I,J,L)
+!
+!         ENDDO
+!
+!         ! ND08 diagnostic: sea salt emissions [kg]
+!         IF ( ND08 > 0 ) THEN
+!            AD08(I,J,N) = AD08(I,J,N) + SALT(I,J)
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO  
+!
+!      END SUBROUTINE SRCSALT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

@@ -620,20 +620,6 @@
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( THISYEAR )
 
-#if defined( DEVEL )
-      State_Chm%TRAC_TEND(:,:,1,IDTNH3) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTNH3) + NH3
-
-      State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTSO2) + SO2
-
-      State_Chm%TRAC_TEND(:,:,1,IDTNO ) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTNO ) + NOx
-
-      State_Chm%TRAC_TEND(:,:,1,IDTCO)  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTCO)  + CO
-#endif
-
       END SUBROUTINE EMISS_CAC_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -971,20 +957,6 @@
       ! Print emission totals
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( THISYEAR )
-
-#if defined( DEVEL )
-      State_Chm%TRAC_TEND(:,:,1,IDTNH3) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTNH3) + NH3
-      
-      State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTSO2) + SO2
-
-      State_Chm%TRAC_TEND(:,:,1,IDTNO)  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTNO)  + NOx
-      
-      State_Chm%TRAC_TEND(:,:,1,IDTCO)  = 
-     &State_Chm%TRAC_TEND(:,:,1,IDTCO)  + CO
-#endif
 
       END SUBROUTINE EMISS_CAC_ANTHRO_05x0666
 !EOC

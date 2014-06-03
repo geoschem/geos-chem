@@ -1,0 +1,680 @@
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: hcox_state_mod
+!
+! !DESCRIPTION: Module HCOX\_STATE\_MOD contains routines and variables
+! to organize the extensions state type ExtState. ExtState contains the
+! logical switches for each extension (denoting whether or not it is 
+! enabled) as well as pointers to all met fields used by the extensions. 
+! ExtState is passed to all extension modules, and the met fields
+! defined in here are thus available to all extensions. Additional met 
+! fields (and extension switches) can be added as required.
+! This module contains the routines to initialize and finalize the
+! ExtState object, but doesn't link the met field pointers to the 
+! corresponding fields. This is done in the HEMCO-model interface
+! routine (e.g. hcoi\_gc\_main\_mod.F90).
+! \\
+! !INTERFACE: 
+!
+      MODULE HCOX_STATE_MOD
+!
+! !USES:
+!
+      USE HCO_ERROR_MOD
+      USE HCO_ARR_MOD
+
+      IMPLICIT NONE
+      PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: ExtStateInit
+      PUBLIC :: ExtStateFinal
+!
+! !DERIVED TYPES:
+!
+      ! Types containing pointers to the met field arrays (Arr)
+      ! and a logical flag whether or not the field is used by
+      ! any of the extensions (DoUse). Arrays can be 3D reals
+      ! or 2D reals or integer (add more types if needed).
+      ! All real values are of default precision (df), as specified
+      ! in HCO\_ERROR\_MOD.
+ 
+      TYPE :: ExtDat_2R ! 2D real
+         TYPE(Arr2D_DF), POINTER :: Arr
+         LOGICAL                 :: DoUse
+      END TYPE
+      TYPE :: ExtDat_2I ! 2D integer
+         TYPE(Arr2D_I),  POINTER :: Arr
+         LOGICAL                 :: DoUse
+      END TYPE
+      TYPE :: ExtDat_3R ! 3D real
+         TYPE(Arr3D_DF), POINTER :: Arr
+         LOGICAL                 :: DoUse
+      END TYPE
+
+      ! State object containing pointers to all met fields used by the
+      ! HEMCO extensions. An 'Ext_State' type called ExtState is defined
+      ! at the beginning of a HEMCO run and populated according to the
+      ! specifications set in the configuration file.
+      TYPE, PUBLIC :: Ext_State
+ 
+         !--------------------------------------------------------------
+         ! Extension switches (enabled?)
+         LOGICAL                   :: Custom      ! Customizable ext.
+         LOGICAL                   :: DustDead    ! DEAD dust model
+         LOGICAL                   :: DustGinoux  ! Ginoux dust emissions
+         LOGICAL                   :: LightNOx    ! Lightning NOx
+         LOGICAL                   :: ParaNOx     ! PARANOX ship emissions
+         LOGICAL                   :: SoilNOx     ! Soil NOx emissions
+         LOGICAL                   :: Megan       ! MEGAN biogenic emissions
+         LOGICAL                   :: SeaFlux     ! air-sea exchange
+         LOGICAL                   :: SeaSalt     ! Seasalt emissions
+         LOGICAL                   :: GFED3       ! GFED3 biomass burning 
+
+         !--------------------------------------------------------------
+         ! Met fields
+         TYPE(ExtDat_2R),  POINTER :: U10M      ! E/W 10m wind speed [m/s]
+         TYPE(ExtDat_2R),  POINTER :: V10M      ! N/S 10m wind speed [m/s]
+         TYPE(ExtDat_2R),  POINTER :: ALBD      ! Surface albedo [-] 
+         TYPE(ExtDat_2R),  POINTER :: WLI       ! 0=water, 1=land, 2=ice
+         TYPE(ExtDat_2R),  POINTER :: TSURFK    ! 2m Sfce temperature [K] 
+         TYPE(ExtDat_2R),  POINTER :: TSKIN     ! Surface skin temperature [K]
+         TYPE(ExtDat_2R),  POINTER :: GWETTOP   ! Top soil moisture [-]
+         TYPE(ExtDat_2R),  POINTER :: SNOWHGT   ! Snow height [mm H2O] 
+         TYPE(ExtDat_2R),  POINTER :: USTAR     ! Friction velocity [m/s] 
+         TYPE(ExtDat_2R),  POINTER :: Z0        ! Sfc roughness height [m]
+         TYPE(ExtDat_2R),  POINTER :: TROPP     ! Tropopause pressure [hPa] 
+         TYPE(ExtDat_2R),  POINTER :: SUNCOSmid ! COS (SZA) 
+         TYPE(ExtDat_2R),  POINTER :: SUNCOSmid5! SZA -5 hr
+         TYPE(ExtDat_2R),  POINTER :: SZAFACT   ! current SZA/total daily SZA
+         TYPE(ExtDat_2R),  POINTER :: PARDR     ! direct photsyn radiation [W/m2]
+         TYPE(ExtDat_2R),  POINTER :: PARDF     ! diffuse photsyn radiation [W/m2]
+         TYPE(ExtDat_2R),  POINTER :: RADSWG    ! surface radiation [W/m2]
+         TYPE(ExtDat_2R),  POINTER :: PSURF     ! surface pressure [hPa]
+         TYPE(ExtDat_2R),  POINTER :: FRCLND    ! land fraction [-] 
+         TYPE(ExtDat_2R),  POINTER :: CLDFRC    ! cloud fraction [-]
+         TYPE(ExtDat_2R),  POINTER :: GC_LAI    ! daily leaf area index [cm2/cm2] 
+         TYPE(ExtDat_2R),  POINTER :: GC_LAI_PM ! prev. month's LAI [cm2/cm2] 
+         TYPE(ExtDat_2R),  POINTER :: GC_LAI_CM ! curr. month's LAI [cm2/cm2] 
+         TYPE(ExtDat_2R),  POINTER :: GC_LAI_NM ! next month's LAI [cm2/cm2]
+         INTEGER,          POINTER :: DAYS_BTW_M ! Days between months (for LAI) 
+         TYPE(ExtDat_2I),  POINTER :: CLDTOPS   ! Cloud top level index
+         TYPE(ExtDat_3R),  POINTER :: PEDGE     ! Bottom press. edge [hPa]
+         TYPE(ExtDat_3R),  POINTER :: PCENTER   ! Press. center [hPa]
+         TYPE(ExtDat_3R),  POINTER :: SPHU      ! Specific humidity [kg H2O/kg air] 
+         TYPE(ExtDat_3R),  POINTER :: TK        ! Air temperature [K]
+         TYPE(ExtDat_3R),  POINTER :: AIR       ! Air mass [kg]
+         TYPE(ExtDat_3R),  POINTER :: AIRVOL    ! Air volume [m3] 
+         TYPE(ExtDat_3R),  POINTER :: O3        ! O3 mass [kg]
+         TYPE(ExtDat_3R),  POINTER :: NO        ! NO mass [kg]
+         TYPE(ExtDat_3R),  POINTER :: NO2       ! NO2 mass [kg]
+         TYPE(ExtDat_3R),  POINTER :: HNO3      ! HNO3 mass [kg]
+
+         ! Deposition parameter
+         ! DRY_TOTN and WET_TOTN are the total (dry/wet) deposited N since the
+         ! last emission timestep. Even though these numbers are per second,
+         ! they may represent accumulated deposition velocities if chemistry
+         ! and/or dynamic timestep are not equal to the emission timestep.
+         ! These values are used by the soil NOx module. Note that it is assumed
+         ! that DRY_TOTN and WET_TOTN are summed over chemistry and transport 
+         ! timesteps, respectively!
+         TYPE(ExtDat_2R),  POINTER :: DRY_TOTN    ! Dry deposited N   [molec/cm2/s] 
+         TYPE(ExtDat_2R),  POINTER :: WET_TOTN    ! Wet deposited N   [kg N/s] 
+         REAL(dp),         POINTER :: DRYCOEFF(:) ! Baldocci drydep coeff.
+
+      END TYPE 
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+!
+! !REVISION HISTORY:
+!  02 Oct 2013 - C. Keller: Initial version
+!
+!EOP
+!-----------------------------------------------------------------------------
+!BOC
+!
+! !MODULE INTERFACES: 
+!
+      INTERFACE ExtDat_Init
+         MODULE PROCEDURE ExtDat_Init_2R
+         MODULE PROCEDURE ExtDat_Init_2I
+         MODULE PROCEDURE ExtDat_Init_3R
+      END INTERFACE
+
+      INTERFACE ExtDat_Cleanup
+         MODULE PROCEDURE ExtDat_Cleanup_2R
+         MODULE PROCEDURE ExtDat_Cleanup_2I
+         MODULE PROCEDURE ExtDat_Cleanup_3R
+      END INTERFACE
+
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ExtStateInit
+!
+! !DESCRIPTION: Initializes the ExtState object. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE ExtStateInit ( ExtState, RC )
+!
+! !USES:
+!
+!
+! !INPUT ARGUMENTS:
+!
+      TYPE ( Ext_State ), POINTER        :: ExtState
+      INTEGER,            INTENT(INOUT)  :: RC
+!
+! !REVISION HISTORY:
+!  15 Dec 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !INTERNAL VARIABLES:
+!
+      !======================================================================
+      ! ExtStateInit begins here
+      !======================================================================
+
+      ! Allocate object 
+      IF ( .NOT. ASSOCIATED ( ExtState ) ) ALLOCATE ( ExtState )
+
+      ! ----------------------------------------------------------------------
+      ! Set all switches to FALSE
+      ! ----------------------------------------------------------------------
+      ExtState%Custom     = .FALSE.
+      ExtState%DustDead   = .FALSE.
+      ExtState%DustGinoux = .FALSE.
+      ExtState%LightNOx   = .FALSE.
+      ExtState%ParaNOx    = .FALSE.
+      ExtState%SoilNOx    = .FALSE.
+      ExtState%Megan      = .FALSE.
+      ExtState%SeaFlux    = .FALSE.
+      ExtState%SeaSalt    = .FALSE.
+      ExtState%GFED3      = .FALSE.
+
+      ! ----------------------------------------------------------------------
+      ! Initialize all met arrays.
+      ! This defines a nullified pointer for every met field and sets the
+      ! corresponding DoUse flag to FALSE. The pointers to the met fields 
+      ! need to be defined in the HEMCO-model interface routine.
+      ! ----------------------------------------------------------------------
+      CALL ExtDat_Init( ExtState%U10M, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%V10M, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%ALBD, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%WLI , RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%TSURFK, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%TSKIN, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%GWETTOP, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%SNOWHGT, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%USTAR, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%Z0, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%TROPP, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%SUNCOSmid, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%SUNCOSmid5, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%SZAFACT, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%PARDR, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%PARDF, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%RADSWG, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%PSURF, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%FRCLND, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%CLDFRC, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%GC_LAI, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%GC_LAI_PM, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%GC_LAI_CM, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%GC_LAI_NM, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ExtState%DAYS_BTW_M => NULL()
+
+      CALL ExtDat_Init ( ExtState%CLDTOPS, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%PEDGE, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%PCENTER, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%SPHU, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%TK, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%AIR, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%AIRVOL, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%O3, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%NO, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%NO2, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%HNO3, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%DRY_TOTN, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL ExtDat_Init ( ExtState%WET_TOTN, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Return w/ success
+      RC = HCO_SUCCESS
+
+      END SUBROUTINE ExtStateInit 
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ExtStateFinal
+!
+! !DESCRIPTION: Finalizes the ExtState object. 
+! This removes all defined pointer links (i.e. nullifies ExtDat%Arr), but
+! does not deallocate the target array!
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE ExtStateFinal ( ExtState )
+!
+! !INPUT ARGUMENTS:
+!
+      TYPE(Ext_State), POINTER  :: ExtState
+!
+! !REVISION HISTORY:
+!  03 Oct 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      !======================================================================
+      ! ExtStateFinal begins here
+      !======================================================================
+
+      IF ( ASSOCIATED(ExtState) ) THEN
+
+         ! Cleanup arrays. Don't do deepclean, i.e. only nullify pointers!
+         CALL ExtDat_Cleanup( ExtState%U10M )
+         CALL ExtDat_Cleanup( ExtState%V10M )
+         CALL ExtDat_Cleanup( ExtState%ALBD )
+         CALL ExtDat_Cleanup( ExtState%WLI  )
+         CALL ExtDat_Cleanup( ExtState%TSURFK )
+         CALL ExtDat_Cleanup( ExtState%TSKIN )
+         CALL ExtDat_Cleanup( ExtState%GWETTOP )
+         CALL ExtDat_Cleanup( ExtState%SNOWHGT )
+         CALL ExtDat_Cleanup( ExtState%USTAR )
+         CALL ExtDat_Cleanup( ExtState%Z0 )
+         CALL ExtDat_Cleanup( ExtState%TROPP )
+         CALL ExtDat_Cleanup( ExtState%SUNCOSmid)
+         CALL ExtDat_Cleanup( ExtState%SUNCOSmid5)
+         CALL ExtDat_Cleanup( ExtState%SZAFACT )
+         CALL ExtDat_Cleanup( ExtState%PARDR )
+         CALL ExtDat_Cleanup( ExtState%PARDF )
+         CALL ExtDat_Cleanup( ExtState%RADSWG )
+         CALL ExtDat_Cleanup( ExtState%PSURF )
+         CALL ExtDat_Cleanup( ExtState%FRCLND )
+         CALL ExtDat_Cleanup( ExtState%CLDFRC )
+         CALL ExtDat_Cleanup( ExtState%GC_LAI )
+         CALL ExtDat_Cleanup( ExtState%GC_LAI_PM )
+         CALL ExtDat_Cleanup( ExtState%GC_LAI_CM )
+         CALL ExtDat_Cleanup( ExtState%GC_LAI_NM )
+         CALL ExtDat_Cleanup( ExtState%CLDTOPS )
+         CALL ExtDat_Cleanup( ExtState%PEDGE )
+         CALL ExtDat_Cleanup( ExtState%PCENTER )
+         CALL ExtDat_Cleanup( ExtState%SPHU )
+         CALL ExtDat_Cleanup( ExtState%TK )
+         CALL ExtDat_Cleanup( ExtState%AIR )
+         CALL ExtDat_Cleanup( ExtState%AIRVOL )
+         CALL ExtDat_Cleanup( ExtState%O3 )
+         CALL ExtDat_Cleanup( ExtState%NO )
+         CALL ExtDat_Cleanup( ExtState%NO2 )
+         CALL ExtDat_Cleanup( ExtState%HNO3 )
+         CALL ExtDat_Cleanup( ExtState%DRY_TOTN )
+         CALL ExtDat_Cleanup( ExtState%WET_TOTN )
+
+         ExtState%DAYS_BTW_M => NULL()
+         ExtState%DRYCOEFF   => NULL()
+
+         DEALLOCATE ( ExtState )
+      ENDIF 
+
+      END SUBROUTINE ExtStateFinal 
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ExtDat_Init_2R
+!
+! !DESCRIPTION: Subroutine ExtDat\_Init_2R initializes the given ExtDat type. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE ExtDat_Init_2R ( ExtDat, RC ) 
+!
+! !USES:
+!
+!
+! !INPUT ARGUMENTS:
+!
+      TYPE(ExtDat_2R), POINTER       :: ExtDat
+      INTEGER,         INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      ! ================================================================
+      ! ExtDat_Init_2R begins here
+      ! ================================================================
+
+      ExtDat     => NULL()
+      ALLOCATE(ExtDat)
+      ExtDat%Arr => NULL()
+
+      ! Establish pointer to ExtDat%Arr%Val
+      CALL HCO_ArrInit( ExtDat%Arr, 0, 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ExtDat%DoUse = .FALSE.
+
+      ! Leave
+      RC = HCO_SUCCESS
+
+      END SUBROUTINE ExtDat_Init_2R
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ExtDat_Init_2I
+!
+! !DESCRIPTION: Subroutine ExtDat\_Init_2I initializes the given ExtDat type. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE ExtDat_Init_2I ( ExtDat, RC ) 
+!
+! !USES:
+!
+!
+! !INPUT ARGUMENTS:
+!
+      TYPE(ExtDat_2I), POINTER       :: ExtDat
+      INTEGER,         INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !ARGUMENTS:
+!
+
+      ! ================================================================
+      ! ExtDat_Init_2I begins here
+      ! ================================================================
+
+      ExtDat => NULL()
+      ALLOCATE(ExtDat)
+      ExtDat%Arr => NULL()
+
+      ! Establish pointer to ExtDat%Arr%Val
+      CALL HCO_ArrInit( ExtDat%Arr, 0, 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ExtDat%DoUse = .FALSE.
+
+      ! Leave
+      RC = HCO_SUCCESS
+
+      END SUBROUTINE ExtDat_Init_2I
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ExtDat_Init_3R
+!
+! !DESCRIPTION: Subroutine ExtDat\_Init_3R initializes the given ExtDat type. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE ExtDat_Init_3R ( ExtDat, RC ) 
+!
+! !USES:
+!
+!
+! !INPUT ARGUMENTS:
+!
+      TYPE(ExtDat_3R), POINTER       :: ExtDat
+      INTEGER,         INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !ARGUMENTS:
+!
+
+      ! ================================================================
+      ! ExtDat_Init_3R begins here
+      ! ================================================================
+
+      ExtDat => NULL()
+      ALLOCATE(ExtDat)
+      ExtDat%Arr => NULL()
+
+      ! Establish pointer to ExtDat%Arr%Val
+      CALL HCO_ArrInit( ExtDat%Arr, 0, 0, 0, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ExtDat%DoUse = .FALSE.
+
+      ! Leave
+      RC = HCO_SUCCESS
+
+      END SUBROUTINE ExtDat_Init_3R
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ExtDat_Cleanup_2R
+!
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup_2R removes the given ExtDat type.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE ExtDat_Cleanup_2R ( ExtDat ) 
+!
+! !USES:
+!
+!
+! !INPUT ARGUMENTS:
+!
+      TYPE(ExtDat_2R), POINTER       :: ExtDat
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !ARGUMENTS:
+!
+
+      ! ================================================================
+      ! ExtDat_Cleanup_2R begins here
+      ! ================================================================
+
+      IF ( ASSOCIATED( ExtDat) ) THEN 
+         CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.FALSE. ) 
+         DEALLOCATE ( ExtDat )
+      ENDIF
+
+      END SUBROUTINE ExtDat_Cleanup_2R
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ExtDat_Cleanup_2I
+!
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup_2I removes the given ExtDat type. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE ExtDat_Cleanup_2I ( ExtDat ) 
+!
+! !USES:
+!
+!
+! !INPUT ARGUMENTS:
+!
+      TYPE(ExtDat_2I), POINTER       :: ExtDat
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !ARGUMENTS:
+!
+
+      ! ================================================================
+      ! ExtDat_Cleanup_2I begins here
+      ! ================================================================
+
+      IF ( ASSOCIATED( ExtDat) ) THEN 
+         CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.FALSE. ) 
+         DEALLOCATE ( ExtDat )
+      ENDIF
+
+      END SUBROUTINE ExtDat_Cleanup_2I
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ExtDat_Cleanup_3R
+!
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup_3R removes the given ExtDat type. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE ExtDat_Cleanup_3R ( ExtDat ) 
+!
+! !USES:
+!
+!
+! !INPUT ARGUMENTS:
+!
+      TYPE(ExtDat_3R), POINTER       :: ExtDat
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !ARGUMENTS:
+!
+
+      ! ================================================================
+      ! ExtDat_Cleanup_3R begins here
+      ! ================================================================
+
+      IF ( ASSOCIATED( ExtDat) ) THEN 
+         CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.FALSE. ) 
+         DEALLOCATE ( ExtDat )
+      ENDIF
+
+      END SUBROUTINE ExtDat_Cleanup_3R
+!EOC
+      END MODULE HCOX_STATE_MOD 
+!EOM

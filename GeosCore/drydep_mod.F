@@ -254,7 +254,7 @@
       INTEGER              :: DRYPOPG
 
       ! Arrays for Baldocchi drydep polynomial coefficients
-      REAL*8               :: DRYCOEFF(NPOLY    )
+      REAL*8, TARGET       :: DRYCOEFF(NPOLY    )
 
       ! Arrays that hold information for each of the 74 Olson land types
       INTEGER              :: INDOLSON(NVEGTYPE )
@@ -1449,6 +1449,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE DRYDEP_TOOLBOX_MOD, ONLY : BIOFIT
 !
 ! !INPUT PARAMETERS:
 !
@@ -1615,6 +1616,7 @@
 !                              HSTAR>0 and XMW>0, or AIROSOL=t.  This avoids
 !                              a floating-point invalid condition.
 !  28 Jan 2014 - R. Yantosca - For TOMAS, don't hold A_RADI and A_DEN PRIVATE
+!  19 May 2014 - C. Keller   - Now call BIOFIT from drydep_toolbox_mod.F
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1673,7 +1675,7 @@
       REAL*8  XMWH2O,DAIR,TEMPK,TEMPC
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
-      REAL*8  RCLX,RIXX,BIOFIT
+      REAL*8  RCLX,RIXX    !,BIOFIT
 
 #if   defined( TOMAS )
       ! For TOMAS aerosol (win, 7/15/09)
@@ -1686,6 +1688,9 @@
 
       ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
+
+      ! Size of DRYCOEFF (ckeller, 05/19/14)
+      INTEGER :: NN
 
       ! Added these to pass particle density & number to DUST_SFCRSII
       ! so as to avoid parallelization errors with TOMAS (bmy, 1/31/14)
@@ -1713,6 +1718,9 @@
 
       ! Is this a POPs simmulation?
       IS_POPS = Input_Opt%ITS_A_POPS_SIM  ! clf, 1/3/2011
+
+      ! Size of drycoeff (ckeller, 05/19/14)
+      NN = SIZE(DRYCOEFF)
 
 !***********************************************************************       
 !
@@ -1919,7 +1927,7 @@
             GFACI = 100.D0
             IF ( RAD0 > 0.D0 .and. XLAI(I,J,LDT) > 0.D0 ) THEN
                GFACI = 1.D0 / BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
-     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP) )
+     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP), NN)
             ENDIF
             
             RIX = RIX*GFACT*GFACI

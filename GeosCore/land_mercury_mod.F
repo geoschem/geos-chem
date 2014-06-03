@@ -234,7 +234,8 @@
 !     
       USE BIOMASS_MOD,  ONLY : BIOMASS
       USE TRACERID_MOD, ONLY : IDBCO
-      USE LOGICAL_MOD,  ONLY : LBIOMASS, LPREINDHG
+!      USE LOGICAL_MOD,  ONLY : LBIOMASS, LPREINDHG
+      USE LOGICAL_MOD,  ONLY : LPREINDHG
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 
@@ -290,7 +291,8 @@
 
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)
-      IF ( LBIOMASS .AND. ( .NOT. LPREINDHG ) ) THEN
+!      IF ( LBIOMASS .AND. ( .NOT. LPREINDHG ) ) THEN
+      IF ( .NOT. LPREINDHG ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

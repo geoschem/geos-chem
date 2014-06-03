@@ -357,19 +357,6 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-         !Zero arrays. This code assumes that ts_chem = ts_emiss
-         DRY_HNO3 = 0.d0
-         DRY_NH4  = 0.d0
-         DRY_NH3  = 0.d0
-         DRY_NIT  = 0.d0
-         DRY_NO2  = 0.d0
-         DRY_PAN  = 0.d0
-
-         WET_HNO3 = 0.d0
-         WET_NH4  = 0.d0
-         WET_NH3  = 0.d0
-         WET_NIT  = 0.d0
-
       ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

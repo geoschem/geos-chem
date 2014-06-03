@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group         !
 !------------------------------------------------------------------------------
 !BOP
 !     
@@ -24,6 +24,7 @@
       PUBLIC  :: SOIL_DRYDEP
       PUBLIC  :: SOIL_WETDEP
       PUBLIC  :: GET_DEP_N
+      PUBLIC  :: RESET_DEP_N
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers    
@@ -31,10 +32,17 @@
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!  
+      REAL*8,  PARAMETER   :: CONVHNO3 = 0.222 ! MWN/MWHNO3
+      REAL*8,  PARAMETER   :: CONVNH4  = 0.777 ! MWN/MWNH4
+      REAL*8,  PARAMETER   :: CONVNH3  = 0.823 ! MWN/MWNH3
+      REAL*8,  PARAMETER   :: CONVNIT  = 0.226 ! MWN/MWNIT
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -71,19 +79,18 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-      IF ( NN == IDTNO2   ) DRY_NO2(I,J)  = DRY_NO2(I,J)  + TDRYFX 
-      IF ( NN == IDTPAN   ) DRY_PAN(I,J)  = DRY_PAN(I,J)  + TDRYFX 
-      IF ( NN == IDTHNO3  ) DRY_HNO3(I,J) = DRY_HNO3(I,J) + TDRYFX 
-      IF ( NN == IDTNH3   ) DRY_NH3(I,J)  = DRY_NH3(I,J)  + TDRYFX 
-      IF ( NN == IDTNH4   ) DRY_NH4(I,J)  = DRY_NH4(I,J)  + TDRYFX 
-      IF ( NN == IDTNH4aq ) DRY_NH4(I,J)  = DRY_NH4(I,J)  + TDRYFX
-      IF ( NN == IDTNIT   ) DRY_NIT(I,J)  = DRY_NIT(I,J)  + TDRYFX
-      IF ( NN == IDTNITs  ) DRY_NIT(I,J)  = DRY_NIT(I,J)  + TDRYFX
+
+      ! ckeller (14/04/02)
+      IF ( NN == IDTNO2 .OR. NN == IDTPAN .OR. NN == IDTHNO3  .OR.
+     &     NN == IDTNH3 .OR. NN == IDTNH4 .OR. NN == IDTNH4aq .OR. 
+     &     NN == IDTNIT .OR. NN == IDTNITs                        ) THEN
+         DRY_TOTN(I,J) = DRY_TOTN(I,J) + TDRYFX
+      ENDIF
 
       END SUBROUTINE   SOIL_DRYDEP
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -117,17 +124,26 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-      IF ( NN == IDTHNO3  ) WET_HNO3(I,J) = WET_HNO3(I,J) + TWETFX 
-      IF ( NN == IDTNH3   ) WET_NH3(I,J)  = WET_NH3(I,J)  + TWETFX 
-      IF ( NN == IDTNH4   ) WET_NH4(I,J)  = WET_NH4(I,J)  + TWETFX 
-      IF ( NN == IDTNH4aq ) WET_NH4(I,J)  = WET_NH4(I,J)  + TWETFX
-      IF ( NN == IDTNIT   ) WET_NIT(I,J)  = WET_NIT(I,J)  + TWETFX
-      IF ( NN == IDTNITs  ) WET_NIT(I,J)  = WET_NIT(I,J)  + TWETFX
+      ! ckeller (14/04/02)
+      REAL*8        :: SCAL
 
-      END SUBROUTINE   SOIL_WETDEP
+      ! ckeller (14/04/02)
+      SCAL = 0d0
+      IF ( NN == IDTHNO3  ) SCAL = CONVHNO3 
+      IF ( NN == IDTNH3   ) SCAL = CONVNH3
+      IF ( NN == IDTNH4   ) SCAL = CONVNH4
+      IF ( NN == IDTNH4aq ) SCAL = CONVNH4
+      IF ( NN == IDTNIT   ) SCAL = CONVNIT
+      IF ( NN == IDTNITs  ) SCAL = CONVNIT
+
+      IF ( SCAL > 0d0 ) THEN
+         WET_TOTN(I,J) = WET_TOTN(I,J) + ( TWETFX * SCAL )
+      ENDIF
+
+      END SUBROUTINE SOIL_WETDEP
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -211,7 +227,7 @@
       END SUBROUTINE  GET_DEP_N
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -227,6 +243,8 @@
 !
 ! !USES:
 !
+      USE TIME_MOD,     ONLY : GET_TS_EMIS
+      USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE COMMSOIL_MOD   
       USE CMN_DIAG_MOD        
 !
@@ -249,20 +267,20 @@
 !
       REAL*8,  PARAMETER   :: AVO         = 6.022d23 ! Avogadro's # (molec/mol)
       REAL*8,  PARAMETER   :: MW          = 14.d0    ! Molec weight N (14gN/mol)
-      REAL*8,  PARAMETER   :: NG_PER_GRAM = 1.d9
-      REAL*8,  PARAMETER   :: CM2_PER_M2  = 1.d4
-      
-      !Total
-      DRYN = DRY_HNO3(I,J) + DRY_NH3(I,J) + DRY_NH4(I,J) + DRY_NIT(I,J)
-     &     + DRY_NO2(I,J)  + DRY_PAN(I,J)  
- 
-      !Molecules/cm2/s --> ngN/m2/s 
-      DRYN = DRYN * CM2_PER_M2 / AVO * MW * NG_PER_GRAM 
+      REAL*8,  PARAMETER   :: NG_P_GRAM = 1.d9
+      REAL*8,  PARAMETER   :: CM2_P_M2  = 1.d4
+      REAL*8               :: NTS, TS_EMIS, TS_CHEM
+
+      ! ckeller (14/04/02)
+      TS_EMIS = GET_TS_EMIS()
+      TS_CHEM = GET_TS_CHEM() 
+      NTS     = TS_EMIS/TS_CHEM
+      DRYN    = DRY_TOTN(I,J) / NTS * CM2_P_M2 / AVO * MW * NG_P_GRAM
 
       END FUNCTION SOURCE_DRYN
 
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -299,13 +317,6 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!  
-      REAL*8,  PARAMETER   :: CONVHNO3 = 0.222 ! MWN/MWHNO3
-      REAL*8,  PARAMETER   :: CONVNH4  = 0.777 ! MWN/MWNH4
-      REAL*8,  PARAMETER   :: CONVNH3  = 0.823 ! MWN/MWNH3
-      REAL*8,  PARAMETER   :: CONVNIT  = 0.226 ! MWN/MWNIT
-!
 ! !LOCAL VARIABLES:
 !
       REAL*8               :: HNO3NG, NITNG,   NH3NG,  NH4NG
@@ -322,23 +333,42 @@
 
       ! In my code and I think as it should be in everyones 
       ! EMIS TS = 2 x DYN TS 
-      ! Comment out for test simulations where transport is not done
-      ! (skim, 1/14/13)
-      ! IF (NTS /= 2.) WRITE(6,*) 'ERROR! CHECK THIS'
+      IF (NTS /= 2.) WRITE(6,*) 'ERROR! CHECK THIS'
 
-      ! Convert kg species/s * xx dyn t.s --> ng N/m2/s
-      HNO3NG  = WET_HNO3(I,J) * CONVHNO3 * 1.d12 / 
-     &          AREA_M2 / NTS
-      NH4NG   = WET_NH4(I,J)  * CONVNH4  * 1.d12 / 
-     &          AREA_M2 / NTS  
-      NH3NG   = WET_NH3(I,J)  * CONVNH3  * 1.d12 / 
-     &          AREA_M2 / NTS 
-      NITNG   = WET_NIT(I,J)  * CONVNIT  * 1.d12 / 
-     &          AREA_M2 / NTS  
-
-      ! Total N wet dep
-      WETN = HNO3NG + NH3NG  + NH4NG + NITNG  
+      ! ckeller (14/04/02)
+      WETN = WET_TOTN(I,J) / NTS * 1.d12 / AREA_M2
 
       END FUNCTION SOURCE_WETN
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: reset_dep_N
+!
+! !DESCRIPTION: Subroutine RESET\_DEP\_N resets the dry and wet deposition 
+!               arrays and variables so that they can be refilled. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE RESET_DEP_N 
+!
+! !USES:
+!
+      USE COMMSOIL_MOD
+!
+! !REVISION HISTORY:
+!  03 Apr 2014 - C. Keller      - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      ! Reset all variables
+      DRY_TOTN = 0d0
+      WET_TOTN = 0d0
+
+      END SUBROUTINE  RESET_DEP_N
 !EOC
       END MODULE GET_NDEP_MOD

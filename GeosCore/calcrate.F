@@ -243,11 +243,6 @@
       REAL*8  :: DUMMYO2(KBLOOP)
       REAL*8  :: EDUCTCONC, LIMITCONC
       INTEGER :: PSCIDX
-!-----------------------------------------------------------------------------
-! Prior to 4/23/13:
-! Seb Eastham says we can resize this to (11,2) (bmy, 4/23/13)
-!      REAL*8  :: PSCEDUCTCONC(13,2)
-!-----------------------------------------------------------------------------
       REAL*8  :: PSCEDUCTCONC(11,2)
       LOGICAL :: NATSURFACE
       REAL*8  :: ADJUSTEDRATE
@@ -271,7 +266,7 @@
       LOGICAL :: LKPP
       LOGICAL :: LNLPBL
       LOGICAL :: LVISTAS
-      LOGICAL :: LWARWICK_VSLS
+      !LOGICAL :: LWARWICK_VSLS
       LOGICAL :: LDICARB
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -293,8 +288,6 @@
       ! Save fields from Input_Opt into local variables
       LKPP          = Input_Opt%LKPP
       LNLPBL        = Input_Opt%LNLPBL
-      LVISTAS       = Input_Opt%LVISTAS
-      LWARWICK_VSLS = Input_Opt%LWARWICK_VSLS
       LDICARB       = Input_Opt%LDICARB
       XNUMOL        = Input_Opt%XNUMOL
 
@@ -511,13 +504,16 @@
       ! equal to zero or not: (jpp, 4/15/10)
       ! ---------------------------------------------------------
       IF ( ( ICHBr3 > 0 ) .and. ( ICH2Br2 > 0 ) ) THEN
-         IF ( .not. LWARWICK_VSLS ) THEN
-            ! Loop over boxes per grid block
-            DO KLOOP = 1, KTLOOP 
-               CBLK(KLOOP, ICHBr3)  = 0.d0
-               CBLK(KLOOP, ICH2Br2) = 0.d0
-            ENDDO
-         ENDIF
+
+! TODO: testing only
+! --- comment for now, not sure if this is important (ckeller) ---
+!         IF ( .not. LWARWICK_VSLS ) THEN
+!            ! Loop over boxes per grid block
+!            DO KLOOP = 1, KTLOOP 
+!               CBLK(KLOOP, ICHBr3)  = 0.d0
+!               CBLK(KLOOP, ICH2Br2) = 0.d0
+!            ENDDO
+!         ENDIF
       ENDIF
 
 !
@@ -1144,11 +1140,6 @@ c new OH+CO rate from JPL2006.
                            XSTKCF = 0.3d0
                         ENDIF
                      ELSE
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 4/22/14:
-!%%% TINY(1d0) may cause XSTCF to underflow (bmy, 4/22/14)
-!%%%                        XSTKCF = TINY(1d0) ! avoid divide by zero
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         XSTKCF = 0d0
                      ENDIF
 
@@ -1168,11 +1159,6 @@ c new OH+CO rate from JPL2006.
                      ELSEIF ( N == 14 ) THEN
                         XSTKCF = 0.1d0
                      ELSE
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 4/22/14:
-!%%% TINY(1d0) may cause XSTCF to underflow (bmy, 4/22/14)
-!%%%                        XSTKCF = TINY(1d0) ! avoid divide by zero
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         XSTKCF = 0d0
                      ENDIF
 
@@ -1535,18 +1521,6 @@ c new OH+CO rate from JPL2006.
                   ! If all these checks are passed, we set k = ki/[B].
                   ! Rxn 11 is first-order - ignore
                   IF (PSCIDX.eq.1) THEN
-!------------------------------------------------------------------------------
-! Prior to 5/12/14:
-! Use same treatmens used for other aerosol reactions (not including the
-! check against PSCMINLIFE) (sde, mps, 5/12/14)
-!                     ! N2O5 + H2O is an old reaction, allow to proceed
-!                     ! as it did in base GEOS-Chem
-!                     IF (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)) THEN
-!                        ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
-!                     ELSE
-!                        ADJUSTEDRATE = 0d0
-!                     ENDIF
-!------------------------------------------------------------------------------
                      ! Convert from 1st-order to 2nd-order
                      IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
                         ! Temporarily store [B]/(T*[A])

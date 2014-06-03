@@ -409,32 +409,6 @@
          CALL ICOADS_SCALE_FUTURE
       ENDIF
 
-#if defined( DEVEL )
-! Get emissions year
-      YEAR = GET_YEAR()
-! Get emissions month      
-      MONTH = GET_MONTH()
-      
-      IF ( (MONTH == 4) .OR. (MONTH == 6) .OR.
-     &     (MONTH == 9) .OR. (MONTH == 11) ) THEN
-         SEC_IN_MONTH = 86400D0*30.0D0
-      ELSE IF (MONTH == 2) THEN
-! ICOADS ship emissions for 2002
-         IF (MOD(YEAR,4) == 0) THEN
-            SEC_IN_MONTH = 86400D0*29.0D0
-         ELSE
-            SEC_IN_MONTH = 86400D0*28.0D0
-         ENDIF
-      ELSE
-         SEC_IN_MONTH = 86400D0*31.0D0
-      ENDIF
-
-      ! Convert from Kg/Month -> Kg/S
-      State_Chm%TRAC_TEND(:,:,1,IDTNO ) = NOx / SEC_IN_MONTH
-      State_Chm%TRAC_TEND(:,:,1,IDTCO ) = CO  / SEC_IN_MONTH
-      State_Chm%TRAC_TEND(:,:,1,IDTSO2) = SO2 / SEC_IN_MONTH
-#endif
-
       !--------------------------
       ! Print emission totals
       !--------------------------

@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -62,17 +62,11 @@
       REAL*8,  PUBLIC, ALLOCATABLE :: CANOPYNOX    (:,:  )
 
       ! Soil NOx deposited N arrays
-      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_NO2      (:,:  )
-      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_PAN      (:,:  )
-      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_HNO3     (:,:  )
-      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_NH3      (:,:  )
-      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_NH4      (:,:  )
-      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_NIT      (:,:  )
-      REAL*8,  PUBLIC, ALLOCATABLE :: DEP_RESERVOIR(:,:  )
-      REAL*8,  PUBLIC, ALLOCATABLE :: WET_HNO3     (:,:  ) 
-      REAL*8,  PUBLIC, ALLOCATABLE :: WET_NH3      (:,:  )
-      REAL*8,  PUBLIC, ALLOCATABLE :: WET_NH4      (:,:  )
-      REAL*8,  PUBLIC, ALLOCATABLE :: WET_NIT      (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: DEP_RESERVOIR(:,:  )
+
+      ! Sum N on the fly (ckeller, 14/04/02)
+      REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: DRY_TOTN     (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: WET_TOTN     (:,:  )
 
       !=================================================================
       ! The following arrays do not depend on longitude & latitude
@@ -124,20 +118,19 @@
 !                              be used with the Grid-Independent GEOS-Chem
 !  30 Oct 2012 - R. Yantosca - Now make all arrays that depend on lon &
 !                              lat into ALLOCATABLE arrays (for GIGC code)
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_commsoil
+! !IROUTINE: set_commsoil_mod
 !
-! !DESCRIPTION: Routine INIT\_COMMSOIL allocates all module arrays
+! !DESCRIPTION: Routine SET_COMMSOIL_MOD allocates all module arrays
 !  with the longitude and latitude values IIPAR and JJPAR.
 !\\
 !\\
@@ -201,37 +194,14 @@
       ALLOCATE( INST_FERT    ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( DRY_NO2      ( IIPAR, JJPAR        ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-
-      ALLOCATE( DRY_PAN      ( IIPAR, JJPAR        ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-
-      ALLOCATE( DRY_HNO3     ( IIPAR, JJPAR        ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-
-      ALLOCATE( DRY_NH3      ( IIPAR, JJPAR        ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-
-      ALLOCATE( DRY_NH4      ( IIPAR, JJPAR        ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-                                                   
-      ALLOCATE( DRY_NIT      ( IIPAR, JJPAR        ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-
       ALLOCATE( DEP_RESERVOIR( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( WET_HNO3     ( IIPAR, JJPAR        ), STAT=RC ) 
+      ! ckeller (14/04/02)
+      ALLOCATE( WET_TOTN     ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( WET_NH3      ( IIPAR, JJPAR        ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-
-      ALLOCATE( WET_NH4      ( IIPAR, JJPAR        ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-
-      ALLOCATE( WET_NIT      ( IIPAR, JJPAR        ), STAT=RC )
+      ALLOCATE( DRY_TOTN     ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
       ! Zero arrays
@@ -245,22 +215,16 @@
       INST_SOIL     = 0d0
       INST_FERT     = 0d0
       CANOPYNOX     = 0d0
-      DRY_NO2       = 0d0
-      DRY_PAN       = 0d0
-      DRY_HNO3      = 0d0
-      DRY_NH3       = 0d0
-      DRY_NH4       = 0d0
-      DRY_NIT       = 0d0
       DEP_RESERVOIR = 0d0
-      WET_HNO3      = 0d0 
-      WET_NH3       = 0d0
-      WET_NH4       = 0d0
-      WET_NIT       = 0d0
+
+      ! ckeller (14/04/02)
+      WET_TOTN      = 0d0
+      DRY_TOTN      = 0d0
 
       END SUBROUTINE Init_COMMSOIL
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -305,17 +269,11 @@
       IF( ALLOCATED( GWET_PREV     ) ) DEALLOCATE( GWET_PREV     )
       IF( ALLOCATED( INST_SOIL     ) ) DEALLOCATE( INST_SOIL     )
       IF( ALLOCATED( INST_FERT     ) ) DEALLOCATE( INST_FERT     )
-      IF( ALLOCATED( DRY_NO2       ) ) DEALLOCATE( DRY_NO2       )
-      IF( ALLOCATED( DRY_PAN       ) ) DEALLOCATE( DRY_PAN       )
-      IF( ALLOCATED( DRY_HNO3      ) ) DEALLOCATE( DRY_HNO3      )
-      IF( ALLOCATED( DRY_NH3       ) ) DEALLOCATE( DRY_NH3       )
-      IF( ALLOCATED( DRY_NH4       ) ) DEALLOCATE( DRY_NH4       )
-      IF( ALLOCATED( DRY_NIT       ) ) DEALLOCATE( DRY_NIT       )
       IF( ALLOCATED( DEP_RESERVOIR ) ) DEALLOCATE( DEP_RESERVOIR )
-      IF( ALLOCATED( WET_HNO3      ) ) DEALLOCATE( WET_HNO3      ) 
-      IF( ALLOCATED( WET_NH3       ) ) DEALLOCATE( WET_NH3       )
-      IF( ALLOCATED( WET_NH4       ) ) DEALLOCATE( WET_NH4       )
-      IF( ALLOCATED( WET_NIT       ) ) DEALLOCATE( WET_NIT       )
+
+      ! ckeller (14/04/02)
+      IF( ALLOCATED( DRY_TOTN      ) ) DEALLOCATE( DRY_TOTN      )
+      IF( ALLOCATED( WET_TOTN      ) ) DEALLOCATE( WET_TOTN      )
 
       END SUBROUTINE Cleanup_COMMSOIL
 !EOC

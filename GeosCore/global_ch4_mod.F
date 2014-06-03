@@ -31,12 +31,12 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: CH4_AVGTP
-      PUBLIC :: EMISSCH4
+!      PUBLIC :: EMISSCH4
       PUBLIC :: CHEMCH4
       PUBLIC :: INIT_GLOBAL_CH4
       PUBLIC :: CLEANUP_GLOBAL_CH4
-      PUBLIC :: GET_CH4_ANTHRO
-      PUBLIC :: GET_CH4_BIOG
+!      PUBLIC :: GET_CH4_ANTHRO
+!      PUBLIC :: GET_CH4_BIOG
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -317,1652 +317,1652 @@
       
       END SUBROUTINE CH4_AVGTP
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: emissch4
+!!
+!! !DESCRIPTION: Subroutine EMISSCH4 places emissions of CH4 [kg] into the STT
+!!  array. (jsw, bnd, bey, bmy, 1/16/01, 10/3/05)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE EMISSCH4( am_I_Root, Input_Opt,
+!     &                     State_Met, State_Chm, RC )
+!!
+!! !USES:
+!!
+!      USE CMN_DIAG_MOD
+!      USE CMN_SIZE_MOD
+!      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
+!      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
+!      USE TIME_MOD,           ONLY : GET_TS_EMIS,     ITS_A_NEW_DAY
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE GRID_MOD,           ONLY : GET_AREA_CM2,    GET_XOFFSET
+!      USE GRID_MOD,           ONLY : GET_YOFFSET 
+!      USE DIAG_MOD,           ONLY : AD58
+!      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IT_IS_NAN
+!      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (ccc, 08/31/09)
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!! 
+!! !REMARKS:
+!!  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
+!! 
+!! !REVISION HISTORY:
+!!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
+!!        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
+!!        by Bob Yantosca. (bmy, 1/16/01)
+!!  (2 ) EMISSCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!!        (bmy, 1/16/01)
+!!  (3 ) GLOBASEAEMIS, GLOBSEAEMIS are diagnostics by jsw.
+!!  (4 ) Do not multiply CO emissions by 1.28 anymore (jsw, bmy, 2/12/01)
+!!  (5 ) Renamed input files to CH4_monthly.geos.{RES} and 
+!!        CH4_aseasonal.geos.{RES}. (bmy, 2/12/01)
+!!  (6 ) Add reference to "CMN_SETUP" for the DATA_DIR variable (bmy, 2/13/01)
+!!  (7 ) Removed references to "biofuel_mod.f" and "biomass_mod.f"; these
+!!        weren't necessary (bmy, 3/20/01)
+!!  (8 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Now use IU_FILE
+!!        instead of IUNIT as the file unit #. (bmy, 6/27/02)
+!!  (9 ) Now reference BXHEIGHT and SUNCOS from "dao_mod.f".  Remove reference 
+!!        to header file "comtrid.h" -- it's not used.  Make FIRSTEMISS a local
+!!        SAVEd variable.  Also use MONTH from "CMN" instead of the variable
+!!        LMN. (bmy, 11/15/02)
+!!  (10) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f".
+!!        Now use function GET_MONTH and GET_TS_EMIS from "time_mod.f". 
+!!        Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
+!!        I0 and J0 are now local variables. (bmy, 3/27/03)
+!!  (11) Now reference STT from "tracer_mod.f".  Now reference DATA_DIR from
+!!        "directory_mod.f". (bmy, 7/20/04)
+!!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!!  (13) Add non-local PBL capability (ccc, 8/31/09)
+!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!!  11 Apr 2014 - R. Yantosca - Remove call to INIT_GLOBAL_CH4
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER             :: I, I0, IREF, J, J0, JREF, N
+!      REAL*8              :: DTSRCE,       AREA_CM2
+!      REAL*8,DIMENSION(7) :: DBGANTHRO
+!      REAL*8,DIMENSION(3) :: DBGBIO
+!      LOGICAL, SAVE       :: FIRST = .TRUE.
 !
-! !IROUTINE: emissch4
+!      ! For fields from Input_Opt
+!      LOGICAL             :: LBFCH4
+!      LOGICAL             :: LBMCH4
+!      LOGICAL             :: LNLPBL
+!      LOGICAL             :: LRICE
+!      LOGICAL             :: LSPLIT
+!      LOGICAL             :: LWETL
+!      LOGICAL             :: ITS_A_CH4_SIM
+!      LOGICAL             :: ITS_A_FULLCHEM_SIM
+!      INTEGER             :: N_TRACERS
+!      INTEGER             :: ID_TRACER(Input_Opt%N_TRACERS)
 !
-! !DESCRIPTION: Subroutine EMISSCH4 places emissions of CH4 [kg] into the STT
-!  array. (jsw, bnd, bey, bmy, 1/16/01, 10/3/05)
-!\\
-!\\
-! !INTERFACE:
+!      ! Pointers
+!      ! We need to define local arrays to hold corresponding values 
+!      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+!      REAL*8, POINTER     :: STT(:,:,:,:)
 !
-      SUBROUTINE EMISSCH4( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+!      !=================================================================
+!      ! EMISSCH4 begins here!
+!      !=================================================================
 !
-! !USES:
+!      ! Assume success
+!      RC                  = GIGC_SUCCESS
 !
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
-      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,           ONLY : GET_TS_EMIS,     ITS_A_NEW_DAY
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2,    GET_XOFFSET
-      USE GRID_MOD,           ONLY : GET_YOFFSET 
-      USE DIAG_MOD,           ONLY : AD58
-      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IT_IS_NAN
-      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (ccc, 08/31/09)
+!      ! Get nested-grid offsets
+!      I0                  = GET_XOFFSET()
+!      J0                  = GET_YOFFSET()
 !
-! !INPUT PARAMETERS:
+!      ! Copy values from Input_Opt
+!      LBFCH4              = Input_Opt%LBFCH4
+!      LBMCH4              = Input_Opt%LBMCH4
+!      LNLPBL              = Input_Opt%LNLPBL
+!      LRICE               = Input_Opt%LRICE
+!      LSPLIT              = Input_Opt%LSPLIT
+!      LWETL               = Input_Opt%LWETL
+!      N_TRACERS           = Input_Opt%N_TRACERS
+!      ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
+!      ITS_A_CH4_SIM       = Input_Opt%ITS_A_CH4_SIM
+!      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!      !===================================================================
+!      ! Emissions are read or calculated at the first of every:
+!      !   1) Emission time step - Natural Wetlands (from J Kaplan)
+!      !   2) Month              - Biomass Burning and Rice
+!      !   3) Year               - All other sources
+!      !
+!      ! Emissions are stored at each time step in a 3D array:
+!      !   EMIS_CH4(IIPAR,JJPAR,N).
+!      !     Where N = 1:12
+!      !       1. Total Emissions (including soil absorption, counted neg.)
+!      !       2. Oil and Gas Processing
+!      !       3. Coal Mining
+!      !       4. Livestock
+!      !       5. Waste
+!      !       6. Biofuel
+!      !       7. Rice
+!      !       8. Other Anthropogenic
+!      !       9. Biomass Burning
+!      !       10. Wetlands
+!      !       11. Soil Absorption
+!      !       12. Other Natural
+!      !
+!      ! Emissions are added to STT array and AD58 (emission diagnostic)
+!      !   at every time step.
+!      !                                                      (kjw, 6/4/09)
+!      !===================================================================
 !
-! !INPUT/OUTPUT PARAMETERS:
+!      IF ( ITS_A_CH4_SIM ) THEN
+!         print*,'BEGIN SUBROUTINE: EMISSCH4' 
+!      ENDIF
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!      ! ==================================================================
+!      ! 1)  Get Wetland Emissions
+!      !     NOTES:                                          (kjw, 5/28/09)
+!      !        Emissions calculated online every timestep in WETLAND_EMIS.
+!      !        WETLAND_EMIS adapted to GEOS-Chem by Jerome Drevet (3/06)
+!      !        from a wetland methane scheme provided by Jed O. Kaplan
+!      !        See subroutine WETLAND_EMIS for more information
+!      ! ==================================================================
 !
-! !OUTPUT PARAMETERS:
+!      IF ( ITS_A_CH4_SIM ) THEN
+!         print*, '% EMISSCH4 --- Calculating wetland emissions'
+!         CALL FLUSH(6)
+!      ENDIF
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!      !4.1 Wetland emissions
+!      IF ( LWETL ) THEN
+!         CALL WETLAND_EMIS( State_Met )
+!      ENDIF
+!
+!      ! ==================================================================
+!      ! 2)  Get Daily Varying CH4 Emissions
+!      !     NOTES:                                          (kjw, 9/24/12)
+!      !        Biomass burning emissions from GFED3
+!      ! ==================================================================
+!      IF ( ITS_A_NEW_DAY() ) THEN
+!
+!         !4.2 Biomass Burning emissions (CH4_BBN, #9)
+!         CALL BIOBURN_EMIS( am_I_Root, Input_Opt, RC )
+!
+!      ENDIF
+!
+!      ! ==================================================================
+!      ! 2)  Get Monthly Varying CH4 Emissions
+!      !     NOTES:                                          (kjw, 5/28/09)
+!      !        Biomass burning emissions from GFED2 or GFED3
+!      !        Biomass burning available from 1997-2007 (5/28/09)
+!      !        Rice emissions from EDGAR v4, modified by GEOS soil wetness
+!      ! ==================================================================
+!      IF ( ITS_A_NEW_MONTH() ) THEN
+!
+!         !4.3 Rice emissions (CH4_RIC, #7)
+!         IF ( LRICE ) THEN
+!            CALL RICE_EMIS( am_I_Root, Input_Opt, RC )
+!         ENDIF
+!      ENDIF
+!
+!
+!      ! ==================================================================
+!      ! 3)  Get Aseasonal CH4 Emissions
+!      !     NOTES:                                      (kjw, 5/28/09)
+!      !        Anthropogenic emissions from EDGAR v4 except biofuel
+!      !        emissions which are from Yevich and Logan 2003.
+!      !        Soil absorption from Fung et. al. 1991.
+!      !        Other natural emissions include:
+!      !            termites from Fung et. al. 1991
+!      ! ==================================================================
+!
+!      IF ( ITS_A_NEW_YEAR() ) THEN
+!
+!        !4.5 Aseasonal Anthropogenic emissions
+!        ! (CH4_OAG, #2; CH4_COL, #3; CH4_LIV, #4; CH4_WST, #5; 
+!        !  CH4_BFL, #6; CH4_OTA, #8)
+!        CALL ASEASONAL_ANTHRO_EMIS( am_I_Root, Input_Opt, RC )
+!
+!        !4.6 Aseasonal Natural emissions (CH4_SAB, #11; CH4_OTN, #12)
+!        CALL ASEASONAL_NATURAL_EMIS( am_I_Root, Input_Opt, RC )
+!
+!      ENDIF
+!
+!      ! Total emission: sum of all emissions - (2*soil absorption)
+!      ! We have to substract soil absorption twice because it is added 
+!      ! to other emissions in the SUM function. (ccc, 7/23/09)
+!      CH4_EMIS(:,:,1) = 0d0
+!      CH4_EMIS(:,:,1) = SUM(CH4_EMIS, 3) - (2 * CH4_EMIS(:,:,11))
+!
+!      ! =================================================================
+!      ! Modify the STT with emissions rates.               (kjw, 5/29/09)
+!      ! There are 12 tracers in the multi-tracer run.
+!      ! One tracer for total CH4 and one for each emission category.
+!      !
+!      !  1. Total CH4
+!      !  2. Gas and Oil 
+!      !  3. Coal
+!      !  4. Livestock
+!      !  5. Waste
+!      !  6. Biofuel
+!      !  7. Rice
+!      !  8. Other Anthropogenic
+!      !  9. Biomass Burning
+!      !  10. Wetlands
+!      !  11. Soil Absorption
+!      !  12. Other Natural
+!      ! =================================================================
 ! 
-! !REMARKS:
-!  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
-! 
-! !REVISION HISTORY:
-!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
-!        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
-!        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) EMISSCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) GLOBASEAEMIS, GLOBSEAEMIS are diagnostics by jsw.
-!  (4 ) Do not multiply CO emissions by 1.28 anymore (jsw, bmy, 2/12/01)
-!  (5 ) Renamed input files to CH4_monthly.geos.{RES} and 
-!        CH4_aseasonal.geos.{RES}. (bmy, 2/12/01)
-!  (6 ) Add reference to "CMN_SETUP" for the DATA_DIR variable (bmy, 2/13/01)
-!  (7 ) Removed references to "biofuel_mod.f" and "biomass_mod.f"; these
-!        weren't necessary (bmy, 3/20/01)
-!  (8 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Now use IU_FILE
-!        instead of IUNIT as the file unit #. (bmy, 6/27/02)
-!  (9 ) Now reference BXHEIGHT and SUNCOS from "dao_mod.f".  Remove reference 
-!        to header file "comtrid.h" -- it's not used.  Make FIRSTEMISS a local
-!        SAVEd variable.  Also use MONTH from "CMN" instead of the variable
-!        LMN. (bmy, 11/15/02)
-!  (10) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f".
-!        Now use function GET_MONTH and GET_TS_EMIS from "time_mod.f". 
-!        Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
-!        I0 and J0 are now local variables. (bmy, 3/27/03)
-!  (11) Now reference STT from "tracer_mod.f".  Now reference DATA_DIR from
-!        "directory_mod.f". (bmy, 7/20/04)
-!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (13) Add non-local PBL capability (ccc, 8/31/09)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  11 Apr 2014 - R. Yantosca - Remove call to INIT_GLOBAL_CH4
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      ! Only added to SST for offline CH4 simulations
+!      IF ( ITS_A_CH4_SIM ) THEN
+!       WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to STT array.'
+!      ENDIF
 !
-! !LOCAL VARIABLES:
+!      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+!      ! (mpayer, 12/6/12)
+!      STT => State_Chm%Tracers
 !
-      INTEGER             :: I, I0, IREF, J, J0, JREF, N
-      REAL*8              :: DTSRCE,       AREA_CM2
-      REAL*8,DIMENSION(7) :: DBGANTHRO
-      REAL*8,DIMENSION(3) :: DBGBIO
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-
-      ! For fields from Input_Opt
-      LOGICAL             :: LBFCH4
-      LOGICAL             :: LBMCH4
-      LOGICAL             :: LNLPBL
-      LOGICAL             :: LRICE
-      LOGICAL             :: LSPLIT
-      LOGICAL             :: LWETL
-      LOGICAL             :: ITS_A_CH4_SIM
-      LOGICAL             :: ITS_A_FULLCHEM_SIM
-      INTEGER             :: N_TRACERS
-      INTEGER             :: ID_TRACER(Input_Opt%N_TRACERS)
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER     :: STT(:,:,:,:)
-
-      !=================================================================
-      ! EMISSCH4 begins here!
-      !=================================================================
-
-      ! Assume success
-      RC                  = GIGC_SUCCESS
-
-      ! Get nested-grid offsets
-      I0                  = GET_XOFFSET()
-      J0                  = GET_YOFFSET()
-
-      ! Copy values from Input_Opt
-      LBFCH4              = Input_Opt%LBFCH4
-      LBMCH4              = Input_Opt%LBMCH4
-      LNLPBL              = Input_Opt%LNLPBL
-      LRICE               = Input_Opt%LRICE
-      LSPLIT              = Input_Opt%LSPLIT
-      LWETL               = Input_Opt%LWETL
-      N_TRACERS           = Input_Opt%N_TRACERS
-      ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
-      ITS_A_CH4_SIM       = Input_Opt%ITS_A_CH4_SIM
-      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
-
-      !===================================================================
-      ! Emissions are read or calculated at the first of every:
-      !   1) Emission time step - Natural Wetlands (from J Kaplan)
-      !   2) Month              - Biomass Burning and Rice
-      !   3) Year               - All other sources
-      !
-      ! Emissions are stored at each time step in a 3D array:
-      !   EMIS_CH4(IIPAR,JJPAR,N).
-      !     Where N = 1:12
-      !       1. Total Emissions (including soil absorption, counted neg.)
-      !       2. Oil and Gas Processing
-      !       3. Coal Mining
-      !       4. Livestock
-      !       5. Waste
-      !       6. Biofuel
-      !       7. Rice
-      !       8. Other Anthropogenic
-      !       9. Biomass Burning
-      !       10. Wetlands
-      !       11. Soil Absorption
-      !       12. Other Natural
-      !
-      ! Emissions are added to STT array and AD58 (emission diagnostic)
-      !   at every time step.
-      !                                                      (kjw, 6/4/09)
-      !===================================================================
-
-      IF ( ITS_A_CH4_SIM ) THEN
-         print*,'BEGIN SUBROUTINE: EMISSCH4' 
-      ENDIF
-
-      ! ==================================================================
-      ! 1)  Get Wetland Emissions
-      !     NOTES:                                          (kjw, 5/28/09)
-      !        Emissions calculated online every timestep in WETLAND_EMIS.
-      !        WETLAND_EMIS adapted to GEOS-Chem by Jerome Drevet (3/06)
-      !        from a wetland methane scheme provided by Jed O. Kaplan
-      !        See subroutine WETLAND_EMIS for more information
-      ! ==================================================================
-
-      IF ( ITS_A_CH4_SIM ) THEN
-         print*, '% EMISSCH4 --- Calculating wetland emissions'
-         CALL FLUSH(6)
-      ENDIF
-
-      !4.1 Wetland emissions
-      IF ( LWETL ) THEN
-         CALL WETLAND_EMIS( State_Met )
-      ENDIF
-
-      ! ==================================================================
-      ! 2)  Get Daily Varying CH4 Emissions
-      !     NOTES:                                          (kjw, 9/24/12)
-      !        Biomass burning emissions from GFED3
-      ! ==================================================================
-      IF ( ITS_A_NEW_DAY() ) THEN
-
-         !4.2 Biomass Burning emissions (CH4_BBN, #9)
-         CALL BIOBURN_EMIS( am_I_Root, Input_Opt, RC )
-
-      ENDIF
-
-      ! ==================================================================
-      ! 2)  Get Monthly Varying CH4 Emissions
-      !     NOTES:                                          (kjw, 5/28/09)
-      !        Biomass burning emissions from GFED2 or GFED3
-      !        Biomass burning available from 1997-2007 (5/28/09)
-      !        Rice emissions from EDGAR v4, modified by GEOS soil wetness
-      ! ==================================================================
-      IF ( ITS_A_NEW_MONTH() ) THEN
-
-         !4.3 Rice emissions (CH4_RIC, #7)
-         IF ( LRICE ) THEN
-            CALL RICE_EMIS( am_I_Root, Input_Opt, RC )
-         ENDIF
-      ENDIF
-
-
-      ! ==================================================================
-      ! 3)  Get Aseasonal CH4 Emissions
-      !     NOTES:                                      (kjw, 5/28/09)
-      !        Anthropogenic emissions from EDGAR v4 except biofuel
-      !        emissions which are from Yevich and Logan 2003.
-      !        Soil absorption from Fung et. al. 1991.
-      !        Other natural emissions include:
-      !            termites from Fung et. al. 1991
-      ! ==================================================================
-
-      IF ( ITS_A_NEW_YEAR() ) THEN
-
-        !4.5 Aseasonal Anthropogenic emissions
-        ! (CH4_OAG, #2; CH4_COL, #3; CH4_LIV, #4; CH4_WST, #5; 
-        !  CH4_BFL, #6; CH4_OTA, #8)
-        CALL ASEASONAL_ANTHRO_EMIS( am_I_Root, Input_Opt, RC )
-
-        !4.6 Aseasonal Natural emissions (CH4_SAB, #11; CH4_OTN, #12)
-        CALL ASEASONAL_NATURAL_EMIS( am_I_Root, Input_Opt, RC )
-
-      ENDIF
-
-      ! Total emission: sum of all emissions - (2*soil absorption)
-      ! We have to substract soil absorption twice because it is added 
-      ! to other emissions in the SUM function. (ccc, 7/23/09)
-      CH4_EMIS(:,:,1) = 0d0
-      CH4_EMIS(:,:,1) = SUM(CH4_EMIS, 3) - (2 * CH4_EMIS(:,:,11))
-
-      ! =================================================================
-      ! Modify the STT with emissions rates.               (kjw, 5/29/09)
-      ! There are 12 tracers in the multi-tracer run.
-      ! One tracer for total CH4 and one for each emission category.
-      !
-      !  1. Total CH4
-      !  2. Gas and Oil 
-      !  3. Coal
-      !  4. Livestock
-      !  5. Waste
-      !  6. Biofuel
-      !  7. Rice
-      !  8. Other Anthropogenic
-      !  9. Biomass Burning
-      !  10. Wetlands
-      !  11. Soil Absorption
-      !  12. Other Natural
-      ! =================================================================
- 
-      ! Only added to SST for offline CH4 simulations
-      IF ( ITS_A_CH4_SIM ) THEN
-       WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to STT array.'
-      ENDIF
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
-      ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60d0   !timestep in s.
-
-      ! J0 and I0 are global variables, both set = 0.
-      DO J = 1, JJPAR
-         JREF = J + J0     
-
-      DO I = 1, IIPAR
-         IREF = I + I0
-
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-         ! Offline CH4 only
-         IF ( ITS_A_CH4_SIM ) THEN
-            IF ( .NOT. LNLPBL ) THEN
-               DO N = 1, N_TRACERS
-                  STT(IREF,JREF,1,N) = STT(IREF,JREF,1,N) + 
-     &               CH4_EMIS(IREF,JREF,ID_TRACER(N))
-     &               / XNUMOL_CH4 * DTSRCE * AREA_CM2
-               ENDDO
-            ENDIF
-
-            ! Save emissions in the EMIS_SAVE array to use the non-local 
-            ! PBL scheme to propagate emissions (ccc, 8/31/09)
-            IF ( LNLPBL ) THEN
-               DO N = 1, N_TRACERS
-               EMIS_SAVE(IREF,JREF,N) = CH4_EMIS(IREF,JREF,ID_TRACER(N))
-     &                                  / XNUMOL_CH4 * DTSRCE * AREA_CM2
-               ENDDO
-            ENDIF
-         ENDIF
-
-         IF ( ND58 > 0 ) THEN
-
-            ! All emission sources excluding soil absorption
-            AD58(IREF,JREF,1) = AD58(IREF,JREF,1) + 
-     &         ( CH4_EMIS(IREF,JREF,1) + CH4_EMIS(IREF,JREF,11) )
-     &         / XNUMOL_CH4 * DTSRCE * AREA_CM2 
-
-            DO N = 2, PD58
-               AD58(IREF,JREF,N) = AD58(IREF,JREF,N) + 
-     &            CH4_EMIS(IREF,JREF,N) 
-     &            / XNUMOL_CH4 * DTSRCE * AREA_CM2
-            ENDDO
-         ENDIF
-
-      ENDDO
-      ENDDO
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      IF ( ITS_A_CH4_SIM ) THEN
-
-#if defined( USE_CH4_BUDGET_DIAG )
-         !===============================================================
-         ! Sum up CH4 budgets
-         !
-         ! TCH4      - # molecules emitted from different sources
-         !===============================================================
-
-         DO J = 1,JJPAR
-            JREF = J + J0
-
-         DO I = 1,IIPAR
-            IREF = I + I0
-
-            ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-            ! Gas, oil, mine
-            TCH4(I,J,1,5) = TCH4(I,J,1,5) +
-     &           ( ( CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) ) * 
-     &                             AREA_CM2 * DTSRCE )
-               
-            ! agriculture (rice, animals, waste)
-            TCH4(I,J,1,6) = TCH4(I,J,1,6) +
-     &           ( ( CH4_EMIS(I,J,4) + CH4_EMIS(I,J,7) + 
-     &               CH4_EMIS(I,J,5) ) * AREA_CM2 * DTSRCE )
-            
-            ! Biomass burning (and biofuel?)
-            TCH4(I,J,1,7) = TCH4(I,J,1,7)+
-     &           ( ( CH4_EMIS(I,J,9) + CH4_EMIS(I,J,6) ) *
-     &                             AREA_CM2 * DTSRCE )
-
-            ! Termites
-            TCH4(I,J,1,8) = TCH4(I,J,1,8)+
-     &           ( CH4_EMIS(I,J,12) * AREA_CM2 * DTSRCE )
-
-            ! Wetlands
-            TCH4(I,J,1,9) = TCH4(I,J,1,9)+
-     &           ( CH4_EMIS(I,J,10) * AREA_CM2 * DTSRCE )
-
-            ! Soil Absorption
-            TCH4(I,J,1,10) = TCH4(I,J,1,10)+
-     &           ( CH4_EMIS(I,J,11) * AREA_CM2 * DTSRCE )
-
-
-            TCH4(I,J,1,4) = TCH4(I,J,1,4) + 
-     &          ( CH4_EMIS(I,J,1)  + ( 2 * CH4_EMIS(IREF,JREF,11) ))
-     &          * AREA_CM2 * DTSRCE
-
-         ENDDO
-         ENDDO
-#endif
-
-      ELSEIF ( ITS_A_FULLCHEM_SIM ) THEN
-
-         !===============================================================
-         ! Sum up CH4 emissions
-         !
-         ! SUMANTHRO - Total anthropogenic emissions [molec/cm2/s]
-         ! SUMBIOG   - Total biogenic      emissions [molec/cm2/s]
-         !===============================================================
-
-         ! Debug counters
-         DBGANTHRO = 0d0
-         DBGBIO    = 0d0
-
-         DO J = 1,JJPAR
-            JREF = J + J0
-
-         DO I = 1,IIPAR
-            IREF = I + I0
-
-            ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-            ! Total anthropogenic emissions
-            ! Gas & oil, mining, livestock, waste, biofuel, rice, other
-            SUMANTHRO(I,J) = CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) +
-     &                     + CH4_EMIS(I,J,4) + CH4_EMIS(I,J,5) +
-     &                     + CH4_EMIS(I,J,6) + CH4_EMIS(I,J,7) +
-     &                     + CH4_EMIS(I,J,8)
-
-            ! Molec/s
-            DO N=1,7
-                DBGANTHRO(N) = DBGANTHRO(N) + 
-     &                         (CH4_EMIS(I,J,N+1)*AREA_CM2)
-            ENDDO
-
-            ! Total biogenic emissions
-            ! Wetlands, other natural, (-)soil absorption
-            SUMBIOG(I,J) = CH4_EMIS(I,J,10) + CH4_EMIS(I,J,12)
-     &                   - CH4_EMIS(I,J,11)
-
-            ! Molec/s
-            DO N=1,3
-                DBGBIO(N) = DBGBIO(N) + 
-     &                      (CH4_EMIS(I,J,N+9)*AREA_CM2)
-            ENDDO
-
-         ENDDO
-         ENDDO
-
-         ! Convert from molec/s to kg/yr
-         DBGBIO(2)    = DBGBIO(2)*-1d0 ! Soil absorption
-         DBGANTHRO(:) = DBGANTHRO(:)*(3600.d-9*24d0*365.25d0)/XNUMOL_CH4
-         DBGBIO(:)    = DBGBIO(:)*(3600.d-9*24d0*365.25d0)/XNUMOL_CH4
-
-         ! SDE - Output projected annual emissions based on last output
-         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 anthrop. emissions rate:',
-     &            SUM(DBGANTHRO), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Gas & oil             :',
-     &            DBGANTHRO(1), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Mining                :',
-     &            DBGANTHRO(2), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Livestock             :',
-     &            DBGANTHRO(3), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Waste                 :',
-     &            DBGANTHRO(4), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Biofuel               :',
-     &            DBGANTHRO(5), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Rice                  :',
-     &            DBGANTHRO(6), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Other                 :',
-     &            DBGANTHRO(7), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 biogen. emissions rate: ',
-     &            SUM(DBGBIO), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Wetlands              :',
-     &            DBGBIO(1), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Other natural         :',
-     &            DBGBIO(3), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Soil absorption       :',
-     &            DBGBIO(2), 'Tg/yr'
-
-         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 total emissions rate:   ',
-     &            (SUM(DBGBIO)+SUM(DBGANTHRO)), 'Tg/yr'
-         
-      ENDIF
-
-      IF ( ITS_A_CH4_SIM ) THEN
-         print*,'END SUBROUTINE: EMISSCH4'
-      ENDIF
-
-      END SUBROUTINE EMISSCH4
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!      ! Emission timestep [s]
+!      DTSRCE = GET_TS_EMIS() * 60d0   !timestep in s.
 !
-! !IROUTINE: wetland_emis
+!      ! J0 and I0 are global variables, both set = 0.
+!      DO J = 1, JJPAR
+!         JREF = J + J0     
 !
-! !DESCRIPTION: Subroutine WETLAND\_EMIS calculates emissions of CH4 [kg] by
-!  Wetland. For a description of the GEOS-Chem wetland CH4 emission routine,
-!  see a paper titled, "Magnitude and trends of wetland methane emissions from 
-!  the Hudson Bay Lowlands (Canada)" by C. Pickett-Heaps
-!\\
-!\\
-! !INTERFACE:
+!      DO I = 1, IIPAR
+!         IREF = I + I0
 !
-      SUBROUTINE WETLAND_EMIS( State_Met )
+!         ! Grid box surface area [cm2]
+!         AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 !
-! !USES:
+!         ! Offline CH4 only
+!         IF ( ITS_A_CH4_SIM ) THEN
+!            IF ( .NOT. LNLPBL ) THEN
+!               DO N = 1, N_TRACERS
+!                  STT(IREF,JREF,1,N) = STT(IREF,JREF,1,N) + 
+!     &               CH4_EMIS(IREF,JREF,ID_TRACER(N))
+!     &               / XNUMOL_CH4 * DTSRCE * AREA_CM2
+!               ENDDO
+!            ENDIF
 !
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT,  GET_MODELNAME
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
-      USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-      USE DIAG_MOD,           ONLY : AD60, AD58
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! Diagnostic switches
+!            ! Save emissions in the EMIS_SAVE array to use the non-local 
+!            ! PBL scheme to propagate emissions (ccc, 8/31/09)
+!            IF ( LNLPBL ) THEN
+!               DO N = 1, N_TRACERS
+!               EMIS_SAVE(IREF,JREF,N) = CH4_EMIS(IREF,JREF,ID_TRACER(N))
+!     &                                  / XNUMOL_CH4 * DTSRCE * AREA_CM2
+!               ENDDO
+!            ENDIF
+!         ENDIF
 !
-! !INPUT PARAMETERS:
+!         IF ( ND58 > 0 ) THEN
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-! 
-! !REVISION HISTORY:
-!  (1 ) Adapted by Jérôme Drevet (3/06) from the BIOME-TG Wetland-Methane
-!       scheme provided by Jed O. Kaplan.
-!  (2 ) CH4 Emissions from Wetland depend on:
-!		a - Soil Carbon content.
-!		b - Vegetation type
-!		c - Wetland area (%)
-!		d - Soil moisture.
-!       a, b, c are taken from the LPJ, a vegetation model. Data are provided 
-!	by J.O.Kaplan. Soil moisture is read from GEOS Met input files.  
-!  (3 ) Corrected order of DO loops (bmy, 10/1/09)
-!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  23 Jan 2014 - M. Sulprizio- Now zero wetland emissions if snow covers the
-!                              ground. Also updated MOIST_SCALE and EMIT_FACT.
-!                              (K. Wecht, C. Pickett-Heaps)
-!  12 Feb 2014 - K. Wecht    - Updated for 0.25 x 0.3125 NA grid
-!  09 Apr 2014 - R. Yantosca - Bug fix, extend #ifdef for MERRA met fields
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!            ! All emission sources excluding soil absorption
+!            AD58(IREF,JREF,1) = AD58(IREF,JREF,1) + 
+!     &         ( CH4_EMIS(IREF,JREF,1) + CH4_EMIS(IREF,JREF,11) )
+!     &         / XNUMOL_CH4 * DTSRCE * AREA_CM2 
 !
-! !LOCAL VARIABLES:
+!            DO N = 2, PD58
+!               AD58(IREF,JREF,N) = AD58(IREF,JREF,N) + 
+!     &            CH4_EMIS(IREF,JREF,N) 
+!     &            / XNUMOL_CH4 * DTSRCE * AREA_CM2
+!            ENDDO
+!         ENDIF
 !
-      INTEGER                :: I, J, L      
-      INTEGER                :: GM, YEAR      
-      REAL*4                 :: ARRAY(IIPAR,JJPAR)
-      REAL*8                 :: WETFRAC(IIPAR,JJPAR)
-      REAL*8                 :: REALWET(IIPAR,JJPAR)
-      REAL*8                 :: EFF_GWET(IIPAR,JJPAR)
-      REAL*8                 :: SOIL_C(IIPAR,JJPAR) 
-      REAL*8                 :: LITTER_C(IIPAR,JJPAR) 
-      REAL*8                 :: litterfast 
-      REAL*8                 :: litterslow 
-      REAL*8                 :: soilfast 
-      REAL*8                 :: soilslow 
-      REAL*8                 :: HETEROR 
-      REAL*8                 :: F_TEMP 
-      REAL*8                 :: MEAN_T(IIPAR,JJPAR)  
-      REAL*8                 :: METHANE_OUT(IIPAR,JJPAR)   
-      REAL*8                 :: XTAU
-      REAL*8                 :: TROPICNESS
-      REAL*8                 :: EMIT_TROPIC
-      REAL*8                 :: EMIT_TEMPER
-      REAL*8                 :: MOIST_SCALE
-      REAL*8                 :: MAX_SNOWDP
-      REAL*8                 :: EMIT_FACT
-      INTEGER                :: MONTHDATES(12) = (/ 31, 28, 31, 30,
-     &                                              31, 30, 31, 31,
-     &                                              30, 31, 30, 31 /)
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=4)       :: CYEAR
-      LOGICAL, SAVE          :: FIRST
-
-      !=================================================================
-      ! WETLAND_CH4 begins here!
-      !=================================================================
-
-      !4.10 Wetland emissions
-
-      !===================================================================
-      ! Get wetland fraction data 
-      !===================================================================
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN WETLAND_EMIS'
-
-
-      ! Read Wetland fraction only if first call of simulation
-      !IF ( FIRST ) THEN
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Wetfrac.'       // GET_RES_EXT()          //
-     &              '_NA.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
-     &              'Wetfrac.'       // GET_RES_EXT()          //
-     &              '_NA.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Wetfrac.'       // GET_RES_EXT()          // 
-     &              '.bpch'
-#endif
-
-         WRITE( 6, 91 ) TRIM ( FILENAME )
- 91      FORMAT( '     - WL_CH4: Reading WET-FRAC: ', a )
-         CALL FLUSH( 6 )
-
-         XTAU = GET_TAU0( 1, 1, 2000 )
-
-         CALL READ_BPCH2( FILENAME, 'WET-FRAC',     1,      
-     &                    XTAU,     IIPAR,          JJPAR,      
-     &                    1,        ARRAY,          QUIET=.TRUE.)
-         
-         CALL TRANSFER_2D( ARRAY(:,:), WETFRAC(:,:) )
-
-         ! WETFRAC is maximum inundatable area in a box
-         WETFRAC =  WETFRAC / 100d0
-
-         ! Reset FIRST = FALSE
-         !FIRST = .FALSE.
-
-      !ENDIF
-
-
-      !===================================================================
-      ! Calculate inundated fraction
-      !
-      ! REALWET calculation is based on maximum inundatable area (WETFRAC)
-      ! and top soil moisture information
-      !
-      ! NOTE: LWI (land/water/ice flag) definition has changed between
-      !   GEOS4 and GEOS5.  This contributes to the variance between GEOS4
-      !   and GEOS5 wetland emissions.  Below is Jerome Drevet's and Jed
-      !   Kaplan's original calculation of REALWET using GEOS4 and a
-      !   modified calculation using GEOS5.
-      !                                                     (kjw, 6/10/09)
-      !===================================================================
-
-      ! REALWET is the actual inundated fraction of a box
-      REALWET(:,:) = 0d0
-
-      ! Max allowable snowdepth for emissions to take place [meters]
-      MAX_SNOWDP  =  0.0001d0  
-
-      ! GEOS4 calculation of inundated fraction
-#if   defined( GEOS_4 )
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, I )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-	 ! We don't want emissions in frozen or snow-covered regions
-	 IF ( State_Met%TSKIN(I,J) > 273d0      ) THEN
-         IF ( State_Met%SNOW (I,J) < MAX_SNOWDP ) THEN !SNOW DEPTH (in mm)!!!
-
-         ! We want emissions from land boxes only
-         IF ( State_Met%LWI(I,J) == 1 ) THEN
-
-	    ! If wetness>0.1, the wetland fraction is equal
-            ! to the maximal potential wetland fraction
-            IF (State_Met%GWETTOP(I,J) > 0.1d0) THEN
-               REALWET(I,J) = WETFRAC(I,J)
-            ELSE
-               REALWET(I,J) = 0.d0
-            ENDIF
-
-         ENDIF
-	 ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! GEOS5 Calculation of inundated fraction
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, I )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-	 ! We don't want emissions in frozen or snow-covered regions
-	 IF ( State_Met%TSKIN(I,J) > 273d0      ) THEN
-         IF ( State_Met%SNODP(I,J) < MAX_SNOWDP ) THEN !SNOW DEPTH (in m)!!!
-
-         ! We want emissions from any box that contains some land
-         ! FRLAND is fraction of grid box that is land
-         IF ( State_Met%FRLAND(I,J) > 0) THEN 
-
-            ! Actual wetness of land /= GWETTOP because GWETTOP includes
-            ! wetness in lakes, ocean, and ice.  Below is a scheme to
-            ! calculate effective GWETTOP of the land fraction
-            EFF_GWET(I,J) = ( State_Met%GWETTOP(I,J)  - 
-     &         ( State_Met%FROCEAN(I,J)     + State_Met%FRLAKE(I,J) + 
-     &           State_Met%FRLANDIC(I,J) )) / State_Met%FRLAND(I,J)
-
-            ! Catch for negative EFF_GWET
-            IF ( EFF_GWET(I,J) < 0d0 ) THEN
-               EFF_GWET(I,J) = 0d0
-            ENDIF
-
-	    ! If wetness>0.1, the wetland fraction is equal
-            ! to the maximal potential wetland fraction
-            IF (EFF_GWET(I,J) > 0.1d0) THEN
-		REALWET(I,J) = WETFRAC(I,J)
-            ELSE
-		REALWET(I,J) = 0.d0
-            ENDIF
-
-         ENDIF
-	 ENDIF
-	 ENDIF	
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-      ! Update Wetland Fraction Diagnostic
-      GM = GET_MONTH()
-      IF ( ND60 > 0 ) THEN
-	 AD60(:,:) = AD60(:,:) + REALWET(:,:)/(24d0*MONTHDATES(GM))
-      ENDIF
-
-
-      !===================================================================
-      ! Get litter carbon and soil carbon from LPJ DGVM (in gC/m2). 
-      !===================================================================
-
-      ! Only read Carbon and tskin information at beginning of each month
-      !IF ( ITS_A_NEW_MONTH() ) THEN
-
-         ! Carbon litter and carbon soil files both have tau date of
-         ! Jan. 1, 2000
-         
-         XTAU = GET_TAU0( 1, 1, 2000 )
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_litter.' // GET_RES_EXT()          //
-     &              '_NA.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
-     &              'Carbon_litter.' // GET_RES_EXT()          //
-     &              '_NA.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_litter.' // GET_RES_EXT()          // 
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CO--SRCE',   1,      
-     &                    XTAU,      IIPAR,       JJPAR,      
-     &                    1,         ARRAY,       QUIET=.TRUE.)
-
-         CALL TRANSFER_2D( ARRAY, LITTER_C )
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_soil.'   // GET_RES_EXT()          // 
-     &              '_NA.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
-     &              'Carbon_soil.'   // GET_RES_EXT()          //
-     &              '_NA.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_soil.'   // GET_RES_EXT()          // 
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CO--SRCE',   1,      
-     &                    XTAU,     IIPAR,        JJPAR,      
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-
-         CALL TRANSFER_2D( ARRAY, SOIL_C )
-
-
-         !===================================================================
-         ! Get annual mean skin temperature. 
-         !===================================================================
-
-         ! No TSKIN data for years before 2000 or after 2010
-         YEAR = GET_YEAR()
-
-#if   defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
-         IF ( YEAR .LT. 2004 ) YEAR  = 2004
-         IF ( YEAR .GT. 2010 ) YEAR  = 2010
-         WRITE( CYEAR, '(i4)' ) YEAR
-
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/wetlands/' //
-     &              'TSKIN.'         // GET_NAME_EXT()         // 
-     &              '.'              // GET_RES_EXT()          //
-     &              '.'              // CYEAR                  // 
-     &              '.bpch'
-
-#elif defined( GEOS_4 )
-         IF ( YEAR .LT. 2000 ) YEAR  = 2000
-         IF ( YEAR .GT. 2006 ) YEAR  = 2006
-         WRITE( CYEAR, '(i4)' ) YEAR
-
-         FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
-     &              'TSKIN.'          // CYEAR                  // 
-     &              '.'               // GET_NAME_EXT()         // 
-     &              '.'               // GET_RES_EXT()
-#endif
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         IF ( YEAR .LT. 2004 ) YEAR  = 2004
-         IF ( YEAR .GT. 2004 ) YEAR  = 2009
-         IF ( YEAR .GE. 2010 ) YEAR  = 2010
-         WRITE( CYEAR, '(i4)' ) YEAR
-
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/wetlands/' //
-     &              'TSKIN.'         // GET_NAME_EXT()         //
-     &              '.'              // GET_RES_EXT()          //
-     &              '_NA.'           // CYEAR                  //
-     &              '.bpch' 
-#endif
-
-#if   defined( GRID025x03125 ) && defined( NESTED_NA )
-         !-----------------------------------------------
-         ! 0.25 x 0.3125 NA nested grid (kjw, 02/12/14)
-         !----------------------------------------------
-         IF ( YEAR .LT. 2012 ) YEAR  = 2012
-         IF ( YEAR .GT. 2013 ) YEAR  = 2013
-         WRITE( CYEAR, '(i4)' ) YEAR
-
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
-     &              'TSKIN.'         // GET_NAME_EXT()         //
-     &              '.'              // GET_RES_EXT()          //
-     &              '_NA.'           // CYEAR                  //
-     &              '.bpch' 
-#endif
-
-         XTAU = GET_TAU0( 1, 1, YEAR )
-      
-         CALL READ_BPCH2( FILENAME,  'GMAO-2D',    2,
-     &                    XTAU,      IIPAR,        JJPAR,      
-     &                    1,         ARRAY,        QUIET=.TRUE.)
-
-         CALL TRANSFER_2D( ARRAY, MEAN_T )
-         print*,'done skin temp'
-
-      !ENDIF   ! End if its_a_new_month
-
-
-      !===================================================================
-      ! Calculate CH4 emissions!
-      !===================================================================
-
-      METHANE_OUT = 0d0	
-
-      ! Comments from Jed Kaplan and Jerome Drevet below:
-      !    (moist_scale can be between 0.07 and 0.14)
-      !    (emit_fact can be between 0.001 and 0.005)
-      ! Jerome's paper uses MOIST_SCALE = 0.19 (kjw, 6/9/09)
-      !
-      ! Jed and Jerome tune parameter values to the wetland emission
-      !    routine using GEOS-4 met variables. I have tuned the model
-      !    using GEOS-5 met variables and found that EMIT_FACT=.01 
-      !    and MOIST_SCALE=.1 give a reasonable balance between
-      !    extratropical and tropical emissions, kjw (7/20/10).
-      ! 
-      ! UPDATE 12/13/2011
-      !    Carbon litter and soil maps used prior to GC v9-01-03 were
-      !    incorrect. Carbon litter had wrong spatial distribution, and
-      !    carbon soil values were too high and may also have had the 
-      !    wrong spatial distribution.
-      !    Updated carbon litter, carbon soil, and wetland fraction maps
-      !    are included in v9-01-03. MOIST_SCALE and EMIT_FACT have been 
-      !    tuned to maintain annual global average methane emissions 
-      !    ~ 166.8 Tg/y. Boreal wetland emissions are ~ 28.9 Tg/y, 
-      !    consistent with estimates described in Pickett-Heaps 2011,
-      !    3rd pararaph of introduction. New parameter values:
-      !      MOIST_SCALE = 0.19
-      !      EMIT_FACT   = 0.023
-      !    (kjw, 12/13/2011)
-      !MOIST_SCALE=0.19d0
-      !EMIT_FACT = .023d0
-      !
-      ! UPDATE 1/16/2014
-      !    Use of the new carbon litter and soil maps changed global
-      !    and regional emission totals. Here, I change MOIST_SCALE
-      !    and EMIT_FACT to 1) match HBL emissions constrained by 
-      !    surface and aircraft data in Pickett-Heaps et al. 2011. 
-      !    and 2) preserve global total emissions (~165 Tg/y) used
-      !    in comparison to NOAA GMD, SCIAMACHY, and INTEX-A in 
-      !    Wecht et al. (2014).
-      MOIST_SCALE = 0.205   ! tropical emissions
-      EMIT_FACT   = 0.018   ! extratropical emissions
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, I, litterfast, litterslow, soilfast, soilslow       )
-!$OMP+PRIVATE(HETEROR, F_TEMP,   TROPICNESS, EMIT_TROPIC, EMIT_TEMPER )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-        
-	 IF ( State_Met%TSKIN(I,J) < 233.d0 ) THEN
-	    F_TEMP = 0d0
-	 ELSE
-	    F_TEMP = exp(308.56d0*(1.0d0/56.02d0-
-     &           1.0d0/(State_Met%TSKIN(I,J)-227.13d0))) !Lloyd & Taylor 1994
-         ENDIF
-
-         ! Calculate Heterotrophic respiration
-         litterfast = 0.985d0 * LITTER_C(i,j)
-         litterslow = 0.015d0 * LITTER_C(i,j)
-         soilfast =  0.985d0 * SOIL_C(i,j)
-         soilslow =  0.015d0 * SOIL_C(i,j)
-
-	 HETEROR = 1d3* F_TEMP *( litterfast*0.3d0
-     &                          + litterslow*0.05d0
-     &                          + soilfast*0.03d0
-     &                          + soilslow*0.001d0 ) * 0.34d0 / 12d0
-
-
-         ! Calculate "tropicness" of each box
-       	 TROPICNESS = exp((MEAN_T(I,J) - 303.15d0) / 8d0)
-	 IF ( TROPICNESS < 0d0 ) THEN
-            TROPICNESS = 0d0
-	 ENDIF
-	 IF ( TROPICNESS > 1d0 ) THEN
-            TROPICNESS = 1d0
-	 ENDIF
-
-         
-         EMIT_TROPIC = 0.0d0
-         EMIT_TEMPER = 0.0d0
-
-!         EMIT_TROPIC = EMIT_TROPIC + HETEROR * MOIST_SCALE 
-!     &                * REALWET(I,J) 
+!      ENDDO
+!      ENDDO
 !
-!         EMIT_TEMPER = EMIT_TEMPER + HETEROR * EMIT_FACT 
-!     &                * REALWET(I,J) 
-
-         EMIT_TROPIC = HETEROR * MOIST_SCALE * REALWET(I,J) 
-
-         EMIT_TEMPER = HETEROR * EMIT_FACT   * REALWET(I,J) 
-
-
-	 METHANE_OUT(I,J) = TROPICNESS      * EMIT_TROPIC +
-     &                     (1 - TROPICNESS) * EMIT_TEMPER  !gCH4/m2/mth	  
-
-	
-	 IF (METHANE_OUT(I,J) < 0d0 ) THEN
-            METHANE_OUT(I,J)=0d0
-         ENDIF
-
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-
-      ! METHANE_OUT:  g/m2/y --> molec/cm2/s
-      METHANE_OUT = METHANE_OUT/16d0/1d4/(24d0*MONTHDATES(GM)*3.6d3)
-     &              * 6.023d23 
-
-      ! Add to emission array
-      CH4_EMIS(:,:,10) = METHANE_OUT
-
-      print*,'END SUBROUTINE WETLAND_EMIS'
-
-      END SUBROUTINE WETLAND_EMIS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!      ! Free pointer
+!      NULLIFY( STT )
 !
-! !IROUTINE: bioburn_emis
+!      IF ( ITS_A_CH4_SIM ) THEN
 !
-! !DESCRIPTION: Subroutine BIOBURN\_EMIS calculates CH4 emissions from GFED2 or
-!  GFED3 biomass burning. (kjw, 6/03/09) 
-!\\
-!\\
-! !INTERFACE:
+!#if defined( USE_CH4_BUDGET_DIAG )
+!         !===============================================================
+!         ! Sum up CH4 budgets
+!         !
+!         ! TCH4      - # molecules emitted from different sources
+!         !===============================================================
 !
-      SUBROUTINE BIOBURN_EMIS( am_I_Root, Input_Opt, RC )
+!         DO J = 1,JJPAR
+!            JREF = J + J0
 !
-! !USES:
+!         DO I = 1,IIPAR
+!            IREF = I + I0
 !
-      USE BIOMASS_MOD,        ONLY : BIOMASS
-      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDBCH4
+!            ! Grid box surface area [cm2]
+!            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 !
-! !INPUT PARAMETERS:
+!            ! Gas, oil, mine
+!            TCH4(I,J,1,5) = TCH4(I,J,1,5) +
+!     &           ( ( CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) ) * 
+!     &                             AREA_CM2 * DTSRCE )
+!               
+!            ! agriculture (rice, animals, waste)
+!            TCH4(I,J,1,6) = TCH4(I,J,1,6) +
+!     &           ( ( CH4_EMIS(I,J,4) + CH4_EMIS(I,J,7) + 
+!     &               CH4_EMIS(I,J,5) ) * AREA_CM2 * DTSRCE )
+!            
+!            ! Biomass burning (and biofuel?)
+!            TCH4(I,J,1,7) = TCH4(I,J,1,7)+
+!     &           ( ( CH4_EMIS(I,J,9) + CH4_EMIS(I,J,6) ) *
+!     &                             AREA_CM2 * DTSRCE )
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!            ! Termites
+!            TCH4(I,J,1,8) = TCH4(I,J,1,8)+
+!     &           ( CH4_EMIS(I,J,12) * AREA_CM2 * DTSRCE )
 !
-! !OUTPUT PARAMETERS:
+!            ! Wetlands
+!            TCH4(I,J,1,9) = TCH4(I,J,1,9)+
+!     &           ( CH4_EMIS(I,J,10) * AREA_CM2 * DTSRCE )
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY:
-!  03 Jun 2009 - K. Wecht    - The code used to read, scale & regrid emissions
-!                              is from SUBROUTINE GFED2_COMPUTE_BIOMASS in
-!                              gfed2_biomass_mod.f
-!  14 Feb 2012 - M. Payer    - Now obtain emissions from BIOMASS array. Also
-!                              update for GFED3 (K. Wecht)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!            ! Soil Absorption
+!            TCH4(I,J,1,10) = TCH4(I,J,1,10)+
+!     &           ( CH4_EMIS(I,J,11) * AREA_CM2 * DTSRCE )
 !
-! !LOCAL VARIABLES:
 !
-      REAL*8                    :: E_CH4
-      INTEGER                   :: I, J
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN BIOBURN_EMIS'
-
-      !=================================================================
-      ! BIOBURN_EMIS begins here!
-      !=================================================================
-
-      ! Assume success
-      RC = GIGC_SUCCESS
-
-      !4.9 Biomass Burning emissions. Calculate emissions from monthly 
-      !     GFED-2 or GFED-3.
-      ! don't require use of GFED, for SEAC4RS code, using FINN
-      !IF ( Input_Opt%LGFED2BB .OR. Input_Opt%LGFED3BB ) THEN
-         DO I=1,IIPAR
-         DO J=1,JJPAR
-            ! Biomass burning emissions [molec/cm2/s]
-            E_CH4 = BIOMASS( I,J,IDBCH4 )
-
-            ! Place into CH4_EMIS array
-            CH4_EMIS(I,J,9) = E_CH4
-
-         ENDDO
-         ENDDO
-      !ENDIF
-
-      END SUBROUTINE BIOBURN_EMIS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!            TCH4(I,J,1,4) = TCH4(I,J,1,4) + 
+!     &          ( CH4_EMIS(I,J,1)  + ( 2 * CH4_EMIS(IREF,JREF,11) ))
+!     &          * AREA_CM2 * DTSRCE
 !
-! !IROUTINE: rice_emis
+!         ENDDO
+!         ENDDO
+!#endif
 !
-! !DESCRIPTION: Subroutine RICE\_EMIS calculates CH4 emissions from rice and
-!  places CH4 [kg] into the STT array. (kjw, 6/03/09)
-!\\
-!\\
-! !INTERFACE:
+!      ELSEIF ( ITS_A_FULLCHEM_SIM ) THEN
 !
-      SUBROUTINE RICE_EMIS( am_I_Root, Input_Opt, RC )
+!         !===============================================================
+!         ! Sum up CH4 emissions
+!         !
+!         ! SUMANTHRO - Total anthropogenic emissions [molec/cm2/s]
+!         ! SUMBIOG   - Total biogenic      emissions [molec/cm2/s]
+!         !===============================================================
 !
-! !USES:
+!         ! Debug counters
+!         DBGANTHRO = 0d0
+!         DBGBIO    = 0d0
 !
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT,  GET_MODELNAME
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE TIME_MOD,           ONLY : GET_MONTH,    GET_YEAR
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!         DO J = 1,JJPAR
+!            JREF = J + J0
 !
-! !INPUT PARAMETERS:
+!         DO I = 1,IIPAR
+!            IREF = I + I0
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!            ! Grid box surface area [cm2]
+!            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 !
-! !OUTPUT PARAMETERS:
+!            ! Total anthropogenic emissions
+!            ! Gas & oil, mining, livestock, waste, biofuel, rice, other
+!            SUMANTHRO(I,J) = CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) +
+!     &                     + CH4_EMIS(I,J,4) + CH4_EMIS(I,J,5) +
+!     &                     + CH4_EMIS(I,J,6) + CH4_EMIS(I,J,7) +
+!     &                     + CH4_EMIS(I,J,8)
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!            ! Molec/s
+!            DO N=1,7
+!                DBGANTHRO(N) = DBGANTHRO(N) + 
+!     &                         (CH4_EMIS(I,J,N+1)*AREA_CM2)
+!            ENDDO
 !
-! !LOCAL VARIABLES:
+!            ! Total biogenic emissions
+!            ! Wetlands, other natural, (-)soil absorption
+!            SUMBIOG(I,J) = CH4_EMIS(I,J,10) + CH4_EMIS(I,J,12)
+!     &                   - CH4_EMIS(I,J,11)
 !
-! 
-! !REMARKS:
-!  Rice Emissions are scaled to GEOS soil wetness.  Scaling sceme developed
-!     and implemented by Jerome Drevet.
-!  Wetland emissions are modified by the presence of rice emissions.  Sceme
-!     developed by Jerome Drevet.
-! 
-! !REVISION HISTORY:
-!  (1 ) CH4 emissions from rice calculated with a routine created by Jerome
-!       Drevet.  Adapted as its own subroutine by Kevin Wecht (6/03/09)
-!  (2 ) Corrected ordering of DO loops (bmy, 10/1/09)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  09 Apr 2014 - R. Yantosca - Bug fix, extend #ifdef for MERRA met fields
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!            ! Molec/s
+!            DO N=1,3
+!                DBGBIO(N) = DBGBIO(N) + 
+!     &                      (CH4_EMIS(I,J,N+9)*AREA_CM2)
+!            ENDDO
 !
-! !LOCAL VARIABLES:
+!         ENDDO
+!         ENDDO
 !
-      LOGICAL                :: LSPLIT
-      INTEGER                :: I,J,YEAR
-      REAL*4                 :: ARRAY(IIPAR,JJPAR)      
-      REAL*8                 :: DTSRCE,       AREA_CM2
-      REAL*8                 :: MEAN_GWETTOP(IIPAR,JJPAR)
-      REAL*8                 :: MONTH_GWETTOP(IIPAR,JJPAR)
-      REAL*8                 :: wet_ratio
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=4  )     :: CYEAR
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN RICE_EMIS'
-
-      !=================================================================
-      ! RICE_EMIS begins here!
-      !=================================================================
-
-      ! Assume success
-      RC     = GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LSPLIT = Input_Opt%LSPLIT
-
-      !4.7 Rice Emissions
-      ! For now, we only have emissions from 2004 in DATA_DIR.
-      ! Tau date of bpch emission files is Jan 1 of that year
-      !CYEAR='2004'
-      !XTAU = GET_TAU0( 1, 1, 2004 )
-      ! When DATA_DIR updated with more emission files, use:
-      WRITE( CYEAR, '(i4)' ) GET_YEAR()
-      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
-
-      IF ( GET_YEAR() .LT. 2004 ) THEN
-         CYEAR='2004'
-         XTAU = GET_TAU0( 1, 1, 2004 )
-      ENDIF
-      IF ( GET_YEAR() .GT. 2008 ) THEN
-         CYEAR='2008'
-         XTAU = GET_TAU0( 1, 1, 2008 )
-      ENDIF
-
-      ! Read Rice Emissions
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/' //
-     &           'rice.'          // GET_RES_EXT() //
-     &           '_NA.'           // CYEAR         //
-     &           '.bpch' 
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-      !-----------------------------------------------
-      ! 0.25 x 0.3125 NA nested grid (kjw, 02/12/14)
-      !----------------------------------------------
-      FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/' //
-     &           'rice.'              // GET_RES_EXT() //
-     &           '_NA.'               // CYEAR         //
-     &           '.bpch' 
-#else
-      FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/' //
-     &           'rice.'          // GET_RES_EXT() //
-     &           '.'              // CYEAR         //
-     &           '.bpch'
-#endif
-
-      CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
-     &                 XTAU,      IIPAR,     JJPAR,
-     &                 1,         ARRAY,     QUIET=.TRUE.)
-
-      CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,7) )
-
-      ! Get annual and monthly mean soil wetness from GEOS
-      ! One file contains both monthly and annual mean GWETTOP
-      YEAR = GET_YEAR()
-#if   defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
-      IF ( YEAR .LT. 2004 ) YEAR  = 2004
-      IF ( YEAR .GT. 2010 ) YEAR  = 2010
-      WRITE( CYEAR, '(i4)' ) YEAR
-
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_201305/wetlands/' //
-     &           'GWETTOP.'        // GET_NAME_EXT()         // 
-     &           '.'               // GET_RES_EXT()          // 
-     &           '.'               // CYEAR                  // 
-     &           '.bpch'
-
-#elif defined( GEOS_4 )
-      IF ( YEAR .LT. 2000 ) YEAR  = 2000
-      IF ( YEAR .GT. 2006 ) YEAR  = 2006
-      WRITE( CYEAR, '(i4)' ) YEAR
-
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/GWETTOP/'  //
-     &           'GWETTOP.'        // CYEAR                  // 
-     &           '.'               // GET_NAME_EXT()         // 
-     &           '.'               // GET_RES_EXT()
-#endif
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-      IF ( YEAR .LT. 2004 ) YEAR  = 2004
-      IF ( YEAR .GT. 2004 ) YEAR  = 2009
-      IF ( YEAR .GE. 2010 ) YEAR  = 2010
-      WRITE( CYEAR, '(i4)' ) YEAR
-
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_201305/wetlands/' //
-     &           'GWETTOP.'        // GET_NAME_EXT()         // 
-     &           '.'               // GET_RES_EXT()          // 
-     &           '_NA.'            // CYEAR                  //
-     &           '.bpch' 
-#endif
-#if   defined( GRID025x03125 ) && defined( NESTED_NA )
-         !-----------------------------------------------
-         ! 0.25 x 0.3125 NA nested grid (kjw, 02/12/14)
-         !----------------------------------------------
-         IF ( YEAR .LT. 2012 ) YEAR  = 2012
-         IF ( YEAR .GT. 2013 ) YEAR  = 2013
-         WRITE( CYEAR, '(i4)' ) YEAR
-
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
-     &              'GWETTOP.'       // GET_NAME_EXT()         //
-     &              '.'              // GET_RES_EXT()          //
-     &              '_NA.'           // CYEAR                  //
-     &              '.bpch' 
-#endif
-
-      ! Annual mean GWETTOP
-      XTAU = GET_TAU0( 1, 1, YEAR )
-      CALL READ_BPCH2( FILENAME, 'GMAO-2D',  2,      
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                    1,      ARRAY,     QUIET=.TRUE.)
-      CALL TRANSFER_2D( ARRAY, MEAN_GWETTOP )
-
-      ! Monthly mean GWETTOP
-      XTAU = GET_TAU0( GET_MONTH(), 1, YEAR )
-      CALL READ_BPCH2( FILENAME, 'GMAO-2D',  1,      
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                    1,      ARRAY,     QUIET=.TRUE.)
-      CALL TRANSFER_2D( ARRAY, MONTH_GWETTOP )
-
-      !scale rice emissions (by Jerome Drevet)
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-	 wet_ratio = MONTH_GWETTOP(I,J)/MEAN_GWETTOP(I,J)-1
-         wet_ratio = wet_ratio * 2.
-         wet_ratio = wet_ratio +1.
-	 IF (wet_ratio < 0) wet_ratio = 0
-         CH4_EMIS(I,J,7)=CH4_EMIS(I,J,7)*wet_ratio
-      ENDDO
-      ENDDO
-
-      ! Subtract rice emissions from natural wetlands to prevent double
-      ! counting of emissions from the same source.
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         IF (CH4_EMIS(I,J,7) > 0) THEN   ! If rice > 0
-         IF (CH4_EMIS(I,J,10) > 0) THEN  ! If wtl  > 0
-         IF (CH4_EMIS(I,J,10) > CH4_EMIS(I,J,7)) THEN
-             CH4_EMIS(I,J,10) = CH4_EMIS(I,J,10) - CH4_EMIS(I,J,7)
-         ENDIF
-         ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-
-      END SUBROUTINE RICE_EMIS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!         ! Convert from molec/s to kg/yr
+!         DBGBIO(2)    = DBGBIO(2)*-1d0 ! Soil absorption
+!         DBGANTHRO(:) = DBGANTHRO(:)*(3600.d-9*24d0*365.25d0)/XNUMOL_CH4
+!         DBGBIO(:)    = DBGBIO(:)*(3600.d-9*24d0*365.25d0)/XNUMOL_CH4
 !
-! !IROUTINE: aseasonal_anthro_emis
+!         ! SDE - Output projected annual emissions based on last output
+!         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 anthrop. emissions rate:',
+!     &            SUM(DBGANTHRO), 'Tg/yr'
 !
-! !DESCRIPTION: Subroutine ASEASONAL\_ANTHRO\_EMIS reads CH4 emissions from
-!  anthropogenic sources. (kjw, 6/03/09)
-!\\
-!\\
-! !INTERFACE:
+!         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Gas & oil             :',
+!     &            DBGANTHRO(1), 'Tg/yr'
 !
-      SUBROUTINE ASEASONAL_ANTHRO_EMIS( am_I_Root, Input_Opt, RC )
+!         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Mining                :',
+!     &            DBGANTHRO(2), 'Tg/yr'
 !
-! !USES:
+!         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Livestock             :',
+!     &            DBGANTHRO(3), 'Tg/yr'
 !
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT,  GET_MODELNAME
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TIME_MOD,           ONLY : GET_YEAR
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Waste                 :',
+!     &            DBGANTHRO(4), 'Tg/yr'
 !
-! !INPUT PARAMETERS:
+!         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Biofuel               :',
+!     &            DBGANTHRO(5), 'Tg/yr'
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Rice                  :',
+!     &            DBGANTHRO(6), 'Tg/yr'
 !
-! !OUTPUT PARAMETERS:
+!         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Other                 :',
+!     &            DBGANTHRO(7), 'Tg/yr'
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REMARKS:
-!  Aseasonal anthropogenic emissions currently include EDGAR v4 categories
-!  that are not called in their own subroutines.  Current emission categories
-!  read in this subroutine are: gas & oil, coal, livestock, waste, and other
-!  anthropogenic sources.
+!         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 biogen. emissions rate: ',
+!     &            SUM(DBGBIO), 'Tg/yr'
 !
-! !REVISION HISTORY:
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  12 Feb 2014 - K. Wecht    - Add modifications for 0.25 x 0.3125 NA grid
-!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
-!                              code out with #ifdef blocks so it can be used)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Wetlands              :',
+!     &            DBGBIO(1), 'Tg/yr'
 !
-! !LOCAL VARIABLES:
+!         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Other natural         :',
+!     &            DBGBIO(3), 'Tg/yr'
 !
-      REAL*4             :: ARRAY(IIPAR,JJPAR)      
-      REAL*8             :: XTAU
-      CHARACTER(LEN=255) :: FILENAME
-      CHARACTER(LEN=4  ) :: CYEAR
-
-      ! For values from Input_Opt
-      LOGICAL            :: LGAO
-      LOGICAL            :: LCOL
-      LOGICAL            :: LLIV
-      LOGICAL            :: LWAST
-      LOGICAL            :: LOTANT
-      LOGICAL            :: LBFCH4
-
-      !=================================================================
-      ! ASEASONAL_ANTHRO_EMIS begins here!
-      !=================================================================
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN ASEASONAL_ANTHRO_EMIS'
-
-      ! Assume success
-      RC     = GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LGAO   = Input_Opt%LGAO    
-      LCOL   = Input_Opt%LCOL     
-      LLIV   = Input_Opt%LLIV
-      LWAST  = Input_Opt%LWAST       
-      LOTANT = Input_Opt%LOTANT
-      LBFCH4 = Input_Opt%LBFCH4
-
-
-      ! For now, we only have emissions from 2004 in DATA_DIR.
-      ! Tau date of bpch emission files is Jan 1 of that year
-      !CYEAR='2004'
-      !XTAU = GET_TAU0( 1, 1, 2004 )
-      ! When DATA_DIR updated with more emission files, use:
-      WRITE( CYEAR, '(i4)' ) GET_YEAR()
-      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
-
-      IF ( GET_YEAR() .LT. 2004 ) THEN
-         CYEAR='2004'
-         XTAU = GET_TAU0( 1, 1, 2004 )
-      ENDIF
-      IF ( GET_YEAR() .GT. 2008 ) THEN
-         CYEAR='2008'
-         XTAU = GET_TAU0( 1, 1, 2008 )
-      ENDIF
-
-
-      !4.2 Gas and Oil emissions
-      IF ( LGAO ) THEN
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'oil_gas.'       // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
-     &              'oil_gas.'           // GET_RES_EXT()  //
-     &              '_NA.'               // CYEAR          //
-     &              '.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'oil_gas.'       // GET_RES_EXT()  //
-     &              '.'              // CYEAR          //
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                    XTAU,     IIPAR,        JJPAR,
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,2) ) 
-      ENDIF
-
-
-      !4.3 Coal Mine emissions
-      IF ( LCOL ) THEN
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'coal.'          // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
-     &              'coal.'          // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'   //
-     &              'coal.'          // GET_RES_EXT()   //
-     &              '.'              // CYEAR           //
-     &              '.bpch'
-#endif 
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                    XTAU,     IIPAR,        JJPAR,
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,3) )
-      ENDIF
-
-      !4.4 Livestock emissions
-      IF ( LLIV ) THEN
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'livestock.'     // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
-     &              'livestock.'     // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'livestock.'     // GET_RES_EXT()  //
-     &              '.'              // CYEAR          //
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                    XTAU,     IIPAR,        JJPAR,
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,4) )
-      ENDIF
-
-      !4.5 Waste emissions
-      IF ( LWAST ) THEN
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'waste.'         // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
-     &              'waste.'         // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'waste.'         // GET_RES_EXT()  //
-     &              '.'              // CYEAR          //
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                    XTAU,     IIPAR,        JJPAR,
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,5) )
-      ENDIF
-
-      !4.6 Biofuel emissions
-      IF ( LBFCH4 ) THEN
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'resident.'      // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
-     &              'resident.'      // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'resident.'      // GET_RES_EXT()  //
-     &              '.'              // CYEAR          //
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( TRIM(FILENAME), 'CH4-EMIS',   1,
-     &                    XTAU,           IIPAR,        JJPAR,
-     &                    1,              ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,6) ) 
-      ENDIF
-	
-      !4.8 Other Anthropogenic Emissions
-      IF ( LOTANT ) THEN
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'other.'         // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
-     &              'other.'         // GET_RES_EXT()  //
-     &              '_NA.'           // CYEAR          //
-     &              '.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
-     &              'other.'         // GET_RES_EXT()  //
-     &              '.'              // CYEAR          //
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                    XTAU,     IIPAR,        JJPAR,
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,8) )
-      ENDIF
-
-      END SUBROUTINE ASEASONAL_ANTHRO_EMIS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Soil absorption       :',
+!     &            DBGBIO(2), 'Tg/yr'
 !
-! !IROUTINE: aseasonal_natural_emis
+!         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 total emissions rate:   ',
+!     &            (SUM(DBGBIO)+SUM(DBGANTHRO)), 'Tg/yr'
+!         
+!      ENDIF
 !
-! !DESCRIPTION: Subroutine ASEASONAL\_NATURAL\_EMIS reads CH4 emissions from
-!  natural sources. (kjw, 6/03/09)
-!\\
-!\\
-! !INTERFACE:
+!      IF ( ITS_A_CH4_SIM ) THEN
+!         print*,'END SUBROUTINE: EMISSCH4'
+!      ENDIF
 !
-      SUBROUTINE ASEASONAL_NATURAL_EMIS( am_I_Root, Input_Opt, RC )
+!      END SUBROUTINE EMISSCH4
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: wetland_emis
+!!
+!! !DESCRIPTION: Subroutine WETLAND\_EMIS calculates emissions of CH4 [kg] by
+!!  Wetland. For a description of the GEOS-Chem wetland CH4 emission routine,
+!!  see a paper titled, "Magnitude and trends of wetland methane emissions from 
+!!  the Hudson Bay Lowlands (Canada)" by C. Pickett-Heaps
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE WETLAND_EMIS( State_Met )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,          ONLY : GET_RES_EXT,  GET_MODELNAME
+!      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
+!      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+!      USE FILE_MOD,           ONLY : IOERROR
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE GRID_MOD,           ONLY : GET_AREA_M2
+!      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
+!      USE TIME_MOD,           ONLY : GET_TS_EMIS
+!      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!      USE DIAG_MOD,           ONLY : AD60, AD58
 !
-! !USES:
+!      USE CMN_SIZE_MOD             ! Size parameters
+!      USE CMN_DIAG_MOD             ! Diagnostic switches
+!!
+!! !INPUT PARAMETERS:
+!!
+!      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!! 
+!! !REVISION HISTORY:
+!!  (1 ) Adapted by Jérôme Drevet (3/06) from the BIOME-TG Wetland-Methane
+!!       scheme provided by Jed O. Kaplan.
+!!  (2 ) CH4 Emissions from Wetland depend on:
+!!		a - Soil Carbon content.
+!!		b - Vegetation type
+!!		c - Wetland area (%)
+!!		d - Soil moisture.
+!!       a, b, c are taken from the LPJ, a vegetation model. Data are provided 
+!!	by J.O.Kaplan. Soil moisture is read from GEOS Met input files.  
+!!  (3 ) Corrected order of DO loops (bmy, 10/1/09)
+!!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!!  23 Jan 2014 - M. Sulprizio- Now zero wetland emissions if snow covers the
+!!                              ground. Also updated MOIST_SCALE and EMIT_FACT.
+!!                              (K. Wecht, C. Pickett-Heaps)
+!!  12 Feb 2014 - K. Wecht    - Updated for 0.25 x 0.3125 NA grid
+!!  09 Apr 2014 - R. Yantosca - Bug fix, extend #ifdef for MERRA met fields
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER                :: I, J, L      
+!      INTEGER                :: GM, YEAR      
+!      REAL*4                 :: ARRAY(IIPAR,JJPAR)
+!      REAL*8                 :: WETFRAC(IIPAR,JJPAR)
+!      REAL*8                 :: REALWET(IIPAR,JJPAR)
+!      REAL*8                 :: EFF_GWET(IIPAR,JJPAR)
+!      REAL*8                 :: SOIL_C(IIPAR,JJPAR) 
+!      REAL*8                 :: LITTER_C(IIPAR,JJPAR) 
+!      REAL*8                 :: litterfast 
+!      REAL*8                 :: litterslow 
+!      REAL*8                 :: soilfast 
+!      REAL*8                 :: soilslow 
+!      REAL*8                 :: HETEROR 
+!      REAL*8                 :: F_TEMP 
+!      REAL*8                 :: MEAN_T(IIPAR,JJPAR)  
+!      REAL*8                 :: METHANE_OUT(IIPAR,JJPAR)   
+!      REAL*8                 :: XTAU
+!      REAL*8                 :: TROPICNESS
+!      REAL*8                 :: EMIT_TROPIC
+!      REAL*8                 :: EMIT_TEMPER
+!      REAL*8                 :: MOIST_SCALE
+!      REAL*8                 :: MAX_SNOWDP
+!      REAL*8                 :: EMIT_FACT
+!      INTEGER                :: MONTHDATES(12) = (/ 31, 28, 31, 30,
+!     &                                              31, 30, 31, 31,
+!     &                                              30, 31, 30, 31 /)
+!      CHARACTER(LEN=255)     :: FILENAME
+!      CHARACTER(LEN=4)       :: CYEAR
+!      LOGICAL, SAVE          :: FIRST
 !
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT,    GET_MODELNAME
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,          ONLY : GET_TAU0,       READ_BPCH2
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TIME_MOD,           ONLY : GET_YEAR
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!      !=================================================================
+!      ! WETLAND_CH4 begins here!
+!      !=================================================================
 !
-! !INPUT PARAMETERS:
+!      !4.10 Wetland emissions
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!      !===================================================================
+!      ! Get wetland fraction data 
+!      !===================================================================
 !
-! !OUTPUT PARAMETERS:
+!      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN WETLAND_EMIS'
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REMARKS:
-!  Aseasonal natural emissions currently include termites (Fung et. al. 1991)
-!  and soil absorption (Fung et. al. 1991).  Future additions may include 
-!  emissions from permafrost, clathrates, thermokarst lakes, or 
-!  geothermal vents.
-! 
-! !REVISION HISTORY:
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  12 Feb 2014 - K. Wecht    - Add modifications for 0.25 x 0.3125 NA grid
-!EOP
-!------------------------------------------------------------------------------
-!BOC
 !
-! !LOCAL VARIABLES:
+!      ! Read Wetland fraction only if first call of simulation
+!      !IF ( FIRST ) THEN
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+!     &              'Wetfrac.'       // GET_RES_EXT()          //
+!     &              '_NA.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
+!     &              'Wetfrac.'       // GET_RES_EXT()          //
+!     &              '_NA.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+!     &              'Wetfrac.'       // GET_RES_EXT()          // 
+!     &              '.bpch'
+!#endif
 !
-      REAL*4             :: ARRAY(IIPAR,JJPAR)      
-      REAL*8             :: XTAU
-      CHARACTER(LEN=255) :: FILENAME
-      CHARACTER(LEN=4  ) :: CYEAR
-
-      ! For fields from Input_Opt
-      LOGICAL            :: LSOABS
-      LOGICAL            :: LOTNAT
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN ASEASONAL_NATURAL_EMIS'
-
-      !=================================================================
-      ! ASEASONAL_NATURAL_EMIS begins here!
-      !=================================================================
-
-      ! Assume success
-      RC     = GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LSOABS = Input_Opt%LSOABS
-      LOTNAT = Input_Opt%LOTNAT
-
-      ! We only have one year of soil absorption and other natural
-      ! CH4 emissions.  These have the date Jan . 1, 1985
-
-      XTAU = GET_TAU0( 1, 1, 1985 )
-
-
-      !4.11 Soil Absorption
-      IF ( LSOABS ) THEN
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'soilabs.'       // GET_RES_EXT()     // 
-     &              '_NA.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'     //
-     &              'soilabs.'       // GET_RES_EXT()     //
-     &              '_NA.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'soilabs.'       // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
-     &                    XTAU,     IIPAR,      JJPAR,
-     &                    1,        ARRAY,      QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,11) )
-      ENDIF
-
-      !4.12 Other Natural Emissions
-      IF ( LOTNAT ) THEN
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'termites.'      // GET_RES_EXT()     //
-     &              '_NA.bpch'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'     //
-     &              'termites.'      // GET_RES_EXT()     //
-     &              '_NA.bpch'
-#else
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'termites.'      // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
-     &                     XTAU,     IIPAR,     JJPAR,
-     &                     1,        ARRAY,     QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,12) )
-      ENDIF
-
-      END SUBROUTINE ASEASONAL_NATURAL_EMIS
+!         WRITE( 6, 91 ) TRIM ( FILENAME )
+! 91      FORMAT( '     - WL_CH4: Reading WET-FRAC: ', a )
+!         CALL FLUSH( 6 )
+!
+!         XTAU = GET_TAU0( 1, 1, 2000 )
+!
+!         CALL READ_BPCH2( FILENAME, 'WET-FRAC',     1,      
+!     &                    XTAU,     IIPAR,          JJPAR,      
+!     &                    1,        ARRAY,          QUIET=.TRUE.)
+!         
+!         CALL TRANSFER_2D( ARRAY(:,:), WETFRAC(:,:) )
+!
+!         ! WETFRAC is maximum inundatable area in a box
+!         WETFRAC =  WETFRAC / 100d0
+!
+!         ! Reset FIRST = FALSE
+!         !FIRST = .FALSE.
+!
+!      !ENDIF
+!
+!
+!      !===================================================================
+!      ! Calculate inundated fraction
+!      !
+!      ! REALWET calculation is based on maximum inundatable area (WETFRAC)
+!      ! and top soil moisture information
+!      !
+!      ! NOTE: LWI (land/water/ice flag) definition has changed between
+!      !   GEOS4 and GEOS5.  This contributes to the variance between GEOS4
+!      !   and GEOS5 wetland emissions.  Below is Jerome Drevet's and Jed
+!      !   Kaplan's original calculation of REALWET using GEOS4 and a
+!      !   modified calculation using GEOS5.
+!      !                                                     (kjw, 6/10/09)
+!      !===================================================================
+!
+!      ! REALWET is the actual inundated fraction of a box
+!      REALWET(:,:) = 0d0
+!
+!      ! Max allowable snowdepth for emissions to take place [meters]
+!      MAX_SNOWDP  =  0.0001d0  
+!
+!      ! GEOS4 calculation of inundated fraction
+!#if   defined( GEOS_4 )
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( J, I )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!	 ! We don't want emissions in frozen or snow-covered regions
+!	 IF ( State_Met%TSKIN(I,J) > 273d0      ) THEN
+!         IF ( State_Met%SNOW (I,J) < MAX_SNOWDP ) THEN !SNOW DEPTH (in mm)!!!
+!
+!         ! We want emissions from land boxes only
+!         IF ( State_Met%LWI(I,J) == 1 ) THEN
+!
+!	    ! If wetness>0.1, the wetland fraction is equal
+!            ! to the maximal potential wetland fraction
+!            IF (State_Met%GWETTOP(I,J) > 0.1d0) THEN
+!               REALWET(I,J) = WETFRAC(I,J)
+!            ELSE
+!               REALWET(I,J) = 0.d0
+!            ENDIF
+!
+!         ENDIF
+!	 ENDIF
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      ! GEOS5 Calculation of inundated fraction
+!#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( J, I )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!	 ! We don't want emissions in frozen or snow-covered regions
+!	 IF ( State_Met%TSKIN(I,J) > 273d0      ) THEN
+!         IF ( State_Met%SNODP(I,J) < MAX_SNOWDP ) THEN !SNOW DEPTH (in m)!!!
+!
+!         ! We want emissions from any box that contains some land
+!         ! FRLAND is fraction of grid box that is land
+!         IF ( State_Met%FRLAND(I,J) > 0) THEN 
+!
+!            ! Actual wetness of land /= GWETTOP because GWETTOP includes
+!            ! wetness in lakes, ocean, and ice.  Below is a scheme to
+!            ! calculate effective GWETTOP of the land fraction
+!            EFF_GWET(I,J) = ( State_Met%GWETTOP(I,J)  - 
+!     &         ( State_Met%FROCEAN(I,J)     + State_Met%FRLAKE(I,J) + 
+!     &           State_Met%FRLANDIC(I,J) )) / State_Met%FRLAND(I,J)
+!
+!            ! Catch for negative EFF_GWET
+!            IF ( EFF_GWET(I,J) < 0d0 ) THEN
+!               EFF_GWET(I,J) = 0d0
+!            ENDIF
+!
+!	    ! If wetness>0.1, the wetland fraction is equal
+!            ! to the maximal potential wetland fraction
+!            IF (EFF_GWET(I,J) > 0.1d0) THEN
+!		REALWET(I,J) = WETFRAC(I,J)
+!            ELSE
+!		REALWET(I,J) = 0.d0
+!            ENDIF
+!
+!         ENDIF
+!	 ENDIF
+!	 ENDIF	
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!#endif
+!
+!      ! Update Wetland Fraction Diagnostic
+!      GM = GET_MONTH()
+!      IF ( ND60 > 0 ) THEN
+!	 AD60(:,:) = AD60(:,:) + REALWET(:,:)/(24d0*MONTHDATES(GM))
+!      ENDIF
+!
+!
+!      !===================================================================
+!      ! Get litter carbon and soil carbon from LPJ DGVM (in gC/m2). 
+!      !===================================================================
+!
+!      ! Only read Carbon and tskin information at beginning of each month
+!      !IF ( ITS_A_NEW_MONTH() ) THEN
+!
+!         ! Carbon litter and carbon soil files both have tau date of
+!         ! Jan. 1, 2000
+!         
+!         XTAU = GET_TAU0( 1, 1, 2000 )
+!
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+!     &              'Carbon_litter.' // GET_RES_EXT()          //
+!     &              '_NA.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
+!     &              'Carbon_litter.' // GET_RES_EXT()          //
+!     &              '_NA.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+!     &              'Carbon_litter.' // GET_RES_EXT()          // 
+!     &              '.bpch'
+!#endif
+!
+!         CALL READ_BPCH2( FILENAME, 'CO--SRCE',   1,      
+!     &                    XTAU,      IIPAR,       JJPAR,      
+!     &                    1,         ARRAY,       QUIET=.TRUE.)
+!
+!         CALL TRANSFER_2D( ARRAY, LITTER_C )
+!
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+!     &              'Carbon_soil.'   // GET_RES_EXT()          // 
+!     &              '_NA.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
+!     &              'Carbon_soil.'   // GET_RES_EXT()          //
+!     &              '_NA.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+!     &              'Carbon_soil.'   // GET_RES_EXT()          // 
+!     &              '.bpch'
+!#endif
+!
+!         CALL READ_BPCH2( FILENAME, 'CO--SRCE',   1,      
+!     &                    XTAU,     IIPAR,        JJPAR,      
+!     &                    1,        ARRAY,        QUIET=.TRUE.)
+!
+!         CALL TRANSFER_2D( ARRAY, SOIL_C )
+!
+!
+!         !===================================================================
+!         ! Get annual mean skin temperature. 
+!         !===================================================================
+!
+!         ! No TSKIN data for years before 2000 or after 2010
+!         YEAR = GET_YEAR()
+!
+!#if   defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
+!         IF ( YEAR .LT. 2004 ) YEAR  = 2004
+!         IF ( YEAR .GT. 2010 ) YEAR  = 2010
+!         WRITE( CYEAR, '(i4)' ) YEAR
+!
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/wetlands/' //
+!     &              'TSKIN.'         // GET_NAME_EXT()         // 
+!     &              '.'              // GET_RES_EXT()          //
+!     &              '.'              // CYEAR                  // 
+!     &              '.bpch'
+!
+!#elif defined( GEOS_4 )
+!         IF ( YEAR .LT. 2000 ) YEAR  = 2000
+!         IF ( YEAR .GT. 2006 ) YEAR  = 2006
+!         WRITE( CYEAR, '(i4)' ) YEAR
+!
+!         FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
+!     &              'TSKIN.'          // CYEAR                  // 
+!     &              '.'               // GET_NAME_EXT()         // 
+!     &              '.'               // GET_RES_EXT()
+!#endif
+!
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         IF ( YEAR .LT. 2004 ) YEAR  = 2004
+!         IF ( YEAR .GT. 2004 ) YEAR  = 2009
+!         IF ( YEAR .GE. 2010 ) YEAR  = 2010
+!         WRITE( CYEAR, '(i4)' ) YEAR
+!
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/wetlands/' //
+!     &              'TSKIN.'         // GET_NAME_EXT()         //
+!     &              '.'              // GET_RES_EXT()          //
+!     &              '_NA.'           // CYEAR                  //
+!     &              '.bpch' 
+!#endif
+!
+!#if   defined( GRID025x03125 ) && defined( NESTED_NA )
+!         !-----------------------------------------------
+!         ! 0.25 x 0.3125 NA nested grid (kjw, 02/12/14)
+!         !----------------------------------------------
+!         IF ( YEAR .LT. 2012 ) YEAR  = 2012
+!         IF ( YEAR .GT. 2013 ) YEAR  = 2013
+!         WRITE( CYEAR, '(i4)' ) YEAR
+!
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
+!     &              'TSKIN.'         // GET_NAME_EXT()         //
+!     &              '.'              // GET_RES_EXT()          //
+!     &              '_NA.'           // CYEAR                  //
+!     &              '.bpch' 
+!#endif
+!
+!         XTAU = GET_TAU0( 1, 1, YEAR )
+!      
+!         CALL READ_BPCH2( FILENAME,  'GMAO-2D',    2,
+!     &                    XTAU,      IIPAR,        JJPAR,      
+!     &                    1,         ARRAY,        QUIET=.TRUE.)
+!
+!         CALL TRANSFER_2D( ARRAY, MEAN_T )
+!         print*,'done skin temp'
+!
+!      !ENDIF   ! End if its_a_new_month
+!
+!
+!      !===================================================================
+!      ! Calculate CH4 emissions!
+!      !===================================================================
+!
+!      METHANE_OUT = 0d0	
+!
+!      ! Comments from Jed Kaplan and Jerome Drevet below:
+!      !    (moist_scale can be between 0.07 and 0.14)
+!      !    (emit_fact can be between 0.001 and 0.005)
+!      ! Jerome's paper uses MOIST_SCALE = 0.19 (kjw, 6/9/09)
+!      !
+!      ! Jed and Jerome tune parameter values to the wetland emission
+!      !    routine using GEOS-4 met variables. I have tuned the model
+!      !    using GEOS-5 met variables and found that EMIT_FACT=.01 
+!      !    and MOIST_SCALE=.1 give a reasonable balance between
+!      !    extratropical and tropical emissions, kjw (7/20/10).
+!      ! 
+!      ! UPDATE 12/13/2011
+!      !    Carbon litter and soil maps used prior to GC v9-01-03 were
+!      !    incorrect. Carbon litter had wrong spatial distribution, and
+!      !    carbon soil values were too high and may also have had the 
+!      !    wrong spatial distribution.
+!      !    Updated carbon litter, carbon soil, and wetland fraction maps
+!      !    are included in v9-01-03. MOIST_SCALE and EMIT_FACT have been 
+!      !    tuned to maintain annual global average methane emissions 
+!      !    ~ 166.8 Tg/y. Boreal wetland emissions are ~ 28.9 Tg/y, 
+!      !    consistent with estimates described in Pickett-Heaps 2011,
+!      !    3rd pararaph of introduction. New parameter values:
+!      !      MOIST_SCALE = 0.19
+!      !      EMIT_FACT   = 0.023
+!      !    (kjw, 12/13/2011)
+!      !MOIST_SCALE=0.19d0
+!      !EMIT_FACT = .023d0
+!      !
+!      ! UPDATE 1/16/2014
+!      !    Use of the new carbon litter and soil maps changed global
+!      !    and regional emission totals. Here, I change MOIST_SCALE
+!      !    and EMIT_FACT to 1) match HBL emissions constrained by 
+!      !    surface and aircraft data in Pickett-Heaps et al. 2011. 
+!      !    and 2) preserve global total emissions (~165 Tg/y) used
+!      !    in comparison to NOAA GMD, SCIAMACHY, and INTEX-A in 
+!      !    Wecht et al. (2014).
+!      MOIST_SCALE = 0.205   ! tropical emissions
+!      EMIT_FACT   = 0.018   ! extratropical emissions
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( J, I, litterfast, litterslow, soilfast, soilslow       )
+!!$OMP+PRIVATE(HETEROR, F_TEMP,   TROPICNESS, EMIT_TROPIC, EMIT_TEMPER )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!        
+!	 IF ( State_Met%TSKIN(I,J) < 233.d0 ) THEN
+!	    F_TEMP = 0d0
+!	 ELSE
+!	    F_TEMP = exp(308.56d0*(1.0d0/56.02d0-
+!     &           1.0d0/(State_Met%TSKIN(I,J)-227.13d0))) !Lloyd & Taylor 1994
+!         ENDIF
+!
+!         ! Calculate Heterotrophic respiration
+!         litterfast = 0.985d0 * LITTER_C(i,j)
+!         litterslow = 0.015d0 * LITTER_C(i,j)
+!         soilfast =  0.985d0 * SOIL_C(i,j)
+!         soilslow =  0.015d0 * SOIL_C(i,j)
+!
+!	 HETEROR = 1d3* F_TEMP *( litterfast*0.3d0
+!     &                          + litterslow*0.05d0
+!     &                          + soilfast*0.03d0
+!     &                          + soilslow*0.001d0 ) * 0.34d0 / 12d0
+!
+!
+!         ! Calculate "tropicness" of each box
+!       	 TROPICNESS = exp((MEAN_T(I,J) - 303.15d0) / 8d0)
+!	 IF ( TROPICNESS < 0d0 ) THEN
+!            TROPICNESS = 0d0
+!	 ENDIF
+!	 IF ( TROPICNESS > 1d0 ) THEN
+!            TROPICNESS = 1d0
+!	 ENDIF
+!
+!         
+!         EMIT_TROPIC = 0.0d0
+!         EMIT_TEMPER = 0.0d0
+!
+!!         EMIT_TROPIC = EMIT_TROPIC + HETEROR * MOIST_SCALE 
+!!     &                * REALWET(I,J) 
+!!
+!!         EMIT_TEMPER = EMIT_TEMPER + HETEROR * EMIT_FACT 
+!!     &                * REALWET(I,J) 
+!
+!         EMIT_TROPIC = HETEROR * MOIST_SCALE * REALWET(I,J) 
+!
+!         EMIT_TEMPER = HETEROR * EMIT_FACT   * REALWET(I,J) 
+!
+!
+!	 METHANE_OUT(I,J) = TROPICNESS      * EMIT_TROPIC +
+!     &                     (1 - TROPICNESS) * EMIT_TEMPER  !gCH4/m2/mth	  
+!
+!	
+!	 IF (METHANE_OUT(I,J) < 0d0 ) THEN
+!            METHANE_OUT(I,J)=0d0
+!         ENDIF
+!
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!
+!      ! METHANE_OUT:  g/m2/y --> molec/cm2/s
+!      METHANE_OUT = METHANE_OUT/16d0/1d4/(24d0*MONTHDATES(GM)*3.6d3)
+!     &              * 6.023d23 
+!
+!      ! Add to emission array
+!      CH4_EMIS(:,:,10) = METHANE_OUT
+!
+!      print*,'END SUBROUTINE WETLAND_EMIS'
+!
+!      END SUBROUTINE WETLAND_EMIS
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: bioburn_emis
+!!
+!! !DESCRIPTION: Subroutine BIOBURN\_EMIS calculates CH4 emissions from GFED2 or
+!!  GFED3 biomass burning. (kjw, 6/03/09) 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE BIOBURN_EMIS( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!      USE BIOMASS_MOD,        ONLY : BIOMASS
+!      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE TRACERID_MOD,       ONLY : IDBCH4
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!! 
+!! !REVISION HISTORY:
+!!  03 Jun 2009 - K. Wecht    - The code used to read, scale & regrid emissions
+!!                              is from SUBROUTINE GFED2_COMPUTE_BIOMASS in
+!!                              gfed2_biomass_mod.f
+!!  14 Feb 2012 - M. Payer    - Now obtain emissions from BIOMASS array. Also
+!!                              update for GFED3 (K. Wecht)
+!!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      REAL*8                    :: E_CH4
+!      INTEGER                   :: I, J
+!
+!      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN BIOBURN_EMIS'
+!
+!      !=================================================================
+!      ! BIOBURN_EMIS begins here!
+!      !=================================================================
+!
+!      ! Assume success
+!      RC = GIGC_SUCCESS
+!
+!      !4.9 Biomass Burning emissions. Calculate emissions from monthly 
+!      !     GFED-2 or GFED-3.
+!      ! don't require use of GFED, for SEAC4RS code, using FINN
+!      !IF ( Input_Opt%LGFED2BB .OR. Input_Opt%LGFED3BB ) THEN
+!         DO I=1,IIPAR
+!         DO J=1,JJPAR
+!            ! Biomass burning emissions [molec/cm2/s]
+!            E_CH4 = BIOMASS( I,J,IDBCH4 )
+!
+!            ! Place into CH4_EMIS array
+!            CH4_EMIS(I,J,9) = E_CH4
+!
+!         ENDDO
+!         ENDDO
+!      !ENDIF
+!
+!      END SUBROUTINE BIOBURN_EMIS
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: rice_emis
+!!
+!! !DESCRIPTION: Subroutine RICE\_EMIS calculates CH4 emissions from rice and
+!!  places CH4 [kg] into the STT array. (kjw, 6/03/09)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE RICE_EMIS( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,          ONLY : GET_RES_EXT,  GET_MODELNAME
+!      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
+!      USE CMN_DIAG_MOD
+!      USE CMN_SIZE_MOD
+!      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE GRID_MOD,           ONLY : GET_AREA_CM2
+!      USE TIME_MOD,           ONLY : GET_MONTH,    GET_YEAR
+!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!!
+!! !LOCAL VARIABLES:
+!!
+!! 
+!! !REMARKS:
+!!  Rice Emissions are scaled to GEOS soil wetness.  Scaling sceme developed
+!!     and implemented by Jerome Drevet.
+!!  Wetland emissions are modified by the presence of rice emissions.  Sceme
+!!     developed by Jerome Drevet.
+!! 
+!! !REVISION HISTORY:
+!!  (1 ) CH4 emissions from rice calculated with a routine created by Jerome
+!!       Drevet.  Adapted as its own subroutine by Kevin Wecht (6/03/09)
+!!  (2 ) Corrected ordering of DO loops (bmy, 10/1/09)
+!!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!!  09 Apr 2014 - R. Yantosca - Bug fix, extend #ifdef for MERRA met fields
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      LOGICAL                :: LSPLIT
+!      INTEGER                :: I,J,YEAR
+!      REAL*4                 :: ARRAY(IIPAR,JJPAR)      
+!      REAL*8                 :: DTSRCE,       AREA_CM2
+!      REAL*8                 :: MEAN_GWETTOP(IIPAR,JJPAR)
+!      REAL*8                 :: MONTH_GWETTOP(IIPAR,JJPAR)
+!      REAL*8                 :: wet_ratio
+!      REAL*8                 :: XTAU
+!      CHARACTER(LEN=255)     :: FILENAME
+!      CHARACTER(LEN=4  )     :: CYEAR
+!
+!      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN RICE_EMIS'
+!
+!      !=================================================================
+!      ! RICE_EMIS begins here!
+!      !=================================================================
+!
+!      ! Assume success
+!      RC     = GIGC_SUCCESS
+!
+!      ! Copy values from Input_Opt
+!      LSPLIT = Input_Opt%LSPLIT
+!
+!      !4.7 Rice Emissions
+!      ! For now, we only have emissions from 2004 in DATA_DIR.
+!      ! Tau date of bpch emission files is Jan 1 of that year
+!      !CYEAR='2004'
+!      !XTAU = GET_TAU0( 1, 1, 2004 )
+!      ! When DATA_DIR updated with more emission files, use:
+!      WRITE( CYEAR, '(i4)' ) GET_YEAR()
+!      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
+!
+!      IF ( GET_YEAR() .LT. 2004 ) THEN
+!         CYEAR='2004'
+!         XTAU = GET_TAU0( 1, 1, 2004 )
+!      ENDIF
+!      IF ( GET_YEAR() .GT. 2008 ) THEN
+!         CYEAR='2008'
+!         XTAU = GET_TAU0( 1, 1, 2008 )
+!      ENDIF
+!
+!      ! Read Rice Emissions
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!      FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/' //
+!     &           'rice.'          // GET_RES_EXT() //
+!     &           '_NA.'           // CYEAR         //
+!     &           '.bpch' 
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!      !-----------------------------------------------
+!      ! 0.25 x 0.3125 NA nested grid (kjw, 02/12/14)
+!      !----------------------------------------------
+!      FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/' //
+!     &           'rice.'              // GET_RES_EXT() //
+!     &           '_NA.'               // CYEAR         //
+!     &           '.bpch' 
+!#else
+!      FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/' //
+!     &           'rice.'          // GET_RES_EXT() //
+!     &           '.'              // CYEAR         //
+!     &           '.bpch'
+!#endif
+!
+!      CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
+!     &                 XTAU,      IIPAR,     JJPAR,
+!     &                 1,         ARRAY,     QUIET=.TRUE.)
+!
+!      CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,7) )
+!
+!      ! Get annual and monthly mean soil wetness from GEOS
+!      ! One file contains both monthly and annual mean GWETTOP
+!      YEAR = GET_YEAR()
+!#if   defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
+!      IF ( YEAR .LT. 2004 ) YEAR  = 2004
+!      IF ( YEAR .GT. 2010 ) YEAR  = 2010
+!      WRITE( CYEAR, '(i4)' ) YEAR
+!
+!      FILENAME = TRIM( DATA_DIR )  // 'CH4_201305/wetlands/' //
+!     &           'GWETTOP.'        // GET_NAME_EXT()         // 
+!     &           '.'               // GET_RES_EXT()          // 
+!     &           '.'               // CYEAR                  // 
+!     &           '.bpch'
+!
+!#elif defined( GEOS_4 )
+!      IF ( YEAR .LT. 2000 ) YEAR  = 2000
+!      IF ( YEAR .GT. 2006 ) YEAR  = 2006
+!      WRITE( CYEAR, '(i4)' ) YEAR
+!
+!      FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/GWETTOP/'  //
+!     &           'GWETTOP.'        // CYEAR                  // 
+!     &           '.'               // GET_NAME_EXT()         // 
+!     &           '.'               // GET_RES_EXT()
+!#endif
+!
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!      IF ( YEAR .LT. 2004 ) YEAR  = 2004
+!      IF ( YEAR .GT. 2004 ) YEAR  = 2009
+!      IF ( YEAR .GE. 2010 ) YEAR  = 2010
+!      WRITE( CYEAR, '(i4)' ) YEAR
+!
+!      FILENAME = TRIM( DATA_DIR )  // 'CH4_201305/wetlands/' //
+!     &           'GWETTOP.'        // GET_NAME_EXT()         // 
+!     &           '.'               // GET_RES_EXT()          // 
+!     &           '_NA.'            // CYEAR                  //
+!     &           '.bpch' 
+!#endif
+!#if   defined( GRID025x03125 ) && defined( NESTED_NA )
+!         !-----------------------------------------------
+!         ! 0.25 x 0.3125 NA nested grid (kjw, 02/12/14)
+!         !----------------------------------------------
+!         IF ( YEAR .LT. 2012 ) YEAR  = 2012
+!         IF ( YEAR .GT. 2013 ) YEAR  = 2013
+!         WRITE( CYEAR, '(i4)' ) YEAR
+!
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/wetlands/' //
+!     &              'GWETTOP.'       // GET_NAME_EXT()         //
+!     &              '.'              // GET_RES_EXT()          //
+!     &              '_NA.'           // CYEAR                  //
+!     &              '.bpch' 
+!#endif
+!
+!      ! Annual mean GWETTOP
+!      XTAU = GET_TAU0( 1, 1, YEAR )
+!      CALL READ_BPCH2( FILENAME, 'GMAO-2D',  2,      
+!     &                 XTAU,      IIPAR,     JJPAR,      
+!     &                    1,      ARRAY,     QUIET=.TRUE.)
+!      CALL TRANSFER_2D( ARRAY, MEAN_GWETTOP )
+!
+!      ! Monthly mean GWETTOP
+!      XTAU = GET_TAU0( GET_MONTH(), 1, YEAR )
+!      CALL READ_BPCH2( FILENAME, 'GMAO-2D',  1,      
+!     &                 XTAU,      IIPAR,     JJPAR,      
+!     &                    1,      ARRAY,     QUIET=.TRUE.)
+!      CALL TRANSFER_2D( ARRAY, MONTH_GWETTOP )
+!
+!      !scale rice emissions (by Jerome Drevet)
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!	 wet_ratio = MONTH_GWETTOP(I,J)/MEAN_GWETTOP(I,J)-1
+!         wet_ratio = wet_ratio * 2.
+!         wet_ratio = wet_ratio +1.
+!	 IF (wet_ratio < 0) wet_ratio = 0
+!         CH4_EMIS(I,J,7)=CH4_EMIS(I,J,7)*wet_ratio
+!      ENDDO
+!      ENDDO
+!
+!      ! Subtract rice emissions from natural wetlands to prevent double
+!      ! counting of emissions from the same source.
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         IF (CH4_EMIS(I,J,7) > 0) THEN   ! If rice > 0
+!         IF (CH4_EMIS(I,J,10) > 0) THEN  ! If wtl  > 0
+!         IF (CH4_EMIS(I,J,10) > CH4_EMIS(I,J,7)) THEN
+!             CH4_EMIS(I,J,10) = CH4_EMIS(I,J,10) - CH4_EMIS(I,J,7)
+!         ENDIF
+!         ENDIF
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!
+!      END SUBROUTINE RICE_EMIS
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: aseasonal_anthro_emis
+!!
+!! !DESCRIPTION: Subroutine ASEASONAL\_ANTHRO\_EMIS reads CH4 emissions from
+!!  anthropogenic sources. (kjw, 6/03/09)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE ASEASONAL_ANTHRO_EMIS( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,          ONLY : GET_RES_EXT,  GET_MODELNAME
+!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D
+!      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+!      USE CMN_DIAG_MOD
+!      USE CMN_SIZE_MOD
+!      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE TIME_MOD,           ONLY : GET_YEAR
+!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!! 
+!! !REMARKS:
+!!  Aseasonal anthropogenic emissions currently include EDGAR v4 categories
+!!  that are not called in their own subroutines.  Current emission categories
+!!  read in this subroutine are: gas & oil, coal, livestock, waste, and other
+!!  anthropogenic sources.
+!!
+!! !REVISION HISTORY:
+!!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!!  12 Feb 2014 - K. Wecht    - Add modifications for 0.25 x 0.3125 NA grid
+!!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
+!!                              code out with #ifdef blocks so it can be used)
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      REAL*4             :: ARRAY(IIPAR,JJPAR)      
+!      REAL*8             :: XTAU
+!      CHARACTER(LEN=255) :: FILENAME
+!      CHARACTER(LEN=4  ) :: CYEAR
+!
+!      ! For values from Input_Opt
+!      LOGICAL            :: LGAO
+!      LOGICAL            :: LCOL
+!      LOGICAL            :: LLIV
+!      LOGICAL            :: LWAST
+!      LOGICAL            :: LOTANT
+!      LOGICAL            :: LBFCH4
+!
+!      !=================================================================
+!      ! ASEASONAL_ANTHRO_EMIS begins here!
+!      !=================================================================
+!
+!      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN ASEASONAL_ANTHRO_EMIS'
+!
+!      ! Assume success
+!      RC     = GIGC_SUCCESS
+!
+!      ! Copy values from Input_Opt
+!      LGAO   = Input_Opt%LGAO    
+!      LCOL   = Input_Opt%LCOL     
+!      LLIV   = Input_Opt%LLIV
+!      LWAST  = Input_Opt%LWAST       
+!      LOTANT = Input_Opt%LOTANT
+!      LBFCH4 = Input_Opt%LBFCH4
+!
+!
+!      ! For now, we only have emissions from 2004 in DATA_DIR.
+!      ! Tau date of bpch emission files is Jan 1 of that year
+!      !CYEAR='2004'
+!      !XTAU = GET_TAU0( 1, 1, 2004 )
+!      ! When DATA_DIR updated with more emission files, use:
+!      WRITE( CYEAR, '(i4)' ) GET_YEAR()
+!      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
+!
+!      IF ( GET_YEAR() .LT. 2004 ) THEN
+!         CYEAR='2004'
+!         XTAU = GET_TAU0( 1, 1, 2004 )
+!      ENDIF
+!      IF ( GET_YEAR() .GT. 2008 ) THEN
+!         CYEAR='2008'
+!         XTAU = GET_TAU0( 1, 1, 2008 )
+!      ENDIF
+!
+!
+!      !4.2 Gas and Oil emissions
+!      IF ( LGAO ) THEN
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'oil_gas.'       // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+!     &              'oil_gas.'           // GET_RES_EXT()  //
+!     &              '_NA.'               // CYEAR          //
+!     &              '.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'oil_gas.'       // GET_RES_EXT()  //
+!     &              '.'              // CYEAR          //
+!     &              '.bpch'
+!#endif
+!
+!         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
+!     &                    XTAU,     IIPAR,        JJPAR,
+!     &                    1,        ARRAY,        QUIET=.TRUE.)
+!         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,2) ) 
+!      ENDIF
+!
+!
+!      !4.3 Coal Mine emissions
+!      IF ( LCOL ) THEN
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'coal.'          // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+!     &              'coal.'          // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'   //
+!     &              'coal.'          // GET_RES_EXT()   //
+!     &              '.'              // CYEAR           //
+!     &              '.bpch'
+!#endif 
+!
+!         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
+!     &                    XTAU,     IIPAR,        JJPAR,
+!     &                    1,        ARRAY,        QUIET=.TRUE.)
+!         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,3) )
+!      ENDIF
+!
+!      !4.4 Livestock emissions
+!      IF ( LLIV ) THEN
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'livestock.'     // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+!     &              'livestock.'     // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'livestock.'     // GET_RES_EXT()  //
+!     &              '.'              // CYEAR          //
+!     &              '.bpch'
+!#endif
+!
+!         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
+!     &                    XTAU,     IIPAR,        JJPAR,
+!     &                    1,        ARRAY,        QUIET=.TRUE.)
+!         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,4) )
+!      ENDIF
+!
+!      !4.5 Waste emissions
+!      IF ( LWAST ) THEN
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'waste.'         // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+!     &              'waste.'         // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'waste.'         // GET_RES_EXT()  //
+!     &              '.'              // CYEAR          //
+!     &              '.bpch'
+!#endif
+!
+!         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
+!     &                    XTAU,     IIPAR,        JJPAR,
+!     &                    1,        ARRAY,        QUIET=.TRUE.)
+!         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,5) )
+!      ENDIF
+!
+!      !4.6 Biofuel emissions
+!      IF ( LBFCH4 ) THEN
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'resident.'      // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+!     &              'resident.'      // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'resident.'      // GET_RES_EXT()  //
+!     &              '.'              // CYEAR          //
+!     &              '.bpch'
+!#endif
+!
+!         CALL READ_BPCH2( TRIM(FILENAME), 'CH4-EMIS',   1,
+!     &                    XTAU,           IIPAR,        JJPAR,
+!     &                    1,              ARRAY,        QUIET=.TRUE.)
+!         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,6) ) 
+!      ENDIF
+!	
+!      !4.8 Other Anthropogenic Emissions
+!      IF ( LOTANT ) THEN
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'other.'         // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'  //
+!     &              'other.'         // GET_RES_EXT()  //
+!     &              '_NA.'           // CYEAR          //
+!     &              '.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'  //
+!     &              'other.'         // GET_RES_EXT()  //
+!     &              '.'              // CYEAR          //
+!     &              '.bpch'
+!#endif
+!
+!         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
+!     &                    XTAU,     IIPAR,        JJPAR,
+!     &                    1,        ARRAY,        QUIET=.TRUE.)
+!         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,8) )
+!      ENDIF
+!
+!      END SUBROUTINE ASEASONAL_ANTHRO_EMIS
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: aseasonal_natural_emis
+!!
+!! !DESCRIPTION: Subroutine ASEASONAL\_NATURAL\_EMIS reads CH4 emissions from
+!!  natural sources. (kjw, 6/03/09)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE ASEASONAL_NATURAL_EMIS( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,          ONLY : GET_RES_EXT,    GET_MODELNAME
+!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D
+!      USE BPCH2_MOD,          ONLY : GET_TAU0,       READ_BPCH2
+!      USE CMN_DIAG_MOD
+!      USE CMN_SIZE_MOD
+!      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE TIME_MOD,           ONLY : GET_YEAR
+!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!! 
+!! !REMARKS:
+!!  Aseasonal natural emissions currently include termites (Fung et. al. 1991)
+!!  and soil absorption (Fung et. al. 1991).  Future additions may include 
+!!  emissions from permafrost, clathrates, thermokarst lakes, or 
+!!  geothermal vents.
+!! 
+!! !REVISION HISTORY:
+!!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!!  12 Feb 2014 - K. Wecht    - Add modifications for 0.25 x 0.3125 NA grid
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      REAL*4             :: ARRAY(IIPAR,JJPAR)      
+!      REAL*8             :: XTAU
+!      CHARACTER(LEN=255) :: FILENAME
+!      CHARACTER(LEN=4  ) :: CYEAR
+!
+!      ! For fields from Input_Opt
+!      LOGICAL            :: LSOABS
+!      LOGICAL            :: LOTNAT
+!
+!      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN ASEASONAL_NATURAL_EMIS'
+!
+!      !=================================================================
+!      ! ASEASONAL_NATURAL_EMIS begins here!
+!      !=================================================================
+!
+!      ! Assume success
+!      RC     = GIGC_SUCCESS
+!
+!      ! Copy values from Input_Opt
+!      LSOABS = Input_Opt%LSOABS
+!      LOTNAT = Input_Opt%LOTNAT
+!
+!      ! We only have one year of soil absorption and other natural
+!      ! CH4 emissions.  These have the date Jan . 1, 1985
+!
+!      XTAU = GET_TAU0( 1, 1, 1985 )
+!
+!
+!      !4.11 Soil Absorption
+!      IF ( LSOABS ) THEN
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+!     &              'soilabs.'       // GET_RES_EXT()     // 
+!     &              '_NA.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'     //
+!     &              'soilabs.'       // GET_RES_EXT()     //
+!     &              '_NA.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
+!     &              'soilabs.'       // GET_NAME_EXT_2D() //
+!     &              '.'              // GET_RES_EXT() 
+!#endif
+!
+!         CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
+!     &                    XTAU,     IIPAR,      JJPAR,
+!     &                    1,        ARRAY,      QUIET=.TRUE.)
+!         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,11) )
+!      ENDIF
+!
+!      !4.12 Other Natural Emissions
+!      IF ( LOTNAT ) THEN
+!#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+!     &              'termites.'      // GET_RES_EXT()     //
+!     &              '_NA.bpch'
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_201402/'     //
+!     &              'termites.'      // GET_RES_EXT()     //
+!     &              '_NA.bpch'
+!#else
+!         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
+!     &              'termites.'      // GET_NAME_EXT_2D() //
+!     &              '.'              // GET_RES_EXT() 
+!#endif
+!
+!         CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
+!     &                     XTAU,     IIPAR,     JJPAR,
+!     &                     1,        ARRAY,     QUIET=.TRUE.)
+!         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,12) )
+!      ENDIF
+!
+!      END SUBROUTINE ASEASONAL_NATURAL_EMIS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
