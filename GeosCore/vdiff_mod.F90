@@ -1856,6 +1856,9 @@ contains
 !  01 Aug 2013 - J. Lin      - Modified for Rn-Pb-Be simulation
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  06 Jun 2014 - R. Yantosca - Fix parallelization error in the HEMCO
+!                              modifications: Hold TOPMIX, TEMPBL private
+!  06 Jun 2014 - R. Yantosca - Wrap some debug printout in #if defined(DEBUG)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2036,9 +2039,10 @@ contains
     ! (ccc, bmy, 12/20/10)
     as2_scal = as2(:,:,1,:)
 
-!$OMP PARALLEL DO       &
-!$OMP DEFAULT( SHARED ) &
+!$OMP PARALLEL DO                                                 &
+!$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG ) &
+!$OMP PRIVATE( TOPMIX, TMPFLX )                                   & 
 !!$OMP PRIVATE( SNOW_HT ) &
 !$OMP PRIVATE( FRAC_NO_HG0_DEP, ZERO_HG0_DEP )
     do J = 1, JJPAR
@@ -2442,11 +2446,13 @@ contains
 !$OMP END PARALLEL DO
 
     ! testing only: write out eflx
+#if defined( DEBUG )
     write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
     do N=1,N_TRACERS
        write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
        write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
     enddo
+#endif
 
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
