@@ -1,58 +1,58 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hemcox_custom_mod
+! !MODULE: hcox_custom_mod.F90
 !
 ! !DESCRIPTION: Customizable HEMCO emission extension. 
 ! 
 ! !INTERFACE:
 !
-      MODULE HCOX_CUSTOM_MOD 
+MODULE HCOX_CUSTOM_MOD 
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD
-      USE HCO_DIAGN_MOD
-      USE HCOX_State_MOD,     ONLY : Ext_State
-      USE HCO_STATE_MOD,      ONLY : HCO_State 
+  USE HCO_ERROR_MOD
+  USE HCO_DIAGN_MOD
+  USE HCOX_State_MOD,     ONLY : Ext_State
+  USE HCO_STATE_MOD,      ONLY : HCO_State 
 
-      IMPLICIT NONE
-      PRIVATE
+  IMPLICIT NONE
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: HcoX_Custom_Run
-      PUBLIC :: HcoX_Custom_Init
-      PUBLIC :: HcoX_Custom_Final
+  PUBLIC :: HcoX_Custom_Run
+  PUBLIC :: HcoX_Custom_Init
+  PUBLIC :: HcoX_Custom_Final
 !
 ! !REVISION HISTORY:
-!  13 Dec 2013 - C. Keller - Initial version 
-!
+!  13 Dec 2013 - C. Keller   - Initial version 
+!  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  06 Jun 2014 - R. Yantosca - Now indented with F90 free-format
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !MODULE VARIABLES:
 !
-      ! Parameter 
-      INTEGER                         :: ExtNr   = -1
-      INTEGER                         :: nOcWind = -1
-      INTEGER                         :: nIceSrc = -1
-      INTEGER, ALLOCATABLE            :: OcWindIDs(:)
-      INTEGER, ALLOCATABLE            :: IceSrcIDs(:)
-      REAL(hp), ALLOCATABLE, TARGET   :: FLUXICE(:,:)
-      REAL(hp), ALLOCATABLE, TARGET   :: FLUXWIND(:,:)
+  INTEGER                         :: ExtNr   = -1
+  INTEGER                         :: nOcWind = -1
+  INTEGER                         :: nIceSrc = -1
+  INTEGER,  ALLOCATABLE           :: OcWindIDs(:)
+  INTEGER,  ALLOCATABLE           :: IceSrcIDs(:)
+  REAL(hp), ALLOCATABLE, TARGET   :: FLUXICE(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: FLUXWIND(:,:)
 
-      CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_CUSTOM_RUN 
+! !IROUTINE: hcox_custom_run 
 !
 ! !DESCRIPTION: Subroutine HcoX\_Custom\_Run is the driver routine 
 ! for the customizable HEMCO extension. 
@@ -60,150 +60,173 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_Custom_Run ( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HcoX_Custom_Run ( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
-      USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd
-      USE HCO_GEOTOOLS_MOD,  ONLY : HCO_LANDTYPE
+    USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd
+    USE HCO_GEOTOOLS_MOD,  ONLY : HCO_LANDTYPE
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      LOGICAL,         INTENT(IN   )  :: am_I_Root
-      TYPE(Ext_State), POINTER        :: ExtState     ! Module options
-      TYPE(HCO_State), POINTER        :: HcoState   ! Hemco state 
-      INTEGER,         INTENT(INOUT)  :: RC 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(Ext_State), POINTER        :: ExtState    ! Module options
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State), POINTER        :: HcoState    ! Hemco state 
+    INTEGER,         INTENT(INOUT)  :: RC          ! Success or failure
 !
 ! !REMARKS:
-!
+!  
 !
 ! !REVISION HISTORY:
-!  13 Dec 2013 - C. Keller - Initial version 
-!
+!  13 Dec 2013 - C. Keller   - Initial version 
+!  05 Jun 2014 - R. Yantosca - Now store the results of HCO_LANDTYPE
+!                              in a PRIVATE variable for the !OMP loop
+!  05 Jun 2014 - R. Yantosca - Cosmetic changes
+!  06 Jun 2014 - R. Yantosca - Now indented with F90 free-format
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                             :: I, J, N, AS
-      INTEGER                             :: tmpID
-      REAL*8                              :: W10M
-      LOGICAL                             :: ERR
-      REAL*8, PARAMETER                   :: SCALICE  = 1.0d-14
-      REAL*8, PARAMETER                   :: SCALWIND = 1.0d-14
-      REAL(hp), POINTER                   :: Arr2D(:,:) => NULL()
+    INTEGER             :: I, J, N, AS, LANDTYPE
+    INTEGER             :: tmpID
+    REAL*8              :: W10M
+    LOGICAL             :: ERR
+    REAL(hp), POINTER   :: Arr2D(:,:) => NULL()
+!
+! !DEFINED PARAMETERS:
+!
+    REAL*8,   PARAMETER :: SCALICE  = 1.0d-14
+    REAL*8,   PARAMETER :: SCALWIND = 1.0d-14
 
-      !=================================================================
-      ! HCOX_CUSTOM_RUN begins here!
-      !=================================================================
+    !=================================================================
+    ! HCOX_CUSTOM_RUN begins here!
+    !=================================================================
 
-      ! Enter
-      CALL HCO_ENTER ( 'HCOX_CUSTOM_RUN (HCOX_CUSTOM_MOD.F90)', RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Enter
+    CALL HCO_ENTER ( 'HCOX_CUSTOM_RUN (HCOX_CUSTOM_MOD.F90)', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Set error flag
-      ERR = .FALSE.
+    ! Set error flag
+    ERR = .FALSE.
 
-      ! Sanity check: return if extension not turned on
-      IF ( .NOT. ExtState%Custom ) RETURN
+    ! Sanity check: return if extension not turned on
+    IF ( .NOT. ExtState%Custom ) RETURN
 
-      ! Initialize flux arrays
-      ALLOCATE ( FLUXICE( HcoState%NX,HcoState%NY),        &
-                 FLUXWIND(HcoState%NX,HcoState%NY), STAT=AS )
-      IF ( AS/= 0 ) THEN
-         CALL HCO_ERROR( 'ALLOCATION ERROR', RC )
-         RETURN
-      ENDIF
-      FLUXICE  = 0.0_hp
-      FLUXWIND = 0.0_hp
+    ! Initialize flux arrays
+    ALLOCATE ( FLUXICE( HcoState%NX,HcoState%NY),        &
+               FLUXWIND(HcoState%NX,HcoState%NY), STAT=AS )
+    IF ( AS/= 0 ) THEN
+       CALL HCO_ERROR( 'ALLOCATION ERROR', RC )
+       RETURN
+    ENDIF
+    FLUXICE  = 0.0_hp
+    FLUXWIND = 0.0_hp
 
 !$OMP PARALLEL DO                                            &
 !$OMP DEFAULT( SHARED )                                      &
-!$OMP PRIVATE( I, J, W10M                                  ) &
+!$OMP PRIVATE( I, J, W10M, LANDTYPE                        ) &
 !$OMP SCHEDULE( DYNAMIC )
-      ! Loop over surface grid boxes
-      DO J = 1, HcoState%NY
-      DO I = 1, HcoState%NX
+    ! Loop over surface grid boxes
+    DO J = 1, HcoState%NY
+    DO I = 1, HcoState%NX
 
-         ! Check surface type
-         ! Ocean:
-         IF ( HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J), &
-                            ExtState%ALBD%Arr%Val(I,J) ) == 0 ) THEN
+       ! Get the land type for grid box (I,J)
+       LANDTYPE = HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J),  &
+                                ExtState%ALBD%Arr%Val(I,J) )
 
-            ! 10m wind speed [m/s]
-            W10M = ExtState%U10M%Arr%Val(I,J)**2 + &
-                   ExtState%V10M%Arr%Val(I,J)**2
-            W10M = SQRT(W10M)
+       ! Check surface type
+       ! Ocean:
+!---------------------------------------------------------------------------
+! Prior to 6/5/14:
+! Now test against a variable held !$OMP+PRIVATE (bmy, 6/5/14)
+!       IF ( HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J), &
+!                            ExtState%ALBD%Arr%Val(I,J) ) == 0 ) THEN
+!---------------------------------------------------------------------------
+       IF ( LANDTYPE == 0 ) THEN
 
-            ! Set flux to wind speed
-            FLUXWIND(I,J) = W10M * SCALWIND
+          ! 10m wind speed [m/s]
+          W10M = ExtState%U10M%Arr%Val(I,J)**2 + &
+                 ExtState%V10M%Arr%Val(I,J)**2
+          W10M = SQRT(W10M)
+
+          ! Set flux to wind speed
+          FLUXWIND(I,J) = W10M * SCALWIND
 
          ! Ice:         
-         ELSEIF ( HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J), &
-                            ExtState%ALBD%Arr%Val(I,J) ) == 2 ) THEN
+!---------------------------------------------------------------------------
+! Prior to 6/5/14:
+! Now test against a variable held !$OMP+PRIVATE (bmy, 6/5/14)
+!       ELSEIF ( HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J), &
+!                            ExtState%ALBD%Arr%Val(I,J) ) == 2 ) THEN
+!---------------------------------------------------------------------------
+       ELSE IF ( LANDTYPE == 2 ) THEN
 
-            ! Set uniform flux
-            FLUXICE(I,J) = SCALICE
-         ENDIF 
+          ! Set uniform flux
+          FLUXICE(I,J) = SCALICE
+       ENDIF
 
-      ENDDO !I
-      ENDDO !J
+    ENDDO !I
+    ENDDO !J
 !$OMP END PARALLEL DO
 
-      ! Check exit status
-      IF ( ERR ) THEN
-         RC = HCO_FAIL
-         RETURN 
-      ENDIF
+    ! Check exit status
+    IF ( ERR ) THEN
+       RC = HCO_FAIL
+       RETURN 
+    ENDIF
 
-      ! Add wind fluxes to emission arrays & diagnostics 
-      DO N = 1, nOcWind
+    ! Add wind fluxes to emission arrays & diagnostics 
+    DO N = 1, nOcWind
 
-         ! Emissions array
-         CALL HCO_EmisAdd( HcoState, FLUXWIND, OcWindIDs(N), RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Emissions array
+       CALL HCO_EmisAdd( HcoState, FLUXWIND, OcWindIDs(N), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-         ! Eventually add to diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXWIND
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                               Cat=-1, Hier=-1, HcoID=OcWindIDs(N), &
-                               AutoFill=1, Array2D=Arr2D, RC=RC )
-            IF ( RC /= HCO_SUCCESS ) RETURN
-            Arr2D => NULL() 
-         ENDIF
-      ENDDO !N
+       ! Eventually add to diagnostics
+       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+          Arr2D => FLUXWIND
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+                             Cat=-1, Hier=-1, HcoID=OcWindIDs(N), &
+                             AutoFill=1, Array2D=Arr2D, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Arr2D => NULL() 
+       ENDIF
+    ENDDO !N
 
-      ! Add ice fluxes to emission arrays & diagnostics 
-      DO N = 1, nIceSrc
+    ! Add ice fluxes to emission arrays & diagnostics 
+    DO N = 1, nIceSrc
 
-         ! Emissions array
-         CALL HCO_EmisAdd( HcoState, FLUXICE, IceSrcIDs(N), RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Emissions array
+       CALL HCO_EmisAdd( HcoState, FLUXICE, IceSrcIDs(N), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-         ! Eventually add to diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXICE
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                               Cat=-1, Hier=-1, HcoID=IceSrcIDs(N), &
-                               AutoFill=1, Array2D=Arr2D, RC=RC )
-            IF ( RC /= HCO_SUCCESS ) RETURN
-            Arr2D => NULL() 
-         ENDIF
-      ENDDO !N
+       ! Eventually add to diagnostics
+       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+          Arr2D => FLUXICE
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+                             Cat=-1, Hier=-1, HcoID=IceSrcIDs(N), &
+                             AutoFill=1, Array2D=Arr2D, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Arr2D => NULL() 
+       ENDIF
+    ENDDO !N
 
-      ! Return w/ success
-      CALL HCO_LEAVE ( RC )
+    ! Return w/ success
+    CALL HCO_LEAVE ( RC )
 
-      END SUBROUTINE HcoX_Custom_Run
+  END SUBROUTINE HcoX_Custom_Run
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_CUSTOM_INIT 
+! !IROUTINE: hcox_custom_init 
 !
 ! !DESCRIPTION: Subroutine HcoX\_Custom\_Init initializes the HEMCO
 ! CUSTOM extension.
@@ -211,117 +234,120 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_Custom_Init ( am_I_Root, HcoState, ExtName, &
+  SUBROUTINE HcoX_Custom_Init ( am_I_Root, HcoState, ExtName, &
                                     ExtState,    RC                  )
 !
 ! !USES:
 !
-      USE HCOX_ExtList_Mod,   ONLY : GetExtNr, GetExtHcoID
+    USE HCOX_ExtList_Mod,   ONLY : GetExtNr, GetExtHcoID
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN   )  :: am_I_Root
-      TYPE(HCO_State),  POINTER        :: HcoState   ! Hemco state 
-      CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
-      TYPE(Ext_State),  POINTER        :: ExtState    ! Module options
-      INTEGER,          INTENT(INOUT)  :: RC 
+    LOGICAL,          INTENT(IN   )  :: am_I_Root
+    CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
+    TYPE(Ext_State),  POINTER        :: ExtState    ! Module options      
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State),  POINTER        :: HcoState   ! Hemco state 
+    INTEGER,          INTENT(INOUT)  :: RC 
 
 ! !REVISION HISTORY:
-!  13 Dec 2013 - C. Keller - Now a HEMCO extension
-!
-! !NOTES: 
+!  13 Dec 2013 - C. Keller   - Now a HEMCO extension
+!  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  06 Jun 2014 - R. Yantosca - Now indented using F90 free-format
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                        :: N, nSpc, AS
-      INTEGER, ALLOCATABLE           :: HcoIDs(:)
-      LOGICAL                        :: verb
-      CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
-      CHARACTER(LEN=255)             :: MSG 
+    INTEGER                        :: N, nSpc, AS
+    INTEGER,           ALLOCATABLE :: HcoIDs(:)
+    LOGICAL                        :: verb
+    CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
+    CHARACTER(LEN=255)             :: MSG 
 
-      !=================================================================
-      ! HCOX_CUSTOM_INIT begins here!
-      !=================================================================
+    !=================================================================
+    ! HCOX_CUSTOM_INIT begins here!
+    !=================================================================
 
-      ! Extension Nr.
-      ExtNr = GetExtNr( TRIM(ExtName) )
-      IF ( ExtNr <= 0 ) RETURN
+    ! Extension Nr.
+    ExtNr = GetExtNr( TRIM(ExtName) )
+    IF ( ExtNr <= 0 ) RETURN
 
-      ! Enter
-      CALL HCO_ENTER ( 'HCOX_CUSTOM_INIT (HCOX_CUSTOM_MOD.F90)', RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    ! Enter
+    CALL HCO_ENTER ( 'HCOX_CUSTOM_INIT (HCOX_CUSTOM_MOD.F90)', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
-      ! Set species IDs      
-      CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Set species IDs      
+    CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Assume first half are 'wind species', second half are ice.
-      IF ( MOD(nSpc,2) /= 0 ) THEN
-         MSG = 'Cannot set species IDs for custom emission module!'
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF
+    ! Assume first half are 'wind species', second half are ice.
+    IF ( MOD(nSpc,2) /= 0 ) THEN
+       MSG = 'Cannot set species IDs for custom emission module!'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
  
-      ! Pass # of sources 
-      nOcWind = nSpc / 2
-      nIceSrc = nSpc / 2
+    ! Pass # of sources 
+    nOcWind = nSpc / 2
+    nIceSrc = nSpc / 2
 
-      ! Allocate vector w/ the species IDs 
-      ALLOCATE ( OcWindIDs(nOcWind) ) 
-      ALLOCATE ( IceSrcIDs(nIceSrc) ) 
-      OcWindIDs(:) = HcoIDs(1:nOcWind)
-      N = nOcWind + 1
-      IceSrcIDs(:) = HcoIDs(N:nSpc)
+    ! Allocate vector w/ the species IDs 
+    ALLOCATE ( OcWindIDs(nOcWind) ) 
+    ALLOCATE ( IceSrcIDs(nIceSrc) ) 
+    OcWindIDs(:) = HcoIDs(1:nOcWind)
+    N = nOcWind + 1
+    IceSrcIDs(:) = HcoIDs(N:nSpc)
 
-      ! Allocate flux arrays (to be filled every time step)
-      ALLOCATE ( FLUXWIND(HcoState%NX, HcoState%NY), &
-                 FLUXICE (HcoState%NX, HcoState%NY), STAT=AS )
-      IF ( AS/=0 ) THEN
-         MSG = 'Allocation error: FLUXWIND, FLUXICE'
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF
+    ! Allocate flux arrays (to be filled every time step)
+    ALLOCATE ( FLUXWIND(HcoState%NX, HcoState%NY), &
+               FLUXICE (HcoState%NX, HcoState%NY), STAT=AS )
+    IF ( AS/=0 ) THEN
+       MSG = 'Allocation error: FLUXWIND, FLUXICE'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
 
-      ! Verbose mode
-      IF ( verb ) THEN
-         MSG = 'Use custom emissions module (extension module)'
-         CALL HCO_MSG( MSG )
+    ! Verbose mode
+    IF ( verb ) THEN
+       MSG = 'Use custom emissions module (extension module)'
+       CALL HCO_MSG( MSG )
 
-         MSG = 'Use the following species (Name: HcoID):'
-         CALL HCO_MSG(MSG)
-         DO N = 1, nSpc
-            WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
-            CALL HCO_MSG(MSG)
-         ENDDO
-      ENDIF
+       MSG = 'Use the following species (Name: HcoID):'
+       CALL HCO_MSG(MSG)
+       DO N = 1, nSpc
+          WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
+          CALL HCO_MSG(MSG)
+       ENDDO
+    ENDIF
 
-      ! Activate met fields required by this extension
-      ExtState%U10M%DoUse = .TRUE. 
-      ExtState%V10M%DoUse = .TRUE. 
-      ExtState%ALBD%DoUse = .TRUE. 
-      ExtState%WLI%DoUse  = .TRUE. 
+    ! Activate met fields required by this extension
+    ExtState%U10M%DoUse = .TRUE. 
+    ExtState%V10M%DoUse = .TRUE. 
+    ExtState%ALBD%DoUse = .TRUE. 
+    ExtState%WLI%DoUse  = .TRUE. 
 
-      ! Activate this extension
-      ExtState%Custom = .TRUE.
+    ! Activate this extension
+    ExtState%Custom = .TRUE.
 
-      ! Leave w/ success
-      IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
-      IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
+    ! Leave w/ success
+    IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
+    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
 
-      CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE ( RC ) 
 
-      END SUBROUTINE HcoX_Custom_Init
+  END SUBROUTINE HcoX_Custom_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_CUSTOM_FINAL
+! !IROUTINE: hcox_custom_final
 !
 ! !DESCRIPTION: Subroutine HcoX\_Custom\_Final finalizes the HEMCO
 ! CUSTOM extension.
@@ -329,26 +355,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_Custom_Final
+  SUBROUTINE HcoX_Custom_Final
 !
 ! !REVISION HISTORY:
-!  13 Dec 2013 - C. Keller - Now a HEMCO extension
-!
-! !NOTES: 
+!  13 Dec 2013 - C. Keller   - Now a HEMCO extension
+!  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-      !=================================================================
-      ! HCOX_CUSTOM_FINAL begins here!
-      !=================================================================
+    !=================================================================
+    ! HCOX_CUSTOM_FINAL begins here!
+    !=================================================================
 
-      IF ( ALLOCATED(OcWindIDs) ) DEALLOCATE ( OcWindIDs )
-      IF ( ALLOCATED(IceSrcIDs) ) DEALLOCATE ( IceSrcIDs )
-      IF ( ALLOCATED(FLUXICE  ) ) DEALLOCATE ( FLUXICE   )
-      IF ( ALLOCATED(FLUXWIND ) ) DEALLOCATE ( FLUXWIND  )
+    IF ( ALLOCATED(OcWindIDs) ) DEALLOCATE ( OcWindIDs )
+    IF ( ALLOCATED(IceSrcIDs) ) DEALLOCATE ( IceSrcIDs )
+    IF ( ALLOCATED(FLUXICE  ) ) DEALLOCATE ( FLUXICE   )
+    IF ( ALLOCATED(FLUXWIND ) ) DEALLOCATE ( FLUXWIND  )
 
-      END SUBROUTINE HcoX_Custom_Final
+  END SUBROUTINE HcoX_Custom_Final
 !EOC
-      END MODULE HCOX_CUSTOM_MOD
-!EOM
+END MODULE HCOX_CUSTOM_MOD

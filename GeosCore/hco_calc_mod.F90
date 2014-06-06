@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: HCO_CALC_MOD.F90
+! !MODULE: hco_calc_mod.F90
 !
 ! !DESCRIPTION: Module HCO\_CALC\_MOD contains routines to calculate 
 ! HEMCO core emissions based on the content of the HEMCO EmisList 
@@ -68,15 +68,15 @@
 ! ============================================================================
 !
 ! !REVISION HISTORY:
-!  25 Aug 2012 - C. Keller - Initial version.
-!
+!  25 Aug 2012 - C. Keller   - Initial version.
+!  06 Jun 2014 - R. Yantosca - Add cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -98,14 +98,18 @@
       USE HCO_EMISLIST_MOD, ONLY : EmisList_NextCont
       USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       LOGICAL,         INTENT(IN   )  :: am_I_Root  ! Root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(HCO_State), POINTER        :: HcoState   ! HEMCO state object
       INTEGER,         INTENT(INOUT)  :: RC         ! Return code
 !
 ! !REVISION HISTORY:
-!     25 Aug 2012 - C. Keller - Initial Version
+!  25 Aug 2012 - C. Keller   - Initial Version
+!  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX header
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -528,11 +532,11 @@
       END SUBROUTINE HCO_CalcEmis
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_CURRENT_EMISSIONS
+! !IROUTINE: get_current_emissions
 !
 ! !DESCRIPTION: Subroutine GET\_CURRENT\_EMISSIONS calculates the current 
 !  emissions for the specified emission container. 
@@ -551,14 +555,18 @@
       USE HCO_TIDX_MOD,     ONLY : tIDx_GetIndxVec
       USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       LOGICAL,         INTENT(IN )   :: am_I_Root           ! Root CPU?
-      TYPE(HCO_State), POINTER       :: HcoState            ! HEMCO state object
-      TYPE(DataCont),  POINTER       :: BaseDct             ! base emission container
       INTEGER,         INTENT(IN)    :: nI                  ! # of lons
       INTEGER,         INTENT(IN)    :: nJ                  ! # of lats
       INTEGER,         INTENT(IN)    :: nL                  ! # of levs
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+
+      TYPE(HCO_State), POINTER       :: HcoState            ! HEMCO state object
+      TYPE(DataCont),  POINTER       :: BaseDct             ! base emission container
       REAL(hp),        INTENT(INOUT) :: OUTARR_3D(nI,nJ,nL) ! output array
       INTEGER,         INTENT(INOUT) :: RC
 !
@@ -570,10 +578,11 @@
 ! and may be employed on request.
 !
 ! !REVISION HISTORY:
-!     25 Aug 2012 - C. Keller - Initial Version
-!     09 Nov 2012 - C. Keller - MASK update. Masks are now treated
+!  25 Aug 2012 - C. Keller   -  Initial Version
+!  09 Nov 2012 - C. Keller   -  MASK update. Masks are now treated
 !                               separately so that multiple masks can be 
 !                               added.
+!  06 Jun 2014 - R. Yantosca -  Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -921,11 +930,11 @@
       END SUBROUTINE GET_CURRENT_EMISSIONS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_CURRENT_EMISSIONS_B (NOT USED!!)
+! !IROUTINE: get_current_emissions_b (NOT USED!!)
 !
 ! !DESCRIPTION: Subroutine GET_CURRENT_EMISSIONS_B calculates the current 
 !  emissions for the specified emission field and passes the result to 
@@ -945,22 +954,26 @@
       USE HCO_TIDX_MOD,     ONLY : tIDx_GetIndx
       USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       LOGICAL,         INTENT(IN )   :: am_I_Root           ! Root CPU?
-      TYPE(HCO_State), POINTER       :: HcoState            ! HEMCO state object
-      TYPE(DataCont),  POINTER       :: BaseDct             ! base emission container
       INTEGER,         INTENT(IN)    :: nI                  ! # of lons
       INTEGER,         INTENT(IN)    :: nJ                  ! # of lats
       INTEGER,         INTENT(IN)    :: nL                  ! # of levs
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(HCO_State), POINTER       :: HcoState            ! HEMCO state object
+      TYPE(DataCont),  POINTER       :: BaseDct             ! base emission container
       REAL(hp),        INTENT(INOUT) :: OUTARR_3D(nI,nJ,nL) ! output array
       INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY:
-!     25 Aug 2012 - C. Keller - Initial Version
-!     09 Nov 2012 - C. Keller - MASK update. Masks are now treated
-!                               separately so that multiple masks can be 
-!                               added.
+!  25 Aug 2012 - C. Keller   - Initial Version
+!  09 Nov 2012 - C. Keller   - MASK update. Masks are now treated
+!                              separately so that multiple masks can be 
+!                              added.
+!  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX header
 !EOP
 !------------------------------------------------------------------------------
 !BOC
