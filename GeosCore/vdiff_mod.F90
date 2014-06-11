@@ -1851,6 +1851,7 @@ contains
 !  01 Aug 2013 - J. Lin      - Modified for Rn-Pb-Be simulation
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Jun 2014 - J.A. Fisher - Use non-local mixing in tagged CO simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2108,9 +2109,16 @@ contains
        ! chemistry simulation. Hopefully this simplification wouldn't 
        ! cause too much problem, since the std. tagged_co simulation 
        ! is also approximate, anyway. (Lin, 06/20/09) 
+       ! This is causing trouble! Added non-local mixing for tagged CO
+       ! based on the code used in other offline simulations (jaf, 3/20/14)
        !----------------------------------------------------------------
        IF ( IS_TAGCO ) THEN
-          eflx(I,J,:) = 0d0 
+          !eflx(I,J,:) = 0d0 
+          do N = 1, N_TRACERS
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) &
+                         / GET_AREA_M2( I, J, 1 )         &
+                         / GET_TS_EMIS() / 60.d0
+          enddo
        ENDIF
 
        !----------------------------------------------------------------

@@ -373,6 +373,7 @@
       USE TIME_MOD,           ONLY : GET_MONTH,     GET_TAU 
       USE TIME_MOD,           ONLY : GET_YEAR,      GET_TS_EMIS  
       USE TRACERID_MOD,       ONLY : IDBFCO, IDECO, IDBCO
+      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE
 
       IMPLICIT NONE
 !
@@ -460,6 +461,7 @@
 !                              step.
 !  11 Jun 2014 - J.A. Fisher - Match full chemistry for treatment of
 !                              monoterpene source
+!  12 Jun 2014 - J.A. Fisher - Add option for non-local PBL mixing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -492,6 +494,7 @@
       LOGICAL          :: LBIOMASS,  LBIOFUEL
       LOGICAL          :: LBIOGENIC, LMEGAN
       LOGICAL          :: LMEGANMONO
+      LOGICAL          :: LNLPBL
 
       ! External functions
       REAL*8, EXTERNAL :: BOXVL
@@ -512,6 +515,7 @@
       LBIOGENIC  = Input_Opt%LBIOGENIC
       LMEGAN     = Input_Opt%LMEGAN
       LMEGANMONO = Input_Opt%LMEGANMONO
+      LNLPBL     = Input_Opt%LNLPBL
 
       !=================================================================
       ! Do the following only on the first call to EMISS_TAGGED_CO...
@@ -528,6 +532,9 @@
          ! Set first-time flag to false
          FIRSTEMISS = .FALSE.
       ENDIF
+
+      ! If we are using the non-local PBL mixing, initialize EMIS_SAVE
+      IF (LNLPBL) EMIS_SAVE = 0d0
 
       !=================================================================
       ! Once a month, read acetone from disk.  For GEOS-3, also read 
@@ -589,12 +596,20 @@
                E_CO = E_CO * ( DTSRCE / XNUMOL_CO )  
 
                ! Add FF CO to Tracer #1 -- total CO [kg CO]
-               STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+               IF ( LNLPBL ) THEN
+                  EMIS_SAVE(I,J,1) = E_CO
+               ELSE
+                  STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+               ENDIF
 
                ! Split FF CO into geographic regions -- Tracers #2 - #5
                IF ( LSPLIT ) THEN
                   N            = FF_REGION(I,J)
-                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO
+                  IF ( LNLPBL ) THEN
+                     EMIS_SAVE(I,J,N) = E_CO
+                  ELSE
+                     STT(I,J,1,N) = STT(I,J,1,N) + E_CO
+                  ENDIF
                ENDIF
             ENDDO
          ENDDO
@@ -641,6 +656,17 @@
             E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
      &             ( AREA_CM2           * DTSRCE    ) 
 
+            ! For non-local mixing...
+            IF ( LNLPBL ) THEN
+               EMIS_SAVE(I,J,1) = EMIS_SAVE(I,J,1) + E_CO
+               IF ( LSPLIT ) THEN
+                  N                = BB_REGION(I,J)
+                  EMIS_SAVE(I,J,N) = EMIS_SAVE(I,J,N) + E_CO
+               ENDIF
+
+            ! For original mixing...
+            ELSE
+
             DO L = 1, PBL_MAX
            
                F_OF_PBL = GET_FRAC_OF_PBL (I,J,L) 
@@ -654,7 +680,9 @@
                   STT(I,J,L,N) = STT(I,J,L,N) + E_CO * F_OF_PBL                  
                ENDIF
 
-         ENDDO
+            ENDDO
+
+            ENDIF ! Original mixing
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -690,7 +718,11 @@
      &             BOXVL(I,J,1,State_Met) * DTSRCE
 
             ! Add biofuel CO burning to tracer #1 -- total CO [kg CO]
-            STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+            IF ( LNLPBL ) THEN
+               EMIS_SAVE(I,J,1) = EMIS_SAVE(I,J,1) + E_CO
+            ELSE
+               STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+            ENDIF
 
             ! Add biofuel CO burning [kg CO] as Tracer #13 (bmy, 6/14/01)
             !
@@ -699,7 +731,11 @@
             ! %%% then comment out this IF block.  If you don't you can
             ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
             IF ( LSPLIT ) THEN
-               STT(I,J,1,13) = STT(I,J,1,13) + E_CO
+               IF ( LNLPBL ) THEN
+                  EMIS_SAVE(I,J,13) = EMIS_SAVE(I,J,13) + E_CO
+               ELSE
+                  STT(I,J,1,13) = STT(I,J,1,13) + E_CO
+               ENDIF
             ENDIF
          ENDDO
          ENDDO
