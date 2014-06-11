@@ -461,6 +461,9 @@
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  11 Jun 2014 - J.A. Fisher - Replace SUNCOS with SUNCOSmid as used in
+!                              full chemistry for the centralized time
+!                              step.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -744,7 +747,7 @@
             !------------------
 
             ! Cosine of solar zenith angle
-            SC  = State_Met%SUNCOS(I,J)
+            SC  = State_Met%SUNCOSmid(I,J)
 
             ! Diffuse and direct PAR
             PDR = State_Met%PARDR(I,J)
