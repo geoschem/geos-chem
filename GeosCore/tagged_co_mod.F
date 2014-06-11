@@ -135,15 +135,8 @@
       REAL*8,  PARAMETER   :: FMOL_CO     = 28d-3
       REAL*8,  PARAMETER   :: XNUMOL_CO   = 6.022d+23/FMOL_CO
 
-      ! FMOL_ISOP   - kg ISOP / mole ISOP
-      ! XNUMOL_ISOP - molecules ISOP / kg ISOP
-      REAL*8,  PARAMETER   :: FMOL_ISOP   = 12d-3
-      REAL*8,  PARAMETER   :: XNUMOL_ISOP = 6.022d+23/FMOL_ISOP
-
-      ! FMOL_MONO   - kg MONO / mole MONO
-      ! XNUMOL_MONO - molecules MONO / kg MONO
-      REAL*8,  PARAMETER   :: FMOL_MONO   = 12d-3
-      REAL*8,  PARAMETER   :: XNUMOL_MONO = 6.022d+23/FMOL_MONO
+      ! Molecules C / kg C
+      REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
 
       CONTAINS
 !EOC
@@ -374,6 +367,7 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
+      USE MEGAN_MOD,          ONLY : GET_EMTERP_MEGAN
       USE MEGANUT_MOD,        ONLY : XLTMMP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
       USE TIME_MOD,           ONLY : GET_MONTH,     GET_TAU 
@@ -464,6 +458,8 @@
 !  11 Jun 2014 - J.A. Fisher - Replace SUNCOS with SUNCOSmid as used in
 !                              full chemistry for the centralized time
 !                              step.
+!  11 Jun 2014 - J.A. Fisher - Match full chemistry for treatment of
+!                              monoterpene source
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -482,6 +478,10 @@
       ! Add variables needed for MEGAN biogenics (jaf, 3/10/09)
       REAL*8           :: SC,   PDF,  PDR
       
+      ! Add in new monoterpene species (jaf, 6/11/14)
+      REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
+      REAL*8                 :: MYRCN  , CAREN , OCIMN
+
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -491,6 +491,7 @@
       LOGICAL          :: LSPLIT,    LANTHRO
       LOGICAL          :: LBIOMASS,  LBIOFUEL
       LOGICAL          :: LBIOGENIC, LMEGAN
+      LOGICAL          :: LMEGANMONO
 
       ! External functions
       REAL*8, EXTERNAL :: BOXVL
@@ -504,12 +505,13 @@
       RC        =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      LSPLIT    = Input_Opt%LSPLIT
-      LANTHRO   = Input_Opt%LANTHRO
-      LBIOMASS  = Input_Opt%LBIOMASS
-      LBIOFUEL  = Input_Opt%LBIOFUEL
-      LBIOGENIC = Input_Opt%LBIOGENIC
-      LMEGAN    = Input_Opt%LMEGAN
+      LSPLIT     = Input_Opt%LSPLIT
+      LANTHRO    = Input_Opt%LANTHRO
+      LBIOMASS   = Input_Opt%LBIOMASS
+      LBIOFUEL   = Input_Opt%LBIOFUEL
+      LBIOGENIC  = Input_Opt%LBIOGENIC
+      LMEGAN     = Input_Opt%LMEGAN
+      LMEGANMONO = Input_Opt%LMEGANMONO
 
       !=================================================================
       ! Do the following only on the first call to EMISS_TAGGED_CO...
@@ -714,7 +716,7 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMIS, EMMO, EMAC )
-! Add some private declarations for use with MEGAN
+!$OMP+PRIVATE( APINE, BPINE, LIMON, SABIN, MYRCN, CAREN, OCIMN )
 !$OMP+PRIVATE( SC, PDR, PDF )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -755,11 +757,52 @@
 
             ! Isoprene [atoms C/box/timestep]
             EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
-     &                                PDR, PDF, XNUMOL_ISOP )
+     &                                PDR, PDF, XNUMOL_C )
 
-            ! Monoterpene [atoms C/box/timestep]
-            EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
-     &                                PDR, PDF, XNUMOL_MONO )
+! -----------
+! Prior to June 2014
+!            ! Monoterpene [atoms C/box/timestep]
+!            EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
+!     &                                PDR, PDF, XNUMOL_MONO )
+
+         ENDIF
+
+         ! Now treat monoterpene source the same as in full chemistry
+         IF ( LMEGANMONO ) THEN
+
+            ! ------------------------------------------
+            ! Alpha Pinene emissions
+            APINE = GET_EMTERP_MEGAN( I , J , SC, TMMP ,
+     &                 PDR , PDF , XNUMOL_C , 'APINE' )
+            ! ------------------------------------------
+            ! Beta Pinene emissions
+            BPINE = GET_EMTERP_MEGAN( I , J , SC, TMMP ,
+     &                 PDR , PDF , XNUMOL_C , 'BPINE' )
+            ! ------------------------------------------
+            ! Limonene emissions
+            LIMON = GET_EMTERP_MEGAN( I , J , SC, TMMP , 
+     &                 PDR , PDF , XNUMOL_C , 'LIMON' )
+            ! ------------------------------------------
+            ! Sabinene emissions
+            SABIN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,
+     &                 PDR , PDF , XNUMOL_C , 'SABIN' )               
+            ! ------------------------------------------
+            ! Mycrene emissions
+            MYRCN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,
+     &                 PDR , PDF , XNUMOL_C , 'MYRCN' )
+            ! ------------------------------------------
+            ! 3-Carene emissions
+            CAREN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,
+     &                 PDR , PDF , XNUMOL_C , 'CAREN' )
+            ! ------------------------------------------
+            ! Ocimene emissions,
+            OCIMN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,
+     &                 PDR , PDF , XNUMOL_C , 'OCIMN' )
+            ! ------------------------------------------
+
+            ! Total monoterpenes = sum of individual
+            EMMO = APINE + BPINE + LIMON + SABIN +
+     &             MYRCN + CAREN + OCIMN
 
          ENDIF
 
