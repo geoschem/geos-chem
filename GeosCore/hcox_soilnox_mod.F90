@@ -2022,18 +2022,15 @@
          ! If change in soil moisture is > 0.01 (rains)
          IF ( GDIFF > 0.01 ) THEN
 
-            !Initialize new pulse factor (dry period hours)
-            PFACTOR_HSN = 13.01 * LOG( DRYPERIOD_HSN ) - 53.6
-
             ! Initialize new pulse factor (dry period hours)
-            IF ( DRYPERIOD_HSN > 0 ) THEN
-               PFACTOR_HSN = 13.01 * LOG( DRYPERIOD_HSN ) - 53.6
+            IF ( DRYPERIOD_HSN > 0d0 ) THEN
+               PFACTOR_HSN = 13.01d0 * LOG( DRYPERIOD_HSN ) - 53.6d0
             ELSE
-               PFACTOR_HSN = -53.6
+               PFACTOR_HSN = -53.6d0
             ENDIF
 
             ! Reinitialize dry period
-            DRYPERIOD_HSN = 0
+            DRYPERIOD_HSN = 0d0
 
          ! If no rain (i.e.,  change in soil moisture is < 0.01)
          ELSE
