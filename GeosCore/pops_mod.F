@@ -596,7 +596,7 @@
       ! k for reaction POPP + NO3 taken from Liu et al. EST 2012 "Kinetic studies of heterogeneous
       ! reactions of PAH aerosols with NO3 radicals", for now. CLF, 1/24/2012
       ! For PYR, 6.4 x 10^-12 [cm3 / molec / s]
-      REAL*8, PARAMETER     :: K_POPP_NO3 = 6.4d-12
+      REAL*8, PARAMETER     :: K_POPP_NO3 = 0d0 ! 6.4d-12
 
       ! OC/BC hydrophobic POP lifetime before folding to hydrophilic
       REAL*8, PARAMETER     :: OCBC_LIFE = 1.15D0
@@ -2078,7 +2078,7 @@
          T_POP = POP_TOT_EM(I,J)
 
          ! Now add revolatilization (secondary) emissions to primary [kg/s]
-         T_POP = T_POP + EPOP_VEG(I,J) + EPOP_LAKE(I,J) + EPOP_SOIL(I,J) 
+         T_POP = T_POP !+ EPOP_VEG(I,J) + EPOP_LAKE(I,J) + EPOP_SOIL(I,J) 
 !     &         +  EPOP_SNOW(I,J) + EPOP_OCEAN(I,J)
 
          !==============================================================
@@ -2637,35 +2637,34 @@
       ! annual average deposition rates [kg]
       ! Filename for PAHs:
 !Default: GEOS 5 @ 4x5
-      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS/4x5' //
-     &           '/soil_conc/pyr_soil_conc_ann.bpch'
+      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
+     &           '4x5/soil_conc/pyr_soil_conc_ann.bpch'
 
 #if defined ( GEOS_5 ) && defined ( GRID4x5 )
-      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS/4x5' //
-     &           '/soil_conc/pyr_soil_conc_ann.bpch'
+      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
+     &           '4x5/soil_conc/pyr_soil_conc_ann.bpch'
 #elif defined ( GEOS_5 ) && defined ( GRID2x25 )
       FILENAME = 'empty ' ! not available yet (H. Amos, 14Mar2013)
 #elif defined ( GCAP ) && defined ( GRID4X5 )
-      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GCAP' //
+      FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004' //
      &           '/soil_conc/pyr_soil_conc_ann_GCAP.bpch'
 #elif defined ( GCAP ) && defined ( GRID2x25 )
       FILENAME = 'empty ' ! not available yet (H. Amos, 14Mar2013)
 #endif
 
-c$$$#if defined ( GCAP )
-c$$$         FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004' //
-c$$$     &              '/soil_conc/pyr_soil_conc_ann_GCAP.bpch'
-c$$$
-c$$$#elif defined ( GEOS_5 )
-c$$$!Point to local copy of .bpch file (H. Amos, 11 Mar 2013)
-c$$$!
-c$$$         FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
-c$$$     &              '/4x5/soil_conc/pyr_soil_conc_ann.bpch'
+!!#if defined ( GCAP )
+!         FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004' //
+!     &              '/soil_conc/pyr_soil_conc_ann_GCAP.bpch'
+
+!!#elif defined ( GEOS_5 )
+!Point to local copy of .bpch file (H. Amos, 11 Mar 2013)
+!         FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
+!     &              '/4x5/soil_conc/pyr_soil_conc_ann.bpch'
 c$$$!         FILENAME = '/home/hamos/GC/input_files/POPs/soil' //
 c$$$!     &              '/pyr_soil_conc_ann.bpch'
 c$$$                  FILENAME='test'
 c$$$
-c$$$#endif
+!!#endif
      
          ! Timestamp for emissions
          ! All PAH soil conc are for the year 2009 (change to 2004 for consistency?)
@@ -2768,10 +2767,10 @@ c$$$#endif
       ! Read in 1x1 file which contains sum of all soil carbon pools calculated
       ! by CASA/GTTM in g/m2
       ! Filename for PAHs
-!         FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
-!     &              '/1x1/soil_carbon/from_GTMM_09102012.bpch'
-      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS' //
-     &           '/1x1/soil_carbon/from_GTMM_09102012.bpch'
+         FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
+     &              '/1x1/soil_carbon/from_GTMM_09102012.bpch'
+!      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS' //
+!     &           '/1x1/soil_carbon/from_GTMM_09102012.bpch'
 
          ! Timestamp for emissions
          ! All PAH soil conc are for the generic year 1985

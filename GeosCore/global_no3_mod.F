@@ -115,18 +115,26 @@
          CALL INIT_GLOBAL_NO3
          FIRST = .FALSE.
       ENDIF
+
+
+#if defined ( MERRA )
+      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/'   //
+     &           'sulfate_sim_200508/offline/NO3.geos5.4x5'
+#elif
   
 !      ! File name
-!      FILENAME = TRIM( DATA_DIR )                       // 
-!     &           'sulfate_sim_200508/offline/NO3.'      //
-!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+      FILENAME = TRIM( DATA_DIR )                       // 
+     &           'sulfate_sim_200508/offline/NO3.'      //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 !      !kludge until I can't NO3 for GEOS-5 (H. Amos, 25Mar2013)
 !      FILENAME = '/as/data/geos/GEOS_4x5/sulfate_sim_200508' // 
 !     &           '/offline/NO3.geos4.4x5'
       ! GEOS-5 4x5 file from Carey Friedman (H. Amos, 10Apr2013)
-      FILENAME = '/home/hamos/GC/input_files/POPs' //
-     &           '/PAHs_2004_GEOS/4x5/CLF_fullchem' //
-     &           '/NO3.geos5.4x5.bpch'
+!      FILENAME = '/home/hamos/GC/input_files/POPs' //
+!     &           '/PAHs_2004_GEOS/4x5/CLF_fullchem' //
+!     &           '/NO3.geos5.4x5.bpch'
+
+#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )

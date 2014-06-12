@@ -169,6 +169,16 @@ c$$$      END SUBROUTINE GET_GLOBAL_OH
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
+#elif defined ( MERRA )
+      
+      ! Filename
+       FILENAME = '/net/fs03/d1/selin/geosruns/GC.vHolmes2009/data/' //
+     &              'OH_3Dglobal.geos5.4x5'
+
+      ! Get the TAU0 value for the start of the given month
+      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
+      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+
 #endif
 
       ! Echo some information to the standard output

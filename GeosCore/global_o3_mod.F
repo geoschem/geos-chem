@@ -132,9 +132,14 @@
 #if   defined( GRIDREDUCED )
 
       ! Filename for 47-level model
-      FILENAME = TRIM( DATA_DIR )                           // 
-     &           'sulfate_sim_200508/offline/MERGE.O3.47L.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'sulfate_sim_200508/offline/MERGE.O3.47L.' //
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+
+      FILENAME =
+     &           '/net/fs03/d1/selin/geosruns/GC.vHolmes2009/' //
+     &           'data/MERGE.O3.47L.geos5.4x5'
+
 
 #else
 

@@ -177,7 +177,7 @@
       ENDIF
 
 ! Default: GEOS-5 @ 4x5 reduced vertical layers (H. Amos, 15Mar2013)
-      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS' //
+      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
      &           '/4x5/CLF_fullchem/BCPO_FC_4x5.bpch'
 
       ! If GCAP:
