@@ -1622,6 +1622,9 @@
       USE TRACERID_MOD, ONLY : IDTNAP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#if defined( TOMAS )
+      USE TRACERID_MOD,       ONLY : IDTDUST1
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1952,7 +1955,16 @@
       !---------------------------------
       ! Error check DUST AEROSOLS
       !---------------------------------
+#if defined( TOMAS )
+
+      ! For TOMAS only: If DUST1 is present, the other dust tracers are too
+      I = IDTDUST1
+#else
+
+      ! Non-TOMAS simulations: Need all DST1-DST4 tracers
       I = IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4
+
+#endif
 
       IF ( LDUST ) THEN
          IF ( I == 0 ) THEN
