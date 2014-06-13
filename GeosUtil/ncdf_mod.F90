@@ -2290,6 +2290,7 @@
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  13 Jun 2014 - R. Yantosca - Avoid array temporaries 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2301,35 +2302,40 @@
       
       ! Arrays for netCDF start and count values
       INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays
+      INTEGER            :: v_size
 
       !=================================================================
       ! Define lon/lat
       !=================================================================
 
       ! Write lon to netCDF file
-      st1d   = (/ 1 /)
-      ct1d   = (/ size(lon,1) /)
       v_name = "lon"
+      v_size = size( lon, 1 )
+      st1d   = (/ 1      /)
+      ct1d   = (/ v_size /)
       CALL NcWr( lon, fId, TRIM(v_name), st1d, ct1d )
 
       ! Write lat to netCDF file
-      st1d   = (/ 1 /)
-      ct1d   = (/ size(lat,1) /)
       v_name = "lat"
+      v_size = size( lat, 1 ) 
+      st1d   = (/ 1      /)
+      ct1d   = (/ v_size /)
       CALL NcWr( lat, fId, TRIM(v_name), st1d, ct1d )
 
       ! Write lev to netCDF file
       IF ( PRESENT(lev) ) THEN
-         st1d   = (/ 1 /)
-         ct1d   = (/ size(lev,1) /)
          v_name = "lev"
+         v_size = size( lev, 1 )
+         st1d   = (/ 1      /)
+         ct1d   = (/ v_size /)
          CALL NcWr( lev, fId, TRIM(v_name), st1d, ct1d )
       ENDIF
 
       ! Write passed time integer to netCDF file
-      st1d   = (/ 1 /)
-      ct1d   = (/ size(time,1) /)
       v_name = "time"
+      v_size = size( time, 1 )
+      st1d   = (/ 1      /)
+      ct1d   = (/ v_size /)
       CALL NcWr( time, fId, TRIM(v_name), st1d, ct1d )
 
       END SUBROUTINE NC_WRITE_DIMS
