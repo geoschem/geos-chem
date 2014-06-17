@@ -2756,14 +2756,21 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER, ALLOCATABLE :: St(:), Ct(:)
-    INTEGER              :: I, nDim
+    ! Arrays
+    INTEGER :: St1d(1), Ct1d(1)
+    INTEGER :: St2d(2), Ct2d(2)
+    INTEGER :: St3d(3), Ct3d(3)
+    INTEGER :: St4d(4), Ct4d(4)
+
+    ! Scalars
+    INTEGER :: I, nDim
 
     !--------------------------------
     ! WRITE DATA 
@@ -2771,47 +2778,39 @@ CONTAINS
    
     ! 1D data 
     if ( present(Arr1d) ) then
-       nDim = 1
-       allocate( St(nDim), Ct(nDim) ) 
-       St(1) = 1
-       Ct(1) = size(Arr1d,1)
-       CALL NcWr( Arr1d, fId, trim(VarName), St, Ct )
+       nDim    = 1
+       St1d(1) = 1
+       Ct1d(1) = size(Arr1d,1)
+       CALL NcWr( Arr1d, fId, trim(VarName), St1d, Ct1d )
 
     ! 2D data 
     elseif ( present(arr2d) ) then
        nDim = 2
-       allocate( St(nDim), Ct(nDim) ) 
        do i=1,nDim
-          St(i) = 1
-          Ct(i) = size(Arr2d,i)
+          St2d(i) = 1
+          Ct2d(i) = size(Arr2d,i)
        enddo
-       CALL NcWr( Arr2d, fId, trim(VarName), St, Ct )
+       CALL NcWr( Arr2d, fId, trim(VarName), St2d, Ct2d )
 
     ! 3D data
     elseif ( present(arr3d) ) then
        nDim = 3
-       allocate( St(nDim), Ct(nDim) ) 
        do i=1,nDim
-          St(i) = 1
-          Ct(i) = size(Arr3d,i)
+          St3d(i) = 1
+          Ct3d(i) = size(Arr3d,i)
        enddo
-       CALL NcWr( Arr3d, fId, trim(VarName), St, Ct )
+       CALL NcWr( Arr3d, fId, trim(VarName), St3d, Ct3d )
 
     ! 4D data
     elseif ( present(arr4d) ) then
        nDim = 4
-       allocate( St(nDim), Ct(nDim) ) 
        do i=1,nDim
-          St(i) = 1
-          Ct(i) = size(Arr4d,i)
+          St4d(i) = 1
+          Ct4d(i) = size(Arr4d,i)
        enddo
-       CALL NcWr( Arr4d, fId, trim(VarName), St, Ct )
+       CALL NcWr( Arr4d, fId, trim(VarName), St4d, Ct4d )
     endif
 
-    ! cleanup
-    if(allocated(St)) deallocate( St )
-    if(allocated(Ct)) deallocate( Ct )
- 
   END SUBROUTINE NC_VAR_WRITE_R8
 !EOC
 !------------------------------------------------------------------------------
@@ -2853,14 +2852,21 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER, ALLOCATABLE :: St(:), Ct(:)
-    INTEGER              :: I, nDim
+    ! Arrays
+    INTEGER :: St1d(1), Ct1d(1)
+    INTEGER :: St2d(2), Ct2d(2)
+    INTEGER :: St3d(3), Ct3d(3)
+    INTEGER :: St4d(4), Ct4d(4)
+
+    ! Scalars
+    INTEGER :: I, nDim
 
     !--------------------------------
     ! WRITE DATA 
@@ -2868,46 +2874,38 @@ CONTAINS
    
     ! 1D data 
     if ( present(Arr1d) ) then
-       nDim = 1
-       allocate( St(nDim), Ct(nDim) ) 
-       St(1) = 1
-       Ct(1) = size(Arr1d,1)
-       CALL NcWr( Arr1d, fId, trim(VarName), St, Ct )
+       nDim    = 1
+       St1d(1) = 1
+       Ct1d(1) = size(Arr1d,1)
+       CALL NcWr( Arr1d, fId, trim(VarName), St1d, Ct1d )
 
     ! 2D data 
     elseif ( present(arr2d) ) then
        nDim = 2
-       allocate( St(nDim), Ct(nDim) ) 
        do i=1,nDim
-          St(i) = 1
-          Ct(i) = size(Arr2d,i)
+          St2d(i) = 1
+          Ct2d(i) = size(Arr2d,i)
        enddo
-       CALL NcWr( Arr2d, fId, trim(VarName), St, Ct )
+       CALL NcWr( Arr2d, fId, trim(VarName), St2d, Ct2d )
 
     ! 3D data
     elseif ( present(arr3d) ) then
        nDim = 3
-       allocate( St(nDim), Ct(nDim) ) 
        do i=1,nDim
-          St(i) = 1
-          Ct(i) = size(Arr3d,i)
+          St3d(i) = 1
+          Ct3d(i) = size(Arr3d,i)
        enddo
-       CALL NcWr( Arr3d, fId, trim(VarName), St, Ct )
+       CALL NcWr( Arr3d, fId, trim(VarName), St3d, Ct3d )
 
     ! 4D data
     elseif ( present(arr4d) ) then
        nDim = 4
-       allocate( St(nDim), Ct(nDim) ) 
        do i=1,nDim
-          St(i) = 1
-          Ct(i) = size(Arr4d,i)
+          St4d(i) = 1
+          Ct4d(i) = size(Arr4d,i)
        enddo
-       CALL NcWr( Arr4d, fId, trim(VarName), St, Ct )
+       CALL NcWr( Arr4d, fId, trim(VarName), St4d, Ct4d )
     endif
-
-    ! cleanup
-    if(allocated(St)) deallocate( St )
-    if(allocated(Ct)) deallocate( Ct )
  
   END SUBROUTINE NC_VAR_WRITE_R4
 !EOC
@@ -2950,14 +2948,21 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
+!  16 Jun 2014 - R. Yantosca - Now use simple arrays instead of allocating
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER, ALLOCATABLE :: St(:), Ct(:)
-    INTEGER              :: I, nDim
+    ! Arrays
+    INTEGER :: St1d(1), Ct1d(1)
+    INTEGER :: St2d(2), Ct2d(2)
+    INTEGER :: St3d(3), Ct3d(3)
+    INTEGER :: St4d(4), Ct4d(4)
+
+    ! Scalars
+    INTEGER :: I, nDim
 
     !--------------------------------
     ! WRITE DATA 
@@ -2965,47 +2970,39 @@ CONTAINS
    
     ! 1D data 
     if ( present(Arr1d) ) then
-       nDim = 1
-       allocate( St(nDim), Ct(nDim) ) 
-       St(1) = 1
-       Ct(1) = size(Arr1d,1)
-       CALL NcWr( Arr1d, fId, trim(VarName), St, Ct )
+       nDim    = 1
+       St1d(1) = 1
+       Ct1d(1) = size(Arr1d,1)
+       CALL NcWr( Arr1d, fId, trim(VarName), St1d, Ct1d )
 
     ! 2D data 
     elseif ( present(arr2d) ) then
        nDim = 2
-       allocate( St(nDim), Ct(nDim) ) 
        do i=1,nDim
-          St(i) = 1
-          Ct(i) = size(Arr2d,i)
+          St2d(i) = 1
+          Ct2d(i) = size(Arr2d,i)
        enddo
-       CALL NcWr( Arr2d, fId, trim(VarName), St, Ct )
+       CALL NcWr( Arr2d, fId, trim(VarName), St2d, Ct2d )
 
     ! 3D data
     elseif ( present(arr3d) ) then
        nDim = 3
-       allocate( St(nDim), Ct(nDim) ) 
        do i=1,nDim
-          St(i) = 1
-          Ct(i) = size(Arr3d,i)
+          St3d(i) = 1
+          Ct3d(i) = size(Arr3d,i)
        enddo
-       CALL NcWr( Arr3d, fId, trim(VarName), St, Ct )
+       CALL NcWr( Arr3d, fId, trim(VarName), St3d, Ct3d )
 
     ! 4D data
     elseif ( present(arr4d) ) then
        nDim = 4
-       allocate( St(nDim), Ct(nDim) ) 
        do i=1,nDim
-          St(i) = 1
-          Ct(i) = size(Arr4d,i)
+          St4d(i) = 1
+          Ct4d(i) = size(Arr4d,i)
        enddo
-       CALL NcWr( Arr4d, fId, trim(VarName), St, Ct )
+       CALL NcWr( Arr4d, fId, trim(VarName), St4d, Ct4d )
     endif
 
-    ! cleanup
-    if(allocated(St)) deallocate( St )
-    if(allocated(Ct)) deallocate( Ct )
- 
   END SUBROUTINE NC_VAR_WRITE_INT
 !EOC
 END MODULE NCDF_MOD
