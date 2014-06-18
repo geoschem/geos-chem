@@ -322,6 +322,7 @@
 !  07 Feb 2014 - R. Yantosca   - !$OMP DO loops now go in L-J-I order
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  18 Jun 2014 - S. D. Eastham - Now read data for individual NOx species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -489,7 +490,9 @@
          ! Stratospheric NOy
          IF (LSETNOYSTRAT) THEN
             IF ( am_I_Root ) THEN
-               WRITE(6,*) '|NOx      |HNO3     |         |'
+               WRITE(6,*) '|NO       |NO2      |NO3      |'
+               WRITE(6,*) '|---------|---------|---------|'
+               WRITE(6,*) '|HNO2     |HNO3     |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
 
@@ -502,7 +505,22 @@
      &                         Input_Opt, State_Met, State_Chm )
 
             TRAC_IDX = IDTNO
-            TRAC_SET = 'NOX'
+            TRAC_SET = 'NO'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+
+            TRAC_IDX = IDTNO2
+            TRAC_SET = 'NO2'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+
+            TRAC_IDX = IDTNO3
+            TRAC_SET = 'NO3'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+
+            TRAC_IDX = IDTHNO2
+            TRAC_SET = 'HONO'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
          ENDIF
