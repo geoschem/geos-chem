@@ -44,7 +44,7 @@
 !  (34 ) IDRCHO    (INTEGER) : RCHO   index w/in CSPEC array ("comode_mod.f") 
 !  (35 ) IDMVK     (INTEGER) : MVK    index w/in CSPEC array ("comode_mod.f") 
 !  (36 ) IDMACR    (INTEGER) : MACR   index w/in CSPEC array ("comode_mod.f") 
-!  (37 ) IDISN2    (INTEGER) : ISN2   index w/in CSPEC array ("comode_mod.f") 
+!  (37 ) IDISN1    (INTEGER) : ISN1   index w/in CSPEC array ("comode_mod.f") 
 !  (38 ) IDR4N2    (INTEGER) : R4N2   index w/in CSPEC array ("comode_mod.f")
 !  (39 ) IDCH2O    (INTEGER) : CH2O   index w/in CSPEC array ("comode_mod.f")
 !  (40 ) IDC2H6    (INTEGER) : C2H6   index w/in CSPEC array ("comode_mod.f")
@@ -72,7 +72,7 @@
 !  (62 ) IDTMACR   (INTEGER) : MACR  index w/in STT array ("tracer_mod.f")    
 !  (63 ) IDTPMN    (INTEGER) : PMN   index w/in STT array ("tracer_mod.f")    
 !  (64 ) IDTPPN    (INTEGER) : PPN   index w/in STT array ("tracer_mod.f")    
-!  (65 ) IDTISN2   (INTEGER) : ISN2  index w/in STT array ("tracer_mod.f")     
+!  (65 ) IDTISN1   (INTEGER) : ISN1  index w/in STT array ("tracer_mod.f")     
 !  (66 ) IDTR4N2   (INTEGER) : R4N2  index w/in STT array ("tracer_mod.f")    
 !  (67 ) IDTPRPE   (INTEGER) : PRPE  index w/in STT array ("tracer_mod.f")    
 !  (68 ) IDTC3H8   (INTEGER) : C3H8  index w/in STT array ("tracer_mod.f")    
@@ -254,33 +254,53 @@
       REAL*8             :: CTRMB(NNNTRID,MMMEMBER)
      
       ! ID's for SMVGEAR species
-      INTEGER            :: IDO3,    IDNO2,    IDNO3,   IDNO,    IDHNO2
-      INTEGER            :: IDN2O5,  IDHNO4,   IDHC1
-      INTEGER            :: IDCO,    IDPRPE,   IDISOP,  IDALK4,  IDC3H8
-      INTEGER            :: IDPAN,   IDGLPAN,  IDGPAN,  IDPMN,   IDPPN
-      INTEGER            :: IDHNO3,  IDOH,     IDHO2,   IDH2O2,  IDACET
-      INTEGER            :: IDMEK,   IDALD2,   IDRCHO,  IDMVK,   IDMACR
-      INTEGER            :: IDISN2,  IDR4N2,   IDCH2O,  IDC2H6,  IDMP
-      INTEGER            :: IDDMS,   IDSO2,    IDSO4,   IDMSA
-      INTEGER            :: IDDRYO3, IDDRYPAN, IDDRYNO2, IDSO4s         
+      INTEGER            :: IDNO,   IDO3,   IDPAN,  IDCO,    IDALK4
+      INTEGER            :: IDISOP, IDHNO3, IDH2O2, IDACET,  IDMEK
+      INTEGER            :: IDALD2, IDRCHO, IDMVK,  IDMACR,  IDPMN
+      INTEGER            :: IDPPN,  IDR4N2, IDPRPE, IDC3H8,  IDCH2O
+      INTEGER            :: IDC2H6, IDN2O5, IDHNO4, IDMP,    IDDMS
+      INTEGER            :: IDGLPAN,IDGPAN, IDOH,   IDHO2,   IDHC1
+      INTEGER            :: IDSO2,  IDSO4,  IDSO4s, IDMSA,   IDNH3
+      INTEGER            :: IDNH4,  IDNIT,  IDNITs, IDBCPI,  IDBCPO
+      INTEGER            :: IDOCPI, IDOCPO, IDDST1, IDDST2,  IDDST3
+      INTEGER            :: IDDST4, IDSALA, IDSALC, IDBr2,   IDBr
+      INTEGER            :: IDHOBr, IDHBr,  IDBrNO2,IDBrNO3, IDCHBr3
+      INTEGER            :: IDBrO,  IDCH3Br,IDCH2Br2,IDMPN,  IDISOPN
+      INTEGER            :: IDPROPNN,IDHAC,  IDGLYC, IDMMN,  IDRIP 
+      INTEGER            :: IDIEPOX,IDMAP,  IDNO2,  IDNO3,   IDHNO2 
+      INTEGER            :: IDISN1, IDMGLY, IDETHLN,IDGLYX, IDHCOOH
+      INTEGER            :: IDACTA, IDMAOP, IDVRP,  IDETP,  IDATOOH
+      INTEGER            :: IDISNP, IDPMNN, IDMOBA
+      INTEGER            :: IDIAP,  IDINPN, IDMRP, IDPRPN
+      INTEGER            :: IDPP,   IDR4P,  IDRA3P, IDRB3P, IDRP
       ! IDs of aromatics not use (hotp 8/1/09)
-!      INTEGER            :: IDGLYX,  IDMGLY
 !      INTEGER            :: IDBENZ,  IDTOLU,   IDXYLE,  IDMONX
-      INTEGER            :: IDDRYGLYX, IDDRYMGLY
       INTEGER            :: IDC2H2, IDC2H4
-      INTEGER            :: IDMBO, IDGLYC
-      INTEGER            :: IDHAC
+      INTEGER            :: IDMBO
       INTEGER            :: IDAPAN, IDENPAN, IDMPAN, IDNIPAN
+
+      INTEGER            :: IDDRYNO2,   IDDRYO3,   IDDRYPAN
+      INTEGER            :: IDDRYHNO3,  IDDRYHNO2, IDDRYH2O2
+      INTEGER            :: IDDRYACET,  IDDRYPMN,  IDDRYPMNN
+      INTEGER            :: IDDRYPPN,   IDDRYISN1, IDDRYR4N2
+      INTEGER            :: IDDRYCH2O,  IDDRYGLYX, IDDRYMGLY
+      INTEGER            :: IDDRYGLYC,  IDDRYN2O5, IDDRYACTA
+      INTEGER            :: IDDRYHCOOH, IDDRYMAOP, IDDRYVRP
+      INTEGER            :: IDDRYETP,   IDDRYATOOH,IDDRYISNP
+      INTEGER            :: IDDRYISOPN, IDDRYMMN,  IDDRYETHLN
+      INTEGER            :: IDDRYPROPNN,IDDRYRIP, IDDRYIEPOX
+      INTEGER            :: IDDRYMAP,   IDDRYMVK, IDDRYMACR
+      INTEGER            :: IDDRYHAC,   IDDRYALD2, IDDRYNH3
+      INTEGER            :: IDDRYAPINE, IDDRYISOPNB, IDDRYISOPND
+      INTEGER            :: IDDRYIAP,  IDDRYINPN, IDDRYMP, IDDRYMRP
+      INTEGER            :: IDDRYPP,   IDDRYR4P, IDDRYRA3P, IDDRYPRPN
+      INTEGER            :: IDDRYRB3P, IDDRYRP
+
       INTEGER            :: IDDRYAPAN, IDDRYENPAN, IDDRYGLPAN
       INTEGER            :: IDDRYGPAN, IDDRYMPAN, IDDRYNIPAN
-      INTEGER            :: IDMPN
       ! jpp, 6/5/09, adding IDDRY__ id's for dry deposition
       INTEGER            :: IDDRYHOBr, IDDRYHBr, IDDRYBrNO3
 
-      ! jpp, 6/5/09: bromine id's
-      INTEGER            :: IDBr2,   IDBr,     IDBrO,  IDHOBr, IDHBr
-      INTEGER            :: IDBrNO2, IDBrNO3,  IDCHBr3, IDCH2Br2
-      INTEGER            :: IDCH3Br
 
       ! added for aromatic (dkh, 10/06/06)  
       INTEGER            :: IDLBRO2H, IDLBRO2N  
@@ -298,56 +318,46 @@
       INTEGER            :: IDPCOBCN, IDPCOBSE, IDPCOBW, IDPCOBRW
       INTEGER            :: IDPISOP
 
-      ! GEOS-CHEM tracer ID's
-      INTEGER            :: IDTNO,   IDTNO2,   IDTNO3,  IDTHNO2, IDTO3
-      INTEGER            :: IDTPAN,  IDTCO,    IDTALK4
-      INTEGER            :: IDTISOP, IDTHNO3,  IDTH2O2, IDTACET, IDTMEK
-      INTEGER            :: IDTALD2, IDTRCHO,  IDTMVK,  IDTMACR, IDTPMN
-      INTEGER            :: IDTPPN,  IDTISN2,  IDTR4N2, IDTPRPE, IDTC3H8
-      INTEGER            :: IDTCH2O, IDTMP,    IDTN2O5, IDTHNO4, IDTC2H6
-      INTEGER            :: IDTDMS,  IDTSO2,   IDTSO4,  IDTMSA,  IDTNH3
-      INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
-      INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
-      INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
-      INTEGER            :: IDTALPH, IDTALCO, IDTSOG1, IDTSOG2 
-      INTEGER            :: IDTSOG3, IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3
-      INTEGER            :: IDTSOA4
-      INTEGER            :: IDTHG0,  IDTHg2,  IDTHgP,  IDTAS
-      INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
-      INTEGER            :: IDTNITs
-      INTEGER            :: IDTBENZ, IDTTOLU,   IDTXYLE,  IDTMONX
-      INTEGER            :: IDTGLYX, IDTMGLY
-      INTEGER            :: IDTSOAG, IDTSOAM
-      INTEGER            :: IDTC2H2, IDTC2H4
-      INTEGER            :: IDTMBO,  IDTGLYC
-      INTEGER            :: IDTAPAN, IDTENPAN, IDTMPAN, IDTNIPAN
-      INTEGER            :: IDTGLPAN, IDTGPAN
-      INTEGER            :: IDTHAC
-      INTEGER            :: IDTISOPN
-      INTEGER            :: IDTPROPNN
-      INTEGER            :: IDTMOBA,  IDTMMN
-      INTEGER            :: IDTRIP
-      INTEGER            :: IDTIEPOX
-      INTEGER            :: IDTPYPAN,IDTMAP
-      INTEGER            :: IDTAP
-      INTEGER            :: IDTMPN
-      INTEGER            :: IDTETHLN  ! jaf, 2/26/14
+      ! GEOS-CHEM tracer IDT's
+      INTEGER :: IDTNO,    IDTO3,   IDTPAN,  IDTCO, IDTALK4
+      INTEGER :: IDTISOP,  IDTHNO3, IDTH2O2, IDTACET, IDTMEK
+      INTEGER :: IDTALD2,  IDTRCHO, IDTMVK,  IDTMACR, IDTPMN
+      INTEGER :: IDTPPN,   IDTR4N2, IDTPRPE, IDTC3H8, IDTCH2O
+      INTEGER :: IDTC2H6,  IDTN2O5, IDTHNO4, IDTMP, IDTDMS
+      INTEGER :: IDTOH
+      INTEGER :: IDTSO2,   IDTSO4,  IDTSO4s, IDTMSA, IDTNH3
+      INTEGER :: IDTNH4,   IDTNIT,  IDTNITs, IDTBCPI, IDTBCPO
+      INTEGER :: IDTOCPI,  IDTOCPO, IDTDST1, IDTDST2, IDTDST3
+      INTEGER :: IDTDST4,  IDTSALA, IDTSALC, IDTBr2,  IDTBrO, IDTBr
+      INTEGER :: IDTHOBr,  IDTHBr,  IDTBrNO2,IDTBrNO3, IDTCHBr3
+      INTEGER :: IDTCH2Br2, IDTMPN,   IDTISOPN,IDTMOBA, IDTPROPNN  
+      INTEGER :: IDTHAC,   IDTGLYC, IDTMMN,  IDTRIP 
+      INTEGER :: IDTIEPOX, IDTMAP,  IDTNO2,  IDTNO3, IDTHNO2 
+      INTEGER :: IDTISN1,  IDTMGLY, IDTETHLN,IDTGLYX, IDTHCOOH
+      INTEGER :: IDTACTA,  IDTMAOP, IDTVRP,  IDTETP,  IDTATOOH
+      INTEGER :: IDTISNP,  IDTPMNN, IDTCH3Br, IDTAPINE
+      INTEGER :: IDTIAP,   IDTINPN, IDTMRP,  IDTPRPN
+      INTEGER :: IDTPP,    IDTR4P,  IDTRA3P, IDTRB3P, IDTRP
+
+      INTEGER :: IDTRN,   IDTPB,    IDTBE7
+      INTEGER :: IDTALPH, IDTALCO,  IDTSOG1, IDTSOG2, IDTSOG3
+      INTEGER :: IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
+      INTEGER :: IDTHG0,  IDTHg2,   IDTHgP,  IDTAS
+      INTEGER :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq
+      INTEGER :: IDTBENZ, IDTTOLU,  IDTXYLE,IDTMONX
+      INTEGER :: IDTSOAG, IDTSOAM,  IDTC2H2, IDTC2H4
+      INTEGER :: IDTMBO,  IDTAP
+      INTEGER :: IDTAPAN, IDTENPAN, IDTMPAN, IDTNIPAN
+      INTEGER :: IDTGLPAN, IDTGPAN, IDTPYPAN
 
       ! For tagged Ox simulation
       INTEGER            :: IDTOxStrt, IDTOX
-
-      INTEGER            :: IDTHCOOH, IDTACTA  ! (mjc, 4/13/11)
 
       ! For POPs simulation (clf, 2/11/2011)
       INTEGER            :: IDTPOPPOC,  IDTPOPPBC,   IDTPOPG
 
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
-
-      !jpp, 6/5/09: bromine ids
-      INTEGER            :: IDTBr2,   IDTBr,   IDTBrO,  IDTHOBr, IDTHBr
-      INTEGER            :: IDTBrNO2, IDTBrNO3, IDTCHBr3, IDTCH2Br2
-      INTEGER            :: IDTCH3Br
 
       ! SOAudpate (hotp 6/15/09)
       ! semivolpoa: replace OCPO and OCPI with POA (hotp 2/17/09)
@@ -507,7 +517,7 @@
       ! GEOS-CHEM emission ID's
       INTEGER            :: IDENO,   IDEO3,    IDECO,   IDEPRPE, IDEC3H8
       INTEGER            :: IDEALK4, IDEC2H6,  IDEISOP, IDEACET, IDEMEK
-      INTEGER            :: IDEALD2, IDECH2O,  IDEHNO3
+      INTEGER            :: IDEALD2, IDECH2O,  IDEHNO3, IDEPAN
       INTEGER            :: NEMBIOG, NEMANTHRO
       INTEGER            :: IDEBENZ,  IDETOLU,   IDEXYLE,  IDEMONX
       INTEGER            :: IDEC2H2, IDEC2H4
@@ -517,13 +527,12 @@
       INTEGER            :: IDEHAC
       !%%%%(bmy 4/13/11)
       INTEGER            :: IDERCHO, IDEHCOOH, IDEACTA       
-      INTEGER            :: IDEPAN  ! PAN  (evf, Aug/12)        
       !jpp, 8/24/07: emission ID's for Br biogenic emissions in fullchem runs
       INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
       ! krt, 6/2/13 - for additional NEI08 emissions
       INTEGER            :: IDENO2, IDEHNO2 
       ! INTEGER          :: IDEMOH, IDEEOH, IDECH4
-
+      INTEGER            :: IDEAPINE
       ! SEAC4RS tracers (jaf, 6/13/13)
       INTEGER            :: IDEPCOFNE, IDEPCOFSE, IDEPCOFW, IDEPCOFRW
       INTEGER            :: IDEPCOBCN, IDEPCOBSE, IDEPCOBW, IDEPCOBRW
@@ -554,9 +563,8 @@
       INTEGER            :: IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       INTEGER            :: IDBCH2O, IDBC2H6
       INTEGER            :: IDBSO2,  IDBNH3
-
-      INTEGER            :: IDBBC,   IDBOC, IDBHNO3 !BB HNO3 (evf,09/15/11)
-      INTEGER            :: IDBCO2,  IDBPAN !added PAN emissions (evf, 09/09/11)
+      INTEGER            :: IDBBC,   IDBOC
+      INTEGER            :: IDBCO2,  IDBPAN, IDBHNO3
 !kjw
       INTEGER            :: IDBCH4
 !kjw
@@ -721,25 +729,14 @@
                COUNT_BB = COUNT_BB + 1
                IDBNO    = COUNT_BB
 
-            CASE ( 'NO2' )
-               IDTNO2   = N
-
-            CASE ( 'NO3' )
-               IDTNO3   = N
-
-            CASE ( 'HNO2' )
-               IDTHNO2  = N
-
             CASE ( 'O3' )
                IDTO3    = N
 
             CASE ( 'PAN' )
                IDTPAN   = N
-
-               !added for PAN (evf, 9/9/2011)             
                COUNT_BB = COUNT_BB + 1
                IDBPAN   = COUNT_BB
-               
+
             CASE ( 'CO' )
                COUNT    = COUNT + 1
                IDTCO    = N
@@ -801,6 +798,8 @@
                
             CASE ( 'HNO3' )
                IDTHNO3  = N
+               COUNT_BB = COUNT_BB + 1
+               IDBHNO3  = COUNT_BB
 
                !(fp) added for HNO3 (evf, 9/15/2011)             
                COUNT_BB = COUNT_BB + 1
@@ -903,10 +902,7 @@
             CASE ( 'HNO4' )
                IDTHNO4  = N
 
-            CASE ( 'MPN' )
-               IDTMPN  = N
-
-            CASE ( 'MP' )
+            CASE ( 'MP'   )
                IDTMP    = N
 
             !--------------------------------
@@ -1197,6 +1193,68 @@
             CASE ( 'CH3BR' )
                IDTCH3Br   = N
 
+            !-----------------
+            CASE ( 'MPN'  )
+               IDTMPN    = N
+
+            CASE ( 'ISNP' )
+               IDTISNP   = N
+
+            CASE ( 'MOBA' )
+               IDTMOBA   = N
+
+            CASE ( 'PROPNN' )
+               IDTPROPNN   = N
+
+            !--------------------------------
+            ! HAC
+            !--------------------------------
+            CASE ( 'HAC' )
+               COUNT    = COUNT + 1
+               IDTHAC   = N
+               IDBFHAC  = COUNT
+
+               COUNT_BB  = COUNT_BB + 1
+               IDBHAC    = COUNT_BB
+
+            !--------------------------------
+            ! GLYC
+            !--------------------------------
+            CASE ( 'GLYC' )
+               COUNT    = COUNT + 1
+               IDTGLYC  = N
+               IDBFGLYC = COUNT
+
+               COUNT_BB  = COUNT_BB + 1
+               IDBGLYC   = COUNT_BB
+          
+            CASE ( 'MMN' )
+               IDTMMN   = N
+
+            CASE (  'RIP'  )
+               IDTRIP    = N
+
+            CASE (  'IEPOX'  )
+               IDTIEPOX  = N
+
+            CASE (  'MAP'  )
+               IDTMAP    = N
+
+            CASE ( 'NO2' )
+               IDTNO2   = N
+
+            CASE ( 'NO3' )
+               IDTNO3   = N
+
+            CASE ( 'HNO2' )
+               IDTHNO2  = N
+
+            CASE ( 'ISN1' )
+               IDTISN1  = N
+
+            CASE (  'ETHLN'  )
+               IDTETHLN  = N
+
             !--------------------------------
             ! Dicarbonyls GLYX & MGLY
             !--------------------------------
@@ -1215,7 +1273,57 @@
 
                COUNT_BB  = COUNT_BB + 1
                IDBMGLY   = COUNT_BB
+      
+            CASE ( 'HCOOH' )
+               IDTHCOOH   = N
+            
+            CASE ( 'ACTA' )
+               IDTACTA   = N
+            
+            CASE ( 'MAOP' )
+               IDTMAOP   = N
+               
+            CASE ( 'VRP' )
+               IDTVRP   = N
 
+            CASE ( 'ETP' )
+               IDTETP   = N
+               
+            CASE ( 'ATOOH' )
+               IDTATOOH   = N
+               
+            CASE ( 'PMNN' )
+               IDTPMNN   = N
+               
+            CASE ( 'IAP' )
+               IDTIAP   = N
+  
+            CASE ( 'INPN' )
+               IDTINPN   = N
+            
+            CASE ( 'MRP' )
+               IDTMRP   = N
+               
+            CASE ( 'PRPN' )
+               IDTPRPN   = N
+            
+            CASE ( 'PP' )
+               IDTPP    = N
+
+            CASE ( 'R4P' )
+               IDTR4P   = N
+
+            CASE ( 'RA3P' )
+               IDTRA3P   = N
+
+            CASE ( 'RB3P' )
+               IDTRB3P   = N
+
+            CASE ( 'RP' )
+               IDTRP    = N
+
+            CASE ( 'APINE' )
+               IDTAPINE   = N
             !--------------------------------
             ! Aromatics tracers
             !--------------------------------
@@ -1298,28 +1406,6 @@
                IDTMBO   = N
 
             !--------------------------------
-            ! GLYC
-            !--------------------------------
-            CASE ( 'GLYC' )
-               COUNT    = COUNT + 1
-               IDTGLYC  = N
-               IDBFGLYC = COUNT
-
-               COUNT_BB  = COUNT_BB + 1
-               IDBGLYC   = COUNT_BB
-
-            !--------------------------------
-            ! HAC
-            !--------------------------------
-            CASE ( 'HAC' )
-               COUNT    = COUNT + 1
-               IDTHAC   = N
-               IDBFHAC  = COUNT
-
-               COUNT_BB  = COUNT_BB + 1
-               IDBHAC    = COUNT_BB
-
-            !--------------------------------
             ! new PAN species
             !--------------------------------
             CASE ( 'APAN' )
@@ -1340,39 +1426,11 @@
             CASE ( 'NIPAN' )
                IDTNIPAN   = N
 
-            !
-            !(fp, 6/09)
-            !
-
-            CASE ( 'ISOPN' )
-               IDTISOPN  = N
-
-            CASE ( 'PROPNN' )
-               IDTPROPNN = N
-
-            CASE ( 'AP' )
+             CASE ( 'AP' )
                IDTAP     = N
 
-            CASE (  'MOBA' )
-               IDTMOBA   = N
-
-            CASE (  'MMN' )
-               IDTMMN    = N
-
-            CASE (  'RIP'  )
-               IDTRIP    = N
-
-            CASE (  'IEPOX'  )
-               IDTIEPOX  = N
-
-            CASE (  'MAP'  )
-               IDTMAP    = N
-
-            CASE (  'PYPAN'  )
+             CASE (  'PYPAN'  )
                IDTPYPAN  = N
-
-            CASE (  'ETHLN'  )
-               IDTETHLN  = N
 
             !--------------------------------
             ! SEAC4RS tracers
@@ -2943,7 +3001,11 @@
            NEMBIOG    = NEMBIOG   + 1
            IDEISOP    = NEMANTHRO + NEMBIOG
          ENDIF
-         IF ( IDTGLYX > 0 ) THEN
+         IF ( IDTAPINE > 0 ) THEN
+           NEMBIOG    = NEMBIOG   + 1
+           IDEAPINE   = NEMBIOG
+         ENDIF
+        IF ( IDTGLYX > 0 ) THEN
             NEMBIOG   = NEMBIOG + 1
             IDEGLYX   = NEMANTHRO + NEMBIOG
          ENDIF
@@ -3090,6 +3152,7 @@
          WRITE( 6, 120 ) 'IDEO3   ', IDEO3
          WRITE( 6, 120 ) 'IDEHNO3 ', IDEHNO3
          WRITE( 6, 120 ) 'IDEISOP ', IDEISOP
+         WRITE( 6, 120 ) 'IDEAPINE ', IDEAPINE
          WRITE( 6, 120 ) 'IDEGLYX ', IDEGLYX
          WRITE( 6, 120 ) 'IDEMGLY ', IDEMGLY
          WRITE( 6, 120 ) 'IDEBENZ ', IDEBENZ
@@ -3224,26 +3287,18 @@
       NCS = NCSURBAN
 
       DO I = 1, NSPEC(NCS)
-         IF ( NAMEGAS(I) == 'O3'     ) IDO3     = I
-         IF ( NAMEGAS(I) == 'NO2'    ) IDNO2    = I
-         IF ( NAMEGAS(I) == 'NO3'    ) IDNO3    = I
-         IF ( NAMEGAS(I) == 'N2O5'   ) IDN2O5   = I
-         IF ( NAMEGAS(I) == 'HNO4'   ) IDHNO4   = I
-         IF ( NAMEGAS(I) == 'HNO2'   ) IDHNO2   = I
          IF ( NAMEGAS(I) == 'NO'     ) IDNO     = I
-         IF ( NAMEGAS(I) == 'CO'     ) IDCO     = I
-         IF ( NAMEGAS(I) == 'PRPE'   ) IDPRPE   = I
-         IF ( NAMEGAS(I) == 'C3H8'   ) IDC3H8   = I
-         IF ( NAMEGAS(I) == 'ISOP'   ) IDISOP   = I
-         IF ( NAMEGAS(I) == 'ALK4'   ) IDALK4   = I
+         IF ( NAMEGAS(I) == 'O3'     ) IDO3     = I
          IF ( NAMEGAS(I) == 'PAN'    ) IDPAN    = I
+         IF ( NAMEGAS(I) == 'CO'     ) IDCO     = I
+         IF ( NAMEGAS(I) == 'ALK4'   ) IDALK4   = I
+         IF ( NAMEGAS(I) == 'ISOP'   ) IDISOP   = I
+ !        IF ( NAMEGAS(I) == 'APINE'  ) IDAPINE  = I
          IF ( NAMEGAS(I) == 'GLPAN'  ) IDGLPAN  = I
          IF ( NAMEGAS(I) == 'GPAN'   ) IDGPAN   = I
-         IF ( NAMEGAS(I) == 'PMN'    ) IDPMN    = I
+         IF ( NAMEGAS(I) == 'PMN'    ) IDPMN   = I
          IF ( NAMEGAS(I) == 'PPN'    ) IDPPN    = I
          IF ( NAMEGAS(I) == 'HNO3'   ) IDHNO3   = I
-         IF ( NAMEGAS(I) == 'OH'     ) IDOH     = I
-         IF ( NAMEGAS(I) == 'HO2'    ) IDHO2    = I !(rvm, bmy, 2/27/02)
          IF ( NAMEGAS(I) == 'H2O2'   ) IDH2O2   = I
          IF ( NAMEGAS(I) == 'ACET'   ) IDACET   = I
          IF ( NAMEGAS(I) == 'MEK'    ) IDMEK    = I
@@ -3251,31 +3306,40 @@
          IF ( NAMEGAS(I) == 'RCHO'   ) IDRCHO   = I
          IF ( NAMEGAS(I) == 'MVK'    ) IDMVK    = I
          IF ( NAMEGAS(I) == 'MACR'   ) IDMACR   = I
-         IF ( NAMEGAS(I) == 'ISN2'   ) IDISN2   = I
+         IF ( NAMEGAS(I) == 'PMN'    ) IDPMN    = I
+         IF ( NAMEGAS(I) == 'PPN'    ) IDPPN    = I
          IF ( NAMEGAS(I) == 'R4N2'   ) IDR4N2   = I
+         IF ( NAMEGAS(I) == 'PRPE'   ) IDPRPE   = I
+         IF ( NAMEGAS(I) == 'C3H8'   ) IDC3H8   = I
          IF ( NAMEGAS(I) == 'CH2O'   ) IDCH2O   = I
          IF ( NAMEGAS(I) == 'C2H6'   ) IDC2H6   = I
-         IF ( NAMEGAS(I) == 'DMS'    ) IDDMS    = I !(rjp, bmy, 3/23/03)
-         IF ( NAMEGAS(I) == 'SO2'    ) IDSO2    = I !(rjp, bmy, 3/23/03)
-         IF ( NAMEGAS(I) == 'SO4'    ) IDSO4    = I !(rjp, bmy, 3/23/03)
-         IF ( NAMEGAS(I) == 'MSA'    ) IDMSA    = I !(rjp, bmy, 3/23/03)
-         IF ( NAMEGAS(I) == 'DRYNO2' ) IDDRYNO2 = I
-         IF ( NAMEGAS(I) == 'DRYPAN' ) IDDRYPAN = I
-         IF ( NAMEGAS(I) == 'DRYO3 ' ) IDDRYO3  = I
-!-Not used. (ccc, 01/27/10)
-!         IF ( NAMEGAS(I) == 'BENZ'   ) IDBENZ   = I 
-!         IF ( NAMEGAS(I) == 'TOLU'   ) IDTOLU   = I 
-!         IF ( NAMEGAS(I) == 'XYLE'   ) IDXYLE   = I 
-!         IF ( NAMEGAS(I) == 'MONX'   ) IDMONX   = I 
-!         IF ( NAMEGAS(I) == 'GLYX'   ) IDGLYX   = I
-!         IF ( NAMEGAS(I) == 'MGLY'   ) IDMGLY   = I
-         IF ( NAMEGAS(I) == 'DRYGLYX') IDDRYGLYX = I
-         IF ( NAMEGAS(I) == 'DRYMGLY') IDDRYMGLY = I
-         IF ( NAMEGAS(I) == 'C2H4'   ) IDC2H4    = I
-         IF ( NAMEGAS(I) == 'C2H2'   ) IDC2H2    = I
-         IF ( NAMEGAS(I) == 'MBO'    ) IDMBO     = I
-         IF ( NAMEGAS(I) == 'GLYC'   ) IDGLYC    = I
-         IF ( NAMEGAS(I) == 'HAC'    ) IDHAC     = I
+         IF ( NAMEGAS(I) == 'N2O5'   ) IDN2O5   = I
+         IF ( NAMEGAS(I) == 'HNO4'   ) IDHNO4   = I
+         IF ( NAMEGAS(I) == 'MP'     ) IDMP     = I
+         IF ( NAMEGAS(I) == 'DMS'    ) IDDMS    = I
+         IF ( NAMEGAS(I) == 'GLPAN'  ) IDGLPAN  = I
+         IF ( NAMEGAS(I) == 'OH'     ) IDOH     = I
+         IF ( NAMEGAS(I) == 'HO2'    ) IDHO2    = I
+         IF ( NAMEGAS(I) == 'GPAN'   ) IDGPAN   = I
+         IF ( NAMEGAS(I) == 'SO2'    ) IDSO2    = I
+         IF ( NAMEGAS(I) == 'SO4'    ) IDSO4    = I
+         IF ( NAMEGAS(I) == 'SO4s'   ) IDSO4s   = I
+         IF ( NAMEGAS(I) == 'MSA'    ) IDMSA    = I
+         IF ( NAMEGAS(I) == 'NH3'    ) IDNH3    = I
+         IF ( NAMEGAS(I) == 'NH4'    ) IDNH4    = I
+         IF ( NAMEGAS(I) == 'NIT'    ) IDNIT    = I
+         IF ( NAMEGAS(I) == 'NITs'   ) IDNITs   = I
+         IF ( NAMEGAS(I) == 'BCPI'   ) IDBCPI   = I
+         IF ( NAMEGAS(I) == 'BCPO'   ) IDBCPO   = I
+         IF ( NAMEGAS(I) == 'OCPI'   ) IDOCPI   = I
+         IF ( NAMEGAS(I) == 'OCPO'   ) IDOCPO   = I
+         IF ( NAMEGAS(I) == 'DST1'   ) IDDST1   = I
+         IF ( NAMEGAS(I) == 'DST2'   ) IDDST2   = I
+         IF ( NAMEGAS(I) == 'DST3'   ) IDDST3   = I
+         IF ( NAMEGAS(I) == 'DST4'   ) IDDST4   = I
+         IF ( NAMEGAS(I) == 'SALA'   ) IDSALA   = I
+         IF ( NAMEGAS(I) == 'SALC'   ) IDSALC   = I
+
          IF ( NAMEGAS(I) == 'APAN'   ) IDAPAN    = I
          IF ( NAMEGAS(I) == 'ENPAN'  ) IDENPAN   = I
          IF ( NAMEGAS(I) == 'MPAN'   ) IDMPAN    = I
@@ -3296,6 +3360,108 @@
          IF ( NAMEGAS(I) == 'DRYHOBr' ) IDDRYHOBr = I
          IF ( NAMEGAS(I) == 'DRYHBr'  ) IDDRYHBr  = I
          IF ( NAMEGAS(I) == 'DRYBrNO3') IDDRYBrNO3= I
+         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+         IF ( NAMEGAS(I) == 'MPN'    ) IDMPN    = I
+         IF ( NAMEGAS(I) == 'ISOPN'  ) IDISOPN  = I
+         IF ( NAMEGAS(I) == 'MOBA'   ) IDMOBA   = I
+         IF ( NAMEGAS(I) == 'PROPNN' ) IDPROPNN = I
+         IF ( NAMEGAS(I) == 'HAC'    ) IDHAC    = I
+         IF ( NAMEGAS(I) == 'GLYC'   ) IDGLYC   = I
+         IF ( NAMEGAS(I) == 'MMN'    ) IDMMN    = I
+         !IF ( NAMEGAS(I) == 'MVKN'   ) IDMVKN   = I
+         !IF ( NAMEGAS(I) == 'MACRN'  ) IDMACRN  = I
+         IF ( NAMEGAS(I) == 'RIP'    ) IDRIP    = I
+         IF ( NAMEGAS(I) == 'C2H4'   ) IDC2H4   = I
+         IF ( NAMEGAS(I) == 'C2H2'   ) IDC2H2   = I
+         IF ( NAMEGAS(I) == 'MBO'    ) IDMBO    = I
+         IF ( NAMEGAS(I) == 'IEPOX'  ) IDIEPOX  = I
+         IF ( NAMEGAS(I) == 'MAP'    ) IDMAP    = I
+         IF ( NAMEGAS(I) == 'NO2'    ) IDNO2    = I
+         IF ( NAMEGAS(I) == 'NO3'    ) IDNO3    = I
+         IF ( NAMEGAS(I) == 'HNO2'   ) IDHNO2   = I    
+         IF ( NAMEGAS(I) == 'ISN1'   ) IDISN1   = I    
+         IF ( NAMEGAS(I) == 'ETHLN'  ) IDETHLN  = I    
+         IF ( NAMEGAS(I) == 'GLYX'   ) IDGLYX   = I    
+         IF ( NAMEGAS(I) == 'HCOOH'  ) IDHCOOH  = I    
+         IF ( NAMEGAS(I) == 'ACTA'   ) IDACTA   = I    
+         IF ( NAMEGAS(I) == 'MAOP'   ) IDMAOP   = I    
+         IF ( NAMEGAS(I) == 'VRP'    ) IDVRP    = I    
+         IF ( NAMEGAS(I) == 'ETP'    ) IDETP    = I    
+         IF ( NAMEGAS(I) == 'ATOOH'  ) IDATOOH  = I    
+         IF ( NAMEGAS(I) == 'ISNP'   ) IDISNP   = I    
+         IF ( NAMEGAS(I) == 'PMNN'   ) IDPMNN   = I    
+         IF ( NAMEGAS(I) == 'IAP'    ) IDIAP    = I    
+         IF ( NAMEGAS(I) == 'INPN'   ) IDINPN   = I    
+         IF ( NAMEGAS(I) == 'MP'     ) IDMP     = I    
+         IF ( NAMEGAS(I) == 'MRP'    ) IDMRP    = I    
+         IF ( NAMEGAS(I) == 'PRPN'   ) IDPRPN   = I    
+         IF ( NAMEGAS(I) == 'PP'     ) IDPP     = I    
+         IF ( NAMEGAS(I) == 'R4P'    ) IDR4P    = I    
+         IF ( NAMEGAS(I) == 'RA3P'   ) IDRA3P   = I    
+         IF ( NAMEGAS(I) == 'RB3P'   ) IDRB3P   = I    
+         IF ( NAMEGAS(I) == 'RP'     ) IDRP     = I    
+
+         IF ( NAMEGAS(I) == 'APAN'   ) IDAPAN    = I
+         IF ( NAMEGAS(I) == 'ENPAN'  ) IDENPAN   = I
+         IF ( NAMEGAS(I) == 'MPAN'   ) IDMPAN    = I
+         IF ( NAMEGAS(I) == 'NIPAN'  ) IDNIPAN   = I
+ 
+
+         IF ( NAMEGAS(I) == 'DRYNO2' ) IDDRYNO2 = I
+         IF ( NAMEGAS(I) == 'DRYPAN' ) IDDRYPAN = I
+         IF ( NAMEGAS(I) == 'DRYO3 ' ) IDDRYO3  = I
+         IF ( NAMEGAS(I) == 'DRYHNO3') IDDRYHNO3  = I
+         IF ( NAMEGAS(I) == 'DRYHNO2') IDDRYHNO2  = I
+         IF ( NAMEGAS(I) == 'DRYH2O2') IDDRYH2O2  = I
+         IF ( NAMEGAS(I) == 'DRYACET') IDDRYACET  = I
+         IF ( NAMEGAS(I) == 'DRYPMN' ) IDDRYPMN   = I
+         IF ( NAMEGAS(I) == 'DRYPMNN') IDDRYPMNN  = I
+         IF ( NAMEGAS(I) == 'DRYIAP' ) IDDRYIAP   = I    
+         IF ( NAMEGAS(I) == 'DRYINPN') IDDRYINPN  = I    
+         IF ( NAMEGAS(I) == 'DRYMP'  ) IDDRYMP    = I    
+         IF ( NAMEGAS(I) == 'DRYMRP' ) IDDRYMRP   = I    
+         IF ( NAMEGAS(I) == 'DRYPRPN') IDDRYPRPN  = I    
+         IF ( NAMEGAS(I) == 'DRYPP'  ) IDDRYPP    = I    
+         IF ( NAMEGAS(I) == 'DRYR4P' ) IDDRYR4P   = I    
+         IF ( NAMEGAS(I) == 'DRYRA3P') IDDRYRA3P  = I    
+         IF ( NAMEGAS(I) == 'DRYRB3P') IDDRYRB3P  = I    
+         IF ( NAMEGAS(I) == 'DRYRP'  ) IDDRYRP    = I  
+         IF ( NAMEGAS(I) == 'DRYPPN' )  IDDRYPPN  = I
+         IF ( NAMEGAS(I) == 'DRYISN1' ) IDDRYISN1 = I
+         IF ( NAMEGAS(I) == 'DRYR4N2' ) IDDRYR4N2 = I
+         IF ( NAMEGAS(I) == 'DRYCH2O' ) IDDRYCH2O = I
+         IF ( NAMEGAS(I) == 'DRYGLYX' ) IDDRYGLYX = I
+         IF ( NAMEGAS(I) == 'DRYMGLY' ) IDDRYMGLY = I
+         IF ( NAMEGAS(I) == 'DRYGLYC' ) IDDRYGLYC = I
+         IF ( NAMEGAS(I) == 'DRYN2O5' ) IDDRYN2O5 = I
+         IF ( NAMEGAS(I) == 'DRYACTA' ) IDDRYACTA = I
+         IF ( NAMEGAS(I) == 'DRYHCOOH') IDDRYHCOOH = I
+         IF ( NAMEGAS(I) == 'DRYMAOP' ) IDDRYMAOP  = I
+         IF ( NAMEGAS(I) == 'DRYVRP'  ) IDDRYVRP   = I
+         IF ( NAMEGAS(I) == 'DRYETP'  ) IDDRYETP   = I
+         IF ( NAMEGAS(I) == 'DRYATOOH') IDDRYATOOH = I
+         IF ( NAMEGAS(I) == 'DRYISNP' ) IDDRYISNP  = I
+         IF ( NAMEGAS(I) == 'DRYISOPN') IDDRYISOPN = I
+         IF ( NAMEGAS(I) == 'DRYISOPND') IDDRYISOPND = I
+         IF ( NAMEGAS(I) == 'DRYISOPNB') IDDRYISOPNB = I
+         IF ( NAMEGAS(I) == 'DRYMMN  ') IDDRYMMN   = I
+         IF ( NAMEGAS(I) == 'DRYETHLN') IDDRYETHLN = I
+         IF ( NAMEGAS(I) == 'DRYPROPNN') IDDRYPROPNN = I
+         IF ( NAMEGAS(I) == 'DRYRIP'   ) IDDRYRIP  = I
+         IF ( NAMEGAS(I) == 'DRYIEPOX' ) IDDRYIEPOX = I
+         IF ( NAMEGAS(I) == 'DRYMAP'   ) IDDRYMAP  = I
+         IF ( NAMEGAS(I) == 'DRYMVK'   ) IDDRYMVK  = I
+         IF ( NAMEGAS(I) == 'DRYMACR'  ) IDDRYMACR = I
+         IF ( NAMEGAS(I) == 'DRYHAC'   ) IDDRYHAC  = I
+         IF ( NAMEGAS(I) == 'DRYALD2'  ) IDDRYALD2 = I
+         IF ( NAMEGAS(I) == 'DRYNH3'   ) IDDRYNH3  = I
+!         IF ( NAMEGAS(I) == 'DRYAPINE' ) IDDRYAPINE = I
+
+!-Not used. (ccc, 01/27/10)
+!         IF ( NAMEGAS(I) == 'BENZ'   ) IDBENZ   = I 
+!         IF ( NAMEGAS(I) == 'TOLU'   ) IDTOLU   = I 
+!         IF ( NAMEGAS(I) == 'XYLE'   ) IDXYLE   = I 
+!         IF ( NAMEGAS(I) == 'MONX'   ) IDMONX   = I 
          ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
          IF ( NAMEGAS(I) == 'DRYAPAN' )  IDDRYAPAN  = I
@@ -4295,27 +4461,18 @@
       INTEGER              :: AS
 
       ! SMVGEAR species ID #'s
-      IDO3      = 0
-      IDNO2     = 0
-      IDNO3     = 0 
-      IDN2O5    = 0
-      IDHNO4    = 0
-      IDHC1     = 0
       IDNO      = 0
-      IDHNO2    = 0
-      IDCO      = 0
-      IDPRPE    = 0
-      IDISOP    = 0
-      IDALK4    = 0
-      IDC3H8    = 0
+      IDO3      = 0
       IDPAN     = 0
+      IDCO      = 0
+      IDALK4    = 0
+      IDISOP    = 0
+!      IDAPINE   = 0
+
       IDGLPAN   = 0
       IDGPAN    = 0
-      IDPMN     = 0
-      IDPPN     = 0
+      IDPMN    = 0
       IDHNO3    = 0
-      IDOH      = 0
-      IDHO2     = 0
       IDH2O2    = 0
       IDACET    = 0
       IDMEK     = 0
@@ -4323,33 +4480,137 @@
       IDRCHO    = 0 
       IDMVK     = 0
       IDMACR    = 0
-      IDISN2    = 0
+      IDPMN     = 0
+      IDPPN     = 0
       IDR4N2    = 0
+      IDPRPE    = 0
+      IDC3H8    = 0
       IDCH2O    = 0
       IDC2H6    = 0
+      IDN2O5    = 0
+      IDHNO4    = 0
       IDMP      = 0
       IDDMS     = 0
+      IDGLPAN   = 0
+      IDGPAN    = 0
+      IDOH      = 0
       IDSO2     = 0
       IDSO4     = 0
+      IDSO4s    = 0
       IDMSA     = 0
-      IDDRYO3   = 0
-      IDDRYPAN  = 0
-      IDDRYNO2  = 0       
-!- Not used (ccc, 01/27/10)
+      ! +++++++++++++++++
+      ! jpp for bromine
+      ! 6/5/09
+      IDBr2     = 0
+      IDBr      = 0
+      IDBrO     = 0
+      IDHBr     = 0
+      IDHOBr    = 0
+      IDBrNO2   = 0
+      IDBrNO3   = 0
+      IDCHBr3   = 0
+      IDCH2Br2  = 0
+      IDCH3Br   = 0
+      ! +++++++++++++++++
+      IDMPN     = 0
+      IDISOPN   = 0
+      IDMOBA    = 0
+      IDPROPNN  = 0
+      IDHAC     = 0
+      IDGLYC    = 0
+      IDMMN     = 0
+      IDRIP     = 0
+      IDIEPOX   = 0
+      IDMAP     = 0
+      IDNO2     = 0
+      IDNO3     = 0
+      IDHNO2    = 0
+      IDISN1    = 0
+      IDETHLN   = 0
+      IDGLYX    = 0
+      IDMGLY    = 0
+      IDHCOOH   = 0
+      IDACTA    = 0
+      IDMAOP    = 0
+      IDVRP     = 0
+      IDETP     = 0
+      IDATOOH   = 0
+      IDISNP    = 0
+      IDPMNN    = 0
+      IDIAP     = 0
+      IDINPN    = 0
+      IDMP      = 0
+      IDMRP     = 0
+      IDPRPN    = 0
+      IDPP      = 0
+      IDR4P     = 0
+      IDRA3P    = 0
+      IDRB3P    = 0
+      IDRP      = 0
+  
+      IDHO2     = 0
+      IDHC1     = 0
+
+ !- Not used (ccc, 01/27/10)
 !      IDBENZ    = 0
 !      IDTOLU    = 0
 !      IDXYLE    = 0
 !      IDMONX    = 0
-!      IDGLYX    = 0
-!      IDMGLY    = 0
-      IDDRYGLYX = 0
-      IDDRYMGLY = 0
+
+      IDDRYNO2   = 0
+      IDDRYO3    = 0
+      IDDRYPAN   = 0
+      IDDRYHNO3  = 0
+      IDDRYHNO2  = 0
+      IDDRYH2O2  = 0
+      IDDRYACET  = 0
+      IDDRYPMN   = 0
+      IDDRYPMNN  = 0
+      IDDRYPPN   = 0
+      IDDRYISN1  = 0
+      IDDRYR4N2  = 0
+      IDDRYCH2O  = 0
+      IDDRYGLYX  = 0
+      IDDRYMGLY  = 0
+      IDDRYGLYC  = 0
+      IDDRYN2O5  = 0
+      IDDRYACTA  = 0
+      IDDRYHCOOH = 0
+      IDDRYMAOP  = 0
+      IDDRYVRP   = 0
+      IDDRYETP   = 0
+      IDDRYATOOH = 0
+      IDDRYISNP  = 0
+      IDDRYISOPN = 0
+      IDDRYISOPND = 0
+      IDDRYISOPNB = 0
+      IDDRYMMN   = 0
+      IDDRYETHLN = 0
+      IDDRYPROPNN = 0
+      IDDRYRIP    = 0
+      IDDRYIEPOX  = 0
+      IDDRYMAP    = 0
+      IDDRYMVK    = 0
+      IDDRYMACR   = 0
+      IDDRYHAC    = 0
+      IDDRYALD2   = 0
+      IDDRYNH3    = 0
+      IDDRYAPINE  = 0
+
+      IDDRYIAP  = 0
+      IDDRYINPN = 0
+      IDDRYMP   = 0
+      IDDRYMRP  = 0
+      IDDRYPRPN = 0
+      IDDRYPP   = 0
+      IDDRYR4P  = 0
+      IDDRYRA3P = 0
+      IDDRYRB3P = 0
+      IDDRYRP   = 0
+  
       IDC2H4    = 0
       IDC2H2    = 0
       IDMBO     = 0
-      IDGLYC    = 0
-      IDHAC     = 0
-      IDMPN     = 0
 
       IDAPAN    = 0
       IDENPAN   = 0
@@ -4409,83 +4670,38 @@
       IDPISOP   = 0
 
       ! GEOS-CHEM Tracer ID #'s
-      IDTNO     = 0
-      IDTNO2    = 0
-      IDTNO3    = 0
-      IDTHNO2   = 0
-      IDTO3     = 0
-      IDTPAN    = 0
-      IDTCO     = 0
-      IDTH2     = 0 ! (hup, 7/14/2004)
-      IDTHD     = 0 ! (jaegle, 11/07/2005)
-      IDTALK4   = 0
-      IDTISOP   = 0
-      IDTHNO3   = 0
-      IDTH2O2   = 0
-      IDTACET   = 0
-      IDTMEK    = 0
-      IDTALD2   = 0
-      IDTRCHO   = 0
-      IDTMVK    = 0
-      IDTMACR   = 0
-      IDTPMN    = 0
-      IDTPPN    = 0
-      IDTISN2   = 0
-      IDTR4N2   = 0
-      IDTPRPE   = 0
-      IDTC3H8   = 0
-      IDTCH2O   = 0
-      IDTC2H6   = 0
-      IDTN2O5   = 0
-      IDTHNO4   = 0
-      IDTMP     = 0
-      IDTDMS    = 0 
-      IDTSO2    = 0 
-      IDTSO4    = 0    
-      IDTMSA    = 0 
-      IDTNH3    = 0 
-      IDTNH4    = 0 
-      IDTNIT    = 0 
-      IDTAS     = 0
-      IDTAHS    = 0
-      IDTNH4aq  = 0
-      IDTLET    = 0
-      IDTSO4aq  = 0
-      IDTBCPI   = 0
-      IDTOCPI   = 0
-      IDTBCPO   = 0
-      IDTOCPO   = 0
-      IDTOxStrt = 0
-      IDTOX     = 0  
-      IDTDST1   = 0
-      IDTDST2   = 0
-      IDTDST3   = 0
-      IDTDST4   = 0
-      IDTSALA   = 0
-      IDTSALC   = 0
-      IDTRN     = 0
-      IDTPB     = 0
-      IDTBE7    = 0
-      IDTGLYX   = 0
-      IDTMGLY   = 0
-      IDTBENZ   = 0
-      IDTTOLU   = 0
-      IDTXYLE   = 0
-      IDTMONX   = 0
-      IDTSOAG   = 0
-      IDTSOAM   = 0
-      IDTC2H4   = 0
-      IDTC2H2   = 0
-      IDTMBO    = 0
-      IDTGLYC   = 0
-      IDTHAC    = 0
-      IDTAPAN   = 0
-      IDTENPAN  = 0
-      IDTGLPAN  = 0
-      IDTGPAN   = 0
-      IDTMPAN   = 0
-      IDTNIPAN  = 0
-      IDTMPN    = 0
+      IDTNO      = 0
+      IDTO3      = 0
+      IDTPAN     = 0
+      IDTCO      = 0
+      IDTALK4    = 0
+      IDTISOP    = 0
+      IDTHNO3    = 0
+      IDTH2O2    = 0
+      IDTACET    = 0
+      IDTMEK     = 0
+      IDTALD2    = 0
+      IDTRCHO    = 0 
+      IDTMVK     = 0
+      IDTMACR    = 0
+      IDTPMN     = 0
+      IDTPPN     = 0
+      IDTR4N2    = 0
+      IDTPRPE    = 0
+      IDTC3H8    = 0
+      IDTCH2O    = 0
+      IDTC2H6    = 0
+      IDTN2O5    = 0
+      IDTHNO4    = 0
+      IDTMP      = 0
+      IDTDMS     = 0
+      IDTGLPAN   = 0
+      IDTGPAN    = 0
+      IDTOH      = 0
+      IDTSO2     = 0
+      IDTSO4     = 0
+      IDTSO4s    = 0
+      IDTMSA     = 0
       ! +++++++++++++++++
       ! jpp for bromine
       ! 6/5/09
@@ -4500,19 +4716,72 @@
       IDTCH2Br2  = 0
       IDTCH3Br   = 0
       ! +++++++++++++++++
-
-      !(fp, 6/09)
+      IDTMPN     = 0
       IDTISOPN   = 0
-      IDTAP      = 0
-      IDTPROPNN  = 0
       IDTMOBA    = 0
+      IDTPROPNN  = 0
+      IDTHAC     = 0
+      IDTGLYC    = 0
       IDTMMN     = 0
       IDTRIP     = 0
       IDTIEPOX   = 0
       IDTMAP     = 0
-      IDTPYPAN   = 0
+      IDTNO2     = 0
+      IDTNO3     = 0
+      IDTHNO2    = 0
+      IDTISN1    = 0
       IDTETHLN   = 0
- 
+      IDTGLYX    = 0
+      IDTMGLY    = 0
+      IDTHCOOH   = 0
+      IDTACTA    = 0
+      IDTMAOP    = 0
+      IDTVRP     = 0
+      IDTETP     = 0
+      IDTATOOH   = 0
+      IDTISNP    = 0
+      IDTPMNN    = 0
+      IDTAPINE   = 0
+      IDTIAP     = 0
+      IDTINPN    = 0
+      IDTMRP     = 0
+      IDTPRPN    = 0
+      IDTPP      = 0
+      IDTR4P     = 0
+      IDTRA3P    = 0
+      IDTRB3P    = 0
+      IDTRP      = 0
+
+      IDTH2     = 0 ! (hup, 7/14/2004)
+      IDTHD     = 0 ! (jaegle, 11/07/2005)
+      IDTAS     = 0
+      IDTAHS    = 0
+      IDTNH4aq  = 0
+      IDTLET    = 0
+      IDTSO4aq  = 0
+      IDTOxStrt = 0
+      IDTOX     = 0  
+      IDTRN     = 0
+      IDTPB     = 0
+      IDTBE7    = 0
+      
+      IDTMONX   = 0
+      IDTSOAG   = 0
+      IDTSOAM   = 0
+      IDTC2H4   = 0
+      IDTC2H2   = 0
+      IDTMBO    = 0
+      IDTAPAN   = 0
+      IDTENPAN  = 0
+      IDTGLPAN  = 0
+      IDTGPAN   = 0
+      IDTMPAN   = 0
+      IDTNIPAN  = 0
+           
+      !(fp, 6/09)
+      IDTAP      = 0
+      IDTPYPAN   = 0
+       
       ! SEAC4RS tracers (jaf, 6/13/13)
       IDTPCOFNE  = 0
       IDTPCOFSE  = 0
@@ -5080,6 +5349,8 @@
 
       ! Initialize IDBs for BIOMASS BURNING (hotp 8/24/09)
       IDBNO     = 0
+      IDBPAN    = 0
+      IDBHNO3   = 0
       IDBCO     = 0
       IDBALK4   = 0
       IDBACET   = 0
