@@ -27,7 +27,7 @@
       USE BIOMASS_MOD,        ONLY : BIOBGAS
       USE COMODE_MOD,         ONLY : JLOP,      REMIS,   VOLUME
       USE COMODE_MOD,         ONLY : IXSAVE,    IYSAVE,  IZSAVE
-      USE DIAG_MOD,           ONLY : AD28, AD29, AD12, AD32_bb
+      USE DIAG_MOD,           ONLY : AD12
       USE EMISSIONS_MOD,      ONLY : NOx_SCALING
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE GIGC_ErrCode_Mod

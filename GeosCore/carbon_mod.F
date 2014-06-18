@@ -7618,21 +7618,10 @@ ccc
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO L = 1, PBL_MAX
+         DO L = 1, LLTROP
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-
-            IF ( IS_BCPI ) EMIS_SAVE(I,J,IDTBCPI)  = 
-     &                     EMIS_SAVE(I,J,IDTBCPI)  + BCSRC(I,J,L,1)
-            IF ( IS_OCPI ) EMIS_SAVE(I,J,IDTOCPI)  =
-     &                     EMIS_SAVE(I,J,IDTOCPI)  + OCSRC(I,J,L,1)
-            IF ( IS_BCPO ) EMIS_SAVE(I,J,IDTBCPO)  =
-     &                     EMIS_SAVE(I,J,IDTBCPO)  + BCSRC(I,J,L,2)
-            IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO)  =
-     &                     EMIS_SAVE(I,J,IDTOCPO)  + OCSRC(I,J,L,2)
-            IF ( IS_BBVOC) EMIS_SAVE(I,J,IDTBBVOC) =
-     &                     EMIS_SAVE(I,J,IDTBBVOC) + BBVOC_EMIS(I,J,L)
-            
+            ! FIRST LEVEL
             IF ( L == 1 ) THEN 
                IF ( IS_ALPH  ) EMIS_SAVE(I,J,IDTALPH) = BIOG_ALPH(I,J)
                IF ( IS_LIMO ) THEN
@@ -7648,11 +7637,56 @@ ccc
                ! SEAC4RS SOA Tracers (jaf, 6/25/13)
                IF (IS_AVOC ) EMIS_SAVE(I,J,IDTAVOC) = AVOC_EMIS(I,J)
                IF (IS_BGSOA) EMIS_SAVE(I,J,IDTBGSOA)= BGSOA_EMIS(I,J)
+            ! IF STILL IN THE PBL
+            ELSEIF  (L .LE. PBL_MAX ) THEN
+               IF ( IS_BCPI ) EMIS_SAVE(I,J,IDTBCPI)  = 
+     &              EMIS_SAVE(I,J,IDTBCPI)  + BCSRC(I,J,L,1)
+               IF ( IS_OCPI ) EMIS_SAVE(I,J,IDTOCPI)  =
+     &              EMIS_SAVE(I,J,IDTOCPI)  + OCSRC(I,J,L,1)
+               IF ( IS_BCPO ) EMIS_SAVE(I,J,IDTBCPO)  =
+     &              EMIS_SAVE(I,J,IDTBCPO)  + BCSRC(I,J,L,2)
+               IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO)  =
+     &              EMIS_SAVE(I,J,IDTOCPO)  + OCSRC(I,J,L,2)
+               IF ( IS_BBVOC) EMIS_SAVE(I,J,IDTBBVOC) =
+     &              EMIS_SAVE(I,J,IDTBBVOC) + BBVOC_EMIS(I,J,L)
+            ELSE
+            ! ABOVE THE PBL  
+               ! Hydrophilic BLACK CARBON
+               IF ( IS_BCPI ) THEN
+                  STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) + 
+     &                 (  BCSRC(I,J,L,1) )
                ENDIF
-               ENDDO
-            ENDDO
+
+              ! Hydrophilic ORGANIC CARBON
+               IF ( IS_OCPI ) THEN
+                  STT(I,J,L,IDTOCPI) = STT(I,J,L,IDTOCPI) + 
+     &                 (  OCSRC(I,J,L,1) )
+               ENDIF
+            
+              ! Hydrophobic BLACK CARBON
+               IF ( IS_BCPO ) THEN
+                  STT(I,J,L,IDTBCPO) = STT(I,J,L,IDTBCPO) + 
+     &                 (  BCSRC(I,J,L,2) )
+               ENDIF
+
+              ! Hydrophobic ORGANIC CARBON
+               IF ( IS_OCPO ) THEN
+                  STT(I,J,L,IDTOCPO) = STT(I,J,L,IDTOCPO) + 
+     &                 (  OCSRC(I,J,L,2) )
+               ENDIF
+
+              ! Hydrophobic ORGANIC CARBON
+               IF ( IS_BBVOC ) THEN
+                  STT(I,J,L,IDTBBVOC) = STT(I,J,L,IDTBBVOC) + 
+     &                 (  BBVOC_EMIS(I,J,L) )
+               ENDIF
+
+            ENDIF
          ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
+         
       
          RETURN                 ! we don't need to use below
 
