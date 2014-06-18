@@ -547,6 +547,7 @@
                   BIOMASS(I,J,IDBNO)  = TEMP * NOFRAC
                   BIOMASS(I,J,IDBPAN) = TEMP * PANFRAC
                   BIOMASS(I,J,IDBHNO3) = TEMP * HNO3FRAC
+               ENDIF
 
                X = GET_XMID( I, J, 1 ) 
                Y = GET_YMID( I, J, 1 ) 
@@ -568,12 +569,8 @@
      &                 BIOMASS(I,J,IDBPCOBRW) = BIOMASS(I,J,IDBCO)
                ENDIF
             ENDDO
-            ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
-
-            ENDIF
-
-         ENDIF
 
          !==============================================================
          ! Do the following on every timestep:
