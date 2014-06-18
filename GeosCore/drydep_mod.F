@@ -199,7 +199,7 @@
 #else
       ! +3 for SEAC4RS SOA tracers (jaf, 6/24/13)
       !INTEGER, PARAMETER :: MAXDEP    = 55      ! Max # of depositing species
-      INTEGER, PARAMETER :: MAXDEP    = 58      ! Max # of depositing species
+      INTEGER, PARAMETER :: MAXDEP    = 70      ! Max # of depositing species
 !------------------------------------------------------------------------------
 ! This is in the std code (bmy, 10/30/13)
 !      ! SOAupdate: 55 to 105 jje (8/19/2010)
@@ -4531,6 +4531,31 @@
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
+
+         ! PMNN 
+         ELSE IF ( N == IDTPMNN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'PMNN'
+            NTRAIND(NUMDEP) = IDTPMNN
+            DEPNAME(NUMDEP) = 'PMNN'
+            HSTAR(NUMDEP)   = 1.0d+14 !same as HNO3
+!            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 1.0d0 !0.0d0
+            XMW(NUMDEP)     = 149d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! PPN (uses same dep vel as PAN)
+         ELSE IF ( N == IDTPPN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            NTRAIND(NUMDEP) = IDTPPN
+            DEPNAME(NUMDEP) = 'PPN'
+            HSTAR(NUMDEP)   = 1.0d+14 !same as HNO3
+!            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 1.0d0 !0d0
+            XMW(NUMDEP)     = 135d-3
+            AIROSOL(NUMDEP) = .FALSE.
          
          ! PYPAN (uses same dep vel as PAN)
          !FP_ISOP
@@ -4544,12 +4569,12 @@
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
 
-         ! ISN2 (uses same dep vel as HNO3)
-         ELSE IF ( N == IDTISN2 ) THEN
+         ! ISN1
+         ELSE IF ( N == IDTISN1 ) THEN
             NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTISN2
+            NTRAIND(NUMDEP) = IDTISN1
             NDVZIND(NUMDEP) = DRYDHNO3
-            DEPNAME(NUMDEP) = 'ISN2'
+            DEPNAME(NUMDEP) = 'ISN1'
             HSTAR(NUMDEP)   = 0d0
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 0d0
@@ -4825,7 +4850,7 @@
             XMW(NUMDEP)     = 105d-3
             AIROSOL(NUMDEP) = .FALSE.   
 
-         !ANIT
+         !PROPNN
          ELSE IF ( N == IDTPROPNN ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTPROPNN
@@ -4901,7 +4926,7 @@
             XMW(NUMDEP)     = 74d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-         !MACR
+         !ALD2
          ELSE IF ( N == IDTALD2 ) THEN
             NUMDEP          = NUMDEP + 1
             NDVZIND(NUMDEP) = NUMDEP
