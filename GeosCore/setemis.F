@@ -134,6 +134,10 @@
             ENDDO !L
          ENDDO
          ENDDO
+
+         ! testing only
+!         write(*,*) 'total REMIS of tracer ', NN , ': ', SUM(REMIS(:,N))
+
       ENDDO ! N
 
       END SUBROUTINE SETEMIS

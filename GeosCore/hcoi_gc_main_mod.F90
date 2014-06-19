@@ -100,9 +100,6 @@
       USE HCO_DRIVER_MOD,        ONLY : HCO_INIT
       USE HCOX_DRIVER_MOD,       ONLY : HCOX_INIT
       USE HCOI_GC_DIAGN_MOD,     ONLY : HCOI_DIAGN_INIT
-
-      ! testing only
-      USE HCO_STATE_MOD,         ONLY : HCO_GetHcoID 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -593,11 +590,6 @@
          RETURN
       ENDIF 
 
-      ! testing only
-      HcoDST1 = HCO_GetHcoID( 'NO', HcoState ) 
-      write(*,*) 'NO Trac_Tend after HCOX_RUN: ', &
-         SUM(HcoState%Spc(HcoDst1)%Emis%Val)
-
       !=================================================================
       ! Update diagnostics 
       !=================================================================
@@ -605,11 +597,6 @@
       CALL HCOI_DIAGN_UPDATE ( am_I_Root, HcoState, HMRC )
       IF( HMRC /= HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_UPDATE', LOC )
  
-      ! testing only
-      HcoDST1 = HCO_GetHcoID( 'NO', HcoState ) 
-      write(*,*) 'NO Trac_Tend after DIAGN_UPDATE: ', &
-         SUM(HcoState%Spc(HcoDst1)%Emis%Val)
-
 !-----------------------------------------------------------------------
       ! For now, make sure that dust emissions are just emitted
       ! into lowest layer. This is just a workaround until we
@@ -617,8 +604,7 @@
       ! TODO: needs nicer implementation
 !-----------------------------------------------------------------------
 
-      ! toggle (don't use in classic run)
-      IF ( ( ExtState%DustDead .OR. ExtState%DustGinoux) ) THEN 
+      IF ( ExtState%DustDead .OR. ExtState%DustGinoux ) THEN 
 
          ! Get HEMCO IDs
          HcoDST1 = HCO_GetHcoID( 'DST1', HcoState ) 
@@ -661,23 +647,12 @@
       ! end dust mixing 
       ENDIF
 
-      ! testing only
-      write(*,*) 'State_Chm%Trac_Tend NO before MAP_HCO2GC: ', &
-         SUM(State_Chm%Trac_Tend(:,:,:,1))
-
       ! ================================================================
-      ! Translate emissions array from HCO state onto GC arrays
-      ! This step also converts emissions from kg/m2/s to molec/cm2/s!
+      ! Translate emissions array from HCO state onto GC arrays.
+      ! Emissions remain in units of kg/m2/s
       ! ================================================================
       CALL MAP_HCO2GC ( HcoState, Input_Opt, State_Chm, RC )
      
-      ! testing only
-      HcoDST1 = HCO_GetHcoID( 'NO', HcoState ) 
-      write(*,*) 'NO Trac_Tend after MAP_HCO2GC: ', &
-         SUM(HcoState%Spc(HcoDst1)%Emis%Val)
-      write(*,*) 'State_Chm%Trac_Tend NO after MAP_HCO2GC: ', &
-         SUM(State_Chm%Trac_Tend(:,:,:,1))
-
       ! Reset deposition arrays  
       ! TODO: Do somewhere else? e.g. in drydep/wetdep routines?
       CALL RESET_DEP_N
@@ -801,8 +776,7 @@
 ! !DESCRIPTION: Function MAP\_HCO2GC fills the GEOS-Chem tracer
 ! tendency array (in chemistry state) with the corresponding emission
 ! values of the HCO state object. Regridding is performed if
-! necessary, and emissions are converted from kg/m2/s to molec/cm2/s 
-! or atoms C/cm2/s.
+! necessary. Emissions are kept in units of kg/m2/s. 
 !\\
 !\\
 ! !INTERFACE:
@@ -828,8 +802,8 @@
 !
 ! !REVISION HISTORY:
 !  01 May 2012 - C. Keller - Initial Version
-!  20 Aug 2013 - C. Keller - Now pass from HCO to chemistry state
-!  12 Sep 2013 - C. Keller - Now pass FluxOut instead of chemistry state
+!  20 Aug 2013 - C. Keller - Now pass from HEMOC state to chemistry state
+!  14 Sep 2013 - C. Keller - Now keep in units of kg/m2/s.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

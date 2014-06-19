@@ -146,9 +146,9 @@
       REAL(hp),ALLOCATABLE, TARGET :: SLBASE(:,:,:)
 
       ! testing only
-      integer, parameter :: ix = -1 !30 !19 
-      integer, parameter :: iy = -1 !6  !33 
-      integer, parameter :: iz = -1 !9  !9
+      integer, parameter :: ix = -1 !18 !30 !19 
+      integer, parameter :: iy = -1 !8  !6  !33 
+      integer, parameter :: iz = -1 !9  !9  !9
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -254,9 +254,6 @@
       !=================================================================
       IF ( IDTNO > 0 ) THEN
 
-         ! testing only
-         write(*,*) 'lightning NOx emissions: ', SUM(SLBASE)
-
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, SLBASE, IDTNO, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -269,10 +266,6 @@
                                AutoFill=1, Array3D=Arr3D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
             Arr3D => NULL() 
-
-            ! testing only
-            write(*,*) 'ExtNr, SLBASE: ', ExtNr, SUM(SLBASE)
-
          ENDIF
       ENDIF
 
@@ -364,6 +357,9 @@
       INTEGER           :: LNDTYPE, SFCTYPE
       REAL(hp), POINTER :: OTDLIS(:,:) => NULL()
 
+      ! testing only
+      real*8 :: slbtot
+
       !=================================================================
       ! LIGHTNOX begins here!
       !=================================================================
@@ -374,6 +370,9 @@
 
       ! Reset arrays 
       SLBASE = 0d0
+
+      ! testing only
+      slbtot = 0d0
 
       ! LMAX: the highest L-level to look for lightnox (usually LLPAR-1)
       LMAX   = HcoState%NZ - 1
@@ -498,6 +497,13 @@
 
             ! Find negative charge layer
             DO L = 1, LMAX
+
+               ! testing only
+               if(i==ix.and.j==iy)then
+                  write(*,*) 'i,j,l=',ix,iy,l
+                  write(*,*) 'T = ', ExtState%TK%Arr%Val(I,J,L)
+               endif 
+
                IF ( ExtState%TK%Arr%Val(I,J,L) <= T_NEG_CTR ) THEN
                   LCHARGE = L
                   EXIT
@@ -542,6 +548,9 @@
             ! testing only
             if(i==ix.and.j==iy)then
                write(*,*) 'i,y=',ix,iy
+               write(*,*) 'LCHARGE: ', LCHARGE
+               write(*,*) 'HCHARGE: ', HCHARGE
+               write(*,*) 'T_NEG_CTR: ', T_NEG_CTR
                write(*,*) 'P1,P2: ', P1,P2
                write(*,*) 'T1,T2: ', T1,T2
                write(*,*) 'DLNP: ', DLNP 
@@ -1015,7 +1024,6 @@
                CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF, &
                                ExtState, HcoState, SFCTYPE, cMt )
 
-               ! testing only
                if(i==ix.and.j==iy)then
                   write(*,*) 'LTOP: ', LTOP
                   write(*,*) 'H0: ', H0 
@@ -1039,6 +1047,9 @@
                      SLBASE(I,J,L) = 0.0_hp
 
                   ELSE
+                     ! testing only
+                     slbtot = slbtot + slbase(i,j,l)
+
                      ! Convert to kg/m2/s
                      ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
                      ! [molec/6h/box] * [6h/21600s] * [area/AREA_M2 m2] /
@@ -1055,6 +1066,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! testing only
+      write(*,*) 'slbtot (molec NOx/6h/box): ', slbtot
+ 
       ! Return w/ success
       OTDLIS => NULL()
       CALL HCO_LEAVE ( RC ) 
