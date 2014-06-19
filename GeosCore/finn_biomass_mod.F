@@ -410,9 +410,7 @@
          ! Directory with FINN emissions
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% KLUDGE FOR SEAC4RS: Moved FINN directory to /as/cache (bmy, 10/31/13)
-!%%%         ! FINN_DIR = 'FINN_201301/daily/'
-!%%%         !FINN_DIR = '/home/skim/FINN/FINN_files/daily/'
-         FINN_DIR = '/as/scratch/skim/FINN_files/'
+         FINN_DIR = '/home/skim/FINN/FINN_files/'         
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          TIME_STR = 'daily'
 
