@@ -17,6 +17,7 @@
 ! !USES:
 !
       USE FJX_ACET_MOD
+      USE FJX_ALD2_MOD
 
       USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
       USE CMN_SIZE_MOD, ONLY : LLPAR
@@ -216,6 +217,16 @@
 !------------------------------------------------------------------------------
                  call QQB(T(i),QQQA,K)
                  VALJ(J) = VALJ(J) + FFF(K,I)*QQQA
+
+! --------------------------
+! Acetaldehyde pressure dependency (eam, 13 Jun 2014)
+! Implementation is consistent with acetone calculation.
+! --------------------------
+              else if ( PF .eq. 5 ) then
+
+                 call QQA_ALD2(pj(i),QQQA,K)
+                 VALJ(J) = VALJ(J) + FFF(K,I)*QQQA
+
               endif
            endif
          enddo

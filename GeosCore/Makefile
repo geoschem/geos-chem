@@ -652,6 +652,8 @@ flambe_biomass_mod.o        : flambe_biomass_mod.F                           \
 	                      future_emissions_mod.o  logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o
 
+fjx_ald2_mod.o              : fjx_ald2_mod.F
+
 fjfunc.o                    : fjfunc.F
 
 fjx_acet_mod.o              : fjx_acet_mod.F
@@ -816,7 +818,8 @@ isoropiaII_mod.o            : isoropiaII_mod.F                               \
 
 jsparse.o                   : jsparse.F               comode_mod.o
 
-JRATET.o                    : JRATET.F                fjx_acet_mod.o
+JRATET.o                    : JRATET.F                fjx_acet_mod.o         \
+	 		      fjx_ald2_mod.o
 
 JVALUE.o                    : JVALUE.F
 
