@@ -276,7 +276,7 @@
       ! IDs of aromatics not use (hotp 8/1/09)
 !      INTEGER            :: IDBENZ,  IDTOLU,   IDXYLE,  IDMONX
       INTEGER            :: IDC2H2, IDC2H4
-      INTEGER            :: IDMBO
+      INTEGER            :: IDMBO, IDHC187
       INTEGER            :: IDAPAN, IDENPAN, IDMPAN, IDNIPAN
 
       INTEGER            :: IDDRYNO2,   IDDRYO3,   IDDRYPAN
@@ -346,7 +346,7 @@
       INTEGER :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq
       INTEGER :: IDTBENZ, IDTTOLU,  IDTXYLE,IDTMONX
       INTEGER :: IDTSOAG, IDTSOAM,  IDTC2H2, IDTC2H4
-      INTEGER :: IDTMBO,  IDTAP
+      INTEGER :: IDTMBO,  IDTAP, IDTHC187
       INTEGER :: IDTAPAN, IDTENPAN, IDTMPAN, IDTNIPAN
       INTEGER :: IDTGLPAN, IDTGPAN, IDTPYPAN
 
@@ -1405,6 +1405,8 @@
             CASE ( 'MBO' )
                IDTMBO   = N
 
+            CASE ( 'HC187' )
+               IDTHC187   = N
             !--------------------------------
             ! new PAN species
             !--------------------------------
@@ -3374,6 +3376,7 @@
          IF ( NAMEGAS(I) == 'C2H4'   ) IDC2H4   = I
          IF ( NAMEGAS(I) == 'C2H2'   ) IDC2H2   = I
          IF ( NAMEGAS(I) == 'MBO'    ) IDMBO    = I
+         IF ( NAMEGAS(I) == 'HC187'  ) IDHC187  = I
          IF ( NAMEGAS(I) == 'IEPOX'  ) IDIEPOX  = I
          IF ( NAMEGAS(I) == 'MAP'    ) IDMAP    = I
          IF ( NAMEGAS(I) == 'NO2'    ) IDNO2    = I
@@ -4611,6 +4614,7 @@
       IDC2H4    = 0
       IDC2H2    = 0
       IDMBO     = 0
+      IDHC187   = 0
 
       IDAPAN    = 0
       IDENPAN   = 0
@@ -4771,6 +4775,7 @@
       IDTC2H4   = 0
       IDTC2H2   = 0
       IDTMBO    = 0
+      IDTHC187  = 0
       IDTAPAN   = 0
       IDTENPAN  = 0
       IDTGLPAN  = 0

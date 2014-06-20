@@ -4650,6 +4650,17 @@
             !F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             !XMW(NUMDEP)     = 60d-3
 
+        ! HC187
+         ELSE IF ( N == IDTHC187 ) THEN!deposit like HNO3, krt (6/19/14)
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTHC187
+            DEPNAME(NUMDEP) = 'HC187'
+            NDVZIND(NUMDEP) = DRYDHNO3
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
          ! APAN (uses same dep vel as PAN)
          ELSE IF ( N == IDTAPAN ) THEN
             NUMDEP          = NUMDEP + 1
