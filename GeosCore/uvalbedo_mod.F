@@ -51,7 +51,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_UVALBEDO( MONTH, State_Met )
+      SUBROUTINE READ_UVALBEDO( am_I_Root, Input_Opt, 
+     &                          MONTH,     State_Met, RC )
 !
 !******************************************************************************
 !  Subroutine READ_UVALBEDO reads in UV albedo data from a binary punch
@@ -99,6 +100,8 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
@@ -106,6 +109,7 @@
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: MONTH
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       
       ! Local Variables
@@ -137,8 +141,11 @@
       ! Read UVALBEDO data from disk
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Create filename
-      FILENAME = TRIM( DATA_DIR )            // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )  // 
      &           'uvalbedo_200111/uvalbedo.' // GET_NAME_EXT_2D() //
      &           '.'                         // GET_RES_EXT()
 

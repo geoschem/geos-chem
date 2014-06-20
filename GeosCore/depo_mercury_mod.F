@@ -431,31 +431,39 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE MAKE_GTMM_RESTART( NYMD, NHMS, TAU )
+      SUBROUTINE MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
+     &                              NHMS,      TAU,       RC    )
 ! 
 ! !USES:
 !
       USE BPCH2_MOD
       USE DIAG_MOD,      ONLY : AD39, AD44, AD38
-      USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRACERID_MOD,  ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
       USE TIME_MOD,      ONLY : GET_CT_DYN, GET_CT_CHEM
       USE inquireMod,    ONLY : findFreeLUN
       USE CMN_SIZE_MOD                 ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)   :: NYMD    ! Year-Month-Date
-      INTEGER, INTENT(IN)   :: NHMS    ! and Hour-Min-Sec for which to create 
-                                       ! a restart file 
-      REAL*8,  INTENT(IN)   :: TAU     ! GEOS-CHEM TAU value corresponding to 
-                                       ! NYMD, NHMS
+      INTEGER,        INTENT(IN)   :: NYMD        ! Year-Month-Date
+      INTEGER,        INTENT(IN)   :: NHMS        ! and Hour-Min-Sec
+      REAL*8,         INTENT(IN)   :: TAU         ! TAU value: hrs since 1/1/85
+      LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
+
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  20 Jun 2014 - R. Yantosca - Remove reference to directory_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -475,6 +483,9 @@
       ! MAKE_GTMM_RESTART begins here!
       !=================================================================
     
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Initialize values
       IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
       JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
@@ -492,7 +503,7 @@
       IU_FILE   = findFreeLUN()
 
       ! Expand date in filename
-      FILENAME  = TRIM( RUN_DIR ) // TRIM( GTMM_RST_FILE )
+      FILENAME  = TRIM( Input_Opt%RUN_DIR ) // TRIM( GTMM_RST_FILE )
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
@@ -554,13 +565,14 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE READ_GTMM_RESTART( YYYYMMDD, HHMMSS, 
-     &                            Hg0dryGEOS, HgIIdryGEOS, HgIIwetGEOS )
+      SUBROUTINE READ_GTMM_RESTART( am_I_Root,   Input_Opt,  
+     &                              YYYYMMDD,    HHMMSS,     
+     &                              Hg0dryGEOS,  HgIIdryGEOS, 
+     &                              HgIIwetGEOS, RC )
 ! 
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
-      USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE ERROR_MOD,     ONLY : DEBUG_MSG
       USE FILE_MOD,      ONLY : IOERROR
       USE inquireMod,    ONLY : findFreeLun
@@ -568,15 +580,20 @@
       USE TRACER_MOD,    ONLY : TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,  ONLY : ID_Hg0,      ID_Hg2
-
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)   :: YYYYMMDD, HHMMSS
+      INTEGER,        INTENT(IN)    :: YYYYMMDD, HHMMSS
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
+      INTEGER,        I    NTENT(OUT)   :: RC          ! Success or failure?!
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg0dryGEOS
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: HgIIdryGEOS
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
@@ -610,11 +627,14 @@
       ! READ_GTMM_RESTART begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Find a free file LUN
       IU_FILE  = findFreeLUN()
 
       ! Copy input file name to a local variable
-      FILENAME = TRIM( RUN_DIR ) // TRIM( GTMM_RST_FILE )
+      FILENAME = TRIM( Input_Opt%RUN_DIR ) // TRIM( GTMM_RST_FILE )
     
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )

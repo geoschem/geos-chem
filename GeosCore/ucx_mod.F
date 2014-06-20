@@ -1568,7 +1568,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5859,7 +5858,6 @@
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -5921,7 +5919,7 @@
       !=================================================================
 
       ! Copy fields from INPUT_OPT
-      LPRT         = Input_Opt%LPRT
+      LPRT         = ( Input_Opt%LPRT .and. am_I_Root )
       LUCX         = Input_Opt%LUCX
       LFUTURECFC   = Input_Opt%LFUTURECFC
       LCH4SBC      = Input_Opt%LCH4SBC
@@ -5966,19 +5964,25 @@
 #endif
 
       ! Determine folder paths from root folder
-      IF (UCXNETCDF) THEN
-         WRITE(      AVG_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1),
+      IF (UCXNETCDF .and. am_I_Root ) THEN
+         WRITE( AVG_FILE_ROOT,'(a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1),
      &      'UCX_201403/Init2D/DiurnalAvg.nc'
-         WRITE(     NOON_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
-     &      'UCX_201403/Init2D/Noontime.nc'
-         WRITE( MONTREAL_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
-     &      'UCX_201403/Init1D/Montreal.nc'
+         WRITE( NOON_FILE_ROOT,'(a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1), 
+     &        'UCX_201403/Init2D/Noontime.nc'
+         WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1), 
+     &        'UCX_201403/Init1D/Montreal.nc'
       ELSE
-         WRITE(    AVG_FILE_ROOT,'(a,a,a)') TRIM(DATA_DIR_1x1),
+         WRITE( AVG_FILE_ROOT,'(a,a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1),
      &      'UCX_201403/DiurnalAvg/', TRIM(GRIDSPEC)
-         WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(DATA_DIR_1x1), 
-     &      'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
-         WRITE( MONTREAL_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
+         WRITE(   NOON_FILE_ROOT,'(a,a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1), 
+     &        'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
+         WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1), 
      &      'UCX_201403/Montreal/'
       ENDIF
   

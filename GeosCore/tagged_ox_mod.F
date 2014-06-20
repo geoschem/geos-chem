@@ -211,13 +211,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POX_LOX
+      SUBROUTINE READ_POX_LOX( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE BPCH2_MOD,     ONLY : GET_TAU0
-      USE DIRECTORY_MOD, ONLY : O3PL_DIR 
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TIME_MOD,      ONLY : GET_NYMD
       USE TIME_MOD,      ONLY : GET_TAU
@@ -233,9 +232,19 @@
       USE TIME_MOD,      ONLY : GET_HOUR
       USE DIAG_PL_MOD                                      !dbj
       USE JULDAY_MOD,    ONLY : JULDAY                     !dbj
-           
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE CMN_SIZE_MOD ! Size parameters
       USE CMN_DIAG_MOD ! LD65
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
@@ -327,7 +336,7 @@
 !------------------------------------------------------------------------------
 
       ! Prefix FILENAME w/ the proper directory
-      FILENAME = TRIM( O3PL_DIR ) // FILENAME
+      FILENAME = TRIM( Input_Opt%O3PL_DIR ) // FILENAME
 
       ! Echo information
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -736,7 +745,7 @@
 
       ! Read P(Ox) and L(Ox) if it's a new day
       IF ( ITS_A_NEW_DAY() ) THEN
-         CALL READ_POX_LOX()
+         CALL READ_POX_LOX( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Maximum extent of the PBL [model layers]

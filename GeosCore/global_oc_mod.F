@@ -38,8 +38,6 @@
 !
       ! Array to store global monthly mean OC field
       REAL*8, ALLOCATABLE :: OC(:,:,:)
-!      REAL*8, ALLOCATABLE :: OCPHIL(:,:,:)
-!      REAL*8, ALLOCATABLE :: OCPHOB(:,:,:)
 
       CONTAINS
 !EOC
@@ -57,23 +55,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_OC( THISMONTH, THISYEAR )
+      SUBROUTINE GET_GLOBAL_OC( am_I_Root, Input_Opt, 
+     &                          THISMONTH, THISYEAR, RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE CMN_SIZE_MOD        ! Size parameters
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH
+      INTEGER,        INTENT(IN)  :: THISYEAR
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: THISMONTH, THISYEAR
 !
 ! !REVISION HISTORY: 
 !  19 January 2011 - C.L. Friedman - Initial Version
+!  20 Jun 2014 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,6 +102,9 @@
       ! GET_GLOBAL_OC begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Allocate OC array, if this is the first call
       IF ( FIRST ) THEN
          CALL INIT_GLOBAL_OC
@@ -100,7 +112,7 @@
       ENDIF
 
       ! Filename
-      FILENAME = TRIM( DATA_DIR ) // 'POPs_201209/OCPO_FC_' //
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'POPs_201209/OCPO_FC_' //
      &           GET_RES_EXT()    // '.bpch'
 
       ! Echo some information to the standard output
@@ -168,16 +180,8 @@
       ALLOCATE( OC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC' )
 
-!      ALLOCATE( OCPHIL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPHIL' )
-
-!      ALLOCATE( OCHPOB( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPHOB' )
-
       ! Zero OC arrays
       OC = 0d0
-!      OCPHIL = 0d0
-!      OCPHOB = 0d0
 
       END SUBROUTINE INIT_GLOBAL_OC    
 !EOC

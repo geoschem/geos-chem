@@ -406,7 +406,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               c2h6_mod.o              carbon_mod.o           \
                               ch3i_mod.o              comode_mod.o           \
                               drydep_mod.o            dust_mod.o             \
-                              global_ch4_mod.o        h2_hd_mod.o            \
+                              global_ch4_mod.o                               \
                               hcn_ch3cn_mod.o         isoropiaII_mod.o       \
                               mercury_mod.o           optdepth_mod.o         \
                               pops_mod.o              rpmares_mod.o          \
@@ -433,8 +433,7 @@ cleanup.o                   : cleanup.F                                      \
                               global_ch4_mod.o        global_hno3_mod.o      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_o1d_mod.o        global_oc_mod.o        \
-                              global_oh_mod.o         h2_hd_mod.o            \
-                              hcn_ch3cn_mod.o                                \
+                              global_oh_mod.o         hcn_ch3cn_mod.o        \
                               isoropiaII_mod.o        land_mercury_mod.o     \
                                                       linoz_mod.o            \
                                                       mercury_mod.o          \

@@ -645,11 +645,6 @@
 ! !USES:
 !     
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
-      USE DIRECTORY_MOD,      ONLY : GEOS_4_DIR,  GEOS_5_DIR
-      USE DIRECTORY_MOD,      ONLY : MERRA_DIR,   GEOS_FP_DIR
-      USE DIRECTORY_MOD,      ONLY : RUN_DIR
-      USE DIRECTORY_MOD,      ONLY : TEMP_DIR   
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : SET_XOFFSET, SET_YOFFSET
@@ -716,8 +711,6 @@
       INTEGER            :: NYMDb, NHMSb 
       INTEGER            :: NYMDe, NHMSe
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-      CHARACTER(LEN=255) :: IN_RST_FILE
-      CHARACTER(LEN=255) :: OUT_RST_FILE
 
       !=================================================================
       ! READ_SIMULATION_MENU begins here!
@@ -733,11 +726,11 @@
 
       ! Run directory
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:3' )
-      READ( SUBSTRS(1:N), '(a)' ) RUN_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%RUN_DIR
 
       ! Input restart file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:4' )
-      READ( SUBSTRS(1:N), '(a)' ) IN_RST_FILE
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%IN_RST_FILE
 
       ! Make new restart file?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:5' )
@@ -745,39 +738,39 @@
 
       ! Output restart file(s)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:6' )
-      READ( SUBSTRS(1:N), '(a)' ) OUT_RST_FILE
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%OUT_RST_FILE
 
       ! Root data dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:7' )
-      READ( SUBSTRS(1:N), '(a)' ) DATA_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR
 
       ! GCAP subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:8' )
-      READ( SUBSTRS(1:N), '(a)' ) GCAP_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%GCAP_DIR
 
       ! GEOS-4 subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
-      READ( SUBSTRS(1:N), '(a)' ) GEOS_4_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%GEOS_4_DIR
 
       ! GEOS-5 subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
-      READ( SUBSTRS(1:N), '(a)' ) GEOS_5_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%GEOS_5_DIR
 
       ! GEOS-5.7.x subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
-      READ( SUBSTRS(1:N), '(a)' ) GEOS_FP_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%GEOS_FP_DIR
 
       ! MERRA subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
-      READ( SUBSTRS(1:N), '(a)' ) MERRA_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MERRA_DIR
 
       ! 1x1  dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
-      READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR_1x1
 
       ! Temp dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
-      READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TEMP_DIR
 
       ! Unzip met fields
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
@@ -793,7 +786,7 @@
 
       ! I0, J0
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:18' )
-      READ( SUBSTRS(1:N), *     ) I0, J0
+      READ( SUBSTRS(1:N), *     ) Input_Opt%I0, Input_Opt%J0
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
@@ -855,23 +848,10 @@
       Input_Opt%NYMDe         = NYMDe
       Input_Opt%NHMSe         = NHMSe
 #endif
-      Input_Opt%RUN_DIR       = RUN_DIR
-      Input_Opt%IN_RST_FILE   = IN_RST_FILE
       Input_Opt%LSVGLB        = LSVGLB
-      Input_Opt%OUT_RST_FILE  = OUT_RST_FILE
-      Input_Opt%DATA_DIR      = DATA_DIR
-      Input_Opt%GCAP_DIR      = GCAP_DIR
-      Input_Opt%GEOS_4_DIR    = GEOS_4_DIR
-      Input_Opt%GEOS_5_DIR    = GEOS_5_DIR
-      Input_Opt%GEOS_FP_DIR   = GEOS_FP_DIR
-      Input_Opt%MERRA_DIR     = MERRA_DIR
-      Input_Opt%DATA_DIR_1x1  = DATA_DIR_1x1
-      Input_Opt%TEMP_DIR      = TEMP_DIR
       Input_Opt%LUNZIP        = LUNZIP
       Input_Opt%LWAIT         = LWAIT
       Input_Opt%LVARTROP      = LVARTROP
-      Input_Opt%NESTED_I0     = I0
-      Input_Opt%NESTED_J0     = J0 
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -885,28 +865,28 @@
          WRITE( 6, 100 ) 'Start time of run           : ', NYMDb, NHMSb
          WRITE( 6, 100 ) 'End time of run             : ', NYMDe, NHMSe
          WRITE( 6, 110 ) 'Run directory               : ',
-     &                    TRIM( RUN_DIR )
+     &                    TRIM( Input_Opt% RUN_DIR )
          WRITE( 6, 110 ) 'Data Directory              : ',
-     &                    TRIM( DATA_DIR )
+     &                    TRIM( Input_Opt%DATA_DIR )
          WRITE( 6, 110 ) 'GCAP       sub-directory    : ', 
-     &                    TRIM( GCAP_DIR )
+     &                    TRIM( Input_Opt%GCAP_DIR )
          WRITE( 6, 110 ) 'GEOS-4     sub-directory    : ', 
-     &                    TRIM( GEOS_4_DIR )
+     &                    TRIM( Input_Opt%GEOS_4_DIR )
          WRITE( 6, 110 ) 'GEOS-5     sub-directory    : ', 
-     &                    TRIM( GEOS_5_DIR )
-         WRITE( 6, 110 ) 'GEOS-5.7.x sub-directory    : ', 
-     &                    TRIM( GEOS_FP_DIR )
+     &                    TRIM( Input_Opt%GEOS_5_DIR )
+         WRITE( 6, 110 ) 'GEOS-FP    sub-directory    : ', 
+     &                    TRIM( Input_Opt%GEOS_FP_DIR )
          WRITE( 6, 110 ) 'MERRA      sub-directory    : ', 
-     &                    TRIM( MERRA_DIR )
+     &                    TRIM( Input_Opt%MERRA_DIR )
          WRITE( 6, 110 ) '1x1 Emissions etc Data Dir  : ',
-     &                    TRIM( DATA_DIR_1x1 )
+     &                    TRIM( Input_Opt%DATA_DIR_1x1 )
          WRITE( 6, 110 ) 'Temporary Directory         : ', 
-     &                    TRIM( TEMP_DIR )
+     &                    TRIM( Input_Opt%TEMP_DIR )
          WRITE( 6, 110 ) 'Input restart file          : ', 
-     &                    TRIM( IN_RST_FILE )
+     &                    TRIM( Input_Opt%IN_RST_FILE )
          WRITE( 6, 120 ) 'Create restart file?        : ', LSVGLB
          WRITE( 6, 110 ) 'Output restart file(s)      : ', 
-     &                    TRIM( OUT_RST_FILE )
+     &                    TRIM( Input_Opt%OUT_RST_FILE )
          WRITE( 6, 120 ) 'Unzip met fields?           : ', LUNZIP
          WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
@@ -6548,9 +6528,6 @@
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR_NA, TPBC_DIR_EU, TPBC_DIR_CH
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR_SE
       USE LOGICAL_MOD,   ONLY : LWINDO,      LWINDO2x25,  LWINDO_CU
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,   LWINDO_CH
       USE LOGICAL_MOD,   ONLY : LWINDO_SE
@@ -6605,7 +6582,7 @@
 
       ! Directory where NA TPCORE BC's are stored
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:4' )
-      READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_NA
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_NA
 
       ! Save out TPCORE BC's over EU
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:5' )
@@ -6613,7 +6590,7 @@
 
       ! Directory where EU TPCORE BC's are stored
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:6' )
-      READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_EU
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_EU
 
       ! Save out TPCORE BC's over CH
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:7' )
@@ -6621,7 +6598,7 @@
 
       ! Directory where CH TPCORE BC's are stored
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:8' )
-      READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_CH
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_CH
 
       ! Save out TPCORE BC's over the SEAC4RS region
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:9' )
@@ -6629,7 +6606,7 @@
 
       ! Directory where SEAC4RS TPCORE BC's are stored
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:10' )
-      READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_SE
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_SE
 
       ! Save out TPCORE BC's over Custom Region
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:11' )
@@ -6637,7 +6614,7 @@
 
       ! Directory where TPCORE BC's are stored
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:12' )
-      READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR
 
       ! Timestep for 4x5 TPCORE BC's
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:13' )
@@ -6664,15 +6641,10 @@
       Input_Opt%LWINDO      = LWINDO
       Input_Opt%LWINDO2x25  = LWINDO2x25
       Input_Opt%LWINDO_NA   = LWINDO_NA
-      Input_Opt%TPBC_DIR_NA = TPBC_DIR_NA
       Input_Opt%LWINDO_EU   = LWINDO_EU
-      Input_Opt%TPBC_DIR_EU = TPBC_DIR_EU
       Input_Opt%LWINDO_CH   = LWINDO_CH
-      Input_Opt%TPBC_DIR_CH = TPBC_DIR_CH
       Input_Opt%LWINDO_SE   = LWINDO_SE
-      Input_Opt%TPBC_DIR_SE = TPBC_DIR_SE
       Input_Opt%LWINDO_CU   = LWINDO_CU
-      Input_Opt%TPBC_DIR    = TPBC_DIR
       Input_Opt%NESTED_TS   = TS
       Input_Opt%NESTED_I1   = I1
       Input_Opt%NESTED_J1   = J1
@@ -6692,7 +6664,7 @@
          WRITE( 6, '(  a)' ) '----------------'
          WRITE( 6, 100 ) 'Save TPCORE BC''s at 4x5     : ', LWINDO
          WRITE( 6, 110 ) 'Dir w/ archived OH files     : ', 
-     &                    TRIM( TPBC_DIR )
+     &                    TRIM( Input_Opt%TPBC_DIR )
          WRITE( 6, 120 ) 'Timestep for 4x5 BC''s [min] : ', TS
          WRITE( 6, 120 ) 'Bot left  box of 4x5 BC area : ', I1,  J1
          WRITE( 6, 120 ) 'Top right box of 4x5 BC area : ', I2,  J2
@@ -6827,7 +6799,6 @@
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD, ONLY : OH_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -6864,15 +6835,10 @@
 
       ! Directory where offline OH files are stored
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
-      READ( SUBSTRS(1:N), '(a)' ) OH_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%OH_DIR
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
-
-      !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%OH_DIR = OH_DIR
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -6883,7 +6849,8 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'ARCHIVED OH MENU'
          WRITE( 6, '(  a)' ) '-----------------'          
-         WRITE( 6, 100 ) 'Dir w/ archived OH files    : ', TRIM(OH_DIR)
+         WRITE( 6, 100 ) 'Dir w/ archived OH files    : ', 
+     &        TRIM( Input_Opt%OH_DIR )
       ENDIF
 
       ! FORMAT statements
@@ -6908,7 +6875,6 @@
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD, ONLY : O3PL_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -6942,15 +6908,10 @@
 
       ! Directory where archived P(O3) and L(O3) files are stored
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
-      READ( SUBSTRS(1:N), '(a)' ) O3PL_DIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%O3PL_DIR
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:2' )
-
-      !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%O3PL_DIR = O3PL_DIR
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -6962,7 +6923,7 @@
          WRITE( 6, '(/,a)' ) 'ARCHIVED O3PL MENU'
          WRITE( 6, '(  a)' ) '-------------------'          
          WRITE( 6, 100     ) 'Dir w/ archived O3 P/L files: ', 
-     &                       TRIM( O3PL_DIR )
+     &                       TRIM( Input_Opt%O3PL_DIR )
       ENDIF
 
       ! FORMAT statements

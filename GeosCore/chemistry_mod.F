@@ -98,7 +98,10 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
-      USE H2_HD_MOD,          ONLY : CHEM_H2_HD
+!-----------------------------------------------------------------------------
+! This is now obsolete.  Someone can reactivate this if they want.
+!      USE H2_HD_MOD,          ONLY : CHEM_H2_HD
+!-----------------------------------------------------------------------------
       USE HCN_CH3CN_MOD,      ONLY : CHEM_HCN_CH3CN
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
@@ -402,12 +405,6 @@
             ! ND43 chemical production
             CALL DIAGOH
  
-            ! Remove acetone ocean sink
-            ! Now done within HEMCO (ckeller, 05/19/14)
-!            IF ( IDTACET /= 0 ) THEN
-!               CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET), State_Met ) 
-!            ENDIF
-             
          !---------------------------------
          ! Offline aerosol simulation
          !---------------------------------
@@ -421,15 +418,6 @@
             ! Initialize FAST-JX quantities for computing AOD's
             IF ( FIRST ) THEN
 
-!               ! Init chem mechanism and photolysis
-                ! Now done in INIT_CHEMISTRY
-!               CALL READER  ( FIRST,     am_I_Root            )
-!               CALL READCHEM( am_I_Root, Input_Opt, RC        )
-!               CALL INIT_FJX( am_I_Root  )
- 
-!               ! Reset NCS with NCSURBAN
-!               NCS     = NCSURBAN
- 
                ! Reset NTLOOP and NTTLOOP after call to READER
                ! with the actual # of boxes w/in the ann mean trop
                NTLOOP  = N_TROP
@@ -1142,6 +1130,7 @@
 ! !REVISION HISTORY: 
 !  19 May 2014 - C. Keller - Initial version (stripped from do_chemistry
 !                            and chemdr.F)
+!  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to INIT_FJX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1160,10 +1149,10 @@
       IF ( FIRST ) THEN
 
          ! Init chem mechanism and photolysis
-         CALL READER  ( FIRST,     am_I_Root                )
-         CALL READCHEM( am_I_Root, Input_Opt, RC            )
-         CALL INIT_FJX( am_I_Root  )
-         CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL READER  ( FIRST, am_I_Root                           )
+         CALL READCHEM(        am_I_Root, Input_Opt,            RC )
+         CALL INIT_FJX(        am_I_Root. Input_Opt,            RC )
+         CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
 
          ! Reset NCS with NCSURBAN
          NCS     = NCSURBAN

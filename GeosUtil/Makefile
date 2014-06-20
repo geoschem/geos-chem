@@ -59,6 +59,7 @@
 #  03 Aug 2012 - R. Yantosca - Add dependency for inquireMod.F90
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  20 Jun 2014 - R. Yantosca - Removed unix_cmds_mod.F; it's now obsolete
+#  20 Jun 2014 - R. Yantosca - Removed directory_mod.F; it's now obsolete
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -138,8 +139,6 @@ bpch2_mod.o       : bpch2_mod.F                      \
                     julday_mod.o        inquireMod.o
 
 charpak_mod.o     : charpak_mod.F
-
-directory_mod.o   : directory_mod.F
 
 error_mod.o       : error_mod.F
 

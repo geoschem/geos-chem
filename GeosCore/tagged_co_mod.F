@@ -983,7 +983,7 @@
          ENDIF
             
          ! Read in the loss/production of CO in the stratosphere.
-         CALL READ_PCO_LCO_STRAT( MONTH )
+         CALL READ_PCO_LCO_STRAT( am_I_Root, Input_Opt, MONTH, RC )
             
       ENDIF
 
@@ -1586,7 +1586,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PCO_LCO_STRAT( THISMONTH ) 
+      SUBROUTINE READ_PCO_LCO_STRAT( am_I_Root, Input_Opt, 
+     &                               THISMONTH, RC         ) 
 !
 ! !USES:
 !
@@ -1594,17 +1595,24 @@
       USE CMN_SIZE_MOD   
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       ! netCDF modules
       USE m_netcdf_io_open
       USE m_netcdf_io_read
       USE m_netcdf_io_close
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Month to read
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Month to read
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 ! 
 ! !REVISION HISTORY: 
 !  13 Sep 2000 - B. Duncan   - Initial version
@@ -1624,6 +1632,7 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1638,6 +1647,9 @@
       ! READ_PCO_LCO_STRAT begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Initialize some variables
       ARRAY    = 0e0
       CO_PRODS = 0d0
@@ -1646,7 +1658,7 @@
       ! Construct filename and open file
       FILENAME = 'strat_chem_201206/gmi.clim.CO.' // 
      &                GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
-      FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
 
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
 

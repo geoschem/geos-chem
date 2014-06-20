@@ -23,7 +23,6 @@
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field subroutines
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
-      USE DIRECTORY_MOD                         ! Data directory paths
       USE ERROR_MOD                             ! Error handling routines
       USE GET_POPSINFO_MOD                      ! For POPs simulation
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]

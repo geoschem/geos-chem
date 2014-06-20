@@ -745,7 +745,6 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : JLOP
-      USE DIRECTORY_MOD,      ONLY : O3PL_DIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -930,7 +929,7 @@
          CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
          ! Then prefix FILENAME w/ the data directory name
-         FILENAME = TRIM( O3PL_DIR ) // FILENAME
+         FILENAME = TRIM( Input_Opt%O3PL_DIR ) // FILENAME
 
          ! Echo info
          IF ( am_I_Root ) WRITE( 6, 110 ) TRIM( FILENAME )

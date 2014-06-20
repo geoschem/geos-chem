@@ -110,13 +110,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_7BE
+      SUBROUTINE READ_7BE( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IOERROR
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE FILE_MOD,           ONLY : IOERROR
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 !
 ! !REVISION HISTORY: 
 !  07 Aug 2002 - H. Liu - Initial version
@@ -124,6 +134,7 @@
 !  (2 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  20 Jun 2014 - R. Yantosca - Now use Input_Opt instead of DIRECTORY_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,8 +152,11 @@
       ! Here, "stars" = # of nuclear disintegrations of cosmic rays
       !==============================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Define the file name
-      FILENAME = TRIM( DATA_DIR ) // 'RnPbBe_200203/7Be.Lal'
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'RnPbBe_200203/7Be.Lal'
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -340,6 +354,7 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  25 Mar 2013 - R. Yantosca - Now use fields from Input_Opt
 !  01 Aug 2013 - R. Yantosca - Modified for use with non-local PBL mixing
+!  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to READ_7BE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -522,7 +537,7 @@
       IF ( Input_Opt%N_TRACERS >= 3 ) THEN
 
          ! Read 7Be emissions on the first timestep only
-         IF ( FIRSTEMISS ) CALL READ_7BE
+         IF ( FIRSTEMISS ) CALL READ_7BE( am_I_Root, Input_Opt, RC )
 
          !==============================================================
          ! Now interpolate from 33 std levels onto GEOS-CHEM levels 

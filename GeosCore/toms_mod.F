@@ -109,7 +109,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TOMS( THISMONTH, THISYEAR, USE_O3_FROM_MET )
+      SUBROUTINE READ_TOMS( am_I_Root, Input_Opt, 
+     &                      THISMONTH, THISYEAR, RC )
 !
 ! !USES:
 !
@@ -117,18 +118,23 @@
       USE BPCH2_MOD,      ONLY : GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0
       USE BPCH2_MOD,      ONLY : READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: THISMONTH       ! Current month
-      INTEGER, INTENT(IN)    :: THISYEAR        ! Current year
-      LOGICAL, INTENT(IN)    :: USE_O3_FROM_MET ! Use TO3 from met fields?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+      INTEGER,        INTENT(IN)  :: THISYEAR    ! Current year
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 5.
@@ -190,6 +196,7 @@
 !                              from the met fields.
 !  05 Mar 2014 - M. Sulprizio- Now regrid TOMS O3 from the files on GEOS 1x1
 !                              grid (J. Lin)
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,6 +213,7 @@
       REAL*4             :: ARRAY1x1(I1x1,J1x1,1)
       REAL*8             :: INGRID (I1x1,J1x1)
 
+
       !=================================================================
       ! Initialization
       !=================================================================
@@ -217,7 +225,7 @@
       ENDIF
 
       ! Only read TOMS if not using TO3 from the met fields (mpayer, 12/13/13)
-      IF ( USE_O3_FROM_MET ) RETURN
+      IF ( Input_Opt%USE_O3_FROM_MET ) RETURN
 
       ! Always use 2002 data for GCAP
 #if   defined ( GCAP )
@@ -256,11 +264,6 @@
 #if   !defined( GCAP )
 
       ! Define filename (with replaceable tokens)
-!------------------------------------------------------------------------------
-! Prior to 3/5/14:
-!      FILENAME = 'TOMS_201203/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
-!     &           '.'                            // GET_RES_EXT()
-!------------------------------------------------------------------------------
       ! Regrid from the files on geos.1x1 grid -- Lin_20140305
       FILENAME = 'TOMS_201203/TOMS_O3col_YYYY.geos.1x1'
 
@@ -268,7 +271,7 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
       ! Now prefix the data directory
-      FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
+      FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
 
       ! Echo filename
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -279,7 +282,7 @@
       !=================================================================
 
       ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
+      LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       !-----------------------------
@@ -337,7 +340,7 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
       ! Now prefix the data directory
-      FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
 
       ! Echo filename
       WRITE( 6, 120 ) TRIM( FILENAME )

@@ -26,7 +26,6 @@ MODULE Modis_Lai_Mod
 ! !USES:
 !
   USE CMN_SIZE_Mod                                ! Size parameters
-  USE Directory_Mod                               ! Disk directory paths   
   USE Error_Mod                                   ! Error checking routines
   USE Logical_Mod                                 ! Logical switches
   USE Mapping_Mod                                 ! Mapping weights & areas
@@ -463,30 +462,36 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Read_Modis_Lai( yyyy, mm, wasModisRead )
+  SUBROUTINE Read_Modis_Lai( am_I_Root, Input_Opt, yyyy, mm, wasModisRead, RC )
 !
 ! !USES:
 !
-    USE m_netcdf_io_open                       ! netCDF file open
-    USE m_netcdf_io_read                       ! netCDF read
-    USE m_netcdf_io_readattr                   ! netCDF attribute reads
-    USE m_netcdf_io_close                      ! netCDF file close
-    
-#   include "netcdf.inc"                       ! netCDF settings & parameters
+    USE m_netcdf_io_open                         ! netCDF file open
+    USE m_netcdf_io_read                         ! netCDF read
+    USE m_netcdf_io_readattr                     ! netCDF attribute reads
+    USE m_netcdf_io_close                        ! netCDF file close
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
+   
+#   include "netcdf.inc"                         ! netCDF settings & parameters
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)  :: yyyy               ! Year for LAI data
-    INTEGER, INTENT(IN)  :: mm                 ! Month for LAI data
+    LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
+    INTEGER,        INTENT(IN)  :: yyyy          ! Year for LAI data
+    INTEGER,        INTENT(IN)  :: mm            ! Month for LAI data
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(OUT) :: wasModisRead       ! Was LAI data just read in?
+    LOGICAL,        INTENT(OUT) :: wasModisRead  ! Was LAI data just read in?
+    INTEGER,        INTENT(OUT) :: RC            ! Success or failure?   
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
 !  05 Jun 2013 - R. Yantosca - Bug fix, use "mm" for current month index
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -520,6 +525,9 @@ CONTAINS
     ! Test if it is time to read data
     !======================================================================
 
+    ! Assume success
+    RC = GIGC_SUCCESS
+
     ! If we enter a new LAI month, then read MODIS LAI from disk
     ! Otherwise, just exit, since it is not time to read data yet
     IF ( mm /= mmLast ) THEN
@@ -544,7 +552,7 @@ CONTAINS
     ENDIF
 
     ! Construct file path from directory & file name
-    nc_dir  = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_201204/'
+    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'MODIS_LAI_201204/'
 
     !======================================================================
     ! Read current month's LAI

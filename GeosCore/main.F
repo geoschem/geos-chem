@@ -469,7 +469,7 @@
       ! Read annual mean tropopause if not a variable tropopause
       ! read_tropopause is obsolete with variable tropopause
       IF ( .not. LVARTROP ) THEN
-         CALL READ_TROPOPAUSE
+         CALL READ_TROPOPAUSE( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
       ENDIF
 
@@ -779,7 +779,8 @@
 
                CALL UPDATE_DEP( N )
             ENDIF
-            CALL MAKE_GTMM_RESTART( NYMD, NHMS, TAU )
+            CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
+     &                              NHMS,      TAU,       RC    )
          ENDIF
 
          !==============================================================
@@ -834,10 +835,11 @@
      &           ITS_A_CH3I_SIM     ) THEN
 
                ! Read UV albedoes for FAST-J
-               CALL READ_UVALBEDO( MONTH, State_Met )
+               CALL READ_UVALBEDO
+     &              ( am_I_Root, Input_Opt, MONTH, State_Met, RC )
 
                ! Read TOMS overhead O3 columns for FAST-J
-               CALL READ_TOMS( MONTH, YEAR, Input_Opt%USE_O3_FROM_MET )
+               CALL READ_TOMS( am_I_Root, Input_Opt, MONTH, YEAR, RC )
             ENDIF
          ENDIF
 
@@ -941,7 +943,8 @@
             
             ! Read MODIS LAI from disk (if it is a new LAI month)
             ! Logical flag MODISREAD determines if data was just read in
-            CALL Read_Modis_Lai( laiYYYY, laiMM, wasModisRead )
+            CALL Read_Modis_Lai( am_I_Root, Input_OPt,    laiYYYY, 
+     &                           laiMM,     wasModisRead, RC       )
 
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
             CALL Compute_Modis_Lai( am_I_Root,    State_Met, 
@@ -957,9 +960,9 @@
             ! To be revised later.
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM .or. ITS_A_H2HD_SIM ) THEN
-	       CALL READSOIL
-	       CALL READFERT
-	       CALL READCLIM
+	       CALL READSOIL( am_I_Root, Input_Opt, RC )
+	       CALL READFERT( am_I_Root, Input_Opt, RC ) 
+	       CALL READCLIM( am_I_Root, Input_Opt, RC )
             ENDIF
 
             !### Debug

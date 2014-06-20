@@ -326,18 +326,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TROPOPAUSE
+      SUBROUTINE READ_TROPOPAUSE( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_MOD           ! LPAUSE, for backwards compatibility
+!
+! !INPUT PARAMETERS:
+!     
+      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  13 Dec 1999 - Q. Li, R. Yantosca - Initial version
@@ -369,6 +379,7 @@
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  21 Feb 2014 - M. Sulprizio- Remove call to INIT_TROPOPAUSE, this is now
 !                              done in the init stage
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -386,14 +397,19 @@
       ! format).  Transfer data into an array of size (IIPAR,JJPAR).
       !=================================================================
       
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Create filename
-      FILENAME = TRIM( DATA_DIR )                      // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )            // 
      &           'ann_mean_trop_200202/ann_mean_trop.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
       ! Write file name to stdout
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - READ_TROPOPAUSE: Reading ', a )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 110 ) TRIM( FILENAME )
+ 110     FORMAT( '     - READ_TROPOPAUSE: Reading ', a )
+      ENDIF
 
       ! Annual mean tropopause is tracer #1  
       CALL READ_BPCH2( FILENAME, 'TR-PAUSE', 1, 
@@ -424,20 +440,24 @@
       LMIN = MINVAL( TROPOPAUSE )
       LMAX = MAXVAL( TROPOPAUSE )
       
-      WRITE( 6, 120 ) LMIN-1
- 120  FORMAT( '     - READ_TROPOPAUSE: Minimum tropospheric extent,',
-     &        ' L=1 to L=', i3 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 120 ) LMIN-1
+ 120     FORMAT( '     - READ_TROPOPAUSE: Minimum tropospheric extent,',
+     &           ' L=1 to L=', i3 )
 
-      WRITE( 6, 130 ) LMAX-1
- 130  FORMAT( '     - READ_TROPOPAUSE: Maximum tropospheric extent,',
-     &        ' L=1 to L=', i3 )
-    
+         WRITE( 6, 130 ) LMAX-1
+ 130     FORMAT( '     - READ_TROPOPAUSE: Maximum tropospheric extent,',
+     &            ' L=1 to L=', i3 )
+      ENDIF
+
       IF ( LMAX-1 > LLTROP ) THEN
-         WRITE( 6, '(a)' ) 'READ_TROPOPAUSE: LLTROP is set too low!' 
-         WRITE( 6, 131   ) LMAX-1, LLTROP
- 131     FORMAT( 'LMAX = ', i3, '  LLTROP = ', i3 )
-         WRITE( 6, '(a)' ) 'STOP in READ_TROPOPAUSE.F!!!'
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) 'READ_TROPOPAUSE: LLTROP is set too low!' 
+            WRITE( 6, 131   ) LMAX-1, LLTROP
+ 131        FORMAT( 'LMAX = ', i3, '  LLTROP = ', i3 )
+            WRITE( 6, '(a)' ) 'STOP in READ_TROPOPAUSE.F!!!'
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
 
@@ -447,11 +467,13 @@
       !=================================================================
       COUNT = SUM( TROPOPAUSE - 1 )
 
-      WRITE( 6, 140 ) COUNT
- 140  FORMAT( '     - READ_TROPOPAUSE: # of tropopsheric boxes:  ', i8 )
+      IF ( am_I_Root ) THEN
+       WRITE( 6, 140 ) COUNT
+ 140   FORMAT( '     - READ_TROPOPAUSE: # of tropopsheric boxes:  ', i8)
       
-      WRITE( 6, 150 ) ( IIPAR * JJPAR * LLPAR ) - COUNT
- 150  FORMAT( '     - READ_TROPOPAUSE: # of stratospheric boxes: ', i8 )
+       WRITE( 6, 150 ) ( IIPAR * JJPAR * LLPAR ) - COUNT
+ 150   FORMAT( '     - READ_TROPOPAUSE: # of stratospheric boxes: ', i8)
+      ENDIF
 
       END SUBROUTINE READ_TROPOPAUSE
 !EOC

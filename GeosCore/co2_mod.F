@@ -122,6 +122,7 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -154,648 +155,6 @@
 
       CONTAINS
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: emissco2
-!!
-!! !DESCRIPTION: Subroutine EMISSCO2 is the driver routine for CO2 emissions. 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE EMISSCO2( am_I_Root, Input_Opt,
-!     &                     State_Met, State_Chm, RC )
-!!
-!! !USES:
-!!
-!      USE BIOMASS_MOD,        ONLY : BIOMASS
-!      USE CMN_SIZE_MOD
-!      USE DIAG04_MOD,         ONLY : AD04, ND04
-!      USE DIAG04_MOD,         ONLY : AD04_plane,    AD04_chem
-!      USE GIGC_ErrCode_Mod
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE GIGC_State_Chm_Mod, ONLY : ChmState
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!      USE GRID_MOD,           ONLY : GET_AREA_CM2
-!      USE TIME_MOD,           ONLY : GET_DAY,       GET_DAY_OF_YEAR
-!      USE TIME_MOD,           ONLY : GET_HOUR,      GET_MONTH
-!      USE TIME_MOD,           ONLY : GET_YEAR,      GET_TS_CHEM
-!      USE TIME_MOD,           ONLY : GET_TS_EMIS 
-!      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, ITS_A_NEW_MONTH
-!      USE TRACERID_MOD,       ONLY : IDBCO2
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!!
-!! !REMARKS:
-!!  The initial condition for CO2 has to be at least 50 ppm or higher or else
-!!  the balanced biosphere fluxes will make STT negative. (pns, bmy, 8/16/05)
-!! 
-!! 
-!! !REVISION HISTORY: 
-!!  16 Aug 2005 - P. Suntharalingam - Initial version
-!!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  (2 ) We now get CO2 biomass emissions from biomass_mod.f.  This allows us 
-!!        to use either GFED2 or default Duncan et al biomass emissions. 
-!!        (bmy, 9/27/06)
-!!  (3 ) Tagged tracer capability added. This requires the editable region 
-!!        files Regions_land.dat and Regions_ocean.dat in the run directory
-!!        (rnassar,dbj, 2009)
-!!  (4 ) New tracers for emissions from international and domestic shipping,
-!!        international and domestic aviation, and the chemical CO2 source
-!!        from the oxidation of CO, CH4, and other organics (rnassar,dbj, 2009)
-!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!!                              derived type object
-!!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      LOGICAL, SAVE          :: FIRST  = .TRUE.
-!
-!      ! Local variables
-!      INTEGER                :: I,     IJLOOP, J,    L,     N,   NN
-!      INTEGER                :: DAY,   DOY,    HOUR, MONTH, YEAR   
-!      REAL*8                 :: A_CM2, DTSRCE, E_CO2
-!      REAL*8                 :: biomass_sum, bionet_sum
-!
-!      ! Pointers
-!      ! We need to define local arrays to hold corresponding values 
-!      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-!      REAL*8, POINTER        :: STT(:,:,:,:)
-!
-!      ! For values from Input_Opt
-!      LOGICAL                :: LGENFF
-!      LOGICAL                :: LANNFF
-!      LOGICAL                :: LMONFF
-!      LOGICAL                :: LCHEMCO2
-!      LOGICAL                :: LSEASBB
-!      LOGICAL                :: LBIODAILY
-!      LOGICAL                :: LBIODIURNAL
-!      LOGICAL                :: LBIONETORIG
-!      LOGICAL                :: LBIONETCLIM
-!      LOGICAL                :: LOCN1997
-!      LOGICAL                :: LOCN2009ANN
-!      LOGICAL                :: LOCN2009MON
-!      LOGICAL                :: LSHIPEDG
-!      LOGICAL                :: LSHIPICO
-!      LOGICAL                :: LPLANE
-!      LOGICAL                :: LFFBKGRD
-!      LOGICAL                :: LBIOSPHTAG
-!      LOGICAL                :: LFOSSILTAG
-!      LOGICAL                :: LSHIPTAG
-!      LOGICAL                :: LPLANETAG
-!      LOGICAL                :: LBIOFUEL
-!      LOGICAL                :: LGFED2BB
-!      LOGICAL                :: LGFED3BB
-!      LOGICAL                :: L8DAYBB
-!      INTEGER                :: N_TRACERS
-!
-!      ! External functions     
-!      REAL*8, EXTERNAL       :: BOXVL    ! dbj
-!
-!      !=================================================================
-!      ! EMISSCO2 begins here!
-!      !=================================================================
-!
-!      ! Return success
-!      RC          = GIGC_SUCCESS
-!
-!      ! Copy values from Input_Opt
-!      LGENFF      = Input_Opt%LGENFF
-!      LANNFF      = Input_Opt%LANNFF
-!      LMONFF      = Input_Opt%LMONFF
-!      LCHEMCO2    = Input_Opt%LCHEMCO2
-!      LSEASBB     = Input_Opt%LSEASBB
-!      LBIOFUEL    = Input_Opt%LBIOFUEL
-!      LBIODAILY   = Input_Opt%LBIODAILY
-!      LBIODIURNAL = Input_Opt%LBIODIURNAL
-!      LBIONETORIG = Input_Opt%LBIONETORIG
-!      LBIONETCLIM = Input_Opt%LBIONETCLIM
-!      LOCN1997    = Input_Opt%LOCN1997
-!      LOCN2009ANN = Input_Opt%LOCN2009ANN
-!      LOCN2009MON = Input_Opt%LOCN2009MON
-!      LSHIPEDG    = Input_Opt%LSHIPEDG
-!      LSHIPICO    = Input_Opt%LSHIPICO
-!      LPLANE      = Input_Opt%LPLANE
-!      LFFBKGRD    = Input_Opt%LFFBKGRD
-!      LBIOSPHTAG  = Input_Opt%LBIOSPHTAG
-!      LFOSSILTAG  = Input_Opt%LFOSSILTAG
-!      LSHIPTAG    = Input_Opt%LSHIPTAG
-!      LPLANETAG   = Input_Opt%LPLANETAG
-!      LGFED2BB    = Input_Opt%LGFED2BB
-!      LGFED3BB    = Input_Opt%LGFED3BB
-!      L8DAYBB     = Input_Opt%L8DAYBB
-!      N_TRACERS   = Input_Opt%N_TRACERS
-!  
-!      !=================================================================
-!      ! First-time initialization
-!      !=================================================================
-!      IF ( FIRST ) THEN 
-!
-!         ! Allocate arrays and read annual-mean data
-!         CALL INIT_CO2( am_I_Root, Input_Opt, RC )
-!
-!         ! Set up tagged regions for balanced biosphere & ocean
-!         IF ( LBIOSPHTAG ) THEN
-!            CALL DEF_BIOSPH_CO2_REGIONS_F( BIOSPH_REGION )
-!            CALL DEF_OCEAN_CO2_REGIONS_F( OCEAN_REGION )
-!         ENDIF
-!
-!         ! Set up tagged regions for fossil fuel
-!         IF ( LFOSSILTAG ) THEN
-!            CALL DEF_FOSSIL_CO2_REGIONS_F( FOSSIL_REGION )
-!         ENDIF
-!
-!         ! Set first-time flag to false
-!         FIRST = .FALSE.
-!      ENDIF
-!
-!      !=================================================================
-!      ! Read in monthly, daily or variable emissions fields
-!      !=================================================================      
-!
-!      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-!      ! (mpayer, 12/6/12)
-!      STT => State_Chm%Tracers
-!
-!      ! Emission timestep
-!!      DTSRCE = 60d0 * GET_TS_CHEM() !Line from the orginal code
-!      DTSRCE = 60d0 * GET_TS_EMIS()
-!      
-!      ! Time variables
-!      DAY    = GET_DAY()
-!      DOY    = GET_DAY_OF_YEAR()
-!      HOUR   = GET_HOUR()
-!      MONTH  = GET_MONTH()
-!      YEAR   = GET_YEAR()
-!
-!!------------------------------------------------------------------------------
-!!      ! Read monthly-mean biomass burning emissions
-!!      IF ( LBIOBRNCO2 .and. ITS_A_NEW_MONTH() ) THEN 
-!!         CALL READ_MONTH_BIOBRN_CO2( MONTH, YEAR )
-!!      ENDIF
-!!  This requires a subroutine called READ_MONTH_BIOBRN_CO2 
-!!  GFEDv2 biomass burning emissions are a better choice !Ray Nassar
-!!
-!!------------------------------------------------------------------------------
-!!  At present, biomass burning emissions are dealt with in the following way:
-!!
-!!  1)  main.f calls do_emissions in emissions.f
-!!  2)  do_emissions calls compute_biomass_emissions in biomass_mod.f
-!!  3a) compute_biomass_emissions calls gfed2_compute_biomass 
-!!      in gfed2_biomass_mod.f
-!!               ** OR **
-!!  3b) compute_biomass_emissions calls gfed3_compute_biomass 
-!!      in gfed3_biomass_mod.f
-!!               ** OR **
-!!  3c) compute_biomass_emissions calls gc_read_biomass_co2 in gc_biomass_mod.f
-!!------------------------------------------------------------------------------
-!
-!!      ! Check if Balanced Biosphere emissions are required  
-!!      IF ( LBIOCO2 ) THEN  
-!!         ! If LUSECASANEP is TRUE ...
-!!         IF ( LUSECASANEP ) THEN
-!
-!      !----------------------------------------------------------------
-!      ! Read in 3-hourly or daily balanced biosphere data
-!      !----------------------------------------------------------------
-!      IF ( LBIODIURNAL ) THEN
-!
-!         write(*,*) '*** USING DIURNAL CASA NEP ***'
-!
-!         ! ... then use 3-hourly NEP emissions for Bal Bio ...
-!         IF ( MOD( HOUR, 3 ) == 0 ) THEN
-!            CALL READ_BBIO_DIURNALCYCLE( MONTH, DAY, HOUR, DOY )
-!         ENDIF
-!         
-!      ELSEIF ( LBIODAILY ) THEN
-!
-!         ! ... otherwise use constant daily emissions of NEP for Bal Bio
-!         IF ( ITS_A_NEW_DAY() ) THEN
-!            CALL READ_BBIO_DAILYAVERAGE( MONTH, DAY, DOY ) 
-!         ENDIF
-!         
-!      ENDIF
-!
-!      !----------------------------------------------------------------
-!      ! Fluxes with "possible" monthly variability are called below
-!      ! In some cases the annual file is just called at the start 
-!      ! of the month
-!      !----------------------------------------------------------------
-!      IF ( ITS_A_NEW_MONTH() ) THEN 
-!	
-!         ! Fossil fuel emissions
-!         IF ( LMONFF .OR. LANNFF .OR. LGENFF ) THEN
-!            CALL READ_FOSSILCO2( am_I_Root, Input_Opt, RC )
-!         ENDIF
-!                               
-!         ! Oceanic exchange
-!         IF ( LOCN1997 .OR. LOCN2009ANN .OR. LOCN2009MON ) THEN
-!            CALL READ_OCEANCO2( am_I_Root, Input_Opt, RC )
-!         ENDIF
-!
-!         ! Ship emissions from EDGAR
-!         IF ( LSHIPEDG ) CALL READ_SHIPCO2_EDGAR
-!
-!         ! Ship emissions from ICOADS
-!         IF ( LSHIPICO ) CALL READ_SHIPCO2_ICOADS
-! 
-!         ! Aircraft CO2 emissions
-!         IF ( LPLANE   ) CALL READ_AVIATION_CO2( State_Met )
-!		
-!         ! Get chemical source   ! dbj
-!         IF ( LCHEMCO2 ) THEN
-!            CALL READ_CHEMCO2
-!            CALL CHEM_SURF( am_I_Root, Input_Opt, RC )
-!            CHEMSRC = CHEMCO2
-!         ENDIF
-!      ENDIF
-!	
-!      !=================================================================
-!      ! Process emissions and save diagnostics
-!      !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, A_CM2, E_CO2 )  ! dbj
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Grid box surface area [cm2]
-!         A_CM2 = GET_AREA_CM2( I, J, 1 )
-!
-!         !-------------------------------------------
-!         ! #1: Total CO2
-!         ! #2: CO2 from fossil fuel emissions 
-!         !-------------------------------------------
-!         IF ( LGENFF .or. LANNFF .or. LMONFF ) THEN
-!
-!            ! Fossil fuel emissions of CO2 [molec/cm2/s]
-!            E_CO2          = EMFOSSCO2(I,J)
-!            
-!            ! ND04 diag: Fossil Fuel CO2 [molec/cm2/s] 
-!            IF ( ND04 > 0 ) THEN
-!               AD04(I,J,1) = AD04(I,J,1) + E_CO2
-!            ENDIF
-!
-!            ! Convert from [molec/cm2/s] to [kg]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-!
-!            ! Add to Tracer #1: Total CO2 [kg]
-!            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
-!
-!	     ! Add to Tracer #2: Fossil CO2 [kg]
-!            IF ( N_TRACERS > 1 ) THEN
-!               STT(I,J,1,2)   = STT(I,J,1,2) + E_CO2
-!
-!               ! Split Fossil Fuel CO2 into geographic regions
-!               IF ( LFOSSILTAG ) THEN
-!                  N            = FOSSIL_REGION(I,J)
-!                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
-!               ENDIF
-!            ENDIF
-!
-!	     ! Add to Tracer #12: Background with Fossil CO2 [kg]
-!            IF ( LFFBKGRD ) THEN
-!               STT(I,J,1,12)   = STT(I,J,1,12) + E_CO2
-!            ENDIF
-!
-!	   ! Note: To define the background as including fossil fuels here 
-!           ! (instead of during data processing) for tagged-CO2 runs which 
-!           ! will be used for estimating natural bio/ocean fluxes etc., and 
-!           ! accepting the FF inventory
-!           ! use STT(I,J,1,12) = STT(I,J,1,12) + E_CO2.
-!	   ! Shipping and aviation emissions can be included in a similar way.
-!	   
-!         ENDIF
-!
-!         !-------------------------------------------
-!         ! #3: CO2 from ocean exchange
-!         !-------------------------------------------
-!         IF ( LOCN1997 .or. LOCN2009ANN .or. LOCN2009MON ) THEN
-!
-!            ! Ocean CO2 emissions in [molec/cm2/s]
-!            E_CO2          = EMOCCO2(I,J)
-!
-!            ! ND04 diag: Ocean CO2 [molec/cm2/s]
-!            IF ( ND04 > 0 ) THEN
-!               AD04(I,J,2) = AD04(I,J,2) + E_CO2
-!            ENDIF
-!
-!            ! Convert from [molec/cm2/s] to [kg]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-!
-!            ! Add to Tracer #1: Total CO2 [kg]
-!            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
-!
-!            ! Add to Tracer #3: Ocean CO2 [kg]
-!            IF ( N_TRACERS > 2 ) THEN
-!               STT(I,J,1,3)   = STT(I,J,1,3) + E_CO2   
-!
-!               ! Split ocean CO2 into geographic regions
-!               IF ( LBIOSPHTAG ) THEN
-!                  N            = OCEAN_REGION(I,J)
-!                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
-!               ENDIF
-!            ENDIF
-!         ENDIF
-!
-!         !-------------------------------------------
-!         ! #4: CO2 from balanced biosphere emissions
-!         !-------------------------------------------
-!         IF ( LBIODAILY .OR. LBIODIURNAL ) THEN
-!
-!            ! Balanced biosphere CO2 [molec/cm2/s]
-!            E_CO2         = EMBIOCO2(I,J)
-!
-!            ! ND04 diag: Bal Bio CO2 [molec/cm2/s]
-!            IF ( ND04 > 0 ) THEN
-!               AD04(I,J,3) = AD04(I,J,3) + E_CO2
-!            ENDIF
-!
-!            ! Convert from [molec/cm2/s] to [kg CO2]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
-!
-!            ! Add to Tracer #1 -- total CO2 [kg CO2]
-!            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
-!
-!            ! Add to Tracer #4 -- Bal Bio CO2 [kg CO2]
-!            IF ( N_TRACERS > 3 ) THEN
-!               STT(I,J,1,4)   = STT(I,J,1,4) + E_CO2
-!                
-!               	! Split biospheric CO2 exchange into geographic regions
-!               IF ( LBIOSPHTAG ) THEN
-!                  N            = BIOSPH_REGION(I,J)
-!                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
-!               ENDIF
-!            ENDIF	
-!         ENDIF
-!
-!         !-------------------------------------------
-!         ! #5: CO2 from biomass burning emissions
-!         !-------------------------------------------
-!         IF ( LSEASBB .OR. LGFED2BB .OR. L8DAYBB .OR.
-!     &        LGFED3BB) THEN 
-!
-!            ! Biomass burning emissions [molec/cm2/s]
-!            E_CO2          = BIOMASS(I,J,IDBCO2)
-!            !E_CO2          = EMBIOBRNCO2(I,J) 
-!            !This was from older versions, see note above
-!
-!            ! ND04 diag: Biomass burning CO2 [molec/cm2/s]
-!            IF ( ND04 > 0 ) THEN
-!               AD04(I,J,4) = AD04(I,J,4) + E_CO2
-!            ENDIF
-!
-!            ! Convert from [molec/cm2/s] to [kg]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
-!
-!            ! Add to Tracer #1: Total CO2 [kg CO2]
-!            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
-!            
-!            ! Add to Tracer #5: Biomass burning CO2 [kg CO2]
-!            IF ( N_TRACERS > 4 ) THEN
-!               STT(I,J,1,5)   = STT(I,J,1,5) + E_CO2
-!
-!               ! Split Bioburn CO2 into geographic regions
-!               IF ( LBIOSPHTAG ) THEN
-!                  N            = BIOSPH_REGION(I,J)
-!                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
-!               ENDIF
-!            ENDIF	
-!         ENDIF
-!
-!         !-------------------------------------------
-!         ! #6: CO2 from biofuel emissions
-!         !-------------------------------------------
-!         IF ( LBIOFUEL ) THEN
-!
-!           ! Biofuel CO2 emissions [molec/cm2/s]
-!            E_CO2          = EMBIOFUELCO2(I,J)
-!
-!            ! ND04 diag: Biofuel CO2 [molec/cm2/s] 
-!            IF ( ND04 > 0 ) THEN
-!               AD04(I,J,5) = AD04(I,J,5) + E_CO2
-!            ENDIF
-!
-!            ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-!
-!            ! Add to Tracer #1: Total CO2 [kg CO2]
-!            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
-!
-!            ! Add to Tracer #6: Biofuel CO2 [kg CO2]
-!            IF (N_TRACERS > 5) THEN
-!               STT(I,J,1,6)   = STT(I,J,1,6) + E_CO2
-!
-!               ! Split BF CO2 into geographic regions
-!               IF ( LBIOSPHTAG ) THEN
-!                  N            = BIOSPH_REGION(I,J)
-!                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
-!               ENDIF
-!            ENDIF
-!         ENDIF
-!
-!         !-------------------------------------------
-!         ! #7: CO2 from net terrestrial exchange
-!         !-------------------------------------------
-!         IF ( LBIONETORIG .OR. LBIONETCLIM ) THEN
-!
-!            ! CO2 from net terrestrial exchange [molec/cm2/s]
-!            E_CO2          = EMBIONETCO2(I,J)
-!
-!            ! ND04 diag: net terrestrial exchange [molec/cm2/s]
-!            IF ( ND04 > 0 ) THEN
-!               AD04(I,J,6) = AD04(I,J,6) + E_CO2
-!            ENDIF
-!
-!            ! Convert from [molec/cm2/s] to [kg]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-!
-!            ! Add to Tracer #1: Total CO2 [kg CO2]
-!            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
-!
-!            ! Add to Tracer #7: Net Terr exchange CO2 [kg]
-!            IF ( N_TRACERS > 6 ) THEN
-!               STT(I,J,1,7)   = STT(I,J,1,7) + E_CO2
-!
-!               ! Split Net Terr Exch CO2 into geographic regions
-!               IF ( LBIOSPHTAG ) THEN
-!                  N            = BIOSPH_REGION(I,J)
-!                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
-!               ENDIF
-!            ENDIF	
-!         ENDIF
-!
-!         !-------------------------------------------
-!         ! #8: CO2 from ship emissions
-!         !-------------------------------------------
-!         IF ( LSHIPEDG .OR. LSHIPICO ) THEN
-!
-!            ! Ship CO2 emissions [molec/cm2/s]
-!            E_CO2          = EMSHIPCO2(I,J)
-!
-!            ! ND04 diag: Ship CO2 [molec/cm2/s] 
-!            IF ( ND04 > 0 ) THEN
-!               AD04(I,J,7) = AD04(I,J,7) + E_CO2
-!            ENDIF
-!
-!            ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-!
-!            ! Add to Tracer #1: Total CO2 [kg CO2]
-!            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
-!
-!            ! Add to Tracer #8: Ship CO2 [kg CO2]
-!            IF (N_TRACERS > 7) THEN
-!               STT(I,J,1,8)   = STT(I,J,1,8) + E_CO2
-! 
-!              	! Tagged tracer for global ship emissions
-!               IF ( LSHIPTAG ) THEN
-!                  STT(I,J,1,53) = STT(I,J,1,53) + E_CO2
-!               ENDIF
-!            ENDIF
-!
-!	   ! Add to Tracer #12: Background with Fossil CO2 [kg]
-!           !-------------------------------------------
-!	   !IF ( LFFBKGRD ) THEN
-!           !   STT(I,J,1,12)   = STT(I,J,1,12) + E_CO2
-!	   !ENDIF
-!           !-------------------------------------------
-!	   ! Uncomment to include ship CO2 emissions in the background
-!
-!         ENDIF
-!	   
-!         !-------------------------------------------
-!         ! #9: CO2 from aircraft emissions
-!         !-------------------------------------------
-!         IF ( LPLANE ) THEN
-!            DO L = 1, LLPAR
-!
-!               ! Aircraft CO2 emissions (3-D) [molec/cm3/s]
-!               E_CO2          = EMPLANECO2(I,J,L)
-!
-!               ! ND04 diag: Aircraft CO2 [molec/cm3/s] 
-!               IF ( ND04 > 0 ) THEN
-!                  AD04_plane(I,J,L) = AD04_plane(I,J,L) + E_CO2
-!               ENDIF
-!
-!               ! Convert E_CO2 from [molec CO2/cm3/s] to [kg]
-!               E_CO2    = E_CO2  * BOXVL(I,J,L,State_Met) *
-!     &                    DTSRCE / XNUMOL_CO2
-!
-!               ! Add to Tracer #1: Total CO2 [kg CO2]
-!               STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
-!
-!               ! Add to Tracer #9: Aircraft CO2 [kg CO2]
-!               IF ( N_TRACERS > 8 ) THEN
-!                  STT(I,J,L,9) = STT(I,J,L,9) + E_CO2
-! 
-!              	  ! Tagged tracer for global ship emissions
-!                  IF ( LPLANETAG ) THEN
-!                     STT(I,J,L,54) = STT(I,J,L,54) + E_CO2
-!                  ENDIF
-!               ENDIF
-!	
-!	      ! Add to Tracer #12: Background with Fossil CO2 [kg]
-!              !-------------------------------------------
-!	      !IF (LFFBKGRD) THEN
-!	      !   STT(I,J,L,12)   = STT(I,J,L,12) + E_CO2
-!	      !ENDIF
-!              !-------------------------------------------
-!	      ! Uncomment to include aviation CO2 emissions in the background
-!
-!            ENDDO
-!         ENDIF
-! 
-!         !-------------------------------------------
-!         ! #10 CO2 production from CO oxidation
-!         !-------------------------------------------
-!         IF ( LCHEMCO2 ) THEN
-!            DO L = 1, LLPAR
-!         
-!               E_CO2 = CHEMSRC(I,J,L)
-!
-!               ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm3/s] 
-!               IF ( ND04 > 0 ) THEN
-!                  AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
-!               ENDIF
-!
-!               !  Convert from [molec/cm3/s] to [kg]
-!               E_CO2  = E_CO2  * BOXVL(I,J,L,State_Met) *
-!     &                  DTSRCE / XNUMOL_CO2
-!
-!               ! Add to Tracer #1: Total CO2 [kg CO2]
-!               STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
-!
-!               ! Add to Tracer #10: Chemical Source of CO2 [kg CO2]
-!               IF (N_TRACERS > 9) THEN
-!                  STT(I,J,L,10)   = STT(I,J,L,10) + E_CO2
-!               ENDIF
-!		
-!            ENDDO
-!         ENDIF
-!
-!         !-------------------------------------------
-!         ! #11 CO2 surface correction for CO oxidation
-!         !-------------------------------------------
-!         IF ( LCHEMCO2 ) THEN
-!            
-!            E_CO2 = EMIS_SUB(I,J) ! EMIS_SUB is positive, but is subtracted
-!
-!            ! ND04 diag: CO2 chem source surface correction [molec/cm2/s] 
-!            IF ( ND04 > 0 ) THEN
-!               AD04(I,J,10) = AD04(I,J,10) - E_CO2 ! SUBTRACT
-!            ENDIF
-!
-!            ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-!
-!            ! Subtract from Tracer #1: Total CO2 [kg CO2]
-!            STT(I,J,1,1)   = STT(I,J,1,1) - E_CO2
-!
-!            ! Subtract from Tracer #11: Chem Source Surf Correction [kg CO2]
-!            IF ( N_TRACERS > 10 ) THEN
-!               STT(I,J,1,11)   = STT(I,J,1,11) - E_CO2
-!            ENDIF
-!		
-!         ENDIF
-!
-!         !-------------------------------------------
-!         ! #12: Background CO2
-!         !-------------------------------------------
-!         ! Background CO2 without fossil fuels is obtained by setting 
-!         ! tracer 12 in the restart file, equal to tracer 1 at the start of 
-!         ! a run.  No sources or sinks (chemical or surface) act on this 
-!         ! tracer if LFFBKGRD == FALSE, it is simply the advected intial CO2.
-!	 ! To include fossil fuels in the background, see the first loop.
-!
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!      ! Free pointer
-!      NULLIFY( STT )
-!
-!      END SUBROUTINE EMISSCO2 
-!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -808,16 +167,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CHEMCO2
+      SUBROUTINE READ_CHEMCO2( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE BPCH2_MOD,     ONLY : GET_MODELNAME, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,   READ_BPCH2
-      USE TIME_MOD,      ONLY : GET_MONTH,  GET_YEAR
+      USE BPCH2_MOD,          ONLY : GET_MODELNAME, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,   READ_BPCH2
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : GET_MONTH,  GET_YEAR
 
       USE CMN_SIZE_MOD      ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 ! 
@@ -845,7 +214,7 @@
 
 	WRITE( YEAR_STR, '(i4)' ) YEAR 
 
-      FILENAME = TRIM( DATA_DIR )                     // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )           // 
      &           'CO2_201003/ChemSrc/CO2_prod_rates_' // 
      &           TRIM( YEAR_STR )        // '.'       // 
      &           TRIM( GET_MODELNAME() ) // '.'       // 
@@ -889,7 +258,6 @@
       USE CMN_SIZE_MOD
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
@@ -986,7 +354,7 @@
       IF ( LGENFF ) THEN
 
          TAU      = GET_TAU0( 1, 1, 1985 )
-         FILENAME = TRIM( DATA_DIR )        // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
      &              'CO2_200508/fossil95_CO2.' // GET_NAME_EXT_2D() //
      &              '.'                        // GET_RES_EXT()
 
@@ -995,7 +363,7 @@
       ELSE IF ( LANNFF ) THEN
 
          TAU      = GET_TAU0( 1, 1, YEAR )
-         FILENAME = TRIM( DATA_DIR )                                // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR )                      // 
      &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.' // 
      &              YEAR_STR          // '.'                        //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -1005,7 +373,7 @@
       ELSE IF ( LMONFF ) THEN
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
-         FILENAME = TRIM( DATA_DIR )                                //
+         FILENAME = TRIM( Input_Opt%DATA_DIR )                      //
      &              'CO2_201003/fossilfuel_andres/monthly_v2010/ff.'//
      &              YEAR_STR          // MONTH_STR // '.'           //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()

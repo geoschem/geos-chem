@@ -24,7 +24,6 @@
     USE m_netcdf_io_close
 
     ! GEOS-Chem modules
-    USE DIRECTORY_MOD
     USE COMMSOIL_MOD
 
     IMPLICIT NONE

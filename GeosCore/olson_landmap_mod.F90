@@ -20,7 +20,6 @@ MODULE Olson_LandMap_Mod
 !
   USE CMN_GCTM_MOD                      ! Physical constants
   USE CMN_SIZE_MOD                      ! Size parameters
-  USE DIRECTORY_MOD                     ! Disk directory paths   
   USE ERROR_MOD                         ! Error checking routines
   USE GRID_MOD                          ! Horizontal grid definition
   USE LOGICAL_MOD                       ! Logical switches

@@ -16,13 +16,9 @@
 ! !USES:
 !
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
-!      USE AEIC_MOD,                ONLY : CLEANUP_AEIC
-!      USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
       USE BIOMASS_MOD,             ONLY : CLEANUP_BIOMASS
       USE BIOFUEL_MOD,             ONLY : CLEANUP_BIOFUEL
-!      USE BRAVO_MOD,               ONLY : CLEANUP_BRAVO
       USE C2H6_MOD,                ONLY : CLEANUP_C2H6
-!      USE CAC_ANTHRO_MOD,          ONLY : CLEANUP_CAC_ANTHRO
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CHEMGRID_MOD,            ONLY : CLEANUP_CHEMGRID
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
@@ -40,14 +36,7 @@
       USE DIAG_PL_MOD,             ONLY : CLEANUP_DIAG_PL
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
-!      USE DUST_DEAD_MOD,           ONLY : CLEANUP_DUST_DEAD
-!      USE EDGAR_MOD,               ONLY : CLEANUP_EDGAR
-!      USE EMEP_MOD,                ONLY : CLEANUP_EMEP
-!      USE EPA_NEI_MOD,             ONLY : CLEANUP_EPA_NEI
       USE ERROR_MOD,               ONLY : DEBUG_MSG
-!      USE GC_BIOMASS_MOD,          ONLY : CLEANUP_GC_BIOMASS
-!      USE GFED2_BIOMASS_MOD,       ONLY : CLEANUP_GFED2_BIOMASS
-!      USE GFED3_BIOMASS_MOD,       ONLY : CLEANUP_GFED3_BIOMASS
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
@@ -58,13 +47,14 @@
       USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
       USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
       USE GRID_MOD,                ONLY : CLEANUP_GRID
-      USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
+!-----------------------------------------------------------------------------
+! This is now obsolete.  You can reactivate this if you want.
+!      USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
+!-----------------------------------------------------------------------------
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
-!      USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
-!      USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
       USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
@@ -89,12 +79,8 @@
       USE TRACER_MOD,              ONLY : CLEANUP_TRACER
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
-!      USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
-!      USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
-!      USE RETRO_MOD,               ONLY : CLEANUP_RETRO
       USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
-!      USE RCP_MOD,                 ONLY : CLEANUP_RCP !(cdh, 10/14/11)
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
@@ -297,7 +283,10 @@
       CALL CLEANUP_GLOBAL_BC
       CALL CLEANUP_GLOBAL_GRID
       CALL CLEANUP_GRID
-      CALL CLEANUP_H2_HD
+!-----------------------------------
+! Now obsolete
+!      CALL CLEANUP_H2_HD
+!-----------------------------------
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF
       CALL CLEANUP_ISOROPIAII

@@ -170,7 +170,8 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OH' )
 
          ! Read monthly mean O3 from disk [molecule/cm3]
-         CALL GET_GLOBAL_O3( MONTH )
+         CALL GET_GLOBAL_O3
+     &        ( am_I_Root, Input_Opt,            MONTH, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_O3' )
 
          ! Read monthly OC from disk
@@ -1341,6 +1342,9 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
+! !REMARKS:
+!  SLATED TO BE REPLACED BY HEMCO
+!
 ! !REVISION HISTORY: 
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on EMISSMERCURY
 !  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
@@ -1482,10 +1486,10 @@
          YEAR = GET_YEAR()
 
          ! Read monthly OC and BC from disk
-         CALL GET_GLOBAL_OC( MONTH, YEAR )
+         CALL GET_GLOBAL_OC( am_I_Root, Input_Opt, MONTH, YEAR, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OC' )
 
-         CALL GET_GLOBAL_BC( MONTH, YEAR )
+         CALL GET_GLOBAL_BC( am_I_Root, Input_Opt, MONTH, YEAR, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: b GET_GLOBAL_BC' )
 
       ENDIF

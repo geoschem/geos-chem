@@ -342,12 +342,12 @@ CONTAINS
        ! Read rates for this month
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 #if defined( GRID4x5 ) || defined( GRID2x25 )
-          CALL GET_RATES( GET_MONTH(), Input_Opt, State_Chm,  &
-                                       am_I_Root, errCode    )
+          CALL GET_RATES &
+               ( am_I_Root, Input_Opt, GET_MONTH(), State_Chm, errCode )
 #else
           ! For resolutions finer than 2x2.5, nested, 
           ! or otherwise exotic domains and resolutions
-          CALL GET_RATES_INTERP( GET_MONTH(), am_I_Root )
+          CALL GET_RATES_INTERP( am_I_Root, Input_Opt, GET_MONTH(), RC )
 #endif
        ENDIF
 
@@ -700,7 +700,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_RATES( THISMONTH, Input_Opt, State_Chm, am_I_Root, RC )
+  SUBROUTINE GET_RATES( am_I_Root, Input_Opt, THISMONTH, State_Chm, RC )
 !
 ! !USES:
 !
@@ -710,7 +710,6 @@ CONTAINS
     USE BPCH2_MOD,          ONLY : GET_TAU0
     USE BPCH2_MOD,          ONLY : READ_BPCH2
     USE CMN_SIZE_MOD
-    USE DIRECTORY_MOD,      ONLY : DATA_DIR
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -727,8 +726,8 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -774,7 +773,7 @@ CONTAINS
     !=================================================================
     ! GET_RATES begins here
     !=================================================================
-
+   
     ! Intialize arrays
     LOSS = 0e0
     PROD = 0e0
@@ -800,6 +799,9 @@ CONTAINS
     ! prod/loss data from netCDF files. (bmy, 10/26/12)
     !----------------------------------------------------------------------
 
+    ! Assume success
+    RC = GIGC_SUCCESS
+
     ! Copy fields from Input_Opt to Llocal variables
     N_TRACERS                = Input_Opt%N_TRACERS
     TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
@@ -817,7 +819,7 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() //  &
                '.'                              // GET_RES_EXT()  // '.nc'
-    FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+    FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
 
     IF ( am_I_Root ) THEN
        WRITE( 6, 100 ) TRIM( filename )
@@ -847,7 +849,7 @@ CONTAINS
        FILENAME = 'strat_chem_201206/gmi.clim.' // &
                   TRIM( GMI_TrName(NN) ) // '.' // & 
                   GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
-       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+       FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
 
        IF ( am_I_Root ) THEN
           WRITE( 6, 100 ) TRIM( filename )
@@ -917,12 +919,12 @@ CONTAINS
     XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
 
     ! the daytime concentrations
-    dayfile = TRIM( DATA_DIR ) // 'bromine_201205/' // &
+    dayfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
          'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
          GET_NAME_EXT()   // '.' // GET_RES_EXT()
 
     ! the nighttime concentrations
-    nightfile = TRIM(DATA_DIR) // 'bromine_201205/' // &
+    nightfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
          'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
          GET_NAME_EXT()   // '.' // GET_RES_EXT()
     
@@ -964,7 +966,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_RATES_INTERP( THISMONTH, am_I_Root )
+  SUBROUTINE GET_RATES_INTERP( am_I_Root, Input_Opt, THISMONTH, RC )
 !
 ! !USES:
 !
@@ -974,7 +976,6 @@ CONTAINS
     USE BPCH2_MOD,       ONLY : GET_TAU0
     USE BPCH2_MOD,       ONLY : READ_BPCH2
     USE CMN_SIZE_MOD
-    USE DIRECTORY_MOD,   ONLY : DATA_DIR_1x1
     USE GRID_MOD,        ONLY : GET_XMID
     USE GRID_MOD,        ONLY : GET_YMID
     USE LOGICAL_MOD,     ONLY : LLINOZ
@@ -1051,7 +1052,7 @@ CONTAINS
 
     ! Path to input data, use 2 x 2.5 file
     FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() // '.2x25.nc'
-    FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
+    FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
 
     ! Echo info
     IF ( am_I_Root ) THEN
@@ -1127,12 +1128,12 @@ CONTAINS
     XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
 
     ! the daytime concentrations
-    dayfile = TRIM( DATA_DIR_1x1 ) // 'bromine_201205/' // &
+    dayfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
          'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
          GET_NAME_EXT()   // '.2x25'
     
     ! the nighttime concentrations
-    nightfile = TRIM(DATA_DIR_1x1 ) // 'bromine_201205/' // &
+    nightfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
          'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
          GET_NAME_EXT()   // '.2x25'
     
@@ -1174,7 +1175,7 @@ CONTAINS
        ! Path to input data, use 2 x 2.5 file
        FILENAME = 'strat_chem_201206/gmi.clim.' // &
             TRIM( GMI_TrName(NN) ) // '.' // GET_NAME_EXT() // '.2x25.nc'
-       FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
+       FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
 
        IF ( am_I_Root ) THEN
           WRITE( 6, 12 ) TRIM( filename )
