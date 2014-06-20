@@ -5259,6 +5259,7 @@
 
             ! Number of tracers
             ! Add GLYX, MGLY, GLYC, HAC, C2H2,BENZ, TOLU, XYLE, C2H4
+            ! Add PAN, HNO3
             !-----------------------------------------------------------------
             ! Bug fix: omit SOA tracers if not needed. (bmy, 9/2/10)
             !NTRAC(28) = 23
@@ -5269,7 +5270,7 @@
             ELSE
                ! Should have been 16 not 14 for isoprene chem
                ! +4 for SEAC4RS passive tracers (jaf, 6/14/13)
-               NTRAC(28) = 20    ! Standard simulation
+               NTRAC(28) = 22    ! Standard simulation
 !----------------------------------------------------------------------------
 ! Prior to 10/30/13:
 ! This is in the std code (bmy, 10/30/13)
@@ -5290,6 +5291,20 @@
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
                   
+               ELSE IF ( T == IDBPAN ) THEN
+                  NAME (T,28) = 'PAN'
+                  INDEX(T,28) = IDTPAN + ( SPACING * 45 )
+                  MWT  (T,28) = 121e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSE IF ( T == IDBHNO3 ) THEN
+                  NAME (T,28) = 'HNO3'
+                  INDEX(T,28) = IDTHNO3 + ( SPACING * 45 )
+                  MWT  (T,28) = 64e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
                ELSE IF ( T == IDBCO ) THEN
                   NAME (T,28) = 'CO'
                   INDEX(T,28) = IDTCO + ( SPACING * 45 )
