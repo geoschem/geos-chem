@@ -432,7 +432,7 @@
       CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
 
       ! Make sure all directories are valid
-      CALL VALIDATE_DIRECTORIES
+      CALL VALIDATE_DIRECTORIES( am_I_Root, Input_Opt, RC )
 
 #endif
 
@@ -6426,9 +6426,6 @@
 ! !USES:
 !
       USE CHARPAK_MOD,   ONLY : STRSQUEEZE
-      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,  REMOVE_CMD 
-      USE UNIX_CMDS_MOD, ONLY : SEPARATOR,  SPACE,     UNZIP_CMD
-      USE UNIX_CMDS_MOD, ONLY : WILD_CARD,  ZIP_SUFFIX 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -6451,6 +6448,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  20 Jun 2014 - R. Yantosca - Remove reference to unix_cmds_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6467,50 +6465,41 @@
 
       ! Background
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:1' )
-      READ( SUBSTRS(1:N), '(a)' ) BACKGROUND
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%BACKGROUND
 
       ! Redirect
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:2' )
-      READ( SUBSTRS(1:N), '(a)' ) REDIRECT
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%REDIRECT
 
       ! Remove command
-      REMOVE_CMD = READ_ONE_LINE( EOF,    'read_unix_cmds_menu:3' ) 
-      REMOVE_CMD = REMOVE_CMD(FIRSTCOL:)
-      CALL STRSQUEEZE( REMOVE_CMD )
+      Input_Opt%REMOVE_CMD = READ_ONE_LINE( EOF,    
+     &                                      'read_unix_cmds_menu:3' ) 
+      Input_Opt%REMOVE_CMD = Input_Opt%REMOVE_CMD(FIRSTCOL:)
+      CALL STRSQUEEZE( Input_Opt%REMOVE_CMD )
 
       ! Separator
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:4' )
-      READ( SUBSTRS(1:N), '(a)' ) SEPARATOR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%SEPARATOR
 
       ! Wild Card
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:5' )
-      READ( SUBSTRS(1:N), '(a)' ) WILD_CARD
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%WILD_CARD
 
       ! Unzip command
-      UNZIP_CMD = READ_ONE_LINE( EOF,     'read_unix_cmds_menu:6' ) 
-      UNZIP_CMD = UNZIP_CMD(FIRSTCOL:)
-      CALL STRSQUEEZE( UNZIP_CMD )
+      Input_Opt%UNZIP_CMD = READ_ONE_LINE( EOF,     
+     &                                     'read_unix_cmds_menu:6' ) 
+      Input_Opt%UNZIP_CMD =Input_Opt% UNZIP_CMD(FIRSTCOL:)
+      CALL STRSQUEEZE( Input_Opt%UNZIP_CMD )
 
       ! Zip suffix
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:7' )
-      READ( SUBSTRS(1:N), '(a)' ) ZIP_SUFFIX
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ZIP_SUFFIX
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_unix_cmds_menu:8' )
 
       ! Just hardwire the SPACE character
-      SPACE = ' '
-
-      !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%BACKGROUND = BACKGROUND
-      Input_Opt%REDIRECT   = REDIRECT
-      Input_Opt%REMOVE_CMD = REMOVE_CMD
-      Input_Opt%SEPARATOR  = SEPARATOR
-      Input_Opt%WILD_CARD  = WILD_CARD
-      Input_Opt%UNZIP_CMD  = UNZIP_CMD
-      Input_Opt%ZIP_SUFFIX = ZIP_SUFFIX
+      Input_Opt%SPACE = ' '
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -6522,19 +6511,19 @@
          WRITE( 6, '(/,a)' ) 'UNIX CMDS MENU'
          WRITE( 6, '(  a)' ) '---------------'            
          WRITE( 6, 100     ) 'Unix BACKGROUND  command    : ', 
-     &                        TRIM( BACKGROUND )
+     &                        TRIM( Input_Opt%BACKGROUND )
          WRITE( 6, 100     ) 'Unix REDIRECT    command    : ', 
-     &                        TRIM( REDIRECT   )
+     &                        TRIM( Input_Opt%REDIRECT   )
          WRITE( 6, 100     ) 'Unix REMOVE      command    : ',
-     &                        TRIM( REMOVE_CMD )
+     &                        TRIM( Input_Opt%REMOVE_CMD )
          WRITE( 6, 100     ) 'Unix SEPARATOR   command    : ',
-     &                        TRIM( SEPARATOR  )
+     &                        TRIM( Input_Opt%SEPARATOR  )
          WRITE( 6, 100     ) 'Unix WHITE SPACE command    : ',
-     &                        TRIM( SPACE      )
+     &                        TRIM( Input_Opt%SPACE      )
          WRITE( 6, 100     ) 'Unix WILD CARD   command    : ',
-     &                        TRIM( WILD_CARD  )
+     &                        TRIM( Input_Opt%WILD_CARD  )
          WRITE( 6, 100     ) 'Unix UNZIP       command    : ',
-     &                        TRIM( UNZIP_CMD  )
+     &                        TRIM( Input_Opt%UNZIP_CMD  )
       ENDIF
 
       ! FORMAT statements
@@ -7650,16 +7639,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE VALIDATE_DIRECTORIES
+      SUBROUTINE VALIDATE_DIRECTORIES( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD
-      USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID 
-      USE LOGICAL_MOD,   ONLY : LWINDO_CU,   LUNZIP
-      USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,    LWINDO_CH
-      USE LOGICAL_MOD,   ONLY : LWINDO_SE
-      USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMDb,    GET_NYMDe
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID 
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_NYMDb
+      USE TIME_MOD,           ONLY : GET_NYMDe
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -7674,6 +7675,7 @@
 !  09 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  20 Jun 2014 - R. Yantosca - Now use fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7687,117 +7689,120 @@
       ! VALIDATE_DIRECTORIES begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Get starting & ending dates
       NYMDb = GET_NYMDb()
       NYMDe = GET_NYMDe()
 
       ! Check directories
-      CALL CHECK_DIRECTORY( DATA_DIR     )
-      CALL CHECK_DIRECTORY( DATA_DIR_1x1 )
-      CALL CHECK_DIRECTORY( RUN_DIR      )
-      CALL CHECK_DIRECTORY( OH_DIR       )
-      CALL CHECK_DIRECTORY( O3PL_DIR     )
-!      CALL CHECK_DIRECTORY( OC_DIR       )  !(clf, 1/20/2011)
-!      CALL CHECK_DIRECTORY( BC_DIR       )  !(clf, 1/20/2011)
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR     )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR_1x1 )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%RUN_DIR      )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%OH_DIR       )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%O3PL_DIR     )
 
       ! Only validate the TEMP_DIR if we are unzipping met fields
-      IF ( LUNZIP ) CALL CHECK_DIRECTORY( TEMP_DIR )
+      IF ( Input_Opt%LUNZIP ) THEN
+         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TEMP_DIR )
+      ENDIF
 
       ! Only validate the TPCORE BC directory if we need it
       IF ( ITS_A_NESTED_GRID() ) THEN
 #if   defined( NESTED_NA)
-         CALL CHECK_DIRECTORY( TPBC_DIR_NA )
+         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_NA )
 #elif defined( NESTED_EU)
-         CALL CHECK_DIRECTORY( TPBC_DIR_EU )
+         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_EU )
 #elif defined( NESTED_CH)
-         CALL CHECK_DIRECTORY( TPBC_DIR_CH )
+         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_CH )
 #endif
 
       ENDIF
-      IF ( LWINDO_CU ) THEN
-         CALL CHECK_DIRECTORY( TPBC_DIR )
+      IF ( Input_Opt%LWINDO_CU ) THEN
+         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR )
       ENDIF
-      IF ( LWINDO_NA ) THEN
-         CALL CHECK_DIRECTORY( TPBC_DIR_NA )
+      IF ( Input_Opt%LWINDO_NA ) THEN
+         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_NA )
       ENDIF
-      IF ( LWINDO_EU ) THEN
-         CALL CHECK_DIRECTORY( TPBC_DIR_EU )
+      IF ( Input_Opt%LWINDO_EU ) THEN
+         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_EU )
       ENDIF
-      IF ( LWINDO_CH ) THEN
-         CALL CHECK_DIRECTORY( TPBC_DIR_CH )
+      IF ( Input_Opt%LWINDO_CH ) THEN
+         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_CH )
       ENDIF
 
 #if   defined( GEOS_4 )
 
       ! Check GEOS-4 met field directory (starting date)
-      DIR = GEOS_4_DIR
+      DIR = Input_Opt%GEOS_4_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 
       ! Check GEOS-4 met field directory (ending date)
-      DIR = GEOS_4_DIR
+      DIR = Input_Opt%GEOS_4_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 #elif defined( GEOS_5 )
 
       ! Check GEOS-5 met field directory (starting date)
-      DIR = GEOS_5_DIR
+      DIR = Input_Opt%GEOS_5_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
       ! Check GEOS-5 met field directory (ending date)
       DIR = GEOS_5_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 #elif defined( GEOS_FP )
 
       ! Check GEOS-FP met field directory (starting date)
-      DIR = GEOS_FP_DIR
+      DIR = Input_Opt%GEOS_FP_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
       ! Check GEOS-FP met field directory (ending date)
-      DIR = GEOS_FP_DIR
+      DIR = Input_Opt%GEOS_FP_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 #elif defined( MERRA )
 
       ! Check GEOS-5 met field directory (starting date)
-      DIR = MERRA_DIR
+      DIR = Input_Opt%MERRA_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
       ! Check GEOS-5 met field directory (ending date)
-      DIR = MERRA_DIR
+      DIR = Input_Opt%MERRA_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 #elif defined( GCAP )
 
       ! Check GEOS-5 met field directory (starting date)
-      DIR = GCAP_DIR
+      DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 
       ! Check GEOS-5 met field directory (ending date)
-      DIR = GCAP_DIR
+      DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 #endif
 
@@ -7817,24 +7822,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_DIRECTORY( DIR )
+      SUBROUTINE CHECK_DIRECTORY( Input_Opt, DIR )
 !
 ! !USES:
 !
-      ! References to F90 modules 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE UNIX_CMDS_MOD, ONLY : SEPARATOR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
-! !INPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*), INTENT(INOUT) :: DIR    ! Directory to be checked
+      TYPE(OptInput),   INTENT(INOUT) :: Input_Opt   ! Input Options object
+      CHARACTER(LEN=*), INTENT(INOUT) :: DIR         ! Dir to be checked
 ! 
 ! !REVISION HISTORY: 
 !  20 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  20 Jun 2014 - R. Yantosca - Now added Input_Opt object via arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7852,8 +7858,8 @@
       C = LEN_TRIM( DIR )
 
       ! Add the trailing directory separator if it is not present
-      IF ( DIR(C:C) /= TRIM( SEPARATOR ) ) THEN 
-         DIR(C+1:C+1) = TRIM( SEPARATOR )
+      IF ( DIR(C:C) /= TRIM( Input_Opt%SEPARATOR ) ) THEN 
+         DIR(C+1:C+1) = TRIM( Input_OPt%SEPARATOR )
       ENDIF
      
       !=================================================================

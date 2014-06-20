@@ -491,6 +491,7 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: WILD_CARD
      CHARACTER(LEN=255)          :: UNZIP_CMD
      CHARACTER(LEN=255)          :: ZIP_SUFFIX
+     CHARACTER(LEN=1)            :: SPACE
 
      !----------------------------------------
      ! NESTED GRID MENU fields

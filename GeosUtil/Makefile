@@ -58,6 +58,7 @@
 #  03 Apr 2012 - M. Payer    - Add new module regrid_a2a_mod.F90 (M. Cooper)
 #  03 Aug 2012 - R. Yantosca - Add dependency for inquireMod.F90
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  20 Jun 2014 - R. Yantosca - Removed unix_cmds_mod.F; it's now obsolete
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -180,7 +181,6 @@ time_mod.o        : time_mod.F                       \
 
 transfer_mod.o    : transfer_mod.F      error_mod.o
 
-unix_cmds_mod.o   : unix_cmds_mod.F
 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
 # in the HDF5 include path (bmy, 12/21/09)
