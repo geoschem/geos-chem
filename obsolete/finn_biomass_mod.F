@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 
 !
@@ -70,6 +69,9 @@
 !
 ! !REVISION HISTORY: 
 !  02 Jan 2013 - J. Mao & J.A. Fisher - Initial version, based on GFED3
+!  01 Oct 2013 - J.A. Fisher - Update to only use one input file
+!  05 May 2014 - J.A. Fisher - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -79,10 +81,15 @@
       !=================================================================
       ! MODULE PARAMETERS
       !
+      ! N_EMFAC : Number of emission factors per species
       ! N_SPEC  : Number of species
+      ! I_NATIVE: Longitude dimension of input files
+      ! J_NATIVE: Latitude dimension of input files
       !=================================================================
-      ! Consider increasing this to 25 (skim, 7/27/13)
-      INTEGER,          PARAMETER   :: N_SPEC  = 23
+      INTEGER, PARAMETER   :: N_EMFAC = 6
+      INTEGER, PARAMETER   :: N_SPEC  = 39
+      INTEGER, PARAMETER   :: I_NATIVE = 720 ! 0.5 x 0.5 resolution
+      INTEGER, PARAMETER   :: J_NATIVE = 360 ! 0.5 x 0.5 resolution
 
 !
 ! PRIVATE TYPES:
@@ -93,9 +100,6 @@
       ! Scalars
       !
       ! UPDATED         : flag to indicate if FINN emissions are updated
-      ! UPDATED_MON     : flag to indicate if new month
-      ! UPDATED_DAY     : flag to indicate if new day
-      !                   - only set to true if daily emissions are used
       ! SECONDS         : Number of seconds in the current month
       !
       ! Arrays
@@ -103,22 +107,24 @@
       ! FINN_SPEC_NAME  : Array for FINN biomass species names
       ! FINN_SPEC_MOLWT : Array for FINN biomass species molecular wts
       ! FINN_SPEC_UNIT  : Array for FINN biomass species emissions units
+      ! FINN_EMFAC      : Array for emission factors
       ! BIOMASS_MODEL   : Array for FINN species emissions on model grid
       ! BIO_SAVE        : Index array to store IDBxxx values
+      ! LUMP_ID         : Index array to store IDBxxx for lumped species
       !=================================================================
 
       ! Scalars
       LOGICAL                       :: UPDATED
-      LOGICAL                       :: UPDATED_MON
-      LOGICAL                       :: UPDATED_DAY
       REAL*8                        :: SECONDS
 
       ! Arrays
-      CHARACTER(LEN=4), ALLOCATABLE :: FINN_SPEC_NAME(:)
       REAL*8,           ALLOCATABLE :: FINN_SPEC_MOLWT(:)
+      CHARACTER(LEN=6), ALLOCATABLE :: FINN_SPEC_NAME(:)
       CHARACTER(LEN=6), ALLOCATABLE :: FINN_SPEC_UNIT(:)
+      REAL*8,           ALLOCATABLE :: FINN_EMFAC(:,:)
       REAL*8,           ALLOCATABLE :: BIOMASS_MODEL(:,:,:)
       INTEGER,          ALLOCATABLE :: BIO_SAVE(:)
+      INTEGER,          ALLOCATABLE :: LUMP_ID(:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -175,8 +181,7 @@
 !
 ! !USES:
 !
-!     Hardcode this for the moment (skim, 7/27/13)
-!     USE LOGICAL_MOD, ONLY : L1DAYBBF
+      USE LOGICAL_MOD, ONLY : L1DAYBBF
       USE TIME_MOD,    ONLY : ITS_A_NEW_MONTH
       USE TIME_MOD,    ONLY : ITS_A_NEW_DAY
 !
@@ -197,25 +202,15 @@
 !
 ! !LOCAL VARIABLES:
 !
+
       ! Reset to default
       UPDATED     = .FALSE.
-      UPDATED_MON = .FALSE.
-      UPDATED_DAY = .FALSE.
 
       ! Check if it is a new month
-      IF ( ITS_A_NEW_MONTH() ) THEN
-            UPDATED     = .TRUE.
-            UPDATED_MON = .TRUE.
-      ENDIF
+      IF ( ITS_A_NEW_MONTH() ) UPDATED = .TRUE.
       
       ! Check if it is a new day
-      ! Use the daily emissions, hardcoded (skim, 7/27/13)
-      !IF ( L1DAYBBF ) THEN
-         IF ( ITS_A_NEW_DAY() ) THEN
-            UPDATED     = .TRUE.
-            UPDATED_DAY = .TRUE.
-         ENDIF
-      !ENDIF
+      IF ( L1DAYBBF .AND. ITS_A_NEW_DAY() ) UPDATED = .TRUE.
 
       END SUBROUTINE CHECK_FINN
 !EOC
@@ -251,13 +246,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      !!!!! Kludge - also have 2012 emissions at the moment (jaf)
-      IF ( YYYY == 2012 ) RETURN
-
-      !!!!! Kludge - also have 2013 emissions for the SEAC4RS mission
-      ! (skim, 7/27/13)
-      IF ( YYYY == 2013 ) RETURN
 
       ! Check year
       IF ( YYYY > YMAX .OR. YYYY < YMIN ) THEN
@@ -306,9 +294,8 @@
       USE JULDAY_MOD,      ONLY : JULDAY
       USE JULDAY_MOD,      ONLY : CALDATE
       USE LOGICAL_MOD,     ONLY : LFUTURE
-!      HARDCODE IN FOR NOW (skim, 7/27/13)
-!      USE LOGICAL_MOD,     ONLY : L1DAYBBF
-!      USE LOGICAL_MOD,     ONLY : LFINNBB
+      USE LOGICAL_MOD,     ONLY : L1DAYBBF
+      USE REGRID_A2A_MOD,  ONLY : DO_REGRID_A2A
       USE TIME_MOD,        ONLY : EXPAND_DATE
       USE TIME_MOD,        ONLY : GET_DAY
       USE TIME_MOD,        ONLY : GET_DAY_OF_YEAR
@@ -335,17 +322,30 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER             :: N
+
+      ! For reading
+      INTEGER             :: N, NF
       INTEGER             :: YYYY, MM, MM1, YYYY1
       INTEGER             :: YYYYMMDD, YYYYMMDD1, HHMMSS
       REAL*8              :: ARRAY_FINN(IIPAR, JJPAR)
+      REAL*8              :: ARRAY_FINN_NATIVE(I_NATIVE, J_NATIVE,1)
+      REAL*8              :: CO2_FINN_IN(I_NATIVE, J_NATIVE, N_EMFAC)
       REAL*8              :: TAU0, TAU1
       REAL*8              :: JD,   JD1
       INTEGER             :: DD,   DD1,  DOY
-      REAL*4              :: TMP
-      CHARACTER(LEN=255)  :: FILENAME,  FINN_DIR
+      CHARACTER(LEN=255)  :: FINN_DIR
+      CHARACTER(LEN=255)  :: FILENAME1
+      CHARACTER(LEN=255)  :: FILENAME2
+      CHARACTER(LEN=255)  :: FILENAME3
+      CHARACTER(LEN=255)  :: FILENAME4
+      CHARACTER(LEN=255)  :: FILENAME5
+      CHARACTER(LEN=255)  :: FILENAME6
       CHARACTER(LEN=7  )  :: TIME_STR
       CHARACTER(LEN=4  )  :: SPEC_NAME
+
+      ! For regridding
+      CHARACTER(LEN=255)  :: LLFILENAME
+      REAL*8              :: INGRID(I_NATIVE,J_NATIVE)
 
       !=================================================================
       ! FINN_COMPUTE_BIOMASS begins here!
@@ -354,9 +354,7 @@
       ! First-time initialization
       IF ( FIRST ) THEN
          CALL INIT_FINN_BIOMASS
-
          FIRST = .FALSE.
-
       ENDIF
 
       ! Save in local variables
@@ -367,7 +365,7 @@
       
       ! Check if we need to update FINN 
       CALL CHECK_FINN( DOY )
-      
+
       ! If no updating is needed, module variable BIOMASS_MODEL
       ! from last update can be used
       IF ( .not. UPDATED ) THEN
@@ -384,14 +382,12 @@
       ! Set-up for reading FINN daily/monthly emissions
       !=================================================================
       
+      ! Check availability
+      CALL FINN_AVAILABLE( YYYY, 2007, 2013 )
+
       ! DAILY data
       !-------------------------------
-      ! Hardcode for the SEAC4RS campaign
-      IF ( .TRUE. ) THEN
-      !IF ( L1DAYBBF ) THEN
-
-         ! Check availability
-         CALL FINN_AVAILABLE( YYYY, 2006, 2007 )
+      IF ( L1DAYBBF ) THEN
 
          ! Create YYYYMMDD integer values
          YYYYMMDD = YYYY*10000 + MM*100 + DD
@@ -409,15 +405,12 @@
          TAU1     = GET_TAU0( MM1, DD1, YYYY1 )
 
          ! Directory with FINN emissions
-         ! FINN_DIR = 'FINN_201301/daily/'
-         FINN_DIR = '/home/skim/FINN/FINN_files/daily/'
+         FINN_DIR = 'FINN_201310/daily/'
          TIME_STR = 'daily'
 
       ! MONTHLY data
       !-------------------------------
       ELSE 
-
-         CALL FINN_AVAILABLE( YYYY, 2006, 2007 )
 
          ! Create YYYYMMDD integer values
          YYYYMMDD = YYYY*10000 + MM*100 + 01
@@ -441,10 +434,15 @@
          TAU1     = GET_TAU0( MM1, 1, YYYY1 )
 
          ! Directory with FINN emissions
-         FINN_DIR = 'FINN_201301/monthly/'
+         FINN_DIR = 'FINN_201310/monthly/'
          TIME_STR = 'monthly'
 
       ENDIF
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_NATIVE) //
+     &             'MAP_A2A_Regrid_201203/' //
+     &             'MAP_A2A_latlon_generic05x05.nc'
 
       !=================================================================
       ! Calculate biomass species emissions on FINN grid
@@ -459,29 +457,94 @@
       !                        C2H6, BC,   OC
       !=================================================================
 
+      ! Zero CO2 array
+      CO2_FINN_IN = 0d0
+
+      ! File names with FINN CO2 emissions
+      FILENAME1 = TRIM( DATA_DIR_NATIVE ) // TRIM( FINN_DIR ) //
+     &            TRIM( TIME_STR ) // '_CO2_vegtype1_YYYY_05x05.nc'
+      FILENAME2 = TRIM( DATA_DIR_NATIVE ) // TRIM( FINN_DIR ) //
+     &            TRIM( TIME_STR ) // '_CO2_vegtype2_YYYY_05x05.nc'
+      FILENAME3 = TRIM( DATA_DIR_NATIVE ) // TRIM( FINN_DIR ) //
+     &            TRIM( TIME_STR ) // '_CO2_vegtype3_YYYY_05x05.nc'
+      FILENAME4 = TRIM( DATA_DIR_NATIVE ) // TRIM( FINN_DIR ) //
+     &            TRIM( TIME_STR ) // '_CO2_vegtype4_YYYY_05x05.nc'
+      FILENAME5 = TRIM( DATA_DIR_NATIVE ) // TRIM( FINN_DIR ) //
+     &            TRIM( TIME_STR ) // '_CO2_vegtype5_YYYY_05x05.nc'
+      FILENAME6 = TRIM( DATA_DIR_NATIVE ) // TRIM( FINN_DIR ) //
+     &            TRIM( TIME_STR ) // '_CO2_vegtype9_YYYY_05x05.nc'
+
+      ! Replace YYYY/MM in the file name
+      CALL EXPAND_DATE( FILENAME1, YYYYMMDD, 000000 )
+      CALL EXPAND_DATE( FILENAME2, YYYYMMDD, 000000 )
+      CALL EXPAND_DATE( FILENAME3, YYYYMMDD, 000000 )
+      CALL EXPAND_DATE( FILENAME4, YYYYMMDD, 000000 )
+      CALL EXPAND_DATE( FILENAME5, YYYYMMDD, 000000 )
+      CALL EXPAND_DATE( FILENAME6, YYYYMMDD, 000000 )
+
+      ! Read FINN CO2 emissions [molec CO2/cm2/s] for each land type
+      CALL READ_FINN( FILENAME1, ARRAY_FINN_NATIVE, YYYY, MM, DD )
+      CO2_FINN_IN(:,:,1) = ARRAY_FINN_NATIVE(:,:,1)
+
+      CALL READ_FINN( FILENAME2, ARRAY_FINN_NATIVE, YYYY, MM, DD )
+      CO2_FINN_IN(:,:,2) = ARRAY_FINN_NATIVE(:,:,1)
+
+      CALL READ_FINN( FILENAME3, ARRAY_FINN_NATIVE, YYYY, MM, DD )
+      CO2_FINN_IN(:,:,3) = ARRAY_FINN_NATIVE(:,:,1)
+
+      CALL READ_FINN( FILENAME4, ARRAY_FINN_NATIVE, YYYY, MM, DD )
+      CO2_FINN_IN(:,:,4) = ARRAY_FINN_NATIVE(:,:,1)
+
+      CALL READ_FINN( FILENAME5, ARRAY_FINN_NATIVE, YYYY, MM, DD )
+      CO2_FINN_IN(:,:,5) = ARRAY_FINN_NATIVE(:,:,1)
+
+      CALL READ_FINN( FILENAME6, ARRAY_FINN_NATIVE, YYYY, MM, DD )
+      CO2_FINN_IN(:,:,6) = ARRAY_FINN_NATIVE(:,:,1)
+
+      !=================================================================
+      ! Calculate biomass species emissions on native FINN grid
+      !
+      ! Emission factors are given in [mole X]/[mole CO2]
+      ! Some species need to be converted from [molec X] to [atoms C X]
+      !=================================================================
+
       ! Loop over biomass species 
       DO N = 1, N_SPEC
 
-         ! Initialize temporary array
-         ARRAY_FINN = 0d0
+         ! Initialize temporary arrays
+         ARRAY_FINN        = 0d0
+         ARRAY_FINN_NATIVE = 0d0
 
-         ! Set filename for this species
-         SPEC_NAME = FINN_SPEC_NAME(N)
-!         FILENAME = TRIM( DATA_DIR_NATIVE ) // TRIM( FINN_DIR ) //
-!     &              TRIM( TIME_STR ) // '_' // TRIM( SPEC_NAME ) //
-!     &              '_YYYY_05x05.nc'
-         ! This will probably need to be updated once we get the
-         ! filenames (skim, 7/27/13)
-         FILENAME = TRIM( FINN_DIR ) //
-     &              TRIM( TIME_STR ) // '_' // TRIM( SPEC_NAME ) //
-     &              '_YYYY_05x05.nc'
-         CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
+         ! Species with no emission factor have FINN_EMFAC=0
+         ! Species that are being lumped with another will have
+         ! BIO_SAVE=0 but still need to be calculated here, so use
+         ! LUMP_ID as optional criterion.
+         IF ( MAXVAL(FINN_EMFAC(N,:)) > 0 .AND.
+     &        ( BIO_SAVE(N) > 0 .OR. LUMP_ID(N) > 0 ) ) THEN
 
-         ! Read FINN emissions for this species in [molec/cm2/s]
-         CALL READ_FINN( FILENAME, 'fire', ARRAY_FINN, YYYY, MM, DD )
+         ! Loop over land types
+         DO NF = 1, N_EMFAC
+
+            ! Multiply CO2 emissions by appropriate ratio for each land
+            ! type and sum to get total emissions for the species on the
+            ! native grid - emissions are in molec/cm2/s
+
+            ARRAY_FINN_NATIVE(:,:,1) = ARRAY_FINN_NATIVE(:,:,1) + 
+     &                                 CO2_FINN_IN(:,:,NF)      *
+     &                                 FINN_EMFAC(N,NF)
+
+         ENDDO
+
+         ! Regrid to current model resolution
+         INGRID = ARRAY_FINN_NATIVE(:,:,1)
+         CALL DO_REGRID_A2A( LLFILENAME, I_NATIVE,   J_NATIVE,
+     &                       INGRID,     ARRAY_FINN, IS_MASS=0,
+     &                       netCDF=.TRUE.                      )
 
          ! Add to biomass array
          BIOMASS_MODEL(:,:,N) = ARRAY_FINN
+
+         ENDIF ! EMFAC > 0
 
       ENDDO
 
@@ -491,7 +554,7 @@
       ENDIF
 
       ! Print totals in Tg/time period
-      IF ( UPDATED_DAY ) THEN
+      IF ( L1DAYBBF ) THEN
          WRITE( 6, 411 ) YYYY, MM, DD
  411     FORMAT( 'FINN daily emissions for year, month, day: ',
      &            i4, '/', i2.2, '/', i2.2, / )
@@ -523,19 +586,18 @@
 !
 ! !IROUTINE: read_finn
 !
-! !DESCRIPTION: Subroutine READ\_FINN reads the FINN BB emissions at 0.5x0.5
-!  degree resolution and regrids them to the current model resolution
+! !DESCRIPTION: Subroutine READ\_FINN\_NATIVE reads the FINN BB emissions at
+!  0.5x0.5 degree resolution
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_FINN( FILENAME, PARNAME, ARR, YYYY, MM, DD )
+      SUBROUTINE READ_FINN(FILENAME, ARR, YYYY, MM, DD)
 !
 ! !USES:
 !
       USE DIRECTORY_MOD,  ONLY: DATA_DIR_NATIVE => DATA_DIR_1x1
       USE NCDF_MOD,       ONLY: NC_READ
-      USE REGRID_A2A_MOD, ONLY: DO_REGRID_A2A
 
       USE CMN_SIZE_MOD          ! Size parameters
 
@@ -544,7 +606,6 @@
 !
       ! File and parameter to read
       CHARACTER(LEN=255),  INTENT(IN) :: FILENAME
-      CHARACTER(LEN=4),    INTENT(IN) :: PARNAME
       INTEGER,             INTENT(IN) :: YYYY
       INTEGER,             INTENT(IN) :: MM
       INTEGER,             INTENT(IN) :: DD
@@ -552,7 +613,7 @@
 ! !OUTPUT PARAMETERS:
 !
       ! Emissions output
-      REAL*8,            INTENT(OUT) :: ARR(IIPAR,JJPAR)
+      REAL*8,            INTENT(OUT) :: ARR(I_NATIVE,J_NATIVE,1)
 ! 
 ! !REVISION HISTORY:
 !  02 Jan 2013 - J. Fisher - Initial version
@@ -562,11 +623,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER, PARAMETER    :: I_NATIVE = 720 ! 0.5 x 0.5 resolution
-      INTEGER, PARAMETER    :: J_NATIVE = 360 ! 0.5 x 0.5 resolution
-      REAL*8                :: GENERIC_NATIVE(I_NATIVE,J_NATIVE,1)
-      CHARACTER(LEN=255)    :: LLFILENAME
-      REAL*8                :: INGRID(I_NATIVE,J_NATIVE)
       ! for ncdf-reading
       REAL*4, POINTER       :: NCARR(:,:,:) => NULL()
 
@@ -575,34 +631,21 @@
       !=================================================================
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( PARNAME ), TRIM( FILENAME )
- 100  FORMAT( '     - READ_FINN : Reading ', a , ' from ', a ) 
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_FINN : Reading ', a )
 
       ARR   = 0D0 
 
       CALL NC_READ ( NC_PATH = TRIM(FILENAME) ,
-     &               PARA    = TRIM(PARNAME)  ,
+     &               PARA    = 'fire'         ,
      &               ARRAY   = NCARR          ,
      &               YEAR    = YYYY           ,
      &               MONTH   = MM             ,
-     &               DAY     = DD              )
+     &               DAY     = DD             ,
+     &               VERBOSE = .FALSE.        )
 
-      ! Cast to REAL*8 before regridding
-      GENERIC_NATIVE(:,:,1) = NCARR(:,:,1)
-
-      ! Deallocate ncdf-array
-      IF ( ASSOCIATED ( NCARR ) ) DEALLOCATE ( NCARR )
-
-      ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_NATIVE) //
-     &             'MAP_A2A_Regrid_201203/' //
-     &             'MAP_A2A_latlon_generic05x05.nc'
-
-      ! Regrid to current model resolution
-      INGRID = GENERIC_NATIVE(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, I_NATIVE, J_NATIVE,
-     &                    INGRID,     ARR,      IS_MASS=0,
-     &                    netCDF=.TRUE.                    )
+      ! Cast to REAL*8
+      ARR(:,:,1) = NCARR(:,:,1)
 
       ! Return to calling program
       END SUBROUTINE READ_FINN
@@ -634,7 +677,7 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
       USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM 
       USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
-      USE TRACERID_MOD,           ONLY : IDBNO,   IDBCO,   IDBSO2 
+      USE TRACERID_MOD,           ONLY : IDBNO,  IDBCO,   IDBSO2 
       USE TRACERID_MOD,           ONLY : IDBNH3,  IDBBC,   IDBOC 
 
       USE CMN_SIZE_MOD                 ! Size parameters
@@ -646,6 +689,8 @@
 ! 
 ! !REVISION HISTORY: 
 !  02 Jan 2013 - J. Fisher - Initial version, based on GFED3
+!  05 May 2014 - J.A. Fisher - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -769,6 +814,8 @@
       ! Loop over biomass species
       DO N = 1, N_SPEC
 
+         IF ( BIO_SAVE(N) > 0 .OR. LUMP_ID(N) > 0 ) THEN
+
          ! Initialize
          NAME  = FINN_SPEC_NAME(N)
          MOLWT = FINN_SPEC_MOLWT(N)
@@ -789,9 +836,19 @@
          ENDDO
      
          ! Write totals
-         WRITE( 6, 110 ) NAME, TOTAL, UNIT
- 110     FORMAT( 'Sum Biomass ', a4, 1x, ': ', e12.5, 1x, a6 )
+         IF ( LUMP_ID(N) == 0 ) THEN
+            WRITE( 6, 110 ) NAME, TOTAL, UNIT
+         ELSE
+            WRITE( 6, 111 ) NAME, TOTAL, UNIT, LUMP_ID(N)
+         ENDIF
+
+         ENDIF
+
       ENDDO
+
+ 110     FORMAT( 'Sum Biomass ', a4, 1x, ': ', f11.4, 1x, a6 )
+ 111     FORMAT( 'Sum Biomass ', a4, 1x, ': ', f11.4, 1x, a6,
+     &           ' (lumped with BB tracer # ', i2,')')
 
       END SUBROUTINE FINN_TOTAL_Tg
 !EOC
@@ -811,34 +868,39 @@
 !
 ! !USES:
 !
+      USE CHARPAK_MOD,     ONLY : STRSPLIT
       USE DIRECTORY_MOD,   ONLY : DATA_DIR_NATIVE => DATA_DIR_1x1
       USE ERROR_MOD,       ONLY : ALLOC_ERR
       USE FILE_MOD,        ONLY : IOERROR
-      USE LOGICAL_MOD,     ONLY : LDICARB
-!     Hardcode for the SEAC4RS campaign (skim, 7/27/13) 
-!     USE LOGICAL_MOD,     ONLY : L1DAYBBF
-      USE TRACERID_MOD,    ONLY : IDBNO,   IDBCO,   IDBALK4
-      USE TRACERID_MOD,    ONLY : IDBACET, IDBMEK,  IDBALD2
-      USE TRACERID_MOD,    ONLY : IDBPRPE, IDBC3H8, IDBCH2O
-      USE TRACERID_MOD,    ONLY : IDBC2H6, IDBBC,   IDBOC
-      USE TRACERID_MOD,    ONLY : IDBSO2,  IDBNH3,  IDBCO2
-      USE TRACERID_MOD,    ONLY : IDBGLYX, IDBMGLY, IDBBENZ
-      USE TRACERID_MOD,    ONLY : IDBTOLU, IDBXYLE, IDBC2H4
-      USE TRACERID_MOD,    ONLY : IDBC2H2, IDBGLYC, IDBHAC
-      USE TRACERID_MOD,    ONLY : IDBCH4
+      USE inquireMod,      ONLY : findFreeLUN
+      USE TRACER_MOD,      ONLY : TRACER_MW_KG
+      USE TRACER_MOD,      ONLY : ITS_A_CO2_SIM, ITS_A_CH4_SIM
+      USE TRACERID_MOD
       USE CMN_SIZE_MOD          ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  02 Jan 2013 - J. Mao & J. Fisher - Initial version, based on GFED3
+!  05 May 2014 - J.A. Fisher - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      INTEGER, PARAMETER :: N_SPEC_EMFAC = 12
+      INTEGER, PARAMETER :: N_NMOC  = 28
       INTEGER            :: IU_FILE
-      INTEGER            :: AS, IOS, M, N, NDUM
-      CHARACTER(LEN=255) :: FILENAME
+      INTEGER            :: AS, IOS, M, N, NDUM, N_SPECSTRS, N_NMOCSTRS
+      LOGICAL            :: IS_NMOC
+      CHARACTER(LEN=255) :: FILENAME, ADUM
+      CHARACTER(LEN=255) :: IN_SPEC_NAME(255)
+      CHARACTER(LEN=255) :: IN_NMOC_NAME(255)
+      CHARACTER(LEN=255) :: TMPNAME
+      REAL*8             :: C_MOLEC
+      REAL*8             :: EMFAC_IN(N_SPEC_EMFAC, N_EMFAC)
+      REAL*8             :: NMOC_EMFAC(N_EMFAC), NMOC_RATIO(N_EMFAC)
+      REAL*8             :: NMOC_RATIO_IN(N_NMOC, N_EMFAC)
       
       !=================================================================
       ! INIT_FINN_BIOMASS begins here!
@@ -848,6 +910,11 @@
       ALLOCATE( BIOMASS_MODEL( IIPAR, JJPAR, N_SPEC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOMASS_MODEL' )
       BIOMASS_MODEL = 0d0
+
+      ! Allocate array for emission factors (default = 0)
+      ALLOCATE( FINN_EMFAC( N_SPEC, N_EMFAC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FINN_EMFAC' )
+      FINN_EMFAC = 0d0
 
       ! Allocate array for species molecular weight
       ALLOCATE( FINN_SPEC_MOLWT( N_SPEC ), STAT=AS )
@@ -859,44 +926,134 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FINN_SPEC_NAME' )
       FINN_SPEC_NAME = ''
 
-      ! Allocate array for FINN biomass buning species mass units
+      ! Allocate array for FINN biomass burning species mass units
       ALLOCATE( FINN_SPEC_UNIT( N_SPEC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FINN_SPEC_UNIT' )
-      FINN_SPEC_UNIT = ''
+      FINN_SPEC_UNIT = '[Tg  ]'
 
       !IDBs are now the same as the ones in TRACERID AND BIOMASS_MOD
       !BIOSAVE INDEX IS THE LOCATION OF THE EMISSION IN THE FINN FILE
-      !(fp)
       ALLOCATE( BIO_SAVE( N_SPEC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIO_SAVE' )
       BIO_SAVE = 0
 
+      !Some species are currently lumped with others. LUMP_ID saves
+      !the ID of the primary species that secondary species will be
+      !lumped into.
+      ALLOCATE( LUMP_ID( N_SPEC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LUMP_ID' )
+      LUMP_ID = 0
+
       !=================================================================
       ! Define FINN species names
       !=================================================================
-      FINN_SPEC_NAME(1)  = 'NOx'
+      FINN_SPEC_NAME(1)  = 'CO2'
       FINN_SPEC_NAME(2)  = 'CO'
-      FINN_SPEC_NAME(3)  = 'ALK4'
-      FINN_SPEC_NAME(4)  = 'ACET'
-      FINN_SPEC_NAME(5)  = 'MEK'
-      FINN_SPEC_NAME(6)  = 'ALD2'
-      FINN_SPEC_NAME(7)  = 'PRPE'
-      FINN_SPEC_NAME(8)  = 'C3H8'
-      FINN_SPEC_NAME(9)  = 'CH2O'
-      FINN_SPEC_NAME(10) = 'C2H6'
-      FINN_SPEC_NAME(11) = 'BC'
-      FINN_SPEC_NAME(12) = 'OC'
-      FINN_SPEC_NAME(13) = 'SO2'
-      FINN_SPEC_NAME(14) = 'NH3'
-      FINN_SPEC_NAME(15) = 'CO2'
-      FINN_SPEC_NAME(16) = 'TOLU'
-      FINN_SPEC_NAME(17) = 'BENZ'
-      FINN_SPEC_NAME(18) = 'C2H2'
-      FINN_SPEC_NAME(19) = 'C2H4'
-      FINN_SPEC_NAME(20) = 'MGLY'
-      FINN_SPEC_NAME(21) = 'GLYC'
+      FINN_SPEC_NAME(3)  = 'CH4'
+      FINN_SPEC_NAME(4)  = 'NOx'
+      FINN_SPEC_NAME(5)  = 'SO2'
+      FINN_SPEC_NAME(6)  = 'OC'
+      FINN_SPEC_NAME(7)  = 'BC'
+      FINN_SPEC_NAME(8)  = 'NH3'
+      FINN_SPEC_NAME(9)  = 'ACET'
+      FINN_SPEC_NAME(10) = 'ACTA'   ! Not currently emitted by BB in GC
+      FINN_SPEC_NAME(11) = 'ALD2'
+      FINN_SPEC_NAME(12) = 'ALK4'
+      FINN_SPEC_NAME(13) = 'BENZ'
+      FINN_SPEC_NAME(14) = 'C2H2'
+      FINN_SPEC_NAME(15) = 'C2H4'
+      FINN_SPEC_NAME(16) = 'C2H6'
+      FINN_SPEC_NAME(17) = 'C3H8'
+      FINN_SPEC_NAME(18) = 'CH2O'
+      FINN_SPEC_NAME(19) = 'EOH'    ! Not currently emitted in GC
+      FINN_SPEC_NAME(20) = 'GLYC'
+      FINN_SPEC_NAME(21) = 'GLYX'
       FINN_SPEC_NAME(22) = 'HAC'
-      FINN_SPEC_NAME(23) = 'CH4'
+      FINN_SPEC_NAME(23) = 'HCN'    ! Not currently emitted in GC
+      FINN_SPEC_NAME(24) = 'HCOOH'  ! Not currently emitted by BB in GC
+      FINN_SPEC_NAME(25) = 'ISOP'   ! Not currently emitted by BB in GC
+      FINN_SPEC_NAME(26) = 'MACR'   ! Not currently emitted in GC
+      FINN_SPEC_NAME(27) = 'MEK'
+      FINN_SPEC_NAME(28) = 'MGLY'
+      FINN_SPEC_NAME(29) = 'MOH'    ! Not currently emitted in GC
+      FINN_SPEC_NAME(30) = 'MVK'    ! Not currently emitted in GC
+      FINN_SPEC_NAME(31) = 'PRPE'
+      FINN_SPEC_NAME(32) = 'R4N2'   ! Not currently emitted in GC
+      FINN_SPEC_NAME(33) = 'RCHO'   ! Not currently emitted by BB in GC
+      FINN_SPEC_NAME(34) = 'TOLU'
+      FINN_SPEC_NAME(35) = 'XYLE'
+      FINN_SPEC_NAME(36) = 'HNO2'   ! Not currently emitted in GC
+      FINN_SPEC_NAME(37) = 'TMB'    ! Currently lumped with XYLE
+      FINN_SPEC_NAME(38) = 'ETBENZ' ! Currently lumped with TOLU
+      FINN_SPEC_NAME(39) = 'STYR'   ! Currently lumped with TOLU
+
+      !=================================================================
+      ! Read emission factors ([mole CO2]/[mole X])
+      !=================================================================
+
+      ! File name
+      FILENAME = TRIM( DATA_DIR_NATIVE) //
+     &           'FINN_201310/FINN_EFratios_CO2.csv'
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
+
+      ! Open emission factor file (ASCII format)
+      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_finn:1' )
+
+      ! Skip unnecessary header lines
+      DO N = 1, 2
+         READ( IU_FILE, *, IOSTAT=IOS )
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_finn:2' )
+      ENDDO
+
+      ! Read species names for emission ratio file
+      READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
+      CALL STRSPLIT(ADUM,',',IN_SPEC_NAME,N_SPECSTRS)
+
+      ! Read emission factors for each species and land type
+      DO N = 1, N_EMFAC
+         READ( IU_FILE, *, IOSTAT=IOS ) NDUM, ADUM, EMFAC_IN(:,N)
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_finn:3' )
+      ENDDO
+
+      ! Close file
+      CLOSE( IU_FILE )
+
+      !=================================================================
+      ! Read NMOC factors ([mole X]/[kg NMOC])
+      !=================================================================
+
+      ! File name
+      FILENAME = TRIM( DATA_DIR_NATIVE) //
+     &           'FINN_201310/FINN_VOC_speciation.csv'
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
+
+      ! Open emission factor file (ASCII format)
+      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_finn:4' )
+
+      ! Skip unnecessary header lines
+      DO N = 1, 2
+         READ( IU_FILE, *, IOSTAT=IOS )
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_finn:5' )
+      ENDDO
+
+      ! Read species names for emission ratio file
+      READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
+      CALL STRSPLIT(ADUM,',',IN_NMOC_NAME,N_NMOCSTRS)
+
+      ! Read emission factors for each species and land type
+      DO N = 1, N_EMFAC
+         READ( IU_FILE, *, IOSTAT=IOS ) NDUM, ADUM, NMOC_RATIO_IN(:,N)
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_finn:6' )
+      ENDDO
+
+      ! Close file
+      CLOSE( IU_FILE )
 
       !=================================================================
       ! Define local ID flags and arrays for the names, units, 
@@ -905,106 +1062,246 @@
       ! Save correspondance between FINN species order (N) and 
       ! species order of the simulation (IDBxxxs).(ccc, 2/4/10)
       ! and also initialize arrays for mol wts and units
+      ! Also get appropriate emission ratios to CO2 (jaf, 10/2/13)
       DO N = 1, N_SPEC
+
+         ! Reset variables
+         IS_NMOC    = .FALSE.
+         C_MOLEC    = 1d0
+         NMOC_RATIO = 0d0
+
+         DO M = 1, N_SPECSTRS 
+            TMPNAME = IN_SPEC_NAME(M)
+            IF ( TRIM(FINN_SPEC_NAME(N)) == TRIM(TMPNAME(5:8)) ) THEN
+               ! First two entries are not species. Also, EMFAC is
+               ! stored as [mole CO2]/[mole X], but we want the inverse.
+               FINN_EMFAC(N,:) = 1d0 / EMFAC_IN(M-2,:)
+               WRITE( 6, 200 ) TRIM( FINN_SPEC_NAME(N) )
+               EXIT
+            ELSE IF ( TRIM(TMPNAME(5:8)) == 'NMOC' ) THEN
+               NMOC_EMFAC = 1d0 / EMFAC_IN(M-2,:)
+            ENDIF
+         ENDDO
+
+ 200     FORMAT( 'Found FINN emission ratio for tracer ',a5 )
+
+         DO M = 1, N_NMOCSTRS 
+            TMPNAME = IN_NMOC_NAME(M)
+            IF ( TRIM(FINN_SPEC_NAME(N)) == TRIM(TMPNAME) ) THEN
+               ! First two entries are not species
+               NMOC_RATIO = NMOC_RATIO_IN(M-2,:)
+               IS_NMOC = .TRUE.
+               WRITE( 6, 201 ) TRIM( FINN_SPEC_NAME(N) )
+               EXIT
+            ENDIF
+         ENDDO
+
+ 201     FORMAT( 'Found FINN NMOC factor for tracer ',a5 )
+
          SELECT CASE ( TRIM( FINN_SPEC_NAME(N) ) ) 
             CASE( 'NOx'  )
-               BIO_SAVE(N)         = IDBNO
-               FINN_SPEC_MOLWT(N) = 14d-3
+               ! Replaced NOx with NO (jaf, 5/3/14)
+               BIO_SAVE(N)        = IDBNO
+               FINN_SPEC_MOLWT(N) = 14d-3 ! Tg N
                FINN_SPEC_UNIT(N)  = '[Tg N]'
             CASE( 'CO'   )
-               BIO_SAVE(N)         = IDBCO
-               FINN_SPEC_MOLWT(N) = 28d-3
-               FINN_SPEC_UNIT(N)  = '[Tg  ]'
+               BIO_SAVE(N)        = IDBCO
+               IF ( IDTCO > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTCO)
             CASE( 'ALK4' )
-               BIO_SAVE(N)         = IDBALK4
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBALK4
+               IF ( IDTALK4 > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTALK4)
+               C_MOLEC            = 4d0
             CASE( 'ACET' )
-               BIO_SAVE(N)         = IDBACET
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBACET
+               IF ( IDTACET > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTACET)
+               C_MOLEC            = 3d0
             CASE( 'MEK'  )
-               BIO_SAVE(N)         = IDBMEK
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBMEK
+               IF ( IDTMEK > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTMEK)
+               C_MOLEC            = 4d0
             CASE( 'ALD2' )
-               BIO_SAVE(N)         = IDBALD2
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBALD2
+               IF ( IDTALD2 > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTALD2)
+               C_MOLEC            = 2d0
             CASE( 'PRPE' )
-               BIO_SAVE(N)         = IDBPRPE
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBPRPE
+               IF ( IDTPRPE > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTPRPE)
+               C_MOLEC            = 3d0
             CASE( 'C3H8' )
-               BIO_SAVE(N)         = IDBC3H8
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBC3H8
+               IF ( IDTC3H8 > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTC3H8)
+               C_MOLEC            = 3d0
             CASE( 'CH2O' )
-               BIO_SAVE(N)         = IDBCH2O
-               FINN_SPEC_MOLWT(N) = 30d-3
-               FINN_SPEC_UNIT(N)  = '[Tg  ]'
+               BIO_SAVE(N)        = IDBCH2O
+               IF ( IDTCH2O > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTCH2O)
             CASE( 'C2H6' )
-               BIO_SAVE(N)         = IDBC2H6
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBC2H6
+               IF ( IDTC2H6 > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTC2H6)
+               C_MOLEC            = 2d0
             CASE( 'SO2'  )
-               BIO_SAVE(N)         = IDBSO2
-               FINN_SPEC_MOLWT(N) = 64d-3
-               FINN_SPEC_UNIT(N)  = '[Tg  ]'
+               BIO_SAVE(N)        = IDBSO2
+               IF ( IDTSO2 > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTSO2)
             CASE( 'NH3'  )
-               BIO_SAVE(N)         = IDBNH3
-               FINN_SPEC_MOLWT(N) = 17d-3
-               FINN_SPEC_UNIT(N)  = '[Tg  ]'
-            CASE( 'BC'   )
-               BIO_SAVE(N)         = IDBBC
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
-            CASE( 'OC'   )
-               BIO_SAVE(N)         = IDBOC
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBNH3
+               IF ( IDTNH3 > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTNH3)
             CASE( 'MGLY' )
-               BIO_SAVE(N)         = IDBMGLY
-               FINN_SPEC_MOLWT(N) = 72d-3
-               FINN_SPEC_UNIT(N)  = '[Tg  ]'
+               BIO_SAVE(N)        = IDBMGLY
+               IF ( IDTMGLY > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTMGLY)
             CASE( 'BENZ' )
-               BIO_SAVE(N)         = IDBBENZ
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBBENZ
+               IF ( IDTBENZ > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTBENZ)
+               C_MOLEC            = 6d0
             CASE( 'TOLU' )
-               BIO_SAVE(N)         = IDBTOLU
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBTOLU
+               IF ( IDTTOLU > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTTOLU)
+               C_MOLEC            = 7d0
+            CASE( 'XYLE' )
+               BIO_SAVE(N)        = IDBXYLE
+               IF ( IDTXYLE > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTXYLE)
+               C_MOLEC            = 8d0
             CASE( 'C2H4' )
-               BIO_SAVE(N)         = IDBC2H4
-               FINN_SPEC_MOLWT(N) = 12d-3
-               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               BIO_SAVE(N)        = IDBC2H4
+               IF ( IDTC2H4 > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTC2H4)
+               C_MOLEC            = 2d0
             CASE( 'C2H2' )
-               BIO_SAVE(N)         = IDBC2H2
+               BIO_SAVE(N)        = IDBC2H2
+               IF ( IDTC2H2 > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTC2H2)
+               C_MOLEC            = 2d0
+            CASE( 'GLYC' )
+               BIO_SAVE(N)        = IDBGLYC
+               IF ( IDTGLYC > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTGLYC)
+            CASE( 'GLYX' )
+               BIO_SAVE(N)        = IDBGLYX
+               IF ( IDTGLYX > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTGLYX)
+            CASE( 'HAC' )
+               BIO_SAVE(N)        = IDBHAC
+               IF ( IDTHAC > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTHAC)
+
+            ! Species for which FINN emissions are available but not yet
+            ! used in any GEOS-Chem simulations. Use of these emissions
+            ! will require user to create additional code for backbone
+            ! of emissions. If these species are carried as atoms C,
+            ! C_MOLEC should also be added here. (jaf, 5/12/14)
+            CASE( 'ACTA' )
+               BIO_SAVE(N)        = IDBACTA
+               IF ( IDTACTA > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTACTA)
+            CASE( 'HCOOH' )
+               BIO_SAVE(N)        = IDBHCOOH
+               IF ( IDTHCOOH > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTHCOOH)
+            CASE( 'ISOP' )
+               BIO_SAVE(N)        = IDBISOP
+               IF ( IDTISOP > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTISOP)
+               C_MOLEC            = 5d0
+            CASE( 'RCHO' )
+               BIO_SAVE(N)        = IDBRCHO
+               IF ( IDTRCHO > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTRCHO)
+            CASE( 'R4N2' )
+               BIO_SAVE(N)        = IDBR4N2
+               IF ( IDTR4N2 > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTR4N2)
+            CASE( 'MVK' )
+               BIO_SAVE(N)        = IDBMVK
+               IF ( IDTMVK > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTMVK)
+            CASE( 'EOH' )
+               BIO_SAVE(N)        = IDBEOH
+               IF ( IDTEOH > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTEOH)
+            CASE( 'HCN' )
+               BIO_SAVE(N)        = IDBHCN
+               IF ( IDTHCN > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTHCN)
+            CASE( 'MOH' )
+               BIO_SAVE(N)        = IDBMOH
+               IF ( IDTMOH > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTMOH)
+            CASE( 'HNO2' )
+               BIO_SAVE(N)        = IDBHNO2
+               IF ( IDTHNO2 > 0 )
+     &            FINN_SPEC_MOLWT(N) = TRACER_MW_KG(IDTHNO2)
+
+            ! Species that we are currently lumping with other species
+            CASE( 'TMB' ) ! lumped with XYLE which is in atoms C
+               LUMP_ID(N)         = IDBXYLE
+               FINN_SPEC_MOLWT(N) = 12d-3
+               C_MOLEC            = 9d0
+            CASE( 'ETBENZ' ) ! lumped with TOLU which is in atoms C
+               LUMP_ID(N)         = IDBTOLU
+               FINN_SPEC_MOLWT(N) = 12d-3
+               C_MOLEC            = 8d0
+            CASE( 'STYR' ) ! lumped with TOLU which is in atoms C
+               LUMP_ID(N)         = IDBTOLU
+               FINN_SPEC_MOLWT(N) = 12d-3
+               C_MOLEC            = 8d0
+
+            ! Special case for offline species (don't have IDTs)
+            CASE( 'CO2'  )
+               IF ( ITS_A_CO2_SIM() ) THEN
+                  BIO_SAVE(N)        = IDBCO2
+                  FINN_SPEC_MOLWT(N) = 44d-3
+               ENDIF
+            CASE( 'CH4' )
+               IF ( ITS_A_CH4_SIM() ) THEN
+                  BIO_SAVE(N)        = IDBCH4
+                  FINN_SPEC_MOLWT(N) = 16d-3
+               ENDIF
+
+            ! Special case for aerosols
+            ! At this stage, EMFAC is [g BC or OC]/[mole CO2]
+            CASE( 'BC'   )
+               BIO_SAVE(N)        = IDBBC
                FINN_SPEC_MOLWT(N) = 12d-3
                FINN_SPEC_UNIT(N)  = '[Tg C]'
-            CASE( 'GLYC' )
-               BIO_SAVE(N)         = IDBGLYC
-               FINN_SPEC_MOLWT(N) = 60d-3
-               FINN_SPEC_UNIT(N)  = '[Tg  ]'
-            CASE( 'HAC' )
-               BIO_SAVE(N)         = IDBHAC
-               FINN_SPEC_MOLWT(N) = 74d-3
-               FINN_SPEC_UNIT(N)  = '[Tg  ]'
-            CASE( 'CO2'  )
-               BIO_SAVE(N)         = IDBCO2
-               FINN_SPEC_MOLWT(N) = 44d-3
-               FINN_SPEC_UNIT(N)  = '[Tg  ]'
-            CASE( 'CH4' )
-               BIO_SAVE(N)         = IDBCH4
-               FINN_SPEC_MOLWT(N) = 16d-3
-               FINN_SPEC_UNIT(N)  = '[Tg  ]'
+               FINN_EMFAC(N,:)    = FINN_EMFAC(N,:) / 12d0
+            CASE( 'OC'   )
+               BIO_SAVE(N)        = IDBOC
+               FINN_SPEC_MOLWT(N) = 12d-3
+               FINN_SPEC_UNIT(N)  = '[Tg C]'
+               FINN_EMFAC(N,:)    = FINN_EMFAC(N,:) / 12d0
             CASE DEFAULT
                ! Nothing
                BIO_SAVE(N)         = 0
-
-            WRITE(*,*) 'NAME',TRIM( FINN_SPEC_NAME(N) )
          END SELECT
+
+         ! Create emission factor for NMOC species
+         ! NMOC_EMFAC is [mole NMOC] / [mole CO2]
+         ! NMOC_RATIO is [mole X] / [kg NMOC]
+         ! Assumed MW for NMOC is 68 g/mol
+         ! Multiplying these gives [mole X] / [mole CO2].
+         ! Most (not all) of these species are carried as atoms C, so
+         ! we also multiply here by the number of carbon atoms/molec.
+         IF ( IS_NMOC ) THEN
+           DO M = 1, N_EMFAC
+              FINN_EMFAC(N,M) = NMOC_EMFAC(M) * ( NMOC_RATIO(M)*68d-3 )
+     &                                        * C_MOLEC
+           ENDDO
+           IF (FINN_SPEC_MOLWT(N) == 12d-3) FINN_SPEC_UNIT(N) = '[Tg C]'
+         ENDIF
+
       ENDDO
 
       END SUBROUTINE INIT_FINN_BIOMASS
@@ -1048,13 +1345,23 @@
 !
       INTEGER :: N
 
-      ! Loop over FINN species
+      ! First loop over FINN species:
+      !   Save into array w/ proper ordering for GEOS-Chem
       DO N = 1, N_SPEC
 
-         ! Save into array w/ proper ordering for GEOS-Chem
-         IF ( BIO_SAVE(N) .GT. 0 ) THEN
-            BIOM_OUTM(:,:,BIO_SAVE(N)) = BIOM_OUT(:,:,N)
-         ENDIF
+         IF ( BIO_SAVE(N) > 0 )
+     &      BIOM_OUTM(:,:,BIO_SAVE(N)) = BIOM_OUT(:,:,N)
+
+      ENDDO
+
+      ! Second loop over FINN species:
+      !   If necessary, lump into another species instead
+      !   (separate loop to avoid previous loop overwriting addition of
+      !   a secondary species)
+      DO N = 1, N_SPEC
+
+         IF ( LUMP_ID(N) > 0 ) BIOM_OUTM(:,:,LUMP_ID(N)) =
+     &      BIOM_OUTM(:,:,LUMP_ID(N)) + BIOM_OUT(:,:,N)
 
       ENDDO
 
@@ -1085,7 +1392,11 @@
       !=================================================================
       IF ( ALLOCATED( FINN_SPEC_MOLWT ) ) DEALLOCATE( FINN_SPEC_MOLWT )
       IF ( ALLOCATED( FINN_SPEC_NAME  ) ) DEALLOCATE( FINN_SPEC_NAME  )
+      IF ( ALLOCATED( FINN_SPEC_UNIT  ) ) DEALLOCATE( FINN_SPEC_UNIT  )
+      IF ( ALLOCATED( FINN_EMFAC      ) ) DEALLOCATE( FINN_EMFAC      )
       IF ( ALLOCATED( BIOMASS_MODEL   ) ) DEALLOCATE( BIOMASS_MODEL   )
+      IF ( ALLOCATED( BIO_SAVE        ) ) DEALLOCATE( BIO_SAVE        )
+      IF ( ALLOCATED( LUMP_ID         ) ) DEALLOCATE( LUMP_ID         )
       
       END SUBROUTINE CLEANUP_FINN_BIOMASS
 !EOC

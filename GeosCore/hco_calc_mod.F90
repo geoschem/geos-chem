@@ -305,11 +305,11 @@
 
             ! testing only
             ! todo: remove
-            IF ( PrevCat == 20 ) THEN
-               modid = HcoState%Spc(PrevSpc)%ModID
-               write(*,*) 'total emissions for cat ', PrevCat, &
-                  ' and spec ', modid, ' (kg/m2/s): ', SUM(CatFlx)
-            ENDIF
+!            IF ( PrevCat == 20 ) THEN
+!               modid = HcoState%Spc(PrevSpc)%ModID
+!               write(*,*) 'total emissions for cat ', PrevCat, &
+!                  ' and spec ', modid, ' (kg/m2/s): ', SUM(CatFlx)
+!            ENDIF
 
             ! Reset CatFlx array and the previously used hierarchy 
             ! ==> Emission hierarchies are only important within the 
@@ -501,11 +501,11 @@
       
       ! testing only
       ! todo: remove
-      IF ( PrevCat == 20 ) THEN
-         modid = HcoState%Spc(PrevSpc)%ModID
-         write(*,*) 'total emissions for cat ', PrevCat, &
-            ' and spec ', modid, ' (kg/m2/s): ', SUM(CatFlx)
-      ENDIF
+!      IF ( PrevCat == 20 ) THEN
+!         modid = HcoState%Spc(PrevSpc)%ModID
+!         write(*,*) 'total emissions for cat ', PrevCat, &
+!            ' and spec ', modid, ' (kg/m2/s): ', SUM(CatFlx)
+!      ENDIF
 
       ! Category level
       IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 

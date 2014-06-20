@@ -77,6 +77,7 @@
       USE HcoX_DustGinoux_Mod,   ONLY : HcoX_DustGinoux_Init
       USE HcoX_SeaSalt_Mod,      ONLY : HcoX_SeaSalt_Init
       USE HcoX_GFED3_Mod,        ONLY : HcoX_GFED3_Init
+      USE HcoX_FINN_Mod,         ONLY : HcoX_FINN_Init
       USE HcoX_Megan_Mod,        ONLY : HcoX_Megan_Init
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -172,9 +173,15 @@
       IF( RC /= HCO_SUCCESS ) RETURN 
 
       !-----------------------------------------------------------------
-      ! GFED3 extension
+      ! GFED3 biomass burning emissions 
       !-----------------------------------------------------------------
       CALL HcoX_GFED3_Init( amIRoot, HcoState, 'GFED3', ExtState, RC ) 
+      IF( RC /= HCO_SUCCESS ) RETURN 
+
+      !-----------------------------------------------------------------
+      ! FINN biomass burning emissions
+      !-----------------------------------------------------------------
+      CALL HcoX_FINN_Init( amIRoot, HcoState, 'FINN', ExtState, RC ) 
       IF( RC /= HCO_SUCCESS ) RETURN 
 
       !-----------------------------------------------------------------
@@ -190,6 +197,11 @@
          RETURN
       ENDIF
 
+      IF ( ExtState%GFED3 .AND. ExtState%FINN ) THEN
+         MSG = 'GFED3 and FINN biomass burning emissions switched on!'
+         CALL HCO_ERROR ( MSG, RC )
+         RETURN
+      ENDIF
       !-----------------------------------------------------------------
       ! Leave w/ success
       !-----------------------------------------------------------------
@@ -227,6 +239,7 @@
       USE HcoX_SeaSalt_Mod,    ONLY : HcoX_SeaSalt_Run 
       USE HcoX_Megan_Mod,      ONLY : HcoX_Megan_Run 
       USE HcoX_GFED3_Mod,      ONLY : HcoX_GFED3_Run 
+      USE HcoX_FINN_Mod,       ONLY : HcoX_FINN_Run 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -340,6 +353,14 @@
       ENDIF
 
       ! ----------------------------------------------------------------
+      ! FINN biomass burning emissions 
+      ! ----------------------------------------------------------------
+      IF ( ExtState%FINN ) THEN
+         CALL HcoX_FINN_Run( amIRoot, ExtState, HcoState, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+      ENDIF
+
+      ! ----------------------------------------------------------------
       ! Add extensions here ...
       ! ----------------------------------------------------------------
       
@@ -377,6 +398,7 @@
       USE HcoX_SeaSalt_Mod,    ONLY : HcoX_SeaSalt_Final
       USE HcoX_Megan_Mod,      ONLY : HcoX_Megan_Final
       USE HcoX_GFED3_Mod,      ONLY : HcoX_GFED3_Final
+      USE HcoX_FINN_Mod,       ONLY : HcoX_FINN_Final
       USE Hcox_ExtList_Mod,    ONLY : ExtFinal
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -409,6 +431,7 @@
       IF( ExtState%SeaSalt    ) CALL HcoX_SeaSalt_Final
       IF( ExtState%Megan      ) CALL HcoX_Megan_Final
       IF( ExtState%GFED3      ) CALL HcoX_GFED3_Final
+      IF( ExtState%FINN       ) CALL HcoX_FINN_Final
       IF( ExtState%SoilNOx    ) CALL HcoX_SoilNox_Final 
      
       ! Remove ExtState object 

@@ -74,6 +74,7 @@
          LOGICAL                   :: SeaFlux     ! air-sea exchange
          LOGICAL                   :: SeaSalt     ! Seasalt emissions
          LOGICAL                   :: GFED3       ! GFED3 biomass burning 
+         LOGICAL                   :: FINN        ! FINN biomass burning
 
          !--------------------------------------------------------------
          ! Met fields
@@ -204,6 +205,7 @@
       ExtState%SeaFlux    = .FALSE.
       ExtState%SeaSalt    = .FALSE.
       ExtState%GFED3      = .FALSE.
+      ExtState%FINN       = .FALSE.
 
       ! ----------------------------------------------------------------------
       ! Initialize all met arrays.
