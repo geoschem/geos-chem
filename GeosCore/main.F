@@ -862,9 +862,11 @@
          ! NOTE: Renamed to READ_Hg2_Partitioning (cdh, 6/3/13)
          IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
      &        ITS_A_NEW_MONTH()           ) THEN
-            CALL READ_Hg2_PARTITIONING( MONTH, State_Met )
-            IF ( prtDebug ) 
-     &           CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONGING')
+            CALL READ_Hg2_PARTITIONING
+     &         ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONGING')
+            ENDIF
          ENDIF
 
          !==============================================================

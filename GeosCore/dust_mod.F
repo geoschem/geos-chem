@@ -776,7 +776,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH, State_Met )
+      SUBROUTINE RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met, 
+     &                         DUST,      WAVELENGTH, RC         )
 !
 ! !USES:
 !
@@ -789,16 +790,23 @@
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD21
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS: 
 ! 
-      REAL*8,         INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST) ! Dust [kg/m3]
-      INTEGER,        INTENT(IN) :: WAVELENGTH
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      REAL*8,         INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST) !Dust [kg/m3]
+      INTEGER,        INTENT(IN)  :: WAVELENGTH
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC       ! Success or failure?      
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Martin, R. Park - Initial version
@@ -816,6 +824,7 @@
 !                              WAVELENGTH = 1. (skim, 02/03/11)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -833,6 +842,9 @@
       !=================================================================
       ! RDUST_ONLINE begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
 
       ! Dust density 
       MSDENS(1) = 2500.0d0
@@ -1015,8 +1027,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH,
-     &                          am_I_Root, State_Met )
+      SUBROUTINE RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met,
+     &                          THISMONTH, THISYEAR, WAVELENGTH, RC )
 !
 ! !USES:
 !
@@ -1030,8 +1042,9 @@
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
@@ -1039,12 +1052,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: THISMONTH   ! Current month (1-12)
-      INTEGER,        INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
-      INTEGER,        INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to
+      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+      INTEGER,        INTENT(IN)  :: THISMONTH  ! Current month (1-12)
+      INTEGER,        INTENT(IN)  :: THISYEAR   ! Current year  (YYYY format)
+      INTEGER,        INTENT(IN)  :: WAVELENGTH ! Determine which wavelength to
                                                 !  use for optical properties
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
@@ -1142,8 +1160,8 @@
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )
          
          ! Select proper dust file name for GEOS-1, GEOS-3, or GEOS-4
-         FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
-     &              GET_NAME_EXT()   // '.'                 // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'dust_200203/dust.' //
+     &              GET_NAME_EXT()             // '.'                 // 
      &              GET_RES_EXT()
 
          ! Echo filename

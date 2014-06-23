@@ -25,12 +25,11 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-!      PUBLIC  :: EMISS_TAGGED_CO
       PUBLIC  :: CHEM_TAGGED_CO
       PUBLIC  :: GET_ALPHA_ISOP
       PUBLIC  :: READ_PCO_LCO_STRAT
       PUBLIC  :: GET_PCO_LCO_STRAT
-      PUBLIC  :: READ_ACETONE
+!      PUBLIC  :: READ_ACETONE
       PUBLIC  :: INIT_TAGGED_CO
       PUBLIC  :: CLEANUP_TAGGED_CO
 !
@@ -342,447 +341,6 @@
 
       END SUBROUTINE DEFINE_BB_CO_REGIONS
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: emiss_tagged_co
-!!
-!! !DESCRIPTION: Subroutine EMISS\_TAGGED\_CO reads in CO emissions for the 
-!!  Tagged CO run.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE EMISS_TAGGED_CO( am_I_Root, Input_Opt,
-!     &                            State_Met, State_Chm, RC )
-!!
-!! !USES:
-!!
-!      USE CMN_SIZE_MOD             ! Size parameters
-!      USE CMN_O3_MOD               ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
-!      USE CMN_DIAG_MOD             ! Diagnostic arrays & switches
-!
-!      USE BIOFUEL_MOD,        ONLY : BIOFUEL
-!      USE BIOMASS_MOD,        ONLY : BIOMASS
-!      USE DIAG_MOD,           ONLY : AD29,          AD46
-!      USE GIGC_ErrCode_Mod
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE GIGC_State_Chm_Mod, ONLY : ChmState
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!      USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
-!      USE GRID_MOD,           ONLY : GET_AREA_CM2
-!      USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
-!      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
-!      USE MEGANUT_MOD,        ONLY : XLTMMP
-!      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
-!      USE TIME_MOD,           ONLY : GET_MONTH,     GET_TAU 
-!      USE TIME_MOD,           ONLY : GET_YEAR,      GET_TS_EMIS  
-!      USE TRACERID_MOD,       ONLY : IDBFCO, IDECO, IDBCO
-!
-!      IMPLICIT NONE
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!! 
-!! !REVISION HISTORY: 
-!!  21 Jul 2000 - I. Bey, B. Field, B. Duncan - Initial version
-!!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!!  (1 ) Adapted from "emiss_co.f" (bmy, 7/2100)
-!!  (2 ) Add multiprocessor commands for DO-loops (bmy, 7/21/00)
-!!  (3 ) Added references to F90 modules "biomass_mod.f" and "biofuel_mod.f".
-!!        Also, TWOODIJ is now called BIOFUEL.  Finally, BURNEMIS is now 
-!!        referenced with IREF = I + I0 and JREF = J + J0. (bmy, 9/12/00)
-!!  (4 ) Now reference FF_REGION with IREF & JREF.  Removed obsolete code
-!!        from 7/00 and 9/00.  Also define NFAM in "ndxx_setup.f" (bmy, 10/6/00)
-!!  (5 ) Added variables EMMO and references to functions EMMONOT, EMCH3OH -- 
-!!        these are for CO production by VOC oxidation. (bnd, bmy, 1/2/01)
-!!  (6 ) Merged ISOP and MONOTERPENE sources into the same DO-loop, for
-!!        computational efficiency (bmy, 1/3/01)
-!!  (7 ) Make sure that SCALEYEAR does not go higher than 1997.  1997 is
-!!        the last year we have FF scale factor data. (bnd, bmy, 4/6/01)
-!!  (8 ) Now call READ_ACETONE to read acetone emissions into EMACET.  
-!!        Also call READ_BIOG_FOR_GEOS3 to read acetone emissions into 
-!!        ISOP96, MONO96, CH3OH96 for GEOS-3 simulations. (bnd, bmy, 6/14/01)
-!!  (9 ) Remove GEOS-3 fix for biogenic fields (ISOP96, MONO96, CH3OH96),
-!!        since we now use updated met fields w/o the surface temperature
-!!        problem (bmy, 8/21/01)
-!!  (10) Now archive ND46 as atoms C/cm2/s here.  Also deleted obsolete code
-!!        for the 1998 GEOS-3 fix. (bmy, 9/13/01)
-!!  (11) BXHEIGHT is now dimensioned IIPAR,JJPAR,LLPAR.  BIOFUEL(:,IREF,JREF)
-!!        is now BIOFUEL(:,I,J).  BB_REGION(IREF,JREF) is now BB_REGION(I,J).
-!!        FF_REGION(IREF,JREF) is now FF_REGION(I,J). (bmy, 9/28/01)
-!!  (12) Removed obsolete code from 9/13/01 and 9/28/01 (bmy, 10/22/01)
-!!  (13) Now reference SUNCOS "dao_mod.f".  Remove SUNCOS and BXHEIGHT from 
-!!        the arg list -- BXHEIGHT isn't used!.  Now make FIRSTEMISS a local
-!!        SAVEd variable.  Now do not let SCALEYEAR exceed 1998.  Now
-!!        reference IDBCO, IDBFCO from "tracerid_mod.f". (bmy, 1/13/03)
-!!  (14) Remove XMID, YLMID from call to routines DEFINE_BB_CO_REGIONS and 
-!!        DEFINE_FF_CO_REGIONS.   Now replace DXYP(JREF)*1d4 with routine
-!!        GET_AREA_CM2 of "grid_mod.f".  Removed IMONTH from call to BIOBURN.
-!!        Now uses functions GET_MONTH, GET_YEAR, GET_ELAPSED_MIN, and 
-!!        GET_TS_EMIS from the new "time_mod.f".  Now only passes I in the
-!!        call to GET_IHOUR. Now use functions GET_XOFFSET, GET_YOFFSET from
-!!        "grid_mod.f".  I0 and J0 are now local variables. (bmy, 2/11/03)
-!!  (15) Bug fix: NTAU should be the integer value of TAU (bmy, 6/10/03)
-!!  (16) Now pass I, J to EMISOP (bmy, 12/9/03)
-!!  (17) Now reference LSPLIT, LANTHRO, LBIOMASS, & LBIOFUEL from 
-!!        "logical_mod.f".  Now reference STT from "tracer_mod.f".  Now replace
-!!        IJLOOP_CO w/ an analytic function. (bmy, 7/20/04)
-!!  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  (19) Now modified for the new "biomass_mod.f" (bmy, 4/5/06)
-!!  (20) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
-!!        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
-!!  (21) Now take CO emissions from the EMISRR array, which is archived by
-!!        calling EMISSDR.  Remove duplicate scaling and other operations which
-!!        are now done in EMISSDR. Remove references to BIOFUEL_BURN and
-!!        all routines from GEIA_MOD. (jaf, mak, bmy, 2/14/08)
-!!  (22) Bug fix: Now use IDECO to be consistent (phs, bmy, 6/30/08)
-!!  (23) Now distribute CO biomass burning source through the PBL
-!!        (yc, phs, 12/23/08)
-!!  (24) Now include switch to use MEGAN biogenics instead of default GEIA.
-!!        (jaf, 3/10/09)
-!!  (25) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
-!!  (26) IDBCO is now defined in tracerid_mod.f (fp, 6/09)
-!!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emission option
-!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!!                              derived type object
-!!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
-!!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!!  10 Apr 2014 - R. Yantosca - Removed call to INIT_TAGGED_CO
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER          :: I, J, L, N, I0, J0
-!      INTEGER          :: AS, IREF, JREF, IJLOOP, PBL_MAX
-!      INTEGER, SAVE    :: LASTMONTH = -999
-!
-!      ! Change EMXX to EMIS to match full chem (jaf, 3/10/09)
-!      REAL*8           :: TMMP, EMIS, EMX,    EMMO,    F_OF_PBL 
-!      REAL*8           :: EMAC, E_CO, DTSRCE, AREA_CM2
-!
-!      ! Add variables needed for MEGAN biogenics (jaf, 3/10/09)
-!      REAL*8           :: SC,   PDF,  PDR
-!      
-!      ! Pointers
-!      ! We need to define local arrays to hold corresponding values 
-!      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-!      REAL*8, POINTER  :: STT(:,:,:,:)
-!
-!      ! For fields from Input_Opt
-!      LOGICAL          :: LSPLIT,    LANTHRO
-!      LOGICAL          :: LBIOMASS,  LBIOFUEL
-!      LOGICAL          :: LBIOGENIC, LMEGAN
-!
-!      ! External functions
-!      REAL*8, EXTERNAL :: BOXVL
-!      REAL*8, EXTERNAL :: EMCH3OH
-!
-!      !=================================================================
-!      ! EMISS_TAGGED_CO begins here!
-!      !=================================================================
-!
-!      ! Assume success
-!      RC        =  GIGC_SUCCESS
-!
-!      ! Copy values from Input_Opt
-!      LSPLIT    = Input_Opt%LSPLIT
-!      LANTHRO   = Input_Opt%LANTHRO
-!      LBIOMASS  = Input_Opt%LBIOMASS
-!      LBIOFUEL  = Input_Opt%LBIOFUEL
-!      LBIOGENIC = Input_Opt%LBIOGENIC
-!      LMEGAN    = Input_Opt%LMEGAN
-!
-!      !=================================================================
-!      ! Once a month, read acetone from disk.  For GEOS-3, also read 
-!      ! P(CO) from ISOPRENE, MONOTERPENES, and METHANOL from 1996
-!      !=================================================================
-!      IF ( GET_MONTH() /= LASTMONTH ) THEN
-!      
-!         ! Read acetone for this month
-!         CALL READ_ACETONE( GET_MONTH() )
-!      
-!         ! Save month for next iteration
-!         LASTMONTH = GET_MONTH()
-!      ENDIF
-!      
-!      ! DTSRCE is the number of seconds per emission timestep
-!      DTSRCE = GET_TS_EMIS() * 60d0
-!
-!      ! Get nested-grid offsets
-!      I0 = GET_XOFFSET()
-!      J0 = GET_YOFFSET()
-!
-!      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-!      ! (mpayer, 12/6/12)
-!      STT => State_Chm%Tracers
-!
-!      !=================================================================
-!      ! Process Anthropogenic (Fossil Fuel) CO emissions
-!      !
-!      ! Anthropogenic emissions are enhanced by 18.5% below.  This
-!      ! accounts for production of CO from oxidation of certain VOC's, 
-!      ! which are not explicitly carried by GEOS-CHEM as anthropogenic
-!      ! species.  This needs to be done here since a different scale
-!      ! factor is used for the full chemistry run.  Also update the
-!      ! ND29 diagnostic below, in order to archive the correct 
-!      ! emissions. (bmy, 6/14/01)
-!      !
-!      ! NOTES: 
-!      ! (1) Anthro CO emissions come from the GEIA/Piccot inventory.
-!      !     (bmy, 1/2/01)
-!      ! (2) Need to save ND29 diagnostics here (bmy, 1/2/01)
-!      !=================================================================
-!      IF ( LANTHRO ) THEN
-!
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED ) 
-!!$OMP+PRIVATE( E_CO, I, IREF, J, JREF, N )
-!         DO J = 1, JJPAR
-!            JREF = J + J0
-!
-!            DO I = 1, IIPAR
-!               IREF = I + I0
-!
-!               ! E_CO = Fossil Fuel CO emissions in [molec CO/s]
-!               ! EMISRR is archived in "emissdr.f" (jaf, mak, bmy, 2/14/08)
-!               E_CO = EMISRR(IREF,JREF,IDECO)
-!
-!               ! Convert from [molec CO/s] to [kg CO] 
-!               ! (jaf, mak, bmy, 2/14/08)
-!               E_CO = E_CO * ( DTSRCE / XNUMOL_CO )  
-!
-!               ! Add FF CO to Tracer #1 -- total CO [kg CO]
-!               STT(I,J,1,1) = STT(I,J,1,1) + E_CO
-!
-!               ! Split FF CO into geographic regions -- Tracers #2 - #5
-!               IF ( LSPLIT ) THEN
-!                  N            = FF_REGION(I,J)
-!                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO
-!               ENDIF
-!            ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!
-!      !=================================================================
-!      ! Process biomass burning CO emissions, stored in array
-!      ! BIOMASS(:,:,IDBCO) which has units of [molec/cm2/s]
-!      !
-!      ! The default Duncan et al 2001 biomass burning emissions are 
-!      ! enhanced by 16.4% within the routines of "gc_biomass_mod.f".  
-!      ! This accounts for production of CO from oxidation of certain 
-!      ! VOC's, which are not explicitly carried by GEOS-Chem as biomass 
-!      ! burning species.  The scaling needs to be done in "biomass_mod.f"
-!      ! so that the diagnostics will archive the correct emissions. 
-!      ! (bmy, 6/8/01, 9/27/06)
-!      !
-!      ! GFED2 CO biomass burning emissions are not scaled any further.
-!      ! This doesn't make any sense. Scaling now occurs in biomass_mod.f
-!      ! (jaf, 2/6/09)
-!      !
-!      ! NOTES:
-!      ! (1) Some forest fires generate strong convection columns.  
-!      !      However, we release biomass burning emissions only into 
-!      !      the surface layer. (bnd, bmy, 1/3/01)
-!      ! (2) ND29 diagnostics are saved within routine BIOBURN.
-!      !      (bmy, 1/3/01)
-!      !=================================================================
-!      PBL_MAX = GET_PBL_MAX_L()
-!
-!      IF ( LBIOMASS ) THEN
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( E_CO, I, J, L, F_OF_PBL, N, AREA_CM2 )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!               
-!            ! Grid box surface area [cm2]
-!            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-!
-!            ! Convert [molec CO/cm2/s] to [kg CO] and store in E_CO
-!            E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
-!     &             ( AREA_CM2           * DTSRCE    ) 
-!
-!            DO L = 1, PBL_MAX
-!           
-!               F_OF_PBL = GET_FRAC_OF_PBL (I,J,L) 
-!
-!               ! Add biomass burning to tracer #1 -- total CO [kg CO]
-!               STT(I,J,L,1) = STT(I,J,L,1) + E_CO * F_OF_PBL
-!            
-!               ! Split BB CO into geographic regions -- Tracers #6 - #11
-!               IF ( LSPLIT ) THEN
-!                  N            = BB_REGION(I,J)
-!                  STT(I,J,L,N) = STT(I,J,L,N) + E_CO * F_OF_PBL                  
-!               ENDIF
-!
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!
-!      !=================================================================
-!      ! Process biofuel (formerly wood burning) CO emissions
-!      ! stored in BIOFUEL(IDBCO,IREF,JREF) in [molec/cm3/s]
-!      !
-!      ! Biofuel burning emissions are enhanced by 18.9% within the
-!      ! routines of "biofuel_mod.f".  This accounts for production 
-!      ! of CO from oxidation of certain VOC's, which are not explicitly
-!      ! carried by GEOS-CHEM as biofuel burning species.  The scaling
-!      ! needs to be done in "biofuel_mod.f" so that the diagnostics 
-!      ! will archive the correct emissions. (bmy, 6/8/01)
-!      !
-!      ! NOTES:
-!      ! (1 ) ND29 diagnostics are saved within routine BIOFUEL_BURN.
-!      !       (bmy, 1/2/01)
-!      ! (2 ) Now use IDBFCO to index the proper element of the 
-!      !       biofuel burning array (bmy, 6/8/01).
-!      ! (3 ) Now add biofuel burning to tagged tracer #13 (bmy, 6/14/01)
-!      !=================================================================
-!      IF ( LBIOFUEL ) THEN
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( E_CO, I, J, N )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!
-!            ! Convert biofuel CO from [molec CO/cm3/s] to [kg CO]
-!            E_CO = BIOFUEL(IDBFCO,I,J)    / XNUMOL_CO * 
-!     &             BOXVL(I,J,1,State_Met) * DTSRCE
-!
-!            ! Add biofuel CO burning to tracer #1 -- total CO [kg CO]
-!            STT(I,J,1,1) = STT(I,J,1,1) + E_CO
-!
-!            ! Add biofuel CO burning [kg CO] as Tracer #13 (bmy, 6/14/01)
-!            !
-!            ! %%% NOTE: If you are modifying the tagged CO simulation, 
-!            ! %%% and your simulation has less than 13 tracers, then 
-!            ! %%% then comment out this IF block.  If you don't you can
-!            ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
-!            IF ( LSPLIT ) THEN
-!               STT(I,J,1,13) = STT(I,J,1,13) + E_CO
-!            ENDIF
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!
-!      !=================================================================
-!      ! Process emissions of ISOPRENE, MONOTERPENES, METHANOL
-!      ! and ACETONE -- save into summing arrays for later use
-!      !=================================================================
-!      ! Add biogenic switch in case you want biogenic but no biofuel
-!      ! (jaf, 3/10/09)
-!      IF ( LBIOGENIC ) THEN
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMIS, EMMO, EMAC )
-!! Add some private declarations for use with MEGAN
-!!$OMP+PRIVATE( SC, PDR, PDF )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Grid box surface area [cm2]
-!         AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-!
-!         ! To be safe, zero coefficients (jaf, 3/10/09)
-!         EMIS = 0d0
-!         EMMO = 0d0
-!         EMAC = 0d0
-!
-!         ! 1-D array index 
-!         IJLOOP = ( (J-1) * IIPAR ) + I
-!
-!         !===========================================================
-!         ! The CO yields from ISOP, MONOTERPENES, and CH3OH will be
-!         ! computed in subroutine CHEM_TAGGED_CO.  P(CO) from CH3OH
-!         ! will be scaled to isoprene emissions within subroutine
-!         ! CHEM_TAGGED_CO (bnd, bmy, 6/14/01)
-!         !===========================================================
-!
-!         ! Surface air temperature [K]
-!         TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
-!      
-!         ! Add MEGAN biogenics (jaf, 3/10/09)
-!         IF ( LMEGAN ) THEN
-!            !------------------
-!            ! MEGAN biogenics
-!            !------------------
-!
-!            ! Cosine of solar zenith angle
-!            SC  = State_Met%SUNCOS(I,J)
-!
-!            ! Diffuse and direct PAR
-!            PDR = State_Met%PARDR(I,J)
-!            PDF = State_Met%PARDF(I,J)
-!
-!            ! Isoprene [atoms C/box/timestep]
-!            EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
-!     &                                PDR, PDF, XNUMOL_ISOP )
-!
-!            ! Monoterpene [atoms C/box/timestep]
-!            EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
-!     &                                PDR, PDF, XNUMOL_MONO )
-!
-!         ENDIF
-!
-!         ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]
-!         ! for later use in the subroutine CHEM_TAGGED_CO
-!         SUMISOPCO(I,J) = SUMISOPCO(I,J) + EMIS
-!         SUMMONOCO(I,J) = SUMMONOCO(I,J) + EMMO
-!
-!         ! ND46 -- save biogenic emissions [atoms C/cm2/s] here 
-!         IF ( ND46 > 0 ) THEN
-!
-!            ! Isoprene 
-!            AD46(I,J,1) = AD46(I,J,1) + ( EMIS / AREA_CM2 / DTSRCE )
-!
-!            ! Monoterpenes 
-!            AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 / DTSRCE )
-!
-!         ENDIF
-!
-!         !===========================================================
-!         ! For GEOS-1, GEOS-STRAT, GEOS-3, extract acetone emission
-!         ! fluxes the EMACET array for the current month
-!         !===========================================================
-!
-!         ! EMAC = [atoms C/box/s] from acetone
-!         EMAC = EMACET( I, J )
-!
-!         ! Sum acetone loss for use in chemco_decay
-!         ! Units = [atoms C/box/timestep]
-!         SUMACETCO(I,J) = SUMACETCO(I,J) + (EMAC * DTSRCE * AREA_CM2)
-!            
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!
-!      ! Free pointer
-!      NULLIFY( STT )
-!
-!      END SUBROUTINE EMISS_TAGGED_CO
-!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1759,111 +1317,130 @@
       END FUNCTION GET_PCO_LCO_STRAT
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+! Prior to 6/23/14:
+! HEMCO appears to have orphaned this routine.  Comment out for now.
+! (bmy, 6/23/14)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_acetone
+!!
+!! !DESCRIPTION: Subroutine READ\_ACETONE reads in biogenic acetone 
+!!  emissions from a binary punch file. 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_ACETONE( am_I_Root, Input_Opt, THISMONTH, RC )
+!!
+!! !USES:
+!!
+!      USE CMN_SIZE_MOD 
+!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!      INTEGER,        INTENT(IN)  :: THISMONTH   ! Month to read
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
+!! 
+!! !REMARKS:
+!!  This routine will be replaced by HEMCO soon. All bpch file input is being
+!!  replaced with netCDF input.
+!!
+!! !REVISION HISTORY: 
+!!  23 Oct 2012 - B. Field, B. Duncan - Initial version
+!!  (1 ) Eliminate variables that aren't used anymore.  Updated comments
+!!        and made some cosmetic changes. (bnd, bmy, 6/14/01)
+!!  (2 ) Added to "tagged_co_mod.f" (bmy, 6/14/01)
+!!  (3 ) Now read acetone file from DATA_DIR/tagged_CO_200106 (bmy, 6/19/01)
+!!  (4 ) ARRAY needs to be of size (IIPAR,JJPAR).  Use TRANSFER_2D from 
+!!        "transfer_mod.f" to cast data from REAL*4 to REAL*8, and also to 
+!!        copy data to an array of size (IIPAR,JJPAR).  Use 3 arguments (M/D/Y)
+!!        in call to GET_TAU0.  Use IIPAR,JJPAR in call to READ_BPCH2.
+!!        Added array TEMP(IIPAR,JJPAR).  Updated comments. (bmy, 9/28/01)
+!!  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
+!!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!!  (7 ) Now reads data from both GEOS and GCAP grids (bmy, 8/16/05)
+!!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER             :: I, J
+!      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
+!      REAL*8              :: TEMP(IIPAR,JJPAR)
+!      REAL*8              :: XTAU
+!      CHARACTER(LEN=255)  :: FILENAME
+!     
+!      !=================================================================
+!      ! READ_ACETONE begins here!
+!      !=================================================================
+!
+!      ! Name of file with acetone data
+!      FILENAME = TRIM( Input_Opt%DATA_DIR )  // 
+!     &           'tagged_CO_200106/acetone.' // GET_NAME_EXT_2D() //
+!     &           '.'                         // GET_RES_EXT()
+!
+!      ! Echo to stdout
+!      IF ( am_I_Root ) THEN
+!         WRITE( 6, '(a)' ) 'READING ', TRIM( FILENAME )
+!      ENDIF
+!
+!      !  Initialize some variables      
+!      EMACET   = 0d0
+!       
+!      ! TAU value at the beginning of this month for 1994
+!      XTAU = GET_TAU0( THISMONTH, 1, 1994 )
+!
+!      !=================================================================
+!      ! Read direct biogenic acetone emissions [atoms C/cm2/s]
+!      !=================================================================
+!
+!      ! Initialize ARRAY
+!      ARRAY = 0e0
+!
+!      ! Read data
+!      CALL READ_BPCH2( FILENAME, 'EMISACET', 6, XTAU,
+!     &                 IIPAR,     JJPAR,     1, ARRAY )
+!
+!      ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
+!      CALL TRANSFER_2D( ARRAY(:,:,1), EMACET )
+!
+!      !=================================================================
+!      ! Read acetone from grasslands [atoms C/cm2/s]
+!      !=================================================================
+!
+!      ! Initialize ARRAY
+!      ARRAY = 0e0
+!
+!      ! Read data
+!      CALL READ_BPCH2( FILENAME, 'EMISACET', 7, XTAU,
+!     &                 IIPAR,     JJPAR,     1, ARRAY )
+!
+!      ! Cast from REAL*4 to REAL*8 and add
+!      CALL TRANSFER_2D( ARRAY(:,:,1), TEMP )
+!
+!      ! Add acetone from grasslands to direct biogenic emissions
+!      EMACET(:,:) = EMACET(:,:) + TEMP(:,:)
+!
+!      END SUBROUTINE READ_ACETONE
+!!EOC
 !------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_acetone
-!
-! !DESCRIPTION: Subroutine READ\_ACETONE reads in biogenic acetone 
-!  emissions from a binary punch file. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_ACETONE( THISMONTH )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD 
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: THISMONTH   ! Month to read
-! 
-! !REVISION HISTORY: 
-!  23 Oct 2012 - B. Field, B. Duncan - Initial version
-!  (1 ) Eliminate variables that aren't used anymore.  Updated comments
-!        and made some cosmetic changes. (bnd, bmy, 6/14/01)
-!  (2 ) Added to "tagged_co_mod.f" (bmy, 6/14/01)
-!  (3 ) Now read acetone file from DATA_DIR/tagged_CO_200106 (bmy, 6/19/01)
-!  (4 ) ARRAY needs to be of size (IIPAR,JJPAR).  Use TRANSFER_2D from 
-!        "transfer_mod.f" to cast data from REAL*4 to REAL*8, and also to 
-!        copy data to an array of size (IIPAR,JJPAR).  Use 3 arguments (M/D/Y)
-!        in call to GET_TAU0.  Use IIPAR,JJPAR in call to READ_BPCH2.
-!        Added array TEMP(IIPAR,JJPAR).  Updated comments. (bmy, 9/28/01)
-!  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
-!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (7 ) Now reads data from both GEOS and GCAP grids (bmy, 8/16/05)
-!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: I, J
-      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8              :: TEMP(IIPAR,JJPAR)
-      REAL*8              :: XTAU
-      CHARACTER(LEN=255)  :: FILENAME
-     
-      !=================================================================
-      ! READ_ACETONE begins here!
-      !=================================================================
-
-      ! Name of file with acetone data
-      FILENAME = TRIM( DATA_DIR )            // 
-     &           'tagged_CO_200106/acetone.' // GET_NAME_EXT_2D() //
-     &           '.'                         // GET_RES_EXT()
-
-      ! Echo to stdout
-      WRITE( 6, '(a)' ) 'READING ', TRIM( FILENAME )
- 
-      !  Initialize some variables      
-      EMACET   = 0d0
-       
-      ! TAU value at the beginning of this month for 1994
-      XTAU = GET_TAU0( THISMONTH, 1, 1994 )
-
-      !=================================================================
-      ! Read direct biogenic acetone emissions [atoms C/cm2/s]
-      !=================================================================
-
-      ! Initialize ARRAY
-      ARRAY = 0e0
-
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'EMISACET', 6, XTAU,
-     &                 IIPAR,     JJPAR,     1, ARRAY )
-
-      ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-      CALL TRANSFER_2D( ARRAY(:,:,1), EMACET )
-
-      !=================================================================
-      ! Read acetone from grasslands [atoms C/cm2/s]
-      !=================================================================
-
-      ! Initialize ARRAY
-      ARRAY = 0e0
-
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'EMISACET', 7, XTAU,
-     &                 IIPAR,     JJPAR,     1, ARRAY )
-
-      ! Cast from REAL*4 to REAL*8 and add
-      CALL TRANSFER_2D( ARRAY(:,:,1), TEMP )
-
-      ! Add acetone from grasslands to direct biogenic emissions
-      EMACET(:,:) = EMACET(:,:) + TEMP(:,:)
-
-      END SUBROUTINE READ_ACETONE
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

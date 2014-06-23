@@ -502,7 +502,7 @@
          !CALL READ_COPROD
          !print*,'READ_COPROD DONE'
          CH4LOSS(:,:,:,:) = 0d0
-         CALL READ_CH4LOSS
+         CALL READ_CH4LOSS( am_I_Root, Input_Opt, RC )
 
 #if defined( USE_CH4_BUDGET_DIAG )
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -646,7 +646,7 @@
       !=================================================================
       ! (7) calculate CH4 chemistry in layers above tropopause.
       !=================================================================
-      CALL CH4_STRAT( Input_Opt, State_Met, State_Chm )
+      CALL CH4_STRAT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       !=================================================================
       ! (8) distribute the chemistry sink from total CH4 to other CH4 
@@ -720,19 +720,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_COPROD
+      SUBROUTINE READ_COPROD( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT,    GET_MODELNAME
-      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
-        
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT,    GET_MODELNAME
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_ZONAL      
 
       IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
+! !REMARKS:
+!  We will eventually remove this routine when netCDF input is implemented.
+!
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
@@ -749,6 +762,7 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -768,6 +782,9 @@
       ! Read P(CO) for all 12 months
       !=================================================================
 
+      ! Assume success
+      RC  =  GIGC_SUCCESS
+
       DO M = 1, 12 
 
          ! TAU value at the start of month M -- Use "generic" year 1985
@@ -775,18 +792,20 @@
 
          ! Construct filename
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/'  //
+         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'pco_lco_200203/' //
      &              'COprod.GEOS5.05x0666_NA.trim'
 #else
-         FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/' //
-     &              'COprod.'        // GET_NAME_EXT()    //
-     &              '.'              // GET_RES_EXT()
+         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'pco_lco_200203/' //
+     &              'COprod.'                  // GET_NAME_EXT()    //
+     &              '.'                        // GET_RES_EXT()
 #endif
 
-         WRITE( 6, 93 ) TRIM ( FILENAME )
- 93      FORMAT( '     - READ_COPROD: Reading COprod: ', a )
-	 CALL FLUSH( 6 )
-
+         ! Only write output if this is the root CPU
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 93 ) TRIM ( FILENAME )
+ 93         FORMAT( '     - READ_COPROD: Reading COprod: ', a )
+            CALL FLUSH( 6 )
+         ENDIF
 
          ! Read P(CO) in units of [v/v/s].  drevet.
          CALL READ_BPCH2( FILENAME, 'PORL-L=$', 9,     
@@ -842,22 +861,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CH4LOSS
+      SUBROUTINE READ_CH4LOSS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT,    GET_MODELNAME
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE TIME_MOD,      ONLY : GET_MONTH
-
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT,    GET_MODELNAME
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+      USE TIME_MOD,           ONLY : GET_MONTH
 
       IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
-! !REVISION HISTORY:!
+! !REMARKS:
+!  We will eventually remove this routine when netCDF input is implemented.
+!
+! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
@@ -872,6 +903,7 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  12 Feb 2014 - K. Wecht    - Add modifications for 0.25 x 0.3125 NA grid
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -890,25 +922,30 @@
       ! Read P(CO) for all 12 months
       !=================================================================
 
+      ! Assume success
+      RC       =  GIGC_SUCCESS
+
       ! Construct filename
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( DATA_DIR )         // 'CH4_201203/' //
-     &           'gmi.ch4loss.geos5_47L.' // GET_RES_EXT() //
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'CH4_201203/' //
+     &           'gmi.ch4loss.geos5_47L.'   // GET_RES_EXT() //
      &           '_NA.bpch'
 #elif defined( NESTED_NA ) && defined( GRID025x03125 ) 
-      FILENAME = TRIM( DATA_DIR )         // 'CH4_201402/' //
-     &           'gmi.ch4loss.geos5_47L.'                  //
-     &           GET_RES_EXT()            //  '_NA.bpch'
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'CH4_201402/' //
+     &           'gmi.ch4loss.geos5_47L.'                    //
+     &           GET_RES_EXT()              //  '_NA.bpch'
 #else
-      FILENAME = TRIM( DATA_DIR )         // 'CH4_201203/' //
-     &           'gmi.ch4loss.geos5_47L.' // GET_RES_EXT() // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'CH4_201203/' //
+     &           'gmi.ch4loss.geos5_47L.'   // GET_RES_EXT() // 
      &           '.bpch'
 #endif
 
-
-      WRITE( 6, 93 ) TRIM ( FILENAME )
- 93   FORMAT( '     - READ_CH4LOSS: Reading Ch4loss: ', a )
-      CALL FLUSH( 6 )
+      ! Only print info if we are on the root CPU
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 93 ) TRIM ( FILENAME )
+ 93      FORMAT( '     - READ_CH4LOSS: Reading Ch4loss: ', a )
+         CALL FLUSH( 6 )
+      ENDIF
 
       ! Read data for each month
       DO M = 1, 12 
@@ -1268,12 +1305,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_STRAT( Input_Opt, State_Met, State_Chm )
+      SUBROUTINE CH4_STRAT( am_I_Root, Input_Opt, 
+     &                      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -1286,12 +1325,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  Production (mixing ratio/sec) rate provided by Dylan Jones.  
@@ -1315,6 +1359,7 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root and RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1348,6 +1393,9 @@
       !=================================================================
       ! CH4_STRAT begins here!
       !=================================================================
+
+      ! Assume success
+      RC                  =  GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT
       LUCX                = Input_Opt%LUCX
@@ -1384,10 +1432,10 @@
             IF ( FIRSTCHEM ) THEN
                ! Zero CO production array
                COPROD(:,:,:) = 0d0
-               print*,'READ_COPROD'
+               !print*,'READ_COPROD'
                ! Read zonally-averaged CO production [v/v/s]
-               CALL READ_COPROD
-               print*,'READ_COPROD DONE'
+               CALL READ_COPROD( am_I_Root, Input_Opt, RC )
+               !print*,'READ_COPROD DONE'
             ENDIF
          ENDIF
 

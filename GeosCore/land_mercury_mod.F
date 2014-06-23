@@ -337,12 +337,13 @@
 !
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
       ! (jaf, eds, 4/1/11)
-      SUBROUTINE VEGEMIS( LVEGEMIS,  EHg0_dist, EHg0_vg, 
-     &                    Input_Opt, State_Met, RC )
+      SUBROUTINE VEGEMIS( am_I_Root, Input_Opt, State_Met,
+     &                    LVEGEMIS,  EHg0_dist, EHg0_vg,   RC )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_LAND
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
@@ -352,15 +353,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,                INTENT(IN)  :: LVEGEMIS
-      REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
+      LOGICAL,                INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
       TYPE(OptInput),         INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState),         INTENT(IN)  :: State_Met   ! Met State object
+      LOGICAL,                INTENT(IN)  :: LVEGEMIS    !
+      REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist   ! 
+
 !
 ! !OUTPUT PARAMETERS:
 !
       REAL*8, DIMENSION(:,:), INTENT(OUT) :: EHg0_vg
-!
+      INTEGER,                INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Vegetation emissions are proportional to the evapotranspiration rate and the
@@ -918,7 +921,6 @@
       USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
       USE DEPO_MERCURY_MOD,   ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
       USE DEPO_MERCURY_MOD,   ONLY : READ_GTMM_RESTART
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -990,14 +992,18 @@
       !=================================================================
       ! GTMM_DR begins here!
       !=================================================================
-      ! Initialise arrays
-      NYMD      = GET_NYMD()
-      NHMS      = GET_NHMS()
 
-      TSURF   = 0d0
-      PRECIP  = 0d0
-      SOLAR_W = 0d0
-      Hg0gtm  = 0d0
+      ! Assume success
+      RC         = GIGC_SUCCESS
+
+      ! Initialise arrays
+      NYMD       = GET_NYMD()
+      NHMS       = GET_NHMS()
+
+      TSURF      = 0d0
+      PRECIP     = 0d0
+      SOLAR_W    = 0d0
+      Hg0gtm     = 0d0
 
       ! Reset deposition arrays.
       Hg0mth_dry = 0d0

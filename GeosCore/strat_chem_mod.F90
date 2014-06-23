@@ -971,18 +971,18 @@ CONTAINS
 ! !USES:
 !
     ! GEOS-Chem routines
-    USE BPCH2_MOD,       ONLY : GET_NAME_EXT
-    USE BPCH2_MOD,       ONLY : GET_RES_EXT
-    USE BPCH2_MOD,       ONLY : GET_TAU0
-    USE BPCH2_MOD,       ONLY : READ_BPCH2
+    USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+    USE BPCH2_MOD,          ONLY : GET_RES_EXT
+    USE BPCH2_MOD,          ONLY : GET_TAU0
+    USE BPCH2_MOD,          ONLY : READ_BPCH2
     USE CMN_SIZE_MOD
-    USE GRID_MOD,        ONLY : GET_XMID
-    USE GRID_MOD,        ONLY : GET_YMID
-    USE LOGICAL_MOD,     ONLY : LLINOZ
-    USE TIME_MOD,        ONLY : GET_MONTH
-    USE TRACER_MOD,      ONLY : N_TRACERS, TRACER_NAME
-    USE TRANSFER_MOD,    ONLY : TRANSFER_3D
-    USE TRANSFER_MOD,    ONLY : TRANSFER_3D_Bry
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GRID_MOD,           ONLY : GET_XMID
+    USE GRID_MOD,           ONLY : GET_YMID
+    USE TIME_MOD,           ONLY : GET_MONTH
+    USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+    USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Bry
 
     ! netCDF routines
     USE m_netcdf_io_open
@@ -991,10 +991,18 @@ CONTAINS
 
     IMPLICIT NONE
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
 ! !INPUT PARAMETERS: 
 !
-    INTEGER, INTENT(IN) :: THISMONTH   ! Current month
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  01 Feb 2011 - L. Murray   - Initial version
@@ -1006,6 +1014,7 @@ CONTAINS
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  26 Aug 2013 - R. Yantosca - Avoid array temporaries
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1042,9 +1051,17 @@ CONTAINS
     ! Pointers
     REAL*4, POINTER    :: ptr_3D(:,:,:)
 
+    ! For values from Input_Opt
+    INTEGER            :: N_TRACERS
+    CHARACTER(LEN=255) :: TRACER_NAME(Input_Opt%N_TRACERS)
+
     !=================================================================
     ! GET_RATES_INTERP begins here
     !=================================================================
+
+    ! Copy values from Input_Opt
+    N_TRACERS   = Input_Opt%N_TRACERS
+    TRACER_NAME = Input_Opt%TRACER_NAME(1:N_TRACERS)
 
     ! Intialize arrays
     LOSS = 0d0

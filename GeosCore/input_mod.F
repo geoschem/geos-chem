@@ -7302,7 +7302,6 @@
 !
       USE GET_POPSINFO_MOD,     ONLY : GET_POP_TYPE
       USE POPS_MOD,             ONLY : INIT_POPS
-      USE DIRECTORY_MOD,        ONLY : POP_EMISDIR
       USE TRACER_MOD,           ONLY : ITS_A_POPS_SIM
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
@@ -7325,7 +7324,7 @@
 !  29 Nov 2012 - M. Payer    - Now pass Input_Opt, RC as arguments
 !  26 Mar 2013 - R. Yantosca - Now pass Input_Opt to INIT_POPS
 !  14 Apr 2014 - R. Yantosca - Now echo all POPs parameters to log file
-
+!  23 Jun 2014 - R. Yantosca - Now use Input_Opt%POP_EMISDIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7355,7 +7354,7 @@
 
       ! Name of pops emissions file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:3' )
-      READ( SUBSTRS(1:N), '(a)' ) POP_EMISDIR
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%POP_EMISDIR
 
       ! Molecular weight
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:4' )
@@ -7405,7 +7404,7 @@
          WRITE( 6, 120     ) 'Species of POP        : ', POP_TYPE
          WRITE( 6, 110     ) 'Chemistry on?         : ', CHEM_PROCESS
          WRITE( 6, 120     ) '=> POP Emissions file : ',
-     &                        TRIM( POP_EMISDIR )     
+     &                        TRIM( Input_Opt%POP_EMISDIR )     
          WRITE( 6, 130     ) 'POP_XMW               : ', POP_XMW
          WRITE( 6, 130     ) 'POP_KOA               : ', POP_KOA
          WRITE( 6, 130     ) 'POP_KBC               : ', POP_KBC

@@ -768,7 +768,6 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR,        DATA_DIR_1x1
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
@@ -804,6 +803,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  23 Jun 2014 - R. Yantosca - Now use Input_Opt instead of DIRECTORY_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -849,12 +849,12 @@
 
       IF ( LGENFF ) THEN
          TAU      = GET_TAU0( 1, 1, 1985 )
-         FILENAME = TRIM( DATA_DIR )                               // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR )                     // 
      &              'CO2_200508/fossil95_CO2.'                     // 
      &              GET_NAME_EXT_2D() // '.'   // GET_RES_EXT()
       ELSE
          TAU      = GET_TAU0( 1, 1, YEAR )
-         FILENAME = TRIM( DATA_DIR )                               // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR )                     // 
      &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.'//  
      &              YEAR_STR          // '.'                       //
      &              GET_NAME_EXT_2D() // '.'   //  GET_RES_EXT()
@@ -888,7 +888,7 @@
       !-----------------------------------------------------------------
       TAU      = GET_TAU0( 1, 1, 2004 )
 
-      FILENAME = TRIM( DATA_DIR_1x1)   //   
+      FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) //   
      &           'CO2_201003/Aviation_Regions.geos.1x1'
 
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE',  1, 
@@ -899,7 +899,7 @@
       GEOS_1x1(:,:,1) = REGION_1x1(:,:)
 
       ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
+      LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution

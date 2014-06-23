@@ -1890,7 +1890,8 @@
       ! Read HNO3 for offline simulation
       IF ( IS_OFFLINE ) THEN
          IF ( ITS_A_NEW_MONTH() ) THEN
-            CALL GET_GLOBAL_HNO3( GET_MONTH() )
+            CALL GET_GLOBAL_HNO3
+     &           ( am_I_Root, Input_Opt, GET_MONTH(), RC )
          ENDIF
       ENDIF
 
@@ -7239,316 +7240,317 @@
 !
 !      END SUBROUTINE READ_ERUP_VOLC
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_ocean_dms
+!!
+!! !DESCRIPTION: Subroutine READ\_OCEAN\_DMS reads seawater concentrations of
+!!  DMS (nmol/L). (rjp, bdf, bmy, 9/20/02, 10/3/05)
+!!\\
+!!\\
+!! !INTERFACE:
+!! 
+!      SUBROUTINE READ_OCEAN_DMS( THISMONTH )
+!!
+!! !USES:
+!!
+!      USE CMN_SIZE_MOD
+!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+!      USE DIRECTORY_MOD, ONLY : DATA_DIR
+!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER, INTENT(IN) :: THISMONTH ! Current month number (1-12)
+!!
+!! !REVISION HISTORY:
+!!  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
+!!  (2 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
+!!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!!  (4 ) Now read files from "sulfate_sim_200508/".  Now read data for both
+!!        GCAP and GEOS grids (bmy, 8/16/05) 
+!!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
+!      REAL*8              :: XTAU
+!      CHARACTER(LEN=255)  :: FILENAME
 !
-! !IROUTINE: read_ocean_dms
+!      !==================================================================
+!      ! READ_OCEAN_DMS begins here!
+!      !==================================================================
 !
-! !DESCRIPTION: Subroutine READ\_OCEAN\_DMS reads seawater concentrations of
-!  DMS (nmol/L). (rjp, bdf, bmy, 9/20/02, 10/3/05)
-!\\
-!\\
-! !INTERFACE:
-! 
-      SUBROUTINE READ_OCEAN_DMS( THISMONTH )
+!      ! File name
+!      FILENAME = TRIM( DATA_DIR )                         // 
+!     &           'sulfate_sim_200508/DMS_seawater.'       //
+!     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 !
-! !USES:
+!      ! Echo output
+!      WRITE( 6, 100 ) TRIM( FILENAME )  
+! 100  FORMAT( '     - READ_OCEAN_DMS: Reading ', a ) 
 !
-      USE CMN_SIZE_MOD
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+!      ! TAU value (use generic year 1985)
+!      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 !
-! !INPUT PARAMETERS: 
+!      ! Read ocean DMS [nmol/L]
+!      CALL READ_BPCH2( FILENAME, 'BIOGSRCE',    25, 
+!     &                 XTAU,      IIPAR,        JJPAR,      
+!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
 !
-      INTEGER, INTENT(IN) :: THISMONTH ! Current month number (1-12)
+!      ! Cast from REAL*4 to REAL*8 
+!      CALL TRANSFER_2D( ARRAY(:,:,1), DMSo )
+!      
+!      END SUBROUTINE READ_OCEAN_DMS
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_sst
+!!
+!! !DESCRIPTION: Subroutine READ\_SST reads monthly mean sea surface
+!!  temperatures. (rjp, bdf, bmy, 9/18/02, 7/13/09)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_SST( THISMONTH, THISYEAR, State_Met )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+!      USE CMN_SIZE_MOD
+!      USE DIRECTORY_MOD,      ONLY : DATA_DIR,        DATA_DIR_1x1
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER,        INTENT(IN)    :: THISMONTH ! Current month number (1-12)
+!      INTEGER,        INTENT(IN)    :: THISYEAR  ! Current 4-digit year
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
+!!
+!! !REVISION HISTORY:
+!!  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
+!!  (2 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
+!!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!!  (4 ) Now use interannual SST data from NOAA if present; otherwise use
+!!        climatological SST data.  Now read data for both GCAP and GEOS 
+!!        grids (bmy, 8/16/05) 
+!!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!!  (6 ) Now read int'annual SST data on the GEOS 1x1 grid (bmy, 11/17/05)
+!!  (7 ) Last year of data is now 2008 (bmy, 7/13/09)
+!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A 
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
+!      REAL*4                  :: ARRAY1(I1x1,J1x1,1)
+!      REAL*8                  :: XTAU
+!      CHARACTER(LEN=4)        :: SYEAR
+!      CHARACTER(LEN=255)      :: FILENAME
+!      CHARACTER(LEN=255)      :: LLFILENAME
+!      REAL*8                  :: INGRID(I1x1,J1x1)
 !
-! !REVISION HISTORY:
-!  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
-!  (2 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
-!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (4 ) Now read files from "sulfate_sim_200508/".  Now read data for both
-!        GCAP and GEOS grids (bmy, 8/16/05) 
-!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      !==================================================================
+!      ! READ_SST begins here!
+!      !==================================================================
 !
-! !LOCAL VARIABLES:
+!      IF ( THISYEAR >= 1985 .and. THISYEAR <= 2008 ) THEN 
+!         
+!         !------------------------------------
+!         ! Use interannual SST data from NOAA
+!         ! Data exists for 1985 - 2004,
+!         ! Add other years as necessary
+!         !------------------------------------
 !
-      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8              :: XTAU
-      CHARACTER(LEN=255)  :: FILENAME
-
-      !==================================================================
-      ! READ_OCEAN_DMS begins here!
-      !==================================================================
-
-      ! File name
-      FILENAME = TRIM( DATA_DIR )                         // 
-     &           'sulfate_sim_200508/DMS_seawater.'       //
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-
-      ! Echo output
-      WRITE( 6, 100 ) TRIM( FILENAME )  
- 100  FORMAT( '     - READ_OCEAN_DMS: Reading ', a ) 
-
-      ! TAU value (use generic year 1985)
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
-
-      ! Read ocean DMS [nmol/L]
-      CALL READ_BPCH2( FILENAME, 'BIOGSRCE',    25, 
-     &                 XTAU,      IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
-
-      ! Cast from REAL*4 to REAL*8 
-      CALL TRANSFER_2D( ARRAY(:,:,1), DMSo )
-      
-      END SUBROUTINE READ_OCEAN_DMS
+!         ! Make a string for THISYEAR
+!         WRITE( SYEAR, '(i4)' ) THISYEAR
+!
+!         ! File name
+!         FILENAME = TRIM( DATA_DIR_1x1 )       // 
+!     &              'SST_200508/SST.geos.1x1.' // SYEAR
+!
+!         ! Echo output
+!         WRITE( 6, 100 ) TRIM( FILENAME )  
+! 100     FORMAT( '     - READ_SST: Reading ', a ) 
+!
+!         ! TAU value (use this year)
+!         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+!
+!         ! Read sea surface temperature [K]
+!         CALL READ_BPCH2( FILENAME, 'GMAO-2D',      69, 
+!     &                    XTAU,      I1x1,          J1x1,     
+!     &                    1,         ARRAY1(:,:,1), QUIET=.TRUE. ) 
+!
+!         ! File with lat/lon edges for regridding
+!         LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
+!
+!         ! Regrid from 1x1 and cast to REAL*8
+!         INGRID = ARRAY1(:,:,1)
+!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+!     &                       INGRID,     SSTEMP,  IS_MASS=0,
+!     &                       netCDF=.TRUE.                   )
+!
+!      ELSE
+!
+!         !-------------------------------
+!         ! Use climatological SST data 
+!         !-------------------------------
+!
+!         ! File name
+!         FILENAME = TRIM( DATA_DIR )          // 
+!     &              'sulfate_sim_200508/SST.' // GET_NAME_EXT_2D() //
+!     &              '.'                       // GET_RES_EXT()
+!
+!         ! Echo output
+!         WRITE( 6, 100 ) TRIM( FILENAME )  
+!
+!         ! TAU value (use generic year 1985)
+!         XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+!
+!         ! Read sea surface temperature [K]
+!         CALL READ_BPCH2( FILENAME, 'DAO-FLDS',    5, 
+!     &                    XTAU,      IIPAR,        JJPAR,     
+!     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
+!
+!         ! Cast from REAL*4 to REAL*8 
+!         CALL TRANSFER_2D( ARRAY(:,:,1), SSTEMP )
+!
+!      ENDIF
+!
+!      ! Copy met field to State_Met
+!      State_Met%SST = SSTEMP
+!
+!      END SUBROUTINE READ_SST
 !EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_oxidant
+!!
+!! !DESCRIPTION: Subroutine READ\_OXIDANT reads in monthly mean H2O2 and O3
+!!  fields for the offline sulfate + aerosol simulation. (rjp, bdf, bmy, 
+!!  11/1/02, 10/3/05)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_OXIDANT( MONTH )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+!      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+!      USE CMN_SIZE_MOD
+!      USE DIRECTORY_MOD, ONLY : DATA_DIR
+!      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER, INTENT(IN)    :: MONTH ! Emission timestep in minutes
+!!
+!! !REVISION HISTORY: 
+!!  (1 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
+!!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!!  (3 ) Now read files from "sulfate_sim_200508/offline/".  Now read data
+!!        for both GEOS and GCAP grids (bmy, 8/16/05)
+!!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER             :: I, J, L, K      
+!      REAL*4              :: ARRAY(IIPAR,JJPAR,LLCHEM)
+!      REAL*8              :: XTAU
+!      CHARACTER(LEN=255)  :: FILENAME
+!
+!      !=================================================================
+!      ! READ_OXIDANT begins here !
+!      !
+!      ! Oxidant fields were computed for 1998 using coupled aerosol
+!      ! and gas chemistry GEOS-CHEM by Brendan Field (bdf, 5/23/02).  
+!      ! Bob Yantosca has regridded these fields to all GEOS-CHEM grids.  
+!      ! Data is saved from the surface to the tropopause. 
+!      !=================================================================
+!
+!      ! Use generic year 1985
+!      XTAU = GET_TAU0( MONTH, 1, 1985 )
+!
+!      !=================================================================
+!      ! Read monthly mean PH2O2 (from HO2 + HO2 = H2O2) [molec/cm3/s]
+!      !=================================================================
+!      FILENAME = TRIM( DATA_DIR )                      // 
+!     &           'sulfate_sim_200508/offline/PH2O2.'   // 
+!     &           GET_NAME_EXT() //  '.' // GET_RES_EXT()
+!
+!      ! Echo filename
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_OXIDANT: Reading ', a ) 
+!
+!      ! Read data
+!      ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+!      ! tropopause. This is backward compatibility with 
+!      ! offline data set.
+!      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 5,     
+!     &     XTAU,        IIPAR,                    JJPAR,      
+!     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
+!
+!      ! Cast to REAL*8 and resize if necessary
+!      CALL TRANSFER_3D_TROP( ARRAY, PH2O2m )
+!            
+!      !=================================================================
+!      ! Read monthly mean O3 [v/v]
+!      !=================================================================
+!      FILENAME = TRIM( DATA_DIR )                      // 
+!     &           'sulfate_sim_200508/offline/O3.'      //
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!
+!      ! Echo filename
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+!
+!      ! Read data
+!      ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+!      ! tropopause. This is backward compatibility with 
+!      ! offline data set.
+!      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
+!     &     XTAU,        IIPAR,                    JJPAR,      
+!     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
+!
+!      ! Cast to REAL*8 and resize if necessary
+!      CALL TRANSFER_3D_TROP( ARRAY, O3m ) 
+!      
+!      END SUBROUTINE READ_OXIDANT
+!!EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_sst
-!
-! !DESCRIPTION: Subroutine READ\_SST reads monthly mean sea surface
-!  temperatures. (rjp, bdf, bmy, 9/18/02, 7/13/09)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_SST( THISMONTH, THISYEAR, State_Met )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-      USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR,        DATA_DIR_1x1
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(IN)    :: THISMONTH ! Current month number (1-12)
-      INTEGER,        INTENT(IN)    :: THISYEAR  ! Current 4-digit year
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
-!
-! !REVISION HISTORY:
-!  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
-!  (2 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
-!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (4 ) Now use interannual SST data from NOAA if present; otherwise use
-!        climatological SST data.  Now read data for both GCAP and GEOS 
-!        grids (bmy, 8/16/05) 
-!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (6 ) Now read int'annual SST data on the GEOS 1x1 grid (bmy, 11/17/05)
-!  (7 ) Last year of data is now 2008 (bmy, 7/13/09)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
-!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
-!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
-      REAL*4                  :: ARRAY1(I1x1,J1x1,1)
-      REAL*8                  :: XTAU
-      CHARACTER(LEN=4)        :: SYEAR
-      CHARACTER(LEN=255)      :: FILENAME
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8                  :: INGRID(I1x1,J1x1)
-
-      !==================================================================
-      ! READ_SST begins here!
-      !==================================================================
-
-      IF ( THISYEAR >= 1985 .and. THISYEAR <= 2008 ) THEN 
-         
-         !------------------------------------
-         ! Use interannual SST data from NOAA
-         ! Data exists for 1985 - 2004,
-         ! Add other years as necessary
-         !------------------------------------
-
-         ! Make a string for THISYEAR
-         WRITE( SYEAR, '(i4)' ) THISYEAR
-
-         ! File name
-         FILENAME = TRIM( DATA_DIR_1x1 )       // 
-     &              'SST_200508/SST.geos.1x1.' // SYEAR
-
-         ! Echo output
-         WRITE( 6, 100 ) TRIM( FILENAME )  
- 100     FORMAT( '     - READ_SST: Reading ', a ) 
-
-         ! TAU value (use this year)
-         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
-
-         ! Read sea surface temperature [K]
-         CALL READ_BPCH2( FILENAME, 'GMAO-2D',      69, 
-     &                    XTAU,      I1x1,          J1x1,     
-     &                    1,         ARRAY1(:,:,1), QUIET=.TRUE. ) 
-
-         ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
-
-         ! Regrid from 1x1 and cast to REAL*8
-         INGRID = ARRAY1(:,:,1)
-         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     SSTEMP,  IS_MASS=0,
-     &                       netCDF=.TRUE.                   )
-
-      ELSE
-
-         !-------------------------------
-         ! Use climatological SST data 
-         !-------------------------------
-
-         ! File name
-         FILENAME = TRIM( DATA_DIR )          // 
-     &              'sulfate_sim_200508/SST.' // GET_NAME_EXT_2D() //
-     &              '.'                       // GET_RES_EXT()
-
-         ! Echo output
-         WRITE( 6, 100 ) TRIM( FILENAME )  
-
-         ! TAU value (use generic year 1985)
-         XTAU = GET_TAU0( THISMONTH, 1, 1985 )
-
-         ! Read sea surface temperature [K]
-         CALL READ_BPCH2( FILENAME, 'DAO-FLDS',    5, 
-     &                    XTAU,      IIPAR,        JJPAR,     
-     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
-
-         ! Cast from REAL*4 to REAL*8 
-         CALL TRANSFER_2D( ARRAY(:,:,1), SSTEMP )
-
-      ENDIF
-
-      ! Copy met field to State_Met
-      State_Met%SST = SSTEMP
-
-      END SUBROUTINE READ_SST
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_oxidant
-!
-! !DESCRIPTION: Subroutine READ\_OXIDANT reads in monthly mean H2O2 and O3
-!  fields for the offline sulfate + aerosol simulation. (rjp, bdf, bmy, 
-!  11/1/02, 10/3/05)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_OXIDANT( MONTH )
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)    :: MONTH ! Emission timestep in minutes
-!
-! !REVISION HISTORY: 
-!  (1 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
-!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (3 ) Now read files from "sulfate_sim_200508/offline/".  Now read data
-!        for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: I, J, L, K      
-      REAL*4              :: ARRAY(IIPAR,JJPAR,LLCHEM)
-      REAL*8              :: XTAU
-      CHARACTER(LEN=255)  :: FILENAME
-
-      !=================================================================
-      ! READ_OXIDANT begins here !
-      !
-      ! Oxidant fields were computed for 1998 using coupled aerosol
-      ! and gas chemistry GEOS-CHEM by Brendan Field (bdf, 5/23/02).  
-      ! Bob Yantosca has regridded these fields to all GEOS-CHEM grids.  
-      ! Data is saved from the surface to the tropopause. 
-      !=================================================================
-
-      ! Use generic year 1985
-      XTAU = GET_TAU0( MONTH, 1, 1985 )
-
-      !=================================================================
-      ! Read monthly mean PH2O2 (from HO2 + HO2 = H2O2) [molec/cm3/s]
-      !=================================================================
-      FILENAME = TRIM( DATA_DIR )                      // 
-     &           'sulfate_sim_200508/offline/PH2O2.'   // 
-     &           GET_NAME_EXT() //  '.' // GET_RES_EXT()
-
-      ! Echo filename
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_OXIDANT: Reading ', a ) 
-
-      ! Read data
-      ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-      ! tropopause. This is backward compatibility with 
-      ! offline data set.
-      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 5,     
-     &     XTAU,        IIPAR,                    JJPAR,      
-     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
-
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_3D_TROP( ARRAY, PH2O2m )
-            
-      !=================================================================
-      ! Read monthly mean O3 [v/v]
-      !=================================================================
-      FILENAME = TRIM( DATA_DIR )                      // 
-     &           'sulfate_sim_200508/offline/O3.'      //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-      ! Echo filename
-      WRITE( 6, 100 ) TRIM( FILENAME )
-
-      ! Read data
-      ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-      ! tropopause. This is backward compatibility with 
-      ! offline data set.
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
-     &     XTAU,        IIPAR,                    JJPAR,      
-     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
-
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_3D_TROP( ARRAY, O3m ) 
-      
-      END SUBROUTINE READ_OXIDANT
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

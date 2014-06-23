@@ -83,7 +83,10 @@
       USE AEROSOL_MOD,        ONLY : SOILDUST
       USE C2H6_MOD,           ONLY : CHEMC2H6
       USE CARBON_MOD,         ONLY : CHEMCARBON
-      USE CH3I_MOD,           ONLY : CHEMCH3I
+!-----------------------------------------------------------------------------
+! This is now obsolete.  You can can reactivate this if you want.
+!      USE CH3I_MOD,           ONLY : CHEMCH3I
+!-----------------------------------------------------------------------------
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
       USE COMODE_LOOP_MOD     
@@ -99,7 +102,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
 !-----------------------------------------------------------------------------
-! This is now obsolete.  Someone can reactivate this if they want.
+! This is now obsolete.  You can can reactivate this if you want.
 !      USE H2_HD_MOD,          ONLY : CHEM_H2_HD
 !-----------------------------------------------------------------------------
       USE HCN_CH3CN_MOD,      ONLY : CHEM_HCN_CH3CN
@@ -490,7 +493,9 @@
 
                ! Compute dust OD's & surface areas
                WAVELENGTH = 0
-               CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
+               CALL RDUST_ONLINE
+     &             ( am_I_Root, Input_Opt,  State_Met, 
+     &               SOILDUST,  WAVELENGTH, RC         )
             ENDIF
  
          !---------------------------------
@@ -506,12 +511,15 @@
      &            ( am_I_Root, Input_Opt, State_Chm, RC )
             ENDIF
 
-         !---------------------------------
-         ! CH3I
-         !---------------------------------
-         ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
-            CALL CHEMCH3I
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!-----------------------------------------------------------------------------
+! This simulation is now obsolete.  You can reactivate it if you want.
+!         !---------------------------------
+!         ! CH3I
+!         !---------------------------------
+!         ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
+!            CALL CHEMCH3I
+!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!-----------------------------------------------------------------------------
  
          !---------------------------------            
          ! HCN
@@ -575,21 +583,25 @@
             ! Do POPS chemistry
             CALL CHEMPOPS
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-               
-         !---------------------------------
-         ! Offline H2/HD
-         !---------------------------------
-         ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
-            CALL CHEM_H2_HD
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-            CALL DRYFLXH2HD( State_Met, State_Chm )
+!-----------------------------------------------------------------------------
+! This simulation is now obsolete.  You can reactivate it if you want.
+!         !---------------------------------
+!         ! Offline H2/HD
+!         !---------------------------------
+!         ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
+!            CALL CHEM_H2_HD
+!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+!            CALL DRYFLXH2HD( State_Met, State_Chm )
+!
+!            ! Call linearized stratospheric scheme
+!            IF ( LSCHEM ) THEN 
+!               CALL DO_STRAT_CHEM
+!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!            ENDIF
+!-----------------------------------------------------------------------------
 
-            ! Call linearized stratospheric scheme
-            IF ( LSCHEM ) THEN 
-               CALL DO_STRAT_CHEM
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            ENDIF
          ENDIF
 
          !### Debug
@@ -1068,12 +1080,14 @@
                ! (rjp, tdf, bmy, 4/1/04)
                !===============================================================
                IF ( LDUST ) THEN
-                  CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
+                  CALL RDUST_ONLINE
+     &               ( am_I_Root, Input_Opt,  State_Met,
+     &                 SOILDUST,  WAVELENGTH, RC         )
 #if  !defined( TOMAS )
                ELSE
-                  CALL RDUST_OFFLINE( MONTH,      YEAR,
-     &                                WAVELENGTH, am_I_Root,
-     &                                State_Met   )
+                  CALL RDUST_OFFLINE
+     &               ( am_I_Root, Input_Opt, State_Met,
+     &                 MONTH,     YEAR,      WAVELENGTH, RC )
 #endif
                ENDIF
 

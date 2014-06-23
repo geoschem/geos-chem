@@ -120,7 +120,6 @@
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -197,6 +196,7 @@
 !  05 Mar 2014 - M. Sulprizio- Now regrid TOMS O3 from the files on GEOS 1x1
 !                              grid (J. Lin)
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  23 Jun 2014 - R. Yantosca - Now use Input_Opt%DATA_DIR_1x1
 !EOP
 !------------------------------------------------------------------------------
 !BOC

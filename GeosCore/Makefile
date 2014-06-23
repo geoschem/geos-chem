@@ -384,11 +384,6 @@ carbon_mod.o                : carbon_mod.F                                   \
                               tomas_mod.o             tracer_mod.o           \
                               tracerid_mod.o          vdiff_pre_mod.o
 
-ch3i_mod.o                  : ch3i_mod.F                                     \
-                                                      biomass_mod.o          \
-                              diag_mod.o              diag_pl_mod.o          \
-                              fast_jx_mod.o           tracerid_mod.o
-
 chemdr.o                    : chemdr.F                                       \
                               aerosol_mod.o           chemgrid_mod.o         \
                               comode_mod.o            dao_mod.o              \
@@ -404,9 +399,8 @@ chemgrid_mod.o              : chemgrid_mod.F                                 \
 chemistry_mod.o             : chemistry_mod.F                                \
                                                       aerosol_mod.o          \
                               c2h6_mod.o              carbon_mod.o           \
-                              ch3i_mod.o              comode_mod.o           \
-                              drydep_mod.o            dust_mod.o             \
-                              global_ch4_mod.o                               \
+                              comode_mod.o            dust_mod.o             \
+                              drydep_mod.o            global_ch4_mod.o       \
                               hcn_ch3cn_mod.o         isoropiaII_mod.o       \
                               mercury_mod.o           optdepth_mod.o         \
                               pops_mod.o              rpmares_mod.o          \

@@ -98,21 +98,30 @@
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD             ! Size parameters
-
-      ! Arguments
-      INTEGER,        INTENT(IN)    :: MONTH
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)    :: MONTH       ! Current month
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-      
-      ! Local Variables
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+
+!
+! !LOCAL VARIABLES:
+!      
       LOGICAL              :: FIRST = .TRUE.
       INTEGER              :: AS
       REAL*4               :: ARRAY(IIPAR,JJPAR,1)
@@ -121,7 +130,12 @@
 
       !=================================================================
       ! READ_UVALBEDO begins here!
-      !
+      !=================================================================
+
+      ! Assume success
+      RC  =  GIGC_SUCCESS
+
+      !=================================================================
       ! Allocate UVALBEDO array on the first call
       !=================================================================
       IF ( FIRST ) THEN
@@ -150,8 +164,10 @@
      &           '.'                         // GET_RES_EXT()
 
       ! Echo filename
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - READ_UVALBEDO: Reading ', a )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 110 ) TRIM( FILENAME )
+ 110     FORMAT( '     - READ_UVALBEDO: Reading ', a )
+      ENDIF
 
       ! Get TAU0 value for first day of the MONTH -- use generic year 1985
       XTAU = GET_TAU0( MONTH, 1, 1985 )

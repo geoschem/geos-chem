@@ -570,45 +570,46 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! POPS MENU fields
      !----------------------------------------
-     CHARACTER(LEN=3)           :: POP_TYPE
-     LOGICAL                    :: CHEM_PROCESS
-     CHARACTER(LEN=255)         :: POP_EMISFILE
-     REAL*8                     :: POP_XMW
-     REAL*8                     :: POP_KOA
-     REAL*8                     :: POP_KBC
-     REAL*8                     :: POP_K_POPG_OH
-     REAL*8                     :: POP_K_POPP_O3A
-     REAL*8                     :: POP_K_POPP_O3B
-     REAL*8                     :: POP_HSTAR
-     REAL*8                     :: POP_DEL_H
-     REAL*8                     :: POP_DEL_Hw
+     CHARACTER(LEN=3)            :: POP_TYPE
+     LOGICAL                     :: CHEM_PROCESS
+     CHARACTER(LEN=255)          :: POP_EMISDIR
+     CHARACTER(LEN=255)          :: POP_EMISFILE
+     REAL*8                      :: POP_XMW
+     REAL*8                      :: POP_KOA
+     REAL*8                      :: POP_KBC
+     REAL*8                      :: POP_K_POPG_OH
+     REAL*8                      :: POP_K_POPP_O3A
+     REAL*8                      :: POP_K_POPP_O3B
+     REAL*8                      :: POP_HSTAR
+     REAL*8                      :: POP_DEL_H
+     REAL*8                      :: POP_DEL_Hw
 
      !----------------------------------------
      ! Fields for drydep and dust.  These get
      ! set in the init stage based on info 
      ! from file "input.geos". (mlong, 1/5/13)
      !----------------------------------------
-     INTEGER                    :: NUMDEP
-     INTEGER,           POINTER :: NDVZIND(:)
-     INTEGER,           POINTER :: IDDEP(:)
-     REAL*8,            POINTER :: DUSTREFF(:)
-     REAL*8,            POINTER :: DUSTDEN(:)
-     CHARACTER(LEN=14), POINTER :: DEPNAME(:)
+     INTEGER                     :: NUMDEP
+     INTEGER,            POINTER :: NDVZIND(:)
+     INTEGER,            POINTER :: IDDEP(:)
+     REAL*8,             POINTER :: DUSTREFF(:)
+     REAL*8,             POINTER :: DUSTDEN(:)
+     CHARACTER(LEN=14),  POINTER :: DEPNAME(:)
 
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
-     LOGICAL                    :: haveImpRst
-     INTEGER                    :: myCpu
+     LOGICAL                     :: haveImpRst
+     INTEGER                     :: myCpu
 
      !----------------------------------------
      ! Fields for LINOZ strat chem
      !----------------------------------------
-     INTEGER                    :: LINOZ_NLEVELS
-     INTEGER                    :: LINOZ_NLAT
-     INTEGER                    :: LINOZ_NMONTHS
-     INTEGER                    :: LINOZ_NFIELDS
-     REAL*8,            POINTER :: LINOZ_TPARM(:,:,:,:)
+     INTEGER                     :: LINOZ_NLEVELS
+     INTEGER                     :: LINOZ_NLAT
+     INTEGER                     :: LINOZ_NMONTHS
+     INTEGER                     :: LINOZ_NFIELDS
+     REAL*8,             POINTER :: LINOZ_TPARM(:,:,:,:)
 
      !----------------------------------------
      ! Fields for overhead O3
@@ -648,6 +649,7 @@ MODULE GIGC_Input_Opt_Mod
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
 !  13 Dec 2013 - M. Sulprizio- Add USE_O3_FROM_MET logical flag
 !  16 Apr 2014 - M. Sulprizio- Add field for PSC restart file
+!  23 Jun 2014 - R. Yantosca - Add POP_EMISDIR field for POPs simlulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC

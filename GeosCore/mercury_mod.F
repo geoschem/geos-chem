@@ -577,21 +577,20 @@
          MONTH = GET_MONTH()
 
          ! Read monthly mean OH and O3 from disk
-         CALL GET_GLOBAL_OH
-     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+         CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, State_Met, MONTH, RC)
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_OH' )
 
-         CALL GET_GLOBAL_O3
-     &        ( am_I_Root, Input_Opt,            MONTH, RC )
+         CALL GET_GLOBAL_O3( am_I_Root, Input_Opt, MONTH, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
 
-         CALL GET_GLOBAL_BR( MONTH, State_Met  )
+         CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Met, MONTH, RC)
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
          IF (LRED_JNO2) THEN
-            CALL GET_GLOBAL_JNO2( MONTH ) 
-            IF ( LPRT ) 
-     &           CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_JNO2' )
+            CALL GET_GLOBAL_JNO2( am_I_Root, Input_Opt, MONTH, RC )
+            IF ( LPRT ) THEN
+               CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_JNO2' )
+            ENDIF
          ENDIF
 
       ENDIF
@@ -1435,6 +1434,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to VEGEMIS
+!  23 Jun 2014 - R. Yantosca - Now pass am_I_Root to OCEAN_MERCURY_FLUX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1461,7 +1461,7 @@
       LDYNOCEAN = Input_Opt%LDYNOCEAN
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
-      LPRT      = Input_Opt%LPRT
+      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1471,7 +1471,7 @@
 
          ! In plume degradation of Hg2 by SO2 in U.S. and Canada at CFPPs, yzh 11/1/2011
          IF ( LInPlume .AND. .NOT. LPREINDHG .AND. LNEI2005) THEN
-              CALL DO_RED_INPLUME
+              CALL DO_RED_INPLUME( am_I_Root, Input_Opt, RC )
          ENDIF
 
          ! Reset first-time flag
@@ -1489,8 +1489,9 @@
          ! (cdh, 4/30/09)
          EHg0_oc = 0d0
 
-         CALL OCEAN_MERCURY_FLUX( EHg0_oc,   Input_Opt, 
-     &                            State_Met, State_Chm )
+         CALL OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt, State_Met, 
+     &                            State_Chm, EHg0_oc,   RC         )
+     &                            
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
 
       ENDIF
@@ -1517,8 +1518,8 @@
       
          ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
          ! (jaf, eds, 4/1/11)
-         CALL VEGEMIS( LVEGEMIS,  EHg0_dist, EHg0_vg, 
-     &                 Input_Opt, State_Met, RC )
+         CALL VEGEMIS( am_I_Root, Input_Opt, State_Met,
+     &                 LVEGEMIS,  EHg0_dist, EHg0_vg,   RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
       
          CALL SOILEMIS( EHg0_dist, EHg0_so, State_Met )
@@ -6744,22 +6745,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_JNO2( THISMONTH )
+      SUBROUTINE GET_GLOBAL_JNO2( am_I_Root, Input_Opt, THISMONTH, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
       IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 ! 
+! !REMARKS:
+!  Binary punch file input is slated to be replaced by netCDF input soon.
+!
 ! !REVISION HISTORY: 
 !  25 Nov 2009 - C. Holmes   - Initial version
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
@@ -6781,17 +6792,21 @@
       !CDH -WE EVENTUALLY NEED TO SUPPORT OTHER MODEL RESOLUTIONS
       ! Filename for full-level GEOS5 model
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( DATA_DIR )  // 'mercury_201203/jvalues.noon.' //
+      FILENAME = TRIM( Input_Opt%DATA_DIR )     // 
+     &           'mercury_201203/jvalues.noon.' //
      &           GET_NAME_EXT()    // '.' // GET_RES_EXT()
 #else
       FILENAME = 
-     &           TRIM( DATA_DIR )  // 'mercury_201007/jvalues.noon.' //
+     &           TRIM( Input_Opt%DATA_DIR )     // 
+     &           'mercury_201007/jvalues.noon.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 #endif
 
       ! Echo some information to the standard output
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - GET_GLOBAL_JNO2: Reading ', a )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 110 ) TRIM( FILENAME )
+ 110     FORMAT( '     - GET_GLOBAL_JNO2: Reading ', a )
+      ENDIF
 
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
@@ -7127,22 +7142,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RED_INPLUME
+      SUBROUTINE DO_RED_INPLUME( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE TIME_MOD,       ONLY : EXPAND_DATE
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
       IMPLICIT NONE
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Bpch file input shall be replaced with netCDF file input shortly
+!
 ! !REVISION HISTORY: 
 !  11 Jan 2011 - Y. Zhang    - Initial version
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7172,38 +7200,40 @@
       XTAU     = GET_TAU0( 1, 1, 2005 )
 
       ! Read power plant emissions
-           FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
-     &           'CFPP_NEI2005_NPRI2005_Hg2.' //
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'mercury_201203/' //
+     &           'CFPP_NEI2005_NPRI2005_Hg2.'    //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
      &           '.YYYY'
      
-           ! Add year to the filename
-           CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+      ! Add year to the filename
+      CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
      
-           ! Echo info
-           WRITE( 6, 50 ) TRIM( FILENAME )
-50       FORMAT( '     - RED_INPLUME: Reading ', a )
-     
-           ! Read data in [kg/yr]
-           CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      IIPAR,     JJPAR,
-     &           1,     ARRAY(:,:,1),     QUIET=.TRUE. )
-     
-           ! Regrid to the current grid
-           CALL TRANSFER_2D( ARRAY(:,:,1), E_ELECTRICITY_Hg2 )
+      ! Echo info
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 50 ) TRIM( FILENAME )
+ 50      FORMAT( '     - RED_INPLUME: Reading ', a )
+      ENDIF
 
-           DO J=1,JJPAR
-           DO I=1,IIPAR
+      ! Read data in [kg/yr]
+      CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                 XTAU,      IIPAR,     JJPAR,
+     &                 1,     ARRAY(:,:,1),     QUIET=.TRUE. )
+     
+      ! Regrid to the current grid
+      CALL TRANSFER_2D( ARRAY(:,:,1), E_ELECTRICITY_Hg2 )
 
-             ! Transfer unit to kg/s
-             ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
-             E_plant = E_ELECTRICITY_Hg2(I,J) / SEC_PER_YR
+      DO J=1,JJPAR
+      DO I=1,IIPAR
+
+         ! Transfer unit to kg/s
+         ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
+         E_plant = E_ELECTRICITY_Hg2(I,J) / SEC_PER_YR
              
-             ! Reduce the Hg2 from plume
-             CALL RED_INPLUME_GRID( I, J, E_plant )
+         ! Reduce the Hg2 from plume
+         CALL RED_INPLUME_GRID( I, J, E_plant )
 
-           ENDDO
-           ENDDO
+      ENDDO
+      ENDDO
 
       ! Return to calling program
       END SUBROUTINE DO_RED_INPLUME
