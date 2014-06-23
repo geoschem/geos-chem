@@ -51,31 +51,31 @@ MODULE HCO_STATE_MOD
      INTEGER                     :: NX     ! # of x-points (lons) on this CPU
      INTEGER                     :: NY     ! # of y-points (lats) on this CPU
      INTEGER                     :: NZ     ! # of z-points (levs) on this CPU
-     TYPE(HcoGrid),     POINTER  :: Grid   ! HEMCO grid information
+     TYPE(HcoGrid),      POINTER :: Grid   ! HEMCO grid information
 
      ! Placeholder to store temporary 3D array
      ! Emissions will be written into this array only if option FillBuffer is enabled
-     TYPE(Arr3D_HP),    POINTER  :: Buffer3D 
+     TYPE(Arr3D_HP),     POINTER :: Buffer3D 
 
      ! Physical constants
-     TYPE(HcoPhys),     POINTER  :: Phys 
+     TYPE(HcoPhys),      POINTER :: Phys 
 
      ! Emission & dynamic time step (seconds)
-     REAL(sp)                   :: TS_EMIS
-     REAL(sp)                   :: TS_CHEM
-     REAL(sp)                   :: TS_DYN
+     REAL(sp)                    :: TS_EMIS
+     REAL(sp)                    :: TS_CHEM
+     REAL(sp)                    :: TS_DYN
 
      ! Settings
      CHARACTER(LEN=255)          :: ConfigFile    ! Path + Filename of configuration file 
      LOGICAL                     :: isESMF        ! ESMF application? 
 
      ! Run options
-     TYPE(HcoOpt),     POINTER   :: Options
+     TYPE(HcoOpt),       POINTER :: Options
 
      ! If run w/in ESMF, also need to point to IMPORT state
      ! so that data arrays can be imported.
 #if defined(ESMF_)
-     TYPE(ESMF_State), POINTER   :: IMPORT
+     TYPE(ESMF_State),   POINTER :: IMPORT
 #endif
 
   END TYPE HCO_State
