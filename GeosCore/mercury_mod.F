@@ -1530,7 +1530,7 @@
       CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
       
-      CALL BIOMASSHG( EHg0_bb )
+      CALL BIOMASSHG( am_I_Root, Input_Opt, EHg0_bb, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a BIOMASS' )
 
       IF ( LnoUSAemis ) THEN

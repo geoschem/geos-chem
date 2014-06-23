@@ -399,7 +399,7 @@
 !  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
 !******************************************************************************
 !
-      IF ( ND03 > 0 ) CALL WRITE_DIAG03
+      IF ( ND03 > 0 ) CALL WRITE_DIAG03( am_I_Root, Input_Opt, RC )
 ! ADD ND53 (eck, 10/21/10)
       IF ( ND53 > 0 ) CALL WRITE_DIAG53
 !

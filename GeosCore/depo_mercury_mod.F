@@ -773,7 +773,6 @@
 ! !USES:
 !
       USE DIAG_MOD,     ONLY : AD38,   AD39,   AD44
-      USE LOGICAL_MOD,  ONLY : LGTMM
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
       USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
 !
@@ -894,67 +893,69 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE INIT_DEPO_MERCURY( THIS_Hg_RST_FILE )
+      SUBROUTINE INIT_DEPO_MERCURY( am_I_Root, Input_Opt, RC )
 !
 ! !USES
 !
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,  ONLY : LGTMM
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : N_Hg_CATS
 !
 ! !INPUT PARAMETERS:
 !
-      ! Name of the GTMM restart file
-      CHARACTER(LEN=*), INTENT(IN) :: THIS_Hg_RST_FILE
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  23 Apr 2010 - C. Carouge   - Moved arrays allocation from 
-!                               ocean_mercury_mod.f
+!  23 Apr 2010 - C. Carouge  - Moved arrays allocation from ocean_mercury_mod.f
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                      :: AS
-
       ! GTMM restart file name
-      GTMM_RST_FILE = THIS_Hg_RST_FILE
+      GTMM_RST_FILE = Input_Opt%GTMM_RST_FILE
 
       ! Allocate arrays
-      ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
+      ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
       DD_Hg2 = 0d0
 
-      ALLOCATE( DD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DD_HgP' )
+      ALLOCATE( DD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_HgP' )
       DD_HgP = 0d0
 
-      ALLOCATE( WD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WD_Hg2' )
+      ALLOCATE( WD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_Hg2' )
       WD_Hg2 = 0d0
 
-      ALLOCATE( WD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
+      ALLOCATE( WD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
       WD_HgP = 0d0
 
-      ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
+      ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
       SNOW_HG = 0d0
 
-      IF ( LGTMM ) THEN
-         ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
+      IF ( Input_Opt%LGTMM ) THEN
+         ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
          HG0mth_dd = 0d0
          
-         ALLOCATE( HG2mth_dd( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2mth_dd' )
+         ALLOCATE( HG2mth_dd( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_dd' )
          HG2mth_dd = 0d0
          
-         ALLOCATE( HG2mth_wd( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2mth_wd' )
+         ALLOCATE( HG2mth_wd( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_wd' )
          HG2mth_wd = 0d0
       ENDIF
 

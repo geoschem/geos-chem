@@ -72,342 +72,6 @@
 
       CONTAINS
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: emiss_ch3br
-!!
-!! !DESCRIPTION: Function EMIS\_CHBr3 is the emissions driver for very short
-!!  lived bromocarbon (VSLB) species and the one long-lived compound, methyl
-!!  bromide (CH3Br).
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION EMIS_CHBr3( I, J, State_Met ) RESULT( E_R_CHBr3 )
-!! 
-!! !USES:
-!!
-!      USE LOGICAL_MOD,        ONLY : LWARWICK_VSLS
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!      USE GRID_MOD,           ONLY : GET_YMID
-!      USE TIME_MOD,           ONLY : GET_MONTH
-!
-!      USE CMN_SIZE_MOD             ! Size parameters
-!      USE CMN_DIAG_MOD             ! ND57 -- diagnostics
-!      USE COMODE_LOOP_MOD          ! Avogadro's #, called 'AVG' = 6.02252d+23
-!!
-!! !INPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(IN)  :: I           ! Longitude index
-!      INTEGER,        INTENT(IN)  :: J           ! Latitude  index
-!      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!!
-!! !RETURN VALUE:
-!!
-!      REAL*8                      :: E_R_CHBr3
-!!
-!! !REMARKS:
-!! only ocean emissions for all bromocarbons
-!! plan: (1) Bromoform: 400 Gg CHBr3/yr emitted from ocean, broken into
-!!              latitudinal bands: 75% between 20deg south and 20deg north
-!!                 25% between 20deg and 50deg north and south
-!!              - This emission scheme follows the work of
-!!                Warwick et al. (2006) Global Modeling of Bromocarbons
-!!                   --> scheme A (eventually, should try B as well,
-!!                       with coastal and shelf emissions...)
-!!                & Yang et al. (2005) Tropospheric Bromine Chemistry
-!!       (2) Dibromomethane:
-!!              - Warwick et al. use same spatial scheme as used for
-!!                bromoform in scenario 3 (lat bands above...)
-!!                   --> schemes A & B: 113 Gg CH2Br2/yr global flux
-!!              - they say they require higher emissions than some previous
-!!                lit probably because they center emissions in the tropics,
-!!                yielding shorter lifetimes for bromocarbons...
-!!
-!! !REVISION HISTORY:
-!!  23 Aug 2007 - J. Parrella - Initial version
-!!  22 May 2012 - M. Payer    - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      ! Northern lats (>30 degrees) seasonal cycle scaling
-!      REAL*8,  DIMENSION(12) :: nh_scale
-!      INTEGER                :: this_month
-!
-!      !=================================================================
-!      ! EMIS_CHBr3 begins here!
-!      !=================================================================
-!
-!      ! set the scaling factors: jan to december
-!      ! see Parrella et al. [2011]
-!      nh_scale( 1) = 0.51d0
-!      nh_scale( 2) = 0.56d0
-!      nh_scale( 3) = 0.61d0
-!      nh_scale( 4) = 0.80d0
-!      nh_scale( 5) = 0.96d0
-!      nh_scale( 6) = 1.12d0
-!      nh_scale( 7) = 1.11d0
-!      nh_scale( 8) = 1.07d0
-!      nh_scale( 9) = 1.027d0
-!      nh_scale(10) = 0.94d0
-!      nh_scale(11) = 0.78d0
-!      nh_scale(12) = 0.671d0
-!
-!      !----------------------------------------------------------------------
-!      ! Initialize arrays: SEA_SURFACE is also called within INIT_BROMOCARB 
-!      ! to retrieve surface areas for chosen lat-band regions
-!      !----------------------------------------------------------------------
-!
-!      ! Pull out CHBr3 and CH2Br2 emissions
-!      IF (FIRST_INIT) THEN
-!         CALL INIT_BROMOCARB( State_Met )
-!         FIRST_INIT = .FALSE.
-!      ENDIF
-!
-!      !----------------------
-!      ! CHBr3 Emissions
-!      !----------------------
-!      this_month = get_month()
-!
-!      ! --------------------------------------------
-!      ! Return with 0'd emission if the VSL source
-!      ! has been turned off inside input.geos
-!      ! --------------------------------------------
-!      IF ( .not. LWARWICK_VSLS ) THEN
-!         E_R_CHBr3 = 0.d0
-!         RETURN
-!      ENDIF
-!
-!      ! --------------------------------------------------------
-!      ! Calculating the CHBr3 emission rate [molecules/box/s]
-!      ! from Qing Liang's emissions distribution.
-!      ! --------------------------------------------------------
-!      IF ( GET_YMID(I,J,1) > 30.d0 ) THEN
-!         ! use seasonal scaling
-!         E_R_CHBr3 = chbr3_emiss(I,J) * nh_scale(this_month)
-!      ELSE
-!         E_R_CHBr3 = chbr3_emiss(I,J)
-!      ENDIF
-!
-!      RETURN
-!
-!      END FUNCTION EMIS_CHBr3
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: emis_ch2br2
-!!
-!! !DESCRIPTION: Function EMIS\_CH2Br2 is the emissions driver for very short
-!! lived bromocarbon (VSLB) species and the one long-lived compound,
-!! dibromomethane (CH2Br2)
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION EMIS_CH2Br2( I, J ) RESULT( E_R_CH2Br2 )
-!! 
-!! !USES:
-!!
-!      USE LOGICAL_MOD,   ONLY : LWARWICK_VSLS
-!
-!      USE CMN_SIZE_MOD        ! Size parameters
-!      USE CMN_DIAG_MOD        ! ND57 -- diagnostics
-!      USE COMODE_LOOP_MOD     ! Avogadro's #, called 'AVG' = 6.02252d+23
-!!
-!! !INPUT PARAMETERS:
-!!
-!      INTEGER, INTENT(IN)    :: I        ! Longitude index
-!      INTEGER, INTENT(IN)    :: J        ! Latitude  index
-!!
-!! !RETURN VALUE:
-!!
-!      REAL*8                 :: E_R_CH2Br2
-!!
-!! !REMARKS:
-!! only ocean emissions for all bromocarbons
-!! plan: (1) Bromoform: 400 Gg CHBr3/yr emitted from ocean, broken into
-!!              latitudinal bands: 75% between 20deg south and 20deg north
-!!                 25% between 20deg and 50deg north and south
-!!              - This emission scheme follows the work of
-!!                Warwick et al. (2006) Global Modeling of Bromocarbons
-!!                   --> scheme A (eventually, should try B as well,
-!!                       with coastal and shelf emissions...)
-!!                & Yang et al. (2005) Tropospheric Bromine Chemistry
-!!       (2) Dibromomethane:
-!!              - Warwick et al. use same spatial scheme as used for
-!!                bromoform in scenario 3 (lat bands above...)
-!!                   --> schemes A & B: 113 Gg CH2Br2/yr global flux
-!!              - they say they require higher emissions than some previous
-!!                lit probably because they center emissions in the tropics,
-!!                yielding shorter lifetimes for bromocarbons...
-!!
-!! !REVISION HISTORY:
-!!  23 Aug 2007 - J. Parrella - Initial version
-!!  22 May 2012 - M. Payer    - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!      !=================================================================
-!      ! EMIS_CH2Br2 begins here!
-!      !=================================================================
-!
-!      ! --------------------------------------------
-!      ! Return with 0'd emission if the VSL source
-!      ! has been turned off inside input.geos
-!      ! --------------------------------------------
-!      IF ( .not. LWARWICK_VSLS ) THEN
-!         E_R_CH2Br2 = 0.d0
-!         RETURN
-!      ENDIF
-!
-!      E_R_CH2Br2 = ch2br2_emiss(I,J)
-!
-!      END FUNCTION EMIS_CH2Br2
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: sea_surface
-!!
-!! !DESCRIPTION: Subroutine SEA\_SURFACE calculates the total sea surface area
-!!  within two specified regions:
-!!     (1) total area between 20S and 20N
-!!     (2) total area between 20 and 50 degrees, North + South
-!!  These surface area values are used to set the emission fluxes for each of
-!!  the aforementioned regions.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE SEA_SURFACE( State_Met )
-!! 
-!! !USES:
-!!
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_YEDGE
-!
-!      USE CMN_SIZE_MOD      ! Size parameters
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-!!
-!! !REVISION HISTORY:
-!!  16 Aug 2007 - J. Parrella - Initial version
-!!  22 May 2012 - M. Payer    - Added ProTeX headers
-!!  27 Aug 2012 - M. Payer    - Added parallel DO loop
-!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!!                              derived type object
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER :: I,          J
-!      REAL*8  :: LAT_H,      LAT_L,      F_LAND,    F_WATER
-!      REAL*8  :: F_ABOVE_50, F_BELOW_20
-!      REAL*8  :: LAT_S,      LAT_N
-!
-!      !===================================
-!      ! Initializing Variables
-!      !===================================
-!
-!      F_ABOVE_50    = 0d0
-!      F_BELOW_20    = 0d0
-!      LAT_N         = 0d0
-!      LAT_S         = 0d0
-!      F_LAND        = 0d0
-!      F_WATER       = 0d0
-!
-!      !=================================================================
-!      !  SEA_SURFACE begins here!
-!      !=================================================================
-!
-!      ! Loop over grid boxes
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J,        LAT_S,      LAT_N,  LAT_H,   LAT_L )
-!!$OMP+PRIVATE( F_ABOVE_50,  F_BELOW_20, F_LAND, F_WATER, A_M2  )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Get ABS( latitude ) at S and N edges of grid box
-!         LAT_S      = ABS( GET_YEDGE(I,J,1)   ) 
-!         LAT_N      = ABS( GET_YEDGE(I,J+1,1) )
-!         LAT_H      = MAX( LAT_S, LAT_N )
-!         LAT_L      = MIN( LAT_S, LAT_N ) 
-!
-!         IF ( LAT_L >= 50d0 ) THEN
-!            F_ABOVE_50 = 1d0
-!            F_BELOW_20 = 0d0
-!         ELSE IF ( (LAT_H > 50d0) .and. (LAT_L < 50d0) ) THEN
-!            F_ABOVE_50 = ( LAT_H - 50d0 ) / ( LAT_H - LAT_L )
-!            F_BELOW_20 = 0d0
-!         ELSE IF ( (LAT_H <= 50d0) .and. (LAT_L >= 20d0) ) THEN
-!            F_ABOVE_50 = 0d0
-!            F_BELOW_20 = 0d0
-!         ELSE IF ( (LAT_H > 20d0) .and. (LAT_L < 20d0) ) THEN
-!            F_ABOVE_50 = 0d0
-!            F_BELOW_20 = ( 20d0 - LAT_L )/ ( LAT_H - LAT_L )
-!         ELSE IF ( LAT_H <= 20d0 ) THEN
-!            F_ABOVE_50 = 0d0
-!            F_BELOW_20 = 1d0
-!         END IF
-!
-!         ! Grid box surface area [m2]-- it's only a fn' of latitude
-!         A_M2 = GET_AREA_M2( I, J, 1 )
-!
-!
-!! use this if you have problems selecting only ocean.
-!! they used something like this in ocean_mercury_mod.
-!!jp         !======================================
-!!jp         ! Make sure we are in an ocean box     
-!!jp         !======================================
-!!jp         IF ( ( ALBD(I,J) <= 0.4d0 ) .and.      
-!!jp     &        ( FRAC_L    <  0.8d0 )  THEN
-!
-!
-!         ! Fraction of grid box that is land
-!         F_LAND  = State_Met%FRCLND(I,J)
-!
-!         ! Fraction of grid box that is water
-!         F_WATER = 1d0 - F_LAND
-!
-!         ! Find the ocean fraction for box in region a:
-!         ! Between 20S and 20N
-!         FRAC_IN_ab(1,I,J) = F_BELOW_20 * F_WATER
-!
-!         ! Find the ocean fraction for box in region b:
-!         ! Between 20 and 50, N + S
-!         FRAC_IN_ab(2,I,J) = (1d0 - F_BELOW_20 - F_ABOVE_50) * F_WATER
-!            ! note: if we just add the fractions of box below 50
-!            ! and above 20, then we would need to subtract the
-!            ! union to avoid double counting. Trick to get around
-!            ! this is subtracting the total area outside of b from
-!            ! 1d0
-! 
-!         ! sum up the total areas in both reagions
-!         TOT_OC_AREA(1) = TOT_OC_AREA(1) + FRAC_IN_ab(1,I,J) * A_M2
-!         TOT_OC_AREA(2) = TOT_OC_AREA(2) + FRAC_IN_ab(2,I,J) * A_M2
-!
-!      ENDDO                 !END i-loop over longitudes
-!      ENDDO                 !END j-loop over latitudes
-!!$OMP END PARALLEL DO
-!
-!      END SUBROUTINE SEA_SURFACE
-!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -429,7 +93,6 @@
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
-!      USE LOGICAL_MOD,        ONLY : LWARWICK_VSLS
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACER_MOD,         ONLY : TRACER_NAME
 
@@ -585,28 +248,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_BRO( N_TRACERS, TCVV, STT, unit_flag, State_Met )
+      SUBROUTINE SET_BRO( am_I_Root, Input_Opt, State_Met, 
+     &                    unit_flag, State_Chm, RC         )
+
 ! 
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LFIX_PBL_BRO
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACER_MOD,         ONLY : TRACER_NAME
 
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: unit_flag
-      INTEGER,        INTENT(IN)    :: N_TRACERS 
-      REAL*8,         INTENT(IN)    :: TCVV(N_TRACERS)  ! [Air MW / Tracer MW]
+      LOGICAL,        INTENT(IN)    :: am_I_Root
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met        ! Met State object
+      LOGICAL,        INTENT(IN)    :: unit_flag
+
+      REAL*8,         INTENT(IN)    :: TCVV(N_TRACERS)  ! [Air MW / Tracer MW]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       REAL*8,         INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !   1) STT is converted back and forth between units of [kg] and
@@ -627,18 +300,30 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,  J,  L,  N
+      INTEGER :: I,  J,  L,  N, N_TRACERS
       INTEGER :: IJLOOP
       INTEGER :: BrO_sel
       REAL*8  :: BrO_conc
+
+
+      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! -----------------------------------------
       ! If we aren't using this 1pptv experiment
       ! then return without updating STT array.
       ! -----------------------------------------
-      IF ( .not. LFIX_PBL_BRO ) THEN
+      IF ( .not. Input_Opt%LFIX_PBL_BRO ) THEN
          RETURN
       ENDIF
+
+      ! Reference fields in derived-type objects
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      => Input_Opt%TCVV(1:N_TRACERS)
+      STT       => State_Chm%TRACERS
 
       ! ------------------------------------------------------
       ! Set the BrO concentration to 1 pptv inside the PBL.
@@ -721,6 +406,9 @@
          END DO lon_loop        !END i-loop over longitudes
       END DO                    !END j-loop over latitudes
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       RETURN
 

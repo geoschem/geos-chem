@@ -228,6 +228,7 @@
       CHARACTER*20,DIMENSION(50)        :: TRAC_EMIT
 
       ! Logicals
+      LOGICAL                           :: doPrint
       LOGICAL                           :: TRAC_ADD
       LOGICAL,PARAMETER                 :: STRAT2DCH4=.TRUE.
 
@@ -362,7 +363,7 @@
       !=================================================================
 
       ! Copy fields from INPUT_OPT
-      LPRT         = Input_Opt%LPRT
+      LPRT         = ( Input_Opt%LPRT .and. am_I_Root )
       LSETCH4      = Input_Opt%LSETCH4
       LSETOCS      = Input_Opt%LSETOCS
       LSETCFC      = Input_Opt%LSETCFC
@@ -375,6 +376,8 @@
       LBASICEMIS   = Input_Opt%LBASICEMIS
       N_TRACERS    = Input_Opt%N_TRACERS
       TCVV         = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Set module variable
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
@@ -2181,7 +2184,6 @@
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP, ALLOC_ERR
       USE FILE_MOD,    ONLY : IOERROR
-      USE LOGICAL_MOD, ONLY : LPRT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2213,7 +2215,7 @@
       ! Read direct from master file
       FILENAME = TRIM(MONTREAL_FILE_ROOT)
 
-      IF (LPRT) THEN
+      IF ( doPrint ) THEN
          WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
      &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
          CALL DEBUG_MSG( TRIM(DBGMSG) )
@@ -2309,7 +2311,6 @@
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP, ALLOC_ERR
       USE FILE_MOD,    ONLY : IOERROR
-      USE LOGICAL_MOD, ONLY : LPRT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2343,7 +2344,7 @@
       FILENAME = TRIM(MONTREAL_FILE_ROOT) // TRIM(TRAC_NAME) // 
      &          '_boundary'
 
-      IF (LPRT) THEN
+      IF ( doPrint ) THEN
          WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
      &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
          CALL DEBUG_MSG( TRIM(DBGMSG) )
@@ -2410,7 +2411,7 @@
       ! C2Br2F4 only
 103   FORMAT(F7.2,F8.2)
 
-      IF (LPRT) THEN
+      IF ( doPrint ) THEN
          WRITE(DBGMSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', 
      &        MEAN_MIXRATIO
          CALL DEBUG_MSG( TRIM(DBGMSG) )
@@ -5937,6 +5938,9 @@
       LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
       LSETN2O      = Input_Opt%LSETN2O
       LBASICEMIS   = Input_Opt%LBASICEMIS
+
+      ! Set module variable doPrint for use in internal functions
+      doPrint      = LPRT
 
       WRITE( 6,'(a)') REPEAT( '=', 79 )
       WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'

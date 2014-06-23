@@ -3313,7 +3313,6 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,           ONLY : ERROR_STOP
-      USE LOGICAL_MOD,         ONLY : LSPLIT
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -3421,13 +3420,10 @@
 !  NOTES:
 !******************************************************************************
 !
-      ! References to F90 modules
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,           ONLY : ERROR_STOP
-      USE LOGICAL_MOD,         ONLY : LSPLIT
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
       USE DEPO_MERCURY_MOD,    ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
-
-      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -3540,7 +3536,6 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,           ONLY : ERROR_STOP
-      USE LOGICAL_MOD,         ONLY : LSPLIT
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -3616,7 +3611,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_OCEAN_MERCURY( THIS_Hg_RST_FILE, THIS_USE_CHECKS )
+      SUBROUTINE INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine INIT_OCEAN_MERCURY allocates and zeroes module arrays.  
@@ -3632,34 +3627,35 @@
 !                               should be "South Atlantic Ocean".
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-      USE LOGICAL_MOD,  ONLY : LPREINDHG
-
-      USE CMN_SIZE_MOD     ! Size parameters
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(IN) :: THIS_Hg_RST_FILE
-      LOGICAL,          INTENT(IN) :: THIS_USE_CHECKS
-
-      ! Local variables
-      INTEGER                      :: AS
-
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE TRACERID_MOD,       ONLY : N_Hg_CATS
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+ 
       !=================================================================
       ! INIT_OCEAN_MERCURY begins here!
       !=================================================================
 
       ! Ocean Hg restart file name
-      Hg_RST_FILE = THIS_Hg_RST_FILE
+      Hg_RST_FILE = Input_Opt%Hg_RST_FILE
       
       ! Turn on error checks for tagged & total sums?
-      USE_CHECKS  = THIS_USE_CHECKS
- 
+      USE_CHECKS  = Input_Opt%USE_CHECKS
 
       ! Set up concentrations of Hg(0), Hg(II), Hg(C) in deep ocean REDALERT
- 
-      IF (LPREINDHG) THEN
+      IF ( Input_Opt%LPREINDHG) THEN
          CDEEP    = (/ 2d-11, 1.67d-10, 1.67d-10 /)
          CDEEPATL = (/ 2d-11, 1.67d-10, 1.67d-10 /)
          CDEEPNAT = (/ 2d-11, 1.67d-10, 1.67d-10 /)
@@ -3683,105 +3679,105 @@
 
       
       ! Allocate arrays     
-      ALLOCATE( dMLD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'dMLD' )
+      ALLOCATE( dMLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'dMLD' )
       dMLD = 0d0
 
-      ALLOCATE( Hg0aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Hg0aq' )
+      ALLOCATE( Hg0aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg0aq' )
       Hg0aq = 0d0
 
-      ALLOCATE( Hg2aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
+      ALLOCATE( Hg2aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
       Hg2aq = 0d0
 
 !- eds 8/31/10 ---------------------------------------------
 ! Added NN to HgPaq throughout module
-!      ALLOCATE( HgPaq( IIPAR, JJPAR ), STAT=AS )
-      ALLOCATE( HgPaq (IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
+!      ALLOCATE( HgPaq( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( HgPaq (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
       HgPaq = 0d0
 
       !eds 5/15/12 fix
-      ALLOCATE( Hgaq_tot (IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Hgaq_tot' )
+      ALLOCATE( Hgaq_tot (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hgaq_tot' )
       HgPaq = 0d0
 
-      ALLOCATE( HgPaq_SUNK (IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HgPaq_SUNK' )
+      ALLOCATE( HgPaq_SUNK (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq_SUNK' )
       HgPaq = 0d0
 
-      ALLOCATE( MLD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MLD' )
+      ALLOCATE( MLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLD' )
       MLD = 0d0
 
-      ALLOCATE( MLDav( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MLDav' )
+      ALLOCATE( MLDav( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLDav' )
       MLDav = 0d0
 
-      ALLOCATE( newMLD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'newMLD' )
+      ALLOCATE( newMLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'newMLD' )
       newMLD = 0d0
 
       !eds 10/19/10 fixing restart bug
-      ALLOCATE( prevMLD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'prevMLD' )
+      ALLOCATE( prevMLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /=0 ) CALL ALLOC_ERR( 'prevMLD' )
       prevMLD = 0d0
 
-      ALLOCATE( NPP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NPP' )
+      ALLOCATE( NPP( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NPP' )
       NPP = 0d0
 
-      ALLOCATE( CHL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CHL' )
+      ALLOCATE( CHL( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CHL' )
       CHL = 0d0
 
-      ALLOCATE( UPVEL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPVEL' )
+      ALLOCATE( UPVEL( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'UPVEL' )
       UPVEL = 0d0
 
-      ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Fg' )
+      ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fg' )
       Fg = 0d0    
 
-      ALLOCATE( Fp( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Fp' )
+      ALLOCATE( Fp( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fp' )
       Fp = 0d0  
      
-      ALLOCATE( BULK_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BULK_CONC' )
+      ALLOCATE( BULK_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BULK_CONC' )
       BULK_CONC = 0d0  
 
-      ALLOCATE( SO4_GC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_GC' )
+      ALLOCATE( SO4_GC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_GC' )
       SO4_GC = 0d0 
 
-      ALLOCATE( NIT_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NIT_CONC' )
+      ALLOCATE( NIT_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NIT_CONC' )
       NIT_CONC = 0d0 
 
-      ALLOCATE( NH4_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NH4_CONC' )
+      ALLOCATE( NH4_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NH4_CONC' )
       NH4_CONC = 0d0 
 
-      ALLOCATE( OC_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC_CONC' )
+      ALLOCATE( OC_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'OC_CONC' )
       OC_CONC = 0d0 
 
-      ALLOCATE( BC_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CONC' )
+      ALLOCATE( BC_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BC_CONC' )
       BC_CONC = 0d0 
 
-      ALLOCATE( DST_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DST_CONC' )
+      ALLOCATE( DST_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'DST_CONC' )
       DST_CONC = 0d0 
 
-      ALLOCATE( R( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'R' )
+      ALLOCATE( R( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'R' )
       R = 0d0 
 
-      ALLOCATE( SO4_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
+      ALLOCATE( SO4_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
       SO4_CONC = 0d0 
 
 

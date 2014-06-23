@@ -563,7 +563,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE TRACERID( am_I_Root )
+      SUBROUTINE TRACERID( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
@@ -622,7 +622,10 @@
 !
       ! References to F90 modules
       USE CHARPAK_MOD, ONLY : TRANUC
-      USE LOGICAL_MOD, ONLY : LSPLIT
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
       USE TRACER_MOD,  ONLY : ITS_A_POPS_SIM
@@ -630,14 +633,18 @@
       USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD                    ! Size parameters
-      USE COMODE_LOOP_MOD                 ! IDEMS
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-
-      ! Local variables
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
       CHARACTER(LEN=14)    :: NAME
 
@@ -669,7 +676,7 @@
       ENDIF
 
       ! Zero all ID #'s and allocate Hg index arrays (if necessary)
-      CALL INIT_TRACERID
+      CALL INIT_TRACERID( am_I_Root, Input_Opt, RC )
       
       ! Initialize counters
       COUNT     = 0
@@ -4141,7 +4148,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_TRACERID
+      SUBROUTINE INIT_TRACERID( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 9/18/07)
@@ -4170,14 +4177,26 @@
 !                              replace NOx and Ox
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LSPLIT
-      USE TRACER_MOD,  ONLY : ITS_A_MERCURY_SIM
-      
-      ! Local variables
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:      
+!
       INTEGER              :: AS
 
       ! SMVGEAR species ID #'s
@@ -5034,7 +5053,7 @@
 
 
          ! Number of Hg categories
-         IF ( LSPLIT ) THEN
+         IF ( Input_Opt%LSPLIT ) THEN
 !- eds 8/31/10 ----------------------------------------------------------
 !            N_Hg_CATS = 8
             N_Hg_CATS = 29 ! New Tagged

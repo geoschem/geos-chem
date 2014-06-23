@@ -236,6 +236,9 @@
 !                              now done from routine GIGC_Init_Extra
 !  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY 
 !  19 May 2014 - C. Keller   - Added HEMCO
+!  23 Jun 2014 - R. Yantosca - Removed references to unix_cmds_mod.F
+!  23 Jun 2014 - R. Yantosca - Removed references to directory_mod.F
+!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -458,8 +461,8 @@
       !-----------------------------------------------------------------
 
       ! Initialize diagnostic arrays and counters
-      CALL INITIALIZE( 2, am_I_Root )
-      CALL INITIALIZE( 3, am_I_Root )
+      CALL INITIALIZE( am_I_Root, Input_Opt, 2, RC )
+      CALL INITIALIZE( am_I_Root, Input_Opt, 3, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
 
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
@@ -493,14 +496,6 @@
       IF ( LLINOZ ) THEN
          CALL LINOZ_READ( am_I_Root, Input_Opt, RC )
       ENDIF
-
-      ! Initialize MEGAN arrays, get 15-day avg temperatures
-!      IF ( LMEGAN ) THEN
-!         CALL INIT_MEGAN( Input_Opt, State_Met )
-!         CALL INITIALIZE( 2, am_I_Root )
-!         CALL INITIALIZE( 3, am_I_Root )
-!         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
-!      ENDIF
 
       ! Define time variables for use below
       NHMS  = GET_NHMS()
@@ -536,10 +531,12 @@
 
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
-      IF ( USE_OLSON_2001 ) THEN
-         CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
+      IF ( Input_Opt%USE_OLSON_2001 ) THEN
+         CALL Init_Mapping( am_I_Root, Input_Opt,
+    &                       1440, 720, IIPAR, JJPAR, mapping, RC )
       ELSE
-         CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
+         CALL Init_Mapping( am_I_Root, Input_Opt,
+     &                       720, 360, IIPAR, JJPAR, mapping, RC )
       ENDIF
 
       ! Compute the Olson land types that occur in each grid box
@@ -755,8 +752,8 @@
             !===========================================================
             !        ***** Z E R O   D I A G N O S T I C S *****
             !===========================================================
-            CALL INITIALIZE( 2, am_I_Root ) ! Zero arrays
-            CALL INITIALIZE( 3, am_I_Root ) ! Zero counters
+            CALL INITIALIZE( am_I_Root, Input_Opt, 2, RC )  ! Zero diag arrays
+            CALL INITIALIZE( am_I_Root, Input_Opt, 3, RC )  ! Zero counters
          ENDIF
 
          !=============================================================
@@ -945,13 +942,13 @@
             
             ! Read MODIS LAI from disk (if it is a new LAI month)
             ! Logical flag MODISREAD determines if data was just read in
-            CALL Read_Modis_Lai( am_I_Root, Input_OPt,    laiYYYY, 
+            CALL Read_Modis_Lai( am_I_Root, Input_Opt,    laiYYYY, 
      &                           laiMM,     wasModisRead, RC       )
 
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
-            CALL Compute_Modis_Lai( am_I_Root,    State_Met, 
-     &                              day_of_year,  laiMM,     
-     &                              mapping,      wasModisRead, RC )
+            CALL Compute_Modis_Lai( am_I_Root,    Input_Opt, State_Met, 
+     &                              day_of_year,  laiMM,     mapping,      
+     &                              wasModisRead, RC )
 
 !            ! For MEGAN biogenics, compute 15-day average temperature
 !            IF ( LMEGAN ) THEN
@@ -1138,11 +1135,9 @@
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
-                  CALL SET_BrO( N_TRACERS,           
-     &                          TCVV,
-     &                          STT,
-     &                          ITS_TIME_FOR_UNIT(), 
-     &                          State_Met            )
+
+                  CALL SET_BRO( am_I_Root, Input_Opt, State_Met, 
+     &                          ITS_TIME_FOR_UNIT(), State_Chm, RC  )
                ENDIF
             ENDIF
          ENDIF
@@ -1250,11 +1245,10 @@
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
-                  CALL SET_BrO( N_TRACERS,
-     &                          TCVV,
-     &                          STT,
-     &                          .FALSE.,
-     &                          State_Met            )
+                  CALL SET_BrO( am_I_Root, Input_Opt, State_Met, 
+     &                          .FALSE.,   State_Chm, RC  )
+
+
                ENDIF
             ENDIF
          ENDIF

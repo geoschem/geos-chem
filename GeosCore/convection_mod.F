@@ -454,6 +454,7 @@
 !  14 Apr 2014 - R. Yantosca - Remove array temporary in call to FVDAS_CONVECT
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
+!  23 Jun 2014 - R. Yantosca - Now pass Input_Opt to CONVTRAN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -542,13 +543,6 @@
 !$OMP+PRIVATE( I, J, L, N, ISOL, p_FSOL )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, N_TOT_TRC
-
-!-----------------------------------------------------------------------------
-! Prior to 4/18/14:
-!         ! Get fraction of tracer scavenged and the soluble tracer 
-!         ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-!         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met, State_Chm ) 
-!-----------------------------------------------------------------------------
 
          ! Point to array slice of F
          p_FSOL => F(:,:,:,N)
@@ -639,11 +633,6 @@
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,   
      &                    N_TOT_TRC, 
-!----------------------------------------------------------------------------
-! Prior to 4/14/14:
-! Eliminate an array temporary (bmy, 4/14/14)
-!     &                    STT   (:,:,LLPAR:1:-1,:),    
-!----------------------------------------------------------------------------
      &                    p_STT,
      &                    RPDEL,         
      &                    p_HKETA,
@@ -653,17 +642,11 @@
      &                    p_ZMEU,
      &                    DP,     
      &                    NSTEP,    
-!----------------------------------------------------------------------------
-! Prior to 4/14/14:
-! Eliminate an array temporary (bmy, 4/14/14)
-!     &                    F     (:,:,LLPAR:1:-1,:),         
-!----------------------------------------------------------------------------
      &                    p_F,
      &                    TCVV,   
      &                    INDEXSOL,
+     &                    Input_Opt,
      &                    State_Met )
-
-      
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)

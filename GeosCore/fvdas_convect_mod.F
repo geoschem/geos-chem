@@ -167,7 +167,7 @@
       SUBROUTINE FVDAS_CONVECT( TDT,   NTRACE, Q,     RPDEL, ETA, 
      &                          BETA,  MU,     MD,    EU,    DP,    
      &                          NSTEP, FRACIS, TCVV,  INDEXSOL,
-     &                          State_Met )
+     &                          Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine FVDAS_CONVECT is the convection driver routine for GEOS-4/fvDAS
@@ -226,16 +226,18 @@
 !                              routine via assumed-shape dummy arguments.
 !                              This will eliminate array temporaries.
 !******************************************************************************
-
-      USE GIGC_State_Met_Mod, ONLY   : MetState
-
-      USE CMN_SIZE_MOD               ! Size parameters
-
-      ! Arguments
+!
+! !USES
+!
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
       INTEGER,        INTENT(IN)    :: NSTEP, NTRACE             
       INTEGER,        INTENT(IN)    :: INDEXSOL(NTRACE) 
       REAL*8,         INTENT(IN)    :: TDT                
-      REAL*8,         INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
       REAL*8,         INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)  
       REAL*8,         INTENT(IN)    :: ETA (:,:,:)
       REAL*8,         INTENT(IN)    :: BETA(:,:,:)
@@ -245,20 +247,26 @@
       REAL*8,         INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
       REAL*8,         INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       REAL*8,         INTENT(IN)    :: TCVV(NTRACE)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-
-      ! Local variables
-      INTEGER                :: I, J, L, N, LENGATH, ISTEP
-      INTEGER                :: JT(IIPAR)
-      INTEGER                :: MX(IIPAR)
-      INTEGER                :: IDEEP(IIPAR)
-      REAL*8                 :: DSUBCLD(IIPAR)
-      REAL*8                 :: DPG(IIPAR,LLPAR)
-      REAL*8                 :: DUG(IIPAR,LLPAR)
-      REAL*8                 :: EDG(IIPAR,LLPAR)
-      REAL*8                 :: EUG(IIPAR,LLPAR)
-      REAL*8                 :: MDG(IIPAR,LLPAR)
-      REAL*8                 :: MUG(IIPAR,LLPAR)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*8,         INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                       :: I, J, L, N, LENGATH, ISTEP
+      INTEGER                       :: JT(IIPAR)
+      INTEGER                       :: MX(IIPAR)
+      INTEGER                       :: IDEEP(IIPAR)
+      REAL*8                        :: DSUBCLD(IIPAR)
+      REAL*8                        :: DPG(IIPAR,LLPAR)
+      REAL*8                        :: DUG(IIPAR,LLPAR)
+      REAL*8                        :: EDG(IIPAR,LLPAR)
+      REAL*8                        :: EUG(IIPAR,LLPAR)
+      REAL*8                        :: MDG(IIPAR,LLPAR)
+      REAL*8                        :: MUG(IIPAR,LLPAR)
 
       !=================================================================
       ! FVDAS_CONVECT begins here!
@@ -294,7 +302,7 @@
      &                        DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
      &                        JT,    MX,        IDEEP,  1,    LENGATH, 
      &                        NSTEP, 0.5D0*TDT, FRACIS, TCVV, INDEXSOL,
-     &                        State_Met )
+     &                        Input_Opt, State_Met )
             ENDIF
 
             !-----------------------------------
@@ -697,7 +705,7 @@
      &                     DU,    EU,     ED,     DP,   DSUBCLD,  
      &                     JT,    MX,     IDEEP,  IL1G, IL2G,     
      &                     NSTEP, DELT,   FRACIS, TCVV, INDEXSOL,
-     &                     State_Met )
+     &                     Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
@@ -770,15 +778,17 @@
 !  (8 ) Bug fix: avoid div by zero in formula for CHAT (bmy, 12/19/06)
 !  (9 ) Updates for mercury simulation (ccc, 5/6/10)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  23 Jun 2014 - R. Yantosca - Now accept Input_Opt
+!  23 Jun 2014 - R. Yantosca - Now remove references to logical_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD, ADD_HgP_WD !eck/eds
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK !CDH
       USE DIAG_MOD,           ONLY : AD38, CONVFLUP 
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,        ONLY : LDYNOCEAN, LGTMM
       USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD,       ONLY : IS_Hg2, IS_HgP !eck/eds
 
@@ -806,6 +816,7 @@
       REAL*8,         INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       REAL*8,         INTENT(IN)    :: TCVV(NTRACE)
       INTEGER,        INTENT(IN)    :: INDEXSOL(NTRACE)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
       ! Local variables
@@ -831,7 +842,8 @@
       !=================================================================
 
       ! Is this a mercury simulation with dynamic ocean model?
-      IS_Hg   = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
+      IS_Hg   = ( Input_Opt%ITS_A_MERCURY_SIM .and. 
+     &            Input_Opt%LDYNOCEAN               )
 
       ! A small number
       SMALL   = 1.d-36
@@ -1159,7 +1171,8 @@
 
                ! Only save to ND38 if it's turned on, if there are soluble 
                ! tracers, and if we are below the LD38 level limit
-               IF ( ( ND38 > 0 .or. LGTMM ) .and. NN > 0 ) THEN
+               IF ( ( ND38 > 0 .or. Input_Opt%LGTMM ) .and. 
+     &              NN > 0 ) THEN
 
                   ! GEOS-CHEM lon, lat, alt indices
                   II = IDEEP(I)

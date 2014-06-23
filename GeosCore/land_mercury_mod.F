@@ -72,7 +72,6 @@
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
       USE DEPO_MERCURY_MOD,   ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LSPLIT
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TRACERID_MOD,       ONLY : ID_Hg0,          N_Hg_CATS
 
@@ -228,23 +227,28 @@
 !\\
 ! !INTERFACE:
 ! 
-      SUBROUTINE BIOMASSHG( EHg0_bb )
+      SUBROUTINE BIOMASSHG( am_I_Root, Input_Opt, EHg0_bb, RC )
 !
 ! !USES:
 !     
-      USE BIOMASS_MOD,  ONLY : BIOMASS
-      USE TRACERID_MOD, ONLY : IDBCO
-!      USE LOGICAL_MOD,  ONLY : LBIOMASS, LPREINDHG
-      USE LOGICAL_MOD,  ONLY : LPREINDHG
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,            ONLY : GET_AREA_CM2
+      USE TRACERID_MOD,       ONLY : IDBCO
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,                INTENT(IN)  :: am_I_Root   ! Root CPU
+      TYPE(OptInput),         INTENT(IN)  :: Input_Opt   ! Input Options
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8, DIMENSION(:,:),INTENT(OUT) :: EHg0_bb
+      REAL*8,  DIMENSION(:,:),INTENT(OUT) :: EHg0_bb
+      INTEGER,                INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Emissions are based on an inventory of CO emissions from biomass burning 
@@ -292,7 +296,7 @@
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)
 !      IF ( LBIOMASS .AND. ( .NOT. LPREINDHG ) ) THEN
-      IF ( .NOT. LPREINDHG ) THEN
+      IF ( .NOT. Input_Opt%LPREINDHG ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1128,7 +1132,6 @@
      &                  )
 #endif
 
-      ! Use LAND/OCEAN mask on the land emissions
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          IF ( .NOT.(IS_LAND(I, J, State_Met )) ) Hg0gtm(I,J) = 0d0
@@ -1150,33 +1153,37 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE INIT_LAND_MERCURY
+      SUBROUTINE INIT_LAND_MERCURY( am_I_Root, Input_Opt, RC )
 ! 
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-
-      USE CMN_SIZE_MOD     ! Size parameters
-! 
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY:
 !  14 Sep 2009 - C. Carouge  - Initial version
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: AS
-      LOGICAL, SAVE :: IS_INIT = .FALSE. 
-
       !=================================================================
       ! INIT_MERCURY begins here!
       !=================================================================
 
       ! Allocate arrays
-      ALLOCATE( TRANSP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRANSP' )
+      ALLOCATE( TRANSP( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'TRANSP' )
       TRANSP = 0d0
 
       END SUBROUTINE INIT_LAND_MERCURY

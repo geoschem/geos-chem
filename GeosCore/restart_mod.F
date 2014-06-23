@@ -1118,7 +1118,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE FILE_MOD,           ONLY : FILE_EXISTS
-      USE LOGICAL_MOD,        ONLY : LPRT
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -1179,10 +1178,13 @@
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
 
+      ! For values from Input_Opt
+      LOGICAL             :: LPRT
+
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
-      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+      REAL*8,  POINTER    :: CSPEC_FULL(:,:,:,:)
 
       !=================================================================
       ! READ_CSPEC_FILE begins here!
@@ -1190,6 +1192,9 @@
 
       ! Assume success
       RC         = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LPRT       = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Initialize some variables
       !TMP(:,:,:) = 0e0
