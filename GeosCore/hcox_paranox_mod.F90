@@ -709,7 +709,7 @@ CONTAINS
 !
    USE HCO_STATE_MOD,     ONLY : HCO_GetHcoID
    USE HCOX_ExtList_Mod,  ONLY : GetExtNr
-   USE HCOX_ExtList_Mod,  ONLY : GGetExtHcoID
+   USE HCOX_ExtList_Mod,  ONLY : GetExtHcoID
    USE HCOX_ExtList_Mod,  ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
