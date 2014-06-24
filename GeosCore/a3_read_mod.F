@@ -493,21 +493,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS, State_Met )
+      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYY/MM/DD
-      INTEGER, INTENT(IN) :: NHMS   !  and hh:mm:ss of desired data
+      INTEGER,        INTENT(IN)    :: NYMD      ! YYYY/MM/DD
+      INTEGER,        INTENT(IN)    :: NHMS      !  and hh:mm:ss of desired data
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -534,6 +536,7 @@
 !                              for State_Met%PRECCON and State_Met%PRECTOT)
 !  13 Aug 2013 - R. Yantosca - For GEOS-4, PBL is now State_Met%PBLH (similarly
 !                              for State_Met%PRECCON and State_Met%PRECTOT)
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -567,26 +570,27 @@
       ! (1 ) ALBEDO is an A-3 field in GEOS-4.
       ! (2 ) T2M is used as a proxy for TS in GEOS-4.
       !================================================================
-      CALL READ_A3( NYMD    = NYMD,       
-     &              NHMS    = NHMS,     
-     &              ALBEDO  = State_Met%ALBD,     
-     &              CLDFRC  = State_Met%CLDFRC, 
-     &              HFLUX   = State_Met%HFLUX,   
-     &              GWETTOP = State_Met%GWETTOP, 
-     &              PARDF   = State_Met%PARDF,   
-     &              PARDR   = State_Met%PARDR,  
-     &              PBL     = State_Met%PBLH,         
-     &              PREACC  = State_Met%PRECTOT, 
-     &              PRECON  = State_Met%PRECCON, 
-     &              RADLWG  = State_Met%RADLWG,   
-     &              RADSWG  = State_Met%RADSWG, 
-     &              SNOW    = State_Met%SNOW,  
-     &              TS      = State_Met%TS,           
-     &              TSKIN   = State_Met%TSKIN,   
-     &              U10M    = State_Met%U10M,       
-     &              USTAR   = State_Met%USTAR,    
-     &              V10M    = State_Met%V10M,     
-     &              Z0      = State_Met%Z0 )
+      CALL READ_A3( NYMD      = NYMD,       
+     &              NHMS      = NHMS,     
+     &              Input_Opt = Input_Opt,
+     &              ALBEDO    = State_Met%ALBD,     
+     &              CLDFRC    = State_Met%CLDFRC, 
+     &              HFLUX     = State_Met%HFLUX,   
+     &              GWETTOP   = State_Met%GWETTOP, 
+     &              PARDF     = State_Met%PARDF,   
+     &              PARDR     = State_Met%PARDR,  
+     &              PBL       = State_Met%PBLH,         
+     &              PREACC    = State_Met%PRECTOT, 
+     &              PRECON    = State_Met%PRECCON, 
+     &              RADLWG    = State_Met%RADLWG,   
+     &              RADSWG    = State_Met%RADSWG, 
+     &              SNOW      = State_Met%SNOW,  
+     &              TS        = State_Met%TS,           
+     &              TSKIN     = State_Met%TSKIN,   
+     &              U10M      = State_Met%U10M,       
+     &              USTAR     = State_Met%USTAR,    
+     &              V10M      = State_Met%V10M,     
+     &              Z0        = State_Met%Z0 )
 
 #elif defined( GEOS_5 )
 
@@ -600,38 +604,39 @@
       !    FRLAND, FRLANDIC,      FROCEAN,          FRLAKE
       !
       !=================================================================
-      CALL READ_A3( NYMD     = NYMD,         
-     &              NHMS     = NHMS,       
-     &              ALBEDO   = State_Met%ALBD,   
-     &              CLDFRC   = State_Met%CLDFRC,     
-     &              EVAP     = State_Met%EVAP,       
-     &              GRN      = State_Met%GRN,       
-     &              GWETROOT = State_Met%GWETROOT, 
-     &              GWETTOP  = State_Met%GWETTOP, 
-     &              HFLUX    = State_Met%HFLUX,   
-     &              LAI      = State_Met%LAI,           
-     &              PARDF    = State_Met%PARDF,     
-     &              PARDR    = State_Met%PARDR,       
-     &              PBL      = State_Met%PBLH,           
-     &              PREACC   = State_Met%PRECTOT,   
-     &              PRECON   = State_Met%PRECCON, 
-     &              PRECSNO  = State_Met%PRECSNO,   
-     &              RADLWG   = State_Met%RADLWG,   
-     &              RADSWG   = State_Met%RADSWG, 
-     &              SNODP    = State_Met%SNODP,       
-     &              SNOMAS   = State_Met%SNOMAS,   
-     &              TROPP    = State_Met%TROPP,   
-     &              TS       = State_Met%TS,             
-     &              TSKIN    = State_Met%TSKIN,     
-     &              U10M     = State_Met%U10M,     
-     &              USTAR    = State_Met%USTAR,       
-     &              V10M     = State_Met%V10M,       
-     &              Z0       = State_Met%Z0, 
-     &              EFLUX    = State_Met%EFLUX,       
-     &              FRLAND   = State_Met%FRLAND,   
-     &              FROCEAN  = State_Met%FROCEAN, 
-     &              FRLAKE   = State_Met%FRLAKE,     
-     &              FRLANDIC = State_Met%FRLANDIC )
+      CALL READ_A3( NYMD      = NYMD,         
+     &              NHMS      = NHMS, 
+     &              Input_Opt = Input_Opt,  
+     &              ALBEDO    = State_Met%ALBD,   
+     &              CLDFRC    = State_Met%CLDFRC,     
+     &              EVAP      = State_Met%EVAP,       
+     &              GRN       = State_Met%GRN,       
+     &              GWETROOT  = State_Met%GWETROOT, 
+     &              GWETTOP   = State_Met%GWETTOP, 
+     &              HFLUX     = State_Met%HFLUX,   
+     &              LAI       = State_Met%LAI,           
+     &              PARDF     = State_Met%PARDF,     
+     &              PARDR     = State_Met%PARDR,       
+     &              PBL       = State_Met%PBLH,           
+     &              PREACC    = State_Met%PRECTOT,   
+     &              PRECON    = State_Met%PRECCON, 
+     &              PRECSNO   = State_Met%PRECSNO,   
+     &              RADLWG    = State_Met%RADLWG,   
+     &              RADSWG    = State_Met%RADSWG, 
+     &              SNODP     = State_Met%SNODP,       
+     &              SNOMAS    = State_Met%SNOMAS,   
+     &              TROPP     = State_Met%TROPP,   
+     &              TS        = State_Met%TS,             
+     &              TSKIN     = State_Met%TSKIN,     
+     &              U10M      = State_Met%U10M,     
+     &              USTAR     = State_Met%USTAR,       
+     &              V10M      = State_Met%V10M,       
+     &              Z0        = State_Met%Z0, 
+     &              EFLUX     = State_Met%EFLUX,       
+     &              FRLAND    = State_Met%FRLAND,   
+     &              FROCEAN   = State_Met%FROCEAN, 
+     &              FRLAKE    = State_Met%FRLAKE,     
+     &              FRLANDIC  = State_Met%FRLANDIC )
 
 #elif defined( GCAP )
 
@@ -644,24 +649,25 @@
       !
       ! NOTES: 
       !================================================================
-      CALL READ_A3( NYMD     = NYMD,     
-     &              NHMS     = NHMS,     
-     &              ALBEDO   = State_Met%ALBD,   
-     &              GWETTOP  = State_Met%GWETTOP,   
-     &              MOLENGTH = State_Met%MOLENGTH,      
-     &              OICE     = State_Met%OICE,     
-     &              PARDF    = State_Met%PARDF,       
-     &              PARDR    = State_Met%PARDR,
-     &              PBL      = State_Met%PBLH,
-     &              PREACC   = State_Met%PRECTOT,
-     &              PRECON   = State_Met%PRECCON,
-     &              RADSWG   = State_Met%RADSWG, 
-     &              SNICE    = State_Met%SNICE,
-     &              SNOW     = State_Met%SNOW, 
-     &              TS       = State_Met%TS,
-     &              U10M     = State_Met%U10M,         
-     &              USTAR    = State_Met%USTAR,
-     &              V10M     = State_Met%V10M  )
+      CALL READ_A3( NYMD      = NYMD,     
+     &              NHMS      = NHMS,  
+     &              Input_Opt = Input_Opt,  
+     &              ALBEDO    = State_Met%ALBD,   
+     &              GWETTOP   = State_Met%GWETTOP,   
+     &              MOLENGTH  = State_Met%MOLENGTH,      
+     &              OICE      = State_Met%OICE,     
+     &              PARDF     = State_Met%PARDF,       
+     &              PARDR     = State_Met%PARDR,
+     &              PBL       = State_Met%PBLH,
+     &              PREACC    = State_Met%PRECTOT,
+     &              PRECON    = State_Met%PRECCON,
+     &              RADSWG    = State_Met%RADSWG, 
+     &              SNICE     = State_Met%SNICE,
+     &              SNOW      = State_Met%SNOW, 
+     &              TS        = State_Met%TS,
+     &              U10M      = State_Met%U10M,         
+     &              USTAR     = State_Met%USTAR,
+     &              V10M      = State_Met%V10M  )
 
       ! Convert [m] to [mm]
       State_Met%SNOW = State_Met%SNOW*1000.D0
@@ -801,7 +807,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_A3( NYMD,    NHMS, 
+      SUBROUTINE READ_A3( NYMD,    NHMS,   Input_Opt,
      &                    ALBEDO,  CLDFRC, EVAP,   GRN,      GWETROOT,
      &                    GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE,   
      &                    PARDF,   PARDR,  PBL,    PREACC,   PRECON,  
@@ -812,21 +818,22 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_A3
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
-      USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
-
-      USE CMN_SIZE_MOD                         ! Size parameters
-      USE CMN_DIAG_MOD                         ! ND67
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput!
+      USE TIME_MOD,           ONLY : SET_CT_A3
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_TO_1D
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)            :: NYMD   ! YYYYMMDD
-      INTEGER, INTENT(IN)            :: NHMS   !  and hhmmss of desired data
-!
+      INTEGER,        INTENT(IN)     :: NYMD      ! YYYYMMDD
+      INTEGER,        INTENT(IN)     :: NHMS      ! and hhmmss of desired data
+      TYPE(OptInput), INTENT(IN)     :: Input_Opt ! Input Options object
+
 ! !OUTPUT PARAMETERS:
 !
       REAL*8,  INTENT(OUT), OPTIONAL :: ALBEDO  (IIPAR,JJPAR) 

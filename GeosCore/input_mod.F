@@ -194,6 +194,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE SEASALT_MOD,        ONLY : INIT_SEASALT
+      USE VDIFF_PRE_MOD,      ONLY : SET_VDIFF_VALUES
 !
 ! !INPUT PARAMETERS:
 !
@@ -230,6 +231,8 @@
 !  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !  23 Jun 2014 - R. Yantosca - Now do not call INIT_INPUT, this is replaced
 !                              by the INIT_GIGC_INPUT_OPT routine
+!  24 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES so that we can
+!                              replace the functionality of logical_mod.F etc.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -442,6 +445,12 @@
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
       CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
+
+      ! Call SET_VDIFF_VALUES so that we can pass several values from 
+      ! Input_Opt to the vdiff_mod.F90.  This replaces the funcitionality
+      ! of logical_mod.F and tracer_mod.F..  This has to be called
+      ! after the input.geos file has been read from disk.
+      CALL Set_VDIFF_VALUES( am_I_Root, Input_Opt, RC )
 
       ! Echo output
       IF ( am_I_Root ) THEN
@@ -791,7 +800,8 @@
 
       ! I0, J0
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:18' )
-      READ( SUBSTRS(1:N), *     ) Input_Opt%I0, Input_Opt%J0
+      READ( SUBSTRS(1:N), *     ) Input_Opt%NESTED_I0, 
+     &                            Input_Opt%NESTED_J0
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
@@ -956,7 +966,7 @@
       CALL SET_DIAGb( GET_TAU() )
      
       ! Set input & output restart file names
-      CALL SET_RESTART( IN_RST_FILE, OUT_RST_FILE )
+      CALL SET_RESTART( Input_Opt%IN_RST_FILE, Input_Opt%OUT_RST_FILE )
 
       ! Set global offsets for the horizontal grid
       CALL SET_XOFFSET( I0 )
@@ -1176,23 +1186,22 @@
 !
 ! !USES:
 !
-      USE CHARPAK_MOD,  ONLY : ISDIGIT
-      USE BIOFUEL_MOD,  ONLY : SET_BFTRACE
-      USE BIOMASS_MOD,  ONLY : SET_BIOTRCE
-      USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP
-      USE TRACER_MOD,   ONLY : ID_EMITTED,     ID_TRACER
-      USE TRACER_MOD,   ONLY : SIM_TYPE,       N_TRACERS
-      USE TRACER_MOD,   ONLY : TCVV,           TRACER_COEFF
-      USE TRACER_MOD,   ONLY : TRACER_CONST,   TRACER_MW_G
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG,   TRACER_N_CONST
-      USE TRACER_MOD,   ONLY : TRACER_NAME,    INIT_TRACER
-      USE TRACER_MOD,   ONLY : XNUMOL,         XNUMOLAIR
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_HCN_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD, ONLY : TRACERID
-
-      USE CMN_SIZE_MOD                    ! Size parameters
+      USE CHARPAK_MOD,        ONLY : ISDIGIT
+      USE BIOFUEL_MOD,        ONLY : SET_BFTRACE
+      USE BIOMASS_MOD,        ONLY : SET_BIOTRCE
+      USE ERROR_MOD,          ONLY : ALLOC_ERR,      ERROR_STOP
+      USE TRACER_MOD,         ONLY : ID_EMITTED,     ID_TRACER
+      USE TRACER_MOD,         ONLY : SIM_TYPE,       N_TRACERS
+      USE TRACER_MOD,         ONLY : TCVV,           TRACER_COEFF
+      USE TRACER_MOD,         ONLY : TRACER_CONST,   TRACER_MW_G
+      USE TRACER_MOD,         ONLY : TRACER_MW_KG,   TRACER_N_CONST
+      USE TRACER_MOD,         ONLY : TRACER_NAME,    INIT_TRACER
+      USE TRACER_MOD,         ONLY : XNUMOL,         XNUMOLAIR
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_A_HCN_SIM
+      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
+      USE TRACERID_MOD,       ONLY : TRACERID
+      USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -1224,6 +1233,7 @@
 !  07 Nov 2012 - R. Yantosca - Now define Input_Opt%ITS_A_*_SIM fields
 !  28 Oct 2013 - R. Yantosca - Set Input_Opt%ITS_A_SPECIALTY_SIM = .FALSE.
 !                              when running GEOS-Chem in an ESMF environment
+!  24 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES in vdiff_mod>F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2225,15 +2235,13 @@
 !
 ! !USES:
 !
-!      USE BROMOCARB_MOD,      ONLY : Br_SCALING
-      USE CMN_O3_MOD               ! FSCALYR
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD 
+      USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE MODIS_LAI_MOD,      ONLY : INIT_MODIS_LAI
       USE TIME_MOD,           ONLY : SET_HISTYR
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,       ONLY : IDTCH4, IDTOCS, IDTCFCX
       USE TRACERID_MOD,       ONLY : IDTCl,  IDTN2O, IDTBr2, IDTH2O
       USE UCX_MOD,            ONLY : CFCYEAR
@@ -2326,13 +2334,14 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LEMIS,   LFIX_PBL_BRO, LCH4EMIS
-      LOGICAL            :: LCH4SBC, LOCSEMIS,     LCFCEMIS
-      LOGICAL            :: LCLEMIS, LBREMIS,      LN2OEMIS
-      LOGICAL            :: LSETH2O, LSETCH4,      LSETOCS
-      LOGICAL            :: LSETCFC, LSETCL,       LBRGCCM
-      LOGICAL            :: LSETBR,  LSETBRSTRAT,  LSETNOYSTRAT
-      LOGICAL            :: LSETN2O, LSETH2SO4,    LBASICEMIS
+      LOGICAL            :: LEMIS,    LFIX_PBL_BRO, LCH4EMIS
+      LOGICAL            :: LCH4SBC,  LOCSEMIS,     LCFCEMIS
+      LOGICAL            :: LCLEMIS,  LBREMIS,      LN2OEMIS
+      LOGICAL            :: LSETH2O,  LSETCH4,      LSETOCS
+      LOGICAL            :: LSETCFC,  LSETCL,       LBRGCCM
+      LOGICAL            :: LSETBR,   LSETBRSTRAT,  LSETNOYSTRAT
+      LOGICAL            :: LSETN2O,  LSETH2SO4,    LBASICEMIS
+      LOGICAL            :: LCH4CHEM, LFUTURECFC
       INTEGER            :: N,       HISTYR
       CHARACTER(LEN=255) :: MSG,     LOC
       CHARACTER(LEN=255) :: HcoConfigFile
@@ -2476,11 +2485,9 @@
      &                 .or. LBREMIS        .or.  LN2OEMIS  )
       
       ! Turn off full-chem only switches 
-      IF ( .not. ITS_A_FULLCHEM_SIM() ) THEN
-         LSOILNOX       = .FALSE.
+      IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
          LSETH2O        = .FALSE.
          LSETCH4        = .FALSE.
-         LCH4CHEM       = .FALSE.
          LSETOCS        = .FALSE.
          LSETH2SO4      = .FALSE.
          LSETCL         = .FALSE.
@@ -3097,7 +3104,8 @@
 
       ! Initialize
       IF ( LFUTURE ) THEN
-         CALL DO_FUTURE_EMISSIONS( FUTURE_YEAR, TRIM( FUTURE_SCEN ) )
+         CALL DO_FUTURE_EMISSIONS
+     &      ( am_I_Root, Input_Opt, FUTURE_YEAR, FUTURE_SCEN, RC )
       ENDIF
 
       END SUBROUTINE READ_FUTURE_MENU
@@ -3167,7 +3175,7 @@
 !
       ! Scalars
       LOGICAL            :: LCHEM,    LSCHEM,   LLINOZ
-      LOGICAL            :: LSVCSPEC, LKPP,     LUCX,     
+      LOGICAL            :: LSVCSPEC, LKPP,     LUCX    
       LOGICAL            :: LO3FJX,   LCH4CHEM, LACTIVEH2O
       INTEGER            :: N
       CHARACTER(LEN=255) :: MSG, LOCATION
@@ -4162,8 +4170,6 @@
       USE DRYDEP_MOD,   ONLY : NUMDEP
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_BPCH
-      USE LOGICAL_MOD,  ONLY : LCARB, LCONV, LDRYD, LPRT, LSULF    
-      USE LOGICAL_MOD,  ONLY : LSSALT,    LTURB,     LWETD, LDUST
       USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,        ITS_A_FULLCHEM_SIM
@@ -4229,12 +4235,15 @@
 !                              Lee Murray reports this causes the compilation
 !                              to choke on Macintosh platforms.
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt, RC to INIT_DIAG_OH
+!  24 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL            :: LCARB,  LCONV, LDRYD, LPRT, LSULF    
+      LOGICAL            :: LSSALT, LTURB, LWETD, LDUST
       INTEGER            :: M, N, N_MAX, N_TMP
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
 
@@ -5706,7 +5715,7 @@
 
       ! Arrays
       INTEGER            :: TRACERS(121)
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
       !=================================================================
       ! READ_ND51_MENU begins here!
@@ -7121,7 +7130,7 @@
 
          ! Initialize "ocean_mercury_mod.f"
          IF ( LDYNOCEAN ) THEN
-            CALL INIT_OCEAN_MERCURY( Hg_RST_FILE, USE_CHECKS )
+            CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
          ENDIF
 
       ENDIF
@@ -7347,14 +7356,19 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER            :: N
       LOGICAL            :: CHEM_PROCESS
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-      CHARACTER(LEN=3)   :: POP_TYPE
       REAL*8             :: POP_XMW, POP_KOA, POP_KBC
       REAL*8             :: POP_K_POPG_OH
       REAL*8             :: POP_K_POPP_O3A, POP_K_POPP_O3B
       REAL*8             :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      CHARACTER(LEN=3)   :: POP_TYPE
+      CHARACTER(LEN=255) :: POP_EMISDIR
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
 
       !=================================================================
       ! READ_POPS_MENU begins here!
@@ -7370,7 +7384,7 @@
 
       ! Name of pops emissions file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:3' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%POP_EMISDIR
+      READ( SUBSTRS(1:N), '(a)' ) POP_EMISDIR
 
       ! Molecular weight
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:4' )
@@ -7442,7 +7456,7 @@
       !=================================================================
       Input_Opt%POP_TYPE       = POP_TYPE
       Input_Opt%CHEM_PROCESS   = CHEM_PROCESS
-      Input_Opt%POP_EMISFILE   = POP_EMISDIR
+      Input_Opt%POP_EMISDIR    = POP_EMISDIR
       Input_Opt%POP_XMW        = POP_XMW
       Input_Opt%POP_KOA        = POP_KOA
       Input_Opt%POP_KBC        = POP_KBC
@@ -7869,14 +7883,19 @@
 !
 ! !USES:
 !
-      USE TIME_MOD,    ONLY : SET_TIMESTEPS
-      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
-      USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_TIMESTEPS
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
@@ -8004,7 +8023,7 @@
       ENDIF
 
       ! Change TS_DIAG to TS_DYN for methane simulation. (ccc, 8/27/09)
-      IF ( ITS_A_CH4_SIM() ) TS_DIAG = TS_DYN
+      IF ( Input_Opt%ITS_A_CH4_SIM ) TS_DIAG = TS_DYN
 
       ! Check if all time steps are multiples of the smallest.
       ! (ccc, 5/13/09)

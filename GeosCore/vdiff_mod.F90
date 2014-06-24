@@ -15,11 +15,12 @@ MODULE VDIFF_MOD
 ! 
 ! !USES:
 !
-  USE TRACER_MOD,    ONLY : pcnst => N_TRACERS
-  USE LOGICAL_MOD,   ONLY : LPRT
-  USE ERROR_MOD,     ONLY : DEBUG_MSG
-  USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR
-  USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR
+  USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR    ! Grid dimensions
+  USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
+  USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR         ! # of levels
+  USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
+  USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
+  USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
 
   IMPLICIT NONE
   PRIVATE
@@ -105,6 +106,9 @@ MODULE VDIFF_MOD
 !  The non-local PBL mixing routine VDIFF modifies the specific humidity,
 !  (State_Met%SPHU) field.  Therefore, we must pass State_Met as an argument
 !  to DO_PBL_MIX_2 and VDIFFDR with INTENT(INOUT).
+!                                                                             .
+!  Because logical_mod.F and tracer_mod.F have been superseded by Input_Opt,
+!  we now use VDIFF_PRE_MOD to supply values 
 !
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
@@ -119,6 +123,7 @@ MODULE VDIFF_MOD
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  24 Jun 2014 - R. Yantosca - Now get PCNST from vdiff_pre_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2694,12 +2699,10 @@ contains
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE LOGICAL_MOD,        ONLY : LTURB, LPRT
     USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX, COMPUTE_PBL_HEIGHT
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE TRACER_MOD,         ONLY : N_TRACERS, TCVV, ITS_A_FULLCHEM_SIM
-!    USE VDIFF_PRE_MOD,      ONLY : EMISRR, EMISRRN
 
     IMPLICIT NONE
 !

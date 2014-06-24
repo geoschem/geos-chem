@@ -1397,7 +1397,6 @@
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : N_HG_CATS
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
-      USE LOGICAL_MOD,        ONLY : LPREINDHG   ! Y. Zhang
 
       ! Added for GTMM (ccc, 11/19/09)
       USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
@@ -1449,6 +1448,7 @@
       LOGICAL         :: LGTMM
       LOGICAL         :: LNLPBL
       LOGICAL         :: LPRT
+      LOGICAL         :: LPREINDHG
 
       !=================================================================
       ! EMISSMERCURY begins here!
@@ -1461,6 +1461,7 @@
       LDYNOCEAN = Input_Opt%LDYNOCEAN
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
+      LPREINDHG = Input_Opt%LPREINDHG
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! First-time initialization

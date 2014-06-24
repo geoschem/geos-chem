@@ -1620,8 +1620,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       USE CMN_DIAG_MOD,       ONLY : ND64
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1631,8 +1629,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -1646,7 +1642,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       INTEGER                     :: JXUNIT,J
       CHARACTER(LEN=255)          :: FILENAME
       INTEGER                     :: NJXX
-      CHARACTER*6,DIMENSION(JVN_)  :: TITLEJXX
+      CHARACTER*6,DIMENSION(JVN_) :: TITLEJXX
       REAL*8                      :: ND64MULT
 
       !=================================================================

@@ -76,7 +76,6 @@
 !
 ! !USES:
 !
-!      USE ACETONE_MOD,        ONLY : OCEAN_SINK_ACET
       USE AEROSOL_MOD,        ONLY : AEROSOL_CONC
       USE AEROSOL_MOD,        ONLY : AEROSOL_RURALBOX
       USE AEROSOL_MOD,        ONLY : RDAER
@@ -84,15 +83,16 @@
       USE C2H6_MOD,           ONLY : CHEMC2H6
       USE CARBON_MOD,         ONLY : CHEMCARBON
 !-----------------------------------------------------------------------------
-! This is now obsolete.  You can can reactivate this if you want.
+! These simulations are now obsolete.  You can can reactivate this if you want.
 !      USE CH3I_MOD,           ONLY : CHEMCH3I
+!      USE DRYDEP_MOD,         ONLY : DRYFLXH2HD
+!      USE H2_HD_MOD,          ONLY : CHEM_H2_HD
 !-----------------------------------------------------------------------------
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
       USE COMODE_LOOP_MOD     
       USE DRYDEP_MOD,         ONLY : DRYFLX
       USE DRYDEP_MOD,         ONLY : DRYFLXRnPbBe
-      USE DRYDEP_MOD,         ONLY : DRYFLXH2HD
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -101,10 +101,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
-!-----------------------------------------------------------------------------
-! This is now obsolete.  You can can reactivate this if you want.
-!      USE H2_HD_MOD,          ONLY : CHEM_H2_HD
-!-----------------------------------------------------------------------------
       USE HCN_CH3CN_MOD,      ONLY : CHEM_HCN_CH3CN
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
@@ -1130,16 +1126,13 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)     :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)     :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry State object
-      INTEGER,        INTENT(INOUT)  :: RC         ! Success or failure?
-!
-! !OUTPUT PARAMETERS:
-!
+      TYPE(ChmState), INTENT(INOUT)  :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(INOUT)  :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  19 May 2014 - C. Keller - Initial version (stripped from do_chemistry
@@ -1165,7 +1158,7 @@
          ! Init chem mechanism and photolysis
          CALL READER  ( FIRST, am_I_Root                           )
          CALL READCHEM(        am_I_Root, Input_Opt,            RC )
-         CALL INIT_FJX(        am_I_Root. Input_Opt,            RC )
+         CALL INIT_FJX(        am_I_Root, Input_Opt,            RC )
          CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
 
          ! Reset NCS with NCSURBAN

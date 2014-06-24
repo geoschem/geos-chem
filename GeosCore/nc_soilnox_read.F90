@@ -12,7 +12,7 @@
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE READ_RESISTANCES 
+  SUBROUTINE READ_RESISTANCES( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -25,11 +25,22 @@
 
     ! GEOS-Chem modules
     USE COMMSOIL_MOD
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
     IMPLICIT NONE
 
 #   include "netcdf.inc"
+
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 !
 ! !REMARKS:
@@ -39,6 +50,8 @@
 !
 ! !REVISION HISTORY:
 !  13 Jun 2012 - R. Yantosca - Initial version
+!  24 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -61,14 +74,17 @@
     INTEGER            :: fId                ! netCDF file ID
     INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
 
-      !=================================================================
-      ! Open and read data from the netCDF file
-      !=================================================================
+    !=================================================================
+    ! Open and read data from the netCDF file
+    !=================================================================
+
+    ! Assume success
+    RC        =  GIGC_SUCCESS
 
     ! Open file
     nc_file = 'soilNOx.Inputs_MODIS_Biomes.nc'  
-    nc_dir  = TRIM( DATA_DIR_1x1 ) // 'soil_NOx_201208/'
-    nc_path = TRIM( nc_dir )       // TRIM( nc_file )
+    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'soil_NOx_201208/'
+    nc_path = TRIM( nc_dir                 ) // TRIM( nc_file )
     CALL Ncop_Rd( fId, TRIM(nc_path) )
     
     ! Echo info to stdout

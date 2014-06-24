@@ -523,12 +523,6 @@
       CALL AIRQNT( State_Met )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
-      ! Compute lightning NOx emissions [molec/box/6h]
-!      IF ( LLIGHTNOX ) THEN
-!         CALL LIGHTNING( State_Met )
-!         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
-!      ENDIF
-
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
       IF ( Input_Opt%USE_OLSON_2001 ) THEN
@@ -541,9 +535,9 @@
 
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
-      CALL Init_Olson_Landmap   ( am_I_Root, Input_Opt%DATA_DIR_1x1 )
-      CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met     )
-      CALL Cleanup_Olson_Landmap( am_I_Root                         )
+      CALL Init_Olson_Landmap   ( am_I_Root, Input_Opt, RC        )
+      CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
+      CALL Cleanup_Olson_Landmap( am_I_Root                       )
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -1125,17 +1119,17 @@
                !         entirely fixed! Ask around on how to...
                !========================================================
                IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
-                  CALL SET_CH3Br( N_TRACERS, TCVV,
-     &                            STT,       ITS_TIME_FOR_UNIT(),
-     &                            State_Met  )
-               ENDIF
+                  CALL SET_CH3Br( am_I_Root, Input_Opt, 
+                                  State_Met, ITS_TIME_FOR_UNIT(),
+                                  State_Chm, RC                    )
+
+              ENDIF
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
-
                   CALL SET_BRO( am_I_Root, Input_Opt, State_Met, 
      &                          ITS_TIME_FOR_UNIT(), State_Chm, RC  )
                ENDIF
@@ -1235,9 +1229,9 @@
                !         entirely fixed! Ask around on how to...
                !========================================================
                IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
-                  CALL SET_CH3Br( N_TRACERS, TCVV,
-     &                            STT,       .FALSE.,
-     &                            State_Met  )
+                  CALL SET_CH3Br( am_I_Root, Input_Opt, State_Met, 
+     &                            .FALSE.,   State_Chm, RC         )
+
                ENDIF
 
                ! ----------------------------------------------------
@@ -1788,9 +1782,17 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
 !  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_MERRA_A3_FIELDS
+!  24 Jun 2014 - R. Yantosca - Now pass Input_Opt to other routines
+!  24 Jun 2014 - R. Yantosca - Cosmetic changes, line up arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Convenience variable for date & time
+      INTEGER :: D(2)
+
       !=================================================================
       !    *****  R E A D   G E O S -- F P   F I E L D S    *****
       !    *****  At the start of the GEOS-Chem simulation  *****
@@ -1800,19 +1802,19 @@
 #if   defined( GEOS_FP )
 
       ! Read time-invariant data
-      CALL GEOSFP_READ_CN( Input_Opt, State_Met )
+      CALL GEOSFP_READ_CN  (             Input_Opt, State_Met )
 
       ! Read 1-hr time-averaged data
-      DATE = GET_FIRST_A1_TIME()
-      CALL GEOSFP_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
+      D = GET_FIRST_A1_TIME()
+      CALL GEOSFP_READ_A1  ( D(1), D(2), Input_Opt, State_Met )
 
       ! Read 3-hr time averaged data
-      DATE = GET_FIRST_A3_TIME()
-      CALL GEOSFP_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
+      D = GET_FIRST_A3_TIME()
+      CALL GEOSFP_READ_A3  ( D(1), D(2), Input_Opt, State_Met )
 
       ! Read 3-hr time averaged data
-      DATE = GET_FIRST_I3_TIME()
-      CALL GEOSFP_READ_I3_1( DATE(1), DATE(2), Input_Opt, State_Met )
+      D = GET_FIRST_I3_TIME()
+      CALL GEOSFP_READ_I3_1( D(1), D(2), Input_Opt, State_Met )
 
 #elif defined( MERRA )
 
@@ -1824,29 +1826,36 @@
       !=================================================================
 
       ! Open constant fields
-      DATE = (/ 20000101, 000000 /)
-      CALL OPEN_MERRA_CN_FIELDS( DATE(1), DATE(2), Input_Opt )
-      CALL GET_MERRA_CN_FIELDS(  DATE(1), DATE(2), State_Met )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
+      D = (/ 20000101, 000000 /)
+      CALL OPEN_MERRA_CN_FIELDS ( D(1), D(2), Input_Opt               )
+      CALL GET_MERRA_CN_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
+      IF ( LPRT ) THEN
+         CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
+      ENDIF
 
       ! Open and read A-1 fields
-      DATE = GET_FIRST_A1_TIME()
-      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), Input_Opt, 
-     &                                             RESET=.TRUE. )
-      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2), State_Met    )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
+      D = GET_FIRST_A1_TIME()
+      CALL OPEN_MERRA_A1_FIELDS ( D(1), D(2), Input_Opt, RESET=.TRUE. )
+      CALL GET_MERRA_A1_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
+      IF ( LPRT ) THEN
+         CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
+      ENDIF
 
       ! Open and read A-3 fields
-      DATE = GET_FIRST_A3_TIME()
-      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2), Input_Opt           )
-      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2), Input_Opt, State_Met)
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
+      D = GET_FIRST_A3_TIME()
+      CALL OPEN_MERRA_A3_FIELDS ( D(1), D(2), Input_Opt               )
+      CALL GET_MERRA_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
+      IF ( LPRT ) THEN
+         CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
+      ENDIF
 
       ! Open & read I-6 fields
-      DATE = GET_FIRST_I6_TIME()
-      CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2), Input_Opt )
-      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2), State_Met)
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
+      D = GET_FIRST_I6_TIME()
+      CALL OPEN_MERRA_I6_FIELDS ( D(1), D(2), Input_Opt               )
+      CALL GET_MERRA_I6_FIELDS_1( D(1), D(2), Input_Opt, State_Met    )
+      IF ( LPRT ) THEN 
+         CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
+      ENDIF
 
 #else
 
@@ -1904,29 +1913,29 @@
       !=================================================================
 
       ! Open and read A-3 fields
-      DATE = GET_FIRST_A3_TIME()
-      CALL OPEN_A3_FIELDS( DATE(1), DATE(2), Input_Opt, RESET=.TRUE. )
-      CALL GET_A3_FIELDS(  DATE(1), DATE(2), State_Met               )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
-
-!      ! For MEGAN biogenics, update hourly temps w/in 15-day window
-!      IF ( Input_Opt%LMEGAN ) THEN
-!         CALL UPDATE_T_DAY( State_Met )
-!         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: UPDATE T_DAY' )
-!      ENDIF
+      D = GET_FIRST_A3_TIME()
+      CALL OPEN_A3_FIELDS ( D(1), D(2), Input_Opt, RESET=.TRUE. )
+      CALL GET_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
+      IF ( LPRT ) THEN
+         CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
+      ENDIF
 
       ! Open & read A-6 fields
-      DATE = GET_FIRST_A6_TIME()
-      CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt            )
-      CALL GET_A6_FIELDS(  DATE(1), DATE(2), Input_Opt, State_Met )      
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
+      D = GET_FIRST_A6_TIME()
+      CALL OPEN_A6_FIELDS ( D(1), D(2), Input_Opt               )
+      CALL GET_A6_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )      
+      IF ( LPRT ) THEN
+         CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
+      ENDIF
 
       ! Open & read I-6 fields
-      DATE = GET_FIRST_I6_TIME()
-      CALL OPEN_I6_FIELDS(  DATE(1), DATE(2), Input_Opt )
-      CALL GET_I6_FIELDS_1( DATE(1), DATE(2), State_Met )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
-    
+      D = GET_FIRST_I6_TIME()
+      CALL OPEN_I6_FIELDS ( D(1), D(2), Input_Opt               )
+      CALL GET_I6_FIELDS_1( D(1), D(2), Input_Opt, State_Met    )
+      IF ( LPRT ) THEN
+         CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
+      ENDIF
+
 #if   defined( GCAP )
 
       !-----------------------------------------------------------------
@@ -1978,9 +1987,16 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  04 Jan 2013 - M. Payer    - Call UPDATE_T_DAY for MERRA and GEOS-5.7.2 (tmf)
 !  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
+!  24 Jun 2014 - R. Yantosca - Now pass Input_Opt to other routines
+!  24 Jun 2014 - R. Yantosca - Cosmetic changes, line up arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Convenience variable for date & time
+      INTEGER :: D(2)
 
 #if   defined( GEOS_FP )
 
@@ -1992,32 +2008,24 @@
       ! A-1 fields (1hr time averaged)
       !---------------------------------
       IF ( ITS_TIME_FOR_A1() ) THEN
-         DATE = GET_A1_TIME()
-         CALL GEOSFP_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
-
-         ! Update daily mean temperature archive for MEGAN biogenics
-         ! (tmf, 1/4/2012) This should be turned on!
-!         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+         D = GET_A1_TIME()
+         CALL GEOSFP_READ_A1  ( D(1), D(2), Input_Opt, State_Met )
       ENDIF
 
       !----------------------------------
       ! A-3 fields (3-hr time averaged)
       !----------------------------------
       IF ( ITS_TIME_FOR_A3() ) THEN
-         DATE = GET_A3_TIME()
-         CALL GEOSFP_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
-
-         ! Since CLDTOPS is an A-3 field, update the
-         ! lightning NOx emissions [molec/box/6h]
-!         IF ( LLIGHTNOX ) CALL LIGHTNING( State_Met )
+         D = GET_A3_TIME()
+         CALL GEOSFP_READ_A3  ( D(1), D(2), Input_Opt, State_Met )
       ENDIF
 
       !----------------------------------
       ! I-3 fields (3-hr instantaneous
       !----------------------------------
       IF ( ITS_TIME_ FOR_I3() ) THEN
-         DATE = GET_I3_TIME()
-         CALL GEOSFP_READ_I3_2( DATE(1), DATE(2), Input_Opt, State_Met )
+         D = GET_I3_TIME()
+         CALL GEOSFP_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )
@@ -2034,16 +2042,11 @@
       IF ( ITS_TIME_FOR_A1() ) THEN
 
          ! Get the date/time for the next A-3 data block
-         DATE = GET_A1_TIME()
+         D = GET_A1_TIME()
 
          ! Open & read A-3 fields
-         CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), Input_Opt )
-         CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2), State_Met )
-
-         !%%% NEED TO UPDATE FOR MERRA %%%
-         ! Update daily mean temperature archive for MEGAN biogenics
-         ! (tmf, 1/4/2012) This should be turned on!
-!         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+         CALL OPEN_MERRA_A1_FIELDS ( D(1), D(2), Input_Opt            )
+         CALL GET_MERRA_A1_FIELDS  ( D(1), D(2), Input_Opt, State_Met )
       ENDIf
 
       !==============================================================
@@ -2054,12 +2057,11 @@
       IF ( ITS_TIME_FOR_A3() ) THEN
          
          ! Get the date/time for the next A-6 data block
-         DATE = GET_A3_TIME()
+         D = GET_A3_TIME()
 
          ! Open and read A-6 fields
-         CALL OPEN_MERRA_A3_FIELDS( DATE(1),   DATE(2), Input_Opt )
-         CALL GET_MERRA_A3_FIELDS ( DATE(1),   DATE(2), 
-     &                              Input_Opt, State_Met )
+         CALL OPEN_MERRA_A3_FIELDS ( D(1), D(2), Input_Opt            )
+         CALL GET_MERRA_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met )
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
@@ -2074,11 +2076,11 @@
       IF ( ITS_TIME_FOR_I6() ) THEN
 
          ! Get the date/time for the next I-6 data block
-         DATE = GET_I6_TIME()
+         D = GET_I6_TIME()
 
          ! Open and read files
-         CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2), Input_Opt )
-         CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2), State_Met )
+         CALL OPEN_MERRA_I6_FIELDS ( D(1), D(2), Input_Opt            )
+         CALL GET_MERRA_I6_FIELDS_2( D(1), D(2), Input_Opt, State_Met )
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )
@@ -2136,14 +2138,11 @@
       IF ( ITS_TIME_FOR_A3() ) THEN
 
          ! Get the date/time for the next A-3 data block
-         DATE = GET_A3_TIME()
+         D = GET_A3_TIME()
 
          ! Open & read A-3 fields
-         CALL OPEN_A3_FIELDS( DATE(1), DATE(2), Input_Opt )
-         CALL GET_A3_FIELDS ( DATE(1), DATE(2), State_Met )
-
-         ! Update daily mean temperature archive for MEGAN biogenics
-!         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+         CALL OPEN_A3_FIELDS( D(1), D(2), Input_Opt            ) 
+         CALL GET_A3_FIELDS ( D(1), D(2), Input_Opt, State_Met )
 
       ENDIF
 
@@ -2155,15 +2154,12 @@
       IF ( ITS_TIME_FOR_A6() ) THEN
          
          ! Get the date/time for the next A-6 data block
-         DATE = GET_A6_TIME()
+         D = GET_A6_TIME()
 
          ! Open and read A-6 fields
-         CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt            )
-         CALL GET_A6_FIELDS(  DATE(1), DATE(2), Input_Opt, State_Met )      
+         CALL OPEN_A6_FIELDS( D(1), D(2), Input_Opt            )
+         CALL GET_A6_FIELDS(  D(1), D(2), Input_Opt, State_Met )      
 
-         ! Since CLDTOPS is an A-6 field, update the
-         ! lightning NOx emissions [molec/box/6h]
-!         IF ( Input_Opt%LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !==============================================================
@@ -2172,11 +2168,11 @@
       IF ( ITS_TIME_FOR_I6() ) THEN
 
          ! Get the date/time for the next I-6 data block
-         DATE = GET_I6_TIME()
+         D = GET_I6_TIME()
 
          ! Open and read files
-         CALL OPEN_I6_FIELDS(  DATE(1), DATE(2), Input_Opt )
-         CALL GET_I6_FIELDS_2( DATE(1), DATE(2), State_Met )
+         CALL OPEN_I6_FIELDS ( D(1), D(2), Input_Opt            )
+         CALL GET_I6_FIELDS_2( D(1), D(2), Input_Opt, State_Met )
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )

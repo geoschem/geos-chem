@@ -421,7 +421,7 @@ cleanup.o                   : cleanup.F                                      \
                               hcoi_gc_main_mod.o      global_bc_mod.o        \
                               global_ch4_mod.o        global_hno3_mod.o      \
                               global_no3_mod.o        global_nox_mod.o       \
-                              global_o1d_mod.o        global_oc_mod.o        \
+                              global_oc_mod.o                                \
                               global_oh_mod.o         hcn_ch3cn_mod.o        \
                               isoropiaII_mod.o        land_mercury_mod.o     \
                               seasalt_mod.o           linoz_mod.o            \
@@ -618,8 +618,6 @@ global_hno3_mod.o           : global_hno3_mod.F                              \
 global_no3_mod.o            : global_no3_mod.F
 
 global_nox_mod.o            : global_nox_mod.F
-
-global_o1d_mod.o            : global_o1d_mod.F
 
 global_o3_mod.o             : global_o3_mod.F
 
@@ -847,7 +845,8 @@ input_mod.o                 : input_mod.F                                    \
                               tracer_mod.o            transport_mod.o        \
                               wetscav_mod.o           tagged_co_mod.o        \
                               tagged_ox_mod.o         global_ch4_mod.o       \
-                              c2h6_mod.o              hcn_ch3cn_mod.o
+                              c2h6_mod.o              hcn_ch3cn_mod.o        \
+                              vdiff_pre_mod.o 
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          global_hno3_mod.o      \
@@ -1098,7 +1097,7 @@ transport_mod.o             : transport_mod.F                                \
 
 update.o                    : update.F
 
-vdiff_pre_mod.o             : vdiff_pre_mod.F         tracer_mod.o
+vdiff_pre_mod.o             : vdiff_pre_mod.F90
 ifeq ($(COMPILER),sun)
 	$(F90) -O3 -c $<
 endif

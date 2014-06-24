@@ -383,25 +383,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !      
-  SUBROUTINE Get_nSchm_nSchmBry( am_I_Root, nSchm, nSchmBry, RC )
+  SUBROUTINE Get_nSchm_nSchmBry( am_I_Root, Input_Opt, nSchm, nSchmBry, RC )
 !
 ! !USES:
 !
     USE CMN_SIZE_MOD
     USE GIGC_ErrCode_Mod
-    USE LOGICAL_MOD,       ONLY : LLINOZ
-    USE TRACER_MOD,        ONLY : N_TRACERS, TRACER_NAME
-    USE TIME_MOD,          ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE TIME_MOD,           ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: nSchm       ! # of strat chem species
-    INTEGER, INTENT(OUT) :: nSchmBry    ! # of strat chem Bry species
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT) :: nSchm       ! # of strat chem species
+    INTEGER,        INTENT(OUT) :: nSchmBry    ! # of strat chem Bry species
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY:
 !  01 Feb 2011 - L. Murray   - Initial version
@@ -460,10 +460,10 @@ CONTAINS
     !=====================================================================
 
     ! Loop over all GEOS-Chem advected tracers
-    DO N = 1, N_TRACERS
+    DO N = 1, Input_Opt%N_TRACERS
 
        ! GEOS-Chem advected tracer name
-       GC_Name = TRACER_NAME(N) 
+       GC_Name = Input_Opt%TRACER_NAME(N) 
     
        !---------------------------------------------------------------
        ! For now, guarantee that GMI prod/loss rates are not used for  
@@ -501,7 +501,7 @@ CONTAINS
           !---------------------------------------------------------------
           IF ( TRIM( GC_Name ) == TRIM( GMI_Name ) ) THEN
                 
-             IF ( LLINOZ .and. ( TRIM( GC_Name ) == 'Ox' ) ) THEN
+             IF ( Input_Opt%LLINOZ .and. ( TRIM( GC_Name ) == 'Ox' ) ) THEN
                 IF ( am_I_Root ) THEN
                    WRITE( 6, '(a)' ) TRIM( GC_Name ) // ' (via Linoz)'
                 ENDIF

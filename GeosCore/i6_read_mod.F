@@ -251,7 +251,7 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -458,20 +458,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS, State_Met )
+      SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS, Input_Opt, State_Met )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)    :: NYMD    ! YYYY/MM/DD
-      INTEGER,        INTENT(IN)    :: NHMS    !  and hh:mm:ss of desired data
+      INTEGER,        INTENT(IN)    :: NYMD       ! YYYY/MM/DD
+      INTEGER,        INTENT(IN)    :: NHMS       !  and hh:mm:ss of data
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -483,6 +485,7 @@
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  24 Jun 2014 - R. Yantosca - Now pass Input_Opt to READ_I6
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -495,35 +498,38 @@
       !=================================================================
       ! GEOS-4: read LWI, PS1, SLP      
       !=================================================================
-      CALL READ_I6( NYMD  = NYMD, 
-     &              NHMS  = NHMS, 
-     &              LWI   = State_Met%LWI,   
-     &              PS    = State_Met%PS1,  
-     &              SLP   = State_Met%SLP, 
-     &              TROPP = State_Met%TROPP1 )
+      CALL READ_I6( NYMD      = NYMD, 
+     &              NHMS      = NHMS, 
+     &              Input_Opt = Input_Opt, 
+     &              LWI       = State_Met%LWI,   
+     &              PS        = State_Met%PS1,  
+     &              SLP       = State_Met%SLP, 
+     &              TROPP     = State_Met%TROPP1 )
 
 #elif defined( GEOS_5 )
 
       !=================================================================
       ! GEOS-5: read LWI, PS1, SLP, TO3, TTO3
       !=================================================================
-      CALL READ_I6( NYMD = NYMD, 
-     &              NHMS = NHMS, 
-     &              LWI  = State_Met%LWI,   
-     &              PS   = State_Met%PS1,  
-     &              SLP  = State_Met%SLP, 
-     &              TO3  = State_Met%TO31, 
-     &              TTO3 = State_Met%TTO3 )
+      CALL READ_I6( NYMD      = NYMD, 
+     &              NHMS      = NHMS,
+     &              Input_Opt = Input_Opt, 
+     &              LWI       = State_Met%LWI,   
+     &              PS        = State_Met%PS1,  
+     &              SLP       = State_Met%SLP, 
+     &              TO3       = State_Met%TO31, 
+     &              TTO3      = State_Met%TTO3 )
 
 #elif defined( GCAP )
 
       !=================================================================
       ! GCAP: read PS1, SLP
       !=================================================================
-      CALL READ_I6( NYMD = NYMD, 
-     &              NHMS = NHMS, 
-     &              PS   = State_Met%PS1, 
-     &              SLP  = State_Met%SLP )
+      CALL READ_I6( NYMD      = NYMD, 
+     &              NHMS      = NHMS, 
+     &              Input_Opt = Input_Opt,
+     &              PS        = State_Met%PS1, 
+     &              SLP       = State_Met%SLP )
 
 #endif
 
@@ -543,20 +549,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS, State_Met )
+      SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS, Input_Opt, State_Met )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)    :: NYMD    ! YYYY/MM/DD
-      INTEGER,        INTENT(IN)    :: NHMS    !  and hh:mm:ss of desired data
+      INTEGER,        INTENT(IN)    :: NYMD       ! YYYY/MM/DD
+      INTEGER,        INTENT(IN)    :: NHMS       !  and hh:mm:ss of data
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -580,35 +588,38 @@
       !=================================================================
       ! GEOS-4: read LWI, PS2, SLP
       !=================================================================
-      CALL READ_I6( NYMD  = NYMD, 
-     &              NHMS  = NHMS, 
-     &              LWI   = State_Met%LWI,   
-     &              PS    = State_Met%PS2, 
-     &              SLP   = State_Met%SLP, 
-     &              TROPP = State_Met%TROPP2 )
+      CALL READ_I6( NYMD      = NYMD, 
+     &              NHMS      = NHMS, 
+     &              Input_Opt = Input_Opt,
+     &              LWI       = State_Met%LWI,   
+     &              PS        = State_Met%PS2, 
+     &              SLP       = State_Met%SLP, 
+     &              TROPP     = State_Met%TROPP2 )
 
 #elif defined( GEOS_5 )
 
       !=================================================================
       ! GEOS-5: read LWI, PS2, SLP, TO3, TTO3
       !=================================================================
-      CALL READ_I6( NYMD = NYMD, 
-     &              NHMS = NHMS, 
-     &              LWI  = State_Met%LWI,   
-     &              PS   = State_Met%PS2,   
-     &              SLP  = State_Met%SLP, 
-     &              TO3  = State_Met%TO32, 
-     &              TTO3 = State_Met%TTO3 )
+      CALL READ_I6( NYMD      = NYMD, 
+     &              NHMS      = NHMS, 
+     &              Input_Opt = Input_Opt,
+     &              LWI       = State_Met%LWI,   
+     &              PS        = State_Met%PS2,   
+     &              SLP       = State_Met%SLP, 
+     &              TO3       = State_Met%TO32, 
+     &              TTO3      = State_Met%TTO3 )
 
 #elif defined( GCAP )
 
       !=================================================================
       ! GCAP: read PS1, SLP
       !=================================================================
-      CALL READ_I6( NYMD = NYMD, 
-     &              NHMS = NHMS, 
-     &              PS   = State_Met%PS2, 
-     &              SLP  = State_Met%SLP )
+      CALL READ_I6( NYMD      = NYMD, 
+     &              NHMS      = NHMS,
+     &              Input_Opt = Input_Opt, 
+     &              PS        = State_Met%PS2, 
+     &              SLP       = State_Met%SLP )
 
 #endif
 
@@ -734,25 +745,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_I6( NYMD, NHMS, 
+      SUBROUTINE READ_I6( NYMD, NHMS,  Input_Opt, 
      &                    ALBD, LWI,   PS,   SLP,  SPHU, TMPU, 
      &                    TO3,  TROPP, TTO3, UWND, VWND         )
 !
 ! !USES:
 !
-      USE DIAG_MOD,       ONLY : AD66,            AD67
-      USE FILE_MOD,       ONLY : IOERROR
-      USE LOGICAL_MOD,    ONLY : LVARTROP
-      USE TIME_MOD,       ONLY : SET_CT_I6,       TIMESTAMP_STRING
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D,     TRANSFER_3D
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD66
+      USE DIAG_MOD,           ONLY : AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_I6
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! NDxx flags
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)            :: NYMD   ! YYYYMMDD
-      INTEGER, INTENT(IN)            :: NHMS   !  and hhmmss of desired data
+      INTEGER,        INTENT(IN)     :: NYMD      ! YYYYMMDD
+      INTEGER,        INTENT(IN)     :: NHMS      ! and hhmmss of desired data
+      TYPE(OptInput), INTENT(IN)     :: Input_Opt ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -799,6 +814,7 @@
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_I6, IU_TP file LUNs
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1035,7 +1051,7 @@
       !======== CASE OF VARIABLE TROPOPAUSE ============================
       ! We need to read TROPP from offline files in case of GEOS-4.
       !=================================================================
-      IF ( LVARTROP ) THEN
+      IF ( Input_Opt%LVARTROP ) THEN
 
 #if   defined( GEOS_4 )
 

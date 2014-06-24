@@ -88,17 +88,16 @@
       PRIVATE :: CHEM_SURF  
       PRIVATE :: AVIATION_DOM_CORR  
       PRIVATE :: READ_OCEANCO2
-      PRIVATE :: READ_ANNUAL_BIOFUELCO2
-      PRIVATE :: READ_SHIPCO2_EDGAR
-      PRIVATE :: READ_SHIPCO2_ICOADS
-      PRIVATE :: READ_AVIATION_CO2
+!      PRIVATE :: READ_SHIPCO2_EDGAR
+!      PRIVATE :: READ_SHIPCO2_ICOADS
+!      PRIVATE :: READ_AVIATION_CO2
       PRIVATE :: READ_ANNUAL_BIONET_CO2 
-      PRIVATE :: READ_BBIO_DAILYAVERAGE
-      PRIVATE :: READ_BBIO_DIURNALCYCLE
+!      PRIVATE :: READ_BBIO_DAILYAVERAGE
+!      PRIVATE :: READ_BBIO_DIURNALCYCLE
       PRIVATE :: TOTAL_BIOMASS_TG
-      PRIVATE :: DEF_BIOSPH_CO2_REGIONS_F
-      PRIVATE :: DEF_OCEAN_CO2_REGIONS_F
-      PRIVATE :: DEF_FOSSIL_CO2_REGIONS_F
+!      PRIVATE :: DEF_BIOSPH_CO2_REGIONS_F
+!      PRIVATE :: DEF_OCEAN_CO2_REGIONS_F
+!      PRIVATE :: DEF_FOSSIL_CO2_REGIONS_F
       PRIVATE :: INIT_CO2 
 !
 ! !REMARKS:
@@ -425,7 +424,6 @@
       USE CMN_SIZE_MOD
       USE BPCH2_MOD,          ONLY : GET_TAU0,   READ_BPCH2
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
@@ -544,14 +542,14 @@
       IF ( LGENFF ) THEN
 
          TAU      = GET_TAU0( 1, 1, 1985 )
-         FILENAME = TRIM( DATA_DIR )                                 // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR )                       // 
      &              'CO2_200508/fossil95_CO2.'                       // 
      &               GET_NAME_EXT_2D() // '.'      // GET_RES_EXT()
 
       ELSE IF ( LANNFF ) THEN
 
          TAU      = GET_TAU0( 1, 1, YEAR )
-         FILENAME = TRIM( DATA_DIR )                                 // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR )                       // 
      &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.'  // 
      &              YEAR_STR          // '.'                         //
      &              GET_NAME_EXT_2D() // '.'       //  GET_RES_EXT()
@@ -559,7 +557,7 @@
       ELSE IF ( LMONFF ) THEN
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
-         FILENAME = TRIM( DATA_DIR )                                 // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR )                       // 
      &              'CO2_201003/fossilfuel_andres/monthly_v2010/ff.' //  
      &              YEAR_STR          // MONTH_STR // '.'            //
      &              GET_NAME_EXT_2D() // '.'       // GET_RES_EXT()
@@ -581,7 +579,7 @@
       !-----------------------------------------------------------------
       TAU      = GET_TAU0( MONTH, 1, 2004 )
 
-      FILENAME = TRIM( DATA_DIR )                 // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )       // 
      &           'CO2_201003/ChemSrc/CH4_source.' // 
      &           GET_NAME_EXT_2D() // '.'         //
      &           GET_RES_EXT()
@@ -666,7 +664,7 @@
       !-----------------------------------------------------------------
       TAU = GET_TAU0( MONTH, 1, 2004 )
 
-      FILENAME = TRIM( DATA_DIR )                            //
+      FILENAME = TRIM( Input_Opt%DATA_DIR )                  //
      &           'CO2_201003/ChemSrc/Isoprene-2004.'         //
      &           GET_NAME_EXT_2D()  // '.' // GET_RES_EXT()
 
@@ -682,7 +680,7 @@
       ! Read Monthly Monoterpene emissions
       !-----------------------------------------------------------------
 
-      FILENAME = TRIM( DATA_DIR )                            // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )                  // 
      &           'CO2_201003/ChemSrc/Monoterpene-2004.'      //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
@@ -992,7 +990,6 @@
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -1052,7 +1049,7 @@
          ! Start of "generic" year 1985 
          TAU = GET_TAU0( 1, 1, 1985 ) 
 
-         FILENAME = TRIM( DATA_DIR )                             // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR )                   // 
      &              'CO2_200508/ocean_CO2.'                      //
      &               GET_NAME_EXT_2D() //  '.' // GET_RES_EXT()
      
@@ -1061,7 +1058,7 @@
          ! Start of "generic" year 2000 
          TAU      = GET_TAU0( 1, 1, 2000 ) 
 
-         FILENAME = TRIM( DATA_DIR )                             // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR )                   // 
      &              'CO2_201003/Ocean/Taka2009_OceanCO2_annual.' // 
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
@@ -1071,7 +1068,7 @@
          ! Start of "generic" month in 2000 
          TAU      = GET_TAU0( MONTH, 1, 2000 ) 
 
-         FILENAME = TRIM( DATA_DIR  )                            // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR  )                  // 
      &              'CO2_201003/Ocean/Taka2009_OceanCO2_'        // 
      &              MONTH_STR         // '.'                     // 
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -1093,644 +1090,648 @@
 
       END SUBROUTINE READ_OCEANCO2
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 6/24/14:
+! HEMCO has orphaned these subroutines.  Comment out for now.(6/24/14)
 !
-! !IROUTINE: read_annual_biofuelco2
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_annual_biofuelco2
+!!
+!! !DESCRIPTION: Subroutine READ\_ANNUAL\_BIOFUELCO2 reads in annual mean 
+!!  biofuel CO2 emissions from a binary punch file.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_ANNUAL_BIOFUELCO2
+!!
+!! !USES:
+!!
+!      ! References to F90 modules
+!      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
+!      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+!      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 !
-! !DESCRIPTION: Subroutine READ\_ANNUAL\_BIOFUELCO2 reads in annual mean 
-!  biofuel CO2 emissions from a binary punch file.
-!\\
-!\\
-! !INTERFACE:
+!      USE CMN_SIZE_MOD         ! Size parameters
+!!
+!! !REMARKS:
+!!  References:
+!!  (1 ) Yevich and Logan 2001 gridded (1x1) dataset in combination with 
+!!        emission factors for CO2 per kg drymatter burned
+!! 
+!! !REVISION HISTORY: 
+!!  16 Aug 2005 - P. Suntharalingam   - Initial version
+!!  18 May 2010 - R. Nassar, D. Jones - Updated
+!!  05 Mar 2012 - M. Payer            - Add modifications for nested-grid CO2
+!!                                      (Yuxuan Wang, lmw)
+!!  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
+!!                                      (M. Cooper)
+!!  24 May 2012 - R. Yantosca         - Fixed minor bugs in map_a2a calls
+!!  24 Aug 2012 - R. Yantosca         - DO_REGRID_A2A now reads netCDF input
+!!  03 Jan 2013 - M. Payer            - Renamed PERAREA to IS_MASS in
+!!                                      DO_REGRID_A2A
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER                :: I, J
+!      !REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
+!      REAL*4                 :: ARRAY(360,181,1)
+!      REAL*8                 :: TAU
+!      REAL*8, TARGET         :: GEOS_GRID(IIPAR,JJPAR,1)
+!      REAL*8, TARGET         :: GEOS_1x1(I1x1,J1x1,1)     !(lmw,05/16/11)
+!      CHARACTER(LEN=255)     :: FILENAME
+!      CHARACTER(LEN=255)     :: LLFILENAME
+!      REAL*8, POINTER        :: OUTGRID(:,:) => NULL()
+!      REAL*8, POINTER        :: INGRID(:,:)  => NULL()
 !
-      SUBROUTINE READ_ANNUAL_BIOFUELCO2
+!      !=================================================================
+!      ! READ_ANNUAL_BIOFUELCO2 begins here!
+!      ! Use 1985 emissions or 1995 scaled values
+!      ! "Burn in fields" not included (this is already in GFED)
+!      !=================================================================
 !
-! !USES:
+!      FILENAME = TRIM( DATA_DIR_1x1)               //  
+!     &           'CO2_201003/biofuel/biofuel_CO2.' // 
+!     &            GET_NAME_EXT_2D()                // '.1x1-1995'
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR,        DATA_DIR_1x1  !(lmw,05/16/11)
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-
-      USE CMN_SIZE_MOD         ! Size parameters
+!      ! Echo info
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_ANNUAL_BIOFUELCO2: Reading ', a ) 
 !
-! !REMARKS:
-!  References:
-!  (1 ) Yevich and Logan 2001 gridded (1x1) dataset in combination with 
-!        emission factors for CO2 per kg drymatter burned
+!!     TAU = GET_TAU0( 1, 1, 1985 )
+!      TAU = GET_TAU0( 1, 1, 1995 )
+!      
+!      ! Read biofuel CO2 emissions [molec/cm2/s]
+!      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 5, 
+!     &                 TAU,       I1x1,      J1x1,
+!     &                 1,         ARRAY,     QUIET=.TRUE. )
+!     
+!      ! Cast to REAL*8 before regridding
+!      GEOS_1x1(:,:,1) = ARRAY(:,:,1)
+!      
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
+!
+!      ! Regrid to current model resolution
+!      INGRID  => GEOS_1x1(:,:,1)
+!      OUTGRID => GEOS_GRID(:,:,1)
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, IS_MASS=0,
+!     &                    netCDF=.TRUE.                   )   
+!
+!      EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
+!
+!      ! Free pointers
+!      NULLIFY( INGRID, OUTGRID  )
+!
+!      END SUBROUTINE READ_ANNUAL_BIOFUELCO2
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_shipco2_edgar
+!!
+!! !DESCRIPTION: Subroutine READ\_SHIPCO2\_EDGAR reads in annual mean ship CO2 
+!!  emissions from a binary punch file.  Scaling is based on Endresen et al. 
+!!  (2007).
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_SHIPCO2_EDGAR
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
+!      USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
+!      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+!      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+!      USE GRID_MOD,       ONLY : GET_AREA_CM2
+!      USE TIME_MOD,       ONLY : GET_YEAR
+!	
+!      USE CMN_SIZE_MOD         ! Size parameters
+!!
+!! !REVISION HISTORY: 
+!!  18 May 2010 - R. Nassar, D. Jones - Initial version
+!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
+!!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      ! Scalars
+!      INTEGER             :: I, J, N, YEAR
+!      REAL*8              :: TAU
+!      REAL*8,  PARAMETER  :: SEC_IN_YEAR = 86400d0 * 365.25d0
+!      REAL*8,  PARAMETER  :: GlobSTot = 0.117 
+!                             ! EDGAR global total value in PgC/yr
+!      REAL*8              :: GlobSTotNew(25) 
+!                             ! For scaling to a specified global total PgC/yr
+!      CHARACTER(LEN=255)  :: FILENAME
+!      CHARACTER(LEN=255)  :: LLFILENAME
+!
+!      ! Arrays and pointers
+!      REAL*4              :: ARRAY    (I1x1, J1x1-1,1)
+!      REAL*4		  :: A_CM2    (IIPAR,JJPAR   )
+!      REAL*8,  TARGET     :: GEN_1x1  (I1x1, J1x1-1,1)
+!      REAL*8,  TARGET     :: GEOS_GRID(IIPAR,JJPAR, 1)
+!      REAL*8,  POINTER    :: INGRID (:,:) => NULL()
+!      REAL*8,  POINTER    :: OUTGRID(:,:) => NULL()
+!
+!      !=================================================================
+!      ! READ_SHIPCO2_EDGAR begins here!
+!      !=================================================================
+!
+!      YEAR = GET_YEAR()
+!
+!      ! Fill array
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         A_CM2(I,J) = GET_AREA_CM2( I, J, 1 )
+!      ENDDO
+!      ENDDO
+!
+!      ! File contaning EDGAR ship CO2 data
+!      FILENAME = TRIM( DATA_DIR_1x1 ) // 
+!     &     'ARCTAS_SHIP_2008/Arctas_CO2_ship_2008.generic.1x1'
+!
+!      ! Echo info
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_ANNUAL_SHIP_CO2_EDGAR: Reading ', a ) 
+!
+!      ! TAU value for start of 2008
+!      TAU = GET_TAU0( 1, 1, 2008 )
+!
+!      ! Read CO2 shipping emissions [kg/yr]
+!      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 1, 
+!     &                 TAU,       I1x1,      J1x1-1,
+!     &                 1,         ARRAY,     QUIET=.TRUE. )
+!
+!      ! Cast to REAL*8 before regridding
+!      GEN_1x1(:,:,1) = ARRAY(:,:,1)
+!
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
+!
+!      ! Regrid from GENERIC 1x1 --> current model resolution
+!      INGRID  => GEN_1x1  (:,:,1)
+!      OUTGRID => GEOS_GRID(:,:,1)
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                    INGRID,     OUTGRID, IS_MASS=1,
+!     &                    netCDF=.TRUE.                   )   
+!
+!      ! Free pointers
+!      NULLIFY( INGRID, OUTGRID )
+!
+!      ! Convert units kg CO2 / yr --> molecules/cm2/s 
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!      	EMSHIPCO2(I,J) = GEOS_GRID(I,J,1) * 6.022E23 
+!     &            / ( 44.0d-3 * SEC_IN_YEAR * A_CM2(I,J) )
+!      ENDDO
+!      ENDDO
+!
+!      !-----------------------------------------------------------------
+!      ! Global Ship Totals for the years 1985 to 2009
+!      !-----------------------------------------------------------------
+!      ! These were based on a linear fit to 1985 to 2002 
+!      ! values from Endresen et al. (2007)
+!      ! The 2007 value was used for 2009 similar to the case for 
+!      ! overall fossil fuel use related to the recession
+!      ! We have not attempted to extrapolate beyond 2009
+!      !-----------------------------------------------------------------
+!      ! Values are essentially all international (domestic negligible)
+!      !-----------------------------------------------------------------
+!
+!      GlobSTotNew(1:25) = (/ 0.122, 0.125, 0.128, 0.132, 0.135,
+!     &                       0.138, 0.141, 0.144, 0.148, 0.151,
+!     &                       0.154, 0.157, 0.160, 0.163, 0.167,
+!     &                       0.170, 0.173, 0.176, 0.179, 0.182,
+!     &                       0.186, 0.189, 0.192, 0.195, 0.192 /)
+!        
+!      IF (YEAR <= 1985) THEN
+!         n = 1
+!      ELSEIF (YEAR >= 2009) THEN
+!         n = 25
+!      ELSE
+!         n = YEAR - 1985 + 1
+!      ENDIF
+!
+!      ! Apply scaling to obtain a specified yearly global total
+!      DO J = 1, JJPAR
+!         EMSHIPCO2(:,J) = EMSHIPCO2(:,J)*(GlobSTotNew(n)/GlobSTot)
+!      ENDDO
+!
+!      END SUBROUTINE READ_SHIPCO2_EDGAR
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_shipco2_icoads
+!!
+!! !DESCRIPTION: Subroutine READ\_SHIPCO2\_ICOADS reads in ICOADS monthly 
+!!  ship CO2 emissions
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_SHIPCO2_ICOADS
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
+!      USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
+!      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+!      USE FILE_MOD,       ONLY : IOERROR
+!      USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
+!      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A	
+!
+!      USE CMN_SIZE_MOD         ! Size parameters
+!!
+!! !REMARKS:
+!!  This subroutine reads from bpch files at GEOS 1x1 (half-polar) resolution
+!!  although the original data are provided as 0.1 deg x 0.1 deg. Regridding to 
+!!  the current resolution is carried out in the code.
+!!                                                                             .
+!!  References:
+!!  (1) Corbett and Koehler (2003) "Updated emissions from ocean shipping", 
+!!       JGR 108, D20, 4650.
+!!  (2) Corbett and Koehler (2004) "Considering alternative input parameters in 
+!!       an activity-based ship fuel consumption and emissions model: Reply ..."
+!!       JGR, 109, D23303.
+!!  (3) Endresen et al. (2007) "A historical reconstruction of ships fuel 
+!!       consumption and emissions", JGR, 112, D12301.
+!!                                                                             .
+!!  NOTE: The Corbett website values do not sum to the values in any Corbett
+!!  et al. or Wang (2008) papers. It is not clear if this relates to the 
+!!  ongoing dispute between Corbett et al.(2003,2004) and Endresen et al.
+!!  (2003,2004,2007)
+!! 
+!! !REVISION HISTORY: 
+!!  18 May 2010 - R. Nassar, D. Jones - Initial version
+!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER                :: I, J, MONTH, YEAR, IOS, N
+!      REAL*8                 :: TAU
+!      REAL*8,  PARAMETER     :: SEC_IN_YEAR = 86400d0 * 365.25d0
+!      REAL*8,  PARAMETER     :: GlobSTot = 0.1760 
+!                                !ICOADS global total value in PgC/yr
+!      REAL*8                 :: GlobSTotNew(25) 
+!                                !For scaling to a specified global total PgC/yr
+!      CHARACTER(LEN=255)     :: FILENAME
+!      CHARACTER(LEN=2)       :: MONTH_STR
+!      CHARACTER(LEN=255)     :: LLFILENAME
+!
+!      ! Arrays and pointers
+!      REAL*4                 :: ARRAY    (I1x1, J1x1, 1)
+!      REAL*8, TARGET         :: GEOS_1x1 (I1x1, J1x1, 1)
+!      REAL*8, TARGET         :: GEOS_GRID(IIPAR,JJPAR,1)
+!      REAL*4		     :: A_CM2    (IIPAR,JJPAR  )
+!      REAL*8, POINTER        :: INGRID (:,:) => NULL()
+!      REAL*8, POINTER        :: OUTGRID(:,:) => NULL()
+!	
+!      !=================================================================
+!      ! READ_SHIPCO2_ICOADS begins here!
+!      !=================================================================
+!
+!      YEAR = GET_YEAR()
+!      MONTH = GET_MONTH()
 ! 
-! !REVISION HISTORY: 
-!  16 Aug 2005 - P. Suntharalingam   - Initial version
-!  18 May 2010 - R. Nassar, D. Jones - Updated
-!  05 Mar 2012 - M. Payer            - Add modifications for nested-grid CO2
-!                                      (Yuxuan Wang, lmw)
-!  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
-!                                      (M. Cooper)
-!  24 May 2012 - R. Yantosca         - Fixed minor bugs in map_a2a calls
-!  24 Aug 2012 - R. Yantosca         - DO_REGRID_A2A now reads netCDF input
-!  03 Jan 2013 - M. Payer            - Renamed PERAREA to IS_MASS in
-!                                      DO_REGRID_A2A
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      WRITE( MONTH_STR, '(i2.2)' ) MONTH
+!      
+!      FILENAME = TRIM( DATA_DIR_1x1 )           // 
+!     &           'CO2_201003/ship_ICOADS/co2_'  // 
+!     &           MONTH_STR // '.geos.1x1'
+!	
+!      ! Echo info
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_MONTHLY_SHIP_CO2_ICOADS: Reading ', a ) 
 !
-! !LOCAL VARIABLES:
+!      ! TAU value for start of month in 2004
+!      TAU = GET_TAU0( MONTH, 1, 2004 )
 !
-      INTEGER                :: I, J
-      !REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
-      REAL*4                 :: ARRAY(360,181,1)
-      REAL*8                 :: TAU
-      REAL*8, TARGET         :: GEOS_GRID(IIPAR,JJPAR,1)
-      REAL*8, TARGET         :: GEOS_1x1(I1x1,J1x1,1)     !(lmw,05/16/11)
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=255)     :: LLFILENAME
-      REAL*8, POINTER        :: OUTGRID(:,:) => NULL()
-      REAL*8, POINTER        :: INGRID(:,:)  => NULL()
-
-      !=================================================================
-      ! READ_ANNUAL_BIOFUELCO2 begins here!
-      ! Use 1985 emissions or 1995 scaled values
-      ! "Burn in fields" not included (this is already in GFED)
-      !=================================================================
-
-      FILENAME = TRIM( DATA_DIR_1x1)               //  
-     &           'CO2_201003/biofuel/biofuel_CO2.' // 
-     &            GET_NAME_EXT_2D()                // '.1x1-1995'
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_ANNUAL_BIOFUELCO2: Reading ', a ) 
-
-!     TAU = GET_TAU0( 1, 1, 1985 )
-      TAU = GET_TAU0( 1, 1, 1995 )
-      
-      ! Read biofuel CO2 emissions [molec/cm2/s]
-      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 5, 
-     &                 TAU,       I1x1,      J1x1,
-     &                 1,         ARRAY,     QUIET=.TRUE. )
-     
-      ! Cast to REAL*8 before regridding
-      GEOS_1x1(:,:,1) = ARRAY(:,:,1)
-      
-      ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
-
-      ! Regrid to current model resolution
-      INGRID  => GEOS_1x1(:,:,1)
-      OUTGRID => GEOS_GRID(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, IS_MASS=0,
-     &                    netCDF=.TRUE.                   )   
-
-      EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
-
-      ! Free pointers
-      NULLIFY( INGRID, OUTGRID  )
-
-      END SUBROUTINE READ_ANNUAL_BIOFUELCO2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!      ! Read CO2 shipping emissions [molec/cm2/s]
+!      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 7, 
+!     &                 TAU,       360,       181,     
+!     &                 1,         ARRAY,     QUIET=.TRUE. )
 !
-! !IROUTINE: read_shipco2_edgar
+!      ! Cast to REAL*8 before regridding
+!      GEOS_1x1(:,:,1) = ARRAY(:,:,1)
 !
-! !DESCRIPTION: Subroutine READ\_SHIPCO2\_EDGAR reads in annual mean ship CO2 
-!  emissions from a binary punch file.  Scaling is based on Endresen et al. 
-!  (2007).
-!\\
-!\\
-! !INTERFACE:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 !
-      SUBROUTINE READ_SHIPCO2_EDGAR
+!      ! Regrid to current model resolution
+!      INGRID  => GEOS_1x1 (:,:,1)
+!      OUTGRID => GEOS_GRID(:,:,1)
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, IS_MASS=0,
+!     &                    netCDF=.TRUE.                   )
 !
-! !USES:
+!      ! Free pointers
+!      NULLIFY( INGRID, OUTGRID )
 !
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE TIME_MOD,       ONLY : GET_YEAR
-	
-      USE CMN_SIZE_MOD         ! Size parameters
+!      DO J = 1, JJPAR
+!         EMSHIPCO2(:,J) = GEOS_GRID(:,J,1) 
+!      ENDDO
 !
-! !REVISION HISTORY: 
-!  18 May 2010 - R. Nassar, D. Jones - Initial version
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
-!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
-!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      !-----------------------------------------------------------------
+!      ! Global Ship Totals for the years 1985 to 2009
+!      !-----------------------------------------------------------------
+!      ! These were based on a linear fit to 1985 to 2002 
+!      ! values from Endresen et al. (2007)
+!      ! The 2007 value was used for 2009 similar to the case for 
+!      ! overall fossil fuel use related to the recession
+!      ! We have not attempted to extrapolate beyond 2009
+!      !-----------------------------------------------------------------
+!      ! Values are essentially all international (domestic negligible)
+!      !-----------------------------------------------------------------
 !
-! !LOCAL VARIABLES:
+!      GlobSTotNew(1:25) = (/ 0.122, 0.125,0.128, 0.132, 0.135,
+!     &                       0.138, 0.141,0.144, 0.148, 0.151,
+!     &                       0.154, 0.157,0.160, 0.163, 0.167,
+!     &                       0.170, 0.173,0.176, 0.179, 0.182,
+!     &                       0.186, 0.189,0.192, 0.195, 0.192 /)
 !
-      ! Scalars
-      INTEGER             :: I, J, N, YEAR
-      REAL*8              :: TAU
-      REAL*8,  PARAMETER  :: SEC_IN_YEAR = 86400d0 * 365.25d0
-      REAL*8,  PARAMETER  :: GlobSTot = 0.117 
-                             ! EDGAR global total value in PgC/yr
-      REAL*8              :: GlobSTotNew(25) 
-                             ! For scaling to a specified global total PgC/yr
-      CHARACTER(LEN=255)  :: FILENAME
-      CHARACTER(LEN=255)  :: LLFILENAME
-
-      ! Arrays and pointers
-      REAL*4              :: ARRAY    (I1x1, J1x1-1,1)
-      REAL*4		  :: A_CM2    (IIPAR,JJPAR   )
-      REAL*8,  TARGET     :: GEN_1x1  (I1x1, J1x1-1,1)
-      REAL*8,  TARGET     :: GEOS_GRID(IIPAR,JJPAR, 1)
-      REAL*8,  POINTER    :: INGRID (:,:) => NULL()
-      REAL*8,  POINTER    :: OUTGRID(:,:) => NULL()
-
-      !=================================================================
-      ! READ_SHIPCO2_EDGAR begins here!
-      !=================================================================
-
-      YEAR = GET_YEAR()
-
-      ! Fill array
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         A_CM2(I,J) = GET_AREA_CM2( I, J, 1 )
-      ENDDO
-      ENDDO
-
-      ! File contaning EDGAR ship CO2 data
-      FILENAME = TRIM( DATA_DIR_1x1 ) // 
-     &     'ARCTAS_SHIP_2008/Arctas_CO2_ship_2008.generic.1x1'
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_ANNUAL_SHIP_CO2_EDGAR: Reading ', a ) 
-
-      ! TAU value for start of 2008
-      TAU = GET_TAU0( 1, 1, 2008 )
-
-      ! Read CO2 shipping emissions [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 1, 
-     &                 TAU,       I1x1,      J1x1-1,
-     &                 1,         ARRAY,     QUIET=.TRUE. )
-
-      ! Cast to REAL*8 before regridding
-      GEN_1x1(:,:,1) = ARRAY(:,:,1)
-
-      ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
-
-      ! Regrid from GENERIC 1x1 --> current model resolution
-      INGRID  => GEN_1x1  (:,:,1)
-      OUTGRID => GEOS_GRID(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, IS_MASS=1,
-     &                    netCDF=.TRUE.                   )   
-
-      ! Free pointers
-      NULLIFY( INGRID, OUTGRID )
-
-      ! Convert units kg CO2 / yr --> molecules/cm2/s 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-      	EMSHIPCO2(I,J) = GEOS_GRID(I,J,1) * 6.022E23 
-     &            / ( 44.0d-3 * SEC_IN_YEAR * A_CM2(I,J) )
-      ENDDO
-      ENDDO
-
-      !-----------------------------------------------------------------
-      ! Global Ship Totals for the years 1985 to 2009
-      !-----------------------------------------------------------------
-      ! These were based on a linear fit to 1985 to 2002 
-      ! values from Endresen et al. (2007)
-      ! The 2007 value was used for 2009 similar to the case for 
-      ! overall fossil fuel use related to the recession
-      ! We have not attempted to extrapolate beyond 2009
-      !-----------------------------------------------------------------
-      ! Values are essentially all international (domestic negligible)
-      !-----------------------------------------------------------------
-
-      GlobSTotNew(1:25) = (/ 0.122, 0.125, 0.128, 0.132, 0.135,
-     &                       0.138, 0.141, 0.144, 0.148, 0.151,
-     &                       0.154, 0.157, 0.160, 0.163, 0.167,
-     &                       0.170, 0.173, 0.176, 0.179, 0.182,
-     &                       0.186, 0.189, 0.192, 0.195, 0.192 /)
-        
-      IF (YEAR <= 1985) THEN
-         n = 1
-      ELSEIF (YEAR >= 2009) THEN
-         n = 25
-      ELSE
-         n = YEAR - 1985 + 1
-      ENDIF
-
-      ! Apply scaling to obtain a specified yearly global total
-      DO J = 1, JJPAR
-         EMSHIPCO2(:,J) = EMSHIPCO2(:,J)*(GlobSTotNew(n)/GlobSTot)
-      ENDDO
-
-      END SUBROUTINE READ_SHIPCO2_EDGAR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!      IF ( YEAR <= 1985 ) THEN
+!         n = 1
+!      ELSEIF ( YEAR >= 2009 ) THEN
+!         n = 25
+!      ELSE
+!         n = YEAR - 1985 + 1
+!      ENDIF
+!      
+!      ! Apply scaling to obtain a specified yearly global total
+!      DO J = 1, JJPAR
+!         EMSHIPCO2(:,J) = EMSHIPCO2(:,J)*(GlobSTotNew(n)/GlobSTot)
+!      ENDDO
 !
-! !IROUTINE: read_shipco2_icoads
+!      END SUBROUTINE READ_SHIPCO2_ICOADS
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_aviation_co2
+!!
+!! !DESCRIPTION: Subroutine READ\_AVIATION\_CO2 reads monthly mean aircraft 
+!!  fuel emissions and converts them to CO2 emissions.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_AVIATION_CO2( State_Met )
+!!
+!! !USES:
+!!
+!      ! Reference to F90 modules
+!      USE BPCH2_MOD,          ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
+!      USE DIRECTORY_MOD,      ONLY : DATA_DIR 
+!      USE FILE_MOD,           ONLY : IOERROR
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
 !
-! !DESCRIPTION: Subroutine READ\_SHIPCO2\_ICOADS reads in ICOADS monthly 
-!  ship CO2 emissions
-!\\
-!\\
-! !INTERFACE:
+!      USE CMN_SIZE_MOD             ! Size parameters
+!!
+!! !INPUT PARAMETERS:
+!!
+!      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!!
+!! !REMARKS:
+!!  This is a modified version of READ_AIRCRAFT_SO2 from:
+!!                                            rjp, bdf, bmy, 9/18/02, 10/3/05
+!!                                                                             .
+!!  The sulfate data are based on an inventory by the Atmospheric Effects of 
+!!  Aviation Project (AEAP) for the year 1992.  
+!!                                                                             .
+!!  CO2 emission factor of 3155 g/kg fuel was taken from
+!!  (1) Kim et al. (2005) System for assessing Aviation's Global Emissions 
+!!       (SAGE) Federal Aviation Administration Office of Environment and 
+!!       Energy Version 1.5 (FAA-EE-2005-02), Global Aviation Emissions 
+!!       Inventories for 2000 through 2004.
+!!  (2) Kim et al. (2007) System for assessing Aviation's Global Emissions
+!!       (SAGE) Part 1: Model description and inventory results 
+!! 
+!! !REVISION HISTORY: 
+!!  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
+!!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!!  (3 ) Now read files from "sulfate_sim_200508/".  Now read data for both 
+!!        GCAP and GEOS grids (bmy, 8/16/05)
+!!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!!  (6 ) Reading of GlobPTot values from input.geos has not yet been implemented
+!!  18 May 2010 - R. Nassar, D. Jones - Initial version
+!!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER             :: IU_FILE
+!      INTEGER             :: I, IOS, J, K, L
+!      INTEGER             :: THISMONTH, N, YEAR
+!      REAL*8              :: ACCO2(IIPAR,JJPAR,20)
+!      REAL*8              :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
+!      REAL*8, PARAMETER   :: TINY = 1d-20
+!      REAL*8, EXTERNAL    :: BOXVL
 !
-      SUBROUTINE READ_SHIPCO2_ICOADS
+!      ! For scaling to a specified global total PgC/yr
+!      REAL*8, PARAMETER   :: GlobPTot    = 0.12 !1992 AEAP estimate
+!      REAL*8              :: GlobPTotNew(22)
+!	
+!      CHARACTER(LEN=255)  :: FILENAME
+!      CHARACTER(LEN=3)    :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr', 
+!     &                                      'may', 'jun', 'jul', 'aug',
+!     &                                      'sep', 'oct', 'nov', 'dec'/)
 !
-! !USES:
+!      !=================================================================
+!      ! READ_AVIATION_CO2 begins here!
+!      !=================================================================
+!      
+!      ! Zero arrays
+!      EMPLANECO2 = 0d0
+!      ACCO2   = 0d0
+!      
+!	THISMONTH = GET_MONTH()
 !
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE FILE_MOD,       ONLY : IOERROR
-      USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A	
-
-      USE CMN_SIZE_MOD         ! Size parameters
+!      ! File name
+!      FILENAME = TRIM( DATA_DIR )               // 
+!     &           'sulfate_sim_200508/aircraft.' // GET_RES_EXT() //
+!     &           '.1992.'                       // CMONTH(THISMONTH)
 !
-! !REMARKS:
-!  This subroutine reads from bpch files at GEOS 1x1 (half-polar) resolution
-!  although the original data are provided as 0.1 deg x 0.1 deg. Regridding to 
-!  the current resolution is carried out in the code.
-!                                                                             .
-!  References:
-!  (1) Corbett and Koehler (2003) "Updated emissions from ocean shipping", 
-!       JGR 108, D20, 4650.
-!  (2) Corbett and Koehler (2004) "Considering alternative input parameters in 
-!       an activity-based ship fuel consumption and emissions model: Reply ..."
-!       JGR, 109, D23303.
-!  (3) Endresen et al. (2007) "A historical reconstruction of ships fuel 
-!       consumption and emissions", JGR, 112, D12301.
-!                                                                             .
-!  NOTE: The Corbett website values do not sum to the values in any Corbett
-!  et al. or Wang (2008) papers. It is not clear if this relates to the 
-!  ongoing dispute between Corbett et al.(2003,2004) and Endresen et al.
-!  (2003,2004,2007)
-! 
-! !REVISION HISTORY: 
-!  18 May 2010 - R. Nassar, D. Jones - Initial version
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
-!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
-!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
-!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      ! Echo output
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_AVIATION_CO2: Reading ', a )     
 !
-! !LOCAL VARIABLES:
+!      !=================================================================
+!      ! Read aircraft emissions.  These are fuel burned in [kg/box/day],
+!      ! from AEAP for 1992.  CO2 emission is calculated by assuming    
+!      ! an emission index EI of 3155, i.e., 3155 g of CO2 emitted per kg    
+!      ! of fuel burned.  It is also assumed that there is no diurnal   
+!      ! variation of emission rate. Convert to [kg CO2/box/s]. 
+!      !=================================================================
 !
-      INTEGER                :: I, J, MONTH, YEAR, IOS, N
-      REAL*8                 :: TAU
-      REAL*8,  PARAMETER     :: SEC_IN_YEAR = 86400d0 * 365.25d0
-      REAL*8,  PARAMETER     :: GlobSTot = 0.1760 
-                                !ICOADS global total value in PgC/yr
-      REAL*8                 :: GlobSTotNew(25) 
-                                !For scaling to a specified global total PgC/yr
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=2)       :: MONTH_STR
-      CHARACTER(LEN=255)     :: LLFILENAME
-
-      ! Arrays and pointers
-      REAL*4                 :: ARRAY    (I1x1, J1x1, 1)
-      REAL*8, TARGET         :: GEOS_1x1 (I1x1, J1x1, 1)
-      REAL*8, TARGET         :: GEOS_GRID(IIPAR,JJPAR,1)
-      REAL*4		     :: A_CM2    (IIPAR,JJPAR  )
-      REAL*8, POINTER        :: INGRID (:,:) => NULL()
-      REAL*8, POINTER        :: OUTGRID(:,:) => NULL()
-	
-      !=================================================================
-      ! READ_SHIPCO2_ICOADS begins here!
-      !=================================================================
-
-      YEAR = GET_YEAR()
-      MONTH = GET_MONTH()
- 
-      WRITE( MONTH_STR, '(i2.2)' ) MONTH
-      
-      FILENAME = TRIM( DATA_DIR_1x1 )           // 
-     &           'CO2_201003/ship_ICOADS/co2_'  // 
-     &           MONTH_STR // '.geos.1x1'
-	
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_MONTHLY_SHIP_CO2_ICOADS: Reading ', a ) 
-
-      ! TAU value for start of month in 2004
-      TAU = GET_TAU0( MONTH, 1, 2004 )
-
-      ! Read CO2 shipping emissions [molec/cm2/s]
-      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 7, 
-     &                 TAU,       360,       181,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )
-
-      ! Cast to REAL*8 before regridding
-      GEOS_1x1(:,:,1) = ARRAY(:,:,1)
-
-      ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
-
-      ! Regrid to current model resolution
-      INGRID  => GEOS_1x1 (:,:,1)
-      OUTGRID => GEOS_GRID(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, IS_MASS=0,
-     &                    netCDF=.TRUE.                   )
-
-      ! Free pointers
-      NULLIFY( INGRID, OUTGRID )
-
-      DO J = 1, JJPAR
-         EMSHIPCO2(:,J) = GEOS_GRID(:,J,1) 
-      ENDDO
-
-      !-----------------------------------------------------------------
-      ! Global Ship Totals for the years 1985 to 2009
-      !-----------------------------------------------------------------
-      ! These were based on a linear fit to 1985 to 2002 
-      ! values from Endresen et al. (2007)
-      ! The 2007 value was used for 2009 similar to the case for 
-      ! overall fossil fuel use related to the recession
-      ! We have not attempted to extrapolate beyond 2009
-      !-----------------------------------------------------------------
-      ! Values are essentially all international (domestic negligible)
-      !-----------------------------------------------------------------
-
-      GlobSTotNew(1:25) = (/ 0.122, 0.125,0.128, 0.132, 0.135,
-     &                       0.138, 0.141,0.144, 0.148, 0.151,
-     &                       0.154, 0.157,0.160, 0.163, 0.167,
-     &                       0.170, 0.173,0.176, 0.179, 0.182,
-     &                       0.186, 0.189,0.192, 0.195, 0.192 /)
-
-      IF ( YEAR <= 1985 ) THEN
-         n = 1
-      ELSEIF ( YEAR >= 2009 ) THEN
-         n = 25
-      ELSE
-         n = YEAR - 1985 + 1
-      ENDIF
-      
-      ! Apply scaling to obtain a specified yearly global total
-      DO J = 1, JJPAR
-         EMSHIPCO2(:,J) = EMSHIPCO2(:,J)*(GlobSTotNew(n)/GlobSTot)
-      ENDDO
-
-      END SUBROUTINE READ_SHIPCO2_ICOADS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!      ! Find a free file LUN
+!      IU_FILE = findFreeLUN()
 !
-! !IROUTINE: read_aviation_co2
+!      ! Open file 
+!      OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
+!      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aviation_co2:1' )
 !
-! !DESCRIPTION: Subroutine READ\_AVIATION\_CO2 reads monthly mean aircraft 
-!  fuel emissions and converts them to CO2 emissions.
-!\\
-!\\
-! !INTERFACE:
+!      ! Read header line
+!      READ( IU_FILE, '(/)', IOSTAT=IOS )
+!      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aviation_co2:2' )
+!      
+!      ! Read data values until an EOF is found
+!      DO 
+!         READ( IU_FILE, '(3i4,e11.3)', IOSTAT=IOS ) I, J, L, FUEL
 !
-      SUBROUTINE READ_AVIATION_CO2( State_Met )
+!         ! EOF encountered
+!         IF ( IOS < 0 ) EXIT
 !
-! !USES:
+!         ! I/O error condition
+!         IF ( IOS > 0 ) THEN
+!            CALL IOERROR( IOS, IU_FILE, 'read_aviation_co2:3' )
+!         ENDIF
 !
-      ! Reference to F90 modules
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR 
-      USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
-
-      USE CMN_SIZE_MOD             ! Size parameters
+!         ! Unit conversion: [kg Fuel/box/day] -> [kg CO2/box/s]
+!         ! Assuming an emission index of 1.0, 
+!         ! 3155 g CO2 / kg fuel burned [Kim et al., 2005, 2007]
+!         ACCO2(I,J,L+1) = 3.155 * FUEL / ( 24.d0 * 3600d0 )
 !
-! !INPUT PARAMETERS:
+!      ENDDO
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!      ! Close file
+!      CLOSE( IU_FILE )
+!	
+!      !=================================================================
+!      ! Interpolate from the 1-km grid to the given GEOS-CHEM grid
+!      ! NOTE: we need to account for window grids (bmy, 9/20/02)
+!      !=================================================================
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
 !
-! !REMARKS:
-!  This is a modified version of READ_AIRCRAFT_SO2 from:
-!                                            rjp, bdf, bmy, 9/18/02, 10/3/05
-!                                                                             .
-!  The sulfate data are based on an inventory by the Atmospheric Effects of 
-!  Aviation Project (AEAP) for the year 1992.  
-!                                                                             .
-!  CO2 emission factor of 3155 g/kg fuel was taken from
-!  (1) Kim et al. (2005) System for assessing Aviation's Global Emissions 
-!       (SAGE) Federal Aviation Administration Office of Environment and 
-!       Energy Version 1.5 (FAA-EE-2005-02), Global Aviation Emissions 
-!       Inventories for 2000 through 2004.
-!  (2) Kim et al. (2007) System for assessing Aviation's Global Emissions
-!       (SAGE) Part 1: Model description and inventory results 
-! 
-! !REVISION HISTORY: 
-!  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
-!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (3 ) Now read files from "sulfate_sim_200508/".  Now read data for both 
-!        GCAP and GEOS grids (bmy, 8/16/05)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (6 ) Reading of GlobPTot values from input.geos has not yet been implemented
-!  18 May 2010 - R. Nassar, D. Jones - Initial version
-!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!         ! ACCO2 is the aircraft CO2 on the 1-km vertical grid
+!         FUEL = SUM( ACCO2(I,J,:) )
+!         IF ( FUEL < TINY ) CYCLE
 !
-! !LOCAL VARIABLES:
+!         ! There are 20 1-km levels
+!         DO K = 1, 20
 !
-      INTEGER             :: IU_FILE
-      INTEGER             :: I, IOS, J, K, L
-      INTEGER             :: THISMONTH, N, YEAR
-      REAL*8              :: ACCO2(IIPAR,JJPAR,20)
-      REAL*8              :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
-      REAL*8, PARAMETER   :: TINY = 1d-20
-      REAL*8, EXTERNAL    :: BOXVL
-
-      ! For scaling to a specified global total PgC/yr
-      REAL*8, PARAMETER   :: GlobPTot    = 0.12 !1992 AEAP estimate
-      REAL*8              :: GlobPTotNew(22)
-	
-      CHARACTER(LEN=255)  :: FILENAME
-      CHARACTER(LEN=3)    :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr', 
-     &                                      'may', 'jun', 'jul', 'aug',
-     &                                      'sep', 'oct', 'nov', 'dec'/)
-
-      !=================================================================
-      ! READ_AVIATION_CO2 begins here!
-      !=================================================================
-      
-      ! Zero arrays
-      EMPLANECO2 = 0d0
-      ACCO2   = 0d0
-      
-	THISMONTH = GET_MONTH()
-
-      ! File name
-      FILENAME = TRIM( DATA_DIR )               // 
-     &           'sulfate_sim_200508/aircraft.' // GET_RES_EXT() //
-     &           '.1992.'                       // CMONTH(THISMONTH)
-
-      ! Echo output
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_AVIATION_CO2: Reading ', a )     
-
-      !=================================================================
-      ! Read aircraft emissions.  These are fuel burned in [kg/box/day],
-      ! from AEAP for 1992.  CO2 emission is calculated by assuming    
-      ! an emission index EI of 3155, i.e., 3155 g of CO2 emitted per kg    
-      ! of fuel burned.  It is also assumed that there is no diurnal   
-      ! variation of emission rate. Convert to [kg CO2/box/s]. 
-      !=================================================================
-
-      ! Find a free file LUN
-      IU_FILE = findFreeLUN()
-
-      ! Open file 
-      OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
-      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aviation_co2:1' )
-
-      ! Read header line
-      READ( IU_FILE, '(/)', IOSTAT=IOS )
-      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aviation_co2:2' )
-      
-      ! Read data values until an EOF is found
-      DO 
-         READ( IU_FILE, '(3i4,e11.3)', IOSTAT=IOS ) I, J, L, FUEL
-
-         ! EOF encountered
-         IF ( IOS < 0 ) EXIT
-
-         ! I/O error condition
-         IF ( IOS > 0 ) THEN
-            CALL IOERROR( IOS, IU_FILE, 'read_aviation_co2:3' )
-         ENDIF
-
-         ! Unit conversion: [kg Fuel/box/day] -> [kg CO2/box/s]
-         ! Assuming an emission index of 1.0, 
-         ! 3155 g CO2 / kg fuel burned [Kim et al., 2005, 2007]
-         ACCO2(I,J,L+1) = 3.155 * FUEL / ( 24.d0 * 3600d0 )
-
-      ENDDO
-
-      ! Close file
-      CLOSE( IU_FILE )
-	
-      !=================================================================
-      ! Interpolate from the 1-km grid to the given GEOS-CHEM grid
-      ! NOTE: we need to account for window grids (bmy, 9/20/02)
-      !=================================================================
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! ACCO2 is the aircraft CO2 on the 1-km vertical grid
-         FUEL = SUM( ACCO2(I,J,:) )
-         IF ( FUEL < TINY ) CYCLE
-
-         ! There are 20 1-km levels
-         DO K = 1, 20
-
-            ! Initialize
-            ZH(0) = 0.d0
-
-            ! Loop over levels
-            DO L = 1, LLPAR
-
-               ! Altitude of top edge of level L, from ground [km]
-               ZH(L) = ZH(L-1) + ( State_Met%BXHEIGHT(I,J,L) * 1d-3 )
-               
-               IF ( ZH(L-1) > DBLE(K)   ) EXIT
-               IF ( ZH(L  ) < DBLE(K-1) ) CYCLE
-               
-               IF ( ZH(L) < DBLE(K) ) THEN
-                  FAC            = ZH(L) - MAX( ZH(L-1), DBLE(K-1) )
-                  EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L)+ACCO2(I,J,K)*FAC
-               ELSE
-                  FAC            = DBLE(K) - MAX( ZH(L-1), DBLE(K-1) )
-                  EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L)+ACCO2(I,J,K)*FAC
-                  EXIT
-               ENDIF		     
-            ENDDO
-         ENDDO     
-
-      ENDDO
-      ENDDO
-
-      YEAR = GET_YEAR()
-
-      !-----------------------------------------------------------------
-      ! Global Aviation Totals for 1985-2006
-      !-----------------------------------------------------------------
-      ! 1985-1995 values come directly from Sausen & Schumann (2000)
-      ! 1996-1999 value of 0.155 assumed for bridging
-      ! 2000-2005 values come directly from Kim et al. (2007)
-      ! 2006 value comes from Wilkerson et al. (2010)
-      ! We have not attempted to extrapolate outside of this range
-      !-----------------------------------------------------------------
-      ! A correction for domestic fuel use is carried out in the 
-      ! fossil fuel subroutine.
-      !-----------------------------------------------------------------
-
-	GlobPTotNew(1:22) = (/
-     &       0.1234, 0.1299, 0.1356, 0.1414, 0.1465,
-     &       0.1469, 0.1434, 0.1420, 0.1441, 0.1500, 0.1543,  ! 1985-1995
-     &       0.1550, 0.1550, 0.1550, 0.1550,                  ! 1996-1999
-     &       0.1560, 0.1462, 0.1470, 0.1519, 0.1620, 0.1748,  ! 2000-2005
-     &       0.16225 /)                                        ! 2006
-
-	IF ( YEAR <= 1985 ) THEN
-           n = 1
-        ELSEIF ( YEAR >= 2006 ) THEN
-           n = 22
-	ELSE
-           n = YEAR - 2000 + 1
-	ENDIF
-
-      !=================================================================
-      ! Convert units from kg/box/s to molecules/cm3/s
-      !
-      ! Notes:
-      ! 1) box volume from BOXVL is in cm3
-      ! 2) mass is for CO2 (not C) with emission factor of 3155 g/kg  
-      ! 3) optional global scaling to specified value
-      !=================================================================
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-      DO L = 1, LLPAR
-         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L,State_Met)
-     &                     * 6.022d23 / 44.01d-3
-
-	 ! Apply scaling to obtain a specified global Total
-         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L)*(GlobPTotNew(n)/GlobPTot)
-      ENDDO     
-      ENDDO
-      ENDDO
-
-      END SUBROUTINE READ_AVIATION_CO2
-!EOC
+!            ! Initialize
+!            ZH(0) = 0.d0
+!
+!            ! Loop over levels
+!            DO L = 1, LLPAR
+!
+!               ! Altitude of top edge of level L, from ground [km]
+!               ZH(L) = ZH(L-1) + ( State_Met%BXHEIGHT(I,J,L) * 1d-3 )
+!               
+!               IF ( ZH(L-1) > DBLE(K)   ) EXIT
+!               IF ( ZH(L  ) < DBLE(K-1) ) CYCLE
+!               
+!               IF ( ZH(L) < DBLE(K) ) THEN
+!                  FAC            = ZH(L) - MAX( ZH(L-1), DBLE(K-1) )
+!                  EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L)+ACCO2(I,J,K)*FAC
+!               ELSE
+!                  FAC            = DBLE(K) - MAX( ZH(L-1), DBLE(K-1) )
+!                  EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L)+ACCO2(I,J,K)*FAC
+!                  EXIT
+!               ENDIF		     
+!            ENDDO
+!         ENDDO     
+!
+!      ENDDO
+!      ENDDO
+!
+!      YEAR = GET_YEAR()
+!
+!      !-----------------------------------------------------------------
+!      ! Global Aviation Totals for 1985-2006
+!      !-----------------------------------------------------------------
+!      ! 1985-1995 values come directly from Sausen & Schumann (2000)
+!      ! 1996-1999 value of 0.155 assumed for bridging
+!      ! 2000-2005 values come directly from Kim et al. (2007)
+!      ! 2006 value comes from Wilkerson et al. (2010)
+!      ! We have not attempted to extrapolate outside of this range
+!      !-----------------------------------------------------------------
+!      ! A correction for domestic fuel use is carried out in the 
+!      ! fossil fuel subroutine.
+!      !-----------------------------------------------------------------
+!
+!	GlobPTotNew(1:22) = (/
+!     &       0.1234, 0.1299, 0.1356, 0.1414, 0.1465,
+!     &       0.1469, 0.1434, 0.1420, 0.1441, 0.1500, 0.1543,  ! 1985-1995
+!     &       0.1550, 0.1550, 0.1550, 0.1550,                  ! 1996-1999
+!     &       0.1560, 0.1462, 0.1470, 0.1519, 0.1620, 0.1748,  ! 2000-2005
+!     &       0.16225 /)                                        ! 2006
+!
+!	IF ( YEAR <= 1985 ) THEN
+!           n = 1
+!        ELSEIF ( YEAR >= 2006 ) THEN
+!           n = 22
+!	ELSE
+!           n = YEAR - 2000 + 1
+!	ENDIF
+!
+!      !=================================================================
+!      ! Convert units from kg/box/s to molecules/cm3/s
+!      !
+!      ! Notes:
+!      ! 1) box volume from BOXVL is in cm3
+!      ! 2) mass is for CO2 (not C) with emission factor of 3155 g/kg  
+!      ! 3) optional global scaling to specified value
+!      !=================================================================
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!      DO L = 1, LLPAR
+!         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L,State_Met)
+!     &                     * 6.022d23 / 44.01d-3
+!
+!	 ! Apply scaling to obtain a specified global Total
+!         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L)*(GlobPTotNew(n)/GlobPTot)
+!      ENDDO     
+!      ENDDO
+!      ENDDO
+!
+!      END SUBROUTINE READ_AVIATION_CO2
+!!EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1752,7 +1753,6 @@
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D,   GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,          READ_BPCH2
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR,          DATA_DIR_1x1
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE FILE_MOD,           ONLY : IOERROR
@@ -1838,7 +1838,7 @@
       ! Filename
       IF ( LBIONETORIG ) THEN
 
-         FILENAME = TRIM( DATA_DIR )                //
+         FILENAME = TRIM( Input_Opt%DATA_DIR )      //
      &              'CO2_200508/net_terr_exch_CO2.' // 
      &               GET_NAME_EXT_2D() // '.'       // 
      &               GET_RES_EXT()     // '.txt'
@@ -1909,7 +1909,7 @@
 !-----------------------------------------------------------------------------
                   
          ! Filename
-         FILENAME = TRIM( DATA_DIR_1x1 )                      //  
+         FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 )            //  
      &              'CO2_201003/'                             //
      &              'Net_terrestrial_exch_5.29Pg.generic.1x1'
 	
@@ -1925,7 +1925,7 @@
          GEN_1x1(:,:,1) = ARRAY_1x1(:,:,1)
 
          ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1)            //
+         LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1)  //
      &                'MAP_A2A_Regrid_201203/'       //
      &                'MAP_A2A_latlon_generic1x1.nc'
 
@@ -1947,228 +1947,234 @@
 
       END SUBROUTINE READ_ANNUAL_BIONET_CO2 
 !EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+! Prior to 6/24/14:
+! HEMCO has orphaned these routine.  Comment out for now (bmy, 6/24/14)
 !
-! !IROUTINE: read_bbio_dailyaverage
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_bbio_dailyaverage
+!!
+!! !DESCRIPTION: Subroutine READ\_DAILY\_BBIO\_CO2 reads in daily values for 
+!!  balanced biospheric exchange from a binary punch file.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_BBIO_DAILYAVERAGE( MONTH, DAY, DOY ) 
+!!
+!! !USES:
+!!
+!      ! References to F90 modules
+!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+!      USE DIRECTORY_MOD, ONLY : DATA_DIR
+!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+!      USE TIME_MOD,      ONLY : GET_YEAR,        ITS_A_LEAPYEAR
 !
-! !DESCRIPTION: Subroutine READ\_DAILY\_BBIO\_CO2 reads in daily values for 
-!  balanced biospheric exchange from a binary punch file.
-!\\
-!\\
-! !INTERFACE:
+!      USE CMN_SIZE_MOD      ! Size parameters
+!!
+!! !INPUT PARAMETERS:
+!!
+!      INTEGER, INTENT(IN) :: MONTH   ! Current month (1-12)
+!      INTEGER, INTENT(IN) :: DAY     ! Current day (1-31)
+!      INTEGER, INTENT(IN) :: DOY     ! Current day of year (0-366)
+!!
+!! !REMARKS:
+!!  Data Source: CASA gridded (1x1) dataset for from M. Thompson
+!!  Monthly values interpolated to daily values : 365 daily files 
+!!  NB : These files DO NOT have the diurnal cycle in daily emissions
+!!  See routine ' ' to read in files with diurnal cycle imposed
+!! 
+!! !REVISION HISTORY: 
+!!  16 Aug 2005 - P. Suntharalingam   - Initial version
+!!  18 May 2010 - R. Nassar, D. Jones - Added fixes for leapyears
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER                :: I, J, YEAR      ! dbj
+!      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
+!      REAL*8                 :: TAU
+!      CHARACTER(LEN=3  )     :: SDOY
+!      CHARACTER(LEN=255)     :: FILENAME
 !
-      SUBROUTINE READ_BBIO_DAILYAVERAGE( MONTH, DAY, DOY ) 
+!      !=================================================================
+!      ! READ_BBIO_DAILYAVERAGE begins here!
+!      !=================================================================
 !
-! !USES:
+!      YEAR   = GET_YEAR()    ! dbj
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE TIME_MOD,      ONLY : GET_YEAR,        ITS_A_LEAPYEAR
-
-      USE CMN_SIZE_MOD      ! Size parameters
+!      ! Create string for day of year
+!      ! ----------------------------------------------------------------
+!      ! Since 2000 is a leap-year, we need to add one to get the correct 
+!      ! day-of-year for non-leap years, if the date is after Feb 28.
+!      !                                                     ! Ray Nassar
+!      ! ----------------------------------------------------------------
+!      
+!      IF( ITS_A_LEAPYEAR() .OR. DOY <= 59 ) THEN
+!         WRITE( SDOY, '(i3.3)' ) DOY 
+!      ELSE
+!         WRITE( SDOY, '(i3.3)' ) DOY + 1 
+!      ENDIF
 !
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN) :: MONTH   ! Current month (1-12)
-      INTEGER, INTENT(IN) :: DAY     ! Current day (1-31)
-      INTEGER, INTENT(IN) :: DOY     ! Current day of year (0-366)
-!
-! !REMARKS:
-!  Data Source: CASA gridded (1x1) dataset for from M. Thompson
-!  Monthly values interpolated to daily values : 365 daily files 
-!  NB : These files DO NOT have the diurnal cycle in daily emissions
-!  See routine ' ' to read in files with diurnal cycle imposed
-! 
-! !REVISION HISTORY: 
-!  16 Aug 2005 - P. Suntharalingam   - Initial version
-!  18 May 2010 - R. Nassar, D. Jones - Added fixes for leapyears
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                :: I, J, YEAR      ! dbj
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8                 :: TAU
-      CHARACTER(LEN=3  )     :: SDOY
-      CHARACTER(LEN=255)     :: FILENAME
-
-      !=================================================================
-      ! READ_BBIO_DAILYAVERAGE begins here!
-      !=================================================================
-
-      YEAR   = GET_YEAR()    ! dbj
-
-      ! Create string for day of year
-      ! ----------------------------------------------------------------
-      ! Since 2000 is a leap-year, we need to add one to get the correct 
-      ! day-of-year for non-leap years, if the date is after Feb 28.
-      !                                                     ! Ray Nassar
-      ! ----------------------------------------------------------------
-      
-      IF( ITS_A_LEAPYEAR() .OR. DOY <= 59 ) THEN
-         WRITE( SDOY, '(i3.3)' ) DOY 
-      ELSE
-         WRITE( SDOY, '(i3.3)' ) DOY + 1 
-      ENDIF
-
-      ! Get TAU value corresponding to DOY in year 2000
-      TAU = GET_TAU0( MONTH, DAY, 2000 )
-
-!      write(*,*) 'BB day ave DOY, SDOY, Tau = ',DOY, SDOY, Tau
-      !-----------------------------------------------------------------
-
-!      ! Make a string from DOY
-!      WRITE( SDOY, '(i3.3)' ) DOY 
-
-      ! Name of file with Balanced Bio CO2 data
-      FILENAME = TRIM( DATA_DIR )                      //
-     &           'CO2_200508/BBIO_DAILYAVG/CO2.daily.' //
-     &           GET_NAME_EXT_2D() // '.'              //
-     &           GET_RES_EXT()     // '.'              // SDOY
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_BBIO_DAILYAVERAGE: Reading ', a ) 
-
 !      ! Get TAU value corresponding to DOY in year 2000
 !      TAU = GET_TAU0( MONTH, DAY, 2000 )
-
-      ! Read balanced biosphere CO2 [molec/cm2/s] from disk
-      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 3, 
-     &                 TAU,       IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )
-
-      ! Cast from REAL*4 to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOCO2 )
-
-      END SUBROUTINE READ_BBIO_DAILYAVERAGE
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
 !
-! !IROUTINE: read_bbio_diurnalcycle
+!!      write(*,*) 'BB day ave DOY, SDOY, Tau = ',DOY, SDOY, Tau
+!      !-----------------------------------------------------------------
 !
-! !DESCRIPTION: Subroutine READ\_BBIO\_DIURNALCYCLE reads CASA daily Net 
-!  Ecosystem Production (NEP) fluxes but with a diurnal cycle imposed.
-!\\
-!\\
-! !INTERFACE:
+!!      ! Make a string from DOY
+!!      WRITE( SDOY, '(i3.3)' ) DOY 
 !
-      SUBROUTINE READ_BBIO_DIURNALCYCLE( MONTH, DAY, HOUR, DOY )
+!      ! Name of file with Balanced Bio CO2 data
+!      FILENAME = TRIM( DATA_DIR )                      //
+!     &           'CO2_200508/BBIO_DAILYAVG/CO2.daily.' //
+!     &           GET_NAME_EXT_2D() // '.'              //
+!     &           GET_RES_EXT()     // '.'              // SDOY
 !
-! !USES:
+!      ! Echo info
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_BBIO_DAILYAVERAGE: Reading ', a ) 
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D 
-      USE TIME_MOD,      ONLY : GET_YEAR, ITS_A_LEAPYEAR
-
-      USE CMN_SIZE_MOD      ! Size parameters
+!!      ! Get TAU value corresponding to DOY in year 2000
+!!      TAU = GET_TAU0( MONTH, DAY, 2000 )
 !
-! !INPUT PARAMETERS:
+!      ! Read balanced biosphere CO2 [molec/cm2/s] from disk
+!      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 3, 
+!     &                 TAU,       IIPAR,     JJPAR,     
+!     &                 1,         ARRAY,     QUIET=.TRUE. )
 !
-      INTEGER, INTENT(IN) :: MONTH   ! Current month (1-12)
-      INTEGER, INTENT(IN) :: DAY     ! Current day (1-31)
-      INTEGER, INTENT(IN) :: HOUR    ! Current hour (0-23)
-      INTEGER, INTENT(IN) :: DOY     ! Current day of year (0-365)
+!      ! Cast from REAL*4 to REAL*8 and resize if necessary
+!      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOCO2 )
 !
-! !REMARKS:
-!  References
-!  (1 ) Olsen and Randerson (2004), Differences between surface and column 
-!        atmospheric CO2 and implications for carbon cycle research, J. 
-!        Geophys. Res., 109, D02301,
-!  (2 ) Potter et al. (1993), terrestrial Ecosystem Production: A process
-!        model based on global satellite and surface data, Glob. Biogeochem.
-!        Cycles, 7(4), 811-841.
-! 
-! !REVISION HISTORY: 
-!  16 Aug 2005 - P. Suntharalingam   - Initial version
-!  18 May 2010 - R. Nassar, D. Jones - Added fixes for leapyears 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      END SUBROUTINE READ_BBIO_DAILYAVERAGE
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_bbio_diurnalcycle
+!!
+!! !DESCRIPTION: Subroutine READ\_BBIO\_DIURNALCYCLE reads CASA daily Net 
+!!  Ecosystem Production (NEP) fluxes but with a diurnal cycle imposed.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_BBIO_DIURNALCYCLE( MONTH, DAY, HOUR, DOY )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+!      USE DIRECTORY_MOD, ONLY : DATA_DIR
+!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D 
+!      USE TIME_MOD,      ONLY : GET_YEAR, ITS_A_LEAPYEAR
 !
-! !LOCAL VARIABLES:
+!      USE CMN_SIZE_MOD      ! Size parameters
+!!
+!! !INPUT PARAMETERS:
+!!
+!      INTEGER, INTENT(IN) :: MONTH   ! Current month (1-12)
+!      INTEGER, INTENT(IN) :: DAY     ! Current day (1-31)
+!      INTEGER, INTENT(IN) :: HOUR    ! Current hour (0-23)
+!      INTEGER, INTENT(IN) :: DOY     ! Current day of year (0-365)
+!!
+!! !REMARKS:
+!!  References
+!!  (1 ) Olsen and Randerson (2004), Differences between surface and column 
+!!        atmospheric CO2 and implications for carbon cycle research, J. 
+!!        Geophys. Res., 109, D02301,
+!!  (2 ) Potter et al. (1993), terrestrial Ecosystem Production: A process
+!!        model based on global satellite and surface data, Glob. Biogeochem.
+!!        Cycles, 7(4), 811-841.
+!! 
+!! !REVISION HISTORY: 
+!!  16 Aug 2005 - P. Suntharalingam   - Initial version
+!!  18 May 2010 - R. Nassar, D. Jones - Added fixes for leapyears 
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER                :: YEAR
+!      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
+!      REAL*8                 :: TAU
+!      CHARACTER(LEN=3 )      :: SDOY
+!      CHARACTER(LEN=255)     :: FILENAME
 !
-      INTEGER                :: YEAR
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8                 :: TAU
-      CHARACTER(LEN=3 )      :: SDOY
-      CHARACTER(LEN=255)     :: FILENAME
-
-      !=================================================================
-      ! READ_BBIO_DIURNALCYCLE begins here!
-      !=================================================================
-      
-      YEAR   = GET_YEAR()    ! dbj
-
-      ! Create string for day of year
-      !-----------------------------------------------------------------
-      ! Since 1985 is NOT a leap-year, we need to account for years that
-      ! are leap years if the date is Feb 29 or after by subtracting one 
-      !                                                     ! Ray Nassar
-      !-----------------------------------------------------------------
-      
-      IF( ITS_A_LEAPYEAR() .AND. DOY >= 60 ) THEN
-         WRITE( SDOY, '(i3.3)' ) DOY-1 
-      ELSE
-         WRITE( SDOY, '(i3.3)' ) DOY 
-      ENDIF
-
-      ! Get TAU of this month & day in "generic" year 1985
-      IF( MONTH == 2 .AND. DAY == 29) THEN
-         TAU = GET_TAU0( 2,     28,  1985, HOUR )
-      ELSE
-         TAU = GET_TAU0( MONTH, DAY, 1985, HOUR )
-      ENDIF
-
+!      !=================================================================
+!      ! READ_BBIO_DIURNALCYCLE begins here!
+!      !=================================================================
+!      
+!      YEAR   = GET_YEAR()    ! dbj
+!
 !      ! Create string for day of year
-!      WRITE( SDOY, '(i3.3)' ) DOY
-
-      ! File name
-      IF (SDOY == '189') THEN
-         FILENAME = TRIM( DATA_DIR )               //
-     &              'CO2_200508/BBIO_DIURNAL/nep.' // 
-     &              GET_NAME_EXT_2D() // '.'       //  
-     &              GET_RES_EXT()     // '.'       // 
-     &              SDOY              // '.orig'
-      ELSE
-         FILENAME = TRIM( DATA_DIR )  //
-     &              'CO2_200508/BBIO_DIURNAL/nep.' // 
-     &              GET_NAME_EXT_2D() // '.'       //  
-     &              GET_RES_EXT()     // '.'       // 
-     &              SDOY
-      ENDIF
-
-      ! Echo file name to stdout
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_BBIO_DIURNALCYCLE: Reading ', a )
-
-      !-----------------------------------------------------------------
-      ! Read Net Ecosytem Productivity [molec CO/cm2/s] from disk
-      ! The CASA fluxes use atmospheric convention: 
-      ! positive = into atm; negative = into biosphere
-      !-----------------------------------------------------------------
-      CALL READ_BPCH2( FILENAME, 'GLOB-NPP', 2, 
-     &                 TAU,       IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )
-       
-      ! Cast from REAL*4 to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOCO2 )
-         
-      END SUBROUTINE READ_BBIO_DIURNALCYCLE
-!EOC
+!      !-----------------------------------------------------------------
+!      ! Since 1985 is NOT a leap-year, we need to account for years that
+!      ! are leap years if the date is Feb 29 or after by subtracting one 
+!      !                                                     ! Ray Nassar
+!      !-----------------------------------------------------------------
+!      
+!      IF( ITS_A_LEAPYEAR() .AND. DOY >= 60 ) THEN
+!         WRITE( SDOY, '(i3.3)' ) DOY-1 
+!      ELSE
+!         WRITE( SDOY, '(i3.3)' ) DOY 
+!      ENDIF
+!
+!      ! Get TAU of this month & day in "generic" year 1985
+!      IF( MONTH == 2 .AND. DAY == 29) THEN
+!         TAU = GET_TAU0( 2,     28,  1985, HOUR )
+!      ELSE
+!         TAU = GET_TAU0( MONTH, DAY, 1985, HOUR )
+!      ENDIF
+!
+!!      ! Create string for day of year
+!!      WRITE( SDOY, '(i3.3)' ) DOY
+!
+!      ! File name
+!      IF (SDOY == '189') THEN
+!         FILENAME = TRIM( DATA_DIR )               //
+!     &              'CO2_200508/BBIO_DIURNAL/nep.' // 
+!     &              GET_NAME_EXT_2D() // '.'       //  
+!     &              GET_RES_EXT()     // '.'       // 
+!     &              SDOY              // '.orig'
+!      ELSE
+!         FILENAME = TRIM( DATA_DIR )  //
+!     &              'CO2_200508/BBIO_DIURNAL/nep.' // 
+!     &              GET_NAME_EXT_2D() // '.'       //  
+!     &              GET_RES_EXT()     // '.'       // 
+!     &              SDOY
+!      ENDIF
+!
+!      ! Echo file name to stdout
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_BBIO_DIURNALCYCLE: Reading ', a )
+!
+!      !-----------------------------------------------------------------
+!      ! Read Net Ecosytem Productivity [molec CO/cm2/s] from disk
+!      ! The CASA fluxes use atmospheric convention: 
+!      ! positive = into atm; negative = into biosphere
+!      !-----------------------------------------------------------------
+!      CALL READ_BPCH2( FILENAME, 'GLOB-NPP', 2, 
+!     &                 TAU,       IIPAR,     JJPAR,     
+!     &                 1,         ARRAY,     QUIET=.TRUE. )
+!       
+!      ! Cast from REAL*4 to REAL*8 and resize if necessary
+!      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOCO2 )
+!         
+!      END SUBROUTINE READ_BBIO_DIURNALCYCLE
+!!EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2247,609 +2253,614 @@
 
       END SUBROUTINE TOTAL_BIOMASS_TG
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 6/24/14
+!%%% HEMCO has orphaned these routines, comment out for now (bmy, 6/24/14)
 !
-! !IROUTINE: def_biosph_co2_regions_f
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: def_biosph_co2_regions_f
+!!
+!! !DESCRIPTION: Subroutine DEF\_BIOSPH\_CO2\_REGIONS defines the land 
+!!  biospheric and ocean CO2 exchange regions.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE DEF_BIOSPH_CO2_REGIONS_F( REGION )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+!      USE FILE_MOD,      ONLY : IOERROR
+!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 !
-! !DESCRIPTION: Subroutine DEF\_BIOSPH\_CO2\_REGIONS defines the land 
-!  biospheric and ocean CO2 exchange regions.
-!\\
-!\\
-! !INTERFACE:
+!      USE CMN_SIZE_MOD      ! Size parameters
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER, INTENT(OUT)   :: REGION(IIPAR,JJPAR)
+!!
+!! !REMARKS:
+!!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
+!!  %%%   Someone will have to make this more general later on...        %%%
+!!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%! 
+!! 
+!! !REVISION HISTORY: 
+!!  18 May 2010 - R. Nassar, D. Jones - Initial version
+!!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER                :: I, J, IOS, IU_FILE
+!      INTEGER                :: TMP(IIPAR,JJPAR)
+!      INTEGER                :: LAND_REG(IIPAR,JJPAR)
+!      CHARACTER(LEN=255)     :: LANDFILE
+!      CHARACTER(LEN=144)     :: ROW
+!      CHARACTER(LEN=1)       :: CHAR1(IIPAR,JJPAR)
 !
-      SUBROUTINE DEF_BIOSPH_CO2_REGIONS_F( REGION )
+!      !=================================================================
+!      ! Reading LAND BIOSPHERE REGIONS
+!      !=================================================================
+!      
+!      LANDFILE  = 'Regions_land.dat'
 !
-! !USES:
+!      WRITE(*,*) ' '
+! 100  FORMAT( '     - READ_REGIONS: Reading ', a ) 
+!      WRITE( 6, 100 ) TRIM( LANDFILE )
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD      ! Size parameters
+!      ! Initialize ARRAY
+!      LAND_REG = 0
 !
-! !OUTPUT PARAMETERS:
+!      ! Find a free file LUN
+!      IU_FILE = findFreeLUN()
 !
-      INTEGER, INTENT(OUT)   :: REGION(IIPAR,JJPAR)
+!      ! Open file
+!      OPEN( IU_FILE, FILE = TRIM( LANDFILE ), 
+!     &      FORM='FORMATTED', IOSTAT=IOS )
+!      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
 !
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
-!  %%%   Someone will have to make this more general later on...        %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%! 
-! 
-! !REVISION HISTORY: 
-!  18 May 2010 - R. Nassar, D. Jones - Initial version
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      ! Read data
+!      DO J = 1, JJPAR
+!         IF (IIPAR ==  72) READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
+!         IF (IIPAR == 144) READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
+!         WRITE (*,'(A)') ROW
 !
-! !LOCAL VARIABLES:
+!         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:2' )
 !
-      INTEGER                :: I, J, IOS, IU_FILE
-      INTEGER                :: TMP(IIPAR,JJPAR)
-      INTEGER                :: LAND_REG(IIPAR,JJPAR)
-      CHARACTER(LEN=255)     :: LANDFILE
-      CHARACTER(LEN=144)     :: ROW
-      CHARACTER(LEN=1)       :: CHAR1(IIPAR,JJPAR)
-
-      !=================================================================
-      ! Reading LAND BIOSPHERE REGIONS
-      !=================================================================
-      
-      LANDFILE  = 'Regions_land.dat'
-
-      WRITE(*,*) ' '
- 100  FORMAT( '     - READ_REGIONS: Reading ', a ) 
-      WRITE( 6, 100 ) TRIM( LANDFILE )
-
-      ! Initialize ARRAY
-      LAND_REG = 0
-
-      ! Find a free file LUN
-      IU_FILE = findFreeLUN()
-
-      ! Open file
-      OPEN( IU_FILE, FILE = TRIM( LANDFILE ), 
-     &      FORM='FORMATTED', IOSTAT=IOS )
-      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
-
-      ! Read data
-      DO J = 1, JJPAR
-         IF (IIPAR ==  72) READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
-         IF (IIPAR == 144) READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
-         WRITE (*,'(A)') ROW
-
-         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:2' )
-
-         DO I = 1, IIPAR
-            CHAR1(I,J) = ROW(I:I)
-            IF (CHAR1(I,J) == ' ') CHAR1(I,J) = '0'
-            READ (CHAR1(I,J),'(I1)') TMP(I,J)
-         ENDDO
-      ENDDO
-
-       ! Close file
-      CLOSE( IU_FILE )
-
-	! Flip array in the North-South Direction
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         LAND_REG(I,J) = TMP(I,JJPAR-J+1)
-      ENDDO
-      ENDDO
-      WRITE(*,*) ' '
-
-      !=================================================================
-      ! Loop over entire globe -- multiprocessor
-      !=================================================================
-
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-!-----------------------------------------------------------------------
-         ! Tracer #13 -- Canadian Tundra       
-         IF (LAND_REG(I,J) == 1 .and. I >= 5 .and. I <= 60) THEN
-            REGION(I,J) = 13
-!----------------------------------------------------------------------
-         ! Tracer #14 -- NA Boreal Forest                 
-         ELSE IF (LAND_REG(I,J) == 2 .and. I <= 60) THEN
-            REGION(I,J) = 14
-!-----------------------------------------------------------------------
-         ! Tracer #15 -- Western US/Mexico                 
-         ELSE IF (LAND_REG(I,J) == 3 .and. I <= 60) THEN
-            REGION(I,J) = 15
-!-----------------------------------------------------------------------
-         ! Tracer #16 -- Central NA Agricultural  
-         ELSE IF (LAND_REG(I,J) == 4 .and. I <= 60) THEN
-            REGION(I,J) = 16
-!-----------------------------------------------------------------------      
-         ! Tracer #17 -- NA Mixed Forest 
-         ELSE IF (LAND_REG(I,J) == 5 .and. I <= 60) THEN
-            REGION(I,J) = 17
-!-----------------------------------------------------------------------      
-         ! Tracer #18 -- Central America and Caribbean
-         ELSE IF (LAND_REG(I,J) == 6 .and. I <= 60) THEN
-            REGION(I,J) = 18
-!-----------------------------------------------------------------------      
-         ! Tracer #19 -- SA Tropical Rain Forest 
-         ELSE IF (LAND_REG(I,J) == 7 .and. I <= 60) THEN
-            REGION(I,J) = 19
-!-----------------------------------------------------------------------      
-         ! Tracer #20 -- SA Coast and Mountains
-         ELSE IF (LAND_REG(I,J) == 8 .and. I <= 60) THEN
-            REGION(I,J) = 20
-!-----------------------------------------------------------------------      
-         ! Tracer #21 -- SA Wooded Grasslands
-         ELSE IF (LAND_REG(I,J) == 9 .and. I <= 60) THEN
-            REGION(I,J) = 21
-!-----------------------------------------------------------------------      
-         ! Tracer #22 -- Eurasian Tundra
-         ELSE IF (LAND_REG(I,J) == 1 .and. (I>60 .or. I<=5)) THEN
-            REGION(I,J) = 22
-!-----------------------------------------------------------------------      
-         ! Tracer #23 -- Eurasian Boreal Coniferous Forest
-         ELSE IF (LAND_REG(I,J) == 2 .and. I > 60 .and. J > 65) THEN
-            REGION(I,J) = 23
-!-----------------------------------------------------------------------      
-         ! Tracer #24 -- Eurasian Boreal Deciduous Forest
-         ELSE IF (LAND_REG(I,J) == 5 .and. I > 60 .and. J > 65) THEN
-            REGION(I,J) = 24
-!-----------------------------------------------------------------------      
-         ! Tracer #25 -- South and Central Europe
-         ELSE IF (LAND_REG(I,J) == 6 .and. I > 60 .and. I <100) THEN
-            REGION(I,J) = 25
-!-----------------------------------------------------------------------      
-         ! Tracer #26 -- Central Asian Grasslands
-         ELSE IF (LAND_REG(I,J) == 4 .and. I > 60 .and. J > 46) THEN
-            REGION(I,J) = 26
-!-----------------------------------------------------------------------      
-         ! Tracer #27 -- Central Asian Desert
-         ELSE IF (LAND_REG(I,J) == 8 .and. I >100 .and. I <117) THEN
-            REGION(I,J) = 27
-!-----------------------------------------------------------------------      
-         ! Tracer #28 -- East Asia Mainland
-         ELSE IF (LAND_REG(I,J) == 3 .and. I > 100) THEN
-            REGION(I,J) = 28
-!-----------------------------------------------------------------------      
-         ! Tracer #29 -- Japan
-         ELSE IF (LAND_REG(I,J) == 9 .and. I > 100) THEN
-            REGION(I,J) = 29
-!-----------------------------------------------------------------------      
-         ! Tracer #30 -- Northern African Desert
-         ELSE IF (LAND_REG(I,J) == 8 .and. I > 60 .and. I <100) THEN
-            REGION(I,J) = 30
-!-----------------------------------------------------------------------      
-         ! Tracer #31 -- Northern Africa Grasslands
-         ELSE IF (LAND_REG(I,J) == 3 .and. I > 60 .and. I <100) THEN
-            REGION(I,J) = 31
-!-----------------------------------------------------------------------      
-         ! Tracer #32 -- Africa Tropical Forest
-         ELSE IF (LAND_REG(I,J) == 7 .and. I > 60 .and. I <100) THEN
-            REGION(I,J) = 32
-!-----------------------------------------------------------------------      
-         ! Tracer #33 -- Southern Africa Grasslands 
-         ELSE IF (LAND_REG(I,J) == 4 .and. I > 60 .and. J < 50) THEN
-            REGION(I,J) = 33
-!-----------------------------------------------------------------------      
-         ! Tracer #34 -- Southern African Desert
-         ELSE IF (LAND_REG(I,J) == 9 .and. I > 60 .and. I <100) THEN
-            REGION(I,J) = 34
-!-----------------------------------------------------------------------      
-         ! Tracer #35 -- Middle East
-         ELSE IF (LAND_REG(I,J) == 2 .and. J > 40 .and. J < 65) THEN
-            REGION(I,J) = 35
-!-----------------------------------------------------------------------      
-         ! Tracer #36 -- India and bordering countries
-         ELSE IF (LAND_REG(I,J) == 5 .and. I > 60 .and. J < 65) THEN
-            REGION(I,J) = 36
-!-----------------------------------------------------------------------      
-         ! Tracer #37 -- Maritime Asia (Indonesia, Malaysia, New Guinea, etc.)
-         ELSE IF (LAND_REG(I,J) == 7 .and. I > 100) THEN
-            REGION(I,J) = 37
-!-----------------------------------------------------------------------      
-         ! Tracer #38 -- Australian Forest/Grassland
-         ELSE IF (LAND_REG(I,J) == 6 .and. I > 100) THEN
-            REGION(I,J) = 38
-!-----------------------------------------------------------------------      
-         ! Tracer #39 -- Australian Desert
-         ELSE IF (LAND_REG(I,J) == 8 .and. I >116 .and. J < 46) THEN
-            REGION(I,J) = 39
-!-----------------------------------------------------------------------      
-         ! Tracer #40 -- New Zealand
-         ELSE IF (LAND_REG(I,J) == 2 .and. I > 120) THEN
-            REGION(I,J) = 40
-!-----------------------------------------------------------------------      
-         ! Tracer #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
-         ELSE
-            REGION(I,J) = 52
-!-----------------------------------------------------------------------      
-         ENDIF
-      ENDDO
-      ENDDO
-
-      END SUBROUTINE DEF_BIOSPH_CO2_REGIONS_F
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!         DO I = 1, IIPAR
+!            CHAR1(I,J) = ROW(I:I)
+!            IF (CHAR1(I,J) == ' ') CHAR1(I,J) = '0'
+!            READ (CHAR1(I,J),'(I1)') TMP(I,J)
+!         ENDDO
+!      ENDDO
 !
-! !IROUTINE: def_ocean_co2_regions_f
+!       ! Close file
+!      CLOSE( IU_FILE )
 !
-! !DESCRIPTION: Subroutine DEF\_OCEAN\_CO2\_REGIONS defines CO2 regions 
-!  for ocean exchange.
-!\\
-!\\
-! !INTERFACE:
+!	! Flip array in the North-South Direction
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         LAND_REG(I,J) = TMP(I,JJPAR-J+1)
+!      ENDDO
+!      ENDDO
+!      WRITE(*,*) ' '
 !
-      SUBROUTINE DEF_OCEAN_CO2_REGIONS_F( REGION )
+!      !=================================================================
+!      ! Loop over entire globe -- multiprocessor
+!      !=================================================================
 !
-! !USES:
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!!-----------------------------------------------------------------------
+!         ! Tracer #13 -- Canadian Tundra       
+!         IF (LAND_REG(I,J) == 1 .and. I >= 5 .and. I <= 60) THEN
+!            REGION(I,J) = 13
+!!----------------------------------------------------------------------
+!         ! Tracer #14 -- NA Boreal Forest                 
+!         ELSE IF (LAND_REG(I,J) == 2 .and. I <= 60) THEN
+!            REGION(I,J) = 14
+!!-----------------------------------------------------------------------
+!         ! Tracer #15 -- Western US/Mexico                 
+!         ELSE IF (LAND_REG(I,J) == 3 .and. I <= 60) THEN
+!            REGION(I,J) = 15
+!!-----------------------------------------------------------------------
+!         ! Tracer #16 -- Central NA Agricultural  
+!         ELSE IF (LAND_REG(I,J) == 4 .and. I <= 60) THEN
+!            REGION(I,J) = 16
+!!-----------------------------------------------------------------------      
+!         ! Tracer #17 -- NA Mixed Forest 
+!         ELSE IF (LAND_REG(I,J) == 5 .and. I <= 60) THEN
+!            REGION(I,J) = 17
+!!-----------------------------------------------------------------------      
+!         ! Tracer #18 -- Central America and Caribbean
+!         ELSE IF (LAND_REG(I,J) == 6 .and. I <= 60) THEN
+!            REGION(I,J) = 18
+!!-----------------------------------------------------------------------      
+!         ! Tracer #19 -- SA Tropical Rain Forest 
+!         ELSE IF (LAND_REG(I,J) == 7 .and. I <= 60) THEN
+!            REGION(I,J) = 19
+!!-----------------------------------------------------------------------      
+!         ! Tracer #20 -- SA Coast and Mountains
+!         ELSE IF (LAND_REG(I,J) == 8 .and. I <= 60) THEN
+!            REGION(I,J) = 20
+!!-----------------------------------------------------------------------      
+!         ! Tracer #21 -- SA Wooded Grasslands
+!         ELSE IF (LAND_REG(I,J) == 9 .and. I <= 60) THEN
+!            REGION(I,J) = 21
+!!-----------------------------------------------------------------------      
+!         ! Tracer #22 -- Eurasian Tundra
+!         ELSE IF (LAND_REG(I,J) == 1 .and. (I>60 .or. I<=5)) THEN
+!            REGION(I,J) = 22
+!!-----------------------------------------------------------------------      
+!         ! Tracer #23 -- Eurasian Boreal Coniferous Forest
+!         ELSE IF (LAND_REG(I,J) == 2 .and. I > 60 .and. J > 65) THEN
+!            REGION(I,J) = 23
+!!-----------------------------------------------------------------------      
+!         ! Tracer #24 -- Eurasian Boreal Deciduous Forest
+!         ELSE IF (LAND_REG(I,J) == 5 .and. I > 60 .and. J > 65) THEN
+!            REGION(I,J) = 24
+!!-----------------------------------------------------------------------      
+!         ! Tracer #25 -- South and Central Europe
+!         ELSE IF (LAND_REG(I,J) == 6 .and. I > 60 .and. I <100) THEN
+!            REGION(I,J) = 25
+!!-----------------------------------------------------------------------      
+!         ! Tracer #26 -- Central Asian Grasslands
+!         ELSE IF (LAND_REG(I,J) == 4 .and. I > 60 .and. J > 46) THEN
+!            REGION(I,J) = 26
+!!-----------------------------------------------------------------------      
+!         ! Tracer #27 -- Central Asian Desert
+!         ELSE IF (LAND_REG(I,J) == 8 .and. I >100 .and. I <117) THEN
+!            REGION(I,J) = 27
+!!-----------------------------------------------------------------------      
+!         ! Tracer #28 -- East Asia Mainland
+!         ELSE IF (LAND_REG(I,J) == 3 .and. I > 100) THEN
+!            REGION(I,J) = 28
+!!-----------------------------------------------------------------------      
+!         ! Tracer #29 -- Japan
+!         ELSE IF (LAND_REG(I,J) == 9 .and. I > 100) THEN
+!            REGION(I,J) = 29
+!!-----------------------------------------------------------------------      
+!         ! Tracer #30 -- Northern African Desert
+!         ELSE IF (LAND_REG(I,J) == 8 .and. I > 60 .and. I <100) THEN
+!            REGION(I,J) = 30
+!!-----------------------------------------------------------------------      
+!         ! Tracer #31 -- Northern Africa Grasslands
+!         ELSE IF (LAND_REG(I,J) == 3 .and. I > 60 .and. I <100) THEN
+!            REGION(I,J) = 31
+!!-----------------------------------------------------------------------      
+!         ! Tracer #32 -- Africa Tropical Forest
+!         ELSE IF (LAND_REG(I,J) == 7 .and. I > 60 .and. I <100) THEN
+!            REGION(I,J) = 32
+!!-----------------------------------------------------------------------      
+!         ! Tracer #33 -- Southern Africa Grasslands 
+!         ELSE IF (LAND_REG(I,J) == 4 .and. I > 60 .and. J < 50) THEN
+!            REGION(I,J) = 33
+!!-----------------------------------------------------------------------      
+!         ! Tracer #34 -- Southern African Desert
+!         ELSE IF (LAND_REG(I,J) == 9 .and. I > 60 .and. I <100) THEN
+!            REGION(I,J) = 34
+!!-----------------------------------------------------------------------      
+!         ! Tracer #35 -- Middle East
+!         ELSE IF (LAND_REG(I,J) == 2 .and. J > 40 .and. J < 65) THEN
+!            REGION(I,J) = 35
+!!-----------------------------------------------------------------------      
+!         ! Tracer #36 -- India and bordering countries
+!         ELSE IF (LAND_REG(I,J) == 5 .and. I > 60 .and. J < 65) THEN
+!            REGION(I,J) = 36
+!!-----------------------------------------------------------------------      
+!         ! Tracer #37 -- Maritime Asia (Indonesia, Malaysia, New Guinea, etc.)
+!         ELSE IF (LAND_REG(I,J) == 7 .and. I > 100) THEN
+!            REGION(I,J) = 37
+!!-----------------------------------------------------------------------      
+!         ! Tracer #38 -- Australian Forest/Grassland
+!         ELSE IF (LAND_REG(I,J) == 6 .and. I > 100) THEN
+!            REGION(I,J) = 38
+!!-----------------------------------------------------------------------      
+!         ! Tracer #39 -- Australian Desert
+!         ELSE IF (LAND_REG(I,J) == 8 .and. I >116 .and. J < 46) THEN
+!            REGION(I,J) = 39
+!!-----------------------------------------------------------------------      
+!         ! Tracer #40 -- New Zealand
+!         ELSE IF (LAND_REG(I,J) == 2 .and. I > 120) THEN
+!            REGION(I,J) = 40
+!!-----------------------------------------------------------------------      
+!         ! Tracer #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
+!         ELSE
+!            REGION(I,J) = 52
+!!-----------------------------------------------------------------------      
+!         ENDIF
+!      ENDDO
+!      ENDDO
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD      ! Size parameters
+!      END SUBROUTINE DEF_BIOSPH_CO2_REGIONS_F
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: def_ocean_co2_regions_f
+!!
+!! !DESCRIPTION: Subroutine DEF\_OCEAN\_CO2\_REGIONS defines CO2 regions 
+!!  for ocean exchange.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE DEF_OCEAN_CO2_REGIONS_F( REGION )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+!      USE FILE_MOD,      ONLY : IOERROR
+!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 !
-! !OUTPUT PARAMETERS:
+!      USE CMN_SIZE_MOD      ! Size parameters
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER, INTENT(OUT)  :: REGION(IIPAR,JJPAR)
+!!
+!! !REMARKS:
+!!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
+!!  %%%   Someone will have to make this more general later on...        %%%
+!!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%! 
+!! 
+!! !REVISION HISTORY: 
+!!  18 May 2010 - R. Nassar, D. Jones - Initial version
+!!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!      INTEGER               :: I, J, IU_FILE, IOS
+!      INTEGER               :: TMP(IIPAR,JJPAR), OCEAN_REG(IIPAR,JJPAR)
+!      CHARACTER(LEN=255)    :: OCEANFILE
+!      CHARACTER(LEN=144)    :: ROW
+!      CHARACTER(LEN=1)      :: CHAR1(IIPAR,JJPAR)
 !
-      INTEGER, INTENT(OUT)  :: REGION(IIPAR,JJPAR)
+!      !=================================================================
+!      ! DEF_CO2_OCEAN_REGIONS begins here!
+!      !=================================================================
+!      
+!      OCEANFILE = 'Regions_ocean.dat'
 !
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
-!  %%%   Someone will have to make this more general later on...        %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%! 
-! 
-! !REVISION HISTORY: 
-!  18 May 2010 - R. Nassar, D. Jones - Initial version
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      WRITE( 6, 100 ) TRIM( OCEANFILE )
+! 100  FORMAT( '     - READ_REGIONS: Reading ', a ) 
+!	WRITE(*,*) ' '
 !
-! !LOCAL VARIABLES:
-      INTEGER               :: I, J, IU_FILE, IOS
-      INTEGER               :: TMP(IIPAR,JJPAR), OCEAN_REG(IIPAR,JJPAR)
-      CHARACTER(LEN=255)    :: OCEANFILE
-      CHARACTER(LEN=144)    :: ROW
-      CHARACTER(LEN=1)      :: CHAR1(IIPAR,JJPAR)
-
-      !=================================================================
-      ! DEF_CO2_OCEAN_REGIONS begins here!
-      !=================================================================
-      
-      OCEANFILE = 'Regions_ocean.dat'
-
-      WRITE( 6, 100 ) TRIM( OCEANFILE )
- 100  FORMAT( '     - READ_REGIONS: Reading ', a ) 
-	WRITE(*,*) ' '
-
-      ! Initialize ARRAYS
-      OCEAN_REG = 0
-
-      ! Find a free file LUN
-      IU_FILE = findFreeLUN()
-
-      ! Open file
-      OPEN( IU_FILE, FILE = TRIM( OCEANFILE ), 
-     &      FORM='FORMATTED', IOSTAT=IOS )
-      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
-
-      ! Read data
-      DO J = 1, JJPAR
-         IF (IIPAR ==  72) READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
-         IF (IIPAR == 144) READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
-         WRITE (*,'(A)') ROW
-
-         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:2' )
-
-         DO I = 1, IIPAR
-            CHAR1(I,J) = ROW(I:I)
-            IF (CHAR1(I,J) == ' ') CHAR1(I,J) = '0'
-            READ (CHAR1(I,J),'(I1)') TMP(I,J)
-         ENDDO
-      ENDDO
-
-      ! Close file
-      CLOSE( IU_FILE )
-
-	! Flip array in the North-South Direction
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         OCEAN_REG(I,J) = TMP(I,JJPAR-J+1)
-      ENDDO
-      ENDDO
-      WRITE(*,*) ' '
-
-      !=================================================================
-      ! Loop over entire globe -- multiprocessor
-      !=================================================================
-
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-!-----------------------------------------------------------------------
-         ! Tracer #41 -- Arctic Ocean       
-         IF       (OCEAN_REG(I,J) == 5 .and. J > 60) THEN
-            REGION(I,J) = 41
-!-----------------------------------------------------------------------
-         ! Tracer #42 -- North Pacific                 
-         ELSE IF  (OCEAN_REG(I,J) == 1) THEN
-            REGION(I,J) = 42
-!-----------------------------------------------------------------------
-         ! Region #43 -- Tropical West Pacific                 
-         ELSE IF  (OCEAN_REG(I,J) == 2) THEN
-            REGION(I,J) = 43
-!-----------------------------------------------------------------------
-         ! Tracer #44 -- Tropical East Pacific 
-         ELSE IF  (OCEAN_REG(I,J) == 3) THEN
-            REGION(I,J) = 44
-!-----------------------------------------------------------------------      
-         ! Tracer #45-- South Pacific 
-         ELSE IF  (OCEAN_REG(I,J) == 4) THEN
-            REGION(I,J) = 45
-!-----------------------------------------------------------------------      
-         ! Tracer #46 -- North Atlantic
-         ELSE IF  (OCEAN_REG(I,J) == 6 .and. J > 45) THEN
-            REGION(I,J) = 46
-!-----------------------------------------------------------------------      
-         ! Tracer #47 -- Tropical Atlantic
-         ELSE IF  (OCEAN_REG(I,J) == 7) THEN
-            REGION(I,J) = 47
-!-----------------------------------------------------------------------      
-         ! Tracer #48 -- South Atlantic
-         ELSE IF  (OCEAN_REG(I,J) == 8) THEN
-            REGION(I,J) = 48
-!-----------------------------------------------------------------------      
-         ! Tracer #49 -- Tropical Indian Ocean
-         ELSE IF  (OCEAN_REG(I,J) == 5 .and. J < 60) THEN
-            REGION(I,J) = 49
-!-----------------------------------------------------------------------      
-         ! Tracer #50 -- Southern Indian Ocean
-         ELSE IF  (OCEAN_REG(I,J) == 6 .and. J < 45) THEN
-            REGION(I,J) = 50
-!-----------------------------------------------------------------------      
-         ! Tracer #51 -- Southern (Antacrtic) Ocean
-         ELSE IF  (OCEAN_REG(I,J) == 9) THEN
-            REGION(I,J) = 51
-!-----------------------------------------------------------------------      
-         ! Tracer #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
-         ELSE
-            REGION(I,J) = 52
-!-----------------------------------------------------------------------      
-		ENDIF
-         ENDDO
-      ENDDO
-
-      END SUBROUTINE DEF_OCEAN_CO2_REGIONS_F
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!      ! Initialize ARRAYS
+!      OCEAN_REG = 0
 !
-! !IROUTINE: def_fossil_co2_regions_f
+!      ! Find a free file LUN
+!      IU_FILE = findFreeLUN()
 !
-! !DESCRIPTION:  Subroutine DEF\_FOSSIL\_CO2\_REGIONS defines CO2 regions 
-!  for anthropogenic emissions
-!\\
-!\\
-! !INTERFACE:
+!      ! Open file
+!      OPEN( IU_FILE, FILE = TRIM( OCEANFILE ), 
+!     &      FORM='FORMATTED', IOSTAT=IOS )
+!      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
 !
-      SUBROUTINE DEF_FOSSIL_CO2_REGIONS_F( REGION )
+!      ! Read data
+!      DO J = 1, JJPAR
+!         IF (IIPAR ==  72) READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
+!         IF (IIPAR == 144) READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
+!         WRITE (*,'(A)') ROW
 !
-! !USES:
+!         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:2' )
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD      ! Size parameters
+!         DO I = 1, IIPAR
+!            CHAR1(I,J) = ROW(I:I)
+!            IF (CHAR1(I,J) == ' ') CHAR1(I,J) = '0'
+!            READ (CHAR1(I,J),'(I1)') TMP(I,J)
+!         ENDDO
+!      ENDDO
 !
-! !OUTPUT PARAMETERS:
+!      ! Close file
+!      CLOSE( IU_FILE )
 !
-      INTEGER, INTENT(OUT)   :: REGION(IIPAR,JJPAR)
+!	! Flip array in the North-South Direction
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         OCEAN_REG(I,J) = TMP(I,JJPAR-J+1)
+!      ENDDO
+!      ENDDO
+!      WRITE(*,*) ' '
 !
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
-!  %%%   Someone will have to make this more general later on...        %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%! 
-! 
-! !REVISION HISTORY: 
-!  18 May 2010 - R. Nassar, D. Jones - Initial version
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      !=================================================================
+!      ! Loop over entire globe -- multiprocessor
+!      !=================================================================
 !
-! !LOCAL VARIABLES:
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!!-----------------------------------------------------------------------
+!         ! Tracer #41 -- Arctic Ocean       
+!         IF       (OCEAN_REG(I,J) == 5 .and. J > 60) THEN
+!            REGION(I,J) = 41
+!!-----------------------------------------------------------------------
+!         ! Tracer #42 -- North Pacific                 
+!         ELSE IF  (OCEAN_REG(I,J) == 1) THEN
+!            REGION(I,J) = 42
+!!-----------------------------------------------------------------------
+!         ! Region #43 -- Tropical West Pacific                 
+!         ELSE IF  (OCEAN_REG(I,J) == 2) THEN
+!            REGION(I,J) = 43
+!!-----------------------------------------------------------------------
+!         ! Tracer #44 -- Tropical East Pacific 
+!         ELSE IF  (OCEAN_REG(I,J) == 3) THEN
+!            REGION(I,J) = 44
+!!-----------------------------------------------------------------------      
+!         ! Tracer #45-- South Pacific 
+!         ELSE IF  (OCEAN_REG(I,J) == 4) THEN
+!            REGION(I,J) = 45
+!!-----------------------------------------------------------------------      
+!         ! Tracer #46 -- North Atlantic
+!         ELSE IF  (OCEAN_REG(I,J) == 6 .and. J > 45) THEN
+!            REGION(I,J) = 46
+!!-----------------------------------------------------------------------      
+!         ! Tracer #47 -- Tropical Atlantic
+!         ELSE IF  (OCEAN_REG(I,J) == 7) THEN
+!            REGION(I,J) = 47
+!!-----------------------------------------------------------------------      
+!         ! Tracer #48 -- South Atlantic
+!         ELSE IF  (OCEAN_REG(I,J) == 8) THEN
+!            REGION(I,J) = 48
+!!-----------------------------------------------------------------------      
+!         ! Tracer #49 -- Tropical Indian Ocean
+!         ELSE IF  (OCEAN_REG(I,J) == 5 .and. J < 60) THEN
+!            REGION(I,J) = 49
+!!-----------------------------------------------------------------------      
+!         ! Tracer #50 -- Southern Indian Ocean
+!         ELSE IF  (OCEAN_REG(I,J) == 6 .and. J < 45) THEN
+!            REGION(I,J) = 50
+!!-----------------------------------------------------------------------      
+!         ! Tracer #51 -- Southern (Antacrtic) Ocean
+!         ELSE IF  (OCEAN_REG(I,J) == 9) THEN
+!            REGION(I,J) = 51
+!!-----------------------------------------------------------------------      
+!         ! Tracer #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
+!         ELSE
+!            REGION(I,J) = 52
+!!-----------------------------------------------------------------------      
+!		ENDIF
+!         ENDDO
+!      ENDDO
 !
-      INTEGER                :: I, J, IU_FILE, IOS
-      INTEGER                :: TMP(IIPAR,JJPAR), REG_CODE(IIPAR,JJPAR)
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=144)     :: ROW
-      CHARACTER(LEN=1)       :: CHAR1(IIPAR,JJPAR)
-
-      !=================================================================
-      ! DEF_CO2_FOSSIL_REGIONS begins here!
-      !=================================================================
-      
-      FILENAME  = 'Regions_land.dat'
-
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_REGIONS: Reading ', a ) 
-
-      ! Initialize ARRAYS
-      REG_CODE = 0
-
-      ! Find a free file LUN
-      IU_FILE = findFreeLUN()
-
-      ! Open file
-      OPEN( IU_FILE, FILE = TRIM( FILENAME ), 
-     &      FORM='FORMATTED', IOSTAT=IOS )
-      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
-
-      ! Read data
-      DO J = 1, JJPAR
-         IF (IIPAR ==  72) READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
-         IF (IIPAR == 144) READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
-         WRITE (*,'(A)') ROW
-                
-         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:2' )
-
-         DO I = 1, IIPAR
-            CHAR1(I,J) = ROW(I:I)
-            IF (CHAR1(I,J) == ' ') CHAR1(I,J) = '0'
-            READ (CHAR1(I,J),'(I1)') TMP(I,J)
-         ENDDO
-      ENDDO
-
-      ! Close file
-      CLOSE( IU_FILE )
-
-      ! Flip array in the North-South Direction
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         REG_CODE(I,J) = TMP(I,JJPAR-J+1)
-      ENDDO
-      ENDDO
-
-      !=================================================================
-      ! Loop over entire globe -- multiprocessor
-      !=================================================================
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-!-----------------------------------------------------------------------
-         ! Tracer #13 -- Canadian Tundra       
-         IF (REG_CODE(I,J) == 1 .and. I >= 5 .and. I <= 60) THEN
-            REGION(I,J) = 13
-!-----------------------------------------------------------------------
-         ! Tracer #14 -- NA Boreal Forest                 
-         ELSE IF (REG_CODE(I,J) == 2 .and. I <= 60) THEN
-            REGION(I,J) = 14
-!-----------------------------------------------------------------------
-         ! Tracer #15 -- Western US/Mexico                 
-         ELSE IF (REG_CODE(I,J) == 3 .and. I <= 60) THEN
-            REGION(I,J) = 15
-!-----------------------------------------------------------------------
-         ! Tracer #16 -- Central NA Agricultural  
-         ELSE IF (REG_CODE(I,J) == 4 .and. I <= 60) THEN
-            REGION(I,J) = 16
-!-----------------------------------------------------------------------      
-         ! Tracer #17 -- NA Mixed Forest 
-         ELSE IF (REG_CODE(I,J) == 5 .and. I <= 60) THEN
-            REGION(I,J) = 17
-!-----------------------------------------------------------------------      
-         ! Tracer #18 -- Central America and Caribbean
-         ELSE IF (REG_CODE(I,J) == 6 .and. I <= 60) THEN
-            REGION(I,J) = 18
-!-----------------------------------------------------------------------      
-         ! Tracer #19 -- SA Tropical Rain Forest 
-         ELSE IF (REG_CODE(I,J) == 7 .and. I <= 60) THEN
-            REGION(I,J) = 19
-!-----------------------------------------------------------------------      
-         ! Tracer #20 -- SA Coast and Mountains
-         ELSE IF (REG_CODE(I,J) == 8 .and. I <= 60) THEN
-            REGION(I,J) = 20
-!-----------------------------------------------------------------------      
-         ! Tracer #21 -- SA Wooded Grasslands
-         ELSE IF (REG_CODE(I,J) == 9 .and. I <= 60) THEN
-            REGION(I,J) = 21
-!-----------------------------------------------------------------------      
-         ! Tracer #22 -- Eurasian Tundra
-         ELSE IF (REG_CODE(I,J) == 1 .and. (I>60 .or. I<=5)) THEN
-            REGION(I,J) = 22
-!-----------------------------------------------------------------------      
-         ! Tracer #23 -- Eurasian Boreal Coniferous Forest
-         ELSE IF (REG_CODE(I,J) == 2 .and. I > 60 .and. J > 55) THEN
-            REGION(I,J) = 23
-!-----------------------------------------------------------------------      
-         ! Tracer #24 -- Eurasian Boreal Deciduous Forest
-         ELSE IF (REG_CODE(I,J) == 5 .and. I > 60 .and. J > 64) THEN
-            REGION(I,J) = 24
-!-----------------------------------------------------------------------      
-         ! Tracer #25 -- South and Central Europe
-         ELSE IF (REG_CODE(I,J) == 6 .and. I > 60 .and. I <100) THEN
-            REGION(I,J) = 25
-!-----------------------------------------------------------------------      
-         ! Tracer #26 -- Central Asian Grasslands
-         ELSE IF (REG_CODE(I,J) == 4 .and. I > 60 .and. J > 46) THEN
-            REGION(I,J) = 26
-!-----------------------------------------------------------------------      
-         ! Tracer #27 -- Central Asian Desert
-         ELSE IF (REG_CODE(I,J) == 8 .and. I >100 .and. I <117) THEN
-            REGION(I,J) = 27
-!-----------------------------------------------------------------------      
-         ! Tracer #28 -- East Asia Mainland
-         ELSE IF (REG_CODE(I,J) == 3 .and. I > 100) THEN
-            REGION(I,J) = 28
-!-----------------------------------------------------------------------      
-         ! Tracer #29 -- Japan
-         ELSE IF (REG_CODE(I,J) == 9 .and. I > 100) THEN
-            REGION(I,J) = 29
-!-----------------------------------------------------------------------      
-         ! Tracer #30 -- Northern African Desert
-         ELSE IF (REG_CODE(I,J) == 8 .and. I > 60 .and. I <100) THEN
-            REGION(I,J) = 30
-!-----------------------------------------------------------------------      
-         ! Tracer #31 -- Northern Africa Grasslands
-         ELSE IF (REG_CODE(I,J) == 3 .and. I > 60 .and. I <100) THEN
-            REGION(I,J) = 31
-!-----------------------------------------------------------------------      
-         ! Tracer #32 -- Africa Tropical Forest
-         ELSE IF (REG_CODE(I,J) == 7 .and. I > 60 .and. I <100) THEN
-            REGION(I,J) = 32
-!-----------------------------------------------------------------------      
-         ! Tracer #33 -- Southern Africa Grasslands 
-         ELSE IF (REG_CODE(I,J) == 4 .and. I > 60 .and. J < 50) THEN
-            REGION(I,J) = 33
-!-----------------------------------------------------------------------      
-         ! Tracer #34 -- Southern African Desert
-         ELSE IF (REG_CODE(I,J) == 9 .and. I > 60 .and. I <100) THEN
-            REGION(I,J) = 34
-!-----------------------------------------------------------------------      
-         ! Tracer #35 -- Middle East
-         ELSE IF (REG_CODE(I,J) == 2 .and. J > 40 .and. J < 60) THEN
-            REGION(I,J) = 35
-!-----------------------------------------------------------------------      
-         ! Tracer #36 -- India and bordering countries
-         ELSE IF (REG_CODE(I,J) == 5 .and. I > 60 .and. J < 64) THEN
-            REGION(I,J) = 36
-!-----------------------------------------------------------------------
-         ! Tracer #37 -- Maritime Asia (Indonesia, Malaysia, New Guinea, etc.)
-         ELSE IF (REG_CODE(I,J) == 7 .and. I > 100) THEN
-            REGION(I,J) = 37
-!-----------------------------------------------------------------------      
-         ! Tracer #38 -- Australian Forest/Grassland
-         ELSE IF (REG_CODE(I,J) == 6 .and. I > 100) THEN
-            REGION(I,J) = 38
-!-----------------------------------------------------------------------      
-         ! Tracer #39 -- Australian Desert
-         ELSE IF (REG_CODE(I,J) == 8 .and. I > 116 .and. J <45) THEN
-            REGION(I,J) = 39
-!-----------------------------------------------------------------------      
-         ! Tracer #40 -- New Zealand
-         ELSE IF (REG_CODE(I,J) == 2 .and. I > 120) THEN
-            REGION(I,J) = 40
-!-----------------------------------------------------------------------      
-         ! Tracer #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
-         ELSE
-            REGION(I,J) = 52
-!-----------------------------------------------------------------------      
-         ENDIF
-      ENDDO
-      ENDDO
-
-      END SUBROUTINE DEF_FOSSIL_CO2_REGIONS_F
+!      END SUBROUTINE DEF_OCEAN_CO2_REGIONS_F
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: def_fossil_co2_regions_f
+!!
+!! !DESCRIPTION:  Subroutine DEF\_FOSSIL\_CO2\_REGIONS defines CO2 regions 
+!!  for anthropogenic emissions
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE DEF_FOSSIL_CO2_REGIONS_F( REGION )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+!      USE FILE_MOD,      ONLY : IOERROR
+!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+!
+!      USE CMN_SIZE_MOD      ! Size parameters
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER, INTENT(OUT)   :: REGION(IIPAR,JJPAR)
+!!
+!! !REMARKS:
+!!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
+!!  %%%   Someone will have to make this more general later on...        %%%
+!!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%! 
+!! 
+!! !REVISION HISTORY: 
+!!  18 May 2010 - R. Nassar, D. Jones - Initial version
+!!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER                :: I, J, IU_FILE, IOS
+!      INTEGER                :: TMP(IIPAR,JJPAR), REG_CODE(IIPAR,JJPAR)
+!      CHARACTER(LEN=255)     :: FILENAME
+!      CHARACTER(LEN=144)     :: ROW
+!      CHARACTER(LEN=1)       :: CHAR1(IIPAR,JJPAR)
+!
+!      !=================================================================
+!      ! DEF_CO2_FOSSIL_REGIONS begins here!
+!      !=================================================================
+!      
+!      FILENAME  = 'Regions_land.dat'
+!
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_REGIONS: Reading ', a ) 
+!
+!      ! Initialize ARRAYS
+!      REG_CODE = 0
+!
+!      ! Find a free file LUN
+!      IU_FILE = findFreeLUN()
+!
+!      ! Open file
+!      OPEN( IU_FILE, FILE = TRIM( FILENAME ), 
+!     &      FORM='FORMATTED', IOSTAT=IOS )
+!      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
+!
+!      ! Read data
+!      DO J = 1, JJPAR
+!         IF (IIPAR ==  72) READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
+!         IF (IIPAR == 144) READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
+!         WRITE (*,'(A)') ROW
+!                
+!         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:2' )
+!
+!         DO I = 1, IIPAR
+!            CHAR1(I,J) = ROW(I:I)
+!            IF (CHAR1(I,J) == ' ') CHAR1(I,J) = '0'
+!            READ (CHAR1(I,J),'(I1)') TMP(I,J)
+!         ENDDO
+!      ENDDO
+!
+!      ! Close file
+!      CLOSE( IU_FILE )
+!
+!      ! Flip array in the North-South Direction
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         REG_CODE(I,J) = TMP(I,JJPAR-J+1)
+!      ENDDO
+!      ENDDO
+!
+!      !=================================================================
+!      ! Loop over entire globe -- multiprocessor
+!      !=================================================================
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!!-----------------------------------------------------------------------
+!         ! Tracer #13 -- Canadian Tundra       
+!         IF (REG_CODE(I,J) == 1 .and. I >= 5 .and. I <= 60) THEN
+!            REGION(I,J) = 13
+!!-----------------------------------------------------------------------
+!         ! Tracer #14 -- NA Boreal Forest                 
+!         ELSE IF (REG_CODE(I,J) == 2 .and. I <= 60) THEN
+!            REGION(I,J) = 14
+!!-----------------------------------------------------------------------
+!         ! Tracer #15 -- Western US/Mexico                 
+!         ELSE IF (REG_CODE(I,J) == 3 .and. I <= 60) THEN
+!            REGION(I,J) = 15
+!!-----------------------------------------------------------------------
+!         ! Tracer #16 -- Central NA Agricultural  
+!         ELSE IF (REG_CODE(I,J) == 4 .and. I <= 60) THEN
+!            REGION(I,J) = 16
+!!-----------------------------------------------------------------------      
+!         ! Tracer #17 -- NA Mixed Forest 
+!         ELSE IF (REG_CODE(I,J) == 5 .and. I <= 60) THEN
+!            REGION(I,J) = 17
+!!-----------------------------------------------------------------------      
+!         ! Tracer #18 -- Central America and Caribbean
+!         ELSE IF (REG_CODE(I,J) == 6 .and. I <= 60) THEN
+!            REGION(I,J) = 18
+!!-----------------------------------------------------------------------      
+!         ! Tracer #19 -- SA Tropical Rain Forest 
+!         ELSE IF (REG_CODE(I,J) == 7 .and. I <= 60) THEN
+!            REGION(I,J) = 19
+!!-----------------------------------------------------------------------      
+!         ! Tracer #20 -- SA Coast and Mountains
+!         ELSE IF (REG_CODE(I,J) == 8 .and. I <= 60) THEN
+!            REGION(I,J) = 20
+!!-----------------------------------------------------------------------      
+!         ! Tracer #21 -- SA Wooded Grasslands
+!         ELSE IF (REG_CODE(I,J) == 9 .and. I <= 60) THEN
+!            REGION(I,J) = 21
+!!-----------------------------------------------------------------------      
+!         ! Tracer #22 -- Eurasian Tundra
+!         ELSE IF (REG_CODE(I,J) == 1 .and. (I>60 .or. I<=5)) THEN
+!            REGION(I,J) = 22
+!!-----------------------------------------------------------------------      
+!         ! Tracer #23 -- Eurasian Boreal Coniferous Forest
+!         ELSE IF (REG_CODE(I,J) == 2 .and. I > 60 .and. J > 55) THEN
+!            REGION(I,J) = 23
+!!-----------------------------------------------------------------------      
+!         ! Tracer #24 -- Eurasian Boreal Deciduous Forest
+!         ELSE IF (REG_CODE(I,J) == 5 .and. I > 60 .and. J > 64) THEN
+!            REGION(I,J) = 24
+!!-----------------------------------------------------------------------      
+!         ! Tracer #25 -- South and Central Europe
+!         ELSE IF (REG_CODE(I,J) == 6 .and. I > 60 .and. I <100) THEN
+!            REGION(I,J) = 25
+!!-----------------------------------------------------------------------      
+!         ! Tracer #26 -- Central Asian Grasslands
+!         ELSE IF (REG_CODE(I,J) == 4 .and. I > 60 .and. J > 46) THEN
+!            REGION(I,J) = 26
+!!-----------------------------------------------------------------------      
+!         ! Tracer #27 -- Central Asian Desert
+!         ELSE IF (REG_CODE(I,J) == 8 .and. I >100 .and. I <117) THEN
+!            REGION(I,J) = 27
+!!-----------------------------------------------------------------------      
+!         ! Tracer #28 -- East Asia Mainland
+!         ELSE IF (REG_CODE(I,J) == 3 .and. I > 100) THEN
+!            REGION(I,J) = 28
+!!-----------------------------------------------------------------------      
+!         ! Tracer #29 -- Japan
+!         ELSE IF (REG_CODE(I,J) == 9 .and. I > 100) THEN
+!            REGION(I,J) = 29
+!!-----------------------------------------------------------------------      
+!         ! Tracer #30 -- Northern African Desert
+!         ELSE IF (REG_CODE(I,J) == 8 .and. I > 60 .and. I <100) THEN
+!            REGION(I,J) = 30
+!!-----------------------------------------------------------------------      
+!         ! Tracer #31 -- Northern Africa Grasslands
+!         ELSE IF (REG_CODE(I,J) == 3 .and. I > 60 .and. I <100) THEN
+!            REGION(I,J) = 31
+!!-----------------------------------------------------------------------      
+!         ! Tracer #32 -- Africa Tropical Forest
+!         ELSE IF (REG_CODE(I,J) == 7 .and. I > 60 .and. I <100) THEN
+!            REGION(I,J) = 32
+!!-----------------------------------------------------------------------      
+!         ! Tracer #33 -- Southern Africa Grasslands 
+!         ELSE IF (REG_CODE(I,J) == 4 .and. I > 60 .and. J < 50) THEN
+!            REGION(I,J) = 33
+!!-----------------------------------------------------------------------      
+!         ! Tracer #34 -- Southern African Desert
+!         ELSE IF (REG_CODE(I,J) == 9 .and. I > 60 .and. I <100) THEN
+!            REGION(I,J) = 34
+!!-----------------------------------------------------------------------      
+!         ! Tracer #35 -- Middle East
+!         ELSE IF (REG_CODE(I,J) == 2 .and. J > 40 .and. J < 60) THEN
+!            REGION(I,J) = 35
+!!-----------------------------------------------------------------------      
+!         ! Tracer #36 -- India and bordering countries
+!         ELSE IF (REG_CODE(I,J) == 5 .and. I > 60 .and. J < 64) THEN
+!            REGION(I,J) = 36
+!!-----------------------------------------------------------------------
+!         ! Tracer #37 -- Maritime Asia (Indonesia, Malaysia, New Guinea, etc.)
+!         ELSE IF (REG_CODE(I,J) == 7 .and. I > 100) THEN
+!            REGION(I,J) = 37
+!!-----------------------------------------------------------------------      
+!         ! Tracer #38 -- Australian Forest/Grassland
+!         ELSE IF (REG_CODE(I,J) == 6 .and. I > 100) THEN
+!            REGION(I,J) = 38
+!!-----------------------------------------------------------------------      
+!         ! Tracer #39 -- Australian Desert
+!         ELSE IF (REG_CODE(I,J) == 8 .and. I > 116 .and. J <45) THEN
+!            REGION(I,J) = 39
+!!-----------------------------------------------------------------------      
+!         ! Tracer #40 -- New Zealand
+!         ELSE IF (REG_CODE(I,J) == 2 .and. I > 120) THEN
+!            REGION(I,J) = 40
+!!-----------------------------------------------------------------------      
+!         ! Tracer #52 -- CO2 from everywhere else (Remote Islands & Ice Caps)
+!         ELSE
+!            REGION(I,J) = 52
+!!-----------------------------------------------------------------------      
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!
+!      END SUBROUTINE DEF_FOSSIL_CO2_REGIONS_F
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3026,9 +3037,6 @@
       !=================================================================
       ! Read in annual mean emissions
       !=================================================================
-
-      ! Biofuel emissions
-!      IF (LBIOFUEL) CALL READ_ANNUAL_BIOFUELCO2
 
       ! Net terrestrial exchange
       IF (LBIONETORIG .OR. LBIONETCLIM) THEN

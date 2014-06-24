@@ -22,7 +22,6 @@ MODULE Olson_LandMap_Mod
   USE CMN_SIZE_MOD                      ! Size parameters
   USE ERROR_MOD                         ! Error checking routines
   USE GRID_MOD                          ! Horizontal grid definition
-  USE LOGICAL_MOD                       ! Logical switches
   USE MAPPING_MOD                       ! Mapping weights & areas
 
   IMPLICIT NONE
@@ -149,6 +148,7 @@ MODULE Olson_LandMap_Mod
 !                              replaced by IREG, IUSE, ILAND arrays
 !  09 Apr 2012 - R. Yantosca - Removed reference to CMN_VEL_mod.F
 !  20 Mar 2014 - R. Yantosca - Speed up Olson computation by skipping boxes
+!  24 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -564,10 +564,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Olson_LandMap( am_I_Root, DATA_DIR_1x1 )
+  SUBROUTINE Init_Olson_LandMap( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
+
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE m_netcdf_io_open
     USE m_netcdf_io_read
     USE m_netcdf_io_readattr
@@ -579,8 +582,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN) :: am_I_Root
-    CHARACTER(LEN=255), INTENT(IN) :: DATA_DIR_1x1
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -595,6 +602,7 @@ CONTAINS
 !  27 Mar 2012 - R. Yantosca - Now can read Olson 1992 or Olson 2001 land map
 !  29 Nov 2012 - R. Yantosca - Add am_I_Root to the argument list
 !  26 Feb 2013 - M. Long     - Now pass DATA_DIR_1x1 via the argument list
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt, RC via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -625,7 +633,7 @@ CONTAINS
     !======================================================================
     ! Initialize variables
     !======================================================================
-    IF ( USE_OLSON_2001 ) THEN
+    IF ( Input_Opt%USE_OLSON_2001 ) THEN
 
        !--------------------------------
        ! Settings for Olson 2001 grid
@@ -662,8 +670,8 @@ CONTAINS
     !======================================================================
 
     ! Construct file path from directory & file name
-    nc_dir  = TRIM( DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
-    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
+    nc_path = TRIM( nc_dir )                 // TRIM( nc_file )
 
     ! Open file for read
     CALL Ncop_Rd( fId, TRIM(nc_path) )

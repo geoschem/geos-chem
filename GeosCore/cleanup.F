@@ -80,7 +80,6 @@
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
-      USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
@@ -231,6 +230,7 @@
 !  03 Jun 2014 - R. Yantosca - Now pass Input_Opt via the argument list
 !  03 Jun 2014 - R. Yantosca - Remove references to emissions modules that
 !                              HEMCO renders obsolete
+!  24 Jun 2014 - R. Yantosca - Remove CLEANUP_BROMOCARB; HEMCO replaces this
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -253,7 +253,6 @@
       CALL CLEANUP_AEROSOL
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
-      CALL CLEANUP_BROMOCARB  ! jpp, 6/17/09
       CALL CLEANUP_C2H6
       CALL CLEANUP_CARBON
       CALL CLEANUP_CHEMGRID
@@ -283,10 +282,10 @@
       CALL CLEANUP_GLOBAL_BC
       CALL CLEANUP_GLOBAL_GRID
       CALL CLEANUP_GRID
-!-----------------------------------
-! Now obsolete
+!-----------------------------------------------------------------------------
+! This simulation is obsolete.  You can restore it if you wish (bmy, 6/23/14)
 !      CALL CLEANUP_H2_HD
-!-----------------------------------
+!-----------------------------------------------------------------------------
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF
       CALL CLEANUP_ISOROPIAII

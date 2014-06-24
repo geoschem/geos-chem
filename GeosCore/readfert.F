@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READFERT
+      SUBROUTINE READFERT( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -20,13 +20,12 @@
       USE m_netcdf_io_read
       USE m_netcdf_io_readattr
       USE m_netcdf_io_close
-	! Regrid
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-	! SOILFERT and size
-      USE CMN_SIZE_MOD   	! Size parameters
-      USE COMMSOIL_MOD		! Soil variables
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE CMN_SIZE_MOD
+      USE COMMSOIL_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       IMPLICIT NONE
 #     include "netcdf.inc"
@@ -34,17 +33,12 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
       
 ! !REVISION HISTORY:
 !  24 Aug 2012 - J.D. Maasakkers - Initial version

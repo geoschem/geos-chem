@@ -43,7 +43,6 @@
       USE DIAG_PL_MOD                        ! For prod/loss diagnostic
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
       USE DRYDEP_MOD                         ! For dry deposition
-      USE LOGICAL_MOD                        ! For logical switches
       USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
 #if   defined( TOMAS )
@@ -464,7 +463,7 @@
 !  (1)  DUST     : Soil dust (4 different classes) : kg         : 1
 !******************************************************************************
 !
-      IF ( ND06 > 0 .and. LDUST ) THEN
+      IF ( ND06 > 0 .and. Input_Opt%LDUST ) THEN
 
          ! Category & unit string
          UNIT     = 'kg'
@@ -499,7 +498,7 @@
 !  (1)  Carbon   : Carbonaceous aerosols        : kg           : 1
 !******************************************************************************
 !
-      IF ( ND07 > 0 .and. LCARB ) THEN
+      IF ( ND07 > 0 .and. Input_Opt%LCARB ) THEN
 
          ! Unit
          ! updated units, OC and BC in kg C, SOA in kg (hotp 7/31/08)
@@ -636,7 +635,7 @@
          ENDIF
 
          ! Only save extra SOA diagnostics if LSOA=T
-         IF ( LSOA ) THEN
+         IF ( Input_Opt%LSOA ) THEN
 
             ! Add units
             UNIT = 'kg'
@@ -771,7 +770,7 @@
 !  (2)  SALC     : Coarse mode seasalt             : kg         : 1
 !******************************************************************************
 !
-      IF ( ND08 > 0 .and. LSSALT ) THEN
+      IF ( ND08 > 0 .and. Input_Opt%LSSALT ) THEN
 
          ! Category & unit string
          UNIT     = 'kg'
@@ -1146,8 +1145,9 @@
          !==============================================================
          ! Add ICOADSSHIP (cklee, 6/30/09)
          ! Add RCP
-         IF ( LSHIPSO2  .OR. LEDGARSHIP  .OR. LARCSHIP .OR.
-     $        LEMEPSHIP .OR. LICOADSSHIP .OR. LRCPSHIP ) THEN
+         IF ( Input_Opt%LSHIPSO2    .OR. !Input_Opt%EDGARSHIP  .OR. 
+     &        Input_Opt%LARCSHIP    .OR. Input_Opt%LEMEPSHIP  .OR. 
+     &        Input_Opt%LICOADSSHIP .OR. Input_Opt%LRCPSHIP ) THEN
             
             CATEGORY     = 'SO2-SHIP'
             ARRAY(:,:,1) = AD13_SO2_sh(:,:)
@@ -1582,7 +1582,7 @@
             IF (( N > 3 .AND. N < 6 ) .OR. (N > 20)) THEN
 
                ! Online or offline dust fields?
-               IF ( LDUST ) THEN
+               IF ( Input_Opt%LDUST ) THEN
 
                   ! If LDUST=T, then we are using online dust fields,
                   ! so we must scale by the chemistry timestep. (4/9/04)
@@ -1623,7 +1623,7 @@
          ! #32: Opt depth HYSTERESIS - Opt depth LIQUID  [unitless]
          ! #33: Radiative forcing                        [W/m2    ]    
          !==============================================================
-         IF ( LCRYST ) THEN
+         IF ( Input_Opt%LCRYST ) THEN
             
             ! Category
             CATEGORY = 'OD-MAP-$'
@@ -3303,7 +3303,7 @@
             IF ( N == 18 .and. IDTCHBr3  == 0 ) CYCLE
             IF ( N == 19 .and. IDTCH2Br2 == 0 ) CYCLE
             IF ( N == 20 .and. IDTBr2    == 0 ) CYCLE
-            IF ( N == 21 .and. (.not.LCH4EMIS)) CYCLE
+            IF ( N == 21 .and. (.not.Input_Opt%LCH4EMIS)) CYCLE
 
             ARRAY(:,:,1) = AD46(:,:,N) / SCALESRCE
                
@@ -4429,7 +4429,7 @@
       ! Special case for mercury simulation. We need to store AD38, AD39,
       ! AD44 to ensure that we have monthly average in GTMM restart file
       !==================================================================
-      IF ( LGTMM ) THEN
+      IF ( Input_Opt%LGTMM ) THEN
          N = 1
          NN = GET_WETDEP_IDWETD( N )
          DO WHILE( .NOT.(IS_Hg2( NN )) )

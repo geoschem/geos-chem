@@ -177,7 +177,7 @@
       XMW   = 46d-3               ! Molecular wt of NO2 (kg)
 
       IF ( FIRSTCANOPY ) THEN
-         CALL READ_RESISTANCES
+         CALL READ_RESISTANCES( am_I_Root, Input_Opt, RC )
          FIRSTCANOPY = .FALSE.    ! Now only read resistances once
       ENDIF
 
