@@ -72,26 +72,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PARANOX_LUT
+      SUBROUTINE READ_PARANOX_LUT( FILENAME )
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE FILE_MOD,      ONLY : IOERROR
 !
+! !INPUT PARAMETERS:
+!
+      CHARACTER(LEN=*), INTENT(IN) :: FILENAME
+!
 ! !REVISION HISTORY:
 !  06 Feb 2012 - M. Payer    - Initial version modified from code provided by
 !                              G.C.M. Vinken
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  24 Jun 2014 - R. Yantosca - Now pass FILENAME via the argument list
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-      INTEGER             :: IOS
-      CHARACTER(LEN=255)  :: FILENAME
-      INTEGER             :: IU_FILE
+!
+      INTEGER :: IOS
+      INTEGER :: IU_FILE
 
       !=================================================================
       ! READ_PARANOX_LUT begins here
@@ -101,10 +107,6 @@
       ! Read look up table for fraction of NOx remaining for ship
       ! emissions [unitless]
       !=================================================================
-
-      ! File name
-      FILENAME = TRIM( DATA_DIR_1x1 ) // 'PARANOX_201202/' //
-     &           'FracNOx_binary_5hrs_20gs.dat'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -131,10 +133,6 @@
       ! Read look up table for integrated Ozone Production Efficiency
       ! for ship emissions [molec O3 produced / molec NOx lost]
       !=================================================================
-
-      ! File name
-      FILENAME = TRIM( DATA_DIR_1x1 ) // 'PARANOX_201202/' //
-     &           'IntOPE_binary_5hrs_20gs.dat'
 
       ! Echo info
       WRITE( 6, 101 ) TRIM( FILENAME )

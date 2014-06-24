@@ -46,6 +46,7 @@ MODULE HCOX_PARANOX_MOD
 !  15 Oct 2013 - C. Keller   - Now a HEMCO extension
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
+!  24 Jun 2014 - R. Yantosca - Now pass the look-up-table filename
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -57,6 +58,7 @@ MODULE HCOX_PARANOX_MOD
   INTEGER                       :: IDTNO 
   INTEGER                       :: IDTHNO3
   INTEGER                       :: IDTO3
+  CHARACTER(LEN=255)            :: LUT_FILENAME
   REAL*8                        :: MW_O3
   REAL*8                        :: MW_NO
   REAL*8                        :: MW_NO2
@@ -212,9 +214,10 @@ CONTAINS
     INTEGER,         INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
-!  06 Aug 2013 - C. Keller - Initial Version
+!  06 Aug 2013 - C. Keller   - Initial Version
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
+!  24 Jun 2014 - R. Yantosca - Now pass LUT_FILENAME to READ_PARANOX_LUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,7 +270,7 @@ CONTAINS
 
     ! Read look up tables every new month
     IF ( MM /= SAVEMM ) THEN
-       CALL READ_PARANOX_LUT
+       CALL READ_PARANOX_LUT( LUT_FILENAME )
        SAVEMM = MM
     ENDIF
 
@@ -705,7 +708,9 @@ CONTAINS
 ! !USES:
 !
    USE HCO_STATE_MOD,     ONLY : HCO_GetHcoID
-   USE HCOX_ExtList_Mod,  ONLY : GetExtNr,  GetExtHcoID
+   USE HCOX_ExtList_Mod,  ONLY : GetExtNr
+   USE HCOX_ExtList_Mod,  ONLY : GGetExtHcoID
+   USE HCOX_ExtList_Mod,  ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -743,6 +748,12 @@ CONTAINS
 
    ! Enter
    CALL HCO_ENTER( 'HcoX_ParaNox_Init (HcoX_ParaNox_Mod.F90)', RC )
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   ! ---------------------------------------------------------------------- 
+   ! Get the look-up-table filename
+   ! ---------------------------------------------------------------------- 
+   CALL GetExtOpt ( ExtNr, 'IntOPE table', OptValChar=LUT_FILENAME, RC=RC)
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! ---------------------------------------------------------------------- 
