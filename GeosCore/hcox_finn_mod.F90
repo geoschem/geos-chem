@@ -77,9 +77,14 @@
       !
       ! N_EMFAC : Number of emission factors per species
       ! N_SPEC  : Number of FINN species
+      ! MW_CO2  : Molecular weight of CO2  (g/mol)
+      ! MW_NMOC : Molecular weight of NMOC (g/mol). Assumed MW for NMOC
+      !           is 68 g/mol.
       !=================================================================
       INTEGER,          PARAMETER   :: N_EMFAC = 6
-      INTEGER,          PARAMETER   :: N_SPEC  = 41
+      INTEGER,          PARAMETER   :: N_SPEC  = 39
+      REAL(dp),         PARAMETER   :: MW_CO2  = 44.01_dp
+      REAL(dp),         PARAMETER   :: MW_NMOC = 68.00_dp
 !
 ! !PRIVATE TYPES:
 !
@@ -109,9 +114,10 @@
       ! SCALE FACTORS 
       !
       ! FINN_EMFAC: emission scale factors for each species and 
-      !              emission factor type. The filename of the emissions
-      !              emissions factor table is specified in the HEMCO
-      !              configuration file. All scale factors in kg/kgDM.
+      !             emission factor type. The filename of the emissions
+      !             emissions factor table is specified in the HEMCO
+      !             configuration file. The scale factors are converted
+      !             to kg species/kg CO2 when reading them from disk.
       !=================================================================
       REAL(dp),          ALLOCATABLE :: FINN_EMFAC(:,:)
 
@@ -136,6 +142,8 @@
 !
       USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd
+      USE HCO_STATE_MOD,     ONLY : HCO_GetHcoID
+      USE HCO_CLOCK_MOD,     ONLY : HcoClock_NewMonth, HcoClock_Get
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -165,6 +173,15 @@
       
       REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
+
+      ! For OC/BC splitting:
+      LOGICAL             :: DoRepeat
+      INTEGER             :: Cnt
+
+      ! Write totals to log file 
+      INTEGER             :: NDAYS, cYYYY, cMM
+      REAL(dp)            :: TOTAL
+      CHARACTER(LEN=255)  :: MSG
    
       !=================================================================
       ! HCOX_FINN_RUN begins here!
@@ -193,6 +210,16 @@
       CALL EmisList_GetDataArr( am_I_Root, 'FINN_VEGTYP9', VEGTYP9, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
        
+      ! For logfile 
+      IF ( HcoClock_NewMonth() ) THEN
+         CALL HcoClock_Get( cYYYY = cYYYY, cMM=cMM, RC=RC )
+         IF ( RC/=HCO_SUCCESS ) RETURN
+         WRITE(MSG, 110) cYYYY, cMM
+         CALL HCO_MSG(MSG)
+ 110     FORMAT( 'FINN monthly emissions for year, month: ', &
+                  i4, '/', i2.2 )
+      ENDIF
+  
       !-----------------------------------------------------------------
       ! Calculate emissions for all selected species
       !-----------------------------------------------------------------
@@ -209,7 +236,7 @@
          IF ( HcoID < 0 ) CYCLE
 
          ! Species with no emission factor have FINN_EMFAC=0
-         IF ( MAXVAL(FINN_EMFAC(N,:)) < 0.0_hp ) CYCLE
+         IF ( MAXVAL(FINN_EMFAC(N,:)) <= 0.0_hp ) CYCLE
 
          ! SpcArr are the total biomass burning emissions for this
          ! species. TypArr are the emissions from a given vegetation type. 
@@ -238,7 +265,8 @@
 
             ! Multiply CO2 emissions by appropriate ratio for each land
             ! type and sum to get total emissions for the species on the
-            ! native grid - emissions are in kg/m2/s
+            ! native grid - emissions are in [kg CO2/m2/s[. FINN_EMFAC is
+            ! in [kg X]/[kg CO2].
             TypArr(:,:) = THISTYP(:,:) * FINN_EMFAC(N,NF)
 
             ! TODO: Add to diagnostics here
@@ -247,20 +275,65 @@
             SpcArr = SpcArr + TypArr
          ENDDO !NF
 
-         ! Add flux to HEMCO emission array
-         CALL HCO_EmisAdd( HcoState, SpcArr, HcoID, RC ) 
-         IF ( RC /= HCO_SUCCESS ) RETURN
+         ! Use while loop here only because of OC/BC...
+         DoRepeat = .TRUE.
+         Cnt      = 0
+         DO WHILE ( DoRepeat )
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => SpcArr
-            CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr, &
-                               Cat=-1,     Hier=-1,       HcoID=HcoID, &
-                               AutoFill=1, Array2D=Arr2D, RC=RC         )
+            ! Special treatment for OC/BC: split into hydrophobic and hydrophilic
+            ! fractions. Eventually, we may do this step lateron (when passing 
+            ! emissions from HEMCO to GC), but for now keep it here.
+            ! (ckeller, 06/23/14).
+            IF ( TRIM(FINN_SPEC_NAME(N)) == 'BC' ) THEN
+               IF ( Cnt == 0 ) THEN
+                  HcoID = HCO_GetHcoID( 'BCPI', HcoState )
+                  TypArr = SpcArr            ! Keep orig. data
+                  SpcArr = TypArr * 0.2_hp   ! Adj. data
+               ELSE 
+                  HcoID = HCO_GetHcoID( 'BCPO', HcoState )
+                  SpcArr = TypArr * 0.8_hp   ! Adj. data
+               ENDIF
+
+            ELSEIF ( TRIM(FINN_SPEC_NAME(N)) == 'OC' ) THEN
+               IF ( Cnt == 0 ) THEN
+                  HcoID = HCO_GetHcoID( 'OCPI', HcoState )
+                  SpcArr = SpcArr * 0.5_hp
+               ELSE
+                  HcoID = HCO_GetHcoID( 'OCPO', HcoState )
+               ENDIF
+            ELSE
+               Cnt = 100
+            ENDIF
+
+            ! Add flux to HEMCO emission array
+            CALL HCO_EmisAdd( HcoState, SpcArr, HcoID, RC ) 
             IF ( RC /= HCO_SUCCESS ) RETURN
-            Arr2D => NULL()
-         ENDIF
+   
+            ! Write out total monthly emissions to log-file
+            IF ( HcoClock_NewMonth() ) THEN
+               CALL HcoClock_Get ( LMD = NDAYS, RC=RC )
+               IF ( RC/=HCO_SUCCESS ) RETURN
+               TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%Area_M2(:,:))
+               TOTAL = TOTAL * NDAYS * 86400.0_hp * 1e-9_hp
+               WRITE(MSG, 120) HcoState%Spc(HcoID)%SpcName, TOTAL
+               CALL HCO_MSG(MSG)
+ 120           FORMAT( 'SUM biomass ', a4, 1x, ': ', f11.4, 1x, '[Tg]' )
+            ENDIF
  
+            ! Eventually update diagnostics
+            IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+               Arr2D => SpcArr
+               CALL Diagn_Update(am_I_Root, HcoState,     ExtNr=ExtNr,&
+                                 Cat=-1,    Hier=-1,      HcoID=HcoID,&
+                                 AutoFill=1,Array2D=Arr2D,RC=RC        )
+               IF ( RC /= HCO_SUCCESS ) RETURN
+               Arr2D => NULL()
+            ENDIF
+  
+            IF ( Cnt /= 0 ) DoRepeat = .FALSE.
+            Cnt = Cnt + 1
+ 
+         ENDDO !WHILE
       ENDDO !N
 
       ! Nullify pointers
@@ -321,7 +394,7 @@
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER, PARAMETER :: N_SPEC_EMFAC = 16  ! # of cols in EF_CO2_FILE   (w/o first two)
+      INTEGER, PARAMETER :: N_SPEC_EMFAC = 12  ! # of cols in EF_CO2_FILE   (w/o first two)
       INTEGER, PARAMETER :: N_NMOC       = 28  ! # of cols in VOC_SPEC_FILE (w/o first two)
       INTEGER            :: IU_FILE, L, N_LUMPED
       INTEGER            :: AS, IOS, M, N, NDUM, N_SPECSTRS, N_NMOCSTRS
@@ -335,6 +408,7 @@
       REAL*8             :: EMFAC_IN(N_SPEC_EMFAC, N_EMFAC)
       REAL*8             :: NMOC_EMFAC(N_EMFAC), NMOC_RATIO(N_EMFAC)
       REAL*8             :: NMOC_RATIO_IN(N_NMOC, N_EMFAC)
+      REAL(dp)           :: AdjFact
       CHARACTER(LEN=255) :: MSG, EF_CO2_FILE, VOC_SPEC_FILE
 
       !=================================================================
@@ -367,20 +441,21 @@
       ! Allocate arrays
       ! ---------------------------------------------------------------------- 
 
-      ! Allocate scale factors table
-      ALLOCATE ( FINN_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
-      IF ( AS/=0 ) THEN
-         CALL HCO_ERROR( 'Cannot allocate FINN_EMFAC', RC )
-         RETURN
-      ENDIF
-      FINN_EMFAC = 0.0_dp
-
       ALLOCATE ( FINN_SPEC_NAME ( N_SPEC ), STAT=AS )
       IF ( AS/=0 ) THEN
          CALL HCO_ERROR( 'Cannot allocate FINN_SPEC_NAME', RC )
          RETURN
       ENDIF
       FINN_SPEC_NAME = ''
+
+      ! Allocate scale factors table: FINN_EMFAC holds the species/CO2
+      ! scale factors for all FINN species.
+      ALLOCATE ( FINN_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
+      IF ( AS/=0 ) THEN
+         CALL HCO_ERROR( 'Cannot allocate FINN_EMFAC', RC )
+         RETURN
+      ENDIF
+      FINN_EMFAC = 0.0_dp
 
       ! FinnIDs maps the FINN species onto the suite of specified species.
       ALLOCATE ( FinnIDs ( N_SPEC ), STAT=AS )
@@ -396,10 +471,10 @@
       FINN_SPEC_NAME(1)  = 'CO2'
       FINN_SPEC_NAME(2)  = 'CO'
       FINN_SPEC_NAME(3)  = 'CH4'
-      FINN_SPEC_NAME(4)  = 'NO'
+      FINN_SPEC_NAME(4)  = 'NOx'
       FINN_SPEC_NAME(5)  = 'SO2'
-      FINN_SPEC_NAME(6)  = 'OCPI'
-      FINN_SPEC_NAME(7)  = 'BCPI'
+      FINN_SPEC_NAME(6)  = 'OC'
+      FINN_SPEC_NAME(7)  = 'BC'
       FINN_SPEC_NAME(8)  = 'NH3'
       FINN_SPEC_NAME(9)  = 'ACET'
       FINN_SPEC_NAME(10) = 'ACTA'   ! Not currently emitted by BB in GC
@@ -432,8 +507,6 @@
       FINN_SPEC_NAME(37) = 'TMB'    ! Currently lumped with XYLE
       FINN_SPEC_NAME(38) = 'ETBENZ' ! Currently lumped with TOLU
       FINN_SPEC_NAME(39) = 'STYR'   ! Currently lumped with TOLU
-      FINN_SPEC_NAME(40) = 'OCPO'
-      FINN_SPEC_NAME(41) = 'BCPO'
 
       ! ---------------------------------------------------------------------- 
       ! Read emission factors ([mole CO2]/[mole X])
@@ -514,7 +587,6 @@
 
       ! Read emission factors for each species and land type
       DO N = 1, N_EMFAC
-!         READ( IU_FILE, *, IOSTAT=IOS ) NDUM, ADUM, NMOC_RATIO_IN(:,N)
          READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
          IF ( IOS /= 0 ) THEN
             MSG = 'Error 6 reading ' // TRIM(VOC_SPEC_FILE)
@@ -570,6 +642,21 @@
          ! 'TOLU', 'ETBENZ', and 'STYR' are associated with HEMCO species TOLU.
          DO WHILE ( Missing )
 
+            ! For model species NO, BCPI, BCPO, OCPI, and OCPO, the emission
+            ! factors are taken from FINN species NOx, BC, and OC, respectively.
+            SELECT CASE ( TRIM(SpcName) )
+               CASE ( 'NO' )
+                  SpcName = 'NOx'
+               CASE ('BCPI' )
+                  SpcName = 'BC'
+               CASE ('BCPO' )
+                  SpcName = 'BC'
+               CASE ('OCPI' )
+                  SpcName = 'OC'
+               CASE ('OCPO' )
+                  SpcName = 'OC'
+            END SELECT
+
             ! Search for SpcName in FINN
             DO N = 1, N_SPEC 
                IF ( TRIM(SpcName) == TRIM(FINN_SPEC_NAME(N)) ) THEN
@@ -584,18 +671,35 @@
                   IS_NMOC    = .FALSE.
                   C_MOLEC    = 1d0
                   NMOC_RATIO = 0d0
- 
+
+                  ! Get emission factor in [kg X]/[kg CO2]. 
                   DO M = 1, N_SPECSTRS
                      TMPNAME = IN_SPEC_NAME(M)
                      IF ( TRIM(FINN_SPEC_NAME(N)) == TRIM(TMPNAME(5:8)) ) THEN
                         ! First two entries are not species. Also, EMFAC is
                         ! stored as [mole CO2]/[mole X], but we want the inverse.
-                        FINN_EMFAC(N,:) = 1d0 / EMFAC_IN(M-2,:)
+                        ! This gives us [mole X]/[mole CO2]. To convert this to
+                        ! [kg X]/[kg CO2], we also need to adjust for the molecular
+                        ! weights of species X and CO2.
+                        ! The EF ratios of OC and BC are in [mole CO2]/[g X], so 
+                        ! the adjustment factor is calculated slightly differently
+                        ! for those two species!
+                        IF ( TRIM(FINN_SPEC_NAME(N)) == 'OC' .OR. &
+                             TRIM(FINN_SPEC_NAME(N)) == 'BC'       ) THEN
+                           AdjFact = 1.0_dp / MW_CO2
+                        ELSE
+                           AdjFact = 1.0_dp / MW_CO2 * &
+                                     HcoState%Spc(HcoIDs(L))%MW_g
+                        ENDIF
+                        FINN_EMFAC(N,:) = AdjFact / EMFAC_IN(M-2,:)
                         WRITE( MSG, 200 ) TRIM( FINN_SPEC_NAME(N)) 
                         CALL HCO_MSG( MSG )
                         EXIT
+                     ! NMOC_EMFAC is converted to [kg NMOC]/[kg CO2].
+                     ! Input unit is [mole CO2]/[mole NMOC].
                      ELSE IF ( TRIM(TMPNAME(5:8)) == 'NMOC' ) THEN
-                        NMOC_EMFAC = 1d0 / EMFAC_IN(M-2,:)
+                        AdjFact = MW_NMOC / MW_CO2
+                        NMOC_EMFAC = AdjFact / EMFAC_IN(M-2,:)
                      ENDIF
                   ENDDO
  200              FORMAT( 'Found FINN emission ratio for species ',a5 )
@@ -614,18 +718,19 @@
  201              FORMAT( 'Found FINN NMOC factor for species ',a5 )
    
                   ! Create emission factor for NMOC species
-                  ! NMOC_EMFAC is [mole NMOC] / [mole CO2]
+                  ! NMOC_EMFAC is [kg NMOC] / [kg CO2]
                   ! NMOC_RATIO is [mole X] / [kg NMOC]
-                  ! Assumed MW for NMOC is 68 g/mol
-                  ! Multiplying these gives [mole X] / [mole CO2].
-                  ! Most (not all) of these species are carried as atoms C, so
-                  ! we also multiply here by the number of carbon atoms/molec.
+                  ! To convert NMOC_RATIO to [kg X] / [kg NMOC], we need to
+                  ! multiply by the MW of X (kg/mol this time). 
+                  ! Most (not all) of these species are carried as atoms C, 
+                  ! so we also multiply here by the number of carbon atoms/molec.
                   IF ( IS_NMOC ) THEN
                     DO M = 1, N_EMFAC
                        C_MOLEC         = HcoState%Spc(HcoIDs(L))%MolecRatio
-                       FINN_EMFAC(N,M) = NMOC_EMFAC(M)           * &
-                                       ( NMOC_RATIO(M) * 68d-3 ) * &
-                                         C_MOLEC
+                       AdjFact         = HcoState%Spc(HcoIDs(L))%MW_g
+                       FINN_EMFAC(N,M) = NMOC_EMFAC(M)             * &
+                                       ( NMOC_RATIO(M) * C_MOLEC ) * &
+                                       ( AdjFact       * 1e-3_hp )
                     ENDDO
                   ENDIF
                ENDIF
@@ -643,7 +748,7 @@
             ! --> TMB is lumped into XYLE
             IF ( SpcNames(L) == 'XYLE' ) THEN
                IF ( N_LUMPED == 0 ) THEN
-                  SpcName  = 'TMP'
+                  SpcName  = 'TMB'
                   Missing  = .TRUE.
                   N_LUMPED = N_LUMPED + 1
                ENDIF
