@@ -46,7 +46,7 @@ MODULE HCOX_PARANOX_MOD
 !  15 Oct 2013 - C. Keller   - Now a HEMCO extension
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
-!  24 Jun 2014 - R. Yantosca - Now pass the look-up-table filename
+!  25 Jun 2014 - R. Yantosca - Now pass the look-up-table filenames
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -58,7 +58,8 @@ MODULE HCOX_PARANOX_MOD
   INTEGER                       :: IDTNO 
   INTEGER                       :: IDTHNO3
   INTEGER                       :: IDTO3
-  CHARACTER(LEN=255)            :: LUT_FILENAME
+  CHARACTER(LEN=255)            :: FracNox_FILE
+  CHARACTER(LEN=255)            :: IntOPE_FILE
   REAL*8                        :: MW_O3
   REAL*8                        :: MW_NO
   REAL*8                        :: MW_NO2
@@ -270,7 +271,7 @@ CONTAINS
 
     ! Read look up tables every new month
     IF ( MM /= SAVEMM ) THEN
-       CALL READ_PARANOX_LUT( LUT_FILENAME )
+       CALL READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE  )
        SAVEMM = MM
     ENDIF
 
@@ -751,9 +752,15 @@ CONTAINS
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! ---------------------------------------------------------------------- 
-   ! Get the look-up-table filename
+   ! Get the look-up-table filenames
    ! ---------------------------------------------------------------------- 
-   CALL GetExtOpt ( ExtNr, 'IntOPE table', OptValChar=LUT_FILENAME, RC=RC)
+
+   ! Fraction of NOx remaining for ship emissions
+   CALL GetExtOpt ( ExtNr, 'FracNOx table', OptValChar=FRACNOX_FILE, RC=RC)
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   ! Integrated Ozone production efficiency (OPE)
+   CALL GetExtOpt ( ExtNr, 'IntOPE table', OptValChar=INTOPE_FILE, RC=RC)
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! ---------------------------------------------------------------------- 

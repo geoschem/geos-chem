@@ -72,7 +72,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PARANOX_LUT( FILENAME )
+      SUBROUTINE READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE )
 !
 ! !USES:
 !
@@ -80,7 +80,8 @@
 !
 ! !INPUT PARAMETERS:
 !
-      CHARACTER(LEN=*), INTENT(IN) :: FILENAME
+      CHARACTER(LEN=*), INTENT(IN) :: FracNOx_FILE
+      CHARACTER(LEN=*), INTENT(IN) :: IntOPE_FILE
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - M. Payer    - Initial version modified from code provided by
@@ -108,14 +109,14 @@
       !=================================================================
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
+      WRITE( 6, 100 ) TRIM( FracNOx_FILE )
  100  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
 
       ! Open file to read  
-      OPEN( IU_FILE, FILE=TRIM( FILENAME ), FORM="binary", 
+      OPEN( IU_FILE, FILE=TRIM( FracNOx_FILE ), FORM="binary", 
      &      IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:1' )
 
@@ -134,14 +135,14 @@
       !=================================================================
 
       ! Echo info
-      WRITE( 6, 101 ) TRIM( FILENAME )
+      WRITE( 6, 101 ) TRIM( IntOPE_FILE )
  101  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
 
       ! Open file to read
-      OPEN( IU_FILE, FILE=TRIM( FILENAME ), FORM="BINARY" )
+      OPEN( IU_FILE, FILE=TRIM( IntOPE_FILE ), FORM="BINARY" )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:3' )
 
       ! Read file
