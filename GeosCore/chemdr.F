@@ -552,7 +552,7 @@
       DATE = GET_NYMD()
 
       IF ( ND40 .and. DATE /= DATE_PREV ) THEN
-         CALL SETUP_PLANEFLIGHT( am_I_Root )
+         CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
          DATE_PREV = DATE
       ENDIF
 

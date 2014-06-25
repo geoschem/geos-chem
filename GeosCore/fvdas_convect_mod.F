@@ -780,6 +780,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  23 Jun 2014 - R. Yantosca - Now accept Input_Opt
 !  23 Jun 2014 - R. Yantosca - Now remove references to logical_mod.F
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -789,7 +790,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD,       ONLY : IS_Hg2, IS_HgP !eck/eds
 
       USE CMN_SIZE_MOD             ! Size parameters

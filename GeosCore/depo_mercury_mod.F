@@ -577,7 +577,6 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE inquireMod,    ONLY : findFreeLun
       USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TRACER_MOD,    ONLY : TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,  ONLY : ID_Hg0,      ID_Hg2
       USE GIGC_ErrCode_Mod
@@ -599,7 +598,8 @@
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
 !
 ! !REVISION HISTORY:
-!  15 Sep 2009 - C. Carouge - Initial version
+!  15 Sep 2009 - C. Carouge  - Initial version
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -640,11 +640,13 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
     
       ! Echo some input to the screen
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, 100   ) 
-      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
- 100  FORMAT( 'G T M M  H g   R E S T A R T   F I L E   I N P U T' )
- 110  FORMAT( /, 'READ_GTMM_RESTART: Reading ', a, ' on unit ', i6 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, 100   ) 
+         WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
+ 100     FORMAT( 'G T M M  H g   R E S T A R T   F I L E   I N P U T' )
+ 110     FORMAT( /, 'READ_GTMM_RESTART: Reading ', a, ' on unit ', i6 )
+      ENDIF
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )

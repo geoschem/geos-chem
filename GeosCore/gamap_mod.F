@@ -142,7 +142,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
-      USE TRACER_MOD,         ONLY : GET_SIM_NAME 
 !
 ! !INPUT PARAMETERS:
 !
@@ -157,6 +156,8 @@
 !  03 May 2005 - R. Yantosca - Initial version
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Jun 2014 - R. Yantosca - Now get SIM_NAME from Input_Opt
+!  25 Jun 2014 - R. Yantosca - Remove all references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,7 +175,7 @@
       STAMP    = SYSTEM_TIMESTAMP()
 
       ! Get simulation name
-      SIM_NAME = GET_SIM_NAME()
+      SIM_NAME = Input_Opt%SIM_NAME
 
       ! Write "diaginfo.dat" file
       CALL CREATE_DINFO()
@@ -1772,6 +1773,7 @@
 !  25 Apr 2014 - M. Sulprizio- Now include J-values for ACET in ND22
 !  27 May 2014 - M. Sulprizio- Now include J-values for ALD2, MVK, MACR, HAC,
 !                              and GLYC in ND22
+!  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to GET_FAM_MWT function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6755,7 +6757,7 @@
             FNAME(T,65) = TRIM( NAME(T,65) ) // ' P/L family'
             INDEX(T,65) = T + ( SPACING * 17 )
             MOLC (T,65) = 1 
-            MWT  (T,65) = GET_FAM_MWT( T )
+            MWT  (T,65) = GET_FAM_MWT( T, Input_Opt )
             SCALE(T,65) = 1e0
             
             ! Unit for Tag Ox is kg/s, otherwise molec/cm3/s 

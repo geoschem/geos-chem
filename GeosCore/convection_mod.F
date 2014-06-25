@@ -164,6 +164,7 @@
 !                              stuff that was leftover from the column code
 !  18 Apr 2014 - R. Yantosca - Now use proper # of tracers for APM in the
 !                              call to DO_MERRA_CONVECTION (MERRA & GEOS-FP)
+!  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,7 +222,7 @@
       RC                =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      !ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
+      ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
       N_TRACERS         = Input_Opt%N_TRACERS
 
       ! Pick the proper # of tracers
@@ -300,7 +301,8 @@
          p_FSOL => FSOL(:,:,:,N)
 
          ! Fraction of soluble tracer
-         CALL COMPUTE_F( N, p_FSOL, ISOL(N), State_Met, State_Chm ) 
+         CALL COMPUTE_F( N,         p_FSOL,    ISOL(N), 
+     &                   Input_Opt, State_Met, State_Chm ) 
 
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -455,6 +457,7 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt to CONVTRAN
+!  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -549,7 +552,8 @@
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N, p_FSOL, ISOL, State_Met, State_Chm ) 
+         CALL COMPUTE_F( N,         p_FSOL,    ISOL, 
+     &                   Input_Opt, State_Met, State_Chm ) 
          
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -739,6 +743,7 @@
 !  15 Apr 2014 - R. Yantosca - Remove array temporaries in call to GCAP_CONVECT
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
+!  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -827,19 +832,13 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, N_TOT_TRC
 
-!------------------------------------------------------------------------------
-! Prior to 4/18/14:
-!         ! Get fraction of tracer scavenged and the soluble tracer 
-!         ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-!         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met, State_Chm ) 
-!------------------------------------------------------------------------------
-
          ! Point to 3D slice of F
          p_FSOL => F(:,:,:,N)
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N, p_FSOL, ISOL, State_Met, State_Chm ) 
+         CALL COMPUTE_F( N,         p_FSOL,    ISOL, 
+     &                   Input_Opt, State_Met, State_Chm ) 
          
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -924,21 +923,10 @@
 
       ! Call the GCAP convection routines 
       CALL GCAP_CONVECT( TDT, 
-!-----------------------------------------------------------------------------
-! Prior to 4/15/14:
-! Eliminate array temporary (bmy, 4/15/14)
-!     &                   STT      (:,:,LLPAR:1:-1,:), 
-!-----------------------------------------------------------------------------
-
      &                   p_STT,
      &                   N_TOT_TRC,
      &                   DP, ! I think this is the correct way (bmy, 5/25/05)
      &                   NSTEP, 
-!-----------------------------------------------------------------------------
-! Prior to 4/15/14:
-! Eliminate array temporary (bmy, 4/15/14)
-!     &                   F        (:,:,LLPAR:1:-1,:),     
-!-----------------------------------------------------------------------------
      &                   p_F,
      &                   TCVV,   
      &                   INDEXSOL, 
@@ -1016,7 +1004,6 @@
       USE PRESSURE_MOD,       ONLY : GET_BP
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TS_CONV
-      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP 
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
@@ -1196,6 +1183,7 @@
 !                              pass them to the parallel tracer loop.
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
+!  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1248,6 +1236,7 @@
       REAL*8                 :: WET_HgP 
 
       ! For fields from Input_Opt
+      LOGICAL                :: ITS_A_MERCURY_SIM
       LOGICAL                :: LDYNOCEAN
       LOGICAL                :: LGTMM
       INTEGER                :: NC
@@ -1264,17 +1253,18 @@
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC                = GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      LDYNOCEAN = Input_Opt%LDYNOCEAN
-      LGTMM     = Input_Opt%LGTMM
-      NC        = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:NC)
+      ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
+      LDYNOCEAN         = Input_Opt%LDYNOCEAN
+      LGTMM             = Input_Opt%LGTMM
+      NC                = Input_Opt%N_TRACERS
+      TCVV              = Input_Opt%TCVV(1:NC)
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
-      Q         => State_Chm%Tracers
+      Q                 => State_Chm%Tracers
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1301,7 +1291,7 @@
 #endif
 
          ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
-         IS_Hg = ( Input_Opt%ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+         IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
 
          ! Reset first time flag
          FIRST = .FALSE.
@@ -1402,7 +1392,8 @@
          p_FSOL => F(:,:,:,IC)
 
          ! Compute the fraction of tracer IC scavenged in updrafts
-         CALL COMPUTE_F( IC, p_FSOL, ISOL, State_Met, State_Chm ) 
+         CALL COMPUTE_F( IC,        p_FSOL,    ISOL, 
+     &                   Input_Opt, State_Met, State_Chm ) 
 
          ! Free pointer memory
          NULLIFY( p_FSOL )

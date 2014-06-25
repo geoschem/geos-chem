@@ -80,6 +80,8 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255), POINTER :: TRACER_CONST(:,:)  
      REAL*8,             POINTER :: TRACER_COEFF(:,:)  
      INTEGER,            POINTER :: ID_EMITTED(:)  
+     INTEGER                     :: SIM_TYPE
+     CHARACTER(LEN=255)          :: SIM_NAME
      LOGICAL                     :: LSPLIT
      LOGICAL                     :: ITS_A_RnPbBe_SIM
      LOGICAL                     :: ITS_A_CH3I_SIM
@@ -649,6 +651,7 @@ MODULE GIGC_Input_Opt_Mod
 !  13 Dec 2013 - M. Sulprizio- Add USE_O3_FROM_MET logical flag
 !  16 Apr 2014 - M. Sulprizio- Add field for PSC restart file
 !  23 Jun 2014 - R. Yantosca - Add POP_EMISDIR field for POPs simlulation
+!  25 Jun 2014 - R. Yantosca - Now add Input_Opt%SIM_TYPE field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -720,6 +723,7 @@ CONTAINS
 !  07 Aug 2013 - M. Sulprizio- Add extra fields for SOA + SVPOA simulation
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
+!  25 Jun 2014 - R. Yantosca - Now initialize Input_Opt%SIM_TYPE field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -791,6 +795,8 @@ CONTAINS
     Input_Opt%TRACER_CONST           = ''  
     Input_Opt%TRACER_COEFF           = 0d0
     Input_Opt%ID_EMITTED             = 0
+    Input_Opt%SIM_TYPE               = 0
+    Input_Opt%SIM_NAME               = ''
     Input_Opt%LSPLIT                 = .FALSE.
     Input_Opt%ITS_A_RnPbBe_SIM       = .FALSE.
     Input_Opt%ITS_A_CH3I_SIM         = .FALSE.

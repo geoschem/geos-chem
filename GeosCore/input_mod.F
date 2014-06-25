@@ -1189,17 +1189,9 @@
       USE CHARPAK_MOD,        ONLY : ISDIGIT
       USE BIOFUEL_MOD,        ONLY : SET_BFTRACE
       USE BIOMASS_MOD,        ONLY : SET_BIOTRCE
-      USE ERROR_MOD,          ONLY : ALLOC_ERR,      ERROR_STOP
-      USE TRACER_MOD,         ONLY : ID_EMITTED,     ID_TRACER
-      USE TRACER_MOD,         ONLY : SIM_TYPE,       N_TRACERS
-      USE TRACER_MOD,         ONLY : TCVV,           TRACER_COEFF
-      USE TRACER_MOD,         ONLY : TRACER_CONST,   TRACER_MW_G
-      USE TRACER_MOD,         ONLY : TRACER_MW_KG,   TRACER_N_CONST
-      USE TRACER_MOD,         ONLY : TRACER_NAME,    INIT_TRACER
-      USE TRACER_MOD,         ONLY : XNUMOL,         XNUMOLAIR
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_A_HCN_SIM
-      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE TRACER_MOD,         ONLY : INIT_TRACER
       USE TRACERID_MOD,       ONLY : TRACERID
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
@@ -1234,6 +1226,7 @@
 !  28 Oct 2013 - R. Yantosca - Set Input_Opt%ITS_A_SPECIALTY_SIM = .FALSE.
 !                              when running GEOS-Chem in an ESMF environment
 !  24 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES in vdiff_mod>F
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1247,270 +1240,29 @@
 
       !=================================================================
       ! READ_TRACER_MENU begins here!
+      !
+      ! Get the simulation type
       !=================================================================
 
       ! NSRCX
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:1' )
-      READ( SUBSTRS(1:N), * ) SIM_TYPE
+      READ( SUBSTRS(1:N), * ) Input_Opt%SIM_TYPE
 
-      ! NTRACE
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:2' )
-      READ( SUBSTRS(1:N), * ) N_TRACERS
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
-      ! NTRACE cannot exceed NNPAR
-
-      IF ( N_TRACERS > NNPAR ) THEN
-         CALL ERROR_STOP( 'Error: N_TRACERS > NNPAR!', 
-     &                    'read_tracer_menu (input_mod.f)' )
-      ENDIF
-     
-      ! Save N_TRACERS to Input_Opt
-      Input_Opt%N_TRACERS = N_TRACERS
-
-      ! Initialize tracer arrays in tracer_mod.f
-      CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
-
-      !=================================================================
-      ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
-      !=================================================================
-      DO T = 1, N_TRACERS
-
-         ! Split line into substrings
-         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:4' )
-
-         ! Save tracer number
-         READ( SUBSTRS(1), * ) ID_TRACER(T)
-
-         ! Save tracer name
-         TRACER_NAME(T)  = TRIM( SUBSTRS(2) )
-
-         ! Save tracer molecular wt [g/mole]
-         READ( SUBSTRS(3), * ) TRACER_MW_G(T) 
-
-         ! Save tracer molecular wt [kg/mole]
-         TRACER_MW_KG(T) = TRACER_MW_G(T) * 1d-3
-
-         ! Ratio of MW air / MW tracer 
-         TCVV(T)         = 28.97d0 / TRACER_MW_G(T)
-
-         ! Molecules tracer / kg tracer
-         XNUMOL(T)       = 6.022d+23 / TRACER_MW_KG(T)
-         
-         !----------------------------------------------------
-         ! If this is a family tracer, get member species
-         !---------------------------------------------------- 
-         IF ( N > 3 ) THEN
-  
-            ! Number of species in this family
-            TRACER_N_CONST(T) = N-3
-               
-            ! Loop over substrings
-            DO C = 1, N-3
-         
-               ! Trim the name
-               NAME = TRIM( SUBSTRS(C+3) )
-         
-               !--------------------------------
-               ! Emitted species denoted by ()
-               !--------------------------------
-               IF ( NAME(1:1) == '(' ) THEN 
-
-                  ! Pull out the text between parentheses
-                  NAME = NAME( 2:LEN_TRIM( NAME )-1 )
-
-                  ! Set coeff of emitted tracer to 1 for now
-                  TRACER_COEFF(T,C) = 1d0
-
-                  ! Index of which family member is the emitted species
-                  ID_EMITTED(T) = C
-
-                  ! 2nd character of name is a number
-                  IF ( ISDIGIT( NAME(1:1) ) ) THEN
-
-                     ! Allow for tracers that contain >= 10C (tmf, 12/09/04) 
-                     ! If 3rd character of name is a number
-                     IF ( ISDIGIT( NAME(2:2) ) ) THEN
-
-                        ! Coefficient of emitted tracer
-                        READ( NAME(1:2), * ) TRACER_COEFF(T,C)
-
-                        ! Get the rest of the name
-                        NAME = NAME( 3:LEN_TRIM( NAME ) )
-
-                     ELSE
-
-                        ! Coefficient of emitted tracer
-                        READ( NAME(1:1), * ) TRACER_COEFF(T,C)
-
-                        ! Get the rest of the name
-                        NAME = NAME( 2:LEN_TRIM( NAME ) )
-
-                     ENDIF
-                  ENDIF
-
-                  ! Tracer constituent name
-                  TRACER_CONST(T,C) = NAME
-
-               !--------------------------------  
-               ! Non-emitted species 
-               !--------------------------------
-               ELSE 
-
-                  ! Set coeff of emitted tracer to 1 for now
-                  TRACER_COEFF(T,C) = 1d0
-
-                  ! 2nd character of name is a number
-                  IF ( ISDIGIT( NAME(1:1) ) ) THEN
-
-                     ! Allow for tracers that contain >= 10C (tmf, 12/09/04) 
-                     ! If 3rd character of name is a number
-                     IF ( ISDIGIT( NAME(2:2) ) ) THEN
-
-                        ! Coefficient of emitted tracer
-                        READ( NAME(1:2), * ) TRACER_COEFF(T,C)
-
-                        ! Get the rest of the name
-                        NAME = NAME( 3:LEN_TRIM( NAME ) )
-
-                     ELSE
-
-                        ! Coefficient of emitted tracer
-                        READ( NAME(1:1), * ) TRACER_COEFF(T,C)
-
-                        ! Get the rest of the name
-                        NAME = NAME( 2:LEN_TRIM( NAME ) )
-
-                     ENDIF
-
-                  ENDIF
-
-                  ! Tracer constituent name
-                  TRACER_CONST(T,C) = NAME
-
-               ENDIF
-
-            ENDDO
-
-         !----------------------------------------------------
-         ! If not a family tracer, there is only one member
-         !---------------------------------------------------- 
-         ELSE
-
-            ! Number of species in this family
-            TRACER_N_CONST(T) = 1
-
-            ! Index of which member is the emitted species
-            ID_EMITTED(T)     = 0
-
-            ! Coefficient of each tracer constituent
-            TRACER_COEFF(T,1) = 1d0
-
-            ! Tracer constituent name
-            TRACER_CONST(T,1) = TRACER_NAME(T)
-
-         ENDIF
-
-      ENDDO
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:5' )
-
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 
-     &       'TRACER MENU (==> denotes SMVGEAR emitted species)' 
-         WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
-         WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
-
-         ! Print info about each tracer
-         DO T = 1, N_TRACERS
-
-            ! Write tracer number, name, & mol wt
-            WRITE( 6, 100 ) ID_TRACER(T), TRACER_NAME(T), TRACER_MW_G(T)
-              
-            ! If a family tracer (or just a tracer w/ emission)
-            ! then also print info about species
-            IF ( TRACER_N_CONST(T) > 1 .or. ID_EMITTED(T) > 0 ) THEN
-            
-               ! Loop over member species
-               DO C = 1, TRACER_N_CONST(T)
-
-                   ! Also flag which is the emitted tracer
-                  IF ( ID_EMITTED(T) == C ) THEN
-                     WRITE( 6,110 ) TRACER_COEFF(T,C), TRACER_CONST(T,C) 
-                  ELSE
-                     WRITE( 6,120 ) TRACER_COEFF(T,C), TRACER_CONST(T,C)
-                  ENDIF
-               ENDDO
-            ENDIF
-         ENDDO
-      ENDIF
-
-      ! Format statement
- 100  FORMAT( I3, 1x, A10, 6x, F6.1 )
- 110  FORMAT( 5x, '===> ', f4.1, 1x, A6  )
- 120  FORMAT( 5x, '---> ', f4.1, 1x, A4  )
-
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Split into tagged tracers (turn off for full-chemistry)
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
-
-         ! There are no tagged tracers for fullchem
-         LSPLIT = .FALSE.
-
-      ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
-
-         ! Need Hg0, Hg2, HgP for tagged Mercury
-         LSPLIT = ( N_TRACERS > 3 )
-         
-      ELSE IF ( ITS_A_HCN_SIM() ) THEN
-
-         ! Need HCN, CH3CN for HCN simulation
-         LSPLIT = ( N_TRACERS > 2 )
-
-      ELSE
-         LSPLIT = ( N_TRACERS > 1 )
-
-      ENDIF
-
-      ! Set up tracer flags
-      CALL TRACERID( am_I_Root, Input_Opt, RC )
-
-      ! Set NBFTRACE in "biofuel_mod.f"
-      CALL SET_BFTRACE( am_I_Root )
-
-      ! Set NBIOTRACE in "biomass_mod.f"
-      CALL SET_BIOTRCE( am_I_Root, Input_Opt )
-
-      ! Set counter
-      CT1 = CT1 + 1
-
-      !=================================================================
       ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%N_TRACERS              = N_TRACERS
-      Input_Opt%LSPLIT                 = LSPLIT
-      Input_Opt%ITS_A_RnPbBe_SIM       = ( SIM_TYPE == 1  )
-      Input_Opt%ITS_A_CH3I_SIM         = ( SIM_TYPE == 2  )
-      Input_Opt%ITS_A_FULLCHEM_SIM     = ( SIM_TYPE == 3  )
-      Input_Opt%ITS_A_HCN_SIM          = ( SIM_TYPE == 4  )
-      Input_Opt%ITS_A_TAGOX_SIM        = ( SIM_TYPE == 6  )
-      Input_Opt%ITS_A_TAGCO_SIM        = ( SIM_TYPE == 7  )
-      Input_Opt%ITS_A_C2H6_SIM         = ( SIM_TYPE == 8  )
-      Input_Opt%ITS_A_CH4_SIM          = ( SIM_TYPE == 9  )
-      Input_Opt%ITS_NOT_COPARAM_OR_CH4 = ( SIM_TYPE /= 9  )
-      Input_Opt%ITS_AN_AEROSOL_SIM     = ( SIM_TYPE == 10 )
-      Input_Opt%ITS_A_MERCURY_SIM      = ( SIM_TYPE == 11 )
-      Input_Opt%ITS_A_CO2_SIM          = ( SIM_TYPE == 12 )
-      Input_Opt%ITS_A_H2HD_SIM         = ( SIM_TYPE == 13 )
-      Input_Opt%ITS_A_POPS_SIM         = ( SIM_TYPE == 14 )
+      Input_Opt%ITS_A_RnPbBe_SIM       = ( Input_Opt%SIM_TYPE == 1  )
+      Input_Opt%ITS_A_CH3I_SIM         = ( Input_Opt%SIM_TYPE == 2  )
+      Input_Opt%ITS_A_FULLCHEM_SIM     = ( Input_Opt%SIM_TYPE == 3  )
+      Input_Opt%ITS_A_HCN_SIM          = ( Input_Opt%SIM_TYPE == 4  )
+      Input_Opt%ITS_A_TAGOX_SIM        = ( Input_Opt%SIM_TYPE == 6  )
+      Input_Opt%ITS_A_TAGCO_SIM        = ( Input_Opt%SIM_TYPE == 7  )
+      Input_Opt%ITS_A_C2H6_SIM         = ( Input_Opt%SIM_TYPE == 8  )
+      Input_Opt%ITS_A_CH4_SIM          = ( Input_Opt%SIM_TYPE == 9  )
+      Input_Opt%ITS_NOT_COPARAM_OR_CH4 = ( Input_Opt%SIM_TYPE /= 9  )
+      Input_Opt%ITS_AN_AEROSOL_SIM     = ( Input_Opt%SIM_TYPE == 10 )
+      Input_Opt%ITS_A_MERCURY_SIM      = ( Input_Opt%SIM_TYPE == 11 )
+      Input_Opt%ITS_A_CO2_SIM          = ( Input_Opt%SIM_TYPE == 12 )
+      Input_Opt%ITS_A_H2HD_SIM         = ( Input_Opt%SIM_TYPE == 13 )
+      Input_Opt%ITS_A_POPS_SIM         = ( Input_Opt%SIM_TYPE == 14 )
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
@@ -1545,23 +1297,286 @@
      &       Input_Opt%ITS_A_POPS_SIM           )
 #endif
 
-      ! Print info about each tracer
-      DO T = 1, N_TRACERS
-         Input_Opt%ID_EMITTED(T)       = ID_EMITTED(T)
-         Input_Opt%ID_TRACER(T)        = ID_TRACER(T)
-         Input_Opt%TRACER_NAME(T)      = TRIM( TRACER_NAME(T) )
-         Input_Opt%TRACER_N_CONST(T)   = TRACER_N_CONST(T)
-         Input_Opt%TRACER_MW_G(T)      = TRACER_MW_G(T)
-         Input_Opt%TRACER_MW_KG(T)     = TRACER_MW_KG(T)
-         Input_OPt%TCVV(T)             = TCVV(T)  
-         Input_Opt%XNUMOL(T)           = XNUMOL(T)
+      ! Also pick a name corresponding to each simulation type
+      ! This replaces function GET_SIM_NAME from tracer_mod.F
+      SELECT CASE( Input_Opt%SIM_TYPE )
+         CASE( 1 ) 
+            Input_Opt%SIM_NAME = 'Rn-Pb-Be'
+         CASE( 2 ) 
+            Input_Opt%SIM_NAME = 'CH3I'
+         CASE( 3 ) 
+            Input_Opt%SIM_NAME = 'NOx-Ox-Hydrocarbon-Aerosol'
+         CASE( 4 )
+            Input_Opt%SIM_NAME = 'HCN'
+         CASE( 5 )
+            Input_Opt%SIM_NAME = ''
+         CASE( 6 )
+            Input_Opt%SIM_NAME = 'Tagged Ox'
+         CASE( 7 )
+            Input_Opt%SIM_NAME = 'Tagged CO'
+         CASE( 8 ) 
+            Input_Opt%SIM_NAME = 'Tagged C2H6'
+         CASE( 9 )
+            Input_Opt%SIM_NAME = 'CH4'
+         CASE( 10 ) 
+            Input_Opt%SIM_NAME = 'Offline Aerosol'
+         CASE( 11 ) 
+            Input_Opt%SIM_NAME = 'Mercury'
+         CASE( 12 )
+            Input_Opt%SIM_NAME = 'CO2'
+         CASE( 13 )
+            Input_Opt%SIM_NAME = 'H2 and HD'
+         CASE( 14 )
+            Input_Opt%SIM_NAME = 'POPs'
+         CASE DEFAULT
+            Input_Opt%SIM_NAME = 'UNKNOWN'
+       END SELECT
 
-         ! Loop over member species
-         DO C = 1, TRACER_N_CONST(T)
-            Input_Opt%TRACER_COEFF(T,C) = TRACER_COEFF(T,C)
-            Input_Opt%TRACER_CONST(T,C) = TRIM( TRACER_CONST(T,C) )
-         ENDDO
+      !=================================================================
+      ! Read the # of tracers
+      !=================================================================
+
+
+      ! NTRACE
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:2' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%N_TRACERS
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
+      ! NTRACE cannot exceed NNPAR
+
+      IF ( Input_Opt%N_TRACERS > NNPAR ) THEN
+         CALL ERROR_STOP( 'Error: N_TRACERS > NNPAR!', 
+     &                    'read_tracer_menu (input_mod.f)' )
+      ENDIF
+     
+      !=================================================================
+      ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
+      !=================================================================
+      DO T = 1, Input_Opt%N_TRACERS
+
+         ! Split line into substrings
+         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:4' )
+
+         ! Save tracer number
+         READ( SUBSTRS(1), * ) Input_Opt%ID_TRACER(T)
+
+         ! Save tracer name
+         Input_Opt%TRACER_NAME(T)  = TRIM( SUBSTRS(2) )
+
+         ! Save tracer molecular wt [g/mole]
+         READ( SUBSTRS(3), * ) Input_Opt%TRACER_MW_G(T) 
+
+         ! Save tracer molecular wt [kg/mole]
+         Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1d-3
+
+         ! Ratio of MW air / MW tracer 
+         Input_Opt%TCVV(T) = 28.97d0 / Input_Opt%TRACER_MW_G(T)
+
+         ! Molecules tracer / kg tracer
+         Input_Opt%XNUMOL(T) = 6.022d+23 / Input_Opt%TRACER_MW_KG(T)
+         
+         !----------------------------------------------------
+         ! If this is a family tracer, get member species
+         !---------------------------------------------------- 
+         IF ( N > 3 ) THEN
+  
+            ! Number of species in this family
+            Input_Opt%TRACER_N_CONST(T) = N-3
+               
+            ! Loop over substrings
+            DO C = 1, N-3
+         
+               ! Trim the name
+               NAME = TRIM( SUBSTRS(C+3) )
+         
+               !--------------------------------
+               ! Emitted species denoted by ()
+               !--------------------------------
+               IF ( NAME(1:1) == '(' ) THEN 
+
+                  ! Pull out the text between parentheses
+                  NAME = NAME( 2:LEN_TRIM( NAME )-1 )
+
+                  ! Set coeff of emitted tracer to 1 for now
+                  Input_Opt%TRACER_COEFF(T,C) = 1d0
+
+                  ! Index of which family member is the emitted species
+                  Input_Opt%ID_EMITTED(T) = C
+
+                  ! 2nd character of name is a number
+                  IF ( ISDIGIT( NAME(1:1) ) ) THEN
+
+                     ! Allow for tracers that contain >= 10C (tmf, 12/09/04) 
+                     ! If 3rd character of name is a number
+                     IF ( ISDIGIT( NAME(2:2) ) ) THEN
+
+                        ! Coefficient of emitted tracer
+                        READ( NAME(1:2), * ) Input_Opt%TRACER_COEFF(T,C)
+
+                        ! Get the rest of the name
+                        NAME = NAME( 3:LEN_TRIM( NAME ) )
+
+                     ELSE
+
+                        ! Coefficient of emitted tracer
+                        READ( NAME(1:1), * ) Input_Opt%TRACER_COEFF(T,C)
+
+                        ! Get the rest of the name
+                        NAME = NAME( 2:LEN_TRIM( NAME ) )
+
+                     ENDIF
+                  ENDIF
+
+                  ! Tracer constituent name
+                  Input_Opt%TRACER_CONST(T,C) = NAME
+
+               !--------------------------------  
+               ! Non-emitted species 
+               !--------------------------------
+               ELSE 
+
+                  ! Set coeff of emitted tracer to 1 for now
+                  Input_Opt%TRACER_COEFF(T,C) = 1d0
+
+                  ! 2nd character of name is a number
+                  IF ( ISDIGIT( NAME(1:1) ) ) THEN
+
+                     ! Allow for tracers that contain >= 10C (tmf, 12/09/04) 
+                     ! If 3rd character of name is a number
+                     IF ( ISDIGIT( NAME(2:2) ) ) THEN
+
+                        ! Coefficient of emitted tracer
+                        READ( NAME(1:2), * ) Input_Opt%TRACER_COEFF(T,C)
+
+                        ! Get the rest of the name
+                        NAME = NAME( 3:LEN_TRIM( NAME ) )
+
+                     ELSE
+
+                        ! Coefficient of emitted tracer
+                        READ( NAME(1:1), * ) Input_Opt%TRACER_COEFF(T,C)
+
+                        ! Get the rest of the name
+                        NAME = NAME( 2:LEN_TRIM( NAME ) )
+
+                     ENDIF
+
+                  ENDIF
+
+                  ! Tracer constituent name
+                  Input_Opt%TRACER_CONST(T,C) = NAME
+
+               ENDIF
+
+            ENDDO
+
+         !----------------------------------------------------
+         ! If not a family tracer, there is only one member
+         !---------------------------------------------------- 
+         ELSE
+
+            ! Number of species in this family
+            Input_Opt%TRACER_N_CONST(T) = 1
+
+            ! Index of which member is the emitted species
+            Input_Opt%ID_EMITTED(T)     = 0
+
+            ! Coefficient of each tracer constituent
+            Input_Opt%TRACER_COEFF(T,1) = 1d0
+
+            ! Tracer constituent name
+            Input_Opt%TRACER_CONST(T,1) = Input_Opt%TRACER_NAME(T)
+
+         ENDIF
+
       ENDDO
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:5' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 
+     &       'TRACER MENU (==> denotes SMVGEAR emitted species)' 
+         WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
+         WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
+
+         ! Print info about each tracer
+         DO T = 1, Input_Opt%N_TRACERS
+
+            ! Write tracer number, name, & mol wt
+            WRITE( 6, 100 ) Input_Opt%ID_TRACER(T), 
+     &                      Input_Opt%TRACER_NAME(T), 
+     &                      Input_Opt%TRACER_MW_G(T)
+              
+            ! If a family tracer (or just a tracer w/ emission)
+            ! then also print info about species
+            IF ( Input_Opt%TRACER_N_CONST(T) > 1 .or. 
+     &           Input_Opt%ID_EMITTED(T) > 0 ) THEN
+            
+               ! Loop over member species
+               DO C = 1, Input_Opt%TRACER_N_CONST(T)
+
+                   ! Also flag which is the emitted tracer
+                  IF ( Input_Opt%ID_EMITTED(T) == C ) THEN
+                     WRITE( 6,110 ) Input_Opt%TRACER_COEFF(T,C), 
+     &                              Input_Opt%TRACER_CONST(T,C) 
+                  ELSE
+                     WRITE( 6,120 ) Input_Opt%TRACER_COEFF(T,C), 
+     &                              Input_Opt%TRACER_CONST(T,C)
+                  ENDIF
+               ENDDO
+            ENDIF
+         ENDDO
+      ENDIF
+
+      ! Format statement
+ 100  FORMAT( I3, 1x, A10, 6x, F6.1 )
+ 110  FORMAT( 5x, '===> ', f4.1, 1x, A6  )
+ 120  FORMAT( 5x, '---> ', f4.1, 1x, A4  )
+
+      !=================================================================
+      ! Call setup routines from other F90 modules
+      !=================================================================
+
+      ! Split into tagged tracers (turn off for full-chemistry)
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+         ! There are no tagged tracers for fullchem
+         Input_Opt%LSPLIT = .FALSE.
+
+      ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+         ! Need Hg0, Hg2, HgP for tagged Mercury
+         Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 3 )
+         
+      ELSE IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
+
+         ! Need HCN, CH3CN for HCN simulation
+         Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 2 )
+
+      ELSE
+         Input_Opt%LSPLIT = ( Input_Opt%N_TRACERS > 1 )
+
+      ENDIF
+
+      ! Set up tracer flags
+      CALL TRACERID( am_I_Root, Input_Opt, RC )
+
+      ! Set NBFTRACE in "biofuel_mod.f"
+      CALL SET_BFTRACE( am_I_Root )
+
+      ! Set NBIOTRACE in "biomass_mod.f"
+      CALL SET_BIOTRCE( am_I_Root, Input_Opt )
+
+      ! Store the # of tracers internally in tracer_mod.F
+      CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
+
+      ! Set counter
+      CT1 = CT1 + 1
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -1587,9 +1602,6 @@
 !
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE UCX_MOD,      ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
-      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD, ONLY : IDTDMS,   IDTSO2,   IDTSO4,  IDTSO4s 
       USE TRACERID_MOD, ONLY : IDTMSA,   IDTNH3,   IDTNH4,  IDTNITs 
       USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTNH4aq 
@@ -1648,7 +1660,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  16 Apr 2014 - M. Sulprizio- Now read path for PSC restart file
-!  23 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
+!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1725,13 +1738,13 @@
       ! Accum mode seasalt radii bin edges [um]
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:11' )
       DO T = 1, N
-         READ( SUBSTRS(T), * ) SALA_REDGE_um(T)
+         READ( SUBSTRS(T), * ) Input_Opt%SALA_REDGE_um(T)
       ENDDO
 
       ! Coarse mode seasalt radii bin edges [um]
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:12' )
       DO T = 1, N
-         READ( SUBSTRS(T), * ) SALC_REDGE_um(T)
+         READ( SUBSTRS(T), * ) Input_Opt%SALC_REDGE_um(T)
       ENDDO
 
       ! Switch to comment the SOG condensation in carbon_mod.f (ccc, 3/10/09)
@@ -1779,14 +1792,15 @@
       !=================================================================
 
       ! Make sure that SALA, SALC bins are contiguous
-      IF ( SALA_REDGE_um(2) /= SALC_REDGE_um(1) ) THEN
+      IF ( Input_Opt%SALA_REDGE_um(2) /= 
+     &     Input_Opt%SALC_REDGE_um(1)     ) THEN
          MSG = 'SALA and SALC bin edges are not contiguous!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
       ! Turn off switches for simulations that don't use aerosols
-      IF ( ( .not. ITS_A_FULLCHEM_SIM() )  .and. 
-     &     ( .not. ITS_AN_AEROSOL_SIM() ) ) THEN
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. 
+     &     ( .not. Input_OPt%ITS_AN_AEROSOL_SIM ) ) THEN
          LSULF  = .FALSE.
          LCRYST = .FALSE.
          LCARB  = .FALSE.
@@ -2006,8 +2020,6 @@
       Input_Opt%LDEAD              = LDEAD
       Input_Opt%LSSALT             = LSSALT
       Input_Opt%LDICARB            = LDICARB  
-      Input_Opt%SALA_REDGE_um(1:2) = SALA_REDGE_um(1:2)
-      Input_Opt%SALC_REDGE_um(1:2) = SALC_REDGE_um(1:2)
       Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
       Input_Opt%LSOLIDPSC          = LSOLIDPSC
       Input_Opt%PSC_RST_FILE       = PSC_RST_FILE
@@ -2039,13 +2051,15 @@
          WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
          WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
-     &                        SALA_REDGE_um(1), SALA_REDGE_um(2)
+     &                        Input_Opt%SALA_REDGE_um(1), 
+     &                        Input_Opt%SALA_REDGE_um(2)
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
-     &                        SALC_REDGE_um(1), SALC_REDGE_um(2)
+     &                        Input_Opt%SALC_REDGE_um(1), 
+     &                        Input_Opt%SALC_REDGE_um(2)
          WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
          WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',LSOLIDPSC
          WRITE( 6, 130     ) 'PSC restart file name?      : ',
-     7        TRIM( PSC_RST_FILE )
+     &                        TRIM( PSC_RST_FILE )
          WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT
          WRITE( 6, 120     ) 'NAT supercooling requirement: ',
      &                                                 T_NAT_SUPERCOOL
@@ -2712,7 +2726,6 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE TRACER_MOD,         ONLY : ITS_A_CO2_SIM
       USE CMN_SIZE_MOD
       USE CMN_O3_MOD
       USE GIGC_ErrCode_Mod
@@ -2738,7 +2751,8 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  03 Jun 2014 - R. Yantosca - Now specify biomass, biofuel options in HEMCO
-!  23 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
+!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2948,37 +2962,35 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF (ITS_A_CO2_SIM() ) THEN
-        IF ( am_I_Root ) THEN
-          WRITE(6,'(/,a)') 'CO2 SIMULATION MENU ' //
-     &         '(overwrites any other settings related to CO2)'
-          WRITE(6,'(  a)') '-------------------------------------'
-	  WRITE(6, 90    ) 'Fossil Fuel emissions'
-	  WRITE(6,100    ) '  Generic FF emissions        :', LGENFF
-	  WRITE(6,100    ) '  Annual FF emissions         :', LANNFF
-	  WRITE(6,100    ) '  Monthly FF emissions        :', LMONFF
-	  WRITE(6,100    ) 'CO2 from oxidation (CO,CH4,..):', LCHEMCO2
-	  WRITE(6, 90    ) 'Terrestrial Exchange'
-	  WRITE(6,100    ) '  CASA Biosphere daily average:', LBIODAILY
-	  WRITE(6,100    ) '  CASA Biosphere diurnal cycle:', LBIODIURNAL
-	  WRITE(6,100    ) '  Net Terr Exch - Original    :', LBIONETORIG
-	  WRITE(6,100    ) '  Net Terr Exch - Climatology :', LBIONETCLIM
-	  WRITE(6,90     ) 'Ocean Exchange' 
-	  WRITE(6,100    ) '  Takahashi 1997              :', LOCN1997 
-	  WRITE(6,100    ) '  Takahashi 2009 annual       :', LOCN2009ANN 
-	  WRITE(6,100    ) '  Takahashi 2009 monthly      :', LOCN2009MON
-	  WRITE(6,90     ) 'Ship and Plane Emissions' 
-	  WRITE(6,100    ) '  EDGAR ship emissions        :', LSHIPEDG 
-	  WRITE(6,100    ) '  ICOADS ship emissions       :', LSHIPICO 
-	  WRITE(6,100    ) '  Aviation emissions          :', LPLANE 
-	  WRITE(6, 90    ) 'Tagged CO2 settings'
-	  WRITE(6,100    ) '  Save Fossil CO2 in Bckgrnd  :', LFFBKGRD 
-	  WRITE(6,100    ) '  Tag Biosphere/Ocean CO2     :', LBIOSPHTAG 
-	  WRITE(6,100    ) '  Tag Fossil Fuel CO2         :', LFOSSILTAG 
-	  WRITE(6,100    ) '  Tag Global Ship CO2         :', LSHIPTAG
-	  WRITE(6,100    ) '  Tag Global Aviation CO2     :', LPLANETAG
-          WRITE(6,'(  a)') '-------------------------------------'
-	ENDIF
+      IF ( Input_Opt%ITS_A_CO2_SIM .and. am_I_Root ) THEN
+         WRITE(6,'(/,a)') 'CO2 SIMULATION MENU ' //
+     &        '(overwrites any other settings related to CO2)'
+         WRITE(6,'(  a)') '-------------------------------------'
+         WRITE(6, 90    ) 'Fossil Fuel emissions'
+         WRITE(6,100    ) '  Generic FF emissions        :', LGENFF
+         WRITE(6,100    ) '  Annual FF emissions         :', LANNFF
+         WRITE(6,100    ) '  Monthly FF emissions        :', LMONFF
+         WRITE(6,100    ) 'CO2 from oxidation (CO,CH4,..):', LCHEMCO2
+         WRITE(6, 90    ) 'Terrestrial Exchange'
+         WRITE(6,100    ) '  CASA Biosphere daily average:', LBIODAILY
+         WRITE(6,100    ) '  CASA Biosphere diurnal cycle:', LBIODIURNAL
+         WRITE(6,100    ) '  Net Terr Exch - Original    :', LBIONETORIG
+         WRITE(6,100    ) '  Net Terr Exch - Climatology :', LBIONETCLIM
+         WRITE(6,90     ) 'Ocean Exchange' 
+         WRITE(6,100    ) '  Takahashi 1997              :', LOCN1997 
+         WRITE(6,100    ) '  Takahashi 2009 annual       :', LOCN2009ANN 
+         WRITE(6,100    ) '  Takahashi 2009 monthly      :', LOCN2009MON
+         WRITE(6,90     ) 'Ship and Plane Emissions' 
+         WRITE(6,100    ) '  EDGAR ship emissions        :', LSHIPEDG 
+         WRITE(6,100    ) '  ICOADS ship emissions       :', LSHIPICO 
+         WRITE(6,100    ) '  Aviation emissions          :', LPLANE 
+         WRITE(6, 90    ) 'Tagged CO2 settings'
+         WRITE(6,100    ) '  Save Fossil CO2 in Bckgrnd  :', LFFBKGRD 
+         WRITE(6,100    ) '  Tag Biosphere/Ocean CO2     :', LBIOSPHTAG 
+         WRITE(6,100    ) '  Tag Fossil Fuel CO2         :', LFOSSILTAG 
+         WRITE(6,100    ) '  Tag Global Ship CO2         :', LSHIPTAG
+         WRITE(6,100    ) '  Tag Global Aviation CO2     :', LPLANETAG
+         WRITE(6,'(  a)') '-------------------------------------'
       ENDIF      
 
       ! FORMAT statements
@@ -3132,7 +3144,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_CHEM
-      USE TRACER_MOD,         ONLY : N_TRACERS
       USE TRACERID_MOD,       ONLY : IDTCH4
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE TIME_MOD,           ONLY : Accept_External_Date_Time
@@ -3167,6 +3178,7 @@
 !  22 May 2013 - M. Payer    - Now read in GAMMA_HO2. Recommended value is 0.2
 !                              based on Jacon et al (2000) and Mao et al (2013).
 !  22 Aug 2013 - R. Yantosca - Now read in path for species restart file
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3399,8 +3411,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE TIME_MOD,           ONLY : Accept_External_Date_Time
 #endif
@@ -3440,7 +3450,8 @@
 !                              to ACCEPT_EXTERNAL_DATE_TIME
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete option for flux correction. This
 !                              was used for GEOS-3, which has been retired.
-!  23 Jun 2014 - R. Yantosca - Removed reference to logical_mod.F
+!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3786,10 +3797,6 @@
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
-      USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,    ITS_A_CH3I_SIM
-      USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM,     ITS_A_HCN_SIM
-      USE TRACER_MOD,  ONLY : ITS_A_MERCURY_SIM, ITS_A_TAGCO_SIM
-      USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM
       USE WETSCAV_MOD, ONLY : WETDEPID
 #if   defined( APM )
       USE APM_WETS_MOD, ONLY : WETDEPBINID
@@ -3824,7 +3831,8 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  26 Feb 2013 - R. Yantosca - Now call INIT_DUST jere to facilitate 
 !                              connecting to the GEOS-5 GCM
-!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod>F
+!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3866,16 +3874,16 @@
       !=================================================================
 
       ! Turn off drydep for simulations that don't need it
-      IF ( ITS_A_CH3I_SIM()    ) LDRYD = .FALSE.
-      IF ( ITS_A_TAGCO_SIM()   ) LDRYD = .FALSE.
+      IF ( Input_Opt%ITS_A_CH3I_SIM    ) LDRYD = .FALSE.
+      IF ( Input_Opt%ITS_A_TAGCO_SIM   ) LDRYD = .FALSE.
 
       ! Turn off wetdep for simulations that don't need it
-      IF ( ITS_A_CH3I_SIM()    ) LWETD = .FALSE.
-      IF ( ITS_A_HCN_SIM()     ) LWETD = .FALSE.
-      IF ( ITS_A_TAGOX_SIM()   ) LWETD = .FALSE.
-      IF ( ITS_A_TAGCO_SIM()   ) LWETD = .FALSE.
-      IF ( ITS_A_C2H6_SIM()    ) LWETD = .FALSE.
-      IF ( ITS_A_CH4_SIM()     ) LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_CH3I_SIM    ) LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_HCN_SIM     ) LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_TAGOX_SIM   ) LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_TAGCO_SIM   ) LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_C2H6_SIM    ) LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_CH4_SIM     ) LWETD = .FALSE.
 
       !=================================================================
       ! Set fields of Input Options object
@@ -3913,20 +3921,20 @@
          CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
       
          ! Print extra info message for Hg simulation
-         IF ( ITS_A_MERCURY_SIM() .and. LSPLIT ) THEN
+         IF ( Input_Opt%ITS_A_MERCURY_SIM .and. LSPLIT ) THEN
             WRITE ( 6, 120 )
             WRITE ( 6, 121 )
          ENDIF
       ENDIF
 
       ! Initialize wet deposition tracers
-      IF ( LWETD .or. LCONV ) THEN
+      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
          CALL WETDEPID( am_I_Root, Input_Opt, RC )
       ENDIF
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
-      IF ( LWETD .or. LCONV ) CALL WETDEPBINID
+      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) CALL WETDEPBINID
 #endif
 
       ! FORMAT strings
@@ -4171,12 +4179,6 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_BPCH
       USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,        ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM,    ITS_A_RnPbBe_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM,      ITS_A_CH3I_SIM
-      USE TRACER_MOD,   ONLY : SALA_REDGE_um,        ITS_A_CH4_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
@@ -4235,22 +4237,24 @@
 !                              Lee Murray reports this causes the compilation
 !                              to choke on Macintosh platforms.
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt, RC to INIT_DIAG_OH
-!  24 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
+!  24 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: LCARB,  LCONV, LDRYD, LPRT, LSULF    
-      LOGICAL            :: LSSALT, LTURB, LWETD, LDUST
-      INTEGER            :: M, N, N_MAX, N_TMP
+      INTEGER            :: M,      N,     N_MAX, N_TMP,   N_TRACERS
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
 
       !=================================================================
       ! READ_DIAGNOSTIC_MENU begins here!
       !=================================================================
 
+      ! Get fields from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      
       ! Location for ERROR_STOP
       LOCATION = 'READ_DIAGNOSTIC_MENU ("input_mod.f")'
 
@@ -4275,7 +4279,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:3' )
       READ( SUBSTRS(1), * ) ND01
-      IF ( .not. ITS_A_RnPbBe_SIM() ) ND01 = 0 
+      IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND01 = 0 
       CALL SET_TINDEX( am_I_Root, 01, ND01, SUBSTRS(2:N), N-1, N_MAX )
       
       !--------------------------
@@ -4283,7 +4287,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:4' )
       READ( SUBSTRS(1), * ) ND02
-      IF ( .not. ITS_A_RnPbBe_SIM() ) ND02 = 0 
+      IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND02 = 0 
       CALL SET_TINDEX( am_I_Root, 02, ND02, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
@@ -4291,17 +4295,15 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:5' )
       READ( SUBSTRS(1), * ) ND03
-      IF ( .not. ITS_A_MERCURY_SIM() ) ND03 = 0
-      !CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
-      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 ) !yzh 12/15/12
-	  
+      IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) ND03 = 0
+      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 )
 
       !--------------------------
       ! ND04: CO2 emissions
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:6' )
       READ( SUBSTRS(1), * ) ND04
-      IF ( .not. ITS_A_CO2_SIM() ) ND04 = 0
+      IF ( .not. Input_Opt%ITS_A_CO2_SIM ) ND04 = 0
       CALL SET_TINDEX( am_I_Root, 04, ND04, SUBSTRS(2:N), N-1, PD04 )
 
       !--------------------------
@@ -4309,7 +4311,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:7' )
       READ( SUBSTRS(1), * ) ND05
-      IF ( .not. LSULF ) ND05 = 0
+      IF ( .not. Input_Opt%LSULF ) ND05 = 0
       CALL SET_TINDEX( am_I_Root, 05, ND05, SUBSTRS(2:N), N-1, PD05 )
 
       !--------------------------
@@ -4317,7 +4319,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:8' )
       READ( SUBSTRS(1), * ) ND06
-      IF ( .not. LDUST ) ND06 = 0
+      IF ( .not. Input_Opt%LDUST ) ND06 = 0
       CALL SET_TINDEX( am_I_Root, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN )
 
       !--------------------------
@@ -4325,7 +4327,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:9' )
       READ( SUBSTRS(1), * ) ND07
-      IF ( .not. LCARB ) ND07 = 0
+      IF ( .not. Input_Opt%LCARB ) ND07 = 0
       CALL SET_TINDEX( am_I_Root, 07, ND07, SUBSTRS(2:N), N-1, PD07 )
 
       !--------------------------
@@ -4333,7 +4335,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:10' )
       READ( SUBSTRS(1), * ) ND08
-      IF ( .not. LSSALT ) ND08 = 0
+      IF ( .not. Input_Opt%LSSALT ) ND08 = 0
       CALL SET_TINDEX( am_I_Root, 08, ND08, SUBSTRS(2:N), N-1, PD08 )
 
       !--------------------------
@@ -4370,7 +4372,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:15' )
       READ( SUBSTRS(1), * ) ND13
-      IF ( .not. LSULF ) ND13 = 0
+      IF ( .not. Input_Opt%LSULF ) ND13 = 0
       CALL SET_TINDEX( am_I_Root, 13, ND13, SUBSTRS(2:N), N-1, PD13 )
 
       !--------------------------
@@ -4378,7 +4380,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:16' )
       READ( SUBSTRS(1), * ) ND14
-      IF ( .not. LCONV ) ND14 = 0
+      IF ( .not. Input_Opt%LCONV ) ND14 = 0
       CALL SET_TINDEX( am_I_Root, 14, ND14, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
@@ -4386,7 +4388,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:17' )
       READ( SUBSTRS(1), * ) ND15
-      IF ( .not. LTURB ) ND15 = 0
+      IF ( .not. Input_Opt%LTURB ) ND15 = 0
       CALL SET_TINDEX( am_I_Root, 15, ND15, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
@@ -4402,7 +4404,7 @@
       N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:19' )
       READ( SUBSTRS(1), * ) ND17
-      IF ( .not. LWETD ) ND17 = 0
+      IF ( .not. Input_Opt%LWETD ) ND17 = 0
       CALL SET_TINDEX( am_I_Root, 17, ND17, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
@@ -4411,7 +4413,7 @@
       N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:20' )
       READ( SUBSTRS(1), * ) ND18
-      IF ( .not. LWETD ) ND18 = 0
+      IF ( .not. Input_Opt%LWETD ) ND18 = 0
       CALL SET_TINDEX( am_I_Root, 18, ND18, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
@@ -4429,7 +4431,7 @@
       CALL SET_TINDEX( am_I_Root, 21, ND21, SUBSTRS(2:N), N-1, PD21 )
 
       ! Error check 
-      IF ( ND21 > 0 .and. SALA_REDGE_um(2) /= 0.5 ) THEN
+      IF ( ND21 > 0 .and. Input_Opt%SALA_REDGE_um(2) /= 0.5 ) THEN
          MSG = 'Cannot output seasalt AOD''s when radius bin' //
      &         ' is not split at 0.5 um!!'
          CALL ERROR_STOP( MSG, LOCATION )
@@ -4478,7 +4480,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
       READ( SUBSTRS(1), * ) ND28
-!      IF ( .not. LBIOMASS ) ND28 = 0
+!      IF ( .not. Input_Opt%LBIOMASS ) ND28 = 0
       CALL SET_TINDEX( am_I_Root, 28, ND28, SUBSTRS(2:N), N-1, NBIOMAX )
 
       !--------------------------
@@ -4521,7 +4523,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:35' )
       READ( SUBSTRS(1), * ) ND34
-!      IF ( .not. LBIOFUEL ) ND34 = 0
+!      IF ( .not. Input_Opt%LBIOFUEL ) ND34 = 0
       CALL SET_TINDEX( am_I_Root, 
      &                 34, ND34, SUBSTRS(2:N), N-1, NBFTRACE )
 
@@ -4554,7 +4556,9 @@
       N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:39' )
       READ( SUBSTRS(1), * ) ND38
-      IF ( .not. LWETD .and. .not. LCONV ) ND38 = 0
+      IF ( .not. Input_Opt%LWETD .and. .not. Input_Opt%LCONV ) THEN
+         ND38 = 0
+      ENDIF
       CALL SET_TINDEX( am_I_Root, 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
@@ -4563,7 +4567,7 @@
       N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:40' )
       READ( SUBSTRS(1), * ) ND39
-      IF ( .not. LWETD ) ND39 = 0
+      IF ( .not. Input_Opt%LWETD ) ND39 = 0
       CALL SET_TINDEX( am_I_Root, 39, ND39, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
@@ -4585,7 +4589,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:43' )
       READ( SUBSTRS(1), * ) ND43
-      IF ( .not. ( ITS_A_FULLCHEM_SIM().or.ITS_A_CH4_SIM() )) ND43 = 0
+      IF ( .not. ( Input_Opt%ITS_A_FULLCHEM_SIM    .or.
+     &             Input_Opt%ITS_A_CH4_SIM      ) ) ND43 = 0
       CALL SET_TINDEX( am_I_Root, 43, ND43, SUBSTRS(2:N), N-1, PD43 )
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:44' )
@@ -4596,15 +4601,15 @@
       !--------------------------
 
       ! Number of tracers depends on simulation type
-      IF ( ITS_A_TAGOX_SIM() ) THEN
-         N_TMP = N_TRACERS 
+      IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+         N_TMP = Input_Opt%N_TRACERS 
       ELSE
          N_TMP = NUMDEP
       ENDIF
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:46' )
       READ( SUBSTRS(1), * ) ND44
-      IF ( .not. LDRYD ) ND44 = 0
+      IF ( .not. Input_Opt%LDRYD ) ND44 = 0
       CALL SET_TINDEX( am_I_Root, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
@@ -4644,7 +4649,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
-      IF ( .not. ITS_A_POPS_SIM() ) ND53 = 0
+      IF ( .not. Input_Opt%ITS_A_POPS_SIM ) ND53 = 0
       CALL SET_TINDEX( am_I_Root, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
@@ -4751,7 +4756,6 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:68' )
       READ( SUBSTRS(1), * ) ND70
-      LPRT = ( ND70 > 0 )
       CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, PD70 )
      
       !--------------------------
@@ -6177,8 +6181,6 @@
       USE CHARPAK_MOD,        ONLY : ISDIGIT,         STRSPLIT
       USE DIAG_PL_MOD,        ONLY : INIT_DIAG_PL
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE TRACER_MOD,         ONLY : N_TRACERS,       ITS_A_TAGCO_SIM
-      USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM, ITS_AN_AEROSOL_SIM
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE GIGC_ErrCode_Mod
@@ -6207,6 +6209,7 @@
 !                              running with the traditional driver main.F
 !  08 Nov 2012 - R. Yantosca - Now save fields to the Input_Opt object
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6224,6 +6227,7 @@
       CHARACTER(LEN=14 )   :: FAM_TYPE(MAXFAM)
       CHARACTER(LEN=14 )   :: FAM_MEMB(MAXMEM,MAXFAM)
       CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM)
+
 
       !=================================================================
       ! READ_PROD_LOSS_MENU begins here!
@@ -6328,16 +6332,16 @@
       !=================================================================
 
       ! Tagged Ox
-      IF ( DO_SAVE_PL .and. ITS_A_TAGOX_SIM() ) THEN
-         IF ( NFAM /= 2*N_TRACERS ) THEN
+      IF ( DO_SAVE_PL .and. Input_Opt%ITS_A_TAGOX_SIM ) THEN
+         IF ( NFAM /= 2*Input_Opt%N_TRACERS ) THEN
             MSG = 'Wrong number of P/L families for Tagged Ox!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
 
       ! Tagged CO
-      IF ( DO_SAVE_PL .and. ITS_A_TAGCO_SIM() ) THEN
-         IF ( NFAM /= N_TRACERS+5 ) THEN
+      IF ( DO_SAVE_PL .and. Input_Opt%ITS_A_TAGCO_SIM ) THEN
+         IF ( NFAM /= Input_Opt%N_TRACERS+5 ) THEN
             MSG = 'Wrong number of P/L families for Tagged CO!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
@@ -6345,7 +6349,7 @@
 
       ! Offline aerosol -- turn off DO_SAVE_PL, since we use ND05,
       ! ND06, ND07, ND08, ND13 etc diagnostics instead of ND65
-      IF ( ITS_AN_AEROSOL_SIM() ) THEN 
+      IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
          DO_SAVE_PL    = .FALSE.
          DO_SAVE_O3    = .FALSE.
          ND65          = 0
@@ -6416,8 +6420,9 @@
       !=================================================================
 
       ! Pass variables to "diag_pl_mod.f" 
-      CALL INIT_DIAG_PL( DO_SAVE_PL, DO_SAVE_O3, NFAM,     FAM_NAME,   
-     &                   FAM_TYPE,   FAM_NMEM,   FAM_MEMB, FAM_COEF )
+      CALL INIT_DIAG_PL( am_I_Root, Input_Opt, DO_SAVE_PL, DO_SAVE_O3, 
+     &                   NFAM,      FAM_NAME,  FAM_TYPE,   FAM_NMEM,   
+     &                   FAM_MEMB,  FAM_COEF,  RC )
 
       END SUBROUTINE READ_PROD_LOSS_MENU
 !EOC
@@ -6993,7 +6998,6 @@
       USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
       USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -7018,6 +7022,7 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7075,7 +7080,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:9' )
 
       ! Check on logical
-      IF (.NOT.( ITS_A_MERCURY_SIM() ) ) THEN
+      IF (.NOT.( Input_Opt%ITS_A_MERCURY_SIM ) ) THEN
          LGTMM     = .FALSE.
          LDYNOCEAN = .FALSE.
       ENDIF
@@ -7121,7 +7126,7 @@
       RC = GIGC_SUCCESS
 
       ! If we are performing a Hg simulation ...
-      IF ( ITS_A_MERCURY_SIM() ) THEN 
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
 
          ! Initialize Mercury simulation routines
          CALL INIT_MERCURY     ( am_I_Root, Input_Opt, RC )
@@ -7327,7 +7332,6 @@
 !
       USE GET_POPSINFO_MOD,     ONLY : GET_POP_TYPE
       USE POPS_MOD,             ONLY : INIT_POPS
-      USE TRACER_MOD,           ONLY : ITS_A_POPS_SIM
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
 !
@@ -7471,7 +7475,7 @@
       RC = GIGC_SUCCESS
 
       ! If we are performing a POPS simulation ...
-      IF ( ITS_A_POPS_SIM() ) THEN 
+      IF ( Input_Opt%ITS_A_POPS_SIM ) THEN 
 
          ! Initially set pop type
          POP_TYPE = GET_POP_TYPE( POP_TYPE )
@@ -7518,9 +7522,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACER_MOD,         ONLY : N_APMTRA
-      USE TRACER_MOD,         ONLY : N_TRACERS
-      USE TRACER_MOD,         ONLY : TCVV
-      USE TRACER_MOD,         ONLY : XNUMOL
 !
 ! !INPUT PARAMETERS:
 !
@@ -7543,18 +7544,22 @@
 !  16 Feb 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N,               N_APMTRAC1, T
+      INTEGER            :: N,               N_APMTRAC1, T, N_TRACERS
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
 
       !=================================================================
       ! READ_APM_MENU begins here!
       !=================================================================
+      
+      ! Get fields from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Error check
       IF ( CT1 /= 2 ) THEN
@@ -7575,8 +7580,8 @@
 
       ! Increment the TCVV and XNUMOL arrays for APM tracers
       DO T = 1, N_APMTRA
-         TCVV(N_TRACERS+T)   = 28.97d0   / APMTRACER_MW_G(T)
-         XNUMOL(N_TRACERS+T) = 6.022d+23 / APMTRACER_MW_KG(T) 
+         Input_Opt%TCVV(N_TRACERS+T)   = 28.97d0   / APMTRACER_MW_G(T)
+         Input_Opt%XNUMOL(N_TRACERS+T) = 6.022d+23 / APMTRACER_MW_KG(T) 
       ENDDO
 
       !=================================================================
@@ -7611,7 +7616,6 @@
  120  FORMAT( A, F7.3 )
 
       END SUBROUTINE READ_APM_MENU
-
 !EOC
 #endif
 !EOC

@@ -892,23 +892,24 @@
 ! !INTERFACE:
 !
       SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N,
-     &                    State_Met )
+     &                    Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : SALA_REDGE_um, SALC_REDGE_um
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)  :: I, J, L 
+      INTEGER,        INTENT(IN)  :: I, J, L     ! Lon-lat-alt indices
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL*8, INTENT(OUT)  :: ALK1, ALK2           ! [kg]
-      REAL*8, INTENT(OUT)  :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
+      REAL*8,         INTENT(OUT) :: ALK1, ALK2           ! [kg]
+      REAL*8,         INTENT(OUT) :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
 !
 ! !REVISION HISTORY: 
 !  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
@@ -918,6 +919,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F     
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -998,9 +1001,9 @@
 
          ! radius of sea-salt aerosol size bins [cm] accounting for 
          ! hygroscopic growth
-         RAD1 = SALA_REDGE_um(1) * HGF * 1.d-4 
-         RAD2 = SALA_REDGE_um(2) * HGF * 1.d-4 
-         RAD3 = SALC_REDGE_um(2) * HGF * 1.d-4 
+         RAD1 = Input_Opt%SALA_REDGE_um(1) * HGF * 1.d-4 
+         RAD2 = Input_Opt%SALA_REDGE_um(2) * HGF * 1.d-4 
+         RAD3 = Input_Opt%SALC_REDGE_um(2) * HGF * 1.d-4 
 
          !----------------------------------
          ! SO2 uptake onto fine particles 

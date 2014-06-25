@@ -76,7 +76,6 @@
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
       USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : EXIT_GEOSFP_TPCORE_WINDOW !clb
-      USE TRACER_MOD,              ONLY : CLEANUP_TRACER
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
@@ -231,6 +230,8 @@
 !  03 Jun 2014 - R. Yantosca - Remove references to emissions modules that
 !                              HEMCO renders obsolete
 !  24 Jun 2014 - R. Yantosca - Remove CLEANUP_BROMOCARB; HEMCO replaces this
+!  25 Jun 2014 - R. Yantosca - Remove reference to tracer_mod.F
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -308,7 +309,6 @@
       CALL CLEANUP_TRANSPORT
 #endif
       CALL CLEANUP_TOMS
-      CALL CLEANUP_TRACER
       CALL CLEANUP_UCX
       CALL CLEANUP_UVALBEDO
       CALL CLEANUP_WETSCAV

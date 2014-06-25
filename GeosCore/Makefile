@@ -1040,17 +1040,13 @@ strat_chem_mod.o            : strat_chem_mod.F90                             \
 subfun.o                    : subfun.F
 
 sulfate_mod.o               : sulfate_mod.F                                  \
-                                                      biomass_mod.o          \
+                              global_no3_mod.o        biomass_mod.o          \
                               chemgrid_mod.o          comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
-                              drydep_mod.o                                   \
+                              drydep_mod.o            global_oh_mod.o        \
                               future_emissions_mod.o  get_ndep_mod.o         \
-                              global_hno3_mod.o       global_no3_mod.o       \
-                              global_oh_mod.o                                \
-                                                                \
-                              pbl_mix_mod.o                                  \
-                                                      seasalt_mod.o          \
-                                                      tomas_mod.o            \
+                              pbl_mix_mod.o           seasalt_mod.o          \
+                              wetscav_mod.o           tomas_mod.o            \
                               tracer_mod.o            tracerid_mod.o         \
                               ucx_mod.o               uvalbedo_mod.o         \
                               vdiff_pre_mod.o         wetscav_mod.o

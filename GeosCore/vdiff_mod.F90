@@ -198,13 +198,14 @@ contains
                     sflx,       thp_arg,   as2,        pblh_arg,    &
                     kvh_arg,    kvm_arg,   tpert_arg,  qpert_arg,   &
                     cgs_arg,    shp,       wvflx_arg,  plonl,       &
-                    State_Met,  taux_arg,   tauy_arg,  ustar_arg )
+                    Input_Opt,  State_Met, taux_arg,   tauy_arg,    &
+                    ustar_arg )
 !
 ! !USES:
 !
     USE DIAG_MOD,           ONLY : TURBFLUP
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE TRACER_MOD,         ONLY : TCVV
     USE VDIFF_PRE_MOD,      ONLY : ND15
 
     implicit none
@@ -227,6 +228,7 @@ contains
          shflx_arg(:,:),     &     ! surface sensible heat flux (w/m2)
          sflx(:,:,:),        &     ! surface constituent flux (kg/m2/s)
          wvflx_arg(:,:)            ! water vapor flux (kg/m2/s)
+    TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -277,6 +279,8 @@ contains
 !                              involve explicitly using "D" exponents
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -750,7 +754,7 @@ contains
           TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
                               + (qp1(I,L,M) - qp0(I,L,M)) &
                               * State_Met%AD(I,lat,k) &
-                              / ( TCVV(M) * ztodt )
+                              / ( Input_Opt%TCVV(M) * ztodt )
        enddo
        enddo
        ENDDO
@@ -1805,7 +1809,6 @@ contains
                                    GET_PBL_TOP_L
     USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
-    USE TRACER_MOD,         ONLY : N_MEMBERS
     USE TRACERID_MOD,       ONLY : IS_Hg0, IS_Hg2, IS_HgP
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
                                    NDRYDEP, emis_save
@@ -1864,6 +1867,7 @@ contains
 !  06 Jun 2014 - R. Yantosca - Fix parallelization error in the HEMCO
 !                              modifications: Hold TOPMIX, TEMPBL private
 !  06 Jun 2014 - R. Yantosca - Wrap some debug printout in #if defined(DEBUG)
+!  25 Jun 2014 - R. Yantosca - Now get N_MEMBERS from input_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1923,7 +1927,7 @@ contains
     LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg,     IS_TAGOx
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
     LOGICAL            :: LGTMM,     LSOILNOX
-    INTEGER            :: N_TRACERS 
+    INTEGER            :: N_TRACERS, N_MEMBERS 
     INTEGER            :: ID_EMITTED  (Input_Opt%N_TRACERS)
     REAL*8             :: TRACER_COEFF(Input_Opt%N_TRACERS, Input_Opt%MAX_MEMB)
     REAL*8             :: TRACER_MW_KG(Input_Opt%N_TRACERS)
@@ -1974,6 +1978,7 @@ contains
     LGTMM        = Input_Opt%LGTMM
     LSOILNOX     = Input_Opt%LSOILNOX
     N_TRACERS    = Input_Opt%N_TRACERS
+    N_MEMBERS    = Input_Opt%MAX_MEMB
     ID_EMITTED   = Input_Opt%ID_EMITTED  (1:N_TRACERS             )
     TRACER_COEFF = Input_Opt%TRACER_COEFF(1:N_TRACERS, 1:N_MEMBERS)
     TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS             )
@@ -2575,13 +2580,13 @@ contains
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( J )     
        do J = 1, JJPAR
-          call vdiff( J,        1,      p_um1,  p_vm1,           &
-                      p_tadv,   p_pmid, p_pint, p_rpdel,         &
-                      p_rpdeli, dtime,  p_zm,   p_hflux,         &
-                      sflx,     p_thp,  p_as2,  pblh,            &
-                      p_kvh,    p_kvm,  tpert,  qpert,           &
-                      p_cgs,    p_shp,  shflx,  IIPAR,           &
-                      State_Met,        ustar_arg=p_ustar )
+          call vdiff( J,         1,         p_um1,  p_vm1,     &
+                      p_tadv,    p_pmid,    p_pint, p_rpdel,   &
+                      p_rpdeli,  dtime,     p_zm,   p_hflux,   &
+                      sflx,      p_thp,     p_as2,  pblh,      &
+                      p_kvh,     p_kvm,     tpert,  qpert,     &
+                      p_cgs,     p_shp,     shflx,  IIPAR,     &
+                      Input_Opt, State_Met, ustar_arg=p_ustar )
        enddo
 !$OMP END PARALLEL DO
 
@@ -2699,10 +2704,10 @@ contains
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX, COMPUTE_PBL_HEIGHT
-    USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE TRACER_MOD,         ONLY : N_TRACERS, TCVV, ITS_A_FULLCHEM_SIM
+    USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX
+    USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
+    USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
 
     IMPLICIT NONE
 !
@@ -2766,29 +2771,6 @@ contains
 
     ! Compute PBL height and related quantities
     CALL COMPUTE_PBL_HEIGHT( State_Met )
-
-    !=================================================================
-    ! For full-chemistry simulations, call routine SETEMIS
-    ! which sets up the emission rates array REMIS
-    ! Not needed anymore, emissions passed to vdiffdr through
-    ! State_Chm (ckeller, 05/19/14).
-    !=================================================================
-!    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-!
-!       ! If it's time to do emissions ...
-!       IF ( ITS_TIME_FOR_EMIS() ) THEN 
-!
-!          ! Call SETEMIS to set up the emissions
-!          CALL SETEMIS( EMISRR,    EMISRRN,   .TRUE.,  &
-!                        Input_Opt, State_Met, RC      )  
-!
-!          ! Debug output
-!          IF ( LPRT .and. am_I_Root ) THEN
-!             CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
-!          ENDIF
-!       ENDIF
-!
-!    ENDIF
 
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_TURBDAY ) THEN

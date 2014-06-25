@@ -191,15 +191,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PRINT_DIAG_OH
+      SUBROUTINE PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE TRACER_MOD, ONLY : ITS_A_CH4_SIM
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  21 Oct 2003 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,6 +224,9 @@
       !=================================================================
       ! PRINT_DIAG_OH begins here!
       !=================================================================
+
+      ! Assume success
+      RC         = GIGC_SUCCESS
 
       ! Return if this diagnostic is turned off
       IF ( .not. DO_SAVE_OH ) RETURN
@@ -244,13 +259,15 @@
          OHCONC = ( SUM_OHMASS / SUM_MASS ) / 1d5
          
          ! Write value to log file
-         WRITE( 6, '(/,a)' ) REPEAT( '=', 79 ) 
-         WRITE( 6, *       ) 'ND23: Mass-Weighted OH Concentration'
-         WRITE( 6, *       ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
-         WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(/,a)' ) REPEAT( '=', 79 ) 
+            WRITE( 6, *       ) 'ND23: Mass-Weighted OH Concentration'
+            WRITE( 6, *       ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
+            WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+         ENDIF
 
          ! Avoid divide-by-zero errors
-         IF ( ITS_A_CH4_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_CH4_SIM .and. am_I_Root ) THEN
             IF ( SUM_OHLOSS > 0 ) THEN
 
                ! Mass weighted lifetimes printed below
@@ -306,10 +323,12 @@
       ELSE
 
          ! Write error msg if SUM_MASS is zero
-         WRITE( 6, '(/,a)' ) REPEAT( '=', 79 ) 
-         WRITE( 6, '(  a)' ) 'Could not print mass-weighted OH!'
-         WRITE( 6, '(  a)' ) 'Atmospheric air mass is zero!'
-         WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(/,a)' ) REPEAT( '=', 79 ) 
+            WRITE( 6, '(  a)' ) 'Could not print mass-weighted OH!'
+            WRITE( 6, '(  a)' ) 'Atmospheric air mass is zero!'
+            WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+         ENDIF
             
       ENDIF
 

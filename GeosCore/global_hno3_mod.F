@@ -68,9 +68,8 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : TCVV
 !
 ! !INPUT PARAMETERS:
 !
@@ -86,6 +85,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  05 Sep 2013 - M. Sulprizio- Added ProTeX headers
+!  25 Jun 2014 - R. Yantosca - Now does not need to use TCVV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,16 +118,15 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE TRACER_MOD,  ONLY : TCVV
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: I, J, L     ! Lon, lat, alt indices
+      INTEGER, INTENT(IN) :: I, J, L   ! Lon, lat, alt indices
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: HNO3_VV
+      REAL*8              :: HNO3_VV   ! HNO3 in [v/v] mixing ratio
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references TCVV from "tracer_mod.f" (bmy, 7/20/04)

@@ -1822,6 +1822,7 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  28 Jan 2014 - R. Yantosca - Bug fix for TOMAS. Set ALKdst=0 since TOMAS
 !                              carries its own dust tracers instead of DST1-4.
+!  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to GET_ALK
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1998,7 +1999,7 @@
 
          ! Get alkalinity of accum (ALK1) and coarse (ALK2) [kg]
          CALL GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N,
-     &                 State_Met )
+     &                 Input_Opt, State_Met )
 
          ! Total alkalinity [kg]
          ALK = ALK1 + ALK2
@@ -2433,7 +2434,7 @@
 
                CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, 
      &                             aSO4, NH3, SO2_sr, H2O20, GNO3,  SR,
-     &                             State_Met )
+     &                             Input_Opt, State_Met )
 
 	    ELSE
 		SR = 0.d0
@@ -3957,15 +3958,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HET_DROP_CHEM( I, J, L, LSTOT, SSCvv, aSO4, GNH3,
-     &                          SO2_sr, H2O20, GNO3, SR, State_Met )
+      SUBROUTINE HET_DROP_CHEM( I,    J,    L,      LSTOT, SSCvv, 
+     &                          aSO4, GNH3, SO2_sr, H2O20, GNO3, 
+     &                          SR,   Input_Opt,    State_Met    )
 !
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : IT_IS_FINITE, GEOS_CHEM_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : TCVV
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSALC
       USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3, IDTDST4
 !
@@ -3979,6 +3981,7 @@
       REAL*8,         INTENT(IN)  :: SO2_sr
       REAL*8,         INTENT(IN)  :: H2O20
       REAL*8,         INTENT(IN)  :: GNO3
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
@@ -4039,19 +4042,19 @@
       HNO3 = GNO3 * 1.0d12
 
       ! Convert sulfate aerosol concentrations from [v/v] to [ug/m3]
-      SO4 = ( aSO4         * AD(I,J,L)     * 1.0d9 ) / 
-     &      ( TCVV(IDTSO4) * AIRVOL(I,J,L) )
+      SO4 = ( aSO4                   * AD(I,J,L)     * 1.0d9 ) / 
+     &      ( Input_Opt%TCVV(IDTSO4) * AIRVOL(I,J,L) )
 
       ! Convert in cloud sulfate production rate from [v/v/timestep] to
       ! [ug/m3/timestep]
-      B  = ( LSTOT        * AD(I,J,L)     * 1.0d9 ) / 
-     &     ( TCVV(IDTSO4) * AIRVOL(I,J,L) )
+      B  = ( LSTOT                  * AD(I,J,L)     * 1.0d9 ) / 
+     &     ( Input_Opt%TCVV(IDTSO4) * AIRVOL(I,J,L) )
 
       ! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
       ! based on equation in Hofmann, Science, 1990.
       ! First convert from [v/v] to [kg/m3 air]
-      CNss = SSCvv         * AD(I,J,L)     /
-     &     ( TCVV(IDTSALC) * AIRVOL(I,J,L) )
+      CNss = SSCvv                   * AD(I,J,L)     /
+     &     ( Input_Opt%TCVV(IDTSALC) * AIRVOL(I,J,L) )
 
       ! Now convert from [kg/m3 air] to [#/cm3 air]
       ! Sea-salt
@@ -4125,7 +4128,7 @@
       SR = DSVI - B 
 
       ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
-      SR = SR *TCVV(IDTSO4) * 1.D-9 / AIRDEN(L,I,J)
+      SR = SR * Input_Opt%TCVV(IDTSO4) * 1.D-9 / AIRDEN(L,I,J)
 	
       ! Don't allow SR to be negative
       SR = MAX( SR, 0.d0 )

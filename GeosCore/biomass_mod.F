@@ -174,6 +174,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add NAP and POA biomass burning emissions for 
 !                              SOA + semivolatile POA (H. Pye)
 !  20 Feb 2014 - M. Sulprizio- Now pass Input_Opt argument
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !******************************************************************************
 
 !
@@ -181,7 +182,6 @@
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACER_MOD,         ONLY : ITS_A_CH4_SIM
       USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
@@ -329,13 +329,13 @@
             BIOTRCE( IDBCH4 ) = IDTCH4
             BIOBGAS( IDBCH4 ) = .TRUE. ! Handled in setemis
          ENDIF
-      ELSEIF ( ITS_A_CH4_SIM() ) THEN
+      ELSEIF ( Input_Opt%ITS_A_CH4_SIM ) THEN
          IDBCH4            = NBIOTRCE + 1
          BIOTRCE( IDBCH4 ) = 1
          BIOBGAS( IDBCH4 ) = .FALSE.  ! not treated in setemis
       ENDIF
 #else
-      IF ( ITS_A_CH4_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
          IDBCH4            = NBIOTRCE + 1
          BIOTRCE( IDBCH4 ) = 1
          BIOBGAS( IDBCH4 ) = .FALSE.  ! not treated in setemis

@@ -33,10 +33,7 @@
       USE RESTART_MOD           ! For restart file I/O
       USE TIME_MOD              ! For computing date & time 
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
-      USE TRACER_MOD, ONLY : N_MEMBERS
-      USE TRACER_MOD, ONLY : CHECK_STT
-      USE TRACER_MOD, ONLY : CHECK_STT_05x0666
-      USE TRACER_MOD, ONLY : CHECK_STT_025x03125
+      USE TRACER_MOD            ! Routines for checking the tracer array
 
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -375,7 +372,7 @@
       !
       Input_Opt%MAX_DIAG      = MAX_DIAG
       Input_Opt%MAX_TRCS      = NNPAR
-      Input_Opt%MAX_MEMB      = N_MEMBERS
+      Input_Opt%MAX_MEMB      = 15
       Input_Opt%MAX_FAMS      = MAXFAM
       Input_Opt%MAX_DEP       = MAXDEP
       Input_Opt%LINOZ_NLEVELS = 25
@@ -491,7 +488,7 @@
       ! the call to READ_INPUT_FILE, since we need the value of
       ! N_TRACERS, which is obtained by reading the input.geos file.
       !
-      CALL Fill_Chem_State_Name_IDs( am_I_Root, State_Chm )
+      CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
       !
       ! Define STT array from Chemistry State object.  This
       ! allows us to keep existing code intact. (mpayer, 12/6/12)
@@ -1364,10 +1361,10 @@
                ! or if it's an offline simulation, call setup routine 
                IF ( ITS_A_FULLCHEM_SIM ) THEN
                   IF ( .not. LCHEM ) THEN
-                     CALL SETUP_PLANEFLIGHT( am_I_Root )
+                     CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
                   ENDIF
                ELSE
-                  CALL SETUP_PLANEFLIGHT( am_I_Root )
+                  CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
                ENDIF
             ENDIF
          ENDIF
@@ -1536,7 +1533,7 @@
       ENDIF
 
       ! Print the mass-weighted mean OH concentration (if applicable)
-      CALL PRINT_DIAG_OH
+      CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
 
       ! For model benchmarking, save final masses of 
       ! Rn,Pb,Be or Ox to a binary punch file 

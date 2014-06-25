@@ -814,13 +814,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_F( N, F, ISOL, State_Met, State_Chm )
+      SUBROUTINE COMPUTE_F( N,         F,         ISOL, 
+     &                      Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_HSTAR
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_Hw
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD
@@ -831,22 +833,18 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)  :: N                    ! Tracer number
-      TYPE(MetState), INTENT(IN)  :: State_Met            ! Met State object
+      INTEGER,        INTENT(IN)    :: N          ! Tracer number
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm          ! Chemistry State
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: ISOL                 ! Index for ND38 diag
-!------------------------------------------------------------------------------
-! Prior to 4/18/14:
-! Now make F an assumed-shape array, so it can accept a pointer (bmy, 4/18/14)
-!     REAL*8,         INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR) ! Fraction of tracer
-!------------------------------------------------------------------------------
-      REAL*8,         INTENT(OUT) :: F(:,:,:)             ! Fraction of tracer
+      INTEGER,        INTENT(OUT)   :: ISOL       ! Index for ND38 diag
+      REAL*8,         INTENT(OUT)   :: F(:,:,:)   ! Soluble fraction of tracer
 !
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - H. Liu, R. Yantosca - Initial version
@@ -912,6 +910,7 @@
 !                              semivolatile POA simulations (H. Pye)
 !  18 Apr 2014 - R. Yantosca - Now make the F argument an assumed-shape array
 !                              so that we can pass a pointer array slice to it
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -919,7 +918,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: I, J, L, NN
+      INTEGER             :: I, J, L, NN, N_TRACERS
       REAL*8              :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
       REAL*8,  SAVE       :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
       REAL*8              :: DUM
@@ -955,26 +954,25 @@
       ! ISOL = tracer index for the ND38 diagnostic.
       !=================================================================
 
-      ! Initialize pointers
-      BXHEIGHT => State_Met%BXHEIGHT
-      T        => State_Met%T
-
       ! Initialize
-      DUM = 1.0
+      BXHEIGHT  => State_Met%BXHEIGHT
+      T         => State_Met%T
+      N_TRACERS =  Input_Opt%N_TRACERS
+      DUM       =  1.0
 
       !-------------------------------
       ! 210Pb and 7Be (aerosols)
       !-------------------------------
       IF ( N == IDTPb .or. N == IDTBe7 ) THEN
          CALL F_AEROSOL( KC, N, F, State_Met )
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! HNO3 (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
          CALL F_AEROSOL( KC, N, F, State_Met )
-         ISOL = GET_ISOL( N ) 
+         ISOL = GET_ISOL( N, N_TRACERS ) 
 
       !-------------------------------
       ! H2O2 (liquid & ice phases)
@@ -1035,7 +1033,7 @@
          ENDDO
             
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! CH2O (liquid phase only)
@@ -1088,7 +1086,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N ) 
+         ISOL = GET_ISOL( N, N_TRACERS ) 
 
       !-------------------------------
       ! HOBr (liquid phase only)
@@ -1148,7 +1146,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N ) 
+         ISOL = GET_ISOL( N, N_TRACERS ) 
 
       !-------------------------------
       ! HCl (liquid phase only)
@@ -1205,7 +1203,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! HBr (liquid phase only)
@@ -1271,7 +1269,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
 
       !------------------------------
@@ -1331,7 +1329,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N ) 
+         ISOL = GET_ISOL( N, N_TRACERS ) 
 
 
       ! Update GLYX and MGLY Henry's Law Const calculations (tmf, 9/13/06)  
@@ -1387,7 +1385,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N ) 
+         ISOL = GET_ISOL( N, N_TRACERS ) 
 
       !-------------------------------
       ! MGLY (liquid phase only)
@@ -1442,7 +1440,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N ) 
+         ISOL = GET_ISOL( N, N_TRACERS ) 
 
       !-------------------------------
       ! GLYC (liquid phase only)
@@ -1497,7 +1495,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N ) 
+         ISOL = GET_ISOL( N, N_TRACERS ) 
 
       !-------------------------------
       ! CH3OOH (liquid phase only)
@@ -1550,7 +1548,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !------------------------------
       ! SO2 (aerosol)
@@ -1559,7 +1557,7 @@
 
          ! Compute fraction of SO2 scavenged
          CALL F_AEROSOL( KC, N, F, State_Met )
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
          !==============================================================
          ! Coupled full chemistry/aerosol simulation:
@@ -1608,14 +1606,14 @@
       ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
 
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-         ISOL = GET_ISOL( N ) 
+         ISOL = GET_ISOL( N, N_TRACERS ) 
 
       !-------------------------------
       ! MSA (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTMSA ) THEN
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! NH3 (liquid & ice phases)
@@ -1673,7 +1671,7 @@
          ENDDO
        
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! NH4   (gaseous aerosol) or
@@ -1681,7 +1679,7 @@
       !-------------------------------
       ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
          
       !-------------------------------
       ! NIT / LET / AS / AHS (aerosol)
@@ -1690,7 +1688,7 @@
      &          N == IDTAS   .or. N == IDTAHS  .or. 
      &          N == IDTLET ) THEN 
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! BC HYDROPHILIC (aerosol) or
@@ -1700,7 +1698,7 @@
       ELSE IF ( N == IDTBCPI .or. N == IDTOCPI .or.
      &          N == IDTBCPO ) THEN
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       !
@@ -1713,7 +1711,7 @@
 
          ! Force not to be lost in convective updraft for now
          F    = 0d0
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! DST1/DST2/DST3/DST4 (aerosol)
@@ -1721,7 +1719,7 @@
       ELSE IF ( N == IDTDST1 .or. N == IDTDST2 .or.
      &          N == IDTDST3 .or. N == IDTDST4 ) THEN
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! Accum  mode seasalt (aerosol)
@@ -1729,7 +1727,7 @@
       !-------------------------------
       ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! MTPA (liquid phase only)
@@ -1783,7 +1781,7 @@
          ENDDO
          ENDDO
 
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! LIMO (liquid phase only)
@@ -1835,7 +1833,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! MTPO (liquid phase only)
@@ -1891,7 +1889,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !------------------------------------
       ! POG
@@ -1946,7 +1944,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-----------------------------------
       ! SOG (liquid phase only)
@@ -2005,7 +2003,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !------------------------------------------
       ! SOA (aerosol)
@@ -2031,7 +2029,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
 
       !------------------------------------------
@@ -2050,7 +2048,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! Hg2 (liquid phase only)
@@ -2105,7 +2103,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! HgP (treat like aerosol)
@@ -2113,7 +2111,7 @@
       ELSE IF ( IS_HgP( N ) ) THEN
 
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 #if defined( TOMAS )
 
       ! Added for size-resolved aerosol (win, 7/16/09)
@@ -2122,7 +2120,7 @@
       !-------------------------------
       ELSE IF ( N == IDTH2SO4 ) THEN
          CALL F_AEROSOL( KC, N, F, State_Met )
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       ! Added for size-resolved aerosol (win, 7/16/09)
       !-------------------------------
@@ -2142,7 +2140,7 @@
          ENDDO
          ENDDO
          ENDDO
-        ISOL = GET_ISOL( N )
+        ISOL = GET_ISOL( N, N_TRACERS )
          
       !-------------------------------
       ! Sulfate SF1-SF30
@@ -2162,7 +2160,7 @@
          ENDDO
          ENDDO
          ENDDO
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
          
       !-------------------------------
       ! Sea-salt SS1-SS30
@@ -2180,7 +2178,7 @@
          ENDDO
          ENDDO
          ENDDO
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
          
       !-------------------------------
       ! Hydrophilic EC ECIL1-ECIL30 
@@ -2198,7 +2196,7 @@
          ENDDO
          ENDDO
          ENDDO
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
          
       !-------------------------------
       ! Hydrophilic OC OCIL1-OCIL30 
@@ -2216,7 +2214,7 @@
          ENDDO
          ENDDO
          ENDDO
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
          
       !-------------------------------
       ! Hydrophobic OC OCOB1-OCOB30 
@@ -2234,7 +2232,7 @@
          ENDDO
          ENDDO
          ENDDO
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
          
       !-------------------------------
       ! Dust DUST1-DUST30 
@@ -2252,7 +2250,7 @@
          ENDDO
          ENDDO
          ENDDO
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
          
       !(end part) Added for size-resolved aerosol (win, 7/16/09)
 
@@ -2319,7 +2317,7 @@
          ENDDO
 
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! POPPOC (treat like hydrophobic OC aerosol)
@@ -2328,7 +2326,7 @@
 
          ! Force not to be lost in convective updraft for now
          F    = 0d0
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! POPPBC (treat like hydrophobic BC aerosol)
@@ -2337,7 +2335,7 @@
 
          ! Force not to be lost in convective updraft for now
          F    = 0d0
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       ! Additional tracers for isoprene
       ! (fp, 06/09)
@@ -2398,7 +2396,7 @@
          ENDDO
             
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! ISOPN (liquid & ice phases)
@@ -2452,7 +2450,7 @@
          ENDDO
             
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! MMN (liquid & ice phases)
@@ -2505,7 +2503,7 @@
          ENDDO
             
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! PROPNN (liquid & ice phases)
@@ -2558,7 +2556,7 @@
          ENDDO
             
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! RIP (liquid & ice phases)
@@ -2607,7 +2605,7 @@
          ENDDO
             
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! MAP (liquid & ice phases)
@@ -2651,7 +2649,7 @@
          ENDDO
             
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
 
       !-------------------------------
@@ -2696,7 +2694,7 @@
          ENDDO
             
          ! ND38 index
-         ISOL = GET_ISOL( N )
+         ISOL = GET_ISOL( N, N_TRACERS )
 
       !----------------------------
       ! Insoluble tracer, set F=0
@@ -2835,17 +2833,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_ISOL( N_TEST ) RESULT( VALUE )
+      FUNCTION GET_ISOL( N_TEST, N_TRACERS ) RESULT( VALUE )
 !
 ! !USES:
 !
-      USE TRACER_MOD, ONLY : N_TRACERS
-
       USE CMN_SIZE_MOD                 ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: N_TEST    ! Tracer number to look up
+      INTEGER, INTENT(IN) :: N_TRACERS ! # of GEOS_Chem tracers
 !
 ! !RETURN VALUE:
 !

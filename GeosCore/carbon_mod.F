@@ -4106,8 +4106,8 @@
       TTO3    = GET_O3(  I, J, L, Input_Opt, State_Met ) 
 
       ! Get RO2+NO, RO2+HO2 branching ratio (hotp 5/7/10)
-      NOTEMP  = GET_NO(  I, J, L )
-      HO2TEMP = GET_HO2( I, J, L )
+      NOTEMP  = GET_NO(  I, J, L, Input_Opt            )
+      HO2TEMP = GET_HO2( I, J, L, Input_Opt            )
 
       IF ( NOTEMP .GT. 0.0 ) THEN
          BETANO  = ( KNO * NOTEMP ) / ( KNO * NOTEMP + KHO2 * HO2TEMP )
@@ -4235,7 +4235,7 @@
             DELHC(1) = GET_DOH( I, J, L, Input_Opt )
 
             ! Get ISOP lost to rxn with NO3 [kgC]
-            DELHC(2) = GET_ISOPNO3( I, J, L )
+            DELHC(2) = GET_ISOPNO3( I, J, L, Input_Opt )
 
             ! Save diagnostic info for bug check (hotp 5/22/10)
             ! convert from kgC to kg
@@ -8706,31 +8706,34 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NO( I, J, L ) RESULT( NO_MOLEC_CM3 )
+      FUNCTION GET_NO( I, J, L, Input_Opt ) RESULT( NO_MOLEC_CM3 )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,    ONLY : CSPEC, JLOP
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD,  ONLY : IDNO
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDNO
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: I    ! Longitude index
-      INTEGER, INTENT(IN)    :: J    ! Latitude index
-      INTEGER, INTENT(IN)    :: L    ! Altitude index
+      INTEGER,        INTENT(IN) :: I              ! Longitude index
+      INTEGER,        INTENT(IN) :: J              ! Latitude index
+      INTEGER,        INTENT(IN) :: L              ! Altitude index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt      ! Input Options object
 !
 ! !RETURN VALUE
 !
-      REAL*8                 :: NO_MOLEC_CM3
+      REAL*8                     :: NO_MOLEC_CM3   ! NO conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDNO (bmy, 11/1/02)
 !  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Based on GET_OH (hotp 5/7/2010)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8742,7 +8745,7 @@ ccc
       !=================================================================
       ! GET_NO begins here!
       !=================================================================
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !---------------------
          ! Coupled simulation
@@ -8784,31 +8787,34 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_HO2( I, J, L ) RESULT( HO2_MOLEC_CM3 )
+      FUNCTION GET_HO2( I, J, L, Input_Opt ) RESULT( HO2_MOLEC_CM3 )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,    ONLY : CSPEC, JLOP
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD,  ONLY : IDHO2
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDHO2
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: I    ! Longitude index
-      INTEGER, INTENT(IN)    :: J    ! Latitude index
-      INTEGER, INTENT(IN)    :: L    ! Altitude index
+      INTEGER,        INTENT(IN) :: I               ! Longitude index
+      INTEGER,        INTENT(IN) :: J               ! Latitude index
+      INTEGER,        INTENT(IN) :: L               ! Altitude index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt       ! Input Options object
 !
 ! !RETURN VALUE
 !
-      REAL*8                 :: HO2_MOLEC_CM3
+      REAL*8                     :: HO2_MOLEC_CM3   ! HO2 conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDHO2 (bmy, 11/1/02)
 !  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Based on GET_OH (hotp 5/6/2010)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8820,7 +8826,7 @@ ccc
       !=================================================================
       ! GET_HO2 begins here!
       !=================================================================
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !---------------------
          ! Coupled simulation
@@ -8863,27 +8869,27 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_ISOPNO3( I, J, L ) RESULT( ISOPNO3 )
+      FUNCTION GET_ISOPNO3( I, J, L, Input_Opt ) RESULT( ISOPNO3 )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD     ! ILISOPNO3
-      USE COMODE_MOD,    ONLY : CSPEC, JLOP, VOLUME
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,    ONLY : XNUMOL,             TRACER_COEFF
-      USE TRACERID_MOD,  ONLY : IDTISOP
+      USE COMODE_LOOP_MOD
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE TRACERID_MOD,       ONLY : IDTISOP
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: I        ! Longitude index
-      INTEGER, INTENT(IN)    :: J        ! Latitude index
-      INTEGER, INTENT(IN)    :: L        ! Altitude index
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      INTEGER,        INTENT(IN) :: L           ! Altitude index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !RETURN VALUE
 !
-      REAL*8                 :: ISOPNO3  ! Isoprene replaced with NO3 [kg C]
+      REAL*8                     :: ISOPNO3     ! ISOP replaced w/ NO3 [kg C]
 !
 ! !REVISION HISTORY:
 !  (1) IDLISOPNO3 is declared in tracerid_mod.f and initialized by SETTRACE
@@ -8891,6 +8897,8 @@ ccc
 !      CSPEC(JLOOP,IDLISOPNO3) is zeroed so that the CSPEC array only stores
 !      the parent HC reacted during that timestep. (hotp 6/1/10)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8903,7 +8911,7 @@ ccc
       ! GET_ISOPNO3 begins here!
       !=================================================================
 
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !--------------------
          ! Coupled simulation
@@ -8925,10 +8933,10 @@ ccc
             !  TRACER_COEFF(IDTISOP,1) : atom C / molec isop
             !  VOLUME                  : cm3 / box
             !-----------------------------------------------------------
-            ISOPNO3 = CSPEC(JLOOP,ILISOPNO3)   * 
-     &                VOLUME(JLOOP)           * 
-     &                TRACER_COEFF(IDTISOP,1) / 
-     &                XNUMOL(IDTISOP) 
+            ISOPNO3 = CSPEC(JLOOP,ILISOPNO3)            * 
+     &                VOLUME(JLOOP)                     * 
+     &                Input_Opt%TRACER_COEFF(IDTISOP,1) / 
+     &                Input_Opt%XNUMOL(IDTISOP) 
  
          ELSE
 
@@ -8937,7 +8945,7 @@ ccc
  
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !--------------------
          ! Offline simulation
