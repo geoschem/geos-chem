@@ -27,7 +27,6 @@
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
       USE INPUT_MOD             ! For reading settings from "input.geos"
-      USE LOGICAL_MOD           ! Logical flags to toggle G-C options
       USE MAPPING_MOD           ! For regridding MODIS LAI
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
@@ -93,15 +92,9 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem emissions modules
       !-----------------------------------------------------------------
-!      USE EMISSIONS_MOD         ! Driver routines for emissions
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
-!      USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
-!      USE MEGAN_MOD             ! For biogenic emissions
-!      USE SOILNOX_RESTART_MOD   ! For reading and writing soil NOx restart
       USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
-
-      ! HEMCO
-      USE HCOI_GC_MAIN_MOD
+      USE HCOI_GC_MAIN_MOD      ! For interfacing with HEMCO emissions
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -308,14 +301,37 @@
       !
       REAL*8,  POINTER         :: STT(:,:,:,:)
       !
-      ! Define shadow variables for fields in Input_Opt (bmy, 3/29/13)
+      ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
       LOGICAL                  :: ITS_A_FULLCHEM_SIM 
       LOGICAL                  :: ITS_A_CH4_SIM
       LOGICAL                  :: ITS_A_MERCURY_SIM  
       LOGICAL                  :: ITS_A_TAGCO_SIM
       LOGICAL                  :: ITS_AN_AEROSOL_SIM 
       LOGICAL                  :: ITS_A_CH3I_SIM
-      LOGICAL                  :: ITS_A_H2HD_SIM          
+      LOGICAL                  :: ITS_A_SPECIALTY_SIM
+      LOGICAL                  :: DO_DIAG_WRITE
+      LOGICAL                  :: LCHEM
+      LOGICAL                  :: LCONV
+      LOGICAL                  :: LDRYD
+      LOGICAL                  :: LDYNOCEAN
+      LOGICAL                  :: LEMIS
+      LOGICAL                  :: LGTMM
+      LOGICAL                  :: LKPP
+      LOGICAL                  :: LLINOZ
+      LOGICAL                  :: LNLPBL
+      LOGICAL                  :: LSTDRUN
+      LOGICAL                  :: LSCHEM
+      LOGICAL                  :: LSETH2O
+      LOGICAL                  :: LSVCSPEC
+      LOGICAL                  :: LSVGLB
+      LOGICAL                  :: LTRAN
+      LOGICAL                  :: LTURB
+      LOGICAL                  :: LUCX
+      LOGICAL                  :: LUNZIP
+      LOGICAL                  :: LVARTROP
+      LOGICAL                  :: LWETD
+      LOGICAL                  :: LWINDO
+      LOGICAL                  :: USE_OLSON_2001
       INTEGER                  :: N_TRACERS 
       REAL*8,  POINTER         :: TCVV(:)
       !-----------------------------------------------------------------
@@ -390,25 +406,49 @@
 
       ! Copy values from Input_Opt.  These replace the variables
       ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
+      USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
       ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
       ITS_A_CH4_SIM       =  Input_Opt%ITS_A_CH4_SIM
       ITS_A_MERCURY_SIM   =  Input_Opt%ITS_A_MERCURY_SIM
       ITS_A_TAGCO_SIM     =  Input_Opt%ITS_A_TAGCO_SIM 
       ITS_AN_AEROSOL_SIM  =  Input_Opt%ITS_AN_AEROSOL_SIM
       ITS_A_CH3I_SIM      =  Input_Opt%ITS_A_CH3I_SIM
-      ITS_A_H2HD_SIM      =  Input_Opt%ITS_A_H2HD_SIM    
+      ITS_A_SPECIALTY_SIM =  Input_Opt%ITS_A_SPECIALTY_SIM
+      DO_DIAG_WRITE       =  Input_Opt%DO_DIAG_WRITE
+      LCHEM               =  Input_Opt%LCHEM
+      LCONV               =  Input_Opt%LCONV
+      LDRYD               =  Input_Opt%LDRYD
+      LDYNOCEAN           =  Input_Opt%LDYNOCEAN
+      LEMIS               =  Input_Opt%LEMIS
+      LGTMM               =  Input_Opt%LGTMM
+      LKPP                =  Input_Opt%LKPP
+      LLINOZ              =  Input_Opt%LLINOZ
+      LNLPBL              =  Input_Opt%LNLPBL
+      LSCHEM              =  Input_Opt%LSCHEM
+      LSETH2O             =  Input_Opt%LSETH2O
+      LSTDRUN             =  Input_Opt%LSTDRUN
+      LSVCSPEC            =  Input_Opt%LSVCSPEC
+      LSVGLB              =  Input_Opt%LSVGLB
+      LTRAN               =  Input_Opt%LTRAN
+      LTURB               =  Input_Opt%LTURB
+      LUCX                =  Input_Opt%LUCX
+      LUNZIP              =  Input_Opt%LUNZIP
+      LVARTROP            =  Input_Opt%LVARTROP
+      LWETD               =  Input_Opt%LWETD
+      LWINDO              =  Input_Opt%LWINDO
+      USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
       N_TRACERS           =  Input_Opt%N_TRACERS  
       TCVV                => Input_Opt%TCVV
 
       ! Set a flag to denote if we should print ND70 debug output
-      prtDebug            = ( LPRT .and. am_I_Root )
+      prtDebug            = ( Input_Opt%LPRT .and. am_I_Root )
       
       ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
       ! For offline simulations that use archived OH: initialize T_FULLGRID
       ! and AIRDEN_FULLGRID arrays for regridding OH fields (bmy, 10/29/13)
-      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+      IF ( ITS_A_SPECIALTY_SIM ) THEN
          CALL INIT_DAO( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
       ENDIF
@@ -471,7 +511,7 @@
 
       ! Read annual mean tropopause if not a variable tropopause
       ! read_tropopause is obsolete with variable tropopause
-      IF ( .not. LVARTROP ) THEN
+      IF ( .not. Input_Opt%LVARTROP ) THEN
          CALL READ_TROPOPAUSE( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
       ENDIF
@@ -525,9 +565,9 @@
 
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
-      IF ( Input_Opt%USE_OLSON_2001 ) THEN
+      IF ( USE_OLSON_2001 ) THEN
          CALL Init_Mapping( am_I_Root, Input_Opt,
-    &                       1440, 720, IIPAR, JJPAR, mapping, RC )
+     &                      1440, 720, IIPAR, JJPAR, mapping, RC )
       ELSE
          CALL Init_Mapping( am_I_Root, Input_Opt,
      &                       720, 360, IIPAR, JJPAR, mapping, RC )
@@ -944,15 +984,10 @@
      &                              day_of_year,  laiMM,     mapping,      
      &                              wasModisRead, RC )
 
-!            ! For MEGAN biogenics, compute 15-day average temperature
-!            IF ( LMEGAN ) THEN
-!               CALL UPDATE_T_15_AVG
-!            ENDIF
-
             ! Note: this daily call to rdsoil left for backward compatibility.
             ! To be revised later.
             ! Also read soil-type info for fullchem simulation
-            IF ( ITS_A_FULLCHEM_SIM .or. ITS_A_H2HD_SIM ) THEN
+            IF ( ITS_A_FULLCHEM_SIM ) THEN 
 	       CALL READSOIL( am_I_Root, Input_Opt, RC )
 	       CALL READFERT( am_I_Root, Input_Opt, RC ) 
 	       CALL READCLIM( am_I_Root, Input_Opt, RC )
@@ -1091,7 +1126,7 @@
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
-            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM ) ) THEN
+            IF ( LDRYD ) THEN
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
             ENDIF
@@ -1100,10 +1135,17 @@
             !             ***** E M I S S I O N S *****
             !===========================================================
             IF ( LEMIS ) THEN
+!---------------------------------------------------------------------------
+! Prior to 6/25/14:
+! NOTE: This is the old call to the old emissions module (bmy, 6/25/14)
 !               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
 !     &                            State_Met, State_Chm, RC )
-               CALL HCOI_GC_RUN ( am_I_Root, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+!---------------------------------------------------------------------------
+
+               ! HEMCO driver.  NOTE, we will have to make sure that
+               ! the specialty simulations work with HEMCO (bmy, 6/25/14)
+               CALL HCOI_GC_RUN( am_I_Root, Input_Opt, 
+     &                           State_Met, State_Chm, RC )
             ENDIF
 
             IF ( ITS_TIME_FOR_UNIT() )
@@ -1120,8 +1162,8 @@
                !========================================================
                IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
                   CALL SET_CH3Br( am_I_Root, Input_Opt, 
-                                  State_Met, ITS_TIME_FOR_UNIT(),
-                                  State_Chm, RC                    )
+     &                            State_Met, ITS_TIME_FOR_UNIT(),
+     &                            State_Chm, RC                    )
 
               ENDIF
 
@@ -1205,7 +1247,7 @@
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
-            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM ) ) THEN
+            IF ( LDRYD ) THEN
                CALL DO_DRYDEP
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
