@@ -194,7 +194,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE SEASALT_MOD,        ONLY : INIT_SEASALT
-      USE VDIFF_PRE_MOD,      ONLY : SET_VDIFF_VALUES
 !
 ! !INPUT PARAMETERS:
 !
@@ -231,8 +230,6 @@
 !  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !  23 Jun 2014 - R. Yantosca - Now do not call INIT_INPUT, this is replaced
 !                              by the INIT_GIGC_INPUT_OPT routine
-!  24 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES so that we can
-!                              replace the functionality of logical_mod.F etc.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -445,12 +442,6 @@
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
       CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
-
-      ! Call SET_VDIFF_VALUES so that we can pass several values from 
-      ! Input_Opt to the vdiff_mod.F90.  This replaces the funcitionality
-      ! of logical_mod.F and tracer_mod.F..  This has to be called
-      ! after the input.geos file has been read from disk.
-      CALL Set_VDIFF_VALUES( am_I_Root, Input_Opt, RC )
 
       ! Echo output
       IF ( am_I_Root ) THEN
@@ -905,7 +896,9 @@
          WRITE( 6, 120 ) 'Unzip met fields?           : ', LUNZIP
          WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
-         WRITE( 6, 130 ) 'Global offsets I0, J0       : ', I0, J0
+         WRITE( 6, 130 ) 'Global offsets I0, J0       : ', 
+     &                    Input_Opt%NESTED_I0, 
+     &                    Input_Opt%NESTED_J0
       ENDIF
 
       ! Format statements
@@ -969,11 +962,11 @@
       CALL SET_RESTART( Input_Opt%IN_RST_FILE, Input_Opt%OUT_RST_FILE )
 
       ! Set global offsets for the horizontal grid
-      CALL SET_XOFFSET( I0 )
-      CALL SET_YOFFSET( J0 )
+      CALL SET_XOFFSET( Input_Opt%NESTED_I0 )
+      CALL SET_YOFFSET( Input_OPt%NESTED_J0 )
 
       ! Initialize GEOS-Chem horizontal grid structure
-      CALL INITIALIZE_GEOS_GRID( am_I_Root, RC )
+      CALL INITIALIZE_GEOS_GRID( am_I_Root, Input_Opt, RC )
 
       ! Initialze quantities for "transfer_mod.f"
       CALL INIT_TRANSFER( 0, 0 )
@@ -996,22 +989,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE_GEOS_GRID( am_I_Root, RC )
+      SUBROUTINE INITIALIZE_GEOS_GRID( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GLOBAL_GRID_MOD, ONLY : COMPUTE_GLOBAL_GRID
-      USE GRID_MOD,        ONLY : COMPUTE_GRID
-      USE GRID_MOD,        ONLY : INIT_GRID
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GLOBAL_GRID_MOD,    ONLY : COMPUTE_GLOBAL_GRID
+      USE GRID_MOD,           ONLY : COMPUTE_GRID
+      USE GRID_MOD,           ONLY : INIT_GRID
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root    ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC           ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  The module grid_mod.F90 has been modified to save grid parameters in 3D
@@ -1034,6 +1029,8 @@
 !  28 Feb 2013 - R. Yantosca - Bug fix for GEOS-5 interface: Now call 
 !                              Compute_Grid with 1..IIPAR, I..JJPAR
 !  01 Jul 2013 - R. Yantosca - Don't use 1/2 sized polar boxes for GCAP
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1225,7 +1222,6 @@
 !  07 Nov 2012 - R. Yantosca - Now define Input_Opt%ITS_A_*_SIM fields
 !  28 Oct 2013 - R. Yantosca - Set Input_Opt%ITS_A_SPECIALTY_SIM = .FALSE.
 !                              when running GEOS-Chem in an ESMF environment
-!  24 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES in vdiff_mod>F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
@@ -2254,7 +2250,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE MODIS_LAI_MOD,      ONLY : INIT_MODIS_LAI
       USE TIME_MOD,           ONLY : SET_HISTYR
       USE TRACERID_MOD,       ONLY : IDTCH4, IDTOCS, IDTCFCX
       USE TRACERID_MOD,       ONLY : IDTCl,  IDTN2O, IDTBr2, IDTH2O
@@ -2341,6 +2336,7 @@
 !  03 Jun 2014 - R. Yantosca - Radically simplify this routine since most
 !                              emissions options are now specified in HEMCO
 !  23 Jun 2014 - R. Yantosca - Remove reference to logical_mod.F
+!  25 Jun 2014 - R. Yantosca - Move call to INIT_MODIS_LAIT to GIGC_INIT_EXTRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2661,9 +2657,6 @@
       !=================================================================
       ! Initialization
       !=================================================================
-
-      ! Initialize the MODIS leaf area index module
-      CALL INIT_MODIS_LAI( am_I_Root, Input_Opt, RC )
 
       !=================================================================
       ! Print to screen
@@ -3833,6 +3826,8 @@
 !                              connecting to the GEOS-5 GCM
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  25 Jun 2014 - R. Yantosca - Now set USE_OLSON_2001 = T for GEOS-FP met;
+!                              this was originally done in INIT_INPUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3840,8 +3835,6 @@
 ! !LOCAL VARIABLES:
 
       ! Scalars
-      LOGICAL            :: LCONV,  LDRYD,  LWETD          
-      LOGICAL            :: LSPLIT, USE_OLSON_2001
       INTEGER            :: N
       CHARACTER(LEN=255) :: MSG
 
@@ -3860,11 +3853,11 @@
 
       ! Turn on drydep?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_deposition_menu:1' )
-      READ( SUBSTRS(1:N), * ) LDRYD
+      READ( SUBSTRS(1:N), * ) Input_Opt%LDRYD
 
       ! Turn on wetdep?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_deposition_menu:2' )
-      READ( SUBSTRS(1:N), * ) LWETD
+      READ( SUBSTRS(1:N), * ) Input_OPt%LWETD
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_deposition_menu:3' )
@@ -3874,22 +3867,27 @@
       !=================================================================
 
       ! Turn off drydep for simulations that don't need it
-      IF ( Input_Opt%ITS_A_CH3I_SIM    ) LDRYD = .FALSE.
-      IF ( Input_Opt%ITS_A_TAGCO_SIM   ) LDRYD = .FALSE.
+      IF ( Input_Opt%ITS_A_CH3I_SIM    ) Input_Opt%LDRYD = .FALSE.
+      IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LDRYD = .FALSE.
 
       ! Turn off wetdep for simulations that don't need it
-      IF ( Input_Opt%ITS_A_CH3I_SIM    ) LWETD = .FALSE.
-      IF ( Input_Opt%ITS_A_HCN_SIM     ) LWETD = .FALSE.
-      IF ( Input_Opt%ITS_A_TAGOX_SIM   ) LWETD = .FALSE.
-      IF ( Input_Opt%ITS_A_TAGCO_SIM   ) LWETD = .FALSE.
-      IF ( Input_Opt%ITS_A_C2H6_SIM    ) LWETD = .FALSE.
-      IF ( Input_Opt%ITS_A_CH4_SIM     ) LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_CH3I_SIM    ) Input_Opt%LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_HCN_SIM     ) Input_Opt%LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_TAGOX_SIM   ) Input_Opt%LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_C2H6_SIM    ) Input_Opt%LWETD = .FALSE.
+      IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
 
-      !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%LDRYD = LDRYD
-      Input_Opt%LWETD = LWETD
+#if   defined( GEOS_FP ) 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% KLUDGE FOR TESTING GEOS-FP (bmy, 3/26/12)
+      !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
+      !%%% in order to facilitate the SEAC4RS simulations.  Eventually
+      !%%% this will replace Olson 1992 for all other met field types,
+      !%%% once more rigorous testing & validation has been done.
+      Input_Opt%USE_OLSON_2001 = .TRUE.
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#endif
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -3900,10 +3898,12 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'DEPOSITION MENU'
          WRITE( 6, '(  a)' ) '---------------'
-         WRITE( 6, 100     ) 'Turn on dry deposition?     : ', LDRYD
-         WRITE( 6, 100     ) 'Turn on wet deposition?     : ', LWETD
+         WRITE( 6, 100     ) 'Turn on dry deposition?     : ', 
+     &                        Input_Opt%LDRYD
+         WRITE( 6, 100     ) 'Turn on wet deposition?     : ', 
+     &                        Input_Opt%LWETD
          WRITE( 6, 100     ) 'Use Olson 2001 land map?    : ', 
-     &                        USE_OLSON_2001
+     &                        InpuT_Opt%USE_OLSON_2001
       ENDIF
 
       ! FORMAT statements
@@ -3921,7 +3921,8 @@
          CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
       
          ! Print extra info message for Hg simulation
-         IF ( Input_Opt%ITS_A_MERCURY_SIM .and. LSPLIT ) THEN
+         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
+     &        Input_Opt%LSPLIT            ) THEN
             WRITE ( 6, 120 )
             WRITE ( 6, 121 )
          ENDIF
@@ -3934,7 +3935,9 @@
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
-      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) CALL WETDEPBINID
+      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+         CALL WETDEPBINID
+      ENDIF
 #endif
 
       ! FORMAT strings
@@ -8167,13 +8170,15 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
+      USE Henry_Mod,          ONLY : Init_Henry
       USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
       USE Linoz_Mod,          ONLY : Init_Linoz
+      USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
       USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
-      USE HENRY_MOD,          ONLY : Init_Henry
+      USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
 !
 ! !INPUT PARAMETERS:
 !
@@ -8208,6 +8213,8 @@
 !  14 Apr 2014 - R. Yantosca - Also call INIT_C2H6 if it's a fullchem sim
 !                              since we read C2H6 emissions from c2h6_mod.F
 !  19 May 2014 - C. Keller   - Now call INIT_HENRY (GeosCore/henry_mod.F)
+!  25 Jun 2014 - R. Yantosca - Now call INIT_MODIS_LAI      
+!  25 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES (vdiff_pre_mod.F90)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8225,6 +8232,18 @@
 
       ! Set a flag for debugging
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+
+      ! Initialize the MODIS leaf area index module
+      CALL INIT_MODIS_LAI( am_I_Root, Input_Opt, RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+
+      ! Call SET_VDIFF_VALUES so that we can pass several values from 
+      ! Input_Opt to the vdiff_mod.F90.  This replaces the funcitionality
+      ! of logical_mod.F and tracer_mod.F..  This has to be called
+      ! after the input.geos file has been read from disk.
+      CALL Set_VDIFF_VALUES( am_I_Root, Input_Opt, RC )
+
+      !%%% NOTE: Should call INIT_PBL_MIX etc from here %%%
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN

@@ -706,6 +706,9 @@ hco_tidx_mod.o              : hco_tidx_mod.F90                               \
                               hco_error_mod.o         hco_filedata_mod.o     \
                               hco_state_mod.o
 
+hco_tools_mod.o             : hco_tools_mod.F90                              \
+                              hco_error_mod.o
+
 hco_unit_mod.o              : hco_unit_mod.F90                               \
                               hco_chartools_mod.o     hco_error_mod.o
 
@@ -808,6 +811,10 @@ hcox_soilnox_mod.o          : hcox_soilnox_mod.F90                           \
 
 hcox_state_mod.o            : hcox_state_mod.F90                            \
                               hco_arr_mod.o           hco_error_mod.o
+
+hcox_state_mod.o            : hcox_state_mod.F90                            \
+                              hco_arr_mod.o           hco_error_mod.o
+
 
 henry_mod.o                 : henry_mod.F                                    \
                               tracer_mod.o

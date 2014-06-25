@@ -222,7 +222,6 @@
       RC                =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
       N_TRACERS         = Input_Opt%N_TRACERS
 
       ! Pick the proper # of tracers

@@ -631,16 +631,6 @@
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
 
-      ! Read soil NOx initial conditions
-!      IF ( LSOILNOX ) THEN
-!         CALL READ_SOIL_RESTART
-!     &      ( am_I_Root, Input_Opt, NYMDb , NHMSb, RC )
-!
-!         IF ( prtDebug ) THEN
-!            CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
-!         ENDIF
-!      ENDIF
-
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
          CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb, Input_Opt )
