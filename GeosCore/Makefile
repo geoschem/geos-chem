@@ -548,7 +548,7 @@ dust_mod.o                  : dust_mod.F                                     \
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \
-                              toms_mod.o
+                              toms_mod.o              tracerid_mod.o
 
 future_emissions_mod.o      : future_emissions_mod.F
 

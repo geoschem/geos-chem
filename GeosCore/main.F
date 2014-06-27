@@ -316,6 +316,7 @@
       LOGICAL                  :: LKPP
       LOGICAL                  :: LLINOZ
       LOGICAL                  :: LNLPBL
+      LOGICAL                  :: LPRT
       LOGICAL                  :: LSTDRUN
       LOGICAL                  :: LSCHEM
       LOGICAL                  :: LSETH2O
@@ -326,6 +327,7 @@
       LOGICAL                  :: LUCX
       LOGICAL                  :: LUNZIP
       LOGICAL                  :: LVARTROP
+      LOGICAL                  :: LWAIT
       LOGICAL                  :: LWETD
       LOGICAL                  :: LWINDO
       LOGICAL                  :: USE_OLSON_2001
@@ -421,6 +423,7 @@
       LKPP                =  Input_Opt%LKPP
       LLINOZ              =  Input_Opt%LLINOZ
       LNLPBL              =  Input_Opt%LNLPBL
+      LPRT                =  Input_Opt%LPRT
       LSCHEM              =  Input_Opt%LSCHEM
       LSETH2O             =  Input_Opt%LSETH2O
       LSTDRUN             =  Input_Opt%LSTDRUN
@@ -431,6 +434,7 @@
       LUCX                =  Input_Opt%LUCX
       LUNZIP              =  Input_Opt%LUNZIP
       LVARTROP            =  Input_Opt%LVARTROP
+      LWAIT               =  Input_Opt%LWAIT
       LWETD               =  Input_Opt%LWETD
       LWINDO              =  Input_Opt%LWINDO
       USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
@@ -438,7 +442,7 @@
       TCVV                => Input_Opt%TCVV
 
       ! Set a flag to denote if we should print ND70 debug output
-      prtDebug            = ( Input_Opt%LPRT .and. am_I_Root )
+      prtDebug            = ( LPRT .and. am_I_Root )
       
       ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
