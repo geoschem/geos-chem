@@ -7753,7 +7753,7 @@
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
       ! Check GEOS-5 met field directory (ending date)
-      DIR = GEOS_5_DIR
+      DIR = Input_Opt%GEOS_5_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
