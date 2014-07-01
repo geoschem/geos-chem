@@ -63,79 +63,73 @@
 ! \\
 ! !INTERFACE: 
 !
-      MODULE HCO_FILEDATA_MOD 
+MODULE HCO_FILEDATA_MOD 
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD
-      USE HCO_ARR_MOD
+  USE HCO_ERROR_MOD
+  USE HCO_ARR_MOD
 
-      IMPLICIT NONE
-      PRIVATE
+  IMPLICIT NONE
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: FileData_Init
-      PUBLIC  :: FileData_Cleanup 
-      PUBLIC  :: FileData_ArrCheck2D
-      PUBLIC  :: FileData_ArrCheck3D
-      PUBLIC  :: FileData_ArrIsDefined
-      PUBLIC  :: FileData_FileRead
+  PUBLIC  :: FileData_Init
+  PUBLIC  :: FileData_Cleanup 
+  PUBLIC  :: FileData_ArrCheck2D
+  PUBLIC  :: FileData_ArrCheck3D
+  PUBLIC  :: FileData_ArrIsDefined
+  PUBLIC  :: FileData_FileRead
 !
 ! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
-!
+!  19 Dec 2013 - C. Keller   - Initialization
+!  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !MODULE TYPES:
+! !PUBLIC TYPES:
 !
-      ! Derived type for data from file
-      TYPE, PUBLIC :: FileData
-         CHARACTER(LEN=255)          :: ncFile         ! file path+name
-         CHARACTER(LEN= 31)          :: ncPara         ! file parameter
-         INTEGER                     :: ncYrs(2)       ! year range
-         INTEGER                     :: ncMts(2)       ! month range
-         INTEGER                     :: ncDys(2)       ! day range
-         INTEGER                     :: ncHrs(2)       ! hour range
-         INTEGER                     :: CycleFlag      ! cycle flag
-         LOGICAL                     :: ncRead         ! read from source?
-         TYPE(Arr3D_HP),     POINTER :: V3(:)          ! vector of 3D fields
-         TYPE(Arr2D_HP),     POINTER :: V2(:)          ! vector of 2D fields
-         TYPE(TimeIdx),      POINTER :: tIDx           ! for time slice indexing 
-         CHARACTER(LEN= 31)          :: OrigUnit       ! original data units 
-         INTEGER                     :: Cover          ! data coverage
-         INTEGER                     :: SpaceDim       ! space dimension: 1, 2 or 3 
-         INTEGER                     :: nt             ! time dimension: length of Arr
-         INTEGER                     :: DeltaT         ! temp. resolution of array [h]
-         LOGICAL                     :: DoShare        ! shared object?
-      END TYPE FileData
+  ! Derived type for data from file
+  TYPE, PUBLIC :: FileData
+     CHARACTER(LEN=255)          :: ncFile    ! file path+name
+     CHARACTER(LEN= 31)          :: ncPara    ! file parameter
+     INTEGER                     :: ncYrs(2)  ! year range
+     INTEGER                     :: ncMts(2)  ! month range
+     INTEGER                     :: ncDys(2)  ! day range
+     INTEGER                     :: ncHrs(2)  ! hour range
+     INTEGER                     :: CycleFlag ! cycle flag
+     LOGICAL                     :: ncRead    ! read from source?
+     TYPE(Arr3D_HP),     POINTER :: V3(:)     ! vector of 3D fields
+     TYPE(Arr2D_HP),     POINTER :: V2(:)     ! vector of 2D fields
+     TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing 
+     CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
+     INTEGER                     :: Cover     ! data coverage
+     INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
+     INTEGER                     :: nt        ! time dimension: length of Arr
+     INTEGER                     :: DeltaT    ! temp. resolution of array [h]
+     LOGICAL                     :: DoShare   ! shared object?
+  END TYPE FileData
 
-      ! TimeIdx contains the pointers to the current time slices indeces.
-      ! Used by module HCO_TIDX_MOD.F90
-      TYPE, PUBLIC :: TimeIdx
-         INTEGER           :: TypeID
-         CHARACTER(LEN=31) :: TempRes
-         LOGICAL           :: LonDependent
-         INTEGER, POINTER  :: CurrIDx(:)
-      END TYPE TimeIdx
-!
-! !INTERFACES:
-!
+  ! TimeIdx contains the pointers to the current time slices indeces.
+  ! Used by module HCO_TIDX_MOD.F90
+  TYPE, PUBLIC :: TimeIdx
+     INTEGER                     :: TypeID
+     CHARACTER(LEN=31)           :: TempRes
+     LOGICAL                     :: LonDependent
+     INTEGER,            POINTER :: CurrIDx(:)
+  END TYPE TimeIdx
 
-      !----------------------------------------------------------------
-      ! MODULE ROUTINES follow below
-      !----------------------------------------------------------------
-
-      CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: FileData_Init
+! !IROUTINE: FileData_Init
 !
 ! !DESCRIPTION: Subroutine FileData\_Init initializes a new (blank) file
 ! data object. 
@@ -143,11 +137,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FileData_Init( FileDta )
+  SUBROUTINE FileData_Init( FileDta )
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      TYPE(FileData), POINTER    :: FileDta
+    TYPE(FileData), POINTER    :: FileDta
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -158,45 +152,45 @@
 !
 ! !LOCAL VARIABLES:
 !
-      TYPE(FileData), POINTER  :: NewFDta => NULL()
+    TYPE(FileData), POINTER  :: NewFDta => NULL()
 
-      !======================================================================
-      ! FileData_Init begins here!
-      !======================================================================
+    !======================================================================
+    ! FileData_Init begins here!
+    !======================================================================
 
-      ! Allocate the new file data object
-      ALLOCATE( NewFDta )
+    ! Allocate the new file data object
+    ALLOCATE( NewFDta )
 
-      ! Nullify all pointers and initialize variables
-      NewFDta%V3          => NULL()
-      NewFDta%V2          => NULL()
-      NewFDta%tIDx        => NULL()
-      NewFDta%ncFile       = ''
-      NewFDta%ncPara       = ''
-      NewFDta%ncYrs(:)     = -999
-      NewFDta%ncMts(:)     = -999
-      NewFDta%ncDys(:)     = -999
-      NewFDta%ncHrs(:)     = -999
-      NewFDta%CycleFlag    = 1
-      NewFDta%ncRead       = .TRUE.
-      NewFDta%Cover        = -999 
-      NewFDta%DeltaT       = 0
-      NewFDta%nt           = 0
-      NewFDta%SpaceDim     = -1
-      NewFDta%OrigUnit     = ''
-      NewFDta%DoShare      = .FALSE.
+    ! Nullify all pointers and initialize variables
+    NewFDta%V3          => NULL()
+    NewFDta%V2          => NULL()
+    NewFDta%tIDx        => NULL()
+    NewFDta%ncFile       = ''
+    NewFDta%ncPara       = ''
+    NewFDta%ncYrs(:)     = -999
+    NewFDta%ncMts(:)     = -999
+    NewFDta%ncDys(:)     = -999
+    NewFDta%ncHrs(:)     = -999
+    NewFDta%CycleFlag    = 1
+    NewFDta%ncRead       = .TRUE.
+    NewFDta%Cover        = -999 
+    NewFDta%DeltaT       = 0
+    NewFDta%nt           = 0
+    NewFDta%SpaceDim     = -1
+    NewFDta%OrigUnit     = ''
+    NewFDta%DoShare      = .FALSE.
 
-      ! Return
-      FileDta => NewFDta
+    ! Return
+    FileDta => NewFDta
 
-      END SUBROUTINE FileData_Init
+  END SUBROUTINE FileData_Init
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: FileData_Cleanup
+! !IROUTINE: FileData_Cleanup
 !
 ! !DESCRIPTION: Subroutine FileData\_Cleanup cleans up the file data object
 ! FileDta. If DeepClean is set to False, only the data arrays will be removed. 
@@ -204,15 +198,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FileData_Cleanup ( FileDta, DeepClean )
+  SUBROUTINE FileData_Cleanup( FileDta, DeepClean )
 !
-! !USES:
+! !INPUT PARAMETERS:
 !
-!
-! !ARGUMENTS:
-!
-      TYPE(FileData), POINTER               :: FileDta
-      LOGICAL,        INTENT(IN)            :: DeepClean 
+    TYPE(FileData), POINTER    :: FileDta
+    LOGICAL,        INTENT(IN) :: DeepClean 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -220,34 +211,37 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      INTEGER :: I
+!
+! !LOCAL VARIABLES: 
+!
+    INTEGER :: I
 
-      !======================================================================
-      ! FileData_Cleanup begins here!
-      !======================================================================
+    !======================================================================
+    ! FileData_Cleanup begins here!
+    !======================================================================
 
-      ! Only if associated 
-      IF ( ASSOCIATED( FileDta ) ) THEN
+    ! Only if associated 
+    IF ( ASSOCIATED( FileDta ) ) THEN
 
-         ! Deallocate data arrays
-         CALL HCO_ArrCleanup( FileDta%V3 )
-         CALL HCO_ArrCleanup( FileDta%V2 )
-         FileDta%nt = 0
+       ! Deallocate data arrays
+       CALL HCO_ArrCleanup( FileDta%V3 )
+       CALL HCO_ArrCleanup( FileDta%V2 )
+       FileDta%nt = 0
 
-         IF ( DeepClean ) THEN
-            FileDta%tIDx => NULL()
-            DEALLOCATE ( FileDta )
-         ENDIF
-      ENDIF
+       IF ( DeepClean ) THEN
+          FileDta%tIDx => NULL()
+          DEALLOCATE ( FileDta )
+       ENDIF
+    ENDIF
 
-      END SUBROUTINE FileData_Cleanup 
+  END SUBROUTINE FileData_Cleanup
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: FileData_ArrCheck2D
+! !IROUTINE: FileData_ArrCheck2D
 !
 ! !DESCRIPTION: Subroutine FileData\_ArrCheck2D allocates the 2D data array 
 ! vector of the given file data object if it is not yet allocated. If already
@@ -256,18 +250,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FileData_ArrCheck2D ( FileDta, nx, ny, nt, RC )
+  SUBROUTINE FileData_ArrCheck2D( FileDta, nx, ny, nt, RC )
 !
-! !USES:
+! !INPUT PARAMETERS:
 !
+    TYPE(FileData), POINTER       :: FileDta   ! file data object 
+    INTEGER,        INTENT(IN)    :: nx        ! x-dim
+    INTEGER,        INTENT(IN)    :: ny        ! y-dim
+    INTEGER,        INTENT(IN)    :: nt        ! time dim => vector length
 !
-! !INPUT ARGUMENTS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(FileData), POINTER       :: FileDta   ! file data object 
-      INTEGER,        INTENT(IN)    :: nx        ! x-dim
-      INTEGER,        INTENT(IN)    :: ny        ! y-dim
-      INTEGER,        INTENT(IN)    :: nt        ! time dim => vector length
-      INTEGER,        INTENT(INOUT) :: RC        ! Return code
+    INTEGER,        INTENT(INOUT) :: RC        ! Return code
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -275,45 +269,45 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-! !ARGUMENTS:
+! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, AS
-      CHARACTER(LEN=255)     :: MSG
+    INTEGER            :: I, AS
+    CHARACTER(LEN=255) :: MSG
 
-      ! ================================================================
-      ! FileData_ArrCheck2D begins here
-      ! ================================================================
+    ! ================================================================
+    ! FileData_ArrCheck2D begins here
+    ! ================================================================
  
-      ! Assume success until otherwise 
-      RC = HCO_SUCCESS
+    ! Assume success until otherwise 
+    RC = HCO_SUCCESS
 
-      ! Compare dimensions if array already allocated 
-      IF ( Associated(FileDta%V2) ) THEN 
-         IF ( (               FileDta%nt  /= nt ) .OR. &
-              ( SIZE(FileDta%V2(1)%Val,1) /= nx ) .OR. &
-              ( SIZE(FileDta%V2(1)%Val,2) /= ny )       ) THEN
-            MSG = 'Wrong dimensions: ' // TRIM(FileDta%ncFile)
-            CALL HCO_ERROR ( MSG, RC )
-         ENDIF
-         RETURN
-      ENDIF      
+    ! Compare dimensions if array already allocated 
+    IF ( Associated(FileDta%V2) ) THEN 
+       IF ( (               FileDta%nt  /= nt ) .OR. &
+            ( SIZE(FileDta%V2(1)%Val,1) /= nx ) .OR. &
+            ( SIZE(FileDta%V2(1)%Val,2) /= ny )       ) THEN
+          MSG = 'Wrong dimensions: ' // TRIM(FileDta%ncFile)
+          CALL HCO_ERROR ( MSG, RC )
+       ENDIF
+       RETURN
+    ENDIF
 
-      ! If not associated yet:
-      ! Allocate vector
-      CALL HCO_ArrInit ( FileDta%V2, nt, nx, ny, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! If not associated yet:
+    ! Allocate vector
+    CALL HCO_ArrInit ( FileDta%V2, nt, nx, ny, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Update nt
-      FileDta%nt = nt
+    ! Update nt
+    FileDta%nt = nt
 
-      END SUBROUTINE FileData_ArrCheck2D
+  END SUBROUTINE FileData_ArrCheck2D
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: FileData_ArrCheck3D
+! !IROUTINE: FileData_ArrCheck3D
 !
 ! !DESCRIPTION: Subroutine FileData\_ArrCheck3D allocates the 3D data array 
 ! vector of the given file data object if it is not yet allocated. If already
@@ -322,19 +316,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FileData_ArrCheck3D ( FileDta, nx, ny, nz, nt, RC )
+  SUBROUTINE FileData_ArrCheck3D( FileDta, nx, ny, nz, nt, RC )
 !
 ! !USES:
 !
 !
-! !INPUT ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      TYPE(FileData), POINTER       :: FileDta  ! Container
-      INTEGER,        INTENT(IN)    :: nx        ! x-dim
-      INTEGER,        INTENT(IN)    :: ny        ! y-dim
-      INTEGER,        INTENT(IN)    :: nz        ! z-dim
-      INTEGER,        INTENT(IN)    :: nt        ! Time dim => vector length
-      INTEGER,        INTENT(INOUT) :: RC        ! Return code
+    TYPE(FileData), POINTER       :: FileDta  ! Container
+    INTEGER,        INTENT(IN)    :: nx        ! x-dim
+    INTEGER,        INTENT(IN)    :: ny        ! y-dim
+    INTEGER,        INTENT(IN)    :: nz        ! z-dim
+    INTEGER,        INTENT(IN)    :: nt        ! Time dim => vector length
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC        ! Return code
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -342,46 +339,46 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-! !ARGUMENTS:
+! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, AS
-      CHARACTER(LEN=255)     :: MSG
+    INTEGER            :: I, AS
+    CHARACTER(LEN=255) :: MSG
 
-      ! ================================================================
-      ! FileData_ArrCheck3D begins here
-      ! ================================================================
+    ! ================================================================
+    ! FileData_ArrCheck3D begins here
+    ! ================================================================
  
-      ! Assume success until otherwise 
-      RC = HCO_SUCCESS
+    ! Assume success until otherwise 
+    RC = HCO_SUCCESS
 
-      ! Compare dimensions if array already allocated 
-      IF ( Associated(FileDta%V3) ) THEN 
-         IF ( (                FileDta%nt /= nt ) .OR. &
-              ( SIZE(FileDta%V3(1)%Val,1) /= nx ) .OR. &
-              ( SIZE(FileDta%V3(1)%Val,2) /= ny ) .OR. &
-              ( SIZE(FileDta%V3(1)%Val,3) /= nz )       ) THEN
-            MSG = 'Wrong dimensions: ' // TRIM(FileDta%ncFile)
-            CALL HCO_ERROR ( MSG, RC )
-         ENDIF
-         RETURN
-      ENDIF      
+    ! Compare dimensions if array already allocated 
+    IF ( Associated(FileDta%V3) ) THEN 
+       IF ( (                FileDta%nt /= nt ) .OR. &
+            ( SIZE(FileDta%V3(1)%Val,1) /= nx ) .OR. &
+            ( SIZE(FileDta%V3(1)%Val,2) /= ny ) .OR. &
+            ( SIZE(FileDta%V3(1)%Val,3) /= nz )       ) THEN
+          MSG = 'Wrong dimensions: ' // TRIM(FileDta%ncFile)
+          CALL HCO_ERROR ( MSG, RC )
+       ENDIF
+       RETURN
+    ENDIF
 
-      ! If not allocated:
-      ! Allocate vector
-      CALL HCO_ArrInit( FileDta%V3, nt, nx, ny, nz, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! If not allocated:
+    ! Allocate vector
+    CALL HCO_ArrInit( FileDta%V3, nt, nx, ny, nz, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Update nt
-      FileDta%nt = nt
+    ! Update nt
+    FileDta%nt = nt
 
-      END SUBROUTINE FileData_ArrCheck3D
+  END SUBROUTINE FileData_ArrCheck3D
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: FileData_ArrIsDefined
+! !IROUTINE: FileData_ArrIsDefined
 !
 ! !DESCRIPTION: Function FileData\_ArrIsDefined returns true if the data 
 ! array of the given file data object is defined.
@@ -389,15 +386,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION FileData_ArrIsDefined ( FileDta ) RESULT( IsDefined )
+  FUNCTION FileData_ArrIsDefined( FileDta ) RESULT( IsDefined )
 !
-! !INPUT ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      TYPE(FileData), POINTER       :: FileDta  ! Container
+    TYPE(FileData), POINTER :: FileDta  ! Container
 !
-! !RETURN ARGUMENTS:
+! !RETURN VALUE:
 !
-      LOGICAL                       :: IsDefined 
+    LOGICAL                 :: IsDefined 
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -405,34 +402,34 @@
 !------------------------------------------------------------------------------
 !BOC
 
-      ! ================================================================
-      ! FileData_ArrIsDefined begins here
-      ! ================================================================
+    ! ================================================================
+    ! FileData_ArrIsDefined begins here
+    ! ================================================================
      
-      ! Init
-      IsDefined = .FALSE.
+    ! Init
+    IsDefined = .FALSE.
 
-      ! nt must be larger than zero! 
-      IF ( FileDta%nt <= 0 ) Return 
+    ! nt must be larger than zero! 
+    IF ( FileDta%nt <= 0 ) Return 
 
-      ! 2D array
-      IF ( (FileDta%SpaceDim<=2) .AND. ASSOCIATED(FileDta%V2) ) THEN
-         IsDefined = .TRUE. 
-      ENDIF
+    ! 2D array
+    IF ( (FileDta%SpaceDim<=2) .AND. ASSOCIATED(FileDta%V2) ) THEN
+       IsDefined = .TRUE. 
+    ENDIF
 
-      ! 3D array
-      IF ( (FileDta%SpaceDim==3) .AND. ASSOCIATED(FileDta%V3) ) THEN
-         IsDefined = .TRUE. 
-      ENDIF
+    ! 3D array
+    IF ( (FileDta%SpaceDim==3) .AND. ASSOCIATED(FileDta%V3) ) THEN
+       IsDefined = .TRUE. 
+    ENDIF
 
-      END FUNCTION FileData_ArrIsDefined
+  END FUNCTION FileData_ArrIsDefined
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: FileData_FileRead
+! !IROUTINE: FileData_FileRead
 !
 ! !DESCRIPTION: Subroutine FileData\_FileRead passes scalar scale factors
 ! read from the configuration file (instead of the file path+name) to a 
@@ -441,109 +438,113 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FileData_FileRead ( am_I_Root, FileDta, IsFirst, RC ) 
+  SUBROUTINE FileData_FileRead( am_I_Root, FileDta, IsFirst, RC ) 
 !
 ! !USES:
 !
-      USE HCO_TOOLS_MOD,   ONLY : HCO_CharSplit
+    USE HCO_TOOLS_MOD,   ONLY : HCO_CharSplit
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      LOGICAL,           INTENT(IN   )    :: am_I_Root ! Root CPU?
-      TYPE(FileData),    POINTER          :: FileDta   ! File data obj
-      INTEGER,           INTENT(  OUT)    :: IsFirst   ! First read? 
-      INTEGER,           INTENT(INOUT)    :: RC        ! Return code
+    LOGICAL,         INTENT(IN   ) :: am_I_Root ! Root CPU?
+    TYPE(FileData),  POINTER       :: FileDta   ! File data obj
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(  OUT) :: IsFirst   ! First read? 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(INOUT) :: RC        ! Return code
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL ARGUMENTS:
+! !LOCAL VARIABLES:
 !
-      INTEGER                   :: I, N
-      CHARACTER(LEN=255)        :: MSG, LOC
-      REAL                      :: FileVals(24)
-      LOGICAL                   :: Verb
+    INTEGER            :: I, N
+    CHARACTER(LEN=255) :: MSG, LOC
+    REAL               :: FileVals(24)
+    LOGICAL            :: Verb
 
-      !======================================================================
-      ! FileData_FileRead begins here
-      !======================================================================
+    !======================================================================
+    ! FileData_FileRead begins here
+    !======================================================================
 
-      ! Enter
-      LOC = 'FileData_FileRead (HCO_FILEDATA_MOD.F90)'
-      Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+    ! Enter
+    LOC = 'FileData_FileRead (HCO_FILEDATA_MOD.F90)'
+    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
 
-      ! Don't read twice. Data file objects can belong to multiple 
-      ! containers, and this routine may hence be called multiple
-      ! times for the same data object. Make sure that we read the
-      ! data only on first call! The variable SpaceDim is initialized
-      ! to -1 but becomes set to one after reading, hence use this
-      ! variable to identify whether or not this is the first call
-      ! for this object.
-      IF ( FileDta%SpaceDim == 1 ) THEN 
-         IsFirst = 0
-         RC      = HCO_SUCCESS
-         RETURN
-      ENDIF
+    ! Don't read twice. Data file objects can belong to multiple 
+    ! containers, and this routine may hence be called multiple
+    ! times for the same data object. Make sure that we read the
+    ! data only on first call! The variable SpaceDim is initialized
+    ! to -1 but becomes set to one after reading, hence use this
+    ! variable to identify whether or not this is the first call
+    ! for this object.
+    IF ( FileDta%SpaceDim == 1 ) THEN 
+       IsFirst = 0
+       RC      = HCO_SUCCESS
+       RETURN
+    ENDIF
 
-      ! Verbose
-      IF ( Verb ) THEN
-         WRITE(MSG, *) 'Read from config file:', TRIM(FileDta%ncFile)
-         CALL HCO_MSG(MSG)
-      ENDIF
+    ! Verbose
+    IF ( Verb ) THEN
+       WRITE(MSG, *) 'Read from config file:', TRIM(FileDta%ncFile)
+       CALL HCO_MSG(MSG)
+    ENDIF
 
-      ! Read data into array
-      CALL HCO_CharSplit ( FileDta%ncFile, HCO_SEP(), &
-                           HCO_WILDCARD(), FileVals, N, RC ) 
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Read data into array
+    CALL HCO_CharSplit ( FileDta%ncFile, HCO_SEP(), &
+                         HCO_WILDCARD(), FileVals, N, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Return w/ error if no scale factor defined
-      IF ( N == 0 ) THEN
-         MSG = 'Cannot read data: ' // TRIM(FileDta%ncFile)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
-         RETURN 
-      ENDIF
+    ! Return w/ error if no scale factor defined
+    IF ( N == 0 ) THEN
+       MSG = 'Cannot read data: ' // TRIM(FileDta%ncFile)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
+       RETURN 
+    ENDIF
 
-      ! Copy data into array. Assume all data is temporal
-      ! dimension!
-      CALL FileData_ArrCheck2D( FileDta, 1, 1, N, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      DO I = 1, N
-         FileDta%V2(I)%Val(1,1) = FileVals(I)
-      ENDDO
+    ! Copy data into array. Assume all data is temporal
+    ! dimension!
+    CALL FileData_ArrCheck2D( FileDta, 1, 1, N, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    DO I = 1, N
+       FileDta%V2(I)%Val(1,1) = FileVals(I)
+    ENDDO
 
-      ! Don't need to read data from file, hence adjust ncRead flag
-      FileDta%SpaceDim = 1
+    ! Don't need to read data from file, hence adjust ncRead flag
+    FileDta%SpaceDim = 1
 
-      ! Auto-detect delta t [in hours] between time slices.
-      ! Scale factors can be:
-      ! length 1 : constant
-      ! length 7 : weekday factors: Sun, Mon, ..., Sat
-      ! length 12: monthly factors: Jan, Feb, ..., Dec
-      ! length 24: hourly  factors: 12am, 1am, ... 11pm
-      IF ( N == 1 ) THEN
-         FileDta%DeltaT = 0
-      ELSEIF ( N == 7 ) THEN
-         FileDta%DeltaT = 24
-      ELSEIF ( N == 12 ) THEN
-         FileDta%DeltaT = 720 
-      ELSEIF ( N == 24 ) THEN
-         FileDta%DeltaT = 1 
-      ELSE
-         MSG = 'Factor must be of length 1, 7, 12, or 24!' // &
-                TRIM(FileDta%ncFile)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
-         RETURN 
-      ENDIF
+    ! Auto-detect delta t [in hours] between time slices.
+    ! Scale factors can be:
+    ! length 1 : constant
+    ! length 7 : weekday factors: Sun, Mon, ..., Sat
+    ! length 12: monthly factors: Jan, Feb, ..., Dec
+    ! length 24: hourly  factors: 12am, 1am, ... 11pm
+    IF ( N == 1 ) THEN
+       FileDta%DeltaT = 0
+    ELSEIF ( N == 7 ) THEN
+       FileDta%DeltaT = 24
+    ELSEIF ( N == 12 ) THEN
+       FileDta%DeltaT = 720 
+    ELSEIF ( N == 24 ) THEN
+       FileDta%DeltaT = 1 
+    ELSE
+       MSG = 'Factor must be of length 1, 7, 12, or 24!' // &
+              TRIM(FileDta%ncFile)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
+       RETURN 
+    ENDIF
 
-      ! Return w/ success
-      IsFirst = 1
-      RC      = HCO_SUCCESS 
+    ! Return w/ success
+    IsFirst = 1
+    RC      = HCO_SUCCESS 
 
-      END SUBROUTINE FileData_FileRead 
+  END SUBROUTINE FileData_FileRead
 !EOC
-      END MODULE HCO_FILEDATA_MOD
-!EOF
+END MODULE HCO_FILEDATA_MOD
