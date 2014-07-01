@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -14,23 +14,23 @@
 !
 ! !INTERFACE: 
 !
-      MODULE HCOX_GFED3_MOD
+MODULE HCOX_GFED3_MOD
 !
 ! !USES:
 ! 
-      USE HCO_ERROR_MOD
-      USE HCO_DIAGN_MOD
-      USE HCO_STATE_MOD,        ONLY : HCO_State
-      USE HCOX_State_MOD,       ONLY : Ext_State
+  USE HCO_ERROR_MOD
+  USE HCO_DIAGN_MOD
+  USE HCO_STATE_MOD,        ONLY : HCO_State
+  USE HCOX_State_MOD,       ONLY : Ext_State
 
-      IMPLICIT NONE
-      PRIVATE
+  IMPLICIT NONE
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: HCOX_GFED3_INIT
-      PUBLIC :: HCOX_GFED3_RUN
-      PUBLIC :: HCOX_GFED3_FINAL
+  PUBLIC :: HCOX_GFED3_INIT
+  PUBLIC :: HCOX_GFED3_RUN
+  PUBLIC :: HCOX_GFED3_FINAL
 !
 ! !REMARKS:
 !  Monthly emissions of DM are read from disk,
@@ -66,66 +66,65 @@
 !                              of removal of NOx-Ox partitioning
 !  15 Dec 2013 - C. Keller   - Now a HEMCO extension. Emissions in kg/m2/s,
 !                              emission factors in kg/kgDM.
+!  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !
-! !PRIVATE VARIABLES:
-!
-!
 ! !DEFINED PARAMETERS:
 !
-      !=================================================================
-      ! MODULE PARAMETERS
-      !
-      ! N_EMFAC : Number of emission factors per species
-      ! N_SPEC  : Max. number of species
-      !=================================================================
-      INTEGER,          PARAMETER   :: N_EMFAC = 6
-      INTEGER,          PARAMETER   :: N_SPEC  = 27
+  !=================================================================
+  ! MODULE PARAMETERS
+  !
+  ! N_EMFAC : Number of emission factors per species
+  ! N_SPEC  : Max. number of species
+  !=================================================================
+  INTEGER,           PARAMETER :: N_EMFAC = 6
+  INTEGER,           PARAMETER :: N_SPEC  = 27
 !
 ! !PRIVATE TYPES:
 !
-      !=================================================================
-      ! HEMCO VARIABLES 
-      !
-      ! ExtNr   : Extension number 
-      ! DoDay   : TRUE if dialy scale factors are used 
-      ! Do3Hr   : TRUE if 3-hourly scale factors are used 
-      !=================================================================
-      INTEGER                     :: ExtNr
-      LOGICAL                     :: DoDay
-      LOGICAL                     :: Do3Hr
+  !=================================================================
+  ! HEMCO VARIABLES 
+  !
+  ! ExtNr   : Extension number 
+  ! DoDay   : TRUE if dialy scale factors are used 
+  ! Do3Hr   : TRUE if 3-hourly scale factors are used 
+  !=================================================================
+  INTEGER                       :: ExtNr
+  LOGICAL                       :: DoDay
+  LOGICAL                       :: Do3Hr
 
-      !=================================================================
-      ! SPECIES VARIABLES 
-      !
-      ! nSpc     : Number of GFED3 species (specified in config. file)
-      ! SpcNames : Names of all used GFED3 species
-      ! HcoIDs   : HEMCO species IDs of all used GFED3 species 
-      ! gfedIDs  : Index of used GFED3 species in scale factor table 
-      !=================================================================
-      INTEGER                        :: nSpc
-      CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
-      INTEGER,           ALLOCATABLE :: HcoIDs(:)
-      INTEGER,           ALLOCATABLE :: GfedIDs(:)
+  !=================================================================
+  ! SPECIES VARIABLES 
+  !
+  ! nSpc     : Number of GFED3 species (specified in config. file)
+  ! SpcNames : Names of all used GFED3 species
+  ! HcoIDs   : HEMCO species IDs of all used GFED3 species 
+  ! gfedIDs  : Index of used GFED3 species in scale factor table 
+  !=================================================================
+  INTEGER                        :: nSpc
+  CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
+  INTEGER,           ALLOCATABLE :: HcoIDs(:)
+  INTEGER,           ALLOCATABLE :: GfedIDs(:)
 
-      !=================================================================
-      ! SCALE FACTORS 
-      !
-      ! GFED3_EMFAC: emission scale factors for each species and 
-      !              emission factor type. The filename of the emissions
-      !              emissions factor table is specified in the HEMCO
-      !              configuration file. All scale factors in kg/kgDM.
-      ! COScale    : CO scale factor to account for porduction from 
-      !              VOCs. Read from HEMCO configuration file.
-      !=================================================================
-      REAL(hp),          ALLOCATABLE :: GFED3_EMFAC(:,:)
-      REAL(sp)                       :: COScale
+  !=================================================================
+  ! SCALE FACTORS 
+  !
+  ! GFED3_EMFAC: emission scale factors for each species and 
+  !              emission factor type. The filename of the emissions
+  !              emissions factor table is specified in the HEMCO
+  !              configuration file. All scale factors in kg/kgDM.
+  ! COScale    : CO scale factor to account for porduction from 
+  !              VOCs. Read from HEMCO configuration file.
+  !=================================================================
+  REAL(hp),          ALLOCATABLE :: GFED3_EMFAC(:,:)
+  REAL(sp)                       :: COScale
 
-      CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -137,19 +136,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_GFED3_Run ( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HcoX_GFED3_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
-      USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
-      USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd
+    USE HCO_EMISLIST_MOD, ONLY : EmisList_GetDataArr
+    USE HCO_FLUXARR_MOD,  ONLY : HCO_EmisAdd
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
-      TYPE(HCO_State), POINTER        :: HcoState   ! Output obj
-      TYPE(Ext_State), POINTER        :: ExtState  ! Module options  
-      INTEGER,         INTENT(INOUT)  :: RC         ! Success or failure?
+    TYPE(HCO_State), POINTER        :: HcoState   ! Output obj
+    TYPE(Ext_State), POINTER        :: ExtState  ! Module options  
+    INTEGER,         INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  15 Dec 2013 - C. Keller   - Now a HEMCO extension 
@@ -159,172 +161,172 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL             :: IsCO 
-      INTEGER             :: N, M
-      REAL(hp), POINTER   :: GFED3_WDL(:,:) => NULL()
-      REAL(hp), POINTER   :: GFED3_SAV(:,:) => NULL()
-      REAL(hp), POINTER   :: GFED3_PET(:,:) => NULL()
-      REAL(hp), POINTER   :: GFED3_FOR(:,:) => NULL()
-      REAL(hp), POINTER   :: GFED3_AGW(:,:) => NULL()
-      REAL(hp), POINTER   :: GFED3_DEF(:,:) => NULL()
-      REAL(hp), POINTER   :: TMPPTR   (:,:) => NULL()
-      REAL(hp), POINTER   :: HUMTROP  (:,:) => NULL()
-      REAL(hp), POINTER   :: DAYSCAL  (:,:) => NULL()
-      REAL(hp), POINTER   :: HRSCAL   (:,:) => NULL()
-      REAL(hp), POINTER   :: Arr2D    (:,:) => NULL()
-      
-      REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
+    LOGICAL             :: IsCO 
+    INTEGER             :: N, M
+    REAL(hp), POINTER   :: GFED3_WDL(:,:) => NULL()
+    REAL(hp), POINTER   :: GFED3_SAV(:,:) => NULL()
+    REAL(hp), POINTER   :: GFED3_PET(:,:) => NULL()
+    REAL(hp), POINTER   :: GFED3_FOR(:,:) => NULL()
+    REAL(hp), POINTER   :: GFED3_AGW(:,:) => NULL()
+    REAL(hp), POINTER   :: GFED3_DEF(:,:) => NULL()
+    REAL(hp), POINTER   :: TMPPTR   (:,:) => NULL()
+    REAL(hp), POINTER   :: HUMTROP  (:,:) => NULL()
+    REAL(hp), POINTER   :: DAYSCAL  (:,:) => NULL()
+    REAL(hp), POINTER   :: HRSCAL   (:,:) => NULL()
+    REAL(hp), POINTER   :: Arr2D    (:,:) => NULL()
+
+    REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
    
-      !=================================================================
-      ! HcoX_GFED3_Run begins here!
-      !=================================================================
+    !=================================================================
+    ! HcoX_GFED3_Run begins here!
+    !=================================================================
 
-      ! Return if extension disabled 
-      IF ( .NOT. ExtState%GFED3 ) RETURN
+    ! Return if extension disabled 
+    IF ( .NOT. ExtState%GFED3 ) RETURN
 
-      ! Enter 
-      CALL HCO_ENTER ( 'HcoX_GFED3_Run (HcoX_GFED3_Mod.F90)', RC ) 
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Enter 
+    CALL HCO_ENTER ( 'HcoX_GFED3_Run (HcoX_GFED3_Mod.F90)', RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      !-----------------------------------------------------------------
-      ! Get pointers to data arrays 
-      !-----------------------------------------------------------------
+    !-----------------------------------------------------------------
+    ! Get pointers to data arrays 
+    !-----------------------------------------------------------------
 
-      CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_WDL', GFED3_WDL, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_SAV', GFED3_SAV, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_PET', GFED3_PET, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FOR', GFED3_FOR, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_AGW', GFED3_AGW, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_DEF', GFED3_DEF, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr ( am_I_Root, 'HUMTROP', HUMTROP, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-       
-      ! Also point to scale factors if needed
-      IF ( DoDay ) THEN
-         CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FRAC_DAY', &
-                                    DAYSCAL,   RC               )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-      ENDIF
-      IF ( Do3Hr ) THEN
-         CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FRAC_3HOUR', &
-                                    HRSCAL,    RC                 )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-      ENDIF
+    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_WDL', GFED3_WDL, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_SAV', GFED3_SAV, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_PET', GFED3_PET, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FOR', GFED3_FOR, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_AGW', GFED3_AGW, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_DEF', GFED3_DEF, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL EmisList_GetDataArr ( am_I_Root, 'HUMTROP', HUMTROP, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      !-----------------------------------------------------------------
-      ! Calculate emissions for defined species
-      !-----------------------------------------------------------------
+    ! Also point to scale factors if needed
+    IF ( DoDay ) THEN
+       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FRAC_DAY', &
+                                  DAYSCAL,   RC               )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+    IF ( Do3Hr ) THEN
+       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FRAC_3HOUR', &
+                                  HRSCAL,    RC                 )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 
-      DO N = 1, nSpc
+    !-----------------------------------------------------------------
+    ! Calculate emissions for defined species
+    !-----------------------------------------------------------------
 
-         ! Continue if species not defined
-         IF ( HcoIDs(N)  < 0 ) CYCLE
-         IF ( GfedIDs(N) < 0 ) CYCLE
+    DO N = 1, nSpc
 
-         ! SpcArr are the total biomass burning emissions for this
-         ! species. TypArr are the emissions from a given source type. 
-         SpcArr = 0.0_hp
+       ! Continue if species not defined
+       IF ( HcoIDs(N)  < 0 ) CYCLE
+       IF ( GfedIDs(N) < 0 ) CYCLE
 
-         ! Is this CO?
-         IF ( TRIM(SpcNames(N)) == "CO" ) THEN
-            IsCO = .TRUE.
-         ELSE
-            IsCO = .FALSE.
-         ENDIF
+       ! SpcArr are the total biomass burning emissions for this
+       ! species. TypArr are the emissions from a given source type. 
+       SpcArr = 0.0_hp
 
-         ! Calculate emissions for all source types
-         DO M = 1, N_EMFAC
+       ! Is this CO?
+       IF ( TRIM(SpcNames(N)) == "CO" ) THEN
+          IsCO = .TRUE.
+       ELSE
+          IsCO = .FALSE.
+       ENDIF
+
+       ! Calculate emissions for all source types
+       DO M = 1, N_EMFAC
          
-            ! Select emission factor array
-            IF ( M == 1 ) THEN
-               TMPPTR => GFED3_AGW
-            ELSEIF ( M == 2 ) THEN
-               TMPPTR => GFED3_DEF
-            ELSEIF ( M == 3 ) THEN
-               TMPPTR => GFED3_FOR
-            ELSEIF ( M == 4 ) THEN
-               TMPPTR => GFED3_PET
-            ELSEIF ( M == 5 ) THEN
-               TMPPTR => GFED3_SAV
-            ELSEIF ( M == 6 ) THEN
-               TMPPTR => GFED3_WDL
-            ELSE
-               CALL HCO_ERROR ( 'Undefined emission factor', RC )
-               RETURN
-            ENDIF
+          ! Select emission factor array
+          IF ( M == 1 ) THEN
+             TMPPTR => GFED3_AGW
+          ELSEIF ( M == 2 ) THEN
+             TMPPTR => GFED3_DEF
+          ELSEIF ( M == 3 ) THEN
+             TMPPTR => GFED3_FOR
+          ELSEIF ( M == 4 ) THEN
+             TMPPTR => GFED3_PET
+          ELSEIF ( M == 5 ) THEN
+             TMPPTR => GFED3_SAV
+          ELSEIF ( M == 6 ) THEN
+             TMPPTR => GFED3_WDL
+          ELSE
+             CALL HCO_ERROR ( 'Undefined emission factor', RC )
+             RETURN
+          ENDIF
 
-            ! Calculate emissions for this type. The emission factors 
-            ! per type are in kgDM/m2/s, and the GFED3_EMFAC scale factors
-            ! are in kg/kgDM (or kgC/kgDM for VOCs). This gives us TypArr
-            ! in kg/m2/s.
-            TypArr(:,:) = TmpPtr(:,:) * GFED3_EMFAC(GfedIDs(N),M)
+          ! Calculate emissions for this type. The emission factors 
+          ! per type are in kgDM/m2/s, and the GFED3_EMFAC scale factors
+          ! are in kg/kgDM (or kgC/kgDM for VOCs). This gives us TypArr
+          ! in kg/m2/s.
+          TypArr(:,:) = TmpPtr(:,:) * GFED3_EMFAC(GfedIDs(N),M)
 
-            ! Use woodland emission factors for 'deforestation' outside
-            ! humid tropical forest
-            IF ( M == 2 ) THEN
-               WHERE ( HUMTROP == 0.0_hp ) 
-                  TypArr = TmpPtr * GFED3_EMFAC(GfedIDs(N),6)
-               END WHERE 
-            ENDIF
+          ! Use woodland emission factors for 'deforestation' outside
+          ! humid tropical forest
+          IF ( M == 2 ) THEN
+             WHERE ( HUMTROP == 0.0_hp ) 
+                TypArr = TmpPtr * GFED3_EMFAC(GfedIDs(N),6)
+             END WHERE
+          ENDIF
 
-            ! Eventually add daily / 3-hourly scale factors. These scale
-            ! factors are unitless.
-            IF ( DoDay ) TypArr = TypArr * DAYSCAL
-            IF ( Do3Hr ) TypArr = TypArr * HRSCAL
+          ! Eventually add daily / 3-hourly scale factors. These scale
+          ! factors are unitless.
+          IF ( DoDay ) TypArr = TypArr * DAYSCAL
+          IF ( Do3Hr ) TypArr = TypArr * HRSCAL
 
-            ! For CO, multiply with CO scale factor
-            IF ( IsCo ) TypArr = TypArr * COScale        
+          ! For CO, multiply with CO scale factor
+          IF ( IsCo ) TypArr = TypArr * COScale        
 
-            ! TODO: Add to diagnostics here
+          ! TODO: Add to diagnostics here
 
-            ! Add to output array
-            SpcArr = SpcArr + TypArr
+          ! Add to output array
+          SpcArr = SpcArr + TypArr
 
-         ENDDO !M
+       ENDDO !M
 
-         ! Add flux to HEMCO emission array
-         CALL HCO_EmisAdd( HcoState, SpcArr, HcoIDs(N), RC ) 
-         IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Add flux to HEMCO emission array
+       CALL HCO_EmisAdd( HcoState, SpcArr, HcoIDs(N), RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => SpcArr
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                               Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
-                               AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN
-            Arr2D => NULL()
-         ENDIF         
-      ENDDO !N
+       ! Eventually update diagnostics
+       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+          Arr2D => SpcArr
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+                             Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
+                             AutoFill=1, Array2D=Arr2D, RC=RC   )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Arr2D => NULL()
+       ENDIF
+    ENDDO !N
 
-      ! Nullify pointers
-      TmpPtr    => NULL()
-      GFED3_WDL => NULL()
-      GFED3_SAV => NULL()
-      GFED3_PET => NULL()
-      GFED3_FOR => NULL()
-      GFED3_AGW => NULL()
-      GFED3_DEF => NULL()
-      HUMTROP   => NULL()
-      DAYSCAL   => NULL()
-      HRSCAL    => NULL()
-      Arr2D     => NULL()
+    ! Nullify pointers
+    TmpPtr    => NULL()
+    GFED3_WDL => NULL()
+    GFED3_SAV => NULL()
+    GFED3_PET => NULL()
+    GFED3_FOR => NULL()
+    GFED3_AGW => NULL()
+    GFED3_DEF => NULL()
+    HUMTROP   => NULL()
+    DAYSCAL   => NULL()
+    HRSCAL    => NULL()
+    Arr2D     => NULL()
 
-      ! Leave w/ success
-      CALL HCO_LEAVE ( RC )
+    ! Leave w/ success
+    CALL HCO_LEAVE ( RC )
 
-      END SUBROUTINE HcoX_GFED3_Run
+  END SUBROUTINE HcoX_GFED3_Run
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HcoX_GFED3_Init
@@ -335,23 +337,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_GFED3_Init ( am_I_Root, HcoState, ExtName, &
-                                   ExtState,  RC                  ) 
+  SUBROUTINE HcoX_GFED3_Init ( am_I_Root, HcoState, ExtName, &
+                               ExtState,  RC                  ) 
 !
 ! !USE:
 !
-      USE inquireMod,             ONLY : findfreeLUN
-      USE HCO_STATE_MOD,          ONLY : HCO_GetHcoID
-      USE HCOX_ExtList_Mod,       ONLY : GetExtNr
-      USE HCOX_ExtList_Mod,       ONLY : GetExtHcoID, GetExtOpt
+    USE inquireMod,             ONLY : findfreeLUN
+    USE HCO_STATE_MOD,          ONLY : HCO_GetHcoID
+    USE HCOX_ExtList_Mod,       ONLY : GetExtNr
+    USE HCOX_ExtList_Mod,       ONLY : GetExtHcoID, GetExtOpt
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN   )  :: am_I_Root         ! root CPU?
-      TYPE(HCO_State),  POINTER        :: HcoState          ! HEMCO state object 
-      CHARACTER(LEN=*), INTENT(IN   )  :: ExtName           ! Extension name
-      TYPE(Ext_State),  POINTER        :: ExtState            ! Options object
-      INTEGER,          INTENT(INOUT)  :: RC                ! Return status
+    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
+    CHARACTER(LEN=*), INTENT(IN   )  :: ExtName     ! Extension name
+    TYPE(Ext_State),  POINTER        :: ExtState    ! Options object
+!                                                   
+! !INPUT/OUTPUT PARAMETERS:                         
+!                                                   
+    TYPE(HCO_State),  POINTER        :: HcoState    ! HEMCO state object 
+    INTEGER,          INTENT(INOUT)  :: RC          ! Return status
 !
 ! !REVISION HISTORY:
 !  15 Dec 2013 - C. Keller - Initial version
@@ -359,174 +364,174 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES
+! !LOCAL VARIABLES:
 !
-      CHARACTER(LEN=255)             :: MSG, ScalFile
-      CHARACTER(LEN=255)             :: GFED3_SPEC_NAME(N_SPEC)
-      INTEGER                        :: tmpNr, AS, IU_FILE, IOS
-      INTEGER                        :: N, M, NDUM
-      CHARACTER(LEN=31)              :: tmpName
-      LOGICAL                        :: Matched
+    CHARACTER(LEN=255) :: MSG, ScalFile
+    CHARACTER(LEN=255) :: GFED3_SPEC_NAME(N_SPEC)
+    INTEGER            :: tmpNr, AS, IU_FILE, IOS
+    INTEGER            :: N, M, NDUM
+    CHARACTER(LEN=31)  :: tmpName
+    LOGICAL            :: Matched
 
-      !=================================================================
-      ! HcoX_GFED3_Init begins here!
-      !=================================================================
+    !=================================================================
+    ! HcoX_GFED3_Init begins here!
+    !=================================================================
 
-      ! Extension Nr.
-      ExtNr = GetExtNr( TRIM(ExtName) )
-      IF ( ExtNr <= 0 ) RETURN
+    ! Extension Nr.
+    ExtNr = GetExtNr( TRIM(ExtName) )
+    IF ( ExtNr <= 0 ) RETURN
+
+    ! Enter 
+    CALL HCO_ENTER ( 'HcoX_GFED3_Init (HcoX_GFED3_Mod.F90)', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! ---------------------------------------------------------------------- 
+    ! Get settings 
+    ! ---------------------------------------------------------------------- 
  
-      ! Enter 
-      CALL HCO_ENTER ( 'HcoX_GFED3_Init (HcoX_GFED3_Mod.F90)', RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Get CO scale factor 
+    CALL GetExtOpt ( ExtNr, 'CO scale factor', &
+                     OptValSp=COScale, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! ---------------------------------------------------------------------- 
-      ! Get settings 
-      ! ---------------------------------------------------------------------- 
+    ! Get scale factor table set in configuration file 
+    CALL GetExtOpt ( ExtNr, 'Scale factor table', &
+                     OptValChar=ScalFile, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Use daily scale factors?
+    tmpName = TRIM(ExtName) // "_monthly"
+    tmpNr   = GetExtNr( TRIM(tmpName) )
+    IF ( tmpNr > 0 ) THEN
+       DoDay = .TRUE.
+    ELSE
+       DoDay = .FALSE.
+    ENDIF
+
+    ! Use 3-hourly scale factors?
+    tmpName = TRIM(ExtName) // "_3hourly"
+    tmpNr   = GetExtNr( TRIM(tmpName) )
+    IF ( tmpNr > 0 ) THEN
+       Do3Hr = .TRUE.
+    ELSE
+       Do3Hr = .FALSE.
+    ENDIF
+
+    ! ---------------------------------------------------------------------- 
+    ! Read scale factors from table 
+    ! ---------------------------------------------------------------------- 
+
+    ! Allocate scale factors table
+    ALLOCATE ( GFED3_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( 'Cannot allocate GFED3_EMFAC', RC )
+       RETURN
+    ENDIF
+    GFED3_EMFAC = 0.0_hp
+
+    ! Find a free file LUN
+    IU_FILE = findFreeLUN()
+
+    ! Open emission factor file (ASCII format)
+    OPEN( IU_FILE, FILE=TRIM( ScalFile ), STATUS='OLD', IOSTAT=IOS )
+    IF ( IOS /= 0 ) THEN
+       MSG = 'Error 1 reading ' // TRIM(ScalFile)
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
+    ENDIF
+
+    ! Skip header lines
+    DO N = 1, 9
+       READ( IU_FILE, *, IOSTAT=IOS )
+       IF ( IOS /= 0 ) THEN
+          MSG = 'Error 2 reading ' // TRIM(ScalFile)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ENDIF
+    ENDDO
+
+    ! Read emission factors for each species.
+    DO N = 1, N_SPEC
+       READ( IU_FILE, 100, IOSTAT=IOS ) &
+            NDUM, GFED3_SPEC_NAME(N), ( GFED3_EMFAC(N,M), M=1,N_EMFAC )
+       IF ( IOS /= 0 ) THEN
+          MSG = 'Error 3 reading ' // TRIM(ScalFile)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ENDIF
+    ENDDO
+
+    ! FORMAT string
+100 FORMAT( 1x, i2, 1x, a4, 6(2x,es9.2) )
+
+    ! Close file
+    CLOSE( IU_FILE )      
+
+    ! ---------------------------------------------------------------------- 
+    ! Match specified species with GFED3 species
+    ! The species to be used are specified in the HEMCO configuration file.
+    ! Match these species with the ones found in the scale factors table.
+    ! ---------------------------------------------------------------------- 
+
+    ! Prompt to log file
+    MSG = 'Use GFED3 extension'
+    CALL HCO_MSG( MSG, SEP1='-' )
+    WRITE(MSG,*) '   - Use daily scale factors : ', DoDay 
+    CALL HCO_MSG( MSG )
+    WRITE(MSG,*) '   - Use hourly scale factors: ', Do3Hr
+    CALL HCO_MSG( MSG )
+    WRITE(MSG,*) '   - CO scale factor         : ', COScale
+    CALL HCO_MSG( MSG )
+
+    ! Get HEMCO species IDs of all species specified in configuration file
+    CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( nSpc == 0 ) THEN
+       MSG = 'No GFED3 species specified'
+       CALL HCO_ERROR ( MSG, RC ) 
+       RETURN
+    ENDIF
+
+    ! GfedIDs are the matching indeces of the HEMCO species in GFED3_EMFAC.
+    ALLOCATE ( GfedIDs(nSpc), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( 'Cannot allocate GfedIDs', RC )
+       RETURN
+    ENDIF
+    GfedIDs = -1
+
+    ! Find matching GFED3 index for each specified species
+    DO N = 1, nSpc
+       IF ( HcoIDs(N) < 0 ) CYCLE
+       Matched = .FALSE.
+       DO M = 1, N_SPEC 
+          IF ( TRIM(SpcNames(N)) == TRIM(GFED3_SPEC_NAME(M)) ) THEN
+             GfedIDs(N) = M
+             Matched    = .TRUE.
+
+             MSG = '   - Use GFED3 species ' // TRIM(SpcNames(N))
+             CALL HCO_MSG( MSG )
+             EXIT ! go to next species
+          ENDIF
+       ENDDO
+       IF ( .NOT. Matched ) THEN
+          MSG = 'Species '// TRIM(SpcNames(N)) //' not found in GFED3'
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ENDIF
+    ENDDO
+
+    ! Enable module
+    ExtState%GFED3 = .TRUE.
+
+    ! Return w/ success
+    CALL HCO_LEAVE ( RC ) 
  
-      ! Get CO scale factor 
-      CALL GetExtOpt ( ExtNr, 'CO scale factor', &
-                       OptValSp=COScale, RC=RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! Get scale factor table set in configuration file 
-      CALL GetExtOpt ( ExtNr, 'Scale factor table', &
-                       OptValChar=ScalFile, RC=RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! Use daily scale factors?
-      tmpName = TRIM(ExtName) // "_monthly"
-      tmpNr   = GetExtNr( TRIM(tmpName) )
-      IF ( tmpNr > 0 ) THEN
-         DoDay = .TRUE.
-      ELSE
-         DoDay = .FALSE.
-      ENDIF
-
-      ! Use 3-hourly scale factors?
-      tmpName = TRIM(ExtName) // "_3hourly"
-      tmpNr   = GetExtNr( TRIM(tmpName) )
-      IF ( tmpNr > 0 ) THEN
-         Do3Hr = .TRUE.
-      ELSE
-         Do3Hr = .FALSE.
-      ENDIF
-
-      ! ---------------------------------------------------------------------- 
-      ! Read scale factors from table 
-      ! ---------------------------------------------------------------------- 
-
-      ! Allocate scale factors table
-      ALLOCATE ( GFED3_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
-      IF ( AS/=0 ) THEN
-         CALL HCO_ERROR( 'Cannot allocate GFED3_EMFAC', RC )
-         RETURN
-      ENDIF
-      GFED3_EMFAC = 0.0_hp
-
-      ! Find a free file LUN
-      IU_FILE = findFreeLUN()
-
-      ! Open emission factor file (ASCII format)
-      OPEN( IU_FILE, FILE=TRIM( ScalFile ), STATUS='OLD', IOSTAT=IOS )
-      IF ( IOS /= 0 ) THEN
-         MSG = 'Error 1 reading ' // TRIM(ScalFile)
-         CALL HCO_ERROR( MSG, RC )
-         RETURN
-      ENDIF 
-
-      ! Skip header lines
-      DO N = 1, 9
-         READ( IU_FILE, *, IOSTAT=IOS )
-         IF ( IOS /= 0 ) THEN
-            MSG = 'Error 2 reading ' // TRIM(ScalFile)
-            CALL HCO_ERROR( MSG, RC )
-            RETURN
-         ENDIF 
-      ENDDO
-
-      ! Read emission factors for each species.
-      DO N = 1, N_SPEC
-         READ( IU_FILE, 100, IOSTAT=IOS ) &
-             NDUM, GFED3_SPEC_NAME(N), ( GFED3_EMFAC(N,M), M=1,N_EMFAC )
-         IF ( IOS /= 0 ) THEN
-            MSG = 'Error 3 reading ' // TRIM(ScalFile)
-            CALL HCO_ERROR( MSG, RC )
-            RETURN
-         ENDIF 
-      ENDDO
-
-      ! FORMAT string
- 100  FORMAT( 1x, i2, 1x, a4, 6(2x,es9.2) )
-
-      ! Close file
-      CLOSE( IU_FILE )      
-
-      ! ---------------------------------------------------------------------- 
-      ! Match specified species with GFED3 species
-      ! The species to be used are specified in the HEMCO configuration file.
-      ! Match these species with the ones found in the scale factors table.
-      ! ---------------------------------------------------------------------- 
-
-      ! Prompt to log file
-      MSG = 'Use GFED3 extension'
-      CALL HCO_MSG( MSG, SEP1='-' )
-      WRITE(MSG,*) '   - Use daily scale factors : ', DoDay 
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '   - Use hourly scale factors: ', Do3Hr
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '   - CO scale factor         : ', COScale
-      CALL HCO_MSG( MSG )
-
-      ! Get HEMCO species IDs of all species specified in configuration file
-      CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      IF ( nSpc == 0 ) THEN
-         MSG = 'No GFED3 species specified'
-         CALL HCO_ERROR ( MSG, RC ) 
-         RETURN
-      ENDIF
-
-      ! GfedIDs are the matching indeces of the HEMCO species in GFED3_EMFAC.
-      ALLOCATE ( GfedIDs(nSpc), STAT=AS )
-      IF ( AS/=0 ) THEN
-         CALL HCO_ERROR( 'Cannot allocate GfedIDs', RC )
-         RETURN
-      ENDIF
-      GfedIDs = -1
-
-      ! Find matching GFED3 index for each specified species
-      DO N = 1, nSpc
-         IF ( HcoIDs(N) < 0 ) CYCLE
-         Matched = .FALSE.
-         DO M = 1, N_SPEC 
-            IF ( TRIM(SpcNames(N)) == TRIM(GFED3_SPEC_NAME(M)) ) THEN
-               GfedIDs(N) = M
-               Matched    = .TRUE.
-
-               MSG = '   - Use GFED3 species ' // TRIM(SpcNames(N))
-               CALL HCO_MSG( MSG )
-               EXIT ! go to next species
-            ENDIF
-         ENDDO
-         IF ( .NOT. Matched ) THEN
-            MSG = 'Species '// TRIM(SpcNames(N)) //' not found in GFED3'
-            CALL HCO_ERROR( MSG, RC )
-            RETURN
-         ENDIF
-      ENDDO
-
-      ! Enable module
-      ExtState%GFED3 = .TRUE.
-
-      ! Return w/ success
-      CALL HCO_LEAVE ( RC ) 
- 
-      END SUBROUTINE HcoX_GFED3_Init
+  END SUBROUTINE HcoX_GFED3_Init
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HcoX_GFED3_Final 
@@ -537,7 +542,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_GFED3_Final
+  SUBROUTINE HcoX_GFED3_Final
 !
 ! !REVISION HISTORY:
 !  15 Dec 2013 - C. Keller - Initial version
@@ -545,17 +550,16 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-      !=================================================================
-      ! HcoX_GFED3_Final begins here!
-      !=================================================================
+    !=================================================================
+    ! HcoX_GFED3_Final begins here!
+    !=================================================================
 
-      ! Cleanup module arrays
-      IF ( ALLOCATED( GFED3_EMFAC ) ) DEALLOCATE( GFED3_EMFAC )
-      IF ( ALLOCATED( GfedIDs     ) ) DEALLOCATE( GfedIds     )
-      IF ( ALLOCATED( HcoIDs      ) ) DEALLOCATE( HcoIDs      )
-      IF ( ALLOCATED( SpcNames    ) ) DEALLOCATE( SpcNames    )
+    ! Cleanup module arrays
+    IF ( ALLOCATED( GFED3_EMFAC ) ) DEALLOCATE( GFED3_EMFAC )
+    IF ( ALLOCATED( GfedIDs     ) ) DEALLOCATE( GfedIds     )
+    IF ( ALLOCATED( HcoIDs      ) ) DEALLOCATE( HcoIDs      )
+    IF ( ALLOCATED( SpcNames    ) ) DEALLOCATE( SpcNames    )
 
-      END SUBROUTINE HcoX_GFED3_Final
+  END SUBROUTINE HcoX_GFED3_Final
 !EOC
-      END MODULE HCOX_GFED3_MOD
-!EOM
+END MODULE HCOX_GFED3_MOD
