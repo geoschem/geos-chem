@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -151,7 +151,7 @@ MODULE HCO_ARR_MOD
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -195,7 +195,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrInit_2D_HP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -239,7 +239,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrInit_2D_DF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -283,7 +283,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrInit_2D_I
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -327,7 +327,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrInit_3D_HP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -372,7 +372,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrInit_3D_DF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -428,7 +428,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrVecInit_2D_HP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -484,7 +484,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrVecInit_2D_DF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -541,7 +541,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrVecInit_3D_HP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -598,7 +598,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrVecInit_3D_DF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -652,7 +652,7 @@ CONTAINS
   END SUBROUTINE HCO_ValInit_2D_SP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -706,7 +706,7 @@ CONTAINS
   END SUBROUTINE HCO_ValInit_2D_DP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -760,7 +760,7 @@ CONTAINS
   END SUBROUTINE HCO_ValInit_2D_I
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -815,7 +815,7 @@ CONTAINS
   END SUBROUTINE HCO_ValInit_3D_DP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -870,7 +870,7 @@ CONTAINS
   END SUBROUTINE HCO_ValInit_3D_SP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -921,7 +921,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrAssert_3D_HP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -971,7 +971,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrAssert_3D_DF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1021,7 +1021,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrAssert_2D_HP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1071,7 +1071,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrAssert_2D_DF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1118,7 +1118,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrCleanup_2D_HP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1165,7 +1165,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrCleanup_2D_DF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1212,7 +1212,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrCleanup_2D_I
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1259,7 +1259,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrCleanup_3D_HP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1306,7 +1306,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrCleanup_3D_DF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1357,7 +1357,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrVecCleanup_2D_HP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1408,7 +1408,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrVecCleanup_2D_DF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1459,7 +1459,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrVecCleanup_3D_HP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1510,7 +1510,7 @@ CONTAINS
   END SUBROUTINE HCO_ArrVecCleanup_3D_DF
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1542,7 +1542,7 @@ CONTAINS
   END SUBROUTINE HCO_ValCleanup_2D_DP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1574,7 +1574,7 @@ CONTAINS
   END SUBROUTINE HCO_ValCleanup_2D_SP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1609,7 +1609,7 @@ CONTAINS
   END SUBROUTINE HCO_ValCleanup_2D_I
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1641,7 +1641,7 @@ CONTAINS
   END SUBROUTINE HCO_ValCleanup_3D_DP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !

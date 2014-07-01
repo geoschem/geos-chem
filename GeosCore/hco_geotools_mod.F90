@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !
 ! !MODULE: hco_geotools_mod 
@@ -42,7 +42,7 @@ MODULE HCO_GEOTOOLS_MOD
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -101,7 +101,7 @@ CONTAINS
   END FUNCTION HCO_LANDTYPE_SP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !

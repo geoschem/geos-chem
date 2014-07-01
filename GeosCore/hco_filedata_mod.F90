@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -237,7 +237,7 @@ CONTAINS
   END SUBROUTINE FileData_Cleanup
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -303,7 +303,7 @@ CONTAINS
   END SUBROUTINE FileData_ArrCheck2D
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -374,7 +374,7 @@ CONTAINS
   END SUBROUTINE FileData_ArrCheck3D
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -425,7 +425,7 @@ CONTAINS
   END FUNCTION FileData_ArrIsDefined
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !

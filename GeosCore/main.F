@@ -606,6 +606,11 @@
       IF ( LEMIS ) THEN
          CALL HCOI_GC_INIT( am_I_Root, Input_Opt,
      &                      State_Chm, State_Met, RC )
+
+         ! Stop the run if the HEMCO init sequence dies w/ an error
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP( 'Error in HCOI_GC_INIT!', 'main.F' )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -1126,17 +1131,16 @@
             !             ***** E M I S S I O N S *****
             !===========================================================
             IF ( LEMIS ) THEN
-!---------------------------------------------------------------------------
-! Prior to 6/25/14:
-! NOTE: This is the old call to the old emissions module (bmy, 6/25/14)
-!               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
-!     &                            State_Met, State_Chm, RC )
-!---------------------------------------------------------------------------
 
                ! HEMCO driver.  NOTE, we will have to make sure that
                ! the specialty simulations work with HEMCO (bmy, 6/25/14)
                CALL HCOI_GC_RUN( am_I_Root, Input_Opt, 
      &                           State_Met, State_Chm, RC )
+
+               ! Stop the run if the HEMCO run sequence dies w/ an error
+               IF ( RC /= GIGC_SUCCESS ) THEN
+                  CALL ERROR_STOP( 'Error in HCOI_GC_RUN!', 'main.F' )
+               ENDIF
             ENDIF
 
             IF ( ITS_TIME_FOR_UNIT() )
