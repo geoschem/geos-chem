@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: HcoX_seaflux_mod
+! !MODULE: hcox_seaflux_mod
 !
 ! !DESCRIPTION: Module HCOX\_SEAFLUX\_MOD contains routines to calculate
 ! the oceanic emissions of a number of defined species.
@@ -53,59 +53,61 @@
 !\\
 ! !INTERFACE: 
 !
-      MODULE HCOX_SEAFLUX_MOD
+MODULE HCOX_SEAFLUX_MOD
 !
 ! !USES:
 ! 
-      USE HCO_ERROR_MOD
-      USE HCO_DIAGN_MOD
-      USE HCO_STATE_MOD,        ONLY : HCO_State
-      USE HCOX_State_MOD,       ONLY : Ext_State
+  USE HCO_ERROR_MOD
+  USE HCO_DIAGN_MOD
+  USE HCO_STATE_MOD,  ONLY : HCO_State
+  USE HCOX_State_MOD, ONLY : Ext_State
 
-      IMPLICIT NONE
-      PRIVATE
+  IMPLICIT NONE
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: HcoX_SeaFlux_Init
-      PUBLIC :: HcoX_SeaFlux_Run
-      PUBLIC :: HcoX_SeaFlux_Final
+  PUBLIC  :: HcoX_SeaFlux_Init
+  PUBLIC  :: HcoX_SeaFlux_Run
+  PUBLIC  :: HcoX_SeaFlux_Final
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: Calc_SeaFlux
+  PRIVATE :: Calc_SeaFlux
 !
 ! !REVISION HISTORY:
-!  16 Apr 2013 - C. Keller - Initial version
-!  01 Oct 2013 - C. Keller - Now a HEMCO extension module 
-!  11 Dec 2013 - C. Keller - Now define container name during initialization
+!  16 Apr 2013 - C. Keller   - Initial version
+!  01 Oct 2013 - C. Keller   - Now a HEMCO extension module 
+!  11 Dec 2013 - C. Keller   - Now define container name during initialization
+!  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !
-! !PRIVATE VARIABLES:
+! !PRIVATE TYPES:
 !
-      ! Ocean species
-      TYPE :: OcSpec
-         INTEGER            :: HcoID        ! HEMCO species ID
-         CHARACTER(LEN=31)  :: OcSpcName    ! oc. species name
-         CHARACTER(LEN=31)  :: OcDataName   ! seawater conc. field name
-         REAL*8             :: LiqVol       ! liq. molecular volume
-         INTEGER            :: SCWPAR       ! Schmidt # parameterization type
-      ENDTYPE
+  ! Ocean species
+  TYPE :: OcSpec
+     INTEGER            :: HcoID        ! HEMCO species ID
+     CHARACTER(LEN=31)  :: OcSpcName    ! oc. species name
+     CHARACTER(LEN=31)  :: OcDataName   ! seawater conc. field name
+     REAL*8             :: LiqVol       ! liq. molecular volume
+     INTEGER            :: SCWPAR       ! Schmidt # parameterization type
+  END TYPE OcSpec
 
-      ! Variables carrying information about ocean species 
-      INTEGER                     :: ExtNr
-      INTEGER                     :: nOcSpc            ! # of ocean species
-      TYPE(OcSpec), POINTER       :: OcSpecs(:)
+  ! Variables carrying information about ocean species 
+  INTEGER                     :: ExtNr
+  INTEGER                     :: nOcSpc            ! # of ocean species
+  TYPE(OcSpec), POINTER       :: OcSpecs(:)
 
-      CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_SEAFLUX_Run 
+! !IROUTINE: hcox_seaflux_run 
 !
 ! !DESCRIPTION: Subroutine HcoX\_SeaFlux_Run is the run routine to 
 ! calculate oceanic emissions for the current time step.
@@ -113,20 +115,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_SeaFlux_Run ( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HcoX_SeaFlux_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
-      USE HCO_FLUXARR_MOD,      ONLY : HCO_EmisAdd
-      USE HCO_FLUXARR_MOD,      ONLY : HCO_DepvAdd
-      USE HCO_EMISLIST_MOD,     ONLY : EmisList_GetDataArr 
+    USE HCO_FLUXARR_MOD,  ONLY : HCO_EmisAdd
+    USE HCO_FLUXARR_MOD,  ONLY : HCO_DepvAdd
+    USE HCO_EMISLIST_MOD, ONLY : EmisList_GetDataArr 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
+    TYPE(HCO_State), POINTER        :: HcoState   ! Output obj
+    TYPE(Ext_State), POINTER        :: ExtState  ! Module options  
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
-      TYPE(HCO_State), POINTER        :: HcoState   ! Output obj
-      TYPE(Ext_State), POINTER        :: ExtState  ! Module options  
-      INTEGER,         INTENT(INOUT)  :: RC         ! Success or failure?
+    INTEGER,         INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  16 Apr 2013 - C. Keller - Initial version
@@ -136,99 +141,98 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Routine variables
-      INTEGER                 :: OcID, HcoID
-      REAL(hp), TARGET        :: SOURCE(HcoState%NX,HcoState%NY) 
-      REAL(hp), TARGET        :: SINK  (HcoState%NX,HcoState%NY)
-      REAL(hp), POINTER       :: Arr2D(:,:)   => NULL() 
-      REAL(hp), POINTER       :: SeaConc(:,:) => NULL()
-      CHARACTER(LEN=255)      :: ContName
-      CHARACTER(LEN=255)      :: MSG
-      LOGICAL                 :: VERBOSE
+    INTEGER                 :: OcID, HcoID
+    REAL(hp), TARGET        :: SOURCE(HcoState%NX,HcoState%NY) 
+    REAL(hp), TARGET        :: SINK  (HcoState%NX,HcoState%NY)
+    REAL(hp), POINTER       :: Arr2D(:,:)   => NULL() 
+    REAL(hp), POINTER       :: SeaConc(:,:) => NULL()
+    CHARACTER(LEN=255)      :: ContName
+    CHARACTER(LEN=255)      :: MSG
+    LOGICAL                 :: VERBOSE
 
-      !=================================================================
-      ! HcoX_SeaFlux_Run begins here!
-      !=================================================================
+    !=================================================================
+    ! HcoX_SeaFlux_Run begins here!
+    !=================================================================
 
-      ! Enter
-      CALL HCO_ENTER( 'HcoX_SeaFlux_Run (HcoX_SeaFlux_Mod.F90)', RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Enter
+    CALL HCO_ENTER( 'HcoX_SeaFlux_Run (HcoX_SeaFlux_Mod.F90)', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Return if extension disabled 
-      IF ( .NOT. ExtState%SeaFlux ) RETURN
+    ! Return if extension disabled 
+    IF ( .NOT. ExtState%SeaFlux ) RETURN
 
-      ! Verbose?
-      VERBOSE = am_I_Root .AND. HCO_VERBOSE_CHECK() 
+    ! Verbose?
+    VERBOSE = am_I_Root .AND. HCO_VERBOSE_CHECK() 
 
-      ! ---------------------------------------------------------------
-      ! Calculate emissions
-      ! ---------------------------------------------------------------
+    ! ---------------------------------------------------------------
+    ! Calculate emissions
+    ! ---------------------------------------------------------------
 
-      ! Loop over all model species 
-      DO OcID = 1, nOcSpc
+    ! Loop over all model species 
+    DO OcID = 1, nOcSpc
 
-         ! Get HEMCO species ID 
-         HcoID = OcSpecs(OcID)%HcoID
+       ! Get HEMCO species ID 
+       HcoID = OcSpecs(OcID)%HcoID
 
-         ! Skip this species if it has no corresponding HEMCO and/or
-         ! model species 
-         IF ( HcoID                         < 0 ) CYCLE
-         IF ( HcoState%Spc(HcoID)%ModID < 0 ) CYCLE
+       ! Skip this species if it has no corresponding HEMCO and/or
+       ! model species 
+       IF ( HcoID                         < 0 ) CYCLE
+       IF ( HcoState%Spc(HcoID)%ModID < 0 ) CYCLE
 
-         IF ( verbose ) THEN
-            WRITE(MSG,'(A40,I5)') & 
+       IF ( verbose ) THEN
+          WRITE(MSG,'(A40,I5)') & 
                'Calculate air-sea flux for HEMCO species', HcoID
-            CALL HCO_MSG(MSG)
-            WRITE(MSG,*) 'Module species name: ', &
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Module species name: ', &
                         TRIM(OcSpecs(OcID)%OcSpcName)
-            CALL HCO_MSG(MSG)
-         ENDIF
+          CALL HCO_MSG(MSG)
+       ENDIF
 
-         ! Get seawater concentration of given compound (from HEMCO core).
-         ContName = TRIM(OcSpecs(OcID)%OcDataName)
-         CALL EmisList_GetDataArr ( am_I_Root, ContName, SeaConc, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Get seawater concentration of given compound (from HEMCO core).
+       ContName = TRIM(OcSpecs(OcID)%OcDataName)
+       CALL EmisList_GetDataArr ( am_I_Root, ContName, SeaConc, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-         ! Calculate oceanic source (kg/m2/s) as well as the deposition 
-         ! velocity (m/s).
-         CALL Calc_SeaFlux ( am_I_Root, HcoState, ExtState, &
-                             SOURCE,    SINK,     SeaConc,   &
-                             OcID,      HcoID,    RC          )
-         IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Calculate oceanic source (kg/m2/s) as well as the deposition 
+       ! velocity (m/s).
+       CALL Calc_SeaFlux ( am_I_Root, HcoState, ExtState, &
+                           SOURCE,    SINK,     SeaConc,   &
+                           OcID,      HcoID,    RC          )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-         ! Set flux in HEMCO object [kg/m2/s]
-         CALL HCO_EmisAdd ( HcoState, SOURCE, HcoID, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Set flux in HEMCO object [kg/m2/s]
+       CALL HCO_EmisAdd ( HcoState, SOURCE, HcoID, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
       
-         ! Set deposition velocity in HEMCO object [m/s]
-         CALL HCO_DepvAdd ( HcoState, SINK, HcoID, RC )  
-         IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Set deposition velocity in HEMCO object [m/s]
+       CALL HCO_DepvAdd ( HcoState, SINK, HcoID, RC )  
+       IF ( RC /= HCO_SUCCESS ) RETURN
       
-         ! Free pointers
-         SeaConc => NULL()
+       ! Free pointers
+       SeaConc => NULL()
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => SOURCE 
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                               Cat=-1, Hier=-1, HcoID=HcoID,     &
-                               AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
-         ENDIF
+       ! Eventually update diagnostics
+       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+          Arr2D => SOURCE 
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+                             Cat=-1, Hier=-1, HcoID=HcoID,     &
+                             AutoFill=1, Array2D=Arr2D, RC=RC   )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+          Arr2D => NULL() 
+       ENDIF
 
-         ! TODO: update depostion diagnostics
+       ! TODO: update depostion diagnostics
  
-      ENDDO !SpcID
+    ENDDO !SpcID
 
-      ! Leave w/ success
-      CALL HCO_LEAVE ( RC ) 
+    ! Leave w/ success
+    CALL HCO_LEAVE ( RC ) 
 
-      END SUBROUTINE HcoX_SeaFlux_Run
+  END SUBROUTINE HcoX_SeaFlux_Run
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: calc_seaflux
@@ -250,29 +254,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_SEAFLUX ( am_I_Root, HcoState, ExtState, & 
-                                SOURCE,    SINK,     SeaConc,   &
-                                OcID,      HcoID,    RC          )
+  SUBROUTINE CALC_SEAFLUX( am_I_Root, HcoState, ExtState, & 
+                           SOURCE,    SINK,     SeaConc,   &
+                           OcID,      HcoID,    RC          )
 !
 ! !USES:
 ! 
-      USE OCEAN_TOOLBOX_MOD,  ONLY : CALC_KG
-      USE HENRY_MOD,          ONLY : CALC_KH, CALC_HEFF
+    USE OCEAN_TOOLBOX_MOD,  ONLY : CALC_KG
+    USE HENRY_MOD,          ONLY : CALC_KH, CALC_HEFF
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   ) :: am_I_Root           ! root CPU?
+    INTEGER,         INTENT(IN   ) :: OcID                ! ocean species ID 
+    INTEGER,         INTENT(IN   ) :: HcoID               ! HEMCO species ID
+    TYPE(HCO_State), POINTER       :: HcoState            ! Output obj
+    TYPE(Ext_State), POINTER       :: ExtState     
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(hp),        INTENT(  OUT) :: SOURCE(HcoState%NX,HcoState%NY ) 
+    REAL(hp),        INTENT(  OUT) :: SINK  (HcoState%NX,HcoState%NY )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      LOGICAL,         INTENT(IN   )  :: am_I_Root           ! root CPU?
-      TYPE(HCO_State), POINTER        :: HcoState            ! Output obj
-      TYPE(Ext_State), POINTER        :: ExtState     
-      REAL(hp),        INTENT(  OUT)  :: SOURCE(HcoState%NX, &
-                                                HcoState%NY ) 
-      REAL(hp),        INTENT(  OUT)  :: SINK  (HcoState%NX, &
-                                                HcoState%NY )
-      REAL(hp),        INTENT(INOUT)  :: SeaConc(HcoState%NX, &
-                                                 HcoState%NY )
-      INTEGER,         INTENT(IN   )  :: OcID                ! ocean species ID 
-      INTEGER,         INTENT(IN   )  :: HcoID               ! HEMCO species ID
-      INTEGER,         INTENT(INOUT)  :: RC                  ! Error stat 
+    REAL(hp),        INTENT(INOUT) :: SeaConc(HcoState%NX,HcoState%NY )
+    INTEGER,         INTENT(INOUT) :: RC                 ! Error stat 
+
 !
 ! !REVISION HISTORY: 
 !  16 Apr 2013 - C. Keller - Initial version
@@ -282,39 +290,38 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Routine variables
-      INTEGER                :: I, J, L
-      REAL*8                 :: IJSRC, IJSINK
-      INTEGER                :: SCW
-      REAL*8                 :: P, V, S, VB, MW, KG
-      REAL*8                 :: K0, CR, PKA
-      REAL*8                 :: KH, HEFF, PH
-      REAL*8                 :: TK, TC
+    INTEGER                :: I, J, L
+    REAL*8                 :: IJSRC, IJSINK
+    INTEGER                :: SCW
+    REAL*8                 :: P, V, S, VB, MW, KG
+    REAL*8                 :: K0, CR, PKA
+    REAL*8                 :: KH, HEFF, PH
+    REAL*8                 :: TK, TC
 
-      ! Error handling
-      CHARACTER(LEN=255)     :: MSG
+    ! Error handling
+    CHARACTER(LEN=255)     :: MSG
 
-      !=================================================================
-      ! CALC_SEAFLUX begins here!
-      !=================================================================
+    !=================================================================
+    ! CALC_SEAFLUX begins here!
+    !=================================================================
 
-      ! Enter
-      CALL HCO_ENTER ( 'CALC_SEAFLUX (HcoX_SeaFlux_Mod.F90)', RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Enter
+    CALL HCO_ENTER ( 'CALC_SEAFLUX (HcoX_SeaFlux_Mod.F90)', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Init
-      SOURCE(:,:) = 0d0
-      SINK  (:,:) = 0d0
+    ! Init
+    SOURCE(:,:) = 0d0
+    SINK  (:,:) = 0d0
 
-      ! Extract Henry coefficients
-      K0  = HcoState%Spc(HcoID)%HenryK0
-      CR  = HcoState%Spc(HcoID)%HenryCR
-      PKA = HcoState%Spc(HcoID)%HenryPKA
+    ! Extract Henry coefficients
+    K0  = HcoState%Spc(HcoID)%HenryK0
+    CR  = HcoState%Spc(HcoID)%HenryCR
+    PKA = HcoState%Spc(HcoID)%HenryPKA
 
-      ! Model surface layer
-      L = 1
+    ! Model surface layer
+    L = 1
 
-      ! Loop over all grid boxes. Only emit into lowest layer
+    ! Loop over all grid boxes. Only emit into lowest layer
 
 !$OMP PARALLEL DO                                                   &
 !$OMP DEFAULT( SHARED )                                             &
@@ -324,130 +331,130 @@
 !$OMP PRIVATE( KG,          IJSRC                                 ) &
 !$OMP SCHEDULE( DYNAMIC )
 
-      DO J = 1, HcoState%NY
-      DO I = 1, HcoState%NX
+    DO J = 1, HcoState%NY
+    DO I = 1, HcoState%NX
       
-         ! Make sure we have no negative seawater concentrations 
-         IF ( SeaConc(I,J) < 0d0 ) SeaConc(I,J) = 0d0
+       ! Make sure we have no negative seawater concentrations 
+       IF ( SeaConc(I,J) < 0d0 ) SeaConc(I,J) = 0d0
 
-         ! Do only over the ocean, i.e. if land fraction is less
-         ! than 0.8
-         IF ( ExtState%FRCLND%Arr%Val(I,J) < 0.8 ) THEN
+       ! Do only over the ocean, i.e. if land fraction is less
+       ! than 0.8
+       IF ( ExtState%FRCLND%Arr%Val(I,J) < 0.8 ) THEN
 
-            !-----------------------------------------------------------
-            ! Get grid box and species specific quantities
-            !-----------------------------------------------------------
+          !-----------------------------------------------------------
+          ! Get grid box and species specific quantities
+          !-----------------------------------------------------------
 
-            ! pH of sea water. For the moment, set to 8
-            PH = 8d0
+          ! pH of sea water. For the moment, set to 8
+          PH = 8d0
  
-            ! surface air temp in K and C
-            TK = ExtState%TSURFK%Arr%Val(I,J) 
-            TC = TK - 273.15d0
+          ! surface air temp in K and C
+          TK = ExtState%TSURFK%Arr%Val(I,J) 
+          TC = TK - 273.15d0
  
-            ! surface pressure [Pa]
-            P = ExtState%PSURF%Arr%Val(I,J) * 100d0
+          ! surface pressure [Pa]
+          P = ExtState%PSURF%Arr%Val(I,J) * 100d0
 
-            ! molecular weight [g/mol]
-            MW = HcoState%Spc(HcoID)%MW_g
+          ! molecular weight [g/mol]
+          MW = HcoState%Spc(HcoID)%MW_g
 
-            ! Liquid molar volume at boiling point [cm3/mol]
-            VB = OcSpecs(OcID)%LiqVol
+          ! Liquid molar volume at boiling point [cm3/mol]
+          VB = OcSpecs(OcID)%LiqVol
 
-            ! Salinity [ppt]
-            ! Set to constant value for now!
-            S = 35d0 
+          ! Salinity [ppt]
+          ! Set to constant value for now!
+          S = 35d0 
 
-            ! 10-m wind speed [m/s] 
-            V = ExtState%U10M%Arr%Val(I,J)**2 + &
-                ExtState%V10M%Arr%Val(I,J)**2
-            V = SQRT(V)
+          ! 10-m wind speed [m/s] 
+          V = ExtState%U10M%Arr%Val(I,J)**2 + &
+              ExtState%V10M%Arr%Val(I,J)**2
+          V = SQRT(V)
 
-            ! Henry gas over liquid dimensionless constant and 
-            ! effective Henry constant [both unitless].
-            CALL CALC_KH ( K0, CR, TK, KH, RC )  ! liquid over gas
-            ! Exit here if error. Use error flags from henry_mod.F!
-            IF ( RC /= 0 ) THEN
-               RC  = HCO_FAIL
-               MSG = 'Cannot calculate KH'
-               EXIT
-            ENDIF
-            CALL CALC_HEFF ( PKA, PH, KH, HEFF, RC )  ! liquid over gas 
-            ! Exit here if error. Use error flags from henry_mod.F!
-            IF ( RC /= 0 ) THEN
-               RC  = HCO_FAIL
-               MSG = 'Cannot calculate HEFF'
-               EXIT
-            ENDIF
+          ! Henry gas over liquid dimensionless constant and 
+          ! effective Henry constant [both unitless].
+          CALL CALC_KH ( K0, CR, TK, KH, RC )  ! liquid over gas
+          ! Exit here if error. Use error flags from henry_mod.F!
+          IF ( RC /= 0 ) THEN
+             RC  = HCO_FAIL
+             MSG = 'Cannot calculate KH'
+             EXIT
+          ENDIF
+          CALL CALC_HEFF ( PKA, PH, KH, HEFF, RC )  ! liquid over gas 
+          ! Exit here if error. Use error flags from henry_mod.F!
+          IF ( RC /= 0 ) THEN
+             RC  = HCO_FAIL
+             MSG = 'Cannot calculate HEFF'
+             EXIT
+          ENDIF
 
-            ! Gas over liquid
-            KH   = 1d0 / KH
-            HEFF = 1d0 / HEFF
+          ! Gas over liquid
+          KH   = 1d0 / KH
+          HEFF = 1d0 / HEFF
 
-            ! Get parameterization type for Schmidt number in water 
-            SCW = OcSpecs(OcID)%SCWPAR
+          ! Get parameterization type for Schmidt number in water 
+          SCW = OcSpecs(OcID)%SCWPAR
 
-            !-----------------------------------------------------------
-            ! Calculate exchange velocity KG in [m s-1]
-            !-----------------------------------------------------------
+          !-----------------------------------------------------------
+          ! Calculate exchange velocity KG in [m s-1]
+          !-----------------------------------------------------------
 
-            ! Assume no air-sea exchange over snow/ice (ALBEDO > 0.4)
-            IF ( ExtState%ALBD%Arr%Val(I,J) > 0.4d0 ) THEN
-               KG = 0d0
+          ! Assume no air-sea exchange over snow/ice (ALBEDO > 0.4)
+          IF ( ExtState%ALBD%Arr%Val(I,J) > 0.4d0 ) THEN
+             KG = 0d0
 
-            ! Get exchange velocity KG (m/s) following Johnson, 2010.
-            ! Kg is defined as 1 / (1/k_air + H/k_water). Note that Kg 
-            ! is denoted Ka in Johnson, 2010!
-            ! Use effective Henry constant here to account for
-            ! hydrolysis!
-            ELSE
-               CALL CALC_KG( TC, P, V, S, HEFF, VB, MW, SCW, KG )
-            ENDIF
+          ! Get exchange velocity KG (m/s) following Johnson, 2010.
+          ! Kg is defined as 1 / (1/k_air + H/k_water). Note that Kg 
+          ! is denoted Ka in Johnson, 2010!
+          ! Use effective Henry constant here to account for
+          ! hydrolysis!
+          ELSE
+             CALL CALC_KG( TC, P, V, S, HEFF, VB, MW, SCW, KG )
+          ENDIF
 
-            !-----------------------------------------------------------
-            ! Calculate flux from the ocean (kg m-2 s-1):
-            !-----------------------------------------------------------
+          !-----------------------------------------------------------
+          ! Calculate flux from the ocean (kg m-2 s-1):
+          !-----------------------------------------------------------
 
-            ! Fwa = KG * Cwater * H (Liss and Slater, 1974) 
-            ! Oceanic concentration is im [kg m-3], H is 
-            ! dimensionless, and KG is [m s-1], so IJSRC is 
-            ! [kg m-2 s-1]. 
-            ! OcArr already accounts for pH effects, so apply the
-            ! 'regular' Henry constant H here.
-            IJSRC = KG * KH * SeaConc(I,J)
+          ! Fwa = KG * Cwater * H (Liss and Slater, 1974) 
+          ! Oceanic concentration is im [kg m-3], H is 
+          ! dimensionless, and KG is [m s-1], so IJSRC is 
+          ! [kg m-2 s-1]. 
+          ! OcArr already accounts for pH effects, so apply the
+          ! 'regular' Henry constant H here.
+          IJSRC = KG * KH * SeaConc(I,J)
 
-            ! Pass to flux array
-            SOURCE(I,J) = IJSRC
+          ! Pass to flux array
+          SOURCE(I,J) = IJSRC
 
-            !-----------------------------------------------------------
-            ! Calculate deposition velocity to the ocean (m s-1):
-            !-----------------------------------------------------------
+          !-----------------------------------------------------------
+          ! Calculate deposition velocity to the ocean (m s-1):
+          !-----------------------------------------------------------
 
-            ! Pass to deposition array
-            SINK(I,J) = KG 
+          ! Pass to deposition array
+          SINK(I,J) = KG 
 
-         ENDIF !Over ocean
-      ENDDO !I
-      ENDDO !J
+       ENDIF !Over ocean
+    ENDDO !I
+    ENDDO !J
 !$OMP END PARALLEL DO
 
-      ! Check exit status
-      IF ( RC /= HCO_SUCCESS ) THEN
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF
+    ! Check exit status
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
 
-      ! Leave w/ success
-      CALL HCO_LEAVE ( RC ) 
+    ! Leave w/ success
+    CALL HCO_LEAVE ( RC ) 
 
-      END SUBROUTINE CALC_SEAFLUX
+  END SUBROUTINE CALC_SEAFLUX
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_SeaFlux_Init
+! !IROUTINE: hcox_seaflux_init
 !
 ! !DESCRIPTION: Subroutine HcoX\_SeaFlux\_Init initializes all module
 ! variables, including all species - specific parameter such as 
@@ -502,20 +509,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_SeaFlux_Init ( am_I_Root, HcoState, ExtName, &
-                                     ExtState,    RC                  )
+  SUBROUTINE HcoX_SeaFlux_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
-      USE HCOX_ExtList_Mod,       ONLY : GetExtNr, GetExtHcoID
+    USE HCOX_ExtList_Mod,       ONLY : GetExtNr, GetExtHcoID
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root    ! root CPU?
+    TYPE(HCO_State),  POINTER        :: HcoState     ! Hemco State obj.
+    CHARACTER(LEN=*), INTENT(IN   )  :: ExtName      ! Extension name
+    TYPE(Ext_State),  POINTER        :: ExtState       ! Ext. obj.
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN   )  :: am_I_Root    ! root CPU?
-      TYPE(HCO_State),  POINTER        :: HcoState     ! Hemco State obj.
-      CHARACTER(LEN=*), INTENT(IN   )  :: ExtName      ! Extension name
-      TYPE(Ext_State),  POINTER        :: ExtState       ! Ext. obj.
-      INTEGER,          INTENT(INOUT)  :: RC           ! Return status
+    INTEGER,          INTENT(INOUT)  :: RC           ! Return status
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller - Initial version
@@ -525,155 +534,155 @@
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER                        :: I, J, nSpc
-      INTEGER, ALLOCATABLE           :: HcoIDs(:)
-      CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
-      CHARACTER(LEN=255)             :: NAME_OC, MSG
+    INTEGER                        :: I, J, nSpc
+    INTEGER, ALLOCATABLE           :: HcoIDs(:)
+    CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
+    CHARACTER(LEN=255)             :: NAME_OC, MSG
 
-      !=================================================================
-      ! HcoX_SeaFlux_Init begins here!
-      !=================================================================
+    !=================================================================
+    ! HcoX_SeaFlux_Init begins here!
+    !=================================================================
 
-      ! Extension Nr.
-      ExtNr = GetExtNr( TRIM(ExtName) )
-      IF ( ExtNr <= 0 ) RETURN
+    ! Extension Nr.
+    ExtNr = GetExtNr( TRIM(ExtName) )
+    IF ( ExtNr <= 0 ) RETURN
  
-      ! Enter 
-      CALL HCO_ENTER (  'HcoX_SeaFlux_Init (HcoX_SeaFlux_Mod.F90)', RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      MSG = 'nOcSpc too low!'
+    ! Enter 
+    CALL HCO_ENTER (  'HcoX_SeaFlux_Init (HcoX_SeaFlux_Mod.F90)', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    MSG = 'nOcSpc too low!'
 
-      ! Verbose mode
-      MSG = 'Use air-sea flux emissions (extension module)'
-      CALL HCO_MSG( MSG,SEP1='-' )
-      MSG = '   - Use species:'
-      CALL HCO_MSG( MSG )
+    ! Verbose mode
+    MSG = 'Use air-sea flux emissions (extension module)'
+    CALL HCO_MSG( MSG,SEP1='-' )
+    MSG = '   - Use species:'
+    CALL HCO_MSG( MSG )
 
-      ! ---------------------------------------------------------------------- 
-      ! Get species IDs and settings 
-      ! ---------------------------------------------------------------------- 
+    ! ---------------------------------------------------------------------- 
+    ! Get species IDs and settings 
+    ! ---------------------------------------------------------------------- 
     
-      ! # of species for which air-sea exchange will be calculated
-      nOcSpc = 3
+    ! # of species for which air-sea exchange will be calculated
+    nOcSpc = 3
 
-      ! Initialize vector w/ species information
-      ALLOCATE ( OcSpecs(nOcSpc) ) 
-      DO I = 1, nOcSpc
-         OcSpecs(I)%HcoID      = -1
-         OcSpecs(I)%OcSpcName  = ''
-         OcSpecs(I)%OcDataName = ''
-         OcSpecs(I)%LiqVol     = 0d0
-         OcSpecs(I)%SCWPAR     = 1
-      ENDDO
+    ! Initialize vector w/ species information
+    ALLOCATE ( OcSpecs(nOcSpc) ) 
+    DO I = 1, nOcSpc
+       OcSpecs(I)%HcoID      = -1
+       OcSpecs(I)%OcSpcName  = ''
+       OcSpecs(I)%OcDataName = ''
+       OcSpecs(I)%LiqVol     = 0d0
+       OcSpecs(I)%SCWPAR     = 1
+    ENDDO
 
-      ! Counter
-      I = 0
+    ! Counter
+    I = 0
 
-      ! ----------------------------------------------------------------------
-      ! CH3I:
-      ! ----------------------------------------------------------------------
+    ! ----------------------------------------------------------------------
+    ! CH3I:
+    ! ----------------------------------------------------------------------
 
-      I = I + 1
-      IF ( I > nOcSpc ) THEN
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF
+    I = I + 1
+    IF ( I > nOcSpc ) THEN
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
 
-      OcSpecs(I)%OcSpcName  = 'CH3I'
-      OcSpecs(I)%OcDataName = 'CH3I_SEAWATER'
-      OcSpecs(I)%LiqVol     = 1d0*7d0 + 3d0*7d0 + 1d0*38.5d0 ! Johnson, 2010
-      OcSpecs(I)%SCWPAR     = 1
+    OcSpecs(I)%OcSpcName  = 'CH3I'
+    OcSpecs(I)%OcDataName = 'CH3I_SEAWATER'
+    OcSpecs(I)%LiqVol     = 1d0*7d0 + 3d0*7d0 + 1d0*38.5d0 ! Johnson, 2010
+    OcSpecs(I)%SCWPAR     = 1
 
-      ! ----------------------------------------------------------------------
-      ! DMS:
-      ! ----------------------------------------------------------------------
+    ! ----------------------------------------------------------------------
+    ! DMS:
+    ! ----------------------------------------------------------------------
 
-      I = I + 1
-      IF ( I > nOcSpc ) THEN
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF
+    I = I + 1
+    IF ( I > nOcSpc ) THEN
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
 
-      OcSpecs(I)%OcSpcName  = 'DMS'
-      OcSpecs(I)%OcDataName = 'DMS_SEAWATER'
-      OcSpecs(I)%LiqVol     = 2d0*7d0 + 6d0*7d0 + 1d0*21.0d0 ! Johnson, 2010
-      OcSpecs(I)%SCWPAR     = 2
+    OcSpecs(I)%OcSpcName  = 'DMS'
+    OcSpecs(I)%OcDataName = 'DMS_SEAWATER'
+    OcSpecs(I)%LiqVol     = 2d0*7d0 + 6d0*7d0 + 1d0*21.0d0 ! Johnson, 2010
+    OcSpecs(I)%SCWPAR     = 2
 
-      ! ----------------------------------------------------------------------
-      ! Acetone:
-      ! ----------------------------------------------------------------------
+    ! ----------------------------------------------------------------------
+    ! Acetone:
+    ! ----------------------------------------------------------------------
 
-      I = I + 1
-      IF ( I > nOcSpc ) THEN
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF
+    I = I + 1
+    IF ( I > nOcSpc ) THEN
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
 
-      OcSpecs(I)%OcSpcName  = 'ACET'
-      OcSpecs(I)%OcDataName = 'ACET_SEAWATER'
-      OcSpecs(I)%LiqVol     = 3d0*7d0 + 6d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
-      OcSpecs(I)%SCWPAR     = 1
+    OcSpecs(I)%OcSpcName  = 'ACET'
+    OcSpecs(I)%OcDataName = 'ACET_SEAWATER'
+    OcSpecs(I)%LiqVol     = 3d0*7d0 + 6d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
+    OcSpecs(I)%SCWPAR     = 1
 
-      ! ----------------------------------------------------------------------
-      ! Match module species with species assigned to this module in config.
-      ! file 
-      ! ----------------------------------------------------------------------
+    ! ----------------------------------------------------------------------
+    ! Match module species with species assigned to this module in config.
+    ! file 
+    ! ----------------------------------------------------------------------
 
-      ! HEMCO species IDs of species names defined in config. file 
-      CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! HEMCO species IDs of species names defined in config. file 
+    CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Set information in module variables
-      DO I = 1, nOcSpc 
+    ! Set information in module variables
+    DO I = 1, nOcSpc 
 
-         ! Append ocean tag '__OC' to this species name to make sure
-         ! that we will also register non-tagged species.
-         NAME_OC = TRIM(OcSpecs(I)%OcSpcName) // '__OC'
+       ! Append ocean tag '__OC' to this species name to make sure
+       ! that we will also register non-tagged species.
+       NAME_OC = TRIM(OcSpecs(I)%OcSpcName) // '__OC'
 
-         DO J = 1, nSpc
+       DO J = 1, nSpc
 
-            ! Compare model species names against defined module species. 
-            ! Also accept species names without the tag __OC, e.g.
-            ! 'ACET' only instead of 'ACET__OC'. 
-            IF ( TRIM(SpcNames(J)) == TRIM(OcSpecs(I)%OcSpcName) .OR. &
-                 TRIM(SpcNames(J)) == TRIM(NAME_OC)              ) THEN
-               OcSpecs(I)%HcoID = HcoIDs(J)
-               EXIT
-            ENDIF
-         ENDDO !J
+          ! Compare model species names against defined module species. 
+          ! Also accept species names without the tag __OC, e.g.
+          ! 'ACET' only instead of 'ACET__OC'. 
+          IF ( TRIM(SpcNames(J)) == TRIM(OcSpecs(I)%OcSpcName) .OR. &
+               TRIM(SpcNames(J)) == TRIM(NAME_OC)              ) THEN
+             OcSpecs(I)%HcoID = HcoIDs(J)
+             EXIT
+          ENDIF
+       ENDDO !J
 
-         ! verbose
-         IF ( OcSpecs(I)%HcoID > 0 ) THEN
-            WRITE(MSG,*) '   - ', &
+       ! verbose
+       IF ( OcSpecs(I)%HcoID > 0 ) THEN
+          WRITE(MSG,*) '   - ', &
                TRIM(OcSpecs(I)%OcSpcName), OcSpecs(I)%HcoID
-            CALL HCO_MSG(MSG)
-         ENDIF
-      ENDDO !I
+          CALL HCO_MSG(MSG)
+       ENDIF
+    ENDDO !I
 
-      ! Set met fields
-      ExtState%U10M%DoUse   = .TRUE.
-      ExtState%V10M%DoUse   = .TRUE.
-      ExtState%PSURF%DoUse  = .TRUE.
-      ExtState%TSURFK%DoUse = .TRUE.
-      ExtState%ALBD%DoUse   = .TRUE.
-      ExtState%FRCLND%DoUse = .TRUE.
+    ! Set met fields
+    ExtState%U10M%DoUse   = .TRUE.
+    ExtState%V10M%DoUse   = .TRUE.
+    ExtState%PSURF%DoUse  = .TRUE.
+    ExtState%TSURFK%DoUse = .TRUE.
+    ExtState%ALBD%DoUse   = .TRUE.
+    ExtState%FRCLND%DoUse = .TRUE.
+    
+    ! Enable extensions
+    ExtState%SeaFlux = .TRUE.
 
-      ! Enable extensions
-      ExtState%SeaFlux = .TRUE.
+    ! Return w/ success
+    IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
+    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
+    CALL HCO_LEAVE ( RC )
 
-      ! Return w/ success
-      IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
-      IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
-      CALL HCO_LEAVE ( RC )
-
-      END SUBROUTINE HcoX_SeaFlux_Init
+  END SUBROUTINE HcoX_SeaFlux_Init
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_SeaFlux_Final 
+! !IROUTINE: hcox_seaflux_final 
 !
 ! !DESCRIPTION: Subroutine HcoX\_SeaFlux\_Final deallocates 
 !  all module arrays.
@@ -681,7 +690,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_SeaFlux_Final
+  SUBROUTINE HcoX_SeaFlux_Final
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller - Initial version
@@ -689,13 +698,13 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-      !=================================================================
-      ! HcoX_SeaFlux_Final begins here!
-      !=================================================================
+    !=================================================================
+    ! HcoX_SeaFlux_Final begins here!
+    !=================================================================
 
-      IF ( ASSOCIATED( OcSpecs )) DEALLOCATE( OcSpecs ) 
+    IF ( ASSOCIATED( OcSpecs )) DEALLOCATE( OcSpecs ) 
 
-      END SUBROUTINE HcoX_SeaFlux_Final
+  END SUBROUTINE HcoX_SeaFlux_Final
 !EOC
-      END MODULE HCOX_SEAFLUX_MOD
+END MODULE HCOX_SEAFLUX_MOD
 !EOM
