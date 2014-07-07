@@ -66,6 +66,7 @@
 !  05 May 2014 - J.A. Fisher - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
 !  18 Jun 2014 - C. Keller   - Now a HEMCO extension.
+!  03 Jul 2014 - C. Keller   - Added 13 new FINN species 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,7 +83,7 @@
       !           is 68 g/mol.
       !=================================================================
       INTEGER,          PARAMETER   :: N_EMFAC = 6
-      INTEGER,          PARAMETER   :: N_SPEC  = 39
+      INTEGER,          PARAMETER   :: N_SPEC  = 52
       REAL(dp),         PARAMETER   :: MW_CO2  = 44.01_dp
       REAL(dp),         PARAMETER   :: MW_NMOC = 68.00_dp
 !
@@ -92,8 +93,10 @@
       ! HEMCO VARIABLES 
       !
       ! ExtNr   : Extension number 
+      ! UseDay  : True if daily data is used
       !=================================================================
       INTEGER                     :: ExtNr
+      LOGICAL                     :: UseDay
 
       !=================================================================
       ! SPECIES VARIABLES 
@@ -178,6 +181,9 @@
       LOGICAL             :: DoRepeat
       INTEGER             :: Cnt
 
+      ! Get field names
+      CHARACTER(LEN=31)   :: PREFIX, FLDNME
+
       ! Write totals to log file 
       INTEGER             :: NDAYS, cYYYY, cMM
       REAL(dp)            :: TOTAL
@@ -197,19 +203,36 @@
       !-----------------------------------------------------------------
       ! Get pointers to data arrays 
       !-----------------------------------------------------------------
-      CALL EmisList_GetDataArr( am_I_Root, 'FINN_VEGTYP1', VEGTYP1, RC )
+      IF ( UseDay ) THEN
+         PREFIX = 'FINN_DAILY_'
+      ELSE
+         PREFIX = 'FINN_'
+      ENDIF
+
+      FLDNME = TRIM(PREFIX) // 'VEGTYP1'
+      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP1, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr( am_I_Root, 'FINN_VEGTYP2', VEGTYP2, RC )
+
+      FLDNME = TRIM(PREFIX) // 'VEGTYP2'
+      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP2, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr( am_I_Root, 'FINN_VEGTYP3', VEGTYP3, RC )
+
+      FLDNME = TRIM(PREFIX) // 'VEGTYP3'
+      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP3, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr( am_I_Root, 'FINN_VEGTYP4', VEGTYP4, RC )
+
+      FLDNME = TRIM(PREFIX) // 'VEGTYP4'
+      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP4, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr( am_I_Root, 'FINN_VEGTYP5', VEGTYP5, RC )
+
+      FLDNME = TRIM(PREFIX) // 'VEGTYP5'
+      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP5, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr( am_I_Root, 'FINN_VEGTYP9', VEGTYP9, RC )
+
+      FLDNME = TRIM(PREFIX) // 'VEGTYP9'
+      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP9, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-       
+
       ! For logfile 
       IF ( HcoClock_NewMonth() ) THEN
          CALL HcoClock_Get( cYYYY = cYYYY, cMM=cMM, RC=RC )
@@ -394,22 +417,24 @@
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER, PARAMETER :: N_SPEC_EMFAC = 12  ! # of cols in EF_CO2_FILE   (w/o first two)
-      INTEGER, PARAMETER :: N_NMOC       = 28  ! # of cols in VOC_SPEC_FILE (w/o first two)
-      INTEGER            :: IU_FILE, L, N_LUMPED
-      INTEGER            :: AS, IOS, M, N, NDUM, N_SPECSTRS, N_NMOCSTRS
-      LOGICAL            :: IS_NMOC, Matched, Missing
-      CHARACTER(LEN=255) :: ADUM, SDUM(255)
-      CHARACTER(LEN=255) :: IN_SPEC_NAME(255)
-      CHARACTER(LEN=255) :: IN_NMOC_NAME(255)
-      CHARACTER(LEN=255) :: TMPNAME
-      CHARACTER(LEN=  6) :: SPCNAME
-      REAL*8             :: C_MOLEC
-      REAL*8             :: EMFAC_IN(N_SPEC_EMFAC, N_EMFAC)
-      REAL*8             :: NMOC_EMFAC(N_EMFAC), NMOC_RATIO(N_EMFAC)
-      REAL*8             :: NMOC_RATIO_IN(N_NMOC, N_EMFAC)
-      REAL(dp)           :: AdjFact
-      CHARACTER(LEN=255) :: MSG, EF_CO2_FILE, VOC_SPEC_FILE
+      INTEGER               :: N_SPEC_EMFAC       ! # of cols in EF_CO2_FILE   (w/o first two)
+      INTEGER               :: N_NMOC             ! # of cols in VOC_SPEC_FILE (w/o first two)
+      INTEGER               :: IU_FILE, L, N_LUMPED, tmpNr
+      INTEGER               :: AS, IOS, M, N, NDUM
+      INTEGER               :: N_SPECSTRS, N_NMOCSTRS
+      LOGICAL               :: IS_NMOC, Matched, Missing
+      CHARACTER(LEN=1023)   :: ADUM
+      CHARACTER(LEN=255)    :: SDUM(255)
+      CHARACTER(LEN=255)    :: IN_SPEC_NAME(255)
+      CHARACTER(LEN=255)    :: IN_NMOC_NAME(255)
+      CHARACTER(LEN=255)    :: TMPNAME
+      CHARACTER(LEN=  6)    :: SPCNAME
+      REAL*8                :: C_MOLEC
+      REAL(dp), ALLOCATABLE :: EMFAC_IN(:,:)
+      REAL(dp), ALLOCATABLE :: NMOC_RATIO_IN(:,:)
+      REAL*8                :: NMOC_EMFAC(N_EMFAC), NMOC_RATIO(N_EMFAC)
+      REAL(dp)              :: AdjFact
+      CHARACTER(LEN=255)    :: MSG, EF_CO2_FILE, VOC_SPEC_FILE
 
       !=================================================================
       ! HCOX_FINN_INIT begins here!
@@ -427,19 +452,51 @@
       ! Get settings 
       ! ---------------------------------------------------------------------- 
  
-      ! Get file with CO2 emission factor ratios, as set in configuration file
+      ! Get file with CO2 emission factor ratios, as set in configuration file,
+      ! and read corresponding number of columns
       CALL GetExtOpt ( ExtNr, 'EF ratios CO2', &
                        OptValChar=EF_CO2_File, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
+      CALL GetExtOpt ( ExtNr, 'EF rat columns', &
+                       OptValInt=N_SPEC_EMFAC, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      N_SPEC_EMFAC = N_SPEC_EMFAC - 2 ! First two columns are not used
 
       ! Get file with VOC speciations, as set in configuration file 
       CALL GetExtOpt ( ExtNr, 'VOC speciation', &
                        OptValChar=VOC_SPEC_FILE, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
+      CALL GetExtOpt ( ExtNr, 'VOC spec columns', &
+                       OptValInt=N_NMOC, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      N_NMOC = N_NMOC - 2 ! First two columns are not used
+
+      ! Use daily data?
+      tmpName = TRIM(ExtName) // "_daily"
+      tmpNr   = GetExtNr( TRIM(tmpName) )
+      IF ( tmpNr > 0 ) THEN
+         UseDay = .TRUE.
+      ELSE
+         UseDay = .FALSE.
+      ENDIF
 
       ! ---------------------------------------------------------------------- 
       ! Allocate arrays
       ! ---------------------------------------------------------------------- 
+
+      ! temporary arrays
+      ALLOCATE ( EMFAC_IN(N_SPEC_EMFAC, N_EMFAC), STAT=AS )
+      IF ( AS/=0 ) THEN
+         CALL HCO_ERROR( 'Cannot allocate EMFAC_IN', RC )
+         RETURN
+      ENDIF
+      ALLOCATE ( NMOC_RATIO_IN(N_NMOC, N_EMFAC), STAT=AS )
+      IF ( AS/=0 ) THEN
+         CALL HCO_ERROR( 'Cannot allocate NMOC_RATIO_IN', RC )
+         RETURN
+      ENDIF
+      EMFAC_IN     = 0.0_dp
+      N_SPEC_EMFAC = 0.0_dp
 
       ALLOCATE ( FINN_SPEC_NAME ( N_SPEC ), STAT=AS )
       IF ( AS/=0 ) THEN
@@ -507,6 +564,19 @@
       FINN_SPEC_NAME(37) = 'TMB'    ! Currently lumped with XYLE
       FINN_SPEC_NAME(38) = 'ETBENZ' ! Currently lumped with TOLU
       FINN_SPEC_NAME(39) = 'STYR'   ! Currently lumped with TOLU
+      FINN_SPEC_NAME(40) = 'CH2BR2'
+      FINN_SPEC_NAME(41) = 'CH3CN'
+      FINN_SPEC_NAME(42) = 'CH3I'
+      FINN_SPEC_NAME(43) = 'DMS'
+      FINN_SPEC_NAME(44) = 'MNO3'
+      FINN_SPEC_NAME(45) = 'APINE'  ! Currently lumped into MTPA
+      FINN_SPEC_NAME(46) = 'BPINE'  ! Currently lumped into MTPA
+      FINN_SPEC_NAME(47) = 'CARENE' ! Currently lumped into MTPA
+      FINN_SPEC_NAME(48) = 'AROM'   ! Currently not used
+      FINN_SPEC_NAME(49) = 'FUR'    ! Currently not used
+      FINN_SPEC_NAME(50) = 'ROH'    ! Currently not used
+      FINN_SPEC_NAME(51) = 'RCOOH'  ! Currently not used
+      FINN_SPEC_NAME(52) = 'SESQ'   ! Currently not used
 
       ! ---------------------------------------------------------------------- 
       ! Read emission factors ([mole CO2]/[mole X])
@@ -548,6 +618,7 @@
          ENDIF
          CALL STRSPLIT(ADUM,',',SDUM,NDUM)
          ! PASS TO EMFAC_IN
+
          DO M = 1, (NDUM-2)
             READ( SDUM(M+2), * ) EMFAC_IN(M,N)
          ENDDO
@@ -613,7 +684,9 @@
       CALL HCO_MSG( MSG, SEP1='-' )
       WRITE(MSG,*) '   - CO2 EF scale factors    : ', TRIM(EF_CO2_FILE) 
       CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '   - VOC speciations         : ',TRIM(VOC_SPEC_FILE)
+      WRITE(MSG,*) '   - VOC speciations         : ', TRIM(VOC_SPEC_FILE)
+      CALL HCO_MSG( MSG )
+      WRITE(MSG,*) '   - Use daily data          : ', UseDay
       CALL HCO_MSG( MSG )
 
       ! Get HEMCO species IDs of all species specified in configuration file
@@ -636,26 +709,30 @@
          Matched  = .FALSE.
          Missing  = .TRUE.
 
+         ! For model species NO, the emission factors are taken from FINN species NO 
+         ! For model species BCPI and BCPO, the emission factors are taken from FINN species BC 
+         ! For model species OCPI and OCPO, the emission factors are taken from FINN species OC 
+         ! For model species MTPA, the emission factors are taken from FINN species APINE (BPINE and CARENE will be lumped into it as well) 
+         SELECT CASE ( TRIM(SpcName) )
+            CASE ( 'NO' )
+               SpcName = 'NOx'
+            CASE ('BCPI' )
+               SpcName = 'BC'
+            CASE ('BCPO' )
+               SpcName = 'BC'
+            CASE ('OCPI' )
+               SpcName = 'OC'
+            CASE ('OCPO' )
+               SpcName = 'OC'
+            CASE ('MTPA' )
+               SpcName = 'APINE'
+         END SELECT
+
          ! For lumped species, we have to repeat the lookup multiple times,
          ! so use a while loop here.
          ! For example, for species TOLU this will make sure that FINN species
          ! 'TOLU', 'ETBENZ', and 'STYR' are associated with HEMCO species TOLU.
          DO WHILE ( Missing )
-
-            ! For model species NO, BCPI, BCPO, OCPI, and OCPO, the emission
-            ! factors are taken from FINN species NOx, BC, and OC, respectively.
-            SELECT CASE ( TRIM(SpcName) )
-               CASE ( 'NO' )
-                  SpcName = 'NOx'
-               CASE ('BCPI' )
-                  SpcName = 'BC'
-               CASE ('BCPO' )
-                  SpcName = 'BC'
-               CASE ('OCPI' )
-                  SpcName = 'OC'
-               CASE ('OCPO' )
-                  SpcName = 'OC'
-            END SELECT
 
             ! Search for SpcName in FINN
             DO N = 1, N_SPEC 
@@ -767,6 +844,19 @@
                ENDIF
             ENDIF
 
+            ! --> BPINE and CARENE are lumped into MTPA
+            IF ( SpcNames(L) == 'MTPA' ) THEN
+               IF ( N_LUMPED == 0 ) THEN
+                  SpcName  = 'BPINE'
+                  Missing  = .TRUE.
+                  N_LUMPED = N_LUMPED + 1
+               ELSEIF ( N_LUMPED == 1 ) THEN
+                  SpcName  = 'CARENE'
+                  Missing  = .TRUE.
+                  N_LUMPED = N_LUMPED + 1
+               ENDIF
+            ENDIF
+
          ENDDO !While missing
 
          ! Error check: we must not specify a species that is not defined
@@ -781,6 +871,10 @@
       ! Enable module
       ExtState%FINN = .TRUE.
 
+      ! Cleanup
+      IF ( ALLOCATED(EMFAC_IN     ) ) DEALLOCATE( EMFAC_IN      )
+      IF ( ALLOCATED(NMOC_RATIO_IN) ) DEALLOCATE( NMOC_RATIO_IN )
+ 
       ! Return w/ success
       CALL HCO_LEAVE ( RC ) 
  

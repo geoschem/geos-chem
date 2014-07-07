@@ -211,8 +211,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GetExtOpt ( ExtNr,    OptName,    OptValSp,     &
-                             OptValDp, OptValBool, OptValChar, RC )
+      SUBROUTINE GetExtOpt ( ExtNr,      OptName,   OptValSp,   &
+                             OptValDp,   OptValInt, OptValBool, &
+                             OptValChar, RC                      )
 !
 ! !USES:
 !
@@ -224,6 +225,7 @@
       CHARACTER(LEN=*), INTENT(IN   )            :: OptName 
       REAL(sp),         INTENT(  OUT), OPTIONAL  :: OptValSp
       REAL(dp),         INTENT(  OUT), OPTIONAL  :: OptValDp
+      INTEGER,          INTENT(  OUT), OPTIONAL  :: OptValInt
       LOGICAL,          INTENT(  OUT), OPTIONAL  :: OptValBool
       CHARACTER(LEN=*), INTENT(  OUT), OPTIONAL  :: OptValChar
       INTEGER,          INTENT(INOUT)            :: RC
@@ -307,6 +309,8 @@
                READ( SUBSTR(2), * ) OptValSp
             ELSEIF ( PRESENT(OptValDp) ) THEN
                READ( SUBSTR(2), * ) OptValDp
+            ELSEIF ( PRESENT(OptValInt) ) THEN
+               READ( SUBSTR(2), * ) OptValInt
             ELSEIF ( PRESENT(OptValBool) ) THEN
                CALL TRANLC( TRIM(SUBSTR(2)) )
                IF ( INDEX( TRIM(SUBSTR(2)), 'true' ) > 0 ) THEN

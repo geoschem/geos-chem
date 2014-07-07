@@ -462,6 +462,9 @@ MODULE HCOI_DATAREAD_MOD
       ! Regrid onto emissions grid 
       !-----------------------------------------------------------------
 
+      ! Messy toggle
+      if ( .true. ) then
+
       ! Get input grid edges from netCDF file 
       ! Note: use error syntax from ncdf_mod!
       ALLOCATE( XEDGE_IN(NLON+1) )
@@ -513,6 +516,15 @@ MODULE HCOI_DATAREAD_MOD
 
       ENDDO !L
       ENDDO !T
+
+
+      !-----------------------------------------------------------------
+      ! Use messy regridding
+      !-----------------------------------------------------------------
+      else
+!         CALL HCO_MESSY_NCREGRID ( am_I_Root, HcoState, Lct, RC )
+!         IF ( RC /= HCO_SUCCESS ) RETURN 
+      endif
 
       !-----------------------------------------------------------------
       ! Cleanup and leave 
