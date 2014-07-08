@@ -38,112 +38,119 @@ MODULE HCO_STATE_MOD
   PUBLIC :: HCO_GetHcoID 
 
   !=========================================================================
-  ! HEMCO State derived type
+  ! HCO_State: Main HEMCO State derived type
   !=========================================================================
   TYPE, PUBLIC :: HCO_State
 
      ! Species information
-     INTEGER                     :: nSpc         ! # of species
-     TYPE(HcoSpc),       POINTER :: Spc(:)       ! list of species
+     INTEGER                   :: nSpc        ! # of species
+     TYPE(HcoSpc),     POINTER :: Spc(:)      ! list of species
 
-     !
      ! Emission grid information 
-     INTEGER                     :: NX     ! # of x-points (lons) on this CPU
-     INTEGER                     :: NY     ! # of y-points (lats) on this CPU
-     INTEGER                     :: NZ     ! # of z-points (levs) on this CPU
-     TYPE(HcoGrid),      POINTER :: Grid   ! HEMCO grid information
+     INTEGER                   :: NX          ! # of x-pts (lons) on this CPU
+     INTEGER                   :: NY          ! # of y-pts (lats) on this CPU
+     INTEGER                   :: NZ          ! # of z-pts (levs) on this CPU
+     TYPE(HcoGrid),    POINTER :: Grid        ! HEMCO grid information
 
-     ! Placeholder to store temporary 3D array
-     ! Emissions will be written into this array only if option FillBuffer is enabled
-     TYPE(Arr3D_HP),     POINTER :: Buffer3D 
+     ! Data array 
+     TYPE(Arr3D_HP),   POINTER :: Buffer3D    ! Placeholder to store temporary
+                                              ! 3D array.  Emissions will be
+                                              ! written into this array if
+                                              ! option FillBuffer = .TRUE.
+     ! Constants and timesteps
+     TYPE(HcoPhys),    POINTER :: Phys        ! Physical constants
+     REAL(sp)                  :: TS_EMIS     ! Emission timestep [s]
+     REAL(sp)                  :: TS_CHEM     ! Chemical timestep [s]
+     REAL(sp)                  :: TS_DYN      ! Dynamic  timestep [s]
 
-     ! Physical constants
-     TYPE(HcoPhys),      POINTER :: Phys 
-
-     ! Emission & dynamic time step (seconds)
-     REAL(sp)                    :: TS_EMIS
-     REAL(sp)                    :: TS_CHEM
-     REAL(sp)                    :: TS_DYN
-
-     ! Settings
-     CHARACTER(LEN=255)          :: ConfigFile    ! Path + Filename of configuration file 
-     LOGICAL                     :: isESMF        ! ESMF application? 
-
-     ! Run options
-     TYPE(HcoOpt),       POINTER :: Options
-
-     ! If run w/in ESMF, also need to point to IMPORT state
-     ! so that data arrays can be imported.
+     ! Run time options
+     CHARACTER(LEN=255)        :: ConfigFile  ! Full path to HEMCO Config file
+     LOGICAL                   :: isESMF      ! Are we using ESMF?
+     TYPE(HcoOpt),     POINTER :: Options     ! HEMCO run options
 #if defined(ESMF_)
-     TYPE(ESMF_State),   POINTER :: IMPORT
+     TYPE(ESMF_State), POINTER :: IMPORT      ! ESMF Import State (only needed
+                                              ! if option isESMF = .TRUE.)
 #endif
-
   END TYPE HCO_State
 !
-! !PRIVATE MODULE TYPES:
+! !PRIVATE TYPES:
 !
-
-  ! HCO species
-  TYPE :: HcoSpc
-     INTEGER                     :: HcoID      ! HEMCO species ID
-     INTEGER                     :: ModID      ! Model species ID
-     CHARACTER(LEN= 31)          :: SpcName    ! species names
-     REAL(hp)                    :: MW_g       ! species molecular weight (g/mol)
-     REAL(hp)                    :: EmMW_g     ! emission molecular weight**1 (g/mol)
-     REAL(hp)                    :: MolecRatio ! molecule emission ratio **2 (-)
-     REAL(hp)                    :: HenryK0    ! liq. over gas Henry const [M/atm]
-     REAL(hp)                    :: HenryCR    ! K0 temp. dependency [K] 
-     REAL(hp)                    :: HenryPKA   ! pKa for Henry const. correction
-     TYPE(Arr2D_HP),     POINTER :: Depv       ! Deposition velocity [m/s]
-     TYPE(Arr3D_HP),     POINTER :: Emis       ! Emission flux [kg/m2/s]
-  END TYPE HcoSpc
+  !=========================================================================
+  ! HcoSpc: Derived type for HEMCO species
+  !
   ! Notes:
-  ! **1 The emission molecular weight is the molecular weight of the emitted 
-  !     compound. This value is only different to MW_g if the emitted compound
-  !     does not correspond to the transported species, e.g. if emissions are 
-  !     in kg C4H10 but the corresponding species is transported as mass Carbon. 
-  ! **2 MolecRatio is the ratio between # of species molecules per emitted molecule, 
-  !     e.g. 4 if emissions are kg C4H10 but model species are kg C.
+  ! **1 The emission molecular weight is the molecular weight of the 
+  !     emitted compound. This value is only different to MW_g if the 
+  !     emitted compound does not correspond to the transported species, 
+  !     e.g. if emissions are in kg C4H10 but the corresponding species 
+  !     is transported as mass Carbon. 
+  ! **2 MolecRatio is the ratio between # of species molecules per emitted 
+  !       molecule, e.g. 4 if emissions are kg C4H10 but model species 
+  !       are kg C.
+  !=========================================================================
+  TYPE :: HcoSpc
+     INTEGER                 :: HcoID      ! HEMCO species ID
+     INTEGER                 :: ModID      ! Model species ID
+     CHARACTER(LEN= 31)      :: SpcName    ! species names
+     REAL(hp)                :: MW_g       ! species molecular wt.     (g/mol)
+     REAL(hp)                :: EmMW_g     ! emission molecular wt.**1 (g/mol)
+     REAL(hp)                :: MolecRatio ! molecule emission ratio**2 (-)
+     REAL(hp)                :: HenryK0    ! liq. over gas Henry const [M/atm]
+     REAL(hp)                :: HenryCR    ! K0 temp. dependency [K] 
+     REAL(hp)                :: HenryPKA   ! pKa for Henry const. correction
+     TYPE(Arr2D_HP), POINTER :: Depv       ! Deposition velocity [m/s]
+     TYPE(Arr3D_HP), POINTER :: Emis       ! Emission flux [kg/m2/s]
+  END TYPE HcoSpc
 
-  ! HEMCO run options
+  !=========================================================================
+  ! HcoOpt: Derived type for HEMCO run options
+  !=========================================================================
   TYPE :: HcoOpt
-     INTEGER                    :: ExtNr         ! ExtNr to be used 
-     INTEGER                    :: SpcMin        ! Smallest HEMCO species ID to be considered 
-     INTEGER                    :: SpcMax        ! Highest HEMCO species ID to be considered
-     INTEGER                    :: CatMin        ! Smallest category to be considered
-     INTEGER                    :: CatMax        ! Highest category to be considered
-     LOGICAL                    :: AutoFillDiagn ! Write into AutoFill diagnostics?
-     LOGICAL                    :: FillBuffer    ! Write calculated emissions into buffer
-                                                 ! instead of emission array? 
+     INTEGER :: ExtNr         ! ExtNr to be used 
+     INTEGER :: SpcMin        ! Smallest HEMCO species ID to be considered 
+     INTEGER :: SpcMax        ! Highest HEMCO species ID to be considered
+     INTEGER :: CatMin        ! Smallest category to be considered
+     INTEGER :: CatMax        ! Highest category to be considered
+     LOGICAL :: AutoFillDiagn ! Write into AutoFill diagnostics?
+     LOGICAL :: FillBuffer    ! Write calculated emissions into buffer
+                              ! instead of emission array? 
   END TYPE HcoOpt
 
-  ! HEMCO grid
-  TYPE :: HcoGrid
-     REAL(df),           POINTER :: XMID       (:,:)   ! mid-points in x-direction (lon)
-     REAL(df),           POINTER :: YMID       (:,:)   ! mid-points in y-direction (lat)
-     REAL(df),           POINTER :: XEDGE      (:,:)   ! grid edges in x-direction (lon)*
-     REAL(df),           POINTER :: YEDGE      (:,:)   ! grid edges in y-direction (lat)*
-     REAL(df),           POINTER :: YSIN       (:,:)   ! sin of grid edges in y-direction (lat)*
-     REAL(df),           POINTER :: AREA_M2    (:,:)   ! grid box areas (m2)
-     REAL(df),           POINTER :: BXHEIGHT_M (:,:,:) ! grid box heights (m)**
-  END TYPE HcoGrid
+  !=========================================================================
+  ! HcoGrid: Derived type for HEMCO grid
+  !
+  ! NOTES:
   ! *  Not used in ESMF environment
   ! ** Only used by some extensions
+  !=========================================================================
+  TYPE :: HcoGrid
+     REAL(df), POINTER :: XMID       (:,:)   ! mid-points in x-direction (lon)
+     REAL(df), POINTER :: YMID       (:,:)   ! mid-points in y-direction (lat)
+     REAL(df), POINTER :: XEDGE      (:,:)   ! grid edges in x-direction (lon)*
+     REAL(df), POINTER :: YEDGE      (:,:)   ! grid edges in y-direction (lat)*
+     REAL(df), pOINTER :: YSIN       (:,:)   ! sin of grid edges in 
+                                             !  y-direction (lat)*
+     REAL(df), POINTER :: AREA_M2    (:,:)   ! grid box areas (m2)
+     REAL(df), POINTER :: BXHEIGHT_M (:,:,:) ! grid box heights (m)**
+  END TYPE HcoGrid
 
-! Physical constants 
+  !=========================================================================
+  ! HcoPhys: Derived type for HEMCO physical constants
+  !=========================================================================
   TYPE :: HcoPhys
-     REAL(dp)                    :: Avgdr   ! Avogadro number (mol-1)
-     REAL(dp)                    :: PI      ! Pi
-     REAL(dp)                    :: Re      ! Earth radius [m] 
-     REAL(dp)                    :: AIRMW   ! Molecular weight of air (g/mol)
-     REAL(dp)                    :: g0      ! Gravity at surface of earth (m/s2)
-     REAL(dp)                    :: Rd      ! Gas Constant (R) in dry air (J/K/kg)
-     REAL(dp)                    :: Rdg0    ! Rd/g0
+     REAL(dp) :: Avgdr   ! Avogadro number (mol-1)
+     REAL(dp) :: PI      ! Pi
+     REAL(dp) :: Re      ! Earth radius [m] 
+     REAL(dp) :: AIRMW   ! Molecular weight of air (g/mol)
+     REAL(dp) :: g0      ! Gravity at surface of earth (m/s2)
+     REAL(dp) :: Rd      ! Gas Constant (R) in dry air (J/K/kg)
+     REAL(dp) :: Rdg0    ! Rd/g0
   END TYPE HcoPhys 
-
 !                                                                             
 ! !REVISION HISTORY:
-!  20 Aug 2013 - C. Keller - Initial version, adapted from gigc_state_chm_mod.F90
+!  20 Aug 2013 - C. Keller   - Initial version, adapted from 
+!                              gigc_state_chm_mod.F90
+!  07 Jul 2014 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC

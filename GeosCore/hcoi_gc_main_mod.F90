@@ -757,14 +757,14 @@ CONTAINS
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
  
     ! Cleanup diagnostics
-    CALL Diagn_Cleanup
+    CALL Diagn_Cleanup()
  
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
     CALL HCOX_FINAL ( ExtState ) 
 
     ! Cleanup HCO core
-    CALL HCO_FINAL
+    CALL HCO_FINAL()
   
     ! Remove emission array pointers.
     ! Note: Only need to do this if HEMCO grid is equal to GC 

@@ -179,7 +179,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'HCO_INIT (HCO_DRIVER_MOD.F90)', RC )
+    CALL HCO_ENTER( 'HCO_INIT (HCO_DRIVER_MOD.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize time slice pointers 
@@ -187,12 +187,12 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize HEMCO Clock
-    CALL HcoClock_Init ( HcoState, RC )
+    CALL HcoClock_Init( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize the HEMCO ReadList. This has to be done before
     ! the call to SetReadList below. 
-    CALL ReadList_Init 
+    CALL ReadList_Init() 
 
     ! Set ReadList based upon the content of the configuration file. 
     CALL SetReadList ( am_I_Root, HcoState, RC )

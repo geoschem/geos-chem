@@ -64,7 +64,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_INIT( amIRoot, HcoState, ExtState, RC )
+  SUBROUTINE HcoX_Init( amIRoot, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -80,6 +80,7 @@ CONTAINS
     USE HcoX_SeaSalt_Mod,      ONLY : HcoX_SeaSalt_Init
     USE HcoX_GFED3_Mod,        ONLY : HcoX_GFED3_Init
     USE HcoX_Megan_Mod,        ONLY : HcoX_Megan_Init
+    USE HcoX_GC_RnPbBe_Mod,    ONLY : HcoX_GC_RnPbBe_Init
 !
 ! !INPUT PARAMETERS:
 !
@@ -92,7 +93,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller    - Initial version 
+!  12 Sep 2013 - C. Keller   - Initial version 
+!  07 Jul 2014 - R. Yantosca - Now init GEOS-Chem Rn-Pb-Be emissions module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -122,65 +124,71 @@ CONTAINS
     ! Custom 
     !-----------------------------------------------------------------
     CALL HcoX_Custom_Init( amIRoot, HcoState, 'Custom', ExtState, RC )
-    IF( RC /= HCO_SUCCESS ) RETURN
-
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
     ! SeaFlux
     !-----------------------------------------------------------------
     CALL HcoX_SeaFlux_Init( amIRoot, HcoState, 'SeaFlux', ExtState, RC )
-    IF( RC /= HCO_SUCCESS) RETURN 
+    IF ( RC /= HCO_SUCCESS) RETURN 
 
     !-----------------------------------------------------------------
     ! ParaNox
     !-----------------------------------------------------------------
     CALL HCOX_PARANOX_INIT( amIRoot, HcoState, 'ParaNOx', ExtState, RC )
-    IF( RC /= HCO_SUCCESS ) RETURN 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! LightNox 
     !-----------------------------------------------------------------
     CALL HcoX_LightNox_Init ( amIRoot,  HcoState, 'LightNOx', &
                               ExtState, RC                     )
-    IF( RC /= HCO_SUCCESS ) RETURN 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! SoilNox 
     !-----------------------------------------------------------------
     CALL HcoX_SoilNox_Init( amIRoot, HcoState, 'SoilNOx', ExtState, RC)
-    IF( RC /= HCO_SUCCESS ) RETURN 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! Dust emissions (DEAD model) 
     !-----------------------------------------------------------------
     CALL HcoX_DustDead_Init( amIRoot, HcoState, 'DustDead', &
                              ExtState,  RC                     )
-    IF( RC /= HCO_SUCCESS ) RETURN 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! Dust Ginoux emissions 
     !-----------------------------------------------------------------
     CALL HcoX_DustGinoux_Init( amIRoot, HcoState, 'DustGinoux', &
                                ExtState,  RC                       )
-    IF( RC /= HCO_SUCCESS ) RETURN 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! SeaSalt aerosol extension
     !-----------------------------------------------------------------
     CALL HcoX_SeaSalt_Init( amIRoot, HcoState, 'SeaSalt', ExtState, RC )
-    IF( RC /= HCO_SUCCESS ) RETURN 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! MEGAN extension
     !-----------------------------------------------------------------
     CALL HcoX_Megan_Init( amIRoot, HcoState, 'MEGAN', ExtState, RC ) 
-    IF( RC /= HCO_SUCCESS ) RETURN 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! GFED3 extension
     !-----------------------------------------------------------------
     CALL HcoX_GFED3_Init( amIRoot, HcoState, 'GFED3', ExtState, RC ) 
-    IF( RC /= HCO_SUCCESS ) RETURN 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !-----------------------------------------------------------------
+    ! Extension for GEOS-Chem Rn-Pb-Be specialty simulation
+    !-----------------------------------------------------------------
+    CALL HcoX_GC_RnPbBe_Init( amIRoot, HcoState, 'GC_Rn-Pb-Be', &
+                                       ExtState,  RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! Add extensions here ...
@@ -200,7 +208,7 @@ CONTAINS
     !-----------------------------------------------------------------
     CALL HCO_LEAVE ( RC )
 
-  END SUBROUTINE HCOX_INIT
+  END SUBROUTINE HcoX_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -232,6 +240,7 @@ CONTAINS
     USE HcoX_SeaSalt_Mod,    ONLY : HcoX_SeaSalt_Run 
     USE HcoX_Megan_Mod,      ONLY : HcoX_Megan_Run 
     USE HcoX_GFED3_Mod,      ONLY : HcoX_GFED3_Run 
+    USE HcoX_GC_RnPbBe_Mod,  ONLY : HcoX_GC_RnPbBe_Run
 !
 ! !INPUT PARAMETERS:
 !
@@ -250,7 +259,8 @@ CONTAINS
 ! pointers have to be set in the HEMCO-model interface module beforehand!
 !
 ! !REVISION HISTORY: 
-!  15 Dec 2013 - C. Keller    - Initial version 
+!  15 Dec 2013 - C. Keller   - Initial version 
+!  07 Jul 2014 - R. Yantosca - Now Run GEOS-Chem Rn-Pb-Be emissions module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -259,73 +269,73 @@ CONTAINS
 !
     CHARACTER(LEN=255) :: MSG
 
-    !=================================================================
+    !=======================================================================
     ! HCOX_RUN begins here!
-    !=================================================================
+    !=======================================================================
 
     ! For error handling
     CALL HCO_ENTER ('HCOX_RUN (hcox_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Customized emissions 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF ( ExtState%Custom ) THEN
        CALL HcoX_Custom_Run( amIRoot, ExtState, HcoState, RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! SeaFlx (Air-sea exchange)
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF ( ExtState%SeaFlux) THEN
        CALL HcoX_SeaFlux_Run( amIRoot, ExtState, HcoState, RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! ParaNox (Ship NO emissions) 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF (ExtState%ParaNOx ) THEN
        CALL HcoX_ParaNox_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Lightning NOx  
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF ( ExtState%LightNOx ) THEN
        CALL HcoX_LightNox_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! SoilNOx  
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF ( ExtState%SoilNOx ) THEN
        CALL HcoX_SoilNox_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Dust emissions (DEAD model) 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF ( ExtState%DustDead ) THEN
        CALL HcoX_DustDead_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Dust emissions (Ginoux)
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF ( ExtState%DustGinoux ) THEN
-       CALL HcoX_DustGinoux_Run( amIRoot, ExtState, HcoState, RC)
+       CALL HcoX_DustGinoux_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Sea salt aerosols
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     IF ( ExtState%SeaSalt ) THEN
        CALL HcoX_SeaSalt_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -339,21 +349,29 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------
     ! GFED3 biomass burning emissions 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------
     IF ( ExtState%GFED3 ) THEN
        CALL HcoX_GFED3_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------
+    ! Emissions for GEOS-Chem Rn-Pb-Be specialty simulation
+    !-----------------------------------------------------------------
+    IF ( ExtState%GC_RnPbBe ) THEN
+       CALL HcoX_GC_RnPbBe_Run( amIRoot, ExtState, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+
+    !-----------------------------------------------------------------
     ! Add extensions here ...
-    ! ----------------------------------------------------------------
-      
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------
+
+    !-----------------------------------------------------------------
     ! Return w/ success 
-    ! ----------------------------------------------------------------
+    !-----------------------------------------------------------------
     CALL HCO_LEAVE ( RC )
 
   END SUBROUTINE HCOX_RUN
@@ -385,6 +403,7 @@ CONTAINS
     USE HcoX_SeaSalt_Mod,    ONLY : HcoX_SeaSalt_Final
     USE HcoX_Megan_Mod,      ONLY : HcoX_Megan_Final
     USE HcoX_GFED3_Mod,      ONLY : HcoX_GFED3_Final
+    USE HcoX_GC_RnPbBe_Mod,  ONLY : HcoX_GC_RnPbBe_Final
     USE Hcox_ExtList_Mod,    ONLY : ExtFinal
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -392,7 +411,8 @@ CONTAINS
     TYPE(Ext_State),  POINTER :: ExtState     ! Extension options object 
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller    - Initial version 
+!  12 Sep 2013 - C. Keller   - Initial version 
+!  07 Jul 2014 - R. Yantosca - Now finalize GEOS-Chem Rn-Pb-Be emissions pkg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -404,23 +424,24 @@ CONTAINS
     ! HCOX_FINAL begins here!
     !=================================================================
 
-    ! Remove extensions list 
-    CALL ExtFinal
-
     ! Call individual cleanup routines
-    IF( ExtState%Custom     ) CALL HcoX_Custom_Final
-    IF( ExtState%SeaFlux    ) CALL HcoX_SeaFlux_Final
-    IF( ExtState%ParaNOx    ) CALL HcoX_PARANOX_Final
-    IF( ExtState%LightNOx   ) CALL HcoX_LIGHTNOX_Final
-    IF( ExtState%DustDead   ) CALL HcoX_DustDead_Final
-    IF( ExtState%DustGinoux ) CALL HcoX_DustGinoux_Final
-    IF( ExtState%SeaSalt    ) CALL HcoX_SeaSalt_Final
-    IF( ExtState%Megan      ) CALL HcoX_Megan_Final
-    IF( ExtState%GFED3      ) CALL HcoX_GFED3_Final
-    IF( ExtState%SoilNOx    ) CALL HcoX_SoilNox_Final 
+    IF ( ExtState%Custom     ) CALL HcoX_Custom_Final()
+    IF ( ExtState%SeaFlux    ) CALL HcoX_SeaFlux_Final()
+    IF ( ExtState%ParaNOx    ) CALL HcoX_PARANOX_Final()
+    IF ( ExtState%LightNOx   ) CALL HcoX_LIGHTNOX_Final()
+    IF ( ExtState%DustDead   ) CALL HcoX_DustDead_Final()
+    IF ( ExtState%DustGinoux ) CALL HcoX_DustGinoux_Final()
+    IF ( ExtState%SeaSalt    ) CALL HcoX_SeaSalt_Final()
+    IF ( ExtState%Megan      ) CALL HcoX_Megan_Final()
+    IF ( ExtState%GFED3      ) CALL HcoX_GFED3_Final()
+    IF ( ExtState%SoilNOx    ) CALL HcoX_SoilNox_Final()  
+    IF ( ExtState%GC_RnPbBe  ) CALL HcoX_GC_RnPbBe_Final()
      
     ! Remove ExtState object 
     CALL ExtStateFinal( ExtState ) 
+
+    ! Remove extensions list 
+    CALL ExtFinal()
 
   END SUBROUTINE HCOX_FINAL
 !EOC

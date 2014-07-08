@@ -36,34 +36,44 @@ MODULE HCOX_STATE_MOD
 !
 ! !DERIVED TYPES:
 !
-  ! Types containing pointers to the met field arrays (Arr)
-  ! and a logical flag whether or not the field is used by
-  ! any of the extensions (DoUse). Arrays can be 3D reals
-  ! or 2D reals or integer (add more types if needed).
-  ! All real values are of default precision (df), as specified
-  ! in HCO\_ERROR\_MOD.
+  !=========================================================================
+  ! ExtDat_*: Derived types containing pointers to the met field arrays 
+  ! (Arr) and a logical flag whether or not the field is used by any of 
+  ! the extensions (DoUse).  Arrays can be 3D reals or 2D reals or integer 
+  ! All real values are of default precision! (df), as specified in 
+  ! HCO\_ERROR\_MOD.  You can add more types if necessary.
+  !=========================================================================
  
-  TYPE :: ExtDat_2R ! 2D real
+  ! 2D real
+  TYPE :: ExtDat_2R
      TYPE(Arr2D_DF), POINTER :: Arr
      LOGICAL                 :: DoUse
   END TYPE ExtDat_2R
-  TYPE :: ExtDat_2I ! 2D integer
+
+  ! 2D integer
+  TYPE :: ExtDat_2I
      TYPE(Arr2D_I),  POINTER :: Arr
      LOGICAL                 :: DoUse
   END TYPE ExtDat_2I
-  TYPE :: ExtDat_3R ! 3D real
+
+  ! 3D real
+  TYPE :: ExtDat_3R
      TYPE(Arr3D_DF), POINTER :: Arr
      LOGICAL                 :: DoUse
   END TYPE ExtDat_3R
 
-  ! State object containing pointers to all met fields used by the
-  ! HEMCO extensions. An 'Ext_State' type called ExtState is defined
-  ! at the beginning of a HEMCO run and populated according to the
-  ! specifications set in the configuration file.
+  !=========================================================================
+  ! Ext_State: Derived type declaration for the State object containing 
+  ! pointers to all met fields and related quantities used by the HEMCO 
+  ! extensions. An 'Ext_State' type called ExtState is defined at the 
+  ! beginning of a HEMCO run and populated according to the specifications
+  ! set in the configuration file.  You can add more fields if necessary.
+  !=========================================================================
   TYPE, PUBLIC :: Ext_State
  
-     !--------------------------------------------------------------
+     !----------------------------------------------------------------------
      ! Extension switches (enabled?)
+     !----------------------------------------------------------------------
      LOGICAL                   :: Custom      ! Customizable ext.
      LOGICAL                   :: DustDead    ! DEAD dust model
      LOGICAL                   :: DustGinoux  ! Ginoux dust emissions
@@ -73,14 +83,17 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: Megan       ! MEGAN biogenic emissions
      LOGICAL                   :: SeaFlux     ! air-sea exchange
      LOGICAL                   :: SeaSalt     ! Seasalt emissions
-     LOGICAL                   :: GFED3       ! GFED3 biomass burning 
+     LOGICAL                   :: GFED3       ! GFED3 biomass burning
+     LOGICAL                   :: GC_RnPbBe   ! GEOS-Chem Rn-Pb-Be simulation
 
-     !--------------------------------------------------------------
+     !----------------------------------------------------------------------
      ! Data directory
+     !----------------------------------------------------------------------
      CHARACTER(LEN=255)        :: DATA_DIR    ! Directory for data 
 
-     !--------------------------------------------------------------
+     !----------------------------------------------------------------------
      ! Met fields
+     !----------------------------------------------------------------------
      TYPE(ExtDat_2R),  POINTER :: U10M        ! E/W 10m wind speed [m/s]
      TYPE(ExtDat_2R),  POINTER :: V10M        ! N/S 10m wind speed [m/s]
      TYPE(ExtDat_2R),  POINTER :: ALBD        ! Surface albedo [-] 
@@ -118,6 +131,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_3R),  POINTER :: NO2         ! NO2 mass [kg]
      TYPE(ExtDat_3R),  POINTER :: HNO3        ! HNO3 mass [kg]
 
+     !----------------------------------------------------------------------
      ! Deposition parameter
      ! DRY_TOTN and WET_TOTN are the total (dry/wet) deposited N since the
      ! last emission timestep. Even though these numbers are per second,
@@ -126,6 +140,7 @@ MODULE HCOX_STATE_MOD
      ! These values are used by the soil NOx module. Note that it is assumed
      ! that DRY_TOTN and WET_TOTN are summed over chemistry and transport 
      ! timesteps, respectively!
+     !----------------------------------------------------------------------
      TYPE(ExtDat_2R),  POINTER :: DRY_TOTN    ! Dry deposited N   [molec/cm2/s] 
      TYPE(ExtDat_2R),  POINTER :: WET_TOTN    ! Wet deposited N   [kg N/s] 
      REAL(dp),         POINTER :: DRYCOEFF(:) ! Baldocci drydep coeff.
@@ -139,6 +154,7 @@ MODULE HCOX_STATE_MOD
 !  23 Jun 2014 - R. Yantosca - Now add DATA_DIR to Ext_State declaration
 !  23 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  07 Jul 2014 - R. Yantosca - Modified for GEOS-Chem Rn-Pb-Be simulation
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -166,20 +182,20 @@ CONTAINS
 !
 ! !ROUTINE: ExtStateInit
 !
-! !DESCRIPTION: Initializes the ExtState object. 
+! !DESCRIPTION: Initializes all fields of the ExtState object. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtStateInit ( ExtState, RC )
+  SUBROUTINE ExtStateInit( ExtState, RC )
 !
-! !USES:
+! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(Ext_State), POINTER        :: ExtState   ! ExtState object
+    INTEGER,         INTENT(INOUT)  :: RC         ! Success or failure?
 !
-! !INPUT PARAMETERS:
-!
-    TYPE(Ext_State), POINTER        :: ExtState
-    INTEGER,         INTENT(INOUT)  :: RC
+! !REMARKS:
+!  You can add more initialization statements as is necessary.
 !
 ! !REVISION HISTORY:
 !  15 Dec 2013 - C. Keller - Initial version
@@ -198,9 +214,9 @@ CONTAINS
     ! Allocate object 
     IF ( .NOT. ASSOCIATED ( ExtState ) ) ALLOCATE ( ExtState )
 
-    ! ----------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Set all switches to FALSE
-    ! ----------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ExtState%Custom     = .FALSE.
     ExtState%DustDead   = .FALSE.
     ExtState%DustGinoux = .FALSE.
@@ -211,13 +227,14 @@ CONTAINS
     ExtState%SeaFlux    = .FALSE.
     ExtState%SeaSalt    = .FALSE.
     ExtState%GFED3      = .FALSE.
+    ExtState%GC_RnPbBe  = .FALSE.
 
-    ! ----------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Initialize all met arrays.
     ! This defines a nullified pointer for every met field and sets the
     ! corresponding DoUse flag to FALSE. The pointers to the met fields 
     ! need to be defined in the HEMCO-model interface routine.
-    ! ----------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     CALL ExtDat_Init( ExtState%U10M, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -369,43 +386,43 @@ CONTAINS
     IF ( ASSOCIATED(ExtState) ) THEN
 
        ! Cleanup arrays. Don't do deepclean, i.e. only nullify pointers!
-       CALL ExtDat_Cleanup( ExtState%U10M )
-       CALL ExtDat_Cleanup( ExtState%V10M )
-       CALL ExtDat_Cleanup( ExtState%ALBD )
-       CALL ExtDat_Cleanup( ExtState%WLI  )
-       CALL ExtDat_Cleanup( ExtState%TSURFK )
-       CALL ExtDat_Cleanup( ExtState%TSKIN )
-       CALL ExtDat_Cleanup( ExtState%GWETTOP )
-       CALL ExtDat_Cleanup( ExtState%SNOWHGT )
-       CALL ExtDat_Cleanup( ExtState%USTAR )
-       CALL ExtDat_Cleanup( ExtState%Z0 )
-       CALL ExtDat_Cleanup( ExtState%TROPP )
-       CALL ExtDat_Cleanup( ExtState%SUNCOSmid)
-       CALL ExtDat_Cleanup( ExtState%SUNCOSmid5)
-       CALL ExtDat_Cleanup( ExtState%SZAFACT )
-       CALL ExtDat_Cleanup( ExtState%PARDR )
-       CALL ExtDat_Cleanup( ExtState%PARDF )
-       CALL ExtDat_Cleanup( ExtState%RADSWG )
-       CALL ExtDat_Cleanup( ExtState%PSURF )
-       CALL ExtDat_Cleanup( ExtState%FRCLND )
-       CALL ExtDat_Cleanup( ExtState%CLDFRC )
-       CALL ExtDat_Cleanup( ExtState%GC_LAI )
-       CALL ExtDat_Cleanup( ExtState%GC_LAI_PM )
-       CALL ExtDat_Cleanup( ExtState%GC_LAI_CM )
-       CALL ExtDat_Cleanup( ExtState%GC_LAI_NM )
-       CALL ExtDat_Cleanup( ExtState%CLDTOPS )
-       CALL ExtDat_Cleanup( ExtState%PEDGE )
-       CALL ExtDat_Cleanup( ExtState%PCENTER )
-       CALL ExtDat_Cleanup( ExtState%SPHU )
-       CALL ExtDat_Cleanup( ExtState%TK )
-       CALL ExtDat_Cleanup( ExtState%AIR )
-       CALL ExtDat_Cleanup( ExtState%AIRVOL )
-       CALL ExtDat_Cleanup( ExtState%O3 )
-       CALL ExtDat_Cleanup( ExtState%NO )
-       CALL ExtDat_Cleanup( ExtState%NO2 )
-       CALL ExtDat_Cleanup( ExtState%HNO3 )
-       CALL ExtDat_Cleanup( ExtState%DRY_TOTN )
-       CALL ExtDat_Cleanup( ExtState%WET_TOTN )
+       CALL ExtDat_Cleanup( ExtState%U10M       )
+       CALL ExtDat_Cleanup( ExtState%V10M       )
+       CALL ExtDat_Cleanup( ExtState%ALBD       )
+       CALL ExtDat_Cleanup( ExtState%WLI        )
+       CALL ExtDat_Cleanup( ExtState%TSURFK     )
+       CALL ExtDat_Cleanup( ExtState%TSKIN      )
+       CALL ExtDat_Cleanup( ExtState%GWETTOP    )
+       CALL ExtDat_Cleanup( ExtState%SNOWHGT    )
+       CALL ExtDat_Cleanup( ExtState%USTAR      )
+       CALL ExtDat_Cleanup( ExtState%Z0         )
+       CALL ExtDat_Cleanup( ExtState%TROPP      )
+       CALL ExtDat_Cleanup( ExtState%SUNCOSmid  )
+       CALL ExtDat_Cleanup( ExtState%SUNCOSmid5 )
+       CALL ExtDat_Cleanup( ExtState%SZAFACT    )
+       CALL ExtDat_Cleanup( ExtState%PARDR      )
+       CALL ExtDat_Cleanup( ExtState%PARDF      )
+       CALL ExtDat_Cleanup( ExtState%RADSWG     )
+       CALL ExtDat_Cleanup( ExtState%PSURF      )
+       CALL ExtDat_Cleanup( ExtState%FRCLND     )
+       CALL ExtDat_Cleanup( ExtState%CLDFRC     )
+       CALL ExtDat_Cleanup( ExtState%GC_LAI     )
+       CALL ExtDat_Cleanup( ExtState%GC_LAI_PM  )
+       CALL ExtDat_Cleanup( ExtState%GC_LAI_CM  )
+       CALL ExtDat_Cleanup( ExtState%GC_LAI_NM  )
+       CALL ExtDat_Cleanup( ExtState%CLDTOPS    )
+       CALL ExtDat_Cleanup( ExtState%PEDGE      )
+       CALL ExtDat_Cleanup( ExtState%PCENTER    )
+       CALL ExtDat_Cleanup( ExtState%SPHU       )
+       CALL ExtDat_Cleanup( ExtState%TK         )
+       CALL ExtDat_Cleanup( ExtState%AIR        )
+       CALL ExtDat_Cleanup( ExtState%AIRVOL     )
+       CALL ExtDat_Cleanup( ExtState%O3         )
+       CALL ExtDat_Cleanup( ExtState%NO         )
+       CALL ExtDat_Cleanup( ExtState%NO2        )
+       CALL ExtDat_Cleanup( ExtState%HNO3       )
+       CALL ExtDat_Cleanup( ExtState%DRY_TOTN   )
+       CALL ExtDat_Cleanup( ExtState%WET_TOTN   )
 
        ExtState%DAYS_BTW_M => NULL()
        ExtState%DRYCOEFF   => NULL()

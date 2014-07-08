@@ -33,108 +33,111 @@
 ! \\
 ! !INTERFACE: 
 !
-      MODULE HCO_DIAGN_MOD 
+MODULE HCO_DIAGN_MOD 
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD
-      USE HCO_ARR_MOD
+  USE HCO_ERROR_MOD
+  USE HCO_ARR_MOD
 
-      IMPLICIT NONE
-      PRIVATE
+  IMPLICIT NONE
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: Diagn_Cleanup 
-      PUBLIC  :: Diagn_Create
-      PUBLIC  :: Diagn_Update 
-      PUBLIC  :: Diagn_Get
-      PUBLIC  :: Diagn_AutoFillLevelDefined
-      PUBLIC  :: Diagn_GetMaxResetFlag
-      PUBLIC  :: Diagn_SetDiagnPrefix
-      PUBLIC  :: Diagn_GetDiagnPrefix
+  PUBLIC  :: Diagn_Cleanup 
+  PUBLIC  :: Diagn_Create
+  PUBLIC  :: Diagn_Update 
+  PUBLIC  :: Diagn_Get
+  PUBLIC  :: Diagn_AutoFillLevelDefined
+  PUBLIC  :: Diagn_GetMaxResetFlag
+  PUBLIC  :: Diagn_SetDiagnPrefix
+  PUBLIC  :: Diagn_GetDiagnPrefix
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: DiagnCont_Init
-      PRIVATE :: DiagnCont_Find
-      PRIVATE :: DiagnCont_PrepareOutput
-      PRIVATE :: DiagnCont_Link_2D
-      PRIVATE :: DiagnCont_Link_3D
-      PRIVATE :: DiagnCont_Cleanup
+  PRIVATE :: DiagnCont_Init
+  PRIVATE :: DiagnCont_Find
+  PRIVATE :: DiagnCont_PrepareOutput
+  PRIVATE :: DiagnCont_Link_2D
+  PRIVATE :: DiagnCont_Link_3D
+  PRIVATE :: DiagnCont_Cleanup
 !
 ! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
-!
+!  19 Dec 2013 - C. Keller   - Initialization
+!  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation  
+!  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !MODULE TYPES:
+! !PRIVATE TYPES:
 !
-      ! Diagnostics container (DiagnCont)
-      TYPE, PUBLIC :: DiagnCont
-         CHARACTER(LEN= 31)          :: cName          ! Cont. name
-         INTEGER                     :: cID            ! Cont. ID
-         INTEGER                     :: ExtNr          ! Extension #
-         INTEGER                     :: Cat            ! Category 
-         INTEGER                     :: Hier           ! Hierarchy
-         INTEGER                     :: HcoID          ! HEMCO species ID
-         INTEGER                     :: AutoFill       ! fill automatically? 
+  !------------------------------------------------------------------------
+  ! DiagnCont: Diagnostics container derived type declaration
+  !------------------------------------------------------------------------
+  TYPE, PUBLIC :: DiagnCont
+     CHARACTER(LEN= 31)          :: cName          ! Cont. name
+     INTEGER                     :: cID            ! Cont. ID
+     INTEGER                     :: ExtNr          ! Extension #
+     INTEGER                     :: Cat            ! Category 
+     INTEGER                     :: Hier           ! Hierarchy
+     INTEGER                     :: HcoID          ! HEMCO species ID
+     INTEGER                     :: AutoFill       ! fill automatically? 
+     INTEGER                     :: SpaceDim       ! 1, 2, or 3
+     REAL(hp)                    :: Scalar         ! 1D scalar 
+     TYPE(Arr2D_HP),     POINTER :: Arr2D          ! 2D array
+     TYPE(Arr3D_HP),     POINTER :: Arr3D          ! 3D array
+     LOGICAL                     :: DtaIsPtr       ! Data is just a pointer?
+     INTEGER                     :: LevIdx         ! Level index to be used 
+     CHARACTER(LEN= 31)          :: OutUnit        ! Output unit 
+     LOGICAL                     :: PerArea        ! Is output unit per area?
+     REAL(hp)                    :: AreaScal       ! Scale factor for area
+     REAL(hp)                    :: MassScal       ! Scale factor for mass
+     INTEGER                     :: TimeAvg        ! Scale flag for time unit 
+     INTEGER                     :: Counter        ! time steps since 
+                                                   !  last output
+     INTEGER                     :: AvgFlag        ! Averaging flag for 
+                                                   !  non-standard units
+     INTEGER                     :: ResetFlag      ! Diagn. output frequency
+     INTEGER                     :: LastUpdateID   ! Last update time
+     TYPE(DiagnCont),    POINTER :: NextCont       ! Ptr to next item in list
+  END TYPE DiagnCont
 
-         INTEGER                     :: SpaceDim       ! 1, 2, or 3
-         REAL(hp)                    :: Scalar         ! 1D scalar 
-         TYPE(Arr2D_HP), POINTER     :: Arr2D          ! 2D array
-         TYPE(Arr3D_HP), POINTER     :: Arr3D          ! 3D array
-         LOGICAL                     :: DtaIsPtr       ! Data is just a pointer?
-         INTEGER                     :: LevIdx         ! Level index to be used 
-         CHARACTER(LEN= 31)          :: OutUnit        ! Output unit 
-         LOGICAL                     :: PerArea        ! Is output unit per area?
-         REAL(hp)                    :: AreaScal       ! Scale factor for area
-         REAL(hp)                    :: MassScal       ! Scale factor for mass
-         INTEGER                     :: TimeAvg        ! Scale flag for time unit 
-         INTEGER                     :: Counter        ! time steps since last output
-         INTEGER                     :: AvgFlag        ! Averaging flag for non-standard units
-         INTEGER                     :: ResetFlag      ! Diagn. output frequency
-         INTEGER                     :: LastUpdateID   ! Last update time
+  !------------------------------------------------------------------------
+  ! Other diagnostic variables
+  !------------------------------------------------------------------------
 
-         TYPE(DiagnCont), POINTER    :: NextCont
-      END TYPE DiagnCont
+  ! Diagnostics list 
+  TYPE(DiagnCont),       POINTER :: DiagnList => NULL()
 
-      ! Diagnostics list 
-      TYPE(DiagnCont), POINTER       :: DiagnList => NULL()
+  ! Number of diagnostics container
+  INTEGER                        :: nnDiagn = 0
 
-      ! Number of diagnostics container
-      INTEGER                        :: nnDiagn = 0
+  ! Highest reset flag by any of the containers 
+  INTEGER                        :: MaxResetFlag = -1 
 
-      ! Highest reset flag by any of the containers 
-      INTEGER                        :: MaxResetFlag = -1 
+  ! For AutoFill level flags 
+  LOGICAL                        :: AF_LevelDefined(4) = .FALSE.
 
-      ! For AutoFill level flags 
-      LOGICAL                        :: AF_LevelDefined(4) = .FALSE.
-
-      ! Parameter for averaging and summing non-standard data
-      INTEGER, PARAMETER             :: AvgFlagMean = 1
-      INTEGER, PARAMETER             :: AvgFlagSum  = 2
-
-      ! File prefix of HEMCO diagnostics. Will be expanded by date
-      ! & time (YYYYMMDDhm).
-      CHARACTER(LEN=255)             :: DiagnPrefix = 'HEMCO_Diagn'
+  ! File prefix of HEMCO diagnostics. Will be expanded by date
+  ! & time (YYYYMMDDhm).
+  CHARACTER(LEN=255)             :: DiagnPrefix = 'HEMCO_Diagn'
 !
-! !INTERFACES:
+! !DEFINED PARAMETERS:
 !
-      !----------------------------------------------------------------
-      ! MODULE ROUTINES follow below
-      !----------------------------------------------------------------
+  ! Parameter for averaging and summing non-standard data
+  INTEGER, PARAMETER             :: AvgFlagMean = 1
+  INTEGER, PARAMETER             :: AvgFlagSum  = 2
 
-      CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Diagn_Create
+! !IROUTINE: Diagn_Create
 !
 ! !DESCRIPTION: Subroutine Diagn\_Create creates a new diagnostics. This
 ! routine takes the following input arguments:
@@ -173,41 +176,55 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Diagn_Create( am_I_Root, HcoState,  cName,      &
-                               ExtNr,     Cat,       Hier,       &
-                               HcoID,     SpaceDim,  OutUnit,    &  
-                               WriteFreq, OutOper,   LevIdx,     &
-                               AutoFill,  Trgt2D,    Trgt3D,     &
-                               cID,       RC                      )
+  SUBROUTINE Diagn_Create( am_I_Root, HcoState,  cName,      &
+                           ExtNr,     Cat,       Hier,       &
+                           HcoID,     SpaceDim,  OutUnit,    &  
+                           WriteFreq, OutOper,   LevIdx,     &
+                           AutoFill,  Trgt2D,    Trgt3D,     &
+                           cID,       RC                      )
 !
 ! !USES:
 !
-      USE HCO_STATE_MOD,      ONLY : HCO_State
-      USE HCO_UNIT_MOD,       ONLY : HCO_UNIT_GetMassScal
-      USE HCO_UNIT_MOD,       ONLY : HCO_UNIT_GetAreaScal
-      USE HCO_UNIT_MOD,       ONLY : HCO_UNIT_GetTimeScal
-      USE HCO_CLOCK_MOD,      ONLY : ResetFlagAnnually, ResetFlagMonthly
-      USE HCO_CLOCK_MOD,      ONLY : ResetFlagDaily,    ResetFlagHourly
+    USE HCO_STATE_MOD, ONLY : HCO_State
+    USE HCO_UNIT_MOD,  ONLY : HCO_UNIT_GetMassScal
+    USE HCO_UNIT_MOD,  ONLY : HCO_UNIT_GetAreaScal
+    USE HCO_UNIT_MOD,  ONLY : HCO_UNIT_GetTimeScal
+    USE HCO_CLOCK_MOD, ONLY : ResetFlagAnnually, ResetFlagMonthly
+    USE HCO_CLOCK_MOD, ONLY : ResetFlagDaily,    ResetFlagHourly
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN   )           :: am_I_Root     ! Root CPU?
-      TYPE(HCO_State),  POINTER                 :: HcoState      ! HEMCO state object
-      CHARACTER(LEN=*), INTENT(IN   )           :: cName         ! Diagnostics name
-      INTEGER,          INTENT(IN   )           :: ExtNr         ! Extension number
-      INTEGER,          INTENT(IN   )           :: Cat           ! Category 
-      INTEGER,          INTENT(IN   )           :: Hier          ! Hierarchy 
-      INTEGER,          INTENT(IN   )           :: HcoID         ! HEMCO species ID 
-      INTEGER,          INTENT(IN   )           :: SpaceDim      ! Spatial dimension 
-      CHARACTER(LEN=*), INTENT(IN   )           :: OutUnit       ! Output units
-      CHARACTER(LEN=*), INTENT(IN   )           :: WriteFreq     ! Write out frequency
-      CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: OutOper       ! Output operation 
-      INTEGER,          INTENT(IN   ), OPTIONAL :: LevIdx        ! Level index to use
-      INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill      ! 1=fill automatically; 0=don't 
-      REAL(hp),         INTENT(IN   ), OPTIONAL :: Trgt2D(:,:)   ! 2D target data
-      REAL(hp),         INTENT(IN   ), OPTIONAL :: Trgt3D(:,:,:) ! 3D target data
-      INTEGER,          INTENT(  OUT)           :: cID           ! Assigned container ID
-      INTEGER,          INTENT(INOUT)           :: RC            ! Return code 
+    LOGICAL,          INTENT(IN   )           :: am_I_Root     ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState      ! HEMCO state object
+    CHARACTER(LEN=*), INTENT(IN   )           :: cName         ! Diagnostics 
+                                                               !  name
+    INTEGER,          INTENT(IN   )           :: ExtNr         ! Extension #    
+    INTEGER,          INTENT(IN   )           :: Cat           ! Category 
+    INTEGER,          INTENT(IN   )           :: Hier          ! Hierarchy 
+    INTEGER,          INTENT(IN   )           :: HcoID         ! HEMCO species 
+                                                               !  ID # 
+    INTEGER,          INTENT(IN   )           :: SpaceDim      ! Spatial 
+                                                               !  dimension 
+    CHARACTER(LEN=*), INTENT(IN   )           :: OutUnit       ! Output units
+    CHARACTER(LEN=*), INTENT(IN   )           :: WriteFreq     ! Write out 
+                                                               !  frequency
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: OutOper       ! Output 
+                                                               !  operation 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: LevIdx        ! Level index 
+                                                               !  to use
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill      ! 1=auto fill
+                                                               ! 0=don't 
+    REAL(hp),         INTENT(IN   ), OPTIONAL :: Trgt2D(:,:)   ! 2D target data
+    REAL(hp),         INTENT(IN   ), OPTIONAL :: Trgt3D(:,:,:) ! 3D target data
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)           :: cID           ! Assigned 
+                                                               !  container ID
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC            ! Return code 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -218,246 +235,249 @@
 !
 ! !LOCAL VARIABLES:
 !
-      CHARACTER(LEN=255)       :: LOC, MSG
-      TYPE(DiagnCont), POINTER :: ThisDiagn => NULL()
-      TYPE(DiagnCont), POINTER :: TmpDiagn  => NULL()
-      INTEGER                  :: ThiscID
-      REAL(hp)                 :: Scal
-      LOGICAL                  :: ForceMean, FOUND
+    ! Pointers
+    TYPE(DiagnCont), POINTER :: ThisDiagn => NULL()
+    TYPE(DiagnCont), POINTER :: TmpDiagn  => NULL()
 
-      !======================================================================
-      ! Diagn_Create begins here!
-      !======================================================================
+    ! Scalars
+    CHARACTER(LEN=255)       :: LOC, MSG
+    INTEGER                  :: ThiscID
+    REAL(hp)                 :: Scal
+    LOGICAL                  :: ForceMean, FOUND
 
-      ! Init
-      LOC = 'Diagn_Create (HCO_DIAGN_MOD.F90)'
+    !======================================================================
+    ! Diagn_Create begins here!
+    !======================================================================
 
-      !----------------------------------------------------------------------
-      ! Initalize diagnostics container. This will automatically add the
-      ! container to the diagnostics list.
-      !----------------------------------------------------------------------
-      CALL DiagnCont_Init ( ThisDiagn, ThiscID )
+    ! Init
+    LOC = 'Diagn_Create (HCO_DIAGN_MOD.F90)'
 
-      !----------------------------------------------------------------------
-      ! Pass input variables
-      !----------------------------------------------------------------------
-      ThisDiagn%cName    = cName
-      ThisDiagn%ExtNr    = ExtNr
-      ThisDiagn%Cat      = Cat
-      ThisDiagn%Hier     = Hier
-      ThisDiagn%HcoID    = HcoID
-      ThisDiagn%SpaceDim = SpaceDim
-      ThisDiagn%OutUnit  = TRIM(OutUnit)
-      IF ( PRESENT(LevIdx)   ) ThisDiagn%LevIdx   = LevIdx
-      IF ( PRESENT(AutoFill) ) ThisDiagn%AutoFill = AutoFill 
+    !----------------------------------------------------------------------
+    ! Initalize diagnostics container. This will automatically add the
+    ! container to the diagnostics list.
+    !----------------------------------------------------------------------
+    CALL DiagnCont_Init( ThisDiagn, ThiscID )
 
-      !----------------------------------------------------------------------
-      ! Eventually link to data array. This will disable all time averaging,
-      ! unit conversions, etc. (data will just be returned as is). 
-      !----------------------------------------------------------------------
-      IF ( PRESENT(Trgt2D) ) THEN
-         CALL DiagnCont_Link_2D ( am_I_Root, HcoState, ThisDiagn, Trgt2D, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-      ENDIF
-      IF ( PRESENT(Trgt3D) ) THEN
-         CALL DiagnCont_Link_3D ( am_I_Root, HcoState, ThisDiagn, Trgt3D, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-      ENDIF
+    !----------------------------------------------------------------------
+    ! Pass input variables
+    !----------------------------------------------------------------------
+    ThisDiagn%cName    = cName
+    ThisDiagn%ExtNr    = ExtNr
+    ThisDiagn%Cat      = Cat
+    ThisDiagn%Hier     = Hier
+    ThisDiagn%HcoID    = HcoID
+    ThisDiagn%SpaceDim = SpaceDim
+    ThisDiagn%OutUnit  = TRIM(OutUnit)
+    IF ( PRESENT(LevIdx)   ) ThisDiagn%LevIdx   = LevIdx
+    IF ( PRESENT(AutoFill) ) ThisDiagn%AutoFill = AutoFill 
 
-      !----------------------------------------------------------------------
-      ! Determine output frequency. This is the frequency with which the
-      ! diagnostics will be written into output. 
-      !----------------------------------------------------------------------
+    !----------------------------------------------------------------------
+    ! Eventually link to data array. This will disable all time averaging,
+    ! unit conversions, etc. (data will just be returned as is). 
+    !----------------------------------------------------------------------
+    IF ( PRESENT(Trgt2D) ) THEN
+       CALL DiagnCont_Link_2D( am_I_Root, HcoState, ThisDiagn, Trgt2D, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+    IF ( PRESENT(Trgt3D) ) THEN
+       CALL DiagnCont_Link_3D( am_I_Root, HcoState, ThisDiagn, Trgt3D, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 
-      ! Write out every Year
-      IF ( TRIM(WriteFreq) == 'Annually' ) THEN
-         ThisDiagn%ResetFlag = ResetFlagAnnually 
+    !----------------------------------------------------------------------
+    ! Determine output frequency. This is the frequency with which the
+    ! diagnostics will be written into output. 
+    !----------------------------------------------------------------------
 
-      ! Write out every month
-      ELSEIF ( TRIM(WriteFreq) == 'Monthly' ) THEN
-         ThisDiagn%ResetFlag = ResetFlagMonthly
+    ! Write out every Year
+    IF ( TRIM(WriteFreq) == 'Annually' ) THEN
+       ThisDiagn%ResetFlag = ResetFlagAnnually 
 
-      ! Write out every day
-      ELSEIF ( TRIM(WriteFreq) == 'Daily' ) THEN
-         ThisDiagn%ResetFlag = ResetFlagDaily
-
-      ! Write out every hour
-      ELSEIF ( TRIM(WriteFreq) == 'Hourly' ) THEN
-         ThisDiagn%ResetFlag = ResetFlagHourly
-
-      ! Write out only at end of simulation
-      ELSEIF ( TRIM(WriteFreq) == 'End' ) THEN
-         ThisDiagn%ResetFlag = -1
-
-      ! Error otherwise
-      ELSE
-         MSG = 'Illegal averaging interval: ' // TRIM(WriteFreq)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
-
-      ! Update module variable MaxResetFlag. This variable defines the 
-      ! highest reset flag used by any of the diagnostics container.
-      MaxResetFlag = MAX( MaxResetFlag, ThisDiagn%ResetFlag )
-
-      ! Update module variable AF_LevelDefined. For all AutoFill diagnostics,
-      ! we store whether or not there is (at least one) diagnostics container
-      ! defined at species level, ExtNr level, etc. 
-      IF ( ThisDiagn%AutoFill == 1 ) THEN
-
-         ! At species level: no ExtNr defined
-         IF ( ThisDiagn%ExtNr < 0 ) THEN
-            AF_LevelDefined(1) = .TRUE.
-     
-         ! At ExtNr level: no category defined
-         ELSEIF ( ThisDiagn%Cat < 0 ) THEN
-            AF_LevelDefined(2) = .TRUE.
-
-         ! At category level: no hierarchy defined
-         ELSEIF ( ThisDiagn%Hier < 0 ) THEN
-            AF_LevelDefined(3) = .TRUE.
-
-         ! At hierarchy level: all defined
-         ELSE
-            AF_LevelDefined(4) = .TRUE.
-         ENDIF
-
-      ENDIF
-
-      !----------------------------------------------------------------------
-      ! Determine scale factors to be applied to data. These values are
-      ! determined from the specified output unit, assuming that the original
-      ! HEMCO data is in kg/m2/s. If the optional argument OutOper is set,
-      ! the output unit is ignored and the specified operation ('mean' or 
-      ! 'sum') is performed. This is particular useful for data with 
-      ! non-standard units, e.g. unitless data. 
-      ! Don't need to be done for pointer data, which ignores all time 
-      ! averaging, unit conversions, etc.
-      !----------------------------------------------------------------------
-      IF ( .NOT. ThisDiagn%DtaIsPtr ) THEN
- 
-         ! Enforce specified output operator 
-         IF ( PRESENT(OutOper) ) THEN
-            IF ( TRIM(OutOper) == 'Mean' ) THEN
-               ThisDiagn%AvgFlag = AvgFlagMean
-            ELSEIF ( TRIM(OutOper) == 'Sum' ) THEN
-               ThisDiagn%AvgFlag = AvgFlagSum
-            ELSE
-               MSG = 'Illegal output operator: ' // TRIM(OutOper)
-               CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-            ENDIF
-   
-         ! If OutOper is not set, determine scale factors from output unit:
-         ELSE
-   
-            !----------------------------------------------------------------
-            ! Scale factor for mass. This determines the scale factor from 
-            ! HEMCO mass unit (kg) to the desired output unit. 
-            ! HCO_UNIT_MassCal returns the mass scale factor from OutUnit to
-            ! HEMCO unit, hence need to invert this value!
-            !----------------------------------------------------------------
-            Scal = HCO_UNIT_GetMassScal(                          &
-                      unt         = OutUnit,                      &
-                      MW_IN       = HcoState%Spc(HcoID)%MW_g,     &
-                      MW_OUT      = HcoState%Spc(HcoID)%EmMW_g,   &
-                      MOLEC_RATIO = HcoState%Spc(HcoID)%MolecRatio )
-            IF ( Scal <= 0.0_hp ) THEN
-               MSG = 'Cannot find mass scale factor for unit '//TRIM(OutUnit)
-               CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-               RETURN
-            ENDIF
-            ThisDiagn%MassScal = 1.0_hp / Scal
-      
-            !----------------------------------------------------------------
-            ! Scale factor for area. This determines the scale factor from 
-            ! HEMCO area unit (m2) to the desired output unit. 
-            ! HCO_UNIT_AreaScal returns the area scale factor from OutUnit to
-            ! HEMCO unit, hence need to invert this value!
-            ! Returns a negative scale factor if no valid area unit is found 
-            ! in OutUnit. In this case, set PerArea to False so that the final 
-            ! diagnostics will be multiplied by the surface grid box area!
-            !----------------------------------------------------------------
-            Scal =  HCO_UNIT_GetAreaScal( OutUnit )
-            IF ( Scal < 0.0_hp ) THEN
-               ThisDiagn%PerArea  = .FALSE.
-            ELSE
-               ThisDiagn%AreaScal = 1.0_hp / Scal
-            ENDIF
-      
-            !----------------------------------------------------------------
-            ! Determine the normalization factors applied to the diagnostics 
-            ! before they are written out. Diagnostics are always stored 
-            ! internally in units of kg/m2, and the following flags make sure 
-            ! that they are normalized by the desired time interval, e.g. to 
-            ! get units of per second, per hour, etc.
-            !----------------------------------------------------------------
-      
-            ! HCO_UNIT_GetTimeScal returns 1.0 for units of per second, 1/3600
-            ! for per hour, etc. Returns -999.0 if no time unit could be found.
-            Scal = HCO_UNIT_GetTimeScal( OutUnit, 1, 2001 )
-            Scal = 1.0_dp / Scal
-        
-            ! No time unit found: don't enable any switch
-            IF ( Scal < 0.0_dp ) THEN 
-               ! Nothing to do
+    ! Write out every month
+    ELSEIF ( TRIM(WriteFreq) == 'Monthly' ) THEN
+       ThisDiagn%ResetFlag = ResetFlagMonthly
          
-            ! Normalize by seconds
-            ELSEIF ( Scal == 1.0_dp ) THEN
-               ThisDiagn%TimeAvg = 1 
+    ! Write out every day
+    ELSEIF ( TRIM(WriteFreq) == 'Daily' ) THEN
+       ThisDiagn%ResetFlag = ResetFlagDaily
+
+    ! Write out every hour
+    ELSEIF ( TRIM(WriteFreq) == 'Hourly' ) THEN
+       ThisDiagn%ResetFlag = ResetFlagHourly
+
+    ! Write out only at end of simulation
+    ELSEIF ( TRIM(WriteFreq) == 'End' ) THEN
+       ThisDiagn%ResetFlag = -1
+
+    ! Error otherwise
+    ELSE
+       MSG = 'Illegal averaging interval: ' // TRIM(WriteFreq)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! Update module variable MaxResetFlag. This variable defines the 
+    ! highest reset flag used by any of the diagnostics container.
+    MaxResetFlag = MAX( MaxResetFlag, ThisDiagn%ResetFlag )
+
+    ! Update module variable AF_LevelDefined. For all AutoFill diagnostics,
+    ! we store whether or not there is (at least one) diagnostics container
+    ! defined at species level, ExtNr level, etc. 
+    IF ( ThisDiagn%AutoFill == 1 ) THEN
+
+       ! At species level: no ExtNr defined
+       IF ( ThisDiagn%ExtNr < 0 ) THEN
+          AF_LevelDefined(1) = .TRUE.
+     
+       ! At ExtNr level: no category defined
+       ELSEIF ( ThisDiagn%Cat < 0 ) THEN
+          AF_LevelDefined(2) = .TRUE.
+
+       ! At category level: no hierarchy defined
+       ELSEIF ( ThisDiagn%Hier < 0 ) THEN
+          AF_LevelDefined(3) = .TRUE.
+
+       ! At hierarchy level: all defined
+       ELSE
+          AF_LevelDefined(4) = .TRUE.
+       ENDIF
+
+    ENDIF
+
+    !----------------------------------------------------------------------
+    ! Determine scale factors to be applied to data. These values are
+    ! determined from the specified output unit, assuming that the original
+    ! HEMCO data is in kg/m2/s. If the optional argument OutOper is set,
+    ! the output unit is ignored and the specified operation ('mean' or 
+    ! 'sum') is performed. This is particular useful for data with 
+    ! non-standard units, e.g. unitless data. 
+    ! Don't need to be done for pointer data, which ignores all time 
+    ! averaging, unit conversions, etc.
+      !----------------------------------------------------------------------
+    IF ( .NOT. ThisDiagn%DtaIsPtr ) THEN
+ 
+       ! Enforce specified output operator 
+       IF ( PRESENT(OutOper) ) THEN
+          IF ( TRIM(OutOper) == 'Mean' ) THEN
+             ThisDiagn%AvgFlag = AvgFlagMean
+          ELSEIF ( TRIM(OutOper) == 'Sum' ) THEN
+             ThisDiagn%AvgFlag = AvgFlagSum
+          ELSE
+             MSG = 'Illegal output operator: ' // TRIM(OutOper)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          ENDIF
+   
+       ! If OutOper is not set, determine scale factors from output unit:
+       ELSE
+   
+          !----------------------------------------------------------------
+          ! Scale factor for mass. This determines the scale factor from 
+          ! HEMCO mass unit (kg) to the desired output unit. 
+          ! HCO_UNIT_MassCal returns the mass scale factor from OutUnit to
+          ! HEMCO unit, hence need to invert this value!
+          !----------------------------------------------------------------
+          Scal = HCO_UNIT_GetMassScal(                          &
+                    unt         = OutUnit,                      &
+                    MW_IN       = HcoState%Spc(HcoID)%MW_g,     &
+                    MW_OUT      = HcoState%Spc(HcoID)%EmMW_g,   &
+                    MOLEC_RATIO = HcoState%Spc(HcoID)%MolecRatio )
+          IF ( Scal <= 0.0_hp ) THEN
+             MSG = 'Cannot find mass scale factor for unit '//TRIM(OutUnit)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          ThisDiagn%MassScal = 1.0_hp / Scal
+      
+          !----------------------------------------------------------------
+          ! Scale factor for area. This determines the scale factor from 
+          ! HEMCO area unit (m2) to the desired output unit. 
+          ! HCO_UNIT_AreaScal returns the area scale factor from OutUnit to
+          ! HEMCO unit, hence need to invert this value!
+          ! Returns a negative scale factor if no valid area unit is found 
+          ! in OutUnit. In this case, set PerArea to False so that the final 
+          ! diagnostics will be multiplied by the surface grid box area!
+          !----------------------------------------------------------------
+          Scal =  HCO_UNIT_GetAreaScal( OutUnit )
+          IF ( Scal < 0.0_hp ) THEN
+             ThisDiagn%PerArea  = .FALSE.
+          ELSE
+             ThisDiagn%AreaScal = 1.0_hp / Scal
+          ENDIF
+      
+          !----------------------------------------------------------------
+          ! Determine the normalization factors applied to the diagnostics 
+          ! before they are written out. Diagnostics are always stored 
+          ! internally in units of kg/m2, and the following flags make sure 
+          ! that they are normalized by the desired time interval, e.g. to 
+          ! get units of per second, per hour, etc.
+          !----------------------------------------------------------------
+      
+          ! HCO_UNIT_GetTimeScal returns 1.0 for units of per second, 1/3600
+          ! for per hour, etc. Returns -999.0 if no time unit could be found.
+          Scal = HCO_UNIT_GetTimeScal( OutUnit, 1, 2001 )
+          Scal = 1.0_dp / Scal
+        
+          ! No time unit found: don't enable any switch
+          IF ( Scal < 0.0_dp ) THEN 
+             ! Nothing to do
+         
+          ! Normalize by seconds
+          ELSEIF ( Scal == 1.0_dp ) THEN
+             ThisDiagn%TimeAvg = 1 
                   
-            ! Normalize by hours 
-            ELSEIF ( Scal == 3600.0_dp ) THEN
-               ThisDiagn%TimeAvg = 2 
+          ! Normalize by hours 
+          ELSEIF ( Scal == 3600.0_dp ) THEN
+             ThisDiagn%TimeAvg = 2 
       
-            ! Normalize by days 
-            ELSEIF ( Scal == 86400.0_dp ) THEN
-               ThisDiagn%TimeAvg = 3 
+          ! Normalize by days 
+          ELSEIF ( Scal == 86400.0_dp ) THEN
+             ThisDiagn%TimeAvg = 3 
       
-            ! Normalize by months 
-            ELSEIF ( Scal == 2678400.0_dp ) THEN
-               ThisDiagn%TimeAvg = 4 
+          ! Normalize by months 
+          ELSEIF ( Scal == 2678400.0_dp ) THEN
+             ThisDiagn%TimeAvg = 4 
       
-            ! Normalize by years 
-            ELSEIF ( Scal == 31536000.0_dp ) THEN
-               ThisDiagn%TimeAvg = 5 
+          ! Normalize by years 
+          ELSEIF ( Scal == 31536000.0_dp ) THEN
+             ThisDiagn%TimeAvg = 5 
       
-            ! Error otherwise
-            ELSE
-               MSG = 'Cannot determine time normalization: '//TRIM(OutUnit)
-               CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-               RETURN
-            ENDIF
+          ! Error otherwise
+          ELSE
+             MSG = 'Cannot determine time normalization: '//TRIM(OutUnit)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
    
-         ENDIF ! OutOper not set
-      ENDIF ! DtaIsPtr
+       ENDIF ! OutOper not set
+    ENDIF ! DtaIsPtr
    
-      !-----------------------------------------------------------------------
-      ! Make sure that there is no duplicate entry (for AutoFill only)
-      !-----------------------------------------------------------------------
-      CALL DiagnCont_Find ( -1, ThisDiagn%ExtNr, ThisDiagn%Cat,     &
-                            ThisDiagn%Hier, ThisDiagn%HcoID, '', 1, &
-                            FOUND, TmpDiagn )
-      IF ( FOUND ) THEN
-         WRITE(MSG,*)'Duplicate diagnostics (ExtNr, Cat, Hier, HcoID)',&
+    !-----------------------------------------------------------------------
+    ! Make sure that there is no duplicate entry (for AutoFill only)
+    !-----------------------------------------------------------------------
+    CALL DiagnCont_Find( -1, ThisDiagn%ExtNr, ThisDiagn%Cat,     &
+                             ThisDiagn%Hier, ThisDiagn%HcoID, '', 1, &
+                             FOUND, TmpDiagn )
+    IF ( FOUND ) THEN
+       WRITE(MSG,*)'Duplicate diagnostics (ExtNr, Cat, Hier, HcoID)',&
             ThisDiagn%ExtNr,ThisDiagn%Cat,ThisDiagn%Hier,ThisDiagn%HcoID
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
-      !-----------------------------------------------------------------------
-      ! Add to diagnostics list. Insert at the beginning of the list.
-      !-----------------------------------------------------------------------
-      IF ( nnDiagn > 1 ) THEN
-         ThisDiagn%NextCont => DiagnList
-      ENDIF
-      DiagnList => ThisDiagn
+    !-----------------------------------------------------------------------
+    ! Add to diagnostics list. Insert at the beginning of the list.
+    !-----------------------------------------------------------------------
+    IF ( nnDiagn > 1 ) THEN
+       ThisDiagn%NextCont => DiagnList
+    ENDIF
+    DiagnList => ThisDiagn
 
-      ! Return
-      cID = ThiscID
-      RC  = HCO_SUCCESS
-      ThisDiagn => NULL()
+    ! Return
+    cID = ThiscID
+    RC  = HCO_SUCCESS
+    ThisDiagn => NULL()
 
-      END SUBROUTINE Diagn_Create
+  END SUBROUTINE Diagn_Create
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
@@ -487,34 +507,43 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Diagn_Update( am_I_Root, HcoState, cID,     cName,   &
-                               ExtNr,     Cat,      Hier,    HcoID,   &
-                               AutoFill,  Scalar,   Array2D, Array3D, &
-                               PosOnly,   RC ) 
+  SUBROUTINE Diagn_Update( am_I_Root, HcoState, cID,     cName,   &
+                           ExtNr,     Cat,      Hier,    HcoID,   &
+                           AutoFill,  Scalar,   Array2D, Array3D, &
+                           PosOnly,   RC ) 
 !
 ! !USES:
 !
-      USE HCO_STATE_MOD,       ONLY : HCO_State
-      USE HCO_ARR_MOD,         ONLY : HCO_ArrAssert
-      USE HCO_CLOCK_MOD,       ONLY : HcoClock_GetMinResetFlag
-      USE HCO_CLOCK_MOD,       ONLY : HcoClock_Get
+    USE HCO_STATE_MOD, ONLY : HCO_State
+    USE HCO_ARR_MOD,   ONLY : HCO_ArrAssert
+    USE HCO_CLOCK_MOD, ONLY : HcoClock_GetMinResetFlag
+    USE HCO_CLOCK_MOD, ONLY : HcoClock_Get
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
-      TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state object
-      INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned container ID
-      CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics name
-      INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension number
-      INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
-      INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
-      INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species ID 
-      INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; -1=either 
-      REAL(hp),         INTENT(IN   ), OPTIONAL :: Scalar         ! 1D scalar 
-      REAL(hp),         POINTER,       OPTIONAL :: Array2D(:,:)   ! 2D array 
-      REAL(hp),         POINTER,       OPTIONAL :: Array3D(:,:,:) ! 3D array 
-      LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals >= 0?
-      INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state 
+                                                                !  object
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned 
+                                                                !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! Diagnostics 
+                                                                !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr          ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat            ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier           ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID          ! HEMCO species
+                                                                !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 1=yes; 0=no; 
+                                                                ! -1=either 
+    REAL(hp),         INTENT(IN   ), OPTIONAL :: Scalar         ! 1D scalar 
+    REAL(hp),         POINTER,       OPTIONAL :: Array2D(:,:)   ! 2D array 
+    REAL(hp),         POINTER,       OPTIONAL :: Array3D(:,:,:) ! 3D array 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly        ! Use only vals
+                                                                !  >= 0?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -525,309 +554,308 @@
 !
 ! !LOCAL VARIABLES:
 !
-      CHARACTER(LEN=255)       :: LOC, MSG
-      TYPE(DiagnCont), POINTER :: ThisDiagn => NULL()
-      REAL(hp)                 :: Fact
-      REAL(hp)                 :: Tmp
-      CHARACTER(LEN=31)        :: DgnName
-      INTEGER                  :: I, J, L
-      INTEGER                  :: DgncID,  DgnExtNr, DgnCat
-      INTEGER                  :: DgnHier, DgnHcoID
-      INTEGER                  :: MinResetFlag, ThisUpdateID
-      INTEGER                  :: AutoFlag
-      LOGICAL                  :: Found, OnlyPos, VertSum
-      REAL(hp),        POINTER :: Arr2D(:,:) => NULL()
+    ! Pointers
+    TYPE(DiagnCont), POINTER :: ThisDiagn => NULL()
+    REAL(hp),        POINTER :: Arr2D(:,:) => NULL()
 
-      !======================================================================
-      ! Diagn_Update begins here!
-      !======================================================================
+    ! Scalars
+    CHARACTER(LEN=255)       :: LOC, MSG
+    REAL(hp)                 :: Fact
+    REAL(hp)                 :: Tmp
+    CHARACTER(LEN=31)        :: DgnName
+    INTEGER                  :: I, J, L
+    INTEGER                  :: DgncID,  DgnExtNr, DgnCat
+    INTEGER                  :: DgnHier, DgnHcoID
+    INTEGER                  :: MinResetFlag, ThisUpdateID
+    INTEGER                  :: AutoFlag
+    LOGICAL                  :: Found, OnlyPos, VertSum
 
-      ! Init
-      LOC = 'Diagn_Update (HCO_DIAGN_MOD.F90)'
-      RC  = HCO_SUCCESS
+    !======================================================================
+    ! Diagn_Update begins here!
+    !======================================================================
 
-      !----------------------------------------------------------------------
-      ! Make sure all attributes are defined
-      !----------------------------------------------------------------------
-      DgnName  = ''
-      DgncID   = -1
-      DgnExtNr = -1
-      DgnCat   = -1
-      DgnHier  = -1
-      DgnHcoID = -1
-      OnlyPos  = .FALSE.
-      AutoFlag = -1
-      IF ( PRESENT(cName   ) ) DgnName  = cName
-      IF ( PRESENT(cID     ) ) DgncID   = cID  
-      IF ( PRESENT(ExtNr   ) ) DgnExtNr = ExtNr
-      IF ( PRESENT(Cat     ) ) DgnCat   = Cat  
-      IF ( PRESENT(Hier    ) ) DgnHier  = Hier 
-      IF ( PRESENT(HcoID   ) ) DgnHcoID = HcoID
-      IF ( PRESENT(PosOnly ) ) OnlyPos  = PosOnly
-      IF ( PRESENT(AutoFill) ) AutoFlag = AutoFill
+    ! Init
+    LOC = 'Diagn_Update (HCO_DIAGN_MOD.F90)'
+    RC  = HCO_SUCCESS
 
-      !----------------------------------------------------------------------
-      ! Find the wanted container. Return if container does not exist.
-      !----------------------------------------------------------------------
-      CALL DiagnCont_Find ( DgncID,   DgnExtNr, DgnCat,   DgnHier, &
-                            DgnHcoID, DgnName,  AutoFlag, Found,   &
-                            ThisDiagn                               ) 
-      IF ( .NOT. Found ) THEN
-         RETURN
-      ENDIF
+    !----------------------------------------------------------------------
+    ! Make sure all attributes are defined
+    !----------------------------------------------------------------------
+    DgnName  = ''
+    DgncID   = -1
+    DgnExtNr = -1
+    DgnCat   = -1
+    DgnHier  = -1
+    DgnHcoID = -1
+    OnlyPos  = .FALSE.
+    AutoFlag = -1
+    IF ( PRESENT(cName   ) ) DgnName  = cName
+    IF ( PRESENT(cID     ) ) DgncID   = cID  
+    IF ( PRESENT(ExtNr   ) ) DgnExtNr = ExtNr
+    IF ( PRESENT(Cat     ) ) DgnCat   = Cat  
+    IF ( PRESENT(Hier    ) ) DgnHier  = Hier 
+    IF ( PRESENT(HcoID   ) ) DgnHcoID = HcoID
+    IF ( PRESENT(PosOnly ) ) OnlyPos  = PosOnly
+    IF ( PRESENT(AutoFill) ) AutoFlag = AutoFill
 
-      ! If container holds just a pointer to external data, don't do
-      ! anything!
-      IF ( ThisDiagn%DtaIsPtr ) THEN
-         MSG = 'You try to update a container that holds a '  // &
-               'pointer to data - this should never happen! ' // &
-               TRIM(ThisDiagn%cName)
-         CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
+    !----------------------------------------------------------------------
+    ! Find the wanted container. Return if container does not exist.
+    !----------------------------------------------------------------------
+    CALL DiagnCont_Find( DgncID,   DgnExtNr, DgnCat,   DgnHier, &
+                         DgnHcoID, DgnName,  AutoFlag, Found,   &
+                         ThisDiagn                               ) 
+    IF ( .NOT. Found ) THEN
+       RETURN
+    ENDIF
 
-      ! Get current minimum reset flag as well as the update time ID.
-      MinResetFlag = HcoClock_GetMinResetFlag()
-      CALL HcoClock_Get ( nSteps = ThisUpdateID, RC=RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! If container holds just a pointer to external data, don't do
+    ! anything!
+    IF ( ThisDiagn%DtaIsPtr ) THEN
+       MSG = 'You try to update a container that holds a '  // &
+            'pointer to data - this should never happen! ' // &
+            TRIM(ThisDiagn%cName)
+       CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
-      ! Sanity check: if this diagnostics is at the end of its output
-      ! interval, the counter should be zero. Otherwise, the content
-      ! of this diagnostics has not been passed to the output yet (via
-      ! routine Diagn\_Get)!
-      IF ( ThisDiagn%ResetFlag >= MinResetFlag .AND. &
-           ThisDiagn%Counter   /= 0                   ) THEN
-         MSG = 'Diagnostics is at end of its output interval ' // &
-               'but has not yet been passed to output: '       // &
-               TRIM(ThisDiagn%cName)
-         CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-      ENDIF
+    ! Get current minimum reset flag as well as the update time ID.
+    MinResetFlag = HcoClock_GetMinResetFlag()
+    CALL HcoClock_Get( nSteps = ThisUpdateID, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      !----------------------------------------------------------------------
-      ! Determine scale factor to be applied to data. Diagnostics are
-      ! stored in kg/m2, hence need to multiply HEMCO emissions, which
-      ! are in kg/m2/s, by emission time step. Don't do anything for 
-      ! data with non-standard units (e.g. unitless factors) or pointers.
-      ! Note: conversion to final output units is done when writing out
-      ! the diagnostics.
-      !----------------------------------------------------------------------
-      IF ( ThisDiagn%AvgFlag > 0 ) THEN
-         Fact = 1.0_hp 
-      ELSE
-         Fact = HcoState%TS_EMIS
-      ENDIF
+    ! Sanity check: if this diagnostics is at the end of its output
+    ! interval, the counter should be zero. Otherwise, the content
+    ! of this diagnostics has not been passed to the output yet (via
+    ! routine Diagn\_Get)!
+    IF ( ThisDiagn%ResetFlag >= MinResetFlag .AND. &
+         ThisDiagn%Counter   /= 0                   ) THEN
+       MSG = 'Diagnostics is at end of its output interval ' // &
+             'but has not yet been passed to output: '       // &
+             TRIM(ThisDiagn%cName)
+       CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+    ENDIF
+
+    !----------------------------------------------------------------------
+    ! Determine scale factor to be applied to data. Diagnostics are
+    ! stored in kg/m2, hence need to multiply HEMCO emissions, which
+    ! are in kg/m2/s, by emission time step. Don't do anything for 
+    ! data with non-standard units (e.g. unitless factors) or pointers.
+    ! Note: conversion to final output units is done when writing out
+    ! the diagnostics.
+    !----------------------------------------------------------------------
+    IF ( ThisDiagn%AvgFlag > 0 ) THEN
+       Fact = 1.0_hp 
+    ELSE
+       Fact = HcoState%TS_EMIS
+    ENDIF
      
-      !----------------------------------------------------------------------
-      ! To add 3D array
-      !----------------------------------------------------------------------
-      IF ( ThisDiagn%SpaceDim == 3 ) THEN
+    !----------------------------------------------------------------------
+    ! To add 3D array
+    !----------------------------------------------------------------------
+    IF ( ThisDiagn%SpaceDim == 3 ) THEN
 
-         ! Make sure dimensions agree and diagnostics array is allocated
-         IF ( .NOT. PRESENT(Array3D) ) THEN
-            MSG = 'Diagnostics must be 3D: ' // TRIM(ThisDiagn%cName)
-            CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-            RETURN
-         ENDIF
-         CALL HCO_ArrAssert ( ThisDiagn%Arr3D, HcoState%NX, &
-                              HcoState%NY,     HcoState%NZ, RC ) 
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+       ! Make sure dimensions agree and diagnostics array is allocated
+       IF ( .NOT. PRESENT(Array3D) ) THEN
+          MSG = 'Diagnostics must be 3D: ' // TRIM(ThisDiagn%cName)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       CALL HCO_ArrAssert( ThisDiagn%Arr3D, HcoState%NX, &
+                           HcoState%NY,     HcoState%NZ, RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
          
-         ! Pass array to diagnostics: ignore existing data if counter 
-         ! is zero, add to it otherwise.
-         IF ( ThisDiagn%Counter == 0 ) THEN
-            IF ( OnlyPos ) THEN
-               WHERE ( Array3D >= 0.0_hp )
-                  ThisDiagn%Arr3D%Val = Array3D * Fact
-               END WHERE
-            ELSE
-               ThisDiagn%Arr3D%Val = Array3D * Fact
-            ENDIF
-         ELSE
-            IF ( OnlyPos ) THEN
-               WHERE ( Array3D >= 0.0_hp )
-                  ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + &
-                                        ( Array3D * Fact )
-               END WHERE
-            ELSE
-               ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + &
-                                     ( Array3D * Fact )
-            ENDIF
-         ENDIF
+       ! Pass array to diagnostics: ignore existing data if counter 
+       ! is zero, add to it otherwise.
+       IF ( ThisDiagn%Counter == 0 ) THEN
+          IF ( OnlyPos ) THEN
+             WHERE ( Array3D >= 0.0_hp )
+                ThisDiagn%Arr3D%Val = Array3D * Fact
+             END WHERE
+          ELSE
+             ThisDiagn%Arr3D%Val = Array3D * Fact
+          ENDIF
+       ELSE
+          IF ( OnlyPos ) THEN
+             WHERE ( Array3D >= 0.0_hp )
+                ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + ( Array3D * Fact )
+             END WHERE
+          ELSE
+             ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + ( Array3D * Fact )
+          ENDIF
+       ENDIF
 
-      !----------------------------------------------------------------------
-      ! To add 2D array
-      !----------------------------------------------------------------------
-      ELSEIF ( ThisDiagn%SpaceDim == 2 ) THEN
+    !----------------------------------------------------------------------
+    ! To add 2D array
+    !----------------------------------------------------------------------
+    ELSEIF ( ThisDiagn%SpaceDim == 2 ) THEN
 
-         ! Assume that we don't have to take the vertical sum
-         VertSum = .FALSE.
+       ! Assume that we don't have to take the vertical sum
+       VertSum = .FALSE.
 
-         ! Convert 3D array to 2D if necessary - only use first level!!
-         IF ( PRESENT(Array2D) ) THEN
-            Arr2D => Array2D
-         ELSEIF ( PRESENT(Array3D) ) THEN
-            IF ( ThisDiagn%LevIdx == -1 ) THEN
-               VertSum = .TRUE.
-            ELSE
-               Arr2D => Array3D(:,:,ThisDiagn%LevIdx)
-            ENDIF
-         ELSE
-            MSG = 'Cannot create 2D array: ' // TRIM(ThisDiagn%cName)
-            CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-            RETURN
-         ENDIF
+       ! Convert 3D array to 2D if necessary - only use first level!!
+       IF ( PRESENT(Array2D) ) THEN
+          Arr2D => Array2D
+       ELSEIF ( PRESENT(Array3D) ) THEN
+          IF ( ThisDiagn%LevIdx == -1 ) THEN
+             VertSum = .TRUE.
+          ELSE
+             Arr2D => Array3D(:,:,ThisDiagn%LevIdx)
+          ENDIF
+       ELSE
+          MSG = 'Cannot create 2D array: ' // TRIM(ThisDiagn%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
 
-         ! Make sure dimensions agree and diagnostics array is allocated
-         CALL HCO_ArrAssert ( ThisDiagn%Arr2D, HcoState%NX, &
-                              HcoState%NY,     RC            ) 
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+       ! Make sure dimensions agree and diagnostics array is allocated
+       CALL HCO_ArrAssert( ThisDiagn%Arr2D, HcoState%NX, &
+                           HcoState%NY,     RC            ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
          
-         ! Pass array to diagnostics: ignore existing data if counter 
-         ! is zero, add to it otherwise.
-         IF ( ThisDiagn%Counter == 0 ) THEN
+       ! Pass array to diagnostics: ignore existing data if counter 
+       ! is zero, add to it otherwise.
+       IF ( ThisDiagn%Counter == 0 ) THEN
 
-            ! Only positive values
-            IF ( OnlyPos ) THEN
+          ! Only positive values
+          IF ( OnlyPos ) THEN
 
-               ! need to do vertical summation
-               IF ( VertSum ) THEN
-                  DO J=1,HcoState%NY
-                  DO I=1,HcoState%NX
-                     TMP = 0.0_hp
-                     DO L=1,HcoState%NZ
-                        IF ( Array3D(I,J,L) >= 0.0_hp ) &
+             ! need to do vertical summation
+             IF ( VertSum ) THEN
+                DO J=1,HcoState%NY
+                DO I=1,HcoState%NX
+                   TMP = 0.0_hp
+                   DO L=1,HcoState%NZ
+                      IF ( Array3D(I,J,L) >= 0.0_hp ) &
                            TMP = TMP + ( Array3D(I,J,L) * Fact )
-                     ENDDO
-                     ThisDiagn%Arr2D%Val(I,J) = TMP
-                  ENDDO
-                  ENDDO
+                   ENDDO
+                   ThisDiagn%Arr2D%Val(I,J) = TMP
+                ENDDO
+                ENDDO
 
-               ! no vertical summation
-               ELSE
-                  WHERE ( Arr2D >= 0.0_hp )
-                     ThisDiagn%Arr2D%Val = Arr2D * Fact
-                  END WHERE
-               ENDIF
+             ! no vertical summation
+             ELSE
+                WHERE ( Arr2D >= 0.0_hp )
+                   ThisDiagn%Arr2D%Val = Arr2D * Fact
+                END WHERE
+             ENDIF
 
-            ! all values
-            ELSE
+          ! all values
+          ELSE
 
-               ! need to do vertical summation
-               IF ( VertSum ) THEN
-                  DO J=1,HcoState%NY
-                  DO I=1,HcoState%NX
-                     TMP = SUM(Array3D(I,J,:)) * Fact
-                     ThisDiagn%Arr2D%Val(I,J) = TMP
-                  ENDDO
-                  ENDDO
+             ! need to do vertical summation
+             IF ( VertSum ) THEN
+                DO J=1,HcoState%NY
+                DO I=1,HcoState%NX
+                   TMP = SUM(Array3D(I,J,:)) * Fact
+                   ThisDiagn%Arr2D%Val(I,J) = TMP
+                ENDDO
+                ENDDO
 
-               ! no vertical summation
-               ELSE
-                  ThisDiagn%Arr2D%Val = Arr2D * Fact
-               ENDIF
-            ENDIF
+             ! no vertical summation
+             ELSE
+                ThisDiagn%Arr2D%Val = Arr2D * Fact
+             ENDIF
+          ENDIF
 
-         ! Counter is not zero 
-         ELSE
+       ! Counter is not zero 
+       ELSE
 
-            ! only positive values
-            IF ( OnlyPos ) THEN
+          ! only positive values
+          IF ( OnlyPos ) THEN
 
-               ! need to do vertical summation
-               IF ( VertSum ) THEN
-                  DO J=1,HcoState%NY
-                  DO I=1,HcoState%NX
-                     TMP = 0.0_hp
-                     DO L=1,HcoState%NZ
-                        IF ( Array3D(I,J,L) >= 0.0_hp ) &
+             ! need to do vertical summation
+             IF ( VertSum ) THEN
+                DO J=1,HcoState%NY
+                DO I=1,HcoState%NX
+                   TMP = 0.0_hp
+                   DO L=1,HcoState%NZ
+                      IF ( Array3D(I,J,L) >= 0.0_hp ) &
                            TMP = TMP + ( Array3D(I,J,L) * Fact )
-                     ENDDO
-                     ThisDiagn%Arr2D%Val(I,J) = &
+                   ENDDO
+                   ThisDiagn%Arr2D%Val(I,J) = &
                         ThisDiagn%Arr2D%Val(I,J) + TMP
-                  ENDDO
-                  ENDDO
+                ENDDO
+                ENDDO
 
-               ! no vertical summation
-               ELSE
-                  WHERE ( Arr2D >= 0.0_hp )
-                     ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + &
-                                           ( Arr2D * Fact )
-                  END WHERE
-               ENDIF
+             ! no vertical summation
+             ELSE
+                WHERE ( Arr2D >= 0.0_hp )
+                   ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Arr2D * Fact )
+                END WHERE
+             ENDIF
 
-            ! all values
-            ELSE
+          ! all values
+          ELSE
  
-               ! need to do vertical summation
-               IF ( VertSum ) THEN
-                  DO J=1,HcoState%NY
-                  DO I=1,HcoState%NX
-                     TMP = SUM(Array3D(I,J,:)) * Fact
-                     ThisDiagn%Arr2D%Val(I,J) = &
+             ! need to do vertical summation
+             IF ( VertSum ) THEN
+                DO J=1,HcoState%NY
+                DO I=1,HcoState%NX
+                   TMP = SUM(Array3D(I,J,:)) * Fact
+                   ThisDiagn%Arr2D%Val(I,J) = &
                         ThisDiagn%Arr2D%Val(I,J) + TMP
-                  ENDDO
-                  ENDDO
+                ENDDO
+                ENDDO
 
-               ! no vertical summation
-               ELSE
-                  ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + &
-                                        ( Arr2D * Fact )
-               ENDIF
-            ENDIF
-         ENDIF
+             ! no vertical summation
+             ELSE
+                ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Arr2D * Fact )
+             ENDIF
+          ENDIF
+       ENDIF
 
-      !----------------------------------------------------------------------
-      ! To add scalar (1D) 
-      !----------------------------------------------------------------------
-      ELSEIF ( ThisDiagn%SpaceDim == 1 ) THEN
+    !----------------------------------------------------------------------
+    ! To add scalar (1D) 
+    !----------------------------------------------------------------------
+    ELSEIF ( ThisDiagn%SpaceDim == 1 ) THEN
 
-         ! Make sure dimensions agree and diagnostics array is allocated
-         IF ( .NOT. PRESENT(Scalar) ) THEN
-            MSG = 'Diagnostics must be scalar: '// TRIM(ThisDiagn%cName)
-            CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-            RETURN
-         ENDIF
+       ! Make sure dimensions agree and diagnostics array is allocated
+       IF ( .NOT. PRESENT(Scalar) ) THEN
+          MSG = 'Diagnostics must be scalar: '// TRIM(ThisDiagn%cName)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
 
-         ! Pass array to diagnostics: ignore existing data if counter 
-         ! is zero, add to it otherwise.
-         IF ( ThisDiagn%Counter == 0 ) THEN
-            IF ( OnlyPos ) THEN
-               IF ( Scalar >= 0.0_hp ) ThisDiagn%Scalar = Scalar * Fact 
-            ELSE
-               ThisDiagn%Scalar = Scalar * Fact
-            ENDIF
-         ELSE
-            IF ( OnlyPos ) THEN
-               IF ( Scalar >= 0.0_hp ) & 
-               ThisDiagn%Scalar = ThisDiagn%Scalar + ( Scalar * Fact )
-            ELSE
-               ThisDiagn%Scalar = ThisDiagn%Scalar + ( Scalar * Fact )  
-            ENDIF
-         ENDIF 
+       ! Pass array to diagnostics: ignore existing data if counter 
+       ! is zero, add to it otherwise.
+       IF ( ThisDiagn%Counter == 0 ) THEN
+          IF ( OnlyPos ) THEN
+             IF ( Scalar >= 0.0_hp ) ThisDiagn%Scalar = Scalar * Fact 
+          ELSE
+             ThisDiagn%Scalar = Scalar * Fact
+          ENDIF
+       ELSE
+          IF ( OnlyPos ) THEN
+             IF ( Scalar >= 0.0_hp ) & 
+                  ThisDiagn%Scalar = ThisDiagn%Scalar + ( Scalar * Fact )
+          ELSE
+             ThisDiagn%Scalar = ThisDiagn%Scalar + ( Scalar * Fact )  
+          ENDIF
+       ENDIF
 
-      ELSE
-         MSG = 'Invalid space dimension: ' // TRIM(ThisDiagn%cName)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
+    ELSE
+       MSG = 'Invalid space dimension: ' // TRIM(ThisDiagn%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
-      !----------------------------------------------------------------------
-      ! Update counter ==> Do only if last update time is not equal to 
-      ! current one! This allows the same diagnostics to be updated
-      ! multiple time on the same time step without increasing the
-      ! time step counter.
-      !----------------------------------------------------------------------
-      IF ( ThisDiagn%LastUpdateID /= ThisUpdateID ) THEN
-         ThisDiagn%Counter      = ThisDiagn%Counter + 1
-         ThisDiagn%LastUpdateID = ThisUpdateID
-      ENDIF
+    !----------------------------------------------------------------------
+    ! Update counter ==> Do only if last update time is not equal to 
+    ! current one! This allows the same diagnostics to be updated
+    ! multiple time on the same time step without increasing the
+    ! time step counter.
+    !----------------------------------------------------------------------
+    IF ( ThisDiagn%LastUpdateID /= ThisUpdateID ) THEN
+       ThisDiagn%Counter      = ThisDiagn%Counter + 1
+       ThisDiagn%LastUpdateID = ThisUpdateID
+    ENDIF
 
-      ! Return
-      ThisDiagn => NULL()
-      Arr2D     => NULL()
-      RC = HCO_SUCCESS
+    ! Return
+    ThisDiagn => NULL()
+    Arr2D     => NULL()
+    RC = HCO_SUCCESS
 
-      END SUBROUTINE Diagn_Update
+  END SUBROUTINE Diagn_Update
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
@@ -855,142 +883,153 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Diagn_Get( am_I_Root, HcoState, EndOfIntvOnly, &
-                            DgnCont,   FLAG,     RC,     cName, &
-                            cID,       AutoFill                  )
+  SUBROUTINE Diagn_Get( am_I_Root, HcoState, EndOfIntvOnly, &
+                        DgnCont,   FLAG,     RC,     cName, &
+                        cID,       AutoFill                  )
 !
 ! !USES:
 !
-      USE HCO_STATE_MOD,     ONLY : HCO_State
-      USE HCO_CLOCK_MOD,     ONLY : HcoClock_GetMinResetFlag
+    USE HCO_STATE_MOD, ONLY : HCO_State
+    USE HCO_CLOCK_MOD, ONLY : HcoClock_GetMinResetFlag
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS::
 !
-      LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
-      TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state object
-      LOGICAL,          INTENT(IN   )           :: EndOfIntvOnly  ! End of interval only? 
-      TYPE(DiagnCont),  POINTER                 :: DgnCont        ! Return container
-      INTEGER,          INTENT(INOUT)           :: FLAG           ! Return flag
-      INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
-      CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! container name
-      INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! container ID
-      INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 0=no; 1=yes; -1=either
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state
+                                                                !  object
+    LOGICAL,          INTENT(IN   )           :: EndOfIntvOnly  ! End of 
+                                                                !  interval 
+                                                                !  only? 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! container name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! container ID
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 0=no; 1=yes; 
+                                                                ! -1=either
+!
+! !OUTPUT PARAMETERS:
+!
+
+    TYPE(DiagnCont),  POINTER                 :: DgnCont        ! Return 
+                                                                !  container
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: FLAG           ! Return flag
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: MinResetFlag
-      INTEGER           :: AF
-      LOGICAL           :: FOUND, CF 
+    INTEGER  :: MinResetFlag
+    INTEGER  :: AF
+    LOGICAL  :: FOUND, CF 
 
-      !======================================================================
-      ! Diagn_Get begins here!
-      !======================================================================
+    !======================================================================
+    ! Diagn_Get begins here!
+    !======================================================================
 
-      ! Init
-      FLAG         = HCO_FAIL
-      RC           = HCO_SUCCESS
-      CF           = .FALSE.
+    ! Init
+    FLAG         = HCO_FAIL
+    RC           = HCO_SUCCESS
+    CF           = .FALSE.
 
-      ! Set AutoFill flag
-      AF = -1
-      IF ( PRESENT(AutoFill) ) AF = AutoFill
+    ! Set AutoFill flag
+    AF = -1
+    IF ( PRESENT(AutoFill) ) AF = AutoFill
 
-      ! Get minimum reset flag for current time. Set reset flag to -1 if
-      ! EndOFIntvOnly flag is disabled. This will make sure that all 
-      ! diagnostics are considered.
-      IF ( .NOT. EndOfIntvOnly ) THEN
-         MinResetFlag = -1
-      ELSE
-         MinResetFlag = HcoClock_GetMinResetFlag()
-      ENDIF
+    ! Get minimum reset flag for current time. Set reset flag to -1 if
+    ! EndOFIntvOnly flag is disabled. This will make sure that all 
+    ! diagnostics are considered.
+    IF ( .NOT. EndOfIntvOnly ) THEN
+       MinResetFlag = -1
+    ELSE
+       MinResetFlag = HcoClock_GetMinResetFlag()
+    ENDIF
 
-      ! If current time stamp is not at the end of an interval - or if 
-      ! there is no diagnostics container in the list with a reset flag 
-      ! smaller or equal to MinResetFlag - there will be no matching 
-      ! container whatsoever. Can leave right here.
-      IF ( MinResetFlag > MaxResetFlag ) THEN
-         DgnCont => NULL()
-         RETURN
-      ENDIF 
+    ! If current time stamp is not at the end of an interval - or if 
+    ! there is no diagnostics container in the list with a reset flag 
+    ! smaller or equal to MinResetFlag - there will be no matching 
+    ! container whatsoever. Can leave right here.
+    IF ( MinResetFlag > MaxResetFlag ) THEN
+       DgnCont => NULL()
+       RETURN
+    ENDIF
 
-      ! If container name is given, search for diagnostics with 
-      ! the given name. 
-      IF ( PRESENT( cName ) ) THEN
-         CALL DiagnCont_Find( -1, -1, -1, -1, -1, cName, AF, FOUND, DgnCont)
-         IF ( .NOT. FOUND ) THEN
-            DgnCont => NULL()
-         ELSE
-            ! Don't consider container if not at the desired
-            ! time interval or if counter is zero.
-            IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
-                 DgnCont%Counter   == 0                  ) THEN
-               DgnCont => NULL()
-            ENDIF
-         ENDIF
-         CF = .TRUE.
-      ENDIF         
+    ! If container name is given, search for diagnostics with 
+    ! the given name. 
+    IF ( PRESENT( cName ) ) THEN
+       CALL DiagnCont_Find( -1, -1, -1, -1, -1, cName, AF, FOUND, DgnCont)
+       IF ( .NOT. FOUND ) THEN
+          DgnCont => NULL()
+       ELSE
+          ! Don't consider container if not at the desired
+          ! time interval or if counter is zero.
+          IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
+               DgnCont%Counter   == 0                  ) THEN
+             DgnCont => NULL()
+          ENDIF
+       ENDIF
+       CF = .TRUE.
+    ENDIF
    
-      ! If container id is given, search for diagnostics with 
-      ! the given container ID.
-      IF ( PRESENT( cID ) ) THEN
-         CALL DiagnCont_Find( cID, -1, -1, -1, -1, '', AF, FOUND, DgnCont)
-         IF ( .NOT. FOUND ) THEN
-            DgnCont => NULL()
-         ELSE
-            ! Don't consider container if not at the desired
-            ! time interval or if counter is zero.
-            IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
-                 DgnCont%Counter   == 0                  ) THEN
-               DgnCont => NULL()
-            ENDIF
-         ENDIF
-         CF = .TRUE.
-      ENDIF
+    ! If container id is given, search for diagnostics with 
+    ! the given container ID.
+    IF ( PRESENT( cID ) ) THEN
+       CALL DiagnCont_Find( cID, -1, -1, -1, -1, '', AF, FOUND, DgnCont)
+       IF ( .NOT. FOUND ) THEN
+          DgnCont => NULL()
+       ELSE
+          ! Don't consider container if not at the desired
+          ! time interval or if counter is zero.
+          IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
+               DgnCont%Counter   == 0                  ) THEN
+             DgnCont => NULL()
+          ENDIF
+       ENDIF
+       CF = .TRUE.
+    ENDIF
 
-      ! If no container selected yet, point to next container in 
-      ! list (or to head of list if DgnCont is not yet associated). 
-      ! Number of updates since last output must be larger than zero!
-      IF ( .NOT. CF ) THEN 
-         IF ( .NOT. ASSOCIATED( DgnCont ) ) THEN
-            DgnCont => DiagnList
-         ELSE
-            DgnCont => DgnCont%NextCont
-         ENDIF
-         DO WHILE ( ASSOCIATED ( DgnCont ) ) 
-            IF ( DgnCont%Counter > 0 ) EXIT 
-            DgnCont => DgnCont%NextCont
-         ENDDO
+    ! If no container selected yet, point to next container in 
+    ! list (or to head of list if DgnCont is not yet associated). 
+    ! Number of updates since last output must be larger than zero!
+    IF ( .NOT. CF ) THEN 
+       IF ( .NOT. ASSOCIATED( DgnCont ) ) THEN
+          DgnCont => DiagnList
+       ELSE
+          DgnCont => DgnCont%NextCont
+       ENDIF
+       DO WHILE ( ASSOCIATED ( DgnCont ) ) 
+          IF ( DgnCont%Counter > 0 ) EXIT 
+          DgnCont => DgnCont%NextCont
+       ENDDO
   
-         ! If EndOfIntvOnly flag is enabled, make sure that the
-         ! selected container is at the end of its interval.
-         IF ( EndOfIntvOnly ) THEN
-            ! If MinResetFlag > 0, search for first container with a
-            ! ResetFlag equal or larger than MinResetFlag and where
-            ! updates since last output (counter) is not zero.
-            DO WHILE ( ASSOCIATED ( DgnCont ) ) 
-               IF ( DgnCont%ResetFlag >= MinResetFlag .AND. &
-                    DgnCont%Counter   >  0                   ) EXIT
-               DgnCont => DgnCont%NextCont
-            ENDDO
+       ! If EndOfIntvOnly flag is enabled, make sure that the
+       ! selected container is at the end of its interval.
+       IF ( EndOfIntvOnly ) THEN
+          ! If MinResetFlag > 0, search for first container with a
+          ! ResetFlag equal or larger than MinResetFlag and where
+          ! updates since last output (counter) is not zero.
+          DO WHILE ( ASSOCIATED ( DgnCont ) ) 
+             IF ( DgnCont%ResetFlag >= MinResetFlag .AND. &
+                  DgnCont%Counter   >  0                   ) EXIT
+             DgnCont => DgnCont%NextCont
+          ENDDO
    
-         ENDIF ! EndOfIntvOnly
-      ENDIF
+       ENDIF ! EndOfIntvOnly
+    ENDIF
 
-      ! Before returning container, make sure its data is ready for output.
-      IF ( ASSOCIATED (DgnCont ) ) THEN
-         CALL DiagnCont_PrepareOutput ( HcoState, DgnCont, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         FLAG = HCO_SUCCESS
-      ENDIF
+    ! Before returning container, make sure its data is ready for output.
+    IF ( ASSOCIATED (DgnCont ) ) THEN
+       CALL DiagnCont_PrepareOutput ( HcoState, DgnCont, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       FLAG = HCO_SUCCESS
+    ENDIF
 
-      END SUBROUTINE Diagn_Get
+  END SUBROUTINE Diagn_Get
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
@@ -999,48 +1038,45 @@
 !
 ! !ROUTINE: Diagn_Cleanup
 !
-! !DESCRIPTION: Subroutine Diagn_Cleanup cleans up all the diagnostics
+! !DESCRIPTION: Subroutine Diagn\_Cleanup cleans up all the diagnostics
 ! containers.
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Diagn_Cleanup 
-!
-! !ARGUMENTS:
-!
+  SUBROUTINE Diagn_Cleanup 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      TYPE(DiagnCont), POINTER  :: TmpCont => NULL()
-      TYPE(DiagnCont), POINTER  :: NxtCont => NULL()
+    ! Pointers
+    TYPE(DiagnCont), POINTER  :: TmpCont => NULL()
+    TYPE(DiagnCont), POINTER  :: NxtCont => NULL()
 
-      !======================================================================
-      ! Diagn_Cleanup begins here!
-      !======================================================================
+    !======================================================================
+    ! Diagn_Cleanup begins here!
+    !======================================================================
 
-      ! Walk through entire list and remove all containers
-      TmpCont => DiagnList
-      DO WHILE ( ASSOCIATED( TmpCont ) ) 
+    ! Walk through entire list and remove all containers
+    TmpCont => DiagnList
+    DO WHILE ( ASSOCIATED( TmpCont ) ) 
 
-         ! Detach from list
-         NxtCont => TmpCont%NextCont 
+       ! Detach from list
+       NxtCont => TmpCont%NextCont 
 
-         ! Clean up this container 
-         CALL DiagnCont_Cleanup ( TmpCont )
-         DEALLOCATE ( TmpCont )
+       ! Clean up this container 
+       CALL DiagnCont_Cleanup( TmpCont )
+       DEALLOCATE ( TmpCont )
 
-         ! Advance
-         TmpCont => NxtCont
-      ENDDO 
+       ! Advance
+       TmpCont => NxtCont
+    ENDDO
 
-      END SUBROUTINE Diagn_Cleanup 
+  END SUBROUTINE Diagn_Cleanup
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1056,30 +1092,32 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION Diagn_AutoFillLevelDefined ( Level ) RESULT ( IsDefined )
+  FUNCTION Diagn_AutoFillLevelDefined( Level ) RESULT ( IsDefined )
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      INTEGER,           INTENT(IN)            :: Level     ! Level of interest
-      LOGICAL                                  :: IsDefined ! Return argument 
+    INTEGER, INTENT(IN) :: Level     ! Level of interest
+!
+! !RETURN VALUE:
+! 
+    LOGICAL             :: IsDefined ! Return argument 
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-      IsDefined = AF_LevelDefined( Level )
+    IsDefined = AF_LevelDefined( Level )
  
-      END FUNCTION Diagn_AutoFillLevelDefined 
+  END FUNCTION Diagn_AutoFillLevelDefined
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Diagn_GetMaxResetFlag
+! !IROUTINE: Diagn_GetMaxResetFlag
 !
 ! !DESCRIPTION: Function Diagn\_GetMaxResetFlag returns the highest reset
 ! flag used by any of the containers in the diagnostics list. 
@@ -1087,50 +1125,48 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION Diagn_GetMaxResetFlag RESULT ( MaxRF )
+  FUNCTION Diagn_GetMaxResetFlag RESULT ( MaxRF )
 !
-! !ARGUMENTS:
+! !RETURN VALUE:
 !
-      INTEGER                                  :: MaxRF !Maximum reset flag 
+    INTEGER :: MaxRF !Maximum reset flag 
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-      MaxRF = MaxResetFlag 
+    MaxRF = MaxResetFlag 
  
-      END FUNCTION Diagn_GetMaxResetFlag
+  END FUNCTION Diagn_GetMaxResetFlag
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Diagn_SetDiagnPrefix
+! !IROUTINE: Diagn_SetDiagnPrefix
 !
 ! !DESCRIPTION: Subroutine Diagn_SetDiagnPrefix sets the HEMCO diagnostics
 ! file prefix. 
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Diagn_SetDiagnPrefix( Prefix )
+  SUBROUTINE Diagn_SetDiagnPrefix( Prefix )
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      CHARACTER(LEN=*), INTENT(IN)   :: Prefix
+    CHARACTER(LEN=*), INTENT(IN)   :: Prefix
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      DiagnPrefix = Prefix
+    DiagnPrefix = Prefix
 
-      END SUBROUTINE Diagn_SetDiagnPrefix
+  END SUBROUTINE Diagn_SetDiagnPrefix
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1145,22 +1181,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Diagn_GetDiagnPrefix( Prefix )
+  SUBROUTINE Diagn_GetDiagnPrefix( Prefix )
 !
-! !ARGUMENTS:
+! !OUTPUT PARAMETERS:
 !
-      CHARACTER(LEN=*), INTENT(OUT)     :: Prefix
+    CHARACTER(LEN=*), INTENT(OUT)     :: Prefix
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-      Prefix = DiagnPrefix 
+    Prefix = DiagnPrefix 
  
-      END SUBROUTINE Diagn_GetDiagnPrefix
+  END SUBROUTINE Diagn_GetDiagnPrefix
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
@@ -1175,60 +1210,60 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DiagnCont_Init( OutCont, cID )
+  SUBROUTINE DiagnCont_Init( OutCont, cID )
 !
-! !ARGUMENTS:
+! !OUTPUT PARAMETERS:
 !
-      TYPE(DiagnCont), POINTER      :: OutCont  ! Created container
-      INTEGER,         INTENT(OUT)  :: cID      ! Assigned container ID
+    TYPE(DiagnCont), POINTER      :: OutCont  ! Created container
+    INTEGER,         INTENT(OUT)  :: cID      ! Assigned container ID
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      TYPE(DiagnCont), POINTER     :: DgnCont => NULL()
+    ! Pointers
+    TYPE(DiagnCont), POINTER :: DgnCont => NULL()
 
-      !======================================================================
-      ! DiagnCont_Init begins here!
-      !======================================================================
+    !======================================================================
+    ! DiagnCont_Init begins here!
+    !======================================================================
 
-      ! Allocate the new container
-      ALLOCATE( DgnCont )
+    ! Allocate the new container
+    ALLOCATE( DgnCont )
 
-      ! Initialize ponters and scalar value 
-      DgnCont%NextCont => NULL()
-      DgnCont%Arr2D    => NULL()
-      DgnCont%Arr3D    => NULL()
-      DgnCont%DtaIsPtr = .FALSE.
-      DgnCont%Scalar   =  0.0_hp
-      DgnCont%LevIdx   = -1
-      DgnCont%AutoFill =  1
+    ! Initialize ponters and scalar value 
+    DgnCont%NextCont => NULL()
+    DgnCont%Arr2D    => NULL()
+    DgnCont%Arr3D    => NULL()
+    DgnCont%DtaIsPtr = .FALSE.
+    DgnCont%Scalar   =  0.0_hp
+    DgnCont%LevIdx   = -1
+    DgnCont%AutoFill =  1
 
-      ! Default values for unit conversion factors 
-      DgnCont%MassScal  = 1.0_dp
-      DgnCont%AreaScal  = 1.0_dp
-      DgnCont%PerArea   = .TRUE.
-      DgnCont%Counter   = 0
-      DgnCont%TimeAvg   = -1   
-      DgnCont%AvgFlag   = -1
+    ! Default values for unit conversion factors 
+    DgnCont%MassScal  = 1.0_dp
+    DgnCont%AreaScal  = 1.0_dp
+    DgnCont%PerArea   = .TRUE.
+    DgnCont%Counter   = 0
+    DgnCont%TimeAvg   = -1   
+    DgnCont%AvgFlag   = -1
 
-      ! Set last update time to -1 to start with
-      DgnCont%LastUpdateID = -1
+    ! Set last update time to -1 to start with
+    DgnCont%LastUpdateID = -1
 
-      ! Assign container ID.
-      ! Set default target ID to cont. ID.
-      nnDiagn              = nnDiagn + 1
-      DgnCont%cID          = nnDiagn
+    ! Assign container ID.
+    ! Set default target ID to cont. ID.
+    nnDiagn              = nnDiagn + 1
+    DgnCont%cID          = nnDiagn
 
-      ! Pass to output container
-      OutCont => DgnCont
+    ! Pass to output container
+    OutCont => DgnCont
 
-      END SUBROUTINE DiagnCont_Init
+  END SUBROUTINE DiagnCont_Init
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
@@ -1243,43 +1278,42 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DiagnCont_Cleanup ( DgnCont  )
+  SUBROUTINE DiagnCont_Cleanup( DgnCont )
 !
 ! !USES:
 !
-      USE HCO_ARR_MOD,     ONLY : HCO_ArrCleanup 
+    USE HCO_ARR_MOD, ONLY : HCO_ArrCleanup 
 !
-! !ARGUMENTS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(DiagnCont), POINTER      :: DgnCont  ! Container to be cleaned
+    TYPE(DiagnCont), POINTER :: DgnCont  ! Container to be cleaned
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-      LOGICAL :: DeepClean
+    LOGICAL :: DeepClean
 
-      !======================================================================
-      ! DiagnCont_Cleanup begins here!
-      !======================================================================
+    !======================================================================
+    ! DiagnCont_Cleanup begins here!
+    !======================================================================
 
-      ! Only if associated... 
-      IF ( ASSOCIATED( DgnCont ) ) THEN
-         IF ( DgnCont%DtaIsPtr ) THEN
-            DeepClean = .FALSE.
-         ELSE
-            DeepClean = .TRUE.
-         ENDIF
-         CALL HCO_ArrCleanup( DgnCont%Arr2D, DeepClean )
-         CALL HCO_ArrCleanup( DgnCont%Arr3D, DeepClean )
-         DgnCont%NextCont => NULL()
-         DEALLOCATE ( DgnCont )
-      ENDIF
+    ! Only if associated... 
+    IF ( ASSOCIATED( DgnCont ) ) THEN
+       IF ( DgnCont%DtaIsPtr ) THEN
+          DeepClean = .FALSE.
+       ELSE
+          DeepClean = .TRUE.
+       ENDIF
+       CALL HCO_ArrCleanup( DgnCont%Arr2D, DeepClean )
+       CALL HCO_ArrCleanup( DgnCont%Arr3D, DeepClean )
+       DgnCont%NextCont => NULL()
+       DEALLOCATE ( DgnCont )
+    ENDIF
 
-      END SUBROUTINE DiagnCont_Cleanup 
+  END SUBROUTINE DiagnCont_Cleanup
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1294,18 +1328,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DiagnCont_PrepareOutput ( HcoState, DgnCont, RC )
+  SUBROUTINE DiagnCont_PrepareOutput ( HcoState, DgnCont, RC )
 !
 ! !USES:
 !
-      USE HCO_STATE_MOD,       ONLY : HCO_State
-      USE HCO_CLOCK_MOD,       ONLY : HcoClock_Get
+    USE HCO_STATE_MOD, ONLY : HCO_State
+    USE HCO_CLOCK_MOD, ONLY : HcoClock_Get
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS::
 !
-      TYPE(HCO_State),   POINTER               :: HcoState ! HEMCO state object
-      TYPE(DiagnCont),   POINTER               :: DgnCont  ! diagnostics container 
-      INTEGER,           INTENT(INOUT)         :: RC       ! Return code 
+    TYPE(HCO_State),   POINTER       :: HcoState ! HEMCO state object
+!
+! !OUTPUT PARAMETERS:
+!
+    TYPE(DiagnCont),   POINTER       :: DgnCont  ! diagnostics container 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(INOUT) :: RC       ! Return code 
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
@@ -1314,154 +1354,154 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL ARGUMENTS:
+! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, YYYY, MM
-      REAL(hp)            :: norm1, mult1, DPY, totscal
-      CHARACTER(LEN=255)  :: MSG, LOC
-      INTEGER             :: DPM(12) = (/ 31, 28, 31, 30, 31, 30, &
-                                          31, 31, 30, 31, 30, 31   /)
+    INTEGER             :: I, J, YYYY, MM
+    REAL(hp)            :: norm1, mult1, DPY, totscal
+    CHARACTER(LEN=255)  :: MSG, LOC
+    INTEGER             :: DPM(12) = (/ 31, 28, 31, 30, 31, 30, &
+                                        31, 31, 30, 31, 30, 31   /)
 
-      !======================================================================
-      ! DiagnCont_PrepareOutput begins here!
-      !======================================================================
+    !======================================================================
+    ! DiagnCont_PrepareOutput begins here!
+    !======================================================================
 
-      ! Init
-      RC  = HCO_SUCCESS
-      LOC = 'DiagnCont_PrepareOutput (HCO_DIAGN_MOD.F90) '
+    ! Init
+    RC  = HCO_SUCCESS
+    LOC = 'DiagnCont_PrepareOutput (HCO_DIAGN_MOD.F90) '
 
-      ! Return w/ error if counter is still zero. This should not happen!
-      IF ( DgnCont%Counter == 0 ) THEN
-         MSG = 'Counter is zero : ' // TRIM(DgnCont%cName)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
+    ! Return w/ error if counter is still zero. This should not happen!
+    IF ( DgnCont%Counter == 0 ) THEN
+       MSG = 'Counter is zero : ' // TRIM(DgnCont%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
-      !-----------------------------------------------------------------------
-      ! Don't do anything for pointer data
-      !-----------------------------------------------------------------------
-      IF ( DgnCont%DtaIsPtr ) RETURN
+    !-----------------------------------------------------------------------
+    ! Don't do anything for pointer data
+    !-----------------------------------------------------------------------
+    IF ( DgnCont%DtaIsPtr ) RETURN
 
-      !-----------------------------------------------------------------------
-      ! Output data is calculated as: 
-      ! out = saved / norm1 * mult1 * MassScal * AreaScal
-      ! The normalization factor norm1 and multiplication factor mult1
-      ! are used to average to the desired time interval, i.e. per
-      ! second, per day, etc. 
-      ! Since all diagnostics are internally stored in units of [kg/m2] 
-      ! first convert to [kg/m2/s] and then multiply by the desired time
-      ! averaging interval (e.g. seconds/hour to get kg/m2/s). Factors
-      ! MassScal and AreaScal convert mass and area to desired units, as
-      ! determined during initialization of the diagnostics.
-      !-----------------------------------------------------------------------
+    !-----------------------------------------------------------------------
+    ! Output data is calculated as: 
+    ! out = saved / norm1 * mult1 * MassScal * AreaScal
+    ! The normalization factor norm1 and multiplication factor mult1
+    ! are used to average to the desired time interval, i.e. per
+    ! second, per day, etc. 
+    ! Since all diagnostics are internally stored in units of [kg/m2] 
+    ! first convert to [kg/m2/s] and then multiply by the desired time
+    ! averaging interval (e.g. seconds/hour to get kg/m2/s). Factors
+    ! MassScal and AreaScal convert mass and area to desired units, as
+    ! determined during initialization of the diagnostics.
+    !-----------------------------------------------------------------------
 
-      ! Special case that averaging is forced to the sum: 
-      IF ( DgnCont%AvgFlag == AvgFlagSum ) THEN
-         norm1 = 1.0_hp
-         mult1 = 1.0_dp
+    ! Special case that averaging is forced to the sum: 
+    IF ( DgnCont%AvgFlag == AvgFlagSum ) THEN
+       norm1 = 1.0_hp
+       mult1 = 1.0_dp
 
-      ! Special case that averaging is forced to the arithmetic mean: 
-      ELSEIF ( DgnCont%AvgFlag == AvgFlagMean ) THEN
-         norm1 = REAL(DgnCont%Counter,kind=hp)
-         mult1 = 1.0_dp
+    ! Special case that averaging is forced to the arithmetic mean: 
+    ELSEIF ( DgnCont%AvgFlag == AvgFlagMean ) THEN
+       norm1 = REAL(DgnCont%Counter,kind=hp)
+       mult1 = 1.0_dp
 
-      ! For other, time averaging intervals 
-      ELSE
+    ! For other, time averaging intervals 
+    ELSE
 
-         ! Get current month and year
-         CALL HcoClock_Get ( cYYYY = YYYY, cMM = MM, RC=RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Get current month and year
+       CALL HcoClock_Get( cYYYY = YYYY, cMM = MM, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-         ! Days per year
-         IF ( (MOD(YYYY,4) == 0) .AND. (MOD(YYYY,400) /= 0) ) THEN
-            DPY    = 366.0_hp
-            DPM(2) = 29
-         ELSE
-            DPY = 365.0_hp
-         ENDIF
+       ! Days per year
+       IF ( (MOD(YYYY,4) == 0) .AND. (MOD(YYYY,400) /= 0) ) THEN
+          DPY    = 366.0_hp
+          DPM(2) = 29
+       ELSE
+          DPY = 365.0_hp
+       ENDIF
 
-         ! Seconds since last reset
-         norm1 = REAL(DgnCont%Counter,kind=hp) * HcoState%TS_EMIS
+       ! Seconds since last reset
+       norm1 = REAL(DgnCont%Counter,kind=hp) * HcoState%TS_EMIS
 
-         ! Factors depends on averaging time
-         IF ( DgnCont%TimeAvg == 1 ) THEN
-            mult1 = 1.0_hp                     ! seconds / second
+       ! Factors depends on averaging time
+       IF ( DgnCont%TimeAvg == 1 ) THEN
+          mult1 = 1.0_hp                     ! seconds / second
 
-         ELSEIF ( DgnCont%TimeAvg == 2 ) THEN
-            mult1 = 3600.0_hp                  ! seconds / hour
+       ELSEIF ( DgnCont%TimeAvg == 2 ) THEN
+          mult1 = 3600.0_hp                  ! seconds / hour
 
-         ELSEIF ( DgnCont%TimeAvg == 3 ) THEN
-            mult1 = 86400.0_hp                 ! seconds / day 
+       ELSEIF ( DgnCont%TimeAvg == 3 ) THEN
+          mult1 = 86400.0_hp                 ! seconds / day 
 
-         ELSEIF ( DgnCont%TimeAvg == 4 ) THEN
-            mult1 = 86400.0_hp * DPM(MM)       ! seconds / month 
+       ELSEIF ( DgnCont%TimeAvg == 4 ) THEN
+          mult1 = 86400.0_hp * DPM(MM)       ! seconds / month 
 
-         ELSEIF ( DgnCont%TimeAvg == 5 ) THEN
-            mult1 = 86400.0_hp * DPY           ! seconds / year
+       ELSEIF ( DgnCont%TimeAvg == 5 ) THEN
+          mult1 = 86400.0_hp * DPY           ! seconds / year
 
-         ! No time averaging units: nothing to do
-         ELSE
-            norm1 = 1.0_hp
-            mult1 = 1.0_hp
-         ENDIF
+       ! No time averaging units: nothing to do
+       ELSE
+          norm1 = 1.0_hp
+          mult1 = 1.0_hp
+       ENDIF
 
-      ENDIF
+    ENDIF
 
-      ! Error trap
-      IF ( norm1 <= 0.0_hp ) THEN
-         MSG = 'Illegal normalization factor: ' // TRIM(DgnCont%cName)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
+    ! Error trap
+    IF ( norm1 <= 0.0_hp ) THEN
+       MSG = 'Illegal normalization factor: ' // TRIM(DgnCont%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
-      ! totscal is the combined scale factor
-      totscal = mult1 / norm1 * DgnCont%MassScal * DgnCont%AreaScal 
+    ! totscal is the combined scale factor
+    totscal = mult1 / norm1 * DgnCont%MassScal * DgnCont%AreaScal 
 
-      ! For 3D:
-      IF ( DgnCont%SpaceDim == 3 ) THEN
-         DO J = 1, HcoState%NY
-         DO I = 1, HcoState%NX
+    ! For 3D:
+    IF ( DgnCont%SpaceDim == 3 ) THEN
+       DO J = 1, HcoState%NY
+       DO I = 1, HcoState%NX
 
-            ! Multiply by area if output unit is not per area 
-            IF ( .NOT. DgnCont%PerArea ) THEN
-               DgnCont%Arr3D%Val(I,J,:) = DgnCont%Arr3D%Val(I,J,:)  & 
-                                        * HcoState%Grid%AREA_M2(I,J) 
-            ENDIF
-
-            ! Apply scale factors
-            DgnCont%Arr3D%Val(I,J,:) = DgnCont%Arr3D%Val(I,J,:) & 
-                                     * totscal
-         ENDDO !I
-         ENDDO !J
-
-      ! For 2D:
-      ELSEIF ( DgnCont%SpaceDim == 2 ) THEN
-         DO J = 1, HcoState%NY
-         DO I = 1, HcoState%NX
-
-            ! Multiply by area if output unit is not per area 
-            IF ( .NOT. DgnCont%PerArea ) THEN
-               DgnCont%Arr2D%Val(I,J) = DgnCont%Arr2D%Val(I,J) &
+          ! Multiply by area if output unit is not per area 
+          IF ( .NOT. DgnCont%PerArea ) THEN
+             DgnCont%Arr3D%Val(I,J,:) = DgnCont%Arr3D%Val(I,J,:)  & 
                                       * HcoState%Grid%AREA_M2(I,J) 
-            ENDIF
+          ENDIF
 
-            ! Apply scale factors
-            DgnCont%Arr2D%Val(I,J) = DgnCont%Arr2D%Val(I,J) &
+          ! Apply scale factors
+          DgnCont%Arr3D%Val(I,J,:) = DgnCont%Arr3D%Val(I,J,:) & 
                                    * totscal
+       ENDDO !I
+       ENDDO !J
 
-         ENDDO !I
-         ENDDO !J
+    ! For 2D:
+    ELSEIF ( DgnCont%SpaceDim == 2 ) THEN
+       DO J = 1, HcoState%NY
+       DO I = 1, HcoState%NX
 
-      ! For 1D:
-      ELSE
-         DgnCont%Scalar = DgnCont%Scalar * totscal
+          ! Multiply by area if output unit is not per area 
+          IF ( .NOT. DgnCont%PerArea ) THEN
+             DgnCont%Arr2D%Val(I,J) = DgnCont%Arr2D%Val(I,J) &
+                                    * HcoState%Grid%AREA_M2(I,J) 
+          ENDIF
 
-      ENDIF
+          ! Apply scale factors
+          DgnCont%Arr2D%Val(I,J) = DgnCont%Arr2D%Val(I,J) &
+                                 * totscal
 
-      ! Reset counter
-      DgnCont%Counter = 0
+       ENDDO !I
+       ENDDO !J
 
-      END SUBROUTINE DiagnCont_PrepareOutput
+    ! For 1D:
+    ELSE
+       DgnCont%Scalar = DgnCont%Scalar * totscal
+
+    ENDIF
+
+    ! Reset counter
+    DgnCont%Counter = 0
+
+  END SUBROUTINE DiagnCont_PrepareOutput
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1481,93 +1521,95 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DiagnCont_Find ( cID,   ExtNr, Cat,      Hier,        &
-                                  HcoID, cName, AutoFill, FOUND, OutCnt )
+  SUBROUTINE DiagnCont_Find ( cID,   ExtNr, Cat,      Hier,        &
+                              HcoID, cName, AutoFill, FOUND, OutCnt )
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      INTEGER,           INTENT(IN)            :: cID      ! wanted cont. ID
-      INTEGER,           INTENT(IN)            :: ExtNr    ! wanted ExtNr
-      INTEGER,           INTENT(IN)            :: Cat      ! wanted category
-      INTEGER,           INTENT(IN)            :: Hier     ! wanted hierarchy
-      INTEGER,           INTENT(IN)            :: HcoID    ! wanted spec. ID
-      CHARACTER(LEN=*),  INTENT(IN)            :: cName    ! wanted name 
-      INTEGER,           INTENT(IN )           :: AutoFill ! 0=no; 1=yes; -1=either 
-      LOGICAL,           INTENT(OUT)           :: FOUND    ! container found?
-      TYPE(DiagnCont),   POINTER               :: OutCnt   ! matched container 
+    INTEGER,           INTENT(IN)   :: cID      ! wanted cont. ID
+    INTEGER,           INTENT(IN)   :: ExtNr    ! wanted ExtNr
+    INTEGER,           INTENT(IN)   :: Cat      ! wanted category
+    INTEGER,           INTENT(IN)   :: Hier     ! wanted hierarchy
+    INTEGER,           INTENT(IN)   :: HcoID    ! wanted spec. ID
+    CHARACTER(LEN=*),  INTENT(IN)   :: cName    ! wanted name 
+    INTEGER,           INTENT(IN)   :: AutoFill ! 0=no; 1=yes; -1=either 
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(OUT)  :: FOUND    ! container found?
+    TYPE(DiagnCont),   POINTER      :: OutCnt   ! matched container 
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL ARGUMENTS:
+! !LOCAL VARIABLES:
 !
-      TYPE(DiagnCont),   POINTER         :: CurrCnt => NULL() 
-      LOGICAL                            :: IsMatch
+    TYPE(DiagnCont),   POINTER         :: CurrCnt => NULL() 
+    LOGICAL                            :: IsMatch
  
-      !======================================================================
-      ! DiagnCont_Find begins here!
-      !======================================================================
+    !======================================================================
+    ! DiagnCont_Find begins here!
+    !======================================================================
 
-      ! Initialize
-      FOUND  = .FALSE.
-      OutCnt => NULL()
+    ! Initialize
+    FOUND  = .FALSE.
+    OutCnt => NULL()
 
-      ! Error trap
-      IF ( .NOT. ASSOCIATED(DiagnList) ) RETURN
+    ! Error trap
+    IF ( .NOT. ASSOCIATED(DiagnList) ) RETURN
 
-      ! Make CurrCnt point to first element of the diagnostics list 
-      CurrCnt => DiagnList 
+    ! Make CurrCnt point to first element of the diagnostics list 
+    CurrCnt => DiagnList 
 
-      ! Loop over list until container found
-      DO WHILE ( ASSOCIATED ( CurrCnt ) )
+    ! Loop over list until container found
+    DO WHILE ( ASSOCIATED ( CurrCnt ) )
 
-         ! Check if this is the container of interest. If a valid 
-         ! container ID is given, use this attribute. Otherwise, check
-         ! for correct match of ExtNr, HcoID, Cat, and Hier attributes
-         ! if a valid HcoID is given. Otherwise, use the container name.
-         IsMatch = .FALSE.
+       ! Check if this is the container of interest. If a valid 
+       ! container ID is given, use this attribute. Otherwise, check
+       ! for correct match of ExtNr, HcoID, Cat, and Hier attributes
+       ! if a valid HcoID is given. Otherwise, use the container name.
+       IsMatch = .FALSE.
 
-         ! Check AutoFill flag.
-         IF ( CurrCnt%AutoFill /= AutoFill .AND. AutoFill >= 0 ) THEN
-            CurrCnt => CurrCnt%NextCont
-            CYCLE
-         ENDIF
+       ! Check AutoFill flag.
+       IF ( CurrCnt%AutoFill /= AutoFill .AND. AutoFill >= 0 ) THEN
+          CurrCnt => CurrCnt%NextCont
+          CYCLE
+       ENDIF
 
-         ! For valid container ID:
-         IF ( cID > 0 ) THEN
-            IF ( CurrCnt%cID == cID ) IsMatch = .TRUE.
+       ! For valid container ID:
+       IF ( cID > 0 ) THEN
+          IF ( CurrCnt%cID == cID ) IsMatch = .TRUE.
      
-         ! For valid HcoID, check for correct match of HcoID, ExtNr, 
-         ! category, and hierarchy.
-         ELSEIF ( HcoID > 0 ) THEN
-            IF ( CurrCnt%HcoID == HcoID .AND. &
-                 CurrCnt%ExtNr == ExtNr .AND. &
-                 CurrCnt%Hier  == Hier  .AND. &
-                 CurrCnt%Cat   == Cat          ) IsMatch = .TRUE.
+       ! For valid HcoID, check for correct match of HcoID, ExtNr, 
+       ! category, and hierarchy.
+       ELSEIF ( HcoID > 0 ) THEN
+          IF ( CurrCnt%HcoID == HcoID .AND. &
+               CurrCnt%ExtNr == ExtNr .AND. &
+               CurrCnt%Hier  == Hier  .AND. &
+               CurrCnt%Cat   == Cat          ) IsMatch = .TRUE.
 
-         ! Use container name otherwise:
-         ELSE
-            IF ( TRIM(CurrCnt%cName) == TRIM(cName) ) IsMatch = .TRUE.
-         ENDIF
+       ! Use container name otherwise:
+       ELSE
+          IF ( TRIM(CurrCnt%cName) == TRIM(cName) ) IsMatch = .TRUE.
+       ENDIF
 
-         IF ( IsMatch ) THEN
-            OutCnt  => CurrCnt
-            FOUND   = .TRUE.
-            EXIT 
-         ENDIF
+       IF ( IsMatch ) THEN
+          OutCnt  => CurrCnt
+          FOUND   = .TRUE.
+          EXIT 
+       ENDIF
 
-         ! Advance to next field otherwise
-         CurrCnt => CurrCnt%NextCont
-      ENDDO
+       ! Advance to next field otherwise
+       CurrCnt => CurrCnt%NextCont
+    ENDDO
 
-      ! Cleanup
-      CurrCnt => NULL()
+    ! Cleanup
+    CurrCnt => NULL()
 
-      END SUBROUTINE DiagnCont_Find
+  END SUBROUTINE DiagnCont_Find
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1583,74 +1625,76 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DiagnCont_Link_2D ( am_I_Root, HcoState,   &
-                                     DgnCont,   Tgt2D,    RC )
+  SUBROUTINE DiagnCont_Link_2D( am_I_Root, HcoState, DgnCont, Tgt2D, RC )
 !
 ! !USES:
 !
-      USE HCO_STATE_MOD,       ONLY : HCO_State
+    USE HCO_STATE_MOD, ONLY : HCO_State
 !
 ! !ARGUMENTS:
 !
-      LOGICAL,           INTENT(IN   )         :: am_I_Root  ! Root CPU?
-      TYPE(HCO_State),   POINTER               :: HcoState   ! HEMCO state object
-      TYPE(DiagnCont),   POINTER               :: DgnCont    ! diagnostics container
-      REAL(hp),          INTENT(IN   ), TARGET :: Tgt2D(:,:) ! 2D target data 
-      INTEGER,           INTENT(INOUT)         :: RC         ! Return code 
+    LOGICAL,           INTENT(IN   )         :: am_I_Root  ! Root CPU?
+    TYPE(HCO_State),   POINTER               :: HcoState   ! HEMCO state object
+    REAL(hp),          INTENT(IN   ), TARGET :: Tgt2D(:,:) ! 2D target data 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DiagnCont),   POINTER               :: DgnCont    ! diagnostics 
+                                                           !  container
+    INTEGER,           INTENT(INOUT)         :: RC         ! Return code 
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL ARGUMENTS:
+! !LOCAL VARIABLES:
 !
-      CHARACTER(LEN=255)   :: MSG, LOC 
+    CHARACTER(LEN=255)   :: MSG, LOC 
 
-      !======================================================================
-      ! DiagnCont_Link_2D begins here!
-      !======================================================================
+    !======================================================================
+    ! DiagnCont_Link_2D begins here!
+    !======================================================================
 
-      ! Init
-      LOC = 'DiagnCont_Link_2D (HCO_DIAGN_MOD.F90)'
+    ! Init
+    LOC = 'DiagnCont_Link_2D (HCO_DIAGN_MOD.F90)'
 
-      ! Check if dimensions match. Also, containers with pointers must not
-      ! be set to AutoFill
-      IF ( DgnCont%AutoFill == 1 ) THEN
-         MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
-      IF ( DgnCont%SpaceDim /= 2 ) THEN
-         MSG = 'Diagnostics is not 2D: ' // TRIM(DgnCont%cName)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
-      IF ( SIZE(Tgt2D,1) /= HcoState%NX .OR. SIZE(Tgt2D,2) /= HcoState%NY ) THEN
-         MSG = 'Incorrect target array size: ' // TRIM(DgnCont%cName)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF 
+    ! Check if dimensions match. Also, containers with pointers must not
+    ! be set to AutoFill
+    IF ( DgnCont%AutoFill == 1 ) THEN
+       MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    IF ( DgnCont%SpaceDim /= 2 ) THEN
+       MSG = 'Diagnostics is not 2D: ' // TRIM(DgnCont%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    IF ( SIZE(Tgt2D,1) /= HcoState%NX .OR. SIZE(Tgt2D,2) /= HcoState%NY ) THEN
+       MSG = 'Incorrect target array size: ' // TRIM(DgnCont%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
-      ! Define 2D array pointer
-      CALL HCO_ArrInit( DgnCont%Arr2D, 0, 0, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Define 2D array pointer
+    CALL HCO_ArrInit( DgnCont%Arr2D, 0, 0, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Point to data
-      DgnCont%Arr2D%Val => Tgt2D
+    ! Point to data
+    DgnCont%Arr2D%Val => Tgt2D
 
-      ! Update pointer switch. This will make sure that data is not modified. 
-      ! Also set counter to non-zero to make sure that diagnostics will be 
-      ! correctly written. 
-      DgnCont%DtaIsPtr = .TRUE. 
-      DgnCont%Counter  = 1
+    ! Update pointer switch. This will make sure that data is not modified. 
+    ! Also set counter to non-zero to make sure that diagnostics will be 
+    ! correctly written. 
+    DgnCont%DtaIsPtr = .TRUE. 
+    DgnCont%Counter  = 1
 
-      ! Return
-      RC = HCO_SUCCESS
+    ! Return
+    RC = HCO_SUCCESS
 
-      END SUBROUTINE DiagnCont_Link_2D
+  END SUBROUTINE DiagnCont_Link_2D
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1666,76 +1710,77 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DiagnCont_Link_3D ( am_I_Root, HcoState,   &
-                                     DgnCont,   Tgt3D,    RC )
+  SUBROUTINE DiagnCont_Link_3D( am_I_Root, HcoState, DgnCont, Tgt3D, RC )
 !
 ! !USES:
 !
-      USE HCO_STATE_MOD,       ONLY : HCO_State
+    USE HCO_STATE_MOD, ONLY : HCO_State
 !
-! !ARGUMENTS:
+! !INPUT PARAEMTERS:
 !
-      LOGICAL,           INTENT(IN   )         :: am_I_Root    ! Root CPU?
-      TYPE(HCO_State),   POINTER               :: HcoState     ! HEMCO state object
-      TYPE(DiagnCont),   POINTER               :: DgnCont      ! diagnostics container
-      REAL(hp),          INTENT(IN   ), TARGET :: Tgt3D(:,:,:) ! 3D target data 
-      INTEGER,           INTENT(INOUT)         :: RC           ! Return code 
+    LOGICAL,           INTENT(IN   )         :: am_I_Root    ! Root CPU?
+    TYPE(HCO_State),   POINTER               :: HcoState     ! HEMCO state object
+    REAL(hp),          INTENT(IN   ), TARGET :: Tgt3D(:,:,:) ! 3D target data 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DiagnCont),   POINTER               :: DgnCont      ! diagnostics 
+                                                             !  container
+    INTEGER,           INTENT(INOUT)         :: RC           ! Return code 
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL ARGUMENTS:
 !
-      CHARACTER(LEN=255)   :: MSG, LOC 
+    CHARACTER(LEN=255)   :: MSG, LOC 
 
-      !======================================================================
-      ! DiagnCont_Link_3D begins here!
-      !======================================================================
+    !======================================================================
+    ! DiagnCont_Link_3D begins here!
+    !======================================================================
 
-      ! Init
-      LOC = 'DiagnCont_Link_3D (HCO_DIAGN_MOD.F90)'
+    ! Init
+    LOC = 'DiagnCont_Link_3D (HCO_DIAGN_MOD.F90)'
 
-      ! Check if dimensions match. Also, containers with pointers must not
-      ! be set to AutoFill
-      IF ( DgnCont%AutoFill == 1 ) THEN
-         MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
-      IF ( DgnCont%SpaceDim /= 3 ) THEN
-         MSG = 'Diagnostics is not 3D: ' // TRIM(DgnCont%cName)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
-      IF ( SIZE(Tgt3D,1) /= HcoState%NX .OR. &
-           SIZE(Tgt3D,2) /= HcoState%NY .OR. &
-           SIZE(Tgt3D,3) /= HcoState%NZ       ) THEN
-         MSG = 'Incorrect target array size: ' // TRIM(DgnCont%cName)
-         CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF 
+    ! Check if dimensions match. Also, containers with pointers must not
+    ! be set to AutoFill
+    IF ( DgnCont%AutoFill == 1 ) THEN
+       MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    IF ( DgnCont%SpaceDim /= 3 ) THEN
+       MSG = 'Diagnostics is not 3D: ' // TRIM(DgnCont%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    IF ( SIZE(Tgt3D,1) /= HcoState%NX .OR. &
+         SIZE(Tgt3D,2) /= HcoState%NY .OR. &
+         SIZE(Tgt3D,3) /= HcoState%NZ       ) THEN
+       MSG = 'Incorrect target array size: ' // TRIM(DgnCont%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
-      ! Define 3D array pointer
-      CALL HCO_ArrInit( DgnCont%Arr3D, 0, 0, 0, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Define 3D array pointer
+    CALL HCO_ArrInit( DgnCont%Arr3D, 0, 0, 0, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Point to data
-      DgnCont%Arr3D%Val => Tgt3D
+    ! Point to data
+    DgnCont%Arr3D%Val => Tgt3D
 
-      ! Update pointer switch. This will make sure that data is not modified.
-      ! Also set counter to non-zero to make sure that diagnostics will be 
-      ! correctly written. 
-      DgnCont%DtaIsPtr = .TRUE. 
-      DgnCont%Counter  = 1
+    ! Update pointer switch. This will make sure that data is not modified.
+    ! Also set counter to non-zero to make sure that diagnostics will be 
+    ! correctly written. 
+    DgnCont%DtaIsPtr = .TRUE. 
+    DgnCont%Counter  = 1
 
-      ! Return
-      RC = HCO_SUCCESS
+    ! Return
+    RC = HCO_SUCCESS
 
-      END SUBROUTINE DiagnCont_Link_3D
+  END SUBROUTINE DiagnCont_Link_3D
 !EOC
-      END MODULE HCO_DIAGN_MOD
-!EOF
+END MODULE HCO_DIAGN_MOD

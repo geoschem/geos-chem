@@ -77,7 +77,7 @@ MODULE HCO_ERROR_MOD
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE VARIABLES:
+! !PRIVATE TYPES:
 !
   TYPE :: HcoErr
      LOGICAL                     :: Track
@@ -93,17 +93,17 @@ MODULE HCO_ERROR_MOD
      CHARACTER(LEN=1)            :: Separator
      INTEGER                     :: Lun
   END TYPE HcoErr
+
+  ! Err is the (internal) error type holding information on the
+  ! logfile and which part of the code is executed. 
+  TYPE(HcoErr),          POINTER :: Err     => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
   ! MAXNEST is the maximum accepted subroutines nesting level.
   ! This only applies to routines with activated error tracking,
   ! i.e. which use HCO_ENTER/HCO_LEAVE statements.
-  INTEGER, PARAMETER       :: MAXNEST =  10
-
-  ! Err is the (internal) error type holding information on the
-  ! logfile and which part of the code is executed. 
-  TYPE(HcoErr), POINTER    :: Err     => NULL()
+  INTEGER,             PARAMETER :: MAXNEST =  10
 
 CONTAINS
 !EOC
@@ -121,7 +121,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ERROR ( ErrMsg, RC, THISLOC )
+  SUBROUTINE HCO_ERROR( ErrMsg, RC, THISLOC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -183,7 +183,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_WARNING ( ErrMsg, RC, THISLOC )
+  SUBROUTINE HCO_WARNING( ErrMsg, RC, THISLOC )
 !
 ! !INPUT PARAMETERS"
 !
@@ -242,7 +242,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_MSG ( Msg, Sep1, Sep2 )
+  SUBROUTINE HCO_MSG( Msg, Sep1, Sep2 )
 !
 ! !INPUT PARAMETERS:
 !
@@ -309,7 +309,7 @@ CONTAINS
 !
 ! !IROUTINE: hco_enter
 !
-! !DESCRIPTION: Subroutine HCO\_LEAVE is called upon entering a routine. 
+! !DESCRIPTION: Subroutine HCO\_ENTER is called upon entering a routine. 
 ! It organizes the traceback handling. It is recommended to call this
 ! routine for 'big' routines but NOT for routines/functions that are 
 ! frequently called, e.g. inside of loops!
@@ -318,7 +318,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ENTER ( thisLoc, RC )
+  SUBROUTINE HCO_ENTER( thisLoc, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -390,7 +390,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_LEAVE ( RC )
+  SUBROUTINE HCO_LEAVE( RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !

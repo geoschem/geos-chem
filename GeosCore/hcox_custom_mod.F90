@@ -235,7 +235,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HcoX_Custom_Init ( am_I_Root, HcoState, ExtName, &
-                                    ExtState,    RC                  )
+                                ExtState,  RC                  )
 !
 ! !USES:
 !
@@ -245,7 +245,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
-    TYPE(Ext_State),  POINTER        :: ExtState    ! Module options      
+    TYPE(Ext_State),  POINTER        :: ExtState   ! Module options      
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
