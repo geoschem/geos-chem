@@ -8,17 +8,22 @@
 ! !DESCRIPTION: Module HCO\_CONFIG\_MOD contains routines related 
 ! to the HEMCO configuration file. It reads the content of the 
 ! configuration file, checks which entires therein are actually used 
-! for this simulation run, and stores these information.\\ 
+! for this simulation run, and stores these information.
+!\\
+!\\ 
 ! All data fields are saved in individual data containers, which are 
 ! organized in the ConfigList. Hence, ConfigList is a collection of 
 ! data containers, with every container representing an entry of the
 ! configuration file. Each data container has its unique container ID
 ! for identification. Note that all HEMCO lists (ConfigList, ReadList,
-! EmisList) access the same containers.\\
+! EmisList) access the same containers.
+!\\
+!\\
 ! The configuration file provides all source file information of the
 ! emission fields and scale factors to be used. It is read at the
 ! beginning of a simulation run.
-! \\
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_CONFIG_MOD
@@ -991,7 +996,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine RegisterPrepare extracts the spatial 
 ! coverages of all mask fields as well as the HEMCO species IDs of 
-! all base emissions.
+! all base emissions. 
 ! The species IDs are determined by matching the species name read
 ! from the configuration file (in ConfigList) and the species names 
 ! defined in the HEMCO state object HcoState.
@@ -1034,7 +1039,7 @@ CONTAINS
 
     !=================================================================
     ! RegisterPrepare begins here!
-      !=================================================================
+    !=================================================================
 
     ! Enter
     CALL HCO_ENTER ( 'RegisterPrepare', RC )
@@ -1495,12 +1500,14 @@ CONTAINS
 !
 ! !IROUTINE: Get_targetID 
 !
-! !DESCRIPTION: SUBROUTINE Get\_targetID returns the target ID of a 
+! !DESCRIPTION: Subroutine Get\_targetID returns the target ID of a 
 ! container. The target ID can point to the container ID (cID) of 
 ! another base field if multiple emissions shall be added together
 ! prior to emission calculation, e.g. sectoral emissions data with 
-! same species ID, category, hierarchy, extension #, scale factors, 
+! same species ID, category, hierarchy, extension number, scale factors, 
 ! etc.
+!\\
+!\\
 ! Target ID is set to -999 if there exists another inventory over 
 ! the full spatial region covered by this CPU for this species but
 ! with higher hierarchy. In this case, we can ignore the current 
@@ -1823,7 +1830,7 @@ CONTAINS
 !
 ! !IROUTINE: CALC_COVERAGE
 !
-! !DESCRIPTION: Function CALC_COVERAGE calculates the coverage of
+! !DESCRIPTION: Function CALC\_COVERAGE calculates the coverage of
 ! the specified lon/lat box with the area covered by the inventory.
 ! Returns 0 if no overlap, 1 if complete overlap, and -1 for partial
 ! overlap.
@@ -2469,7 +2476,7 @@ CONTAINS
 !
 ! !IROUTINE: ScalID_Register 
 !
-! !DESCRIPTION: Subroutine ScalID_Register adds the scale factor IDs ScalIDs
+! !DESCRIPTION: Subroutine ScalID\_Register adds the scale factor IDs ScalIDs
 ! to the list of scale factor IDs. 
 !\\
 !\\
@@ -2545,7 +2552,7 @@ CONTAINS
 !
 ! !IROUTINE: ScalID_Cleanup
 !
-! !DESCRIPTION: Subroutine ScalID_Cleanup cleans up the internal ScalID
+! !DESCRIPTION: Subroutine ScalID\_Cleanup cleans up the internal ScalID
 ! list.
 !\\
 !\\
@@ -2919,9 +2926,9 @@ CONTAINS
 !
 ! !DESCRIPTION: Function Check\_Contnames compares the container names of 
 ! two containers, ignoring the name 'tags', i.e. ignoring everything that
-! follows double underscore (__). For example, two containers with names
-! "EDGAR_NOX__PNT" and "EDGAR_NOX__MOB" are considered equal, while 
-! "EDGAR_NOX_PNT" and "EDGAR_NOX_MOB" are not.
+! follows double underscore (\_\_). For example, two containers with names
+! "EDGAR\_NOX\_\_PNT" and "EDGAR\_NOX\_\_MOB" are considered equal, while 
+! "EDGAR\_NOX\_PNT" and "EDGAR\_NOX\_MOB" are not.
 !\\
 !\\
 ! !INTERFACE:

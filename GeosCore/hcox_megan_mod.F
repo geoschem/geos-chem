@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -9,21 +9,21 @@
 !  specifying the algorithms that control the MEGAN inventory of biogenic 
 !  emissions.
 !\\
+!\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
 !\\
-!NOTES:
-!
-!- MEGAN calculates gamma activity factor based upon temperature and 
-!  radiation information from the past 10 days. In the original GEOS-Chem 
-!  code, the initial 10-d averages were explicitly calculated during 
-!  initialization of MEGAN. This is not feasible in an ESMF environment. 
-!  As a first approximation, the averages are now set to the initial 
-!  temperature/radiation value. Especially for the radiation (PARDR and 
-!  PARDF), this may result in very different average values - which in 
-!  turn may result in local differences of >50%. HEMCO emissions are 
-!  identical to original GEOS-Chem emissions once we pass the first 10 
-!  days.
+!\\
+! MEGAN calculates gamma activity factor based upon temperature and 
+! radiation information from the past 10 days. In the original GEOS-Chem 
+! code, the initial 10-d averages were explicitly calculated during 
+! initialization of MEGAN. This is not feasible in an ESMF environment. 
+! As a first approximation, the averages are now set to the initial 
+! temperature/radiation value. Especially for the radiation (PARDR and 
+! PARDF), this may result in very different average values - which in 
+! turn may result in local differences of >50%. HEMCO emissions are 
+! identical to original GEOS-Chem emissions once we pass the first 10 
+! days.
 !\\
 !\\
 ! !References:
@@ -220,7 +220,9 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!
+! !IROUTINE: hcox_megan_run
 !
 ! !DESCRIPTION: Subroutine HCOX\_MEGAN\_RUN is the driver routine for
 ! the MEGAN model within the new emissions structure. 
@@ -1480,7 +1482,7 @@
       END SUBROUTINE HcoX_Megan_Run
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1618,7 +1620,7 @@
       END SUBROUTINE GET_EMISOP_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1744,7 +1746,7 @@
       END SUBROUTINE GET_EMMBO_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1936,7 +1938,7 @@
       END SUBROUTINE GET_EMTERP_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2085,7 +2087,7 @@
       END SUBROUTINE GET_EMACET_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2176,7 +2178,7 @@
       END SUBROUTINE GET_EMMONOT_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2318,7 +2320,7 @@
       END FUNCTION GET_GAMMA_P_PECCA
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2377,7 +2379,7 @@
       END FUNCTION SOLAR_ANGLE 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2463,7 +2465,7 @@
       END FUNCTION GET_GAMMA_T_ISOP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2526,7 +2528,7 @@
       END FUNCTION GET_GAMMA_T_NISOP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2733,7 +2735,7 @@
       END FUNCTION GET_GAMMA_P
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2940,7 +2942,7 @@
       END FUNCTION GET_GAMMA_LEAF_AGE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2988,7 +2990,7 @@
       END FUNCTION GET_GAMMA_LAI 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3065,7 +3067,7 @@
       END SUBROUTINE UPDATE_HCOT_DAY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3347,7 +3349,7 @@
       END SUBROUTINE GET_AEF_GEN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3692,7 +3694,7 @@
       END SUBROUTINE Hcox_Megan_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

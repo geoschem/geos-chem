@@ -11,17 +11,22 @@
 ! F = Kg * ( Cair - H Cwater )
 ! where F is the net flux, Kg is the exchange velocity, Cair and Cwater
 ! are the air and aqueous concentrations, respectively, and H is the
-! dimensionless air over water Henry constant.\\
+! dimensionless air over water Henry constant.
+!\\
+!\\
 ! Kg is calculated following Johnson, 2010, which is largely based on
 ! the work of Nightingale et al., 2000a/b.
 ! The salinity and seawater pH are currently set to constant global values 
 ! of 35 ppt and 8.0, respectively.
 ! Since Kg is only little sensitive to these variables, this should not 
-! introduce a notable error.\\ 
+! introduce a notable error.
+!\\
+!\\ 
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
-!
-! !NOTES: Air-sea exchange is calculated for all species defined during 
+!\\
+!\\
+! Air-sea exchange is calculated for all species defined during 
 ! extension initialization. For each species, the following parameter
 ! must be specified: species name, model species ID (i.e. ID of this 
 ! species in the external model), parameterization type of Schmidt
@@ -30,27 +35,24 @@
 ! routine for more details.
 ! To add new species to this module, the abovementioned arrays have to 
 ! be extended accordingly.
-!
-! !REFERENCES:
-!
-! Johnson, M.: A numerical scheme to calculate temperature and salinity
-! dependent air-water transfer velocities for any gas, Ocean Science, 6,
-! 2010.
-!
-! Liss and Slater: Flux of gases across the air-sea interface, Nature,
-! 247, 1974.
-!
-! Nightingale et al.: In situ evaluation of air-sea gas exchange
-! parameterizations using novel conservative and volatile tracers,
-! Global Biogeochemical Cycles, 14, 2000a.
-!
-! Nightingale et al.: Measurements of air-sea gas transfer during an
-! open ocean algal bloom, Geophys. Res. Lett., 27, 2000b.
-!
-! Saltzman et al.: Experimental determination of the diffusion
-! coefficient of dimethylsulfide in water, J. Geophys. Res., 98, 1993.
 !\\
 !\\
+! References:
+! \begin{itemize}
+! \item Johnson, M.: A numerical scheme to calculate temperature and salinity
+!    dependent air-water transfer velocities for any gas, Ocean Science, 6,
+!    2010.
+! \item Liss and Slater: Flux of gases across the air-sea interface, Nature,
+!    247, 1974.
+! \item Nightingale et al.: In situ evaluation of air-sea gas exchange
+!    parameterizations using novel conservative and volatile tracers,
+!    Global Biogeochemical Cycles, 14, 2000a.
+! \item Nightingale et al.: Measurements of air-sea gas transfer during an
+!    open ocean algal bloom, Geophys. Res. Lett., 27, 2000b.
+! \item Saltzman et al.: Experimental determination of the diffusion
+!    coefficient of dimethylsulfide in water, J. Geophys. Res., 98, 1993.
+! \end{itemize}
+!
 ! !INTERFACE: 
 !
 MODULE HCOX_SEAFLUX_MOD
@@ -109,7 +111,7 @@ CONTAINS
 !
 ! !IROUTINE: hcox_seaflux_run 
 !
-! !DESCRIPTION: Subroutine HcoX\_SeaFlux_Run is the run routine to 
+! !DESCRIPTION: Subroutine HcoX\_SeaFlux\_Run is the run routine to 
 ! calculate oceanic emissions for the current time step.
 !\\
 !\\
@@ -240,16 +242,11 @@ CONTAINS
 ! !DESCRIPTION: Subroutine CALC\_SEAFLUX calculates oceanic emissions 
 ! of the specified tracer using the parameterization described in
 ! Johnson, 2010.
-!
+!\\
+!\\
 ! The net emission flux is given by F = - Kg ( Cg - Caq*H ). Here, we
 ! calculate the source term ( Kg * H * Caq ) in units of kg/m2/s as
 ! well as the deposition velocity Kg in m/s.
-!
-! !NOTES: For now, the salinity and pH of seawater are prescribed to 
-! 35ppt and 8.0, respectively.
-! The oceanic flux is not expected to be sensitive to these parameter
-! (which have only little variations anyway), but we may use
-! climatologies for these parameter at some point nevertheless!
 !\\
 !\\
 ! !INTERFACE:
@@ -281,6 +278,12 @@ CONTAINS
     REAL(hp),        INTENT(INOUT) :: SeaConc(HcoState%NX,HcoState%NY )
     INTEGER,         INTENT(INOUT) :: RC                 ! Error stat 
 
+!
+! !REMARKS:
+!  For now, the salinity and pH of seawater are prescribed to 35ppt and 8.0, 
+!  respectively.  The oceanic flux is not expected to be sensitive to these 
+!  parameters (which have only little variations anyway), but we may use
+!  climatologies for these parameter at some point nevertheless!
 !
 ! !REVISION HISTORY: 
 !  16 Apr 2013 - C. Keller - Initial version
@@ -461,12 +464,14 @@ CONTAINS
 ! the liquid molar volume (Vb), the parameterization type for the 
 ! Schmidt number in water (SCWPAR) and the name of the field containing 
 ! oceanic concentrations.
-!
+!\\
+!\\
 ! LiqVol is the liquid molar volume [cm3/mol]. If not stated otherwise,
 ! it is calculated using the Schroeder additive method as described in
 ! Johnson, 2010. Note that experimental values for LiqVol should be used
 ! if available!
-!
+!\\
+!\\
 ! Table 3 of Johnson, 2010: Schroeder additive method for calculating
 ! Vb. For all atoms/structural items a molecule contains, the sum of the
 ! incre- ments will give the molar volume. e.g. CH2=CH2 contains 2 car-
@@ -475,28 +480,32 @@ CONTAINS
 ! and is applied only once to ring-containing compounds irrespective
 ! of the number of rings present.
 !
-! Atom/feature Increment/cm3mole-1
-! Carbon       7.0 
-! Hydrogen     7.0 
-! Oxygen       7.0 
-! Nitrogen     7.0
-! Bromine     31.5
-! Chlorine    24.5
-! Fluorine    10.5
-! Iodine      38.5
-! Sulfur      21.0
-! Ring*       -7.0
-! Double bond  7.0
-! Triple bond 14.0
-!
+! \begin{itemize}
+! \item Atom/feature Increment/cm3mole-1
+! \item Carbon       7.0 
+! \item Hydrogen     7.0 
+! \item Oxygen       7.0 
+! \item Nitrogen     7.0
+! \item Bromine     31.5
+! \item Chlorine    24.5
+! \item Fluorine    10.5
+! \item Iodine      38.5
+! \item Sulfur      21.0
+! \item Ring*       -7.0
+! \item Double bond  7.0
+! \item Triple bond 14.0
+! \end{itemize}
 !
 ! SCWPAR denotes which parameterization will be used to calculate the
-! Schmidt number in water (in ocean_toolbox_mod). The following 
+! Schmidt number in water (in ocean\_toolbox\_mod). The following 
 ! parameterizations are currently supported:
-! 1: Parameterization as in Johnson, 2010 (default).
-! 2: Parameteriaztion for DMS according to Saltzman et al., 1993.
-! 3: Parameteriaztion for Acetone as in former acetone_mod.F in GC. 
 !
+! \begin{enumerate}
+! \item Parameterization as in Johnson, 2010 (default).
+! \item Parameteriaztion for DMS according to Saltzman et al., 1993.
+! \item Parameteriaztion for Acetone as in former acetone\_mod.F in GC. 
+! \end{enumerate}
+
 ! The oceanic surface concentrations of all species are obtained from
 ! external fields. These field names are specified in array OcDataName.
 ! For now, we obtain these concentrations from netCDF-files through the 

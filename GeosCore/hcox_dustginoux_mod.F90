@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,21 +16,27 @@
 !  ginoux@rondo.gsfc.nasa.gov/  If you are not using GEOS DAS met fields, 
 !  you will most likely need to adapt the adjusting parameter.
 !\\
+!\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
+!\\
 !\\ 
 ! !REFERENCES:
-!
-!  (1 ) Ginoux, P., M. Chin, I. Tegen, J. Prospero, B. Hoben, O. Dubovik,
+! 
+! \begin{enumerate}
+! \item Ginoux, P., M. Chin, I. Tegen, J. Prospero, B. Hoben, O. Dubovik,
 !        and S.-J. Lin, "Sources and distributions of dust aerosols simulated
 !        with the GOCART model", J. Geophys. Res., 2001
-!  (2 ) Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
+! \item Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
 !        J. Logan, A. Higurashi, and T. Nakajima, "Tropospheric aerosol
 !        optical thickness from the GOCART model and comparisons with
 !        satellite and sunphotometers measurements", J. Atmos Sci., 2001.
-!                                                                             .
-!  Contact: Paul Ginoux (ginoux@rondo.gsfc.nasa.gov) 
-! 
+! \end{enumerate}
+!
+! !AUTHOR:
+!  Paul Ginoux (ginoux@rondo.gsfc.nasa.gov) 
+!\\
+!\\
 ! !REVISION HISTORY:
 !  08 Apr 2004 - T. D. Fairlie - Initial version
 !  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
@@ -99,7 +105,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -348,7 +354,7 @@
       END SUBROUTINE HcoX_DustGinoux_Run
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -458,7 +464,7 @@
       END SUBROUTINE HcoX_DustGinoux_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -493,13 +499,13 @@
       END SUBROUTINE HcoX_DustGinoux_Final
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HCOX_DUSTGINOUX_GETCHDUST
 !
-! !DESCRIPTION: Function HCOX_DUSTGINOUX_GETCHDUST returns the CH_DUST
+! !DESCRIPTION: Function HCOX\_DUSTGINOUX\_GETCHDUST returns the CH\_DUST
 ! parameter for the current simulation type.
 !\\
 !\\

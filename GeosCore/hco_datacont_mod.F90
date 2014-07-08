@@ -67,7 +67,7 @@
 !       is the home container of this file data object. For internal use
 !       only. 
 ! \end{itemize}
-! \\
+!
 ! !INTERFACE: 
 !
 MODULE HCO_DATACONT_MOD 
@@ -292,7 +292,7 @@ CONTAINS
 !
 ! !ROUTINE: listcont_cleanup
 !
-! !DESCRIPTION: Subroutine ListCont_Cleanup cleans up list List 
+! !DESCRIPTION: Subroutine ListCont\_Cleanup cleans up list List 
 ! The corresponding data container (LstCont%Dct) is also removed if 
 ! RemoveDct is set to true.
 !\\

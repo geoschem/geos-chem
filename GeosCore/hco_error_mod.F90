@@ -11,26 +11,28 @@
 ! definitions.
 ! The error settings are specified in the HEMCO configuration file and
 ! error handling is performed according to these settings. They include: 
-! (1) HEMCO logfile: all HEMCO information is written into the specified
+! \begin{enumerate}
+! \item HEMCO logfile: all HEMCO information is written into the specified
 !     logfile. The logfile can be set to the wildcard character, in which
 !     case the standard output will be used (this may be another opened
 !     logfile!).
-! (2) Verbose: if true, this will run HEMCO in verbose mode. Note that
+! \item Verbose: if true, this will run HEMCO in verbose mode. Note that
 !     this may significantly slow down the model!
-! (3) Track: if true, this will print the current location in the code
+! \item Track: if true, this will print the current location in the code
 !     into the logfile. This is primarily for debugging.
-! (4) Wildcard: wildcard character used in the HEMCO input file, e.g.
+! \item Wildcard: wildcard character used in the HEMCO input file, e.g.
 !     for time stamps.
-! (5) Separator: separator character used in the HEMCO input file, e.g.
+! \item Separator: separator character used in the HEMCO input file, e.g.
 !     to separate scale factors and time stamp elements. 
-! (6) Show warnings: if TRUE, prompt all warnings to the HEMCO logfile.
+! \item Show warnings: if TRUE, prompt all warnings to the HEMCO logfile.
 !     Otherwise, no warnings will be prompted but the total number of
 !     warnings occurred will still be shown at the end of the run.
-! (7) Only unitless scale factors: If set to TRUE, this will force all
+! \item Only unitless scale factors: If set to TRUE, this will force all
 !     scale factors to be 'unitless', as specified in module 
 !     HCO\_UNIT\_MOD (code will return with error if scale factor is 
 !     not unitless).
-! \\
+! \end{enumerate}
+!
 ! !INTERFACE: 
 !
 MODULE HCO_ERROR_MOD
@@ -114,8 +116,8 @@ CONTAINS
 !
 ! !IROUTINE: hco_error
 !
-! !DESCRIPTION: Subroutine HCO_ERROR promts an error message and sets RC to 
-! HCO_FAIL. Note that this routine does not stop a run, but it will cause a 
+! !DESCRIPTION: Subroutine HCO\_ERROR promts an error message and sets RC to 
+! HCO\_FAIL. Note that this routine does not stop a run, but it will cause a 
 ! stop at higher level (when RC gets evaluated). 
 !\\
 !\\
@@ -177,8 +179,8 @@ CONTAINS
 !
 ! !IROUTINE: hco_warning
 !
-! !DESCRIPTION: Subroutine HCO_WARNING promts a warning message without 
-! forcing HEMCO to stop, i.e. return code is set to HCO_SUCCESS. 
+! !DESCRIPTION: Subroutine HCO\_WARNING promts a warning message without 
+! forcing HEMCO to stop, i.e. return code is set to HCO\_SUCCESS. 
 !\\
 !\\
 ! !INTERFACE:
@@ -234,7 +236,7 @@ CONTAINS
 !
 ! !IROUTINE: hco_msg
 !
-! !DESCRIPTION: Subroutine HCO_MSG passes message msg to the HEMCO
+! !DESCRIPTION: Subroutine HCO\_MSG passes message msg to the HEMCO
 ! logfile (or to standard output if the logfile is not open).
 ! Sep1 and Sep2 denote line delimiters before and after the message,
 ! respectively.
@@ -313,7 +315,9 @@ CONTAINS
 ! It organizes the traceback handling. It is recommended to call this
 ! routine for 'big' routines but NOT for routines/functions that are 
 ! frequently called, e.g. inside of loops!
-! Note that all subroutines calling HCO_ENTER must also call HCO_LEAVE!
+!\\
+!\\
+! Note that all subroutines calling HCO\_ENTER must also call HCO\_LEAVE!
 !\\
 !\\
 ! !INTERFACE:
@@ -384,8 +388,9 @@ CONTAINS
 ! It organizes the traceback handling. It is recommended to call this
 ! routine for 'big' routines but NOT for routines/functions that are 
 ! frequently called, e.g. inside of loops!
-! Note that all subroutines calling HCO_LEAVE must also call HCO_ENTER!
 !\\
+!\\
+! Note that all subroutines calling HCO\_LEAVE must also call HCO\_ENTER!
 !\\
 !\\
 ! !INTERFACE:
@@ -398,7 +403,6 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -443,7 +447,7 @@ CONTAINS
 !
 ! !IROUTINE: hco_error_set
 !
-! !DESCRIPTION: Subroutine HCO\_ERROR_SET defines the HEMCO error
+! !DESCRIPTION: Subroutine HCO\_ERROR\_SET defines the HEMCO error
 ! settings. This routine is called at the beginning of a HEMCO
 ! simulation. Its input parameter are directly taken from the
 ! HEMCO configuration file.
@@ -525,7 +529,8 @@ CONTAINS
 !
 ! !IROUTINE: hco_error_final
 !
-! !DESCRIPTION: Subroutine HCO\_ERROR_FINAL finalizes the error type.
+! !DESCRIPTION: Subroutine HCO\_ERROR\_FINAL finalizes the error type.
+!\\
 !\\
 ! !INTERFACE:
 !
@@ -859,7 +864,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HCO\_LOGFILE\_CLOSE closes the HEMCO logfile.
 ! If argument ShowSummary is enabled, it will prompt a summary of the 
-! HEMCO run up to this point (# of warnings, etc.). 
+! HEMCO run up to this point (number of warnings, etc.). 
 !\\
 !\\
 ! !INTERFACE:
@@ -916,5 +921,5 @@ CONTAINS
 
   END SUBROUTINE HCO_LOGFILE_CLOSE
 !EOC
-      END MODULE HCO_ERROR_MOD
+END MODULE HCO_ERROR_MOD
 

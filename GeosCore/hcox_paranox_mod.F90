@@ -8,15 +8,19 @@
 ! !DESCRIPTION: Module HCOX\_PARANOX\_MOD contains routines to 
 ! compute ship emissions and associated concentrations of NO, HNO3 and
 ! O3 from NO ship emission data. 
+!\\
+!\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
-!
-! !REFERENCES:
-!
-! Vinken, G. C. M., Boersma, K. F., Jacob, D. J., and Meijer, E. W.: 
+!\\
+!\\
+! References:
+! \begin{itemize}
+! \item Vinken, G. C. M., Boersma, K. F., Jacob, D. J., and Meijer, E. W.: 
 ! Accounting for non-linear chemistry of ship plumes in the
 ! GEOS-Chem global chemistry transport model, Atmos. Chem. Phys., 11,
 ! 11707-11722, doi:10.5194/acp-11-11707-2011, 2011.
+! \end{itemize}
 !
 ! !INTERFACE:
 !
@@ -176,12 +180,12 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EVOLVE_PLUME 
+! !IROUTINE: evolve_plume 
 !
 ! !DESCRIPTION: Subroutine EVOLVE\_PLUME performs plume
 ! dilution/chemistry of ship NO emissions for every grid box and writes
 ! the resulting NO, HNO3 and O3 emission (production) rates into
-! State_Chm%NomixS. 
+! State\_Chm%NomixS. 
 !\\
 !\\
 ! !INTERFACE:

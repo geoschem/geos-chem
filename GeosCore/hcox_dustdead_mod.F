@@ -1,36 +1,42 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !MODULE: hcox_dust_dead_mod
 !
-! !DESCRIPTION: Module HCOX\_DUST_DEAD\_MOD contains routines and
+! !DESCRIPTION: Module HCOX\_DUST\_DEAD\_MOD contains routines and
 !  variables from Charlie Zender's DEAD dust mobilization model.  
 !  Most routines are from Charlie Zender, but have been modified and/or 
 !  cleaned up for inclusion into GEOS-Chem.
-!
+!\\
+!\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
-!
-! !NOTE: The current [dust] code was validated at 2 x 2.5 resolution.
+!\\
+!\\
+! NOTE: The current (dust) code was validated at 2 x 2.5 resolution.
 !  We have found that running at 4x5 we get much lower (~50%) dust 
 !  emissions than at 2x2.5.  Recommend we either find a way to scale
 !  the U* computed in the dust module, or run a 1x1 and store the the
 !  dust emissions, with which to drive lower resolution runs.     
 !  -- Duncan Fairlie, 1/25/07
+!\\
 !\\ 
-!  [We'll] implement the [dust] code in the standard [GEOS-Chem] 
+!  (We'll) implement the [dust] code in the standard [GEOS-Chem] 
 !  model and put a warning about expected low bias when the simulation 
 !  is run at 4x5.  Whoever is interested in running dust at 4x5 in the 
 !  future can deal with making the fix.                                
 !  -- Daniel Jacob, 1/25/07                                         
-!
+!\\
+!\\
 ! !REFERENCES:
 !
-!Zender, C. S., Bian, H., and Newman, D.: Mineral Dust Entrainment and 
-!Deposition (DEAD) model: Description and 1990s dust climatology, 
-!Journal of Geophysical Research: Atmospheres, 108, 2003. 
+! \begin{itemize}
+! \item Zender, C. S., Bian, H., and Newman, D.: Mineral Dust Entrainment and 
+!   Deposition (DEAD) model: Description and 1990s dust climatology, 
+!   Journal of Geophysical Research: Atmospheres, 108, 2003. 
+! \end{itemize}
 !
 ! !INTERFACE:
 !
@@ -156,7 +162,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -176,11 +182,14 @@
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       LOGICAL,         INTENT(IN   )  :: am_I_Root
       TYPE(Ext_State), POINTER        :: ExtState    ! Module options
-      TYPE(HCO_State), POINTER        :: HcoState   ! Hemco state 
+      TYPE(HCO_State), POINTER        :: HcoState    ! Hemco state 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       INTEGER,         INTENT(INOUT)  :: RC 
 
 ! !REVISION HISTORY:
@@ -472,14 +481,14 @@
       END SUBROUTINE HcoX_DustDead_Run
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HCOX_DUST_DEAD_INIT 
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustDead\_Init initializes the HEMCO
-! DUST_DEAD extension.
+! DUST\_DEAD extension.
 !\\
 !\\
 ! !INTERFACE:
@@ -491,18 +500,19 @@
 !
       USE HCOX_ExtList_Mod,   ONLY : GetExtNr, GetExtHcoID
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       LOGICAL,          INTENT(IN   )  :: am_I_Root
       TYPE(HCO_State),  POINTER        :: HcoState   ! Hemco state
       CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
       TYPE(Ext_State),  POINTER        :: ExtState     ! Module options
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       INTEGER,          INTENT(INOUT)  :: RC 
 
 ! !REVISION HISTORY:
 !  25 Nov 2013 - C. Keller - Now a HEMCO extension
-!
-! !NOTES: 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -774,14 +784,14 @@
       END SUBROUTINE HcoX_DustDead_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HCOX_DUST_DEAD_FINAL
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustDead\_Final finalizes the HEMCO
-! DUST_DEAD extension.
+! DUST\_DEAD extension.
 !\\
 !\\
 ! !INTERFACE:
@@ -839,7 +849,7 @@
       END SUBROUTINE HcoX_DustDead_Final
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !
 !******************************************************************************

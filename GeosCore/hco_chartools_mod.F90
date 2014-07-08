@@ -47,9 +47,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_charsplit_r8 
+! !IROUTINE: hco_charsplit_r8
 !
-! !DESCRIPTION: Subroutine HCO_CharSplit\_R8 splits the passed character
+! !DESCRIPTION: Subroutine HCO\_CharSplit\_R8 splits the passed character
 ! string into N real8 values, using character SEP as separator. Wildcard
 ! values (WC) are set to -999. 
 !\\
@@ -133,7 +133,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_CharSplit_R4 
 !
-! !DESCRIPTION: Subroutine HCO_CharSplit\_R4 splits the passed character
+! !DESCRIPTION: Subroutine HCO\_CharSplit\_R4 splits the passed character
 ! string into N real4 values, using character SEP as separator. Wildcard
 ! values (WC) are set to -999. 
 !\\
@@ -216,7 +216,7 @@ CONTAINS
 !
 ! !IROUTINE: hco_charsplit_int 
 !
-! !DESCRIPTION: Subroutine HCO_CharSplit\_R8 splits the passed character
+! !DESCRIPTION: Subroutine HCO\_CharSplit\_Int splits the passed character
 ! string into N integers, using character SEP as separator. Wildcard
 ! values (WC) are set to -999. 
 !\\
@@ -299,7 +299,7 @@ CONTAINS
 !
 ! !IROUTINE: hco_charmatch
 !
-! !DESCRIPTION: Subroutine HCO_CharMatch returns the index of each 
+! !DESCRIPTION: Subroutine HCO\_CharMatch returns the index of each 
 ! vector element of vec1 in vec2. nnmatch denotes the number of
 ! vec1 elements which have a matching counterpart in vec2.
 ! For example, if vec1 is (/ 'NO', 'CO', 'ALK4', 'HBr' /), and 

@@ -7,40 +7,61 @@
 !
 ! !DESCRIPTION: Module HCOX\_SOILNOX\_MOD contains routines to 
 !  compute soil NOx emissions. 
+!\\
+!\\
+! !INTERFACE:
 !
+MODULE HCOX_SOILNOX_MOD 
+!
+! !USES:
+!
+  USE HCO_ERROR_MOD
+  USE HCO_DIAGN_MOD
+  USE HCOX_State_MOD,     ONLY : Ext_State
+  USE HCO_STATE_MOD,      ONLY : HCO_State
+
+  IMPLICIT NONE
+  PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PUBLIC :: HcoX_SoilNox_Run
+  PUBLIC :: HcoX_SoilNox_Init
+  PUBLIC :: HcoX_SoilNox_Final
+!
+! !REMARKS:
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
-!
+!                                                                             .
 !  Original codes from:
 !    HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP 
 !    MODULE FOR SOIL NOX EMISSIONS           
 !    by Yuhang Wang, Gerry Gardner, and Prof. Daniel Jacob 
 !  Updated model code:
 !    by  Rynda Hudman, Neil Moore, Randall Martin, and Bram Maasakkers
-!
-! !REMARKS:
+!                                                                             .
 !  The soil NOx code has been updated from the original implementation
 !  of Yienger & Levy [1995] from  Wang et al., [1998] as summarized below.
-!  
+!                                                                             .
 !  Old:
 !  ENOx   = f( T, biome, w/d)  x Pulse(precip) x canopy uptake + FERT
-! 
+!                                                                             .
 !  New:
 !  ENOx   = f( T, biome, WFPS, Fert)  x Pulse(dryspell) x canopy uptake 
-! 
+!                                                                             .
 !  1 - Update moisture treatment: soil moisture as a continuous variable 
 !  using WFPS rather than discrete wet/dry states and purely exponential 
 !  T impact (impact = -1. Tg N/yr)
-! 
+!                                                                             .
 !  2 - Update to Fertilizer:  new fertilizer maps including chemical and 
 !  manure fertilizer from Potter et al., [2010] distributed using MODIS EVI 
 !  seasonality, online-N deposition as a fertilizer source, and N-fertilizer
 !  source subject to T, WFPS, and pulsing like other N (impact = +1.3 Tg N/yr)
-! 
+!                                                                             . 
 !  3- Update Pulsing Scheme: Yan et al., [2005] (shorter, stronger pulses) 
 !  (impact = +1. Tg N/yr). Also added restart file containing dry spell 
 !  information to properly account for dry spell length in continuing runs. 
-! 
+!                                                                             .
 !  References:
 !  ============================================================================
 !  (1 ) Wang, Y., D.J. Jacob, and J.A. Logan,  Global simulation of 
@@ -62,26 +83,6 @@
 !        soil nitric oxide emissions: implementation and space
 !        based-constraints, Atmos. Chem. Phys., 12, 7779-7795,
 !        doi:10.5194/acp-12-7779-2012, 2012.
-!
-! !INTERFACE:
-!
-MODULE HCOX_SOILNOX_MOD 
-!
-! !USES:
-!
-  USE HCO_ERROR_MOD
-  USE HCO_DIAGN_MOD
-  USE HCOX_State_MOD,     ONLY : Ext_State
-  USE HCO_STATE_MOD,      ONLY : HCO_State
-
-  IMPLICIT NONE
-  PRIVATE
-!
-! !PUBLIC MEMBER FUNCTIONS:
-!
-  PUBLIC :: HcoX_SoilNox_Run
-  PUBLIC :: HcoX_SoilNox_Init
-  PUBLIC :: HcoX_SoilNox_Final
 !
 ! !REVISION HISTORY:
 !
@@ -256,7 +257,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_SOILNOX_RUN 
+! !IROUTINE: hcox_soilnox_run 
 !
 ! !DESCRIPTION: Subroutine HcoX\_SoilNox\_Run is the driver routine to 
 ! calculate ship NOx emissions for the current time step. Emissions in
@@ -513,7 +514,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_SOILNOX_INIT 
+! !IROUTINE: hcox_soilnox_init 
 !
 ! !DESCRIPTION: Subroutine HcoX\_SoilNox\_Init initializes the HEMCO
 ! SOILNOX extension.
@@ -770,7 +771,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_SOILNOX_FINAL
+! !IROUTINE: hcox_soilnox_final
 !
 ! !DESCRIPTION: Subroutine HcoX\_SoilNox\_Final finalizes the HEMCO
 ! SOILNOX extension.
@@ -827,7 +828,7 @@ CONTAINS
 !
 ! !IROUTINE: HcoX_SoilNox_GetFertScale
 !
-! !DESCRIPTION: Function HcoX_SoilNox_GetFertScale returns the scale factor
+! !DESCRIPTION: Function HCOX\_SOILNOX\_GETFERTSCALE returns the scale factor
 ! applied to fertilizer NOx emissions. 
 !\\
 !\\
@@ -865,7 +866,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-!IROUTINE: soil_nox_emission
+! !IROUTINE: soil_nox_emission
 !
 ! !DESCRIPTION: Subroutine SOIL\_NOX\_EMISSION computes the emission of soil and
 !  fertilizer NOx for the GEOS-Chem model.

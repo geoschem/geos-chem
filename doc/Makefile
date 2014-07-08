@@ -64,7 +64,7 @@ include $(ROOTDIR)/Makefile_header.mk
 
 .PHONY: doc docclean help
 
-doc: srcdoc utildoc gtmmdoc makedoc
+doc: srcdoc utildoc gtmmdoc makedoc hemcodoc
 
 clean:
 	rm -f *.tex *.ps *.pdf
@@ -88,5 +88,7 @@ include ./Makefile_MakeDoc.mk
 # Commands to build the GTMM documentation
 include ./Makefile_GtmmDoc.mk
 
+# Commands to build the GTMM documentation
+include ./Makefile_Hemco.mk
 
 #EOC

@@ -3,17 +3,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: HcoX_seasalt_mod
+! !MODULE: hcox_seasalt_mod
 !
 ! !DESCRIPTION: Module HCOX\_SEASALT\_MOD contains routines to calculate
-! sea salt aerosol emissions.\\ 
+! sea salt aerosol emissions.
+!\\
+!\\ 
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
-!
-! !NOTES:
-!
-! !REFERENCES:
-!
+!\\
+!\\
 ! !INTERFACE: 
 !
       MODULE HCOX_SEASALT_MOD
@@ -46,46 +45,48 @@
 ! !PRIVATE VARIABLES:
 !
       ! Tracer IDs 
-      INTEGER                     :: ExtNr
-      INTEGER                     :: IDTSALA           ! Fine aerosol model species ID
-      INTEGER                     :: IDTSALC           ! Coarse aerosol model species ID
-      INTEGER                     :: IDTBr2            ! Br2 model species ID
-      LOGICAL                     :: CalcBr2           ! Calculate Br2 SSA emissions?
+      INTEGER             :: ExtNr
+      INTEGER             :: IDTSALA           ! Fine aerosol model species ID
+      INTEGER             :: IDTSALC           ! Coarse aerosol model species ID
+      INTEGER             :: IDTBr2            ! Br2 model species ID
+      LOGICAL             :: CalcBr2           ! Calculate Br2 SSA emissions?
 
       ! Scale factors
-      REAL*8                      :: Br2Scale          ! Br2 scale factor 
-      REAL*8                      :: WindScale         ! Wind adjustment factor
+      REAL*8              :: Br2Scale          ! Br2 scale factor 
+      REAL*8              :: WindScale         ! Wind adjustment factor
 
       ! Size bin information (filled during initialization)
-      INTEGER                     :: NR(2)
+      INTEGER             :: NR(2)
 
       ! Module variables (to be defined during initialization)
       REAL*8, ALLOCATABLE :: SRRC  (:,:)
       REAL*8, ALLOCATABLE :: SRRC_N(:,:)
       REAL*8, ALLOCATABLE :: RREDGE(:,:)
       REAL*8, ALLOCATABLE :: RRMID (:,:)
-
+!
+! !DEFINED PARAMETERS:
+!
       ! Defined parameters
-      INTEGER, PARAMETER     :: NSALT  = 2    ! # of sea salt tracers
-      INTEGER, PARAMETER     :: NR_MAX = 200  ! max. # of bins per mode
+      INTEGER, PARAMETER  :: NSALT  = 2    ! # of sea salt tracers
+      INTEGER, PARAMETER  :: NR_MAX = 200  ! max. # of bins per mode
 
       ! Increment of radius for Emission integration (um)
-      REAL*8, PARAMETER      :: DR    = 5.d-2
-      REAL*8, PARAMETER      :: BETHA = 2.d0
+      REAL*8, PARAMETER   :: DR    = 5.d-2
+      REAL*8, PARAMETER   :: BETHA = 2.d0
 
       ! density
-      REAL*8, PARAMETER      :: SS_DEN(2) = (/ 2200.d0, 2200.d0 /)
+      REAL*8, PARAMETER   :: SS_DEN(2) = (/ 2200.d0, 2200.d0 /)
 
       CONTAINS
 !EOC
-!------------------------------------------------------------------------------
+!------------------------ ------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_SEASALT_Run 
+! !IROUTINE: hcox_seasalt_run 
 !
-! !DESCRIPTION: Subroutine HcoX\_SeaSalt_Run is the driver run routine to 
+! !DESCRIPTION: Subroutine HcoX\_SeaSalt\_Run is the driver run routine to 
 ! calculate seasalt emissions in HEMCO.
 !\\
 !\\
@@ -417,7 +418,7 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_SeaSalt_Init
+! !IROUTINE: hcox_seasalt_init
 !
 ! !DESCRIPTION: Subroutine HcoX\_SeaSalt\_Init initializes all
 !  extension variables.
@@ -703,7 +704,7 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_SeaSalt_Final 
+! !IROUTINE: hcox_seasalt_final 
 !
 ! !DESCRIPTION: Subroutine HcoX\_SeaSalt\_Final deallocates 
 !  all module arrays.
@@ -736,7 +737,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMIT_SSABr2
+! !IROUTINE: emit_ssabr2
 !
 ! !DESCRIPTION: Subroutine EMIT\_SSABr2 calculates aerosol emissions
 !  of Br2.
@@ -902,4 +903,3 @@
       END SUBROUTINE EMIT_SSABr2
 !EOC
       END MODULE HCOX_SEASALT_MOD
-!EOM

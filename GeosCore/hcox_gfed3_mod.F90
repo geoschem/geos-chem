@@ -130,7 +130,7 @@ CONTAINS
 !
 ! !IROUTINE: HcoX_GFED3_Run 
 !
-! !DESCRIPTION: Subroutine HcoX\_GFED3_Run is the driver run routine to 
+! !DESCRIPTION: Subroutine HcoX\_GFED3\_Run is the driver run routine to 
 ! calculate seasalt emissions in HEMCO.
 !\\
 !\\

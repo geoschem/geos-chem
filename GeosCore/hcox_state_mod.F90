@@ -16,13 +16,14 @@
 ! ExtState object, but doesn't link the met field pointers to the 
 ! corresponding fields. This is done in the HEMCO-model interface
 ! routine (e.g. hcoi\_gc\_main\_mod.F90).
-! \\
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCOX_STATE_MOD
 !
 ! !USES:
-  !
+!
   USE HCO_ERROR_MOD
   USE HCO_ARR_MOD
 
@@ -358,15 +359,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IIROUTINE: ExtStateFinal
+! !IROUTINE: ExtStateFinal
 !
-! !DESCRIPTION: Finalizes the ExtState object. 
-! This removes all defined pointer links (i.e. nullifies ExtDat%Arr), but
-! does not deallocate the target array!
+! !DESCRIPTION: Finalizes the ExtState object. This removes all defined 
+!  pointer links (i.e. nullifies ExtDat\%Arr), but does not deallocate 
+!  the target array!
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtStateFinal ( ExtState )
+  SUBROUTINE ExtStateFinal( ExtState )
 !
 ! !INPUT PARAMETERS:
 !
@@ -427,7 +428,7 @@ CONTAINS
        ExtState%DAYS_BTW_M => NULL()
        ExtState%DRYCOEFF   => NULL()
          
-       DEALLOCATE ( ExtState )
+       DEALLOCATE( ExtState )
     ENDIF
 
   END SUBROUTINE ExtStateFinal
@@ -439,7 +440,7 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Init_2R
 !
-! !DESCRIPTION: Subroutine ExtDat\_Init_2R initializes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Init\_2R initializes the given ExtDat type. 
 !\\
 !\\
 ! !INTERFACE:
@@ -485,7 +486,7 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Init_2I
 !
-! !DESCRIPTION: Subroutine ExtDat\_Init_2I initializes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Init\_2I initializes the given ExtDat type. 
 !\\
 !\\
 ! !INTERFACE:
@@ -531,7 +532,7 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Init_3R
 !
-! !DESCRIPTION: Subroutine ExtDat\_Init_3R initializes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Init\_3R initializes the given ExtDat type. 
 !\\
 !\\
 ! !INTERFACE:
@@ -576,7 +577,7 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Cleanup_2R
 !
-! !DESCRIPTION: Subroutine ExtDat\_Cleanup_2R removes the given ExtDat type.
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_2R removes the given ExtDat type.
 !\\
 !\\
 ! !INTERFACE:
@@ -612,7 +613,7 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Cleanup_2I
 !
-! !DESCRIPTION: Subroutine ExtDat\_Cleanup_2I removes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_2I removes the given ExtDat type. 
 !\\
 !\\
 ! !INTERFACE:
@@ -648,12 +649,12 @@ CONTAINS
 !
 ! !IROUTINE: ExtDat_Cleanup_3R
 !
-! !DESCRIPTION: Subroutine ExtDat\_Cleanup_3R removes the given ExtDat type. 
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_3R removes the given ExtDat type. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Cleanup_3R ( ExtDat ) 
+  SUBROUTINE ExtDat_Cleanup_3R( ExtDat ) 
 !
 ! !INPUT PARAMETERS:
 !

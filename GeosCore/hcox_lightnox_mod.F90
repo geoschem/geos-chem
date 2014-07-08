@@ -13,15 +13,17 @@
 ! the HEMCO configuration file. The table of cumulative distribution 
 ! functions used to vertically distribute lightning NOx emissions is
 ! specified in the extension switch section of the configuration file.
-!
-! !REFERENCES:
-! Murray, L. T., Jacob, D. J., Logan, J. A., Hudman, R. C., and
+!\\
+!\\
+! References:
+! \begin{itemize}
+! \item Murray, L. T., Jacob, D. J., Logan, J. A., Hudman, R. C., and
 ! Koshak, W. J.: Optimized regional and interannual variability 
 ! of lightnox in a global chemical transport model con- strained 
 ! by LIS/OTD satellite data, Journal of Geophysical Research: 
 ! Atmospheres, 117, 2012.
+! \end{itemize}
 !
-!\\
 ! !INTERFACE:
 !
       MODULE HCOX_LIGHTNOX_MOD
@@ -160,9 +162,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_LightNOX_Run
+! !IROUTINE: hcox_lightnox_run
 !
-! !DESCRIPTION: Subroutine HemcoX\_LightNOX\_Run is the driver routine
+! !DESCRIPTION: Subroutine HCOX\_LIGHTNOX\_RUN is the driver routine
 ! to calculate lightnox NOx emissions and return them to the HEMCO
 ! driver routine.
 !\\
@@ -1957,9 +1959,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_LightNox_Final 
+! !IROUTINE: hcox_lightnox_final 
 !
-! !DESCRIPTION: Subroutine HcoX\_LIGHTNOX\_Final deallocates all module 
+! !DESCRIPTION: Subroutine HCOX\_LIGHTNOX\_FINAL deallocates all module 
 !  arrays.
 !\\
 !\\

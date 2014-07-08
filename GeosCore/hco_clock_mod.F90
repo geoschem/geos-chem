@@ -9,15 +9,15 @@
 ! to handle the HEMCO time and calendar settings through the HEMCO clock
 ! object. The HEMCO clock carries information of the current UTC/local
 ! time as well as the UTC times from the previous time step. These 
-! values should be updated on every time step (--> HcoClock\_Set).\\
+! values should be updated on every time step (--> HcoClock\_Set).
+!\\
+!\\
 ! The HEMCO clock object HcoClock is a private object and cannot be
 ! accessed directly from outside of this module. The HcoClock\_Get 
 ! routine should be used instead. There are also some wrapper routines
 ! for frequently used checks, i.e. if this is a new year, month, etc.
-!
-! !NOTES: The current local time implementation assumes a regular grid,
-! i.e. local time does not change with latitude! 
-! \\
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_CLOCK_MOD
@@ -44,6 +44,10 @@ MODULE HCO_CLOCK_MOD
   PUBLIC :: HcoClock_NewHour
   PUBLIC :: HcoClock_First
   PUBLIC :: HcoClock_GetMinResetFlag
+!
+! !REMARKS:
+!  The current local time implementation assumes a regular grid,
+!  i.e. local time does not change with latitude
 !
 ! !REVISION HISTORY:
 !  29 Dec 2012 - C. Keller - Initialization

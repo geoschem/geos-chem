@@ -8,13 +8,18 @@
 ! !DESCRIPTION: Module HCO\_ARR\_MOD contains routines and variables to 
 ! initialize, validate, and cleanup HEMCO data arrays. HEMCO data arrays
 ! can be 2D or 3D. They can be organized as single arrays or as vector
-! of arrays to represent an additional dimension (time).\\
-! The public data types Arr2D_HP, Arr3D_HP, Arr2D_DF, and Arr3D_DF represent 
-! the 2D/3D arrays used by HEMCO (HP=HEMCO precision) and the default 
+! of arrays to represent an additional dimension (time).
+!\\
+!\\
+! The public data types Arr2D\_HP, Arr3D\_HP, Arr2D\_DF, and Arr3D\_DF 
+! represent the 2D/3D arrays used by HEMCO (HP=HEMCO precision) and the default 
 ! precision arrays used by the met fields (DF=Default). Those can be either 
-! single or double precision. 2D arrays can also be integer arrays.\\
+! single or double precision. 2D arrays can also be integer arrays.
+!\\
+!\\
 ! The HEMCO and default precision (HP and DF) are defined in HCO\_ERROR\_MOD.
-! \\
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_ARR_MOD 
@@ -545,7 +550,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:: HCO_ArrVecInit_3D_DF
+! !IROUTINE: HCO_ArrVecInit_3D_DF
 !
 ! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_3D\_DF initializes the given data
 ! container 3D array vector.
@@ -602,7 +607,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:: HCO_ValInit_2D_SP
+! !IROUTINE: HCO_ValInit_2D_SP
 !
 ! !DESCRIPTION: Subroutine HCO\_ValInit\_2D\_SP initializes the given data
 ! container 2D array. 
@@ -656,7 +661,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:: HCO_ValInit_2D_DP
+! !IROUTINE: HCO_ValInit_2D_DP
 !
 ! !DESCRIPTION: Subroutine HCO\_ValInit\_2D\_DP initializes the given data
 ! container 2D array. 
@@ -710,7 +715,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:: HCO_ValInit_2D_I
+! !IROUTINE: HCO_ValInit_2D_I
 !
 ! !DESCRIPTION: Subroutine HCO\_ValInit\_2D\_I initializes the given data
 ! container integer 2D array. 
@@ -764,7 +769,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:: HCO_ValInit_3D_DP
+! !IROUTINE: HCO_ValInit_3D_DP
 !
 ! !DESCRIPTION: Subroutine HCO\_ValInit\_3D\_DP initializes the given data
 ! container 3D array. 
@@ -819,7 +824,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:: HCO_ValInit_3D_SP
+! !IROUTINE: HCO_ValInit_3D_SP
 !
 ! !DESCRIPTION: Subroutine HCO\_ValInit\_3D\_SP initializes the given data
 ! container 3D array. 
@@ -876,7 +881,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_ArrAssert_3D_HP 
 !
-! !DESCRIPTION: Routine HCO\_ArrAssert_3D\_HP makes sure that the passed 
+! !DESCRIPTION: Routine HCO\_ArrAssert\_3D\_HP makes sure that the passed 
 ! 3D array is allocated. 
 !\\
 !\\
@@ -927,7 +932,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_ArrAssert_3D_DF 
 !
-! !DESCRIPTION: Routine HCO\_ArrAssert_3D\_DF makes sure that the passed 
+! !DESCRIPTION: Routine HCO\_ArrAssert\_3D\_DF makes sure that the passed 
 ! 3D array is allocated. 
 !\\
 !\\

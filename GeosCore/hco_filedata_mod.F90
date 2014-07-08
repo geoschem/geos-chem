@@ -60,7 +60,7 @@
 ! \item DoShare: will be set to True if this file data object is shared
 !       by multiple data containers. For internal use only. 
 ! \end{itemize}
-! \\
+!
 ! !INTERFACE: 
 !
 MODULE HCO_FILEDATA_MOD 

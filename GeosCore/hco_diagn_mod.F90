@@ -12,13 +12,17 @@
 ! about the diagnostics type (extension number, emission category / 
 ! hierarchy, species ID), data structure (Scalar, 2D, 3D), output
 ! units (mass, area, time), and output frequency (every hour / day / 
-! month / year).\\
+! month / year).
+!\\
+!\\
 ! Diagnostics container are created at the beginning of a simulation
 ! using subroutine Diagn\_Create. During the simulation, content is
 ! added to the individual containers via Diagn\_Update. Diagnostics
 ! data is fetched using Diagn\_Get. All emissions are stored in units
 ! of [kg/m2] and only converted to desired output unit when returning 
-! the data.\\
+! the data.
+!\\
+!\\
 ! There are two types of diagnostics: automatic (`AutoFill`) and 
 ! manual diagnostics. AutoFill diagnostics become automatically filled 
 ! during HEMCO execution. AutoFill diagnostics can be at species level
@@ -26,11 +30,14 @@
 ! or hierarchy level (level 4). Level 1 diagnostics write out the
 ! collected emissions of the specified species, level 2 diagnostics
 ! write out emissions for the given ExtNr only (ignoring emissions from
-! all other ExtNr's), etc.\\
+! all other ExtNr's), etc.
+!\\
+!\\
 ! Manual diagnostics can represent any content. They never become filled
 ! automatically and all update calls (Diagn\_Update) have to be set
 ! manually.
-! \\
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_DIAGN_MOD 
@@ -142,7 +149,7 @@ CONTAINS
 ! !DESCRIPTION: Subroutine Diagn\_Create creates a new diagnostics. This
 ! routine takes the following input arguments:
 !\begin{itemize} 
-!\item am_I_Root: is this the root CPU?
+!\item am\_I\_Root: is this the root CPU?
 !\item HcoState: HEMCO state object. 
 !\item cName: distinct diagnostics (container) name. 
 !\item ExtNr: emissions extension number. 
@@ -172,8 +179,7 @@ CONTAINS
 !      diagnostics container.
 !\item RC: HEMCO return code.
 !\end{itemize} 
-!\\
-!\\
+!
 ! !INTERFACE:
 !
   SUBROUTINE Diagn_Create( am_I_Root, HcoState,  cName,      &
@@ -498,12 +504,17 @@ CONTAINS
 ! spatial dimension of the given container. For 2D diagnostics, a 3D
 ! array can be passed, in which case the level index specified
 ! during initialization (`LevIdx`) is used. If LevIdx is set to -1,
-! the column sum is used (default).\\
+! the column sum is used (default).
+!\\
+!\\
 ! If no matching container is found, the subroutine leaves with no 
 ! error. This allows automatic diagnostics generation, e.g. of 
-! intermediate emission fields created in HCO\_CALC\_MOD.F90.\\
+! intermediate emission fields created in HCO\_CALC\_MOD.F90.
+!\\
+!\\
 ! Note that for a given time step, the same diagnostics container can 
 ! be updated multiple times.
+!\\
 !\\
 ! !INTERFACE:
 !
@@ -872,14 +883,19 @@ CONTAINS
 ! returned. The current HEMCO time will be used to determine which containers
 ! are at the end of their interval. The update counter of the returned 
 ! container is reset to zero, making sure that the currently saved data will 
-! be erased during the next update (Diagn\_Update).\\
+! be erased during the next update (Diagn\_Update).
+!\\
+!\\
 ! If DgnCont is already associated, the search continues from the  container 
 ! next to DgnCont. If DgnCont is empty (null), the search starts from the 
 ! first container of the diagnostics list ListDiagn. If the optional attribute 
 ! cName or cID is provided, this particular container is searched (through the 
-! entire diagnostics list).\\ 
+! entire diagnostics list).
+!\\
+!\\ 
 ! The return flag FLAG is set to HCO\_SUCCESS if a container is found, and to 
-! HCO\_FAIL otherwise.\\
+! HCO\_FAIL otherwise.
+!\\
 !\\
 ! !INTERFACE:
 !
@@ -1148,7 +1164,7 @@ CONTAINS
 !
 ! !IROUTINE: Diagn_SetDiagnPrefix
 !
-! !DESCRIPTION: Subroutine Diagn_SetDiagnPrefix sets the HEMCO diagnostics
+! !DESCRIPTION: Subroutine Diagn\_SetDiagnPrefix sets the HEMCO diagnostics
 ! file prefix. 
 !\\
 ! !INTERFACE:

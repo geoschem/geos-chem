@@ -85,7 +85,7 @@ CONTAINS
 !
 ! !IROUTINE: hcox_gc_RnPbBe_run 
 !
-! !DESCRIPTION: Subroutine HcoX\_Gc_RnPbBe\_Run computes emissions of 222Rn
+! !DESCRIPTION: Subroutine HcoX\_Gc\_RnPbBe\_Run computes emissions of 222Rn
 !  and 7Be for the GEOS-Chem Rn-Pb-Be specialty simulation.
 !\\
 !\\
@@ -401,8 +401,8 @@ CONTAINS
 !
 ! !IROUTINE: hcox_gc_RnPbBe_init 
 !
-! !DESCRIPTION: Subroutine HcoX\_Gc_RnPbBe\_Init initializes the HEMCO
-! GC_RNPBBE extension.
+! !DESCRIPTION: Subroutine HcoX\_Gc\_RnPbBe\_Init initializes the HEMCO
+! GC\_Rn-Pb-Be extension.
 !\\
 !\\
 ! !INTERFACE:
@@ -549,7 +549,7 @@ CONTAINS
 !
 ! !IROUTINE: hcox_gc_RnPbBe_final
 !
-! !DESCRIPTION: Subroutine HcoX\_Gc_RnPbBe\_Final finalizes the HEMCO
+! !DESCRIPTION: Subroutine HcoX\_Gc\_RnPbBe\_Final finalizes the HEMCO
 !  extension for the GEOS-Chem Rn-Pb-Be specialty simulation.  All module
 !  arrays will be deallocated.
 !\\

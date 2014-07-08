@@ -7,13 +7,15 @@
 !
 ! !MODULE: hcoi_gc_main_mod.F90 
 !
-! !DESCRIPTION: Module HCOI\_GC\_MAIN\_MOD.F90 is the HEMCO - Geos-Chem
+! !DESCRIPTION: Module hcoi\_gc\_main\_mod.F90 is the HEMCO-to-GEOS-Chem
 ! interface module, providing the link between GEOS-Chem and HEMCO.
-! \\
+!\\
+!\\
 ! This module contains wrapper routines to initialize, execute and finalize
 ! HEMCO from within GEOS-Chem. Typically, these routines are called from
 ! main.F.
-! \\
+!\\
+!\\
 ! !INTERFACE:
 !
 MODULE HCOI_GC_MAIN_MOD
@@ -705,7 +707,7 @@ CONTAINS
 ! !IROUTINE: hcoi_gc_final
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_FINAL cleans up HEMCO. This routine
-! should be called before the finalize routines of State_Chm in order to 
+! should be called before the finalize routines of State\_Chm in order to 
 ! make sure that the emissions flux pointers are properly removed!
 !\\
 !\\
@@ -1134,7 +1136,7 @@ CONTAINS
 ! !IROUTINE: set_extopt_fields
 !
 ! !DESCRIPTION: SUBROUTINE SET\_EXTOPT\_FIELDS sets the extension object data
-! pointers. This routine must be called after HCOX_INIT. 
+! pointers. This routine must be called after HCOX\_INIT. 
 !\\
 !\\
 ! !INTERFACE:

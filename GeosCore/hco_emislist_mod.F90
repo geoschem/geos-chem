@@ -10,7 +10,8 @@
 ! of all data containers needed for emission calculation. The containers
 ! are sorted by data type, species, emission category, and emission
 ! hierarchy (in this order).
-! \\
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_EMISLIST_MOD 
@@ -64,7 +65,7 @@ CONTAINS
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
- !
+!
 ! !IROUTINE: EmisList_Add
 !
 ! !DESCRIPTION: Subroutine EmisList\_Add adds the passed data container
@@ -459,7 +460,7 @@ CONTAINS
 !
 ! !IROUTINE: EmisList_Pass
 !
-! !DESCRIPTION: Subroutine EmisList_Pass passes (the ReadList) 
+! !DESCRIPTION: Subroutine EmisList\_Pass passes (the ReadList) 
 ! container Lct to EmisList. This routine mostly checks for 
 ! additive arrays, i.e. if arrays from multiple containers have
 ! to be added together prior to emission calculation (e.g. sectoral 
