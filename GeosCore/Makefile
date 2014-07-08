@@ -744,8 +744,9 @@ hcox_driver_mod.o           : hcox_driver_mod.F90                            \
                               hcox_dustdead_mod.o     hcox_dustginoux_mod.o  \
                               hcox_extlist_mod.o      hcox_gfed3_mod.o       \
                               hcox_lightnox_mod.o     hcox_paranox_mod.o     \
-			      hcox_seaflux_mod.o      hcox_seasalt_mod.o     \
-                              hcox_soilnox_mod.o      hcox_megan_mod.o
+                              hcox_seaflux_mod.o      hcox_seasalt_mod.o     \
+                              hcox_soilnox_mod.o      hcox_megan_mod.o       \
+                              hcox_gc_RnPbBe_mod.o
 
 hcox_dustdead_mod.o         : hcox_dustdead_mod.F                            \
                               hco_clock_mod.o         hco_diagn_mod.o        \
@@ -761,6 +762,10 @@ hcox_dustginoux_mod.o       : hcox_dustginoux_mod.F90                        \
 
 hcox_extlist_mod.o          : hcox_extlist_mod.F90                           \
                               hco_error_mod.o         hco_state_mod.o
+
+hcox_gc_RnPbBe_mod.o        : hcox_gc_RnPbBe_mod.F90                         \
+                              hco_error_mod.o         hco_diagn_mod.o        \
+                              hco_state_mod.o         hcox_state_mod.o
 
 hcox_gfed3_mod.o            : hcox_gfed3_mod.F90                             \
                               hco_diagn_mod.o         hco_emislist_mod.o     \
@@ -866,7 +871,7 @@ ksparse.o                   : ksparse.F
 land_mercury_mod.o          : land_mercury_mod.F                             \
                               biomass_mod.o           dao_mod.o              \
                               depo_mercury_mod.o      modis_lai_mod.o        \
-                                         tracerid_mod.o         
+                              tracerid_mod.o         
 
 linoz_mod.o                 : linoz_mod.F                                    \
                               chemgrid_mod.o          tracerid_mod.o
@@ -901,7 +906,7 @@ main.o                      : main.F                                         \
                               tpcore_bc_mod.o         uvalbedo_mod.o         \
                               tracerid_mod.o          wetscav_mod.o          \
                               ucx_mod.o               vdiff_mod.o            \
-                              hcoi_gc_main_mod.o
+                              hcoi_gc_main_mod.o      cleanup.o
 
 mapping_mod.o               : mapping_mod.F90                              
 
@@ -1028,7 +1033,7 @@ setemis.o                   : setemis.F                                      \
 ucx_mod.o                   : ucx_mod.F                                      \
                               chemgrid_mod.o          global_ch4_mod.o       \
                               fast_jx_mod.o           tracer_mod.o           \
-                              tracerid_mod.o
+                              tracerid_mod.o          future_emissions_mod.o
 
 setmodel.o                  : setmodel.F
 
@@ -1056,7 +1061,8 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               wetscav_mod.o           tomas_mod.o            \
                               tracer_mod.o            tracerid_mod.o         \
                               ucx_mod.o               uvalbedo_mod.o         \
-                              vdiff_pre_mod.o         wetscav_mod.o
+                              vdiff_pre_mod.o         wetscav_mod.o          \
+                              global_hno3_mod.o
 
 tagged_co_mod.o             : tagged_co_mod.F                                \
                               biofuel_mod.o           biomass_mod.o          \
