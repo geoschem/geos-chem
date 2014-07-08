@@ -14,8 +14,14 @@
 ! 
 ! !USES:
 !
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+
       IMPLICIT NONE
       PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -32,6 +38,8 @@
       PUBLIC  :: SAFE_EXP
       PUBLIC  :: SAFE_LOG
       PUBLIC  :: SAFE_LOG10
+      PUBLIC  :: INIT_ERROR
+      PUBLIC  :: CLEANUP_ERROR
 
       ! Interface for NaN-check routines
       INTERFACE IT_IS_NAN
@@ -108,9 +116,18 @@
 !  04 Jan 2010 - R. Yantosca - Added SAFE_EXP and IS_SAFE_EXP functions
 !  04 Jan 2010 - R. Yantosca - Added SAVE_LOG and SAFE_LOG10 functions
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  08 Jul 2014 - R. Yantosca - Added INIT_ERROR and CLEANUP_ERROR subroutines
+!  08 Jul 2014 - R. Yantosca - Add shadow variables for am_I_Root, Input_Opt
+!                              so that we can pass these to routine CLEANUP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+
+      LOGICAL                 :: SHADOW_am_I_Root   ! Shadow for am_I_Root
+      TYPE(OptInput), POINTER :: SHADOW_Input_Opt   ! Shadow for Input_Opt
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -529,7 +546,7 @@
          WRITE( 6, 115   ) LOCATION
          WRITE( 6, '(a)' ) TRIM( MESSAGE )
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         CALL GEOS_CHEM_STOP
+         CALL GEOS_CHEM_STOP()
       ENDIF
 
       ! Next check for infinity -- print info & stop run if found
@@ -540,7 +557,7 @@
          WRITE( 6, '(f13.6)' ) VALUE      
          WRITE( 6, '(a)'     ) TRIM ( MESSAGE )
          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )         
-         CALL GEOS_CHEM_STOP
+         CALL GEOS_CHEM_STOP()
       ENDIF
 
       ! FORMAT statements
@@ -650,7 +667,7 @@
 !$OMP END CRITICAL
 
       ! Deallocate memory and stop the run
-      CALL GEOS_CHEM_STOP
+      CALL GEOS_CHEM_STOP()
       
       ! Return to calling program
       END SUBROUTINE ERROR_STOP
@@ -668,10 +685,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GEOS_CHEM_STOP
+      SUBROUTINE GEOS_CHEM_STOP()
 !
 ! !USES:
 !
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -682,16 +701,21 @@
       USE MAPL_Mod
 #     include "MAPL_Generic.h"
 #endif
-
+!
 ! !REVISION HISTORY:
 !  15 Oct 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Now EXIT works for LINUX_IFC, LINUX_EFC,
 !                              so remove #if block.
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  12 Mar 2013 - R. Yantosca - Now use GEOS-5 style traceback when using ESMF
+!   8 Jul 2014 - R. Yantosca - Now call cleanup.F with shadow variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES
+!
+      INTEGER :: RC
 
 #if defined( ESMF_ )
 
@@ -716,7 +740,7 @@
 !$OMP CRITICAL
 
       ! Deallocate all module arrays
-      CALL CLEANUP
+      CALL CLEANUP( SHADOW_am_I_Root, SHADOW_Input_Opt, RC )
 
       ! Flush all files and stop
       CALL EXIT( 99999 )
@@ -1173,5 +1197,73 @@
       ENDIF
 
       END FUNCTION SAFE_LOG10
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_error
+!
+! !DESCRIPTION: Subroutine INIT\_ERROR stores shadow copies of am_I_Root
+!  and Input_Opt.  We need to pass these down to 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_ERROR( am_I_Root, Input_Opt, RC )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)         :: am_I_Root ! Are we on root CPU?
+      TYPE(OptInput), INTENT(IN), TARGET :: Input_Opt ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)        :: RC        ! Success or failure?
+!
+! !REVISION HISTORY:
+!  04 Jan 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Assume success
+      RC               =  GIGC_SUCCESS
+
+      ! Store a shadow copy of am_I_Root
+      SHADOW_am_I_Root =  am_I_Root
+
+      ! Store a shadow copy of Input_Opt (point to it instead of copying)
+      SHADOW_Input_Opt => Input_Opt
+
+      END SUBROUTINE INIT_ERROR
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_error
+!
+! !DESCRIPTION: Subroutine INIT\_ERROR stores shadow copies of am_I_Root
+!  and Input_Opt.  We need to pass these down to 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_ERROR()
+!
+! !REVISION HISTORY:
+!  04 Jan 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Free the 
+      NULLIFY( SHADOW_Input_Opt )
+
+      END SUBROUTINE CLEANUP_ERROR
 !EOC
       END MODULE ERROR_MOD

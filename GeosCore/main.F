@@ -403,6 +403,9 @@
       ! Read input file and call init routines from other modules
       CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC ) 
 
+      ! Store shadow copies of am_I_Root, Input_Opt in error_mod.F
+      CALL INIT_ERROR( am_I_Root, Input_Opt, RC )
+
       ! Copy values from Input_Opt.  These replace the variables
       ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
       USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
@@ -1563,6 +1566,9 @@
 
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )
+
+      ! Free the shadow variables in error_mod.F
+      CALL CLEANUP_ERROR()
 
 #if defined( GTMM_Hg )
       ! Deallocate arrays from GTMM model for mercury simulation
