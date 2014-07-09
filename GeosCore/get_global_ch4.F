@@ -39,6 +39,7 @@
 !        (swu, havala, bmy, 1/25/08)
 !  (7 ) Updated CH4 vales with version 2008-07-02 for 1983-2007. Also use
 !        2007 for years past 2007 (jaf, 4/15/09) 
+!  (8 ) Updated CH4 values with Version: 2014-06-24 for 2008-2013. (krt, 7/7/14)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LFUTURE instead of LFUTURE
@@ -73,7 +74,8 @@
       !
       ! New methane data from 1983-2007 (mje, bmy, 7/7/03, jaf 4/15/09)
       ! version is 2008-07-02
-      !
+      ! Added data from 2008-2013  (krt, 7/7/14) Version: 2014-06-24 
+      ! 
       ! Methane measurements are from CMDL website:
       ! ftp://140.172.192.211/ccg/ch4/flask/month
       ! 
@@ -258,12 +260,43 @@
                A0030N = 1801.38d0
                A3090N = 1855.55d0
 
+            CASE( 2008 )
+               A3090S = 1740.54d0
+               A0030S = 1748.16d0
+               A0030N = 1807.91d0
+               A3090N = 1868.26d0 
+            CASE( 2009 )
+               A3090S = 1743.97d0
+               A0030S = 1753.06d0 
+               A0030N = 1816.44d0
+               A3090N = 1872.97d0
+            CASE( 2010 )
+               A3090S = 1750.15d0
+               A0030S = 1759.71d0 
+               A0030N = 1820.60d0
+               A3090N = 1878.29d0 
+            CASE( 2011 )
+               A3090S = 1757.30d0
+               A0030S = 1763.98d0
+               A0030N = 1822.17d0
+               A3090N = 1880.56d0
+            CASE( 2012 )
+               A3090S = 1761.27d0
+               A0030S = 1767.83d0 
+               A0030N = 1824.79d0
+               A3090N = 1885.32d0 
+            CASE( 2013 )
+               A3090S = 1765.66d0
+               A0030S = 1773.37d0 
+               A0030N = 1830.84d0
+               A3090N = 1893.50d0 
+               
             ! Future year 2030
             CASE( 2025:2035 )
             
                ! Pick the IPCC scenario.  If LFUTURE=F and FUTURE_SCENARIO
                ! are undefined, then we are running 2030 meteorology with 
-               ! present-day emissions.  In this case, default to 2007 CH4 
+               ! present-day emissions.  In this case, default to 2013 CH4 
                ! concentrations. (havala, 1/25/08)
                SELECT CASE( FUTURE_SCENARIO )
                   CASE( 'A1' )
@@ -281,11 +314,11 @@
                   CASE( 'B2' )
                      ! Not defined yet
                   CASE DEFAULT
-                     ! 2007 is the default
-                     A3090S = 1732.52d0
-                     A0030S = 1741.68d0
-                     A0030N = 1801.38d0
-                     A3090N = 1855.55d0
+                     ! 2013 is the default
+                     A3090S = 1765.66d0
+                     A0030S = 1773.37d0 
+                     A0030N = 1830.84d0
+                     A3090N = 1893.50d0 
                END SELECT
 
             ! Future year 2050
@@ -293,7 +326,7 @@
 
                ! Pick the IPCC scenario.  If LFUTURE=F and FUTURE_SCENARIO
                ! is undefined, then we are running 2050 meteorology with 
-               ! present-day emissions.  In this case, default to 2007 CH4 
+               ! present-day emissions.  In this case, default to 2013 CH4 
                ! concentrations. (havala, 1/25/08)
                SELECT CASE ( FUTURE_SCENARIO )
                   CASE ( 'A1' )
@@ -317,21 +350,20 @@
                      A0030N = 2363.0d0
                      A3090N = 2363.0d0
                   CASE DEFAULT
-                     ! 2007 is the default
-                     A3090S = 1732.52d0
-                     A0030S = 1741.68d0
-                     A0030N = 1801.38d0
-                     A3090N = 1855.55d0
+                     ! 2013 is the default
+                     A3090S = 1765.66d0
+                     A0030S = 1773.37d0 
+                     A0030N = 1830.84d0
+                     A3090N = 1893.50d0 
                END SELECT
 
-            ! Default is to use 2007 data for other years
-            ! for which we do not yet have data (jaf, 4/15/09)
+            ! Default is to use 2013 data for other years
+            ! for which we do not yet have data (krt, 7/7/14)
             CASE DEFAULT
-               A3090S = 1732.52d0
-               A0030S = 1741.68d0
-               A0030N = 1801.38d0
-               A3090N = 1855.55d0
-
+               A3090S = 1765.66d0
+               A0030S = 1773.37d0 
+               A0030N = 1830.84d0
+               A3090N = 1893.50d0 
          END SELECT
 
       ELSE
@@ -360,12 +392,12 @@
      &           'CH4 (30S - 90S) : ', f7.1, ' [ppbv]' )
 
          ! Indicate to the log file if we are using CH4 gradient data
-         ! from 2007 as a proxy for years past 2007 (mje, bmy, 7/7/03,
-         ! jaf, 4/15/09)
-         IF ( THISYEAR > 2007 ) THEN
+         ! from 2013 as a proxy for years past 2013 (mje, bmy, 7/7/03,
+         ! jaf, 4/15/09, krt, 7/7/14)
+         IF ( THISYEAR > 2013 ) THEN
             WRITE( 6, 115 ) 
- 115        FORMAT( /, 'Using CH4 gradient data from 2007 as a proxy',
-     &           /, 'since 2007 is the last year with reported data!' )
+ 115        FORMAT( /, 'Using CH4 gradient data from 2013 as a proxy',
+     &           /, 'since 2013 is the last year with reported data!' )
          ENDIF
 
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
