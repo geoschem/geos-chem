@@ -3,30 +3,30 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_arr_mod 
+! !MODULE: HCO_Arr_Mod.F90
 !
-! !DESCRIPTION: Module HCO\_ARR\_MOD contains routines and variables to 
+! !DESCRIPTION: Module HCO\_Arr\_Mod contains routines and variables to 
 ! initialize, validate, and cleanup HEMCO data arrays. HEMCO data arrays
 ! can be 2D or 3D. They can be organized as single arrays or as vector
 ! of arrays to represent an additional dimension (time).
 !\\
 !\\
-! The public data types Arr2D\_HP, Arr3D\_HP, Arr2D\_DF, and Arr3D\_DF 
+! The public data types Arr2D\_Hp, Arr3D\_Hp, Arr2D\_Df, and Arr3D\_Df 
 ! represent the 2D/3D arrays used by HEMCO (HP=HEMCO precision) and the default 
 ! precision arrays used by the met fields (DF=Default). Those can be either 
 ! single or double precision. 2D arrays can also be integer arrays.
 !\\
 !\\
-! The HEMCO and default precision (HP and DF) are defined in HCO\_ERROR\_MOD.
+! The HEMCO and default precision (HP and DF) are defined in HCO\_Error\_Mod.
 !\\
 !\\
 ! !INTERFACE: 
 !
-MODULE HCO_ARR_MOD 
+MODULE HCO_Arr_Mod 
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
+  USE HCO_Error_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -40,109 +40,109 @@ MODULE HCO_ARR_MOD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: HCO_ArrInit_3D_HP
-  PRIVATE :: HCO_ArrInit_3D_DF
-  PRIVATE :: HCO_ArrInit_2D_HP
-  PRIVATE :: HCO_ArrInit_2D_DF
+  PRIVATE :: HCO_ArrInit_3D_Hp
+  PRIVATE :: HCO_ArrInit_3D_Df
+  PRIVATE :: HCO_ArrInit_2D_Hp
+  PRIVATE :: HCO_ArrInit_2D_Df
   PRIVATE :: HCO_ArrInit_2D_I
-  PRIVATE :: HCO_ArrVecInit_3D_HP
-  PRIVATE :: HCO_ArrVecInit_3D_DF
-  PRIVATE :: HCO_ArrVecInit_2D_HP
-  PRIVATE :: HCO_ArrVecInit_2D_DF
-  PRIVATE :: HCO_ValInit_3D_SP
-  PRIVATE :: HCO_ValInit_3D_DP
-  PRIVATE :: HCO_ValInit_2D_SP
-  PRIVATE :: HCO_ValInit_2D_DP
+  PRIVATE :: HCO_ArrVecInit_3D_Hp
+  PRIVATE :: HCO_ArrVecInit_3D_Df
+  PRIVATE :: HCO_ArrVecInit_2D_Hp
+  PRIVATE :: HCO_ArrVecInit_2D_Df
+  PRIVATE :: HCO_ValInit_3D_Sp
+  PRIVATE :: HCO_ValInit_3D_Dp
+  PRIVATE :: HCO_ValInit_2D_Sp
+  PRIVATE :: HCO_ValInit_2D_Dp
   PRIVATE :: HCO_ValInit_2D_I
-  PRIVATE :: HCO_ArrAssert_2D_HP
-  PRIVATE :: HCO_ArrAssert_2D_DF
-  PRIVATE :: HCO_ArrAssert_3D_HP
-  PRIVATE :: HCO_ArrAssert_3D_DF
-  PRIVATE :: HCO_ArrCleanup_3D_HP
-  PRIVATE :: HCO_ArrCleanup_3D_DF
-  PRIVATE :: HCO_ArrCleanup_2D_HP
-  PRIVATE :: HCO_ArrCleanup_2D_DF
+  PRIVATE :: HCO_ArrAssert_2D_Hp
+  PRIVATE :: HCO_ArrAssert_2D_Df
+  PRIVATE :: HCO_ArrAssert_3D_Hp
+  PRIVATE :: HCO_ArrAssert_3D_Df
+  PRIVATE :: HCO_ArrCleanup_3D_Hp
+  PRIVATE :: HCO_ArrCleanup_3D_Df
+  PRIVATE :: HCO_ArrCleanup_2D_Hp
+  PRIVATE :: HCO_ArrCleanup_2D_Df
   PRIVATE :: HCO_ArrCleanup_2D_I
-  PRIVATE :: HCO_ArrVecCleanup_3D_HP
-  PRIVATE :: HCO_ArrVecCleanup_3D_DF
-  PRIVATE :: HCO_ArrVecCleanup_2D_HP
-  PRIVATE :: HCO_ArrVecCleanup_2D_DF
-  PRIVATE :: HCO_ValCleanup_3D_SP
-  PRIVATE :: HCO_ValCleanup_3D_DP
-  PRIVATE :: HCO_ValCleanup_2D_SP
-  PRIVATE :: HCO_ValCleanup_2D_DP
+  PRIVATE :: HCO_ArrVecCleanup_3D_Hp
+  PRIVATE :: HCO_ArrVecCleanup_3D_Df
+  PRIVATE :: HCO_ArrVecCleanup_2D_Hp
+  PRIVATE :: HCO_ArrVecCleanup_2D_Df
+  PRIVATE :: HCO_ValCleanup_3D_Sp
+  PRIVATE :: HCO_ValCleanup_3D_Dp
+  PRIVATE :: HCO_ValCleanup_2D_Sp
+  PRIVATE :: HCO_ValCleanup_2D_Dp
   PRIVATE :: HCO_ValCleanup_2D_I
 !
 ! !PUBLIC DATA MEMBERS:
 !
   ! 2D arrays
-  TYPE, PUBLIC :: Arr2D_HP
+  TYPE, PUBLIC :: Arr2D_Hp
      REAL(hp), POINTER :: Val(:,:)    ! x,y
-  END TYPE Arr2D_HP
+  END TYPE Arr2D_Hp
 
-  TYPE, PUBLIC :: Arr2D_DF
+  TYPE, PUBLIC :: Arr2D_Df
      REAL(df), POINTER :: Val(:,:)    ! x,y
-  END TYPE Arr2D_DF
+  END TYPE Arr2D_Df
 
   TYPE, PUBLIC :: Arr2D_I
      INTEGER,  POINTER :: Val(:,:)    ! x,y
   END TYPE Arr2D_I
 
   ! 3D arrays
-  TYPE, PUBLIC :: Arr3D_HP
+  TYPE, PUBLIC :: Arr3D_Hp
      REAL(hp), POINTER :: Val(:,:,:)  ! x,y,z
-  END TYPE Arr3D_HP
+  END TYPE Arr3D_Hp
 
-  TYPE, PUBLIC :: Arr3D_DF
+  TYPE, PUBLIC :: Arr3D_Df
      REAL(df), POINTER :: Val(:,:,:)  ! x,y,z
-  END TYPE Arr3D_DF
+  END TYPE Arr3D_Df
 !
 ! !PRIVATE TYPES:
 !
   INTERFACE HCO_ArrInit 
-     MODULE PROCEDURE HCO_ArrInit_3D_HP
-     MODULE PROCEDURE HCO_ArrInit_3D_DF
-     MODULE PROCEDURE HCO_ArrInit_2D_HP
-     MODULE PROCEDURE HCO_ArrInit_2D_DF
+     MODULE PROCEDURE HCO_ArrInit_3D_Hp
+     MODULE PROCEDURE HCO_ArrInit_3D_Df
+     MODULE PROCEDURE HCO_ArrInit_2D_Hp
+     MODULE PROCEDURE HCO_ArrInit_2D_Df
      MODULE PROCEDURE HCO_ArrInit_2D_I
-     MODULE PROCEDURE HCO_ArrVecInit_3D_HP
-     MODULE PROCEDURE HCO_ArrVecInit_3D_DF
-     MODULE PROCEDURE HCO_ArrVecInit_2D_HP
-     MODULE PROCEDURE HCO_ArrVecInit_2D_DF
+     MODULE PROCEDURE HCO_ArrVecInit_3D_Hp
+     MODULE PROCEDURE HCO_ArrVecInit_3D_Df
+     MODULE PROCEDURE HCO_ArrVecInit_2D_Hp
+     MODULE PROCEDURE HCO_ArrVecInit_2D_Df
   END INTERFACE HCO_ArrInit
 
   INTERFACE HCO_ValInit 
-     MODULE PROCEDURE HCO_ValInit_3D_SP
-     MODULE PROCEDURE HCO_ValInit_3D_DP
-     MODULE PROCEDURE HCO_ValInit_2D_SP
-     MODULE PROCEDURE HCO_ValInit_2D_DP
+     MODULE PROCEDURE HCO_ValInit_3D_Sp
+     MODULE PROCEDURE HCO_ValInit_3D_Dp
+     MODULE PROCEDURE HCO_ValInit_2D_Sp
+     MODULE PROCEDURE HCO_ValInit_2D_Dp
      MODULE PROCEDURE HCO_ValInit_2D_I
   END INTERFACE HCO_ValInit
 
   INTERFACE HCO_ArrAssert
-     MODULE PROCEDURE HCO_ArrAssert_2D_HP
-     MODULE PROCEDURE HCO_ArrAssert_2D_DF
-     MODULE PROCEDURE HCO_ArrAssert_3D_HP
-     MODULE PROCEDURE HCO_ArrAssert_3D_DF
+     MODULE PROCEDURE HCO_ArrAssert_2D_Hp
+     MODULE PROCEDURE HCO_ArrAssert_2D_Df
+     MODULE PROCEDURE HCO_ArrAssert_3D_Hp
+     MODULE PROCEDURE HCO_ArrAssert_3D_Df
   END INTERFACE HCO_ArrAssert
 
   INTERFACE HCO_ArrCleanup
-     MODULE PROCEDURE HCO_ArrCleanup_3D_HP
-     MODULE PROCEDURE HCO_ArrCleanup_3D_DF
-     MODULE PROCEDURE HCO_ArrCleanup_2D_HP
-     MODULE PROCEDURE HCO_ArrCleanup_2D_DF
+     MODULE PROCEDURE HCO_ArrCleanup_3D_Hp
+     MODULE PROCEDURE HCO_ArrCleanup_3D_Df
+     MODULE PROCEDURE HCO_ArrCleanup_2D_Hp
+     MODULE PROCEDURE HCO_ArrCleanup_2D_Df
      MODULE PROCEDURE HCO_ArrCleanup_2D_I
-     MODULE PROCEDURE HCO_ArrVecCleanup_3D_HP
-     MODULE PROCEDURE HCO_ArrVecCleanup_3D_DF
-     MODULE PROCEDURE HCO_ArrVecCleanup_2D_HP
-     MODULE PROCEDURE HCO_ArrVecCleanup_2D_DF
+     MODULE PROCEDURE HCO_ArrVecCleanup_3D_Hp
+     MODULE PROCEDURE HCO_ArrVecCleanup_3D_Df
+     MODULE PROCEDURE HCO_ArrVecCleanup_2D_Hp
+     MODULE PROCEDURE HCO_ArrVecCleanup_2D_Df
   END INTERFACE HCO_ArrCleanup
 
   INTERFACE HCO_ValCleanup
-     MODULE PROCEDURE HCO_ValCleanup_3D_SP
-     MODULE PROCEDURE HCO_ValCleanup_3D_DP
-     MODULE PROCEDURE HCO_ValCleanup_2D_SP
-     MODULE PROCEDURE HCO_ValCleanup_2D_DP
+     MODULE PROCEDURE HCO_ValCleanup_3D_Sp
+     MODULE PROCEDURE HCO_ValCleanup_3D_Dp
+     MODULE PROCEDURE HCO_ValCleanup_2D_Sp
+     MODULE PROCEDURE HCO_ValCleanup_2D_Dp
      MODULE PROCEDURE HCO_ValCleanup_2D_I
   END INTERFACE HCO_ValCleanup
 !
@@ -160,19 +160,19 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrInit_2D_HP
+! !IROUTINE: HCO_ArrInit_2D_Hp
 !
-! !DESCRIPTION: Subroutine HCO\_ArrInit\_2D\_HP initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ArrInit\_2D\_Hp initializes the given data
 ! container 2D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrInit_2D_HP( Arr, nx, ny, RC )
+  SUBROUTINE HCO_ArrInit_2D_Hp( Arr, nx, ny, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr2D_HP), POINTER       :: Arr       ! Array 
+    TYPE(Arr2D_Hp), POINTER       :: Arr       ! Array 
     INTEGER,        INTENT(IN)    :: nx        ! x-dim
     INTEGER,        INTENT(IN)    :: ny        ! y-dim
 !
@@ -187,7 +187,7 @@ CONTAINS
 !BOC
 
     ! ================================================================
-    ! HCO_ArrInit_2D_HP begins here
+    ! HCO_ArrInit_2D_Hp begins here
     ! ================================================================
 
     IF ( .NOT. ASSOCIATED( Arr) ) ALLOCATE(Arr)
@@ -197,26 +197,26 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrInit_2D_HP
+  END SUBROUTINE HCO_ArrInit_2D_Hp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrInit_2D_DF
+! !IROUTINE: HCO_ArrInit_2D_Df
 !
-! !DESCRIPTION: Subroutine HCO\_ArrInit\_2D\_DF initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ArrInit\_2D\_Df initializes the given data
 ! container 2D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrInit_2D_DF( Arr, nx, ny, RC )
+  SUBROUTINE HCO_ArrInit_2D_Df( Arr, nx, ny, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr2D_DF), POINTER       :: Arr       ! Array 
+    TYPE(Arr2D_Df), POINTER       :: Arr       ! Array 
     INTEGER,        INTENT(IN)    :: nx        ! x-dim
     INTEGER,        INTENT(IN)    :: ny        ! y-dim
 !
@@ -231,7 +231,7 @@ CONTAINS
 !BOC
 
     ! ================================================================
-    ! HCO_ArrInit_2D_DF begins here
+    ! HCO_ArrInit_2D_Df begins here
     ! ================================================================
 
     IF ( .NOT. ASSOCIATED( Arr) ) ALLOCATE(Arr)
@@ -241,7 +241,7 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrInit_2D_DF
+  END SUBROUTINE HCO_ArrInit_2D_Df
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -292,19 +292,19 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrInit_3D_HP
+! !IROUTINE: HCO_ArrInit_3D_Hp
 !
-! !DESCRIPTION: Subroutine HCO\_ArrInit\_3D\_HP initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ArrInit\_3D\_Hp initializes the given data
 ! container 3D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrInit_3D_HP( Arr, nx, ny, nz, RC )
+  SUBROUTINE HCO_ArrInit_3D_Hp( Arr, nx, ny, nz, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr3D_HP), POINTER       :: Arr   ! Array 
+    TYPE(Arr3D_Hp), POINTER       :: Arr   ! Array 
     INTEGER,        INTENT(IN)    :: nx        ! x-dim
     INTEGER,        INTENT(IN)    :: ny        ! y-dim
     INTEGER,        INTENT(IN)    :: nz        ! z-dim
@@ -319,7 +319,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     ! ================================================================
-    ! HCO_ArrInit_3D_HP begins here
+    ! HCO_ArrInit_3D_Hp begins here
     ! ================================================================
 
     IF ( .NOT. ASSOCIATED(Arr) ) ALLOCATE(Arr)
@@ -329,26 +329,26 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrInit_3D_HP
+  END SUBROUTINE HCO_ArrInit_3D_Hp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrInit_3D_DF
+! !IROUTINE: HCO_ArrInit_3D_Df
 !
-! !DESCRIPTION: Subroutine HCO\_ArrInit\_3D\_DF initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ArrInit\_3D\_Df initializes the given data
 ! container 3D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrInit_3D_DF( Arr, nx, ny, nz, RC )
+  SUBROUTINE HCO_ArrInit_3D_Df( Arr, nx, ny, nz, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr3D_DF), POINTER       :: Arr   ! Array 
+    TYPE(Arr3D_Df), POINTER       :: Arr   ! Array 
     INTEGER,        INTENT(IN)    :: nx        ! x-dim
     INTEGER,        INTENT(IN)    :: ny        ! y-dim
     INTEGER,        INTENT(IN)    :: nz        ! z-dim
@@ -364,7 +364,7 @@ CONTAINS
 !BOC
 
     ! ================================================================
-    ! HCO_ArrInit_3D_DF begins here
+    ! HCO_ArrInit_3D_Df begins here
     ! ================================================================
     
     IF ( .NOT. ASSOCIATED(Arr) ) ALLOCATE(Arr)
@@ -374,26 +374,26 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrInit_3D_DF
+  END SUBROUTINE HCO_ArrInit_3D_Df
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrVecInit_2D_HP
+! !IROUTINE: HCO_ArrVecInit_2D_Hp
 !
-! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_2D\_HP initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_2D\_Hp initializes the given data
 ! container 2D array vector.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrVecInit_2D_HP( ArrVec, nn, nx, ny, RC )
+  SUBROUTINE HCO_ArrVecInit_2D_Hp( ArrVec, nn, nx, ny, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr2D_HP),   POINTER       :: ArrVec(:) ! Array vector
+    TYPE(Arr2D_Hp),   POINTER       :: ArrVec(:) ! Array vector
     INTEGER,          INTENT(IN)    :: nn        ! vector length 
     INTEGER,          INTENT(IN)    :: nx        ! x-dim
     INTEGER,          INTENT(IN)    :: ny        ! y-dim
@@ -413,7 +413,7 @@ CONTAINS
     INTEGER :: I
 
     ! ================================================================
-    ! HCO_ArrVecInit_2D_HP begins here
+    ! HCO_ArrVecInit_2D_Hp begins here
     ! ================================================================
 
     ! Init
@@ -422,7 +422,7 @@ CONTAINS
     IF ( nn > 0 ) THEN
        IF ( .NOT. ASSOCIATED(ArrVec) ) ALLOCATE(ArrVec(nn))
        DO I = 1, nn
-          CALL Hco_ValInit( ArrVec(I)%Val, nx, ny, RC )
+          CALL HCO_ValInit( ArrVec(I)%Val, nx, ny, RC )
           IF ( RC/=HCO_SUCCESS ) RETURN
        ENDDO
     ENDIF
@@ -430,26 +430,26 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrVecInit_2D_HP
+  END SUBROUTINE HCO_ArrVecInit_2D_Hp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrVecInit_2D_DF
+! !IROUTINE: HCO_ArrVecInit_2D_Df
 !
-! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_2D\_DF initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_2D\_Df initializes the given data
 ! container 2D array vector.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrVecInit_2D_DF( ArrVec, nn, nx, ny, RC )
+  SUBROUTINE HCO_ArrVecInit_2D_Df( ArrVec, nn, nx, ny, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr2D_DF),   POINTER       :: ArrVec(:) ! Array vector
+    TYPE(Arr2D_Df),   POINTER       :: ArrVec(:) ! Array vector
     INTEGER,          INTENT(IN)    :: nn        ! vector length 
     INTEGER,          INTENT(IN)    :: nx        ! x-dim
     INTEGER,          INTENT(IN)    :: ny        ! y-dim
@@ -469,7 +469,7 @@ CONTAINS
     INTEGER :: I
 
     ! ================================================================
-    ! HCO_ArrVecInit_2D_DF begins here
+    ! HCO_ArrVecInit_2D_Df begins here
     ! ================================================================
 
     ! Init
@@ -478,7 +478,7 @@ CONTAINS
     IF ( nn > 0 ) THEN
        IF ( .NOT. ASSOCIATED(ArrVec) ) ALLOCATE(ArrVec(nn))
        DO I = 1, nn
-          CALL Hco_ValInit( ArrVec(I)%Val, nx, ny, RC )
+          CALL HCO_ValInit( ArrVec(I)%Val, nx, ny, RC )
           IF ( RC/=HCO_SUCCESS ) RETURN
        ENDDO
     ENDIF
@@ -486,26 +486,26 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrVecInit_2D_DF
+  END SUBROUTINE HCO_ArrVecInit_2D_Df
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrVecInit_3D_HP
+! !IROUTINE: HCO_ArrVecInit_3D_Hp
 !
-! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_3D\_HP initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_3D\_Hp initializes the given data
 ! container 3D array vector.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrVecInit_3D_HP( ArrVec, nn, nx, ny, nz, RC )
+  SUBROUTINE HCO_ArrVecInit_3D_Hp( ArrVec, nn, nx, ny, nz, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr3D_HP),   POINTER       :: ArrVec(:) ! Array vector
+    TYPE(Arr3D_Hp),   POINTER       :: ArrVec(:) ! Array vector
     INTEGER,          INTENT(IN)    :: nn        ! vector length 
     INTEGER,          INTENT(IN)    :: nx        ! x-dim
     INTEGER,          INTENT(IN)    :: ny        ! y-dim
@@ -526,7 +526,7 @@ CONTAINS
     INTEGER :: I
 
     ! ================================================================
-    ! HCO_ArrVecInit_3D_HP begins here
+    ! HCO_ArrVecInit_3D_Hp begins here
     ! ================================================================
 
     ! Init
@@ -535,7 +535,7 @@ CONTAINS
     IF ( nn > 0 ) THEN 
        IF ( .NOT. ASSOCIATED(ArrVec) ) ALLOCATE(ArrVec(nn))
        DO I = 1, nn
-          CALL Hco_ValInit( ArrVec(I)%Val, nx, ny, nz, RC )
+          CALL HCO_ValInit( ArrVec(I)%Val, nx, ny, nz, RC )
           IF ( RC/=HCO_SUCCESS ) RETURN
        ENDDO
     ENDIF
@@ -543,26 +543,26 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrVecInit_3D_HP
+  END SUBROUTINE HCO_ArrVecInit_3D_Hp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrVecInit_3D_DF
+! !IROUTINE: HCO_ArrVecInit_3D_Df
 !
-! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_3D\_DF initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_3D\_Df initializes the given data
 ! container 3D array vector.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrVecInit_3D_DF( ArrVec, nn, nx, ny, nz, RC )
+  SUBROUTINE HCO_ArrVecInit_3D_Df( ArrVec, nn, nx, ny, nz, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr3D_DF),   POINTER       :: ArrVec(:) ! Array vector
+    TYPE(Arr3D_Df),   POINTER       :: ArrVec(:) ! Array vector
     INTEGER,          INTENT(IN)    :: nn        ! vector length 
     INTEGER,          INTENT(IN)    :: nx        ! x-dim
     INTEGER,          INTENT(IN)    :: ny        ! y-dim
@@ -583,7 +583,7 @@ CONTAINS
     INTEGER :: I
 
     ! ================================================================
-    ! HCO_ArrVecInit_3D_DF begins here
+    ! HCO_ArrVecInit_3D_Df begins here
     ! ================================================================
 
     ! Init
@@ -592,7 +592,7 @@ CONTAINS
     IF ( nn > 0 ) THEN 
        IF ( .NOT. ASSOCIATED(ArrVec) ) ALLOCATE(ArrVec(nn))
        DO I = 1, nn
-          CALL Hco_ValInit( ArrVec(I)%Val, nx, ny, nz, RC )
+          CALL HCO_ValInit( ArrVec(I)%Val, nx, ny, nz, RC )
           IF ( RC/=HCO_SUCCESS ) RETURN
        ENDDO
     ENDIF
@@ -600,22 +600,22 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrVecInit_3D_DF
+  END SUBROUTINE HCO_ArrVecInit_3D_Df
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ValInit_2D_SP
+! !IROUTINE: HCO_ValInit_2D_Sp
 !
-! !DESCRIPTION: Subroutine HCO\_ValInit\_2D\_SP initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ValInit\_2D\_Sp initializes the given data
 ! container 2D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ValInit_2D_SP( Val, nx, ny, RC )
+  SUBROUTINE HCO_ValInit_2D_Sp( Val, nx, ny, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -638,7 +638,7 @@ CONTAINS
     INTEGER :: AS
 
     ! ================================================================
-    ! HCO_ValInit_2D_SP begins here
+    ! HCO_ValInit_2D_Sp begins here
     ! ================================================================
 
     Val => NULL()
@@ -654,22 +654,22 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ValInit_2D_SP
+  END SUBROUTINE HCO_ValInit_2D_Sp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ValInit_2D_DP
+! !IROUTINE: HCO_ValInit_2D_Dp
 !
-! !DESCRIPTION: Subroutine HCO\_ValInit\_2D\_DP initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ValInit\_2D\_Dp initializes the given data
 ! container 2D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ValInit_2D_DP( Val, nx, ny, RC )
+  SUBROUTINE HCO_ValInit_2D_Dp( Val, nx, ny, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -692,7 +692,7 @@ CONTAINS
     INTEGER :: AS
 
     ! ================================================================
-    ! HCO_ValInit_2D_DP begins here
+    ! HCO_ValInit_2D_Dp begins here
     ! ================================================================
 
     Val => NULL()
@@ -708,7 +708,7 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ValInit_2D_DP
+  END SUBROUTINE HCO_ValInit_2D_Dp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -769,15 +769,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ValInit_3D_DP
+! !IROUTINE: HCO_ValInit_3D_Dp
 !
-! !DESCRIPTION: Subroutine HCO\_ValInit\_3D\_DP initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ValInit\_3D\_Dp initializes the given data
 ! container 3D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ValInit_3D_DP( Val, nx, ny, nz, RC )
+  SUBROUTINE HCO_ValInit_3D_Dp( Val, nx, ny, nz, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -801,7 +801,7 @@ CONTAINS
     INTEGER :: AS
 
     ! ================================================================
-    ! HCO_ValInit_3D_DP begins here
+    ! HCO_ValInit_3D_Dp begins here
     ! ================================================================
 
     Val => NULL()
@@ -817,22 +817,22 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ValInit_3D_DP
+  END SUBROUTINE HCO_ValInit_3D_Dp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ValInit_3D_SP
+! !IROUTINE: HCO_ValInit_3D_Sp
 !
-! !DESCRIPTION: Subroutine HCO\_ValInit\_3D\_SP initializes the given data
+! !DESCRIPTION: Subroutine HCO\_ValInit\_3D\_Sp initializes the given data
 ! container 3D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ValInit_3D_SP( Val, nx, ny, nz, RC )
+  SUBROUTINE HCO_ValInit_3D_Sp( Val, nx, ny, nz, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -856,7 +856,7 @@ CONTAINS
     INTEGER :: AS
 
     ! ================================================================
-    ! HCO_ValInit_3D_SP begins here
+    ! HCO_ValInit_3D_Sp begins here
     ! ================================================================
 
     Val => NULL()
@@ -872,26 +872,26 @@ CONTAINS
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ValInit_3D_SP
+  END SUBROUTINE HCO_ValInit_3D_Sp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrAssert_3D_HP 
+! !IROUTINE: HCO_ArrAssert_3D_Hp 
 !
-! !DESCRIPTION: Routine HCO\_ArrAssert\_3D\_HP makes sure that the passed 
+! !DESCRIPTION: Routine HCO\_ArrAssert\_3D\_Hp makes sure that the passed 
 ! 3D array is allocated. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrAssert_3D_HP( ThisArr3D, I, J, L, RC )
+  SUBROUTINE HCO_ArrAssert_3D_Hp( ThisArr3D, I, J, L, RC )
 !
 ! !INPUT PARAMETERS:
 ! 
-    TYPE(Arr3D_HP),  POINTER         :: ThisArr3D ! 3D array
+    TYPE(Arr3D_Hp),  POINTER         :: ThisArr3D ! 3D array
     INTEGER,         INTENT(IN   )   :: I, J, L   ! Array dims 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -908,7 +908,7 @@ CONTAINS
 !BOC
 
     !=====================================================================
-    ! HCO_ArrAssert_3D_HP begins here!
+    ! HCO_ArrAssert_3D_Hp begins here!
     !=====================================================================
   
     ! Check flux array
@@ -923,26 +923,26 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrAssert_3D_HP
+  END SUBROUTINE HCO_ArrAssert_3D_Hp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrAssert_3D_DF 
+! !IROUTINE: HCO_ArrAssert_3D_Df 
 !
-! !DESCRIPTION: Routine HCO\_ArrAssert\_3D\_DF makes sure that the passed 
+! !DESCRIPTION: Routine HCO\_ArrAssert\_3D\_Df makes sure that the passed 
 ! 3D array is allocated. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrAssert_3D_DF( ThisArr3D, I, J, L, RC )
+  SUBROUTINE HCO_ArrAssert_3D_Df( ThisArr3D, I, J, L, RC )
 !
 ! !INPUT PARAMETERS:
 ! 
-    TYPE(Arr3D_DF),  POINTER         :: ThisArr3D ! 3D array
+    TYPE(Arr3D_Df),  POINTER         :: ThisArr3D ! 3D array
     INTEGER,         INTENT(IN   )   :: I, J, L   ! Array dims 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -958,7 +958,7 @@ CONTAINS
 !BOC
 
     !=====================================================================
-    ! HCO_ArrAssert_3D_DF begins here!
+    ! HCO_ArrAssert_3D_Df begins here!
     !=====================================================================
 
     ! Check flux array
@@ -973,26 +973,26 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrAssert_3D_DF
+  END SUBROUTINE HCO_ArrAssert_3D_Df
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrAssert_2D_HP 
+! !IROUTINE: HCO_ArrAssert_2D_Hp 
 !
-! !DESCRIPTION: Routine HCO\_ArrAssert\_2D\_HP makes sure that the passed 
+! !DESCRIPTION: Routine HCO\_ArrAssert\_2D\_Hp makes sure that the passed 
 ! 2D array is allocated. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrAssert_2D_HP( ThisArr2D, I, J, RC )
+  SUBROUTINE HCO_ArrAssert_2D_Hp( ThisArr2D, I, J, RC )
 !
 ! !INPUT PARAMETERS:
 ! 
-    TYPE(Arr2D_HP),  POINTER         :: ThisArr2D ! 2D array
+    TYPE(Arr2D_Hp),  POINTER         :: ThisArr2D ! 2D array
     INTEGER,         INTENT(IN   )   :: I, J      ! Array dims 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1008,7 +1008,7 @@ CONTAINS
 !BOC
 
     !=====================================================================
-    ! HCO_ArrAssert_2D_HP begins here!
+    ! HCO_ArrAssert_2D_Hp begins here!
     !=====================================================================
   
     ! Check flux array
@@ -1023,26 +1023,26 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrAssert_2D_HP
+  END SUBROUTINE HCO_ArrAssert_2D_Hp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrAssert_2D_DF 
+! !IROUTINE: HCO_ArrAssert_2D_Df 
 !
-! !DESCRIPTION: Routine HCO\_ArrAssert\_2D\_DF makes sure that the passed 
+! !DESCRIPTION: Routine HCO\_ArrAssert\_2D\_Df makes sure that the passed 
 ! 2D array is allocated. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrAssert_2D_DF( ThisArr2D, I, J, RC )
+  SUBROUTINE HCO_ArrAssert_2D_Df( ThisArr2D, I, J, RC )
 !
 ! !INPUT PARAMETERS:
 ! 
-    TYPE(Arr2D_DF),  POINTER         :: ThisArr2D ! 2D array
+    TYPE(Arr2D_Df),  POINTER         :: ThisArr2D ! 2D array
     INTEGER,         INTENT(IN   )   :: I, J      ! Array dims 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1058,7 +1058,7 @@ CONTAINS
 !BOC
 
     !=====================================================================
-    ! HCO_ArrAssert_2D_DF begins here!
+    ! HCO_ArrAssert_2D_Df begins here!
     !=====================================================================
   
     ! Check flux array
@@ -1073,26 +1073,26 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ArrAssert_2D_DF
+  END SUBROUTINE HCO_ArrAssert_2D_Df
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrCleanup_2D_HP
+! !IROUTINE: HCO_ArrCleanup_2D_Hp
 !
-! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_2D\_HP cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_2D\_Hp cleans up the given 
 ! container 2D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrCleanup_2D_HP( Arr, DeepClean ) 
+  SUBROUTINE HCO_ArrCleanup_2D_Hp( Arr, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr2D_HP),      POINTER  :: Arr       ! Array 
+    TYPE(Arr2D_Hp),      POINTER  :: Arr       ! Array 
     LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
 !
 ! !REVISION HISTORY:
@@ -1106,7 +1106,7 @@ CONTAINS
     LOGICAL :: DC
 
     ! ================================================================
-    ! HCO_ArrCleanup_2D_HP begins here
+    ! HCO_ArrCleanup_2D_Hp begins here
     ! ================================================================
 
     IF ( PRESENT(DeepClean) ) THEN
@@ -1120,26 +1120,26 @@ CONTAINS
        DEALLOCATE ( Arr )
     ENDIF
 
-  END SUBROUTINE HCO_ArrCleanup_2D_HP
+  END SUBROUTINE HCO_ArrCleanup_2D_Hp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrCleanup_2D_DF
+! !IROUTINE: HCO_ArrCleanup_2D_Df
 !
-! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_2D\_HP cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_2D\_Hp cleans up the given 
 ! container 2D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrCleanup_2D_DF( Arr, DeepClean ) 
+  SUBROUTINE HCO_ArrCleanup_2D_Df( Arr, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr2D_DF),      POINTER  :: Arr       ! Array 
+    TYPE(Arr2D_Df),      POINTER  :: Arr       ! Array 
     LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
 !
 ! !REVISION HISTORY:
@@ -1153,7 +1153,7 @@ CONTAINS
     LOGICAL :: DC
 
     ! ================================================================
-    ! HCO_ArrCleanup_2D_DF begins here
+    ! HCO_ArrCleanup_2D_Df begins here
     ! ================================================================
 
     IF ( PRESENT(DeepClean) ) THEN
@@ -1167,7 +1167,7 @@ CONTAINS
        DEALLOCATE ( Arr )
     ENDIF
 
-  END SUBROUTINE HCO_ArrCleanup_2D_DF
+  END SUBROUTINE HCO_ArrCleanup_2D_Df
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1221,19 +1221,19 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrCleanup_3D_HP
+! !IROUTINE: HCO_ArrCleanup_3D_Hp
 !
-! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_3D\_HP cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_3D\_Hp cleans up the given 
 ! container 3D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrCleanup_3D_HP( Arr, DeepClean ) 
+  SUBROUTINE HCO_ArrCleanup_3D_Hp( Arr, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr3D_HP),      POINTER  :: Arr       ! Array 
+    TYPE(Arr3D_Hp),      POINTER  :: Arr       ! Array 
     LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
 !
 ! !REVISION HISTORY:
@@ -1247,7 +1247,7 @@ CONTAINS
     LOGICAL :: DC
 
     ! ================================================================
-    ! HCO_ArrCleanup_3D_HP begins here
+    ! HCO_ArrCleanup_3D_Hp begins here
     ! ================================================================
 
     IF ( PRESENT(DeepClean) ) THEN
@@ -1261,26 +1261,26 @@ CONTAINS
        DEALLOCATE ( Arr )
     ENDIF
 
-  END SUBROUTINE HCO_ArrCleanup_3D_HP
+  END SUBROUTINE HCO_ArrCleanup_3D_Hp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrCleanup_3D_DF
+! !IROUTINE: HCO_ArrCleanup_3D_Df
 !
-! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_3D\_DF cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_3D\_Df cleans up the given 
 ! container 3D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrCleanup_3D_DF( Arr, DeepClean ) 
+  SUBROUTINE HCO_ArrCleanup_3D_Df( Arr, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr3D_DF),      POINTER  :: Arr       ! Array 
+    TYPE(Arr3D_Df),      POINTER  :: Arr       ! Array 
     LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
 !
 ! !REVISION HISTORY:
@@ -1294,7 +1294,7 @@ CONTAINS
     LOGICAL :: DC
 
     ! ================================================================
-    ! HCO_ArrCleanup_3D_DF begins here
+    ! HCO_ArrCleanup_3D_Df begins here
     ! ================================================================
 
     IF ( PRESENT(DeepClean) ) THEN
@@ -1308,26 +1308,26 @@ CONTAINS
        DEALLOCATE ( Arr )
     ENDIF
 
-  END SUBROUTINE HCO_ArrCleanup_3D_DF
+  END SUBROUTINE HCO_ArrCleanup_3D_Df
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrVecCleanup_2D_HP
+! !IROUTINE: HCO_ArrVecCleanup_2D_Hp
 !
-! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_2D\_HP cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_2D\_Hp cleans up the given 
 ! container 2D array vector.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrVecCleanup_2D_HP( ArrVec, DeepClean ) 
+  SUBROUTINE HCO_ArrVecCleanup_2D_Hp( ArrVec, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr2D_HP),      POINTER  :: ArrVec(:) ! Array 
+    TYPE(Arr2D_Hp),      POINTER  :: ArrVec(:) ! Array 
     LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
 !
 ! !REVISION HISTORY:
@@ -1342,7 +1342,7 @@ CONTAINS
     INTEGER :: I
 
     ! ================================================================
-    ! HCO_ArrVecCleanup_2D_HP begins here
+    ! HCO_ArrVecCleanup_2D_Hp begins here
     ! ================================================================
 
     IF ( PRESENT(DeepClean) ) THEN
@@ -1359,26 +1359,26 @@ CONTAINS
        DEALLOCATE ( ArrVec )
     ENDIF
 
-  END SUBROUTINE HCO_ArrVecCleanup_2D_HP
+  END SUBROUTINE HCO_ArrVecCleanup_2D_Hp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrVecCleanup_2D_DF
+! !IROUTINE: HCO_ArrVecCleanup_2D_Df
 !
-! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_2D\_DF cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_2D\_Df cleans up the given 
 ! container 2D array vector.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrVecCleanup_2D_DF( ArrVec, DeepClean ) 
+  SUBROUTINE HCO_ArrVecCleanup_2D_Df( ArrVec, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr2D_DF),      POINTER  :: ArrVec(:) ! Array 
+    TYPE(Arr2D_Df),      POINTER  :: ArrVec(:) ! Array 
     LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
 !
 ! !REVISION HISTORY:
@@ -1393,7 +1393,7 @@ CONTAINS
     INTEGER :: I
 
     ! ================================================================
-    ! HCO_ArrVecCleanup_2D_DF begins here
+    ! HCO_ArrVecCleanup_2D_Df begins here
     ! ================================================================
 
     IF ( PRESENT(DeepClean) ) THEN
@@ -1410,26 +1410,26 @@ CONTAINS
        DEALLOCATE ( ArrVec )
     ENDIF
 
-  END SUBROUTINE HCO_ArrVecCleanup_2D_DF
+  END SUBROUTINE HCO_ArrVecCleanup_2D_Df
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrVecCleanup_3D_HP
+! !IROUTINE: HCO_ArrVecCleanup_3D_Hp
 !
-! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_3D\_HP cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_3D\_Hp cleans up the given 
 ! container 3D array vector.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrVecCleanup_3D_HP( ArrVec, DeepClean ) 
+  SUBROUTINE HCO_ArrVecCleanup_3D_Hp( ArrVec, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr3D_HP),      POINTER  :: ArrVec(:) ! Array 
+    TYPE(Arr3D_Hp),      POINTER  :: ArrVec(:) ! Array 
     LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
 !
 ! !REVISION HISTORY:
@@ -1444,7 +1444,7 @@ CONTAINS
     INTEGER :: I
 
     ! ================================================================
-    ! HCO_ArrVecCleanup_3D_HP begins here
+    ! HCO_ArrVecCleanup_3D_Hp begins here
     ! ================================================================
 
     IF ( PRESENT(DeepClean) ) THEN
@@ -1461,26 +1461,26 @@ CONTAINS
        DEALLOCATE ( ArrVec )
     ENDIF
 
-  END SUBROUTINE HCO_ArrVecCleanup_3D_HP
+  END SUBROUTINE HCO_ArrVecCleanup_3D_Hp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ArrVecCleanup_3D_DF
+! !IROUTINE: HCO_ArrVecCleanup_3D_Df
 !
-! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_3D\_DF cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_3D\_Df cleans up the given 
 ! container 3D array vector.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ArrVecCleanup_3D_DF( ArrVec, DeepClean ) 
+  SUBROUTINE HCO_ArrVecCleanup_3D_Df( ArrVec, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Arr3D_DF),      POINTER  :: ArrVec(:) ! Array 
+    TYPE(Arr3D_Df),      POINTER  :: ArrVec(:) ! Array 
     LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
 !
 ! !REVISION HISTORY:
@@ -1495,7 +1495,7 @@ CONTAINS
     INTEGER :: I
 
     ! ================================================================
-    ! HCO_ArrVecCleanup_3D_DF begins here
+    ! HCO_ArrVecCleanup_3D_Df begins here
     ! ================================================================
 
     IF ( PRESENT(DeepClean) ) THEN
@@ -1512,22 +1512,22 @@ CONTAINS
        DEALLOCATE ( ArrVec )
     ENDIF
 
-  END SUBROUTINE HCO_ArrVecCleanup_3D_DF
+  END SUBROUTINE HCO_ArrVecCleanup_3D_Df
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ValCleanup_2D_DP
+! !IROUTINE: HCO_ValCleanup_2D_Dp
 !
-! !DESCRIPTION: Subroutine HCO\_ValCleanup\_2D\_DP cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ValCleanup\_2D\_Dp cleans up the given 
 ! container 2D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ValCleanup_2D_DP( Val, DeepClean ) 
+  SUBROUTINE HCO_ValCleanup_2D_Dp( Val, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
@@ -1544,22 +1544,22 @@ CONTAINS
     ENDIF
     Val => NULL()
 
-  END SUBROUTINE HCO_ValCleanup_2D_DP
+  END SUBROUTINE HCO_ValCleanup_2D_Dp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ValCleanup_2D_SP
+! !IROUTINE: HCO_ValCleanup_2D_Sp
 !
-! !DESCRIPTION: Subroutine HCO\_ValCleanup\_2D\_SP cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ValCleanup\_2D\_Sp cleans up the given 
 ! container 2D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ValCleanup_2D_SP( Val, DeepClean ) 
+  SUBROUTINE HCO_ValCleanup_2D_Sp( Val, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
@@ -1576,7 +1576,7 @@ CONTAINS
     ENDIF
     Val => NULL()
 
-  END SUBROUTINE HCO_ValCleanup_2D_SP
+  END SUBROUTINE HCO_ValCleanup_2D_Sp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1618,15 +1618,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ValCleanup_3D_DP
+! !IROUTINE: HCO_ValCleanup_3D_Dp
 !
-! !DESCRIPTION: Subroutine HCO\_ValCleanup\_3D\_DP cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ValCleanup\_3D\_Dp cleans up the given 
 ! container 3D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ValCleanup_3D_DP( Val, DeepClean ) 
+  SUBROUTINE HCO_ValCleanup_3D_Dp( Val, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
@@ -1643,22 +1643,22 @@ CONTAINS
     ENDIF
     Val => NULL()
 
-  END SUBROUTINE HCO_ValCleanup_3D_DP
+  END SUBROUTINE HCO_ValCleanup_3D_Dp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ValCleanup_3D_SP
+! !IROUTINE: HCO_ValCleanup_3D_Sp
 !
-! !DESCRIPTION: Subroutine HCO\_ValCleanup\_3D\_SP cleans up the given 
+! !DESCRIPTION: Subroutine HCO\_ValCleanup\_3D\_Sp cleans up the given 
 ! container 3D array. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ValCleanup_3D_SP( Val, DeepClean ) 
+  SUBROUTINE HCO_ValCleanup_3D_Sp( Val, DeepClean ) 
 !
 ! !INPUT PARAMETERS:
 !
@@ -1675,6 +1675,6 @@ CONTAINS
     ENDIF
     Val => NULL()
 
-  END SUBROUTINE HCO_ValCleanup_3D_SP
+  END SUBROUTINE HCO_ValCleanup_3D_Sp
 !EOC
-END MODULE HCO_ARR_MOD
+END MODULE HCO_Arr_Mod

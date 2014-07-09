@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_gfed3_mod
+! !MODULE: hcox_gfed3_mod.F90
 !
 ! !DESCRIPTION: Module HCOX\_GFED3\_MOD contains routines to calculate
 ! GFED3 biomass burning emissions in HEMCO. 
@@ -20,17 +20,17 @@ MODULE HCOX_GFED3_MOD
 ! 
   USE HCO_ERROR_MOD
   USE HCO_DIAGN_MOD
-  USE HCO_STATE_MOD,        ONLY : HCO_State
-  USE HCOX_State_MOD,       ONLY : Ext_State
+  USE HCO_STATE_MOD,  ONLY : HCO_State
+  USE HCOX_State_MOD, ONLY : Ext_State
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HCOX_GFED3_INIT
-  PUBLIC :: HCOX_GFED3_RUN
-  PUBLIC :: HCOX_GFED3_FINAL
+  PUBLIC :: HCOX_GFED3_Init
+  PUBLIC :: HCOX_GFED3_Run
+  PUBLIC :: HCOX_GFED3_Final
 !
 ! !REMARKS:
 !  Monthly emissions of DM are read from disk,
@@ -128,7 +128,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_GFED3_Run 
+! !IROUTINE: HCOX_GFED3_Run 
 !
 ! !DESCRIPTION: Subroutine HcoX\_GFED3\_Run is the driver run routine to 
 ! calculate seasalt emissions in HEMCO.
@@ -136,12 +136,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_GFED3_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_GFED3_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
-    USE HCO_EMISLIST_MOD, ONLY : EmisList_GetDataArr
-    USE HCO_FLUXARR_MOD,  ONLY : HCO_EmisAdd
+    USE HCO_EmisList_Mod, ONLY : EmisList_GetDataArr
+    USE HCO_FluxArr_MOD,  ONLY : HCO_EmisAdd
 !
 ! !INPUT PARAMETERS:
 !
@@ -179,14 +179,14 @@ CONTAINS
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
    
     !=================================================================
-    ! HcoX_GFED3_Run begins here!
+    ! HCOX_GFED3_Run begins here!
     !=================================================================
 
     ! Return if extension disabled 
     IF ( .NOT. ExtState%GFED3 ) RETURN
 
     ! Enter 
-    CALL HCO_ENTER ( 'HcoX_GFED3_Run (HcoX_GFED3_Mod.F90)', RC ) 
+    CALL HCO_ENTER ( 'HCOX_GFED3_Run (hcox_gfed3_mod.F90)', RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -322,14 +322,14 @@ CONTAINS
     ! Leave w/ success
     CALL HCO_LEAVE ( RC )
 
-  END SUBROUTINE HcoX_GFED3_Run
+  END SUBROUTINE HCOX_GFED3_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_GFED3_Init
+! !IROUTINE: HCOX_GFED3_Init
 !
 ! !DESCRIPTION: Subroutine HcoX\_GFED3\_Init initializes all
 !  extension variables.
@@ -337,7 +337,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_GFED3_Init ( am_I_Root, HcoState, ExtName, &
+  SUBROUTINE HCOX_GFED3_Init ( am_I_Root, HcoState, ExtName, &
                                ExtState,  RC                  ) 
 !
 ! !USE:
@@ -374,7 +374,7 @@ CONTAINS
     LOGICAL            :: Matched
 
     !=================================================================
-    ! HcoX_GFED3_Init begins here!
+    ! HCOX_GFED3_Init begins here!
     !=================================================================
 
     ! Extension Nr.
@@ -382,7 +382,7 @@ CONTAINS
     IF ( ExtNr <= 0 ) RETURN
 
     ! Enter 
-    CALL HCO_ENTER ( 'HcoX_GFED3_Init (HcoX_GFED3_Mod.F90)', RC )
+    CALL HCO_ENTER ( 'HCOX_GFED3_Init (hcox_gfed3_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ---------------------------------------------------------------------- 
@@ -527,14 +527,14 @@ CONTAINS
     ! Return w/ success
     CALL HCO_LEAVE ( RC ) 
  
-  END SUBROUTINE HcoX_GFED3_Init
+  END SUBROUTINE HCOX_GFED3_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_GFED3_Final 
+! !IROUTINE: HCOX_GFED3_Final 
 !
 ! !DESCRIPTION: Subroutine HcoX\_GFED3\_Final deallocates 
 !  all module arrays.
@@ -542,7 +542,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_GFED3_Final
+  SUBROUTINE HCOX_GFED3_Final
 !
 ! !REVISION HISTORY:
 !  15 Dec 2013 - C. Keller - Initial version
@@ -551,7 +551,7 @@ CONTAINS
 !BOC
 !
     !=================================================================
-    ! HcoX_GFED3_Final begins here!
+    ! HCOX_GFED3_Final begins here!
     !=================================================================
 
     ! Cleanup module arrays
@@ -560,6 +560,6 @@ CONTAINS
     IF ( ALLOCATED( HcoIDs      ) ) DEALLOCATE( HcoIDs      )
     IF ( ALLOCATED( SpcNames    ) ) DEALLOCATE( SpcNames    )
 
-  END SUBROUTINE HcoX_GFED3_Final
+  END SUBROUTINE HCOX_GFED3_Final
 !EOC
 END MODULE HCOX_GFED3_MOD

@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_seaflux_mod
+! !MODULE: hcox_seaflux_mod.F90
 !
-! !DESCRIPTION: Module HCOX\_SEAFLUX\_MOD contains routines to calculate
+! !DESCRIPTION: Module HCOX\_SeaFlux\_Mod contains routines to calculate
 ! the oceanic emissions of a number of defined species.
 ! The oceanic flux is parameterized according to Liss and Slater, 1974:
 ! F = Kg * ( Cair - H Cwater )
@@ -55,13 +55,13 @@
 !
 ! !INTERFACE: 
 !
-MODULE HCOX_SEAFLUX_MOD
+MODULE HCOX_SeaFlux_Mod
 !
 ! !USES:
 ! 
-  USE HCO_ERROR_MOD
-  USE HCO_DIAGN_MOD
-  USE HCO_STATE_MOD,  ONLY : HCO_State
+  USE HCO_Error_MOD
+  USE HCO_Diagn_MOD
+  USE HCO_State_MOD,  ONLY : HCO_State
   USE HCOX_State_MOD, ONLY : Ext_State
 
   IMPLICIT NONE
@@ -69,9 +69,9 @@ MODULE HCOX_SEAFLUX_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: HcoX_SeaFlux_Init
-  PUBLIC  :: HcoX_SeaFlux_Run
-  PUBLIC  :: HcoX_SeaFlux_Final
+  PUBLIC  :: HCOX_SeaFlux_Init
+  PUBLIC  :: HCOX_SeaFlux_Run
+  PUBLIC  :: HCOX_SeaFlux_Final
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -109,7 +109,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_seaflux_run 
+! !IROUTINE: HCOX_SeaFlux_Run
 !
 ! !DESCRIPTION: Subroutine HcoX\_SeaFlux\_Run is the run routine to 
 ! calculate oceanic emissions for the current time step.
@@ -117,7 +117,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_SeaFlux_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_SeaFlux_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -127,13 +127,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(HCO_State), POINTER        :: HcoState   ! Output obj
-    TYPE(Ext_State), POINTER        :: ExtState  ! Module options  
+    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
+    TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
+    TYPE(Ext_State), POINTER       :: ExtState  ! Module options  
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,         INTENT(INOUT)  :: RC         ! Success or failure?
+    INTEGER,         INTENT(INOUT) :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  16 Apr 2013 - C. Keller - Initial version
@@ -143,21 +143,24 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                 :: OcID, HcoID
-    REAL(hp), TARGET        :: SOURCE(HcoState%NX,HcoState%NY) 
-    REAL(hp), TARGET        :: SINK  (HcoState%NX,HcoState%NY)
-    REAL(hp), POINTER       :: Arr2D(:,:)   => NULL() 
-    REAL(hp), POINTER       :: SeaConc(:,:) => NULL()
-    CHARACTER(LEN=255)      :: ContName
-    CHARACTER(LEN=255)      :: MSG
-    LOGICAL                 :: VERBOSE
+    ! Scalars
+    INTEGER            :: OcID, HcoID
+    REAL(hp), TARGET   :: SOURCE(HcoState%NX,HcoState%NY) 
+    REAL(hp), TARGET   :: SINK  (HcoState%NX,HcoState%NY)
+    CHARACTER(LEN=255) :: ContName
+    CHARACTER(LEN=255) :: MSG
+    LOGICAL            :: VERBOSE
+
+    ! Pointers
+    REAL(hp), POINTER  :: Arr2D(:,:)   => NULL() 
+    REAL(hp), POINTER  :: SeaConc(:,:) => NULL()
 
     !=================================================================
-    ! HcoX_SeaFlux_Run begins here!
+    ! HCOX_SeaFlux_Run begins here!
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER( 'HcoX_SeaFlux_Run (HcoX_SeaFlux_Mod.F90)', RC )
+    CALL HCO_ENTER( 'HCOX_SeaFlux_Run (hcox_seaflux_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return if extension disabled 
@@ -230,14 +233,14 @@ CONTAINS
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE HcoX_SeaFlux_Run
+  END SUBROUTINE HCOX_SeaFlux_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: calc_seaflux
+! !IROUTINE: Calc_SeaFlux
 !
 ! !DESCRIPTION: Subroutine CALC\_SEAFLUX calculates oceanic emissions 
 ! of the specified tracer using the parameterization described in
@@ -251,14 +254,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CALC_SEAFLUX( am_I_Root, HcoState, ExtState, & 
+  SUBROUTINE Calc_SeaFlux( am_I_Root, HcoState, ExtState, & 
                            SOURCE,    SINK,     SeaConc,   &
                            OcID,      HcoID,    RC          )
 !
 ! !USES:
 ! 
-    USE OCEAN_TOOLBOX_MOD,  ONLY : CALC_KG
-    USE HENRY_MOD,          ONLY : CALC_KH, CALC_HEFF
+    USE Ocean_ToolBox_Mod,  ONLY : CALC_KG
+    USE Henry_Mod,          ONLY : CALC_KH, CALC_HEFF
 !
 ! !INPUT PARAMETERS:
 !
@@ -293,23 +296,23 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L
-    REAL*8                 :: IJSRC, IJSINK
-    INTEGER                :: SCW
-    REAL*8                 :: P, V, S, VB, MW, KG
-    REAL*8                 :: K0, CR, PKA
-    REAL*8                 :: KH, HEFF, PH
-    REAL*8                 :: TK, TC
-
-    ! Error handling
-    CHARACTER(LEN=255)     :: MSG
+    INTEGER            :: I, J, L
+    REAL*8             :: IJSRC, IJSINK
+    INTEGER            :: SCW
+    REAL*8             :: P, V, S, VB, MW, KG
+    REAL*8             :: K0, CR, PKA
+    REAL*8             :: KH, HEFF, PH
+    REAL*8             :: TK, TC
+                       
+    ! Error handling   
+    CHARACTER(LEN=255) :: MSG
 
     !=================================================================
     ! CALC_SEAFLUX begins here!
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'CALC_SEAFLUX (HcoX_SeaFlux_Mod.F90)', RC )
+    CALL HCO_ENTER ( 'Calc_SeaFlux (hcox_seaflux_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Init
@@ -450,16 +453,16 @@ CONTAINS
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE CALC_SEAFLUX
+  END SUBROUTINE Calc_SeaFlux
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_seaflux_init
+! !IROUTINE: HCOX_SeaFlux_Init
 !
-! !DESCRIPTION: Subroutine HcoX\_SeaFlux\_Init initializes all module
+! !DESCRIPTION: Subroutine HCOX\_SeaFlux\_Init initializes all module
 ! variables, including all species - specific parameter such as 
 ! the liquid molar volume (Vb), the parameterization type for the 
 ! Schmidt number in water (SCWPAR) and the name of the field containing 
@@ -518,7 +521,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_SeaFlux_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_SeaFlux_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -543,13 +546,16 @@ CONTAINS
 !
 ! !LOCAL VARIABLES
 !
+    ! Scalars
     INTEGER                        :: I, J, nSpc
-    INTEGER, ALLOCATABLE           :: HcoIDs(:)
-    CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
     CHARACTER(LEN=255)             :: NAME_OC, MSG
 
+    ! Arrays
+    INTEGER,           ALLOCATABLE :: HcoIDs(:)
+    CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
+
     !=================================================================
-    ! HcoX_SeaFlux_Init begins here!
+    ! HCOX_SeaFlux_Init begins here!
     !=================================================================
 
     ! Extension Nr.
@@ -557,7 +563,7 @@ CONTAINS
     IF ( ExtNr <= 0 ) RETURN
  
     ! Enter 
-    CALL HCO_ENTER (  'HcoX_SeaFlux_Init (HcoX_SeaFlux_Mod.F90)', RC )
+    CALL HCO_ENTER (  'HCOX_SeaFlux_Init (hcox_seaflux_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     MSG = 'nOcSpc too low!'
 
@@ -684,22 +690,22 @@ CONTAINS
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
     CALL HCO_LEAVE ( RC )
 
-  END SUBROUTINE HcoX_SeaFlux_Init
+  END SUBROUTINE HCOX_SeaFlux_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_seaflux_final 
+! !IROUTINE: HCOX_SeaFlux_Final
 !
-! !DESCRIPTION: Subroutine HcoX\_SeaFlux\_Final deallocates 
+! !DESCRIPTION: Subroutine HCOX\_SeaFlux\_Final deallocates 
 !  all module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_SeaFlux_Final
+  SUBROUTINE HCOX_SeaFlux_Final()
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller - Initial version
@@ -708,12 +714,12 @@ CONTAINS
 !BOC
 !
     !=================================================================
-    ! HcoX_SeaFlux_Final begins here!
+    ! HCOX_SeaFlux_Final begins here!
     !=================================================================
 
     IF ( ASSOCIATED( OcSpecs )) DEALLOCATE( OcSpecs ) 
 
-  END SUBROUTINE HcoX_SeaFlux_Final
+  END SUBROUTINE HCOX_SeaFlux_Final
 !EOC
-END MODULE HCOX_SEAFLUX_MOD
+END MODULE HCOX_SeaFlux_Mod
 !EOM

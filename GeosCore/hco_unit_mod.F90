@@ -1,39 +1,39 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !!
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_unit_mod
+! !MODULE: hco_unit_mod.F90
 !
-! !DESCRIPTION: Module HCO\_UNIT\_MOD contains routines to check/convert
+! !DESCRIPTION: Module HCO\_Unit\_Mod contains routines to check/convert
 ! units. 
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE HCO_UNIT_MOD
+MODULE HCO_Unit_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD    
+  USE HCO_Error_Mod    
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HCO_UNIT_CHANGE
-  PUBLIC :: HCO_UNIT_GetMassScal
-  PUBLIC :: HCO_UNIT_GetAreaScal
-  PUBLIC :: HCO_UNIT_GetTimeScal
-  PUBLIC :: HCO_UNIT_SCALCHECK 
+  PUBLIC :: HCO_Unit_Change
+  PUBLIC :: HCO_Unit_GetMassScal
+  PUBLIC :: HCO_Unit_GetAreaScal
+  PUBLIC :: HCO_Unit_GetTimeScal
+  PUBLIC :: HCO_Unit_ScalCheck 
 !
-! !PRIVATE MODULE VARIABLES:
+! !DEFINED PARAMETERS:
 !
-  REAL(hp),  PARAMETER   :: N_0             = 6.022e+23_hp
-  REAL(hp),  PARAMETER   :: SEC_IN_DAY      = 86400_hp
-  REAL(hp),  PARAMETER   :: SEC_IN_LEAPYEAR = SEC_IN_DAY * 366_hp 
-  REAL(hp),  PARAMETER   :: SEC_IN_REGYEAR  = SEC_IN_DAY * 365_hp
+  REAL(hp),  PARAMETER :: N_0             = 6.022e+23_hp
+  REAL(hp),  PARAMETER :: SEC_IN_DAY      = 86400_hp
+  REAL(hp),  PARAMETER :: SEC_IN_LEAPYEAR = SEC_IN_DAY * 366_hp 
+  REAL(hp),  PARAMETER :: SEC_IN_REGYEAR  = SEC_IN_DAY * 365_hp
 !
 ! !REVISION HISTORY:
 !  15 May 2012 - C. Keller: Initialization
@@ -45,14 +45,16 @@ MODULE HCO_UNIT_MOD
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_unit_change 
+! !IROUTINE: HCO_Unit_Change 
 !
 ! !DESCRIPTION: Subroutine HCO\_UNIT\_CHANGE converts the values of the 
 ! passed array to units of (emitted) kg/m2/s. 
+!\\
+!\\
 ! The mass is in units of kg and refers to mass of emitted species. For
 ! most compounds, this corresponds to the molecular mass of the species,
 ! but e.g. for VOCs this can be mass of carbon instead.
@@ -110,12 +112,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_UNIT_CHANGE( ARRAY,       UNITS, MW_IN, MW_OUT, &
+  SUBROUTINE HCO_Unit_Change( ARRAY,       UNITS, MW_IN, MW_OUT, &
                               MOLEC_RATIO, YYYY,  MM,    IsPerArea, RC )
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,              ONLY : CSTRIP
+    USE CharPak_Mod, ONLY : CStrip
 !
 ! !INPUT PARAMETERS:
 !
@@ -205,14 +207,14 @@ CONTAINS
     ! Leave
     RC = 0 
 
-  END SUBROUTINE HCO_UNIT_CHANGE
+  END SUBROUTINE HCO_Unit_Change
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_unit_getmassscal
+! !IROUTINE: HCO_Unit_GetMassScal
 !
 ! !DESCRIPTION: Returns the mass scale factors for the given unit.
 ! This is the scale factor required to convert from unit 'Unit' to
@@ -221,12 +223,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_UNIT_GetMassScal ( unt, MW_IN, MW_OUT, MOLEC_RATIO ) &
+  FUNCTION HCO_UNIT_GetMassScal( unt, MW_IN, MW_OUT, MOLEC_RATIO ) &
            RESULT ( Scal ) 
 !
 ! !USES:
 !
-    USE HCO_CHARTOOLS_MOD
+    USE HCO_CharTools_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -327,14 +329,14 @@ CONTAINS
        Scal = 1e-3_hp * MOLEC_RATIO * MW_OUT / MW_IN 
     ENDIF
 
-  END FUNCTION HCO_UNIT_GetMassScal
+  END FUNCTION HCO_Unit_GetMassScal
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_unit_gettimescal
+! !IROUTINE: HCO_Unit_GetTimeScal
 !
 ! !DESCRIPTION: Returns the time scale factors for the given unit.
 ! This is the scale factor required to convert from unit 'Unit' to
@@ -343,11 +345,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_UNIT_GetTimeScal( unt, MM, YYYY ) RESULT ( Scal ) 
+  FUNCTION HCO_Unit_GetTimeScal( unt, MM, YYYY ) RESULT ( Scal ) 
 !
 ! !USES:
 !
-    USE HCO_CHARTOOLS_MOD
+    USE HCO_CharTools_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -417,12 +419,12 @@ CONTAINS
     
   END FUNCTION HCO_UNIT_GetTimeScal
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_unit_getareascal
+! !IROUTINE: HCO_Unit_GetAreaScal
 !
 ! !DESCRIPTION: Returns the area/volume scale factors for the given unit.
 ! This is the scale factor required to convert from unit 'Unit' to
@@ -431,11 +433,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_UNIT_GetAreaScal( unt ) RESULT ( Scal ) 
+  FUNCTION HCO_Unit_GetAreaScal( unt ) RESULT ( Scal ) 
 !
 ! !USES:
 !
-    USE HCO_CHARTOOLS_MOD
+    USE HCO_CharTools_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -498,14 +500,14 @@ CONTAINS
        Scal = 1e-3_hp
     ENDIF
 
-  END FUNCTION HCO_UNIT_GetAreaScal
+  END FUNCTION HCO_Unit_GetAreaScal
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_unit_scalcheck 
+! !IROUTINE: HCO_Unit_ScalCheck 
 !
 ! !DESCRIPTION: Check if the provided unit is unitless. Returns
 ! 0 if Unit is unitless, 1 if it's not unitless but in correct
@@ -514,11 +516,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_UNIT_SCALCHECK( Unit ) Result ( Flag ) 
+  FUNCTION HCO_Unit_ScalCheck( Unit ) Result ( Flag ) 
 !
 ! !USES:
 !
-    USE CHARPAK_MOD, ONLY : TRANLC 
+    USE CharPak_Mod, ONLY : TRANLC 
 !
 ! !INPUT PARAMETERS:
 !
@@ -568,6 +570,6 @@ CONTAINS
        Flag = 1
     ENDIF
 
-  END FUNCTION HCO_UNIT_SCALCHECK
+  END FUNCTION HCO_Unit_ScalCheck
 !EOC
-END MODULE HCO_UNIT_MOD
+END MODULE HCO_Unit_Mod

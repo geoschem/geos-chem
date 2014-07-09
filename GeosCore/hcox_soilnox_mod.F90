@@ -3,31 +3,32 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_soilnox_mod
+! !MODULE: hcox_soilnox_mod.F90
 !
-! !DESCRIPTION: Module HCOX\_SOILNOX\_MOD contains routines to 
-!  compute soil NOx emissions. 
+! !DESCRIPTION: Module HCOX\_SoilNOx\_Mod contains routines to compute soil 
+!  NOx emissions.  We follow the implementation in GEOS-Chem by Hudman
+!  et al 2012.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE HCOX_SOILNOX_MOD 
+MODULE HCOX_SoilNOx_Mod 
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_DIAGN_MOD
-  USE HCOX_State_MOD,     ONLY : Ext_State
-  USE HCO_STATE_MOD,      ONLY : HCO_State
+  USE HCO_ERROR_Mod
+  USE HCO_DIAGN_Mod
+  USE HCOX_State_Mod,     ONLY : Ext_State
+  USE HCO_STATE_Mod,      ONLY : HCO_State
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HcoX_SoilNox_Run
-  PUBLIC :: HcoX_SoilNox_Init
-  PUBLIC :: HcoX_SoilNox_Final
+  PUBLIC :: HCOX_SoilNOx_Run
+  PUBLIC :: HCOX_SoilNOx_Init
+  PUBLIC :: HCOX_SoilNOx_Final
 !
 ! !REMARKS:
 ! This is a HEMCO extension module that uses many of the HEMCO core
@@ -257,7 +258,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_soilnox_run 
+! !IROUTINE: HCOX_SoilNOx_Run 
 !
 ! !DESCRIPTION: Subroutine HcoX\_SoilNox\_Run is the driver routine to 
 ! calculate ship NOx emissions for the current time step. Emissions in
@@ -266,12 +267,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_SoilNox_Run ( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_SoilNOx_Run ( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
-    USE HCO_FLUXARR_MOD,    ONLY : HCO_EmisAdd
-    USE HCO_EMISLIST_MOD,   ONLY : EmisList_GetDataArr
+    USE HCO_FLuxArr_Mod,    ONLY : HCO_EmisAdd
+    USE HCO_EmisList_Mod,   ONLY : EmisList_GetDataArr
 !
 ! !INPUT PARAMETERS:
 !
@@ -283,11 +284,9 @@ CONTAINS
 !
     TYPE(HCO_State), POINTER        :: HcoState   ! Output obj
     INTEGER,         INTENT(INOUT)  :: RC 
-
+!
 ! !REVISION HISTORY:
 !  05 Nov 2013 - C. Keller - Initial Version
-!
-! !NOTES: 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,11 +306,11 @@ CONTAINS
     CHARACTER(LEN=255)     :: MSG
 
     !=================================================================
-    ! HCOX_SOILNOX_RUN begins here!
+    ! HCOX_SoilNOx_RUN begins here!
     !=================================================================
 
     ! Enter 
-    CALL HCO_ENTER ( 'HcoX_SoilNox_Run (HcoX_SoilNox_Mod.F90)', RC )
+    CALL HCO_ENTER ( 'HCOX_SoilNox_Run (hcox_soilnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return if extension disabled 
@@ -507,14 +506,14 @@ CONTAINS
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE HcoX_SoilNox_Run
+  END SUBROUTINE HCOX_SoilNox_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_soilnox_init 
+! !IROUTINE: HCOX_SoilNOx_Init 
 !
 ! !DESCRIPTION: Subroutine HcoX\_SoilNox\_Init initializes the HEMCO
 ! SOILNOX extension.
@@ -522,8 +521,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_SoilNox_Init ( am_I_Root, HcoState, ExtName, &
-                                 ExtState,    RC                  )
+  SUBROUTINE HCOX_SoilNOx_Init( am_I_Root, HcoState, ExtName, &
+                                ExtState,    RC                  )
 !
 ! !USES:
 !
@@ -553,7 +552,7 @@ CONTAINS
     INTEGER                        :: nSpc, I, J, II, AS
 
     !=================================================================
-    ! HCOX_SOILNOX_INIT begins here!
+    ! HCOX_SoilNOx_INIT begins here!
     !=================================================================
 
     ! Extension Nr.
@@ -561,7 +560,7 @@ CONTAINS
     IF ( ExtNr <= 0 ) RETURN
 
     ! Enter 
-    CALL HCO_ENTER ( 'HcoX_SoilNox_Init (HcoX_SoilNox_Mod.F90)', RC )
+    CALL HCO_ENTER ( 'HCOX_SoilNOx_Init (hcox_soilnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ---------------------------------------------------------------------- 
@@ -576,7 +575,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
  
     ! Get global scale factor
-    FERT_SCALE = HcoX_SoilNOx_GetFertScale()
+    FERT_SCALE = HCOX_SoilNOx_GetFertScale()
  
     ! Get HEMCO species IDs
     CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
@@ -764,22 +763,22 @@ CONTAINS
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE HcoX_SoilNox_Init
+  END SUBROUTINE HCOX_SoilNOx_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_soilnox_final
+! !IROUTINE: HCOX_SoilNOx_Final
 !
-! !DESCRIPTION: Subroutine HcoX\_SoilNox\_Final finalizes the HEMCO
+! !DESCRIPTION: Subroutine HcoX\_SoilNOx\_Final finalizes the HEMCO
 ! SOILNOX extension.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_SoilNox_Final
+  SUBROUTINE HCOX_SoilNOx_Final()
 !
 ! !REVISION HISTORY:
 !  05 Nov 2013 - C. Keller - Initial Version
@@ -794,7 +793,7 @@ CONTAINS
     INTEGER  :: I
 
     !=================================================================
-    ! HCOX_SOILNOX_FINAL begins here!
+    ! HCOX_SoilNOx_FINAL begins here!
     !=================================================================
 
     ! Deallocate arrays
@@ -819,22 +818,22 @@ CONTAINS
     CLIMNARID => NULL()
     SOILFERT  => NULL()
 
-  END SUBROUTINE HcoX_SoilNox_Final
+  END SUBROUTINE HCOX_SoilNox_Final
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HcoX_SoilNox_GetFertScale
+! !IROUTINE: HCOX_SoilNOx_GetFertScale
 !
-! !DESCRIPTION: Function HCOX\_SOILNOX\_GETFERTSCALE returns the scale factor
+! !DESCRIPTION: Function HCOX\_SoilNOx\_GETFERTSCALE returns the scale factor
 ! applied to fertilizer NOx emissions. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HcoX_SoilNox_GetFertScale RESULT ( FERT_SCALE )
+  FUNCTION HCOX_SoilNOx_GetFertScale RESULT ( FERT_SCALE )
 !
 ! !ARGUMENTS:
 !
@@ -859,22 +858,22 @@ CONTAINS
     ! For now, use this value for all resolutions since regular soil NOx
     ! emissions change with resolution as well (J.D. Maasakkers)
 
-  END FUNCTION HcoX_SoilNox_GetFertScale
+  END FUNCTION HCOX_SoilNOx_GetFertScale
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: soil_nox_emission
+! !IROUTINE: Soil_NOx_Emission
 !
-! !DESCRIPTION: Subroutine SOIL\_NOX\_EMISSION computes the emission of soil and
+! !DESCRIPTION: Subroutine Soil\_NOx\_Emission computes the emission of soil and
 !  fertilizer NOx for the GEOS-Chem model.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SOIL_NOX_EMISSION( ExtState,   TS_EMIS,   I, J, &
+  SUBROUTINE Soil_NOx_Emission( ExtState,   TS_EMIS,   I, J, &
                                 SOILFRT,   &
                                 GWET_PREV_HSN, DRYPERIOD_HSN, &
                                 PFACTOR_HSN,   SOILNOx,   &
@@ -1003,29 +1002,29 @@ CONTAINS
 
     ENDDO
 
-  END SUBROUTINE SOIL_NOX_EMISSION
+  END SUBROUTINE Soil_NOx_Emission
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_canopy_nox
+! !IROUTINE: Get_Canopy_NOx
 !
-! !DESCRIPTION: Subroutine GET\_CANOPY\_NOX computes the bulk surface 
+! !DESCRIPTION: Subroutine Get\_Canopy\_NOx computes the bulk surface 
 !  resistance of the canopy to NOx.  This computation was originally done 
 !  within legacy routine DEPVEL (in "drydep\_mod.f").  Moving this computation 
-!  to GET\_CANOPY\_NOX now allows for a totally clean separation between 
+!  to Get\_Canopy\_NOx now allows for a totally clean separation between 
 !  dry deposition routines and emissions routines in GEOS-Chem.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_CANOPY_NOX( am_I_Root, HcoState, ExtState )
+  SUBROUTINE Get_Canopy_NOx( am_I_Root, HcoState, ExtState )
 !
 ! !USES:
 !
-    USE DRYDEP_TOOLBOX_MOD, ONLY : BIOFIT
+    USE Drydep_Toolbox_Mod, ONLY : BIOFIT
 !
 ! !ARGUMENTS:
 !
@@ -1271,24 +1270,24 @@ CONTAINS
        ENDDO !K
     ENDDO !I
     ENDDO !J
-   ! Return to calling program
-  END SUBROUTINE GET_CANOPY_NOx
+
+  END SUBROUTINE Get_Canopy_NOx
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diffg
+! !IROUTINE: DiffG
 !
-! !DESCRIPTION: Function DIFFG calculates the molecular diffusivity [m2/s] in 
+! !DESCRIPTION: Function DiffG calculates the molecular diffusivity [m2/s] in 
 !  air for a gas X of molecular weight XM [kg] at temperature TK [K] and 
 !  pressure PRESS [Pa].
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION DIFFG( TK, PRESS, XM ) RESULT( DIFF_G )
+  FUNCTION DiffG( TK, PRESS, XM ) RESULT( DIFF_G )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1350,23 +1349,22 @@ CONTAINS
     ! eq. 8.9 of Seinfeld [1986]
     DIFF_G = ( 3d0 * PI / 32d0 ) * ( 1d0 + Z ) * FRPATH * SPEED
 
-    ! Return to calling program
-  END FUNCTION DIFFG
+  END FUNCTION DiffG
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: get_dep_N
+! !IROUTINE: Get_Dep_N
 !
 ! !DESCRIPTION: Subroutine GET\_DEP\_N sums dry and wet deposition since prev.
-!               timestep and calculates contribution to fertilizer N source.
+!  timestep and calculates contribution to fertilizer N source.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_DEP_N ( I, J, ExtState, HcoState, DEP_FERT )
+  SUBROUTINE Get_Dep_N( I, J, ExtState, HcoState, DEP_FERT )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1432,14 +1430,14 @@ CONTAINS
     ! 40% runoff. Convert ngN/m2 to kgNO/m2
     DEP_FERT = DEP_RESERVOIR_HSN(I,J) * 0.6d0 / kgNO_to_ngN 
 
-  END SUBROUTINE  GET_DEP_N
+  END SUBROUTINE Get_Dep_N
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: source_dryN
+! !IROUTINE: Source_DryN
 !
 ! !DESCRIPTION: Subroutine SOURCE\_DRYN gets dry deposited Nitrogen since
 !               last emission time step, converts to ng N/m2/s.
@@ -1447,18 +1445,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION SOURCE_DRYN( I, J, ExtState, HcoState ) RESULT( DRYN )
+  FUNCTION Source_Dryn( I, J, ExtState, HcoState ) RESULT( DRYN )
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER, INTENT(IN)             :: I           
-    INTEGER, INTENT(IN)             :: J           
-    TYPE(Ext_State), POINTER        :: ExtState    ! Module options
-    TYPE(HCO_State), POINTER        :: HcoState   ! Output obj
+    INTEGER,         INTENT(IN) :: I           
+    INTEGER,         INTENT(IN) :: J           
+    TYPE(Ext_State), POINTER    :: ExtState   ! Module options
+    TYPE(HCO_State), POINTER    :: HcoState   ! Output obj
 !
 ! !RETURN VALUE:
 !
-    REAL*8               :: DRYN         !Dry dep. N since prev timestep
+    REAL*8                      :: DRYN       ! Dry dep. N since prev timestep
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -1480,33 +1478,33 @@ CONTAINS
     DRYN = ExtState%DRY_TOTN%Arr%Val(I,J) * CM2_PER_M2 / NTS / &
            HcoState%Phys%Avgdr * HcoState%Spc(IDTNO)%MW_g / 1000.0d0
 
-  END FUNCTION SOURCE_DRYN
-
+  END FUNCTION Source_DryN
+!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: source_wetN
+! !IROUTINE: Source_WetN
 !
-! !DESCRIPTION: Subroutine SOURCE\_WETN gets wet deposited Nitrogen since
-!               last emission time step, converts to ng N/m2/s.
+! !DESCRIPTION: Subroutine Source\_WetN gets wet deposited Nitrogen since
+!  last emission time step, converts to ng N/m2/s.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION SOURCE_WETN( I, J, ExtState, HcoState ) RESULT(WETN )
+  FUNCTION Source_WetN( I, J, ExtState, HcoState ) RESULT(WETN )
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER, INTENT(IN)             :: I           
-    INTEGER, INTENT(IN)             :: J           
-    TYPE(Ext_State), POINTER        :: ExtState    ! Module options
-    TYPE(HCO_State), POINTER        :: HcoState   ! Output obj
+    INTEGER,         INTENT(IN) :: I           
+    INTEGER,         INTENT(IN) :: J           
+    TYPE(Ext_State), POINTER    :: ExtState   ! Module options
+    TYPE(HCO_State), POINTER    :: HcoState   ! Output obj
 !
 ! !RETURN VALUE:
 !
-    REAL*8               :: WETN         !Dry dep. N since prev timestep
+    REAL*8                      :: WETN       ! Dry dep. N since prev timestep
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -1528,22 +1526,22 @@ CONTAINS
     ! Total N wet dep
     WETN = ExtState%WET_TOTN%Arr%Val(I,J) / AREA_M2 / NTS
 
-  END FUNCTION SOURCE_WETN
+  END FUNCTION Source_WetN
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: soiltemp
+! !IROUTINE: SoilTemp
 !
-! !DESCRIPTION: Function SOILTEMP computes the temperature-dependent term
+! !DESCRIPTION: Function SoilTemp computes the temperature-dependent term
 !  of the soil NOx emissions in ng N/m2/s and converts to molec/cm2/s
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION SOILTEMP( NN, TC, GWET ) RESULT( SOIL_TEMP )
+  FUNCTION SoilTemp( NN, TC, GWET ) RESULT( SOIL_TEMP )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1640,22 +1638,22 @@ CONTAINS
 
     ENDIF
  
-  END FUNCTION SOILTEMP
+  END FUNCTION SoilTemp
 !EOC
 !----------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: soilwet
+! !IROUTINE: SoilWet
 !
-! !DESCRIPTION: Function SOILWET returns the soil moisture scaling 
+! !DESCRIPTION: Function SoilWet returns the soil moisture scaling 
 !  of soil NOx emissions (values from 0-1). 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION SOILWET( GWET , ARID, NONARID ) RESULT( WETSCALE )
+  FUNCTION SoilWet( GWET , ARID, NONARID ) RESULT( WETSCALE )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1741,14 +1739,14 @@ CONTAINS
        WETSCALE = 5.5 * GWET * EXP( -5.55 * GWET * GWET) 
     ENDIF
 
-  END FUNCTION SOILWET
+  END FUNCTION SoilWet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: soilcrf
+! !IROUTINE: SoilCrf
 !
 ! !DESCRIPTION: Computes the canopy reduction factor for the soil NOx
 !  emissions according to Jacob \% Bakwin [1991] (and as used in Wang 
@@ -1757,7 +1755,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !	
-  FUNCTION SOILCRF( K, LAI, CPYNOX, WINDSQR, SUNCOS ) RESULT( SOIL_CRF )
+  FUNCTION SoilCrf( K, LAI, CPYNOX, WINDSQR, SUNCOS ) RESULT( SOIL_CRF )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1819,21 +1817,21 @@ CONTAINS
 
     ENDIF
 
-  END FUNCTION SOILCRF
+  END FUNCTION SoilCrf
 !EOC
 !-----------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: fertadd
+! !IROUTINE: FertAdd
 !
-! !DESCRIPTION: Function FERTADD computes fertilizer emissions
+! !DESCRIPTION: Function FertAdd computes fertilizer emissions
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION FERTADD( SOILFRT, DEPN) RESULT( FERT_ADD )
+  FUNCTION FertAdd( SOILFRT, DEPN) RESULT( FERT_ADD )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1910,9 +1908,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: pulsing
+! !IROUTINE: Pulsing
 !
-! !DESCRIPTION: Function PULSING calculates the increase (or "pulse") of 
+! !DESCRIPTION: Function Pulsing calculates the increase (or "pulse") of 
 !  soil NOx emission that happens after preciptiation falls on dry soil.  
 !                                                                             .
 !  According to  Yan et al., [2005] , this pulsing process is thought to  
@@ -1924,7 +1922,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION PULSING( GWET,          TS_EMIS,                     & 
+  FUNCTION Pulsing( GWET,          TS_EMIS,                     & 
                     GWET_PREV_HSN, PFACTOR_HSN, DRYPERIOD_HSN ) &
                     RESULT( THE_PULSING )
 !
@@ -2034,7 +2032,7 @@ CONTAINS
     ! Return the pulsing factor
     THE_PULSING = PFACTOR_HSN
 
-  END FUNCTION PULSING
+  END FUNCTION Pulsing
 !EOC
-END MODULE HCOX_SOILNOX_MOD
+END MODULE HCOX_SoilNOx_Mod
 !EOM

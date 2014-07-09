@@ -3,30 +3,28 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_dataread_mod.F90 
+! !MODULE: hcoi_dataread_mod.F90 
 !
-! !DESCRIPTION: Module HCO\_DATAREAD\_MOD controls data processing (file
+! !DESCRIPTION: Module HCOI\_DataRead\_Mod controls data processing (file
 ! reading, unit conversion, regridding) for HEMCO.
 !\\
 !\\
 ! !INTERFACE: 
 !
-MODULE HCOI_DATAREAD_MOD
+MODULE HCOI_DataRead_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_STATE_MOD,       ONLY : Hco_State
-  USE HCO_DATACONT_MOD,    ONLY : ListCont
+  USE HCO_Error_Mod
+  USE HCO_State_Mod,       ONLY : Hco_State
+  USE HCO_DataCont_Mod,    ONLY : ListCont
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: HCOI_DATAREAD
-!
-! !MODULE INTERFACES:
+  PUBLIC  :: HCOI_DataRead
 !
 ! !REVISION HISTORY:
 !  22 Aug 2013 - C. Keller   - Initial version
@@ -43,7 +41,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcoi_dataread 
+! !IROUTINE: HCOI_DataRead (ESMF/MAPL version)
 !
 ! !DESCRIPTION: Interface routine between ESMF and HEMCO to obtain
 ! the data array for a given HEMCO data container. 
@@ -56,14 +54,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
   !
-  SUBROUTINE HCOI_DATAREAD ( am_I_Root, HcoState, Lct, RC ) 
+  SUBROUTINE HCOI_DataRead( am_I_Root, HcoState, Lct, RC ) 
 !
 ! !USES:
 !
-    USE HCO_FILEDATA_MOD, ONLY : FileData_ArrCheck2D
-    USE HCO_FILEDATA_MOD, ONLY : FileData_ArrCheck3D
-    USE ESMF_MOD
-    USE MAPL_MOD
+    USE HCO_FileData_mod, ONLY : FileData_ArrCheck2D
+    USE HCO_FileData_mod, ONLY : FileData_ArrCheck3D
+    USE ESMF_mod
+    USE MAPL_mod
+
 # include "MAPL_Generic.h"
 !
 ! !INPUT PARAMETERS:
@@ -97,7 +96,7 @@ CONTAINS
     !=================================================================
 
     ! For error handling
-    LOC = 'HCOI_DATAREAD (HCOI_DATAREAD_MOD.F90)'
+    LOC = 'HCOI_DATAREAD (hcoi_dataread_mod.F90)'
     CALL HCO_ENTER ( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -173,7 +172,7 @@ CONTAINS
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
 
-  END SUBROUTINE HCOI_DATAREAD
+  END SUBROUTINE HCOI_DataRead
 !EOC
 #else
 !------------------------------------------------------------------------------
@@ -181,7 +180,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcoi_dataread 
+! !IROUTINE: HCOI_DataRead
 !
 ! !DESCRIPTION: Reads a netCDF file and returns the regridded array in proper
 ! units. This routine uses the HEMCO generic data reading and regridding
@@ -190,28 +189,31 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_DATAREAD ( am_I_Root, HcoState, Lct, RC ) 
+  SUBROUTINE HCOI_DataRead( am_I_Root, HcoState, Lct, RC ) 
 !
 ! !USES:
 !
-    USE NCDF_MOD,           ONLY : NC_OPEN,        NC_CLOSE
-    USE NCDF_MOD,           ONLY : NC_READ_VAR,    NC_READ_ARR
-    USE NCDF_MOD,           ONLY : NC_READ_GRID
-    USE HCO_UNIT_MOD,       ONLY : HCO_UNIT_CHANGE, HCO_UNIT_SCALCHECK
-    USE REGRID_A2A_MOD,     ONLY : MAP_A2A
-    USE HCO_FILEDATA_MOD,   ONLY : FileData_ArrCheck2D
-    USE HCO_FILEDATA_MOD,   ONLY : FileData_ArrCheck3D
-    USE HCO_FILEDATA_MOD,   ONLY : FileData_Cleanup
+    USE Ncdf_Mod,           ONLY : NC_Open
+    USE Ncdf_Mod,           ONLY : NC_Close
+    USE Ncdf_Mod,           ONLY : NC_Read_Var
+    USE Ncdf_Mod,           ONLY : NC_Read_Arr
+    USE Ncdf_Mod,           ONLY : NC_Read_Grid
+    USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
+    USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
+    USE Regrid_A2A_Mod,     ONLY : MAP_A2A
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck2D
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck3D
+    USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
-    TYPE(HCO_State),  POINTER        :: HcoState
-    TYPE(ListCont),   POINTER        :: Lct
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
+    TYPE(ListCont),   POINTER        :: Lct        ! HEMCO list container
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: RC
+    INTEGER,          INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
@@ -245,7 +247,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ('HCOI_DATAREAD (HCOI_DATAREAD_MOD.F90)' , RC )
+    CALL HCO_ENTER ('HCOI_DATAREAD (hcoi_dataread_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
       
     ! Check for verbose mode and if scale factors have to be in scale
@@ -531,34 +533,36 @@ CONTAINS
     ! Return w/ success
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE HCOI_DATAREAD
+  END SUBROUTINE HCOI_DataRead
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_timeidx
+! !IROUTINE: Get_TimeIdx
 !
 ! !DESCRIPTION: Returns the lower and upper time slice index (tidx1
 ! and tidx2, respectively) to be read. These values are determined 
 ! based upon the time slice information extracted from the netCDF file, 
 ! the time stamp settings set in the config. file, and the current 
 ! simulation date.
+!\\
+!\\
 ! Also return the time slice year and month, as these values may be
 ! used for unit conversion! 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_TIMEIDX ( am_I_Root, HcoState, Lct,     &
-                           ncLun,     tidx1,    tidx2,   &
-                           ncYr,      ncMt,     RC        )
+  SUBROUTINE Get_TimeIdx( am_I_Root, HcoState, Lct,     &
+                          ncLun,     tidx1,    tidx2,   &
+                          ncYr,      ncMt,     RC        )
 !
 ! !USES:
 !
-    USE NCDF_MOD,     ONLY : NC_READ_TIME_YYYYMMDDhh
-    USE HCO_TIDX_MOD, ONLY : HCO_GetPrefTimeAttr
+    USE Ncdf_Mod,     ONLY : NC_Read_Time_YYYYMMDDhh
+    USE HCO_tIdx_Mod, ONLY : HCO_GetPrefTimeAttr
 !
 ! !INPUT PARAMETERS:
 !
@@ -600,7 +604,7 @@ CONTAINS
     !=================================================================
 
     ! Init 
-    CALL HCO_ENTER ('GET_TIMEIDX (HCO_DATAREAD_MOD.F90)', RC )
+    CALL HCO_ENTER ('GET_TIMEIDX (hco_dataread_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     verb = HCO_VERBOSE_CHECK() 
  
@@ -809,14 +813,14 @@ CONTAINS
     ! Return w/ success
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE GET_TIMEIDX
+  END SUBROUTINE Get_TimeIdx
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Check_availYMDh  
+! !IROUTINE: Check_AvailYMDh  
 !
 ! !DESCRIPTION: Checks if prefYMDh is within the range of availYMDh
 ! and returns the location of the closest vector element that is in
@@ -825,7 +829,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_availYMDh( Lct, N, availYMDh, prefYMDh, tidx1 )
+  SUBROUTINE Check_AvailYMDh( Lct, N, availYMDh, prefYMDh, tidx1 )
 !
 ! !INPUT PARAMETERS:
 !
@@ -874,7 +878,7 @@ CONTAINS
        ENDIF
     ENDDO
 
-  END SUBROUTINE Check_availYMDh
+  END SUBROUTINE Check_AvailYMDh
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -889,7 +893,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE prefYMDh_adjustYear( N, availYMDh, prefYMDh ) 
+  SUBROUTINE PrefYMDh_AdjustYear( N, availYMDh, prefYMDh ) 
 !
 ! !INPUT PARAMETERS:
 !
@@ -928,14 +932,14 @@ CONTAINS
     ! Update prefYMDh
     prefYMDh = newYear*1000000 + prefMDh 
 
-  END SUBROUTINE prefYMDh_adjustYear
+  END SUBROUTINE PrefYMDh_AdjustYear
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_tidx2 
+! !IROUTINE: Set_tIdx2 
 !
 ! !DESCRIPTION: sets the upper time slice index by selecting the range
 ! of all elements in availYMDh with the same date (year,month,day) as
@@ -944,17 +948,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_TIDX2( N, availYMDh, tidx1, tidx2 ) 
+  SUBROUTINE Set_tIdx2( N, availYMDh, tidx1, tidx2 ) 
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)     :: N
-    INTEGER, INTENT(IN)     :: availYMDh(N)
-    INTEGER, INTENT(IN)     :: tidx1 
+    INTEGER, INTENT(IN)  :: N
+    INTEGER, INTENT(IN)  :: availYMDh(N)
+    INTEGER, INTENT(IN)  :: tidx1 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(  OUT)  :: tidx2 
+    INTEGER, INTENT(OUT) :: tidx2 
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
@@ -990,30 +994,30 @@ CONTAINS
        ENDIF
     ENDDO
 
-  END SUBROUTINE SET_TIDX2
+  END SUBROUTINE Set_tIdx2
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: normalize_area 
+! !IROUTINE: Normalize_Area 
 !
-! !DESCRIPTION: Subroutine NORMALIZE\_AREA normalizes the given array
+! !DESCRIPTION: Subroutine Normalize\_Area normalizes the given array
 ! by the surface area calculated from the given netCDF file. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NORMALIZE_AREA( HcoState, Array, ncFile, RC ) 
+  SUBROUTINE Normalize_Area( HcoState, Array, ncFile, RC ) 
 !
 ! !USES:
 !
-    USE NCDF_MOD, ONLY : NC_READ_GRID
+    USE Ncdf_Mod, ONLY : NC_Read_Grid
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER         :: HcoState
+    TYPE(HCO_State),  POINTER         :: HcoState       ! HEMCO state object
     CHARACTER(LEN=*), INTENT(IN   )   :: ncFile         ! netCDF file
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1039,7 +1043,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    LOC = 'NORMALIZE_AREA ( HCOI_DATAREAD_MOD.F90 )'
+    LOC = 'NORMALIZE_AREA (hcoi_dataread_mod.F90 )'
 
     ! Get array grid dimensions
     NLON = SIZE(ARRAY,1)
@@ -1077,7 +1081,7 @@ CONTAINS
     ! Deallocate arrays
     DEALLOCATE ( XEDGE, YSIN )
 
-  END SUBROUTINE NORMALIZE_AREA
+  END SUBROUTINE Normalize_Area
 !EOC
 #endif
-END MODULE HCOI_DATAREAD_MOD
+END MODULE HCOI_DataRead_Mod

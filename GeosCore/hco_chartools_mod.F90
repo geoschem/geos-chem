@@ -1,19 +1,20 @@
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
+!!BOP
 !
-! !MODULE: hco_chartools_mod 
+! !MODULE: hco_chartools_mod.F90
 !
-! !DESCRIPTION: Module HCO\_CHARTOOLS\_MOD contains a collection of 
+! !DESCRIPTION: Module HCO\_CharTools\_Mod contains a collection of 
 ! helper routines to handle character strings.  
 ! \\
 ! !INTERFACE: 
 !
-MODULE HCO_CHARTOOLS_MOD
+MODULE HCO_CharTools_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
+  USE HCO_Error_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -47,7 +48,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_charsplit_r8
+! !IROUTINE: HCO_CharSplit_R8
 !
 ! !DESCRIPTION: Subroutine HCO\_CharSplit\_R8 splits the passed character
 ! string into N real8 values, using character SEP as separator. Wildcard
@@ -59,7 +60,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,  ONLY : STRSPLIT
+    USE CharPak_Mod,  ONLY : StrSplit
 !
 ! !INPUT PARAMETERS: 
 !
@@ -143,7 +144,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD, ONLY : STRSPLIT
+    USE CharPak_Mod,  ONLY : StrSplit
 !
 ! !INPUT PARAMETERS: 
 !
@@ -214,7 +215,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_charsplit_int 
+! !IROUTINE: HCO_CharSplit_Int 
 !
 ! !DESCRIPTION: Subroutine HCO\_CharSplit\_Int splits the passed character
 ! string into N integers, using character SEP as separator. Wildcard
@@ -226,7 +227,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD, ONLY : STRSPLIT
+    USE CharPak_Mod, ONLY : StrSplit
 !
 ! !INPUT PARAMETERS: 
 !
@@ -297,7 +298,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_charmatch
+! !IROUTINE: HCO_CharMatch
 !
 ! !DESCRIPTION: Subroutine HCO\_CharMatch returns the index of each 
 ! vector element of vec1 in vec2. nnmatch denotes the number of
@@ -389,4 +390,4 @@ CONTAINS
 
   END FUNCTION IsInWord
 !EOC
-END MODULE HCO_CHARTOOLS_MOD
+END MODULE HCO_CharTools_Mod

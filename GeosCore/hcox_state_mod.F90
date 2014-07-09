@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_state_mod
+! !MODULE: hcox_state_mod.F90
 !
-! !DESCRIPTION: Module HCOX\_STATE\_MOD contains routines and variables
+! !DESCRIPTION: Module HCOX\_State\_Mod contains routines and variables
 ! to organize the extensions state type ExtState. ExtState contains the
 ! logical switches for each extension (denoting whether or not it is 
 ! enabled) as well as pointers to all met fields used by the extensions. 

@@ -141,6 +141,8 @@
 #  19 Mar 2014 - R. Yantosca - Restore GTMM compilation funcitonality
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  20 Mar 2014 - R. Yantosca - Bug fix: "+= -DDEBUG" instead of ":= -DDEBUG"
+#  09 Jul 2014 - R. Yantosca - Now don't require MET or GRID if target is
+#                              srcdoc, utildoc, gtmmdoc, makedoc, or hemcodoc
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -270,7 +272,7 @@ endif
 # to compile with "clean", "distclean", "realclean", "doc", "help",
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of MET.
 ifndef MET
-REGEXP         :=($clean|^doc|^help|^libnc|^ncdfcheck)
+REGEXP         :=($clean|^doc|^srcdoc|^utildoc|^gtmmdoc|^makedoc|^hemcodoc|^help|^libnc|^ncdfcheck)
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ $(REGEXP) ]] && echo true),true)
 NO_MET_NEEDED  :=1
 else
@@ -339,7 +341,7 @@ endif  # NO_MET_NEEDED
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
 ifndef NO_GRID_NEEDED
 ifndef GRID
-REGEXP         :=($clean|^doc|^help|^libnc|^ncdfcheck)
+REGEXP         :=($clean|^doc|^srcdoc|^utildoc|^gtmmdoc|^makedoc|^hemcodoc|^help|^libnc|^ncdfcheck)
 ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
 NO_GRID_NEEDED :=1
 else

@@ -10,23 +10,23 @@
 !\\
 ! !INTERFACE:
 !
-MODULE HCOX_CUSTOM_MOD 
+MODULE HCOX_Custom_Mod 
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_DIAGN_MOD
-  USE HCOX_State_MOD,     ONLY : Ext_State
-  USE HCO_STATE_MOD,      ONLY : HCO_State 
+  USE HCO_Error_MOD
+  USE HCO_Diagn_MOD
+  USE HCOX_State_MOD, ONLY : Ext_State
+  USE HCO_State_MOD,  ONLY : HCO_State 
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HcoX_Custom_Run
-  PUBLIC :: HcoX_Custom_Init
-  PUBLIC :: HcoX_Custom_Final
+  PUBLIC :: HCOX_Custom_Run
+  PUBLIC :: HCOX_Custom_Init
+  PUBLIC :: HCOX_Custom_Final
 !
 ! !REVISION HISTORY:
 !  13 Dec 2013 - C. Keller   - Initial version 
@@ -53,30 +53,30 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_custom_run 
+! !IROUTINE: HCOX_Custom_Run
 !
-! !DESCRIPTION: Subroutine HcoX\_Custom\_Run is the driver routine 
+! !DESCRIPTION: Subroutine HCOX\_Custom\_Run is the driver routine 
 ! for the customizable HEMCO extension. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_Custom_Run ( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_Custom_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
-    USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd
-    USE HCO_GEOTOOLS_MOD,  ONLY : HCO_LANDTYPE
+    USE HCO_FluxArr_Mod,  ONLY : HCO_EmisAdd
+    USE HCO_GeoTools_Mod, ONLY : HCO_LANDTYPE
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Are we on the root CPU?
-    TYPE(Ext_State), POINTER        :: ExtState    ! Module options
+    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    TYPE(Ext_State), POINTER       :: ExtState    ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State), POINTER        :: HcoState    ! Hemco state 
-    INTEGER,         INTENT(INOUT)  :: RC          ! Success or failure
+    TYPE(HCO_State), POINTER       :: HcoState    ! Hemco state 
+    INTEGER,         INTENT(INOUT) :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  
@@ -109,7 +109,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'HCOX_CUSTOM_RUN (HCOX_CUSTOM_MOD.F90)', RC )
+    CALL HCO_ENTER ( 'HCOX_Custom_Run (hcox_custom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set error flag
@@ -142,12 +142,6 @@ CONTAINS
 
        ! Check surface type
        ! Ocean:
-!---------------------------------------------------------------------------
-! Prior to 6/5/14:
-! Now test against a variable held !$OMP+PRIVATE (bmy, 6/5/14)
-!       IF ( HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J), &
-!                            ExtState%ALBD%Arr%Val(I,J) ) == 0 ) THEN
-!---------------------------------------------------------------------------
        IF ( LANDTYPE == 0 ) THEN
 
           ! 10m wind speed [m/s]
@@ -159,12 +153,6 @@ CONTAINS
           FLUXWIND(I,J) = W10M * SCALWIND
 
          ! Ice:         
-!---------------------------------------------------------------------------
-! Prior to 6/5/14:
-! Now test against a variable held !$OMP+PRIVATE (bmy, 6/5/14)
-!       ELSEIF ( HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J), &
-!                            ExtState%ALBD%Arr%Val(I,J) ) == 2 ) THEN
-!---------------------------------------------------------------------------
        ELSE IF ( LANDTYPE == 2 ) THEN
 
           ! Set uniform flux
@@ -220,23 +208,23 @@ CONTAINS
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
 
-  END SUBROUTINE HcoX_Custom_Run
+  END SUBROUTINE HCOX_Custom_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_custom_init 
+! !IROUTINE: HCOX_Custom_Init
 !
-! !DESCRIPTION: Subroutine HcoX\_Custom\_Init initializes the HEMCO
+! !DESCRIPTION: Subroutine HCOX\_Custom\_Init initializes the HEMCO
 ! CUSTOM extension.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_Custom_Init ( am_I_Root, HcoState, ExtName, &
-                                ExtState,  RC                  )
+  SUBROUTINE HCOX_Custom_Init( am_I_Root, HcoState, ExtName, &
+                               ExtState,  RC                  )
 !
 ! !USES:
 !
@@ -244,14 +232,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
-    CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
-    TYPE(Ext_State),  POINTER        :: ExtState   ! Module options      
+    LOGICAL,          INTENT(IN   ) :: am_I_Root
+    CHARACTER(LEN=*), INTENT(IN   ) :: ExtName    ! Extension name
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER        :: HcoState   ! Hemco state 
-    INTEGER,          INTENT(INOUT)  :: RC 
+    TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state 
+    INTEGER,          INTENT(INOUT) :: RC 
 
 ! !REVISION HISTORY:
 !  13 Dec 2013 - C. Keller   - Now a HEMCO extension
@@ -278,7 +266,7 @@ CONTAINS
     IF ( ExtNr <= 0 ) RETURN
 
     ! Enter
-    CALL HCO_ENTER ( 'HCOX_CUSTOM_INIT (HCOX_CUSTOM_MOD.F90)', RC )
+    CALL HCO_ENTER ( 'HCOX_Custom_Init (hcox_custom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
@@ -341,22 +329,22 @@ CONTAINS
 
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE HcoX_Custom_Init
+  END SUBROUTINE HCOX_Custom_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_custom_final
+! !IROUTINE: HCOX_Custom_Final
 !
-! !DESCRIPTION: Subroutine HcoX\_Custom\_Final finalizes the HEMCO
+! !DESCRIPTION: Subroutine HCOX\_Custom\_Final finalizes the HEMCO
 ! CUSTOM extension.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_Custom_Final
+  SUBROUTINE HCOX_Custom_Final
 !
 ! !REVISION HISTORY:
 !  13 Dec 2013 - C. Keller   - Now a HEMCO extension
@@ -375,6 +363,6 @@ CONTAINS
     IF ( ALLOCATED(FLUXICE  ) ) DEALLOCATE ( FLUXICE   )
     IF ( ALLOCATED(FLUXWIND ) ) DEALLOCATE ( FLUXWIND  )
 
-  END SUBROUTINE HcoX_Custom_Final
+  END SUBROUTINE HCOX_Custom_Final
 !EOC
-END MODULE HCOX_CUSTOM_MOD
+END MODULE HCOX_Custom_Mod

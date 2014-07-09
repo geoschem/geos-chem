@@ -356,7 +356,7 @@
 ! !IROUTINE: calc_sumcosza
 !
 ! !DESCRIPTION:
-!  Subroutine CALC_SUMCOSZA computes the sum of cosine of the solar zenith
+!  Subroutine CALC\_SUMCOSZA computes the sum of cosine of the solar zenith
 !  angle over a 24 hour day, as well as the total length of daylight. 
 !\\
 !\\

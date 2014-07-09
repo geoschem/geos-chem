@@ -1,11 +1,11 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_emislist_mod 
+! !MODULE: hco_emislist_mod.F90
 !
-! !DESCRIPTION: Module HCO\_EMISLIST\_MOD contains routines and variables
+! !DESCRIPTION: Module HCO\_EmisList\_Mod contains routines and variables
 ! for the HEMCO emissions list EmisList. EmisList is a sorted collection
 ! of all data containers needed for emission calculation. The containers
 ! are sorted by data type, species, emission category, and emission
@@ -62,7 +62,7 @@ MODULE HCO_EMISLIST_MOD
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -113,7 +113,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ('EmisList_Add (HCO_EMISLL_MOD.F90)', RC )
+    CALL HCO_ENTER ('EmisList_Add (hco_emisslist_mod.F90)', RC )
     IF(RC /= HCO_SUCCESS) RETURN
 
     ! Set verbose flag
@@ -170,7 +170,7 @@ CONTAINS
   END SUBROUTINE EmisList_Add
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -336,7 +336,7 @@ CONTAINS
   END SUBROUTINE Add2EmisList
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -376,7 +376,7 @@ CONTAINS
   END SUBROUTINE EmisList_Cleanup
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -454,7 +454,7 @@ CONTAINS
   END SUBROUTINE EmisList_Update
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -689,11 +689,11 @@ CONTAINS
   END SUBROUTINE EmisList_Pass
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: emislist_getDataArr_3D 
+! !IROUTINE: EmisList_GetDataArr_3D 
 !
 ! !DESCRIPTION: Subroutine EMISLIST\_GetDataArr\_3D returns the 3D data 
 ! array Arr3D of EmisList that is associated with data container DctName. 
@@ -742,7 +742,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    LOC = 'EmisList_GetDataArr_3D (HCO_EMISLIST_MOD.F90)'
+    LOC = 'EmisList_GetDataArr_3D (hco_emislist_mod.F90)'
 
     ! Define time index to use
     IF ( PRESENT(TIDX) ) THEN
@@ -789,11 +789,11 @@ CONTAINS
   END SUBROUTINE EmisList_GetDataArr_3D
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: emislist_getDataArr_2D 
+! !IROUTINE: EmisList_GetDataArr_2D 
 !
 ! !DESCRIPTION: Subroutine EmisList\_GetDataArr\_2D returns the 2D data 
 ! array Arr2D of EmisList that is associated with data container DctName. 
@@ -842,7 +842,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    LOC = 'EmisList_GetDataArr_2D (HCO_EMISLIST_MOD.F90)'
+    LOC = 'EmisList_GetDataArr_2D (hco_emislist_mod.F90)'
 
     ! Define time index to use
     IF ( PRESENT(TIDX) )THEN
@@ -890,9 +890,11 @@ CONTAINS
   END SUBROUTINE EmisList_GetDataArr_2D
 !EOC
 !------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: emislist_nextcont
+! !IROUTINE: EmisList_NextCont
 !
 ! !DESCRIPTION: Subroutine EmisList\_NextCont is a simple wrapper routine 
 ! to get the next/first pointer of the ConfigList. See ListCont\_NextCont 

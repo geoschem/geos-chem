@@ -3,17 +3,20 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_filedata_mod 
+! !MODULE: hco_filedata_mod.F90
 !
-! !DESCRIPTION: Module HCO\_FILEDATA\_MOD contains routines and 
+! !DESCRIPTION: Module HCO\_Filedata\_Mod contains routines and 
 ! variables to handle the HEMCO file data object FileData.
 ! FileData holds all information of source file data, such as file 
 ! name, update frequency, temporal resolution, the data array itself, 
 ! etc. These values are specified in the HEMCO configuration file. Many
 ! of these attributes are primarily used for reading/updating the data
 ! from file using the HEMCO generic file reading routines. Within an
-! ESMF environment, these attributes may be obsolete.\\ 
+! ESMF environment, these attributes may be obsolete.
+!\\
+!\\ 
 ! FileData consists of the following elements:
+!
 ! \begin{itemize}
 ! \item ncFile: path and filename to the source file, as specified in
 !       the configuration file.
@@ -63,7 +66,7 @@
 !
 ! !INTERFACE: 
 !
-MODULE HCO_FILEDATA_MOD 
+MODULE HCO_FileData_Mod 
 !
 ! !USES:
 !
@@ -90,9 +93,11 @@ MODULE HCO_FILEDATA_MOD
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PUBLIC TYPES:
+! !PRIVATE TYPES:
 !
-  ! Derived type for data from file
+  !-------------------------------------------------------------------------
+  ! FileData: Derived type definition for HEMCO filetype object
+  !-------------------------------------------------------------------------
   TYPE, PUBLIC :: FileData
      CHARACTER(LEN=255)          :: ncFile    ! file path+name
      CHARACTER(LEN= 31)          :: ncPara    ! file parameter
@@ -113,8 +118,10 @@ MODULE HCO_FILEDATA_MOD
      LOGICAL                     :: DoShare   ! shared object?
   END TYPE FileData
 
-  ! TimeIdx contains the pointers to the current time slices indeces.
-  ! Used by module HCO_TIDX_MOD.F90
+  !-------------------------------------------------------------------------
+  ! TimeIdx: Derived type definition for the object that points to the 
+  ! current time slices of data within a file.  Used by hco_tidx_mod.F90.
+  !-------------------------------------------------------------------------
   TYPE, PUBLIC :: TimeIdx
      INTEGER                     :: TypeID
      CHARACTER(LEN=31)           :: TempRes
@@ -442,7 +449,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_TOOLS_MOD,   ONLY : HCO_CharSplit
+    USE HCO_Tools_Mod,   ONLY : HCO_CharSplit
 !
 ! !INPUT PARAMETERS:
 !
@@ -475,7 +482,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    LOC = 'FileData_FileRead (HCO_FILEDATA_MOD.F90)'
+    LOC = 'FileData_FileRead (hco_filedata_mod.F90)'
     Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
 
     ! Don't read twice. Data file objects can belong to multiple 
@@ -547,4 +554,4 @@ CONTAINS
 
   END SUBROUTINE FileData_FileRead
 !EOC
-END MODULE HCO_FILEDATA_MOD
+END MODULE HCO_FileData_Mod

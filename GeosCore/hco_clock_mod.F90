@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_clock_mod 
+! !MODULE: hco_clock_mod.F90
 !
-! !DESCRIPTION: Module HCO\_CLOCK\_MOD contains routines and variables
+! !DESCRIPTION: Module HCO\_Clock\_Mod contains routines and variables
 ! to handle the HEMCO time and calendar settings through the HEMCO clock
 ! object. The HEMCO clock carries information of the current UTC/local
 ! time as well as the UTC times from the previous time step. These 
@@ -20,12 +20,12 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE HCO_CLOCK_MOD
+MODULE HCO_Clock_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE JULDAY_MOD
+  USE HCO_Error_Mod
+  USE Julday_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -68,7 +68,9 @@ MODULE HCO_CLOCK_MOD
 !
 ! !PRIVATE TYPES:
 !
-  ! HEMCO time clock object.
+  !-------------------------------------------------------------------------
+  ! HCO_Clock: Derived type definition for the HEMCO clock object
+  !-------------------------------------------------------------------------
   TYPE HCO_Clock
 
      ! Current emission time stamp (UTC)
@@ -887,9 +889,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_localtime 
+! !IROUTINE: Set_LocaTtime 
 !
-! !DESCRIPTION: Subroutine SET\_LOCALTIME sets the local time vectors in 
+! !DESCRIPTION: Subroutine Set\_LocalTime sets the local time vectors in 
 ! the HEMCO clock object. 
 !\\
 !\\

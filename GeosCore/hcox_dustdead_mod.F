@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_dust_dead_mod
+! !MODULE: hcox_dust_dead_mod.F
 !
-! !DESCRIPTION: Module HCOX\_DUST\_DEAD\_MOD contains routines and
+! !DESCRIPTION: Module hcox\_dust\_dead\_mod.F contains routines and
 !  variables from Charlie Zender's DEAD dust mobilization model.  
 !  Most routines are from Charlie Zender, but have been modified and/or 
 !  cleaned up for inclusion into GEOS-Chem.
@@ -40,7 +40,7 @@
 !
 ! !INTERFACE:
 !
-      MODULE HCOX_DUSTDEAD_MOD 
+      MODULE HCOX_DUSTDEAD_MOD
 !
 ! !USES:
 !
@@ -54,10 +54,10 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: HcoX_DustDead_Run
-      PUBLIC :: HcoX_DustDead_Init
-      PUBLIC :: HcoX_DustDead_Final
-      PUBLIC :: HcoX_DustDead_GetFluxTun
+      PUBLIC :: HCOX_DustDead_Run
+      PUBLIC :: HCOX_DustDead_Init
+      PUBLIC :: HCOX_DustDead_Final
+      PUBLIC :: HCOX_DustDead_GetFluxTun
 !
 ! !REVISION HISTORY:
 !  (1 ) Added parallel DO loop in GET_ORO (bmy, 4/14/04)
@@ -166,7 +166,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUST_DEAD_RUN 
+! !IROUTINE: HCOX_DustDead_Run 
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustDead\_Run is the driver routine 
 ! for the HEMCO DEAD dust extension.
@@ -174,7 +174,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustDead_Run ( am_I_Root, ExtState, HcoState, RC )
+      SUBROUTINE HCOX_DustDead_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -267,7 +267,7 @@
       IF ( .NOT. ExtState%DustDead ) RETURN
 
       ! Enter
-      CALL HCO_ENTER ( 'HCOX_DUSTDEAD_RUN (HCOX_DUSTDEAD_MOD.F90)', RC )
+      CALL HCO_ENTER ( 'HCOX_DustDead_Run (hcox_dustdead_mod.F90)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! am I root? 
@@ -478,14 +478,14 @@
       ! Return w/ success
       CALL HCO_LEAVE ( RC )
 
-      END SUBROUTINE HcoX_DustDead_Run
+      END SUBROUTINE HCOX_DustDead_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUST_DEAD_INIT 
+! !IROUTINE: HCOX_DustDead_Init
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustDead\_Init initializes the HEMCO
 ! DUST\_DEAD extension.
@@ -493,7 +493,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustDead_Init ( am_I_Root, HcoState, ExtName,
+      SUBROUTINE HCOX_DustDead_Init ( am_I_Root, HcoState, ExtName,
      &                                ExtState,    RC                )
 !
 ! !USES:
@@ -534,7 +534,7 @@
       IF ( ExtNr <= 0 ) RETURN
 
       ! Enter
-      CALL HCO_ENTER ('HCOX_DUSTDEAD_INIT (HCOX_DUSTDEAD_MOD.F90)', RC )
+      CALL HCO_ENTER ('HCOX_DustDead_Init (hcox_dustdead_mod.F90)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
       verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
@@ -557,7 +557,7 @@
       ENDIF
 
       ! Set scale factor
-      FLX_MSS_FDG_FCT = HcoX_DustDead_GetFluxTun()
+      FLX_MSS_FDG_FCT = HCOX_DustDead_GetFluxTun()
 
       ! Verbose mode
       IF ( verb ) THEN
@@ -781,14 +781,14 @@
       IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
       CALL HCO_LEAVE ( RC ) 
 
-      END SUBROUTINE HcoX_DustDead_Init
+      END SUBROUTINE HCOX_DustDead_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUST_DEAD_FINAL
+! !IROUTINE: HCOX_DustDead_Final
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustDead\_Final finalizes the HEMCO
 ! DUST\_DEAD extension.
@@ -796,7 +796,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustDead_Final
+      SUBROUTINE HCOX_DustDead_Final
 !
 ! !REVISION HISTORY:
 !  25 Nov 2013 - C. Keller - Now a HEMCO extension
@@ -846,7 +846,7 @@
       IF ( ALLOCATED( MSS_FRC_SRC     ) ) DEALLOCATE( MSS_FRC_SRC     )
       IF ( ALLOCATED( HcoIDs          ) ) DEALLOCATE( HcoIDs          )
 
-      END SUBROUTINE HcoX_DustDead_Final
+      END SUBROUTINE HCOX_DustDead_Final
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -5273,7 +5273,7 @@ c Fix up for negative argument, erf, etc.
 
 !******************************************************************************
 
-      FUNCTION HcoX_DustDead_GetFluxTun() RESULT( FLX_MSS_FDG_FCT )
+      FUNCTION HCOX_DustDead_GetFluxTun() RESULT( FLX_MSS_FDG_FCT )
 !
 !******************************************************************************
 ! Returns global mass flux tuning factor (a posteriori).
@@ -5288,7 +5288,7 @@ c Fix up for negative argument, erf, etc.
       INTEGER             :: RC
 
       !=================================================================
-      ! HcoX_DustDead_GetFluxTun begins here!
+      ! HCOX_DustDead_GetFluxTun begins here!
       !=================================================================
 
       ! Global mass flux tuning factor (a posteriori) [frc]
@@ -5421,12 +5421,12 @@ c Fix up for negative argument, erf, etc.
       ! Add warning
       MSG = 'Assigned default flux tuning parameter - this may lead to 
      &       false dust emissions!'
-      CALL HCO_WARNING ( MSG, RC, THISLOC='HcoX_DustDead_GetFluxTun' )
+      CALL HCO_WARNING ( MSG, RC, THISLOC='HCOX_DustDead_GetFluxTun' )
 
 #endif
 
       ! Return to calling program
-      END FUNCTION HcoX_DustDead_GetFluxTun
+      END FUNCTION HCOX_DustDead_GetFluxTun
 
 !------------------------------------------------------------------------------
 !EOC

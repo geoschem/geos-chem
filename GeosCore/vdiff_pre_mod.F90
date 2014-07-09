@@ -167,7 +167,7 @@ CONTAINS
 ! !IROUTINE: set_pcnst
 !
 ! !DESCRIPTION: Subroutine SET\_PCNST initializes the PCNST value, which
-!  is the number of tracers.  This is needed in vdiff_mod.F90.
+!  is the number of tracers.  This is needed in vdiff\_mod.F90.
 !\\
 !\\
 ! !INTERFACE:

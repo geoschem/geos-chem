@@ -3,23 +3,22 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_extlist_mod
+! !MODULE: hcox_extlist_mod.F90
 !
-! !DESCRIPTION: Module HCOX\_EXTLIST\_MOD contains routines and
-! variables to organize HEMCO extensions and the corresponding
-! settings.
-! This is done through the ExtList object, which is a simple list 
-! containing all enabled HEMCO extensions (name and ext. ID) and
-! the corresponding options as defined in the HEMCO configuration
-! file. 
-! \\
+! !DESCRIPTION: Module HCOX\_EXTLIST\_MOD contains routines and variables 
+! to organize HEMCO extensions and the corresponding settings. This is done 
+! through the ExtList object, which is a simple list containing all enabled 
+! HEMCO extensions (name and ext. ID) and the corresponding options as defined
+! in the HEMCO configuration file. 
+!\\
+!\\
 ! !INTERFACE: 
 !
-MODULE HCOX_EXTLIST_MOD
+MODULE HCOX_ExtList_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
+  USE HCO_Error_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -638,4 +637,4 @@ CONTAINS
 
   END SUBROUTINE ExtFinal
 !EOC
-END MODULE HCOX_EXTLIST_MOD
+END MODULE HCOX_ExtList_Mod

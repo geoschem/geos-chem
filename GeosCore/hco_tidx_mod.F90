@@ -3,30 +3,32 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_tidx_mod 
+! !MODULE: hco_tidx_mod.F90
 !
-! !DESCRIPTION: Module HCO\_TIDX\_MOD contains routines and variables
-! to organize and index data array time slices.\\
+! !DESCRIPTION: Module HCO\_tIdx\_Mod contains routines and variables
+! to organize and index data array time slices.
+!\\
+!\\
 ! The HEMCO data containers can hold multiple 2D or 3D data arrays 
 ! (aligned in a vector), providing a 4th dimension (time). During 
 ! emission calculation, only the vector element ('time slice') 
 ! representative for the given time will be used. Currently, the 
 ! following time slice intervals are supported:
 !
-!\begin{itemize}
-!\item Constant: Only one time slice (default)
-!\item Hourly: Between 2-24 time slices. These slices will be split 
-!        into even day bins, and are cycled through accordingly. 
-!        the local time is used to obtain the current valid index at 
-!        each longitude.
-!\item Hourly\_gridded: As hourly, but uses the same time slice index
-!        across all longitudes (based upon UTC time).
-!\item Weekdaily: Seven time slices, representing the days of the  
-!        week: Sun, Mon, ..., Sat. Uses local time.
-!\item Weekdaily\_gridded: As weekdaily, but uses utc time.
-!\item Monthly: 12 time slices, representing the months of the year: 
-!        Jan, ..., Dec. Uses local time. 
-!\end{itemize}
+! \begin{itemize}
+! \item Constant: Only one time slice (default)
+! \item Hourly: Between 2-24 time slices. These slices will be split 
+!         into even day bins, and are cycled through accordingly. 
+!         the local time is used to obtain the current valid index at 
+!         each longitude.
+! \item Hourly\_gridded: As hourly, but uses the same time slice index
+!         across all longitudes (based upon UTC time).
+! \item Weekdaily: Seven time slices, representing the days of the  
+!         week: Sun, Mon, ..., Sat. Uses local time.
+! \item Weekdaily\_gridded: As weekdaily, but uses utc time.
+! \item Monthly: 12 time slices, representing the months of the year: 
+!         Jan, ..., Dec. Uses local time. 
+! \end{itemize}
 ! 
 ! The time slice cycling frequency is automatically determined during 
 ! creation of a data container - based upon the time stamp settings in 
@@ -51,12 +53,12 @@
 !
 ! !INTERFACE: 
 !
-MODULE HCO_TIDX_MOD
+MODULE HCO_tIdx_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_FILEDATA_MOD,  ONLY : TimeIdx
+  USE HCO_Error_Mod
+  USE HCO_fileData_Mod,  ONLY : TimeIdx
 
   IMPLICIT NONE
   PRIVATE
@@ -121,7 +123,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_State
+    USE HCO_State_Mod, ONLY : HCO_State
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -140,7 +142,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'tIDx_Init (HCO_TIDX_MOD.F90)', RC )
+    CALL HCO_ENTER ( 'tIDx_Init (hco_tidx_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Allocate collection of time indeces 
@@ -492,7 +494,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_FILEDATA_MOD, ONLY : FileData 
+    USE HCO_FileData_Mod, ONLY : FileData 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -556,7 +558,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_FILEDATA_MOD, ONLY : FileData
+    USE HCO_FileData_Mod, ONLY : FileData
 !
 ! !INPUT PARAMETERS: 
 !
@@ -622,8 +624,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD,    ONLY : HCO_State
-    USE HCO_DATACONT_MOD, ONLY : ListCont
+    USE HCO_State_Mod,    ONLY : HCO_State
+    USE HCO_DataCont_MOD, ONLY : ListCont
 !
 ! !INPUT PARAMETERS: 
 !
@@ -651,7 +653,7 @@ CONTAINS
     !-----------------------------------
 
     ! Enter
-    CALL HCO_ENTER( 'tIDx_Assign (HCO_TIDX_MOD.F90)', RC )
+    CALL HCO_ENTER( 'tIDx_Assign (hco_tidx_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if already done

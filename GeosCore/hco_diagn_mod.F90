@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_diagn_mod 
+! !MODULE: hco_diagn_mod.F90
 !
-! !DESCRIPTION: Module HCO\_DIAGN\_MOD contains routines and 
+! !DESCRIPTION: Module HCO\_Diagn\_mod contains routines and 
 ! variables to handle the HEMCO diagnostics. The HEMCO diagnostics
 ! consist of a collection of diagnostics container organized through
 ! list DiagnList. Each diagnostics container contains information 
@@ -40,12 +40,12 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE HCO_DIAGN_MOD 
+MODULE HCO_Diagn_Mod 
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_ARR_MOD
+  USE HCO_Error_Mod
+  USE HCO_Arr_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -160,7 +160,7 @@ CONTAINS
 !      or 3 (lon-lat-lev). 
 !\item OutUnit: output unit. Emissions will be converted to this unit.
 !      Conversion factors will be determined using the HEMCO unit
-!      module (see HCO\_UNITS\_MOD.F90).
+!      module (see HCO\_UNITS\_Mod.F90).
 !\item WriteFreq: output frequency. Can be one of 'Hourly', 'Daily',
 !      'Monthly', 'Annualy', 'End'.
 !\item OutOper: output operation for non-standard units. If this 
@@ -191,12 +191,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_State
-    USE HCO_UNIT_MOD,  ONLY : HCO_UNIT_GetMassScal
-    USE HCO_UNIT_MOD,  ONLY : HCO_UNIT_GetAreaScal
-    USE HCO_UNIT_MOD,  ONLY : HCO_UNIT_GetTimeScal
-    USE HCO_CLOCK_MOD, ONLY : ResetFlagAnnually, ResetFlagMonthly
-    USE HCO_CLOCK_MOD, ONLY : ResetFlagDaily,    ResetFlagHourly
+    USE HCO_State_Mod, ONLY : HCO_State
+    USE HCO_Unit_Mod,  ONLY : HCO_Unit_GetMassScal
+    USE HCO_Unit_Mod,  ONLY : HCO_Unit_GetAreaScal
+    USE HCO_Unit_Mod,  ONLY : HCO_Unit_GetTimeScal
+    USE HCO_Clock_Mod, ONLY : ResetFlagAnnually, ResetFlagMonthly
+    USE HCO_Clock_Mod, ONLY : ResetFlagDaily,    ResetFlagHourly
 !
 ! !INPUT PARAMETERS:
 !
@@ -256,7 +256,7 @@ CONTAINS
     !======================================================================
 
     ! Init
-    LOC = 'Diagn_Create (HCO_DIAGN_MOD.F90)'
+    LOC = 'Diagn_Create (hco_diagn_mod.F90)'
 
     !----------------------------------------------------------------------
     ! Initalize diagnostics container. This will automatically add the
@@ -509,7 +509,7 @@ CONTAINS
 !\\
 ! If no matching container is found, the subroutine leaves with no 
 ! error. This allows automatic diagnostics generation, e.g. of 
-! intermediate emission fields created in HCO\_CALC\_MOD.F90.
+! intermediate emission fields created in HCO\_CALC\_Mod.F90.
 !\\
 !\\
 ! Note that for a given time step, the same diagnostics container can 
@@ -525,10 +525,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_State
-    USE HCO_ARR_MOD,   ONLY : HCO_ArrAssert
-    USE HCO_CLOCK_MOD, ONLY : HcoClock_GetMinResetFlag
-    USE HCO_CLOCK_MOD, ONLY : HcoClock_Get
+    USE HCO_State_Mod, ONLY : HCO_State
+    USE HCO_Arr_Mod,   ONLY : HCO_ArrAssert
+    USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
+    USE HCO_Clock_Mod, ONLY : HcoClock_Get
 !
 ! !INPUT PARAMETERS:
 !
@@ -586,7 +586,7 @@ CONTAINS
     !======================================================================
 
     ! Init
-    LOC = 'Diagn_Update (HCO_DIAGN_MOD.F90)'
+    LOC = 'Diagn_Update (hco_diagn_mod.F90)'
     RC  = HCO_SUCCESS
 
     !----------------------------------------------------------------------
@@ -905,8 +905,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_State
-    USE HCO_CLOCK_MOD, ONLY : HcoClock_GetMinResetFlag
+    USE HCO_State_Mod, ONLY : HCO_State
+    USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
 !
 ! !INPUT PARAMETERS::
 !
@@ -1298,7 +1298,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_ARR_MOD, ONLY : HCO_ArrCleanup 
+    USE HCO_ARR_Mod, ONLY : HCO_ArrCleanup 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1348,8 +1348,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_State
-    USE HCO_CLOCK_MOD, ONLY : HcoClock_Get
+    USE HCO_State_Mod, ONLY : HCO_State
+    USE HCO_Clock_Mod, ONLY : HcoClock_Get
 !
 ! !INPUT PARAMETERS::
 !
@@ -1384,7 +1384,7 @@ CONTAINS
 
     ! Init
     RC  = HCO_SUCCESS
-    LOC = 'DiagnCont_PrepareOutput (HCO_DIAGN_MOD.F90) '
+    LOC = 'DiagnCont_PrepareOutput (hco_diagn_mod.F90) '
 
     ! Return w/ error if counter is still zero. This should not happen!
     IF ( DgnCont%Counter == 0 ) THEN
@@ -1645,7 +1645,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_State
+    USE HCO_State_Mod, ONLY : HCO_State
 !
 ! !ARGUMENTS:
 !
@@ -1674,7 +1674,7 @@ CONTAINS
     !======================================================================
 
     ! Init
-    LOC = 'DiagnCont_Link_2D (HCO_DIAGN_MOD.F90)'
+    LOC = 'DiagnCont_Link_2D (hco_diagn_mod.F90)'
 
     ! Check if dimensions match. Also, containers with pointers must not
     ! be set to AutoFill
@@ -1730,7 +1730,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_State
+    USE HCO_State_Mod, ONLY : HCO_State
 !
 ! !INPUT PARAEMTERS:
 !
@@ -1759,7 +1759,7 @@ CONTAINS
     !======================================================================
 
     ! Init
-    LOC = 'DiagnCont_Link_3D (HCO_DIAGN_MOD.F90)'
+    LOC = 'DiagnCont_Link_3D (hco_diagn_mod.F90)'
 
     ! Check if dimensions match. Also, containers with pointers must not
     ! be set to AutoFill
@@ -1799,4 +1799,4 @@ CONTAINS
 
   END SUBROUTINE DiagnCont_Link_3D
 !EOC
-END MODULE HCO_DIAGN_MOD
+END MODULE HCO_Diagn_Mod

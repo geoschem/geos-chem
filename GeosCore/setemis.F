@@ -6,11 +6,13 @@
 ! !IROUTINE: setemis
 !
 ! !DESCRIPTION: Subroutine SETEMIS places emissions from the 3-D 
-! emission fields in State_Chm%Trac_Tend into the REMIS array (used
+! emission fields in State\_Chm%Trac\_Tend into the REMIS array (used
 ! for SMVGEAR II chemistry). Emissions are converted from kg/m2/s to
-! molec/cm3/s.\\
+! molec/cm3/s.
+!\\
+!\\
 ! If the full-mixing PBL scheme is used, the entire emission arrays
-! of State_Chm%Trac_Tend are passed to REMIS. For the non-local PBL
+! of State\_Chm%Trac\_Tend are passed to REMIS. For the non-local PBL
 ! scheme, only the emissions above the PBL are passed since all
 ! emissions w/in the PBL are already considered in the non-local PBL
 ! mixing routine (vdiff\_mod.F90). 

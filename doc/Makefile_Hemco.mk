@@ -29,43 +29,45 @@
 # List of source code files (order is important)
 SRC5 :=                               \
 ./intro.hemco                         \
-$(CORE)/hco_arr_mod.F90               \
-$(CORE)/hco_calc_mod.F90              \
-$(CORE)/hco_chartools_mod.F90	      \
-$(CORE)/hco_clock_mod.F90	      \
-$(CORE)/hco_config_mod.F90	      \
-$(CORE)/hco_datacont_mod.F90	      \
-$(CORE)/hco_diagn_mod.F90	      \
-$(CORE)/hco_driver_mod.F90	      \
-$(CORE)/hco_emislist_mod.F90	      \
-$(CORE)/hco_error_mod.F90	      \
-$(CORE)/hco_filedata_mod.F90	      \
-$(CORE)/hco_fluxarr_mod.F90	      \
-$(CORE)/hco_geotools_mod.F90	      \
-$(CORE)/hco_readlist_mod.F90	      \
-$(CORE)/hco_state_mod.F90	      \
-$(CORE)/hco_tidx_mod.F90	      \
-$(CORE)/hco_tools_mod.F90	      \
-$(CORE)/hco_unit_mod.F90	      \
-$(CORE)/hcoi_dataread_mod.F90	      \
-$(CORE)/hcoi_gc_diagn_mod.F90	      \
-$(CORE)/hcoi_gc_main_mod.F90	      \
-$(CORE)/hcox_custom_mod.F90	      \
-$(CORE)/hcox_driver_mod.F90	      \
-$(CORE)/hcox_dustdead_mod.F	      \
-$(CORE)/hcox_dustginoux_mod.F90	      \
-$(CORE)/hcox_extlist_mod.F90	      \
-$(CORE)/hcox_gc_RnPbBe_mod.F90	      \
-$(CORE)/hcox_gfed3_mod.F90	      \
-$(CORE)/hcox_lightnox_mod.F90	      \
-$(CORE)/hcox_megan_mod.F	      \
-$(CORE)/hcox_paranox_mod.F90	      \
-$(CORE)/hcox_seaflux_mod.F90	      \
-$(CORE)/hcox_seasalt_mod.F90	      \
-$(CORE)/hcox_soilnox_mod.F90          \
-$(CORE)/hcox_state_mod.F90
-
-
+$(HEMCO)/hco_arr_mod.F90              \
+$(HEMCO)/hco_calc_mod.F90             \
+$(HEMCO)/hco_chartools_mod.F90	      \
+$(HEMCO)/hco_clock_mod.F90	      \
+$(HEMCO)/hco_config_mod.F90	      \
+$(HEMCO)/hco_datacont_mod.F90	      \
+$(HEMCO)/hco_diagn_mod.F90	      \
+$(HEMCO)/hco_driver_mod.F90	      \
+$(HEMCO)/hco_emislist_mod.F90	      \
+$(HEMCO)/hco_error_mod.F90	      \
+$(HEMCO)/hco_filedata_mod.F90	      \
+$(HEMCO)/hco_fluxarr_mod.F90	      \
+$(HEMCO)/hco_geotools_mod.F90	      \
+$(HEMCO)/hco_readlist_mod.F90	      \
+$(HEMCO)/hco_state_mod.Fq90	      \
+$(HEMCO)/hco_tidx_mod.F90	      \
+$(HEMCO)/hco_tools_mod.F90	      \
+$(HEMCO)/hco_unit_mod.F90	      \
+$(HEMCO)/hcoi_dataread_mod.F90	      \
+$(HEMCO)/hcoi_gc_diagn_mod.F90	      \
+$(HEMCO)/hcoi_gc_main_mod.F90	      \
+$(HEMCO)/hcox_custom_mod.F90	      \
+$(HEMCO)/hcox_driver_mod.F90	      \
+$(HEMCO)/hcox_dustdead_mod.F	      \
+$(HEMCO)/hcox_dustginoux_mod.F90      \
+$(HEMCO)/hcox_extlist_mod.F90	      \
+$(HEMCO)/hcox_gc_RnPbBe_mod.F90	      \
+$(HEMCO)/hcox_gfed3_mod.F90	      \
+$(HEMCO)/hcox_lightnox_mod.F90	      \
+$(HEMCO)/hcox_megan_mod.F	      \
+$(HEMCO)/hcox_paranox_mod.F90	      \
+$(HEMCO)/paranox_util_mod.F           \
+$(HEMCO)/hcox_seaflux_mod.F90	      \
+$(HEMCO)/hcox_seasalt_mod.F90	      \
+$(HEMCO)/hcox_soilnox_mod.F90         \
+$(HEMCO)/hcox_state_mod.F90           \
+$(HEMCO)/drydep_toolbox_mod.F90       \
+$(HEMCO)/henry_mod.F                  \
+$(HEMCO)/ocean_toolbox_mod.F90
 
 # Output file names
 TEX5 := GC_Ref_Vol_5.tex

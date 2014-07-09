@@ -2126,7 +2126,7 @@
 !
 ! !DESCRIPTION: Subroutine SET\_MONTREAL\_NCDF calls GET\_MONTREAL\_NCDF
 !  for the surface mixing ratio for a specific year, and applies it to
-!  GRID_EMIT.
+!  GRID\_EMIT.
 !\\
 !\\
 ! !INTERFACE:

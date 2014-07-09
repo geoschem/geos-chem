@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_config_mod
+! !MODULE: hco_config_mod.F90
 !
-! !DESCRIPTION: Module HCO\_CONFIG\_MOD contains routines related 
+! !DESCRIPTION: Module HCO\_Config\_Mod contains routines related 
 ! to the HEMCO configuration file. It reads the content of the 
 ! configuration file, checks which entires therein are actually used 
 ! for this simulation run, and stores these information.
@@ -26,16 +26,16 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE HCO_CONFIG_MOD
+MODULE HCO_Config_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_DIAGN_MOD
-  USE HCO_FILEDATA_MOD,  ONLY : FileData
-  USE HCO_DATACONT_MOD,  ONLY : DataCont, ListCont, SclMax 
-  USE HCO_STATE_MOD,     ONLY : HCO_State
-  USE HCO_CHARTOOLS_MOD, ONLY : HCO_CharSplit
+  USE HCO_Error_Mod
+  USE HCO_Diagn_Mod
+  USE HCO_FileData_Mod,  ONLY : FileData
+  USE HCO_DataCont_Mod,  ONLY : DataCont, ListCont, SclMax 
+  USE HCO_State_Mod,     ONLY : HCO_State
+  USE HCO_CharTools_Mod, ONLY : HCO_CharSplit
 
   IMPLICIT NONE
   PRIVATE
@@ -128,7 +128,7 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,       ONLY : findFreeLUN
-    USE CHARPAK_MOD,      ONLY : STRREPL
+    USE CharPak_Mod,      ONLY : STRREPL
     USE HCOX_ExtList_Mod, ONLY : AddExt
 !
 ! !INPUT PARAMETERS:
@@ -159,7 +159,7 @@ CONTAINS
 
     ! Enter
     RC  = HCO_SUCCESS
-    LOC = 'Config_ReadFile (HCO_CONFIG_MOD.F90)'
+    LOC = 'Config_ReadFile (HCO_Config_Mod.F90)'
 
     ! Leave here if data already in buffer 
     IF ( LinesInBuffer > 0 ) THEN
@@ -261,7 +261,7 @@ CONTAINS
 !
 ! !IROUTINE: SetReadList
 !
-! !DESCRIPTION: Subroutine SETREADLIST writes data to the data reading
+! !DESCRIPTION: Subroutine SetReadList writes data to the data reading
 ! lists (ReadList). This routine assumes that the configuration file has 
 ! been read beforehand (via Config\_ReadFile). 
 !\\
@@ -272,7 +272,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD,    ONLY : cIDList_Create
+    USE HCO_DATACONT_Mod,    ONLY : cIDList_Create
 !
 ! !INPUT PARAMETERS:
 !
@@ -297,7 +297,7 @@ CONTAINS
     !======================================================================
 
     ! Init
-    CALL HCO_ENTER ( 'SetReadList (HCO_CONFIG_MOD.F90)', RC )
+    CALL HCO_ENTER ( 'SetReadList (HCO_Config_Mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if configuration file hasn't been read yet! 
@@ -357,8 +357,8 @@ CONTAINS
 ! !USES:
 !
     USE HCOX_ExtList_Mod, ONLY : ExtNrInUse
-    USE HCO_TIDX_MOD,     ONLY : HCO_ExtractTime
-    USE HCO_FILEDATA_MOD, ONLY : FileData_Init
+    USE HCO_TIDX_Mod,     ONLY : HCO_ExtractTime
+    USE HCO_FILEDATA_Mod, ONLY : FileData_Init
 !
 ! !INPUT PARAMETERS: 
 !
@@ -412,7 +412,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    LOC = 'Config_ReadCont (HCO_CONFIG_MOD.F90)'
+    LOC = 'Config_ReadCont (HCO_Config_Mod.F90)'
 
     ! Repeat until end of base emissions section is found 
     DO
@@ -664,7 +664,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,        ONLY : STRREPL, STRSPLIT, TRANLC
+    USE CHARPAK_Mod,        ONLY : STRREPL, STRSPLIT, TRANLC
     USE HCOX_ExtList_Mod,   ONLY : AddExt, AddExtOpt
 !
 ! !INPUT PARAMETERS:
@@ -696,7 +696,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    LOC   = 'ExtSwitch2Buffer (HCO_CONFIG_MOD.F90)'
+    LOC   = 'ExtSwitch2Buffer (HCO_Config_Mod.F90)'
     RC    = HCO_SUCCESS
     ExtNr = 0
 
@@ -792,7 +792,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD, ONLY : STRREPL, STRSPLIT, TRANLC
+    USE CHARPAK_Mod, ONLY : STRREPL, STRSPLIT, TRANLC
 !
 ! !INPUT PARAMETERS:
 !
@@ -825,7 +825,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    LOC = 'Settings2Buffer (HCO_CONFIG_MOD.F90)'
+    LOC = 'Settings2Buffer (HCO_Config_Mod.F90)'
 
     ! Defaults
     LogFile   = 'HEMCO.log'
@@ -945,7 +945,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE FILE_MOD, ONLY : IOERROR
+    USE FILE_Mod, ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
 !
@@ -997,9 +997,13 @@ CONTAINS
 ! !DESCRIPTION: Subroutine RegisterPrepare extracts the spatial 
 ! coverages of all mask fields as well as the HEMCO species IDs of 
 ! all base emissions. 
+!\\
+!\\
 ! The species IDs are determined by matching the species name read
 ! from the configuration file (in ConfigList) and the species names 
 ! defined in the HEMCO state object HcoState.
+!\\
+!\\
 ! Mask coverages are defined based upon the passed horizontal grid
 ! extensions on this CPU (xrng and yrng).
 !\\
@@ -1011,7 +1015,7 @@ CONTAINS
 ! !USES:
 !
     USE HCOX_ExtList_Mod, ONLY : ExtNrInUse
-    USE HCO_STATE_MOD,    ONLY : HCO_GetHcoID
+    USE HCO_STATE_Mod,    ONLY : HCO_GetHcoID
 !
 ! !INPUT PARAMETERS: 
 
@@ -1165,9 +1169,9 @@ CONTAINS
 ! !USES:
 !
     USE HCOX_ExtList_Mod,      ONLY : ExtNrInUse
-    USE HCO_READLIST_MOD,      ONLY : ReadList_Set
-    USE HCO_DATACONT_MOD,      ONLY : DataCont_Cleanup
-    USE HCO_FILEDATA_MOD,      ONLY : FileData_FileRead
+    USE HCO_READLIST_Mod,      ONLY : ReadList_Set
+    USE HCO_DATACONT_Mod,      ONLY : DataCont_Cleanup
+    USE HCO_FILEDATA_Mod,      ONLY : FileData_FileRead
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1201,7 +1205,7 @@ CONTAINS
     !======================================================================
 
       ! Enter
-    CALL HCO_ENTER ( 'Register_Base (HCO_CONFIG_MOD.F90)', RC )
+    CALL HCO_ENTER ( 'Register_Base (HCO_Config_Mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
 
@@ -1365,12 +1369,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_Scal ( am_I_Root, HcoState, RC )
+  SUBROUTINE Register_Scal( am_I_Root, HcoState, RC )
 !
 ! !USES:
 !
-    USE HCO_READLIST_MOD, ONLY : ReadList_Set
-    USE HCO_FILEDATA_MOD, ONLY : FileData_FileRead
+    USE HCO_ReadList_Mod, ONLY : ReadList_Set
+    USE HCO_FileData_Mod, ONLY : FileData_FileRead
 !
 ! !INPUT PARAMETERS:
 !
@@ -1405,7 +1409,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'Register_Scal (HCO_CONFIG_MOD.F90)', RC )
+    CALL HCO_ENTER ( 'Register_Scal (HCO_Config_Mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
 
@@ -1516,11 +1520,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_targetID ( am_I_Root, HcoState, Lct, targetID, RC ) 
+  SUBROUTINE Get_targetID( am_I_Root, HcoState, Lct, targetID, RC ) 
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD, ONLY : ListCont_Find
+    USE HCO_DataCont_Mod, ONLY : ListCont_Find
 !
 ! !INPUT PARAMETERS:
 !
@@ -1567,7 +1571,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'Get_targetID (HCO_CONFIG_MOD.F90)', RC )
+    CALL HCO_ENTER ( 'Get_targetID (HCO_Config_Mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get verbose flag from HCO_State
@@ -1828,9 +1832,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CALC_COVERAGE
+! !IROUTINE: Calc_Coverage
 !
-! !DESCRIPTION: Function CALC\_COVERAGE calculates the coverage of
+! !DESCRIPTION: Function Calc\_Coverage calculates the coverage of
 ! the specified lon/lat box with the area covered by the inventory.
 ! Returns 0 if no overlap, 1 if complete overlap, and -1 for partial
 ! overlap.
@@ -1838,7 +1842,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION CALC_COVERAGE( msk_x1, msk_x2, msk_y1, msk_y2,  &
+  FUNCTION Calc_Coverage( msk_x1, msk_x2, msk_y1, msk_y2,  &
                           cpu_x1, cpu_x2, cpu_y1, cpu_y2 ) RESULT ( COVERAGE ) 
 !
 ! !INPUT PARAMETERS:
@@ -1880,7 +1884,7 @@ CONTAINS
        COVERAGE = -1
     ENDIF
 
-  END FUNCTION CALC_COVERAGE
+  END FUNCTION Calc_Coverage
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1910,7 +1914,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,        ONLY : STRREPL, STRSPLIT
+    USE CHARPAK_Mod,        ONLY : STRREPL, STRSPLIT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2173,7 +2177,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD, ONLY : DataCont_Cleanup
+    USE HCO_DATACONT_Mod, ONLY : DataCont_Cleanup
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2196,7 +2200,7 @@ CONTAINS
     CHARACTER(LEN=255)        :: MSG, LOC
 
     ! Enter
-    LOC = 'ListCont_Remove (HCO_CONFIG_MOD.F90)'
+    LOC = 'ListCont_Remove (HCO_Config_Mod.F90)'
 
     ! Special case where Lct is first container in list:
     IF ( ConfigList%Dct%cID == Lct%Dct%cID ) THEN
@@ -2273,7 +2277,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD, ONLY : ListCont_Cleanup
+    USE HCO_DATACONT_Mod, ONLY : ListCont_Cleanup
 !
 ! !INPUT PARAMETERS:
 !
@@ -2332,7 +2336,7 @@ CONTAINS
     CHARACTER(LEN= 31)       :: strID
 
     ! Enter
-    LOC = 'Get_cID (HCO_CONFIG_MOD.F90)'
+    LOC = 'Get_cID (HCO_Config_Mod.F90)'
     cID = -999
 
     ! Loop over all containers 
@@ -2389,7 +2393,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD, ONLY : ListCont_NextCont
+    USE HCO_DATACONT_Mod, ONLY : ListCont_NextCont
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2427,7 +2431,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD, ONLY : DataCont_Init
+    USE HCO_DATACONT_Mod, ONLY : DataCont_Init
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2602,7 +2606,7 @@ CONTAINS
 !
 ! !IROUTINE: SpecName_Register 
 !
-! !DESCRIPTION: Subroutine SPECNAME\_REGISTER adds the species name SpecName 
+! !DESCRIPTION: Subroutine SpecName\_Register adds the species name SpecName 
 ! to the list of species names.
 !\\
 !\\
@@ -2734,7 +2738,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Config_GetnSpecies RESULT( nSpecies )
+  FUNCTION Config_GetnSpecies() RESULT( nSpecies )
 !
 ! !RETURN VALUE:
 !
@@ -2814,7 +2818,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_GetSpecAttr ( N, SpecNames, RC ) 
+  SUBROUTINE Config_GetSpecAttr( N, SpecNames, RC ) 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2876,7 +2880,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Config_ScalIDinUse (ScalID) RESULT( inUse )
+  FUNCTION Config_ScalIDinUse(ScalID) RESULT( inUse )
 !
 ! !INPUT PARAMETERS:
 !
@@ -2985,4 +2989,4 @@ CONTAINS
 
   END FUNCTION Check_ContNames
 !EOC
-END MODULE HCO_CONFIG_MOD
+END MODULE HCO_Config_Mod

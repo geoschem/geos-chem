@@ -1,15 +1,16 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
+!BOP
 !
-! !MODULE: hco_tools_mod 
+! !MODULE: hco_tools_mod.F90
 !
-! !DESCRIPTION: Module HCO\_TOOLS\_MOD contains a collection of 
+! !DESCRIPTION: Module HCO\_Tools\_Mod contains a collection of 
 ! miscellaneous helper routines used by the HEMCO modules.
 ! \\
 ! !INTERFACE: 
 !
-MODULE HCO_TOOLS_MOD
+MODULE HCO_Tools_Mod
 !
 ! !USES:
 !
@@ -37,13 +38,13 @@ MODULE HCO_TOOLS_MOD
   INTERFACE HCO_CharSplit
      MODULE PROCEDURE HCO_CharSplit_R8
      MODULE PROCEDURE HCO_CharSplit_R4
-     MODULE PROCEDURE HCO_CharSplit_INT
+     MODULE PROCEDURE HCO_CharSplit_Int
   END INTERFACE HCO_CharSplit
 
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -55,11 +56,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharSplit_R8 ( CharStr, SEP, WC, Reals, N, RC ) 
+  SUBROUTINE HCO_CharSplit_R8( CharStr, SEP, WC, Reals, N, RC ) 
 !
 ! !USES:
 !
-    USE CHARPAK_MOD, ONLY : STRSPLIT
+    USE CharPak_Mod, ONLY : StrSplit
 !
 ! !INPUT PARAMETERS: 
 !
@@ -93,7 +94,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    LOC = 'HCO_CharSplit_R8 (HCO_TOOLS_MOD.F90)'
+    LOC = 'HCO_CharSplit_R8 (hco_tools_mod.F90)'
 
     ! Init
     Reals(:) = -999_dp
@@ -126,7 +127,7 @@ CONTAINS
   END SUBROUTINE HCO_CharSplit_R8
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -138,11 +139,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharSplit_R4 ( CharStr, SEP, WC, Reals, N, RC ) 
+  SUBROUTINE HCO_CharSplit_R4( CharStr, SEP, WC, Reals, N, RC ) 
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,        ONLY : STRSPLIT
+    USE CharPak_Mod, ONLY: StrSplit
 !
 ! !INPUT PARAMETERS: 
 !
@@ -176,7 +177,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    LOC = 'HCO_CharSplit_R4 (HCO_TOOLS_MOD.F90)'
+    LOC = 'HCO_CharSplit_R4 (hco_tools_mod.F90)'
 
     ! Init
     Reals(:) = -999_sp
@@ -209,35 +210,38 @@ CONTAINS
   END SUBROUTINE HCO_CharSplit_R4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_CharSplit_INT 
+! !IROUTINE: HCO_CharSplit_Int 
 !
-! !DESCRIPTION: Subroutine HCO\_CharSplit\_R8 splits the passed character
+! !DESCRIPTION: Subroutine HCO\_CharSplit\_INT splits the passed character
 ! string into N integers, using character SEP as separator. Wildcard
 ! values (WC) are set to -999. 
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharSplit_INT ( CharStr, SEP, WC, Ints, N, RC ) 
+  SUBROUTINE HCO_CharSplit_Int( CharStr, SEP, WC, Ints, N, RC ) 
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,        ONLY : STRSPLIT
+    USE CharPak_Mod, ONLY: StrSplit
 !
 ! !INPUT PARAMETERS: 
 !
-    CHARACTER(LEN=*), INTENT(IN   )       :: CharStr 
-    CHARACTER(LEN=1), INTENT(IN   )       :: SEP 
-    CHARACTER(LEN=1), INTENT(IN   )       :: WC 
+    CHARACTER(LEN=*), INTENT(IN   ) :: CharStr 
+    CHARACTER(LEN=1), INTENT(IN   ) :: SEP 
+    CHARACTER(LEN=1), INTENT(IN   ) :: WC 
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(  OUT)       :: Ints(:)
-    INTEGER,          INTENT(  OUT)       :: N
-    INTEGER,          INTENT(INOUT)       :: RC
+    INTEGER,          INTENT(  OUT) :: Ints(:)
+    INTEGER,          INTENT(  OUT) :: N
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT) :: RC
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2013 - C. Keller - Initial version (update) 
@@ -256,7 +260,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    LOC = 'HCO_CharSplit_Int (HCO_TOOLS_MOD.F90)'
+    LOC = 'HCO_CharSplit_Int (hco_tools_mod.F90)'
 
     ! Init
     Ints(:) = -999
@@ -289,7 +293,7 @@ CONTAINS
   END SUBROUTINE HCO_CharSplit_INT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -305,7 +309,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharMatch (vec1, n1, vec2, n2, matchidx, nnmatch )
+  SUBROUTINE HCO_CharMatch( vec1, n1, vec2, n2, matchidx, nnmatch )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -354,7 +358,7 @@ CONTAINS
   END SUBROUTINE HCO_CharMatch
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -385,4 +389,4 @@ CONTAINS
 
   END FUNCTION IsInWord
 !EOC
-END MODULE HCO_TOOLS_MOD
+END MODULE HCO_Tools_Mod

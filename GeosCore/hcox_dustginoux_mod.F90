@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hemcox_dustginoux_mod
+! !MODULE: hemcox_dustginoux_mod.F90
 !
 ! !DESCRIPTION: Paul GINOUX dust source function.  This subroutine updates 
 !  the surface mixing ratio of dust aerosols for NDSTBIN size bins.  The 
@@ -21,7 +21,7 @@
 ! utilities.
 !\\
 !\\ 
-! !REFERENCES:
+! References:
 ! 
 ! \begin{enumerate}
 ! \item Ginoux, P., M. Chin, I. Tegen, J. Prospero, B. Hoben, O. Dubovik,
@@ -35,8 +35,7 @@
 !
 ! !AUTHOR:
 !  Paul Ginoux (ginoux@rondo.gsfc.nasa.gov) 
-!\\
-!\\
+!
 ! !REVISION HISTORY:
 !  08 Apr 2004 - T. D. Fairlie - Initial version
 !  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
@@ -109,7 +108,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUSTGINOUX_RUN 
+! !IROUTINE: HCOX_DustGinoux_Run
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustGinoux\_Run is the driver routine 
 ! for the Paul Ginoux dust source function HEMCO extension.
@@ -117,7 +116,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustGinoux_Run ( am_I_Root, ExtState, HcoState, RC )
+      SUBROUTINE HcoX_DustGinoux_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -195,7 +194,7 @@
       IF ( .NOT. ExtState%DustGinoux ) RETURN
 
       ! Enter
-      CALL HCO_ENTER('HCOX_DUSTGINOUX_RUN (HCOX_DUSTGINOUX_MOD.F90)',RC)
+      CALL HCO_ENTER('HCOX_DustGinoux_Run (hcox_dustginoux_mod.F90)',RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Set gravity at earth surface (cm/s^2)
@@ -358,7 +357,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUSTGINOUX_INIT 
+! !IROUTINE: HCOX_DustGinoux_Init 
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustGinoux\_Init initializes the HEMCO
 ! DUSTGINOUX extension.
@@ -405,7 +404,7 @@
       IF ( ExtNr <= 0 ) RETURN
 
       ! Enter
-      CALL HCO_ENTER('HCOX_DUSTGINOUX_INIT (HCOX_DUSTGINOUX_MOD.F90)',RC)
+      CALL HCO_ENTER('HCOX_DustGinoux_Init (hcox_dustginoux_mod.F90)',RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
@@ -468,7 +467,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUSTGINOUX_FINAL
+! !IROUTINE: HCOX_DustGinoux_Final
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustGinoux\_Final finalizes the HEMCO
 ! DUSTGINOUX extension.
@@ -476,7 +475,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustGinoux_Final
+      SUBROUTINE HcoX_DustGinoux_Final()
 !
 ! !REVISION HISTORY:
 !  11 Dec 2013 - C. Keller - Now a HEMCO extension
@@ -503,15 +502,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUSTGINOUX_GETCHDUST
+! !IROUTINE: HCOX_DustGinoux_GetChDust
 !
-! !DESCRIPTION: Function HCOX\_DUSTGINOUX\_GETCHDUST returns the CH\_DUST
+! !DESCRIPTION: Function HCOX\_DustGinoux\_GetChDust returns the CH\_DUST
 ! parameter for the current simulation type.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION HCOX_DUSTGINOUX_GETCHDUST RESULT ( CH_DUST )
+      FUNCTION HCOX_DustGinoux_GetChDust RESULT ( CH_DUST )
 !
 ! !ARGUMENTS:
 !
@@ -544,7 +543,7 @@
       CH_DUST  = 9.375d-10
 #endif
       
-      END FUNCTION HCOX_DUSTGINOUX_GETCHDUST
+      END FUNCTION HCOX_DustGinoux_GetChDust
 !EOC
-      END MODULE HCOX_DUSTGINOUX_MOD
+      END MODULE HCOX_DustGinoux_Mod
 !EOM

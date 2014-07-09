@@ -11,13 +11,13 @@
 !\\
 ! !INTERFACE:
 !
-MODULE HcoX_GC_RnPbBe_Mod
+MODULE HCOX_GC_RnPbBe_Mod
 !
 ! !USES:
 !
-  USE Hco_Error_Mod
-  USE Hco_Diagn_Mod
-  USE Hco_State_Mod,  ONLY : HCO_State   ! Derived type for HEMCO state
+  USE HCO_Error_Mod
+  USE HCO_Diagn_Mod
+  USE HCO_State_Mod,  ONLY : HCO_State   ! Derived type for HEMCO state
   USE HcoX_State_Mod, ONLY : Ext_State   ! Derived type for External state
 
   IMPLICIT NONE
@@ -83,7 +83,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_gc_RnPbBe_run 
+! !IROUTINE: HCOX_Gc_RnPbBe_run 
 !
 ! !DESCRIPTION: Subroutine HcoX\_Gc\_RnPbBe\_Run computes emissions of 222Rn
 !  and 7Be for the GEOS-Chem Rn-Pb-Be specialty simulation.
@@ -91,12 +91,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_Gc_RnPbBe_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_Gc_RnPbBe_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
     ! HEMCO modules
-    USE Hco_FluxArr_Mod, ONLY : HCO_EmisAdd
+    USE HCO_FluxArr_Mod, ONLY : HCO_EmisAdd
 
     ! GEOS-Chem utility modules
     USE Pressure_Mod,    ONLY : Get_PCenter
@@ -139,7 +139,7 @@ CONTAINS
     !=======================================================================
 
     ! Enter
-    CALL HCO_ENTER( 'HcoX_GC_RnPbBe_Run (hcox_gc_RnPbBe_mod.F90)', RC )
+    CALL HCO_ENTER( 'HCOX_GC_RnPbBe_Run (hcox_gc_RnPbBe_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set error flag
@@ -392,14 +392,14 @@ CONTAINS
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
 
-  END SUBROUTINE HcoX_Gc_RnPbBe_Run
+  END SUBROUTINE HCOX_Gc_RnPbBe_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_gc_RnPbBe_init 
+! !IROUTINE: HCOX_Gc_RnPbBe_Init 
 !
 ! !DESCRIPTION: Subroutine HcoX\_Gc\_RnPbBe\_Init initializes the HEMCO
 ! GC\_Rn-Pb-Be extension.
@@ -407,7 +407,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_Gc_RnPbBe_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_Gc_RnPbBe_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -540,14 +540,14 @@ CONTAINS
 
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE HcoX_Gc_RnPbBe_Init
+  END SUBROUTINE HCOX_Gc_RnPbBe_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_gc_RnPbBe_final
+! !IROUTINE: HCOX_Gc_RnPbBe_Final
 !
 ! !DESCRIPTION: Subroutine HcoX\_Gc\_RnPbBe\_Final finalizes the HEMCO
 !  extension for the GEOS-Chem Rn-Pb-Be specialty simulation.  All module
@@ -556,7 +556,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_Gc_RnPbBe_Final()
+  SUBROUTINE HCOX_Gc_RnPbBe_Final()
 !
 ! !REVISION HISTORY:
 !  13 Dec 2013 - C. Keller   - Now a HEMCO extension
@@ -575,16 +575,16 @@ CONTAINS
     IF ( ALLOCATED( PRESOU   ) ) DEALLOCATE( PRESOU   )
     IF ( ALLOCATED( BESOU    ) ) DEALLOCATE( BESOU    )
 
-  END SUBROUTINE HcoX_Gc_RnPbBe_Final
+  END SUBROUTINE HCOX_Gc_RnPbBe_Final
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_7Be_emissions
+! !IROUTINE: Init_7Be_Emissions
 !
-! !DESCRIPTION: Subroutine INIT\_7Be\_EMISSIONS initializes the 7Be emissions 
+! !DESCRIPTION: Subroutine Init\_7Be\_Emissions initializes the 7Be emissions 
 !  from Lal \& Peters on 33 pressure levels.
 !\\
 !\\
@@ -759,7 +759,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: slq
+! !IROUTINE: SLQ
 !
 ! !DESCRIPTION: Subroutine SLQ is an interpolation subroutine from a 
 !  Chinese reference book (says Hongyu Liu).
@@ -881,4 +881,4 @@ CONTAINS
 
   END SUBROUTINE SLQ
 !EOC
-END MODULE HcoX_GC_RnPbBe_Mod
+END MODULE HCOX_GC_RnPbBe_Mod

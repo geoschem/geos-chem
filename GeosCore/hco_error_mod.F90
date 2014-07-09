@@ -3,14 +3,17 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_error_mod 
+! !MODULE: hco_error_mod.F90
 !
-! !DESCRIPTION: Module HCO\_ERROR\_MOD contains routines and variables 
+! !DESCRIPTION: Module HCO\_Error\_Mod contains routines and variables 
 ! for error handling in HEMCO. It also contains definitions of some 
 ! globally used parameter, such as the single/double precision 
 ! definitions.
+!\\
+!\\
 ! The error settings are specified in the HEMCO configuration file and
 ! error handling is performed according to these settings. They include: 
+!
 ! \begin{enumerate}
 ! \item HEMCO logfile: all HEMCO information is written into the specified
 !     logfile. The logfile can be set to the wildcard character, in which
@@ -35,7 +38,7 @@
 !
 ! !INTERFACE: 
 !
-MODULE HCO_ERROR_MOD
+MODULE HCO_Error_Mod
 !
 ! !USES:
 !
@@ -44,20 +47,20 @@ MODULE HCO_ERROR_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC           :: HCO_ERROR
-  PUBLIC           :: HCO_WARNING 
-  PUBLIC           :: HCO_MSG
-  PUBLIC           :: HCO_ENTER
-  PUBLIC           :: HCO_LEAVE
-  PUBLIC           :: HCO_ERROR_SET
-  PUBLIC           :: HCO_ERROR_FINAL
-  PUBLIC           :: HCO_VERBOSE_SET
-  PUBLIC           :: HCO_VERBOSE_CHECK
-  PUBLIC           :: HCO_FORCESCAL_CHECK
-  PUBLIC           :: HCO_WILDCARD
-  PUBLIC           :: HCO_SEP
-  PUBLIC           :: HCO_LOGFILE_OPEN
-  PUBLIC           :: HCO_LOGFILE_CLOSE
+  PUBLIC :: HCO_Error
+  PUBLIC :: HCO_Warning 
+  PUBLIC :: HCO_Msg
+  PUBLIC :: HCO_Enter
+  PUBLIC :: HCO_Leave
+  PUBLIC :: HCO_Error_Set
+  PUBLIC :: HCO_Error_Final
+  PUBLIC :: HCO_Verbose_Set
+  PUBLIC :: HCO_Verbose_Check
+  PUBLIC :: HCO_Forcescal_Check
+  PUBLIC :: HCO_WildCard
+  PUBLIC :: HCO_Sep
+  PUBLIC :: HCO_Logfile_Open
+  PUBLIC :: HCO_Logfile_Close
 !
 ! !DEFINED PARAMETERS:
 !
@@ -114,16 +117,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_error
+! !IROUTINE: HCO_Error
 !
-! !DESCRIPTION: Subroutine HCO\_ERROR promts an error message and sets RC to 
+! !DESCRIPTION: Subroutine HCO\_Error promts an error message and sets RC to 
 ! HCO\_FAIL. Note that this routine does not stop a run, but it will cause a 
 ! stop at higher level (when RC gets evaluated). 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ERROR( ErrMsg, RC, THISLOC )
+  SUBROUTINE HCO_Error( ErrMsg, RC, THISLOC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -170,22 +173,22 @@ CONTAINS
     ! Return w/ error
     RC = HCO_FAIL 
 
-  END SUBROUTINE HCO_ERROR
+  END SUBROUTINE HCO_Error
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_warning
+! !IROUTINE: HCO_Warning
 !
-! !DESCRIPTION: Subroutine HCO\_WARNING promts a warning message without 
+! !DESCRIPTION: Subroutine HCO\_Warning promts a warning message without 
 ! forcing HEMCO to stop, i.e. return code is set to HCO\_SUCCESS. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_WARNING( ErrMsg, RC, THISLOC )
+  SUBROUTINE HCO_Warning( ErrMsg, RC, THISLOC )
 !
 ! !INPUT PARAMETERS"
 !
@@ -227,16 +230,16 @@ CONTAINS
     Err%nWarnings = Err%nWarnings + 1
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_WARNING
+  END SUBROUTINE HCO_Warning
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_msg
+! !IROUTINE: HCO_Msg
 !
-! !DESCRIPTION: Subroutine HCO\_MSG passes message msg to the HEMCO
+! !DESCRIPTION: Subroutine HCO\_Msg passes message msg to the HEMCO
 ! logfile (or to standard output if the logfile is not open).
 ! Sep1 and Sep2 denote line delimiters before and after the message,
 ! respectively.
@@ -244,7 +247,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_MSG( Msg, Sep1, Sep2 )
+  SUBROUTINE HCO_Msg( Msg, Sep1, Sep2 )
 !
 ! !INPUT PARAMETERS:
 !
@@ -302,27 +305,27 @@ CONTAINS
        ENDIF
     ENDIF
 
-  END SUBROUTINE HCO_MSG
+  END SUBROUTINE HCO_Msg
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_enter
+! !IROUTINE: HCO_Enter
 !
-! !DESCRIPTION: Subroutine HCO\_ENTER is called upon entering a routine. 
+! !DESCRIPTION: Subroutine HCO\_Enter is called upon entering a routine. 
 ! It organizes the traceback handling. It is recommended to call this
 ! routine for 'big' routines but NOT for routines/functions that are 
 ! frequently called, e.g. inside of loops!
 !\\
 !\\
-! Note that all subroutines calling HCO\_ENTER must also call HCO\_LEAVE!
+! Note that all subroutines calling HCO\_Enter must also call HCO\_Leave!
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ENTER( thisLoc, RC )
+  SUBROUTINE HCO_Enter( thisLoc, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -350,14 +353,14 @@ CONTAINS
     Err%CurrLoc = Err%CurrLoc + 1
     IF ( Err%CurrLoc > MaxNest ) THEN 
        Msg = 'MaxNest too low, cannot enter ' // TRIM(thisLoc)
-       CALL HCO_ERROR ( Msg, RC )
+       CALL HCO_Error( Msg, RC )
        RETURN 
     ENDIF
 
     ! Error trap
     IF ( Err%CurrLoc <= 0 ) THEN
        Msg = 'CurrLoc is zero, cannot enter: ' // TRIM(thisLoc)
-       CALL HCO_ERROR ( Msg, RC )
+       CALL HCO_Error( Msg, RC )
        RETURN 
     ENDIF
 
@@ -367,7 +370,7 @@ CONTAINS
     ! Track location if enabled 
     IF ( Err%Track ) THEN
        WRITE(MSG,100) TRIM(thisLoc), Err%CurrLoc
-       CALL HCO_MSG( MSG )
+       CALL HCO_Msg( MSG )
     ENDIF
 
     ! Set RC to success
@@ -375,27 +378,27 @@ CONTAINS
 
 100 FORMAT( 'HEMCO: Entering ', a, ' (', i2, ')' )  
 
-  END SUBROUTINE HCO_ENTER
+  END SUBROUTINE HCO_Enter
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_leave
+! !IROUTINE: HCO_Leave
 !
-! !DESCRIPTION: Subroutine HCO\_LEAVE is called upon leaving a routine. 
+! !DESCRIPTION: Subroutine HCO\_Leave is called upon leaving a routine. 
 ! It organizes the traceback handling. It is recommended to call this
 ! routine for 'big' routines but NOT for routines/functions that are 
 ! frequently called, e.g. inside of loops!
 !\\
 !\\
-! Note that all subroutines calling HCO\_LEAVE must also call HCO\_ENTER!
+! Note that all subroutines calling HCO\_Leave must also call HCO\_Enter!
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_LEAVE( RC )
+  SUBROUTINE HCO_Leave( RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -438,16 +441,16 @@ CONTAINS
 
 110 FORMAT( 'HEMCO: Leaving ', a, ' (', i2, ')' )  
 
-  END SUBROUTINE HCO_LEAVE
+  END SUBROUTINE HCO_Leave
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_error_set
+! !IROUTINE: HCO_Error_Set
 !
-! !DESCRIPTION: Subroutine HCO\_ERROR\_SET defines the HEMCO error
+! !DESCRIPTION: Subroutine HCO\_Error\_Set defines the HEMCO error
 ! settings. This routine is called at the beginning of a HEMCO
 ! simulation. Its input parameter are directly taken from the
 ! HEMCO configuration file.
@@ -455,7 +458,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ERROR_SET( LogFile, Verbose, Wildcard, Separator, &
+  SUBROUTINE HCO_Error_Set( LogFile, Verbose, Wildcard, Separator, &
                             ForceScalUnit, ShowWarnings, Track, RC )
 !
 !  !INPUT PARAMETERS:
@@ -520,21 +523,21 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_ERROR_SET
+  END SUBROUTINE HCO_Error_Set
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_error_final
+! !IROUTINE: HCO_Error_Final
 !
-! !DESCRIPTION: Subroutine HCO\_ERROR\_FINAL finalizes the error type.
+! !DESCRIPTION: Subroutine HCO\_Error\_Final finalizes the error type.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ERROR_FINAL 
+  SUBROUTINE HCO_Error_Final 
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -550,7 +553,7 @@ CONTAINS
     !======================================================================
 
     ! Eventually close logfile
-    CALL HCO_LOGFILE_CLOSE ( ShowSummary=.TRUE. ) 
+    CALL HCO_Logfile_Close( ShowSummary=.TRUE. ) 
 
     IF ( ASSOCIATED(Err) ) THEN
        IF ( ASSOCIATED(Err%Loc) ) DEALLOCATE(Err%Loc)
@@ -558,16 +561,16 @@ CONTAINS
        Err=>NULL()
     ENDIF
 
-  END SUBROUTINE HCO_ERROR_FINAL
+  END SUBROUTINE HCO_Error_Final
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_verbose_set
+! !IROUTINE: HCO_Verbose_Set
 !
-! !DESCRIPTION: Subroutine HCO\_VERBOSE\_SET sets the verbose flag. 
+! !DESCRIPTION: Subroutine HCO\_Verbose\_Set sets the verbose flag. 
 !\\
 !\\
 ! !INTERFACE:
@@ -593,21 +596,21 @@ CONTAINS
        Err%Verbose = isVerbose 
     ENDIF
 
-  END SUBROUTINE HCO_VERBOSE_SET
+  END SUBROUTINE HCO_VErbose_Set
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_verbose_check
+! !IROUTINE: HCO_Verbose_Check
 !
-! !DESCRIPTION: Function HCO\_VERBOSE\_CHECK returns the verbose flag. 
+! !DESCRIPTION: Function HCO\_Verbose\_Check returns the verbose flag. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_VERBOSE_CHECK() RESULT( isVerbose )
+  FUNCTION HCO_Verbose_Check() RESULT( isVerbose )
 !
 ! !RETURN VALUE:
 !
@@ -630,14 +633,14 @@ CONTAINS
        isVerbose = .FALSE.
     ENDIF
 
-  END FUNCTION HCO_VERBOSE_CHECK
+  END FUNCTION HCO_Verbose_Check
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_forcescal_check
+! !IROUTINE: HCO_ForceScal_Check
 !
 ! !DESCRIPTION: Function HCO\_FORCESCAL\_CHECK returns TRUE if scale 
 ! factors shall be forced to be unitless, FALSE otherwise. 
@@ -645,7 +648,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_FORCESCAL_CHECK() RESULT( ForceScalUnit )
+  FUNCTION HCO_ForceScal_Check() RESULT( ForceScalUnit )
 !
 ! !RETURN VALUE::
 !
@@ -667,21 +670,21 @@ CONTAINS
        ForceScalUnit = .TRUE.
     ENDIF
 
-  END FUNCTION HCO_FORCESCAL_CHECK
+  END FUNCTION HCO_ForceScal_Check
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_wildcard
+! !IROUTINE: HCO_WildCard
 !
-! !DESCRIPTION: Function HCO\_WILDCARD returns the WILDCARD character. 
+! !DESCRIPTION: Function HCO\_WildCard returns the WILDCARD character. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_WILDCARD() RESULT( WILDCARD ) 
+  FUNCTION HCO_WildCard() RESULT( WILDCARD ) 
 !
 ! !RETURN VALUE:
 !
@@ -703,21 +706,21 @@ CONTAINS
        WILDCARD = '*' 
     ENDIF
 
-  END FUNCTION HCO_WILDCARD
+  END FUNCTION HCO_WildCard
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_SEP
+! !IROUTINE: HCO_Sep
 !
-! !DESCRIPTION: Function HCO\_SEP returns the separator character. 
+! !DESCRIPTION: Function HCO\_Sep returns the separator character. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_SEP() RESULT( SEP ) 
+  FUNCTION HCO_Sep() RESULT( SEP ) 
 !
 ! !RETURN VALUE::
 !
@@ -740,14 +743,14 @@ CONTAINS
        SEP = '/' 
     ENDIF
 
-  END FUNCTION HCO_SEP
+  END FUNCTION HCO_Sep
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_logfile_open
+! !IROUTINE: HCO_LogFile_Open
 !
 ! !DESCRIPTION: Subroutine HCO\_LOGFILE\_OPEN opens the HEMCO logfile
 ! (if not yet open). 
@@ -755,7 +758,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_LOGFILE_OPEN ( RC )
+  SUBROUTINE HCO_LogFile_Open( RC )
 !
 ! !USES:
 ! 
@@ -853,14 +856,14 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_LOGFILE_OPEN
+  END SUBROUTINE HCO_Logfile_Open
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_logfile_close
+! !IROUTINE: HCO_LogFile_Close
 !
 ! !DESCRIPTION: Subroutine HCO\_LOGFILE\_CLOSE closes the HEMCO logfile.
 ! If argument ShowSummary is enabled, it will prompt a summary of the 
@@ -869,7 +872,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_LOGFILE_CLOSE ( ShowSummary ) 
+  SUBROUTINE HCO_LogFile_Close( ShowSummary ) 
 !
 ! !INPUT PARAMETERS:
 !
@@ -919,7 +922,7 @@ CONTAINS
     ENDIF
     Err%LogIsOpen = .FALSE.
 
-  END SUBROUTINE HCO_LOGFILE_CLOSE
+  END SUBROUTINE HCO_LogFile_Close
 !EOC
-END MODULE HCO_ERROR_MOD
+END MODULE HCO_Error_Mod
 

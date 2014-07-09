@@ -3,35 +3,38 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_readlist_mod
+! !MODULE: hco_readlist_mod.F90
 !
-! !DESCRIPTION: Module HCO\_READLIST\_MOD contains routines and variables
+! !DESCRIPTION: Module HCO\_ReadList\_Mod contains routines and variables
 ! for the HEMCO ReadList. ReadList is a collection of all data containers
 ! used by HEMCO. They are categorized according to their reading update
 ! frequency, i.e all data containers that need to be updated on an annual
 ! basis are stored in ReadList 'Year', etc. The following reading update
 ! frequencies are supported:
-!\begin{itemize}
-!\item Year: update every year (annual data) 
-!\item Month: update every month (monthly data) 
-!\item Day: update every day (daily data) 
-!\item Hour: update every hour (hourly data) 
-!\item Once: update only once (time-invariant data)
-!\item Always: update every time step
-!\end{itemize} 
+!
+! \begin{itemize}
+! \item Year: update every year (annual data) 
+! \item Month: update every month (monthly data) 
+! \item Day: update every day (daily data) 
+! \item Hour: update every hour (hourly data) 
+! \item Once: update only once (time-invariant data)
+! \item Always: update every time step
+! \end{itemize} 
+!
 ! In an ESMF environment - where data reading and time interpolation is 
 ! done through the ESMF/MAPL software framework - all arrays are added
 ! to list 'Always' and hence become refreshed on every time step.
-! \\
+!\\
+!\\
 ! !INTERFACE: 
 !
-MODULE HCO_READLIST_MOD
+MODULE HCO_ReadList_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_DATACONT_MOD,       ONLY : DataCont, ListCont
-  USE HCO_STATE_MOD,          ONLY : HCO_State
+  USE HCO_Error_MOD
+  USE HCO_DataCont_MOD, ONLY : DataCont, ListCont
+  USE HCO_State_MOD,    ONLY : HCO_State
  
   IMPLICIT NONE
   PRIVATE
@@ -54,7 +57,6 @@ MODULE HCO_READLIST_MOD
 !  20 Apr 2013 - C. Keller   - Initial version
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -95,7 +97,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD, ONLY : DataCont_Print
+    USE HCO_DataCont_Mod, ONLY : DataCont_Print
 !
 ! !INPUT PARAMETERS:
 !
@@ -124,7 +126,7 @@ CONTAINS
     ! ================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('ReadList_Set (HCO_READLIST_MOD.F90)', RC )
+    CALL HCO_ENTER ('ReadList_Set (hco_readlist_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
@@ -228,7 +230,7 @@ CONTAINS
     ! ================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('ReadList_Read (HCO_READLIST_MOD.F90)', RC )
+    CALL HCO_ENTER ('ReadList_Read (hco_readlist_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Read content from one-time list on the first call 
@@ -293,8 +295,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCOI_DATAREAD_MOD, ONLY : HCOI_DATAREAD
-    USE HCO_FILEDATA_MOD,  ONLY : FileData_ArrIsDefined
+    USE HCOI_DataRead_Mod, ONLY : HCOI_DataRead
+    USE HCO_FileData_Mod,  ONLY : FileData_ArrIsDefined
 !
 ! !INPUT PARAMETERS:
 !
@@ -325,7 +327,7 @@ CONTAINS
     ! ================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('ReadList_Fill (HCO_READLIST_MOD.F90)', RC )
+    CALL HCO_ENTER ('ReadList_Fill (hco_readlist_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Loop over all containers
@@ -386,7 +388,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DtCont_Add ( ReadList, Dct )
+  SUBROUTINE DtCont_Add( ReadList, Dct )
 !
 ! !INPUT PARAMETERS:
 !
@@ -521,11 +523,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Print
+  SUBROUTINE ReadList_Print()
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD, ONLY : ListCont_Print
+    USE HCO_DataCont_Mod, ONLY : ListCont_Print
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -594,7 +596,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DATACONT_MOD, ONLY : ListCont_Cleanup
+    USE HCO_DataCont_Mod, ONLY : ListCont_Cleanup
 !
 ! !INPUT PARAMETERS:
 !
@@ -647,10 +649,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_CLOCK_MOD,    ONLY : HcoClock_First,    HcoClock_NewYear
-    USE HCO_CLOCK_MOD,    ONLY : HcoClock_NewMonth, HcoClock_NewDay
-    USE HCO_CLOCK_MOD,    ONLY : HcoClock_NewHour
-    USE HCO_EMISLIST_MOD, ONLY : EmisList_Update
+    USE HCO_Clock_Mod,    ONLY : HcoClock_First,    HcoClock_NewYear
+    USE HCO_Clock_Mod,    ONLY : HcoClock_NewMonth, HcoClock_NewDay
+    USE HCO_Clock_Mod,    ONLY : HcoClock_NewHour
+    USE HCO_Emislist_Mod, ONLY : EmisList_Update
 !
 ! !INPUT PARAMETERS:
 !
@@ -672,7 +674,7 @@ CONTAINS
     ! ================================================================
 
     ! Enter
-    CALL HCO_ENTER ('ReadList_to_EmisList (HCO_READLIST_MOD.F90)', RC)
+    CALL HCO_ENTER ('ReadList_to_EmisList (hco_readlist_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Always add/update content from always-to-read list
@@ -714,4 +716,4 @@ CONTAINS
 
   END SUBROUTINE ReadList_to_EmisList
 !EOC
-END MODULE HCO_READLIST_MOD
+END MODULE HCO_ReadList_Mod

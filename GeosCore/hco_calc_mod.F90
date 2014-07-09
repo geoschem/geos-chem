@@ -5,26 +5,35 @@
 !
 ! !MODULE: hco_calc_mod.F90
 !
-! !DESCRIPTION: Module HCO\_CALC\_MOD contains routines to calculate 
+! !DESCRIPTION: Module HCO\_Calc\_Mod contains routines to calculate 
 ! HEMCO core emissions based on the content of the HEMCO EmisList 
 ! object. All emissions are in [kg/m2/s]. 
+!\\
+!\\
 ! Emissions for the current datetime are calculated by multiplying base 
 ! emissions fields with the associated scale factors. Different 
 ! inventories are merged/overlayed based upon the category and hierarchy 
 ! attributes assigned to the individual base fields. Within the same 
 ! category, fields of higher hierarchy overwrite lower-hierarchy fields. 
-! Emissions of different categories are always added.\\
+! Emissions of different categories are always added.
+!\\
+!\\
 ! The assembled emission array is written into the corresponding emission 
 ! rates array of the HEMCO state object: HcoState%Spc(HcoID)%Emis, where 
 ! HcoID denotes the corresponding species ID. Emis covers dimension lon, 
 ! lat, lev on the HEMCO grid, i.e. unlike the emission arrays in EmisList
 ! that only cover the levels defined in the source files, Emis extends 
-! over all vertical model levels.\\
+! over all vertical model levels.
+!\\
+!\\
 ! Negative emissions are not supported and are ignored. Surface 
 ! deposition velocities are stored in HcoState%Spc(HcoID)%Depv and can
-! be added therein.\\
+! be added therein.
+!\\
+!\\
 ! All emission calculation settings are passed through the HcoState 
 ! options object (HcoState%Options). These include:
+!
 ! \begin{itemize}
 !  \item ExtNr: extension number to be considered.
 !  \item SpcMin: lower species ID (HEMCO ID) to be considered.
@@ -44,14 +53,14 @@
 !
 ! !INTERFACE: 
 !
-MODULE HCO_CALC_MOD
+MODULE HCO_Calc_Mod
 !
 ! !USES:
 !
-  USE HCO_DIAGN_MOD
-  USE HCO_ERROR_MOD
-  USE HCO_DATACONT_MOD, ONLY : DataCont, ListCont, SclMax
-  USE HCO_DATACONT_MOD, ONLY : Pnt2DataCont
+  USE HCO_Diagn_Mod
+  USE HCO_Error_Mod
+  USE HCO_DataCont_Mod, ONLY : DataCont, ListCont, SclMax
+  USE HCO_DataCont_Mod, ONLY : Pnt2DataCont
 
   IMPLICIT NONE
   PRIVATE
@@ -94,7 +103,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_STATE_MOD,    ONLY : HCO_State
-    USE HCO_ARR_MOD,      ONLY : Hco_ArrAssert
+    USE HCO_ARR_MOD,      ONLY : HCO_ArrAssert
     USE HCO_EMISLIST_MOD, ONLY : EmisList_NextCont
     USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
 !
@@ -536,9 +545,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_current_emissions
+! !IROUTINE: Get_Current_Emissions
 !
-! !DESCRIPTION: Subroutine GET\_CURRENT\_EMISSIONS calculates the current 
+! !DESCRIPTION: Subroutine Get\_Current\_Emissions calculates the current 
 !  emissions for the specified emission container. 
 !  This subroutine is only called by HCO\_CalcEmis and for base emission 
 !  containers, i.e. containers of type 1. 
@@ -546,14 +555,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_CURRENT_EMISSIONS( am_I_Root, HcoState, BaseDct, &
+  SUBROUTINE Get_Current_Emissions( am_I_Root, HcoState, BaseDct, &
                                     nI, nJ, nL, OUTARR_3D, RC )
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD,    ONLY : HCO_State
-    USE HCO_TIDX_MOD,     ONLY : tIDx_GetIndxVec
-    USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
+    USE HCO_State_Mod,    ONLY : HCO_State
+    USE HCO_tIdx_MOD,     ONLY : tIDx_GetIndxVec
+    USE HCO_FileData_Mod, ONLY : FileData_ArrIsDefined
 !
 ! !INPUT PARAMETERS:
 !
@@ -571,12 +580,13 @@ CONTAINS
     REAL(hp),        INTENT(INOUT) :: OUTARR_3D(nI,nJ,nL) ! output array
     INTEGER,         INTENT(INOUT) :: RC
 !
-! !NOTES: This routine uses multiple loops over all grid boxes (base
-! emissions and scale factors use separate loops). In an OMP environment,
-! this approach seems to be faster than using only one single loop (but
-! repeated calls to point to containers, etc.). The alternative approach
-! is used in routine GET\_CURRENT\_EMISSIONS\_B at the end of this module
-! and may be employed on request.
+! !REMARKS: 
+!  This routine uses multiple loops over all grid boxes (base emissions 
+!  and scale factors use separate loops). In an OMP environment, this approach 
+!  seems to be faster than using only one single loop (but repeated calls to
+!  point to containers, etc.). The alternative approach is used in routine 
+!  Get\_Current\_Emissions\_B at the end of this module and may be employed 
+!  on request.
 !
 ! !REVISION HISTORY:
 !  25 Aug 2012 - C. Keller   -  Initial Version
@@ -931,16 +941,16 @@ CONTAINS
     ScalDct => NULL()
     CALL HCO_LEAVE ( RC )
  
-  END SUBROUTINE GET_CURRENT_EMISSIONS
+  END SUBROUTINE Get_Current_Emissions
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_current_emissions_b (NOT USED!!)
+! !IROUTINE: Get_Current_Emissions_b (NOT USED!!)
 !
-! !DESCRIPTION: Subroutine GET\_CURRENT\_EMISSIONS\_B calculates the current 
+! !DESCRIPTION: Subroutine Get\_Current\_Emissions\_B calculates the current 
 !  emissions for the specified emission field and passes the result to 
 !  OUTARR\_3D.
 !\\
@@ -951,7 +961,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_CURRENT_EMISSIONS_B( am_I_Root, HcoState, BaseDct, &
+  SUBROUTINE Get_Current_Emissions_B( am_I_Root, HcoState, BaseDct, &
                                       nI, nJ, nL, OUTARR_3D, RC )
 !
 ! !USES:
@@ -1288,6 +1298,6 @@ CONTAINS
     ! Leave
     CALL HCO_LEAVE( RC )
 
-  END SUBROUTINE GET_CURRENT_EMISSIONS_B
+  END SUBROUTINE Get_Current_Emissions_B
 !EOC
-END MODULE HCO_CALC_MOD
+END MODULE HCO_Calc_Mod

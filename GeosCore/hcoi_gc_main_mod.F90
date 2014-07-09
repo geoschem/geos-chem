@@ -18,7 +18,7 @@
 !\\
 ! !INTERFACE:
 !
-MODULE HCOI_GC_MAIN_MOD
+MODULE HCOI_GC_Main_Mod
 !
 ! !USES:
 !
@@ -31,9 +31,9 @@ MODULE HCOI_GC_MAIN_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HCOI_GC_INIT
-  PUBLIC :: HCOI_GC_RUN
-  PUBLIC :: HCOI_GC_FINAL
+  PUBLIC :: HCOI_GC_Init
+  PUBLIC :: HCOI_GC_Run
+  PUBLIC :: HCOI_GC_Final
 !
 ! !REMARKS:
 !  This module is ignored if you are using HEMCO in an ESMF environment.
@@ -66,7 +66,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcoi_gc_init
+! !IROUTINE: HCOI_GC_Init
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_INIT initializes the HEMCO derived
 ! types and arrays. 
@@ -74,7 +74,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_INIT( am_I_Root, Input_Opt, State_Chm, State_Met, RC ) 
+  SUBROUTINE HCOI_GC_Init( am_I_Root, Input_Opt, State_Chm, State_Met, RC ) 
 !
 ! !USES:
 !
@@ -143,7 +143,7 @@ CONTAINS
     !=================================================================
 
     ! Error handling 
-    LOC = 'HCOI_GC_INIT (hcoi_GC_mod.F90)'
+    LOC = 'HCOI_GC_Init (hcoi_gc_main_mod.F90)'
 
     ! Set return code flag to HCO success. This value should be
     ! preserved throughout all HCO calls, otherwise an error
@@ -439,21 +439,21 @@ CONTAINS
     ! Leave w/ success
     RC = GIGC_SUCCESS
 
-  END SUBROUTINE HCOI_GC_INIT
+  END SUBROUTINE HCOI_GC_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcoi_gc_run
+! !IROUTINE: HCOI_GC_Run
 !
-! !DESCRIPTION: Subroutine HCOI\_GC\_RUN runs HCO from GEOS-Chem. 
+! !DESCRIPTION: Subroutine HCOI\_GC\_Run runs HEMCO from GEOS-Chem. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+  SUBROUTINE HCOI_GC_Run( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -518,7 +518,7 @@ CONTAINS
     !=================================================================
 
     ! For error handling
-    LOC = 'HCOI_GC_RUN (hcoi_gc_mod.F90)'
+    LOC = 'HCOI_GC_Run (hcoi_gc_main_mod.F90)'
 
     ! Set return code flag to HCO success. This value should be
     ! preserved throughout all HCO calls, otherwise an error
@@ -697,34 +697,34 @@ CONTAINS
     !      first = .false.
     RC = GIGC_SUCCESS
 
-  END SUBROUTINE HCOI_GC_RUN
+  END SUBROUTINE HCOI_GC_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcoi_gc_final
+! !IROUTINE: HCOI_GC_Final
 !
-! !DESCRIPTION: Subroutine HCOI\_GC\_FINAL cleans up HEMCO. This routine
+! !DESCRIPTION: Subroutine HCOI\_GC\_Final cleans up HEMCO. This routine
 ! should be called before the finalize routines of State\_Chm in order to 
 ! make sure that the emissions flux pointers are properly removed!
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_FINAL( am_I_Root )
+  SUBROUTINE HCOI_GC_Final( am_I_Root )
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
-    USE ERROR_MOD,           ONLY : ERROR_STOP
-    USE CMN_SIZE_MOD,        ONLY : IIPAR, JJPAR, LLPAR
-    USE HCO_DRIVER_MOD,      ONLY : HCO_FINAL
-    USE HCO_DIAGN_MOD,       ONLY : Diagn_Cleanup
-    USE HCOX_DRIVER_MOD,     ONLY : HCOX_FINAL
-    USE HCO_STATE_MOD,       ONLY : HcoState_Final
-    USE HCOI_GC_DIAGN_MOD,   ONLY : HCOI_DIAGN_WRITEOUT
+    USE Error_Mod,           ONLY : Error_Stop
+    USE CMN_SIZE_Mod,        ONLY : IIPAR, JJPAR, LLPAR
+    USE HCO_Driver_Mod,      ONLY : HCO_Final
+    USE HCO_Diagn_Mod,       ONLY : Diagn_Cleanup
+    USE HCO_State_Mod,       ONLY : HcoState_Final
+    USE HCOI_GC_Diagn_Mod,   ONLY : HCOI_Diagn_WriteOut
+    USE HCOX_Driver_Mod,     ONLY : HCOX_Final
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -746,7 +746,7 @@ CONTAINS
     !=================================================================
 
     ! Init
-    LOC = 'HCOI_GC_FINAL (hcoi_gc_main.F90)'
+    LOC = 'HCOI_GC_Final (hcoi_gc_main_mod.F90)'
 
     ! Write out 'standard' diagnostics
     CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC, &
@@ -799,16 +799,16 @@ CONTAINS
     IF ( ALLOCATED  ( HCO_PCENTER ) ) DEALLOCATE ( HCO_PCENTER )
     IF ( ALLOCATED  ( HCO_SZAFACT ) ) DEALLOCATE ( HCO_SZAFACT )
 
-  END SUBROUTINE HCOI_GC_FINAL
+  END SUBROUTINE HCOI_GC_Final
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: map_hemco2gc
+! !IROUTINE: Map_Hco2Gc
 !
-! !DESCRIPTION: Function MAP\_HCO2GC fills the GEOS-Chem tracer
+! !DESCRIPTION: Function MAP\_Hco2Gc fills the GEOS-Chem tracer
 ! tendency array (in chemistry state) with the corresponding emission
 ! values of the HCO state object. Regridding is performed if
 ! necessary, and emissions are converted from kg/m2/s to molec/cm2/s 
@@ -817,7 +817,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MAP_HCO2GC( HcoState, Input_Opt, State_Chm, RC )
+  SUBROUTINE Map_Hco2Gc( HcoState, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -859,7 +859,7 @@ CONTAINS
     !=================================================================
 
     ! For error handling
-    LOC = 'MAP_HCO2GC (hcoi_gc_mod.F90)'
+    LOC = 'Map_HCO2GC (hcoi_gc_main_mod.F90)'
 
     ! Assume success until otherwise
     RC = GIGC_SUCCESS
@@ -909,23 +909,23 @@ CONTAINS
 
     ENDDO !N 
 
-  END SUBROUTINE MAP_HCO2GC
+  END SUBROUTINE Map_HCO2GC
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: regrid_emis2sim
+! !IROUTINE: Regrid_Emis2Sim
 !
-! !DESCRIPTION: Function REGRID\_EMIS2SIM regrids the original emission
+! !DESCRIPTION: Function REGRID\_Emis2Sim regrids the original emission
 !  field onto the simulation grid. Emissions are in kg/m2/s, i.e. no
 !  area adjustment is applied.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE REGRID_EMIS2SIM( HcoState, hcoID, State_Chm, trcID, Input_Opt ) 
+  SUBROUTINE Regrid_Emis2Sim( HcoState, hcoID, State_Chm, trcID, Input_Opt ) 
 !
 ! !USES:
 !
@@ -977,7 +977,7 @@ CONTAINS
     !=================================================================
 
     ! For error handling
-    LOC = 'REGRID_EMIS2SIM ("HCO_MAP2GC_MOD.F90")'
+    LOC = 'Regrid_Emis2Sim ("hcoi_gc_main_mod.F90")'
 
     ! Pass horizontal emission grid dimensions
     NX = HcoState%NX
@@ -1067,22 +1067,22 @@ CONTAINS
        ENDIF
     ENDIF
 
-  END SUBROUTINE REGRID_EMIS2SIM
+  END SUBROUTINE  Regrid_Emis2Sim
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_current_time 
+! !IROUTINE: Set_Current_Time 
 !
-! !DESCRIPTION: SUBROUTINE SET\_CURRENT\_TIME sets the current simulation 
+! !DESCRIPTION: SUBROUTINE Set\_Current\_Time sets the current simulation 
 ! datetime in HcoState. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_CURRENT_TIME( am_I_Root, HcoState, RC ) 
+  SUBROUTINE Set_Current_Time( am_I_Root, HcoState, RC ) 
 !
 ! !USES:
 !
@@ -1123,25 +1123,25 @@ CONTAINS
     cSec     = GET_SECOND()
     cDOY     = GET_DAY_OF_YEAR()
 
-    CALL HcoClock_Set ( am_I_Root,  HcoState, cYr, cMt, cDy, cHr, &
-                        cMin, cSec, cDoy, RC )
+    CALL HcoClock_Set( am_I_Root,  HcoState, cYr, cMt, cDy, cHr, &
+                       cMin, cSec, cDoy, RC )
 
-  END SUBROUTINE SET_CURRENT_TIME
+  END SUBROUTINE Set_Current_Time
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_extopt_fields
+! !IROUTINE: Set_ExtOpt_Fields
 !
-! !DESCRIPTION: SUBROUTINE SET\_EXTOPT\_FIELDS sets the extension object data
-! pointers. This routine must be called after HCOX\_INIT. 
+! !DESCRIPTION: SUBROUTINE Set\_ExtOpt\_Fields sets the extension object data
+! pointers. This routine must be called after HCOX\_Init. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_EXTOPT_FIELDS ( State_Met, State_Chm, RC ) 
+  SUBROUTINE Set_ExtOpt_Fields( State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
@@ -1195,7 +1195,7 @@ CONTAINS
     ! Init
     RC = GIGC_SUCCESS
 
-    LOC = 'SET_EXTOPT_FIELDS (HCOI_GC_MAIN_MOD.F90)'
+    LOC = 'Set_ExtOpt_Fields (hcoi_gc_main_mod.F90)'
 
     ! ----------------------------------------------------------------
     ! HCO_PEDGE, HCO_PCENTER and HCO_SZAFACT aren't defined as 3D 
@@ -1368,7 +1368,7 @@ CONTAINS
     ENDIF
     IF ( DoDryCoeff ) ExtState%DRYCOEFF => DRYCOEFF
 
-  END SUBROUTINE SET_EXTOPT_FIELDS
+  END SUBROUTINE Set_ExtOpt_Fields
 !EOC
-END MODULE HCOI_GC_MAIN_MOD
+END MODULE HCOI_GC_Main_Mod
 #endif

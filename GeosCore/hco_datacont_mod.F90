@@ -3,22 +3,29 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_datacont_mod 
+! !MODULE: hco_datacont_mod.F90
 !
 ! !DESCRIPTION: Module HCO\_DATACONT\_MOD contains routines and 
 ! variables to handle the HEMCO data-container (DataCont) and 
-! correspoding list-container (ListCont) derived type.\\
+! correspoding list-container (ListCont) derived type.
+!\\
+!\\
 ! DataCont holds all information of an emission field, such as 
 ! emission category, emission hierarchy, scale factors, etc.
 ! DataCont also contains a pointer to the source data (see 
 ! HCO\_FILEDATA\_MOD) for more information on the file data object.
 ! A data-container will be created for every emission field
-! specified in the HEMCO configuration file.\\ 
+! specified in the HEMCO configuration file.
+!\\
+!\\ 
 ! The ListCont object is a derived type used to create linked lists. 
 ! It contains a pointer to one data container (Dta) and a pointer to 
 ! the next element of the list (NextCont). All HEMCO lists (ConfigList, 
-! ReadList, ListCont) are built from ListCont elements.\\
+! ReadList, ListCont) are built from ListCont elements.
+!\\
+!\\
 ! DataCont consists of the following elements:
+!
 ! \begin{itemize}
 ! \item cName: container name, as set in the configuration file.
 ! \item cID: container ID, defined by HEMCO.
@@ -70,13 +77,13 @@
 !
 ! !INTERFACE: 
 !
-MODULE HCO_DATACONT_MOD 
+MODULE HCO_DataCont_Mod 
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_ARR_MOD
-  USE HCO_FILEDATA_MOD,  ONLY : FileData
+  USE HCO_Error_Mod
+  USE HCO_Arr_Mod
+  USE HCO_FileData_Mod,  ONLY : FileData
 
   IMPLICIT NONE
   PRIVATE
@@ -109,7 +116,9 @@ MODULE HCO_DATACONT_MOD
 !
 ! !PRIVATE TYPES:
 !
-  ! Data container (DataCont)
+  !-------------------------------------------------------------------------
+  ! DataCont: Derived type definition for HEMCO data container
+  !-------------------------------------------------------------------------
   TYPE, PUBLIC :: DataCont
 
      ! Container information 
@@ -128,19 +137,26 @@ MODULE HCO_DATACONT_MOD
      INTEGER                     :: Oper           ! Operator
      INTEGER,            POINTER :: Scal_cID(:)    ! assoc. scalefactor IDs
      LOGICAL                     :: Scal_cID_set   ! cIDs or scalIDs 
- 
   END TYPE DataCont
 
-  ! ListCont
+  !-------------------------------------------------------------------------
+  ! ListCont: Derived type definition for HEMCO list object
+  !-------------------------------------------------------------------------
   TYPE, PUBLIC  :: ListCont
      TYPE(DataCont),     POINTER :: Dct
      TYPE(ListCont),     POINTER :: NextCont
   END TYPE ListCont
 
-  ! For cIDList
+  !-------------------------------------------------------------------------
+  ! cIdListPnt: Derived type definition for pointing to list containers
+  !-------------------------------------------------------------------------
   TYPE cIDListPnt
      TYPE(DataCont),     POINTER :: PNT ! Pointer to list container
   END TYPE cIDListPnt
+
+  !-------------------------------------------------------------------------
+  ! Other module variables
+  !-------------------------------------------------------------------------
 
   ! Array of pointers to all containers in a list.
   ! Element i of cIDList will point to data-container with container
@@ -164,7 +180,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: datacont_init
+! !IROUTINE: DataCont_Init
 !
 ! !DESCRIPTION: Subroutine DataCont\_Init initializes a new (blank) data
 ! container Dct. 
@@ -222,7 +238,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: datacont_cleanup
+! !IROUTINE: DataCont_Cleanup
 !
 ! !DESCRIPTION: Subroutine DataCont\_Cleanup cleans up data container Dct.
 ! If ArrOnly is set to True, this will only cleanup the data array of the
@@ -283,14 +299,14 @@ CONTAINS
        ENDIF
     ENDIF
 
-  END SUBROUTINE DataCont_Cleanup
+  END SUBROUTINE DataCont_CleanUp
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: listcont_cleanup
+! !IROUTINE: ListCont_Cleanup
 !
 ! !DESCRIPTION: Subroutine ListCont\_Cleanup cleans up list List 
 ! The corresponding data container (LstCont%Dct) is also removed if 
@@ -351,7 +367,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cidlist_create
+! !IROUTINE: cIDList_Create
 !
 ! !DESCRIPTION: Subroutine cIDList\_Create creates a vector of pointers 
 ! (cIDList) pointing to all available containers of the passed List. 
@@ -469,7 +485,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cidlist_cleanup
+! !IROUTINE: cIDList_Cleanup
 !
 ! !DESCRIPTION: Subroutine cIDList\_Cleanup cleans up cIDList. 
 !\\
@@ -507,7 +523,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Pnt2DataCont
+! !IROUTINE: Pnt2DataCont
 !
 ! !DESCRIPTION: Subroutine Pnt2DataCont returns the data container Dct
 ! with container ID cID. 
@@ -570,11 +586,13 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: listcont_nextcont 
+! !IROUTINE: ListCont_NextCont 
 !
 ! !DESCRIPTION: Routine ListCont\_NextCont returns container Lct from
 ! data list List. This is the generic routine for cycling through
-! the data container lists.\\
+! the data container lists.
+!\\
+!\\
 ! If Lct is empty (i.e. NULL), the first container of List is returned. 
 ! If Lct already points to a list container, the pointer is advanced 
 ! to the next container in that list (Lct%NextCont). The return flag 
@@ -628,7 +646,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: ListCont_Find_Name
+! !IROUTINE: ListCont_Find_Name
 !
 ! !DESCRIPTION: Subroutine ListCont\_Find\_Name searches for (data)
 ! container name NME in list List and returns a pointer pointing 
@@ -700,7 +718,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: listcont_find_id
+! !IROUTINE: ListCont_Find_ID
 !
 ! !DESCRIPTION: Subroutine ListCont\_Find\_ID searches for (data)
 ! container cID or ScalID (ID) in list List and returns a pointer 
@@ -784,7 +802,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: listcont_print
+! !IROUTINE: ListCont_Print
 !
 ! !DESCRIPTION: Subroutine ListCont\_Print displays the content of List. 
 !\\
@@ -831,7 +849,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: datacont_print
+! !IROUTINE: DataCont_Print
 !
 ! !DESCRIPTION: Subroutine DataCont\_Print displays the content of Dct. 
 !\\
@@ -964,4 +982,4 @@ CONTAINS
 
   END SUBROUTINE DataCont_Print
 !EOC
-END MODULE HCO_DATACONT_MOD
+END MODULE HCO_DataCont_Mod

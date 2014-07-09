@@ -1,28 +1,38 @@
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
+!BOP
 !
-! !MODULE: hco_geotools_mod 
+! !MODULE: hco_geotools_mod.F90
 !
-! !DESCRIPTION: Module HCO\_GEOTOOLS\_MOD contains a collection of 
+! !DESCRIPTION: Module HCO\_GeoTools\_Mod contains a collection of 
 ! helper routines for extracting geographical information. These 
 ! routines are based upon GEOS-5 data and may need to be revised
 ! for other met. fields! 
 ! \\
 ! !INTERFACE: 
 !
-MODULE HCO_GEOTOOLS_MOD
+MODULE HCO_GeoTools_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
+  USE HCO_Error_Mod
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HCO_LANDTYPE
+  PUBLIC :: HCO_LandType
+  INTERFACE HCO_LandType
+     MODULE PROCEDURE HCO_LandType_Dp
+     MODULE PROCEDURE HCO_LandType_Sp
+  END INTERFACE HCO_LandType
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE:: HCO_LandType_Dp
+  PRIVATE:: HCO_LandType_Sp
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller   - Initialization
@@ -31,14 +41,6 @@ MODULE HCO_GEOTOOLS_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-  INTERFACE HCO_LANDTYPE
-     MODULE PROCEDURE HCO_LANDTYPE_DP
-     MODULE PROCEDURE HCO_LANDTYPE_SP
-  END INTERFACE HCO_LANDTYPE
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -46,7 +48,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: hco_landtype_sp 
+! !FUNCTION: HCO_LandType_Sp
 !
 ! !DESCRIPTION: Function HCO\_LANDTYPE returns the land type based upon 
 !  the land water index (0=water,1=land,2=ice) and the surface albedo.
@@ -55,16 +57,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_LANDTYPE_SP( WLI, Albedo ) Result ( LandType )
+  FUNCTION HCO_LandType_Sp( WLI, Albedo ) Result ( LandType )
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(sp), INTENT(IN   ) :: WLI       ! Land type: 0=water,1=land,2=ice
-    REAL(sp), INTENT(IN   ) :: Albedo    ! Surface albedo
+    REAL(sp), INTENT(IN) :: WLI       ! Land type: 0=water,1=land,2=ice
+    REAL(sp), INTENT(IN) :: Albedo    ! Surface albedo
 !
 ! !RETURN VALUE
 !
-    INTEGER                 :: LandType  ! Land type: 0=water,1=land,2=ice
+    INTEGER              :: LandType  ! Land type: 0=water,1=land,2=ice
 !
 ! !REMARKS:
 !  This function is largely based on the GEOS-Chem functions in dao_mod.F. 
@@ -98,39 +100,38 @@ CONTAINS
        LandType = 2
     ENDIF
 
-  END FUNCTION HCO_LANDTYPE_SP
+  END FUNCTION HCO_LandType_Sp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: hco_landtype_dp 
+! !FUNCTION: HCO_LandType_Dp 
 !
-! !DESCRIPTION: Function HCO\_LANDTYPE returns the land type based upon 
+! !DESCRIPTION: Function HCO\_LandType\_Dp returns the land type based upon 
 ! the land water index (0=water,1=land,2=ice) and the surface albedo.
 ! Inputs are in double precision.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_LANDTYPE_DP( WLI, Albedo ) Result ( LandType )
+  FUNCTION HCO_LandType_Dp( WLI, Albedo ) Result ( LandType )
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(dp), INTENT(IN   ) :: WLI       ! Land type: 0=water,1=land,2=ice
-    REAL(dp), INTENT(IN   ) :: Albedo    ! Surface albedo
+    REAL(dp), INTENT(IN) :: WLI       ! Land type: 0=water,1=land,2=ice
+    REAL(dp), INTENT(IN) :: Albedo    ! Surface albedo
 !
 ! !RETURN VALUE:
 !
-    INTEGER                 :: LandType  ! Land type: 0=water,1=land,2=ice
+    INTEGER              :: LandType  ! Land type: 0=water,1=land,2=ice
 !
 ! !REMARKS:
 !  This function is largely based on the GEOS-Chem functions in dao_mod.F. 
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller - Initialization
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,7 +159,7 @@ CONTAINS
        LandType = 2
     ENDIF
 
-  END FUNCTION HCO_LANDTYPE_DP
+  END FUNCTION HCO_LandType_Dp
 !EOC
-END MODULE HCO_GEOTOOLS_MOD
+END MODULE HCO_GeoTools_MOd
 !EOM

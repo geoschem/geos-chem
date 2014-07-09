@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_state_mod
+! !MODULE: hco_state_mod.F90
 !
-! !DESCRIPTION: Module HCO\_STATE\_MOD contains definitions and sub- 
+! !DESCRIPTION: Module HCO\_State\_Mod contains definitions and sub- 
 ! routines for the HEMCO state derived type. The HEMCO state HcoState 
 ! contains information about the emissions grid, all used species, 
 ! various physical constants, etc. It also contains the final assembled 
@@ -16,12 +16,12 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE HCO_STATE_MOD
+MODULE HCO_State_Mod
 !
 ! USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_ARR_MOD
+  USE HCO_Error_Mod
+  USE HCO_Arr_Mod
 
 #if defined(ESMF_)
   USE ESMF_Mod
@@ -171,15 +171,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoState_Init ( am_I_Root, HcoState, nSpecies, RC ) 
+  SUBROUTINE HcoState_Init( am_I_Root, HcoState, nSpecies, RC ) 
 !
-! !USES:
-!
-!
-! !PARAMETERS:
+! !INPUT PARAMETERS:
 ! 
     LOGICAL,          INTENT(IN)    :: am_I_Root ! root CPU?
     INTEGER,          INTENT(IN)    :: nSpecies  ! # HEMCO species 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
     TYPE(HCO_State),  POINTER       :: HcoState  ! HEMCO State object
     INTEGER,          INTENT(INOUT) :: RC        ! Return code
 ! 
@@ -191,14 +191,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, AS
+    INTEGER :: I, AS
 
     !=====================================================================
     ! HcoState_Init begins here!
     !=====================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('Init_HCO_State (HCO_STATE_MOD.F90)', RC )
+    CALL HCO_ENTER ('Init_HCO_State (hco_state_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=====================================================================
@@ -330,12 +330,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoState_Final ( HcoState )
+  SUBROUTINE HcoState_Final( HcoState )
 !
-! !USES:
-!
-!
-! !INPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(HCO_State), POINTER  :: HcoState    ! HEMCO State object
 !
@@ -344,8 +341,10 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-    INTEGER                :: I
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: I
 
     !=====================================================================
     ! HcoState_Final begins here!
@@ -390,25 +389,28 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_getmodspcid 
+! !IROUTINE: HCO_GetModSpcId
 !
-! !DESCRIPTION: Function HCO\_GETMODSPCID returns the model species index 
+! !DESCRIPTION: Function HCO\_GetModSpcId returns the model species index 
 ! of a species by name. Returns -1 if given species is not found, 0 if 
 ! name corresponds to the HEMCO wildcard character.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION HCO_GetModSpcID( name, HcoState ) RESULT( Indx )
+  FUNCTION HCO_GetModSpcID( name, HcoState ) RESULT( Indx )
 !
 ! !INPUT PARAMETERS:
 !
-      CHARACTER(LEN=*), INTENT(IN)   :: name         ! Species name
-      TYPE(HCO_State), INTENT(INOUT) :: HcoState     ! HEMCO State
+    CHARACTER(LEN=*), INTENT(IN)    :: name      ! Species name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State),  INTENT(INOUT) :: HcoState  ! HEMCO State
 !
 ! !RETURN VALUE:
 !
-      INTEGER                      :: Indx         ! Index of this species 
+    INTEGER                         :: Indx      ! Index of this species 
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90 
@@ -418,54 +420,54 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N 
+    INTEGER :: N 
 
-      ! Default 
-      Indx = -1
+    ! Default 
+    Indx = -1
 
-      ! Return 0 if wildcard character
-      IF ( TRIM(name) == HCO_WILDCARD() ) THEN
-         Indx = 0
-         RETURN
-      ENDIF
+    ! Return 0 if wildcard character
+    IF ( TRIM(name) == HCO_WILDCARD() ) THEN
+       Indx = 0
+       RETURN
+    ENDIF
 
-      ! Loop over all species names
-      DO N = 1, HcoState%nSpc
+    ! Loop over all species names
+    DO N = 1, HcoState%nSpc
 
-         ! Return the index of the sought-for species
-         IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
-            Indx = HcoState%Spc(N)%ModID
-            EXIT
-         ENDIF
+       ! Return the index of the sought-for species
+       IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
+          Indx = HcoState%Spc(N)%ModID
+          EXIT
+       ENDIF
 
-      ENDDO
+    ENDDO
 
-      END FUNCTION HCO_GetModSpcID
+  END FUNCTION HCO_GetModSpcID
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_gethcoid 
+! !IROUTINE: HCO_GetHcoId
 !
-! !DESCRIPTION: Function HCO\_GETHCOID returns the HEMCO species index 
+! !DESCRIPTION: Function HCO\_GetHcoIdHCO returns the HEMCO species index 
 ! of a species by name. Returns -1 if given species is not found, 0 if 
 ! name corresponds to the HEMCO wildcard character.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION HCO_GetHcoID( name, HcoState ) RESULT( Indx )
+  FUNCTION HCO_GetHcoID( name, HcoState ) RESULT( Indx )
 !
 ! !INPUT PARAMETERS:
 !
-      CHARACTER(LEN=*), INTENT(IN)   :: name         ! Species name
-      TYPE(HCO_State), INTENT(INOUT) :: HcoState     ! HEMCO State
+    CHARACTER(LEN=*), INTENT(IN)   :: name         ! Species name
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState     ! HEMCO State
 !
 ! !RETURN VALUE:
 !
-      INTEGER                      :: Indx         ! Index of this species 
+    INTEGER                      :: Indx         ! Index of this species 
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90 
@@ -475,27 +477,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N
+    INTEGER :: N
 
-      ! Default 
-      Indx = -1
+    ! Default 
+    Indx = -1
 
-      ! Return 0 if wildcard character
-      IF ( TRIM(name) == HCO_WILDCARD() ) THEN
-         Indx = 0
-         RETURN
-      ENDIF
+    ! Return 0 if wildcard character
+    IF ( TRIM(name) == HCO_WILDCARD() ) THEN
+       Indx = 0
+       RETURN
+    ENDIF
 
-      ! Loop over all species names
-      DO N = 1, HcoState%nSpc
+    ! Loop over all species names
+    DO N = 1, HcoState%nSpc
 
-         ! Return the index of the sought-for species
-         IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
-            Indx = N 
-            EXIT
-         ENDIF
-      ENDDO
+       ! Return the index of the sought-for species
+       IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
+          Indx = N 
+          EXIT
+       ENDIF
+    ENDDO
 
-      END FUNCTION HCO_GetHcoID
+  END FUNCTION HCO_GetHcoID
 !EOC
-END MODULE HCO_STATE_MOD
+END MODULE HCO_State_Mod
