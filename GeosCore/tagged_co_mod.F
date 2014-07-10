@@ -120,12 +120,15 @@
 !  11 Jun 2014 - J.A. Fisher - Treat monoterpenes as in full chemistry
 !  12 Jun 2014 - J.A. Fisher - Add option for non-local PBL mixing
 !  10 Jul 2014 - J.A. Fisher - Add diurnal cycle for OH
+!  10 Jul 2014 - J.A. Fisher - Change FIRSTEMISS to FIRSTTIME to allow
+!                              initialisation when emissions are off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
+      LOGICAL, SAVE        :: FIRSTTIME = .TRUE.
       REAL*8,  ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
       REAL*8,  ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
       REAL*8,  ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
@@ -474,7 +477,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE    :: FIRSTEMISS = .TRUE.
+!      LOGICAL, SAVE    :: FIRSTEMISS = .TRUE.
       INTEGER          :: I, J, L, N, I0, J0
       INTEGER          :: AS, IREF, JREF, IJLOOP, PBL_MAX
       INTEGER, SAVE    :: LASTMONTH = -999
@@ -526,7 +529,7 @@
       !=================================================================
       ! Do the following only on the first call to EMISS_TAGGED_CO...
       !=================================================================
-      IF ( FIRSTEMISS ) THEN 
+      IF ( FIRSTTIME ) THEN 
 
          ! Allocate all module arrays
          CALL INIT_TAGGED_CO
@@ -536,7 +539,7 @@
          CALL DEFINE_BB_CO_REGIONS( BB_REGION )
 
          ! Set first-time flag to false
-         FIRSTEMISS = .FALSE.
+         FIRSTTIME = .FALSE.
       ENDIF
 
       ! If we are using the non-local PBL mixing, initialize EMIS_SAVE
@@ -1002,7 +1005,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
+!      LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
       LOGICAL                :: LSPLIT
       INTEGER                :: N_TRACERS
       INTEGER                :: I, J, L, N, MONTH
@@ -1061,8 +1064,17 @@
       LSPLIT    = Input_Opt%LSPLIT
       N_TRACERS = Input_Opt%N_TRACERS
 
-      IF ( FIRSTCHEM ) THEN
-         FIRSTCHEM = .FALSE.
+      IF ( FIRSTTIME ) THEN 
+
+         ! Allocate all module arrays
+         CALL INIT_TAGGED_CO
+
+         ! Define geographic regions for both fossil fuel & biomass burning
+         CALL DEFINE_FF_CO_REGIONS( FF_REGION )         
+         CALL DEFINE_BB_CO_REGIONS( BB_REGION )
+
+         ! Set first-time flag to false
+         FIRSTTIME = .FALSE.
       ENDIF
 
       ! DTCHEM is the number of seconds per emission timestep
