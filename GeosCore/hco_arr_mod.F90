@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: HCO_Arr_Mod.F90
+! !MODULE: hco_arr_mod.F90
 !
 ! !DESCRIPTION: Module HCO\_Arr\_Mod contains routines and variables to 
 ! initialize, validate, and cleanup HEMCO data arrays. HEMCO data arrays
