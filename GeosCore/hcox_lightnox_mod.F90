@@ -205,6 +205,7 @@
 ! !LOCAL VARIABLES:
 !   
       REAL(hp), POINTER   :: Arr3D(:,:,:) => NULL()
+      LOGICAL,  SAVE      :: FIRST = .TRUE.
 
       !=================================================================
       ! HCOX_LIGHTNOX_RUN begins here!
@@ -216,6 +217,14 @@
 
       ! Return if extension disabled 
       IF ( ExtNr <= 0 ) RETURN
+
+      ! Get scaling factor to match annual average global flash rate
+      ! (ltm, 09/24/07)
+      IF ( FIRST ) THEN
+         CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         FIRST = .FALSE.
+      ENDIF
 
       ! Update lightnox NOx emissions (fill SLBASE) 
       CALL LIGHTNOX ( am_I_Root, HcoState, ExtState, RC )
@@ -1871,11 +1880,6 @@
       !------------------
       ! Define variables
       !------------------
-
-      ! Get scaling factor to match annual average global flash rate
-      ! (ltm, 09/24/07)
-      CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! NNLIGHT is the number of points for the lightnox CDF's
       NNLIGHT = 3200

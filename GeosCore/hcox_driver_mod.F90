@@ -120,7 +120,6 @@
       CALL HcoX_Custom_Init( amIRoot, HcoState, 'Custom', ExtState, RC )
       IF( RC /= HCO_SUCCESS ) RETURN
 
-
       !-----------------------------------------------------------------
       ! SeaFlux
       !-----------------------------------------------------------------

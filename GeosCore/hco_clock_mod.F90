@@ -44,6 +44,7 @@
       PUBLIC :: HcoClock_NewHour
       PUBLIC :: HcoClock_First
       PUBLIC :: HcoClock_GetMinResetFlag
+      PUBLIC :: HcoClock_CalcDOY
 !
 ! !REVISION HISTORY:
 !  29 Dec 2012 - C. Keller - Initialization
@@ -222,7 +223,9 @@
 ! !ROUTINE: HcoClock_Set
 !
 ! !DESCRIPTION: Subroutine HcoClock\_Set updates the HEMCO clock. These
-! routine should be called at the beginning of every emission time step! 
+! routine should be called at the beginning of every emission time step!
+! If the current day of year (cDoy) is not provided, it is automatically
+! calculated from the current date.
 !\\
 !\\
 ! !INTERFACE:
@@ -236,16 +239,16 @@
 !
 ! !ARGUMENTS:
 !
-      LOGICAL,         INTENT(IN   ) :: am_I_Root ! Root CPU?
-      TYPE(HCO_State), POINTER       :: HcoState  ! HcoState object
-      INTEGER,         INTENT(IN   ) :: cYr       ! Current year 
-      INTEGER,         INTENT(IN   ) :: cMt       ! Current month 
-      INTEGER,         INTENT(IN   ) :: cDy       ! Current day 
-      INTEGER,         INTENT(IN   ) :: cHr       ! Current hour 
-      INTEGER,         INTENT(IN   ) :: cMin      ! Current minute 
-      INTEGER,         INTENT(IN   ) :: cSec      ! Current second 
-      INTEGER,         INTENT(IN   ) :: cDoy      ! Current day of year 
-      INTEGER,         INTENT(INOUT) :: RC        ! Success or failure?
+      LOGICAL,         INTENT(IN   )           :: am_I_Root ! Root CPU?
+      TYPE(HCO_State), POINTER                 :: HcoState  ! HcoState object
+      INTEGER,         INTENT(IN   )           :: cYr       ! Current year 
+      INTEGER,         INTENT(IN   )           :: cMt       ! Current month 
+      INTEGER,         INTENT(IN   )           :: cDy       ! Current day 
+      INTEGER,         INTENT(IN   )           :: cHr       ! Current hour 
+      INTEGER,         INTENT(IN   )           :: cMin      ! Current minute 
+      INTEGER,         INTENT(IN   )           :: cSec      ! Current second 
+      INTEGER,         INTENT(IN   ), OPTIONAL :: cDoy      ! Current day of year 
+      INTEGER,         INTENT(INOUT)           :: RC        ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  29 Dec 2012 - C. Keller - Initialization
@@ -257,6 +260,7 @@
 ! !LOCAL ARGUMENTS:
 !
       REAL(sp) :: UTC
+      INTEGER  :: DOY
 
       !======================================================================
       ! HcoClock_Set begins here!
@@ -286,13 +290,20 @@
       HcoClock%PrevDOY    = HcoClock%ThisDOY
       HcoClock%PrevWD     = HcoClock%ThisWD
 
+      ! Set day of year: calculate if not specified
+      IF ( PRESENT(cDOY) ) THEN
+         DOY = cDOY
+      ELSE
+         DOY = HcoClock_CalcDOY( cYr, cMt, cDy )
+      ENDIF
+
       HcoClock%ThisYear   = cYr 
       HcoClock%ThisMonth  = cMt 
       HcoClock%ThisDay    = cDy 
       HcoClock%ThisHour   = cHr 
       HcoClock%ThisMin    = cMin 
       HcoClock%ThisSec    = cSec 
-      HcoClock%ThisDOY    = cDOY 
+      HcoClock%ThisDOY    = DOY 
 
       ! UTC decimal time
       UTC = ( REAL( HcoClock%ThisHour, sp )             ) + &
@@ -645,6 +656,10 @@
       IF ( ASSOCIATED( HcoClock ) ) THEN
          DEALLOCATE ( HcoClock )
       ENDIF
+      HcoClock => NULL()
+
+      ! Reset current minimum reset flag to default (initial) value
+      CurrMinResetFlag  = ResetFlagHourly + 1
 
       END SUBROUTINE HcoClock_Cleanup
 !EOC
@@ -979,6 +994,60 @@
       CALL HCO_LEAVE ( RC )
 
       END SUBROUTINE Set_LocalTime 
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HcoClock_CalcDOY
+!
+! !DESCRIPTION: FUNCTION HcoClock\_CalcDOY calculates the day of year
+! for the given year, month, and day.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HcoClock_CalcDOY( YYYY, MM, DD ) RESULT ( DOY ) 
+!
+! !INPUT ARGUMENTS
+!
+      INTEGER, INTENT(IN) :: YYYY  ! Year 
+      INTEGER, INTENT(IN) :: MM    ! Month
+      INTEGER, INTENT(IN) :: DD    ! Day
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: DOY   ! Day of year 
+!
+! !REVISION HISTORY: 
+!  13 Jan 2014 - C. Keller - Initial version 
+
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+      INTEGER :: TMP, N
+
+      !-----------------------------------
+      ! HcoClock_CalcDOY begins here
+      !-----------------------------------
+   
+      ! Init
+      DOY = 0 
+
+      ! Add total days of all month up to current month MM 
+      DO N = 1, MM-1
+         TMP = Get_LastDayOfMonth( N, YYYY )
+         DOY = DOY + TMP
+      ENDDO      
+
+      ! Add all days of current month
+      DOY = DOY + DD
+
+      END FUNCTION HcoClock_CalcDOY
 !EOC
       END MODULE HCO_CLOCK_MOD
 !EOM

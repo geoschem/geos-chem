@@ -93,6 +93,7 @@
       PUBLIC  :: ListCont_Find
       PUBLIC  :: ListCont_Cleanup 
       PUBLIC  :: ListCont_Print
+      PUBLIC  :: Reset_nnDataCont
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -292,7 +293,7 @@
 !
 ! !ROUTINE: ListCont_Cleanup
 !
-! !DESCRIPTION: Subroutine ListCont_Cleanup cleans up list List 
+! !DESCRIPTION: Subroutine ListCont_Cleanup cleans up list List.
 ! The corresponding data container (LstCont%Dct) is also removed if 
 ! RemoveDct is set to true.
 !\\
@@ -342,10 +343,41 @@
 
          ! Advance
          TmpLct => NxtLct
-
       ENDDO 
 
+      ! Nullify pointers
+      TmpLct => NULL()
+      NxtLct => NULL()
+      List   => NULL()
+
       END SUBROUTINE ListCont_Cleanup 
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Reset_nnDataCont 
+!
+! !DESCRIPTION: Subroutine Reset_nnDataCont resets the nnDataCont variable
+! to zero. This is used for a proper cleanup of a HEMCO run.
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Reset_nnDataCont
+!
+! !ARGUMENTS:
+!
+! !REVISION HISTORY:
+!  19 Dec 2013 - C. Keller: Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      nnDataCont = 0
+
+      END SUBROUTINE Reset_nnDataCont
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -502,6 +534,7 @@
          ENDDO
          DEALLOCATE( cIDList )
       ENDIF
+      cIDList => NULL()
 
       END SUBROUTINE cIDList_Cleanup
 !EOC

@@ -538,8 +538,8 @@
       IF ( ASSOCIATED(Err) ) THEN
          IF ( ASSOCIATED(Err%Loc) ) DEALLOCATE(Err%Loc)
          DEALLOCATE(Err)
-         Err=>NULL()
       ENDIF
+      Err => NULL()
 
       END SUBROUTINE HCO_ERROR_FINAL
 !EOC

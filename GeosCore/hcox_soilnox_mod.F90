@@ -698,6 +698,9 @@
       CANOPYNOX         = 0d0
       DEP_RESERVOIR_HSN = 0.0_hp
 
+      ! testing only
+      write(*,*) 'hcox_soilnox_init 1'
+
       ! ---------------------------------------------------------------------- 
       ! Set diagnostics 
       ! ---------------------------------------------------------------------- 
@@ -716,6 +719,9 @@
                           RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
+      ! testing only
+      write(*,*) 'hcox_soilnox_init 2'
+
       CALL Diagn_Create ( am_I_Root, HcoState,        &    
                           cName      = 'DRYPERIOD',   &
                           ExtNr      = ExtNr,         &
@@ -730,6 +736,9 @@
                           cID        = II,            &
                           RC         = RC              )
       IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! testing only
+      write(*,*) 'hcox_soilnox_init 3'
 
       CALL Diagn_Create ( am_I_Root, HcoState,        &    
                           cName      = 'GWET_PREV',   &
@@ -746,6 +755,9 @@
                           RC         = RC              )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
+      ! testing only
+      write(*,*) 'hcox_soilnox_init 4'
+
       CALL Diagn_Create ( am_I_Root, HcoState,            &    
                           cName      = 'DEP_RESERVOIR',   &
                           ExtNr      = ExtNr,             &
@@ -760,6 +772,9 @@
                           cID        = II,                &
                           RC         = RC                  )
       IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! testing only
+      write(*,*) 'hcox_soilnox_init 5'
 
       ! ---------------------------------------------------------------------- 
       ! Set HEMCO extensions variables 

@@ -713,6 +713,9 @@ hco_fluxarr_mod.o           : hco_fluxarr_mod.F90                            \
 hco_geotools_mod.o          : hco_geotools_mod.F90                           \
 	                      hco_error_mod.o
 
+hco_logfile_mod.o           : hco_logfile_mod.F90                            \
+                              hco_error_mod.o         hco_state_mod.o
+
 hco_readlist_mod.o          : hco_readlist_mod.F90                           \
                               hco_clock_mod.o         hco_datacont_mod.o     \
                               hco_emislist_mod.o      hco_error_mod.o        \
@@ -740,6 +743,19 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               hco_clock_mod.o         hco_chartools_mod.o    \
                               hco_driver_mod.o        hco_state_mod.o        \
                               hco_error_mod.o         hco_fluxarr_mod.o      \
+                              hco_logfile_mod.o                              \
+                              hcoi_gc_diagn_mod.o     hco_diagn_mod.o        \
+			      hcox_driver_mod.o       hcox_state_mod.o       \
+                              drydep_mod.o            modis_lai_mod.o        \
+                              tracerid_mod.o                                 \
+                              global_oh_mod.o         henry_mod.o
+
+hco_standalone_mod.o        : hco_standalone_mod.F90                         \
+                              hco_arr_mod.o           hco_config_mod.o       \
+                              hco_clock_mod.o         hco_chartools_mod.o    \
+                              hco_driver_mod.o        hco_state_mod.o        \
+                              hco_error_mod.o         hco_fluxarr_mod.o      \
+                              hco_logfile_mod.o                              \
                               hcoi_gc_diagn_mod.o     hco_diagn_mod.o        \
 			      hcox_driver_mod.o       hcox_state_mod.o       \
                               drydep_mod.o            modis_lai_mod.o        \

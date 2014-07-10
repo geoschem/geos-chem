@@ -369,6 +369,10 @@
 
       ! Cleanup EmisList
       CALL ListCont_Cleanup ( EmisList, RemoveDct )
+      EmisList => NULL()
+
+      ! Reset number of container in EmisList
+      nnEmisCont = 0
 
       END SUBROUTINE EmisList_Cleanup
 !EOC

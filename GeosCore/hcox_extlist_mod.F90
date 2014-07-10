@@ -626,6 +626,7 @@
 
       ! Cleanup
       ThisExt => NULL()
+      ExtList => NULL()
 
       END SUBROUTINE ExtFinal 
 !EOC

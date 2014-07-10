@@ -348,8 +348,8 @@
   
          ! Also deallocate AlltIDx pointer 
          DEALLOCATE( AlltIDx )
- 
       ENDIF
+      AlltIDx => NULL()
 
       END SUBROUTINE tIDx_Cleanup
 !EOC

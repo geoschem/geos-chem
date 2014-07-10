@@ -23,6 +23,7 @@
       PUBLIC :: HCO_CharSplit
       PUBLIC :: HCO_CharMatch
       PUBLIC :: IsInWord
+      PUBLIC :: NextCharPos
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller - Initialization
@@ -380,6 +381,75 @@
       Cnt = INDEX( TRIM(InString), TRIM(SearchString) ) > 0
 
       END FUNCTION IsInWord
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: NextCharPos 
+!
+! !DESCRIPTION: Function NextCharPos returns the position of the next 
+! occurrence of character CHR in word WORD, starting from position START.
+! Returns -1 if the word does not contain CHR at all (after position START).
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION NextCharPos ( WORD, CHR, START ) RESULT ( POS ) 
+!
+! !USES:
+!
+!
+! !INPUT ARGUMENTS:
+!
+      CHARACTER(LEN=*),           INTENT(IN)  :: WORD
+      CHARACTER(LEN=1),           INTENT(IN)  :: CHR
+      INTEGER,          OPTIONAL, INTENT(IN)  :: START 
+!
+! !RETURN ARGUMENT:
+!
+      INTEGER                                 :: POS
+!
+! !REVISION HISTORY:
+!  09 Jul 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+      INTEGER                         :: LNG, N, BEG 
+
+      !=================================================================
+      ! NextCharPos begins here
+      !=================================================================
+
+      ! Initialize
+      POS = -1
+
+      ! Get first index
+      IF ( PRESENT(START) ) THEN
+         BEG = START
+      ELSE
+         BEG = 1
+      ENDIF
+
+      ! Lenght of word
+      LNG = LEN(TRIM(WORD))
+
+      ! Error traps
+      IF ( BEG > LNG ) RETURN
+
+      ! Search for occurrence of CHR 
+      DO N = BEG, LNG
+         IF ( WORD(N:N) == CHR ) THEN
+            POS = N 
+            EXIT
+         ENDIF
+      ENDDO
+
+      END FUNCTION NextCharPos
 !EOC
       END MODULE HCO_CHARTOOLS_MOD
 !EOM

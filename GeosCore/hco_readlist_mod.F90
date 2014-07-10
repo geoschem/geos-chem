@@ -618,6 +618,7 @@
          ! Remove ReadList 
          DEALLOCATE ( ReadLists )
       ENDIF
+      ReadLists => NULL()
 
       END SUBROUTINE ReadList_Cleanup
 !EOC

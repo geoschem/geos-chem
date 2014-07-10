@@ -325,7 +325,7 @@
       CALL cIDList_Create ( am_I_Root, HcoState, ConfigList, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Don't need internal lists anymore, hence remove
+      ! Don't need internal lists anymore.
       CALL ScalID_Cleanup
       CALL SpecName_Cleanup
 
@@ -2241,7 +2241,16 @@
 !------------------------------------------------------------------------------
 !BOC
 
+      ! Clean up Config list
       CALL ListCont_Cleanup ( ConfigList, RemoveDct )
+      ConfigList => NULL()
+
+      ! Reset internal variables to default values
+      LinesInBuffer = 0
+      TAB           = ACHAR(9)
+      SPACE         = ' '
+      COMMENT       = '#'
+      COLON         = ':'
 
       END SUBROUTINE Config_Cleanup
 !EOC
@@ -2713,7 +2722,7 @@
 !
 ! !ARGUMENTS:
 !
-      CHARACTER(LEN=*), INTENT(  OUT)   :: SpecNames(nSpecies)
+      CHARACTER(LEN=*), POINTER         :: SpecNames(:)
       INTEGER,          INTENT(INOUT)   :: nSpecies 
       INTEGER,          INTENT(INOUT)   :: RC 
 !
@@ -2759,7 +2768,7 @@
 ! !ARGUMENTS:
 !
       INTEGER,           INTENT(INOUT)              :: N
-      CHARACTER(LEN=*),  INTENT(  OUT), OPTIONAL    :: SpecNames(N)
+      CHARACTER(LEN=*),  POINTER,       OPTIONAL    :: SpecNames(:)
       INTEGER,           INTENT(INOUT)              :: RC 
 !
 ! !REVISION HISTORY:
@@ -2772,14 +2781,34 @@
 ! !LOCAL ARGUMENTS:
 !
       TYPE(SpecNameCont), POINTER  :: TmpSpecNameCont => NULL() 
+      INTEGER                      :: AS
 
       !======================================================================
       ! Config_GetSpecAttr begins here
       !======================================================================
 
+      ! Eventually allocate pointer
+      IF ( PRESENT(SpecNames) ) THEN
+         IF ( .NOT. ASSOCIATED(SpecNames) ) THEN
+            IF ( N <= 0 ) THEN
+               CALL HCO_ERROR ( 'Cannot allocate SpecNames', RC )
+               RETURN
+            ENDIF
+            ALLOCATE(SpecNames(N), STAT=AS )
+            IF ( AS/= 0 ) THEN
+               CALL HCO_ERROR ( 'SpecNames allocation error', RC )
+               RETURN
+            ENDIF
+            SpecNames(:) = ''
+         ELSEIF ( SIZE(SpecNames) /= N ) THEN
+            CALL HCO_ERROR ( 'SpecNames size error', RC )
+            RETURN
+         ENDIF
+      ENDIF
+ 
       ! Init
       N = 0
-   
+  
       ! Loop over entire list. Count number of containers and eventually
       ! write out the species names. 
       TmpSpecNameCont => SpecNameList
