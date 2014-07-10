@@ -1,5 +1,6 @@
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GFSC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -49,11 +50,13 @@ MODULE NCDF_MOD
 !
   PRIVATE :: GET_TIDX
   PRIVATE :: TIMEUNIT_CHECK
+  PRIVATE :: GET_TAU0
 !
 ! !REVISION HISTORY:
 !  27 Jul 2012 - C. Keller   - Initial version
 !  13 Jun 2014 - R. Yantosca - Now use F90 free-format indentation
 !  13 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  10 Jul 2014 - R. Yantosca - Add GET_TAU0 as a PRIVATE local routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -74,7 +77,8 @@ MODULE NCDF_MOD
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -85,7 +89,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_OPEN ( FileName, fID ) 
+  SUBROUTINE NC_OPEN( FileName, fID ) 
 !
 ! !INPUT PARAMETERS:
 !
@@ -111,7 +115,8 @@ CONTAINS
   END SUBROUTINE NC_OPEN
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -122,7 +127,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_CLOSE ( fID ) 
+  SUBROUTINE NC_CLOSE( fID ) 
 !
 ! !INPUT PARAMETERS:
 !   
@@ -143,7 +148,8 @@ CONTAINS
   END SUBROUTINE NC_CLOSE
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -155,8 +161,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_READ_TIME ( fID,     nTime,        timeUnit, &
-                                timeVec, timeCalendar, RC       ) 
+  SUBROUTINE NC_READ_TIME( fID,     nTime,        timeUnit, &
+                           timeVec, timeCalendar, RC       ) 
 !
 ! !INPUT PARAMETERS:
 !   
@@ -240,7 +246,8 @@ CONTAINS
   END SUBROUTINE NC_READ_TIME
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -252,8 +259,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_READ_VAR ( fID,    Var, nVar, varUnit,  &
-                               varVec, RC                    ) 
+  SUBROUTINE NC_READ_VAR( fID, Var, nVar, varUnit, varVec, RC ) 
 !
 ! !INPUT PARAMETERS:
 !   
@@ -327,7 +333,8 @@ CONTAINS
   END SUBROUTINE NC_READ_VAR
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -344,7 +351,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,        ONLY : TRANLC
+    USE CHARPAK_MOD, ONLY : TRANLC
 
     IMPLICIT NONE
 #   include "netcdf.inc"
@@ -532,7 +539,8 @@ CONTAINS
   END SUBROUTINE NC_READ_ARR
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -636,7 +644,8 @@ CONTAINS
   END SUBROUTINE NC_READ_TIME_YYYYMMDDhh
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -654,7 +663,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,        ONLY : TRANLC
+    USE CHARPAK_MOD, ONLY : TRANLC
 !
 ! !INPUT PARAMETERS:
 !
@@ -802,7 +811,8 @@ CONTAINS
   END SUBROUTINE NC_GET_REFDATETIME
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -854,7 +864,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD,        ONLY : TRANLC
+    USE CHARPAK_MOD, ONLY : TRANLC
 
     IMPLICIT NONE
 #   include "netcdf.inc"
@@ -1300,7 +1310,8 @@ CONTAINS
   END SUBROUTINE NC_READ
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1315,10 +1326,6 @@ CONTAINS
   SUBROUTINE GET_TIDX( TDIM, TIMEVEC,  TTYPE, TOFFSET, & 
                        YEAR, MONTH,    DAY,   HOUR,    &
                        TIDX, TDIMREAD, RC )
-!
-! !USES:
-!
-    USE BPCH2_MOD, ONLY : GET_TAU0
 !
 ! !INPUT PARAMETERS:
 !
@@ -1465,7 +1472,8 @@ CONTAINS
   END SUBROUTINE GET_TIDX
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1485,8 +1493,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE BPCH2_MOD,          ONLY : GET_TAU0
-    USE CHARPAK_MOD,        ONLY : TRANLC
+    USE CHARPAK_MOD, ONLY : TRANLC
 !
 ! !INPUT PARAMETERS:
 !
@@ -1657,7 +1664,8 @@ CONTAINS
   END SUBROUTINE TIMEUNIT_CHECK
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1678,8 +1686,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_GCTM_MOD, ONLY : PI_180
-
     IMPLICIT NONE
 
 #   include "netcdf.inc"
@@ -1706,6 +1712,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  23 Aug 2012 - R. Yantosca - Initial version
 !  24 Jan 2012 - C. Keller   - Added grid edge calculation from mid points
+!  10 Jul 2014 - R. Yantosca - Now define PI and PI_180 locally 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1727,6 +1734,12 @@ CONTAINS
 
     ! For error handling
     CHARACTER(LEN=255) :: MSG, LOC
+!
+! !DEFINED PARAMETERS:
+!
+    !%%%% TOOK THESE VALUES FROM GEOS-Chem, module (CMN_GCTM_mod.F90) %%%%%
+    REAL*8,  PARAMETER :: PI     = 3.14159265358979323d0    ! Pi
+    REAL*8,  PARAMETER :: PI_180 = PI / 180d0               ! 180/Pi
 
     !======================================================================
     ! NC_READ_GRID begins here
@@ -1888,7 +1901,8 @@ CONTAINS
   END SUBROUTINE NC_READ_GRID
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1899,7 +1913,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_WRITE_3D (ncFile,  I,  J,    T,  N,   lon, lat, &
+  SUBROUTINE NC_WRITE_3D( ncFile,  I,  J,    T,  N,   lon, lat, &
                           time,    timeUnit, ncVars,  ncUnits,  &
                           ncLongs, ncShorts, ncArrays            )
 !
@@ -1964,7 +1978,8 @@ CONTAINS
   END SUBROUTINE NC_WRITE_3D
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2041,7 +2056,8 @@ CONTAINS
   END SUBROUTINE NC_WRITE_4D
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2301,7 +2317,8 @@ CONTAINS
   END SUBROUTINE NC_DEFINE
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2392,7 +2409,8 @@ CONTAINS
   END SUBROUTINE NC_WRITE_DIMS
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2450,7 +2468,8 @@ CONTAINS
   END SUBROUTINE NC_WRITE_DATA_3D
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2509,7 +2528,8 @@ CONTAINS
   END SUBROUTINE NC_WRITE_DATA_4D
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2598,7 +2618,8 @@ CONTAINS
   END SUBROUTINE NC_CREATE
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2718,7 +2739,8 @@ CONTAINS
   END SUBROUTINE NC_VAR_DEF
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2814,7 +2836,8 @@ CONTAINS
   END SUBROUTINE NC_VAR_WRITE_R8
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2910,7 +2933,8 @@ CONTAINS
   END SUBROUTINE NC_VAR_WRITE_R4
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3004,5 +3028,120 @@ CONTAINS
     endif
 
   END SUBROUTINE NC_VAR_WRITE_INT
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_tau0_6a
+!
+! !DESCRIPTION: Function GET\_TAU0\_6A returns the corresponding TAU0 value 
+!  for the first day of a given MONTH of a given YEAR.  This is necessary to 
+!  index monthly mean binary punch files, which are used as input to GEOS-Chem.
+!\\
+!\\
+!  This function takes 3 mandatory arguments (MONTH, DAY, YEAR) and 3 
+!  optional arguments (HOUR, MIN, SEC).  It is intended to replace the current 
+!  2-argument version of GET\_TAU0.  The advantage being that GET\_TAU0\_6A 
+!  can compute a TAU0 for any date and time in the GEOS-Chem epoch, rather 
+!  than just the first day of each month.  Overload this w/ an interface so 
+!  that the user can also choose the version of GET\_TAU0 w/ 2 arguments 
+!  (MONTH, YEAR), which is the prior version.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION GET_TAU0( MONTH, DAY, YEAR, HOUR, MIN, SEC ) RESULT( THIS_TAU0 )
+!
+! !USES:
+!
+    USE JULDAY_MOD, ONLY : JULDAY
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER, INTENT(IN)           :: MONTH       
+    INTEGER, INTENT(IN)           :: DAY         
+    INTEGER, INTENT(IN)           :: YEAR        
+    INTEGER, INTENT(IN), OPTIONAL :: HOUR        
+    INTEGER, INTENT(IN), OPTIONAL :: MIN
+    INTEGER, INTENT(IN), OPTIONAL :: SEC
+!
+! !RETURN VALUE:
+!
+    REAL*8                        :: THIS_TAU0   ! TAU0 timestamp
+!
+! !REMARKS:
+!  TAU0 is hours elapsed since 00:00 GMT on 01 Jan 1985.
+!
+! !REVISION HISTORY:
+!  (1 ) 1985 is the first year of the GEOS epoch.
+!  (2 ) Add TAU0 values for years 1985-2001 (bmy, 8/1/00)
+!  (3 ) Correct error for 1991 TAU values.  Also added 2002 and 2003.
+!        (bnd, bmy, 1/4/01)
+!  (4 ) Updated comments  (bmy, 9/26/01)
+!  (5 ) Now references JULDAY from "julday_mod.f" (bmy, 11/20/01)
+!  (6 ) Now references ERROR_STOP from "error_mod.f"  (bmy, 10/15/02)
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jul 2014 - R. Yantosca - Add this routine as a PRIVATE module variable
+!                              to prevent ncdf_mod.F90 from using bpch2_mod.F
+!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: TMP_HOUR, TMP_MIN, TMP_SEC
+    REAL*8  :: DAYS
+
+    !=======================================================================
+    ! GET_TAU0 begins here!
+    !=======================================================================
+
+    ! Error checking 
+    IF ( MONTH < 1 .or. MONTH > 12 ) THEN
+       WRITE( 6, 100 )
+100    FORMAT( 'Invalid MONTH selection!  STOP in GET_TAU (ncdf_mod.F90)!' )
+       STOP
+    ENDIF
+      
+    ! Error checking 
+    IF ( DAY < 1 .or. DAY > 31 ) THEN
+       WRITE( 6, 110 )
+110    FORMAT( 'Invalid DAY selection!  STOP in GET_TAU (ncdf_mod.F90)!' )
+       STOP
+    ENDIF
+
+    ! If HOUR isn't passed, default to 0
+    IF ( PRESENT( HOUR ) ) THEN
+       TMP_HOUR = HOUR
+    ELSE
+       TMP_HOUR = 0
+    ENDIF
+
+    ! If MIN isn't passed, default to 0
+    IF ( PRESENT( MIN ) ) THEN
+       TMP_MIN = MIN
+    ELSE
+       TMP_MIN = 0 
+    ENDIF
+
+    ! If SEC isn't passed, default to 0
+    IF ( PRESENT( SEC ) ) THEN
+       TMP_SEC = SEC
+    ELSE
+       TMP_SEC = 0 
+    ENDIF
+
+    ! Number of days since midnight on 1/1/1985
+    THIS_TAU0 = JULDAY( YEAR, MONTH, DBLE( DAY ) ) - 2446066.5d0
+
+    ! Multiply by 24 to get hours since 1/1/1985
+    ! Also add in the hours elapsed since midnight on this date
+    THIS_TAU0 = ( THIS_TAU0 * 24d0 ) + ( TMP_HOUR         ) + &
+                ( TMP_MIN   / 60d0 ) + ( TMP_SEC / 3600d0 )
+
+  END FUNCTION GET_TAU0
 !EOC
 END MODULE NCDF_MOD

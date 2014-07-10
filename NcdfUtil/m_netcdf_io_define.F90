@@ -1,10 +1,10 @@
-! $Id: m_netcdf_io_define.F90,v 1.1 2009/08/04 14:52:04 bmy Exp $
-!-------------------------------------------------------------------------
-!  NASA/GFSC, SIVO, Code 610.3
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: m_netcdf_io_define
+! !MODULE: m_netcdf_io_define.F90
 !
 ! !INTERFACE:
 !
@@ -74,12 +74,16 @@ MODULE m_netcdf_io_define
 !                              numerical types
 !  14 May 2014 - R. Yantosca - Add function NcBegin_Def to reopen define mode
 !  14 May 2014 - R. Yantosca - Now use F90 free formatting
+!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
 !EOC
-!-----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_dimension
@@ -117,7 +121,7 @@ CONTAINS
 !  Initial code.
 !
 !EOP
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
@@ -133,7 +137,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_dimension
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_variable
@@ -175,7 +182,7 @@ CONTAINS
 !  Initial code.
 !
 !EOP
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
@@ -191,6 +198,9 @@ CONTAINS
 
   END SUBROUTINE NcDef_variable
 !EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -226,7 +236,7 @@ CONTAINS
 !  26 Sep 2013 - R. Yantosca - Renamed to NcDef_var_attributes_c and made
 !                              into a PRIVATE array so we can overload it
 !EOP
-!=====-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
@@ -244,6 +254,9 @@ CONTAINS
 
   END SUBROUTINE NcDef_var_attributes_c
 !EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -298,6 +311,9 @@ CONTAINS
   END SUBROUTINE NcDef_var_attributes_i
 !EOC
 !------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_var_attributes_r4
@@ -350,7 +366,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_var_attributes_r4
 !EOC
-!-----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_var_attributes_r8
@@ -403,6 +422,9 @@ CONTAINS
 
   END SUBROUTINE NcDef_var_attributes_r8
 !EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -457,6 +479,9 @@ CONTAINS
   END SUBROUTINE NcDef_var_attributes_i_arr
 !EOC
 !------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_var_attributes_r4_arr
@@ -509,7 +534,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_var_attributes_r4_arr
 !EOC
-!-----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_var_attributes_r8_arr
@@ -562,7 +590,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_var_attributes_r8_arr
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_glob_attributes_c
@@ -615,7 +646,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_glob_attributes_c
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_glob_attributes_i
@@ -669,7 +703,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_glob_attributes_i
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_glob_attributes_r4
@@ -723,7 +760,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_glob_attributes_r4
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_glob_attributes_r8
@@ -777,7 +817,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_glob_attributes_r8
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_glob_attributes_i_arr
@@ -831,7 +874,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_glob_attributes_i_arr
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_glob_attributes_r4_arr
@@ -885,7 +931,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_glob_attributes_r4_arr
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcDef_glob_attributes_r8_arr
@@ -939,7 +988,10 @@ CONTAINS
 
   END SUBROUTINE NcDef_glob_attributes_r8_arr
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcSetFill
@@ -986,7 +1038,10 @@ CONTAINS
 
   END SUBROUTINE NcSetFill
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcEnd_Def
@@ -1033,7 +1088,10 @@ CONTAINS
 
   END SUBROUTINE NcEnd_def
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcBegin_Def
@@ -1080,5 +1138,4 @@ CONTAINS
 
   END SUBROUTINE NcBegin_Def
 !EOC
-!------------------------------------------------------------------------
 END MODULE m_netcdf_io_define

@@ -60,6 +60,7 @@
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  20 Jun 2014 - R. Yantosca - Removed unix_cmds_mod.F; it's now obsolete
 #  20 Jun 2014 - R. Yantosca - Removed directory_mod.F; it's now obsolete
+#  10 Jul 2014 - R. Yantosca - Now compile ncdf_mod.F90 in NcdfUtil/ subdir
 #EOP
 #------------------------------------------------------------------------------
 #BOC
