@@ -915,7 +915,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH,   OH
       USE GLOBAL_NOX_MOD,     ONLY : GET_GLOBAL_NOX,  BNOX
-      USE GRID_MOD,           ONLY : GET_YMID,        GET_AREA_CM2
+      USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
@@ -993,6 +993,9 @@
 !  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  10 Jul 2014 - J.A. Fisher - Add diurnal cycle for OH
+!  10 Jul 2014 - J.A. Fisher - Restore assignment of DTCHEM
+!  10 Jul 2014 - J.A. Fisher - Remove unused DTSRCE, PCO, and AREA_CM2
+!  10 Jul 2014 - J.A. Fisher - Moved ALPHA definitions out of code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1003,12 +1006,12 @@
       LOGICAL                :: LSPLIT
       INTEGER                :: N_TRACERS
       INTEGER                :: I, J, L, N, MONTH
-      REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
-      REAL*8                 :: DTCHEM,    GCO,        PCO   
+      REAL*8                 :: ALPHA_ISOP
+      REAL*8                 :: DTCHEM,    GCO
       REAL*8                 :: STTCO,     KRATE,      CH4
       REAL*8                 :: CO_CH4,    CO_ISOP,    CO_MONO
       REAL*8                 :: CO_CH3OH,  CO_OH,      CO_ACET
-      REAL*8                 :: CH4RATE,   DENS,       ALPHA_ACET
+      REAL*8                 :: CH4RATE,   DENS
       REAL*8                 :: CORATE,    YMID
 
       ! Variables for new JPL 2006 rate constants (jaf, jmao, 3/4/09)
@@ -1016,9 +1019,6 @@
       REAL*8                 :: BLOG1,     FEXP1,      KHI2
       REAL*8                 :: KLO2,      XYRAT2,     BLOG2
       REAL*8                 :: FEXP2,     KCO1,       KCO2
-
-      ! For storing CO sources (jaf, 3/10/09)
-      REAL*8                 :: DTSRCE, AREA_CM2
 
       ! For saving CH4 latitudinal gradient
       REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
@@ -1034,21 +1034,24 @@
       ! External functions
       REAL*8,  EXTERNAL      :: BOXVL
 
-      ! WTAIR = molecular weight of air (g/mole)
-      REAL*8,  PARAMETER     :: WTAIR = 28.966d0
-      
-      ! Switch to scale yield of isoprene from NOx concentration or not
-      LOGICAL, PARAMETER     :: ALPHA_ISOP_FROM_NOX = .FALSE.
-
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
+!
+! !DEFINED PARAMETERS:
+!
+      ! Switch to scale yield of isoprene from NOx concentration or not
+      LOGICAL, PARAMETER     :: ALPHA_ISOP_FROM_NOX = .FALSE.
+      REAL*8,  PARAMETER     :: WTAIR = 28.966d0  ! MW of air (g/mol)
+      REAL*8,  PARAMETER     :: ALPHA_CH4  = 1d0  ! Yield of CO from CH4
+      REAL*8,  PARAMETER     :: ALPHA_MONO = 2d-1 ! Yield of CO from monoterpenes
+      REAL*8,  PARAMETER     :: ALPHA_ACET = 2d0/3d0 ! Yield of CO from acetone
 
       !=================================================================
       ! CHEM_TAGGED_CO begins here!
       !
-      ! Do the following on the first calla to CHEM_TAGGED_CO...
+      ! Do the following on the first call to CHEM_TAGGED_CO...
       !=================================================================
 
       ! Assume success
@@ -1062,8 +1065,8 @@
          FIRSTCHEM = .FALSE.
       ENDIF
 
-      ! DTSRCE is the number of seconds per emission timestep
-      DTSRCE = GET_TS_EMIS() * 60d0
+      ! DTCHEM is the number of seconds per emission timestep
+      DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -1121,22 +1124,18 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED                                             ) 
 !$OMP+PRIVATE( I, J, L, N, STTCO, GCO, DENS, CH4RATE, CO_CH4, CH4 )
-!$OMP+PRIVATE( ALPHA_CH4, KRATE, CO_ISOP, CO_CH3OH, ALPHA_ISOP    )
-!$OMP+PRIVATE( CO_MONO, ALPHA_MONO, CO_ACET, ALPHA_ACET, CORATE   )
-!$OMP+PRIVATE( CO_OH, PCO, YMID                                   )
+!$OMP+PRIVATE( KRATE, CO_ISOP, CO_CH3OH, CO_MONO, CO_ACET, CORATE )
+!$OMP+PRIVATE( CO_OH, YMID, ALPHA_ISOP                            )
 !$OMP+PRIVATE( KHI1, KLO1, XYRAT1, BLOG1, FEXP1, KHI2, KLO2       )
-!$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2, AREA_CM2         )
+!$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2                   )
+!$OMP+PRIVATE( OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS                  )
 !$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG )
-!$OMP+PRIVATE( OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Latitude of grid box
          YMID     = GET_YMID( I, J, L )
-
-         ! Grid box surface areas [cm2] (jaf, 3/10/09)
-         AREA_CM2 = GET_AREA_CM2( I, J, L )
 
          !==============================================================
          ! (0) Define useful quantities
@@ -1208,9 +1207,6 @@
             
             ! Convert CH4 from [ppbv] to [molec CH4/cm3]
             CH4 = CH4 * 1d-9 * DENS
-
-            ! Yield of CO from CH4: estimated to be 95-100% (acf)
-            ALPHA_CH4 = 1d0
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
             KRATE = 2.45D-12 * EXP( -1775.d0 / State_Met%T(I,J,L) ) 
@@ -1349,9 +1345,6 @@
             ! where ALPHA_MONO = 0.2 as explained above.
             !===========================================================
 
-            ! Yield of CO from MONOTERPENES: 20% (see above)
-            ALPHA_MONO = 0.20d0
-
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec CO/cm3]
             CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,State_Met) ) *
@@ -1394,9 +1387,6 @@
          ! Biogenic acetone sources are emitted only into the surface layer
          IF ( L == 1 ) THEN
 
-            ! Yield of CO from ACETONE: 2/3 (see above)
-            ALPHA_ACET = 2.D0 / 3.D0
-            
             ! Units are [molec CO/cc]
             CO_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,State_Met) *
      &                ALPHA_ACET
@@ -1516,14 +1506,6 @@
             ! is more or less copied from calcrate.f as implemented by
             ! jmao (jaf, 3/4/09)
             !===========================================================
-
-            ! Pressure at the center of sigma level L,
-            ! expressed as a fraction of surface pressure in [Pa]
-            ! Don't need pressure for new rate constant (jaf, 3/4/09)
-            !PCO = GET_PCENTER(I,J,L) / 1.01325d3
-
-            ! Decay rate
-            !KRATE = ( 1.d0 + ( 0.6d0 * PCO ) ) * 1.5d-13
 
             ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
             ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
