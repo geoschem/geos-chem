@@ -86,7 +86,8 @@
 ! !USES:
 !
       USE HCO_TIDX_MOD,      ONLY : tIDx_Assign 
-      USE HCO_DATACONT_MOD,  ONLY : ListCont_Find, DataCont_Print
+      USE HCO_DATACONT_MOD,  ONLY : ListCont_Find
+      USE HCO_LOGFILE_MOD,   ONLY : HCO_PrintDataCont
 !
 ! !ARGUMENTS:
 !
@@ -163,7 +164,7 @@
       IF ( VERBOSE ) THEN
          MSG = 'Container added to EmisList:'
          CALL HCO_MSG(MSG,SEP1='-')
-         CALL DataCont_Print( Lct%Dct, VERBOSE )
+         CALL HCO_PrintDataCont( Lct%Dct, VERBOSE )
       ENDIF
 
       ! Leave w/ success

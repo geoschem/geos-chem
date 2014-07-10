@@ -95,7 +95,7 @@
 !
 ! !USES:
 !
-      USE HCO_DATACONT_MOD, ONLY : DataCont_Print
+      USE HCO_LOGFILE_MOD, ONLY : HCO_PrintDataCont
 !
 ! !ARGUMENTS:
 !
@@ -175,7 +175,7 @@
       IF ( Verb ) THEN
          write(MSG,*) 'New container set to ReadList:'
          CALL HCO_MSG(MSG,SEP1='-')
-         CALL DataCont_Print( Dct, Verb )
+         CALL HCO_PrintDataCont( Dct, Verb )
       ENDIF
 
       ! Leave w/ success
@@ -520,7 +520,7 @@
 !
 ! !USES:
 !
-      USE HCO_DATACONT_MOD,  ONLY : ListCont_Print
+      USE HCO_LOGFILE_MOD,  ONLY : HCO_PrintList
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -542,27 +542,27 @@
 
          write(MSG,*) 'Content of one-time list:'
          CALL HCO_MSG(MSG,SEP1='=')
-         CALL ListCont_Print ( ReadLists%Once, verb )
+         CALL HCO_PrintList ( ReadLists%Once, verb )
 
          write(MSG,*) 'Content of year-list:'
          CALL HCO_MSG(MSG,SEP1='=')
-         CALL ListCont_Print ( ReadLists%Year, verb )
+         CALL HCO_PrintList ( ReadLists%Year, verb )
 
          write(MSG,*) 'Content of month-list:'
          CALL HCO_MSG(MSG,SEP1='=')
-         CALL ListCont_Print ( ReadLists%Month, verb )
+         CALL HCO_PrintList ( ReadLists%Month, verb )
 
          write(MSG,*) 'Content of day-list:'
          CALL HCO_MSG(MSG,SEP1='=')
-         CALL ListCont_Print ( ReadLists%Day, verb )
+         CALL HCO_PrintList ( ReadLists%Day, verb )
 
          write(MSG,*) 'Content of hour-list:'
          CALL HCO_MSG(MSG,SEP1='=')
-         CALL ListCont_Print ( ReadLists%Hour, verb )
+         CALL HCO_PrintList ( ReadLists%Hour, verb )
 
          write(MSG,*) 'Content of always-to-read list:'
          CALL HCO_MSG(MSG,SEP1='=')
-         CALL ListCont_Print ( ReadLists%Always, verb )
+         CALL HCO_PrintList ( ReadLists%Always, verb )
 
       ELSE
          write(MSG,*) 'ReadList not defined yet!!'
