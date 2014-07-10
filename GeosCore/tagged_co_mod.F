@@ -22,6 +22,7 @@
 !
       PRIVATE :: DEFINE_FF_CO_REGIONS
       PRIVATE :: DEFINE_BB_CO_REGIONS 
+      PRIVATE :: CALC_DIURNAL
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -115,6 +116,10 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  23 Oct 2012 - R. Yantosca - Update prod/loss for new GMI strat chem
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  11 Jun 2014 - J.A. Fisher - Replace SUNCOS with SUNCOSmid for MEGAN
+!  11 Jun 2014 - J.A. Fisher - Treat monoterpenes as in full chemistry
+!  12 Jun 2014 - J.A. Fisher - Add option for non-local PBL mixing
+!  10 Jul 2014 - J.A. Fisher - Add diurnal cycle for OH
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -127,6 +132,7 @@
       REAL*8,  ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
       REAL*8,  ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
       REAL*8,  ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
+      REAL*8,  ALLOCATABLE :: TCOSZ     (:,:  )   ! Daily sum COS(SZA)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -986,6 +992,7 @@
 !  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOX
 !  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  10 Jul 2014 - J.A. Fisher - Add diurnal cycle for OH
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1015,6 +1022,9 @@
 
       ! For saving CH4 latitudinal gradient
       REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
+
+      ! For OH diurnal cycle (jaf, 3/12/14)
+      REAL*8                 :: OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS
 
       ! Avoid array temporaries in CHECK_VALUE
       INTEGER                :: ERR_LOC(4)
@@ -1058,6 +1068,10 @@
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
+
+      ! Compute diurnal cycle for OH every day (check for new day inside
+      ! subroutine) - jaf 7/10/14
+      CALL CALC_DIURNAL
 
       !=================================================================
       ! Read in OH, NOx, P(CO), and L(CO) fields for the current month
@@ -1113,6 +1127,7 @@
 !$OMP+PRIVATE( KHI1, KLO1, XYRAT1, BLOG1, FEXP1, KHI2, KLO2       )
 !$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2, AREA_CM2         )
 !$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG )
+!$OMP+PRIVATE( OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1138,6 +1153,25 @@
          ! DENS is the number density of air [molec air/cm3]
          DENS  = State_Met%AD(I,J,L)    * 1000.d0   /
      &           BOXVL(I,J,L,State_Met) * 6.023d23  / WTAIR
+
+         ! Cosine of the solar zenith angle [unitless]
+         SUNCOS = State_Met%SUNCOSmid(I,J)
+
+         ! Scaling factor for diurnal cycles - zero at night
+         IF ( SUNCOS > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+            FAC_DIURNAL = ( SUNCOS / TCOSZ(I,J)    ) *
+     &                    ( 1440d0 / GET_TS_CHEM() )
+         ELSE
+            FAC_DIURNAL = 0d0
+         ENDIF
+
+         ! Now impose a diurnal cycle on OH.
+         ! This is done in other offline simulations but was
+         ! missing from tagged CO (jaf, 3/12/14)
+         OH_MOLEC_CM3 = OH(I,J,L) * FAC_DIURNAL
+
+         ! Make sure OH is not negative
+         OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
 
          !==============================================================
          ! (1a) Production of CO by reaction with CH4
@@ -1183,7 +1217,11 @@
 
             ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt 
             ! Units are [molec CO/cm3]
-            CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH(I,J,L) * DTCHEM 
+! -----------
+! Prior to June 2014
+!            CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH(I,J,L) * DTCHEM 
+! -----------
+            CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH_MOLEC_CM3 * DTCHEM 
 
          ENDIF
 
@@ -1512,7 +1550,12 @@
             KRATE  = KCO1 + KCO2
 
             ! CO_OH = Tropospheric loss of CO by OH [molec/cm3]
-            CO_OH = KRATE * GCO * OH(I,J,L) * DTCHEM
+! -----------
+! Prior to June 2014
+!            CO_OH = KRATE * GCO * OH(I,J,L) * DTCHEM
+! -----------
+            ! Now use OH_MOLEC_CM3, which includes a diurnal cycle.
+            CO_OH = KRATE * GCO * OH_MOLEC_CM3 * DTCHEM
 
             ! Handle trop loss by OH for regional CO tracers
             IF ( LSPLIT ) THEN
@@ -1521,8 +1564,13 @@
                DO N = 2, N_TRACERS
 
                   ! Use tropospheric rate constant 
+! -----------
+! Prior to June 2014
+!                  STT(I,J,L,N) = STT(I,J,L,N) *
+!     &                 ( 1d0 - KRATE * OH(I,J,L) * DTCHEM )
+! -----------
                   STT(I,J,L,N) = STT(I,J,L,N) *
-     &                 ( 1d0 - KRATE * OH(I,J,L) * DTCHEM )
+     &                 ( 1d0 - KRATE * OH_MOLEC_CM3 * DTCHEM )
 
                   ! Error check
                   ERR_LOC = (/ I, J, L, N /)
@@ -1533,8 +1581,13 @@
 
                   ! ND65 diagnostic -- loss of CO by OH for "tagged" tracers
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
+! -----------
+! Prior to June 2014
+!                     AD65(I,J,L,N) = AD65(I,J,L,N) + 
+!     &                    ( KRATE * OH(I,J,L)*STT(I,J,L,N) * STTCO )
+! -----------
                      AD65(I,J,L,N) = AD65(I,J,L,N) + 
-     &                    ( KRATE * OH(I,J,L)*STT(I,J,L,N) * STTCO )
+     &                   ( KRATE * OH_MOLEC_CM3 * STT(I,J,L,N) * STTCO )
                   ENDIF
                ENDDO
             ENDIF
@@ -1593,6 +1646,147 @@
       NULLIFY( STT )
 
       END SUBROUTINE CHEM_TAGGED_CO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_diurnal
+!
+! !DESCRIPTION: Subroutine CALC\_DIRUNAL computes the sume of the cosine
+!  of the solar zenith angle over a 24 hour day as well as the total
+!  length of daylight to scale the offline OH concentrations.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CALC_DIURNAL
+!
+! !USES:
+!
+      USE CMN_GCTM_MOD
+      USE CMN_SIZE_MOD
+      USE GRID_MOD, ONLY : GET_YMID_R
+      USE TIME_MOD, ONLY : ITS_A_NEW_DAY, GET_MINUTE,      GET_HOUR
+      USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
+! 
+! !REVISION HISTORY: 
+!  12 Mar 2014 - J. Fisher   - Copied from OHNO3TIME in carbon_mod and
+!                              COSSZA in dao_mod
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      INTEGER             :: I, J, N, NDYSTEP
+      INTEGER             :: MINUTE,  TS_SUN
+      REAL*8              :: GMT_MID, TIMLOC, FACTOR
+      REAL*8              :: R,       AHR,    DEC
+      REAL*8              :: YMID_R,  SUNTMP_MID
+!
+! !DEFINED PARAMETERS:
+!
+      ! Coefficients for solar declination angle
+      REAL*8,  PARAMETER :: A0 = 0.006918d0
+      REAL*8,  PARAMETER :: A1 = 0.399912d0
+      REAL*8,  PARAMETER :: A2 = 0.006758d0
+      REAL*8,  PARAMETER :: A3 = 0.002697d0
+      REAL*8,  PARAMETER :: B1 = 0.070257d0
+      REAL*8,  PARAMETER :: B2 = 0.000907d0
+      REAL*8,  PARAMETER :: B3 = 0.000148d0
+ 
+      !=================================================================
+      ! CALC_DIURNAL begins here!
+      !=================================================================
+
+      ! Only do at the start of a new day
+      IF ( FIRST .or. ITS_A_NEW_DAY() ) THEN 
+ 
+         ! Zero array
+         TCOSZ = 0d0
+
+         ! Get time for central chemistry timestep
+         TS_SUN = GET_TS_CHEM()                     ! Chemistry interval
+         MINUTE = GET_MINUTE()                      ! Current minutes
+         FACTOR = MINUTE / TS_SUN                   ! Multiplying factor
+
+         ! GMT at the midpoint of the chemistry time interval for first
+         ! timestep of the day
+         GMT_MID  = ( DBLE( GET_HOUR()        )      )
+     &            + ( DBLE( TS_SUN * FACTOR ) / 60d0 )
+     &            + ( DBLE( TS_SUN / 2      ) / 60d0 )
+
+         ! Solar declination angle (low precision formula):
+         ! Path length of earth's orbit traversed since Jan 1 [radians]
+         R = ( 2d0 * PI / 365d0 ) * FLOAT( GET_DAY_OF_YEAR() - 1 )
+         DEC = A0 - A1*COS(    R) + B1*SIN(    R)
+     &            - A2*COS(2d0*R) + B2*SIN(2d0*R)
+     &            - A3*COS(3d0*R) + B3*SIN(3d0*R)
+
+         ! NDYSTEP is # of chemistry time steps
+         NDYSTEP = INT( 24d0 * 60d0 / GET_TS_CHEM() )
+
+         ! Loop forward through NDYSTEP "fake" timesteps for this day
+         DO N = 1, NDYSTEP
+            
+            ! Increment GMT (hours) to midpoint of next timestep
+            IF ( N > 1 ) GMT_MID = GMT_MID + TS_SUN / 60d0
+
+            ! Loop over surface grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR, SUNTMP_MID )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+
+               ! Zero SUNTMP_MID
+               SUNTMP_MID = 0d0
+
+               ! Grid box latitude center [radians]
+               YMID_R = GET_YMID_R( I, J, 1 )
+
+               ! Local time at box (I,J) [hours]
+               TIMLOC = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
+
+               ! Hour angle at box (I,J) [radians]
+               AHR = ABS( TIMLOC - 12d0 ) * 15d00 * PI_180
+
+               !===========================================================
+               ! The cosine of the solar zenith angle (SZA) is given by:
+               !
+               !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR)
+               !
+               ! where LAT = the latitude angle,
+               !       DEC = the solar declination angle,
+               !       AHR = the hour angle, all in radians.
+               !
+               ! If SUNCOS < 0, then the sun is below the horizon, and
+               ! therefore does not contribute to any solar heating.
+               !===========================================================
+
+               ! Compute Cos(SZA)
+               SUNTMP_MID = sin(YMID_R) * sin(DEC) +
+     &                      cos(YMID_R) * cos(DEC) * cos(AHR)
+
+               ! TCOSZ is the sum of SUNTMP_MID at location (I,J)
+               ! Do not include negative values of SUNTMP_MID
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP_MID, 0d0 )
+
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDDO
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALC_DIURNAL
+
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2046,6 +2240,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
       SUMACETCO = 0d0 
 
+      ! Allocate TCOSZ -- array for sum of COS(SZA)
+      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )         
+      TCOSZ = 0d0 
+
       END SUBROUTINE INIT_TAGGED_CO
 !EOC
 !------------------------------------------------------------------------------
@@ -2082,6 +2281,7 @@
       IF ( ALLOCATED( SUMACETCO  ) ) DEALLOCATE( SUMACETCO  )
       IF ( ALLOCATED( EMACET     ) ) DEALLOCATE( EMACET     )
       IF ( ALLOCATED( CO_PRODS   ) ) DEALLOCATE( CO_PRODS   )
+      IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
       IF ( ALLOCATED( CO_LOSSS   ) ) DEALLOCATE( CO_LOSSS   )
 
       END SUBROUTINE CLEANUP_TAGGED_CO
