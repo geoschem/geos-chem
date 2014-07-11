@@ -3,20 +3,22 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_driver_mod
+! !MODULE: hco_driver_mod.F90
 !
-! !DESCRIPTION: Module HCO\_DRIVER\_MOD contains the driver routines 
+! !DESCRIPTION: Module HCO\_Driver\_Mod contains the driver routines 
 ! (INIT, RUN, FINAL) for the HEMCO core module. It calls all the 
 ! subroutines to initialize, execute and finalize the HEMCO core 
 ! emissions calculations, i.e. all emissions not calculated in a HEMCO
-! extension (See module HCOX\_DRIVER\_MOD.F90 for the extensions).\\
+! extension (See module HCOX\_DRIVER\_MOD.F90 for the extensions).
+!\\
+!\\
 ! Call this module at the HEMCO - model interface level to execute the
 ! HEMCO core operations.
 !\\
 !\\
 ! !INTERFACE: 
 !
-MODULE HCO_DRIVER_MOD 
+MODULE HCO_Driver_Mod 
 ! 
 ! !USES:
 !
@@ -46,7 +48,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_run 
+! !IROUTINE: HCO_Run 
 !
 ! !DESCRIPTION: Subroutine HCO\_RUN is the HEMCO core run routine. It
 ! calculates the HEMCO emissions as specified in the HEMCO configuration 
@@ -128,14 +130,14 @@ CONTAINS
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE HCO_RUN
+  END SUBROUTINE HCO_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_init
+! !IROUTINE: HCO_Init
 !
 ! !DESCRIPTION: Subroutine HCO\_INIT initializes the HEMCO core modules.
 ! This routine assumes that the HEMCO configuration file has been read
@@ -146,7 +148,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_INIT( am_I_Root, HcoState, RC )
+  SUBROUTINE HCO_Init( am_I_Root, HcoState, RC )
 !
 ! !USES:
 !
@@ -179,7 +181,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'HCO_INIT (HCO_DRIVER_MOD.F90)', RC )
+    CALL HCO_ENTER( 'HCO_INIT (HCO_Driver_Mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize time slice pointers 
@@ -187,12 +189,12 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize HEMCO Clock
-    CALL HcoClock_Init ( HcoState, RC )
+    CALL HcoClock_Init( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize the HEMCO ReadList. This has to be done before
     ! the call to SetReadList below. 
-    CALL ReadList_Init 
+    CALL ReadList_Init() 
 
     ! Set ReadList based upon the content of the configuration file. 
     CALL SetReadList ( am_I_Root, HcoState, RC )
@@ -201,14 +203,14 @@ CONTAINS
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE HCO_INIT
+  END SUBROUTINE HCO_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_final 
+! !IROUTINE: HCO_final 
 !
 ! !DESCRIPTION: Subroutine HCO\_FINAL finalizes HEMCO core. 
 !\\
@@ -246,9 +248,9 @@ CONTAINS
     ! HCO_FINAL begins here 
     !=================================================================
 
-    CALL cIDList_Cleanup
-    CALL HcoClock_Cleanup
-    CALL tIDx_Cleanup
+    CALL cIDList_Cleanup  (         ) 
+    CALL HcoClock_Cleanup (         )
+    CALL tIDx_Cleanup     (         )
     CALL EmisList_Cleanup ( .FALSE. )
     CALL ReadList_Cleanup ( .FALSE. )
     CALL Config_Cleanup   ( .TRUE.  )
@@ -256,9 +258,10 @@ CONTAINS
 
     ! Cleanup the extension list object
     CALL ExtFinal
-    ! Close the logfile and cleanup error object. 
-    CALL HCO_ERROR_FINAL
 
-  END SUBROUTINE HCO_FINAL
+    ! Close the logfile and cleanup error object. 
+    CALL HCO_Error_Final  (         )
+
+  END SUBROUTINE HCO_Final
 !EOC
-END MODULE HCO_DRIVER_MOD
+END MODULE HCO_Driver_Mod

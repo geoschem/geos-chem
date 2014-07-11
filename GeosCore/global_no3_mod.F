@@ -63,7 +63,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_NO3( THISMONTH )
+      SUBROUTINE GET_GLOBAL_NO3( am_I_Root, Input_Opt, THISMONTH, RC )
 !
 ! !USES:
 !
@@ -71,14 +71,20 @@
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0
       USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
-
       USE CMN_SIZE_MOD                  ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: THISMONTH   ! Current month
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?!
 ! 
 ! !REVISION HISTORY: 
 !  15 Oct 2002 - R. Yantosca - Initial version
@@ -117,7 +123,7 @@
       ENDIF
 
       ! File name
-      FILENAME = TRIM( DATA_DIR )                       // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )             // 
      &           'sulfate_sim_200508/offline/NO3.'      //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 

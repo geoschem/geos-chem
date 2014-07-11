@@ -90,7 +90,6 @@
       USE BPCH2_MOD,            ONLY : READ_BPCH2
       USE DAO_MOD,              ONLY : AIRDEN_FULLGRID
       USE DAO_MOD,              ONLY : AIRQNT_FULLGRID
-      USE DIRECTORY_MOD,        ONLY : OH_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Met_Mod,   ONLY : MetState
@@ -153,12 +152,14 @@
 
 #if defined( NESTED_NA )
       ! Filename
-      FILENAME = TRIM( OH_DIR ) // 'OH_3Dglobal.' // GET_NAME_EXT() // 
-     &           '.'            // GET_RES_EXT()  // '_NA'
+      FILENAME = TRIM( Input_Opt%OH_DIR ) // 'OH_3Dglobal.' // 
+     &           GET_NAME_EXT() //        // '.'            //
+     &           GET_RES_EXT()  // '_NA'
 #else
       ! Filename
-      FILENAME = TRIM( OH_DIR ) // 'OH_3Dglobal.' // GET_NAME_EXT() // 
-     &                              '.'           // GET_RES_EXT()
+      FILENAME = TRIM( Input_Opt%OH_DIR ) // 'OH_3Dglobal.' // 
+     &           GET_NAME_EXT()           // '.'            // 
+     &           GET_RES_EXT()
 #endif
 
       ! Echo some information to the standard output
@@ -355,7 +356,7 @@
 ! !IROUTINE: calc_sumcosza
 !
 ! !DESCRIPTION:
-!  Subroutine CALC_SUMCOSZA computes the sum of cosine of the solar zenith
+!  Subroutine CALC\_SUMCOSZA computes the sum of cosine of the solar zenith
 !  angle over a 24 hour day, as well as the total length of daylight. 
 !\\
 !\\

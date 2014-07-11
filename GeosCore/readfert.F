@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READFERT
+      SUBROUTINE READFERT( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -20,20 +20,31 @@
       USE m_netcdf_io_read
       USE m_netcdf_io_readattr
       USE m_netcdf_io_close
-	! Regrid
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-	! SOILFERT and size
-      USE CMN_SIZE_MOD   	! Size parameters
-      USE COMMSOIL_MOD		! Soil variables
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE CMN_SIZE_MOD
+      USE COMMSOIL_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       IMPLICIT NONE
 #     include "netcdf.inc"
+
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
       
 ! !REVISION HISTORY:
 !  24 Aug 2012 - J.D. Maasakkers - Initial version
 !  03 Jan 2013 - M. Payer        - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  20 Aug 2013 - R. Yantosca     - Removed "define.h", this is now obsolete
+!  20 Jun 2014 - R. Yantosca     - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -83,14 +94,17 @@
       ! Open and read data from the netCDF file
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Open netCDF file
-      nc_path = TRIM( DATA_DIR_1x1 ) // 'soil_NOx_201208/' //
+      nc_path = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'soil_NOx_201208/' //
      &          'soilNOx.fert_res.generic.05x05.nc'
       CALL Ncop_Rd( fId, TRIM(nc_path) )
 
       ! Echo info to stdout
       nc_file = 'soilNOx.fert_res.generic.05x05.nc'  
-      nc_dir  = TRIM( DATA_DIR_1x1 ) // 'soil_NOx_201208/' 
+      nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'soil_NOx_201208/' 
       WRITE( 6, 100 ) REPEAT( '%', 79 )
       WRITE( 6, 110 ) TRIM(nc_file)
       WRITE( 6, 120 ) TRIM(nc_dir)
@@ -128,7 +142,7 @@
 
       ! 0.5x0.5 regrid - FERT
       ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
+      LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/latlon_generic05x05.txt'
 
       ! Regrid to NOx [molec/cm2/s] current model resolution

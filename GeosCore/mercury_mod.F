@@ -577,20 +577,20 @@
          MONTH = GET_MONTH()
 
          ! Read monthly mean OH and O3 from disk
-         CALL GET_GLOBAL_OH
-     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+         CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, State_Met, MONTH, RC)
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_OH' )
 
-         CALL GET_GLOBAL_O3( MONTH )
+         CALL GET_GLOBAL_O3( am_I_Root, Input_Opt, MONTH, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
 
-         CALL GET_GLOBAL_BR( MONTH, State_Met  )
+         CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Met, MONTH, RC)
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
          IF (LRED_JNO2) THEN
-            CALL GET_GLOBAL_JNO2( MONTH ) 
-            IF ( LPRT ) 
-     &           CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_JNO2' )
+            CALL GET_GLOBAL_JNO2( am_I_Root, Input_Opt, MONTH, RC )
+            IF ( LPRT ) THEN
+               CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_JNO2' )
+            ENDIF
          ENDIF
 
       ENDIF
@@ -1397,7 +1397,6 @@
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : N_HG_CATS
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
-      USE LOGICAL_MOD,        ONLY : LPREINDHG   ! Y. Zhang
 
       ! Added for GTMM (ccc, 11/19/09)
       USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
@@ -1433,6 +1432,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to VEGEMIS
+!  23 Jun 2014 - R. Yantosca - Now pass am_I_Root to OCEAN_MERCURY_FLUX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1447,6 +1448,7 @@
       LOGICAL         :: LGTMM
       LOGICAL         :: LNLPBL
       LOGICAL         :: LPRT
+      LOGICAL         :: LPREINDHG
 
       !=================================================================
       ! EMISSMERCURY begins here!
@@ -1459,7 +1461,8 @@
       LDYNOCEAN = Input_Opt%LDYNOCEAN
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
-      LPRT      = Input_Opt%LPRT
+      LPREINDHG = Input_Opt%LPREINDHG
+      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1469,7 +1472,7 @@
 
          ! In plume degradation of Hg2 by SO2 in U.S. and Canada at CFPPs, yzh 11/1/2011
          IF ( LInPlume .AND. .NOT. LPREINDHG .AND. LNEI2005) THEN
-              CALL DO_RED_INPLUME
+              CALL DO_RED_INPLUME( am_I_Root, Input_Opt, RC )
          ENDIF
 
          ! Reset first-time flag
@@ -1487,8 +1490,9 @@
          ! (cdh, 4/30/09)
          EHg0_oc = 0d0
 
-         CALL OCEAN_MERCURY_FLUX( EHg0_oc,   Input_Opt, 
-     &                            State_Met, State_Chm )
+         CALL OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt, State_Met, 
+     &                            State_Chm, EHg0_oc,   RC         )
+     &                            
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
 
       ENDIF
@@ -1498,7 +1502,11 @@
          ! Here we are using the Global Terrstrial Mercury Model ...
          !--------------------------------------------------------------
          IF ( ITS_A_NEW_MONTH() ) THEN
-            CALL GTMM_DR( EHg0_gtm(:,:), State_Met )
+
+            ! OLD CODE: CALL GTMM_DR( EHg0_gtm(:,:), State_Met )
+            CALL GTMM_DR
+     &           ( am_I_Root, Input_Opt, State_Met, EHg0_gtm, RC )
+
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
          ENDIF
   
@@ -1511,7 +1519,8 @@
       
          ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
          ! (jaf, eds, 4/1/11)
-         CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, State_Met )
+         CALL VEGEMIS( am_I_Root, Input_Opt, State_Met,
+     &                 LVEGEMIS,  EHg0_dist, EHg0_vg,   RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
       
          CALL SOILEMIS( EHg0_dist, EHg0_so, State_Met )
@@ -1522,7 +1531,7 @@
       CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
       
-      CALL BIOMASSHG( EHg0_bb )
+      CALL BIOMASSHG( am_I_Root, Input_Opt, EHg0_bb, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a BIOMASS' )
 
       IF ( LnoUSAemis ) THEN
@@ -3060,7 +3069,6 @@
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT    ! yzh, 11/01/2011
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1,    DATA_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
@@ -3162,7 +3170,7 @@
          !---------------------------
 
          ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1) //
+         LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1) //
      &              'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
          IF (LGCAPEMIS) THEN
@@ -3182,7 +3190,8 @@
              XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
 
             ! Filename for anthropogenic mercury source
-            FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' // 
+            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1) // 
+     &           'mercury_201205/' // 
      &           'GEIA_Streets_' // TRIM( SCENARIO ) //
      &           '_Hg0.geos.1x1.YYYY'
 !-----------------------------------------------------------------
@@ -3229,7 +3238,8 @@
                !===========================
                ! Anthro Canada Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'     // TRIM( SCENARIO )  //
      &                    '_Hg0_CAN.geos.1x1.YYYY'
                !--------------------------------------------------------
@@ -3265,7 +3275,8 @@
                !===========================
                ! Anthro United States Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_USA.geos.1x1.YYYY'
             
@@ -3300,7 +3311,8 @@
                !===========================
                ! Anthro Central America Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_CAM.geos.1x1.YYYY'
             
@@ -3335,7 +3347,8 @@
                !===========================
                ! Anthro South America Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                     'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_SAM.geos.1x1.YYYY'
             
@@ -3370,7 +3383,8 @@
                !===========================
                ! Anthro West Africa Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_WAF.geos.1x1.YYYY'
             
@@ -3405,7 +3419,8 @@
                !===========================
                ! Anthro East Africa Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_EAF.geos.1x1.YYYY'
             
@@ -3440,7 +3455,8 @@
                !===========================
                ! Anthro South Africa Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_SAF.geos.1x1.YYYY'
             
@@ -3475,7 +3491,8 @@
                !===========================
                ! Anthro North Africa Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_NAF.geos.1x1.YYYY'
             
@@ -3510,7 +3527,8 @@
                !===========================
                ! Anthro OECD Europe Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_EUR.geos.1x1.YYYY'
             
@@ -3545,7 +3563,8 @@
                !===========================
                ! Anthro Eastern Europe Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_EEU.geos.1x1.YYYY'
             
@@ -3580,7 +3599,8 @@
                !===========================
                ! Anthro Middle East Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_MDE.geos.1x1.YYYY'
             
@@ -3615,7 +3635,8 @@
                !===========================
                ! Anthro Former USSR Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_SOV.geos.1x1.YYYY'
             
@@ -3650,7 +3671,8 @@
                !===========================
                ! Anthro South Asia Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_SAS.geos.1x1.YYYY'
             
@@ -3685,7 +3707,8 @@
                !===========================
                ! Anthro East Asia Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_EAS.geos.1x1.YYYY'
             
@@ -3720,7 +3743,8 @@
                !===========================
                ! Anthro Southeast Asia Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                     'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_SEA.geos.1x1.YYYY'
             
@@ -3755,7 +3779,8 @@
                !===========================
                ! Anthro Japan Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_JPN.geos.1x1.YYYY'
             
@@ -3790,7 +3815,8 @@
                !===========================
                ! Anthro Oceania Hg0
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg0_OCE.geos.1x1.YYYY'
             
@@ -3834,12 +3860,12 @@
             ! Filename for anthropogenic mercury source
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
             ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
-            FILENAME = TRIM( DATA_DIR )           // 
+            FILENAME = TRIM( Input_Opt%DATA_DIR )           // 
      &           'mercury_201203/GEIA_Hg0.'       //
      &           GET_NAME_EXT()     // '.'        //
      &           GET_RES_EXT()      //  '.YYYY'
 #else
-            FILENAME = TRIM( DATA_DIR_1x1 )       // 
+            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 )       // 
      &           'mercury_201002/GEIA_Hg0.geos.1x1.YYYY'
 #endif
 
@@ -3893,7 +3919,7 @@
             XTAU     = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
 
             ! Filename for anthropogenic mercury source
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 
+            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
      &           'mercury_200511/GEIA_Hg0.geos.1x1.YYYY'
 
             ! Add year to the filename
@@ -3961,12 +3987,14 @@
 
             ! Filename for anthropogenic mercury source
             IF (LInPlume) THEN
-               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+               FILENAME = TRIM(Input_Opt% DATA_DIR) // 
+     &              'mercury_201203/' //
      &              'NEI2005_NPRI2005_NewSpeciation_Hg0.'     //
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()    //
      &              '.YYYY'
             ELSE
-               FILENAME = TRIM( DATA_DIR)   // 'mercury_201203/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR)   // 
+     &              'mercury_201203/' //
      &              'NEI2005_NPRI2005_Hg0.' //
      &              GET_NAME_EXT() // '.'   // GET_RES_EXT()    //
      &              '.YYYY'
@@ -4014,10 +4042,12 @@
 
          ! Filename for artisanal mining emissions (4x5 only for now)
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'mercury_201203/artisanal.' //
+         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
+     &              'mercury_201203/artisanal.' //
      &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
 #else
-         FILENAME = TRIM( DATA_DIR ) // 'mercury_201007/artisanal.bpch'
+         FILENAME = TRIM(Input_Opt% DATA_DIR ) // 
+     &        'mercury_201007/artisanal.bpch'
 #endif
 
          ! Echo info
@@ -4063,7 +4093,8 @@
 !            FILENAME = '/home/cdh/GC/Archived-Br/' //
 !     &           'GEIA_Streets_Hg2.geos.1x1.YYYY'
 
-            FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' //
+            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1) // 
+     &            'mercury_201205/' //
      &           'GEIA_Streets_' // TRIM( SCENARIO ) //
      &           '_Hg2.geos.1x1.YYYY'
 !-----------------------------------------------------------------
@@ -4110,7 +4141,8 @@
                !===========================
                ! Anthro Canada Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_CAN.geos.1x1.YYYY'
             
@@ -4145,7 +4177,8 @@
                !===========================
                ! Anthro United States Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &              'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_USA.geos.1x1.YYYY'
             
@@ -4180,7 +4213,8 @@
                !===========================
                ! Anthro Central America Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_CAM.geos.1x1.YYYY'
             
@@ -4215,7 +4249,8 @@
                !===========================
                ! Anthro South America Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_SAM.geos.1x1.YYYY'
             
@@ -4250,7 +4285,8 @@
                !===========================
                ! Anthro West Africa Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_WAF.geos.1x1.YYYY'
             
@@ -4285,7 +4321,8 @@
                !===========================
                ! Anthro East Africa Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_EAF.geos.1x1.YYYY'
             
@@ -4320,7 +4357,8 @@
                !===========================
                ! Anthro South Africa Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_SAF.geos.1x1.YYYY'
             
@@ -4355,7 +4393,8 @@
                !===========================
                ! Anthro North Africa Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_NAF.geos.1x1.YYYY'
             
@@ -4390,7 +4429,8 @@
                !===========================
                ! Anthro OECD Europe Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_EUR.geos.1x1.YYYY'
             
@@ -4425,7 +4465,8 @@
                !===========================
                ! Anthro Eastern Europe Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_EEU.geos.1x1.YYYY'
             
@@ -4460,7 +4501,8 @@
                !===========================
                ! Anthro Middle East Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_MDE.geos.1x1.YYYY'
             
@@ -4495,7 +4537,8 @@
                !===========================
                ! Anthro Former USSR Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_SOV.geos.1x1.YYYY'
             
@@ -4530,7 +4573,8 @@
                !===========================
                ! Anthro South Asia Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_SAS.geos.1x1.YYYY'
             
@@ -4565,7 +4609,8 @@
                !===========================
                ! Anthro East Asia Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_EAS.geos.1x1.YYYY'
             
@@ -4600,7 +4645,8 @@
                !===========================
                ! Anthro Southeast Asia Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_SEA.geos.1x1.YYYY'
             
@@ -4635,7 +4681,8 @@
                !===========================
                ! Anthro Japan Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_JPN.geos.1x1.YYYY'
             
@@ -4670,7 +4717,8 @@
                !===========================
                ! Anthro Oceania Hg2
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_Hg2_OCE.geos.1x1.YYYY'
             
@@ -4710,12 +4758,12 @@
             ! Filename for anthropogenic mercury source
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
             ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
-            FILENAME = TRIM( DATA_DIR )           // 
+            FILENAME = TRIM( Input_Opt%DATA_DIR )           // 
      &           'mercury_201203/GEIA_Hg2.'       //
      &           GET_NAME_EXT()     // '.'        //
      &           GET_RES_EXT()      // '.YYYY'
 #else
-            FILENAME = TRIM( DATA_DIR_1x1 )               // 
+            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 )               // 
      &           'mercury_201002/GEIA_Hg2.geos.1x1.YYYY'
 #endif
 
@@ -4766,7 +4814,7 @@
             ! Otherwise use Selin et al. 2008 emissions
 
             ! Filename for anthropogenic mercury source
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 
+            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
      &           'mercury_200511/GEIA_Hg2.geos.1x1.YYYY'
 
             ! Add year to the filename
@@ -4809,12 +4857,14 @@
 
             ! Filename for anthropogenic mercury source
             IF (LInPlume) THEN
-               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR) // 
+     &              'mercury_201203/' //
      &              'NEI2005_NPRI2005_NewSpeciation_Hg2.'      //
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
      &              '.YYYY'
             ELSE
-               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR) // 
+     &              'mercury_201203/' //
      &              'NEI2005_NPRI2005_Hg2.'                    //
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
      &              '.YYYY'
@@ -4866,7 +4916,8 @@
 
 
             ! Anthro HgP
-            FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' //
+            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1) // 
+     &           'mercury_201205/' //
      &           'GEIA_Streets_' // TRIM( SCENARIO ) //
      &           '_HgP.geos.1x1.YYYY'
             !--------------------------------------------------------   
@@ -4912,7 +4963,8 @@
                !===========================
                ! Anthro Canada HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_CAN.geos.1x1.YYYY'
            
@@ -4947,7 +4999,8 @@
                !===========================
                ! Anthro United States HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_USA.geos.1x1.YYYY'
            
@@ -4982,7 +5035,8 @@
                !===========================
                ! Anthro Central America HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_CAM.geos.1x1.YYYY'
            
@@ -5017,7 +5071,8 @@
                !===========================
                ! Anthro South America HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_SAM.geos.1x1.YYYY'
            
@@ -5052,7 +5107,8 @@
                !===========================
                ! Anthro West Africa HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_WAF.geos.1x1.YYYY'
            
@@ -5087,7 +5143,8 @@
                !===========================
                ! Anthro East Africa HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_EAF.geos.1x1.YYYY'
            
@@ -5122,7 +5179,8 @@
                !===========================
                ! Anthro South Africa HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_SAF.geos.1x1.YYYY'
            
@@ -5157,7 +5215,8 @@
                !===========================
                ! Anthro North Africa HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_NAF.geos.1x1.YYYY'
            
@@ -5192,7 +5251,8 @@
                !===========================
                ! Anthro OECD Europe HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_EUR.geos.1x1.YYYY'
            
@@ -5227,7 +5287,8 @@
                !===========================
                ! Anthro Eastern Europe HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_EEU.geos.1x1.YYYY'
            
@@ -5262,7 +5323,8 @@
                !===========================
                !Anthro Middle East HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_MDE.geos.1x1.YYYY'
            
@@ -5297,7 +5359,8 @@
                !===========================
                ! Anthro Former USSR HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_SOV.geos.1x1.YYYY'
            
@@ -5332,7 +5395,8 @@
                !===========================
                ! Anthro South Asia HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_SAS.geos.1x1.YYYY'
            
@@ -5367,7 +5431,8 @@
                !===========================
                ! Anthro East Asia HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_EAS.geos.1x1.YYYY'
            
@@ -5402,7 +5467,8 @@
                !===========================
                ! Anthro Southeast Asia HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_SEA.geos.1x1.YYYY'
            
@@ -5437,7 +5503,8 @@
                !===========================
                ! Anthro Japan HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_JPN.geos.1x1.YYYY'
            
@@ -5472,7 +5539,8 @@
                !===========================
                ! Anthro Oceania HgP
                !===========================
-               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &                    'mercury_201205/' //
      &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
      &                    '_HgP_OCE.geos.1x1.YYYY'
            
@@ -5513,12 +5581,12 @@
             ! Filename for anthropogenic mercury source
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
             ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
-            FILENAME = TRIM( DATA_DIR )           //
+            FILENAME = TRIM( Input_Opt%DATA_DIR )           //
      &           'mercury_201203/GEIA_HgP.'       //
      &           GET_NAME_EXT()     // '.'        //
      &           GET_RES_EXT()      //'.YYYY'
 #else
-            FILENAME = TRIM( DATA_DIR_1x1)   //
+            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1)   //
      &           'mercury_201002/GEIA_HgP.geos.1x1.YYYY'
 #endif
 
@@ -5568,7 +5636,7 @@
             ! Otherwise use Selin et al. 2008 emissions
 
             ! Filename for anthropogenic mercury source
-            FILENAME = TRIM( DATA_DIR_1x1) //
+            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1) //
      &           'mercury_200511/GEIA_HgP.geos.1x1.YYYY'
 
             ! Add year to the filename
@@ -5610,12 +5678,14 @@
 
             ! Filename for anthropogenic mercury source
             IF (LInPlume) THEN
-               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR) // 
+     &              'mercury_201203/' //
      &              'NEI2005_NPRI2005_NewSpeciation_HgP.'      //
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
      &              '.YYYY'
             ELSE
-               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+               FILENAME = TRIM( Input_Opt%DATA_DIR) // 
+     &              'mercury_201203/' //
      &              'NEI2005_NPRI2005_HgP.'                    //
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
      &              '.YYYY'
@@ -5678,11 +5748,11 @@
          ! Pre-industrial 
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
-         FILENAME= TRIM( DATA_DIR )                       //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )                       //
      &             'mercury_201203/soilhg.preind.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
-         FILENAME= TRIM( DATA_DIR )            //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
      &             'mercury_201203/soilhg.preind.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
@@ -5691,10 +5761,10 @@
          !%%%   Ask Team Hg to produce a new GEOS4 soil file later  .  %%%
          !%%%   (bmy, 9/6/13)                                          %%%
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         FILENAME= TRIM( DATA_DIR )            //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
      &             'mercury_201203/0soilhg.preind.v9-02c.geos5.4x5'
 #elif defined( MERRA ) && defined( GRID4x5 )
-         FILENAME= TRIM( DATA_DIR )            //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.preind.bpch'
 #elif defined( GEOS_FP ) && defined( GRID4x5 )
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -5702,11 +5772,11 @@
          !%%%   Ask Team Hg to produce a new GEOS-FP soil file later.  %%%
          !%%%   (bmy, 9/6/13)                                          %%%
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         FILENAME= TRIM( DATA_DIR )            //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
      &             'mercury_201203/soilHg.merra.preind.bpch'
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
          ! Need to read nested-grid files, yzh
-         FILENAME= TRIM( DATA_DIR )           //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )           //
      &             'mercury_201203/soilhg.preind.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #else
@@ -5720,11 +5790,11 @@
          ! Present day
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
-         FILENAME= TRIM( DATA_DIR )                           //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )                 //
      &             'mercury_201203/soilhg.presentday.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
-         FILENAME= TRIM( DATA_DIR )                           //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )                 //
      &             'mercury_201203/soilhg.presentday.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
@@ -5733,10 +5803,10 @@
          !%%%   Ask Team Hg to produce a new GEOS4 soil file later  .  %%%
          !%%%   (bmy, 9/6/13)                                          %%%
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         FILENAME= TRIM( DATA_DIR )            //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
      &             'mercury_201203/soilhg.presentday.v9-02c.geos5.4x5'
 #elif defined( MERRA ) && defined( GRID4x5 )
-         FILENAME= TRIM( DATA_DIR )            //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.presentday.bpch'
 #elif defined( GEOS_FP ) && defined( GRID4x5 )
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -5744,11 +5814,11 @@
          !%%%   Ask Team Hg to produce a new GEOS-FP soil file later.  %%%
          !%%%   (bmy, 9/6/13)                                          %%%
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         FILENAME= TRIM( DATA_DIR )            //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.presentday.bpch'
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
          ! Need to read nested-grid files, yzh
-         FILENAME= TRIM( DATA_DIR )                           //
+         FILENAME= TRIM( Input_Opt%DATA_DIR )                 //
      &             'mercury_201203/soilhg.presentday.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #else
@@ -5780,11 +5850,11 @@
       ! Filename for natural land-source mercury
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+      FILENAME = TRIM( Input_Opt%DATA_DIR) // 'mercury_201203/' //
      &           'newnatural.'   // GET_NAME_EXT()    //
      &            '.'            // GET_RES_EXT()
 #else
-      FILENAME= TRIM( DATA_DIR )            //
+      FILENAME= TRIM( Input_Opt%DATA_DIR )            //
      &     'mercury_201007/newnatural.bpch'
 #endif
 
@@ -5824,7 +5894,7 @@
       IF ( .not. LDYNOCEAN ) THEN
 
          ! File name
-         FILENAME = TRIM( DATA_DIR_1x1 )            // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 )            // 
      &              'mercury_200511/Hg_ocean.geos.' // GET_RES_EXT()    
 
          ! Echo info
@@ -6676,22 +6746,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_JNO2( THISMONTH )
+      SUBROUTINE GET_GLOBAL_JNO2( am_I_Root, Input_Opt, THISMONTH, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
       IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 ! 
+! !REMARKS:
+!  Binary punch file input is slated to be replaced by netCDF input soon.
+!
 ! !REVISION HISTORY: 
 !  25 Nov 2009 - C. Holmes   - Initial version
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
@@ -6713,17 +6793,21 @@
       !CDH -WE EVENTUALLY NEED TO SUPPORT OTHER MODEL RESOLUTIONS
       ! Filename for full-level GEOS5 model
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( DATA_DIR )  // 'mercury_201203/jvalues.noon.' //
+      FILENAME = TRIM( Input_Opt%DATA_DIR )     // 
+     &           'mercury_201203/jvalues.noon.' //
      &           GET_NAME_EXT()    // '.' // GET_RES_EXT()
 #else
       FILENAME = 
-     &           TRIM( DATA_DIR )  // 'mercury_201007/jvalues.noon.' //
+     &           TRIM( Input_Opt%DATA_DIR )     // 
+     &           'mercury_201007/jvalues.noon.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 #endif
 
       ! Echo some information to the standard output
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - GET_GLOBAL_JNO2: Reading ', a )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 110 ) TRIM( FILENAME )
+ 110     FORMAT( '     - GET_GLOBAL_JNO2: Reading ', a )
+      ENDIF
 
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
@@ -7059,22 +7143,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RED_INPLUME
+      SUBROUTINE DO_RED_INPLUME( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE TIME_MOD,       ONLY : EXPAND_DATE
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
       IMPLICIT NONE
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Bpch file input shall be replaced with netCDF file input shortly
+!
 ! !REVISION HISTORY: 
 !  11 Jan 2011 - Y. Zhang    - Initial version
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7104,38 +7201,40 @@
       XTAU     = GET_TAU0( 1, 1, 2005 )
 
       ! Read power plant emissions
-           FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
-     &           'CFPP_NEI2005_NPRI2005_Hg2.' //
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'mercury_201203/' //
+     &           'CFPP_NEI2005_NPRI2005_Hg2.'    //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
      &           '.YYYY'
      
-           ! Add year to the filename
-           CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+      ! Add year to the filename
+      CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
      
-           ! Echo info
-           WRITE( 6, 50 ) TRIM( FILENAME )
-50       FORMAT( '     - RED_INPLUME: Reading ', a )
-     
-           ! Read data in [kg/yr]
-           CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      IIPAR,     JJPAR,
-     &           1,     ARRAY(:,:,1),     QUIET=.TRUE. )
-     
-           ! Regrid to the current grid
-           CALL TRANSFER_2D( ARRAY(:,:,1), E_ELECTRICITY_Hg2 )
+      ! Echo info
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 50 ) TRIM( FILENAME )
+ 50      FORMAT( '     - RED_INPLUME: Reading ', a )
+      ENDIF
 
-           DO J=1,JJPAR
-           DO I=1,IIPAR
+      ! Read data in [kg/yr]
+      CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                 XTAU,      IIPAR,     JJPAR,
+     &                 1,     ARRAY(:,:,1),     QUIET=.TRUE. )
+     
+      ! Regrid to the current grid
+      CALL TRANSFER_2D( ARRAY(:,:,1), E_ELECTRICITY_Hg2 )
 
-             ! Transfer unit to kg/s
-             ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
-             E_plant = E_ELECTRICITY_Hg2(I,J) / SEC_PER_YR
+      DO J=1,JJPAR
+      DO I=1,IIPAR
+
+         ! Transfer unit to kg/s
+         ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
+         E_plant = E_ELECTRICITY_Hg2(I,J) / SEC_PER_YR
              
-             ! Reduce the Hg2 from plume
-             CALL RED_INPLUME_GRID( I, J, E_plant )
+         ! Reduce the Hg2 from plume
+         CALL RED_INPLUME_GRID( I, J, E_plant )
 
-           ENDDO
-           ENDDO
+      ENDDO
+      ENDDO
 
       ! Return to calling program
       END SUBROUTINE DO_RED_INPLUME

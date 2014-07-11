@@ -1,29 +1,29 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_megan_mod
+! !MODULE: hcox_megan_mod.F90
 !
-! !DESCRIPTION: Module HCOX\_MEGAN\_MOD contains variables and routines 
+! !DESCRIPTION: Module HCOX\_Megan\_Mod contains variables and routines 
 !  specifying the algorithms that control the MEGAN inventory of biogenic 
-!  emissions.
+!  emissions (as implemented into the GEOS-Chem model).
+!\\
 !\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
 !\\
-!NOTES:
-!
-!- MEGAN calculates gamma activity factor based upon temperature and 
-!  radiation information from the past 10 days. In the original GEOS-Chem 
-!  code, the initial 10-d averages were explicitly calculated during 
-!  initialization of MEGAN. This is not feasible in an ESMF environment. 
-!  As a first approximation, the averages are now set to the initial 
-!  temperature/radiation value. Especially for the radiation (PARDR and 
-!  PARDF), this may result in very different average values - which in 
-!  turn may result in local differences of >50%. HEMCO emissions are 
-!  identical to original GEOS-Chem emissions once we pass the first 10 
-!  days.
+!\\
+! MEGAN calculates gamma activity factor based upon temperature and 
+! radiation information from the past 10 days. In the original GEOS-Chem 
+! code, the initial 10-d averages were explicitly calculated during 
+! initialization of MEGAN. This is not feasible in an ESMF environment. 
+! As a first approximation, the averages are now set to the initial 
+! temperature/radiation value. Especially for the radiation (PARDR and 
+! PARDF), this may result in very different average values - which in 
+! turn may result in local differences of >50%. HEMCO emissions are 
+! identical to original GEOS-Chem emissions once we pass the first 10 
+! days.
 !\\
 !\\
 ! !References:
@@ -70,9 +70,9 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS: 
 !
-      PUBLIC  :: HcoX_Megan_Init
-      PUBLIC  :: HcoX_Megan_Run
-      PUBLIC  :: HcoX_Megan_Final
+      PUBLIC  :: HCOX_Megan_Init
+      PUBLIC  :: HCOX_Megan_Run
+      PUBLIC  :: HCOX_Megan_Final
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -220,9 +220,13 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-! !DESCRIPTION: Subroutine HCOX\_MEGAN\_RUN is the driver routine for
+! !IROUTINE: HCOX_Megan_Run
+!
+! !DESCRIPTION: Subroutine HCOX\_MEGAN\_Run is the driver routine for
 ! the MEGAN model within the new emissions structure. 
 ! Note that all diagnostics are commented since those are still written
 ! as part of the old emission structure.
@@ -230,7 +234,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_Megan_Run ( am_I_Root, ExtState, HcoState, RC ) 
+      SUBROUTINE HCOX_Megan_Run( am_I_Root, ExtState, HcoState, RC ) 
 !
 ! !USES:
 !
@@ -242,10 +246,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,         INTENT(IN)     :: am_I_Root
-      TYPE(Ext_State), POINTER        :: ExtState 
-      TYPE(HCO_State), POINTER        :: HcoState
-      INTEGER,         INTENT(INOUT)  :: RC
+      LOGICAL,         INTENT(IN)    :: am_I_Root
+      TYPE(Ext_State), POINTER       :: ExtState 
+      TYPE(HCO_State), POINTER       :: HcoState
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY: 
 !  05 Aug 2013 - C. Keller - Initial version 
@@ -346,11 +353,11 @@
       REAL(hp), POINTER   :: GEIA_ORVC(:,:) => NULL()
 
       !=================================================================
-      ! HcoX_Megan_Run begins here! 
+      ! HCOX_Megan_Run begins here! 
       !================================================================= 
 
       ! Enter 
-      CALL HCO_ENTER ( 'HcoX_Megan_Run (HCOX_MEGAN_MOD.F)', RC )
+      CALL HCO_ENTER ( 'HCOX_Megan_Run (hcox_megan_mod.F)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
       ERR = .FALSE.
 
@@ -1477,16 +1484,16 @@
       ! Return w/ success
       CALL HCO_LEAVE ( RC )
 
-      END SUBROUTINE HcoX_Megan_Run
+      END SUBROUTINE HCOX_Megan_Run
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_emisop_megan
+! !IROUTINE: Get_EmIsop_Megan
 !
-! !DESCRIPTION: Subroutine GET\_EMISOP\_MEGAN computes isoprene emissions in 
+! !DESCRIPTION: Subroutine Get\_EmIsop\_Megan computes isoprene emissions in 
 !  units of [atoms C/box] using the MEGAN inventory.
 !\\
 !\\
@@ -1505,7 +1512,13 @@
       REAL*8,  INTENT(IN) :: GAMMA_P   ! Light correction factor 
       REAL*8,  INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
       REAL*8,  INTENT(IN) :: XNUMOL   ! Number of atoms C / kg C 
-      REAL*8, INTENT(OUT) :: EMISOP   ! Isoprene emissions [atoms C/box]
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: EMISOP   ! Isoprene emissions [atoms C/box]
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       INTEGER, INTENT(INOUT) :: RC
 !
 ! !REMARKS:
@@ -1618,13 +1631,13 @@
       END SUBROUTINE GET_EMISOP_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_emmbo_megan
+! !IROUTINE: Get_EmMbo_Megan
 !
-! !DESCRIPTION: Subroutine GET\_EMMBO\_MEGAN computes methylbutenol emissions
+! !DESCRIPTION: Subroutine Get\_EmMbo\_Megan computes methylbutenol emissions
 !  in units of [atoms C/box] using the MEGAN inventory.
 !\\
 !\\
@@ -1638,12 +1651,19 @@
 !
       TYPE(HCO_STATE), POINTER :: HcoState
       TYPE(Ext_State), POINTER :: ExtState
-      INTEGER, INTENT(IN) :: I, J    ! GEOS-Chem lon & lat indices
+      INTEGER, INTENT(IN) :: I, J      ! GEOS-Chem lon & lat indices
       REAL*8,  INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
       REAL*8,  INTENT(IN) :: GAMMA_P   ! Light correction factor 
       REAL*8,  INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL*8,  INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
+      REAL*8,  INTENT(IN) :: XNUMOL    ! Number of atoms C / kg C 
+!
+! !OUTPUT PARAMETERS: 
+!
       REAL*8, INTENT(OUT) :: EMMBO   ! Methylbutenol emissions [atoms C/box]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+
       INTEGER, INTENT(INOUT) :: RC
 ! 
 ! !REMARKS:
@@ -1744,13 +1764,13 @@
       END SUBROUTINE GET_EMMBO_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_emmonog_megan
+! !IROUTINE: Get_EmTerp_Megan
 !
-! !DESCRIPTION: Function GET\_EMTERP\_MEGAN computes monoterpene and
+! !DESCRIPTION: Function Get\_EmTerp\_Megan computes monoterpene and
 !  sesquiterpene emissions for individual species in units of [atoms C/box]
 !  using the MEGAN v2.1 inventory.
 !\\
@@ -1771,7 +1791,13 @@
       REAL*8,  INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
       REAL*8,           INTENT(IN) :: XNUMOL        ! Number of atoms C / kg C 
       CHARACTER(LEN=5), INTENT(IN) :: TERP_SPECIES  ! Monoterpene species name
+!
+! !OUTPUT PARAMETERS: 
+!
       REAL*8,          INTENT(OUT) :: EMTERP        ! Emissions [kg/m2/s]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
       INTEGER,       INTENT(INOUT) :: RC            ! Return code 
 !
 ! !REMARKS:
@@ -1936,13 +1962,13 @@
       END SUBROUTINE GET_EMTERP_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_emacet_megan
+! !IROUTINE: Get_EmaAet_megan
 !
-! !DESCRIPTION: Subroutine GET\_EMACET\_MEGAN computes acetone emissions in
+! !DESCRIPTION: Subroutine Get\_EmAcet\_Megan computes acetone emissions in
 !  units of [atomsC/box] using the MEGAN inventory.
 !\\
 !\\
@@ -1961,7 +1987,13 @@
       REAL*8,  INTENT(IN) :: GAMMA_P   ! Light correction factor 
       REAL*8,  INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
       REAL*8,  INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
+!
+! !OUTPUT PARAMETERS: 
+!
       REAL*8, INTENT(OUT) :: EMACET  ! Acetone emissions [atoms C/box]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
       INTEGER, INTENT(INOUT) :: RC
 ! 
 ! !REMARKS:
@@ -2085,13 +2117,13 @@
       END SUBROUTINE GET_EMACET_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_emmonot_megan
+! !IROUTINE: Get_EmMonot_Megan
 !
-! !DESCRIPTION: Subroutine GET\_EMMONOT\_MEGAN computes the total 
+! !DESCRIPTION: Subroutine Get\_EmMonot\_Megan computes the total 
 !  monoterpene emissions in units of [atoms C/box] using the MEGAN v2.1 
 !  inventory.
 !\\
@@ -2111,7 +2143,13 @@
       REAL*8,  INTENT(IN) :: GAMMA_P   ! Light correction factor 
       REAL*8,  INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
       REAL*8,  INTENT(IN) :: XNUMOL    ! Number of atoms C / kg C 
+!
+! !OUTPUT PARAMETERS: 
+!
       REAL*8, INTENT(OUT) :: EMMONOT   ! Monoterpene emissions [atoms C/box]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
       INTEGER, INTENT(INOUT) :: RC
 !
 ! !REMARKS:
@@ -2176,11 +2214,11 @@
       END SUBROUTINE GET_EMMONOT_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_gamma_p_pecca
+! !IROUTINE: Get_Gamma_P_Pecca
 !
 ! !DESCRIPTION: Computes the PECCA gamma activity factor with sensitivity 
 !  to LIGHT.
@@ -2318,15 +2356,15 @@
       END FUNCTION GET_GAMMA_P_PECCA
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: solar_angle
+! !IROUTINE: Solar_Angle
 !
 ! !DESCRIPTION: Function SOLAR\_ANGLE computes the local solar angle for a 
 !  given day of year, latitude and longitude (or local time).  Called from  
-!  routine GAMMA\_P\_PECCA.
+!  routine Get\_Gamma\_P\_Pecca.
 !\\
 !\\
 ! !INTERFACE:
@@ -2336,14 +2374,14 @@
 ! !INPUT PARAMETERS: 
 !
       ! Arguments
-      TYPE(HCO_State), POINTER :: HcoState
-      INTEGER, INTENT(IN)      :: DOY       ! Day of year
-      REAL*4,  INTENT(IN)      :: SHOUR     ! Local time 
-      REAL*8,  INTENT(IN)      :: LAT       ! Latitude
+      TYPE(HCO_State), POINTER    :: HcoState
+      INTEGER,         INTENT(IN) :: DOY       ! Day of year
+      REAL*4,          INTENT(IN) :: SHOUR     ! Local time 
+      REAL*8,          INTENT(IN) :: LAT       ! Latitude
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: SINbeta   ! Sin of the local solar angle
+      REAL*8                      :: SINbeta   ! Sin of the local solar angle
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -2377,13 +2415,13 @@
       END FUNCTION SOLAR_ANGLE 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_gamma_t_isop
+! !IROUTINE: Get_Gamma_T_Isop
 !
-! !DESCRIPTION: Function GET\_GAMMA\_T\_ISOP computes the temperature 
+! !DESCRIPTION: Function Get\_Gamma\_T\_Isop computes the temperature 
 !  sensitivity for ISOPRENE ONLY.
 !\\
 !\\
@@ -2463,15 +2501,15 @@
       END FUNCTION GET_GAMMA_T_ISOP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_gamma_t_nisop
+! !IROUTINE: Get_Gamma_T_nIsop
 !
-! !DESCRIPTION: Function GET\_GAMMA\_T\_NISOP computes the temperature 
+! !DESCRIPTION: Function Get\_Gamma\_T\_nIsop computes the temperature 
 !  activity factor (GAMMA\_T) for BVOCs OTHER than isoprene.  Called from 
-!  routines GET\_EMMONOG\_MEGAN and GET\_EMMBO\_MEGAN.
+!  routines Get\_EmMonog\_Megan and Get\_Emmbo\_Megan.
 !\\
 !\\
 ! !INTERFACE:
@@ -2526,15 +2564,15 @@
       END FUNCTION GET_GAMMA_T_NISOP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_gamma_p
+! !IROUTINE: Get_Gamma_P
 !
-! !DESCRIPTION: Function GET\_GAMMA\_P computes the gamma activity factor with
+! !DESCRIPTION: Function Get\_Gamma\_P computes the gamma activity factor with
 !  sensitivity to LIGHT (aka 'PAR').  Called by the functions !
-!  GET\_EMISOP\_MEGAN, GET\_EMMBO\_MEGAN, and GET\_EMMONOG\_MEGAN.
+!  GEt\_EmIsop\_Megan, Get\_EmMbo\_Megan, and Get\_EmMonog\_Megan.
 !\\
 !\\
 ! !INTERFACE:
@@ -2733,15 +2771,15 @@
       END FUNCTION GET_GAMMA_P
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_gamma_leaf_age
+! !IROUTINE: Get_Gamma_Leaf_Age
 !
-! !DESCRIPTION: Function GET\_GAMMA\_LEAF\_AGE computes the gamma exchange 
-!  activity factor which is sensitive to leaf age (= GAMMA\_LEAF\_AGE).
-!  Called from GET\_EMISOP\_MEGAN, GET\_EMMBO\_MEGAN, and GET\_EMMONOG\_MEGAN.
+! !DESCRIPTION: Function Get\_Gamma\_Leaf\_Age computes the gamma exchange 
+!  activity factor which is sensitive to leaf age (= Gamma\_Leaf\_Age).
+!  Called from Get\_EmIsop\_Megan, Get\_EmMbo\_Megan, and Get\_EmMonog\_Megan.
 !\\
 !\\
 ! !INTERFACE:
@@ -2940,15 +2978,15 @@
       END FUNCTION GET_GAMMA_LEAF_AGE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_gamma_lai
+! !IROUTINE: Get_Gamma_Lai
 !
-! !DESCRIPTION: Function GET\_GAMMA\_LAI computes the gamma exchange activity 
+! !DESCRIPTION: Function Get\_Gamma\_Lai computes the gamma exchange activity 
 !  factor which is sensitive to leaf area (= GAMMA\_LAI).  Called from
-!  GET\_EMISOP\_MEGAN, GET\_EMMBO\_MEGAN, and GET\_EMMONOG\_MEGAN.
+!  Get\_EmIsop\_Megan, Get\_EmMbo\_Megan, and Get\_EmMonog\_Megan.
 !\\
 !\\
 ! !INTERFACE:
@@ -2957,11 +2995,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN)    :: CMLAI       ! Current month's LAI [cm2/cm2]
+      REAL*8, INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: GAMMA_LAI 
+      REAL*8             :: GAMMA_LAI 
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -2988,13 +3026,13 @@
       END FUNCTION GET_GAMMA_LAI 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: update_t_day
+! !IROUTINE: Update_HCOT_Day
 !
-! !DESCRIPTION: Subroutine UPDATE\_T\_DAY must be called every time the 
+! !DESCRIPTION: Subroutine Update\_HCOT\_Day must be called every time the 
 !  A-3 fields are updated. Each 3h TS value for each gridbox is moved up one 
 !  spot in the matrix and the current value is put in the last spot.
 !\\
@@ -3010,6 +3048,9 @@
       INTEGER,         INTENT(IN   )  :: I 
       INTEGER,         INTENT(IN   )  :: J 
       LOGICAL,         INTENT(IN   )  :: FIRST 
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
       INTEGER,         INTENT(INOUT)  :: RC
 ! 
 ! !REVISION HISTORY: 
@@ -3065,13 +3106,13 @@
       END SUBROUTINE UPDATE_HCOT_DAY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: update_t_15_avg
+! !IROUTINE: Update_HCOT_15_Avg
 !
-! !DESCRIPTION: Subroutine UPDATE\_T\_15\_AVG should be called at the 
+! !DESCRIPTION: Subroutine Update\_HCOT\_15\_Avg should be called at the 
 !  beginning of each day. It loops through the gridboxes doing the following:
 !
 !  \begin{enumerate}
@@ -3087,10 +3128,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(HCO_State), POINTER        :: HcoState
-      INTEGER,         INTENT(IN   )  :: I 
-      INTEGER,         INTENT(IN   )  :: J 
-      INTEGER,         INTENT(INOUT)  :: RC
+      TYPE(HCO_State), POINTER       :: HcoState
+      INTEGER,         INTENT(IN   ) :: I 
+      INTEGER,         INTENT(IN   ) :: J 
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      INTEGER,         INTENT(INOUT) :: RC
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version
@@ -3161,9 +3205,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_aef_gen
+! !IROUTINE: Get_Aef_Gen
 !
-! !DESCRIPTION: Subroutine GET\_AEF\_GEN creates AEFs for species without 
+! !DESCRIPTION: Subroutine Get\_Aef\_Gen creates AEFs for species without 
 !  global explicit georeferenced emission factor maps. This includes 
 !  sesquiterpenes (isoprene, MBO, and monoterpenes all have global AEF maps 
 !  available).
@@ -3171,17 +3215,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_AEF_GEN ( am_I_Root, HcoState, RC )
+      SUBROUTINE GET_AEF_GEN( am_I_Root, HcoState, RC )
 !
 ! !USES:
 !
       USE HCO_EMISLIST_MOD,    ONLY : EmisList_GetDataArr
       USE EF_MGN20_MOD      ! EF_MGN20.EXT from MEGAN CDP, EFs
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       LOGICAL,         INTENT(IN)     :: am_I_Root
       TYPE(HCO_State), POINTER        :: HcoState
+!
+! !INPUT/OUTPUT PARAMETERS
+!
       INTEGER,         INTENT(INOUT)  :: RC
 !
 ! !REMARKS:
@@ -3347,20 +3394,20 @@
       END SUBROUTINE GET_AEF_GEN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_megan_init 
+! !IROUTINE: HCOX_Megan_Init 
 !
-! !DESCRIPTION: Subroutine HcoX\_Megan\_Init allocates and initializes all
+! !DESCRIPTION: Subroutine HCOX\_Megan\_Init allocates and initializes all
 !  module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_Megan_Init ( am_I_Root, HcoState, ExtName, 
-     &                             ExtState,    RC                  ) 
+      SUBROUTINE HCOX_Megan_Init( am_I_Root, HcoState, ExtName, 
+     &                            ExtState,    RC                ) 
 !
 ! !USES:
 !
@@ -3417,7 +3464,7 @@
       IF ( ExtNr <= 0 ) RETURN
 
       ! Enter
-      CALL HCO_ENTER ( 'HCOX_MEGAN_INIT (HCOX_MEGAN_MOD.F90)', RC )
+      CALL HCO_ENTER ( 'HCOX_Megan_Init (hcox_megan_mod.F90)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       !-----------------------------------------------------------------
@@ -3692,16 +3739,16 @@
       IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
       CALL HCO_LEAVE( RC )
 
-      END SUBROUTINE Hcox_Megan_Init
+      END SUBROUTINE HCOX_Megan_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_megan_final
+! !IROUTINE: HCOX_Megan_Final
 !
-! !DESCRIPTION: Subroutine HCOX\_MEGAN\_FINAL deallocates all allocated arrays 
+! !DESCRIPTION: Subroutine HCOX\_Megan\_Final deallocates all allocated arrays 
 !  at the end of a GEOS-Chem model run.
 !\\
 !\\

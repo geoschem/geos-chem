@@ -283,17 +283,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS, State_Met )
+      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)    :: NYMD        ! YYYYMMDD and 
       INTEGER,        INTENT(IN)    :: NHMS        !  hhmmss of data to read
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -329,50 +331,51 @@
       !=================================================================      
       ! Read data from disk
       !=================================================================
-      CALL READ_A1( NYMD     = NYMD, 
-     &              NHMS     = NHMS,
-     &              ALBEDO   = State_Met%ALBD,
-     &              CLDTOT   = State_Met%CLDFRC,   
-     &              EFLUX    = State_Met%EFLUX,    
-     &              EVAP     = State_Met%EVAP,
-     &              FRSEAICE = State_Met%FRSEAICE,
-     &              FRSNO    = State_Met%FRSNO, 
-     &              GRN      = State_Met%GRN,      
-     &              GWETROOT = State_Met%GWETROOT,
-     &              GWETTOP  = State_Met%GWETTOP, 
-     &              HFLUX    = State_Met%HFLUX,  
-     &              LAI      = State_Met%LAI,
-     &              LWI      = State_Met%LWI,
-     &              LWGNT    = State_Met%RADLWG,
-     &              PARDF    = State_Met%PARDF,
-     &              PARDR    = State_Met%PARDR,
-     &              PBLH     = State_Met%PBLH,
-     &              PRECANV  = State_Met%PRECANV,   
-     &              PRECTOT  = State_Met%PRECTOT,  
-     &              PRECCON  = State_Met%PRECCON, 
-     &              PRECLSC  = State_Met%PRECLSC,   
-     &              PRECSNO  = State_Met%PRECSNO,
-     &              SEAICE00 = State_Met%SEAICE00,
-     &              SEAICE10 = State_Met%SEAICE10,
-     &              SEAICE20 = State_Met%SEAICE20,
-     &              SEAICE30 = State_Met%SEAICE30,
-     &              SEAICE40 = State_Met%SEAICE40,
-     &              SEAICE50 = State_Met%SEAICE50,
-     &              SEAICE60 = State_Met%SEAICE60,
-     &              SEAICE70 = State_Met%SEAICE70,
-     &              SEAICE80 = State_Met%SEAICE80,
-     &              SEAICE90 = State_Met%SEAICE90,
-     &              SLP      = State_Met%SLP,
-     &              SNODP    = State_Met%SNODP,
-     &              SNOMAS   = State_Met%SNOMAS,
-     &              SWGNT    = State_Met%RADSWG,
-     &              TROPPT   = State_Met%TROPP,
-     &              T2M      = State_Met%TS,
-     &              TS       = State_Met%TSKIN, 
-     &              U10M     = State_Met%U10M,
-     &              USTAR    = State_Met%USTAR,
-     &              V10M     = State_Met%V10M,
-     &              Z0M      = State_Met%Z0        )
+      CALL READ_A1( NYMD      = NYMD, 
+     &              NHMS      = NHMS,
+     &              Input_Opt = Input_Opt,
+     &              ALBEDO    = State_Met%ALBD,
+     &              CLDTOT    = State_Met%CLDFRC,   
+     &              EFLUX     = State_Met%EFLUX,    
+     &              EVAP      = State_Met%EVAP,
+     &              FRSEAICE  = State_Met%FRSEAICE,
+     &              FRSNO     = State_Met%FRSNO, 
+     &              GRN       = State_Met%GRN,      
+     &              GWETROOT  = State_Met%GWETROOT,
+     &              GWETTOP   = State_Met%GWETTOP, 
+     &              HFLUX     = State_Met%HFLUX,  
+     &              LAI       = State_Met%LAI,
+     &              LWI       = State_Met%LWI,
+     &              LWGNT     = State_Met%RADLWG,
+     &              PARDF     = State_Met%PARDF,
+     &              PARDR     = State_Met%PARDR,
+     &              PBLH      = State_Met%PBLH,
+     &              PRECANV   = State_Met%PRECANV,   
+     &              PRECTOT   = State_Met%PRECTOT,  
+     &              PRECCON   = State_Met%PRECCON, 
+     &              PRECLSC   = State_Met%PRECLSC,   
+     &              PRECSNO   = State_Met%PRECSNO,
+     &              SEAICE00  = State_Met%SEAICE00,
+     &              SEAICE10  = State_Met%SEAICE10,
+     &              SEAICE20  = State_Met%SEAICE20,
+     &              SEAICE30  = State_Met%SEAICE30,
+     &              SEAICE40  = State_Met%SEAICE40,
+     &              SEAICE50  = State_Met%SEAICE50,
+     &              SEAICE60  = State_Met%SEAICE60,
+     &              SEAICE70  = State_Met%SEAICE70,
+     &              SEAICE80  = State_Met%SEAICE80,
+     &              SEAICE90  = State_Met%SEAICE90,
+     &              SLP       = State_Met%SLP,
+     &              SNODP     = State_Met%SNODP,
+     &              SNOMAS    = State_Met%SNOMAS,
+     &              SWGNT     = State_Met%RADSWG,
+     &              TROPPT    = State_Met%TROPP,
+     &              T2M       = State_Met%TS,
+     &              TS        = State_Met%TSKIN, 
+     &              U10M      = State_Met%U10M,
+     &              USTAR     = State_Met%USTAR,
+     &              V10M      = State_Met%V10M,
+     &              Z0M       = State_Met%Z0        )
 
       ! Save NYMD, NHMS for next call
       LASTNYMD = NYMD
@@ -393,7 +396,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_A1( NYMD,     NHMS, 
+      SUBROUTINE READ_A1( NYMD,     NHMS,     Input_Opt,
      &                    ALBEDO,   CLDTOT,   EFLUX,    EVAP,    
      &                    FRSEAICE, FRSNO,    GRN,      GWETROOT, 
      &                    GWETTOP,  HFLUX,    LAI,      LWGNT,   
@@ -408,20 +411,21 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_A1
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
-      USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
-
-      USE CMN_SIZE_MOD                             ! Size parameters
-      USE CMN_DIAG_MOD                             ! ND67 flag
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_A1
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_TO_1D
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: NYMD                   ! YYYYMMDD and hhmmss     
-      INTEGER, INTENT(IN)  :: NHMS                   !  of data to read
+      INTEGER,        INTENT(IN)  :: NYMD            ! YYYYMMDD and hhmmss     
+      INTEGER,        INTENT(IN)  :: NHMS            !  of data to read
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt       ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -476,6 +480,7 @@
 !  08 Jun 2012 - S. Philip   - Correction for MERRA boundary layer height
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A1 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC

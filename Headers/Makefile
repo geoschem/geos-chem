@@ -45,6 +45,7 @@
 #  15 Jan 2013 - R. Yantosca - Added dependency for gigc_input_opt_mod.o
 #                              to comode_loop_mod.F, to make it compile
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  25 Jun 2014 - R. Yantosca - Now compiles commsoil_mod.F90 (was .F before)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -134,7 +135,7 @@ CMN_mod.o            : CMN_mod.F                \
 CMN_FJX_MOD.o        : CMN_FJX_MOD.F            \
                        CMN_SIZE_mod.o
 
-commsoil_mod.o       : commsoil_mod.F           \
+commsoil_mod.o       : commsoil_mod.F90         \
                        CMN_SIZE_mod.o           \
                        gigc_errcode_mod.o
 

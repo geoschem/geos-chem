@@ -181,7 +181,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
 !
 ! !INPUT PARAMETERS:
 !
@@ -1392,7 +1391,6 @@
       USE GRID_MOD,   ONLY : GET_YOFFSET
       USE GRID_MOD,   ONLY : ITS_A_NESTED_GRID
       USE TIME_MOD,   ONLY : GET_TAUb
-      USE TRACER_MOD, ONLY : N_TRACERS
   
       USE CMN_SIZE_MOD
 !

@@ -562,6 +562,7 @@
          !--------------------------------------------------------------
          CALL READ_A6( NYMD       = NYMD,     
      &                 NHMS       = NHMS,       
+     &                 Input_Opt  = Input_Opt,
      &                 CLDTOPS    = State_Met%CLDTOPS,
      &                 CLDF       = State_Met%CLDF,     
      &                 HKBETA     = State_Met%HKBETA,   
@@ -584,6 +585,7 @@
          !--------------------------------------------------------------
          CALL READ_A6( NYMD       = NYMD,          
      &                 NHMS       = NHMS,       
+     &                 Input_Opt  = Input_Opt,
      &                 CLDF       = State_Met%CLDF,          
      &                 CLDTOPS    = State_Met%CLDTOPS, 
      &                 CMFMC      = State_Met%CMFMC,        
@@ -613,7 +615,8 @@
          ! Read fields for GCAP meteorology
          !--------------------------------------------------------------
          CALL READ_A6( NYMD       = NYMD,          
-     &                 NHMS       = NHMS,         
+     &                 NHMS       = NHMS,   
+     &                 Input_Opt  = Input_Opt,     
      &                 CLDF       = State_Met%CLDF,          
      &                 CLDTOPS    = State_Met%CLDTOPS, 
      &                 DETRAINE   = State_Met%DETRAINE,  
@@ -647,7 +650,8 @@
          ! Read fields for GEOS-4 meteorology
          !--------------------------------------------------------------
          CALL READ_A6( NYMD       = NYMD,     
-     &                 NHMS       = NHMS,       
+     &                 NHMS       = NHMS,  
+     &                 Input_Opt  = Input_Opt,    
      &                 CLDTOPS    = State_Met%CLDTOPS,
      &                 CLDF       = State_Met%CLDF,     
      &                 HKBETA     = State_Met%HKBETA,   
@@ -668,7 +672,8 @@
          ! Read fields for GEOS-5 meteorology
          !--------------------------------------------------------------
          CALL READ_A6( NYMD       = NYMD,          
-     &                 NHMS       = NHMS,       
+     &                 NHMS       = NHMS, 
+     &                 Input_Opt  = Input_Opt,      
      &                 CLDF       = State_Met%CLDF,          
      &                 CLDTOPS    = State_Met%CLDTOPS, 
      &                 CMFMC      = State_Met%CMFMC,        
@@ -697,7 +702,8 @@
          ! Read fields for GCAP meteorology
          !--------------------------------------------------------------
          CALL READ_A6( NYMD       = NYMD,          
-     &                 NHMS       = NHMS,         
+     &                 NHMS       = NHMS, 
+     &                 Input_Opt  = Input_Opt,       
      &                 CLDF       = State_Met%CLDF,          
      &                 CLDTOPS    = State_Met%CLDTOPS, 
      &                 DETRAINE   = State_Met%DETRAINE,  
@@ -911,7 +917,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_A6( NYMD,      NHMS,   
+      SUBROUTINE READ_A6( NYMD,      NHMS,      Input_Opt,  
      &                    CLDF,      CLDMAS,    CLDTOPS,   CMFMC, 
      &                    DETRAINE,  DETRAINN,  DNDE,      DNDN,     
      &                    DQIDTMST,  DQLDTMST,  DQRCON,    DQRLSC,      
@@ -928,16 +934,18 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE CMN_GCTM_MOD
-      USE DIAG_MOD,     ONLY : AD66,        AD67
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
+      USE DIAG_MOD,           ONLY : AD66,        AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_A6,   TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D, TRANSFER_G5_PLE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)            :: NYMD   ! YYYYMMDD
-      INTEGER, INTENT(IN)            :: NHMS   !  and hhmmss of desired data
+      INTEGER,        INTENT(IN)    :: NYMD      ! YYYYMMDD
+      INTEGER,        INTENT(IN)    :: NHMS      !  and hhmmss of desired data
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1050,6 +1058,7 @@
 !  07 Nov 2013 - R. Yantosca - Now replace any NaN's in the MOISTQ field
 !                              with zeroes.  NaN's have occured near t-pause.
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC

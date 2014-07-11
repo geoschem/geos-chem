@@ -33,6 +33,7 @@
 #  31 Aug 2010 - R. Yantosca - Add documentation for GTMM routines
 #  14 Sep 2010 - R. Yantosca - Now split make commands into include files
 #  20 Aug 2013 - R. Yantosca - Remove GeosTomas directory, that is obsolete
+#  09 Jul 2014 - R. Yantosca - Now build HEMCO documentation
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -49,6 +50,7 @@ CORE    := $(ROOTDIR)/GeosCore
 DOC     := $(ROOTDIR)/doc
 ESMF    := $(ROOTDIR)/ESMF
 GTMM    := $(ROOTDIR)/GTMM
+HEMCO   := $(ROOTDIR)/GeosCore
 HDR     := $(ROOTDIR)/Headers
 HELP    := $(ROOTDIR)/help
 ISO     := $(ROOTDIR)/ISOROPIA
@@ -64,7 +66,7 @@ include $(ROOTDIR)/Makefile_header.mk
 
 .PHONY: doc docclean help
 
-doc: srcdoc utildoc gtmmdoc makedoc
+doc: srcdoc utildoc gtmmdoc makedoc hemcodoc
 
 clean:
 	rm -f *.tex *.ps *.pdf
@@ -88,5 +90,7 @@ include ./Makefile_MakeDoc.mk
 # Commands to build the GTMM documentation
 include ./Makefile_GtmmDoc.mk
 
+# Commands to build the GTMM documentation
+include ./Makefile_Hemco.mk
 
 #EOC

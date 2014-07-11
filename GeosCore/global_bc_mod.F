@@ -28,6 +28,8 @@
 !
       PUBLIC :: BC
 !
+! !REMARKS:
+!
 ! !REVISION HISTORY:
 !  19 January 2011 - C.L. Friedman - Initial Version
 !EOP
@@ -38,8 +40,6 @@
 !
       ! Array to store global monthly mean BC field
       REAL*8, ALLOCATABLE :: BC(:,:,:)
-!      REAL*8, ALLOCATABLE :: BCPHIL(:,:,:)
-!      REAL*8, ALLOCATABLE :: BCPHOB(:,:,:)
 
       CONTAINS
 !EOC
@@ -57,23 +57,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_BC( THISMONTH, THISYEAR )
+      SUBROUTINE GET_GLOBAL_BC( am_I_Root, Input_Opt, 
+     &                          THISMONTH, THISYEAR, RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH
+      INTEGER,        INTENT(IN)  :: THISYEAR
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: THISMONTH, THISYEAR
 !
 ! !REVISION HISTORY: 
 !  19 January 2011 - C.L. Friedman - Initial Version
+!  20 Jun 2014 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC via arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,6 +104,9 @@
       ! GET_GLOBAL_BC begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Allocate BC array, if this is the first call
       IF ( FIRST ) THEN
          CALL INIT_GLOBAL_BC
@@ -100,8 +114,8 @@
       ENDIF
 
       ! Filename
-      FILENAME = TRIM( DATA_DIR ) // 'POPs_201209/BCPO_FC_' //
-     &           GET_RES_EXT()    // '.bpch'
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'POPs_201209/BCPO_FC_' //
+     &           GET_RES_EXT()              // '.bpch'
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -168,16 +182,8 @@
       ALLOCATE( BC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
 
-!      ALLOCATE( BCPHIL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPHIL' )
-
-!      ALLOCATE( BCHPOB( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPHOB' )
-
       ! Zero BC array
       BC = 0d0
-!      BCPHIL = 0d0
-!      BCPHOB = 0d0
 
       END SUBROUTINE INIT_GLOBAL_BC
 !EOC
@@ -206,8 +212,6 @@
       ! CLEANUP_GLOBAL_BC begins here!
       !=================================================================
       IF ( ALLOCATED( BC ) ) DEALLOCATE( BC ) 
-!      IF ( ALLOCATED( BCPHIL ) ) DEALLOCATE( BCPHIL ) 
-!      IF ( ALLOCATED( BCPHOB ) ) DEALLOCATE( BCPHOB )
 
       END SUBROUTINE CLEANUP_GLOBAL_BC
 !EOC      

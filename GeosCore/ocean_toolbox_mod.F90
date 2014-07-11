@@ -1,21 +1,36 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: ocean_toolbox_mod
+! !MODULE: ocean_toolbox_mod.F90
 !
-! !DESCRIPTION: Module OCEAN\_TOOLBOX\_MOD contains functions and routines to
+! !DESCRIPTION: Module Ocean\_ToolBox\_Mod contains functions and routines to
 ! calculate the ocean exchange velocity for any gas, according to Johnson, 2010.
 !
-! M.T. Johnson: "A numerical scheme to calculate temperature and salinity
-! dependent air-water transfer velocities for any gas", Ocean Sci. 6, 913-932,
-! 2010.
-!\\
-!\\
+! References:
+! \begin{itemize}
+! \item  M.T. Johnson: "A numerical scheme to calculate temperature and 
+!        salinity dependent air-water transfer velocities for any gas", 
+!        Ocean Sci. 6, 913-932, 2010.
+! \item  Liss and Slater: Flux of gases across the air-sea interface,
+!        Nature, 247, 1974.
+! \item  Laliberte, M: "Model for calculating the viscosity of aqueous 
+!        solutions", Journal of Chemical \& Engineering Data, 52, 2007.
+! \item  Millero and Poisson: "International one-atmosphere equation of 
+!        state of seawater", Deep Sea Res. Pt A, 28, 1981.
+! \item  Wilke and Chang: "Correlation of diffusion coefficients in dilute 
+!        solutions", AIChE Journal, 1, 1955.
+! \item  Hayduk and Minhas, "Correlations for prediction of molecular 
+!        diffusivities in liquids, Can. J. Chem. Eng., 60, 1982,
+! \item  E. Fuller et al.: "New method for prediction of binary gas-phase 
+!        diffusion coefficients", Industrial \& Engineering Chemistry, 58, 
+!        1966.
+! \end{itemize}
+!
 ! !INTERFACE: 
 !
-MODULE OCEAN_TOOLBOX_MOD
+MODULE Ocean_ToolBox_Mod
 !
 ! !USES:
 !
@@ -24,25 +39,25 @@ MODULE OCEAN_TOOLBOX_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: CALC_KG
+  PUBLIC  :: Calc_Kg
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: CALC_KA
-  PRIVATE :: CALC_KL
+  PRIVATE :: Calc_Ka
+  PRIVATE :: Calc_Kl
   PRIVATE :: N_SW
   PRIVATE :: P_SW
   PRIVATE :: V_SW
   PRIVATE :: D_WC
   PRIVATE :: D_HM
-  PRIVATE :: SCHMIDT_W
-  PRIVATE :: SCHMIDT_SALTZMANN
-  PRIVATE :: SCHMIDT_ACET
-  PRIVATE :: N_AIR
-  PRIVATE :: P_AIR
-  PRIVATE :: V_AIR
-  PRIVATE :: D_AIR
-  PRIVATE :: SCHMIDT_G
+  PRIVATE :: Schmidt_W
+  PRIVATE :: Schmidt_Saltzmann
+  PRIVATE :: schmidt_Acet
+  PRIVATE :: N_Air
+  PRIVATE :: P_Air
+  PRIVATE :: V_Air
+  PRIVATE :: D_Air
+  PRIVATE :: Schmidt_G
 !
 ! !REVISION HISTORY:
 !  11 Apr 2013 - C. Keller: Adapted from F. Paulot
@@ -53,32 +68,36 @@ MODULE OCEAN_TOOLBOX_MOD
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CALC_KG
+! !IROUTINE: Calc_Kg
 !
-! !DESCRIPTION: Subroutine CALC\_KG is the wrapper routine to calculate the 
-! exchange velocity Kg used for calculating the ocean-air flux.
+! !DESCRIPTION: Subroutine Calc\_Kg is the wrapper routine to calculate the 
+! exchange velocity Kg used for calculating the ocean-air flux (cf. Liss \&
+! Slater 1974) as:
+!\\
+!\\
 ! F = Kg ( Cg - H * Cl )
+!\\
+!\\
 ! where Cg and Cl are the bulk gas and liquid concentrations and H is the 
 ! Henry constant (H= Cgs/Cls).
-!
+!\\
+!\\
 ! 1/Kg = 1/ka + H/Kl = Ra + Rl.
-!
+!\\
+!\\
 ! Note that Kg is returned in m/s and not cm h-1, as is usually reported for
 ! exchange velocities! 
-!
-! Reference: Liss and Slater: Flux of gases across the air-sea interface,
-! Nature, 247, 1974.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CALC_KG( T, P, V, SALT, H, VB, MW, SCW, KG, RA_OVER_RL, VERBOSE )
+  SUBROUTINE Calc_Kg( T, P, V, SALT, H, VB, MW, SCW, KG, RA_OVER_RL, VERBOSE )
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !INPUT PARAMETERS:
 !
     REAL*8,  INTENT(IN   )  :: T    ! Surface temperature     [C]
     REAL*8,  INTENT(IN   )  :: P    ! Surface pressure        [Pa]
@@ -89,9 +108,12 @@ CONTAINS
     REAL*8,  INTENT(IN   )  :: MW   ! Molecular weight        [g/mol]
     INTEGER, INTENT(IN   )  :: SCW  ! Parameterization type 
                                     ! for Schmidt number in water 
+    LOGICAL, INTENT(IN   ), OPTIONAL  :: VERBOSE   ! turn on verbose output
+!
+! !OUTPUT PARAMETERS:
+!
     REAL*8,  INTENT(  OUT)  :: KG   ! Exchange velocity       [ms-1] 
     REAL*8,  INTENT(  OUT), OPTIONAL  :: RA_OVER_RL ! Ra/Rl   [-]
-    LOGICAL, INTENT(IN   ), OPTIONAL  :: VERBOSE
 !
 ! !REVISION HISTORY:
 !  11 Apr 2013 - C. Keller: Adapted from F. Paulot
@@ -102,8 +124,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8                 :: RA,RL
-    LOGICAL                :: VERB
+    REAL*8  :: RA,RL
+    LOGICAL :: VERB
 
     !=================================================================
     ! CALC_KG begins here!
@@ -128,26 +150,29 @@ CONTAINS
     ! Ratio of RA / RL
     IF ( PRESENT(RA_OVER_RL) ) RA_OVER_RL = RA / RL
 
-  END SUBROUTINE CALC_KG
+  END SUBROUTINE Calc_Kg
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: CALC_KA
+! !IROUTINE: Calc_Ka
 !
-! !DESCRIPTION: CALC_KA returns the air exchange velocity KA.
+! !DESCRIPTION: Calc\_Ka returns the air exchange velocity KA.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION CALC_KA(T,P,V,MW,VB,VERB) RESULT(KA)
+  FUNCTION Calc_Ka(T,P,V,MW,VB,VERB) RESULT(KA)
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN)  :: T,P,V, MW, VB!T in C, P in Pa
     LOGICAL, INTENT(IN) :: VERB
+!
+! !RETURN VALUE:
+!
     REAL*8              :: KA
 !
 ! !REVISION HISTORY:
@@ -184,28 +209,31 @@ CONTAINS
        WRITE(*,*) 'Airside resistance   : ', KA
     ENDIF
 
-  END FUNCTION CALC_KA
+  END FUNCTION Calc_Ka
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: CALC_KL
+! !IROUTINE: Calc_Kl
 !
-! !DESCRIPTION: CALC_KL calculates the water exchange velocity Kl following
+! !DESCRIPTION: Calc\_Kl calculates the water exchange velocity Kl following
 ! Nightingale et al., Geophysical Research Letters, 2000.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION CALC_KL(T,V,S,VB,SCW,VERB) RESULT(K)
+  FUNCTION Calc_Kl(T,V,S,VB,SCW,VERB) RESULT(K)
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
     REAL*8,  INTENT(IN) :: T,S,V,VB
     INTEGER, INTENT(IN) :: SCW
     LOGICAL, INTENT(IN) :: VERB
+!
+! !RETURN VALUE:
+!
     REAL*8              :: K
 !
 ! !REVISION HISTORY:
@@ -246,62 +274,64 @@ CONTAINS
        WRITE(*,*) 'Waterside resistance   : ', K
     ENDIF
 
-  END FUNCTION CALC_KL
+  END FUNCTION Calc_Kl
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: N_SW
+! !IROUTINE: N_SW
 !
-! !DESCRIPTION: N_SW returns the dynamic seawater viscosity following 
+! !DESCRIPTION: N\_SW returns the dynamic seawater viscosity following 
 ! Laliberte, 2007.
-! Laliberte, M: "Model for calculating the viscosity of aqueous solutions",
-! Journal of Chemical & Engineering Data, 52, 2007.
 !\\
 !\\
 ! !INTERFACE:
 !
   FUNCTION N_SW(T,S) RESULT(N)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T,S !temperature (C) and salinity 
+!
+! !RETURN VALUE:
+!
     REAL*8             :: N   ! Dynamic viscosity
 !
 ! !REVISION HISTORY:
-!  11 Apr 2013 - C. Keller: Adapted from F. Paulot
+!  11 Apr 2013 - C. Keller   - Adapted from F. Paulot
+!   1 Jul 2014 - R. Yantosca - Bug fix: Don't take LOG(NI) if NI is zero
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8  :: n_0, ln_n_m, w_i_ln_n_i_tot, NI,W_I_TOT,W_I
+    REAL*8  :: n_0, ln_n_m, w_i_ln_n_i_tot, NI, W_I_TOT, W_I
     INTEGER :: I
 
-    !salt in the order NaCl,KCl,CaCl2,MgCl2,MgSO4
-    REAL*8, PARAMETER :: MASS_FRACTION(5) = (/ 0.798D0,0.022D0, &
-                                               0.033D0,0.047D0,0.1D0 /)
+    !salt in the order NaCl, KCl, CaCl2, MgCl2, MgSO4
+    REAL*8, PARAMETER :: MASS_FRACTION(5) = &
+       (/  0.798D0,     0.022D0,    0.033D0,     0.047D0,    0.1D0       /)
 
-    REAL*8, PARAMETER :: V1(5) = (/ 16.22D0,      6.4883D0, &
-                                    32.028D0,    24.032D0, 72.269D0/)
+    REAL*8, PARAMETER :: V1(5) = & 
+       (/ 16.22D0,      6.4883D0,  32.028D0,    24.032D0,   72.269D0     /)
 
-    REAL*8, PARAMETER :: V2(5) = (/  1.3229D0 ,   1.3175D0, &
-                                    0.78792D0,    2.2694D0, 2.2238D0/)
+    REAL*8, PARAMETER :: V2(5) = &
+       (/  1.3229D0,    1.3175D0,   0.78792D0,   2.2694D0,   2.2238D0    /)
 
-    REAL*8, PARAMETER :: V3(5) = (/  1.4849D0 ,  -0.7785D0, &
-                                    -1.1495D0,    3.7108D0, 6.6037D0/)
+    REAL*8, PARAMETER :: V3(5) = &
+       (/  1.4849D0,   -0.7785D0,  -1.1495D0,    3.7108D0,   6.6037D0    /)
 
-    REAL*8, PARAMETER :: V4(5) = (/  0.0074691D0, 0.09272D0, &
-                                     0.0026995D0, 0.021853D0, 0.0079004D0/)
+    REAL*8, PARAMETER :: V4(5) = &
+       (/  0.0074691D0, 0.09272D0,  0.0026995D0, 0.021853D0, 0.0079004D0 /)
 
-    REAL*8, PARAMETER :: V5(5) = (/ 30.78D0 ,    -1.3D0, &
-                                    780860D0,    -1.1236D0, 3340.1D0/)
+    REAL*8, PARAMETER :: V5(5) = &
+       (/ 30.78D0,     -1.3D0,      780860D0,   -1.1236D0,   3340.1D0    /)
 
-    REAL*8, PARAMETER :: V6(5) = (/ 2.0583D0,     2.0811D0, &
-                                    5.8442D0,     0.14474D0, 6.1304D0/)
+    REAL*8, PARAMETER :: V6(5) = &
+       (/  2.0583D0,    2.0811D0,   5.8442D0,    0.14474D0,  6.1304D0    /)
 
     !=================================================================
     ! N_SW begins here!
@@ -318,9 +348,21 @@ CONTAINS
 
     DO I=1,5
        W_I = MASS_FRACTION(I) * S / 1000d0       
+
+       ! NOTE: SHOULD CLEAN UP THIS LINE FOR READABILITY'S SAKE!
        NI = exp( ((v1(I)*w_i_tot**v2(I))+v3(I)) / ((v4(I)*T)+1) ) / &
             ( (v5(I)*(w_i_tot**v6(I))) + 1d0 )
-       w_i_ln_n_i_tot = w_i_ln_n_i_tot + (W_I * log(NI))
+
+       !-------------------------------------------------------------
+       ! Prior to 7/1/14:
+       ! NOTE: PRESERVE ORIGINAL CODE HERE:
+       !w_i_ln_n_i_tot = w_i_ln_n_i_tot + (W_I * log(NI))
+       !-------------------------------------------------------------
+
+       ! BUG FIX: Don't take the log unless NI > 0!! (bmy, 7/1/14)
+       IF ( NI > 0d0 ) THEN
+          w_i_ln_n_i_tot = w_i_ln_n_i_tot + (W_I * log(NI))
+       ENDIF
     ENDDO
 
     n_0 = (T+246d0)/(137.37d0+(5.2842d0*T)+(0.05594d0*(T**2d0)))
@@ -332,25 +374,26 @@ CONTAINS
   END FUNCTION N_SW
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: P_SW
+! !IROUTINE: P_SW
 !
-! !DESCRIPTION: P_SW returns the seawater density following Millero and Poisson,
-! 1981. 
-! Millero and Poisson: "International one-atmosphere equation of state of
-! seawater", Deep Sea Res. Pt A, 28, 1981.
+! !DESCRIPTION: P\_SW returns the seawater density following Millero and 
+! Poisson,  1981. 
 !\\
 !\\
 ! !INTERFACE:
 !
   FUNCTION P_SW(T,S) RESULT(P)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T,S
+!
+! !RETURN VALUE:
+!
     REAL*8             :: P
 !
 ! !REVISION HISTORY:
@@ -383,22 +426,25 @@ CONTAINS
   END FUNCTION P_SW
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: V_SW
+! !IROUTINE: V_SW
 !
-! !DESCRIPTION: V_SW returns the ???
+! !DESCRIPTION: V\_SW returns the ???
 !\\
 !\\
 ! !INTERFACE:
 !
   FUNCTION V_SW(T,S) RESULT(V)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T,S
+!
+! !RETURN VALUE:
+!
     REAL*8             :: V
 !
 ! !REVISION HISTORY:
@@ -423,25 +469,26 @@ CONTAINS
   END FUNCTION  V_SW
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: D_WC
+! !IROUTINE: D_WC
 !
-! !DESCRIPTION: D_WC returns the (water) diffusion coefficient following Wilke
+! !DESCRIPTION: D\_WC returns the (water) diffusion coefficient following Wilke
 !  and Chang, 1955.
-! Wilke and Chang: "Correlation of diffusion coefficients in dilute solutions",
-! AIChE Journal, 1, 1955.
 !\\
 !\\
 ! !INTERFACE:
 !
   FUNCTION D_WC(T,S,VB) RESULT(D)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T,S,VB
+!
+! !RETURN VALUE:
+!
     REAL*8             :: D
 !
 ! !REVISION HISTORY:
@@ -463,25 +510,26 @@ CONTAINS
   END FUNCTION D_WC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: D_HM
+! !IROUTINE: D_HM
 !
-! !DESCRIPTION: D_HM returns the (water) diffusivity following Hayduk and
+! !DESCRIPTION: D\_HM returns the (water) diffusivity following Hayduk and
 ! Minhas, 1982.
-! Hayduk and Minhas, "Correlations for prediction of molecular diffusivities in
-! liquids, Can. J. Chem. Eng., 60, 1982,
 !\\
 !\\
 ! !INTERFACE:
 !
   FUNCTION D_HM(T,S,VB) RESULT(D)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T,S,VB
+!
+! !RETURN VALUE:
+!
     REAL*8             :: D
 !
 ! !REVISION HISTORY:
@@ -504,23 +552,26 @@ CONTAINS
   END FUNCTION D_HM
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: SCHMIDT_W
+! !IROUTINE: Schmidt_W
 !
-! !DESCRIPTION: SCHMIDT_W returns the Schmidt number of the gas in the water
+! !DESCRIPTION: Schmidt\_W returns the Schmidt number of the gas in the water
 ! following Johnson, 2010. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION SCHMIDT_W(T,S,VB) RESULT(SC)
+  FUNCTION Schmidt_W(T,S,VB) RESULT(SC)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T,S,VB
+!
+! !RETURN VALUE:
+!
     REAL*8             :: SC
 !
 ! !REVISION HISTORY:
@@ -535,26 +586,29 @@ CONTAINS
 
     SC = 2D0 * V_SW(T,S) / ( D_HM(T,S,VB) + D_WC(T,S,VB) )
 
-  END FUNCTION SCHMIDT_W
+  END FUNCTION Schmidt_W
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: SCHMIDT_SALTZMANN
+! !IROUTINE: Schmidt_Saltzmann
 !
-! !DESCRIPTION: SCHMIDT_SALTZMANN returns the Schmidt number of the gas in 
+! !DESCRIPTION: Schmidt\_Saltzmann returns the Schmidt number of the gas in 
 ! the water calculated according to Saltzmann et al., 1993.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION SCHMIDT_SALTZMANN(T) RESULT(SC)
+  FUNCTION Schmidt_Saltzmann(T) RESULT(SC)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T   ! Temperature in C
+!
+! !RETURN VALUE:
+!
     REAL*8             :: SC
 !
 ! !REVISION HISTORY:
@@ -569,25 +623,28 @@ CONTAINS
 
     SC = 2674.0d0 + T * ( -147.12d0 + T * ( 3.726d0 - T * 0.038d0 ) )  
 
-  END FUNCTION SCHMIDT_SALTZMANN
+  END FUNCTION Schmidt_Saltzmann
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: SCHMIDT_ACET
+! !IROUTINE: Schmidt_Acet
 !
-! !DESCRIPTION: SCHMIDT_ACET returns the Schmidt number of acetone. 
+! !DESCRIPTION: Schmidt\_Acet returns the Schmidt number of acetone. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION SCHMIDT_ACET(T) RESULT(SC)
+  FUNCTION Schmidt_Acet(T) RESULT(SC)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T   ! Temperature in C
+!
+! !RETURN VALUE:
+!
     REAL*8             :: SC
 !
 ! !REVISION HISTORY:
@@ -602,25 +659,28 @@ CONTAINS
 
     SC = 3287.687d0 + T * ( -136.2176d0 + T * ( 2.20642d0 - T*0.01410642d0 ) )  
 
-  END FUNCTION SCHMIDT_ACET
+  END FUNCTION Schmidt_Acet
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: N_AIR
+! !IROUTINE: N_Air
 !
-! !DESCRIPTION: N_AIR returns the dynamic air viscosity. 
+! !DESCRIPTION: N\_Air returns the dynamic air viscosity. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION N_AIR(T) RESULT(N)
+  FUNCTION N_Air(T) RESULT(N)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T
+!
+! !RETURN VALUE:
+!
     REAL*8             :: N
 !
 ! !REVISION HISTORY:
@@ -646,25 +706,28 @@ CONTAINS
 !    N = SV_0+(SV_1*T)+(SV_2*T**2d0)+(SV_3*T**3d0)+(SV_4*T**4d0)
     N = SV_0 + T * ( SV_1 + T * ( SV_2 + T * (SV_3 + T * SV_4) ) )
 
-  END FUNCTION N_AIR
+  END FUNCTION N_Air
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: P_AIR
+! !IROUTINE: P_Air
 !
-! !DESCRIPTION: P_AIR returns the kinematic air viscosity. 
+! !DESCRIPTION: P\_Air returns the kinematic air viscosity. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION P_AIR(T) RESULT(P)
+  FUNCTION P_Air(T) RESULT(P)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T
+!
+! !RETURN VALUE:
+!
     REAL*8             :: P
 !
 ! !REVISION HISTORY:
@@ -687,25 +750,28 @@ CONTAINS
     P = SD_0 + T * (SD_1 + T * (SD_2 + T * SD_3 ))
 !    P = SD_0+(SD_1*T)+(SD_2*T**2)+(SD_3*T**3)
 
-  END FUNCTION P_AIR
+  END FUNCTION P_Air
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: V_AIR
+! !IROUTINE: V_Air
 !
-! !DESCRIPTION: V_AIR returns the kinematic air viscosity (m2/s).
+! !DESCRIPTION: V\_Air returns the kinematic air viscosity (m2/s).
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION V_AIR(T) RESULT(V)
+  FUNCTION V_Air(T) RESULT(V)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T
+!
+! !RETURN VALUE:
+!
     REAL*8             :: V
 !
 ! !REVISION HISTORY:
@@ -720,30 +786,32 @@ CONTAINS
 
     V = N_AIR(T)/P_AIR(T)
 
-  END FUNCTION V_AIR
+  END FUNCTION V_Air
+!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: D_AIR
+! !IROUTINE: D_Air
 !
-! !DESCRIPTION: D_AIR returns the gas phase diffusion coefficient according to
+! !DESCRIPTION: D\_Air returns the gas phase diffusion coefficient according to
 ! Fuller et al., 1966.
-! E. Fuller et al.: "New method for prediction of binary gas-phase diffusion
-! coefficients", Industrial & Engineering Chemistry, 58, 1966.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION D_AIR(T,P,MW,VB) RESULT(D)
+  FUNCTION D_Air(T,P,MW,VB) RESULT(D)
 !
-! !ARGUMENTS
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T  !T in C
     REAL*8, INTENT(IN) :: P  !P in Pa
     REAL*8, INTENT(IN) :: MW !MW in g/mol
     REAL*8, INTENT(IN) :: VB !Liq. molar volume (cm3/mol)
+!
+! !RETURN VALUE:
+!
     REAL*8             :: D
 !
 ! !REVISION HISTORY:
@@ -772,25 +840,28 @@ CONTAINS
     !D is in cm2/s convert to m2/s
     D = D * 1D-4
 
-  END FUNCTION D_AIR
+  END FUNCTION D_Air
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: SCHMIDT_G
+! !IROUTINE: Schmidt_gG
 !
-! !DESCRIPTION: SCHMIDT_G returns the schmidt number of the gas in the air.
+! !DESCRIPTION: Schmidt\_G returns the schmidt number of the gas in the air.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION SCHMIDT_G(T,P,MW,VB) RESULT(SC)
+  FUNCTION Schmidt_G(T,P,MW,VB) RESULT(SC)
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
     REAL*8, INTENT(IN) :: T, P, MW, VB
+!
+! !RETURN VALUE:
+!
     REAL*8             :: SC
 !
 ! !REVISION HISTORY:
@@ -801,7 +872,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8             :: D,V
+    REAL*8 :: D,V
 
     !=================================================================
     ! SCHMIDT_G begins here!
@@ -812,7 +883,7 @@ CONTAINS
 
     SC = V / D
 
-  END FUNCTION SCHMIDT_G
+  END FUNCTION Schmidt_G
 !EOC
-END MODULE OCEAN_TOOLBOX_MOD
+END MODULE Ocean_ToolBox_Mod
 !EOM

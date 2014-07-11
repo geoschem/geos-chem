@@ -594,32 +594,41 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG42
+      SUBROUTINE INIT_DIAG42( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LSOA
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE CMN_SIZE_MOD   
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
-      USE CMN_SIZE_MOD    ! Size parameters 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
-      
       !=================================================================
       ! INIT_DIAG42 begins here!
       !=================================================================
 
       ! Turn off ND42 if SOA tracers are not used
-      IF ( .not. LSOA ) THEN
+      IF ( .not. Input_Opt%LSOA ) THEN
          ND42 = 0
          RETURN
       ENDIF
@@ -631,8 +640,8 @@
       LD42 = MIN( ND42, LLPAR )
 
       ! 2-D array ("LFLASH-$")
-      ALLOCATE( AD42( IIPAR, JJPAR, LD42, PD42 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD42' )
+      ALLOCATE( AD42( IIPAR, JJPAR, LD42, PD42 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'AD42' )
 
       ! Zero arrays
       CALL ZERO_DIAG42

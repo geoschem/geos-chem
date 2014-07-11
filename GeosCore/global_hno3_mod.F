@@ -68,9 +68,8 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : TCVV
 !
 ! !INPUT PARAMETERS:
 !
@@ -86,6 +85,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  05 Sep 2013 - M. Sulprizio- Added ProTeX headers
+!  25 Jun 2014 - R. Yantosca - Now does not need to use TCVV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,16 +118,15 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE TRACER_MOD,  ONLY : TCVV
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: I, J, L     ! Lon, lat, alt indices
+      INTEGER, INTENT(IN) :: I, J, L   ! Lon, lat, alt indices
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: HNO3_VV
+      REAL*8              :: HNO3_VV   ! HNO3 in [v/v] mixing ratio
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references TCVV from "tracer_mod.f" (bmy, 7/20/04)
@@ -159,20 +158,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_HNO3( THISMONTH )
+      SUBROUTINE GET_GLOBAL_HNO3( am_I_Root, Input_Opt,
+     &                            THISMONTH, RC          )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D,  TRANSFER_3D
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D,  TRANSFER_3D
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month number (1-12)
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month number (1-12)
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
+!
+! !INPUT PARAMETERS:
+!
 !
 ! !REVISION HISTORY:
 !  (1 ) Bug fix in FORMAT statement: Replace missing commas (bmy, 3/23/03)
@@ -190,6 +200,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  05 Sep 2013 - M. Sulprizio- Added ProTeX headers
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,6 +219,9 @@
       ! GET_GLOBAL_HNO3 begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Allocate OH array, if this is the first call
       IF ( FIRST ) THEN
          CALL INIT_GLOBAL_HNO3
@@ -216,7 +230,7 @@
 
       ! File name for modified HNO3 (total gas + aerosol nitrate)
       ! after sea-salt chemistry (bec, bmy, 4/13/05, 8/1/05)
-      FILENAME = TRIM( DATA_DIR )                      // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )            // 
      &           'sulfate_sim_200508/offline/THNO3.'   // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()!
 

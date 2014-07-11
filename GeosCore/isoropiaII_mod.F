@@ -272,7 +272,8 @@
 
             ! Offline simulation: read monthly mean HNO3
             IF ( ITS_A_NEW_MONTH() ) THEN
-               CALL GET_GLOBAL_HNO3( GET_MONTH() )
+               CALL GET_GLOBAL_HNO3
+     &            ( am_I_Root, Input_Opt, GET_MONTH(), RC )
             ENDIF
 
             ! Initialize for each timestep (bec, bmy, 4/15/05)
@@ -703,6 +704,7 @@
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
@@ -721,6 +723,7 @@
 !                               since the start of run.
 !  06 Jul 2007 - H. O. T. Pye - Initial version, in ISORROPIA II
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC

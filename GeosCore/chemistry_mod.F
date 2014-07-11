@@ -76,20 +76,23 @@
 !
 ! !USES:
 !
-!      USE ACETONE_MOD,        ONLY : OCEAN_SINK_ACET
       USE AEROSOL_MOD,        ONLY : AEROSOL_CONC
       USE AEROSOL_MOD,        ONLY : AEROSOL_RURALBOX
       USE AEROSOL_MOD,        ONLY : RDAER
       USE AEROSOL_MOD,        ONLY : SOILDUST
       USE C2H6_MOD,           ONLY : CHEMC2H6
       USE CARBON_MOD,         ONLY : CHEMCARBON
-      USE CH3I_MOD,           ONLY : CHEMCH3I
+!-----------------------------------------------------------------------------
+! These simulations are now obsolete.  You can can reactivate this if you want.
+!      USE CH3I_MOD,           ONLY : CHEMCH3I
+!      USE DRYDEP_MOD,         ONLY : DRYFLXH2HD
+!      USE H2_HD_MOD,          ONLY : CHEM_H2_HD
+!-----------------------------------------------------------------------------
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
       USE COMODE_LOOP_MOD     
       USE DRYDEP_MOD,         ONLY : DRYFLX
       USE DRYDEP_MOD,         ONLY : DRYFLXRnPbBe
-      USE DRYDEP_MOD,         ONLY : DRYFLXH2HD
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -98,7 +101,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
-      USE H2_HD_MOD,          ONLY : CHEM_H2_HD
       USE HCN_CH3CN_MOD,      ONLY : CHEM_HCN_CH3CN
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
@@ -402,12 +404,6 @@
             ! ND43 chemical production
             CALL DIAGOH
  
-            ! Remove acetone ocean sink
-            ! Now done within HEMCO (ckeller, 05/19/14)
-!            IF ( IDTACET /= 0 ) THEN
-!               CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET), State_Met ) 
-!            ENDIF
-             
          !---------------------------------
          ! Offline aerosol simulation
          !---------------------------------
@@ -421,15 +417,6 @@
             ! Initialize FAST-JX quantities for computing AOD's
             IF ( FIRST ) THEN
 
-!               ! Init chem mechanism and photolysis
-                ! Now done in INIT_CHEMISTRY
-!               CALL READER  ( FIRST,     am_I_Root            )
-!               CALL READCHEM( am_I_Root, Input_Opt, RC        )
-!               CALL INIT_FJX( am_I_Root  )
- 
-!               ! Reset NCS with NCSURBAN
-!               NCS     = NCSURBAN
- 
                ! Reset NTLOOP and NTTLOOP after call to READER
                ! with the actual # of boxes w/in the ann mean trop
                NTLOOP  = N_TROP
@@ -502,7 +489,9 @@
 
                ! Compute dust OD's & surface areas
                WAVELENGTH = 0
-               CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
+               CALL RDUST_ONLINE
+     &             ( am_I_Root, Input_Opt,  State_Met, 
+     &               SOILDUST,  WAVELENGTH, RC         )
             ENDIF
  
          !---------------------------------
@@ -518,12 +507,15 @@
      &            ( am_I_Root, Input_Opt, State_Chm, RC )
             ENDIF
 
-         !---------------------------------
-         ! CH3I
-         !---------------------------------
-         ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
-            CALL CHEMCH3I
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!-----------------------------------------------------------------------------
+! This simulation is now obsolete.  You can reactivate it if you want.
+!         !---------------------------------
+!         ! CH3I
+!         !---------------------------------
+!         ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
+!            CALL CHEMCH3I
+!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!-----------------------------------------------------------------------------
  
          !---------------------------------            
          ! HCN
@@ -587,21 +579,25 @@
             ! Do POPS chemistry
             CALL CHEMPOPS
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-               
-         !---------------------------------
-         ! Offline H2/HD
-         !---------------------------------
-         ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
-            CALL CHEM_H2_HD
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-            CALL DRYFLXH2HD( State_Met, State_Chm )
+!-----------------------------------------------------------------------------
+! This simulation is now obsolete.  You can reactivate it if you want.
+!         !---------------------------------
+!         ! Offline H2/HD
+!         !---------------------------------
+!         ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
+!            CALL CHEM_H2_HD
+!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+!            CALL DRYFLXH2HD( State_Met, State_Chm )
+!
+!            ! Call linearized stratospheric scheme
+!            IF ( LSCHEM ) THEN 
+!               CALL DO_STRAT_CHEM
+!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!            ENDIF
+!-----------------------------------------------------------------------------
 
-            ! Call linearized stratospheric scheme
-            IF ( LSCHEM ) THEN 
-               CALL DO_STRAT_CHEM
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            ENDIF
          ENDIF
 
          !### Debug
@@ -1080,12 +1076,14 @@
                ! (rjp, tdf, bmy, 4/1/04)
                !===============================================================
                IF ( LDUST ) THEN
-                  CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
+                  CALL RDUST_ONLINE
+     &               ( am_I_Root, Input_Opt,  State_Met,
+     &                 SOILDUST,  WAVELENGTH, RC         )
 #if  !defined( TOMAS )
                ELSE
-                  CALL RDUST_OFFLINE( MONTH,      YEAR,
-     &                                WAVELENGTH, am_I_Root,
-     &                                State_Met   )
+                  CALL RDUST_OFFLINE
+     &               ( am_I_Root, Input_Opt, State_Met,
+     &                 MONTH,     YEAR,      WAVELENGTH, RC )
 #endif
                ENDIF
 
@@ -1128,20 +1126,18 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)     :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)     :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry State object
-      INTEGER,        INTENT(INOUT)  :: RC         ! Success or failure?
-!
-! !OUTPUT PARAMETERS:
-!
+      TYPE(ChmState), INTENT(INOUT)  :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(INOUT)  :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  19 May 2014 - C. Keller - Initial version (stripped from do_chemistry
 !                            and chemdr.F)
+!  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to INIT_FJX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1160,10 +1156,10 @@
       IF ( FIRST ) THEN
 
          ! Init chem mechanism and photolysis
-         CALL READER  ( FIRST,     am_I_Root                )
-         CALL READCHEM( am_I_Root, Input_Opt, RC            )
-         CALL INIT_FJX( am_I_Root  )
-         CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL READER  ( FIRST, am_I_Root                           )
+         CALL READCHEM(        am_I_Root, Input_Opt,            RC )
+         CALL INIT_FJX(        am_I_Root, Input_Opt,            RC )
+         CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
 
          ! Reset NCS with NCSURBAN
          NCS     = NCSURBAN

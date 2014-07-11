@@ -191,15 +191,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PRINT_DIAG_OH
+      SUBROUTINE PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE TRACER_MOD, ONLY : ITS_A_CH4_SIM
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  21 Oct 2003 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,6 +224,9 @@
       !=================================================================
       ! PRINT_DIAG_OH begins here!
       !=================================================================
+
+      ! Assume success
+      RC         = GIGC_SUCCESS
 
       ! Return if this diagnostic is turned off
       IF ( .not. DO_SAVE_OH ) RETURN
@@ -244,13 +259,15 @@
          OHCONC = ( SUM_OHMASS / SUM_MASS ) / 1d5
          
          ! Write value to log file
-         WRITE( 6, '(/,a)' ) REPEAT( '=', 79 ) 
-         WRITE( 6, *       ) 'ND23: Mass-Weighted OH Concentration'
-         WRITE( 6, *       ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
-         WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(/,a)' ) REPEAT( '=', 79 ) 
+            WRITE( 6, *       ) 'ND23: Mass-Weighted OH Concentration'
+            WRITE( 6, *       ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
+            WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+         ENDIF
 
          ! Avoid divide-by-zero errors
-         IF ( ITS_A_CH4_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_CH4_SIM .and. am_I_Root ) THEN
             IF ( SUM_OHLOSS > 0 ) THEN
 
                ! Mass weighted lifetimes printed below
@@ -306,10 +323,12 @@
       ELSE
 
          ! Write error msg if SUM_MASS is zero
-         WRITE( 6, '(/,a)' ) REPEAT( '=', 79 ) 
-         WRITE( 6, '(  a)' ) 'Could not print mass-weighted OH!'
-         WRITE( 6, '(  a)' ) 'Atmospheric air mass is zero!'
-         WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(/,a)' ) REPEAT( '=', 79 ) 
+            WRITE( 6, '(  a)' ) 'Could not print mass-weighted OH!'
+            WRITE( 6, '(  a)' ) 'Atmospheric air mass is zero!'
+            WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+         ENDIF
             
       ENDIF
 
@@ -327,25 +346,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG_OH(am_I_Root)
+      SUBROUTINE INIT_DIAG_OH( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LCHEM
-      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_CH4_SIM
-
-      USE CMN_SIZE_MOD    ! Size parameters
-
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+!
 ! !INPUT VARIABLES:
-
-      LOGICAL, INTENT(IN) :: am_I_Root
-
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Remove references to CO-OH simulation and to CMN_DIAG (bmy, 6/24/05)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  23 Jun 2014 - R. Yantosca - Removed reference to logical_mod.F
+!  23 Jun 2014 - R. Yantosca - Removed reference to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -362,17 +386,17 @@
       DO_SAVE_OH = .FALSE.
 
       ! Return if we are not doing chemistry
-      IF ( .not. LCHEM ) RETURN
+      IF ( .not. Input_Opt%LCHEM ) RETURN
 
       ! Set vertical levels and decide whether to print CH3CCl3
       ! lifetime or just mean mass-weighted OH concentration
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          ! Fullchem: chemistry grid only
          LMAX       = LLCHEM
          DO_SAVE_OH = .TRUE.
 
-      ELSE IF ( ITS_A_CH4_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
 
          ! CH4: all levels
          LMAX       = LLPAR
@@ -381,9 +405,11 @@
       ENDIF
 
       ! Echo info
-      IF(am_I_Root) WRITE( 6, 100 ) DO_SAVE_OH
- 100  FORMAT( /, 'Turn on Mean OH diagnostic (ND23)? :', L5 )
-  
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 100 ) DO_SAVE_OH
+ 100     FORMAT( /, 'Turn on Mean OH diagnostic (ND23)? :', L5 )
+      ENDIF
+
       ! Return if we aren't saving mean OH
       IF ( .not. DO_SAVE_OH ) RETURN
 

@@ -552,7 +552,7 @@
       DATE = GET_NYMD()
 
       IF ( ND40 .and. DATE /= DATE_PREV ) THEN
-         CALL SETUP_PLANEFLIGHT( am_I_Root )
+         CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
          DATE_PREV = DATE
       ENDIF
 
@@ -708,15 +708,15 @@
       ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
       IF ( LDUST ) THEN
-         CALL RDUST_ONLINE(  SOILDUST,    WAVELENGTH, State_Met )
+         CALL RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met,
+     &                      SOILDUST,  WAVELENGTH, RC         )
       ELSE
-
 #if !defined( TOMAS )
-            ! Don't read dust emissions from disk when using TOMAS,
-            ! because TOMAS uses a different set of dust tracers than the 
-            ! std code (win, bmy, 1/25/10)
-            CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, am_I_Root,
-     &                          State_Met )
+         ! Don't read dust emissions from disk when using TOMAS,
+         ! because TOMAS uses a different set of dust tracers than the 
+         ! std code (win, bmy, 1/25/10)
+         CALL RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met,
+     &                       MONTH,     YEAR,      WAVELENGTH, RC )
 #endif
       ENDIF
 

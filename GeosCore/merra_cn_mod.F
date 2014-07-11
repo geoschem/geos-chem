@@ -191,16 +191,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS, State_Met )
+      SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)    :: NYMD    ! YYYYMMDD date 
-      INTEGER,        INTENT(IN)    :: NHMS    ! hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD        ! YYYYMMDD date and
+      INTEGER,        INTENT(IN)    :: NHMS        ! hhmmss time of data
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -216,13 +218,14 @@
       !=================================================================      
       ! Read data from disk
       !=================================================================
-      CALL READ_CN( NYMD     = NYMD,   
-     &              NHMS     = NHMS, 
-     &              FRLAKE   = State_Met%FRLAKE, 
-     &              FRLAND   = State_Met%FRLAND, 
-     &              FRLANDIC = State_Met%FRLANDIC, 
-     &              FROCEAN  = State_Met%FROCEAN, 
-     &              PHIS     = State_Met%PHIS      )
+      CALL READ_CN( NYMD      = NYMD,   
+     &              NHMS      = NHMS, 
+     &              Input_Opt = Input_Opt,
+     &              FRLAKE    = State_Met%FRLAKE, 
+     &              FRLAND    = State_Met%FRLAND, 
+     &              FRLANDIC  = State_Met%FRLANDIC, 
+     &              FROCEAN   = State_Met%FROCEAN, 
+     &              PHIS      = State_Met%PHIS      )
 
       END SUBROUTINE GET_MERRA_CN_FIELDS
 !EOC
@@ -239,37 +242,39 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CN( NYMD,   NHMS, 
+      SUBROUTINE READ_CN( NYMD,   NHMS,   Input_Opt,
      &                    FRLAKE, FRLAND, FRLANDIC, FROCEAN, PHIS )
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIAG_MOD,           ONLY : AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: NYMD   ! YYYYMMDD and
-      INTEGER, INTENT(IN)  :: NHMS   !  hhmmss time of desired data
+      INTEGER,        INTENT(IN)  :: NYMD       ! YYYYMMDD and
+      INTEGER,        INTENT(IN)  :: NHMS       !  hhmmss time of desired data
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
       ! Fraction of grid box covered by lakes [unitless] 
-      REAL*8,  INTENT(OUT) :: FRLAKE  (IIPAR,JJPAR)    
+      REAL*8,         INTENT(OUT) :: FRLAKE  (IIPAR,JJPAR)    
 
       ! Fraction of grid box covered by land ice [unitless]
-      REAL*8,  INTENT(OUT) :: FRLAND  (IIPAR,JJPAR)
+      REAL*8,         INTENT(OUT) :: FRLAND  (IIPAR,JJPAR)
 
       ! Fraction of grid box covered by land ice [unitless]
-      REAL*8,  INTENT(OUT) :: FRLANDIC(IIPAR,JJPAR)
+      REAL*8,         INTENT(OUT) :: FRLANDIC(IIPAR,JJPAR)
 
       ! Fraction of grid box covered by ocean [unitless]
-      REAL*8,  INTENT(OUT) :: FROCEAN (IIPAR,JJPAR)
+      REAL*8,         INTENT(OUT) :: FROCEAN (IIPAR,JJPAR)
 
       ! Surface geopotential height [m2/s2]
-      REAL*8,  INTENT(OUT) :: PHIS    (IIPAR,JJPAR) 
+      REAL*8,         INTENT(OUT) :: PHIS    (IIPAR,JJPAR) 
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
@@ -281,11 +286,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: IOS, NFOUND, N_CN      
-      REAL*4             :: Q2(IIPAR,JJPAR)
-      CHARACTER(LEN=8)   :: NAME
-      CHARACTER(LEN=16)  :: STAMP
-      INTEGER            :: XYMD, XHMS
+      INTEGER           :: IOS, NFOUND, N_CN      
+      REAL*4            :: Q2(IIPAR,JJPAR)
+      CHARACTER(LEN=8)  :: NAME
+      CHARACTER(LEN=16) :: STAMP
+      INTEGER           :: XYMD, XHMS
 
       !=================================================================
       ! READ_CN begins here!

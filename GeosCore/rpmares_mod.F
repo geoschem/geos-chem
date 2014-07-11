@@ -196,7 +196,8 @@
 
             ! Offline simulation: read monthly mean HNO3
             IF ( ITS_A_NEW_MONTH() ) THEN
-               CALL GET_GLOBAL_HNO3( GET_MONTH() )
+               CALL GET_GLOBAL_HNO3
+     &            ( am_I_Root, Input_Opt, GET_MONTH(), RC )
             ENDIF
 
          ELSE

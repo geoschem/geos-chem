@@ -1,42 +1,47 @@
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_paranox_mod
+! !MODULE: hcox_paranox_mod.F90
 !
 ! !DESCRIPTION: Module HCOX\_PARANOX\_MOD contains routines to 
 ! compute ship emissions and associated concentrations of NO, HNO3 and
-! O3 from NO ship emission data. 
+! O3 from NO ship emission data.  This follows the implementation of
+! the PARANOX ship plume model in GEOS-Chem.
+!\\
+!\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
-!
-! !REFERENCES:
-!
-! Vinken, G. C. M., Boersma, K. F., Jacob, D. J., and Meijer, E. W.: 
+!\\
+!\\
+! References:
+! \begin{itemize}
+! \item Vinken, G. C. M., Boersma, K. F., Jacob, D. J., and Meijer, E. W.: 
 ! Accounting for non-linear chemistry of ship plumes in the
 ! GEOS-Chem global chemistry transport model, Atmos. Chem. Phys., 11,
 ! 11707-11722, doi:10.5194/acp-11-11707-2011, 2011.
+! \end{itemize}
 !
 ! !INTERFACE:
 !
-MODULE HCOX_PARANOX_MOD 
+MODULE HCOX_ParaNOx_MOD 
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_DIAGN_MOD
-  USE HCO_STATE_MOD,   ONLY : HCO_State 
-  USE HCOX_State_MOD,  ONLY : Ext_State
+  USE HCO_Error_MOD
+  USE HCO_Diagn_MOD
+  USE HCO_State_MOD,  ONLY : HCO_State 
+  USE HCOX_State_MOD, ONLY : Ext_State
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HcoX_ParaNox_Run
-  PUBLIC :: HcoX_ParaNox_Init
-  PUBLIC :: HcoX_ParaNox_Final
+  PUBLIC :: HCOX_ParaNOx_Run
+  PUBLIC :: HCOX_ParaNOx_Init
+  PUBLIC :: HCOX_ParaNOx_Final
 !
 ! !REMARKS:
 !  Adapted from the code in GeosCore/paranox_mod.F prior to GEOS-Chem v10-01.
@@ -46,6 +51,7 @@ MODULE HCOX_PARANOX_MOD
 !  15 Oct 2013 - C. Keller   - Now a HEMCO extension
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
+!  25 Jun 2014 - R. Yantosca - Now pass the look-up-table filenames
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -57,6 +63,8 @@ MODULE HCOX_PARANOX_MOD
   INTEGER                       :: IDTNO 
   INTEGER                       :: IDTHNO3
   INTEGER                       :: IDTO3
+  CHARACTER(LEN=255)            :: FracNox_FILE
+  CHARACTER(LEN=255)            :: IntOPE_FILE
   REAL*8                        :: MW_O3
   REAL*8                        :: MW_NO
   REAL*8                        :: MW_NO2
@@ -68,20 +76,20 @@ MODULE HCOX_PARANOX_MOD
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_paranox_run 
+! !IROUTINE: HCOX_ParaNOx_Run
 !
-! !DESCRIPTION: Subroutine HcoX\_ParaNox\_Run is the driver routine to 
+! !DESCRIPTION: Subroutine HCOX\_ParaNOx\_Run is the driver routine to 
 ! calculate ship NOx emissions for the current time step. Emissions in
 ! [kg/m2/s] are added to the emissions array of the passed  
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_ParaNox_Run ( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_ParaNOx_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -116,7 +124,7 @@ CONTAINS
     IF ( .NOT. ExtState%ParaNOx ) RETURN
 
     ! Enter
-    CALL HCO_ENTER( 'HCOX_PARANOX_RUN ( HCOX_PARANOX_MOD.F90)', RC)
+    CALL HCO_ENTER( 'HCOX_ParaNOx_Run (hcox_paranox_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -166,39 +174,38 @@ CONTAINS
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE HcoX_ParaNox_Run
+  END SUBROUTINE HCOX_ParaNOx_Run
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EVOLVE_PLUME 
+! !IROUTINE: Evolve_Plume 
 !
 ! !DESCRIPTION: Subroutine EVOLVE\_PLUME performs plume
 ! dilution/chemistry of ship NO emissions for every grid box and writes
 ! the resulting NO, HNO3 and O3 emission (production) rates into
-! State_Chm%NomixS. 
+! State\_Chm%NomixS. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EVOLVE_PLUME ( am_I_Root,   ExtState,     &
-                            ShipNoEmis,  HcoState, RC )  
+  SUBROUTINE Evolve_Plume( am_I_Root, ExtState, ShipNoEmis, HcoState, RC )  
 !
 ! !USES:
 !
-    USE PARANOX_UTIL_MOD,   ONLY : INTERPOLATE_LUT2
-    USE PARANOX_UTIL_MOD,   ONLY : READ_PARANOX_LUT
-    USE COMODE_LOOP_MOD,    ONLY : NCS, JPHOTRAT, NRATES
-    USE COMODE_LOOP_MOD,    ONLY : NAMEGAS, IRM
-    USE HCO_FLUXARR_MOD,    ONLY : HCO_EmisAdd, HCO_DepvAdd
-    USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
-    USE FAST_JX_MOD,        ONLY : FJXFUNC
+    USE ParaNOx_Util_Mod,  ONLY : INTERPOLATE_LUT2
+    USE ParaNOx_Util_Mod,  ONLY : READ_PARANOX_LUT
+    USE Comode_Loop_Mod,   ONLY : NCS, JPHOTRAT, NRATES
+    USE Comode_loop_mod,   ONLY : NAMEGAS, IRM
+    USE HCO_FluxArr_mod,   ONLY : HCO_EmisAdd, HCO_DepvAdd
+    USE HCO_Clock_Mod,     ONLY : HcoClock_Get
+    USE FAST_JX_MOD,       ONLY : FJXFUNC
 
     ! testing only
-    USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
-    USE PRESSURE_MOD,       ONLY : GET_PEDGE
+    USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
+    USE PRESSURE_MOD,      ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS:
 !
@@ -212,9 +219,10 @@ CONTAINS
     INTEGER,         INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
-!  06 Aug 2013 - C. Keller - Initial Version
+!  06 Aug 2013 - C. Keller   - Initial Version
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
+!  24 Jun 2014 - R. Yantosca - Now pass LUT_FILENAME to READ_PARANOX_LUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -252,7 +260,7 @@ CONTAINS
     jx = -1 !35
 
     ! Enter
-    CALL HCO_ENTER( 'EVOLVE_PLUME ( HCOX_PARANOX_MOD.F90)', RC)
+    CALL HCO_ENTER( 'Evolve_Plume (hcox_paranox_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave here if none of the tracers defined
@@ -267,7 +275,7 @@ CONTAINS
 
     ! Read look up tables every new month
     IF ( MM /= SAVEMM ) THEN
-       CALL READ_PARANOX_LUT
+       CALL READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE  )
        SAVEMM = MM
     ENDIF
 
@@ -658,29 +666,30 @@ CONTAINS
    ! Return w/ success
    CALL HCO_LEAVE ( RC )
 
- END SUBROUTINE EVOLVE_PLUME
+ END SUBROUTINE Evolve_Plume
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_paranox_init 
+! !IROUTINE: HCOX_ParaNOx_Init
 !
-! !DESCRIPTION: Subroutine HcoX\_ParaNox\_Init initializes the HEMCO
+! !DESCRIPTION: Subroutine HcoX\_ParaNOx\_Init initializes the HEMCO
 ! PARANOX extension.
 !\\
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE HcoX_ParaNox_Init ( am_I_Root, HcoState, ExtName, &
+ SUBROUTINE HCOX_ParaNOx_Init ( am_I_Root, HcoState, ExtName, &
                                 ExtState,    RC                  ) 
 !
 ! !USES:
 !
-   USE HCO_STATE_MOD,     ONLY : HCO_GetHcoID
+   USE HCO_State_MOD,     ONLY : HCO_GetHcoID
    USE HCO_STATE_MOD,     ONLY : HCO_GetExtHcoID
    USE HCO_ExtList_Mod,   ONLY : GetExtNr
+   USE HCO_ExtList_Mod,   ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -717,7 +726,19 @@ CONTAINS
    IF ( ExtNr <= 0 ) RETURN
 
    ! Enter
-   CALL HCO_ENTER( 'HcoX_ParaNox_Init (HcoX_ParaNox_Mod.F90)', RC )
+   CALL HCO_ENTER( 'HCOX_ParaNOx_Init (hcox_paranox_mod.F90)', RC )
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   ! ---------------------------------------------------------------------- 
+   ! Get the look-up-table filenames
+   ! ---------------------------------------------------------------------- 
+
+   ! Fraction of NOx remaining for ship emissions
+   CALL GetExtOpt ( ExtNr, 'FracNOx table', OptValChar=FRACNOX_FILE, RC=RC)
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   ! Integrated Ozone production efficiency (OPE)
+   CALL GetExtOpt ( ExtNr, 'IntOPE table', OptValChar=INTOPE_FILE, RC=RC)
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! ---------------------------------------------------------------------- 
@@ -818,14 +839,14 @@ CONTAINS
    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
    CALL HCO_LEAVE ( RC )
 
- END SUBROUTINE HcoX_ParaNox_Init
+ END SUBROUTINE HCOX_ParaNOx_Init
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_paranox_final
+! !IROUTINE: HCOX_ParaNOx_Final
 !
 ! !DESCRIPTION: Subroutine HcoX\_ParaNox\_Final finalizes the HEMCO
 ! PARANOX extension.
@@ -833,7 +854,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE HcoX_ParaNox_Final
+ SUBROUTINE HCOX_ParaNOx_Final()
 !
 ! !REVISION HISTORY:
 !  06 Aug 2013 - C. Keller - Initial Version
@@ -850,6 +871,6 @@ CONTAINS
 
    IF ( ALLOCATED(ShipNO) ) DEALLOCATE ( ShipNO )
 
- END SUBROUTINE HcoX_ParaNox_Final
+ END SUBROUTINE HCOX_ParaNOx_Final
 !EOC
-END MODULE HCOX_PARANOX_MOD
+END MODULE HCOX_ParaNOx_mod

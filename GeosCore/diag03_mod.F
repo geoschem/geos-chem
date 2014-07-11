@@ -159,7 +159,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG03
+      SUBROUTINE WRITE_DIAG03( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -167,6 +167,8 @@
       USE BPCH2_MOD,    ONLY : GET_MODELNAME
       USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
       USE FILE_MOD,     ONLY : IU_BPCH
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,     ONLY : GET_XOFFSET
       USE GRID_MOD,     ONLY : GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_CT_EMIS
@@ -175,10 +177,17 @@
       USE TIME_MOD,     ONLY : GET_CT_CHEM  
       USE TRACERID_MOD, ONLY : N_Hg_CATS
       USE TIME_MOD,     ONLY : GET_CT_DIAG, GET_Hg2_DIAG !H Amos, 20100218
-      USE LOGICAL_MOD,  ONLY : LSPLIT !eds 9/7/10
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! TINDEX
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !   # : Field    : Description                     : Units    : Scale factor
@@ -226,6 +235,7 @@
 !  (5 ) Fixed tracer numbers (NN) for 'PL-HG2-$' diagnostic quantities.
 !        (cdh, 8/13/08)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -251,6 +261,9 @@
       ! WRITE_DIAG03 begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Exit if ND03 is turned off
       IF ( ND03 == 0 ) RETURN
 
@@ -275,7 +288,7 @@
       !=================================================================
       ! Different diagnostics for total vs. tagged simulations (eds)
       !=================================================================
-      IF (LSPLIT) THEN
+      IF ( Input_Opt%LSPLIT ) THEN
 
          !=================================================================
          ! Write data to the bpch file

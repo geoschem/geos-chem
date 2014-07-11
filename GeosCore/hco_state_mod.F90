@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_state_mod
+! !MODULE: hco_state_mod.F90
 !
-! !DESCRIPTION: Module HCO\_STATE\_MOD contains definitions and sub- 
+! !DESCRIPTION: Module HCO\_State\_Mod contains definitions and sub- 
 ! routines for the HEMCO state derived type. The HEMCO state HcoState 
 ! contains information about the emissions grid, all used species, 
 ! various physical constants, etc. It also contains the final assembled 
@@ -16,12 +16,12 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE HCO_STATE_MOD
+MODULE HCO_State_Mod
 !
 ! USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_ARR_MOD
+  USE HCO_Error_Mod
+  USE HCO_Arr_Mod
 
 #if defined(ESMF_)
   USE ESMF_Mod
@@ -39,112 +39,119 @@ MODULE HCO_STATE_MOD
   PUBLIC :: HCO_GetExtHcoID
 
   !=========================================================================
-  ! HEMCO State derived type
+  ! HCO_State: Main HEMCO State derived type
   !=========================================================================
   TYPE, PUBLIC :: HCO_State
 
      ! Species information
-     INTEGER                     :: nSpc         ! # of species
-     TYPE(HcoSpc),       POINTER :: Spc(:)       ! list of species
+     INTEGER                   :: nSpc        ! # of species
+     TYPE(HcoSpc),     POINTER :: Spc(:)      ! list of species
 
-     !
      ! Emission grid information 
-     INTEGER                     :: NX     ! # of x-points (lons) on this CPU
-     INTEGER                     :: NY     ! # of y-points (lats) on this CPU
-     INTEGER                     :: NZ     ! # of z-points (levs) on this CPU
-     TYPE(HcoGrid),     POINTER  :: Grid   ! HEMCO grid information
+     INTEGER                   :: NX          ! # of x-pts (lons) on this CPU
+     INTEGER                   :: NY          ! # of y-pts (lats) on this CPU
+     INTEGER                   :: NZ          ! # of z-pts (levs) on this CPU
+     TYPE(HcoGrid),    POINTER :: Grid        ! HEMCO grid information
 
-     ! Placeholder to store temporary 3D array
-     ! Emissions will be written into this array only if option FillBuffer is enabled
-     TYPE(Arr3D_HP),    POINTER  :: Buffer3D 
+     ! Data array 
+     TYPE(Arr3D_HP),   POINTER :: Buffer3D    ! Placeholder to store temporary
+                                              ! 3D array.  Emissions will be
+                                              ! written into this array if
+                                              ! option FillBuffer = .TRUE.
+     ! Constants and timesteps
+     TYPE(HcoPhys),    POINTER :: Phys        ! Physical constants
+     REAL(sp)                  :: TS_EMIS     ! Emission timestep [s]
+     REAL(sp)                  :: TS_CHEM     ! Chemical timestep [s]
+     REAL(sp)                  :: TS_DYN      ! Dynamic  timestep [s]
 
-     ! Physical constants
-     TYPE(HcoPhys),     POINTER  :: Phys 
-
-     ! Emission & dynamic time step (seconds)
-     REAL(sp)                   :: TS_EMIS
-     REAL(sp)                   :: TS_CHEM
-     REAL(sp)                   :: TS_DYN
-
-     ! Settings
-     CHARACTER(LEN=255)          :: ConfigFile    ! Path + Filename of configuration file 
-     LOGICAL                     :: isESMF        ! ESMF application? 
-
-     ! Run options
-     TYPE(HcoOpt),     POINTER   :: Options
-
-     ! If run w/in ESMF, also need to point to IMPORT state
-     ! so that data arrays can be imported.
+     ! Run time options
+     CHARACTER(LEN=255)        :: ConfigFile  ! Full path to HEMCO Config file
+     LOGICAL                   :: isESMF      ! Are we using ESMF?
+     TYPE(HcoOpt),     POINTER :: Options     ! HEMCO run options
 #if defined(ESMF_)
-     TYPE(ESMF_State), POINTER   :: IMPORT
+     TYPE(ESMF_State), POINTER :: IMPORT      ! ESMF Import State (only needed
+                                              ! if option isESMF = .TRUE.)
 #endif
-
   END TYPE HCO_State
 !
-! !PRIVATE MODULE TYPES:
+! !PRIVATE TYPES:
 !
-
-  ! HCO species
-  TYPE :: HcoSpc
-     INTEGER                     :: HcoID      ! HEMCO species ID
-     INTEGER                     :: ModID      ! Model species ID
-     CHARACTER(LEN= 31)          :: SpcName    ! species names
-     REAL(hp)                    :: MW_g       ! species molecular weight (g/mol)
-     REAL(hp)                    :: EmMW_g     ! emission molecular weight**1 (g/mol)
-     REAL(hp)                    :: MolecRatio ! molecule emission ratio **2 (-)
-     REAL(hp)                    :: HenryK0    ! liq. over gas Henry const [M/atm]
-     REAL(hp)                    :: HenryCR    ! K0 temp. dependency [K] 
-     REAL(hp)                    :: HenryPKA   ! pKa for Henry const. correction
-     TYPE(Arr2D_HP),     POINTER :: Depv       ! Deposition velocity [m/s]
-     TYPE(Arr3D_HP),     POINTER :: Emis       ! Emission flux [kg/m2/s]
-  END TYPE HcoSpc
+  !=========================================================================
+  ! HcoSpc: Derived type for HEMCO species
+  !
   ! Notes:
-  ! **1 The emission molecular weight is the molecular weight of the emitted 
-  !     compound. This value is only different to MW_g if the emitted compound
-  !     does not correspond to the transported species, e.g. if emissions are 
-  !     in kg C4H10 but the corresponding species is transported as mass Carbon. 
-  ! **2 MolecRatio is the ratio between # of species molecules per emitted molecule, 
-  !     e.g. 4 if emissions are kg C4H10 but model species are kg C.
+  ! **1 The emission molecular weight is the molecular weight of the 
+  !     emitted compound. This value is only different to MW_g if the 
+  !     emitted compound does not correspond to the transported species, 
+  !     e.g. if emissions are in kg C4H10 but the corresponding species 
+  !     is transported as mass Carbon. 
+  ! **2 MolecRatio is the ratio between # of species molecules per emitted 
+  !       molecule, e.g. 4 if emissions are kg C4H10 but model species 
+  !       are kg C.
+  !=========================================================================
+  TYPE :: HcoSpc
+     INTEGER                 :: HcoID      ! HEMCO species ID
+     INTEGER                 :: ModID      ! Model species ID
+     CHARACTER(LEN= 31)      :: SpcName    ! species names
+     REAL(hp)                :: MW_g       ! species molecular wt.     (g/mol)
+     REAL(hp)                :: EmMW_g     ! emission molecular wt.**1 (g/mol)
+     REAL(hp)                :: MolecRatio ! molecule emission ratio**2 (-)
+     REAL(hp)                :: HenryK0    ! liq. over gas Henry const [M/atm]
+     REAL(hp)                :: HenryCR    ! K0 temp. dependency [K] 
+     REAL(hp)                :: HenryPKA   ! pKa for Henry const. correction
+     TYPE(Arr2D_HP), POINTER :: Depv       ! Deposition velocity [m/s]
+     TYPE(Arr3D_HP), POINTER :: Emis       ! Emission flux [kg/m2/s]
+  END TYPE HcoSpc
 
-  ! HEMCO run options
+  !=========================================================================
+  ! HcoOpt: Derived type for HEMCO run options
+  !=========================================================================
   TYPE :: HcoOpt
-     INTEGER                    :: ExtNr         ! ExtNr to be used 
-     INTEGER                    :: SpcMin        ! Smallest HEMCO species ID to be considered 
-     INTEGER                    :: SpcMax        ! Highest HEMCO species ID to be considered
-     INTEGER                    :: CatMin        ! Smallest category to be considered
-     INTEGER                    :: CatMax        ! Highest category to be considered
-     LOGICAL                    :: AutoFillDiagn ! Write into AutoFill diagnostics?
-     LOGICAL                    :: FillBuffer    ! Write calculated emissions into buffer
-                                                 ! instead of emission array? 
+     INTEGER :: ExtNr         ! ExtNr to be used 
+     INTEGER :: SpcMin        ! Smallest HEMCO species ID to be considered 
+     INTEGER :: SpcMax        ! Highest HEMCO species ID to be considered
+     INTEGER :: CatMin        ! Smallest category to be considered
+     INTEGER :: CatMax        ! Highest category to be considered
+     LOGICAL :: AutoFillDiagn ! Write into AutoFill diagnostics?
+     LOGICAL :: FillBuffer    ! Write calculated emissions into buffer
+                              ! instead of emission array? 
   END TYPE HcoOpt
 
-  ! HEMCO grid
-  TYPE :: HcoGrid
-     REAL(df),           POINTER :: XMID       (:,:)   ! mid-points in x-direction (lon)
-     REAL(df),           POINTER :: YMID       (:,:)   ! mid-points in y-direction (lat)
-     REAL(df),           POINTER :: XEDGE      (:,:)   ! grid edges in x-direction (lon)*
-     REAL(df),           POINTER :: YEDGE      (:,:)   ! grid edges in y-direction (lat)*
-     REAL(df),           POINTER :: YSIN       (:,:)   ! sin of grid edges in y-direction (lat)*
-     REAL(df),           POINTER :: AREA_M2    (:,:)   ! grid box areas (m2)
-     REAL(df),           POINTER :: BXHEIGHT_M (:,:,:) ! grid box heights (m)**
-  END TYPE HcoGrid
+  !=========================================================================
+  ! HcoGrid: Derived type for HEMCO grid
+  !
+  ! NOTES:
   ! *  Not used in ESMF environment
   ! ** Only used by some extensions
+  !=========================================================================
+  TYPE :: HcoGrid
+     REAL(df), POINTER :: XMID       (:,:)   ! mid-points in x-direction (lon)
+     REAL(df), POINTER :: YMID       (:,:)   ! mid-points in y-direction (lat)
+     REAL(df), POINTER :: XEDGE      (:,:)   ! grid edges in x-direction (lon)*
+     REAL(df), POINTER :: YEDGE      (:,:)   ! grid edges in y-direction (lat)*
+     REAL(df), pOINTER :: YSIN       (:,:)   ! sin of grid edges in 
+                                             !  y-direction (lat)*
+     REAL(df), POINTER :: AREA_M2    (:,:)   ! grid box areas (m2)
+     REAL(df), POINTER :: BXHEIGHT_M (:,:,:) ! grid box heights (m)**
+  END TYPE HcoGrid
 
-! Physical constants 
+  !=========================================================================
+  ! HcoPhys: Derived type for HEMCO physical constants
+  !=========================================================================
   TYPE :: HcoPhys
-     REAL(dp)                    :: Avgdr   ! Avogadro number (mol-1)
-     REAL(dp)                    :: PI      ! Pi
-     REAL(dp)                    :: Re      ! Earth radius [m] 
-     REAL(dp)                    :: AIRMW   ! Molecular weight of air (g/mol)
-     REAL(dp)                    :: g0      ! Gravity at surface of earth (m/s2)
-     REAL(dp)                    :: Rd      ! Gas Constant (R) in dry air (J/K/kg)
-     REAL(dp)                    :: Rdg0    ! Rd/g0
+     REAL(dp) :: Avgdr   ! Avogadro number (mol-1)
+     REAL(dp) :: PI      ! Pi
+     REAL(dp) :: Re      ! Earth radius [m] 
+     REAL(dp) :: AIRMW   ! Molecular weight of air (g/mol)
+     REAL(dp) :: g0      ! Gravity at surface of earth (m/s2)
+     REAL(dp) :: Rd      ! Gas Constant (R) in dry air (J/K/kg)
+     REAL(dp) :: Rdg0    ! Rd/g0
   END TYPE HcoPhys 
-
 !                                                                             
 ! !REVISION HISTORY:
-!  20 Aug 2013 - C. Keller - Initial version, adapted from gigc_state_chm_mod.F90
+!  20 Aug 2013 - C. Keller   - Initial version, adapted from 
+!                              gigc_state_chm_mod.F90
+!  07 Jul 2014 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -165,15 +172,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoState_Init ( am_I_Root, HcoState, nSpecies, RC ) 
+  SUBROUTINE HcoState_Init( am_I_Root, HcoState, nSpecies, RC ) 
 !
-! !USES:
-!
-!
-! !PARAMETERS:
+! !INPUT PARAMETERS:
 ! 
     LOGICAL,          INTENT(IN)    :: am_I_Root ! root CPU?
     INTEGER,          INTENT(IN)    :: nSpecies  ! # HEMCO species 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
     TYPE(HCO_State),  POINTER       :: HcoState  ! HEMCO State object
     INTEGER,          INTENT(INOUT) :: RC        ! Return code
 ! 
@@ -185,14 +192,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, AS
+    INTEGER :: I, AS
 
     !=====================================================================
     ! HcoState_Init begins here!
     !=====================================================================
 
     ! For error handling
-    CALL HCO_ENTER ('Init_HCO_State (HCO_STATE_MOD.F90)', RC )
+    CALL HCO_ENTER ('Init_HCO_State (hco_state_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=====================================================================
@@ -324,12 +331,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoState_Final ( HcoState )
+  SUBROUTINE HcoState_Final( HcoState )
 !
-! !USES:
-!
-!
-! !INPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(HCO_State), POINTER  :: HcoState    ! HEMCO State object
 !
@@ -338,8 +342,10 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-    INTEGER                :: I
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: I
 
     !=====================================================================
     ! HcoState_Final begins here!
@@ -384,16 +390,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_getmodspcid 
+! !IROUTINE: HCO_GetModSpcId
 !
-! !DESCRIPTION: Function HCO\_GETMODSPCID returns the model species index 
+! !DESCRIPTION: Function HCO\_GetModSpcId returns the model species index 
 ! of a species by name. Returns -1 if given species is not found, 0 if 
 ! name corresponds to the HEMCO wildcard character.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION HCO_GetModSpcID( name, HcoState ) RESULT( Indx )
+  FUNCTION HCO_GetModSpcID( name, HcoState ) RESULT( Indx )
 !
 ! !USES:
 !
@@ -401,12 +407,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-      CHARACTER(LEN=*), INTENT(IN)   :: name         ! Species name
-      TYPE(HCO_State), INTENT(INOUT) :: HcoState     ! HEMCO State
+    CHARACTER(LEN=*), INTENT(IN)    :: name      ! Species name
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State),  INTENT(INOUT) :: HcoState  ! HEMCO State
 !
 ! !RETURN VALUE:
 !
-      INTEGER                      :: Indx         ! Index of this species 
+    INTEGER                         :: Indx      ! Index of this species 
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90 
@@ -416,45 +425,45 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N 
+    INTEGER :: N 
 
-      ! Default 
-      Indx = -1
+    ! Default 
+    Indx = -1
 
-      ! Return 0 if wildcard character
-      IF ( TRIM(name) == HCO_WCD() ) THEN
-         Indx = 0
-         RETURN
-      ENDIF
+    ! Return 0 if wildcard character
+    IF ( TRIM(name) == HCO_WCD() ) THEN
+       Indx = 0
+       RETURN
+    ENDIF
 
-      ! Loop over all species names
-      DO N = 1, HcoState%nSpc
+    ! Loop over all species names
+    DO N = 1, HcoState%nSpc
 
-         ! Return the index of the sought-for species
-         IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
-            Indx = HcoState%Spc(N)%ModID
-            EXIT
-         ENDIF
+       ! Return the index of the sought-for species
+       IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
+          Indx = HcoState%Spc(N)%ModID
+          EXIT
+       ENDIF
 
-      ENDDO
+    ENDDO
 
-      END FUNCTION HCO_GetModSpcID
+  END FUNCTION HCO_GetModSpcID
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_gethcoid 
+! !IROUTINE: HCO_GetHcoId
 !
-! !DESCRIPTION: Function HCO\_GETHCOID returns the HEMCO species index 
+! !DESCRIPTION: Function HCO\_GetHcoIdHCO returns the HEMCO species index 
 ! of a species by name. Returns -1 if given species is not found, 0 if 
 ! name corresponds to the HEMCO wildcard character.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION HCO_GetHcoID( name, HcoState ) RESULT( Indx )
+  FUNCTION HCO_GetHcoID( name, HcoState ) RESULT( Indx )
 !
 ! !USES:
 !
@@ -462,12 +471,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-      CHARACTER(LEN=*), INTENT(IN)   :: name         ! Species name
-      TYPE(HCO_State), INTENT(INOUT) :: HcoState     ! HEMCO State
+    CHARACTER(LEN=*), INTENT(IN)   :: name         ! Species name
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState     ! HEMCO State
 !
 ! !RETURN VALUE:
 !
-      INTEGER                      :: Indx         ! Index of this species 
+    INTEGER                      :: Indx         ! Index of this species 
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90 
@@ -477,28 +486,28 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N
+    INTEGER :: N
 
-      ! Default 
-      Indx = -1
+    ! Default 
+    Indx = -1
 
-      ! Return 0 if wildcard character
-      IF ( TRIM(name) == HCO_WCD() ) THEN
-         Indx = 0
-         RETURN
-      ENDIF
+    ! Return 0 if wildcard character
+    IF ( TRIM(name) == HCO_WCD() ) THEN
+       Indx = 0
+       RETURN
+    ENDIF
 
-      ! Loop over all species names
-      DO N = 1, HcoState%nSpc
+    ! Loop over all species names
+    DO N = 1, HcoState%nSpc
 
-         ! Return the index of the sought-for species
-         IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
-            Indx = N 
-            EXIT
-         ENDIF
-      ENDDO
+       ! Return the index of the sought-for species
+       IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
+          Indx = N 
+          EXIT
+       ENDIF
+    ENDDO
 
-      END FUNCTION HCO_GetHcoID
+  END FUNCTION HCO_GetHcoID
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -514,23 +523,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, &
+  SUBROUTINE HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, &
                                   SpcNames, nSpc,  RC       ) 
 !
 ! !USES:
 !
-      USE CHARPAK_MOD,         ONLY : STRSPLIT 
-      USE HCO_EXTLIST_MOD,     ONLY : GetExtSpcStr
-      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_SEP
+    USE CHARPAK_MOD,         ONLY : STRSPLIT 
+    USE HCO_EXTLIST_MOD,     ONLY : GetExtSpcStr
+    USE HCO_CHARTOOLS_MOD,   ONLY : HCO_SEP
 !
-! !ARGUMENTS:
+! !INPUT ARGUMENTS:
 !
-      TYPE(HCO_State),               POINTER          :: HcoState 
-      INTEGER,                       INTENT(IN   )    :: ExtNr       ! Extension Nr. 
-      INTEGER,          ALLOCATABLE, INTENT(  OUT)    :: HcoIDs(:)   ! Species IDs
-      CHARACTER(LEN=*), ALLOCATABLE, INTENT(INOUT)    :: SpcNames(:) ! Species names
-      INTEGER,                       INTENT(INOUT)    :: nSpc        ! # of species
-      INTEGER,                       INTENT(INOUT)    :: RC 
+    TYPE(HCO_State),               POINTER          :: HcoState 
+    INTEGER,                       INTENT(IN   )    :: ExtNr       ! Extension Nr. 
+!
+! !OUTPUT ARGUMENTS:
+!
+    INTEGER,          ALLOCATABLE, INTENT(  OUT)    :: HcoIDs(:)   ! Species IDs
+!
+! !INPUT/OUTPUT ARGUMENTS:
+!
+    CHARACTER(LEN=*), ALLOCATABLE, INTENT(INOUT)    :: SpcNames(:) ! Species names
+    INTEGER,                       INTENT(INOUT)    :: nSpc        ! # of species
+    INTEGER,                       INTENT(INOUT)    :: RC 
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -541,45 +556,45 @@ CONTAINS
 !
 ! !LOCAL ARGUMENTS:
 !
-      INTEGER                   :: I, AS
-      CHARACTER(LEN=255)        :: MSG, LOC
-      CHARACTER(LEN=255)        :: SpcStr, SUBSTR(255)
+    INTEGER                   :: I, AS
+    CHARACTER(LEN=255)        :: MSG, LOC
+    CHARACTER(LEN=255)        :: SpcStr, SUBSTR(255)
 
-      !======================================================================
-      ! HCO_GetExtHcoID begins here
-      !======================================================================
+    !======================================================================
+    ! HCO_GetExtHcoID begins here
+    !======================================================================
 
-      ! Enter
-      LOC = 'HCO_GetExtHcoID (HCO_STATE_MOD.F90)'
+    ! Enter
+    LOC = 'HCO_GetExtHcoID (HCO_STATE_MOD.F90)'
 
-      ! Get all species names belonging to extension Nr. ExtNr
-      CALL GetExtSpcStr ( ExtNr, SpcStr, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Get all species names belonging to extension Nr. ExtNr
+    CALL GetExtSpcStr ( ExtNr, SpcStr, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Split character
-      CALL STRSPLIT( SpcStr, HCO_SEP(), SUBSTR, nSpc )
+    ! Split character
+    CALL STRSPLIT( SpcStr, HCO_SEP(), SUBSTR, nSpc )
 
-      ! Find extension of interest 
-      IF ( nSpc == 0 ) RETURN 
+    ! Find extension of interest 
+    IF ( nSpc == 0 ) RETURN 
 
-      ! Allocate arrays 
-      IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  ) 
-      IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames) 
-      ALLOCATE(HcoIDs(nSpc), SpcNames(nSpc), STAT=AS)
-      IF ( AS/=0 ) THEN
-         CALL HCO_ERROR('HcoIDs allocation error', RC, THISLOC=LOC)
-         RETURN
-      ENDIF
+    ! Allocate arrays 
+    IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  ) 
+    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames) 
+    ALLOCATE(HcoIDs(nSpc), SpcNames(nSpc), STAT=AS)
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR('HcoIDs allocation error', RC, THISLOC=LOC)
+       RETURN
+    ENDIF
 
-      ! Extract species information
-      DO I = 1, nSpc
-         SpcNames(I) = SUBSTR(I)
-         HcoIDs(I)   = HCO_GetHcoID( TRIM(SpcNames(I)), HcoState )
-      ENDDO
+    ! Extract species information
+    DO I = 1, nSpc
+       SpcNames(I) = SUBSTR(I)
+       HcoIDs(I)   = HCO_GetHcoID( TRIM(SpcNames(I)), HcoState )
+    ENDDO
 
-      ! Return w/ success
-      RC = HCO_SUCCESS 
+    ! Return w/ success
+    RC = HCO_SUCCESS 
 
-      END SUBROUTINE HCO_GetExtHcoID 
+  END SUBROUTINE HCO_GetExtHcoID 
 !EOC
 END MODULE HCO_STATE_MOD

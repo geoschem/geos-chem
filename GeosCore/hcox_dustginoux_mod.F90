@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hemcox_dustginoux_mod
+! !MODULE: hemcox_dustginoux_mod.F90
 !
 ! !DESCRIPTION: Paul GINOUX dust source function.  This subroutine updates 
 !  the surface mixing ratio of dust aerosols for NDSTBIN size bins.  The 
@@ -16,21 +16,26 @@
 !  ginoux@rondo.gsfc.nasa.gov/  If you are not using GEOS DAS met fields, 
 !  you will most likely need to adapt the adjusting parameter.
 !\\
+!\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
+!\\
 !\\ 
-! !REFERENCES:
-!
-!  (1 ) Ginoux, P., M. Chin, I. Tegen, J. Prospero, B. Hoben, O. Dubovik,
+! References:
+! 
+! \begin{enumerate}
+! \item Ginoux, P., M. Chin, I. Tegen, J. Prospero, B. Hoben, O. Dubovik,
 !        and S.-J. Lin, "Sources and distributions of dust aerosols simulated
 !        with the GOCART model", J. Geophys. Res., 2001
-!  (2 ) Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
+! \item Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
 !        J. Logan, A. Higurashi, and T. Nakajima, "Tropospheric aerosol
 !        optical thickness from the GOCART model and comparisons with
 !        satellite and sunphotometers measurements", J. Atmos Sci., 2001.
-!                                                                             .
-!  Contact: Paul Ginoux (ginoux@rondo.gsfc.nasa.gov) 
-! 
+! \end{enumerate}
+!
+! !AUTHOR:
+!  Paul Ginoux (ginoux@rondo.gsfc.nasa.gov) 
+!
 ! !REVISION HISTORY:
 !  08 Apr 2004 - T. D. Fairlie - Initial version
 !  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
@@ -99,11 +104,11 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUSTGINOUX_RUN 
+! !IROUTINE: HCOX_DustGinoux_Run
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustGinoux\_Run is the driver routine 
 ! for the Paul Ginoux dust source function HEMCO extension.
@@ -111,7 +116,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustGinoux_Run ( am_I_Root, ExtState, HcoState, RC )
+      SUBROUTINE HcoX_DustGinoux_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -189,7 +194,7 @@
       IF ( .NOT. ExtState%DustGinoux ) RETURN
 
       ! Enter
-      CALL HCO_ENTER('HCOX_DUSTGINOUX_RUN (HCOX_DUSTGINOUX_MOD.F90)',RC)
+      CALL HCO_ENTER('HCOX_DustGinoux_Run (hcox_dustginoux_mod.F90)',RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Set gravity at earth surface (cm/s^2)
@@ -348,11 +353,11 @@
       END SUBROUTINE HcoX_DustGinoux_Run
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUSTGINOUX_INIT 
+! !IROUTINE: HCOX_DustGinoux_Init 
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustGinoux\_Init initializes the HEMCO
 ! DUSTGINOUX extension.
@@ -400,7 +405,7 @@
       IF ( ExtNr <= 0 ) RETURN
 
       ! Enter
-      CALL HCO_ENTER('HCOX_DUSTGINOUX_INIT (HCOX_DUSTGINOUX_MOD.F90)',RC)
+      CALL HCO_ENTER('HCOX_DustGinoux_Init (hcox_dustginoux_mod.F90)',RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
@@ -459,11 +464,11 @@
       END SUBROUTINE HcoX_DustGinoux_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUSTGINOUX_FINAL
+! !IROUTINE: HCOX_DustGinoux_Final
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustGinoux\_Final finalizes the HEMCO
 ! DUSTGINOUX extension.
@@ -471,7 +476,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustGinoux_Final
+      SUBROUTINE HcoX_DustGinoux_Final()
 !
 ! !REVISION HISTORY:
 !  11 Dec 2013 - C. Keller - Now a HEMCO extension
@@ -494,19 +499,19 @@
       END SUBROUTINE HcoX_DustGinoux_Final
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUSTGINOUX_GETCHDUST
+! !IROUTINE: HCOX_DustGinoux_GetChDust
 !
-! !DESCRIPTION: Function HCOX_DUSTGINOUX_GETCHDUST returns the CH_DUST
+! !DESCRIPTION: Function HCOX\_DustGinoux\_GetChDust returns the CH\_DUST
 ! parameter for the current simulation type.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION HCOX_DUSTGINOUX_GETCHDUST RESULT ( CH_DUST )
+      FUNCTION HCOX_DustGinoux_GetChDust RESULT ( CH_DUST )
 !
 ! !ARGUMENTS:
 !
@@ -539,7 +544,7 @@
       CH_DUST  = 9.375d-10
 #endif
       
-      END FUNCTION HCOX_DUSTGINOUX_GETCHDUST
+      END FUNCTION HCOX_DustGinoux_GetChDust
 !EOC
-      END MODULE HCOX_DUSTGINOUX_MOD
+      END MODULE HCOX_DustGinoux_Mod
 !EOM

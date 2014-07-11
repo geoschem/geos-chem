@@ -8,11 +8,13 @@
 !
 ! !MODULE: hcoi_gc_diagn_mod.F90
 !
-! !DESCRIPTION: Module HCOI\_GC\_DIAGN\_MOD.F90 is the HEMCO - GEOS-Chem
-! diagnostics interface module.\\
+! !DESCRIPTION: Module HCOI\_GC\_Diagn\_Mod.F90 is the HEMCO - GEOS-Chem
+! diagnostics interface module.
+!\\
+!\\
 ! This module contains wrapper routines to initialize, execute and finalize
 ! HEMCO diagnostics from within GEOS-Chem. These routines are called from
-! the HEMCO- GEOS-Chem interface module (HCOI\_GC\_MAIN\_MOD.F90). 
+! the HEMCO- GEOS-Chem interface module (hcoi\_gc\_main\_mod.F90). 
 ! \\
 ! !INTERFACE:
 !
@@ -52,19 +54,19 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcoi_diagn_init
+! !IROUTINE: HCOI_DiagN_Init
 !
-! !DESCRIPTION: Subroutine HCOI\_DIAGN\_INIT initializes the HEMCO diagnostics
+! !DESCRIPTION: Subroutine HCOI\_Diagn\_Init initializes the HEMCO diagnostics
 ! in GEOS-Chem. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_DIAGN_INIT( am_I_Root, HcoState, RC ) 
+  SUBROUTINE HCOI_Diagn_Init( am_I_Root, HcoState, RC ) 
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_GetHcoID, HCO_State
+    USE HCO_State_Mod, ONLY : HCO_GetHcoID, HCO_State
 !
 ! !INPUT PARAMETERS:
 !
@@ -245,16 +247,16 @@ CONTAINS
     ! Leave w/ success
     RC = HCO_SUCCESS 
 
-  END SUBROUTINE HCOI_DIAGN_INIT
+  END SUBROUTINE HCOI_Diagn_Init
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcoi_diagn_writeout
+! !IROUTINE: HCOI_Diagn_WriteOut
 !
-! !DESCRIPTION: Subroutine HCOI\_DIAGN\_WRITEOUT writes diagnostics to 
+! !DESCRIPTION: Subroutine HCOI\_Diagn\_WriteOut writes diagnostics to 
 ! netCDF file. If the WriteAll flag is set to TRUE, all diagnostics are
 ! written. This option is usually only used at the end of a simulation run.
 ! If WriteAll is False, only the diagnostics that are at the end of their
@@ -265,18 +267,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll, &
-                                   RC,        PREFIX,   UsePrevTime)
+  SUBROUTINE HCOI_Diagn_WriteOut( am_I_Root, HcoState, WriteAll, &
+                                  RC,        PREFIX,   UsePrevTime)
 !
 ! !USES:
 !
 
-    USE NCDF_MOD,            ONLY : NC_CREATE,  NC_CLOSE
-    USE NCDF_MOD,            ONLY : NC_VAR_DEF, NC_VAR_WRITE
-    USE HCO_STATE_MOD,       ONLY : HCO_State
-    USE JULDAY_MOD,          ONLY : JULDAY
-    USE HCO_CLOCK_MOD,       ONLY : HcoClock_Get
-    USE HCO_CLOCK_MOD,       ONLY : HcoClock_GetMinResetFlag
+    USE Ncdf_Mod,      ONLY : NC_Create
+    USE Ncdf_Mod,      ONLY : NC_Close
+    USE Ncdf_Mod,      ONLY : NC_Var_Def
+    USE Ncdf_Mod,      ONLY : NC_Var_Write
+    USE HCO_State_Mod, ONLY : HCO_State
+    USE JulDay_Mod,    ONLY : JulDay
+    USE HCO_Clock_Mod, ONLY : HcoClock_Get
+    USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
 !
 ! !INPUT PARAMETERS:
 !
@@ -284,8 +288,8 @@ CONTAINS
     TYPE(HCO_State),  POINTER       :: HcoState    ! HEMCO state object 
     LOGICAL,          INTENT(IN   ) :: WriteAll    ! Write all diagnostics? 
     CHARACTER(LEN=*), OPTIONAL      :: PREFIX      ! File prefix
-    LOGICAL,          OPTIONAL      :: UsePrevTime ! Use previous time in filename?
-!
+    LOGICAL,          OPTIONAL      :: UsePrevTime ! Use previous time 
+!                                                  !  in filename?
 ! !INPUT/OUTPUT PARAMETERS:
 !
 
@@ -509,8 +513,8 @@ CONTAINS
     ! Return 
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCOI_DIAGN_WRITEOUT
+  END SUBROUTINE HCOI_DiagN_WriteOut
 !EOC
-END MODULE HCOI_GC_DIAGN_MOD
+END MODULE HCOI_GC_Diagn_Mod
 #endif
 

@@ -1,22 +1,22 @@
-! $Id: m_netcdf_io_checks.F90,v 1.1 2009/08/04 14:52:04 bmy Exp $
-!-------------------------------------------------------------------------
-!  NASA/GFSC, SIVO, Code 610.3
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE:  m_netcdf_io_checks
+! !MODULE: m_netcdf_io_checks.F90
 !
 ! !INTERFACE:
 !
-      module m_netcdf_io_checks
+module m_netcdf_io_checks
 !
-      implicit none
+  implicit none
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      public  Ncdoes_Udim_Exist
-      public  Ncdoes_Var_Exist
-      public  Ncdoes_Attr_Exist
+  public  Ncdoes_Udim_Exist
+  public  Ncdoes_Var_Exist
+  public  Ncdoes_Attr_Exist
 !
 ! !DESCRIPTION: Routines to check if a netCDF file contains a specified 
 !  variable.
@@ -26,36 +26,39 @@
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  10 Jul 2014 - R. Yantosca - Cosmetic changes to ProTeX headers
 !EOP
 !-------------------------------------------------------------------------
-
+!BOC
 CONTAINS
-
-!-------------------------------------------------------------------------
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !FUNCTION: Ncdoes_Udim_Exist
 !
 ! !INTERFACE:
 !
-      function Ncdoes_Udim_Exist (ncid)
+  function Ncdoes_Udim_Exist (ncid)
 !
-      implicit none
+    implicit none
 !
-      include "netcdf.inc"
+    include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
-!!    ncid : netCDF file id to check
-      integer, intent (in)   :: ncid
+!!  ncid : netCDF file id to check
+    integer, intent (in)   :: ncid
 !
 ! !DESCRIPTION: Checks a given netCDF file to see if it contains an 
 !  unlimited dimension.
 !\\
 !\\
 ! !RETURN VALUE:
-      logical :: Ncdoes_Udim_Exist
+    logical :: Ncdoes_Udim_Exist
 !
 ! !AUTHOR: 
 !  John Tannahill (LLNL) and Jules Kouatchou
@@ -64,50 +67,53 @@ CONTAINS
 !  Initial code.
 !
 !EOP
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-      integer :: ierr
-      integer :: udimid
+    integer :: ierr
+    integer :: udimid
 !
-      ierr = Nf_Inq_Unlimdim (ncid, udimid)
+    ierr = Nf_Inq_Unlimdim (ncid, udimid)
 
-      if (ierr == NF_NOERR) then
-         Ncdoes_Udim_Exist = .true.
-      else
-         Ncdoes_Udim_Exist = .false.
-      end if
+    if (ierr == NF_NOERR) then
+       Ncdoes_Udim_Exist = .true.
+    else
+       Ncdoes_Udim_Exist = .false.
+    end if
 
-      return
+    return
 
-      end function Ncdoes_Udim_Exist
+  end function Ncdoes_Udim_Exist
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !FUNCTION: Ncdoes_Var_Exist
 !
 ! !INTERFACE:
 !
-      function Ncdoes_Var_Exist (ncid, varname)
+  function Ncdoes_Var_Exist (ncid, varname)
 !
-      implicit none
+    implicit none
 !
-      include "netcdf.inc"
+    include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id       to check
-!!    varname : netCDF variable name to check
-      integer,           intent (in)   :: ncid
-      character (len=*), intent (in)   :: varname
+!!  ncid    : netCDF file id       to check
+!!  varname : netCDF variable name to check
+    integer,           intent (in)   :: ncid
+    character (len=*), intent (in)   :: varname
 !
 ! !DESCRIPTION: Checks a given netCDF file to see if a given netCDF variable 
 !  exists in it.
 !\\
 !\\
 ! !RETURN VALUE:
-      logical :: Ncdoes_Var_Exist
+    logical :: Ncdoes_Var_Exist
 !
 ! !AUTHOR: 
 !  John Tannahill (LLNL) and Jules Kouatchou
@@ -116,52 +122,55 @@ CONTAINS
 !  Initial code.
 !
 !EOP
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-      integer :: ierr
-      integer :: varid
+    integer :: ierr
+    integer :: varid
 !
-      ierr = Nf_Inq_Varid (ncid, varname, varid)
+    ierr = Nf_Inq_Varid (ncid, varname, varid)
 
-      if (ierr == NF_NOERR) then
-         Ncdoes_Var_Exist = .true.
-      else
-         Ncdoes_Var_Exist = .false.
-      end if
+    if (ierr == NF_NOERR) then
+       Ncdoes_Var_Exist = .true.
+    else
+       Ncdoes_Var_Exist = .false.
+    end if
 
-      return
+    return
 
-      end function Ncdoes_Var_Exist
+  end function Ncdoes_Var_Exist
 !EOC
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !FUNCTION: Ncdoes_Attr_Exist
 !
 ! !INTERFACE:
 !
-      function Ncdoes_Attr_Exist (ncid, varname, attname)
+  function Ncdoes_Attr_Exist (ncid, varname, attname)
 !
-      implicit none
+    implicit none
 !
-      include "netcdf.inc"
+    include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id       to check
-!!    varname : netCDF variable name to check
-!!    attname : netCDF attribute name to check
-      integer,           intent (in)   :: ncid
-      character (len=*), intent (in)   :: varname
-      character (len=*), intent (in)   :: attname
+!!  ncid    : netCDF file id       to check
+!!  varname : netCDF variable name to check
+!!  attname : netCDF attribute name to check
+    integer,           intent (in)   :: ncid
+    character (len=*), intent (in)   :: varname
+    character (len=*), intent (in)   :: attname
 !
 ! !DESCRIPTION: Checks a given netCDF file to see if a given netCDF variable 
 !  exists in it.
 !\\
 !\\
 ! !RETURN VALUE:
-      logical :: Ncdoes_Attr_Exist
+    logical :: Ncdoes_Attr_Exist
 !
 ! !AUTHOR: 
 !  John Tannahill (LLNL) and Jules Kouatchou
@@ -170,60 +179,63 @@ CONTAINS
 !  Initial code.
 !
 !EOP
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-      integer :: ierr
-      integer :: varid
-      integer :: tmpout
+    integer :: ierr
+    integer :: varid
+    integer :: tmpout
 
-      ! Init
-      Ncdoes_Attr_Exist = .false.
+    ! Init
+    Ncdoes_Attr_Exist = .false.
 
-      ! First check the variable
-      ierr = Nf_Inq_Varid (ncid, varname, varid)
+    ! First check the variable
+    ierr = Nf_Inq_Varid (ncid, varname, varid)
 
-      ! Check the attribute if variable was found
-      if (ierr == NF_NOERR) then
+    ! Check the attribute if variable was found
+    if (ierr == NF_NOERR) then
 
-         ierr = Nf_Get_Att_Int( ncid, varid, attname, tmpout )
+       ierr = Nf_Get_Att_Int( ncid, varid, attname, tmpout )
 
-         if ( ierr == NF_NOERR ) then
-            Ncdoes_Attr_Exist = .true.
-         end if
+       if ( ierr == NF_NOERR ) then
+          Ncdoes_Attr_Exist = .true.
+       end if
 
-      end if
+    end if
 
-      return
+    return
 
-      end function Ncdoes_Attr_Exist
+  end function Ncdoes_Attr_Exist
 !EOC
-!------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !FUNCTION: Ncdoes_Dim_Exist
 !
 ! !INTERFACE:
 !
-      function Ncdoes_Dim_Exist (ncid, dimname )
+  function Ncdoes_Dim_Exist (ncid, dimname )
 !
-      implicit none
+    implicit none
 !
-      include "netcdf.inc"
+    include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
-!!    ncid    : netCDF file id        to check
-!!    dimname : netCDF dimenison name to check
-      integer,           intent (in)   :: ncid
-      character (len=*), intent (in)   :: dimname
+!!  ncid    : netCDF file id        to check
+!!  dimname : netCDF dimenison name to check
+    integer,           intent (in)   :: ncid
+    character (len=*), intent (in)   :: dimname
 !
 ! !DESCRIPTION: Checks a given netCDF file to see if a given netCDF variable 
 !  exists in it.
 !\\
 !\\
 ! !RETURN VALUE:
-      logical :: Ncdoes_Dim_Exist
+    logical :: Ncdoes_Dim_Exist
 !
 ! !AUTHOR: 
 !  John Tannahill (LLNL) and Jules Kouatchou
@@ -232,26 +244,25 @@ CONTAINS
 !  Initial code.
 !
 !EOP
-!-------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-      integer :: ierr
-      integer :: dimid
+    integer :: ierr
+    integer :: dimid
 
-      ! First check the variable
-      ierr = Nf_Inq_Dimid (ncid, dimname, dimid)
+    ! First check the variable
+    ierr = Nf_Inq_Dimid (ncid, dimname, dimid)
 
-      ! Check the attribute if variable was found
-      if (ierr == NF_NOERR) then
-         Ncdoes_Dim_Exist = .true.     
-      else
-         Ncdoes_Dim_Exist = .false. 
-      end if
+    ! Check the attribute if variable was found
+    if (ierr == NF_NOERR) then
+       Ncdoes_Dim_Exist = .true.     
+    else
+       Ncdoes_Dim_Exist = .false. 
+    end if
 
-      return
+    return
 
-      end function Ncdoes_Dim_Exist
+  end function Ncdoes_Dim_Exist
 !EOC
-!------------------------------------------------------------------------
 end module m_netcdf_io_checks

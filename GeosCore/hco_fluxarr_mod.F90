@@ -1,24 +1,24 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_fluxarr_mod
+! !MODULE: hco_fluxarr_mod.F90
 !
-! !DESCRIPTION: Module HCO\_FLUXARR\_MOD contains routines to handle 
+! !DESCRIPTION: Module HCO\_FluxArr\_Mod contains routines to handle 
 ! the HEMCO flux arrays. These are the emissions and deposition arrays
 ! listed in the HEMCO state object. 
 !\\
 !\\
 ! !INTERFACE: 
 !
-MODULE HCO_FLUXARR_MOD
+MODULE HCO_FluxArr_Mod
 !
 ! USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_ARR_MOD
-  USE HCO_STATE_MOD, ONLY : HCO_State
+  USE HCO_Error_Mod
+  USE HCO_Arr_Mod
+  USE HCO_State_Mod, ONLY : HCO_State
 
   IMPLICIT NONE
   PRIVATE
@@ -37,31 +37,28 @@ MODULE HCO_FLUXARR_MOD
 !------------------------------------------------------------------------------
 !BOC
 !
-! !MODULE INTERFACES:
+! !PRIVATE TYPES:
 !
   INTERFACE HCO_EmisAdd
-     MODULE PROCEDURE HCO_EmisAdd_3D_DP 
-     MODULE PROCEDURE HCO_EmisAdd_3D_SP 
-     MODULE PROCEDURE HCO_EmisAdd_2D_SP
-     MODULE PROCEDURE HCO_EmisAdd_2D_DP
-     MODULE PROCEDURE HCO_EmisAdd_DP
-     MODULE PROCEDURE HCO_EmisAdd_SP
+     MODULE PROCEDURE HCO_EmisAdd_3D_Dp 
+     MODULE PROCEDURE HCO_EmisAdd_3D_Sp 
+     MODULE PROCEDURE HCO_EmisAdd_2D_Sp
+     MODULE PROCEDURE HCO_EmisAdd_2D_Dp
+     MODULE PROCEDURE HCO_EmisAdd_Dp
+     MODULE PROCEDURE HCO_EmisAdd_Sp
   END INTERFACE
 
   INTERFACE HCO_DepvAdd
-     MODULE PROCEDURE HCO_DepvAdd_2D_SP
-     MODULE PROCEDURE HCO_DepvAdd_2D_DP
-     MODULE PROCEDURE HCO_DepvAdd_DP
-     MODULE PROCEDURE HCO_DepvAdd_SP
+     MODULE PROCEDURE HCO_DepvAdd_2D_Sp
+     MODULE PROCEDURE HCO_DepvAdd_2D_Dp
+     MODULE PROCEDURE HCO_DepvAdd_Dp
+     MODULE PROCEDURE HCO_DepvAdd_Sp
   END INTERFACE
 
-!
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -75,12 +72,15 @@ MODULE HCO_FLUXARR_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_FluxarrReset ( HcoState, RC, FlxDir )
+  SUBROUTINE HCO_FluxarrReset( HcoState, RC, FlxDir )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(HCO_State), INTENT(INOUT)           :: HcoState
     INTEGER,         INTENT(INOUT)           :: RC 
+!
+! !INPUT PARAMETERS:
+!
     INTEGER,         INTENT(IN   ), OPTIONAL :: FlxDir    
 !
 ! !REMARKS:
@@ -131,11 +131,11 @@ MODULE HCO_FLUXARR_MOD
   END SUBROUTINE HCO_FluxarrReset 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_EmisAdd_3D_DP
+! !IROUTINE: HCO_EmisAdd_3D_Dp
 !
 ! !DESCRIPTION: Routine HCO\_EmisAdd\_3D adds the 3D-array Arr3D 
 ! to the emissions array of species HcoID in HEMCO object HcoState.
@@ -143,18 +143,19 @@ MODULE HCO_FLUXARR_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_3D_DP ( HcoState, Arr3D, HcoID, RC )
+  SUBROUTINE HCO_EmisAdd_3D_Dp( HcoState, Arr3D, HcoID, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)   :: HcoState
-    REAL(dp),        INTENT(IN   )   :: Arr3D( HcoState%NX, &
-                                               HcoState%NY, &
-                                               HcoState%NZ )
-    INTEGER,         INTENT(IN   )   :: HcoID 
-    INTEGER,         INTENT(INOUT)   :: RC 
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    INTEGER,         INTENT(INOUT) :: RC 
 !
-! !REMARKS:
+! !INPUT PARAMETERS:
+! 
+    REAL(dp),        INTENT(IN   ) :: Arr3D( HcoState%NX, &
+                                             HcoState%NY, &
+                                             HcoState%NZ )
+    INTEGER,         INTENT(IN   ) :: HcoID 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -163,7 +164,7 @@ MODULE HCO_FLUXARR_MOD
 !BOC
 
     !=====================================================================
-    ! HCO_EmisAdd_3D_DP begins here!
+    ! HCO_EmisAdd_3D_Dp begins here!
     !=====================================================================
 
     ! Make sure target flux array in HcoState is allocated
@@ -178,14 +179,14 @@ MODULE HCO_FLUXARR_MOD
     ! Return w/ success
     RC = HCO_SUCCESS 
 
-  END SUBROUTINE HCO_EmisAdd_3D_DP
+  END SUBROUTINE HCO_EmisAdd_3D_Dp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_EmisAdd_3D_SP
+! !IROUTINE: HCO_EmisAdd_3D_Sp
 !
 ! !DESCRIPTION: Routine HCO\_EmisAdd\_3D adds the 3D-array Arr3D to the 
 ! emissions array of species HcoID in HEMCO object HcoState.
@@ -193,18 +194,19 @@ MODULE HCO_FLUXARR_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_3D_SP ( HcoState, Arr3D, HcoID, RC )
+  SUBROUTINE HCO_EmisAdd_3D_Sp ( HcoState, Arr3D, HcoID, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(HCO_State), INTENT(INOUT)   :: HcoState
+    INTEGER,         INTENT(INOUT)   :: RC 
+!
+! !INPUT PARAMETERS:
+! 
     REAL(sp),        INTENT(IN   )   :: Arr3D( HcoState%NX, &
                                                HcoState%NY, &
                                                HcoState%NZ )
     INTEGER,         INTENT(IN   )   :: HcoID 
-    INTEGER,         INTENT(INOUT)   :: RC 
-!
-! !REMARKS:
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -213,7 +215,7 @@ MODULE HCO_FLUXARR_MOD
 !BOC
 
     !=====================================================================
-    ! HCO_EmisAdd_3D_SP begins here!
+    ! HCO_EmisAdd_3D_Sp begins here!
     !=====================================================================
 
     ! Make sure target flux array in HcoState is allocated
@@ -228,31 +230,32 @@ MODULE HCO_FLUXARR_MOD
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_EmisAdd_3D_SP
+  END SUBROUTINE HCO_EmisAdd_3D_Sp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_EmisAdd_2D_DP
+! !IROUTINE: HCO_EmisAdd_2D_Dp
 !
-! !DESCRIPTION: Routine HCO\_EmisAdd\_2D\_DP adds the real*8 2D-array Arr2D 
+! !DESCRIPTION: Routine HCO\_EmisAdd\_2D\_Dp adds the real*8 2D-array Arr2D 
 ! to the emission array of species HcoID in HEMCO object HcoState.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_2D_DP ( HcoState, Arr2D, HcoID, RC )
+  SUBROUTINE HCO_EmisAdd_2D_Dp( HcoState, Arr2D, HcoID, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)   :: HcoState
-    REAL(dp),        INTENT(IN   )   :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,         INTENT(IN   )   :: HcoID 
-    INTEGER,         INTENT(INOUT)   :: RC 
-!
-! !REMARKS:
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    INTEGER,         INTENT(INOUT) :: RC 
+!                                  
+! !INPUT PARAMETERS:        
+!                                  
+    REAL(dp),        INTENT(IN   ) :: Arr2D(HcoState%NX,HcoState%NY)
+    INTEGER,         INTENT(IN   ) :: HcoID 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -261,7 +264,7 @@ MODULE HCO_FLUXARR_MOD
 !BOC
 
     !=====================================================================
-    ! HCO_EmisAdd_2D_DP begins here!
+    ! HCO_EmisAdd_2D_Dp begins here!
     !=====================================================================
 
     ! Make sure target flux array in HcoState is allocated
@@ -276,31 +279,33 @@ MODULE HCO_FLUXARR_MOD
     ! Return w/ success
     RC = HCO_SUCCESS 
 
-  END SUBROUTINE HCO_EmisAdd_2D_DP
+  END SUBROUTINE HCO_EmisAdd_2D_Dp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_EmisAdd_2D_SP
+! !IROUTINE: HCO_EmisAdd_2D_Sp
 !
-! !DESCRIPTION: Routine HCO\_EmisAdd\_2D\_SP adds the real*4 2D-array Arr2D 
+! !DESCRIPTION: Routine HCO\_EmisAdd\_2D\_Sp adds the real*4 2D-array Arr2D 
 ! to the emission array of species HcoID in HEMCO object HcoState.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_2D_SP ( HcoState, Arr2D, HcoID, RC )
+  SUBROUTINE HCO_EmisAdd_2D_Sp( HcoState, Arr2D, HcoID, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
-    TYPE(HCO_State), INTENT(INOUT)   :: HcoState
-    REAL(sp),        INTENT(IN   )   :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,         INTENT(IN   )   :: HcoID 
-    INTEGER,         INTENT(INOUT)   :: RC 
 !
-! !REMARKS:
+!
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    INTEGER,         INTENT(INOUT) :: RC 
+!
+! !INPUT PARAMETERS:
+!
+    REAL(sp),        INTENT(IN   ) :: Arr2D(HcoState%NX,HcoState%NY)
+    INTEGER,         INTENT(IN   ) :: HcoID 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -309,7 +314,7 @@ MODULE HCO_FLUXARR_MOD
 !BOC
 
     !=====================================================================
-    ! HCO_EmisAdd_2D_SP begins here!
+    ! HCO_EmisAdd_2D_Sp begins here!
     !=====================================================================
 
     ! Make sure target flux array in HcoState is allocated
@@ -324,35 +329,36 @@ MODULE HCO_FLUXARR_MOD
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_EmisAdd_2D_SP
+  END SUBROUTINE HCO_EmisAdd_2D_Sp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_EmisAdd_DP
+! !IROUTINE: HCO_EmisAdd_Dp
 !
-! !DESCRIPTION: Routine HCO\_EmisAdd\_DP adds value iVal to the emission
+! !DESCRIPTION: Routine HCO\_EmisAdd\_Dp adds value iVal to the emission
 ! array of species HcoID in HEMCO object HcoState. The value is placed at 
 ! location I, J, L of the array.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_DP ( HcoState, iVal, HcoID, I, J, L, RC )
+  SUBROUTINE HCO_EmisAdd_Dp( HcoState, iVal, HcoID, I, J, L, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)   :: HcoState
-    REAL(dp),        INTENT(IN   )   :: iVal 
-    INTEGER,         INTENT(IN   )   :: HcoID 
-    INTEGER,         INTENT(IN   )   :: I 
-    INTEGER,         INTENT(IN   )   :: J 
-    INTEGER,         INTENT(IN   )   :: L 
-    INTEGER,         INTENT(INOUT)   :: RC 
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    INTEGER,         INTENT(INOUT) :: RC 
 !
-! !REMARKS:
+! !INPUT PARAMETERS:
+! 
+    REAL(dp),        INTENT(IN   ) :: iVal 
+    INTEGER,         INTENT(IN   ) :: HcoID 
+    INTEGER,         INTENT(IN   ) :: I 
+    INTEGER,         INTENT(IN   ) :: J 
+    INTEGER,         INTENT(IN   ) :: L 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -362,7 +368,7 @@ MODULE HCO_FLUXARR_MOD
     CHARACTER(LEN=255) :: MSG
 
     !=====================================================================
-    ! HCO_EmisAdd_DP begins here!
+    ! HCO_EmisAdd_Dp begins here!
     !=====================================================================
 
     ! Check size dimensions
@@ -394,35 +400,36 @@ MODULE HCO_FLUXARR_MOD
     ! Return w/ success
     RC = HCO_SUCCESS 
 
-  END SUBROUTINE HCO_EmisAdd_DP
+  END SUBROUTINE HCO_EmisAdd_Dp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_EmisAdd_SP
+! !IROUTINE: HCO_EmisAdd_Sp
 !
-! !DESCRIPTION: Routine HCO\_EmisAdd\_SP adds value iVal to the emission
+! !DESCRIPTION: Routine HCO\_EmisAdd\_Sp adds value iVal to the emission
 ! array of species HcoID in HEMCO object HcoState. The value is placed 
 ! at location I, J, L of the array.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_SP ( HcoState, iVal, HcoID, I, J, L, RC )
+  SUBROUTINE HCO_EmisAdd_Sp( HcoState, iVal, HcoID, I, J, L, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)   :: HcoState
-    REAL(sp),        INTENT(IN   )   :: iVal 
-    INTEGER,         INTENT(IN   )   :: HcoID 
-    INTEGER,         INTENT(IN   )   :: I 
-    INTEGER,         INTENT(IN   )   :: J 
-    INTEGER,         INTENT(IN   )   :: L 
-    INTEGER,         INTENT(INOUT)   :: RC 
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    INTEGER,         INTENT(INOUT) :: RC 
 !
-! !REMARKS:
+! !INPUT PARAMETERS:
+!
+    REAL(sp),        INTENT(IN   ) :: iVal 
+    INTEGER,         INTENT(IN   ) :: HcoID 
+    INTEGER,         INTENT(IN   ) :: I 
+    INTEGER,         INTENT(IN   ) :: J 
+    INTEGER,         INTENT(IN   ) :: L 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -432,7 +439,7 @@ MODULE HCO_FLUXARR_MOD
     CHARACTER(LEN=255) :: MSG
 
     !=====================================================================
-    ! HCO_EmisAdd_SP begins here!
+    ! HCO_EmisAdd_Sp begins here!
     !=====================================================================
 
     ! Check size dimensions
@@ -464,31 +471,32 @@ MODULE HCO_FLUXARR_MOD
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_EmisAdd_SP
+  END SUBROUTINE HCO_EmisAdd_Sp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_DepvAdd_2D_DP
+! !IROUTINE: HCO_DepvAdd_2D_Dp
 !
-! !DESCRIPTION: Routine HCO\_DepvAdd\_2D\_DP adds the real*8 2D-array Arr2D 
+! !DESCRIPTION: Routine HCO\_DepvAdd\_2D\_Dp adds the real*8 2D-array Arr2D 
 ! to the depostion array of species HcoID in HEMCO object HcoState.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_DepvAdd_2D_DP ( HcoState, Arr2D, HcoID, RC )
+  SUBROUTINE HCO_DepvAdd_2D_Dp( HcoState, Arr2D, HcoID, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)   :: HcoState
-    REAL(dp),        INTENT(IN   )   :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,         INTENT(IN   )   :: HcoID 
-    INTEGER,         INTENT(INOUT)   :: RC 
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    INTEGER,         INTENT(INOUT) :: RC 
 !
-! !REMARKS:
+! !INPUT PARAMETERS:
+! 
+    REAL(dp),        INTENT(IN   ) :: Arr2D(HcoState%NX,HcoState%NY)
+    INTEGER,         INTENT(IN   ) :: HcoID 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -498,7 +506,7 @@ MODULE HCO_FLUXARR_MOD
     CHARACTER(LEN=255) :: MSG
 
     !=====================================================================
-    ! HCO_DepvAdd_2D_DP begins here!
+    ! HCO_DepvAdd_2D_Dp begins here!
     !=====================================================================
 
     ! Make sure target flux array in HcoState is allocated
@@ -513,31 +521,32 @@ MODULE HCO_FLUXARR_MOD
     ! Return w/ success
     RC = HCO_SUCCESS 
 
-  END SUBROUTINE HCO_DepvAdd_2D_DP
+  END SUBROUTINE HCO_DepvAdd_2D_Dp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_DepvAdd_2D_SP
+! !IROUTINE: HCO_DepvAdd_2D_Sp
 !
-! !DESCRIPTION: Routine HCO\_DepvAdd\_2D\_SP adds the real*4 2D-array Arr2D 
+! !DESCRIPTION: Routine HCO\_DepvAdd\_2D\_Sp adds the real*4 2D-array Arr2D 
 ! to the depostion array of species HcoID in HEMCO object HcoState.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_DepvAdd_2D_SP ( HcoState, Arr2D, HcoID, RC )
+  SUBROUTINE HCO_DepvAdd_2D_Sp( HcoState, Arr2D, HcoID, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)   :: HcoState
-    REAL(sp),        INTENT(IN   )   :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,         INTENT(IN   )   :: HcoID 
-    INTEGER,         INTENT(INOUT)   :: RC 
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    INTEGER,         INTENT(INOUT) :: RC 
 !
-! !REMARKS:
+! !INPUT PARAMETERS:
+! 
+    REAL(sp),        INTENT(IN   ) :: Arr2D(HcoState%NX,HcoState%NY)
+    INTEGER,         INTENT(IN   ) :: HcoID 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -546,7 +555,7 @@ MODULE HCO_FLUXARR_MOD
 !BOC
 
     !=====================================================================
-    ! HCO_DepvAdd_2D_SP begins here!
+    ! HCO_DepvAdd_2D_Sp begins here!
     !=====================================================================
 
     ! Make sure target flux array in HcoState is allocated
@@ -561,34 +570,35 @@ MODULE HCO_FLUXARR_MOD
     ! Return w/ success
     RC = HCO_SUCCESS 
 
-  END SUBROUTINE HCO_DepvAdd_2D_SP
+  END SUBROUTINE HCO_DepvAdd_2D_Sp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_DepvAdd_DP
+! !IROUTINE: HCO_DepvAdd_Dp
 !
-! !DESCRIPTION: Routine HCO\_DepvAdd\_DP adds value iVal to the deposition 
+! !DESCRIPTION: Routine HCO\_DepvAdd\_Dp adds value iVal to the deposition 
 ! array of species HcoID in HEMCO object HcoState. The value is placed at 
 ! location I, J of the array.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_DepvAdd_DP ( HcoState, iVal, HcoID, I, J, RC )
+  SUBROUTINE HCO_DepvAdd_Dp( HcoState, iVal, HcoID, I, J, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)   :: HcoState
-    REAL(dp),        INTENT(IN   )   :: iVal 
-    INTEGER,         INTENT(IN   )   :: HcoID 
-    INTEGER,         INTENT(IN   )   :: I 
-    INTEGER,         INTENT(IN   )   :: J 
-    INTEGER,         INTENT(INOUT)   :: RC 
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    INTEGER,         INTENT(INOUT) :: RC 
 !
-! !REMARKS:
+! !INPUT PARAMETERS:
+! 
+    REAL(dp),        INTENT(IN   ) :: iVal 
+    INTEGER,         INTENT(IN   ) :: HcoID 
+    INTEGER,         INTENT(IN   ) :: I 
+    INTEGER,         INTENT(IN   ) :: J 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -598,7 +608,7 @@ MODULE HCO_FLUXARR_MOD
     CHARACTER(LEN=255) :: MSG
 
     !=====================================================================
-    ! HCO_DepvAdd_DP begins here!
+    ! HCO_DepvAdd_Dp begins here!
     !=====================================================================
 
     ! Check size dimensions
@@ -625,34 +635,35 @@ MODULE HCO_FLUXARR_MOD
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_DepvAdd_DP
+  END SUBROUTINE HCO_DepvAdd_Dp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_DepvAdd_SP
+! !IROUTINE: HCO_DepvAdd_Sp
 !
-! !DESCRIPTION: Routine HCO\_DepvAdd\_SP adds value iVal to the deposition 
+! !DESCRIPTION: Routine HCO\_DepvAdd\_Sp adds value iVal to the deposition 
 ! array of species HcoID in HEMCO object HcoState. The value is placed at 
 ! location I, J of the array.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_DepvAdd_SP ( HcoState, iVal, HcoID, I, J, RC )
+  SUBROUTINE HCO_DepvAdd_Sp( HcoState, iVal, HcoID, I, J, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)   :: HcoState
-    REAL(sp),        INTENT(IN   )   :: iVal 
-    INTEGER,         INTENT(IN   )   :: HcoID 
-    INTEGER,         INTENT(IN   )   :: I 
-    INTEGER,         INTENT(IN   )   :: J 
-    INTEGER,         INTENT(INOUT)   :: RC 
+    TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    INTEGER,         INTENT(INOUT) :: RC 
 !
-! !REMARKS:
+! !INPUT PARAMETERS:
+! 
+    REAL(sp),        INTENT(IN   ) :: iVal 
+    INTEGER,         INTENT(IN   ) :: HcoID 
+    INTEGER,         INTENT(IN   ) :: I 
+    INTEGER,         INTENT(IN   ) :: J 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -662,7 +673,7 @@ MODULE HCO_FLUXARR_MOD
     CHARACTER(LEN=255) :: MSG
 
     !=====================================================================
-    ! HCO_DepvAdd_SP begins here!
+    ! HCO_DepvAdd_Sp begins here!
     !=====================================================================
 
     ! Check size dimensions
@@ -689,6 +700,6 @@ MODULE HCO_FLUXARR_MOD
     ! Return w/ success
     RC = HCO_SUCCESS 
 
-  END SUBROUTINE HCO_DepvAdd_SP
+  END SUBROUTINE HCO_DepvAdd_Sp
 !EOC
-END MODULE HCO_FLUXARR_MOD
+END MODULE HCO_FluxArr_Mod

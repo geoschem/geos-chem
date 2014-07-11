@@ -170,7 +170,8 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OH' )
 
          ! Read monthly mean O3 from disk [molecule/cm3]
-         CALL GET_GLOBAL_O3( MONTH )
+         CALL GET_GLOBAL_O3
+     &        ( am_I_Root, Input_Opt,            MONTH, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_O3' )
 
          ! Read monthly OC from disk
@@ -1341,6 +1342,9 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
+! !REMARKS:
+!  SLATED TO BE REPLACED BY HEMCO
+!
 ! !REVISION HISTORY: 
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on EMISSMERCURY
 !  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
@@ -1464,7 +1468,7 @@
 
          ! Read anthro emissions from disk
          !CALL INIT_POPS 
-         CALL POPS_READYR
+         CALL POPS_READYR( am_I_Root, Input_Opt, RC )
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -1482,10 +1486,10 @@
          YEAR = GET_YEAR()
 
          ! Read monthly OC and BC from disk
-         CALL GET_GLOBAL_OC( MONTH, YEAR )
+         CALL GET_GLOBAL_OC( am_I_Root, Input_Opt, MONTH, YEAR, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OC' )
 
-         CALL GET_GLOBAL_BC( MONTH, YEAR )
+         CALL GET_GLOBAL_BC( am_I_Root, Input_Opt, MONTH, YEAR, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: b GET_GLOBAL_BC' )
 
       ENDIF
@@ -1770,17 +1774,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE POPS_READYR
+      SUBROUTINE POPS_READYR( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,         ONLY : READ_BPCH2, GET_TAU0
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1, POP_EMISDIR
-      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
-      USE TIME_MOD,          ONLY : EXPAND_DATE
-      USE GET_POPSINFO_MOD,  ONLY : GET_EMISSFILE
-
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE BPCH2_MOD,          ONLY : READ_BPCH2, GET_TAU0
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE GET_POPSINFO_MOD,   ONLY : GET_EMISSFILE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 !
 ! !REMARKS:
 !  References:
@@ -1791,6 +1804,7 @@
 ! !REVISION HISTORY: 
 !  03 Feb 2011 - CL Friedman - Initial Version based on MERCURY_READYR
 !  01 Oct 2013 - M. Sulprizio- Changed regrid algorithm to map_a2a
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1808,23 +1822,28 @@
       REAL*8, POINTER      :: INGRID(:,:) => NULL()
 
       !=================================================================
-      ! POP_READYR begins here!
+      ! POPS_READYR begins here!
       !=================================================================
-      
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! POLYCYCLIC AROMATIC HYDROCARBONS (PAHS):
       ! PAH emissions are for the year 2004
       ! Each PAH congener is emitted individually and contained in separate
       ! files
-      FILENAME = TRIM( DATA_DIR_1x1 )       // 'POPs_201209/' //
-     &           TRIM( POP_EMISDIR  )
+      FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'POPs_201209/' //
+     &           TRIM( Input_Opt%POP_EMISDIR  )
       
       ! Timestamp for emissions
       ! All PAH emissions are for the year 2004
       XTAU = GET_TAU0( 1, 1, 2004) 
 
       ! Echo info
-      WRITE( 6, 100 )
- 100  FORMAT( '     - POPS_READYR: Reading ', a )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 )
+ 100     FORMAT( '     - POPS_READYR: Reading ', a )
+      ENDIF
 
       ! Read data in [Mg/yr]
       CALL READ_BPCH2( FILENAME, 'PG-SRCE', 1, 
@@ -1832,7 +1851,7 @@
      &                 1,         ARRAY,    QUIET=.FALSE. )
 
       ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
+      LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Cast to REAL*8 before regridding

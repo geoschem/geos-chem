@@ -1,10 +1,10 @@
 !------------------------------------------------------------------------------
-!  NASA/GFSC, SIVO, Code 610.3 and
-!  Harvard Atmospheric Chemistry Modeling Group
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: m_netcdf_io_readattr
+! !MODULE: m_netcdf_io_readattr.F90
 !
 ! !INTERFACE:
 !
@@ -74,11 +74,15 @@ MODULE m_netcdf_io_readattr
 !  30 Apr 2012 - R. Yantosca - Modified for compatibility with netCDF-3
 !  30 Apr 2012 - R. Yantosca - Added comments
 !  26 Sep 2013 - R. Yantosca - Add routines for reading vector attributes
+!  10 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
 !EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -147,6 +151,9 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_C
 !EOC
 !------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcGet_Var_Attr_I4
@@ -213,6 +220,9 @@ CONTAINS
     
   END SUBROUTINE NcGet_Var_Attr_I4
 !EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -281,6 +291,9 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_R4
 !EOC
 !------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcGet_Var_Attr_R8
@@ -347,6 +360,9 @@ CONTAINS
     
   END SUBROUTINE NcGet_Var_Attr_R8
 !EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -415,6 +431,9 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_I4_arr
 !EOC
 !------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcGet_Var_Attr_R4_arr
@@ -481,6 +500,9 @@ CONTAINS
     
   END SUBROUTINE NcGet_Var_Attr_R4_arr
 !EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -549,6 +571,9 @@ CONTAINS
   END SUBROUTINE NcGet_Var_Attr_R8_arr
 !EOC
 !------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcGet_Glob_Attr_C
@@ -604,6 +629,9 @@ CONTAINS
     
   END SUBROUTINE NcGet_Glob_Attr_C
 !EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -661,6 +689,9 @@ CONTAINS
   END SUBROUTINE NcGet_Glob_Attr_I4
 !EOC
 !------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcGet_Glob_Attr_R4
@@ -716,6 +747,9 @@ CONTAINS
     
   END SUBROUTINE NcGet_Glob_Attr_R4
 !EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -773,6 +807,9 @@ CONTAINS
   END SUBROUTINE NcGet_Glob_Attr_R8
 !EOC
 !------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcGet_Glob_Attr_I4_arr
@@ -829,6 +866,9 @@ CONTAINS
   END SUBROUTINE NcGet_Glob_Attr_I4_arr
 !EOC
 !------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: NcGet_Glob_Attr_R4_arr
@@ -884,6 +924,9 @@ CONTAINS
     
   END SUBROUTINE NcGet_Glob_Attr_R4_arr
 !EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
 !------------------------------------------------------------------------------
 !BOP
 !

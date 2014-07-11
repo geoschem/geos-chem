@@ -131,6 +131,9 @@
 !                                   derived type object
 !  13 Dec 2012 - R. Yantosca     - Removed ref to obsolete CMN_DEP_mod.F
 !  19 May 2014 - C. Keller       - Now call BIOFIT from drydep_toolbox_mod.F
+!  25 Jun 2014 - R. Yantosca     - Now get soil resistances as PARAMETERS
+!                                - from commsoil_mod.F90.  This facilitates
+!                                  I/O w/ ESMF (which needs data w/ lat & lon)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,11 +178,6 @@
       HSTAR = 0.01d0              ! Henry's law constant
       F0    = 0.1d0               ! Reactivity factor for biological oxidation 
       XMW   = 46d-3               ! Molecular wt of NO2 (kg)
-
-      IF ( FIRSTCANOPY ) THEN
-         CALL READ_RESISTANCES
-         FIRSTCANOPY = .FALSE.    ! Now only read resistances once
-      ENDIF
 
       ! Size of DRYCOEFF
       NN = SIZE(DRYCOEFF)

@@ -14,7 +14,6 @@
 ! 
 ! !USES:
 !
-      USE TRACER_MOD, ONLY : N_TRACERS
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD                   ! IDEMS, NEMIS, NCS
       USE CMN_O3_MOD                        ! EMISRR, EMISRRN
@@ -36,9 +35,10 @@
       PUBLIC :: EMISRR, EMISRRN             ! from "CMN_O3_mod"
       PUBLIC :: ND15, ND44                  ! from "CMN_DIAG_mod"
       PUBLIC :: emis_save
+      PUBLIC :: PCNST                       ! 
 
       ! Make sure MAXTRACERS >= N_TRACERS
-      INTEGER, PARAMETER :: MAXTRACERS = 100 
+      INTEGER, PARAMETER  :: MAXTRACERS = 100 
 
       REAL*8, ALLOCATABLE :: emis_save(:,:,:)
 !
@@ -46,6 +46,8 @@
 !  01 Jun 2009 - C. Carouge & J. Lin - Initial version  
 !  07 Oct 2009 - R. Yantosca         - Added CVS Id tag  
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  24 Jun 2014 - R. Yantosca - Now add PCNST as a module variable
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -71,11 +73,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER, INTENT(OUT)        :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Need to add error-checking on the allocation statements, so that we
@@ -83,6 +85,10 @@
 ! 
 ! !REVISION HISTORY: 
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  24 Jun 2014 - R. Yantosca - Now allocate EMIS_SAVE to the # of tracers
+!                              in the simulation (i.e. INIT_OPT)
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -90,7 +96,7 @@
       RC = GIGC_SUCCESS
 
       ! Allocate arrays
-      ALLOCATE( emis_save( IIPAR, JJPAR, MAXTRACERS ), STAT=RC )
+      ALLOCATE( emis_save( IIPAR, JJPAR, PCNST ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          WRITE( 6, '(a)' ) 'Allocation error: EMIS_SAVE'
          RETURN

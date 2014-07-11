@@ -16,7 +16,7 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE( IFLAG, am_I_Root )
+      SUBROUTINE INITIALIZE( am_I_Root, Input_Opt, IFLAG, RC )
 !
 ! !USES:
 !
@@ -25,6 +25,8 @@
       USE CMN_DIAG_MOD
       USE ERROR_MOD
       USE TIME_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       ! Modules from GeosCore subdirectory
       USE DIAG_MOD
@@ -35,19 +37,23 @@
       USE DIAG53_MOD
       USE DIAG56_MOD
       USE DIAG_PL_MOD
-      USE LOGICAL_MOD
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+
+
       ! If IFLAG=1, zero global CTM arrays 
       ! If IFLAG=2, zero accumulating diagnostic arrays
       ! If IFLAG=3, zero accumulating diagnostic counters
-      INTEGER, INTENT(IN)  :: IFLAG
-
-      ! Is this the root CPU?
-      LOGICAL, INTENT(IN) :: am_I_Root   
+      INTEGER,        INTENT(IN)  :: IFLAG
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Eventually we will fold this into "diag_mod.f" in a cleaner,
@@ -269,7 +275,7 @@
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN
             AD21 = 0e0
-            IF ( LCRYST ) AD21_cr = 0e0
+            IF ( Input_Opt%LCRYST ) AD21_cr = 0e0
          ENDIF
 
          ! For ND32 -- NOx source diagnostics (bmy, 3/28/00)

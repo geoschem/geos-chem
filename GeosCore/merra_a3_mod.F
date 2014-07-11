@@ -308,7 +308,8 @@
          ! SPECIALTY SIMULATIONS: Make sure to read T_FULLGRID
          !--------------------------------------------------------------
          CALL READ_A3( NYMD       = NYMD,          
-     &                 NHMS       = NHMS,       
+     &                 NHMS       = NHMS, 
+     &                 Input_Opt  = Input_Opt,
      &                 CLOUD      = State_Met%CLDF,          
      &                 CLDTOPS    = State_Met%CLDTOPS, 
      &                 CMFMC      = State_Met%CMFMC, 
@@ -345,7 +346,8 @@
          ! then we will avoid reading T_FULLGRID. (bmy, 10/28/13)
          !--------------------------------------------------------------
          CALL READ_A3( NYMD       = NYMD,          
-     &                 NHMS       = NHMS,       
+     &                 NHMS       = NHMS,   
+     &                 Input_Opt  = Input_Opt,    
      &                 CLOUD      = State_Met%CLDF,          
      &                 CLDTOPS    = State_Met%CLDTOPS, 
      &                 CMFMC      = State_Met%CMFMC, 
@@ -393,7 +395,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_A3( NYMD,     NHMS,
+      SUBROUTINE READ_A3( NYMD,     NHMS,      Input_Opt,
      &                    CLOUD,    CLDTOPS,   CMFMC,    DQRCU,
      &                    DQRLSAN,  DQIDTMST,  DQLDTMST, DQVDTMST,
      &                    DTRAIN,   MOISTQ,    OPTDEPTH, PFICU,
@@ -406,20 +408,22 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE DIAG_MOD,     ONLY : AD66
-      USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_A3
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_A6
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D_Lp1
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
-      USE TRANSFER_MOD, ONLY : TRANSFER_G5_PLE
+      USE DIAG_MOD,           ONLY : AD66
+      USE DIAG_MOD,           ONLY : AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_A3
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_A6
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Lp1
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_G5_PLE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: NYMD                          ! YYYYMMDD & hhmmss
-      INTEGER, INTENT(IN)  :: NHMS                          !  of desired data
+      INTEGER,        INTENT(IN) :: NYMD        ! YYYYMMDD & hhmmss
+      INTEGER,        INTENT(IN) :: NHMS        !  of desired data
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -465,6 +469,7 @@
 !  05 Sep 2013 - R. Yantosca - Set negatives in QI, QL to zero
 !  28 Oct 2013 - R. Yantosca - Add optional T_FULLGRID argument for the
 !                              offline "specialty" simulations
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC

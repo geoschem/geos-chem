@@ -26,7 +26,6 @@
 #if   defined( TOMAS )
       PUBLIC  :: SETTLEDUST
 #endif
-!      PUBLIC  :: EMISSDUST
       PUBLIC  :: RDUST_ONLINE
       PUBLIC  :: RDUST_OFFLINE
       PUBLIC  :: INIT_DUST
@@ -36,8 +35,6 @@
 !
       PRIVATE :: DRY_SETTLING
       PRIVATE :: DRY_DEPOSITION
-!      PRIVATE :: SRC_DUST_DEAD
-!      PRIVATE :: SRC_DUST_GINOUX
 !
 !  !REVISION HISTORY:
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -67,6 +64,7 @@
 !  04 Mar 2013 - R. Yantosca - Now call INIT_DUST from the init stage
 !                              which facilitates connection to GEOS-5 GCM
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -764,882 +762,6 @@
 
       END SUBROUTINE DRY_DEPOSITION
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: emissdust
-!!
-!! !DESCRIPTION: Subroutine EMISSDUST is the driver routine for the dust 
-!!  emission module.  You may call either the GINOUX or the DEAD dust source 
-!!  function. 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE EMISSDUST( am_I_Root, Input_Opt, 
-!     &                      State_Met, State_Chm, RC )
-!!
-!! !USES:
-!!
-!#if   defined( TOMAS )
-!      USE CMN_DIAG_MOD             ! ND59
-!#endif
-!      USE CMN_SIZE_MOD             ! Size parameters
-!      USE ERROR_MOD,          ONLY : DEBUG_MSG
-!      USE ERROR_MOD,          ONLY : ERROR_STOP
-!      USE GIGC_ErrCode_Mod
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE GIGC_State_Chm_Mod, ONLY : ChmState
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!      USE TRACERID_MOD,       ONLY : IDTDST1
-!      USE TRACERID_MOD,       ONLY : IDTDST2
-!      USE TRACERID_MOD,       ONLY : IDTDST3
-!      USE TRACERID_MOD,       ONLY : IDTDST4
-!      USE TIME_MOD,           ONLY : GET_TS_EMIS
-!#if   defined( TOMAS )
-!      USE TRACERID_MOD,       ONLY : IDTDUST1, IDTNK1      !(win, 7/17/09)
-!      USE TOMAS_MOD,          ONLY : IBINS, XK             !(win, 7/17/09)
-!      USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
-!#endif
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!! 
-!! !REVISION HISTORY: 
-!!  30 Mar 2004 - T. D. Fairlie - Initial version
-!!  (1 ) Now reference LDEAD, LDUST, LPRT from "logical_mod.f".  Now reference!
-!!        STT from "tracer_mod.f" (bmy, 7/20/04)
-!!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  (3 ) Add if condition for selecting between emitting 4-bin or 30-bin 
-!!       dust.  Add emission diagnostic calculation for 30bin dust(win, 7/17/09)
-!!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
-!!  26 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, State_Met as args
-!!  26 Feb 2013 - R. Yantosca - Now pass Input_Opt to SRC_DUST_GINOUX
-!!  26 Feb 2013 - R. Yantosca - Changed INPUT_OPT to INTENT(IN), since we are
-!!                              now no longer calling INIT_DUST from here,
-!!                              it is now called in the init stage
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      ! SAVEd scalars
-!      LOGICAL, SAVE :: FIRST = .TRUE.
-!      
-!      ! Non-SAVEd scalars
-!      INTEGER       :: N_TRACERS
-!      LOGICAL       :: LDEAD
-!      LOGICAL       :: LDUST
-!      LOGICAL       :: LPRT
-!#if   defined( TOMAS )
-!      INTEGER       :: I, J, K                            !(win, 7/17/09)
-!      REAL*8        :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
-!#endif
-!
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!      ! Arrays
-!      REAL*8        :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
-!#endif
-!
-!      ! Pointers
-!      ! We need to define local arrays to hold corresponding values 
-!      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-!      REAL*8, POINTER :: STT(:,:,:,:)
-!
-!      !=================================================================
-!      ! EMISSDUST begins here!
-!      !=================================================================
-!
-!      ! Assume success
-!      RC        = GIGC_SUCCESS
-!
-!      ! Copy fields from INPUT_OPT to local variables for use below
-!      N_TRACERS = Input_Opt%N_TRACERS
-!      LDEAD     = Input_Opt%LDEAD
-!      LDUST     = Input_Opt%LDUST
-!      LPRT      = Input_Opt%LPRT
-!
-!      ! Execute on first-call only
-!      IF ( FIRST ) THEN
-!
-!#if defined( TOMAS )
-!         ! Return if dust ID flags are not defined
-!         IF ( IDTDUST1 == 0 ) THEN
-!            IF ( LDUST ) THEN 
-!               CALL ERROR_STOP( 
-!     &              'LDUST=T but dust tracers are undefined!',
-!     &              'EMISSDUST ("dust_mod.f")' )
-!            ENDIF
-!         ENDIF
-! 
-!         ! Reset first-time flag
-!         FIRST = .FALSE.
-!      ENDIF
-!#else
-!
-!         ! Return if dust ID flags are not defined
-!         IF ( IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4 == 0 ) THEN
-!            IF ( LDUST ) THEN 
-!               CALL ERROR_STOP( 
-!     &              'LDUST=T but dust tracers are undefined!',
-!     &              'EMISSDUST ("dust_mod.f")' )
-!            ENDIF
-!         ENDIF
-! 
-!         ! Reset first-time flag
-!         FIRST = .FALSE.
-!      ENDIF
-!#endif
-!
-!      !=================================================================
-!      ! Call appropriate emissions routine
-!      !=================================================================
-!
-!      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-!      ! (mpayer, 12/6/12)
-!      STT => State_Chm%Tracers
-!
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!      ! EXPERIMENTAL: preserve initial dust emissions for use below
-!      STT_TMP(:,:,:,:) = STT(:,:,:,IDTDST1:IDTDST4)
-!#endif
-!
-!#if   defined( TOMAS )
-!      !=================================================================
-!      ! For TOMAS microphysics
-!      !=================================================================
-!
-!!--------------------------------------------------------------------------
-!!     The following logical construct caused TOMAS dust to NEVER be invoked.
-!!     Now we define LDUST in input.geos to mean exactly that, and REMOVE
-!!     the option to use 4-bin dust in TOMAS simulations
-!!--------------------------------------------------------------------------
-!!      ! Added option to do 4-bin dust or TOMAS size-resolved dust emission (win, 7/17/09)
-!!      IF ( LDUST ) THEN 
-!! 
-!!         IF ( LDEAD ) THEN
-!!            ! Use Zender's DEAD dust source function
-!!            CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4),
-!!     &                          State_Met )
-!!         
-!!            !### Debug
-!!            IF ( LPRT ) 
-!!     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
-!!         ELSE
-!!            ! Use Paul Ginoux's dust source function
-!!            CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4),
-!!     &                            State_Met, Input_Opt )
-!!
-!!            !### Debug
-!!            IF ( LPRT ) 
-!!     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
-!!            
-!!         ENDIF     
-!!
-!!      ELSEIF ( IDTNK1 > 0 .and. IDTDUST1 > 0 ) THEN
-!!
-!!--------------------------------------------------------------------------
-!      IF ( IDTNK1 > 0 .and. IDTDUST1 > 0 ) THEN
-!
-!         MINIT(:,:,1,1:IBINS) = STT(:,:,1,IDTDUST1:IDTDUST1-1+IBINS)
-!
-!         IF ( LDEAD ) THEN
-!            ! still didn't figure out why run would crash w/ this option (win, 7/17/09)
-!            print *,'Currently the TOMAS code does not work with ',
-!     &           'dust DEAD emission yet!  Switch to GINOUX for now'
-!            stop
-!
-!            ! Use Zender's DEAD dust source function
-!            CALL SRC_DUST_DEAD( STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
-!     &                          State_Met )
-!            !### Debug
-!            IF ( LPRT ) 
-!     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
-!         ELSE 
-!            ! Use Paul Ginoux's dust source function
-!            CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
-!     &                            State_Met, Input_Opt )
-!            !### Debug
-!            IF ( LPRT ) 
-!     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
-!         ENDIF
-!
-!         IF ( ND59 > 0 ) THEN 
-!            DO K = 1, IBINS
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!               MEMIS = STT(I,J,1,IDTDUST1-1+K) - MINIT(I,J,1,K)
-!               IF ( MEMIS == 0.d0 ) GOTO 10
-!
-!               AD59_DUST(I,J,1,K) = AD59_DUST(I,J,1,K) + MEMIS ! kg ????
-!               STT(I,J,1,IDTNK1-1+K) = STT(I,J,1,IDTNK1-1+K) +
-!     &                                 MEMIS / (sqrt(Xk(K)*Xk(K+1)))
-!
-!               AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
-!     &                              MEMIS / (sqrt(Xk(K)*Xk(K+1)))
-! 10            CONTINUE
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!         ENDIF
-!      ENDIF
-!#else
-!      !=================================================================
-!      ! For standard GEOS-Chem simulations w/o TOMAS:
-!      !=================================================================
-!      IF ( LDEAD ) THEN
-!
-!         ! Use Zender's DEAD dust source function
-!         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), State_Met )
-!
-!         !### Debug
-!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
-!         
-!      ELSE
-!
-!         ! Use Paul Ginoux's dust source function
-!         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4 ), 
-!     &                         State_Met,
-!     &                         Input_Opt )
-!
-!         !### Debug
-!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
-!
-!      ENDIF    
-!#endif
-!
-!      ! Free pointer
-!      NULLIFY( STT )
-!
-!      END SUBROUTINE EMISSDUST
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: src_dust_dead
-!!
-!! !DESCRIPTION: Subroutine SRC\_DUST\_DEAD is the DEAD model dust emission 
-!!  scheme, alternative to Ginoux scheme.  Increments the TC array with 
-!!  emissions from the DEAD model.  
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE SRC_DUST_DEAD( TC, State_Met )
-!!
-!! !USES:
-!!
-!      USE DIAG_MOD,           ONLY : AD06
-!      USE DIRECTORY_MOD,      ONLY : DATA_DIR
-!      USE DUST_DEAD_MOD,      ONLY : GET_TIME_INVARIANT_DATA, GET_ORO
-!      USE DUST_DEAD_MOD,      ONLY : GET_MONTHLY_DATA,        DST_MBL
-!      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-!      USE FILE_MOD,           ONLY : IOERROR
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!      USE GRID_MOD,           ONLY : GET_YMID_R
-!      USE PRESSURE_MOD,       ONLY : GET_PEDGE,       GET_PCENTER 
-!      USE TIME_MOD,           ONLY : GET_TS_EMIS,     GET_MONTH   
-!      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
-!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-!
-!      USE CMN_SIZE_MOD             ! Size parameters
-!      USE CMN_DIAG_MOD             ! ND06
-!      USE CMN_GCTM_MOD             ! g0
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      ! Meteorology State object
-!      TYPE(MetState), INTENT(IN)    :: State_Met
-!!
-!! !INPUT/OUTPUT PARAMETERS: 
-!! 
-!      ! Dust mass [kg]
-!      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
-!!
-!! !REMARKS:
-!!  Input:
-!!         SRCE_FUNK Source function                               (-)
-!!         for 1: Sand, 2: Silt, 3: Clay
-!!         DUSTDEN   Dust density                                  (kg/m3)
-!!         DUSTREFF  Effective radius                              (um)
-!!         AD        Air mass for each grid box                    (kg)
-!!         NTDT      Time step                                     (s)
-!!         W10M      Velocity at the anemometer level (10meters)   (m/s)
-!!         GWET      Surface wetness                               (-)
-!!                                                                             .
-!!  Parameters used in GEOS-CHEM
-!!                                                                             .
-!!  Longitude: IIPAR
-!!  Latitude : JJPAR 
-!!  Levels   : LLPAR  =  20 (GEOS-1), 26 (GEOS-strat), 30 (GEOS-terra)
-!!  Size bins: NDSTBIN  =   4
-!!                                                                             .
-!!  Dust properties used in GOCART
-!!                                                                             .
-!!  Size classes: 01-1, 1-1.8, 1.8-3, 3-6 (um)
-!!  Radius: 0.7, 1.5, 2.5, 4  (um)
-!!  Density: 2500, 2650, 2650, 2650 (kg/m3)! 
-!! 
-!! !REVISION HISTORY: 
-!!  08 Apr 2004 - T. D. Fairlie - Initial version
-!!  (1 ) Added OpenMP parallelization, added comments (bmy, 4/8/04)
-!!  (2 ) Bug fix: DSRC needs to be held PRIVATE (bmy, 4/14/04)
-!!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  (5 ) Bug fix: It should be SNOW/1d3 not SNOW*1d3 (tdf, bmy, 11/18/05)
-!!  (6 ) Updated output statement (bmy, 1/23/07)
-!!  (7 ) Use SNOMAS (m H2O) for GEOS-5 (bmy, 1/24/07)
-!!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
-!!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
-!!  03 Sep 2010 - R. Yantosca - Bug fix, SNOMAS was mislabled in GEOS-5
-!!                              and has units of mm H2O instead of m H2O
-!!                              so we need to convert to m H2O.
-!!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
-!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!!                              derived type object
-!!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      ! Scalars
-!      LOGICAL, SAVE          :: FIRST = .TRUE.
-!      INTEGER                :: I,      J,      L,       N
-!      INTEGER                :: M,      IOS,    INC,     LAT_IDX
-!      INTEGER                :: NDB,    NSTEP
-!      REAL*8                 :: W10M,   DEN,    DIAM,    U_TS0 
-!      REAL*8                 :: U_TS,   SRCE_P, Reynol,  YMID_R
-!      REAL*8                 :: ALPHA,  BETA,   GAMMA,   CW
-!      REAL*8                 :: DTSRCE, XTAU,   P1,      P2
-!      REAL*8                 :: DOY             
-!      CHARACTER(LEN=255)     :: FILENAME
-!
-!      ! Arrays
-!      INTEGER                :: OROGRAPHY(IIPAR,JJPAR)
-!      REAL*8                 :: PSLON(IIPAR)         ! surface pressure
-!      REAL*8                 :: PTHICK(IIPAR)        ! delta P (L=1)
-!      REAL*8                 :: PMID(IIPAR)          ! mid layer P (L=1)
-!      REAL*8                 :: TLON(IIPAR)          ! temperature (L=1)
-!      REAL*8                 :: THLON(IIPAR)         ! pot. temp. (L=1)
-!      REAL*8                 :: ULON(IIPAR)          ! U-wind (L=1)
-!      REAL*8                 :: VLON(IIPAR)          ! V-wind (L=1)
-!      REAL*8                 :: BHT2(IIPAR)          ! half box height (L=1)
-!      REAL*8                 :: Q_H2O(IIPAR)         ! specific humidity (L=1)
-!      REAL*8                 :: ORO(IIPAR)           ! "orography" 
-!      REAL*8                 :: SNW_HGT_LQD(IIPAR)   ! equivalent snow ht.
-!      REAL*8                 :: DSRC(IIPAR,NDSTBIN)  ! dust mixing ratio incr.
-!
-!!
-!! !DEFINED PARAMETERS:
-!!
-!      REAL*8, PARAMETER      :: Ch_dust = 9.375d-10
-!      REAL*8, PARAMETER      :: G       = g0 * 1.D2
-!      REAL*8, PARAMETER      :: RHOA    = 1.25D-3
-!      REAL*8, PARAMETER      :: CP      = 1004.16d0
-!      REAL*8, PARAMETER      :: RGAS    = 8314.3d0 / 28.97d0
-!      REAL*8, PARAMETER      :: AKAP    = RGAS     / CP
-!      REAL*8, PARAMETER      :: P1000   = 1000d0
-!
-!      !=================================================================
-!      ! SRC_DUST_DEAD begins here!
-!      !=================================================================      
-!
-!      ! DTSRCE is the emission timestep in seconds
-!      DTSRCE = GET_TS_EMIS() * 60d0
-!
-!      ! DOY is the day of year (0-365 or 0-366)
-!      DOY    = DBLE( GET_DAY_OF_YEAR() )
-!
-!      !=================================================================
-!      ! Read data fields for the DEAD model from disk
-!      !=================================================================      
-!      IF ( FIRST ) THEN
-!
-!         ! Echo info
-!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!         WRITE( 6, 100   )
-!         WRITE( 6, 110   )
-!         WRITE( 6, 120   )
-!         WRITE( 6, 130   ) 
-!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!       
-!         ! FORMAT strings
-! 100     FORMAT( 'D E A D   D U S T   M O B I L I Z A T I O N'         )
-! 110     FORMAT( 'Routines from DEAD model by Charlie Zender et al'    )
-! 120     FORMAT( 'Modified for GEOS-CHEM by D. Fairlie and R. Yantosca')
-! 130     FORMAT( 'Last Modification Date: 1/23/07'                     )
-!
-!         ! Read fields for DEAD that are time-invariant
-!         CALL GET_TIME_INVARIANT_DATA
-!         
-!         ! Reset first-time flag
-!         FIRST = .FALSE.
-!      ENDIF
-!
-!      ! Read monthly data for DEAD
-!      IF ( ITS_A_NEW_MONTH() ) THEN
-!         CALL GET_MONTHLY_DATA
-!      ENDIF
-!
-!      !=================================================================
-!      ! Call dust mobilization scheme
-!      !=================================================================
-!
-!      ! Make OROGRAPHY array from GEOS-CHEM LWI
-!      CALL GET_ORO( OROGRAPHY, State_Met )
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,     J,      P1,   P2,   PTHICK, PMID, TLON        )
-!!$OMP+PRIVATE( THLON, ULON,   VLON, BHT2, Q_H2O,  ORO,  SNW_HGT_LQD )
-!!$OMP+PRIVATE( N,     YMID_R, DSRC                                  )
-!
-!      ! Loop over latitudes
-!      DO J = 1, JJPAR
-!
-!         ! Loop over longitudes
-!         DO I = 1, IIPAR
-!
-!            ! Pressure [hPa] at bottom and top edge of level 1
-!            P1             = GET_PEDGE(I,J,1)
-!            P2             = GET_PEDGE(I,J,2)
-!
-!            ! Pressure thickness of 1st layer [Pa]
-!            PTHICK(I)      = ( P1 - P2 ) * 100d0
-!
-!            ! Pressure at midpt of surface layer [Pa]
-!            PMID(I)        = GET_PCENTER(I,J,1) * 100d0 
-!
-!            ! Temperature [K] at surface layer
-!            TLON(I)        = State_Met%T(I,J,1)
-!
-!            ! Potential temperature [K] at surface layer
-!            THLON(I)       = TLON(I) * ( P1000 / PMID(I) )**AKAP
-!
-!            ! U and V winds at surface [m/s]
-!            ULON(I)        = State_Met%U(I,J,1)
-!            VLON(I)        = State_Met%V(I,J,1)
-!            
-!            ! Half box height at surface [m]
-!            BHT2(I)        = State_Met%BXHEIGHT(I,J,1) / 2.d0
-!
-!            ! Specific humidity at surface [kg H2O/kg air]
-!            Q_H2O(I)       = State_Met%SPHU(I,J,1) / 1000.d0
-!
-!            ! Orography at surface
-!            ! Ocean is 0; land is 1; ice is 2
-!            ORO(I)         = OROGRAPHY(I,J) 
-!
-!            ! Snow height [m H2O]
-!#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-!            SNW_HGT_LQD(I) = State_Met%SNOMAS(I,J) / 1000d0
-!#else
-!            SNW_HGT_LQD(I) = State_Met%SNOW(I,J) / 1000d0
-!#endif
-!
-!            ! Dust tracer and increments
-!            DO N = 1, NDSTBIN
-!               DSRC(I,N)   = 0.0d0
-!            ENDDO
-!         ENDDO 
-!
-!         !==============================================================
-!         ! Call dust mobilization driver (DST_MBL) for latitude J
-!         !==============================================================
-!         
-!         ! Latitude in RADIANS
-!         YMID_R = GET_YMID_R( 1, J, 1 )
-!
-!         ! Call DEAD dust mobilization
-!         CALL DST_MBL( DOY,    BHT2,  J,      YMID_R, ORO,    
-!     &                 PTHICK, PMID,  Q_H2O,  DSRC,   SNW_HGT_LQD, 
-!     &                 DTSRCE, TLON,  THLON,  VLON,   ULON,
-!     &                 FIRST,  J,     State_Met )
-!
-!         ! Update
-!         DO N = 1, NDSTBIN
-!         DO I = 1, IIPAR
-!
-!            ! Add dust emissions into tracer array [kg]
-!            TC(I,J,1,N) = TC(I,J,1,N) + DSRC(I,N) 
-! 
-!            ! ND19 diagnostics [kg]
-!            IF ( ND06 > 0 ) THEN
-!               AD06(I,J,N) = AD06(I,J,N) + DSRC(I,N)
-!            ENDIF
-!         ENDDO
-!         ENDDO
-!
-!      ENDDO  
-!!$OMP END PARALLEL DO
-!
-!      END SUBROUTINE SRC_DUST_DEAD
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: src_dust_ginoux
-!!
-!! !DESCRIPTION: Paul GINOUX dust source function.  This subroutine updates 
-!!  the surface mixing ratio of dust aerosols for NDSTBIN size bins.  The 
-!!  uplifting of dust depends in space on the source function, and in time 
-!!  and space on the soil moisture and surface wind speed (10 meters).  Dust 
-!!  is uplifted if the wind speed is greater than a threshold velocity which
-!!  is calculated with the formula of Marticorena et al.  (JGR, v.102, 
-!!  pp 23277-23287, 1997).  To run this subroutine you need the source 
-!!  function which can be obtained by contacting Paul Ginoux at 
-!!  ginoux@rondo.gsfc.nasa.gov/  If you are not using GEOS DAS met fields, 
-!!  you will most likely need to adapt the adjusting parameter.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE SRC_DUST_GINOUX( TC, State_Met, Input_Opt )
-!!
-!! !USES:
-!!
-!      USE BPCH2_MOD,          ONLY : GET_RES_EXT
-!      USE DIAG_MOD,           ONLY : AD06
-!      USE DIRECTORY_MOD,      ONLY : DATA_DIR
-!      USE FILE_MOD,           ONLY : IOERROR
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!      USE GRID_MOD,           ONLY : GET_AREA_M2
-!      USE TIME_MOD,           ONLY : GET_TS_EMIS
-!      USE ERROR_MOD,          ONLY : ERROR_STOP
-!#if   defined ( TOMAS )
-!      USE TOMAS_MOD,          ONLY : IBINS, Xk
-!#endif
-!
-!      USE CMN_SIZE_MOD             ! Size parameters
-!      USE CMN_DIAG_MOD             ! ND19, LD13 (for now)
-!      USE CMN_GCTM_MOD             ! g0
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      ! Meteorology State object
-!      TYPE(MetState), INTENT(IN)    :: State_Met
-!      TYPE(OptInput), INTENT(IN)    :: Input_Opt
-!!
-!! !INPUT/OUTPUT PARAMETERS: 
-!! 
-!      ! Dust mass [kg]
-!      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
-!!
-!! !REMARKS:
-!!  Input:
-!!    SRCE_FUNK Source function                               (-)
-!!              for 1: Sand, 2: Silt, 3: Clay
-!!                                                                             .
-!!    DUSTDEN   Dust density                                  (kg/m3)
-!!    DUSTREFF  Effective radius                              (um)
-!!    AD        Air mass for each grid box                    (kg)
-!!    NTDT      Time step                                     (s)
-!!    W10m      Velocity at the anemometer level (10meters)   (m/s)
-!!    GWET      Surface wetness                               (-)
-!!                                                                             .
-!!  Parameters used in GEOS-CHEM
-!!                                                                             .
-!!  Longitude: IIPAR 
-!!  Latitude : JJPAR 
-!!  Levels   : LLPAR  =  20 (GEOS-1), 26 (GEOS-strat), 30 (GEOS-terra)
-!!  Size bins: NDSTBIN  =   4
-!!                                                                             .
-!!  Dust properties used in GOCART
-!!                                                                             .
-!!  Size classes: 01-1, 1-1.8, 1.8-3, 3-6 (um)
-!!  Radius: 0.7, 1.5, 2.5, 4  (um)
-!!  Density: 2500, 2650, 2650, 2650 (kg/m3)
-!!                                                                             .
-!!  References:
-!!  ============================================================================
-!!  (1 ) Ginoux, P., M. Chin, I. Tegen, J. Prospero, B. Hoben, O. Dubovik,
-!!        and S.-J. Lin, "Sources and distributions of dust aerosols simulated
-!!        with the GOCART model", J. Geophys. Res., 2001
-!!  (2 ) Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
-!!        J. Logan, A. Higurashi, and T. Nakajima, "Tropospheric aerosol
-!!        optical thickness from the GOCART model and comparisons with
-!!        satellite and sunphotometers measurements", J. Atmos Sci., 2001.
-!!                                                                             .
-!!  Contact: Paul Ginoux (ginoux@rondo.gsfc.nasa.gov) 
-!! 
-!! !REVISION HISTORY:
-!!  08 Apr 2004 - T. D. Fairlie - Initial version
-!!  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
-!!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
-!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
-!!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
-!!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!!                              derived type object
-!!  26 Feb 2013 - R. Yantosca - Now accept Input_Opt via the arg list
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      LOGICAL, SAVE          :: FIRST = .TRUE.
-!      INTEGER                :: I, J, N, M, IOS
-!#if   defined( TOMAS )
-!      INTEGER                :: IPOINT(NDSTBIN)        !(win, 8/4/09)
-!      INTEGER                :: ACTMODEBINS
-!      REAL*8                 :: Mp, Rp
-!#else
-!      INTEGER                :: IPOINT(NDSTBIN) = (/3, 2, 2, 2/)
-!#endif
-!      REAL*4                 :: ARRAY(IIPAR,JJPAR,3)
-!      REAL*8                 :: W10M,   DEN,  DIAM,   U_TS0, U_TS
-!      REAL*8                 :: SRCE_P, DSRC, REYNOL, ALPHA, BETA
-!      REAL*8                 :: GAMMA,  CW,   DTSRCE, AREA_M2
-!      CHARACTER(LEN=255)     :: FILENAME
-!!#if   !defined( DEVEL )
-!!      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
-!!#endif
-!
-!      REAL*8, PARAMETER      :: G        = G0 * 1.d2
-!      REAL*8, PARAMETER      :: RHOA     = 1.25d-3
-!
-!
-!      ! Transfer coeff for type natural source  (kg*s2/m5)
-!!Prior 4/27/08
-!!      REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10
-!!Emission reduction factor for China-nested grid domain (win, 4/27/08)
-!#if   defined( GRID4x5  )
-!      REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10 
-!#elif defined( GRID1x1  ) && defined( NESTED_CH )
-!      REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10 * 0.5d0
-!      ! Note: monthly emission over the China nested-grid domain is about
-!      !       2 times higher compared to the same domain in 4x5 resolution
-!      !       Thus applying 1/2  factor to correct the emission.
-!#else
-!
-!# if   defined( TOMAS )
-!!      CALL ERROR_STOP('Adjust dust transfer coeff for your model res.?',
-!!     &                'SRC_DUST_GINOUX: dust_mod.f')
-!
-!!KLUDGE - sfarina, using .75 for 2x2.5
-!      REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10 * 0.75d0
-!# else
-!      REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10 
-!# endif
-!#endif
-!
-!      ! External functions
-!      REAL*8,  EXTERNAL      :: SFCWINDSQR
-!
-!      !=================================================================
-!      ! SRC_DUST_GINOUX begins here!
-!      !=================================================================
-!
-!#if   defined( TOMAS )
-!# if   defined( TOMAS40 )
-!      ACTMODEBINS=10
-!# elif defined( TOMAS15 )
-!      ACTMODEBINS=3
-!# else 
-!      ACTMODEBINS=0
-!# endif
-!#endif
-!
-!      ! Emission timestep [s]
-!      DTSRCE = GET_TS_EMIS() * 60d0
-!
-!#if   defined( TOMAS )
-!!from ginoux:
-!!The U.S. Department of Agriculture (USDA) defines 
-!!particles with a radius between 1 um and 25 um as silt, 
-!!and below 1 um as clay [Hillel, 1982]. Mineralogical silt 
-!!particles are mainly composed of quartz, but they are 
-!!often coated with strongly adherent clay such that their 
-!!physicochemical properties are similar to clay [Hillel, 
-!!1982].
-!!
-!!SRCE_FUNC Source function                              
-!!for 1: Sand, 2: Silt, 3: Clay
-!
-!      ! Give values for IPOINT array (win, 3/11/08)
-!      IF ( NDSTBIN == IBINS ) THEN
-!         DO N = 1, IBINS
-!            Mp=1.4*xk(N)
-!            Rp=((Mp/2500.)*(3./(4.*pi)))**(0.333)
-!            IF (Rp < 1.d-6) THEN
-!               IPOINT(N) = 3
-!            ELSE
-!               IPOINT(N) = 2
-!            END IF
-!         END DO
-!      ELSE
-!         PRINT *,' SRC_DUST_GINOUX: ',NDSTBIN,' bins not supported'
-!         PRINT *,' SRC_DUST_GINOUX: in this executable.'
-!         CALL ERROR_STOP('Need to change hard-wired array IPOINT',
-!     &                   'SRC_DUST_GINOUX: dust_mod.f' )
-!      ENDIF
-!#endif
-!
-!      !=================================================================
-!      ! Read dust source function
-!      !=================================================================
-!      IF ( FIRST ) THEN
-!
-!         ! Echo info
-!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!         WRITE( 6, 100   )
-!         WRITE( 6, 110   )
-!         WRITE( 6, 120   )
-!         WRITE( 6, 130   ) 
-!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!       
-!         ! FORMAT strings
-! 100     FORMAT( 'G I N O U X   D U S T   M O B I L I Z A T I O N'     )
-! 110     FORMAT( 'Routines originally by Paul Ginoux, GSFC'            )
-! 120     FORMAT( 'Modified for GEOS-CHEM by D. Fairlie and R. Yantosca')
-! 130     FORMAT( 'Last Modification Date: 4/6/04'                      )
-!
-!         ! Filename
-!         FILENAME = TRIM( DATA_DIR )        // 
-!     &              'dust_200203/NSP.dust.' // GET_RES_EXT()
-!
-!         ! Find a free file LUN
-!         N = findFreeLUN()
-!
-!         ! Open file
-!         OPEN( N, FILE=FILENAME,       STATUS='OLD', 
-!     &            FORM= 'UNFORMATTED', IOSTAT=IOS )
-!         IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:1' )
-!
-!         ! Read data
-!         READ( N, IOSTAT=IOS ) ARRAY
-!         IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:2' )
-!
-!         ! Close file
-!         CLOSE( N )
-!
-!         ! Cast to REAL*8
-!         SRCE_FUNC = ARRAY
-!
-!         ! Reset first-time flag
-!         FIRST = .FALSE.
-!      ENDIF
-!        
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,      J,     M,    N,      DEN,   DIAM    )
-!!$OMP+PRIVATE( REYNOL, ALPHA, BETA, GAMMA,  U_TS0, AREA_M2 )
-!!$OMP+PRIVATE( CW,     U_TS,  W10M, SRCE_P, DSRC           )
-!
-!      ! Loop over size bins
-!      DO N = 1, NDSTBIN
-!
-!         !==============================================================
-!         ! Threshold velocity as a function of the dust density and the 
-!         ! diameter from Bagnold (1941), valid for particles larger 
-!         ! than 10 um.
-!         ! 
-!         ! u_ts0 = 6.5*sqrt(dustden(n)*g0*2.*dustreff(n))
-!         !
-!         ! Threshold velocity from Marticorena and Bergametti
-!         ! Convert units to fit dimensional parameters
-!         !==============================================================
-!         DEN    = Input_Opt%DUSTDEN(N) * 1.d-3         ! [g/cm3]
-!         DIAM   = 2d0 * Input_Opt%DUSTREFF(N) * 1.d2   ! [cm in diameter]
-!         REYNOL = 1331.d0 * DIAM**(1.56d0) + 0.38d0    ! [Reynolds number]
-!         ALPHA  = DEN * G * DIAM / RHOA
-!         BETA   = 1d0 + ( 6.d-3 / ( DEN * G * DIAM**(2.5d0) ) )
-!         GAMMA  = ( 1.928d0 * REYNOL**(0.092d0) ) - 1.d0
-!         
-!         !==============================================================
-!         ! I think the 129.d-5 is to put U_TS in m/sec instead of cm/sec
-!         ! This is a threshold friction velocity!       from M&B
-!         ! i.e. Ginoux uses the Gillette and Passi formulation
-!         ! but has substituted Bagnold's Ut with M&B's U*t.
-!         ! This appears to be a problem.  (tdf, 4/2/04)
-!         !==============================================================
-!
-!         ! [m/s] 
-!         U_TS0  = 129.d-5 * SQRT( ALPHA ) * SQRT( BETA ) / SQRT( GAMMA )
-!         M      = IPOINT(N)
-!
-!         ! Loop over latitudes
-!         DO J = 1, JJPAR
-!            
-!            ! Loop over longitudes
-!            DO I = 1, IIPAR
-!
-!               ! Get grid box surface area [m2]
-!               AREA_M2 = GET_AREA_M2( I, J, 1 )
-!
-!               ! Fraction of emerged surfaces 
-!               ! (subtract lakes, coastal ocean,...)
-!               CW = 1.d0
-!
-!               ! Case of surface dry enough to erode
-!               IF ( State_Met%GWETTOP(I,J) < 0.2d0 ) THEN
-!               
-!                  U_TS = U_TS0 *( 1.2d0 + 0.2d0 *
-!     &                   LOG10( MAX(1.d-3,State_Met%GWETTOP(I,J))))
-!                  U_TS = MAX( 0.d0, U_TS )
-!
-!               ELSE
-!
-!                  ! Case of wet surface, no erosion
-!                  U_TS = 100.d0
-!
-!               ENDIF
-!
-!               ! 10m wind speed [m/s]
-!               W10M   = SQRT( SFCWINDSQR( I, J,
-!     &                                    State_Met%U10M,
-!     &                                    State_Met%V10M ) )
-!
-!               ! Units are m2
-!               SRCE_P = FRAC_S(N) * SRCE_FUNC(I,J,M) * AREA_M2
-!
-!               ! Dust source increment [kg]
-!               DSRC   = CW     * CH_DUST * SRCE_P * W10M**2
-!     &                * ( W10M - U_TS )  * DTSRCE  
-!
-!               ! Not less than zero
-!               IF ( DSRC < 0.d0 ) DSRC = 0.d0
-!
-!               ! Dust SOURCE at first model level [kg].
-!               TC(I,J,1,N) = TC(I,J,1,N) + DSRC 
-!            
-!               !========================================================
-!               ! ND06 diagnostics: dust emissions [kg/timestep]
-!               !========================================================
-!               IF ( ND06 > 0 ) THEN
-!                  AD06(I,J,N) = AD06(I,J,N) + DSRC
-!               ENDIF
-!            ENDDO
-!         ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!      END SUBROUTINE SRC_DUST_GINOUX
-!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1654,7 +776,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH, State_Met )
+      SUBROUTINE RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met, 
+     &                         DUST,      WAVELENGTH, RC         )
 !
 ! !USES:
 !
@@ -1667,16 +790,23 @@
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD21
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS: 
 ! 
-      REAL*8,         INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST) ! Dust [kg/m3]
-      INTEGER,        INTENT(IN) :: WAVELENGTH
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      REAL*8,         INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST) !Dust [kg/m3]
+      INTEGER,        INTENT(IN)  :: WAVELENGTH
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC       ! Success or failure?      
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Martin, R. Park - Initial version
@@ -1694,6 +824,7 @@
 !                              WAVELENGTH = 1. (skim, 02/03/11)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1711,6 +842,9 @@
       !=================================================================
       ! RDUST_ONLINE begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
 
       ! Dust density 
       MSDENS(1) = 2500.0d0
@@ -1893,8 +1027,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH,
-     &                          am_I_Root, State_Met )
+      SUBROUTINE RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met,
+     &                          THISMONTH, THISYEAR, WAVELENGTH, RC )
 !
 ! !USES:
 !
@@ -1908,8 +1042,9 @@
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
@@ -1917,12 +1052,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: THISMONTH   ! Current month (1-12)
-      INTEGER,        INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
-      INTEGER,        INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to
+      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+      INTEGER,        INTENT(IN)  :: THISMONTH  ! Current month (1-12)
+      INTEGER,        INTENT(IN)  :: THISYEAR   ! Current year  (YYYY format)
+      INTEGER,        INTENT(IN)  :: WAVELENGTH ! Determine which wavelength to
                                                 !  use for optical properties
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
@@ -2020,8 +1160,8 @@
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )
          
          ! Select proper dust file name for GEOS-1, GEOS-3, or GEOS-4
-         FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
-     &              GET_NAME_EXT()   // '.'                 // 
+         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'dust_200203/dust.' //
+     &              GET_NAME_EXT()             // '.'                 // 
      &              GET_RES_EXT()
 
          ! Echo filename

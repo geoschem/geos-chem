@@ -350,6 +350,10 @@
       USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE UCX_MOD,            ONLY : KG_STRAT_AER
+#if   defined( TOMAS ) 
+      USE TRACERID_MOD,       ONLY : IDTDUST1
+      USE TOMAS_MOD,          ONLY : IBINS
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -386,6 +390,8 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  17 Jun 2014 - J. Pierce   - Now allow bulk dust in TOMAS simulatoins
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -416,7 +422,7 @@
       LOGICAL, SAVE      :: FIRST = .TRUE. 
 
       ! Non-SAVEd variables
-      INTEGER            :: I, J, L, N
+      INTEGER            :: I, J, L, N, K
       LOGICAL            :: LCARB
       LOGICAL            :: LDUST
       LOGICAL            :: LSOA
@@ -447,7 +453,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, K )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -617,7 +623,74 @@
          ! Highwood et al. (2003).  Data is from log-normal fit of
          ! PCASP measurements of Saharan dust (Solid line in Fig.4b)
          ! (dar, 04/25/10)
+         !
+         ! Updated for TOMAS (Jeffrey Pierce, 6/17/14)
          !===========================================================
+#if defined( TOMAS )
+
+         !-----------------------------------------------------------
+         ! TOMAS simulations only 
+         !-----------------------------------------------------------
+         IF ( LDUST ) THEN
+
+            ! Zero SOILDUST
+            SOILDUST(I,J,L,:) = 0.d0
+
+            ! Loop over the # of TOMAS dust bins
+            DO K = 1, IBINS
+
+               ! Bin #1
+               IF ( Input_Opt%DUSTREFF(K) < 0.2D-6 ) THEN
+                  SOILDUST(I,J,L,1) = SOILDUST(I,J,L,1)
+     &                              + STT(I,J,L,IDTDUST1+K-1)  
+     &                              / AIRVOL(I,J,L)
+
+
+               ! Bin #2
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.325D-6 ) THEN
+                  SOILDUST(I,J,L,2) = SOILDUST(I,J,L,2)
+     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              / AIRVOL(I,J,L)
+
+               ! Bin #3
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.6D-6 ) THEN
+                  SOILDUST(I,J,L,3) = SOILDUST(I,J,L,3)
+     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              / AIRVOL(I,J,L)
+
+               ! Bin #4
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 1.15D-6 ) THEN
+                  SOILDUST(I,J,L,4) = SOILDUST(I,J,L,4)
+     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              / AIRVOL(I,J,L)
+
+               ! Bin #5
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 2.0D-6 ) THEN
+                  SOILDUST(I,J,L,5) = SOILDUST(I,J,L,5)
+     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              / AIRVOL(I,J,L)
+
+               ! Bin #6
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 3.25D-6 ) THEN
+                  SOILDUST(I,J,L,6) = SOILDUST(I,J,L,6)
+     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              / AIRVOL(I,J,L)
+
+               ! Bin #7
+               ELSE 
+                  SOILDUST(I,J,L,7) = SOILDUST(I,J,L,7)
+     &                              + STT(I,J,L,IDTDUST1+K-1) 
+     &                              / AIRVOL(I,J,L)
+
+               ENDIF
+            ENDDO
+
+         ENDIF
+#else
+
+         !-----------------------------------------------------------
+         ! Preserve original code for non-TOMAS simulations
+         !-----------------------------------------------------------
          IF ( LDUST ) THEN
 
             ! Lump 1st dust tracer for het chem
@@ -636,6 +709,8 @@
             SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
             
          ENDIF
+
+#endif
 
          !===========================================================
          ! S E A S A L T   A E R O S O L S

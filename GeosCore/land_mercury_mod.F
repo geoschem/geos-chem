@@ -72,7 +72,6 @@
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
       USE DEPO_MERCURY_MOD,   ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LSPLIT
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TRACERID_MOD,       ONLY : ID_Hg0,          N_Hg_CATS
 
@@ -228,23 +227,28 @@
 !\\
 ! !INTERFACE:
 ! 
-      SUBROUTINE BIOMASSHG( EHg0_bb )
+      SUBROUTINE BIOMASSHG( am_I_Root, Input_Opt, EHg0_bb, RC )
 !
 ! !USES:
 !     
-      USE BIOMASS_MOD,  ONLY : BIOMASS
-      USE TRACERID_MOD, ONLY : IDBCO
-!      USE LOGICAL_MOD,  ONLY : LBIOMASS, LPREINDHG
-      USE LOGICAL_MOD,  ONLY : LPREINDHG
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,            ONLY : GET_AREA_CM2
+      USE TRACERID_MOD,       ONLY : IDBCO
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,                INTENT(IN)  :: am_I_Root   ! Root CPU
+      TYPE(OptInput),         INTENT(IN)  :: Input_Opt   ! Input Options
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8, DIMENSION(:,:),INTENT(OUT) :: EHg0_bb
+      REAL*8,  DIMENSION(:,:),INTENT(OUT) :: EHg0_bb
+      INTEGER,                INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Emissions are based on an inventory of CO emissions from biomass burning 
@@ -292,7 +296,7 @@
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)
 !      IF ( LBIOMASS .AND. ( .NOT. LPREINDHG ) ) THEN
-      IF ( .NOT. LPREINDHG ) THEN
+      IF ( .NOT. Input_Opt%LPREINDHG ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -337,28 +341,33 @@
 !
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
       ! (jaf, eds, 4/1/11)
-      SUBROUTINE VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, State_Met )
+      SUBROUTINE VEGEMIS( am_I_Root, Input_Opt, State_Met,
+     &                    LVEGEMIS,  EHg0_dist, EHg0_vg,   RC )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_LAND
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,                INTENT(IN)  :: LVEGEMIS
-      REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
+      LOGICAL,                INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
+      TYPE(OptInput),         INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState),         INTENT(IN)  :: State_Met   ! Met State object
+      LOGICAL,                INTENT(IN)  :: LVEGEMIS    !
+      REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist   ! 
+
 !
 ! !OUTPUT PARAMETERS:
 !
       REAL*8, DIMENSION(:,:), INTENT(OUT) :: EHg0_vg
-!
+      INTEGER,                INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Vegetation emissions are proportional to the evapotranspiration rate and the
@@ -393,6 +402,7 @@
 ! !REVISION HISTORY:
 !  30 Aug 2010 - N. Eckley, C. Holmes, B. Corbitt - Initial version
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  20 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -412,6 +422,9 @@
       ! VEGEMIS begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! No emissions through transpiration if we use Bess' GCAP emissions
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
       ! (jaf, eds, 4/1/11)
@@ -424,7 +437,7 @@
 
          ! read GISS TRANSP monthly average
          IF ( ITS_A_NEW_MONTH() ) THEN 
-            CALL READ_NASA_TRANSP
+            CALL READ_NASA_TRANSP( am_I_Root, Input_Opt, RC )
          ENDIF 
 
          ! loop over I,J
@@ -683,18 +696,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_NASA_TRANSP
+      SUBROUTINE READ_NASA_TRANSP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0,   READ_BPCH2
       USE BPCH2_MOD,      ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
       USE TIME_MOD,       ONLY : GET_MONTH,  ITS_A_NEW_MONTH
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
 ! !REMARKS:
 !  Data source:
 !   http://gcmd.nasa.gov/records/GCMD_MINTZ_WALKER_SOIL_AND_EVAPO.html
@@ -727,11 +748,15 @@
       ! READ_NASA_TRANSP begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Get the current month
       MONTH = GET_MONTH() 
      
-      FILENAME=TRIM( DATA_DIR ) // 'mercury_201007/nasatransp_'
-     &        // GET_RES_EXT() // '.'// CMONTH(MONTH) // '.bpch'
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
+     &           'mercury_201007/nasatransp_' 
+     &           // GET_RES_EXT() // '.'// CMONTH(MONTH) // '.bpch'
 
       XTAU     = GET_TAU0(MONTH, 1, 1995 )
 
@@ -891,7 +916,7 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE GTMM_DR( Hg0gtm, State_Met )
+      SUBROUTINE GTMM_DR( am_I_Root, Input_Opt, State_Met, Hg0gtm, RC )
 ! 
 ! !USES:
 !
@@ -900,8 +925,9 @@
       USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
       USE DEPO_MERCURY_MOD,   ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
       USE DEPO_MERCURY_MOD,   ONLY : READ_GTMM_RESTART
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE inquireMod,         ONLY : findFreeLun
       USE TIME_MOD,           ONLY : EXPAND_DATE, YMD_EXTRACT
@@ -911,13 +937,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Meteorology State object
-      TYPE(MetState), INTENT(IN)  :: State_Met
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object      
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
       ! Emission of Hg0 calculated by GTMM for the month [kg/s]
       REAL*8,         INTENT(OUT) :: Hg0gtm(IIPAR, JJPAR) 
+
+      ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC
 ! 
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
@@ -966,14 +996,18 @@
       !=================================================================
       ! GTMM_DR begins here!
       !=================================================================
-      ! Initialise arrays
-      NYMD      = GET_NYMD()
-      NHMS      = GET_NHMS()
 
-      TSURF   = 0d0
-      PRECIP  = 0d0
-      SOLAR_W = 0d0
-      Hg0gtm  = 0d0
+      ! Assume success
+      RC         = GIGC_SUCCESS
+
+      ! Initialise arrays
+      NYMD       = GET_NYMD()
+      NHMS       = GET_NHMS()
+
+      TSURF      = 0d0
+      PRECIP     = 0d0
+      SOLAR_W    = 0d0
+      Hg0gtm     = 0d0
 
       ! Reset deposition arrays.
       Hg0mth_dry = 0d0
@@ -990,7 +1024,7 @@
       IU_FILE  = findFreeLun()
 
       ! File name
-      FILENAME = TRIM( DATA_DIR ) // 'mercury_201007/' //
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'mercury_201007/' //
      &           'mean_metfields/' // GET_NAME_EXT() // 
      &           '/mean_YYYYMM.bpch'
 
@@ -1082,8 +1116,9 @@
       !=================================================================
       ! Read GTMM restart file to get data from previous month
       !=================================================================
-      CALL READ_GTMM_RESTART(NYMD,      NHMS, Hg0mth_dry, Hg2mth_dry, 
-     &                       Hg2mth_wet )
+      CALL READ_GTMM_RESTART( am_I_Root,  Input_Opt,  NYMD,      
+     &                        NHMS,       Hg0mth_dry, Hg2mth_dry, 
+     &                        Hg2mth_wet, RC  )
 
       !=================================================================
       ! Call GTMM model
@@ -1097,7 +1132,6 @@
      &                  )
 #endif
 
-      ! Use LAND/OCEAN mask on the land emissions
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          IF ( .NOT.(IS_LAND(I, J, State_Met )) ) Hg0gtm(I,J) = 0d0
@@ -1119,33 +1153,37 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE INIT_LAND_MERCURY
+      SUBROUTINE INIT_LAND_MERCURY( am_I_Root, Input_Opt, RC )
 ! 
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-
-      USE CMN_SIZE_MOD     ! Size parameters
-! 
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY:
 !  14 Sep 2009 - C. Carouge  - Initial version
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: AS
-      LOGICAL, SAVE :: IS_INIT = .FALSE. 
-
       !=================================================================
       ! INIT_MERCURY begins here!
       !=================================================================
 
       ! Allocate arrays
-      ALLOCATE( TRANSP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRANSP' )
+      ALLOCATE( TRANSP( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'TRANSP' )
       TRANSP = 0d0
 
       END SUBROUTINE INIT_LAND_MERCURY

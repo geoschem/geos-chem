@@ -1,40 +1,46 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_dust_dead_mod
+! !MODULE: hcox_dust_dead_mod.F
 !
-! !DESCRIPTION: Module HCOX\_DUST_DEAD\_MOD contains routines and
+! !DESCRIPTION: Module hcox\_dust\_dead\_mod.F contains routines and
 !  variables from Charlie Zender's DEAD dust mobilization model.  
 !  Most routines are from Charlie Zender, but have been modified and/or 
 !  cleaned up for inclusion into GEOS-Chem.
-!
+!\\
+!\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
-!
-! !NOTE: The current [dust] code was validated at 2 x 2.5 resolution.
+!\\
+!\\
+! NOTE: The current (dust) code was validated at 2 x 2.5 resolution.
 !  We have found that running at 4x5 we get much lower (~50%) dust 
 !  emissions than at 2x2.5.  Recommend we either find a way to scale
 !  the U* computed in the dust module, or run a 1x1 and store the the
 !  dust emissions, with which to drive lower resolution runs.     
 !  -- Duncan Fairlie, 1/25/07
+!\\
 !\\ 
-!  [We'll] implement the [dust] code in the standard [GEOS-Chem] 
+!  (We'll) implement the [dust] code in the standard [GEOS-Chem] 
 !  model and put a warning about expected low bias when the simulation 
 !  is run at 4x5.  Whoever is interested in running dust at 4x5 in the 
 !  future can deal with making the fix.                                
 !  -- Daniel Jacob, 1/25/07                                         
-!
+!\\
+!\\
 ! !REFERENCES:
 !
-!Zender, C. S., Bian, H., and Newman, D.: Mineral Dust Entrainment and 
-!Deposition (DEAD) model: Description and 1990s dust climatology, 
-!Journal of Geophysical Research: Atmospheres, 108, 2003. 
+! \begin{itemize}
+! \item Zender, C. S., Bian, H., and Newman, D.: Mineral Dust Entrainment and 
+!   Deposition (DEAD) model: Description and 1990s dust climatology, 
+!   Journal of Geophysical Research: Atmospheres, 108, 2003. 
+! \end{itemize}
 !
 ! !INTERFACE:
 !
-      MODULE HCOX_DUSTDEAD_MOD 
+      MODULE HCOX_DUSTDEAD_MOD
 !
 ! !USES:
 !
@@ -48,10 +54,10 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: HcoX_DustDead_Run
-      PUBLIC :: HcoX_DustDead_Init
-      PUBLIC :: HcoX_DustDead_Final
-      PUBLIC :: HcoX_DustDead_GetFluxTun
+      PUBLIC :: HCOX_DustDead_Run
+      PUBLIC :: HCOX_DustDead_Init
+      PUBLIC :: HCOX_DustDead_Final
+      PUBLIC :: HCOX_DustDead_GetFluxTun
 !
 ! !REVISION HISTORY:
 !  (1 ) Added parallel DO loop in GET_ORO (bmy, 4/14/04)
@@ -156,11 +162,11 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUST_DEAD_RUN 
+! !IROUTINE: HCOX_DustDead_Run 
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustDead\_Run is the driver routine 
 ! for the HEMCO DEAD dust extension.
@@ -168,7 +174,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustDead_Run ( am_I_Root, ExtState, HcoState, RC )
+      SUBROUTINE HCOX_DustDead_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -176,11 +182,14 @@
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       LOGICAL,         INTENT(IN   )  :: am_I_Root
       TYPE(Ext_State), POINTER        :: ExtState    ! Module options
-      TYPE(HCO_State), POINTER        :: HcoState   ! Hemco state 
+      TYPE(HCO_State), POINTER        :: HcoState    ! Hemco state 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       INTEGER,         INTENT(INOUT)  :: RC 
 
 ! !REVISION HISTORY:
@@ -258,7 +267,7 @@
       IF ( .NOT. ExtState%DustDead ) RETURN
 
       ! Enter
-      CALL HCO_ENTER ( 'HCOX_DUSTDEAD_RUN (HCOX_DUSTDEAD_MOD.F90)', RC )
+      CALL HCO_ENTER ( 'HCOX_DustDead_Run (hcox_dustdead_mod.F90)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! am I root? 
@@ -469,22 +478,22 @@
       ! Return w/ success
       CALL HCO_LEAVE ( RC )
 
-      END SUBROUTINE HcoX_DustDead_Run
+      END SUBROUTINE HCOX_DustDead_Run
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUST_DEAD_INIT 
+! !IROUTINE: HCOX_DustDead_Init
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustDead\_Init initializes the HEMCO
-! DUST_DEAD extension.
+! DUST\_DEAD extension.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustDead_Init ( am_I_Root, HcoState, ExtName,
+      SUBROUTINE HCOX_DustDead_Init ( am_I_Root, HcoState, ExtName,
      &                                ExtState,    RC                )
 !
 ! !USES:
@@ -492,18 +501,19 @@
       USE HCO_ExtList_Mod,    ONLY : GetExtNr
       USE HCO_STATE_MOD,      ONLY : HCO_GetExtHcoID
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       LOGICAL,          INTENT(IN   )  :: am_I_Root
       TYPE(HCO_State),  POINTER        :: HcoState   ! Hemco state
       CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
       TYPE(Ext_State),  POINTER        :: ExtState     ! Module options
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       INTEGER,          INTENT(INOUT)  :: RC 
 
 ! !REVISION HISTORY:
 !  25 Nov 2013 - C. Keller - Now a HEMCO extension
-!
-! !NOTES: 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -525,7 +535,7 @@
       IF ( ExtNr <= 0 ) RETURN
 
       ! Enter
-      CALL HCO_ENTER ('HCOX_DUSTDEAD_INIT (HCOX_DUSTDEAD_MOD.F90)', RC )
+      CALL HCO_ENTER ('HCOX_DustDead_Init (hcox_dustdead_mod.F90)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
       verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
@@ -548,7 +558,7 @@
       ENDIF
 
       ! Set scale factor
-      FLX_MSS_FDG_FCT = HcoX_DustDead_GetFluxTun()
+      FLX_MSS_FDG_FCT = HCOX_DustDead_GetFluxTun()
 
       ! Verbose mode
       IF ( verb ) THEN
@@ -772,22 +782,22 @@
       IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
       CALL HCO_LEAVE ( RC ) 
 
-      END SUBROUTINE HcoX_DustDead_Init
+      END SUBROUTINE HCOX_DustDead_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DUST_DEAD_FINAL
+! !IROUTINE: HCOX_DustDead_Final
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustDead\_Final finalizes the HEMCO
-! DUST_DEAD extension.
+! DUST\_DEAD extension.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustDead_Final
+      SUBROUTINE HCOX_DustDead_Final
 !
 ! !REVISION HISTORY:
 !  25 Nov 2013 - C. Keller - Now a HEMCO extension
@@ -837,10 +847,10 @@
       IF ( ALLOCATED( MSS_FRC_SRC     ) ) DEALLOCATE( MSS_FRC_SRC     )
       IF ( ALLOCATED( HcoIDs          ) ) DEALLOCATE( HcoIDs          )
 
-      END SUBROUTINE HcoX_DustDead_Final
+      END SUBROUTINE HCOX_DustDead_Final
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !
 !******************************************************************************
@@ -5264,7 +5274,7 @@ c Fix up for negative argument, erf, etc.
 
 !******************************************************************************
 
-      FUNCTION HcoX_DustDead_GetFluxTun() RESULT( FLX_MSS_FDG_FCT )
+      FUNCTION HCOX_DustDead_GetFluxTun() RESULT( FLX_MSS_FDG_FCT )
 !
 !******************************************************************************
 ! Returns global mass flux tuning factor (a posteriori).
@@ -5279,7 +5289,7 @@ c Fix up for negative argument, erf, etc.
       INTEGER             :: RC
 
       !=================================================================
-      ! HcoX_DustDead_GetFluxTun begins here!
+      ! HCOX_DustDead_GetFluxTun begins here!
       !=================================================================
 
       ! Global mass flux tuning factor (a posteriori) [frc]
@@ -5412,12 +5422,12 @@ c Fix up for negative argument, erf, etc.
       ! Add warning
       MSG = 'Assigned default flux tuning parameter - this may lead to 
      &       false dust emissions!'
-      CALL HCO_WARNING ( MSG, RC, THISLOC='HcoX_DustDead_GetFluxTun' )
+      CALL HCO_WARNING ( MSG, RC, THISLOC='HCOX_DustDead_GetFluxTun' )
 
 #endif
 
       ! Return to calling program
-      END FUNCTION HcoX_DustDead_GetFluxTun
+      END FUNCTION HCOX_DustDead_GetFluxTun
 
 !------------------------------------------------------------------------------
 !EOC

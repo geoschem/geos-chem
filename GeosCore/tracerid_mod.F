@@ -563,7 +563,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE TRACERID( am_I_Root )
+      SUBROUTINE TRACERID( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
@@ -618,33 +618,36 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations; Removed tracers
 !                              for old SOA simulation (H. Pye)
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
       USE CHARPAK_MOD, ONLY : TRANUC
-      USE LOGICAL_MOD, ONLY : LSPLIT
-      USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
-      USE TRACER_MOD,  ONLY : ITS_A_POPS_SIM
-      USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD                    ! Size parameters
-      USE COMODE_LOOP_MOD                 ! IDEMS
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-
-      ! Local variables
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
       CHARACTER(LEN=14)    :: NAME
 
       !(fp, 6/09)
       ! COUNT_BB is the number of BB tracers for a given sim
       INTEGER              :: COUNT_BB
-      
+
       !=================================================================
       ! TRACERID begins here!
       !
@@ -669,7 +672,7 @@
       ENDIF
 
       ! Zero all ID #'s and allocate Hg index arrays (if necessary)
-      CALL INIT_TRACERID
+      CALL INIT_TRACERID( am_I_Root, Input_Opt, RC )
       
       ! Initialize counters
       COUNT     = 0
@@ -684,10 +687,10 @@
       !=================================================================
       ! Assign tracer, biomass, biofuel, and anthro emission ID's
       !=================================================================
-      DO N = 1, N_TRACERS
+      DO N = 1, Input_Opt%N_TRACERS
 
          ! Save TRACER_NAME into a CHARACTER*14 variable
-         NAME = TRACER_NAME(N)
+         NAME = Input_Opt%TRACER_NAME(N)
 
          ! Convert name to uppercase
          CALL TRANUC( NAME )
@@ -736,7 +739,7 @@
                ! NOTE: To satisfy IF statement in EMISSDR for using 
                ! EMFOSSIL, we need to set IDECO=1 instead of IDECO=2.
                ! (jaf, mak, bmy, 2/14/08)
-               IF ( ITS_A_TAGCO_SIM() ) THEN 
+               IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN 
                   NEMANTHRO = 1
                   IDECO     = 1
                   IDTISOP   = 1
@@ -757,7 +760,7 @@
 
                ! Special case: Tagged H2 (hup 4/28/2004)
                ! Set some emissions flags then exit
-               IF ( ITS_A_H2HD_SIM() ) THEN
+               IF ( Input_Opt%ITS_A_H2HD_SIM ) THEN
                   NEMANTHRO = 1
                   IDECO     = 2
                   IDTISOP   = 1
@@ -871,7 +874,7 @@
 
                ! Special case: tagged C2H6
                ! Set emission flags and then exit
-               IF ( ITS_A_C2H6_SIM() ) THEN
+               IF ( Input_Opt%ITS_A_C2H6_SIM ) THEN
                   NEMANTHRO = 1
                   IDEC2H6   = 1
                   EXIT
@@ -2746,7 +2749,7 @@
       ! are emitted.  Remove the old previous hardwiring
       ! (hotp, bmy, 8/17/11)
       !=================================================================
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          ! Initialize counters
          ! Number of anthro emissions handled in anthroems and SMVGEAR:
@@ -3314,27 +3317,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FILL_CHEM_STATE_NAME_IDs( am_I_Root, State_Chm )
+      SUBROUTINE FILL_CHEM_STATE_NAME_IDs( am_I_Root, 
+     &                                     Input_Opt, State_Chm )
 !
 ! !USES:
 !
-      ! References to F90 modules
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACER_MOD,         ONLY : N_TRACERS
-      USE TRACER_MOD,         ONLY : TRACER_NAME
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Obj for chemical state
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry state object
 ! 
 ! !REVISION HISTORY: 
 !  13 Aug 2012 - R. Yantosca - Initial version
 !  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
 !  19 Oct 2012 - R. Yantosca - Now references gigc_state_chm_mod.F90
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3344,9 +3349,9 @@
       INTEGER :: N
 
       ! Loop over defined tracers
-      DO N = 1, N_TRACERS
+      DO N = 1, Input_Opt%N_TRACERS
          State_Chm%TRAC_ID(N)   = N
-         State_Chm%TRAC_NAME(N) = TRIM( TRACER_NAME(N) )
+         State_Chm%TRAC_NAME(N) = TRIM( Input_Opt%TRACER_NAME(N) )
       ENDDO
 
       END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
@@ -4141,7 +4146,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_TRACERID
+      SUBROUTINE INIT_TRACERID( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 9/18/07)
@@ -4170,14 +4175,26 @@
 !                              replace NOx and Ox
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LSPLIT
-      USE TRACER_MOD,  ONLY : ITS_A_MERCURY_SIM
-      
-      ! Local variables
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:      
+!
       INTEGER              :: AS
 
       ! SMVGEAR species ID #'s
@@ -4470,429 +4487,427 @@
 
 #if   defined( TOMAS )
       IDTH2SO4  = 0 !(win, 6/23/09)
-
-
-                  IDTNK1  = 0
-                  IDTNK2  = 0
-                  IDTNK3  = 0
-                  IDTNK4  = 0
-                  IDTNK5  = 0
-                  IDTNK6  = 0
-                  IDTNK7  = 0
-                  IDTNK8  = 0
-                  IDTNK9  = 0
-                  IDTNK10 = 0
-                  IDTNK11 = 0
-                  IDTNK12 = 0
+      IDTNK1  = 0
+      IDTNK2  = 0
+      IDTNK3  = 0
+      IDTNK4  = 0
+      IDTNK5  = 0
+      IDTNK6  = 0
+      IDTNK7  = 0
+      IDTNK8  = 0
+      IDTNK9  = 0
+      IDTNK10 = 0
+      IDTNK11 = 0
+      IDTNK12 = 0
 # if  !defined( TOMAS12 )
-                  IDTNK13 = 0
-                  IDTNK14 = 0
-                  IDTNK15 = 0
+      IDTNK13 = 0
+      IDTNK14 = 0
+      IDTNK15 = 0
 #  if !defined( TOMAS15 )
-                  IDTNK16 = 0
-                  IDTNK17 = 0
-                  IDTNK18 = 0
-                  IDTNK19 = 0
-                  IDTNK20 = 0
-                  IDTNK21 = 0
-                  IDTNK22 = 0
-                  IDTNK23 = 0
-                  IDTNK24 = 0
-                  IDTNK25 = 0
-                  IDTNK26 = 0
-                  IDTNK27 = 0
-                  IDTNK28 = 0
-                  IDTNK29 = 0
-                  IDTNK30 = 0
+      IDTNK16 = 0
+      IDTNK17 = 0
+      IDTNK18 = 0
+      IDTNK19 = 0
+      IDTNK20 = 0
+      IDTNK21 = 0
+      IDTNK22 = 0
+      IDTNK23 = 0
+      IDTNK24 = 0
+      IDTNK25 = 0
+      IDTNK26 = 0
+      IDTNK27 = 0
+      IDTNK28 = 0
+      IDTNK29 = 0
+      IDTNK30 = 0
 #  endif
 # endif
 # if   defined( TOMAS40 )
-                  IDTNK31 = 0
-                  IDTNK32 = 0
-                  IDTNK33 = 0
-                  IDTNK34 = 0
-                  IDTNK35 = 0
-                  IDTNK36 = 0
-                  IDTNK37 = 0
-                  IDTNK38 = 0
-                  IDTNK39 = 0
-                  IDTNK40 = 0
+      IDTNK31 = 0
+      IDTNK32 = 0
+      IDTNK33 = 0
+      IDTNK34 = 0
+      IDTNK35 = 0
+      IDTNK36 = 0
+      IDTNK37 = 0
+      IDTNK38 = 0
+      IDTNK39 = 0
+      IDTNK40 = 0
 # endif
-
-                  IDTSF1  = 0
-                  IDTSF2  = 0
-                  IDTSF3  = 0
-                  IDTSF4  = 0
-                  IDTSF5  = 0
-                  IDTSF6  = 0
-                  IDTSF7  = 0
-                  IDTSF8  = 0
-                  IDTSF9  = 0
-                  IDTSF10 = 0
-                  IDTSF11 = 0
-                  IDTSF12 = 0
+      
+      IDTSF1  = 0
+      IDTSF2  = 0
+      IDTSF3  = 0
+      IDTSF4  = 0
+      IDTSF5  = 0
+      IDTSF6  = 0
+      IDTSF7  = 0
+      IDTSF8  = 0
+      IDTSF9  = 0
+      IDTSF10 = 0
+      IDTSF11 = 0
+      IDTSF12 = 0
 # if  !defined( TOMAS12 )
-                  IDTSF13 = 0
-                  IDTSF14 = 0
-                  IDTSF15 = 0
+      IDTSF13 = 0
+      IDTSF14 = 0
+      IDTSF15 = 0
 #  if !defined( TOMAS15 )
-                  IDTSF16 = 0
-                  IDTSF17 = 0
-                  IDTSF18 = 0
-                  IDTSF19 = 0
-                  IDTSF20 = 0
-                  IDTSF21 = 0
-                  IDTSF22 = 0
-                  IDTSF23 = 0
-                  IDTSF24 = 0
-                  IDTSF25 = 0
-                  IDTSF26 = 0
-                  IDTSF27 = 0
-                  IDTSF28 = 0
-                  IDTSF29 = 0
-                  IDTSF30 = 0
+      IDTSF16 = 0
+      IDTSF17 = 0
+      IDTSF18 = 0
+      IDTSF19 = 0
+      IDTSF20 = 0
+      IDTSF21 = 0
+      IDTSF22 = 0
+      IDTSF23 = 0
+      IDTSF24 = 0
+      IDTSF25 = 0
+      IDTSF26 = 0
+      IDTSF27 = 0
+      IDTSF28 = 0
+      IDTSF29 = 0
+      IDTSF30 = 0
 #  endif
 # endif
 # if   defined( TOMAS40 )
-                  IDTSF31 = 0
-                  IDTSF32 = 0
-                  IDTSF33 = 0
-                  IDTSF34 = 0
-                  IDTSF35 = 0
-                  IDTSF36 = 0
-                  IDTSF37 = 0
-                  IDTSF38 = 0
-                  IDTSF39 = 0
-                  IDTSF40 = 0
+      IDTSF31 = 0
+      IDTSF32 = 0
+      IDTSF33 = 0
+      IDTSF34 = 0
+      IDTSF35 = 0
+      IDTSF36 = 0
+      IDTSF37 = 0
+      IDTSF38 = 0
+      IDTSF39 = 0
+      IDTSF40 = 0
 # endif
 
-                  IDTSS1  = 0
-                  IDTSS2  = 0
-                  IDTSS3  = 0
-                  IDTSS4  = 0
-                  IDTSS5  = 0
-                  IDTSS6  = 0
-                  IDTSS7  = 0
-                  IDTSS8  = 0
-                  IDTSS9  = 0
-                  IDTSS10 = 0
-                  IDTSS11 = 0
-                  IDTSS12 = 0
+      IDTSS1  = 0
+      IDTSS2  = 0
+      IDTSS3  = 0
+      IDTSS4  = 0
+      IDTSS5  = 0
+      IDTSS6  = 0
+      IDTSS7  = 0
+      IDTSS8  = 0
+      IDTSS9  = 0
+      IDTSS10 = 0
+      IDTSS11 = 0
+      IDTSS12 = 0
 # if  !defined( TOMAS12 )
-                  IDTSS13 = 0
-                  IDTSS14 = 0
-                  IDTSS15 = 0
+      IDTSS13 = 0
+      IDTSS14 = 0
+      IDTSS15 = 0
 #  if !defined( TOMAS15 )
-                  IDTSS16 = 0
-                  IDTSS17 = 0
-                  IDTSS18 = 0
-                  IDTSS19 = 0
-                  IDTSS20 = 0
-                  IDTSS21 = 0
-                  IDTSS22 = 0
-                  IDTSS23 = 0
-                  IDTSS24 = 0
-                  IDTSS25 = 0
-                  IDTSS26 = 0
-                  IDTSS27 = 0
-                  IDTSS28 = 0
-                  IDTSS29 = 0
-                  IDTSS30 = 0
+      IDTSS16 = 0
+      IDTSS17 = 0
+      IDTSS18 = 0
+      IDTSS19 = 0
+      IDTSS20 = 0
+      IDTSS21 = 0
+      IDTSS22 = 0
+      IDTSS23 = 0
+      IDTSS24 = 0
+      IDTSS25 = 0
+      IDTSS26 = 0
+      IDTSS27 = 0
+      IDTSS28 = 0
+      IDTSS29 = 0
+      IDTSS30 = 0
 #  endif
 # endif
 # if   defined( TOMAS40 )
-                  IDTSS31 = 0
-                  IDTSS32 = 0
-                  IDTSS33 = 0
-                  IDTSS34 = 0
-                  IDTSS35 = 0
-                  IDTSS36 = 0
-                  IDTSS37 = 0
-                  IDTSS38 = 0
-                  IDTSS39 = 0
-                  IDTSS40 = 0
+      IDTSS31 = 0
+      IDTSS32 = 0
+      IDTSS33 = 0
+      IDTSS34 = 0
+      IDTSS35 = 0
+      IDTSS36 = 0
+      IDTSS37 = 0
+      IDTSS38 = 0
+      IDTSS39 = 0
+      IDTSS40 = 0
 # endif
-
-                IDTECOB1  = 0
-                IDTECOB2  = 0
-                IDTECOB3  = 0
-                IDTECOB4  = 0
-                IDTECOB5  = 0
-                IDTECOB6  = 0
-                IDTECOB7  = 0
-                IDTECOB8  = 0
-                IDTECOB9  = 0
-                IDTECOB10 = 0
-                IDTECOB11 = 0
-                IDTECOB12 = 0
+      
+      IDTECOB1  = 0
+      IDTECOB2  = 0
+      IDTECOB3  = 0
+      IDTECOB4  = 0
+      IDTECOB5  = 0
+      IDTECOB6  = 0
+      IDTECOB7  = 0
+      IDTECOB8  = 0
+      IDTECOB9  = 0
+      IDTECOB10 = 0
+      IDTECOB11 = 0
+      IDTECOB12 = 0
 # if  !defined( TOMAS12 )
-                IDTECOB13 = 0
-                IDTECOB14 = 0
-                IDTECOB15 = 0
+      IDTECOB13 = 0
+      IDTECOB14 = 0
+      IDTECOB15 = 0
 #  if !defined( TOMAS15 )
-                IDTECOB16 = 0
-                IDTECOB17 = 0
-                IDTECOB18 = 0
-                IDTECOB19 = 0
-                IDTECOB20 = 0
-                IDTECOB21 = 0
-                IDTECOB22 = 0
-                IDTECOB23 = 0
-                IDTECOB24 = 0
-                IDTECOB25 = 0
-                IDTECOB26 = 0
-                IDTECOB27 = 0
-                IDTECOB28 = 0
-                IDTECOB29 = 0
-                IDTECOB30 = 0
+      IDTECOB16 = 0
+      IDTECOB17 = 0
+      IDTECOB18 = 0
+      IDTECOB19 = 0
+      IDTECOB20 = 0
+      IDTECOB21 = 0
+      IDTECOB22 = 0
+      IDTECOB23 = 0
+      IDTECOB24 = 0
+      IDTECOB25 = 0
+      IDTECOB26 = 0
+      IDTECOB27 = 0
+      IDTECOB28 = 0
+      IDTECOB29 = 0
+      IDTECOB30 = 0
 #  endif
 # endif
 # if   defined( TOMAS40 )
-                IDTECOB31 = 0
-                IDTECOB32 = 0
-                IDTECOB33 = 0
-                IDTECOB34 = 0
-                IDTECOB35 = 0
-                IDTECOB36 = 0
-                IDTECOB37 = 0
-                IDTECOB38 = 0
-                IDTECOB39 = 0
-                IDTECOB40 = 0
+      IDTECOB31 = 0
+      IDTECOB32 = 0
+      IDTECOB33 = 0
+      IDTECOB34 = 0
+      IDTECOB35 = 0
+      IDTECOB36 = 0
+      IDTECOB37 = 0
+      IDTECOB38 = 0
+      IDTECOB39 = 0
+      IDTECOB40 = 0
 # endif
 
-                IDTECIL1  = 0
-                IDTECIL2  = 0
-                IDTECIL3  = 0
-                IDTECIL4  = 0
-                IDTECIL5  = 0
-                IDTECIL6  = 0
-                IDTECIL7  = 0
-                IDTECIL8  = 0
-                IDTECIL9  = 0
-                IDTECIL10 = 0
-                IDTECIL11 = 0
-                IDTECIL12 = 0
+      IDTECIL1  = 0
+      IDTECIL2  = 0
+      IDTECIL3  = 0
+      IDTECIL4  = 0
+      IDTECIL5  = 0
+      IDTECIL6  = 0
+      IDTECIL7  = 0
+      IDTECIL8  = 0
+      IDTECIL9  = 0
+      IDTECIL10 = 0
+      IDTECIL11 = 0
+      IDTECIL12 = 0
 # if  !defined( TOMAS12 )
-                IDTECIL13 = 0
-                IDTECIL14 = 0
-                IDTECIL15 = 0
+      IDTECIL13 = 0
+      IDTECIL14 = 0
+      IDTECIL15 = 0
 #  if !defined( TOMAS15 )
-                IDTECIL16 = 0
-                IDTECIL17 = 0
-                IDTECIL18 = 0
-                IDTECIL19 = 0
-                IDTECIL20 = 0
-                IDTECIL21 = 0
-                IDTECIL22 = 0
-                IDTECIL23 = 0
-                IDTECIL24 = 0
-                IDTECIL25 = 0
-                IDTECIL26 = 0
-                IDTECIL27 = 0
-                IDTECIL28 = 0
-                IDTECIL29 = 0
-                IDTECIL30 = 0
+      IDTECIL16 = 0
+      IDTECIL17 = 0
+      IDTECIL18 = 0
+      IDTECIL19 = 0
+      IDTECIL20 = 0
+      IDTECIL21 = 0
+      IDTECIL22 = 0
+      IDTECIL23 = 0
+      IDTECIL24 = 0
+      IDTECIL25 = 0
+      IDTECIL26 = 0
+      IDTECIL27 = 0
+      IDTECIL28 = 0
+      IDTECIL29 = 0
+      IDTECIL30 = 0
 #  endif
 # endif
 # if   defined( TOMAS40 )
-                IDTECIL31 = 0
-                IDTECIL32 = 0
-                IDTECIL33 = 0
-                IDTECIL34 = 0
-                IDTECIL35 = 0
-                IDTECIL36 = 0
-                IDTECIL37 = 0
-                IDTECIL38 = 0
-                IDTECIL39 = 0
-                IDTECIL40 = 0
+      IDTECIL31 = 0
+      IDTECIL32 = 0
+      IDTECIL33 = 0
+      IDTECIL34 = 0
+      IDTECIL35 = 0
+      IDTECIL36 = 0
+      IDTECIL37 = 0
+      IDTECIL38 = 0
+      IDTECIL39 = 0
+      IDTECIL40 = 0
 # endif
 
-                IDTOCOB1  = 0
-                IDTOCOB2  = 0
-                IDTOCOB3  = 0
-                IDTOCOB4  = 0
-                IDTOCOB5  = 0
-                IDTOCOB6  = 0
-                IDTOCOB7  = 0
-                IDTOCOB8  = 0
-                IDTOCOB9  = 0
-                IDTOCOB10 = 0
-                IDTOCOB11 = 0
-                IDTOCOB12 = 0
+      IDTOCOB1  = 0
+      IDTOCOB2  = 0
+      IDTOCOB3  = 0
+      IDTOCOB4  = 0
+      IDTOCOB5  = 0
+      IDTOCOB6  = 0
+      IDTOCOB7  = 0
+      IDTOCOB8  = 0
+      IDTOCOB9  = 0
+      IDTOCOB10 = 0
+      IDTOCOB11 = 0
+      IDTOCOB12 = 0
 # if  !defined( TOMAS12 )
-                IDTOCOB13 = 0
-                IDTOCOB14 = 0
-                IDTOCOB15 = 0
+      IDTOCOB13 = 0
+      IDTOCOB14 = 0
+      IDTOCOB15 = 0
 #  if !defined( TOMAS15 )
-                IDTOCOB16 = 0
-                IDTOCOB17 = 0
-                IDTOCOB18 = 0
-                IDTOCOB19 = 0
-                IDTOCOB20 = 0
-                IDTOCOB21 = 0
-                IDTOCOB22 = 0
-                IDTOCOB23 = 0
-                IDTOCOB24 = 0
-                IDTOCOB25 = 0
-                IDTOCOB26 = 0
-                IDTOCOB27 = 0
-                IDTOCOB28 = 0
-                IDTOCOB29 = 0
-                IDTOCOB30 = 0
+      IDTOCOB16 = 0
+      IDTOCOB17 = 0
+      IDTOCOB18 = 0
+      IDTOCOB19 = 0
+      IDTOCOB20 = 0
+      IDTOCOB21 = 0
+      IDTOCOB22 = 0
+      IDTOCOB23 = 0
+      IDTOCOB24 = 0
+      IDTOCOB25 = 0
+      IDTOCOB26 = 0
+      IDTOCOB27 = 0
+      IDTOCOB28 = 0
+      IDTOCOB29 = 0
+      IDTOCOB30 = 0
 #  endif
 # endif
 # if   defined( TOMAS40 )
-                IDTOCOB31 = 0
-                IDTOCOB32 = 0
-                IDTOCOB33 = 0
-                IDTOCOB34 = 0
-                IDTOCOB35 = 0
-                IDTOCOB36 = 0
-                IDTOCOB37 = 0
-                IDTOCOB38 = 0
-                IDTOCOB39 = 0
-                IDTOCOB40 = 0
+      IDTOCOB31 = 0
+      IDTOCOB32 = 0
+      IDTOCOB33 = 0
+      IDTOCOB34 = 0
+      IDTOCOB35 = 0
+      IDTOCOB36 = 0
+      IDTOCOB37 = 0
+      IDTOCOB38 = 0
+      IDTOCOB39 = 0
+      IDTOCOB40 = 0
 # endif
 
-                IDTOCIL1  = 0
-                IDTOCIL2  = 0
-                IDTOCIL3  = 0
-                IDTOCIL4  = 0
-                IDTOCIL5  = 0
-                IDTOCIL6  = 0
-                IDTOCIL7  = 0
-                IDTOCIL8  = 0
-                IDTOCIL9  = 0
-                IDTOCIL10 = 0
-                IDTOCIL11 = 0
-                IDTOCIL12 = 0
+      IDTOCIL1  = 0
+      IDTOCIL2  = 0
+      IDTOCIL3  = 0
+      IDTOCIL4  = 0
+      IDTOCIL5  = 0
+      IDTOCIL6  = 0
+      IDTOCIL7  = 0
+      IDTOCIL8  = 0
+      IDTOCIL9  = 0
+      IDTOCIL10 = 0
+      IDTOCIL11 = 0
+      IDTOCIL12 = 0
 # if  !defined( TOMAS12 )
-                IDTOCIL13 = 0
-                IDTOCIL14 = 0
-                IDTOCIL15 = 0
+      IDTOCIL13 = 0
+      IDTOCIL14 = 0
+      IDTOCIL15 = 0
 #  if !defined( TOMAS15 )
-                IDTOCIL16 = 0
-                IDTOCIL17 = 0
-                IDTOCIL18 = 0
-                IDTOCIL19 = 0
-                IDTOCIL20 = 0
-                IDTOCIL21 = 0
-                IDTOCIL22 = 0
-                IDTOCIL23 = 0
-                IDTOCIL24 = 0
-                IDTOCIL25 = 0
-                IDTOCIL26 = 0
-                IDTOCIL27 = 0
-                IDTOCIL28 = 0
-                IDTOCIL29 = 0
-                IDTOCIL30 = 0
+      IDTOCIL16 = 0
+      IDTOCIL17 = 0
+      IDTOCIL18 = 0
+      IDTOCIL19 = 0
+      IDTOCIL20 = 0
+      IDTOCIL21 = 0
+      IDTOCIL22 = 0
+      IDTOCIL23 = 0
+      IDTOCIL24 = 0
+      IDTOCIL25 = 0
+      IDTOCIL26 = 0
+      IDTOCIL27 = 0
+      IDTOCIL28 = 0
+      IDTOCIL29 = 0
+      IDTOCIL30 = 0
 #  endif
 # endif
 # if   defined( TOMAS40 )
-                IDTOCIL31 = 0
-                IDTOCIL32 = 0
-                IDTOCIL33 = 0
-                IDTOCIL34 = 0
-                IDTOCIL35 = 0
-                IDTOCIL36 = 0
-                IDTOCIL37 = 0
-                IDTOCIL38 = 0
-                IDTOCIL39 = 0
-                IDTOCIL40 = 0
+      IDTOCIL31 = 0
+      IDTOCIL32 = 0
+      IDTOCIL33 = 0
+      IDTOCIL34 = 0
+      IDTOCIL35 = 0
+      IDTOCIL36 = 0
+      IDTOCIL37 = 0
+      IDTOCIL38 = 0
+      IDTOCIL39 = 0
+      IDTOCIL40 = 0
 # endif
-
-                IDTDUST1  = 0
-                IDTDUST2  = 0
-                IDTDUST3  = 0
-                IDTDUST4  = 0
-                IDTDUST5  = 0
-                IDTDUST6  = 0
-                IDTDUST7  = 0
-                IDTDUST8  = 0
-                IDTDUST9  = 0
-                IDTDUST10 = 0
-                IDTDUST11 = 0
-                IDTDUST12 = 0
-# if  !defined( TOMAS12 )
-                IDTDUST13 = 0
-                IDTDUST14 = 0
-                IDTDUST15 = 0
+      
+      IDTDUST1  = 0
+      IDTDUST2  = 0
+      IDTDUST3  = 0
+      IDTDUST4  = 0
+      IDTDUST5  = 0
+      IDTDUST6  = 0
+      IDTDUST7  = 0
+      IDTDUST8  = 0
+      IDTDUST9  = 0
+      IDTDUST10 = 0
+      IDTDUST11 = 0
+      IDTDUST12 = 0
+# if !defined( TOMAS12 )
+      IDTDUST13 = 0
+      IDTDUST14 = 0
+      IDTDUST15 = 0
 #  if !defined( TOMAS15 )
-                IDTDUST16 = 0
-                IDTDUST17 = 0
-                IDTDUST18 = 0
-                IDTDUST19 = 0
-                IDTDUST20 = 0
-                IDTDUST21 = 0
-                IDTDUST22 = 0
-                IDTDUST23 = 0
-                IDTDUST24 = 0
-                IDTDUST25 = 0
-                IDTDUST26 = 0
-                IDTDUST27 = 0
-                IDTDUST28 = 0
-                IDTDUST29 = 0
-                IDTDUST30 = 0
+      IDTDUST16 = 0
+      IDTDUST17 = 0
+      IDTDUST18 = 0
+      IDTDUST19 = 0
+      IDTDUST20 = 0
+      IDTDUST21 = 0
+      IDTDUST22 = 0
+      IDTDUST23 = 0
+      IDTDUST24 = 0
+      IDTDUST25 = 0
+      IDTDUST26 = 0
+      IDTDUST27 = 0
+      IDTDUST28 = 0
+      IDTDUST29 = 0
+      IDTDUST30 = 0
 #  endif
 # endif
 # if   defined( TOMAS40 )
-                IDTDUST31 = 0
-                IDTDUST32 = 0
-                IDTDUST33 = 0
-                IDTDUST34 = 0
-                IDTDUST35 = 0
-                IDTDUST36 = 0
-                IDTDUST37 = 0
-                IDTDUST38 = 0
-                IDTDUST39 = 0
-                IDTDUST40 = 0
+      IDTDUST31 = 0
+      IDTDUST32 = 0
+      IDTDUST33 = 0
+      IDTDUST34 = 0
+      IDTDUST35 = 0
+      IDTDUST36 = 0
+      IDTDUST37 = 0
+      IDTDUST38 = 0
+      IDTDUST39 = 0
+      IDTDUST40 = 0
 # endif
 
-                  IDTAW1  = 0
-                  IDTAW2  = 0
-                  IDTAW3  = 0
-                  IDTAW4  = 0
-                  IDTAW5  = 0
-                  IDTAW6  = 0
-                  IDTAW7  = 0
-                  IDTAW8  = 0
-                  IDTAW9  = 0
-                  IDTAW10 = 0
-                  IDTAW11 = 0
-                  IDTAW12 = 0
+      IDTAW1  = 0
+      IDTAW2  = 0
+      IDTAW3  = 0
+      IDTAW4  = 0
+      IDTAW5  = 0
+      IDTAW6  = 0
+      IDTAW7  = 0
+      IDTAW8  = 0
+      IDTAW9  = 0
+      IDTAW10 = 0
+      IDTAW11 = 0
+      IDTAW12 = 0
 # if  !defined( TOMAS12 )
-                  IDTAW13 = 0
-                  IDTAW14 = 0
-                  IDTAW15 = 0
+      IDTAW13 = 0
+      IDTAW14 = 0
+      IDTAW15 = 0
 #  if !defined( TOMAS15 )
-                  IDTAW16 = 0
-                  IDTAW17 = 0
-                  IDTAW18 = 0
-                  IDTAW19 = 0
-                  IDTAW20 = 0
-                  IDTAW21 = 0
-                  IDTAW22 = 0
-                  IDTAW23 = 0
-                  IDTAW24 = 0
-                  IDTAW25 = 0
-                  IDTAW26 = 0
-                  IDTAW27 = 0
-                  IDTAW28 = 0
-                  IDTAW29 = 0
-                  IDTAW30 = 0
+      IDTAW16 = 0
+      IDTAW17 = 0
+      IDTAW18 = 0
+      IDTAW19 = 0
+      IDTAW20 = 0
+      IDTAW21 = 0
+      IDTAW22 = 0
+      IDTAW23 = 0
+      IDTAW24 = 0
+      IDTAW25 = 0
+      IDTAW26 = 0
+      IDTAW27 = 0
+      IDTAW28 = 0
+      IDTAW29 = 0
+      IDTAW30 = 0
 #  endif
 # endif
 # if   defined( TOMAS40 )
-                  IDTAW31 = 0
-                  IDTAW32 = 0
-                  IDTAW33 = 0
-                  IDTAW34 = 0
-                  IDTAW35 = 0
-                  IDTAW36 = 0
-                  IDTAW37 = 0
-                  IDTAW38 = 0
-                  IDTAW39 = 0
-                  IDTAW40 = 0
+      IDTAW31 = 0
+      IDTAW32 = 0
+      IDTAW33 = 0
+      IDTAW34 = 0
+      IDTAW35 = 0
+      IDTAW36 = 0
+      IDTAW37 = 0
+      IDTAW38 = 0
+      IDTAW39 = 0
+      IDTAW40 = 0
 # endif
 
 #endif
@@ -4989,7 +5004,7 @@
       !-----------------------------------
       ! Initialize tagged Hg index arrays
       !-----------------------------------
-      IF ( ITS_A_MERCURY_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
          ! Initialize category flags
 !- eds 8/31/10 -------------------------------------------------------
@@ -5034,7 +5049,7 @@
 
 
          ! Number of Hg categories
-         IF ( LSPLIT ) THEN
+         IF ( Input_Opt%LSPLIT ) THEN
 !- eds 8/31/10 ----------------------------------------------------------
 !            N_Hg_CATS = 8
             N_Hg_CATS = 29 ! New Tagged
