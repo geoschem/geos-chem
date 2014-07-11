@@ -361,11 +361,12 @@
 ! !INTERFACE:
 !
       SUBROUTINE HcoX_DustGinoux_Init( am_I_Root, HcoState, ExtName, &
-                                       ExtState,    RC                  ) 
+                                       ExtState,    RC                )
 !
 ! !USES:
 !
-      USE HCOX_ExtList_Mod,    ONLY : GetExtNr, GetExtHcoID
+      USE HCO_ExtList_Mod,     ONLY : GetExtNr
+      USE HCO_STATE_MOD,       ONLY : HCO_GetExtHcoID
 !
 ! !ARGUMENTS:
 !
@@ -402,7 +403,7 @@
       CALL HCO_ENTER('HCOX_DUSTGINOUX_INIT (HCOX_DUSTGINOUX_MOD.F90)',RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+      CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Sanity check

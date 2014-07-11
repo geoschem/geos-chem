@@ -52,7 +52,6 @@
       PUBLIC  :: Diagn_Get
       PUBLIC  :: Diagn_AutoFillLevelDefined
       PUBLIC  :: Diagn_GetMaxResetFlag
-      PUBLIC  :: Diagn_SetDiagnPrefix
       PUBLIC  :: Diagn_GetDiagnPrefix
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -1194,34 +1193,6 @@
       END FUNCTION Diagn_GetMaxResetFlag
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: Diagn_SetDiagnPrefix
-!
-! !DESCRIPTION: Subroutine Diagn_SetDiagnPrefix sets the HEMCO diagnostics
-! file prefix. 
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE Diagn_SetDiagnPrefix( Prefix )
-!
-! !ARGUMENTS:
-!
-      CHARACTER(LEN=*), INTENT(IN)   :: Prefix
-!
-! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      DiagnPrefix = Prefix
-
-      END SUBROUTINE Diagn_SetDiagnPrefix
-!EOC
-!------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
@@ -1229,16 +1200,21 @@
 ! !ROUTINE: Diagn_GetDiagnPrefix
 !
 ! !DESCRIPTION: Subroutine Diagn\_GetDiagnPrefix returns the HEMCO diagnostics
-! file prefix. 
+! file prefix as set in the HEMCO configuration file. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Diagn_GetDiagnPrefix( Prefix )
+      SUBROUTINE Diagn_GetDiagnPrefix( Prefix, RC )
+!
+! !USES:
+!
+      USE HCO_EXTLIST_MOD,        ONLY : GetExtOpt
 !
 ! !ARGUMENTS:
 !
       CHARACTER(LEN=*), INTENT(OUT)     :: Prefix
+      INTEGER,          INTENT(OUT)     :: RC
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
@@ -1246,8 +1222,32 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! LOCAL VARIABLES:
+!
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      LOGICAL            :: FOUND
+      CHARACTER(LEN=255) :: MyPrefix
+
+      !======================================================================
+      ! Diagn_GetDiagnPrefix begins here!
+      !======================================================================
+
+      ! On first call, try to get DiagnPrefix from settings. If setting
+      ! not found, keep default value.
+      IF ( FIRST ) THEN
+         CALL GetExtOpt ( 0, 'DiagnPrefix', OptValChar=MyPrefix, &
+                          Found=FOUND, RC=RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         IF ( FOUND ) DiagnPrefix = MyPrefix
+
+         FIRST = .FALSE.
+      ENDIF
 
       Prefix = DiagnPrefix 
+
+      ! Return w/ success
+      RC = HCO_SUCCESS
  
       END SUBROUTINE Diagn_GetDiagnPrefix
 !EOC

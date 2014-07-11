@@ -19,14 +19,10 @@
 !     this may significantly slow down the model!
 ! (3) Track: if true, this will print the current location in the code
 !     into the logfile. This is primarily for debugging.
-! (4) Wildcard: wildcard character used in the HEMCO input file, e.g.
-!     for time stamps.
-! (5) Separator: separator character used in the HEMCO input file, e.g.
-!     to separate scale factors and time stamp elements. 
-! (6) Show warnings: if TRUE, prompt all warnings to the HEMCO logfile.
+! (4) Show warnings: if TRUE, prompt all warnings to the HEMCO logfile.
 !     Otherwise, no warnings will be prompted but the total number of
 !     warnings occurred will still be shown at the end of the run.
-! (7) Only unitless scale factors: If set to TRUE, this will force all
+! (5) Only unitless scale factors: If set to TRUE, this will force all
 !     scale factors to be 'unitless', as specified in module 
 !     HCO\_UNIT\_MOD (code will return with error if scale factor is 
 !     not unitless).
@@ -52,8 +48,6 @@
       PUBLIC           :: HCO_VERBOSE_SET
       PUBLIC           :: HCO_VERBOSE_CHECK
       PUBLIC           :: HCO_FORCESCAL_CHECK
-      PUBLIC           :: HCO_WILDCARD
-      PUBLIC           :: HCO_SEP
       PUBLIC           :: HCO_LOGFILE_OPEN
       PUBLIC           :: HCO_LOGFILE_CLOSE
 !
@@ -88,8 +82,6 @@
          INTEGER                     :: CurrLoc
          CHARACTER(LEN=255), POINTER :: Loc(:)
          CHARACTER(LEN=255)          :: LogFile
-         CHARACTER(LEN=1)            :: Wildcard
-         CHARACTER(LEN=1)            :: Separator
          INTEGER                     :: Lun
       END TYPE HcoErr
 
@@ -437,20 +429,19 @@
 ! !DESCRIPTION: Subroutine HCO\_ERROR_SET defines the HEMCO error
 ! settings. This routine is called at the beginning of a HEMCO
 ! simulation. Its input parameter are directly taken from the
-! HEMCO configuration file.
+! HEMCO configuration file. If LogFile is set to '*' (asterik), 
+! all output is directed to the standard output.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_ERROR_SET( LogFile, Verbose, Wildcard, Separator, &
-                                ForceScalUnit, ShowWarnings, Track, RC )
+      SUBROUTINE HCO_ERROR_SET( LogFile,      Verbose, ForceScalUnit, &
+                                ShowWarnings, Track,   RC              )
 !
 ! !ARGUMENTS:
 !
       CHARACTER(LEN=*), INTENT(IN)     :: LogFile        ! logfile path+name
       LOGICAL,          INTENT(IN)     :: Verbose        ! run in verbose mode?
-      CHARACTER(LEN=1), INTENT(IN)     :: Wildcard       ! wildcard character
-      CHARACTER(LEN=1), INTENT(IN)     :: Separator      ! separator character
       LOGICAL,          INTENT(IN)     :: ForceScalUnit  ! allow only unitless scale factors?
       LOGICAL,          INTENT(IN)     :: ShowWarnings   ! prompt warnings?
       LOGICAL,          INTENT(IN)     :: Track          ! track code location?
@@ -484,17 +475,15 @@
       Err%ForceScal    = ForceScalUnit 
       Err%Track        = Track
       Err%ShowWarnings = ShowWarnings
-      Err%Wildcard     = Wildcard
-      Err%Separator    = Separator 
 
       ! Init misc. values
       Err%LogIsOpen = .FALSE.
       Err%nWarnings = 0
       Err%CurrLoc   = 0
 
-      ! Set lun to -1 (write into default file) or 0 (write into specified
-      ! logfile)
-      IF ( INDEX(TRIM(Err%LogFile),TRIM(Wildcard)) > 0 ) THEN
+      ! If Logfile is set to '*', set lun to -1 (--> write into default file). 
+      ! Otherwise, set lun to 0 (--> write into specified logfile)
+      IF ( TRIM(Err%LogFile) == '*' ) THEN
          LUN = -1
       ELSE
          LUN = 0
@@ -652,80 +641,6 @@
       ENDIF
 
       END FUNCTION HCO_FORCESCAL_CHECK
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: HCO_WILDCARD
-!
-! !DESCRIPTION: Function HCO\_WILDCARD returns the WILDCARD character. 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION HCO_WILDCARD() RESULT( WILDCARD ) 
-!
-! !ARGUMENTS:
-!
-      CHARACTER(LEN=1) :: WILDCARD 
-!
-! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      !======================================================================
-      ! HCO_WILDCARD begins here 
-      !======================================================================
-
-      IF ( ASSOCIATED(Err) ) THEN
-         WILDCARD = Err%WILDCARD
-      ELSE
-         WILDCARD = '*' 
-      ENDIF
-
-      END FUNCTION HCO_WILDCARD
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: HCO_SEP
-!
-! !DESCRIPTION: Function HCO\_SEP returns the separator character. 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION HCO_SEP() RESULT( SEP ) 
-!
-! !ARGUMENTS:
-!
-      CHARACTER(LEN=1) :: SEP 
-!
-! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      !======================================================================
-      ! HCO_SEP begins here 
-      !======================================================================
-
-      IF ( ASSOCIATED(Err) ) THEN
-         SEP = Err%Separator
-      ELSE
-         SEP = '/' 
-      ENDIF
-
-      END FUNCTION HCO_SEP
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

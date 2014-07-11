@@ -17,31 +17,37 @@
 ! HEMCO. The following input files are needed for a standalone run:
 ! \begin itemize
 !
-! \item HEMCO\_sa\_Config: the HEMCO configuration file
+! \item HEMCO\_sa\_Config: the HEMCO configuration file. Must be passed
+!  as argument to HCO\_STANDALONE\_RUN.
 !
 ! \item HEMCO\_sa\_Spec: contains the HEMCO species definitions. The first row 
-! must contain the total number of species. For each species, the following 
-! parameter need to be specified (separated by at least one space character):
-! species ID, name, molecular weight [g/mol], emitted molecular weight 
-! [g/mol], the molecule emission ratio, the liq. over gas Henry constant 
-! [M/atm], the temperature dependency of the Henry constant (K0, in [K]), and 
-! the pKa (for correction of the Henry constant).
+!  must contain the total number of species. For each species, the following 
+!  parameter need to be specified (separated by at least one space character):
+!  species ID, name, molecular weight [g/mol], emitted molecular weight 
+!  [g/mol], the molecule emission ratio, the liq. over gas Henry constant 
+!  [M/atm], the temperature dependency of the Henry constant (K0, in [K]), and 
+!  the pKa (for correction of the Henry constant).
 !
 ! \item HEMCO\_sa\_Grid: contains the definition of the emission grid. Must
-! contain the grid dimensions (NX, NY, NZ) in the first three rows (e.g. 
-! NX: 72), followed by the horizontal grid spaces (DX and DY) in rows four 
-! and five, respectively. DX and DY can be only one value (applied to all grid 
-! boxes), or a vector of length NX or NY, respectively. For now, no vertical
-! regridding is supported, e.g. all emissions input file need to be either
-! 2D fields or already remapped onto the correct model levels.
+!  contain the grid dimensions (NX, NY, NZ) in the first three rows (e.g. 
+!  NX: 72), followed by the horizontal grid spaces (DX and DY) in rows four 
+!  and five, respectively. DX and DY can be only one value (applied to all grid 
+!  boxes), or a vector of length NX or NY, respectively. For now, no vertical
+!  regridding is supported, e.g. all emissions input file need to be either
+!  2D fields or already remapped onto the correct model levels.
 !
 ! \item HEMCO\_sa\_Time: contains the time definitions. The first row must
-! contain the emission time step (e.g. TS_EMIS: 3600.0). The second row must
-! contain the number of desired time steps (e.g. NSTEPS: 1), and the following
-! rows (3-END) contain the dates and times of all time steps in format 
-! YYYY-MM-DD HH:MM:SS (e.g. 2013-07-01 00:00:00).
+!  contain the emission time step (e.g. TS_EMIS: 3600.0). The second row must
+!  contain the number of desired time steps (e.g. NSTEPS: 1), and the following
+!  rows (3-END) contain the dates and times of all time steps in format 
+!  YYYY-MM-DD HH:MM:SS (e.g. 2013-07-01 00:00:00).
 ! 
 ! \end itemize 
+!
+! The file names of the species, grid, and time input files can be provided
+! in the settings section of the HEMCO configuration file 
+! (e.g. 'SpecFile: myHEMCO\_sa\_Spec'). Otherwise, the default file names
+! (HEMCO\_sa\_Spec, HEMCO\_sa\_Grid, HEMCO\_sa\_Time) will be used.
 ! \\
 ! !INTERFACE:
 !
@@ -51,6 +57,7 @@
 !
       USE HCO_ERROR_MOD
       USE HCO_DIAGN_MOD
+      USE HCO_CHARTOOLS_MOD
       USE HCOX_State_Mod,      ONLY : Ext_State 
       USE HCO_State_Mod,       ONLY : HCO_State
 
@@ -70,16 +77,11 @@
 !
 ! !PARAMETER
 !
-      ! HEMCO configuration file
-      CHARACTER(LEN=255)          :: ConfigFile = 'HEMCO_sa_Config'
-
-      ! HEMCO model file: contains definitions of species, grid, time step, etc.
+      ! Default values for HEMCO input files: contain definitions of 
+      ! species, grid, and time settings.
       CHARACTER(LEN=255)          :: GridFile  = 'HEMCO_sa_Grid'
       CHARACTER(LEN=255)          :: SpecFile  = 'HEMCO_sa_Spec'
       CHARACTER(LEN=255)          :: TimeFile  = 'HEMCO_sa_Time'
-
-      CHARACTER(LEN=1), PARAMETER :: COL = ':'
-      CHARACTER(LEN=1), PARAMETER :: SPC = ' '
 !
 ! !PRIVATE MODULE VARIABLES:
 !
@@ -134,7 +136,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_STANDALONE_RUN
+      SUBROUTINE HCO_STANDALONE_RUN ( ConfigFile )
+!
+! !INPUT ARGUMENTS:
+!
+      CHARACTER(LEN=255), INTENT(IN)  :: ConfigFile
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller    - Initial version 
@@ -155,7 +161,7 @@
       am_I_Root = .TRUE.
 
       ! Call the initialize, run and finalize interface routines
-      CALL HCOI_SA_INIT ( am_I_Root, RC )
+      CALL HCOI_SA_INIT ( am_I_Root, ConfigFile, RC )
       IF ( RC /= HCO_SUCCESS ) THEN
          WRITE(*,*) 'Error in HCOI_SA_INIT'
          RETURN
@@ -184,7 +190,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCOI_SA_INIT( am_I_Root, RC ) 
+      SUBROUTINE HCOI_SA_INIT( am_I_Root, ConfigFile, RC ) 
 !
 ! !USES:
 !
@@ -196,8 +202,9 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-      INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+      LOGICAL,            INTENT(IN   )  :: am_I_Root  ! root CPU?
+      CHARACTER(LEN=255), INTENT(IN)     :: ConfigFile ! Configuration file
+      INTEGER,            INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller    - Initial version 
@@ -545,7 +552,7 @@
 ! !USES:
 !
       USE inquireMod,             ONLY : findfreeLUN
-      USE HCO_CHARTOOLS_MOD,      ONLY : NextCharPos
+      USE HCO_EXTLIST_MOD,        ONLY : GetExtOpt
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -570,7 +577,9 @@
 !
       INTEGER                         :: I, N, LNG, LOW, UPP
       INTEGER                         :: IU_FILE, IOS
+      LOGICAL                         :: FOUND
       CHARACTER(LEN=255)              :: MSG, LOC 
+      CHARACTER(LEN=255)              :: MySpecFile 
       CHARACTER(LEN=2047)             :: DUM
 
       !=================================================================
@@ -579,6 +588,12 @@
 
       ! For error handling
       LOC = 'Model_GetSpecies (hcoi_standalone_mod.F90)'
+
+      ! Try to get SpecFile from configuration file (in settings)
+      CALL GetExtOpt ( 0, 'SpecFile', OptValChar=MySpecFile, &
+                       Found=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      IF ( FOUND ) SpecFile = MySpecFile
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -599,7 +614,7 @@
          RETURN
       ENDIF
       LNG = LEN(TRIM(DUM))
-      LOW = NextCharPos ( TRIM(DUM), COL, 1 )
+      LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
       IF ( LOW < 0 .OR. LOW == LNG ) THEN
          MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -649,7 +664,7 @@
                   CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                   RETURN
                ENDIF
-               UPP = NextCharPos( TRIM(DUM), SPC, LOW )
+               UPP = NextCharPos( TRIM(DUM), HCO_SPC(), LOW )
                IF ( UPP < 0 ) UPP = LNG
             ENDDO
 
@@ -710,7 +725,7 @@
 !
       USE GRID_MOD,               ONLY : DoGridComputation
       USE inquireMod,             ONLY : findfreeLUN
-      USE HCO_CHARTOOLS_MOD,      ONLY : NextCharPos
+      USE HCO_EXTLIST_MOD,        ONLY : GetExtOpt
 !
 ! !ARGUMENTS:
 !
@@ -729,7 +744,9 @@
       INTEGER                         :: I, N, M, LNG, LOW, UPP
       INTEGER                         :: SZ(3)
       INTEGER                         :: IU_FILE, IOS
+      LOGICAL                         :: FOUND
       CHARACTER(LEN=255)              :: MSG, LOC 
+      CHARACTER(LEN=255)              :: MyGridFile 
       CHARACTER(LEN=2047)             :: DUM
 
       REAL(df)                        :: DVAL
@@ -746,6 +763,12 @@
 
       ! For error handling
       LOC = 'SET_GRID (hcoi_standalone_mod.F90)'
+
+      ! Try to get GridFile from configuration file (in settings)
+      CALL GetExtOpt ( 0, 'GridFile', OptValChar=MyGridFile, &
+                       Found=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      IF ( FOUND ) GridFile = MyGridFile
 
       ! Read grid information from file
 
@@ -771,7 +794,7 @@
          LNG = LEN(TRIM(DUM))
  
          ! Read integer after colon (this is the dimension size)
-         LOW = NextCharPos ( TRIM(DUM), COL, 1 )
+         LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
          IF ( LOW < 0 .OR. LOW == LNG ) THEN
             MSG = 'Cannot extract size information from ' // TRIM(DUM)
             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -825,7 +848,7 @@
          LNG = LEN(TRIM(DUM))
           
          ! Get position after colon
-         LOW = NextCharPos ( TRIM(DUM), COL, 1 )
+         LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
          IF ( LOW < 0 .OR. LOW == LNG ) THEN 
             MSG = 'Cannot extract grid space from ' // TRIM(DUM)
             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -837,14 +860,14 @@
          M = 1 ! Index in dlon/dlat
          DO
             ! Get index up to next space.
-            UPP = NextCharPos ( TRIM(DUM), SPC, LOW )
+            UPP = NextCharPos ( TRIM(DUM), HCO_SPC(), LOW )
 
             ! If no space found in word after index LOW, read until end of word.
             IF ( UPP < 0 ) UPP = LNG
 
             ! Read value and pass to DLON / DLAT.
             ! Ignore if only space.
-            IF ( DUM(LOW:UPP) /= SPC ) THEN
+            IF ( DUM(LOW:UPP) /= HCO_SPC() ) THEN
                READ( DUM(LOW:UPP), * ) DVAL
                IF ( N == 1 ) THEN
                   DLON(M,:,:) = DVAL
@@ -954,7 +977,6 @@
 !
 ! !USES:
 !
-      USE HCO_CHARTOOLS_MOD,     ONLY : HCO_CharMatch
       USE HCO_CONFIG_MOD,        ONLY : Config_GetnSpecies
       USE HCO_CONFIG_MOD,        ONLY : Config_GetSpecNames
 !
@@ -1125,7 +1147,7 @@
 ! !USES:
 !
       USE inquireMod,             ONLY : findfreeLUN
-      USE HCO_CHARTOOLS_MOD,      ONLY : NextCharPos
+      USE HCO_EXTLIST_MOD,        ONLY : GetExtOpt
 !
 ! !ARGUMENTS:
 !
@@ -1142,7 +1164,9 @@
 !
       INTEGER             :: AS, IOS, IU_FILE
       INTEGER             :: I,  N,   LNG, LOW
+      LOGICAL             :: FOUND
       CHARACTER(LEN=255)  :: MSG, LOC, DUM
+      CHARACTER(LEN=255)  :: MyTimeFile 
 
       !=================================================================
       ! READ_TIME begins here
@@ -1150,6 +1174,12 @@
 
       ! For error handling
       LOC = 'READ_TIME (hcoi_standalone_mod.F90)'
+
+      ! Try to get TimeFile from configuration file (in settings)
+      CALL GetExtOpt ( 0, 'TimeFile', OptValChar=MyTimeFile, &
+                       Found=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      IF ( FOUND ) TimeFile = MyTimeFile
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -1172,7 +1202,7 @@
       LNG = LEN(TRIM(DUM))
  
       ! Get index after colon 
-      LOW = NextCharPos ( TRIM(DUM), COL, 1 )
+      LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
       IF ( LOW < 0 .OR. LOW == LNG ) THEN
          MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -1193,7 +1223,7 @@
          RETURN
       ENDIF
       LNG = LEN(TRIM(DUM))
-      LOW = NextCharPos ( TRIM(DUM), COL, 1 )
+      LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
       IF ( LOW < 0 .OR. LOW == LNG ) THEN
          MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )

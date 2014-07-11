@@ -919,6 +919,7 @@
 !
       USE CHARPAK_MOD,        ONLY : STRSPLIT
       USE HCO_FILEDATA_MOD,   ONLY : FileData 
+      USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -971,7 +972,7 @@
 
          ! For wildcard character, set lower and upper limit both to -1.
          ! In this case, the whole time slice will be read into file!
-         IF ( TRIM(SUBSTR(I)) == TRIM(HCO_WILDCARD() ) ) THEN
+         IF ( TRIM(SUBSTR(I)) == TRIM(HCO_WCD() ) ) THEN
             TimeVec(I0:I1) = -1 
 
          ELSEIF ( TRIM(SUBSTR(I)) == 'YYYY' .OR. &

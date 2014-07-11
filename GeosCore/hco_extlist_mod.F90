@@ -3,19 +3,22 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_extlist_mod
+! !MODULE: hco_extlist_mod
 !
-! !DESCRIPTION: Module HCOX\_EXTLIST\_MOD contains routines and
+! !DESCRIPTION: Module HCO\_EXTLIST\_MOD contains routines and
 ! variables to organize HEMCO extensions and the corresponding
-! settings.
-! This is done through the ExtList object, which is a simple list 
-! containing all enabled HEMCO extensions (name and ext. ID) and
-! the corresponding options as defined in the HEMCO configuration
-! file. 
+! settings (options). This is done through the ExtList object, 
+! which is a simple list containing all enabled HEMCO extensions 
+! (name and ext. ID) and the corresponding options, as defined in 
+! the HEMCO configuration file. The general HEMCO settings are 
+! stored as options of the HEMCO core extension (Extension number 
+! = 0). The CORE extension is activated in every HEMCO run, while
+! all other extensions are only activated if enabled in the 
+! configuration file.
 ! \\
 ! !INTERFACE: 
 !
-      MODULE HCOX_EXTLIST_MOD
+      MODULE HCO_EXTLIST_MOD
 !
 ! !USES:
 !
@@ -29,8 +32,8 @@
       PUBLIC :: AddExt
       PUBLIC :: AddExtOpt
       PUBLIC :: GetExtOpt
-      PUBLIC :: GetExtHcoID
       PUBLIC :: GetExtNr 
+      PUBLIC :: GetExtSpcStr
       PUBLIC :: ExtNrInUse
       PUBLIC :: ExtFinal
 !
@@ -44,11 +47,11 @@
 ! !MODULE TYPES/VARIABLES:
 !
       ! Type holding name, species, options and extension number of
-      ! an extensions (as defined in the HEMCO configuration file)
+      ! an extension (as defined in the HEMCO configuration file)
       TYPE Ext 
          CHARACTER(LEN=255)       :: ExtName  ! Name
          CHARACTER(LEN=255)       :: Spcs     ! Species
-         CHARACTER(LEN=1023)      :: Opts     ! Options
+         CHARACTER(LEN=2047)      :: Opts     ! Options
          INTEGER                  :: ExtNr    ! Ext. number
          TYPE(Ext), POINTER       :: NextExt  ! next list item
       END TYPE Ext
@@ -132,7 +135,7 @@
 ! !ROUTINE: AddExtOpt 
 !
 ! !DESCRIPTION: Function AddExtOpt appends the given string to the options
-! character of the desired extension (identified by its extension number.
+! character of the desired extension (identified by its extension number).
 ! The options string is expected to contain an option name and value,
 ! separated by a colon (:).
 ! Function GetExtOpt can be used to extract the option value at a later
@@ -174,7 +177,7 @@
 
       IF ( .NOT. ASSOCIATED( ThisExt ) ) THEN
          WRITE(MSG,*) 'Cannot find extension Nr. ', ExtNr
-         CALL HCO_ERROR(MSG,RC,THISLOC='AddExtOpt (hco_config_mod)')
+         CALL HCO_ERROR(MSG,RC,THISLOC='AddExtOpt (hco_extlist_mod)')
          RETURN
       ENDIF
 
@@ -206,14 +209,17 @@
 !
 ! !DESCRIPTION: Function GetExtOpt returns the option value for a given 
 ! extension and option name. The type of the return value depends on the
-! provided argument (real, boolean, character). 
+! provided argument (real, boolean, character). The optional output
+! argument FOUND returns TRUE if the given option name was found, and 
+! FALSE otherwise. If the FOUND argument is provided, no error is 
+! returned if the option name is not found!
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE GetExtOpt ( ExtNr,      OptName,   OptValSp,   &
                              OptValDp,   OptValInt, OptValBool, &
-                             OptValChar, RC                      )
+                             OptValChar, Found,     RC           )
 !
 ! !USES:
 !
@@ -228,6 +234,7 @@
       INTEGER,          INTENT(  OUT), OPTIONAL  :: OptValInt
       LOGICAL,          INTENT(  OUT), OPTIONAL  :: OptValBool
       CHARACTER(LEN=*), INTENT(  OUT), OPTIONAL  :: OptValChar
+      LOGICAL,          INTENT(  OUT), OPTIONAL  :: Found
       INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
@@ -249,7 +256,7 @@
       !======================================================================
 
       ! Init
-      LOC = 'GetExtOpt (hco_config_mod)'
+      LOC = 'GetExtOpt (hco_extlist_mod)'
 
       ! Find extension of interest 
       ThisExt => ExtList
@@ -278,12 +285,20 @@
 
       ! Do until option name of interest is found
       DO
-         ! Reduce to valid range
+         ! Check for out of range. Error handling depends on presence
+         ! of output argument FOUND.
          IF ( BGN >= STRLEN ) THEN
-            MSG = '(A) Cannot find option ' // TRIM(OptName) // &
-                  ' in ' // TRIM(ThisExt%Opts)
-            CALL HCO_ERROR(MSG,RC,THISLOC=LOC )
-            RETURN
+            IF ( PRESENT(FOUND) ) THEN
+               FOUND   =  .FALSE.
+               ThisExt => NULL()
+               RC      =  HCO_SUCCESS
+               RETURN
+            ELSE
+               MSG = '(A) Cannot find option ' // TRIM(OptName) // &
+                     ' in ' // TRIM(ThisExt%Opts)
+               CALL HCO_ERROR(MSG,RC,THISLOC=LOC )
+               RETURN
+            ENDIF
          ENDIF
 
          ! I denotes the location of next option delimiter.
@@ -327,6 +342,7 @@
             ENDIF
 
             ! Leave loop here
+            IF ( PRESENT(FOUND) ) FOUND = .TRUE.
             EXIT
          ENDIF
 
@@ -348,98 +364,6 @@
       RC = HCO_SUCCESS
 
       END SUBROUTINE GetExtOpt
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: GetExtHcoID 
-!
-! !DESCRIPTION: Subroutine GetExtHcoID returns the HEMCO species IDs and
-! names for all species assigned to the given extension (identified by its
-! extension number).
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GetExtHcoID( HcoState, ExtNr, HcoIDs, &
-                              SpcNames, nSpc,  RC       ) 
-!
-! !USES:
-!
-      USE HCO_STATE_MOD,       ONLY : HCO_State, HCO_GetHcoID
-      USE CHARPAK_MOD,         ONLY : STRSPLIT
-!
-! !ARGUMENTS:
-!
-      TYPE(HCO_State),               POINTER          :: HcoState 
-      INTEGER,                       INTENT(IN   )    :: ExtNr       ! Extension Nr. 
-      INTEGER,          ALLOCATABLE, INTENT(  OUT)    :: HcoIDs(:)   ! Species IDs
-      CHARACTER(LEN=*), ALLOCATABLE, INTENT(  OUT)    :: SpcNames(:) ! Species names
-      INTEGER,                       INTENT(INOUT)    :: nSpc        ! # of species
-      INTEGER,                       INTENT(INOUT)    :: RC 
-!
-! !REVISION HISTORY:
-!  10 Jan 2014 - C. Keller: Initialization (update)
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL ARGUMENTS:
-!
-      INTEGER                   :: I, AS
-      CHARACTER(LEN=255)        :: MSG, LOC, SpcStr, SUBSTR(255)
-      TYPE(Ext), POINTER        :: ThisExt => NULL()
-
-      !======================================================================
-      ! GetExtHcoID begins here
-      !======================================================================
-
-      ! Enter
-      LOC = 'GetExtHcoID (HCO_CONFIG_MOD.F90)'
-
-      ! Find extension of interest 
-      ThisExt => ExtList
-      DO WHILE ( ASSOCIATED ( ThisExt ) ) 
-         IF ( ThisExt%ExtNr == ExtNr ) EXIT 
-         ThisExt => ThisExt%NextExt
-      ENDDO
-
-      IF ( .NOT. ASSOCIATED( ThisExt ) ) THEN
-         WRITE(MSG,*) 'Cannot find extension Nr. ', ExtNr
-         CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-         RETURN
-      ENDIF
-
-      ! Get species string
-      SpcStr  = TRIM(ThisExt%Spcs)
-      ThisExt => NULL()
-
-      ! Split character
-      CALL STRSPLIT( SpcStr, HCO_SEP(), SUBSTR, nSpc )
-      IF ( nSpc == 0 ) RETURN 
-
-      ! Allocate arrays 
-      IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  ) 
-      IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames) 
-      ALLOCATE(HcoIDs(nSpc), SpcNames(nSpc), STAT=AS)
-      IF ( AS/=0 ) THEN
-         CALL HCO_ERROR('HcoIDs Alloc. error', RC, THISLOC=LOC)
-         RETURN
-      ENDIF
-
-      ! Extract species information
-      DO I = 1, nSpc
-         HcoIDs(I)   = HCO_GetHcoID( TRIM(SUBSTR(I)), HcoState )
-         SpcNames(I) = TRIM(SUBSTR(I))
-      ENDDO
-
-      ! Return w/ success
-      RC = HCO_SUCCESS 
-
-      END SUBROUTINE GetExtHcoID 
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
@@ -514,6 +438,70 @@
       ThisExt => NULL()
 
       END FUNCTION GetExtNr 
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: GetExtSpcStr 
+!
+! !DESCRIPTION: Subroutine _GetExtSpcStr returns the HEMCO species names 
+! string of all species assigned to the given extension (identified by its 
+! extension number).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GetExtSpcStr( ExtNr, SpcStr, RC ) 
+!
+! !ARGUMENTS:
+!
+      INTEGER,                       INTENT(IN   )    :: ExtNr  ! Extension Nr. 
+      CHARACTER(LEN=*),              INTENT(  OUT)    :: SpcStr ! Species string
+      INTEGER,                       INTENT(INOUT)    :: RC 
+!
+! !REVISION HISTORY:
+!  10 Jan 2014 - C. Keller: Initialization (update)
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL ARGUMENTS:
+!
+      CHARACTER(LEN=255)        :: MSG, LOC
+      TYPE(Ext), POINTER        :: ThisExt => NULL()
+
+      !======================================================================
+      ! GetExtSpcStr begins here
+      !======================================================================
+
+      ! Enter
+      LOC = 'GetExtSpcStr (HCO_EXTLIST_MOD.F90)'
+      RC  = HCO_SUCCESS
+
+      ! Find extension of interest 
+      ThisExt => ExtList
+      DO WHILE ( ASSOCIATED ( ThisExt ) ) 
+         IF ( ThisExt%ExtNr == ExtNr ) EXIT 
+         ThisExt => ThisExt%NextExt
+      ENDDO
+
+      IF ( .NOT. ASSOCIATED( ThisExt ) ) THEN
+         WRITE(MSG,*) 'Cannot find extension Nr. ', ExtNr
+         CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+         RETURN
+      ENDIF
+
+      ! Get species string
+      SpcStr  = TRIM(ThisExt%Spcs)
+      ThisExt => NULL()
+
+      ! Return w/ success
+      RC = HCO_SUCCESS 
+
+      END SUBROUTINE GetExtSpcStr
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group
@@ -630,5 +618,5 @@
 
       END SUBROUTINE ExtFinal 
 !EOC
-      END MODULE HCOX_EXTLIST_MOD 
+      END MODULE HCO_EXTLIST_MOD 
 !EOM

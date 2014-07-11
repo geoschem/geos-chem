@@ -5,7 +5,10 @@
 ! !MODULE: hco_chartools_mod 
 !
 ! !DESCRIPTION: Module HCO\_CHARTOOLS\_MOD contains a collection of 
-! helper routines to handle character strings.  
+! helper routines to handle character strings. It also contains definitions
+! of special characters, including space, tab, wildcard, separator, colon, 
+! and comment. Some of these characters (wildcard, separator, colon) may be
+! manually set in the settings section of the HEMCO configuration file.
 ! \\
 ! !INTERFACE: 
 !
@@ -24,6 +27,12 @@
       PUBLIC :: HCO_CharMatch
       PUBLIC :: IsInWord
       PUBLIC :: NextCharPos
+      PUBLIC :: HCO_WCD
+      PUBLIC :: HCO_SPC
+      PUBLIC :: HCO_SEP
+      PUBLIC :: HCO_COL
+      PUBLIC :: HCO_CMT
+      PUBLIC :: HCO_TAB
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller - Initialization
@@ -39,6 +48,19 @@
          MODULE PROCEDURE HCO_CharSplit_R4
          MODULE PROCEDURE HCO_CharSplit_INT
       END INTERFACE
+!
+! !MODULE PARAMETER:
+!
+      ! Fixed characters
+      CHARACTER(LEN=1), PARAMETER :: DEF_SPACE     = ' '
+      CHARACTER(LEN=1), PARAMETER :: DEF_TAB       = ACHAR(9)
+      CHARACTER(LEN=1), PARAMETER :: DEF_COMMENT   = '#'
+
+      ! Default values for characters that can be changed 
+      ! through the configuration file
+      CHARACTER(LEN=1), PARAMETER :: DEF_COLON     = ':'
+      CHARACTER(LEN=1), PARAMETER :: DEF_SEPARATOR = '/'
+      CHARACTER(LEN=1), PARAMETER :: DEF_WILDCARD  = '*'
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -450,6 +472,258 @@
       ENDDO
 
       END FUNCTION NextCharPos
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_WCD
+!
+! !DESCRIPTION: Function HCO\_WCD returns the HEMCO WILDCARD character. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HCO_WCD() RESULT( WILDCARD )
+!
+! !USES:
+!
+      USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+!
+! !ARGUMENTS:
+!
+      CHARACTER(LEN=1) :: WILDCARD 
+!
+! !REVISION HISTORY:
+!  23 Sep 2013 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      LOGICAL,          SAVE      :: FIRST = .TRUE.
+      CHARACTER(LEN=1), SAVE      :: WCD
+      LOGICAL                     :: FOUND
+      INTEGER                     :: myRC
+
+      !======================================================================
+      ! HCO_WCD begins here 
+      !======================================================================
+
+      ! On first call, check if WildCard character has been set in settings.
+      ! Use default value otherwise.
+      IF ( FIRST ) THEN 
+         CALL GetExtOpt( 0, 'Wildcard', OptValChar=WCD, Found=FOUND, RC=myRC )
+         IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) WCD = DEF_WILDCARD 
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Return
+      WILDCARD = WCD
+
+      END FUNCTION HCO_WCD
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_SPC
+!
+! !DESCRIPTION: Function HCO\_SPC returns the HEMCO space character. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HCO_SPC() RESULT( SPACE )
+!
+! !ARGUMENTS:
+!
+      CHARACTER(LEN=1) :: SPACE 
+!
+! !REVISION HISTORY:
+!  23 Sep 2013 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !======================================================================
+      ! HCO_SPC begins here 
+      !======================================================================
+
+      ! Return
+      SPACE = DEF_SPACE 
+
+      END FUNCTION HCO_SPC
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_SEP
+!
+! !DESCRIPTION: Function HCO\_SEP returns the HEMCO SEPARATOR character. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HCO_SEP() RESULT( SEPARATOR )
+!
+! !USES:
+!
+      USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+!
+! !ARGUMENTS:
+!
+      CHARACTER(LEN=1) :: SEPARATOR 
+!
+! !REVISION HISTORY:
+!  23 Sep 2013 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      LOGICAL,          SAVE      :: FIRST = .TRUE.
+      CHARACTER(LEN=1), SAVE      :: SEP
+      LOGICAL                     :: FOUND
+      INTEGER                     :: myRC
+
+      !======================================================================
+      ! HCO_SEP begins here 
+      !======================================================================
+
+      ! On first call, check if Separator character has been set in settings.
+      ! Use default value otherwise.
+      IF ( FIRST ) THEN 
+         CALL GetExtOpt( 0, 'Separator', OptValChar=SEP, Found=FOUND, RC=myRC )
+         IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) SEP = DEF_SEPARATOR
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Return wildcard character
+      SEPARATOR = SEP
+
+      END FUNCTION HCO_SEP
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_COL
+!
+! !DESCRIPTION: Function HCO\_COL returns the HEMCO COLON character. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HCO_COL() RESULT( COLON )
+!
+! !USES:
+!
+      USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+!
+! !ARGUMENTS:
+!
+      CHARACTER(LEN=1) :: COLON 
+!
+! !REVISION HISTORY:
+!  23 Sep 2013 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      LOGICAL,          SAVE      :: FIRST = .TRUE.
+      CHARACTER(LEN=1), SAVE      :: COL
+      LOGICAL                     :: FOUND
+      INTEGER                     :: myRC
+
+      !======================================================================
+      ! HCO_COL begins here 
+      !======================================================================
+
+      ! On first call, check if Colon character has been set in settings.
+      ! Use default value otherwise.
+      IF ( FIRST ) THEN 
+         CALL GetExtOpt( 0, 'Colon', OptValChar=COL, Found=FOUND, RC=myRC )
+         IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) COL = DEF_COLON
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Return 
+      COLON = COL
+
+      END FUNCTION HCO_COL
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_CMT
+!
+! !DESCRIPTION: Function HCO\_CMT returns the HEMCO COMMENT character. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HCO_CMT() RESULT( COMMENT )
+!
+! !ARGUMENTS:
+!
+      CHARACTER(LEN=1) :: COMMENT 
+!
+! !REVISION HISTORY:
+!  23 Sep 2013 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !======================================================================
+      ! HCO_CMT begins here 
+      !======================================================================
+
+      ! Return wildcard character
+      COMMENT = DEF_COMMENT 
+
+      END FUNCTION HCO_CMT
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_TAB
+!
+! !DESCRIPTION: Function HCO\_TAB returns the HEMCO TAB character. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION HCO_TAB() RESULT( TAB )
+!
+! !ARGUMENTS:
+!
+      CHARACTER(LEN=1) :: TAB
+!
+! !REVISION HISTORY:
+!  23 Sep 2013 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !======================================================================
+      ! HCO_TAB begins here 
+      !======================================================================
+
+      ! Return
+      TAB = DEF_TAB
+
+      END FUNCTION HCO_TAB
 !EOC
       END MODULE HCO_CHARTOOLS_MOD
 !EOM

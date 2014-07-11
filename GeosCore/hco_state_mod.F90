@@ -36,6 +36,7 @@ MODULE HCO_STATE_MOD
   PUBLIC :: HcoState_Final
   PUBLIC :: HCO_GetModSpcID 
   PUBLIC :: HCO_GetHcoID 
+  PUBLIC :: HCO_GetExtHcoID
 
   !=========================================================================
   ! HEMCO State derived type
@@ -394,6 +395,10 @@ CONTAINS
 !
       FUNCTION HCO_GetModSpcID( name, HcoState ) RESULT( Indx )
 !
+! !USES:
+!
+      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_WCD
+!
 ! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(IN)   :: name         ! Species name
@@ -417,7 +422,7 @@ CONTAINS
       Indx = -1
 
       ! Return 0 if wildcard character
-      IF ( TRIM(name) == HCO_WILDCARD() ) THEN
+      IF ( TRIM(name) == HCO_WCD() ) THEN
          Indx = 0
          RETURN
       ENDIF
@@ -451,6 +456,10 @@ CONTAINS
 !
       FUNCTION HCO_GetHcoID( name, HcoState ) RESULT( Indx )
 !
+! !USES:
+!
+      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_WCD
+!
 ! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(IN)   :: name         ! Species name
@@ -474,7 +483,7 @@ CONTAINS
       Indx = -1
 
       ! Return 0 if wildcard character
-      IF ( TRIM(name) == HCO_WILDCARD() ) THEN
+      IF ( TRIM(name) == HCO_WCD() ) THEN
          Indx = 0
          RETURN
       ENDIF
@@ -490,5 +499,87 @@ CONTAINS
       ENDDO
 
       END FUNCTION HCO_GetHcoID
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_GetExtHcoID 
+!
+! !DESCRIPTION: Subroutine HCO\_GetExtHcoID returns the HEMCO species IDs 
+! and names for all species assigned to the given extension (identified by 
+! its extension number).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, &
+                                  SpcNames, nSpc,  RC       ) 
+!
+! !USES:
+!
+      USE CHARPAK_MOD,         ONLY : STRSPLIT 
+      USE HCO_EXTLIST_MOD,     ONLY : GetExtSpcStr
+      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_SEP
+!
+! !ARGUMENTS:
+!
+      TYPE(HCO_State),               POINTER          :: HcoState 
+      INTEGER,                       INTENT(IN   )    :: ExtNr       ! Extension Nr. 
+      INTEGER,          ALLOCATABLE, INTENT(  OUT)    :: HcoIDs(:)   ! Species IDs
+      CHARACTER(LEN=*), ALLOCATABLE, INTENT(INOUT)    :: SpcNames(:) ! Species names
+      INTEGER,                       INTENT(INOUT)    :: nSpc        ! # of species
+      INTEGER,                       INTENT(INOUT)    :: RC 
+!
+! !REVISION HISTORY:
+!  10 Jan 2014 - C. Keller: Initialization (update)
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL ARGUMENTS:
+!
+      INTEGER                   :: I, AS
+      CHARACTER(LEN=255)        :: MSG, LOC
+      CHARACTER(LEN=255)        :: SpcStr, SUBSTR(255)
+
+      !======================================================================
+      ! HCO_GetExtHcoID begins here
+      !======================================================================
+
+      ! Enter
+      LOC = 'HCO_GetExtHcoID (HCO_STATE_MOD.F90)'
+
+      ! Get all species names belonging to extension Nr. ExtNr
+      CALL GetExtSpcStr ( ExtNr, SpcStr, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Split character
+      CALL STRSPLIT( SpcStr, HCO_SEP(), SUBSTR, nSpc )
+
+      ! Find extension of interest 
+      IF ( nSpc == 0 ) RETURN 
+
+      ! Allocate arrays 
+      IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  ) 
+      IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames) 
+      ALLOCATE(HcoIDs(nSpc), SpcNames(nSpc), STAT=AS)
+      IF ( AS/=0 ) THEN
+         CALL HCO_ERROR('HcoIDs allocation error', RC, THISLOC=LOC)
+         RETURN
+      ENDIF
+
+      ! Extract species information
+      DO I = 1, nSpc
+         SpcNames(I) = SUBSTR(I)
+         HcoIDs(I)   = HCO_GetHcoID( TRIM(SpcNames(I)), HcoState )
+      ENDDO
+
+      ! Return w/ success
+      RC = HCO_SUCCESS 
+
+      END SUBROUTINE HCO_GetExtHcoID 
 !EOC
 END MODULE HCO_STATE_MOD

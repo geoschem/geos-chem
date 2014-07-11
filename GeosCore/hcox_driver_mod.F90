@@ -398,7 +398,6 @@
       USE HcoX_Megan_Mod,      ONLY : HcoX_Megan_Final
       USE HcoX_GFED3_Mod,      ONLY : HcoX_GFED3_Final
       USE HcoX_FINN_Mod,       ONLY : HcoX_FINN_Final
-      USE Hcox_ExtList_Mod,    ONLY : ExtFinal
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -416,9 +415,6 @@
       !=================================================================
       ! HCOX_FINAL begins here!
       !=================================================================
-
-      ! Remove extensions list 
-      CALL ExtFinal
 
       ! Call individual cleanup routines
       IF( ExtState%Custom     ) CALL HcoX_Custom_Final

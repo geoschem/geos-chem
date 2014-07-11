@@ -226,6 +226,7 @@ CONTAINS
     USE HCO_CONFIG_MOD,    ONLY : Config_Cleanup
     USE HCO_DATACONT_MOD,  ONLY : cIDList_Cleanup
     USE HCO_DATACONT_MOD,  ONLY : Reset_nnDataCont
+    USE HCO_EXTLIST_MOD,   ONLY : ExtFinal
 !
 ! !REMARKS:
 !  (1) ConfigFile_Cleanup also cleans up the data containers, while routine
@@ -253,6 +254,8 @@ CONTAINS
     CALL Config_Cleanup   ( .TRUE.  )
     CALL Reset_nnDataCont
 
+    ! Cleanup the extension list object
+    CALL ExtFinal
     ! Close the logfile and cleanup error object. 
     CALL HCO_ERROR_FINAL
 

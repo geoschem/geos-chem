@@ -1794,7 +1794,8 @@
 !
       USE inquireMod,       ONLY : findfreeLUN
       USE HCO_STATE_MOD,    ONLY : HCO_GetHcoID
-      USE HCOX_ExtList_Mod, ONLY : GetExtNr, GetExtHcoID, GetExtOpt
+      USE HCO_STATE_MOD,    ONLY : HCO_GetExtHcoID
+      USE HCO_ExtList_Mod,  ONLY : GetExtNr, GetExtOpt
 !
 ! !ARGUMENTS:
 !
@@ -1858,7 +1859,7 @@
  
       ! Get global scale factor
       ! Get species ID
-      CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+      CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
       IF ( nSpc /= 1 ) THEN
          MSG = 'Lightning NOx module must have only one species!' 

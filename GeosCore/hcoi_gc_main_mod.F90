@@ -1376,7 +1376,8 @@
 
       ! Extract number of HEMCO species and corresponding species names 
       ! as read from the HEMCO config. file.
-      nHcoSpec = Config_GetnSpecies ( ) 
+      nHcoSpec = Config_GetnSpecies ( )
+ 
       CALL Config_GetSpecNames( HcoSpecNames, nHcoSpec, RC )
       IF( RC /= HCO_SUCCESS) RETURN 
 

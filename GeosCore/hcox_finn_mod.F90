@@ -395,8 +395,8 @@
       USE CHARPAK_MOD,            ONLY : STRSPLIT
       USE inquireMod,             ONLY : findfreeLUN
       USE HCO_STATE_MOD,          ONLY : HCO_GetHcoID
-      USE HCOX_ExtList_Mod,       ONLY : GetExtNr
-      USE HCOX_ExtList_Mod,       ONLY : GetExtHcoID, GetExtOpt
+      USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
+      USE HCO_ExtList_Mod,        ONLY : GetExtNr, GetExtOpt
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -690,7 +690,7 @@
       CALL HCO_MSG( MSG )
 
       ! Get HEMCO species IDs of all species specified in configuration file
-      CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+      CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
       IF ( nSpc == 0 ) THEN
          MSG = 'No FINN species specified'

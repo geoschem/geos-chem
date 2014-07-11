@@ -431,8 +431,9 @@
 ! !USE:
 !
       USE HCO_STATE_MOD,          ONLY : HCO_GetHcoID
-      USE HCOX_ExtList_Mod,       ONLY : GetExtNr
-      USE HCOX_ExtList_Mod,       ONLY : GetExtHcoID, GetExtOpt
+      USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
+      USE HCO_ExtList_Mod,        ONLY : GetExtNr
+      USE HCO_ExtList_Mod,        ONLY : GetExtOpt
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -483,7 +484,7 @@
 
       IF ( CalcBr2 ) THEN
          minLen = 3
-         CALL GetExtOpt( ExtNr, 'Br2 scaling', OptValDp=Br2Scale, RC=RC )
+         CALL GetExtOpt( ExtNr, 'Br2 scaling', OptValDp=Br2Scale, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
       ELSE
          minLen   = 2
@@ -492,7 +493,7 @@
       ENDIF
 
       ! Get HEMCO species IDs
-      CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+      CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
       IF ( nSpc < minLen ) THEN
          MSG = 'Not enough sea salt emission species set' 

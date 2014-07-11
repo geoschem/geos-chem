@@ -398,7 +398,8 @@ CONTAINS
        IF ( PRESENT(PREFIX) ) THEN
           Pfx = PREFIX
        ELSE
-          CALL Diagn_GetDiagnPrefix( Pfx )
+          CALL Diagn_GetDiagnPrefix( Pfx, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
        ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
