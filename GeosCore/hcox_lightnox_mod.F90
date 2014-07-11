@@ -1776,11 +1776,6 @@ CONTAINS
     ! Define variables
     !------------------
 
-    ! Get scaling factor to match annual average global flash rate
-    ! (ltm, 09/24/07)
-    CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     ! NNLIGHT is the number of points for the lightnox CDF's
     NNLIGHT = 3200
 
