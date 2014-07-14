@@ -80,8 +80,9 @@ m_netcdf_io_readattr.o	   \
 m_netcdf_io_write.o        \
 ncdf_mod.o
 
-# But compile all of these files
-# Build these files
+# But compile all of these files.  The modules charpak_mod.F and julday_mod.F
+# are needed to build ncdf_mod.F90, but don't need to be added into library
+# libNcUtils.a.  These modules already get packaged into libGeosUtil.a.
 OBJ  :=charpak_mod.o julday_mod.o $(OBJlib)
 
 # Files for standalone test driver (code, object, exe)

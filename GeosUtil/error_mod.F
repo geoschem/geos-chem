@@ -1205,8 +1205,10 @@
 !
 ! !IROUTINE: init_error
 !
-! !DESCRIPTION: Subroutine INIT\_ERROR stores shadow copies of am_I_Root
-!  and Input_Opt.  We need to pass these down to 
+! !DESCRIPTION: Subroutine INIT\_ERROR stores shadow copies of am\_I\_Root
+!  and Input\_Opt.  We need store shadow copies of these variables within
+!  error\_mod.F to compensate for the removal of logical\_mod.F from 
+!  GEOS-Chem.
 !\\
 !\\
 ! !INTERFACE:
@@ -1221,6 +1223,10 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)        :: RC        ! Success or failure?
+!
+! !REMARKS:
+!  Instead of making a copy of Input_Opt, we use a pointer reference.  
+!  This should be more efficient memory-wise.
 !
 ! !REVISION HISTORY:
 !  04 Jan 2010 - R. Yantosca - Initial version
@@ -1248,8 +1254,7 @@
 !
 ! !IROUTINE: init_error
 !
-! !DESCRIPTION: Subroutine INIT\_ERROR stores shadow copies of am_I_Root
-!  and Input_Opt.  We need to pass these down to 
+! !DESCRIPTION: Subroutine CLEANUP\_ERROR finalizes all module variables.
 !\\
 !\\
 ! !INTERFACE:
@@ -1261,7 +1266,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Free the 
+      ! Free the pointer to Input_Opt
       NULLIFY( SHADOW_Input_Opt )
 
       END SUBROUTINE CLEANUP_ERROR

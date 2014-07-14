@@ -69,7 +69,7 @@ include $(ROOTDIR)/Makefile_header.mk
 doc: srcdoc utildoc gtmmdoc makedoc hemcodoc
 
 clean:
-	rm -f *.tex *.ps *.pdf
+	rm -f *.tex *.ps *.pdf *.aux *.dvi *.log *.toc
 
 help:
 	@$(MAKE) -C $(HELPDIR)

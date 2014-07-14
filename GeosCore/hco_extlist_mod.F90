@@ -18,7 +18,7 @@
 ! \\
 ! !INTERFACE: 
 !
-MODULE HCO_EXTLIST_MOD
+MODULE HCO_ExtList_Mod
 !
 ! !USES:
 !
@@ -454,7 +454,7 @@ CONTAINS
 !
 ! !ROUTINE: GetExtSpcStr 
 !
-! !DESCRIPTION: Subroutine _GetExtSpcStr returns the HEMCO species names 
+! !DESCRIPTION: Subroutine GetExtSpcStr returns the HEMCO species names 
 ! string of all species assigned to the given extension (identified by its 
 ! extension number).
 !\\
@@ -632,5 +632,5 @@ CONTAINS
 
   END SUBROUTINE ExtFinal
 !EOC
-END MODULE HCO_EXTLIST_MOD 
+END MODULE HCO_ExtList_Mod 
 !EOM
