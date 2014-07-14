@@ -11,7 +11,7 @@
 ! to run HEMCO in standalone mode, i.e. without any external model connected
 ! to it. All HEMCO input variables (grid, species, times) are read from disk.
 ! Note that for now, it is not possible to use HEMCO extensions that rely on
-! meteorological variables when running HEMCO in standalone mode!\\
+! meteorological variables when running HEMCO in standalone mode.\\
 !\\
 ! Subroutine HCO\_STANDALONE\_RUN will execute the standalone version of 
 ! HEMCO. The following input files are needed for a standalone run:

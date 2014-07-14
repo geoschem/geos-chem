@@ -502,46 +502,30 @@ CONTAINS
     !=======================================================================
     ! Also pass emissions of the last category to output array 
     !=======================================================================
-    SpcFlx(:,:,:) = SpcFlx(:,:,:) + CatFlx(:,:,:)
-    OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
+    IF ( nnSpec > 0 ) THEN
+       SpcFlx(:,:,:) = SpcFlx(:,:,:) + CatFlx(:,:,:)
+       OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
 
-    ! Add CatFlx to diagnostics (if this quantity is specified in
-    ! the diagnostics list) at category and extension number level!
-      
-    ! testing only
-    ! todo: remove
-!     IF ( PrevCat == 20 ) THEN
-!       modid = HcoState%Spc(PrevSpc)%ModID
-!       write(*,*) 'total emissions for cat ', PrevCat, &
-!          ' and spec ', modid, ' (kg/m2/s): ', SUM(CatFlx)
-!     ENDIF
+       ! Diagnostics at category level
+       IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
+          Diag3D => CatFlx
+          CALL Diagn_Update( am_I_Root,   HcoState, ExtNr=ExtNr,   &
+                             Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
+                             AutoFill=1,  Array3D=Diag3D, RC = RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Diag3D => NULL() 
+       ENDIF
 
-    ! Category level
-    IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
-       Diag3D => CatFlx
-       CALL Diagn_Update( am_I_Root,   HcoState, ExtNr=ExtNr,   &
-                          Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                          AutoFill=1,  Array3D=Diag3D, RC = RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       Diag3D => NULL() 
-    ENDIF
-
-    ! Extension number level
-    IF ( Diagn_AutoFillLevelDefined(2) .AND. DoDiagn ) THEN 
-       Diag3D => SpcFlx
-       CALL Diagn_Update( am_I_Root,  HcoState,       ExtNr=ExtNr,   &
-                          Cat=-1,     Hier=-1,        HcoID=PrevSpc, &
-                          AutoFill=1, Array3D=Diag3D, RC = RC         )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       Diag3D => NULL()
-    ENDIF
-
-!    ! verbose mode
-!    IF ( verb ) THEN
-!       write(*,*) 'Emissions array finalized:'
-!       write(*,*) 'Final emissions [kg/m2/s] @',ix,iy,', level 1 :'
-!       write(*,*) OutArr(ix,iy,1)
-!    ENDIF
+       ! Diagnostics at extension number level
+       IF ( Diagn_AutoFillLevelDefined(2) .AND. DoDiagn ) THEN 
+          Diag3D => SpcFlx
+          CALL Diagn_Update( am_I_Root,  HcoState,       ExtNr=ExtNr,   &
+                             Cat=-1,     Hier=-1,        HcoID=PrevSpc, &
+                             AutoFill=1, Array3D=Diag3D, RC = RC         )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Diag3D => NULL()
+       ENDIF
+    ENDIF ! nnSpec > 0
 
     ! Make sure internal pointers are nullified 
     Lct    => NULL()

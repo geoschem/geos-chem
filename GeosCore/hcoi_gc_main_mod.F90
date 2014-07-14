@@ -494,22 +494,11 @@ CONTAINS
        ! end dust mixing 
     ENDIF
 
-    ! testing only
-    write(*,*) 'State_Chm%Trac_Tend NO before MAP_HCO2GC: ', &
-         SUM(State_Chm%Trac_Tend(:,:,:,1))
-
     ! ================================================================
     ! Translate emissions array from HCO state onto GC arrays
     ! This step also converts emissions from kg/m2/s to molec/cm2/s!
     ! ================================================================
     CALL MAP_HCO2GC ( HcoState, Input_Opt, State_Chm, RC )
-     
-    ! testing only
-    HcoDST1 = HCO_GetHcoID( 'NO', HcoState ) 
-    write(*,*) 'NO Trac_Tend after MAP_HCO2GC: ', &
-         SUM(HcoState%Spc(HcoDst1)%Emis%Val)
-    write(*,*) 'State_Chm%Trac_Tend NO after MAP_HCO2GC: ', &
-         SUM(State_Chm%Trac_Tend(:,:,:,1))
 
     ! Reset deposition arrays  
     ! TODO: Do somewhere else? e.g. in drydep/wetdep routines?
