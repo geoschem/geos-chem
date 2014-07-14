@@ -94,8 +94,8 @@ MODULE HCO_Config_Mod
   ! be added to ConfigList
   TYPE(ListCont), POINTER     :: ConfigList => NULL()
 
-  ! # of lines in buffer 
-  INTEGER              :: LinesInBuffer = 0
+  ! Configuration file read or not? 
+  LOGICAL              :: ConfigFileRead = .FALSE. 
 
   !----------------------------------------------------------------
   ! MODULE ROUTINES follow below
@@ -158,8 +158,8 @@ CONTAINS
     RC  = HCO_SUCCESS
     LOC = 'Config_ReadFile (HCO_CONFIG_MOD.F90)'
 
-    ! Leave here if data already in buffer 
-    IF ( LinesInBuffer > 0 ) THEN
+    ! Leave here if configuration file is already read 
+    IF ( ConfigFileRead ) THEN
        RETURN
     ENDIF
 
@@ -250,6 +250,9 @@ CONTAINS
        RETURN 
     ENDIF 
 
+    ! Configuration file is not read
+    ConfigFileRead = .TRUE.
+
     ! Leave w/ success
     RC = HCO_SUCCESS 
 
@@ -302,7 +305,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if configuration file hasn't been read yet! 
-    IF ( LinesInBuffer == 0 ) THEN
+    IF ( .NOT. ConfigFileRead ) THEN
        MSG = 'HEMCO configuration file not read!'
        CALL HCO_ERROR ( MSG, RC ) 
        RETURN
@@ -2265,7 +2268,7 @@ CONTAINS
     ConfigList => NULL()
 
     ! Reset internal variables to default values
-    LinesInBuffer = 0
+    ConfigFileRead = .FALSE. 
 
   END SUBROUTINE Config_Cleanup
 !EOC
@@ -2440,9 +2443,6 @@ CONTAINS
     ! Connect blank container with ConfigList list. 
     NewLct%NextCont => List 
     List            => NewLct
-
-    ! Update number of lines in buffer 
-    LinesInBuffer  = LinesInBuffer + 1
 
     ! Output pointer points to the new container 
     Lct => NewLct 
