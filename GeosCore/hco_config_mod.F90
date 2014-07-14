@@ -30,12 +30,12 @@ MODULE HCO_Config_Mod
 !
 ! !USES:
 !
-  USE HCO_Error_Mod
-  USE HCO_Diagn_Mod
-  USE HCO_FileData_Mod,  ONLY : FileData
-  USE HCO_DataCont_Mod,  ONLY : DataCont, ListCont, SclMax 
-  USE HCO_State_Mod,     ONLY : HCO_State
-  USE HCO_CharTools_Mod, ONLY : HCO_CharSplit
+  USE HCO_ERROR_MOD
+  USE HCO_DIAGN_MOD
+  USE HCO_CHARTOOLS_MOD
+  USE HCO_FILEDATA_MOD,       ONLY : FileData
+  USE HCO_DATACONT_MOD,       ONLY : DataCont, ListCont, SclMax 
+  USE HCO_STATE_MOD,          ONLY : HCO_State
 
   IMPLICIT NONE
   PRIVATE
@@ -52,7 +52,7 @@ MODULE HCO_Config_Mod
 !
 ! !PRIVATE:
 !
-  PRIVATE :: Settings2Buffer
+  PRIVATE :: ReadSettings
   PRIVATE :: ExtSwitch2Buffer
   PRIVATE :: ConfigList_AddCont
   PRIVATE :: Config_ReadLine
@@ -73,36 +73,33 @@ MODULE HCO_Config_Mod
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE TYPES:
+! !MODULE TYPES/ARGUMENTS:
 !
   ! Variables to store (unique) scale factor IDs and species names
   TYPE ScalIDCont
-     INTEGER                     :: ScalID
-     TYPE(ScalIDCont),   POINTER :: NEXT
-  END TYPE ScalIDCont
-
+     INTEGER                   :: ScalID
+     TYPE(ScalIDCont), POINTER :: NEXT
+  END TYPE
   TYPE SpecNameCont
      CHARACTER(LEN=31)           :: SpecName
      TYPE(SpecNameCont), POINTER :: NEXT
-  END TYPE SpecNameCont
+  END TYPE
 
   ! Store unique scale factor IDs and species names in these lists
-  TYPE(ScalIDCont),      POINTER :: ScalIDList   => NULL()
-  TYPE(SpecNameCont),    POINTER :: SpecNameList => NULL()
+  TYPE(ScalIDCont),   POINTER  :: ScalIDList   => NULL()
+  TYPE(SpecNameCont), POINTER  :: SpecNameList => NULL()
 
   ! Linked list w/ all input file information. For every 
   ! line of the input file, a separate data container will 
   ! be added to ConfigList
-  TYPE(ListCont),        POINTER :: ConfigList => NULL()
+  TYPE(ListCont), POINTER     :: ConfigList => NULL()
 
   ! # of lines in buffer 
-  INTEGER                        :: LinesInBuffer = 0
+  INTEGER              :: LinesInBuffer = 0
 
-  ! Define tab, space and comment character
-  CHARACTER(LEN=1)               :: TAB      = ACHAR(9)
-  CHARACTER(LEN=1)               :: SPACE    = ' '
-  CHARACTER(LEN=1)               :: COMMENT  = '#'
-  CHARACTER(LEN=1)               :: COLON    = ':'
+  !----------------------------------------------------------------
+  ! MODULE ROUTINES follow below
+  !----------------------------------------------------------------
 
 CONTAINS
 !EOC
@@ -129,7 +126,7 @@ CONTAINS
 !
     USE inquireMod,       ONLY : findFreeLUN
     USE CharPak_Mod,      ONLY : STRREPL
-    USE HCOX_ExtList_Mod, ONLY : AddExt
+    USE HCO_EXTLIST_MOD,  ONLY : AddExt
 !
 ! !INPUT PARAMETERS:
 !
@@ -159,7 +156,7 @@ CONTAINS
 
     ! Enter
     RC  = HCO_SUCCESS
-    LOC = 'Config_ReadFile (HCO_Config_Mod.F90)'
+    LOC = 'Config_ReadFile (HCO_CONFIG_MOD.F90)'
 
     ! Leave here if data already in buffer 
     IF ( LinesInBuffer > 0 ) THEN
@@ -178,7 +175,12 @@ CONTAINS
        WRITE(*,*) 'Error reading ' // TRIM(ConfigFile)
        RC = HCO_FAIL
        RETURN 
-    ENDIF
+    ENDIF 
+
+    ! Register HEMCO core as extension Nr. 0 (default). The core 
+    ! module is used by all HEMCO simulations, and the overall
+    ! HEMCO settings are stored as options of this extension.
+    CALL AddExt ( 'CORE', 0, 'all' )
 
     ! Loop until EOF 
     DO
@@ -188,21 +190,18 @@ CONTAINS
        IF ( EOF ) EXIT
 
        ! Replace tab characters in LINE (if any) w/ spaces
-       CALL STRREPL( LINE, TAB, SPACE )
+       CALL STRREPL( LINE, HCO_TAB(), HCO_SPC() )
 
        ! Read settings if this is beginning of settings section 
        IF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
 
-          CALL Settings2Buffer( AIR, IU_HCO, EOF, RC )
+          CALL ReadSettings( AIR, IU_HCO, EOF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( EOF ) EXIT
 
        ! Read base emissions. This creates a new data container for each 
        ! base emission field. 
-       ELSE IF ( INDEX ( LINE, 'BEGIN SECTION BASE EMISSIONS' ) > 0 ) THEN
-
-          ! Register HEMCO core as extension Nr. 0 (default).
-          CALL AddExt ( 'CORE', 0, 'all' )
+       ELSEIF ( INDEX ( LINE, 'BEGIN SECTION BASE EMISSIONS' ) > 0 ) THEN
 
           ! Read data and write into container
           CALL Config_ReadCont( AIR, IU_HCO, 1, EOF, RC )
@@ -216,7 +215,7 @@ CONTAINS
           CALL Config_ReadCont( AIR, IU_HCO, 2, EOF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( EOF ) EXIT
-          
+
        ! Read masks. This creates a new data container for each mask 
        ELSE IF ( INDEX ( LINE, 'BEGIN SECTION MASKS' ) > 0 ) THEN
 
@@ -225,7 +224,8 @@ CONTAINS
           IF ( EOF ) EXIT
 
        ! Read extension switches. This registers all enabled extensions.
-       ELSE IF ( INDEX ( LINE, 'BEGIN SECTION EXTENSION SWITCHES' ) > 0 ) THEN
+       ELSE IF ( INDEX ( LINE, &
+                         'BEGIN SECTION EXTENSION SWITCHES' ) > 0 ) THEN
 
           CALL ExtSwitch2Buffer( AIR, IU_HCO, EOF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -233,7 +233,8 @@ CONTAINS
 
        ! Read extension data. This reads the extension data of all 
        ! activated extensions (as base data).
-       ELSE IF ( INDEX ( LINE, 'BEGIN SECTION EXTENSION DATA' ) > 0 ) THEN
+       ELSE IF ( INDEX ( LINE, &
+                         'BEGIN SECTION EXTENSION DATA' ) > 0 ) THEN
 
           CALL Config_ReadCont( AIR, IU_HCO, 1, EOF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -247,7 +248,7 @@ CONTAINS
        WRITE(*,*) 'Error closing ' // TRIM(ConfigFile)
        RC = HCO_FAIL
        RETURN 
-    ENDIF
+    ENDIF 
 
     ! Leave w/ success
     RC = HCO_SUCCESS 
@@ -297,7 +298,7 @@ CONTAINS
     !======================================================================
 
     ! Init
-    CALL HCO_ENTER ( 'SetReadList (HCO_Config_Mod.F90)', RC )
+    CALL HCO_ENTER ( 'SetReadList (HCO_CONFIG_MOD.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if configuration file hasn't been read yet! 
@@ -329,14 +330,14 @@ CONTAINS
     CALL cIDList_Create ( am_I_Root, HcoState, ConfigList, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Don't need internal lists anymore, hence remove
-    CALL ScalID_Cleanup()
-    CALL SpecName_Cleanup()
+    ! Don't need internal lists anymore.
+    CALL ScalID_Cleanup
+    CALL SpecName_Cleanup
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE SetReadList
+  END SUBROUTINE SetReadList 
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -356,7 +357,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCOX_ExtList_Mod, ONLY : ExtNrInUse
+    USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse
     USE HCO_TIDX_Mod,     ONLY : HCO_ExtractTime
     USE HCO_FILEDATA_Mod, ONLY : FileData_Init
 !
@@ -520,7 +521,7 @@ CONTAINS
           ! replaced lateron with the container IDs (in register_base)!
           ! Note: SplitInts is of same lenghth SclMax as Scal_cID.
           ALLOCATE ( Lct%Dct%Scal_cID(SclMax) )
-          CALL HCO_CharSplit( Char1, HCO_SEP(), HCO_WILDCARD(), &
+          CALL HCO_CharSplit( Char1, HCO_SEP(), HCO_WCD(), &
                               SplitInts, N, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Lct%Dct%Scal_cID(1:SclMax) = SplitInts(1:SclMax)
@@ -615,8 +616,8 @@ CONTAINS
           IF ( DctType == 3 ) THEN
                
              ! Extract grid box edges. Need to be four values.
-             CALL HCO_CharSplit ( Char1, HCO_SEP(), HCO_WILDCARD(), & 
-                                    SplitInts, N, RC ) 
+             CALL HCO_CharSplit ( Char1, HCO_SEP(), HCO_WCD(), & 
+                                  SplitInts, N, RC ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( N /= 4 ) THEN
                 MSG = 'Cannot properly read mask coverage: ' // &
@@ -665,7 +666,7 @@ CONTAINS
 ! !USES:
 !
     USE CHARPAK_Mod,        ONLY : STRREPL, STRSPLIT, TRANLC
-    USE HCOX_ExtList_Mod,   ONLY : AddExt, AddExtOpt
+    USE HCO_EXTLIST_MOD,    ONLY : AddExt, AddExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -710,7 +711,7 @@ CONTAINS
        IF ( EOF ) RETURN 
 
        ! Jump to next line if line is commented out
-       IF ( LINE(1:1) == COMMENT ) CYCLE
+       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
 
        ! Exit here if end of section encountered 
        IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) RETURN 
@@ -726,8 +727,8 @@ CONTAINS
        ENDIF
 
        ! Split character string
-       CALL STRREPL ( LINE, TAB,   SPACE     )
-       CALL STRSPLIT( LINE, SPACE, SUBSTR, N ) 
+       CALL STRREPL ( LINE, HCO_TAB(), HCO_TAB() )
+       CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N ) 
 
        ! Jump to next line if this line is empty
        IF ( N <= 1 ) CYCLE
@@ -779,20 +780,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Settings2Buffer
+! !ROUTINE: ReadSettings
 !
-! !DESCRIPTION: Subroutine Settings2Buffer reads the HEMCO settings data 
-! information, evaluates the values and saved them into internal
-! variables (NOT in ConfigList!). 
+! !DESCRIPTION: Subroutine ReadSettings reads the HEMCO settings,
+! stores them as HEMCO core extension options, and also evaluates 
+! some of the values (e.g. to initialize the HEMCO error module).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Settings2Buffer( am_I_Root, IU_HCO, EOF, RC )
+  SUBROUTINE ReadSettings( am_I_Root, IU_HCO, EOF, RC )
 !
 ! !USES:
 !
-    USE CHARPAK_Mod, ONLY : STRREPL, STRSPLIT, TRANLC
+    USE HCO_EXTLIST_MOD,    ONLY : AddExtOpt, GetExtOpt
+    USE CHARPAK_MOD,        ONLY : STRREPL, STRSPLIT, TRANLC
 !
 ! !INPUT PARAMETERS:
 !
@@ -812,20 +814,18 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: I, N
+    INTEGER               :: I, N, POS
     LOGICAL               :: verb, ForceScal, warn, track
     CHARACTER(LEN=255)    :: LINE, LOC
-    CHARACTER(LEN=255)    :: SUBSTR(255) 
     CHARACTER(LEN=255)    :: LogFile
     CHARACTER(LEN=255)    :: DiagnPrefix
-    CHARACTER(LEN=  1)    :: WILDCARD, SEP 
 
     !======================================================================
-    ! Settings2Buffer begins here
+    ! ReadSettings begins here
     !======================================================================
 
     ! Enter
-    LOC = 'Settings2Buffer (HCO_Config_Mod.F90)'
+    LOC = 'ReadSettings (HCO_CONFIG_MOD.F90)'
 
     ! Defaults
     LogFile   = 'HEMCO.log'
@@ -833,6 +833,10 @@ CONTAINS
     track     = .FALSE.
     warn      = .TRUE.
     ForceScal = .TRUE. 
+
+    !-----------------------------------------------------------------------
+    ! Read settings and add them as options to core extensions
+    !-----------------------------------------------------------------------
 
     ! Do until exit 
     DO 
@@ -844,89 +848,59 @@ CONTAINS
        IF ( EOF ) EXIT 
 
        ! Jump to next line if line is commented out
-       IF ( LINE(1:1) == COMMENT ) CYCLE
+       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
 
        ! Exit here if end of section encountered 
        IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) EXIT 
 
-       ! Split character string
-       CALL STRREPL ( LINE, TAB,   SPACE     )
-       CALL STRSPLIT( LINE, COLON, SUBSTR, N ) 
-    
-       ! Jump to next line if this line is empty
-       IF ( N <= 1 ) CYCLE
+       ! Ignore empty lines
+       IF ( TRIM(LINE) == '' ) CYCLE
 
-       ! ---------------------------------------------------------------------
-       ! Check for verbose switch 
-       IF ( INDEX ( SUBSTR(1), 'Verbose' ) > 0 ) THEN
-          CALL TRANLC( TRIM(SUBSTR(2)) )
-          IF ( INDEX( SUBSTR(2), 'true' ) > 0 ) THEN
-             verb = .TRUE.
-          ENDIF
-       ENDIF
+       ! Add this option to HEMCO core (extension 0)
+       CALL AddExtOpt ( TRIM(LINE), 0, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! ---------------------------------------------------------------------
-       ! Extract and set HEMCO logfile 
-       IF ( INDEX ( SUBSTR(1), 'Logfile' ) > 0 ) THEN
-          Logfile = TRIM(ADJUSTL(SUBSTR(2)))
-       ENDIF
-
-       ! ---------------------------------------------------------------------
-       ! Extract and set HEMCO diagnostics prefix
-       IF ( INDEX ( SUBSTR(1), 'DiagnPrefix' ) > 0 ) THEN
-          DiagnPrefix = TRIM(ADJUSTL(SUBSTR(2)))
-          CALL Diagn_SetDiagnPrefix( DiagnPrefix )
-       ENDIF
-
-       ! ---------------------------------------------------------------------
-       ! Extract and set wildchard character 
-       IF ( INDEX ( SUBSTR(1), 'Wildcard' ) > 0 ) THEN
-          WILDCARD = ADJUSTL(SUBSTR(2))
-       ENDIF
-
-       ! ---------------------------------------------------------------------
-       ! Extract and set separator character 
-       IF ( INDEX ( SUBSTR(1), 'Separator' ) > 0 ) THEN
-          SEP = ADJUSTL(SUBSTR(2))
-       ENDIF
-
-       ! ---------------------------------------------------------------------
-       ! Accept unitless scale factors only?
-       IF ( INDEX(SUBSTR(1),'unitless scale factor')>0) THEN
-          CALL TRANLC( TRIM(SUBSTR(2)) )
-          IF ( INDEX ( SUBSTR(2), 'false' ) > 0 ) THEN
-             ForceScal = .FALSE. 
-          ENDIF
-       ENDIF
-
-       ! ---------------------------------------------------------------------
-       ! Show warnings? 
-       IF ( INDEX(SUBSTR(1),'Show warnings')>0) THEN
-          CALL TRANLC( TRIM(SUBSTR(2)) )
-          IF ( INDEX ( SUBSTR(2), 'false' ) > 0 ) THEN
-             warn = .FALSE. 
-          ENDIF
-       ENDIF
-
-       ! ---------------------------------------------------------------------
-       ! track code? 
-       IF ( INDEX(SUBSTR(1),'Track')>0) THEN
-          CALL TRANLC( TRIM(SUBSTR(2)) )
-          IF ( INDEX ( SUBSTR(2), 'true' ) > 0 ) THEN
-             track = .TRUE.
-          ENDIF
-       ENDIF
     ENDDO
 
+    !-----------------------------------------------------------------------
+    ! Extract values to initialize error module and set some further
+    ! HEMCO variables. 
+    !-----------------------------------------------------------------------
+
+    ! Verbose mode?
+    CALL GetExtOpt( 0, 'Verbose', OptValBool=verb, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Logfile to write into
+    CALL GetExtOpt( 0, 'Logfile', OptValChar=Logfile, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Allow only unitless scale factors?
+    CALL GetExtOpt( 0, 'unitless scale factor', &
+                    OptValBool=ForceScal, RC=RC  )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Prompt warnings to logfile? 
+    CALL GetExtOpt( 0, 'Show warnings', OptValBool=warn, RC=RC  )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Track code? 
+    CALL GetExtOpt( 0, 'Track', OptValBool=track, RC=RC  )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If LogFile is equal to wildcard character, set LogFile to asterik 
+    ! character. This will ensure that all output is written to standard
+    ! output!
+    IF ( TRIM(LogFile) == HCO_WCD() ) LogFile = '*'
+
     ! We should now have everything to define the HEMCO error settings
-    CALL HCO_ERROR_SET ( LogFile,   verb, WILDCARD, SEP, &
-                         ForceScal, warn, track,    RC  )
+    CALL HCO_ERROR_SET ( LogFile, verb, ForceScal, warn, track, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE Settings2Buffer
+  END SUBROUTINE ReadSettings
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1014,7 +988,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCOX_ExtList_Mod, ONLY : ExtNrInUse
+    USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse
     USE HCO_STATE_Mod,    ONLY : HCO_GetHcoID
 !
 ! !INPUT PARAMETERS: 
@@ -1168,7 +1142,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCOX_ExtList_Mod,      ONLY : ExtNrInUse
+    USE HCO_EXTLIST_MOD,       ONLY : ExtNrInUse
     USE HCO_READLIST_Mod,      ONLY : ReadList_Set
     USE HCO_DATACONT_Mod,      ONLY : DataCont_Cleanup
     USE HCO_FILEDATA_Mod,      ONLY : FileData_FileRead
@@ -1963,13 +1937,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
-    INTEGER            :: N
-    LOGICAL            :: EOF
-
-    ! Arrays
-    CHARACTER(LEN=255) :: LINE
-    CHARACTER(LEN=255) :: SUBSTR(255) 
+    INTEGER               :: N
+    CHARACTER(LEN=255)    :: LINE
+    CHARACTER(LEN=255)    :: SUBSTR(255) 
+    LOGICAL               :: EOF
 
     !======================================================================
     ! ReadAndSplit_Line begins here 
@@ -2001,14 +1972,14 @@ CONTAINS
     ENDIF
 
     ! Return here with flag = 1 if line is commented 
-    IF ( LINE(1:1) == COMMENT ) THEN
+    IF ( LINE(1:1) == HCO_CMT() ) THEN
        STAT = 1
        RETURN
     ENDIF
 
     ! Split line into columns
-    CALL STRREPL ( LINE, TAB,   SPACE     )
-    CALL STRSPLIT( LINE, SPACE, SUBSTR, N ) 
+    CALL STRREPL ( LINE, HCO_TAB(), HCO_SPC() )
+    CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N ) 
 
     ! Also ignore empty lines 
     IF ( N <= 1 ) THEN
@@ -2029,7 +2000,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(chr1cl), '(a)' ) char1
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! Character 2 
     IF ( chr2cl > 0 ) THEN
@@ -2040,7 +2011,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(chr2cl), '(a)' ) char2
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! Character 3 
     IF ( chr3cl > 0 ) THEN
@@ -2051,7 +2022,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(chr3cl), '(a)' ) char3
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! Character 4 
     IF ( chr4cl > 0 ) THEN
@@ -2062,7 +2033,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(chr4cl), '(a)' ) char4
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! Character 5 
     IF ( chr5cl > 0 ) THEN
@@ -2073,7 +2044,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(chr5cl), '(a)' ) char5
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! Character 6 
     IF ( chr6cl > 0 ) THEN
@@ -2084,7 +2055,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(chr6cl), '(a)' ) char6
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! Character 7 
     IF ( chr7cl > 0 ) THEN
@@ -2095,7 +2066,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(chr7cl), '(a)' ) char7
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! Character 8 
     IF ( chr8cl > 0 ) THEN
@@ -2106,7 +2077,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(chr8cl), '(a)' ) char8
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! Character 9 
     IF ( chr9cl > 0 ) THEN
@@ -2117,7 +2088,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(chr9cl), '(a)' ) char9
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! ---------------------------------------------------------------------
     ! Read integers as specified and write them into given variables 
@@ -2132,7 +2103,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(int1cl), * ) int1 
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! Integer 2 
     IF ( int2cl > 0 ) THEN
@@ -2143,7 +2114,7 @@ CONTAINS
        ELSE
           READ( SUBSTR(int2cl), * ) int2
        ENDIF
-    ENDIF
+    ENDIF 
 
     ! Integer 3 
     IF ( int3cl > 0 ) THEN
@@ -2289,7 +2260,12 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    CALL ListCont_Cleanup( ConfigList, RemoveDct )
+    ! Clean up Config list
+    CALL ListCont_Cleanup ( ConfigList, RemoveDct )
+    ConfigList => NULL()
+
+    ! Reset internal variables to default values
+    LinesInBuffer = 0
 
   END SUBROUTINE Config_Cleanup
 !EOC
@@ -2631,11 +2607,8 @@ CONTAINS
 !
 ! !LOCAL ARGUMENTS:
 !
-    ! Pointers
     TYPE(SpecNameCont), POINTER  :: NewSpecNameCont => NULL()
     TYPE(SpecNameCont), POINTER  :: TmpSpecNameCont => NULL() 
-
-    ! Scalars
     LOGICAL                      :: IsInList
 
     !======================================================================
@@ -2643,7 +2616,7 @@ CONTAINS
     !======================================================================
 
     ! Ignore if wildcard character. These fields will always be used!
-    IF ( TRIM(SpecName) == TRIM(HCO_WILDCARD() ) ) THEN
+    IF ( TRIM(SpecName) == TRIM(HCO_WCD() ) ) THEN
        RC = HCO_SUCCESS
        RETURN
     ENDIF
@@ -2779,7 +2752,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMTERS:
 !
-    CHARACTER(LEN=*), INTENT(  OUT)   :: SpecNames(nSpecies)
+    CHARACTER(LEN=*), POINTER         :: SpecNames(:)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2827,7 +2800,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),  INTENT(  OUT), OPTIONAL :: SpecNames(N)
+    CHARACTER(LEN=*),  POINTER,       OPTIONAL    :: SpecNames(:)
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -2838,16 +2811,35 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Pointers
     TYPE(SpecNameCont), POINTER  :: TmpSpecNameCont => NULL() 
+    INTEGER                      :: AS
 
     !======================================================================
     ! Config_GetSpecAttr begins here
     !======================================================================
 
+    ! Eventually allocate pointer
+    IF ( PRESENT(SpecNames) ) THEN
+       IF ( .NOT. ASSOCIATED(SpecNames) ) THEN
+          IF ( N <= 0 ) THEN
+             CALL HCO_ERROR ( 'Cannot allocate SpecNames', RC )
+             RETURN
+          ENDIF
+          ALLOCATE(SpecNames(N), STAT=AS )
+          IF ( AS/= 0 ) THEN
+             CALL HCO_ERROR ( 'SpecNames allocation error', RC )
+             RETURN
+          ENDIF
+          SpecNames(:) = ''
+       ELSEIF ( SIZE(SpecNames) /= N ) THEN
+          CALL HCO_ERROR ( 'SpecNames size error', RC )
+          RETURN
+       ENDIF
+    ENDIF
+ 
     ! Init
     N = 0
-   
+  
     ! Loop over entire list. Count number of containers and eventually
     ! write out the species names. 
     TmpSpecNameCont => SpecNameList
@@ -2855,7 +2847,7 @@ CONTAINS
        N = N + 1
        IF ( PRESENT(SpecNames) ) THEN
           SpecNames(N) = TRIM(TmpSpecNameCont%SpecName)
-       ENDIF
+       ENDIF 
        TmpSpecNameCont => TmpSpecNameCont%NEXT
     ENDDO
 

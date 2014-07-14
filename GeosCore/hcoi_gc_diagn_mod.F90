@@ -31,7 +31,6 @@ MODULE HCOI_GC_DIAGN_MOD
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: HCOI_DIAGN_INIT
-  PUBLIC :: HCOI_DIAGN_UPDATE
   PUBLIC :: HCOI_DIAGN_WRITEOUT
 !
 ! !REMARKS:
@@ -48,12 +47,6 @@ MODULE HCOI_GC_DIAGN_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-#if defined( DEBUG ) 
-  LOGICAL :: DoDiagn = .TRUE.    ! For now, turn diags on when debugging
-#else
-  LOGICAL :: DoDiagn = .FALSE.   ! Default: turn diags off
-#endif      
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -104,9 +97,6 @@ CONTAINS
     ! Init 
     LOC = 'HCOI_DIAGN_INIT (hcoi_gc_diagn_mod.F90)'
     RC  = HCO_SUCCESS
-
-    ! Toggle for testing
-    IF ( DoDiagn ) THEN
 
        !=================================================================
        ! Define manual diagnostics (no AutoFill)
@@ -254,108 +244,10 @@ CONTAINS
 !                           RC        = RC ) 
 !       IF ( RC /= HCO_SUCCESS ) RETURN 
 
-      ! Toggle for testing
-    ENDIF
-
     ! Leave w/ success
     RC = HCO_SUCCESS 
 
   END SUBROUTINE HCOI_Diagn_Init
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HCOI_Diagn_Update
-!
-! !DESCRIPTION: Subroutine HCOI\_Diagn\_Update updates the AutoFill
-! diagnostics at species level. This routine should be called after
-! running HEMCO core and all extensions. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE HCOI_DIAGN_Update( am_I_Root, HcoState, RC ) 
-!
-! !USES:
-!
-    USE HCO_State_Mod, ONLY : HCO_GetHcoID
-    USE HCO_State_Mod, ONLY : HCO_State
-
-    ! temp only
-    USE HCO_Arr_Mod,   ONLY : HCO_ArrAssert
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
-!
-! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller   - Initial version 
-!  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=255)        :: MSG, LOC
-    INTEGER                   :: I, tmpID
-    REAL(hp), POINTER         :: Arr3D(:,:,:) => NULL()
-    REAL(hp), POINTER         :: Arr2D(:,:)   => NULL()
-
-    !=================================================================
-    ! HCOI_DIAGN_UPDATE begins here!
-    !=================================================================
-
-    ! Init 
-    LOC = 'HCOI_DIAGN_UPDATE (hcoi_gc_diagn_mod.F90)'
-    RC  = HCO_SUCCESS
-
-    ! Toggle for testing
-    IF ( DoDiagn ) THEN
-
-       ! ================================================================
-       ! Manual diagnostics: update all diagnostics defined above 
-       ! ================================================================
-
-!       tmpID   = HCO_GetHcoID ( 'NO', HcoState )
-!       Arr2D => HcoState%Spc(tmpID)%Emis%Val(:,:,1)
-!       CALL Diagn_Update ( am_I_Root, HcoState, cName = 'NOtotal', &
-!                           Array2D = Arr2D, RC = RC )
-!       IF ( RC/= HCO_SUCCESS ) RETURN 
-!       Arr2D => NULL()
-
-       ! ================================================================
-       ! AutoFill diagnostics: only write diagnostics at species level
-       ! (level 1). Higher level diagnostics have been written in the
-       ! respective subroutines (hco_calc & extension modules). 
-       ! ================================================================
-       DO I = 1, HcoState%nSpc
-          IF ( ASSOCIATED(HcoState%Spc(I)%Emis) ) THEN
-             IF ( ASSOCIATED(HcoState%Spc(I)%Emis%Val) ) THEN
-                Arr3D => HcoState%Spc(I)%Emis%Val
-                CALL Diagn_Update( am_I_Root,  HcoState, ExtNr=-1, &
-                                   Cat=-1,     Hier=-1,  HcoID=I,  &
-                                   AutoFill=1, Array3D=Arr3D, RC=RC ) 
-                IF ( RC/= HCO_SUCCESS ) RETURN 
-                Arr3D => NULL() 
-             ENDIF
-          ENDIF
-       ENDDO
-
-    ENDIF
-
-    ! Return
-    RC = HCO_SUCCESS
-
-  END SUBROUTINE HCOI_DIAGN_UPDATE
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -444,9 +336,6 @@ CONTAINS
     RC  = HCO_SUCCESS
     CNT = 0
 
-    ! Toggle for testing
-    IF ( DoDiagn ) THEN
-
        ! Inherit data precision from HEMCO
        Prc = HP
  
@@ -513,7 +402,8 @@ CONTAINS
        IF ( PRESENT(PREFIX) ) THEN
           Pfx = PREFIX
        ELSE
-          CALL Diagn_GetDiagnPrefix( Pfx )
+          CALL Diagn_GetDiagnPrefix( Pfx, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
        ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
@@ -619,9 +509,6 @@ CONTAINS
        ! Cleanup
        deallocate(Arr3D,Arr4D)
        ThisDiagn => NULL()
-
-       ! Toggle for testing
-    ENDIF
 
     ! Return 
     RC = HCO_SUCCESS

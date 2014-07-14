@@ -80,7 +80,8 @@ CONTAINS
 ! !USES:
 !
     USE HCO_TIDX_MOD,      ONLY : tIDx_Assign 
-    USE HCO_DATACONT_MOD,  ONLY : ListCont_Find, DataCont_Print
+    USE HCO_DATACONT_MOD,  ONLY : ListCont_Find
+    USE HCO_LOGFILE_MOD,   ONLY : HCO_PrintDataCont
 !
 ! !INPUT PARAMETERS:
 !
@@ -98,22 +99,19 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
+! !LOCAL ARGUMENTS:
 !
-    ! Pointers
-    TYPE(ListCont), POINTER :: Lct => NULL()
-
-    ! Scalars
-    LOGICAL                 :: FOUND, VERBOSE, NEW 
-    CHARACTER(LEN=255)      :: MSG
-    CHARACTER(LEN= 31)      :: TempRes
+    TYPE(ListCont), POINTER                 :: Lct => NULL()
+    LOGICAL                                 :: FOUND, VERBOSE, NEW 
+    CHARACTER(LEN=255)                      :: MSG
+    CHARACTER(LEN= 31)                      :: TempRes
 
     !======================================================================
     ! EmisList_Add begins here!
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ('EmisList_Add (hco_emisslist_mod.F90)', RC )
+    CALL HCO_ENTER ('EmisList_Add (HCO_EMISLL_MOD.F90)', RC )
     IF(RC /= HCO_SUCCESS) RETURN
 
     ! Set verbose flag
@@ -123,9 +121,9 @@ CONTAINS
     ! Nothing to do if it's not a new container, i.e. if container 
     ! already exists in EmisList. 
     ! ----------------------------------------------------------------
-    CALL ListCont_Find( EmisList, Dct%cID, 0, FOUND, Lct )
+    CALL ListCont_Find ( EmisList, Dct%cID, 0, FOUND, Lct )
     IF ( FOUND ) THEN
-       CALL HCO_LEAVE( RC )
+       CALL HCO_LEAVE ( RC )
        RETURN
     ENDIF
 
@@ -145,14 +143,14 @@ CONTAINS
     ! corresponding 'HOURLY' or 'HOURLY_GRID' time index collection 
     ! type defined in hco\_tidx\_mod. 
     ! ----------------------------------------------------------------
-    CALL tIDx_Assign( HcoState, Lct, RC )
+    CALL tIDx_Assign ( HcoState, Lct, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
     ! Add the new container to EmisList. The container will be placed
     ! according to data type, species ID, hierarchy, and category. 
     ! ----------------------------------------------------------------
-    CALL Add2EmisList( Lct, RC )
+    CALL Add2EmisList ( Lct, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -161,11 +159,11 @@ CONTAINS
     IF ( VERBOSE ) THEN
        MSG = 'Container added to EmisList:'
        CALL HCO_MSG(MSG,SEP1='-')
-       CALL DataCont_Print( Lct%Dct, VERBOSE )
+       CALL HCO_PrintDataCont( Lct%Dct, VERBOSE )
     ENDIF
 
     ! Leave w/ success
-    CALL HCO_LEAVE( RC )
+    CALL HCO_LEAVE ( RC )
 
   END SUBROUTINE EmisList_Add
 !EOC
@@ -371,7 +369,11 @@ CONTAINS
     !======================================================================
 
     ! Cleanup EmisList
-    CALL ListCont_Cleanup( EmisList, RemoveDct )
+    CALL ListCont_Cleanup ( EmisList, RemoveDct )
+    EmisList => NULL()
+
+    ! Reset number of container in EmisList
+    nnEmisCont = 0
 
   END SUBROUTINE EmisList_Cleanup
 !EOC

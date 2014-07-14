@@ -143,10 +143,10 @@ CONTAINS
     HcoState%Options%CatMax = -1
     HcoState%Options%ExtNr  = ExtNr 
 
-      ! --> Define array to write emissions into. ShipNO is reset to
-      ! zero within subroutine EVOLVE_PLUME, so no need to do this
-      ! here.
-!      ShipNO                      = 0.0d0
+    ! --> Define array to write emissions into. ShipNO is reset to
+    ! zero within subroutine EVOLVE_PLUME, so no need to do this
+    ! here.
+!    ShipNO                      = 0.0d0
     HcoState%Options%AutoFillDiagn = .FALSE.
     HcoState%Options%FillBuffer    =  .TRUE.
     HcoState%Buffer3D%Val          => ShipNO 
@@ -388,6 +388,10 @@ CONTAINS
           write(*,*) 'NOmolec: ', NOmolec
           write(*,*) 'NO2molec: ', NO2molec
           write(*,*) 'AIRmolec: ', AIRmolec
+          write(*,*) 'O3molec (molec): ', O3molec*1000*6.022e23
+          write(*,*) 'NOmolec (molec): ', NOmolec*1000*6.022e23
+          write(*,*) 'NO2molec (molec): ', NO2molec*1000*6.022e23
+          write(*,*) 'AIRmolec (molec): ', AIRmolec*1000*6.022e23
           write(*,*) 'JO1D    : ', JO1D 
           write(*,*) 'JNO2    : ', JNO2 
           write(*,*) 'SUNCOSmid5:' , SUNCOSmid5
@@ -408,15 +412,6 @@ CONTAINS
           ! Unit: kg/m2/s 
           FLUXNO(I,J) = ShipNoEmis(I,J,1) * FRACTION_NOx
 
-!            ! Add to flux array
-!            if ( add2hemco ) then
-!            CALL HCO_EmisAdd ( HcoState, FLUXNO, IDTNO, I, J, 1, RC ) 
-!            IF ( RC /= HCO_SUCCESS ) THEN
-!               ERR = .TRUE.
-!               EXIT
-!            ENDIF 
-!            endif
-
           ! testing only
           if ( i==ix .and. j==jx ) then
              write(*,*) 'FLUXNO [kg/m2/s]: ', FLUXNO(I,J)
@@ -433,15 +428,6 @@ CONTAINS
           ! is converted to HNO3 during plume dilution and chemistry. 
           ! Unit: kg/m2/s 
           FLUXHNO3(I,J) = ShipNoEmis(I,J,1) * ( 1d0 - FRACTION_NOx )
-
-!            ! Add to flux array 
-!            if ( add2hemco ) then
-!            CALL HCO_EmisAdd ( HcoState, FLUXHNO3, IDTHNO3, I,J,1, RC ) 
-!            IF ( RC /= HCO_SUCCESS ) THEN
-!               ERR = .TRUE.
-!               EXIT
-!            ENDIF 
-!            endif
 
           ! testing only
           if ( i==ix .and. j==jx ) then
@@ -471,12 +457,6 @@ CONTAINS
           IF ( iFlx >= 0d0 ) THEN
              FLUXO3(I,J) = iFlx
 
-!               CALL HCO_EmisAdd ( HcoState, FLUXO3, IDTO3, I,J,1, RC )
-!               IF ( RC /= HCO_SUCCESS ) THEN
-!                  ERR = .TRUE.
-!                  EXIT
-!               ENDIF 
-
           ! For negative fluxes, calculate deposition velocity based
           ! on current surface O3 concentration and pass to deposition
           ! array
@@ -493,12 +473,6 @@ CONTAINS
              if ( i==ix .and. j==jx ) then
                 write(*,*) 'O3 deposition [m/s]: ', DEPO3(I,J) 
              endif
-
-!               CALL HCO_DepvAdd ( HcoState, FLUXO3, IDTO3, I,J, RC )
-!               IF ( RC /= HCO_SUCCESS ) THEN
-!                  ERR = .TRUE.
-!                  EXIT
-!               ENDIF 
 
           ENDIF
 !        endif  
@@ -713,9 +687,9 @@ CONTAINS
 ! !USES:
 !
    USE HCO_State_MOD,     ONLY : HCO_GetHcoID
-   USE HCOX_ExtList_Mod,  ONLY : GetExtNr
-   USE HCOX_ExtList_Mod,  ONLY : GetExtHcoID
-   USE HCOX_ExtList_Mod,  ONLY : GetExtOpt
+   USE HCO_STATE_MOD,     ONLY : HCO_GetExtHcoID
+   USE HCO_ExtList_Mod,   ONLY : GetExtNr
+   USE HCO_ExtList_Mod,   ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -772,7 +746,8 @@ CONTAINS
    ! ---------------------------------------------------------------------- 
 
    ! Get HEMCO species IDs
-   CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+   CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+
    IF ( RC /= HCO_SUCCESS ) RETURN
    IF ( nSpc /= 4 ) THEN
       MSG = 'Four species (NO/NO2/O3/HNO3) expected for ParaNOx!'

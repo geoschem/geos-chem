@@ -92,14 +92,13 @@ MODULE HCO_DataCont_Mod
 !
   PUBLIC  :: DataCont_Init
   PUBLIC  :: DataCont_Cleanup 
-  PUBLIC  :: DataCont_Print
   PUBLIC  :: cIDList_Create
   PUBLIC  :: cIDList_Cleanup
   PUBLIC  :: Pnt2DataCont
   PUBLIC  :: ListCont_NextCont 
   PUBLIC  :: ListCont_Find
   PUBLIC  :: ListCont_Cleanup 
-  PUBLIC  :: ListCont_Print
+  PUBLIC  :: Reset_nnDataCont
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -234,7 +233,7 @@ CONTAINS
   END SUBROUTINE DataCont_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -302,7 +301,7 @@ CONTAINS
   END SUBROUTINE DataCont_CleanUp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -357,10 +356,41 @@ CONTAINS
 
        ! Advance
        TmpLct => NxtLct
+    ENDDO 
 
-    ENDDO
+    ! Nullify pointers
+    TmpLct => NULL()
+    NxtLct => NULL()
+    List   => NULL()
 
-  END SUBROUTINE ListCont_Cleanup
+  END SUBROUTINE ListCont_Cleanup 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Reset_nnDataCont 
+!
+! !DESCRIPTION: Subroutine Reset\_nnDataCont resets the nnDataCont variable
+! to zero. This is used for a proper cleanup of a HEMCO run.
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Reset_nnDataCont
+!
+! !ARGUMENTS:
+!
+! !REVISION HISTORY:
+!  19 Dec 2013 - C. Keller: Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+    nnDataCont = 0
+
+  END SUBROUTINE Reset_nnDataCont
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -510,11 +540,12 @@ CONTAINS
 
     ! Remove links to all containers 
     IF ( ASSOCIATED ( cIDList ) ) THEN
-       DO I = 1, nnDataCont
-          cIDList(I)%PNT => NULL()
-       ENDDO
-       DEALLOCATE( cIDList )
+      DO I = 1, nnDataCont
+        cIDList(I)%PNT => NULL()
+      ENDDO
+      DEALLOCATE( cIDList )
     ENDIF
+    cIDList => NULL()
 
   END SUBROUTINE cIDList_Cleanup
 !EOC
@@ -797,189 +828,5 @@ CONTAINS
 
   END SUBROUTINE ListCont_Find_ID
 !EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: ListCont_Print
-!
-! !DESCRIPTION: Subroutine ListCont\_Print displays the content of List. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE ListCont_Print( List, Verbose )
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(ListCont), POINTER    :: List
-    LOGICAL,        INTENT(IN) :: Verbose
-!
-! !REVISION HISTORY:
-!  20 Apr 2013 - C. Keller - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    TYPE(ListCont), POINTER :: TmpLct => NULL()
-    CHARACTER(LEN=255)      :: MSG 
-
-    ! ================================================================
-    ! ListCont_Print begins here
-    ! ================================================================
-
-    ! Point to first element
-    TmpLct => List
-    DO WHILE ( ASSOCIATED(TmpLct) ) 
-       IF ( ASSOCIATED(TmpLct%Dct) ) THEN
-          CALL DataCont_Print(TmpLct%Dct,Verbose)
-       ENDIF
-       TmpLct => TmpLct%NextCont
-    ENDDO
-
-    TmpLct => NULL()
-
-  END SUBROUTINE ListCont_Print
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: DataCont_Print
-!
-! !DESCRIPTION: Subroutine DataCont\_Print displays the content of Dct. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DataCont_Print( Dct, Verbose )
-!
-! !INPUT ARGUMENTS:
-!
-    TYPE(DataCont), POINTER    :: Dct
-    LOGICAL,        INTENT(IN) :: Verbose
-!
-! !REVISION HISTORY:
-!  20 Apr 2013 - C. Keller - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=255) :: MSG 
-    INTEGER            :: nx, ny, nz, nt      
-    REAL*8             :: sm
-
-    ! ================================================================
-    ! DataCont_Print begins here
-    ! ================================================================
- 
-    nx = 0 
-    ny = 0
-    nz = 0
-    nt = Dct%Dta%nt
-    IF ( nt > 0 ) THEN
-       IF ( Dct%Dta%spaceDim<=2 ) THEN
-          IF ( ASSOCIATED(Dct%Dta%V2) ) THEN
-             nx = SIZE(Dct%Dta%V2(1)%Val,1)
-             ny = SIZE(Dct%Dta%V2(1)%Val,2)
-             sm = SUM(Dct%Dta%V2(1)%Val)
-          ENDIF
-       ELSE
-          IF ( ASSOCIATED(Dct%Dta%V3) ) THEN
-             nx = SIZE(Dct%Dta%V3(1)%Val,1)
-             ny = SIZE(Dct%Dta%V3(1)%Val,2)
-             nz = SIZE(Dct%Dta%V3(1)%Val,3)
-             sm = SUM(Dct%Dta%V3(1)%Val)
-          ENDIF
-       ENDIF
-    ENDIF
-
-    ! Always print name 
-    MSG = 'Container ' // TRIM(Dct%cName)
-    CALL HCO_MSG(MSG)
-
-    ! Eventually add details
-    IF ( verbose ) THEN
-
-       ! General information
-       write(MSG,*) '   -->Data type       : ', Dct%DctType
-       CALL HCO_MSG(MSG)
-       write(MSG,*) '   -->Container ID    : ', Dct%cID
-       CALL HCO_MSG(MSG)
-       write(MSG,*) '   -->Target ID       : ', Dct%targetID
-       CALL HCO_MSG(MSG)
-       write(MSG,*) '   -->File data home?   ', Dct%DtaHome
-       CALL HCO_MSG(MSG)
-       write(MSG,*) '   -->Source file     : ', TRIM(Dct%Dta%ncFile)
-       CALL HCO_MSG(MSG)
-       write(MSG,*) '   -->ncRead?           ', Dct%Dta%ncRead
-       CALL HCO_MSG(MSG)
-       write(MSG,*) '   -->Shared data file? ', Dct%Dta%DoShare
-       CALL HCO_MSG(MSG)
-       IF ( Dct%Dta%ncRead ) THEN
-          write(MSG,*) '   -->Source parameter: ', TRIM(Dct%Dta%ncPara)
-          CALL HCO_MSG(MSG)
-          write(MSG,*) '   -->Year range      : ', Dct%Dta%ncYrs 
-          CALL HCO_MSG(MSG)
-          write(MSG,*) '   -->Month range     : ', Dct%Dta%ncMts 
-          CALL HCO_MSG(MSG)
-          write(MSG,*) '   -->Day range       : ', Dct%Dta%ncDys 
-          CALL HCO_MSG(MSG)
-          write(MSG,*) '   -->Hour range      : ', Dct%Dta%ncHrs 
-          CALL HCO_MSG(MSG)
-          write(MSG,*) '   -->SpaceDim        : ', Dct%Dta%SpaceDim
-          CALL HCO_MSG(MSG)
-       ENDIF
-       IF ( NZ > 0 ) THEN
-          write(MSG,*) '   -->Array dimension : ', nx,ny,nz
-       ELSE
-          write(MSG,*) '   -->Array dimension : ', nx,ny
-       ENDIF
-       CALL HCO_MSG(MSG)
-       write(MSG,*) '   -->Array sum       : ', sm 
-       CALL HCO_MSG(MSG)
-       write(MSG,*) '   -->Time dimension  : ', nt 
-       CALL HCO_MSG(MSG)
-       write(MSG,*) '   -->Delta t[h]      : ', Dct%Dta%DeltaT
-       CALL HCO_MSG(MSG)
-       IF ( ASSOCIATED(Dct%Dta%tIDx) ) THEN
-          write(MSG,*) '   -->Tempres         : ', &
-               TRIM(Dct%Dta%tIDx%TempRes)
-          CALL HCO_MSG(MSG)
-       ENDIF
-       write(MSG,*) '   -->OrigUnit        : ',TRIM(Dct%Dta%OrigUnit)
-       CALL HCO_MSG(MSG)
-       write(MSG,*) '   -->Coverage        : ', Dct%Dta%Cover
-       CALL HCO_MSG(MSG)
-
-       ! For base emissions
-       IF ( Dct%DctType==1 ) THEN
-          write(MSG,*) '   -->Extension Nr    : ', Dct%ExtNr
-          CALL HCO_MSG(MSG)
-          write(MSG,*) '   -->Species name    : ',TRIM(Dct%SpcName)
-          CALL HCO_MSG(MSG)
-          write(MSG,*) '   -->HEMCO species ID: ', Dct%HcoID
-          CALL HCO_MSG(MSG)
-          write(MSG,*) '   -->Category        : ', Dct%Cat
-          CALL HCO_MSG(MSG)
-          write(MSG,*) '   -->Hierarchy       : ', Dct%Hier
-          CALL HCO_MSG(MSG)
-
-          ! For scale factors
-       ELSEIF ( Dct%DctType>1 ) THEN
-          write(MSG,*) '   -->Scal ID         : ', Dct%ScalID
-          CALL HCO_MSG(MSG)
-          write(MSG,*) '   -->Operator        : ', Dct%Oper
-          CALL HCO_MSG(MSG)
-       ENDIF
-    ENDIF
-
-  END SUBROUTINE DataCont_Print
-!EOC
-END MODULE HCO_DataCont_Mod
+END MODULE HCO_DATACONT_MOD
+!EOM

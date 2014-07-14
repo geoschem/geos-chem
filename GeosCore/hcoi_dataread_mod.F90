@@ -452,7 +452,7 @@ CONTAINS
     ELSE
        Flag = HCO_UNIT_SCALCHECK( ncUnit )
        MSG = 'Scale factor does not appear to be unitless: ' // & 
-            TRIM(Lct%Dct%Dta%ncFile)
+             TRIM(Lct%Dct%Dta%ncFile)
        IF ( Flag == 1 ) THEN
           CALL HCO_WARNING( MSG, RC )
        ELSEIF ( Flag == 2 ) THEN
@@ -464,12 +464,15 @@ CONTAINS
              CALL HCO_WARNING( MSG, RC )
           ENDIF
        ENDIF
-       
+
     ENDIF
 
     !-----------------------------------------------------------------
     ! Regrid onto emissions grid 
     !-----------------------------------------------------------------
+
+    ! Messy toggle
+    if ( .true. ) then
 
     ! Get input grid edges from netCDF file 
     ! Note: use error syntax from ncdf_mod!
@@ -523,13 +526,22 @@ CONTAINS
     ENDDO !L
     ENDDO !T
 
+
+    !-----------------------------------------------------------------
+    ! Use messy regridding
+    !-----------------------------------------------------------------
+    else
+!       CALL HCO_MESSY_NCREGRID ( am_I_Root, HcoState, Lct, RC )
+!       IF ( RC /= HCO_SUCCESS ) RETURN 
+    endif
+
     !-----------------------------------------------------------------
     ! Cleanup and leave 
     !-----------------------------------------------------------------
     IF ( ASSOCIATED(ncArr    ) ) DEALLOCATE ( ncArr    )
     IF ( ALLOCATED (XEDGE_IN ) ) DEALLOCATE ( XEDGE_IN )
     IF ( ALLOCATED (YSIN_IN  ) ) DEALLOCATE ( YSIN_IN  )
-    
+
     ! Return w/ success
     CALL HCO_LEAVE ( RC ) 
 

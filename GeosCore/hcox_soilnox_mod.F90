@@ -526,7 +526,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCOX_ExtList_Mod, ONLY : GetExtNr, GetExtHcoID, GetExtOpt
+    USE HCO_ExtList_Mod,        ONLY : GetExtNr, GetExtOpt
+    USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
 !
 ! !ARGUMENTS:
 !
@@ -578,7 +579,7 @@ CONTAINS
     FERT_SCALE = HCOX_SoilNOx_GetFertScale()
  
     ! Get HEMCO species IDs
-    CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+    CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( nSpc /= 1 ) THEN
        MSG = 'Module soil NOx accepts only one species!'

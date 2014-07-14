@@ -80,6 +80,7 @@ CONTAINS
     USE HCOX_SeaSalt_Mod,      ONLY : HCOX_SeaSalt_Init
     USE HCOX_GFED3_Mod,        ONLY : HCOX_GFED3_Init
     USE HCOX_Megan_Mod,        ONLY : HCOX_Megan_Init
+    USE HcoX_FINN_Mod,         ONLY : HcoX_FINN_Init
     USE HCOX_GC_RnPbBe_Mod,    ONLY : HCOX_GC_RnPbBe_Init
 !
 ! !INPUT PARAMETERS:
@@ -101,7 +102,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Arguments needed to read soil NOx restart file
     CHARACTER(LEN=255) :: MSG
 
     !=================================================================
@@ -184,6 +184,12 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
+    ! FINN biomass burning emissions
+    !-----------------------------------------------------------------
+    CALL HcoX_FINN_Init( amIRoot, HcoState, 'FINN', ExtState, RC ) 
+    IF( RC /= HCO_SUCCESS ) RETURN 
+
+    !-----------------------------------------------------------------
     ! Extension for GEOS-Chem Rn-Pb-Be specialty simulation
     !-----------------------------------------------------------------
     CALL HCOX_GC_RnPbBe_Init( amIRoot, HcoState, 'GC_Rn-Pb-Be', &
@@ -240,6 +246,7 @@ CONTAINS
     USE HCOX_SeaSalt_Mod,    ONLY : HCOX_SeaSalt_Run 
     USE HCOX_Megan_Mod,      ONLY : HCOX_Megan_Run 
     USE HCOX_GFED3_Mod,      ONLY : HCOX_GFED3_Run 
+    USE HcoX_FINN_Mod,       ONLY : HcoX_FINN_Run 
     USE HCOX_GC_RnPbBe_Mod,  ONLY : HCOX_GC_RnPbBe_Run
 !
 ! !INPUT PARAMETERS:
@@ -357,6 +364,14 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
+    ! ----------------------------------------------------------------
+    ! FINN biomass burning emissions 
+    ! ----------------------------------------------------------------
+    IF ( ExtState%FINN ) THEN
+       CALL HcoX_FINN_Run( amIRoot, ExtState, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+
     !-----------------------------------------------------------------
     ! Emissions for GEOS-Chem Rn-Pb-Be specialty simulation
     !-----------------------------------------------------------------
@@ -403,8 +418,8 @@ CONTAINS
     USE HCOX_SeaSalt_Mod,    ONLY : HCOX_SeaSalt_Final
     USE HCOX_Megan_Mod,      ONLY : HCOX_Megan_Final
     USE HCOX_GFED3_Mod,      ONLY : HCOX_GFED3_Final
+    USE HcoX_FINN_Mod,       ONLY : HcoX_FINN_Final
     USE HCOX_GC_RnPbBe_Mod,  ONLY : HCOX_GC_RnPbBe_Final
-    USE Hcox_ExtList_Mod,    ONLY : ExtFinal
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -435,13 +450,11 @@ CONTAINS
     IF ( ExtState%Megan      ) CALL HCOX_Megan_Final()
     IF ( ExtState%GFED3      ) CALL HCOX_GFED3_Final()
     IF ( ExtState%SoilNOx    ) CALL HCOX_SoilNox_Final()  
+    IF ( ExtState%FINN       ) CALL HcoX_FINN_Final
     IF ( ExtState%GC_RnPbBe  ) CALL HCOX_GC_RnPbBe_Final()
      
     ! Remove ExtState object 
     CALL ExtStateFinal( ExtState ) 
-
-    ! Remove extensions list 
-    CALL ExtFinal()
 
   END SUBROUTINE HCOX_FINAL
 !EOC

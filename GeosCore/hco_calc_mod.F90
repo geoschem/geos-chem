@@ -161,6 +161,9 @@ CONTAINS
     ! testing / debugging
     integer :: ix,iy
 
+    ! testing only
+    integer :: modid
+
     !=================================================================
     ! HCO_CalcEmis begins here!
     !=================================================================
@@ -170,7 +173,7 @@ CONTAINS
     iy = 34
 
     ! Enter routine 
-    CALL HCO_ENTER('HCO_CalcEmis (HCO_CALC_MOD.F90)', RC )
+    CALL HCO_ENTER ('HCO_CalcEmis (HCO_CALC_MOD.F90)', RC )
     IF(RC /= HCO_SUCCESS) RETURN
 
     ! verb mode? 
@@ -204,13 +207,13 @@ CONTAINS
     ! Verbose mode 
     IF ( verb ) THEN
        WRITE (MSG, *) 'Run HEMCO calculation w/ following options:'
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG ( MSG )
        WRITE (MSG, "(A20,I5)")    'Extension number:', ExtNr 
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG ( MSG )
        WRITE (MSG, "(A20,I5,I5)") 'Tracer range:', SpcMin, SpcMax
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG ( MSG )
        WRITE (MSG, "(A20,I5,I5)") 'Category range:', CatMin, CatMax
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG ( MSG )
     ENDIF
 
     !=================================================================
@@ -225,7 +228,7 @@ CONTAINS
 
     ! Point to the head of the emissions linked list
     Lct => NULL()
-    CALL EmisList_NextCont( Lct, FLAG ) 
+    CALL EmisList_NextCont ( Lct, FLAG ) 
 
     ! Do until end of EmisList (==> loop over all emission containers) 
     DO WHILE ( FLAG == HCO_SUCCESS )
@@ -239,7 +242,7 @@ CONTAINS
 
        ! Check if this is a base field (type = 1).
        IF ( Dct%DctType /= 1 ) THEN
-          CALL EmisList_NextCont( Lct, FLAG )
+          CALL EmisList_NextCont ( Lct, FLAG )
           CYCLE
        ENDIF
 
@@ -248,22 +251,22 @@ CONTAINS
        ! is outside of the specified data time range and time
        ! slice cycling is deactivated (CycleFlag > 1). 
        IF( .NOT. FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
-          CALL EmisList_NextCont( Lct, FLAG )
+          CALL EmisList_NextCont ( Lct, FLAG )
           CYCLE
        ENDIF
 
        ! Check if this is the specified extension number
        IF ( Dct%ExtNr /= ExtNr ) THEN 
-          CALL EmisList_NextCont( Lct, FLAG )
+          CALL EmisList_NextCont ( Lct, FLAG )
           CYCLE
        ENDIF
 
        ! Advance to next container if the species ID is outside 
        ! the specified species range (SpcMin - SpcMax). Consider 
        ! all species above SpcMin if SpcMax is negative!
-       IF ( (  Dct%HcoID < SpcMin                     ) .OR. &
-            ( (Dct%HcoID > SpcMax) .AND. (SpcMax > 0) ) ) THEN
-          CALL EmisList_NextCont( Lct, FLAG )
+       IF( (  Dct%HcoID < SpcMin                     ) .OR. &
+           ( (Dct%HcoID > SpcMax) .AND. (SpcMax > 0) ) ) THEN
+          CALL EmisList_NextCont ( Lct, FLAG )
           CYCLE
        ENDIF
 
@@ -271,9 +274,9 @@ CONTAINS
        ! the current container is outside of the specified species 
        ! range (CatMin - CatMax). Consider all categories above CatMin
        ! if CatMax is negative!
-       IF ( (  Dct%Cat < CatMin                     ) .OR. &
-            ( (Dct%Cat > CatMax) .AND. (CatMax > 0) ) ) THEN
-          CALL EmisList_NextCont( Lct, FLAG )
+       IF( (  Dct%Cat < CatMin                     ) .OR. &
+           ( (Dct%Cat > CatMax) .AND. (CatMax > 0) ) ) THEN
+          CALL EmisList_NextCont ( Lct, FLAG )
           CYCLE
        ENDIF
 
@@ -299,7 +302,7 @@ CONTAINS
           SpcFlx(:,:,:) = SpcFlx(:,:,:) + CatFlx(:,:,:)
 
           ! Add category emissions to diagnostics at category level
-          ! (if defined in the diagnostics list).
+          ! (only if defined in the diagnostics list).
           IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
              Diag3D => CatFlx
              CALL Diagn_Update( am_I_Root,   HcoState, ExtNr=ExtNr,   &
@@ -308,6 +311,14 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN
              Diag3D => NULL() 
           ENDIF
+
+          ! testing only
+          ! todo: remove
+!          IF ( PrevCat == 20 ) THEN
+!             modid = HcoState%Spc(PrevSpc)%ModID
+!             write(*,*) 'total emissions for cat ', PrevCat, &
+!                ' and spec ', modid, ' (kg/m2/s): ', SUM(CatFlx)
+!          ENDIF
 
           ! Reset CatFlx array and the previously used hierarchy 
           ! ==> Emission hierarchies are only important within the 
@@ -497,6 +508,14 @@ CONTAINS
     ! Add CatFlx to diagnostics (if this quantity is specified in
     ! the diagnostics list) at category and extension number level!
       
+    ! testing only
+    ! todo: remove
+!     IF ( PrevCat == 20 ) THEN
+!       modid = HcoState%Spc(PrevSpc)%ModID
+!       write(*,*) 'total emissions for cat ', PrevCat, &
+!          ' and spec ', modid, ' (kg/m2/s): ', SUM(CatFlx)
+!     ENDIF
+
     ! Category level
     IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
        Diag3D => CatFlx
@@ -532,11 +551,11 @@ CONTAINS
     ! verbose
     IF ( verb ) THEN
        WRITE (MSG, *) 'HEMCO emissions successfully calculated!'
-       CALL HCO_MSG( MSG )
+       CALL HCO_MSG ( MSG )
     ENDIF
 
     ! Leave w/ success
-    CALL HCO_LEAVE( RC )
+    CALL HCO_LEAVE ( RC )
 
   END SUBROUTINE HCO_CalcEmis
 !EOC

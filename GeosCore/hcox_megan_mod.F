@@ -3412,7 +3412,8 @@
 ! !USES:
 !
       USE HCO_STATE_MOD,    ONLY : Hco_GetHcoID
-      USE HCOX_ExtList_Mod, ONLY : GetExtNr, GetExtHcoID, GetExtOpt
+      USE HCO_STATE_MOD,    ONLY : HCO_GetExtHcoID
+      USE HCO_ExtList_Mod,  ONLY : GetExtNr, GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -3482,7 +3483,7 @@
       ! Get species IDs
       ! --> Assume that species are ordered ISOP, ACET, PRPE, C2H4 in
       !     config. file!
-      CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+      CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
       IF ( nSpc /= 4 ) THEN
          MSG = 'Expected four species for extension ' // TRIM(ExtName)
@@ -3519,7 +3520,8 @@
          LMEGANMONO = .TRUE.
 
          ! Get HEMCO species IDs of CO, OCPI and MONX
-         CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+         CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs,
+     &                         SpcNames, nSpc,  RC       )
          IF ( RC /= HCO_SUCCESS ) RETURN
          IF ( nSpc /= 3 ) THEN
             MSG = 'Expected three species for MEGAN_Mono extension' 
@@ -3569,7 +3571,8 @@
          ENDIF
 
          ! Get HEMCO species IDs of ALPH/LIMO/ALCO 
-         CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+         CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs,
+     &                         SpcNames, nSpc,  RC       )
          IF ( RC /= HCO_SUCCESS ) RETURN
          IF ( nSpc /= 4 ) THEN
             MSG = 'Expected four species for MEGAN_SOA extension' 

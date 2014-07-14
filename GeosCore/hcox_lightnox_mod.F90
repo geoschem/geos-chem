@@ -213,17 +213,26 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     REAL(hp), POINTER   :: Arr3D(:,:,:) => NULL()
+    LOGICAL,  SAVE      :: FIRST = .TRUE.
 
     !=================================================================
     ! HCOX_LIGHTNOX_RUN begins here!
     !=================================================================
 
-      ! Enter
+    ! Enter
     CALL HCO_ENTER( 'HCOX_LightNOx_Run (hcox_lightnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return if extension disabled 
     IF ( ExtNr <= 0 ) RETURN
+
+    ! Get scaling factor to match annual average global flash rate
+    ! (ltm, 09/24/07)
+    IF ( FIRST ) THEN
+       CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       FIRST = .FALSE.
+    ENDIF
 
     ! Update lightnox NOx emissions (fill SLBASE) 
     CALL LIGHTNOX ( am_I_Root, HcoState, ExtState, RC )
@@ -262,27 +271,20 @@ CONTAINS
     !=================================================================
     IF ( IDTNO > 0 ) THEN
 
-       ! testing only
-       write(*,*) 'lightning NOx emissions: ', SUM(SLBASE)
+      ! Add flux to emission array
+      CALL HCO_EmisAdd( HcoState, SLBASE, IDTNO, RC)
+      IF ( RC /= HCO_SUCCESS ) RETURN 
 
-       ! Add flux to emission array
-       CALL HCO_EmisAdd( HcoState, SLBASE, IDTNO, RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr3D => SLBASE
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=IDTNO,     &
-                             AutoFill=1, Array3D=Arr3D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          Arr3D => NULL() 
-
-          ! testing only
-          write(*,*) 'ExtNr, SLBASE: ', ExtNr, SUM(SLBASE)
-
-       ENDIF
-    ENDIF
+      ! Eventually update diagnostics
+      IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+         Arr3D => SLBASE
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+                            Cat=-1, Hier=-1, HcoID=IDTNO,     &
+                            AutoFill=1, Array3D=Arr3D, RC=RC   )
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+         Arr3D => NULL() 
+      ENDIF
+   ENDIF
 
 !======================================================================
 ! !!! NEED TO ADD FURTHER DIAGNOSTICS HERE !!!
@@ -1682,8 +1684,9 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,       ONLY : findfreeLUN
-    USE HCO_State_Mod,   ONLY : HCO_GetHcoID
-    USE HCOX_ExtList_Mod, ONLY : GetExtNr, GetExtHcoID, GetExtOpt
+    USE HCO_STATE_MOD,    ONLY : HCO_GetHcoID
+    USE HCO_STATE_MOD,    ONLY : HCO_GetExtHcoID
+    USE HCO_ExtList_Mod,  ONLY : GetExtNr, GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -1750,7 +1753,7 @@ CONTAINS
  
     ! Get global scale factor
     ! Get species ID
-    CALL GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+    CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( nSpc /= 1 ) THEN
        MSG = 'Lightning NOx module must have only one species!' 
@@ -1772,11 +1775,6 @@ CONTAINS
     !------------------
     ! Define variables
     !------------------
-
-    ! Get scaling factor to match annual average global flash rate
-    ! (ltm, 09/24/07)
-    CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! NNLIGHT is the number of points for the lightnox CDF's
     NNLIGHT = 3200

@@ -449,7 +449,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_Tools_Mod,   ONLY : HCO_CharSplit
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CharSplit
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
 !
 ! !INPUT PARAMETERS:
 !
@@ -506,7 +507,7 @@ CONTAINS
 
     ! Read data into array
     CALL HCO_CharSplit ( FileDta%ncFile, HCO_SEP(), &
-                         HCO_WILDCARD(), FileVals, N, RC ) 
+                         HCO_WCD(), FileVals, N, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if no scale factor defined

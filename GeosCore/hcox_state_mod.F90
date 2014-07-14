@@ -85,6 +85,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: SeaFlux     ! air-sea exchange
      LOGICAL                   :: SeaSalt     ! Seasalt emissions
      LOGICAL                   :: GFED3       ! GFED3 biomass burning
+     LOGICAL                   :: FINN        ! FINN biomass burning
      LOGICAL                   :: GC_RnPbBe   ! GEOS-Chem Rn-Pb-Be simulation
 
      !----------------------------------------------------------------------
@@ -151,10 +152,11 @@ MODULE HCOX_STATE_MOD
 ! !PRIVATE MEMBER FUNCTIONS:
 !
 ! !REVISION HISTORY:
-!  02 Oct 2013 - C. Keller: Initial version
+!  02 Oct 2013 - C. Keller   - Initial version
 !  23 Jun 2014 - R. Yantosca - Now add DATA_DIR to Ext_State declaration
 !  23 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  27 Jun 2014 - C. Keller   - Added FINN biomass burning extension
 !  07 Jul 2014 - R. Yantosca - Modified for GEOS-Chem Rn-Pb-Be simulation
 !EOP
 !-----------------------------------------------------------------------------
@@ -228,6 +230,7 @@ CONTAINS
     ExtState%SeaFlux    = .FALSE.
     ExtState%SeaSalt    = .FALSE.
     ExtState%GFED3      = .FALSE.
+    ExtState%FINN       = .FALSE.
     ExtState%GC_RnPbBe  = .FALSE.
 
     !-----------------------------------------------------------------------

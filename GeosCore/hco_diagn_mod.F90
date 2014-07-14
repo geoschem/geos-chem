@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -52,13 +52,13 @@ MODULE HCO_Diagn_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC  :: HCO_Diagn_Update
   PUBLIC  :: Diagn_Cleanup 
   PUBLIC  :: Diagn_Create
   PUBLIC  :: Diagn_Update 
   PUBLIC  :: Diagn_Get
   PUBLIC  :: Diagn_AutoFillLevelDefined
   PUBLIC  :: Diagn_GetMaxResetFlag
-  PUBLIC  :: Diagn_SetDiagnPrefix
   PUBLIC  :: Diagn_GetDiagnPrefix
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -140,7 +140,86 @@ MODULE HCO_Diagn_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hco_diagn_update
+!
+! !DESCRIPTION: Subroutine HCO\_DIAGN\_UPDATE updates the AutoFill
+! diagnostics at species level. This routine should be called after
+! running HEMCO core and all extensions. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HCO_DIAGN_UPDATE ( am_I_Root, HcoState, RC ) 
+!
+! !USES:
+!
+        USE HCO_STATE_MOD, ONLY : HCO_GetHcoID
+        USE HCO_STATE_MOD, ONLY : HCO_State
+
+        ! temp only
+        USE HCO_ARR_MOD,   ONLY : HCO_ArrAssert
+!
+! !INPUT PARAMETERS:
+!
+        LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+        TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
+        INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REVISION HISTORY: 
+!  12 Sep 2013 - C. Keller   - Initial version 
+!  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+       CHARACTER(LEN=255)        :: MSG, LOC
+       INTEGER                   :: I, tmpID
+       REAL(hp), POINTER         :: Arr3D(:,:,:) => NULL()
+       REAL(hp), POINTER         :: Arr2D(:,:)   => NULL()
+
+        !=================================================================
+        ! HCO_DIAGN_UPDATE begins here!
+        !=================================================================
+    
+        ! Init 
+        LOC = 'HCOI_DIAGN_UPDATE (hcoi_gc_diagn_mod.F90)'
+        RC  = HCO_SUCCESS
+    
+        ! ================================================================
+        ! AutoFill diagnostics: only write diagnostics at species level
+        ! (level 1). Higher level diagnostics have been written in the
+        ! respective subroutines (hco_calc & extension modules). 
+        ! ================================================================
+        DO I = 1, HcoState%nSpc
+           IF ( ASSOCIATED(HcoState%Spc(I)%Emis) ) THEN
+              IF ( ASSOCIATED(HcoState%Spc(I)%Emis%Val) ) THEN
+                 Arr3D => HcoState%Spc(I)%Emis%Val
+                 CALL Diagn_Update( am_I_Root,  HcoState, ExtNr=-1, &
+                                    Cat=-1,     Hier=-1,  HcoID=I,  &
+                                    AutoFill=1, Array3D=Arr3D, RC=RC ) 
+                 IF ( RC/= HCO_SUCCESS ) RETURN 
+                 Arr3D => NULL() 
+              ENDIF
+           ENDIF
+        ENDDO
+    
+        ! Return
+        RC = HCO_SUCCESS
+    
+      END SUBROUTINE HCO_DIAGN_UPDATE
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -486,7 +565,7 @@ CONTAINS
   END SUBROUTINE Diagn_Create
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -869,7 +948,7 @@ CONTAINS
   END SUBROUTINE Diagn_Update
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1048,7 +1127,7 @@ CONTAINS
   END SUBROUTINE Diagn_Get
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1092,10 +1171,19 @@ CONTAINS
        TmpCont => NxtCont
     ENDDO
 
+    ! Nullify DiagnList pointer
+    DiagnList => NULL()
+
+    ! Reset all internal variables to default initial values
+    nnDiagn            = 0
+    MaxResetFlag       = -1 
+    AF_LevelDefined(:) = .FALSE.
+    DiagnPrefix        = 'HEMCO_Diagn'
+
   END SUBROUTINE Diagn_Cleanup
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1129,7 +1217,7 @@ CONTAINS
   END FUNCTION Diagn_AutoFillLevelDefined
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1158,63 +1246,65 @@ CONTAINS
   END FUNCTION Diagn_GetMaxResetFlag
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Diagn_SetDiagnPrefix
-!
-! !DESCRIPTION: Subroutine Diagn\_SetDiagnPrefix sets the HEMCO diagnostics
-! file prefix. 
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Diagn_SetDiagnPrefix( Prefix )
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=*), INTENT(IN)   :: Prefix
-!
-! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    DiagnPrefix = Prefix
-
-  END SUBROUTINE Diagn_SetDiagnPrefix
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !ROUTINE: Diagn_GetDiagnPrefix
 !
 ! !DESCRIPTION: Subroutine Diagn\_GetDiagnPrefix returns the HEMCO diagnostics
-! file prefix. 
+! file prefix as set in the HEMCO configuration file. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_GetDiagnPrefix( Prefix )
+  SUBROUTINE Diagn_GetDiagnPrefix( Prefix, RC )
+!
+! !USES:
+!
+      USE HCO_EXTLIST_MOD,        ONLY : GetExtOpt
 !
 ! !OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(OUT)     :: Prefix
+    INTEGER,          INTENT(OUT)     :: RC
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller: Initialization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! LOCAL VARIABLES:
+!
+    LOGICAL, SAVE      :: FIRST = .TRUE.
+    LOGICAL            :: FOUND
+    CHARACTER(LEN=255) :: MyPrefix
 
-    Prefix = DiagnPrefix 
+    !======================================================================
+    ! Diagn_GetDiagnPrefix begins here!
+    !======================================================================
+
+    ! On first call, try to get DiagnPrefix from settings. If setting
+    ! not found, keep default value.
+    IF ( FIRST ) THEN
+       CALL GetExtOpt ( 0, 'DiagnPrefix', OptValChar=MyPrefix, &
+                       Found=FOUND, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( FOUND ) DiagnPrefix = MyPrefix
+
+       FIRST = .FALSE.
+    ENDIF
+
+      Prefix = DiagnPrefix 
+
+      ! Return w/ success
+      RC = HCO_SUCCESS
  
   END SUBROUTINE Diagn_GetDiagnPrefix
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1282,7 +1372,7 @@ CONTAINS
   END SUBROUTINE DiagnCont_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1332,7 +1422,7 @@ CONTAINS
   END SUBROUTINE DiagnCont_Cleanup
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1520,7 +1610,7 @@ CONTAINS
   END SUBROUTINE DiagnCont_PrepareOutput
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1628,7 +1718,7 @@ CONTAINS
   END SUBROUTINE DiagnCont_Find
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1713,7 +1803,7 @@ CONTAINS
   END SUBROUTINE DiagnCont_Link_2D
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
