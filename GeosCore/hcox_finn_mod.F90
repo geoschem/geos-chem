@@ -83,7 +83,7 @@
       !           is 68 g/mol.
       !=================================================================
       INTEGER,          PARAMETER   :: N_EMFAC = 6
-      INTEGER,          PARAMETER   :: N_SPEC  = 52
+      INTEGER,          PARAMETER   :: N_SPEC  = 57
       REAL(dp),         PARAMETER   :: MW_CO2  = 44.01_dp
       REAL(dp),         PARAMETER   :: MW_NMOC = 68.00_dp
 !
@@ -146,7 +146,8 @@
       USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd
       USE HCO_STATE_MOD,     ONLY : HCO_GetHcoID
-      USE HCO_CLOCK_MOD,     ONLY : HcoClock_NewMonth, HcoClock_Get
+      USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
+      USE HCO_CLOCK_MOD,     ONLY : HcoClock_NewMonth, HcoClock_NewDay
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -185,7 +186,7 @@
       CHARACTER(LEN=31)   :: PREFIX, FLDNME
 
       ! Write totals to log file 
-      INTEGER             :: NDAYS, cYYYY, cMM
+      INTEGER             :: NDAYS, cYYYY, cMM, cDD
       REAL(dp)            :: TOTAL
       CHARACTER(LEN=255)  :: MSG
    
@@ -233,16 +234,27 @@
       CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP9, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! For logfile 
-      IF ( HcoClock_NewMonth() ) THEN
-         CALL HcoClock_Get( cYYYY = cYYYY, cMM=cMM, RC=RC )
-         IF ( RC/=HCO_SUCCESS ) RETURN
-         WRITE(MSG, 110) cYYYY, cMM
-         CALL HCO_MSG(MSG)
- 110     FORMAT( 'FINN monthly emissions for year, month: ', &
-                  i4, '/', i2.2 )
-      ENDIF
-  
+      ! For logfile
+      IF ( UseDay ) THEN
+         IF ( HcoClock_NewDay() ) THEN
+            CALL HcoClock_Get( cYYYY = cYYYY, cMM=cMM, cDD=cDD, RC=RC )
+            IF ( RC/=HCO_SUCCESS ) RETURN
+            WRITE(MSG, 100) cYYYY, cMM, cDD
+            CALL HCO_MSG(MSG)
+ 100        FORMAT( 'FINN daily emissions for year, month, day: ', &
+                     i4, '/', i2.2, '/', i2.2 )
+         ENDIF
+      ELSE 
+         IF ( HcoClock_NewMonth() ) THEN
+            CALL HcoClock_Get( cYYYY = cYYYY, cMM=cMM, LMD=NDAYS, RC=RC)
+            IF ( RC/=HCO_SUCCESS ) RETURN
+            WRITE(MSG, 110) cYYYY, cMM
+            CALL HCO_MSG(MSG)
+ 110        FORMAT( 'FINN monthly emissions for year, month: ', &
+                     i4, '/', i2.2 )
+         ENDIF
+      ENDIF  
+
       !-----------------------------------------------------------------
       ! Calculate emissions for all selected species
       !-----------------------------------------------------------------
@@ -332,17 +344,25 @@
             CALL HCO_EmisAdd( HcoState, SpcArr, HcoID, RC ) 
             IF ( RC /= HCO_SUCCESS ) RETURN
    
-            ! Write out total monthly emissions to log-file
-            IF ( HcoClock_NewMonth() ) THEN
-               CALL HcoClock_Get ( LMD = NDAYS, RC=RC )
-               IF ( RC/=HCO_SUCCESS ) RETURN
-               TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%Area_M2(:,:))
-               TOTAL = TOTAL * NDAYS * 86400.0_hp * 1e-9_hp
-               WRITE(MSG, 120) HcoState%Spc(HcoID)%SpcName, TOTAL
-               CALL HCO_MSG(MSG)
- 120           FORMAT( 'SUM biomass ', a4, 1x, ': ', f11.4, 1x, '[Tg]' )
-            ENDIF
- 
+            ! Write out total (daily or monthly) emissions to log-file
+            IF ( UseDay ) THEN
+               IF ( HcoClock_NewDay() ) THEN
+                  TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%Area_M2(:,:))
+                  TOTAL = TOTAL * 86400.0_hp * 1e-9_hp
+                  WRITE(MSG, 120) HcoState%Spc(HcoID)%SpcName, TOTAL
+                  CALL HCO_MSG(MSG)
+ 120              FORMAT( 'SUM biomass ', a4,1x,': ', f11.4,1x,'[Tg]' )
+               ENDIF
+            ELSE
+               IF ( HcoClock_NewMonth() ) THEN
+                  TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%Area_M2(:,:))
+                  TOTAL = TOTAL * NDAYS * 86400.0_hp * 1e-9_hp
+                  WRITE(MSG, 130) HcoState%Spc(HcoID)%SpcName, TOTAL
+                  CALL HCO_MSG(MSG)
+ 130              FORMAT( 'SUM biomass ', a4,1x,': ', f11.4,1x,'[Tg]' )
+               ENDIF
+            ENDIF 
+
             ! Eventually update diagnostics
             IF ( Diagn_AutoFillLevelDefined(2) ) THEN
                Arr2D => SpcArr
@@ -525,58 +545,69 @@
       ! ---------------------------------------------------------------------- 
       ! Define FINN species names
       ! ---------------------------------------------------------------------- 
+      
+      ! Species listed in emission factor ratios (CO2/X) table (except NMOC,
+      ! which is speciated as specified in the VOC speciation table).
       FINN_SPEC_NAME(1)  = 'CO2'
       FINN_SPEC_NAME(2)  = 'CO'
       FINN_SPEC_NAME(3)  = 'CH4'
+      FINN_SPEC_NAME(3)  = 'H2'     ! Currently not used
       FINN_SPEC_NAME(4)  = 'NOx'
       FINN_SPEC_NAME(5)  = 'SO2'
       FINN_SPEC_NAME(6)  = 'OC'
       FINN_SPEC_NAME(7)  = 'BC'
       FINN_SPEC_NAME(8)  = 'NH3'
-      FINN_SPEC_NAME(9)  = 'ACET'
-      FINN_SPEC_NAME(10) = 'ACTA'   ! Not currently emitted by BB in GC
-      FINN_SPEC_NAME(11) = 'ALD2'
-      FINN_SPEC_NAME(12) = 'ALK4'
-      FINN_SPEC_NAME(13) = 'BENZ'
-      FINN_SPEC_NAME(14) = 'C2H2'
-      FINN_SPEC_NAME(15) = 'C2H4'
-      FINN_SPEC_NAME(16) = 'C2H6'
-      FINN_SPEC_NAME(17) = 'C3H8'
-      FINN_SPEC_NAME(18) = 'CH2O'
-      FINN_SPEC_NAME(19) = 'EOH'    ! Not currently emitted in GC
-      FINN_SPEC_NAME(20) = 'GLYC'
-      FINN_SPEC_NAME(21) = 'GLYX'
-      FINN_SPEC_NAME(22) = 'HAC'
-      FINN_SPEC_NAME(23) = 'HCN'    ! Not currently emitted in GC
-      FINN_SPEC_NAME(24) = 'HCOOH'  ! Not currently emitted by BB in GC
-      FINN_SPEC_NAME(25) = 'ISOP'   ! Not currently emitted by BB in GC
-      FINN_SPEC_NAME(26) = 'MACR'   ! Not currently emitted in GC
-      FINN_SPEC_NAME(27) = 'MEK'
-      FINN_SPEC_NAME(28) = 'MGLY'
-      FINN_SPEC_NAME(29) = 'MOH'    ! Not currently emitted in GC
-      FINN_SPEC_NAME(30) = 'MVK'    ! Not currently emitted in GC
-      FINN_SPEC_NAME(31) = 'PRPE'
-      FINN_SPEC_NAME(32) = 'R4N2'   ! Not currently emitted in GC
-      FINN_SPEC_NAME(33) = 'RCHO'   ! Not currently emitted by BB in GC
-      FINN_SPEC_NAME(34) = 'TOLU'
-      FINN_SPEC_NAME(35) = 'XYLE'
-      FINN_SPEC_NAME(36) = 'HNO2'   ! Not currently emitted in GC
-      FINN_SPEC_NAME(37) = 'TMB'    ! Currently lumped with XYLE
-      FINN_SPEC_NAME(38) = 'ETBENZ' ! Currently lumped with TOLU
-      FINN_SPEC_NAME(39) = 'STYR'   ! Currently lumped with TOLU
-      FINN_SPEC_NAME(40) = 'CH2BR2'
-      FINN_SPEC_NAME(41) = 'CH3CN'
-      FINN_SPEC_NAME(42) = 'CH3I'
-      FINN_SPEC_NAME(43) = 'DMS'
+      FINN_SPEC_NAME(9)  = 'NO'    ! Currently not used
+      FINN_SPEC_NAME(10) = 'NO2'   ! Currently not used
+
+      ! Species listed in VOC speciation table
+      FINN_SPEC_NAME(11) = 'ACET'
+      FINN_SPEC_NAME(12) = 'ACTA'   ! Not currently emitted by BB in GC
+      FINN_SPEC_NAME(13) = 'ALD2'
+      FINN_SPEC_NAME(14) = 'ALK4'
+      FINN_SPEC_NAME(15) = 'APINE'  ! Currently lumped into MTPA
+      FINN_SPEC_NAME(16) = 'AROM'   ! Currently not used
+      FINN_SPEC_NAME(17) = 'BENZ'
+      FINN_SPEC_NAME(18) = 'BPINE'  ! Currently lumped into MTPA
+      FINN_SPEC_NAME(19) = 'C2H2'
+      FINN_SPEC_NAME(20) = 'C2H4'
+      FINN_SPEC_NAME(21) = 'C2H6'
+      FINN_SPEC_NAME(22) = 'C3H8'
+      FINN_SPEC_NAME(23) = 'CARENE' ! Currently lumped into MTPA
+      FINN_SPEC_NAME(24) = 'CH2Br2'
+      FINN_SPEC_NAME(25) = 'CH2O'
+      FINN_SPEC_NAME(26) = 'CH3Br'
+      FINN_SPEC_NAME(27) = 'CH3CN'
+      FINN_SPEC_NAME(28) = 'CH3I'
+      FINN_SPEC_NAME(29) = 'DMS'
+      FINN_SPEC_NAME(30) = 'EOH'    ! Not currently emitted in GC
+      FINN_SPEC_NAME(31) = 'ETBENZ' ! Currently lumped with TOLU
+      FINN_SPEC_NAME(32) = 'FUR'    ! Currently not used
+      FINN_SPEC_NAME(33) = 'GLYC'
+      FINN_SPEC_NAME(34) = 'GLYX'
+      FINN_SPEC_NAME(35) = 'HAC'
+      FINN_SPEC_NAME(36) = 'HCN'    ! Not currently emitted in GC
+      FINN_SPEC_NAME(37) = 'HCOOH'  ! Not currently emitted by BB in GC
+      FINN_SPEC_NAME(38) = 'HNO2'   ! Not currently emitted in GC
+      FINN_SPEC_NAME(39) = 'ISOP'   ! Not currently emitted by BB in GC
+      FINN_SPEC_NAME(40) = 'LIMO'
+      FINN_SPEC_NAME(41) = 'MACR'   ! Not currently emitted in GC
+      FINN_SPEC_NAME(42) = 'MEK'
+      FINN_SPEC_NAME(43) = 'MGLY'
       FINN_SPEC_NAME(44) = 'MNO3'
-      FINN_SPEC_NAME(45) = 'APINE'  ! Currently lumped into MTPA
-      FINN_SPEC_NAME(46) = 'BPINE'  ! Currently lumped into MTPA
-      FINN_SPEC_NAME(47) = 'CARENE' ! Currently lumped into MTPA
-      FINN_SPEC_NAME(48) = 'AROM'   ! Currently not used
-      FINN_SPEC_NAME(49) = 'FUR'    ! Currently not used
-      FINN_SPEC_NAME(50) = 'ROH'    ! Currently not used
+      FINN_SPEC_NAME(45) = 'MOH'    ! Not currently emitted in GC
+      FINN_SPEC_NAME(46) = 'MTPO'   ! Not currently emitted in GC
+      FINN_SPEC_NAME(47) = 'MVK'    ! Not currently emitted in GC
+      FINN_SPEC_NAME(48) = 'PRPE'
+      FINN_SPEC_NAME(49) = 'R4N2'   ! Not currently emitted in GC
+      FINN_SPEC_NAME(50) = 'RCHO'   ! Not currently emitted by BB in GC
       FINN_SPEC_NAME(51) = 'RCOOH'  ! Currently not used
-      FINN_SPEC_NAME(52) = 'SESQ'   ! Currently not used
+      FINN_SPEC_NAME(52) = 'ROH'    ! Currently not used
+      FINN_SPEC_NAME(53) = 'SESQ'   ! Currently not used
+      FINN_SPEC_NAME(54) = 'STYR'   ! Currently lumped with TOLU
+      FINN_SPEC_NAME(55) = 'TMB'    ! Currently lumped with XYLE
+      FINN_SPEC_NAME(56) = 'TOLU'
+      FINN_SPEC_NAME(57) = 'XYLE'
 
       ! ---------------------------------------------------------------------- 
       ! Read emission factors ([mole CO2]/[mole X])
