@@ -62,7 +62,7 @@ CONTAINS
     integer,           intent(out)   :: dim_len
 !
 ! !DESCRIPTION: Returns the length of a given netCDF dimension. 
-!               If err_stop is set to FALSE, -1 is returned if 
+!               If err\_stop is set to FALSE, -1 is returned if 
 !               the given dimension cannot be found. Otherwise,
 !               an error is prompted and the program stops.
 !\\

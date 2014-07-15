@@ -1,5 +1,4 @@
 # if !defined(ESMF_)
-!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -22,9 +21,9 @@ MODULE HCOI_GC_Main_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCOX_State_Mod,      ONLY : Ext_State 
-  USE HCO_State_Mod,       ONLY : HCO_State
+  USE HCO_Error_Mod
+  USE HCOX_State_Mod, ONLY : Ext_State 
+  USE HCO_State_Mod,  ONLY : HCO_State
 
   IMPLICIT NONE
   PRIVATE
@@ -96,21 +95,21 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-    USE GIGC_State_Met_Mod,    ONLY : MetState
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
-    USE TIME_MOD,              ONLY : GET_TS_EMIS, GET_TS_DYN
-    USE TIME_MOD,              ONLY : GET_TS_CHEM
-    USE ERROR_MOD,             ONLY : ERROR_STOP
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE ERROR_MOD,          ONLY : ERROR_STOP
 
     ! HEMCO routines 
-    USE HCO_CONFIG_MOD,        ONLY : Config_ReadFile
-    USE HCO_STATE_MOD,         ONLY : HcoState_Init
-    USE HCO_DRIVER_MOD,        ONLY : HCO_INIT
-    USE HCOX_DRIVER_MOD,       ONLY : HCOX_INIT
-    USE HCOI_GC_DIAGN_MOD,     ONLY : HCOI_DIAGN_INIT
-    USE HCO_LOGFILE_MOD,       ONLY : HCO_SPEC2LOG
-    USE HCO_STATE_MOD,         ONLY : HCO_GetHcoID 
+    USE HCO_Config_Mod,     ONLY : Config_ReadFile
+    USE HCO_State_Mod,      ONLY : HcoState_Init
+    USE HCO_Driver_Mod,     ONLY : HCO_INIT
+    USE HCOX_Driver_Mod,    ONLY : HCOX_INIT
+    USE HCOI_GC_diagn_Mod,  ONLY : HCOI_DIAGN_INIT
+    USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
+    USE HCO_State_Mod,      ONLY : HCO_GetHcoID 
 !
 ! !INPUT PARAMETERS:
 !
@@ -174,23 +173,23 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Extract species to use in HEMCO 
-    CALL Get_nnMatch ( Input_Opt, nnMatch, HMRC )
+    CALL Get_nnMatch( Input_Opt, nnMatch, HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Get_nnMatch', LOC )
 
     !-----------------------------------------------------------------
     ! Initialize HCO state. Use only species that are used
     ! in GEOS-Chem and are also found in the HEMCO config. file.
-    CALL HcoState_Init ( am_I_Root, HcoState, nnMatch, HMRC )
+    CALL HcoState_Init( am_I_Root, HcoState, nnMatch, HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HcoState_Init', LOC )
 
     !-----------------------------------------------------------------
     ! Set grid
-    CALL Set_Grid ( am_I_Root, State_Met, RC )
+    CALL Set_Grid( am_I_Root, State_Met, RC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Set_Grid', LOC )
 
     !-----------------------------------------------------------------
     ! Register species
-    CALL Register_Species ( am_I_Root, State_Chm, RC )
+    CALL Register_Species( am_I_Root, State_Chm, RC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Register_Species', LOC )
 
     !=================================================================
@@ -1188,7 +1187,7 @@ CONTAINS
 !
 ! !IROUTINE: Model_GetSpecies 
 !
-! !DESCRIPTION: SUBROUTINE Model\_GetSpecies returns 'model' species 
+! !DESCRIPTION: Subroutine Model\_GetSpecies returns 'model' species 
 ! information from the HEMCO standalone input file. 
 !\\
 !\\
@@ -1204,25 +1203,28 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-    USE HENRY_MOD,             ONLY : GET_HENRY_CONSTANTS
+    USE Henry_Mod,             ONLY : Get_Henry_Constants
 !
-! !ARGUMENTS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
-
+    TYPE(OptInput),   INTENT(INOUT) :: Input_Opt  ! Input Options object
+!
+! !OUPTUT PARAMETERS:
+!
     INTEGER,            INTENT(OUT) :: nModelSpec
-    CHARACTER(LEN= 31), POINTER :: ModelSpecNames(:)
-    INTEGER,            POINTER :: ModelSpecIDs  (:)
-    REAL(hp),           POINTER :: ModelSpecMW   (:)
-    REAL(hp),           POINTER :: ModelSpecEmMW (:)
-    REAL(hp),           POINTER :: ModelSpecMolecRatio(:)
-    REAL(hp),           POINTER :: ModelSpecK0   (:)
-    REAL(hp),           POINTER :: ModelSpecCR   (:)
-    REAL(hp),           POINTER :: ModelSpecPKA  (:)
+    CHARACTER(LEN= 31), POINTER     :: ModelSpecNames(:)
+    INTEGER,            POINTER     :: ModelSpecIDs  (:)
+    REAL(hp),           POINTER     :: ModelSpecMW   (:)
+    REAL(hp),           POINTER     :: ModelSpecEmMW (:)
+    REAL(hp),           POINTER     :: ModelSpecMolecRatio(:)
+    REAL(hp),           POINTER     :: ModelSpecK0   (:)
+    REAL(hp),           POINTER     :: ModelSpecCR   (:)
+    REAL(hp),           POINTER     :: ModelSpecPKA  (:)
     INTEGER,            INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
-!  13 Sep 2013 - C. Keller - Initial Version
+!  13 Sep 2013 - C. Keller   - Initial Version
+!  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1290,20 +1292,21 @@ CONTAINS
 !
 ! !IROUTINE: Set_Grid 
 !
-! !DESCRIPTION: SUBROUTINE SET\_GRID sets the grid. 
+! !DESCRIPTION: Subroutine Set\_Grid tells HEMCO about the grid that is being
+!  used by the GEOS-Chem simulation.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_GRID ( am_I_Root, State_Met, RC ) 
+  SUBROUTINE Set_Grid( am_I_Root, State_Met, RC ) 
 !
 ! !USES:
 !
-    USE GIGC_State_Met_Mod,    ONLY : MetState
-    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
-    USE GRID_MOD,              ONLY : XMID,  YMID
-    USE GRID_MOD,              ONLY : XEDGE, YEDGE, YSIN
-    USE GRID_MOD,              ONLY : AREA_M2
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+    USE GRID_MOD,           ONLY : XMID,  YMID
+    USE GRID_MOD,           ONLY : XEDGE, YEDGE, YSIN
+    USE GRID_MOD,           ONLY : AREA_M2
 !
 ! !INPUT ARGUMENTS:
 !
@@ -1316,6 +1319,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller - Initial Version
+!  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1351,7 +1355,7 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-    END SUBROUTINE SET_GRID
+    END SUBROUTINE Set_Grid
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1360,33 +1364,35 @@ CONTAINS
 !
 ! !IROUTINE: Get_nnMatch 
 !
-! !DESCRIPTION: SUBROUTINE Get_nnMatch returns the number of HEMCO species
-! that are also used in the atmospheric model. 
+! !DESCRIPTION: Subroutine Get\_nnMatch returns the number of HEMCO species
+! that are also used in GEOS-Chem.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_nnMatch ( Input_Opt, nnMatch, RC ) 
+  SUBROUTINE Get_nnMatch( Input_Opt, nnMatch, RC ) 
 !
 ! !USES:
 !
-    USE HCO_CHARTOOLS_MOD,     ONLY : HCO_CharMatch
-    USE GIGC_State_Chm_Mod,    ONLY : Get_Indx
-    USE HCO_CONFIG_MOD,        ONLY : Config_GetnSpecies
-    USE HCO_CONFIG_MOD,        ONLY : Config_GetSpecNames
-    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
+    USE HCO_CharTools_Mod,  ONLY : HCO_CharMatch
+    USE GIGC_State_Chm_Mod, ONLY : Get_Indx
+    USE HCO_Config_MOD,     ONLY : Config_GetnSpecies
+    USE HCO_Config_MOD,     ONLY : Config_GetSpecNames
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
-! !INPUT/OUTPUT ARGUMENTS:
+! !INPUT/OUTPUT PARAMETERS
 !
-    TYPE(OptInput),     INTENT(INOUT)  :: Input_Opt  ! Input opts
-    INTEGER,            INTENT(INOUT)  :: RC
+    TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input Options object
+    INTEGER,        INTENT(INOUT)  :: RC         ! Success or fialure
 !
-! !OUTPUT ARGUMENTS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(  OUT)  :: nnMatch 
+    INTEGER,        INTENT(  OUT)  :: nnMatch    ! # of HEMCO species that
+                                                 ! are also GEOS-Chem species
 !
 ! !REVISION HISTORY:
-!  13 Sep 2013 - C. Keller - Initial Version
+!  13 Sep 2013 - C. Keller   - Initial Version
+!  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1401,7 +1407,7 @@ CONTAINS
     !=================================================================
 
     ! For error handling
-    LOC = 'Get_nnMatch (HCOI_STANDALONE_MOD.F90)'
+    LOC = 'Get_nnMatch (hcoi_gc_main_mod.F90)'
 
     ! Extract number of HEMCO species and corresponding species names 
     ! as read from the HEMCO config. file.
@@ -1458,22 +1464,22 @@ CONTAINS
 !
 ! !IROUTINE: Register_Species 
 !
-! !DESCRIPTION: SUBROUTINE Register_Species registers all species in the
-! HEMCO state object. 
+! !DESCRIPTION: Subroutine Register\_Species registers all emissions
+!  species in the HEMCO state object. 
 !\\
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Register_Species ( am_I_Root, State_Chm, RC )
+    SUBROUTINE Register_Species( am_I_Root, State_Chm, RC )
 !
 ! !USES:
 !
-    USE HCO_LOGFILE_MOD,       ONLY : HCO_SPEC2LOG
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
-    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
+    USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
 
     ! For SOA mechanism
-    USE CARBON_MOD,            ONLY : BIOG_SESQ
+    USE CARBON_MOD,         ONLY : BIOG_SESQ
 !
 ! !INPUT ARGUMENTS:
 !
@@ -1486,6 +1492,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller - Initial Version
+!  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC

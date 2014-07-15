@@ -157,8 +157,13 @@ GIGC    := $(ROOTDIR)/GIGC
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 
-# List of source files
+# List of source files: everything ending in *.F or *.F90
 SRC := $(wildcard *.F) $(wildcard *.F90)
+
+# But do not include hco_standalone_mod.F90, since this is only appropriate
+# when running HEMCO in standalone mode.  The GEOS-Chem interface to HEMCO
+# is contained in module file hcoi_gc_main_mod.F90.
+SRC := $(filter-out hco_standalone_mod.F90, $(SRC))
 
 # Replace .f and .f90 extensions with *.o
 TMP := $(SRC:.F=.o)
