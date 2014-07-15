@@ -917,10 +917,6 @@ CONTAINS
 !
   FUNCTION Config_ReadLine( IU_HCO, EOF ) RESULT( LINE )
 !
-! !USES:
-!
-    USE FILE_Mod, ONLY : IOERROR
-!
 ! !INPUT PARAMETERS: 
 !
     INTEGER, INTENT(IN)  :: IU_HCO   ! HEMCO configfile LUN
@@ -931,6 +927,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2013 - C. Keller - Initial version (adapted from B. Yantosca's code) 
+!  15 Jul 2014 - R. Yantosca - Remove dependency on routine IOERROR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -957,7 +954,13 @@ CONTAINS
     ENDIF
 
     ! IO Status > 0: true I/O error condition
-    IF ( IOS > 0 ) CALL IOERROR( IOS, IU_HCO, 'Config_ReadLine:1' )
+    IF ( IOS > 0 ) THEN
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       WRITE( 6, 100   ) IOS
+100    FORMAT( 'ERROR ', i5, ' in Config_Readline (hco_config_mod.F90)' )
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       STOP
+    ENDIF
 
   END FUNCTION Config_ReadLine
 !EOC
