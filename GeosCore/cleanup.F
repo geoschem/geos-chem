@@ -95,10 +95,11 @@
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
       USE GIGC_Input_Opt_Mod,      ONLY : OptInput
-
+      USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
+      
       ! HEMCO
 #if !defined(ESMF_) 
-      USE HCOI_GC_MAIN_MOD,       ONLY : HCOI_GC_FINAL
+      USE HCOI_GC_MAIN_MOD,        ONLY : HCOI_GC_Final
 #endif
 
       IMPLICIT NONE
@@ -291,6 +292,7 @@
       CALL CLEANUP_HDF
       CALL CLEANUP_ISOROPIAII
       CALL CLEANUP_LINOZ
+      CALL CLEANUP_MAP_A2A
       CALL CLEANUP_MERCURY
       CALL CLEANUP_MODIS_LAI
       CALL CLEANUP_OCEAN_MERCURY

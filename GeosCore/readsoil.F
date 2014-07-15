@@ -42,6 +42,7 @@
 !  03 Jan 2013 - M. Payer        - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  20 Aug 2013 - R. Yantosca     - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca     - Now pass am_I_Root, Input_Opt, RC
+!  15 Jul 2014 - R. Yantosca     - Now read netCDF files for DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,7 +142,7 @@
       ! 0.25x0.25 regrid - LAND2
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic025x025.txt'
+     &     'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic025x025.nc'
 
       ! Regrid to current model resolution [unitless]
       DO K = 1,24
@@ -149,7 +150,8 @@
          OUTGRID = 0.
 
          CALL DO_REGRID_A2A( LLFILENAME, 1440,    720,
-     &                       INGRID,     OUTGRID, IS_MASS=0 )
+     &                       INGRID,     OUTGRID, IS_MASS=0,
+     &                       netCDF=.TRUE.                   )
 
          LAND2(:,:,K) = OUTGRID
       ENDDO 

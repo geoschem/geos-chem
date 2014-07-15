@@ -171,9 +171,7 @@ regrid_1x1_mod.o  : regrid_1x1_mod.F                 \
                     charpak_mod.o       error_mod.o  \
                     grid_mod.o
 
-regrid_a2a_mod.o  : regrid_a2a_mod.F90               \
-                    file_mod.o          grid_mod.o   \
-                    inquireMod.o
+regrid_a2a_mod.o  : regrid_a2a_mod.F90
 
 time_mod.o        : time_mod.F                       \
                     charpak_mod.o       error_mod.o  \

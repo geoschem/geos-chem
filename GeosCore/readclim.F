@@ -46,7 +46,7 @@
 !  03 Jan 2013 - M. Payer        - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod
-
+!  15 Jul 2014 - R. Yantosca - Now read netCDF files for DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -172,14 +172,15 @@
       ! 0.5x0.5 regrid - CLIM
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic05x05.txt'
+     &         'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic05x05.nc'
 
       ! Regrid non-arid layer [unitless]
       INGRID = NON_ARID(:,:,1)
       OUTGRID = 0.
 
       CALL DO_REGRID_A2A( LLFILENAME, 720,     360,
-     &                    INGRID,     OUTGRID, IS_MASS=0 )
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                    )
 
       CLIM(:,:,1) = OUTGRID 
 
@@ -188,7 +189,8 @@
       OUTGRID = 0.
 
       CALL DO_REGRID_A2A( LLFILENAME, 720,     360,
-     &                    INGRID,     OUTGRID, IS_MASS=0 )
+     &                    INGRID,     OUTGRID, IS_MASS=0,
+     &                    netCDF=.TRUE.                    )
 
       CLIM(:,:,2) = OUTGRID 
 
