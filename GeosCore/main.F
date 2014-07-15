@@ -2294,7 +2294,8 @@
 !
 ! !IROUTINE: initialize_regridding
 !
-! !DESCRIPTION: Internal subroutine GET\_OVERHEAD\_O3\_FOR\_FASTJ 
+! !DESCRIPTION: Internal subroutine Initialize\_Regridding passes several
+!  variables to regrid\_a2a\_mod.F90, where they are locally shadowed.
 !\\
 !\\
 ! !INTERFACE:
@@ -2311,17 +2312,13 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
-!  This routine makes use of variables declared in above in the main program
-!  (which are visible in all sub-programs below the CONTAINS statement).
-!                                                                             .
-!  The original code was done in FAST-J routine "set_prof.F", but has been
-!  split off to facilitate development of the grid-independent model.
+!  This routine is a wrapper for Init_Map_A2A in regrid_a2a_mod.F90.  
+!  Passing variables via Init_Map_A2A helps us to remove dependencies on
+!  other GEOS-Chem routines from regrid_a2a_mod.F90.  This in turn 
+!  facilitates the implementation of the HEMCO emissions package.
 !
 ! !REVISION HISTORY: 
-!  07 Mar 2012 - R. Yantosca - Initial version
-!  14 Nov 2013 - R. Yantosca - For GEOS-FP, read O3 from met field files
-!  13 Dec 2013 - M. Sulprizio- Moved USE_O3_FROM_MET to the Input_Opt object and
-!                              set in initialization stage of GEOS_CHEM
+!  15 Jul 2014 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2333,26 +2330,28 @@
       CHARACTER(LEN=255) :: DIR
 
       ! Arrays
-      REAL*8             :: LONS (IIPAR        )   ! Longitudes     [deg]
-      REAL*8             :: SINS (      JJPAR+1)   ! SIN(Latitudes) [1  ]
-      REAL*8             :: AREAS(IIPAR,JJPAR  )   ! Sfc Areas      [m2 ]
+      REAL*8             :: LONEDG(IIPAR+1       ) ! W longitude edges [deg]
+      REAL*8             :: LATSIN(       JJPAR+1) ! SIN(Lat edges)    [1  ]
+      REAL*8             :: AREAS (IIPAR, JJPAR  ) ! Surface Areas     [m2 ]
 
       !================================================================
       ! Initialize_Regridding begins here!
       !================================================================
-      !
+
+      ! Assume success
+      RC  = GIGC_SUCCESS
 
       ! Directory where netCDF ifles are found
-      DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // '/HEMCO/MAP_A2A/v2014-07/'
+      DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'HEMCO/MAP_A2A/v2014-07/'
 
       ! Initialize longitudes [deg]
-      DO I = 1, IIPAR
-         LONS(I) = GET_XMID( I, 1, 1 )
+      DO I = 1, IIPAR+1
+         LONEDG(I) = GET_XEDGE( I, 1, 1 )
       ENDDO
 
       ! Initialize sines of latitude [1]
-      DO J = 1, JJPAR
-         SINS(J) = GET_YSIN( 1, J, 1 )
+      DO J = 1, JJPAR+1
+         LATSIN(J) = GET_YSIN( 1, J, 1 )
       ENDDO
 
       ! Initialize surface areas [m2]
@@ -2363,7 +2362,7 @@
       ENDDO
 
       ! Pass to regrid_a2a_mod.F90, where these will be shadowed locally
-      CALL Init_Map_A2A( IIPAR, JJPAR, LONS, SINS, AREAS, DIR )
+      CALL Init_Map_A2A( IIPAR, JJPAR, LONEDG, LATSIN, AREAS, DIR )
       
       END SUBROUTINE Initialize_Regridding
 !EOC

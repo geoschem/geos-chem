@@ -3,10 +3,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: regrid_a2a_mod
+! !MODULE: regrid_a2a_mod.F90
 !
-! !DESCRIPTION: Module REGRID\_A2A\_MOD uses an algorithm adapted from MAP\_A2A
-!   code to regrid from one horizonatal grid to another.
+! !DESCRIPTION: Module REGRID\_A2A\_MOD uses an algorithm adapted from 
+!  MAP\_A2A code to regrid from one horizontal grid to another.
 !\\
 !\\
 ! !INTERFACE: 
@@ -99,13 +99,13 @@ CONTAINS
 ! !IROUTINE: do_regrid_a2a
 !
 ! !DESCRIPTION: Subroutine DO\_REGRID\_A2A regrids 2-D data in the
-!  horizontal direction.
+!  horizontal direction.  This is a wrapper for the MAP\_A2A routine.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_REGRID_A2A( FILENAME,        IM,      JM,     &
-                            INGRID, OUTGRID, IS_MASS, netCDF )
+  SUBROUTINE DO_REGRID_A2A( FILENAME, IM,      JM,              &
+                            INGRID,   OUTGRID, IS_MASS, netCDF )
 !
 ! !INPUT PARAMETERS:
 !
@@ -132,8 +132,13 @@ CONTAINS
     ! Data array on the OUTPUT GRID
     REAL*8,           INTENT(OUT)   :: OUTGRID(IIPAR,JJPAR) 
 !
+! !REMARKS:
+!  The netCDF optional argument is now obsolete, because we now always read
+!  the grid definitions from netCDF files instead of ASCII.  Keep it for
+!  the time being in order to avoid having to change many lines of code
+!  everywhere.
+!
 ! !REVISION HISTORY:
-
 !  13 Mar 2012 - M. Cooper   - Initial version
 !  22 May 2012 - L. Murray   - Bug fix: INSIN should be allocated w/ JM+1.
 !  22 May 2012 - R. Yantosca - Updated comments, cosmetic changes
@@ -147,6 +152,8 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS to describe parameter
 !                              more clearly
+!  15 Jul 2014 - R. Yantosca - Now use global module variables
+!  15 Jul 2014 - R. Yantosca - Remove reading from ASCII input files
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,98 +170,16 @@ CONTAINS
     LOGICAL           :: USE_NETCDF
 
     ! Arrays
-    REAL*8            :: INLON  (IM   +1)  ! Lon edges        on INPUT GRID
-    REAL*8            :: INSIN  (JM   +1)  ! SIN( lat edges ) on INPUT GRID
-!    REAL*8            :: OUTLON (IIPAR+1)  ! Lon edges        on OUTPUT GRID
-!    REAL*8            :: OUTSIN (JJPAR+1)  ! SIN( lat edges ) on OUTPUT GRID
-    REAL*8            :: IN_GRID(IM,JM  )  ! Shadow variable for INGRID
+    REAL*8            :: INLON  (IM+1    )  ! Lon edges        on INPUT GRID
+    REAL*8            :: INSIN  (    JM+1)  ! SIN( lat edges ) on INPUT GRID
+    REAL*8            :: IN_GRID(IM, JM  )  ! Shadow variable for INGRID
 
     !======================================================================
     ! Initialization
-    !
-    ! NOTE: In the near future ASCII input will be replaced by netCDF!
     !======================================================================
 
-    ! Save value of netCDF to shadow variable
-    IF ( PRESENT( netCDF ) ) THEN
-       USE_netCDF = netCDF
-    ELSE
-       USE_netCDF = .FALSE.
-    ENDIF
-
-!-----------------------------------------------------------------------------
-! Prior to 7/15/14:
-! These are now global module variables (bmy, 7/15/14)
-!    ! Longitude edges on the OUTPUT GRID
-!    ! NOTE: May have to make OUTLON a 2-D array later for the GI model
-!    DO I = 1, IIPAR+1
-!       OUTLON(I) = GET_XEDGE( I, 1, 1 )
-!    ENDDO
-!
-!    ! SIN( lat edges ) on the OUTPUT GRID
-!    ! NOTE: May have to make OUTSIN a 2-D array later for the GI model
-!    DO J = 1, JJPAR+1
-!       OUTSIN(J) = GET_YSIN( 1, J, 1 )
-!    ENDDO
-!-----------------------------------------------------------------------------
-
-!-----------------------------------------------------------------------------
-! Prior to 7/15/14:
-! Now always read the netCDF files (bmy, 7/15/14)
-!    ! Read the input grid specifications
-!    IF ( USE_netCDF ) THEN
-!-----------------------------------------------------------------------------
-
-       !------------------------------------------
-       ! %%% FROM NETCDF FILE %%%
-       !------------------------------------------
-
-       ! Read the grid specifications from a netCDF file
-       CALL READ_INPUT_GRID( IM, JM, FILENAME, INLON, INSIN )
-
-!-----------------------------------------------------------------------------
-! Prior to 7/15/14:
-! Remove code to read the ASCII files, they are obsolete (bmy, 7/15/14)
-!    ELSE
-!
-!       !------------------------------------------
-!       ! %%% FROM ASCII FILE %%%
-!       !
-!       ! NOTE: Deprecated, will be removed later.
-!       !------------------------------------------
-!
-!       ! Find a free file LUN
-!       IU_REGRID = findFreeLUN()
-!
-!       ! Open file containing lon & lat edges on the INPUT GRID
-!       OPEN( IU_REGRID, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-!       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_REGRID, 'latlonread' )
-!
-!       ! Create the approprate FORMAT strings
-!       WRITE(FMT_LEN,*) IM+1
-!
-!       ! NOTE: If the resolution of the grid is high enough, we have 
-!       ! to allow for an extra digit in the input file.  This will
-!       ! become obsolete once we migrate to netCDF format (bmy, 8/23/12)
-!       IF ( IM > 1000 ) THEN
-!          FMT_LON='(' // TRIM ( FMT_LEN ) // 'F10.4)'   ! For hi-res grids
-!       ELSE
-!          FMT_LON='(' // TRIM ( FMT_LEN ) // 'F9.3)'    ! For all other grids
-!       ENDIF
-!
-!       WRITE(FMT_LEN,*) JM
-!       FMT_LAT='(' // TRIM ( FMT_LEN ) // 'F15.10)'
-!
-!       ! Read lon edges & SIN( lat edges ) on the INPUT GRID
-!       READ( IU_REGRID, '(A15)',IOSTAT=IOS ) HEADER1
-!       READ( IU_REGRID,FMT_LON,IOSTAT=IOS  ) ( INLON(M), M=1,IM+1 )
-!       READ( IU_REGRID,FMT_LAT,IOSTAT=IOS  ) ( INSIN(M), M=1,JM+1 )
-!       
-!       ! Close file
-!       CLOSE( IU_REGRID )
-!    
-!    ENDIF
-!-----------------------------------------------------------------------------
+    ! Read the grid specifications from a netCDF file
+    CALL READ_INPUT_GRID( IM, JM, FILENAME, INLON, INSIN )
 
     !======================================================================
     ! Regridding
@@ -293,11 +218,6 @@ CONTAINS
        !$OMP PRIVATE( I, J   )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-!-----------------------------------------------------------------------------
-! Prior to 7/15/14:
-! Remove the dependency on GET_AREA_CM2 of grid_mod.F90 (bmy, 7/15/14)
-!          OUTGRID(I,J) = OUTGRID(I,J) * GET_AREA_CM2( I, J, 1 )
-!-----------------------------------------------------------------------------
           OUTGRID(I,J) = OUTGRID(I,J) * OUTAREA(I,J)
        ENDDO
        ENDDO
@@ -314,16 +234,13 @@ CONTAINS
 !
 ! !IROUTINE: Map_A2A_r8r8
 !
-! !DESCRIPTION: Subroutine MAP\_A2A is a horizontal arbitrary grid to arbitrary
-!  grid conservative high-order mapping regridding routine by S-J Lin.
+! !DESCRIPTION: Subroutine MAP\_A2A\_R8R8 is a horizontal arbitrary grid to 
+!  arbitrary grid conservative high-order mapping regridding routine by S-J 
+!  Lin.  Both the input data and output data have REAL*8 precision.
 !\\
 !\\
 ! !INTERFACE:
 !
-!  (1 ) INLON   (REAL*8   ) : Longitude edges of input grid
-!  (2 ) INSIN   (REAL*8   ) : Sine of input grid latitude edges
-!  (3 ) INGRID  (REAL*8   ) : Data array to be regridded
-
   SUBROUTINE Map_A2A_r8r8( im, jm, lon1, sin1, q1, &
                            in, jn, lon2, sin2, q2, ig, iv)
 !
@@ -357,7 +274,10 @@ CONTAINS
     ! Regridded quantity on OUTPUT grid
     REAL*8,  INTENT(OUT) :: q2(in,jn)
 !
-!  !REVISION HISTORY:
+! !REMARKS:
+!  This routine is overloaded by the MAP_A2A interface.
+!
+! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
 !  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
@@ -428,18 +348,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Map_A2A_r4r4
+! !IROUTINE: Map_A2A_R4R4
 !
-! !DESCRIPTION: Subroutine MAP\_A2A is a horizontal arbitrary grid to arbitrary
-!  grid conservative high-order mapping regridding routine by S-J Lin.
+! !DESCRIPTION: Subroutine MAP\_A2A\_R4R4 is a horizontal arbitrary grid 
+!  to arbitrary grid conservative high-order mapping regridding routine 
+!  by S-J Lin.  Both the input and output data have REAL*4 precision.
 !\\
 !\\
 ! !INTERFACE:
 !
-!  (1 ) INLON   (REAL*8   ) : Longitude edges of input grid
-!  (2 ) INSIN   (REAL*8   ) : Sine of input grid latitude edges
-!  (3 ) INGRID  (REAL*8   ) : Data array to be regridded
-
   SUBROUTINE Map_A2A_r4r4( im, jm, lon1, sin1, q1, &
                            in, jn, lon2, sin2, q2, ig, iv)
 !
@@ -473,7 +390,10 @@ CONTAINS
     ! Regridded quantity on OUTPUT grid
     REAL*4,  INTENT(OUT) :: q2(in,jn)
 !
-!  !REVISION HISTORY:
+! !REMARKS:
+!  This routine is overloaded by the MAP_A2A interface.
+!
+! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
 !  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
@@ -546,16 +466,14 @@ CONTAINS
 !
 ! !IROUTINE: Map_A2A_r4r8
 !
-! !DESCRIPTION: Subroutine MAP\_A2A is a horizontal arbitrary grid to arbitrary
-!  grid conservative high-order mapping regridding routine by S-J Lin.
+! !DESCRIPTION: Subroutine MAP\_A2A\_R4R8 is a horizontal arbitrary grid to 
+!  arbitrary grid conservative high-order mapping regridding routine by
+!  S-J Lin.  The input data has REAL*4 precision, but the output argument
+!  has REAL*8 precision.
 !\\
 !\\
 ! !INTERFACE:
 !
-!  (1 ) INLON   (REAL*8   ) : Longitude edges of input grid
-!  (2 ) INSIN   (REAL*8   ) : Sine of input grid latitude edges
-!  (3 ) INGRID  (REAL*8   ) : Data array to be regridded
-
   SUBROUTINE Map_A2A_r4r8( im, jm, lon1, sin1, q1, &
                            in, jn, lon2, sin2, q2, ig, iv)
 !
@@ -589,7 +507,10 @@ CONTAINS
     ! Regridded quantity on OUTPUT grid
     REAL*8,  INTENT(OUT) :: q2(in,jn)
 !
-!  !REVISION HISTORY:
+! !REMARKS:
+!  This routine is overloaded by the MAP_A2A interface.
+!
+! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
 !  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
@@ -663,7 +584,8 @@ CONTAINS
 ! !IROUTINE: ymap_r8r8
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
-!  arbitrary resolution to another.
+!  arbitrary resolution to another.  Both the input and output arguments
+!  have REAL*8 precision.
 !\\
 !\\
 ! !INTERFACE:
@@ -827,7 +749,8 @@ CONTAINS
 ! !IROUTINE: ymap_r4r8
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
-!  arbitrary resolution to another.
+!  arbitrary resolution to another.  The input argument has REAL*4 precision
+!  but the output argument has REAL*8 precision.
 !\\
 !\\
 ! !INTERFACE:
@@ -992,7 +915,8 @@ CONTAINS
 ! !IROUTINE: ymap_r4r4
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
-!  arbitrary resolution to another.
+!  arbitrary resolution to another.  Both the input and output arguments
+!  have REAL*8 precision.
 !\\
 !\\
 ! !INTERFACE:
@@ -1157,7 +1081,10 @@ CONTAINS
 ! !IROUTINE: xmap_r8r8
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
-!  arbitrary resolution to another.
+!  arbitrary resolution to another.  Both the input and output arguments
+!  have REAL*8 precision.
+!\\
+!\\
 !  Periodic domain will be assumed, i.e., the eastern wall bounding cell
 !  im is lon1(im+1) = lon1(1); Note the equal sign is true geographysically.
 !\\
@@ -1239,7 +1166,7 @@ CONTAINS
        else
           i1 = i1 - 1
           if (i1 .lt. -im) then
-             write(6,*) 'failed in xmap'
+             write(6,*) 'Failed in Xmap_R8R8 (regrid_a2a_mod.F90)'
              stop
           else
              x1(i1) = x1(i1+1) - dx1(im+i1)
@@ -1259,7 +1186,7 @@ CONTAINS
        else
           i2 = i2 + 1
           if (i2 .gt. 2*im) then
-             write(6,*) 'failed in xmap'
+             write(6,*) 'Failed in Xmap_R8R8 (regrid_a2a_mod.F90)'
              stop
           else
              dx1(i2-1) = dx1(i2-1-im)
@@ -1344,6 +1271,7 @@ CONTAINS
      !$OMP END PARALLEL DO
 
   END SUBROUTINE xmap_r8r8
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1352,7 +1280,10 @@ CONTAINS
 ! !IROUTINE: xmap_r4r4
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
-!  arbitrary resolution to another.
+!  arbitrary resolution to another.  Both the input and output arguments
+!  have REAL*4 precision.
+!\\
+!\\
 !  Periodic domain will be assumed, i.e., the eastern wall bounding cell
 !  im is lon1(im+1) = lon1(1); Note the equal sign is true geographysically.
 !\\
@@ -1434,7 +1365,7 @@ CONTAINS
        else
           i1 = i1 - 1
           if (i1 .lt. -im) then
-             write(6,*) 'failed in xmap'
+             write(6,*) 'Failed in Xmap_R4R4 (regrid_a2a_mod.F90)'
              stop
           else
              x1(i1) = x1(i1+1) - dx1(im+i1)
@@ -1454,7 +1385,7 @@ CONTAINS
        else
           i2 = i2 + 1
           if (i2 .gt. 2*im) then
-             write(6,*) 'failed in xmap'
+             write(6,*) 'Failed in Xmap_R4R4 (regrid_a2a_mod.F90)'
              stop
           else
              dx1(i2-1) = dx1(i2-1-im)
@@ -1548,7 +1479,10 @@ CONTAINS
 ! !IROUTINE: xmap_r4r8
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
-!  arbitrary resolution to another.
+!  arbitrary resolution to another.  The input argument has REAL*4 precision
+!  but the output argument has REAL*8 precision.
+!\\
+!\\
 !  Periodic domain will be assumed, i.e., the eastern wall bounding cell
 !  im is lon1(im+1) = lon1(1); Note the equal sign is true geographysically.
 !\\
@@ -1630,7 +1564,7 @@ CONTAINS
        else
           i1 = i1 - 1
           if (i1 .lt. -im) then
-             write(6,*) 'failed in xmap'
+             write(6,*) 'Failed in Xmap_R4R8 (regrid_a2a_mod.F90)'
              stop
           else
              x1(i1) = x1(i1+1) - dx1(im+i1)
@@ -1650,7 +1584,7 @@ CONTAINS
        else
           i2 = i2 + 1
           if (i2 .gt. 2*im) then
-             write(6,*) 'failed in xmap'
+             write(6,*) 'Failed in Xmap_R4R8 (regrid_a2a_mod.F90)'
              stop
           else
              dx1(i2-1) = dx1(i2-1-im)
@@ -1750,7 +1684,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE READ_INPUT_GRID( IM, JM, fileName, lon_edges, lat_sines )
+  SUBROUTINE Read_Input_Grid( IM, JM, fileName, lon_edges, lat_sines )
 !
 ! !USES:
 !
@@ -1814,7 +1748,7 @@ CONTAINS
     ! Close netCDF file
     CALL NcCl( fId )
 
-  END SUBROUTINE READ_INPUT_GRID
+  END SUBROUTINE Read_Input_Grid
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1831,17 +1765,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Map_A2A( NX, NY, LON, SIN, AREA, DIR )
+  SUBROUTINE Init_Map_A2A( NX, NY, LONS, SINES, AREAS, DIR )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,          INTENT(IN) :: NX          ! # of longitudes (x-dimension)
-    INTEGER,          INTENT(IN) :: NY          ! # of latitudes  (y-dimension)
-    REAL*8,           INTENT(IN) :: LON(NX)     ! Longitudes
-    REAL*8,           INTENT(IN) :: SIN(NY+1)   ! Sines of latitudes
-    REAL*8,           INTENT(IN) :: AREA(NX,NY) ! Surface area [m2]
-    CHARACTER(LEN=*), INTENT(IN) :: DIR         ! Dir for netCDF files w/ 
-                                                !  grid definitions
+    INTEGER,          INTENT(IN) :: NX             ! # of longitudes
+    INTEGER,          INTENT(IN) :: NY             ! # of latitudes
+    REAL*8,           INTENT(IN) :: LONS (NX+1 )   ! Longitudes
+    REAL*8,           INTENT(IN) :: SINES(NY+1 )   ! Sines of latitudes
+    REAL*8,           INTENT(IN) :: AREAS(NX,NY)   ! Surface areas [m2]
+    CHARACTER(LEN=*), INTENT(IN) :: DIR            ! Dir for netCDF files w/ 
+                                                   !  grid definitions
 !
 ! !REVISION HISTORY:
 !  14 Jul 2014 - R. Yantosca - Initial version
@@ -1857,7 +1791,7 @@ CONTAINS
     ! Allocate module variables
     !------------------------------------------
     IF ( .not. ALLOCATED( OUTLON ) ) THEN
-       ALLOCATE( OUTLON ( NX ), STAT=AS )
+       ALLOCATE( OUTLON( NX+1 ), STAT=AS )
        IF ( AS /= 0 ) THEN 
           PRINT*, '### Could not allocate OUTLON (regrid_a2a_mod.F90)'
           STOP
@@ -1865,7 +1799,7 @@ CONTAINS
     ENDIF
 
     IF ( .not. ALLOCATED( OUTSIN ) ) THEN
-       ALLOCATE( OUTSIN ( NY+1 ), STAT=AS ) 
+       ALLOCATE( OUTSIN( NY+1 ), STAT=AS ) 
        IF ( AS /= 0 ) THEN
           PRINT*, '### Could not allocate OUTSIN (regrid_a2a_mod.F90)'
           STOP
@@ -1885,9 +1819,9 @@ CONTAINS
     !------------------------------------------
     IIPAR   = NX
     JJPAR   = NY
-    OUTLON  = LON
-    OUTSIN  = SIN
-    OUTAREA = AREA
+    OUTLON  = LONS
+    OUTSIN  = SINES
+    OUTAREA = AREAS
     NC_DIR  = DIR
 
   END SUBROUTINE Init_Map_A2A
