@@ -6,9 +6,10 @@
 ! !MODULE: hco_geotools_mod.F90
 !
 ! !DESCRIPTION: Module HCO\_GeoTools\_Mod contains a collection of 
-! helper routines for extracting geographical information. These 
-! routines are based upon GEOS-5 data and may need to be revised
-! for other met. fields! 
+! helper routines for extracting geographical information. 
+! \\
+! Note that some of these routines are based upon GEOS-5 data and may 
+! need to be revised for other met. fields! 
 ! \\
 ! !INTERFACE: 
 !
@@ -24,15 +25,24 @@ MODULE HCO_GeoTools_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: HCO_LandType
+  PUBLIC :: HCO_ModuloLon
+
   INTERFACE HCO_LandType
      MODULE PROCEDURE HCO_LandType_Dp
      MODULE PROCEDURE HCO_LandType_Sp
   END INTERFACE HCO_LandType
+
+  INTERFACE HCO_ModuloLon
+     MODULE PROCEDURE HCO_ModuloLon_Dp
+     MODULE PROCEDURE HCO_ModuloLon_Sp
+  END INTERFACE HCO_ModuloLon
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE:: HCO_LandType_Dp
   PRIVATE:: HCO_LandType_Sp
+  PRIVATE:: HCO_ModuloLon_Dp
+  PRIVATE:: HCO_ModuloLon_Sp
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller   - Initialization
@@ -161,5 +171,84 @@ CONTAINS
 
   END FUNCTION HCO_LandType_Dp
 !EOC
-END MODULE HCO_GeoTools_MOd
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !FUNCTION: HCO_ModuloLon_Sp
+!
+! !DESCRIPTION: Subroutine HCO\_ModuloLon\_Sp ensures that the passed 
+! single precision longitude axis LON is in the range -180 to + 180. 
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ModuloLon_Sp ( NLON, LON )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,  INTENT(IN   ) :: NLON        ! # of lons
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(sp), INTENT(INOUT) :: LON(NLON)   ! longitude axis
+!
+! !REVISION HISTORY:
+!  16 Jul 2014 - C. Keller - Initialization
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER  :: I
+
+    DO I = 1, NLON
+       LON(I) = MOD( LON(I) + 180.0_sp, 360.0_sp ) - 180.0_sp
+
+       ! Special case that lon is -180: reset to +180 if it's last entry in
+       ! vector!
+       IF ( LON(I) == -180.0_sp .AND. I == NLON ) LON(I) = 180.0_sp 
+    ENDDO
+
+  END SUBROUTINE HCO_ModuloLon_Sp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !FUNCTION: HCO_ModuloLon_Dp
+!
+! !DESCRIPTION: Subroutine HCO\_ModuloLon\_Dp ensures that the passed 
+! double precision longitude axis LON is in the range -180 to + 180. 
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ModuloLon_Dp ( NLON, LON )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,  INTENT(IN   ) :: NLON        ! # of lons
+!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(dp), INTENT(INOUT) :: LON(NLON)   ! longitude axis
+!
+! !REVISION HISTORY:
+!  16 Jul 2014 - C. Keller - Initialization
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER  :: I
+
+    DO I = 1, NLON
+       LON(I) = MOD( LON(I) + 180.0_dp, 360.0_dp ) - 180.0_dp
+
+       ! Special case that lon is -180: reset to +180 if it's last entry in
+       ! vector!
+       IF ( LON(I) == -180.0_dp .AND. I == NLON ) LON(I) = 180.0_dp 
+    ENDDO
+
+  END SUBROUTINE HCO_ModuloLon_Dp
+!EOC
+END MODULE HCO_GeoTools_Mod
 !EOM

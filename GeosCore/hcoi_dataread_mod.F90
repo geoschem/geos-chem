@@ -197,9 +197,10 @@ CONTAINS
     USE Ncdf_Mod,           ONLY : NC_Close
     USE Ncdf_Mod,           ONLY : NC_Read_Var
     USE Ncdf_Mod,           ONLY : NC_Read_Arr
-    USE Ncdf_Mod,           ONLY : NC_Read_Grid
+    USE Ncdf_Mod,           ONLY : NC_Get_Grid_Edges
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
+    USE HCO_GeoTools_Mod,   ONLY : HCO_ModuloLon
     USE Regrid_A2A_Mod,     ONLY : MAP_A2A
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck2D
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck3D
@@ -223,24 +224,35 @@ CONTAINS
 ! 
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)    :: lonUnit, latUnit, levUnit, ncUnit
-    CHARACTER(LEN=255)    :: MSG 
-    INTEGER               :: I, L, T
-    INTEGER               :: NX, NY
-    INTEGER               :: NCRC, Flag
-    INTEGER               :: ncLun
-    INTEGER               :: nLon,   nLat,  nLev, nTime
-    INTEGER               :: lev1,   lev2 
-    INTEGER               :: tidx1,  tidx2, ncYr, ncMt
-    INTEGER               :: HcoID
-    REAL(sp), POINTER     :: ncArr(:,:,:,:) => NULL()
-    REAL(sp), POINTER     :: ORIG_2D(:,:)   => NULL()
-    REAL(hp), POINTER     :: REGR_2D(:,:)   => NULL()
-    REAL(sp), ALLOCATABLE :: XEDGE_IN (:)
-    REAL(sp), ALLOCATABLE :: YSIN_IN  (:)
-    REAL(sp)              :: XEDGE_OUT(HcoState%NX+1) 
-    REAL(sp)              :: YSIN_OUT (HcoState%NY+1)
-    LOGICAL               :: verb, forcescal, IsPerArea
+    CHARACTER(LEN=255)            :: thisUnit
+    CHARACTER(LEN=255)            :: MSG 
+    INTEGER                       :: L, T
+    INTEGER                       :: NX, NY
+    INTEGER                       :: NCRC, Flag, AS
+    INTEGER                       :: ncLun
+    INTEGER                       :: nLon,   nLat,  nLev, nTime
+    INTEGER                       :: lev1,   lev2 
+    INTEGER                       :: tidx1,  tidx2, ncYr, ncMt
+    INTEGER                       :: HcoID
+    INTEGER                       :: nLatEdge, nLonEdge
+    REAL(sp), POINTER             :: ncArr(:,:,:,:)   => NULL()
+    REAL(sp), POINTER             :: ORIG_2D(:,:)     => NULL()
+    REAL(hp), POINTER             :: REGR_2D(:,:)     => NULL()
+    REAL(sp), POINTER             :: Lev(:,:,:)       => NULL()
+    REAL(sp), POINTER             :: LonMid   (:)     => NULL()
+    REAL(sp), POINTER             :: LatMid   (:)     => NULL()
+    REAL(sp), POINTER             :: LevMid   (:)     => NULL()
+    REAL(sp), POINTER             :: LonEdge  (:)     => NULL()
+    REAL(sp), POINTER             :: LatEdge  (:)     => NULL()
+    REAL(sp), ALLOCATABLE         :: LonEdgeI(:)
+    REAL(sp), ALLOCATABLE         :: LatEdgeI(:)
+    REAL(sp)                      :: LonEdgeO(HcoState%NX+1) 
+    REAL(sp)                      :: LatEdgeO(HcoState%NY+1)
+    LOGICAL                       :: verb, forcescal, IsPerArea
+    REAL(dp)                      :: PI_180
+   
+    ! Use MESSy regridding routines?
+    LOGICAL, PARAMETER    :: UseMESSy = .FALSE.
 
     !=================================================================
     ! HCOI_DATAREAD begins here
@@ -249,7 +261,10 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ('HCOI_DATAREAD (hcoi_dataread_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-      
+    
+    ! To convert from deg to rad  
+    PI_180 = HcoState%Phys%PI / 180.0_dp
+
     ! Check for verbose mode and if scale factors have to be in scale
     ! factor units.
     verb      = HCO_VERBOSE_CHECK()
@@ -314,47 +329,49 @@ CONTAINS
     ENDIF
 
     ! ----------------------------------------------------------------
-    ! Read data 
+    ! Read grid 
     ! ----------------------------------------------------------------
 
-    ! Extract grid dimension
-    CALL NC_READ_VAR ( ncLun, 'lat', nLat, LatUnit, RC=NCRC )
-    IF ( NCRC /= 0 .OR. nLat == 0 ) THEN
-       CALL HCO_ERROR( 'NC_READ_LAT', RC )
-       RETURN 
-    ENDIF
-
-    CALL NC_READ_VAR ( ncLun, 'lon', nLon, LonUnit, RC=NCRC )
-    IF ( NCRC /= 0 .OR. nLon ) THEN
+    ! Extract longitude midpoints
+    CALL NC_READ_VAR ( ncLun, 'lon', nLon, thisUnit, LonMid, RC=NCRC )
+    IF ( NCRC /= 0 .OR. nLon == 0 ) THEN
        CALL HCO_ERROR( 'NC_READ_LON', RC )
        RETURN 
     ENDIF
-    
-    CALL NC_READ_VAR ( ncLun, 'lev', nLev, LevUnit, RC=NCRC )
-    IF ( NCRC /= 0 ) THEN
-       CALL HCO_ERROR( 'NC_READ_LEV', RC )
-       RETURN 
-    ENDIF
-    IF ( nLev == 0 ) THEN
-       CALL NC_READ_VAR ( ncLun, 'height', nLev, LevUnit, RC=NCRC )
-       IF ( NCRC /= 0 ) THEN
-          CALL HCO_ERROR( 'NC_READ_LEV', RC )
-          RETURN 
-       ENDIF
-    ENDIF
-
-    ! Sanity check of lon/lat units
-    IF ( INDEX( LonUnit, 'degrees_east' ) == 0 ) THEN
+    IF ( INDEX( thisUnit, 'degrees_east' ) == 0 ) THEN
        MSG = 'illegal longitude unit in ' // &
             TRIM(Lct%Dct%Dta%ncFile)
        CALL HCO_ERROR ( MSG, RC )
        RETURN
     ENDIF
-    IF ( INDEX( LatUnit, 'degrees_north' ) == 0 ) THEN
+    ! Make sure longitude is in the range -180 to +180.
+    CALL HCO_ModuloLon( nLon, LonMid )
+    
+    ! Extract latitude midpoints
+    CALL NC_READ_VAR ( ncLun, 'lat', nLat, thisUnit, LatMid, RC=NCRC )
+    IF ( NCRC /= 0 .OR. nLat == 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_LAT', RC )
+       RETURN 
+    ENDIF
+    IF ( INDEX( thisUnit, 'degrees_north' ) == 0 ) THEN
        MSG = 'illegal latitude unit in ' // &
             TRIM(Lct%Dct%Dta%ncFile)
        CALL HCO_ERROR ( MSG, RC )
        RETURN
+    ENDIF
+
+    ! Try to extract level midpoints
+    CALL NC_READ_VAR ( ncLun, 'lev', nLev, thisUnit, LevMid, RC=NCRC )
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_LEV', RC )
+       RETURN 
+    ENDIF
+    IF ( nLev == 0 ) THEN
+       CALL NC_READ_VAR ( ncLun, 'height', nLev, thisUnit, LevMid, RC=NCRC )
+       IF ( NCRC /= 0 ) THEN
+          CALL HCO_ERROR( 'NC_READ_LEV', RC )
+          RETURN 
+       ENDIF
     ENDIF
 
     ! Sanity check of vertical dimensions
@@ -372,28 +389,31 @@ CONTAINS
     ! NOTE: for now, always read all levels. Edit here to read
     ! only particular levels.
     ! Also do sanity check whether or not vertical dimension does 
-    ! agree with space dimension specified in configuration file
+    ! agree with space dimension specified in configuration file.
     IF ( nLev > 0 ) THEN
        lev1 = 1
        lev2 = nlev
        IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-          MSG = 'Found vertical axis but dimension is set to xy - ' // &
-               'will only use first level: ' // TRIM(Lct%Dct%Dta%ncFile)
-          CALL HCO_WARNING ( MSG, RC )
-          Lct%Dct%Dta%SpaceDim = 3
-          lev2 = 1
+          MSG = 'Found 3D data, but space dim is not set to 3: ' // &
+                TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
        ENDIF
     ELSE
        lev1 = 0
        lev2 = 0
        IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
-          MSG = 'This is not 3D data: ' // TRIM(Lct%Dct%Dta%ncFile)
-          CALL HCO_WARNING ( MSG, RC )
-          Lct%Dct%Dta%SpaceDim = 2
+          MSG = 'Could not find level coordinate: ' // &
+                TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
        ENDIF
     ENDIF
 
-    ! Read array
+    ! ----------------------------------------------------------------
+    ! Read data
+    ! ----------------------------------------------------------------
+
     CALL NC_READ_ARR( fID     = ncLun,              &
                       ncVar   = Lct%Dct%Dta%ncPara, &
                       lon1    = 1,                  &
@@ -405,31 +425,27 @@ CONTAINS
                       time1   = tidx1,              &
                       time2   = tidx2,              &
                       ncArr   = ncArr,              &
-                      varUnit = ncUnit,             &
+                      varUnit = thisUnit,           &
                       RC      = NCRC                 )
+
     IF ( NCRC /= 0 ) THEN
        CALL HCO_ERROR( 'NC_READ_ARRAY', RC )
        RETURN 
     ENDIF
 
-    ! ----------------------------------------------------------------
-    ! Close netCDF
-    ! ----------------------------------------------------------------
-    CALL NC_CLOSE ( ncLun )
-      
     !-----------------------------------------------------------------
     ! Convert to HEMCO units 
     !-----------------------------------------------------------------
 
     ! Convert to HEMCO units. This is kg/m2/s for fluxes and kg/m3 
     ! for concentrations. Ignore this if no species ID defined,
-    ! i.e. for scale factors.
+    ! e.g. for scale factors.
     HcoID = Lct%Dct%HcoID 
     IF ( HcoID > 0 ) THEN
 
        CALL HCO_UNIT_CHANGE(                                    &
             Array         = ncArr,                              &
-            Units         = ncUnit,                             &
+            Units         = thisUnit,                           &
             MW_IN         = HcoState%Spc(HcoID)%MW_g,           & 
             MW_OUT        = HcoState%Spc(HcoID)%EmMW_g,         & 
             MOLEC_RATIO   = HcoState%Spc(HcoID)%MolecRatio,     & 
@@ -437,20 +453,37 @@ CONTAINS
             MM            = ncMt,                               &
             IsPerArea     = IsPerArea,                          &
             RC            = NCRC                                 )
-       
+
        IF ( NCRC /= 0 ) THEN
           CALL HCO_ERROR('CHANGE_UNITS', RC )
           RETURN 
        ENDIF
-
+  
+       ! Data that is not per area (e.g. kg/yr) needs to be converted
+       ! to per area manually.
        IF ( .NOT. IsPerArea ) THEN
-          CALL NORMALIZE_AREA( HcoState, ncArr, Lct%Dct%Dta%ncFile, RC )
+
+          ! Get lat edges: those are read from file if possible, otherwise
+          ! calculated from the lat midpoints.
+          ! ==> Sine of lat is needed. Do conversion right here.
+          CALL NC_GET_GRID_EDGES ( ncLun, 2, LatMid,   nLat, &
+                                   LatEdge,  nLatEdge, NCRC   )
+          IF ( NCRC /= 0 ) THEN
+             MSG = 'Cannot read lat edge of ' // TRIM(Lct%Dct%Dta%ncFile)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF 
+          LatEdge = SIN( LatEdge * PI_180 )
+
+          ! Now normalize data by area calculated from lat edges.
+          CALL NORMALIZE_AREA( HcoState, ncArr,              nLon, &
+                               LatEdge,  Lct%Dct%Dta%ncFile, RC     )
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
      
     ! For scale factors and masks, check if units are indeed unitless. 
     ELSE
-       Flag = HCO_UNIT_SCALCHECK( ncUnit )
+       Flag = HCO_UNIT_SCALCHECK( thisUnit )
        MSG = 'Scale factor does not appear to be unitless: ' // & 
              TRIM(Lct%Dct%Dta%ncFile)
        IF ( Flag == 1 ) THEN
@@ -472,24 +505,45 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! Messy toggle
-    if ( .true. ) then
+    IF ( .NOT. UseMESSy ) THEN
 
-    ! Get input grid edges from netCDF file 
-    ! Note: use error syntax from ncdf_mod!
-    ALLOCATE( XEDGE_IN(NLON+1) )
-    ALLOCATE( YSIN_IN (NLAT+1) )
-    XEDGE_IN(:) = 0.0_sp
-    YSIN_IN (:) = 0.0_sp
-    CALL NC_READ_GRID( nLon,     nLat,    Lct%Dct%Dta%ncFile, &
-                       XEDGE_IN, YSIN_IN, NCRC                     )
+    ! Get longitude edges
+    ! Make sure longitude is in the range -180 to +180.
+    CALL NC_GET_GRID_EDGES ( ncLun, 1, LonMid,   nLon, &
+                             LonEdge,  nLonEdge, NCRC   )
     IF ( NCRC /= 0 ) THEN
-       CALL HCO_ERROR ( 'NC_READ_GRID', RC )
-       RETURN 
+       MSG = 'Cannot read lon edge of ' // TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
+    ENDIF 
+    CALL HCO_ModuloLon( nLonEdge, LonEdge )
+
+    ! Get latitude edges (only if those have not yet been read
+    ! for unit conversion)
+    IF ( .NOT. ASSOCIATED( LatEdge ) ) THEN
+       CALL NC_GET_GRID_EDGES ( ncLun, 2, LatMid,   nLat, &
+                                LatEdge,  nLatEdge, NCRC   )
+       IF ( NCRC /= 0 ) THEN
+          MSG = 'Cannot read lat edge of ' // TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ENDIF
+       LatEdge = SIN( LatEdge * PI_180 )
     ENDIF
 
+    ! Write input grid edges to shadow variables so that map_a2a accepts them
+    ! as argument
+    ALLOCATE(LonEdgeI(nLonEdge), LatEdgeI(nLatEdge), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR( 'alloc error LonEdgeI', RC )
+       RETURN
+    ENDIF
+    LonEdgeI(:) = LonEdge
+    LatEdgeI(:) = LatEdge
+   
     ! Get output grid edges from HEMCO state
-    XEDGE_OUT(:) = HcoState%Grid%XEDGE(:,1)
-    YSIN_OUT (:) = HcoState%Grid%YSIN (1,:) 
+    LonEdgeO(:) = HcoState%Grid%XEDGE(:,1)
+    LatEdgeO(:) = HcoState%Grid%YSIN (1,:) 
   
     ! Reset nlev and ntime to effective array sizes
     nlev  = size(ncArr,3)
@@ -504,6 +558,10 @@ CONTAINS
        IF ( RC /= 0 ) RETURN
     ENDIF
 
+    ! testing only
+    write(*,*) 'LonEdgeI: ', LonEdgeI
+    write(*,*) 'LatEdgeI: ', LatEdgeI
+
     ! Do regridding
     DO T = 1, NTIME
     DO L = 1, NLEV 
@@ -517,8 +575,8 @@ CONTAINS
        ENDIF
 
        ! Do the regridding
-       CALL MAP_A2A( NLON,  NLAT,  XEDGE_IN,  YSIN_IN,  ORIG_2D, &
-                     NX, NY, XEDGE_OUT, YSIN_OUT, REGR_2D, 0, 0 )
+       CALL MAP_A2A( NLON,  NLAT, LonEdgeI, LatEdgeI, ORIG_2D, &
+                     NX,    NY,   LonEdgeO, LatEdgeO, REGR_2D, 0, 0 )
 
        ORIG_2D => NULL()
        REGR_2D => NULL()
@@ -526,21 +584,34 @@ CONTAINS
     ENDDO !L
     ENDDO !T
 
+    DEALLOCATE(LonEdgeI, LatEdgeI)
 
     !-----------------------------------------------------------------
-    ! Use messy regridding
+    ! Use MESSy regridding
     !-----------------------------------------------------------------
-    else
-!       CALL HCO_MESSY_NCREGRID ( am_I_Root, HcoState, Lct, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN 
-    endif
+    ELSE
+        ! TODO: Lev <==> LevMid 
+!       CALL HCO_MESSY_NCREGRID ( am_I_Root, HcoState, NcArr, &
+!                                 LonMid,    LatMid,   Lev,   &
+!                                 Lct,       RC                 )
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!       IF ( ASSOCIATED(Lev) ) DEALLOCATE(Lev)
+    ENDIF
 
+    ! ----------------------------------------------------------------
+    ! Close netCDF
+    ! ----------------------------------------------------------------
+    CALL NC_CLOSE ( ncLun )
+      
     !-----------------------------------------------------------------
     ! Cleanup and leave 
     !-----------------------------------------------------------------
-    IF ( ASSOCIATED(ncArr    ) ) DEALLOCATE ( ncArr    )
-    IF ( ALLOCATED (XEDGE_IN ) ) DEALLOCATE ( XEDGE_IN )
-    IF ( ALLOCATED (YSIN_IN  ) ) DEALLOCATE ( YSIN_IN  )
+    IF ( ASSOCIATED ( ncArr   ) ) DEALLOCATE ( ncArr   )
+    IF ( ASSOCIATED ( LonMid  ) ) DEALLOCATE ( LonMid  )
+    IF ( ASSOCIATED ( LatMid  ) ) DEALLOCATE ( LatMid  )
+    IF ( ASSOCIATED ( LevMid  ) ) DEALLOCATE ( LevMid  )
+    IF ( ASSOCIATED ( LonEdge ) ) DEALLOCATE ( LonEdge )
+    IF ( ASSOCIATED ( LatEdge ) ) DEALLOCATE ( LatEdge )
 
     ! Return w/ success
     CALL HCO_LEAVE ( RC ) 
@@ -1021,16 +1092,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Normalize_Area( HcoState, Array, ncFile, RC ) 
-!
-! !USES:
-!
-    USE Ncdf_Mod, ONLY : NC_Read_Grid
+  SUBROUTINE Normalize_Area( HcoState, Array, nLon, LatEdgeSin, FN, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER         :: HcoState       ! HEMCO state object
-    CHARACTER(LEN=*), INTENT(IN   )   :: ncFile         ! netCDF file
+    TYPE(HCO_State),  POINTER         :: HcoState           ! HEMCO state object
+    INTEGER,          INTENT(IN   )   :: NLON               ! # of lon midpoints
+    REAL(sp),         POINTER         :: LatEdgeSin(:)      ! sine of lat edges 
+    CHARACTER(LEN=*), INTENT(IN   )   :: FN                 ! filename
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1046,8 +1115,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     REAL(hp)              :: DLAT, AREA
-    INTEGER               :: J, NLON,  NLAT, NCRC
-    REAL(sp), ALLOCATABLE :: XEDGE(:), YSIN(:)
+    INTEGER               :: NLAT, J
     CHARACTER(LEN=255)    :: MSG, LOC
 
     !=================================================================
@@ -1057,29 +1125,25 @@ CONTAINS
     ! Initialize
     LOC = 'NORMALIZE_AREA (hcoi_dataread_mod.F90 )'
 
-    ! Get array grid dimensions
-    NLON = SIZE(ARRAY,1)
-    NLAT = SIZE(ARRAY,2)
-
-    ! Allocate grid edges
-    ALLOCATE ( XEDGE(NLON+1) )
-    ALLOCATE ( YSIN (NLAT+1) )
-    XEDGE = 0_sp
-    YSIN  = 0_sp
-
-    ! Read input grid specifications
-    CALL NC_READ_GRID( NLON, NLAT, TRIM(NCFILE), XEDGE, YSIN, RC)
-    IF ( RC /= 0 ) THEN
-       WRITE(MSG,*) 'Cannot read grid of file ' // TRIM(NCFILE) 
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC ) 
+    ! Check array size
+    NLAT = SIZE(LatEdgeSin,1) - 1
+    
+    IF ( SIZE(Array,1) /= NLON ) THEN
+       MSG = 'Array size does not agree with nlon: ' // TRIM(FN)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
- 
+    IF ( SIZE(Array,2) /= NLAT ) THEN
+       MSG = 'Array size does not agree with nlat: ' // TRIM(FN)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
     ! Loop over all latitudes
     DO J = 1, NLAT
        ! get grid box area in m2 for grid box with lower and upper latitude llat/ulat:
        ! Area = 2 * PI * Re^2 * DLAT / NLON, where DLAT = abs( sin(ulat) - sin(llat) ) 
-       DLAT = ABS( YSIN(J+1) - YSIN(J) )
+       DLAT = ABS( LatEdgeSin(J+1) - LatEdgeSin(J) )
        AREA = ( 2_hp * HcoState%Phys%PI * DLAT * HcoState%Phys%Re**2 ) / REAL(NLON,hp)
 
        ! convert array data to m-2
@@ -1087,11 +1151,11 @@ CONTAINS
     ENDDO
 
     ! Prompt a warning
-    WRITE(MSG,*) 'No area unit found in ' // TRIM(NCFILE) // ' - convert to m-2!'
+    WRITE(MSG,*) 'No area unit found in ' // TRIM(FN) // ' - convert to m-2!'
     CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
 
-    ! Deallocate arrays
-    DEALLOCATE ( XEDGE, YSIN )
+    ! Leave w/ success
+    RC = HCO_SUCCESS
 
   END SUBROUTINE Normalize_Area
 !EOC

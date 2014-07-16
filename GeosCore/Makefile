@@ -722,8 +722,9 @@ hco_unit_mod.o              : hco_unit_mod.F90                               \
 
 hcoi_dataread_mod.o         : hcoi_dataread_mod.F90                          \
                               hco_datacont_mod.o      hco_error_mod.o        \
-                              hco_filedata_mod.o      hco_state_mod.o        \
-                              hco_tidx_mod.o          hco_unit_mod.o
+                              hco_filedata_mod.o      hco_geotools_mod.o     \
+                              hco_state_mod.o         hco_tidx_mod.o         \
+                              hco_unit_mod.o
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               hco_arr_mod.o           hco_config_mod.o       \

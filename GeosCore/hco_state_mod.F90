@@ -129,7 +129,7 @@ MODULE HCO_State_Mod
      REAL(df), POINTER :: YMID       (:,:)   ! mid-points in y-direction (lat)
      REAL(df), POINTER :: XEDGE      (:,:)   ! grid edges in x-direction (lon)*
      REAL(df), POINTER :: YEDGE      (:,:)   ! grid edges in y-direction (lat)*
-     REAL(df), pOINTER :: YSIN       (:,:)   ! sin of grid edges in 
+     REAL(df), POINTER :: YSIN       (:,:)   ! sin of grid edges in 
                                              !  y-direction (lat)*
      REAL(df), POINTER :: AREA_M2    (:,:)   ! grid box areas (m2)
      REAL(df), POINTER :: BXHEIGHT_M (:,:,:) ! grid box heights (m)**
