@@ -200,7 +200,7 @@ CONTAINS
     USE Ncdf_Mod,           ONLY : NC_Get_Grid_Edges
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
-    USE HCO_GeoTools_Mod,   ONLY : HCO_ModuloLon
+    USE HCO_GeoTools_Mod,   ONLY : HCO_ValidateLon
     USE Regrid_A2A_Mod,     ONLY : MAP_A2A
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck2D
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck3D
@@ -344,8 +344,9 @@ CONTAINS
        CALL HCO_ERROR ( MSG, RC )
        RETURN
     ENDIF
-    ! Make sure longitude is in the range -180 to +180.
-    CALL HCO_ModuloLon( nLon, LonMid )
+    ! Make sure longitude is steadily increasing.
+    CALL HCO_ValidateLon( nLon, LonMid, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
     
     ! Extract latitude midpoints
     CALL NC_READ_VAR ( ncLun, 'lat', nLat, thisUnit, LatMid, RC=NCRC )
@@ -516,7 +517,8 @@ CONTAINS
        CALL HCO_ERROR( MSG, RC )
        RETURN
     ENDIF 
-    CALL HCO_ModuloLon( nLonEdge, LonEdge )
+    CALL HCO_ValidateLon( nLonEdge, LonEdge, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get latitude edges (only if those have not yet been read
     ! for unit conversion)
@@ -557,10 +559,6 @@ CONTAINS
        CALL FileData_ArrCheck3D( Lct%Dct%Dta, nx, ny, nlev, ntime, RC ) 
        IF ( RC /= 0 ) RETURN
     ENDIF
-
-    ! testing only
-    write(*,*) 'LonEdgeI: ', LonEdgeI
-    write(*,*) 'LatEdgeI: ', LatEdgeI
 
     ! Do regridding
     DO T = 1, NTIME

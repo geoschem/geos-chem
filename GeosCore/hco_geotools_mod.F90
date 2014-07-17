@@ -25,24 +25,24 @@ MODULE HCO_GeoTools_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: HCO_LandType
-  PUBLIC :: HCO_ModuloLon
+  PUBLIC :: HCO_ValidateLon
 
   INTERFACE HCO_LandType
      MODULE PROCEDURE HCO_LandType_Dp
      MODULE PROCEDURE HCO_LandType_Sp
   END INTERFACE HCO_LandType
 
-  INTERFACE HCO_ModuloLon
-     MODULE PROCEDURE HCO_ModuloLon_Dp
-     MODULE PROCEDURE HCO_ModuloLon_Sp
-  END INTERFACE HCO_ModuloLon
+  INTERFACE HCO_ValidateLon
+     MODULE PROCEDURE HCO_ValidateLon_Dp
+     MODULE PROCEDURE HCO_ValidateLon_Sp
+  END INTERFACE HCO_ValidateLon
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE:: HCO_LandType_Dp
   PRIVATE:: HCO_LandType_Sp
-  PRIVATE:: HCO_ModuloLon_Dp
-  PRIVATE:: HCO_ModuloLon_Sp
+  PRIVATE:: HCO_ValidateLon_Dp
+  PRIVATE:: HCO_ValidateLon_Sp
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller   - Initialization
@@ -176,14 +176,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: HCO_ModuloLon_Sp
+! !FUNCTION: HCO_ValidateLon_Sp
 !
-! !DESCRIPTION: Subroutine HCO\_ModuloLon\_Sp ensures that the passed 
-! single precision longitude axis LON is in the range -180 to + 180. 
+! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed 
+! single precision longitude axis LON is steadily increasing.
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ModuloLon_Sp ( NLON, LON )
+  SUBROUTINE HCO_ValidateLon_Sp ( NLON, LON, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -192,37 +192,75 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     REAL(sp), INTENT(INOUT) :: LON(NLON)   ! longitude axis
+    INTEGER,  INTENT(INOUT) :: RC          ! Return code
 !
 ! !REVISION HISTORY:
 !  16 Jul 2014 - C. Keller - Initialization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER  :: I
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: I, CNT
+    LOGICAL             :: REDO
+    INTEGER, PARAMETER  :: MAXIT = 10
 
-    DO I = 1, NLON
-       LON(I) = MOD( LON(I) + 180.0_sp, 360.0_sp ) - 180.0_sp
+    !--------------------------
+    ! HCO_ValidateLon_Sp begins here
+    !--------------------------
 
-       ! Special case that lon is -180: reset to +180 if it's last entry in
-       ! vector!
-       IF ( LON(I) == -180.0_sp .AND. I == NLON ) LON(I) = 180.0_sp 
-    ENDDO
+    REDO = .TRUE.
+    CNT  = 0
 
-  END SUBROUTINE HCO_ModuloLon_Sp
+    DO WHILE ( REDO )
+
+       ! Exit w/ error after 10 iterations
+       CNT = CNT + 1
+       IF ( CNT > MAXIT ) THEN
+          CALL HCO_ERROR ( '>10 iterations', RC, &
+                           THISLOC='HCO_ValidateLon (HCO_GEOTOOLS_MOD.F90)' )
+          RETURN
+       ENDIF
+
+       DO I = 1, NLON
+
+          ! If we reach the last grid box, all values are steadily
+          ! increasing (otherwise, the loop would have been exited).
+          IF ( I == NLON ) THEN
+             REDO = .FALSE.
+             EXIT
+          ENDIF
+
+          ! Check if next lon value is lower, in which case we subtract
+          ! a value of 360 (degrees) from all longitude values up to
+          ! this point. Then repeat the lookup (from the beginning).
+          IF ( LON(I+1) < LON(I) ) THEN
+             LON(1:I) = LON(1:I) - 360.0_sp
+             EXIT
+          ENDIF
+
+       ENDDO !I
+    ENDDO ! REDO
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ValidateLon_Sp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: HCO_ModuloLon_Dp
+! !FUNCTION: HCO_ValidateLon_Dp
 !
-! !DESCRIPTION: Subroutine HCO\_ModuloLon\_Dp ensures that the passed 
-! double precision longitude axis LON is in the range -180 to + 180. 
+! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed 
+! double precision longitude axis LON is steadily increasing.
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ModuloLon_Dp ( NLON, LON )
+  SUBROUTINE HCO_ValidateLon_Dp ( NLON, LON, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -232,23 +270,58 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     REAL(dp), INTENT(INOUT) :: LON(NLON)   ! longitude axis
+    INTEGER,  INTENT(INOUT) :: RC          ! Return code
 !
 ! !REVISION HISTORY:
 !  16 Jul 2014 - C. Keller - Initialization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER  :: I
+    INTEGER             :: I, CNT
+    LOGICAL             :: REDO
+    INTEGER, PARAMETER  :: MAXIT = 10
 
-    DO I = 1, NLON
-       LON(I) = MOD( LON(I) + 180.0_dp, 360.0_dp ) - 180.0_dp
+    !--------------------------
+    ! HCO_ValidateLon_Dp begins here
+    !--------------------------
 
-       ! Special case that lon is -180: reset to +180 if it's last entry in
-       ! vector!
-       IF ( LON(I) == -180.0_dp .AND. I == NLON ) LON(I) = 180.0_dp 
-    ENDDO
+    REDO = .TRUE.
+    CNT  = 0
 
-  END SUBROUTINE HCO_ModuloLon_Dp
+    DO WHILE ( REDO )
+
+       ! Exit w/ error after 10 iterations
+       CNT = CNT + 1
+       IF ( CNT > MAXIT ) THEN
+          CALL HCO_ERROR ( '>10 iterations', RC, &
+                           THISLOC='HCO_ValidateLon (HCO_GEOTOOLS_MOD.F90)' )
+          RETURN
+       ENDIF
+
+       DO I = 1, NLON
+
+          ! If we reach the last grid box, all values are steadily
+          ! increasing (otherwise, the loop would have been exited).
+          IF ( I == NLON ) THEN
+             REDO = .FALSE.
+             EXIT
+          ENDIF
+
+          ! Check if next lon value is lower, in which case we subtract
+          ! a value of 360 (degrees) from all longitude values up to
+          ! this point. Then repeat the lookup (from the beginning).
+          IF ( LON(I+1) < LON(I) ) THEN
+             LON(1:I) = LON(1:I) - 360.0_dp
+             EXIT
+          ENDIF
+
+       ENDDO !I
+    ENDDO ! REDO
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ValidateLon_Dp
 !EOC
 END MODULE HCO_GeoTools_Mod
 !EOM
