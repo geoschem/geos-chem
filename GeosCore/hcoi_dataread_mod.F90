@@ -673,7 +673,7 @@ CONTAINS
 !
     CHARACTER(LEN=255)    :: MSG
     CHARACTER(LEN=1023)   :: MSG_LONG
-    INTEGER               :: nTime,  T, NCRC 
+    INTEGER               :: nTime,  T, CNT, NCRC 
     INTEGER               :: prefYr, prefMt, prefDy, prefHr
     INTEGER               :: refYear
     INTEGER               :: prefYMDh
@@ -762,8 +762,8 @@ CONTAINS
        ! Check if preferred datetime is within the range of available
        ! time slices. In this case, set tidx1 to the index of the 
        ! closest time slice that is not in the future. If CycleFlag
-       ! is set to 3 (= exact match), tidx1 is only adjusted if the
-       ! file time stamp matches exactly with prefYMDh!
+       ! is set to 3 (= exact match), tidx1 is only set if the file
+       ! time stamp exactly matches with prefYMDh!
        ! ------------------------------------------------------------- 
        CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
 
@@ -773,16 +773,39 @@ CONTAINS
        ! time slices. Then repeat the check. Do only if time slice
        ! cycling is enabled, i.e. CycleFlag set to 1. 
        ! ------------------------------------------------------------- 
-       IF ( tidx1 < 0 .AND. Lct%Dct%Dta%CycleFlag == 1 ) THEN
-          CALL prefYMDh_adjustYear ( nTime, availYMDh, prefYMDh )
+       IF ( Lct%Dct%Dta%CycleFlag == 1 ) THEN
+         
+          ! Adjust year, month, and day (in this order).
+          CNT  = 0
+          DO 
+             CNT = CNT + 1
+             IF ( tidx1 > 0 .OR. CNT > 3 ) EXIT
 
-          ! verbose mode 
-          IF ( verb ) THEN
-             write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
-             CALL HCO_MSG(MSG)
-          ENDIF
+             ! Adjust prefYMDh at the given level (1=Y, 2=M, 3=D)
+             CALL prefYMDh_Adjust ( nTime, availYMDh, prefYMDh, CNT )
 
-          CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
+             ! verbose mode 
+             IF ( verb ) THEN
+                write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
+                CALL HCO_MSG(MSG)
+             ENDIF
+   
+             CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
+
+          ENDDO
+
+!          IF ( tidx1 < 0 ) THEN
+!             CALL prefYMDh_adjustYear ( nTime, availYMDh, prefYMDh )
+!   
+!             ! verbose mode 
+!             IF ( verb ) THEN
+!                write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
+!                CALL HCO_MSG(MSG)
+!             ENDIF
+!   
+!             CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
+!          ENDIF
+
        ENDIF
 
        ! ------------------------------------------------------------- 
@@ -966,20 +989,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: PrefYMDh_AdjustYear 
+! !IROUTINE: prefYMDh_Adjust
 !
-! !DESCRIPTION: Adjusts the year in PrefYMDh to the closest available
-! year in availYMDh 
+! !DESCRIPTION: Adjusts prefYMDh to the closest available time attribute. Can
+! be adjusted for year (level=1), month (level=2), or day (level=3).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PrefYMDh_AdjustYear( N, availYMDh, prefYMDh ) 
+  SUBROUTINE prefYMDh_Adjust( N, availYMDh, prefYMDh, level ) 
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN)     :: N
     INTEGER, INTENT(IN)     :: availYMDh(N)
+    INTEGER, INTENT(IN)     :: level
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -987,33 +1011,51 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
+!  17 Jul 2014 - C. Keller - Now allow to adjust year, month, or day. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 ! 
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: oldYear, prefMDh, newYear
+    INTEGER  :: IDX, origYr, origMt, origDy, origHr, newAttr
 
     !=================================================================
-    ! prefYMDH_adjustYear begins here! 
+    ! prefYMDh_Adjust begins here! 
     !=================================================================
-    
-    ! Extract old year as well as oldMDh
-    oldYear = FLOOR( MOD(prefYMDh,10000000000) / 1.0d6 )
-    prefMDh = prefYMDh - (oldYear*1000000)
-    
-    ! Get new year: this is just the closest available year
+
+    ! Are we taking the first or the last element of the available
+    ! time slice?
     IF ( prefYMDh < availYMDh(1) ) THEN
-       newYear = FLOOR( MOD(availYMDh(1),10000000000) / 1.0d6 )
+       IDX = 1 
     ELSE
-       newYear = FLOOR( MOD(availYMDh(N),10000000000) / 1.0d6 )
+       IDX = N
     ENDIF
 
-    ! Update prefYMDh
-    prefYMDh = newYear*1000000 + prefMDh 
+    ! Get original Yr, Mt, Dy and Hr
+    origYr = FLOOR( MOD(prefYMDh, 10000000000) / 1.0d6 )
+    origMt = FLOOR( MOD(prefYMDh, 1000000    ) / 1.0d4 )
+    origDy = FLOOR( MOD(prefYMDh, 10000      ) / 1.0d2 )
+    origHr = FLOOR( MOD(prefYMDh, 100        ) / 1.0d0 )
 
-  END SUBROUTINE PrefYMDh_AdjustYear
+    ! Extract new attribute from availYMDh and insert into prefYMDh
+    ! --- Year
+    IF ( level == 1 ) THEN
+       newAttr  = FLOOR( MOD(availYMDh(IDX),10000000000) / 1.0d6 )
+       prefYMDh = newAttr * 1000000 + origMt * 10000 + origDy * 100 + origHr
+
+    ! --- Month 
+    ELSEIF ( level == 2 ) THEN
+       newAttr  = FLOOR( MOD(availYMDh(IDX),1000000) / 1.0d4 )
+       prefYMDh = origYr * 1000000 + newAttr * 10000 + origDy * 100 + origHr
+
+    ! --- Day
+    ELSEIF ( level == 3 ) THEN
+       newAttr  = FLOOR( MOD(availYMDh(IDX),10000) / 1.0d2 )
+       prefYMDh = origYr * 1000000 + origMt * 10000 + newAttr * 100 + origHr
+    ENDIF
+
+  END SUBROUTINE prefYMDh_Adjust
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
