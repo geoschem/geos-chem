@@ -9,7 +9,7 @@
 ! (INIT, RUN, FINAL) for the HEMCO core module. It calls all the 
 ! subroutines to initialize, execute and finalize the HEMCO core 
 ! emissions calculations, i.e. all emissions not calculated in a HEMCO
-! extension (See module HCOX\_DRIVER\_MOD.F90 for the extensions).
+! extension (See module hcox\_driver\_mod.F90 for the extensions).
 !\\
 !\\
 ! Call this module at the HEMCO - model interface level to execute the
@@ -22,17 +22,17 @@ MODULE HCO_Driver_Mod
 ! 
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_STATE_MOD, ONLY : HCO_State 
+  USE HCO_Error_Mod
+  USE HCO_State_Mod, ONLY : HCO_State
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HCO_INIT 
-  PUBLIC :: HCO_RUN 
-  PUBLIC :: HCO_FINAL 
+  PUBLIC :: HCO_Init
+  PUBLIC :: HCO_Run
+  PUBLIC :: HCO_Final
 !
 ! !REVISION HISTORY:
 !  27 May 2012 - C. Keller   - Initialization
@@ -50,39 +50,40 @@ CONTAINS
 !
 ! !IROUTINE: HCO_Run 
 !
-! !DESCRIPTION: Subroutine HCO\_RUN is the HEMCO core run routine. It
+! !DESCRIPTION: Subroutine HCO\_Run is the HEMCO core run routine. It
 ! calculates the HEMCO emissions as specified in the HEMCO configuration 
 ! file. All calculation settings, such as the extension number, the 
 ! lowest and highest species ID, and the lowest and highest emission 
 ! category, are passed through the HEMCO options object (HcoState%Opt).
 ! The time stamp is taken from the HEMCO clock object. Subroutine
 ! HcoClock\_Set should be used to update the HEMCO clock (see module 
-! HCO\_CLOCK\_MOD.F90). This should be done at the HEMCO - model 
+! hco\_clock\_mod.F90). This should be done at the HEMCO - model 
 ! interface level. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RUN ( am_I_Root, HcoState, RC ) 
+  SUBROUTINE HCO_Run( am_I_Root, HcoState, RC ) 
 !
 ! !USES:
 !
-    USE HCO_CALC_MOD,        ONLY : HCO_CalcEmis
-    USE HCO_TIDX_MOD,        ONLY : tIDx_Update
-    USE HCO_READLIST_MOD,    ONLY : ReadList_Read 
-    USE HCO_READLIST_MOD,    ONLY : ReadList_to_EmisList 
+    USE HCO_Calc_Mod,     ONLY : HCO_CalcEmis
+    USE HCO_tIdx_Mod,     ONLY : tIDx_Update
+    USE HCO_ReadList_Mod, ONLY : ReadList_Read 
+    USE HCO_ReadList_Mod, ONLY : ReadList_to_EmisList 
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root   ! root CPU?
+    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State), POINTER        :: HcoState    ! HEMCO state object
-    INTEGER,         INTENT(INOUT)  :: RC          ! Success or failure?
+    TYPE(HCO_State), POINTER       :: HcoState    ! HEMCO state object
+    INTEGER,         INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
-!  27 May 2012 - C. Keller    - Initialization
+!  27 May 2012 - C. Keller   - Initialization
+!  16 Jul 2014 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,7 +93,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'HCO_RUN (HCO_MOD.F90)', RC )
+    CALL HCO_ENTER( 'HCO_RUN (hco_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=================================================================
@@ -100,7 +101,7 @@ CONTAINS
     ! This is to make sure that the correct time slices will be used
     ! for all emission fields. See also hco\_tidx\_mod.F90. 
     !=================================================================
-    CALL tIDx_Update ( am_I_Root, RC )
+    CALL tIDx_Update( am_I_Root, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=================================================================
@@ -111,7 +112,7 @@ CONTAINS
     !=================================================================
 
     ! Read/update data, as specified in ReadList.
-    CALL ReadList_Read ( am_I_Root, HcoState, RC )
+    CALL ReadList_Read( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Make sure that content of EmisList is up-to-date. This call
@@ -124,11 +125,11 @@ CONTAINS
     ! 3. Calculate the emissions for current time stamp based on the
     ! content of EmisList. Emissions become written into HcoState. 
     !=================================================================
-    CALL HCO_CalcEmis ( am_I_Root, HcoState, RC ) 
+    CALL HCO_CalcEmis( am_I_Root, HcoState, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_LEAVE( RC ) 
 
   END SUBROUTINE HCO_Run
 !EOC
@@ -139,9 +140,9 @@ CONTAINS
 !
 ! !IROUTINE: HCO_Init
 !
-! !DESCRIPTION: Subroutine HCO\_INIT initializes the HEMCO core modules.
+! !DESCRIPTION: Subroutine HCO\_Init initializes the HEMCO core modules.
 ! This routine assumes that the HEMCO configuration file has been read
-! to buffer already (subroutine Config\_ReadFile in HCO\_CONFIG\_MOD.F90)
+! to buffer already (subroutine Config\_ReadFile in hco\_config\_mod.F90)
 ! and that the HEMCO state object has already been initialized. This has
 ! to be done at the HEMCO - model interface level.
 !\\
@@ -152,26 +153,25 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-
-    USE HCO_TIDX_MOD,        ONLY : tIDx_Init
-    USE HCO_CLOCK_MOD,       ONLY : HcoClock_Init
-    USE HCO_READLIST_MOD,    ONLY : ReadList_Init
-    USE HCO_CONFIG_MOD,      ONLY : SetReadList 
+    USE HCO_tIdx_Mod,     ONLY : tIDx_Init
+    USE HCO_Clock_Mod,    ONLY : HcoClock_Init
+    USE HCO_ReadList_Mod, ONLY : ReadList_Init
+    USE HCO_Config_Mod,   ONLY : SetReadList 
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER        :: HcoState   ! HcoState object
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(HCO_State),  POINTER       :: HcoState   ! HcoState object
+    INTEGER,          INTENT(INOUT) :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  27 May 2012 - C. Keller    - Initialization
+!  27 May 2012 - C. Keller   - Initialization
 !  11 Jun 2014 - R. Yantosca - Now indended with F90 free-format
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  16 Jul 2014 - R. Yantosca - Remove reference to gigc_errcode_mdo.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,11 +181,11 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER( 'HCO_INIT (HCO_Driver_Mod.F90)', RC )
+    CALL HCO_Enter( 'HCO_INIT (hco_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize time slice pointers 
-    CALL tIDx_Init ( HcoState, RC )
+    CALL tIDx_Init( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize HEMCO Clock
@@ -210,25 +210,25 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_final 
+! !IROUTINE: HCO_Final 
 !
-! !DESCRIPTION: Subroutine HCO\_FINAL finalizes HEMCO core. 
+! !DESCRIPTION: Subroutine HCO\_Final finalizes HEMCO core. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_FINAL 
+  SUBROUTINE HCO_Final() 
 !
 ! !USES:
 !
-    USE HCO_EMISLIST_Mod,  ONLY : EmisList_Cleanup
-    USE HCO_CLOCK_MOD,     ONLY : HcoClock_Cleanup
-    USE HCO_TIDX_MOD,      ONLY : tIDx_Cleanup
-    USE HCO_READLIST_MOD,  ONLY : ReadList_Cleanup
-    USE HCO_CONFIG_MOD,    ONLY : Config_Cleanup
-    USE HCO_DATACONT_MOD,  ONLY : cIDList_Cleanup
-    USE HCO_DATACONT_MOD,  ONLY : Reset_nnDataCont
-    USE HCO_EXTLIST_MOD,   ONLY : ExtFinal
+    USE HCO_EmisList_Mod,  ONLY : EmisList_Cleanup
+    USE HCO_Clock_Mod,     ONLY : HcoClock_Cleanup
+    USE HCO_tIdx_Mod,      ONLY : tIDx_Cleanup
+    USE HCO_ReadList_Mod,  ONLY : ReadList_Cleanup
+    USE HCO_Config_Mod,    ONLY : Config_Cleanup
+    USE HCO_DataCont_Mod,  ONLY : cIDList_Cleanup
+    USE HCO_DataCont_Mod,  ONLY : Reset_nnDataCont
+    USE HCO_ExtList_Mod,   ONLY : ExtFinal
 !
 ! !REMARKS:
 !  (1) ConfigFile_Cleanup also cleans up the data containers, while routine
@@ -240,6 +240,7 @@ CONTAINS
 !  27 May 2012 - C. Keller   - Initialization
 !  11 Jun 2014 - R. Yantosca - Now indended with F90 free-format
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  16 Jul 2014 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -257,7 +258,7 @@ CONTAINS
     CALL Reset_nnDataCont
 
     ! Cleanup the extension list object
-    CALL ExtFinal
+    CALL ExtFinal         (         )
 
     ! Close the logfile and cleanup error object. 
     CALL HCO_Error_Final  (         )
