@@ -554,6 +554,9 @@ else
 LINK           :=-L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
 endif
 
+# Link HEMCO libraries
+LINK           :=-L$(LIB) -lHCOI -lHCOX -lHCO
+
 # Append command to link to netCDF etc library files
 LINK           :=$(LINK) -lNcUtils $(NCL)
 
