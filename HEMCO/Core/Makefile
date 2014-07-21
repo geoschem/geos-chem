@@ -3,7 +3,7 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: Makefile (in the HEMCO/src/Core subdirectory)
+# !MODULE: Makefile (in the HEMCO/Core subdirectory)
 #
 # !DESCRIPTION: This Makefile builds the HEMCO core routines into library
 #  file libHCOI.a.
@@ -17,8 +17,8 @@
 # To display a complete list of options, type "make help".
 #
 # !REVISION HISTORY: 
-#  15 Jul 2014 - R. Yantosca - Initial version
-#  17 Jul 2014 - R. Yantosca - Fix some omissions in the dependencies list
+#  21 Jul 2014 - R. Yantosca - Initial version, based on HEMCO standalone
+#                              and modified specifically for GEOS-Chem
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -37,7 +37,6 @@ HDR  :=$(ROOT)/Headers
 HELP :=$(ROOT)/help
 LIB  :=$(ROOT)/lib
 MOD  :=$(ROOT)/mod
-RUN  :=$(ROOT)/run
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
@@ -73,9 +72,10 @@ debug:
 	@echo "ROOT    : $(ROOT)"
 	@echo "BIN     : $(BIN)"
 	@echo "DOC     : $(DOC)"
+	@echo "HDR     : $(HDR)"
+	@echo "HELP    : $(HELP)"
 	@echo "LIB     : $(LIB)"
 	@echo "MOD     : $(MOD)"
-	@echo "RUN     : $(RUN)"
 	@echo "F90     : $(F90)"
 
 ###############################################################################
@@ -117,8 +117,7 @@ hco_chartools_mod.o    : hco_chartools_mod.F90   \
 
 hco_clock_mod.o        : hco_clock_mod.F90       \
                          hco_error_mod.o         \
-                         hco_state_mod.o         \
-                         julday_mod.o
+                         hco_state_mod.o
 
 hco_config_mod.o       : hco_config_mod.F90      \
                          hco_chartools_mod.o     \
@@ -129,8 +128,7 @@ hco_config_mod.o       : hco_config_mod.F90      \
                          hco_filedata_mod.o      \
                          hco_readlist_mod.o      \
                          hco_state_mod.o         \
-                         hco_tidx_mod.o          \
-                         inquireMod.o
+                         hco_tidx_mod.o
 
 hco_datacont_mod.o     : hco_datacont_mod.F90    \
                          hco_arr_mod.o           \
@@ -170,8 +168,7 @@ hco_emislist_mod.o     : hco_emislist_mod.F90    \
 hco_extlist_mod.o      : hco_extlist_mod.F90     \
                          hco_error_mod.o
 
-hco_error_mod.o        : hco_error_mod.F90       \
-                         inquireMod.o
+hco_error_mod.o        : hco_error_mod.F90
 
 hco_filedata_mod.o     : hco_filedata_mod.F90    \
                          hco_arr_mod.o           \
@@ -225,13 +222,5 @@ hcoi_dataread_mod.o    : hcoi_dataread_mod.F90   \
                          hco_filedata_mod.o      \
                          hco_state_mod.o         \
                          hco_tidx_mod.o          \
-                         hco_unit_mod.o          \
-                         regrid_a2a_mod.o
-
-inquireMod.o           : inquireMod.F90
-
-julday_mod.o           : julday_mod.F
-
-regrid_a2a_mod.o       : regrid_a2a_mod.F90
-
+                         hco_unit_mod.o
 #EOC

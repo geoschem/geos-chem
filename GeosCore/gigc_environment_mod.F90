@@ -83,6 +83,8 @@ CONTAINS
     USE CMN_NOX_Mod,        ONLY : Init_CMN_NOX
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
+    USE CMN_SIZE_Mod,       ONLY : IIPAR
+    USE CMN_SIZE_Mod,       ONLY : JJPAR
     USE COMODE_LOOP_Mod,    ONLY : Init_COMODE_LOOP
     USE COMMSOIL_Mod,       ONLY : Init_COMMSOIL
     USE GIGC_ErrCode_Mod  
@@ -198,7 +200,7 @@ CONTAINS
     CALL Init_CMN_O3( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    CALL Init_COMMSOIL( am_I_Root, RC )
+    CALL Init_COMMSOIL( am_I_Root, IIPAR, JJPAR, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     CALL Init_COMODE_LOOP( am_I_Root, Input_Opt, RC )

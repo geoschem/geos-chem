@@ -33,12 +33,13 @@
 ROOT :=..
 BIN  :=$(ROOT)/bin
 DOC  :=$(ROOT)/doc
-HCO  :=$(ROOT)/Core
-HCOI :=$(ROOT)/Interfaces
-HCOX :=$(ROOT)/Extensions
+HCO  :=$(ROOT)/HEMCO/Core
+HCOI :=$(ROOT)/HEMCO/Interfaces
+HCOX :=$(ROOT)/HEMCO/Extensions
+HDR  :=$(ROOT)/Headers
+HELP :=$(ROOT)/Help
 LIB  :=$(ROOT)/lib
 MOD  :=$(ROOT)/mod
-RUN  :=$(ROOT)/run
 
 # Include header file, which returns various Makefile variables, defines 
 # the compilation rules, and sets the correct C-preprocessor switches.
@@ -58,17 +59,16 @@ include $(ROOT)/Makefile_header.mk
 
 all:
 	@$(MAKE) lib
-	@$(MAKE) exe
 
-check:
-	@$(MAKE) -C $(RUN) all
-
-exe: check
+clean:
+	@$(MAKE) -C $(HCO)  clean
+	@$(MAKE) -C $(HCOI) clean
+	@$(MAKE) -C $(HCOX) clean
 
 lib:
 	@$(MAKE) libHCO
-#	@$(MAKE) libHCOX
-#	@$(MAKE) libHCOI
+	@$(MAKE) libHCOX
+	@$(MAKE) libHCOI
 
 libHCO:
 	@$(MAKE) -C $(HCO) lib
@@ -78,38 +78,6 @@ libHCOI:
 
 libHCOX:
 	@$(MAKE) -C $(HCOX) lib
-
-test: check
-
-#-----------------------------------------
-# Targets for cleaning up code
-#-----------------------------------------
-
-clean:
-	@$(MAKE) -C $(HCO)  clean
-	@$(MAKE) -C $(HCOI) clean
-	@$(MAKE) -C $(HCOX) clean
-	@$(MAKE) -C $(RUN)  clean
-
-distclean: realclean
-
-realclean:
-	@$(MAKE) clean
-	@$(MAKE) docclean
-	rm -f $(LIB)/*.a
-	rm -f $(MOD)/*.mod
-	rm -f $(BIN)/*.x
-	rm -f $(RUN)/*.x
-
-#-----------------------------------------
-# Targets for building the documentation
-#-----------------------------------------
-
-doc:
-	@$(MAKE) -C $(DOC) doc
-
-docclean: 
-	@$(MAKE) -C $(DOC) clean
 
 #-----------------------------------------
 # Targets for debugging and help screen

@@ -45,7 +45,7 @@
 #------------------------------------------------------------------------------
 #BOC
 
-# Define variables
+# Directories
 GEOSAPM :=GeosApm
 GEOSDIR :=GeosCore
 GTMM    :=GTMM

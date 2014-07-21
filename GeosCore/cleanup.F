@@ -64,7 +64,6 @@
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
       USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
-      USE REGRID_1x1_MOD,          ONLY : CLEANUP_REGRID_1x1
       USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
@@ -232,7 +231,7 @@
 !                              HEMCO renders obsolete
 !  24 Jun 2014 - R. Yantosca - Remove CLEANUP_BROMOCARB; HEMCO replaces this
 !  25 Jun 2014 - R. Yantosca - Remove reference to tracer_mod.F
-
+!  21 Jul 2014 - R. Yantosca - Remove reference to regrid_1x1_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -302,7 +301,6 @@
       CALL CLEANUP_PJC_PFIX
       CALL CLEANUP_PLANEFLIGHT
       CALL CLEANUP_PRESSURE
-      CALL CLEANUP_REGRID_1x1
       CALL CLEANUP_SEASALT
       CALL CLEANUP_SULFATE
       CALL CLEANUP_STRAT_CHEM

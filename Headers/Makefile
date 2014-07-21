@@ -57,22 +57,22 @@
 ###############################################################################
 
 # Define variables
-ROOTDIR = ..
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-LIB     = $(ROOTDIR)/lib
-MOD     = $(ROOTDIR)/mod
+ROOT := ..
+HDR  := $(ROOT)/Headers
+HELP := $(ROOT)/help
+LIB  := $(ROOT)/lib
+MOD  := $(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
 # List of source files
-SRC = $(wildcard *.F) $(wildcard *.F90)
+SRC  :=$(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
-TMP = $(SRC:.F=.o)
-OBJ = $(TMP:.F90=.o)
+TMP  :=$(SRC:.F=.o)
+OBJ  :=$(TMP:.F90=.o)
 
 ###############################################################################
 ###                                                                         ###

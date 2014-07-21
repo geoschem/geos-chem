@@ -61,6 +61,9 @@
 #  20 Jun 2014 - R. Yantosca - Removed unix_cmds_mod.F; it's now obsolete
 #  20 Jun 2014 - R. Yantosca - Removed directory_mod.F; it's now obsolete
 #  10 Jul 2014 - R. Yantosca - Now compile ncdf_mod.F90 in NcdfUtil/ subdir
+#  21 Jul 2014 - R. Yantosca - regrid_a2a_mod.F90 no longer relies on other
+#                              files in GeosUtil
+#  21 Jul 2014 - R. Yantosca - Removed regrid_1x1_mod.F; it's obsolete
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -72,17 +75,16 @@
 ###############################################################################
 
 # Define variables
-ROOTDIR := ..
-HDR     := $(ROOTDIR)/Headers
-HELP    := $(ROOTDIR)/help
-LIB     := $(ROOTDIR)/lib
-MOD     := $(ROOTDIR)/mod
+ROOT := ..
+HELP := $(ROOT)/help
+LIB  := $(ROOT)/lib
+MOD  := $(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
-# List of source files
+# List of source files: everything ending in .F and .F90
 SRC := $(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
@@ -135,21 +137,24 @@ help:
 ###                                                                         ###
 ###############################################################################
 
-bpch2_mod.o       : bpch2_mod.F                      \
-                    error_mod.o         file_mod.o   \
-                    julday_mod.o        inquireMod.o
+bpch2_mod.o       : bpch2_mod.F           \
+                    error_mod.o           \
+                    file_mod.o            \
+                    julday_mod.o          \
+                    inquireMod.o
 
 charpak_mod.o     : charpak_mod.F
 
 error_mod.o       : error_mod.F
 
-file_mod.o        : file_mod.F                       \
+file_mod.o        : file_mod.F            \
                     error_mod.o
 
-global_grid_mod.o : global_grid_mod.F90              \
-                    error_mod.o         grid_mod.o
+global_grid_mod.o : global_grid_mod.F90   \
+                    error_mod.o           \
+                    grid_mod.o 
 
-grid_mod.o        : grid_mod.F90                     \
+grid_mod.o        : grid_mod.F90          \
                     error_mod.o
 
 ifort_errmsg.o    : ifort_errmsg.F
@@ -160,30 +165,26 @@ julday_mod.o      : julday_mod.F
 
 linux_err.o       : linux_err.c
 
-ncdf_mod.o        : ncdf_mod.F90                     \
-                    bpch2_mod.o         error_mod.o  \
-                    charpak_mod.o       julday_mod.o
-
-pressure_mod.o    : pressure_mod.F                   \
+pressure_mod.o    : pressure_mod.F        \
                     error_mod.o
-
-regrid_1x1_mod.o  : regrid_1x1_mod.F                 \
-                    charpak_mod.o       error_mod.o  \
-                    grid_mod.o
 
 regrid_a2a_mod.o  : regrid_a2a_mod.F90
 
-time_mod.o        : time_mod.F                       \
-                    charpak_mod.o       error_mod.o  \
-                    grid_mod.o          julday_mod.o 
+time_mod.o        : time_mod.F            \
+                    charpak_mod.o         \
+                    error_mod.o           \
+                    grid_mod.o            \
+                    julday_mod.o 
 
-transfer_mod.o    : transfer_mod.F      error_mod.o
+transfer_mod.o    : transfer_mod.F        \
+                    error_mod.o
 
-
+#%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
 # in the HDF5 include path (bmy, 12/21/09)
-hdf_mod.o         : hdf_mod.F                        \
-                    error_mod.o         grid_mod.o
+hdf_mod.o         : hdf_mod.F             \
+                    error_mod.o           \
+                    grid_mod.o
 
 ifeq ($(HDF5),yes)
 	$(F90) -DUSE_HDF5 -I$(HDF_INC) -c $<
