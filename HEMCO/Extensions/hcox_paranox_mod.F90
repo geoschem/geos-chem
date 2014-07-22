@@ -39,9 +39,13 @@ MODULE HCOX_ParaNOx_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HCOX_ParaNOx_Run
-  PUBLIC :: HCOX_ParaNOx_Init
-  PUBLIC :: HCOX_ParaNOx_Final
+  PUBLIC  :: HCOX_ParaNOx_Run
+  PUBLIC  :: HCOX_ParaNOx_Init
+  PUBLIC  :: HCOX_ParaNOx_Final
+!
+! !PRIVATE MEMBER FUNCTIONS:
+! 
+  PRIVATE :: FJXFUNC
 !
 ! !REMARKS:
 !  Adapted from the code in GeosCore/paranox_mod.F prior to GEOS-Chem v10-01.
@@ -52,6 +56,7 @@ MODULE HCOX_ParaNOx_MOD
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
 !  25 Jun 2014 - R. Yantosca - Now pass the look-up-table filenames
+!  22 Jul 2014 - R. Yantosca - Added shadow copy of FAST-JX function FJXFUNC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,17 +98,17 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DRIVER_MOD,     ONLY : HCO_RUN
+    USE HCO_Driver_Mod, ONLY : HCO_Run
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root
-    TYPE(Ext_State), POINTER        :: ExtState     ! Module options
+    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    TYPE(Ext_State), POINTER       :: ExtState    ! External data fields 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State), POINTER        :: HcoState   ! Hemco state 
-    INTEGER,         INTENT(INOUT)  :: RC 
+    TYPE(HCO_State), POINTER       :: HcoState    ! HEMCO State object
+    INTEGER,         INTENT(INOUT) :: RC          ! Success or failure?
 
 ! !REVISION HISTORY:
 !  06 Aug 2013 - C. Keller   - Initial Version
@@ -124,7 +129,7 @@ CONTAINS
     IF ( .NOT. ExtState%ParaNOx ) RETURN
 
     ! Enter
-    CALL HCO_ENTER( 'HCOX_ParaNOx_Run (hcox_paranox_mod.F90)', RC)
+    CALL HCO_Enter( 'HCOX_ParaNOx_Run (hcox_paranox_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -153,7 +158,7 @@ CONTAINS
       
     ! Calculate ship NO emissions and write them into the ShipNO
     ! array [kg/m2/s]. 
-    CALL HCO_RUN ( am_I_Root, HcoState, RC )
+    CALL HCO_Run( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Reset settings to standard 
@@ -168,11 +173,11 @@ CONTAINS
     ! Note: For O3, it is possible to get negative emissions (i.e.
     ! deposition), in which case these values will be added to the
     ! drydep array.
-    CALL EVOLVE_PLUME ( am_I_Root, ExtState, ShipNO, HcoState, RC )
+    CALL Evolve_Plume( am_I_Root, ExtState, ShipNO, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( RC ) 
+    CALL HCO_Leave( RC ) 
 
   END SUBROUTINE HCOX_ParaNOx_Run
 !EOC
@@ -183,10 +188,9 @@ CONTAINS
 !
 ! !IROUTINE: Evolve_Plume 
 !
-! !DESCRIPTION: Subroutine EVOLVE\_PLUME performs plume
-! dilution/chemistry of ship NO emissions for every grid box and writes
-! the resulting NO, HNO3 and O3 emission (production) rates into
-! State\_Chm%NomixS. 
+! !DESCRIPTION: Subroutine EVOLVE\_PLUME performs plume dilution and chemistry 
+!  of ship NO emissions for every grid box and writes the resulting NO, HNO3 
+!  and O3 emission (production) rates into State\_Chm%NomixS. 
 !\\
 !\\
 ! !INTERFACE:
@@ -201,13 +205,12 @@ CONTAINS
     USE Comode_loop_mod,   ONLY : NAMEGAS, IRM
     USE HCO_FluxArr_mod,   ONLY : HCO_EmisAdd, HCO_DepvAdd
     USE HCO_Clock_Mod,     ONLY : HcoClock_Get
-    USE FAST_JX_MOD,       ONLY : FJXFUNC
 
-    ! testing only
-    USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
 !------------------------------------------------------------------------------
 ! Prior to 7/22/14:
 ! Break the dependency on pressure_mod by using ExtState%PEDGE (bmy, 7/22/14)
+!    ! testing only
+!    USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
 !    USE PRESSURE_MOD,      ONLY : GET_PEDGE
 !------------------------------------------------------------------------------
 !
@@ -227,6 +230,7 @@ CONTAINS
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
 !  24 Jun 2014 - R. Yantosca - Now pass LUT_FILENAME to READ_PARANOX_LUT
+!  22 Jul 2014 - R. Yantosca - Comment out debug print statements
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -235,38 +239,46 @@ CONTAINS
 !
     INTEGER            :: I, J, L, MM
     INTEGER            :: NK, LMAX
-    INTEGER, SAVE      :: SAVEMM = -999
+    INTEGER,  SAVE     :: SAVEMM = -999
     LOGICAL            :: ERR
     REAL*8             :: JNO2, JO1D, TS, SUNCOSmid5, SUNCOSmid
     REAL*8             :: O3molec, NOmolec, NO2molec, AIRmolec
     REAL*4             :: FRACTION_NOx, INT_OPE
+    REAL(hp)           :: iFlx
     CHARACTER(LEN=8)   :: SPECNAME
     CHARACTER(LEN=255) :: MSG
-    REAL(hp), TARGET   :: FLUXNO(HcoState%NX,HcoState%NY)
+
+    ! Arrays
+    REAL(hp), TARGET   :: FLUXNO  (HcoState%NX,HcoState%NY)
     REAL(hp), TARGET   :: FLUXHNO3(HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: FLUXO3(HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: DEPO3(HcoState%NX,HcoState%NY)
-    REAL(hp)           :: iFlx
+    REAL(hp), TARGET   :: FLUXO3  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET   :: DEPO3   (HcoState%NX,HcoState%NY)
+
+    ! Pointers
     REAL(hp), POINTER  :: Arr2D(:,:) => NULL()
 
-    ! testing only
-    REAL*8  :: FRAC, TOTPRES, DELTPRES
-    INTEGER :: TOP
-    integer :: ix, jx
-
-! Comment out code for now
+!------------------------------------------------------------------------------
+!### DEBUG -- COMMENT OUT FOR NOW
+!    ! testing only
+!    REAL*8             :: FRAC, TOTPRES, DELTPRES
+!    INTEGER            :: TOP
+!    integer            :: ix, jx
 !    logical, parameter :: add2hemco = .true.
+!------------------------------------------------------------------------------
 
     !=================================================================
     ! EVOLVE_PLUME begins here!
     !=================================================================
 
-    ! testing only
-    ix = -1 !71
-    jx = -1 !35
+!------------------------------------------------------------------------------
+!### DEBUG -- COMMENT OUT FOR NOW
+!    ! testing only
+!    ix = -1 !71
+!    jx = -1 !35
+!------------------------------------------------------------------------------
 
     ! Enter
-    CALL HCO_ENTER( 'Evolve_Plume (hcox_paranox_mod.F90)', RC)
+    CALL HCO_Enter( 'Evolve_Plume (hcox_paranox_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave here if none of the tracers defined
@@ -281,7 +293,7 @@ CONTAINS
 
     ! Read look up tables every new month
     IF ( MM /= SAVEMM ) THEN
-       CALL READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE  )
+       CALL Read_ParaNOx_Lut( FracNOx_FILE, IntOPE_FILE  )
        SAVEMM = MM
     ENDIF
 
@@ -380,7 +392,7 @@ CONTAINS
        SUNCOSmid5 = ExtState%SUNCOSmid5%Arr%Val(I,J)
        SUNCOSmid  = ExtState%SUNCOSmid%Arr%Val(I,J)
 
-       CALL INTERPOLATE_LUT2( I,            J,            &
+       CALL Interpolate_Lut2( I,            J,            &
                               O3molec,      NOmolec,      &
                               NO2molec,     AIRmolec,     &
                               JO1D,         JNO2,         &
@@ -388,25 +400,28 @@ CONTAINS
                               SUNCOSmid,                  &
                               FRACTION_NOx, INT_OPE )
 
-       ! testing only
-       if ( i==ix .and. j==jx ) then
-          write(*,*) 'O3molec: ', O3molec
-          write(*,*) 'NOmolec: ', NOmolec
-          write(*,*) 'NO2molec: ', NO2molec
-          write(*,*) 'AIRmolec: ', AIRmolec
-          write(*,*) 'O3molec (molec): ', O3molec*1000*6.022e23
-          write(*,*) 'NOmolec (molec): ', NOmolec*1000*6.022e23
-          write(*,*) 'NO2molec (molec): ', NO2molec*1000*6.022e23
-          write(*,*) 'AIRmolec (molec): ', AIRmolec*1000*6.022e23
-          write(*,*) 'JO1D    : ', JO1D 
-          write(*,*) 'JNO2    : ', JNO2 
-          write(*,*) 'SUNCOSmid5:' , SUNCOSmid5
-          write(*,*) 'SUNCOSmid :' , SUNCOSmid 
-          write(*,*) 'TS        :', TS
-          write(*,*) 'FRACTION_NOX: ', FRACTION_NOX
-          write(*,*) 'INT_OPE: ', Int_OPE
-          write(*,*) 'ShipEmis [kg/m2/s]: ', ShipNoEmis(I,J,1)
-       endif
+       !--------------------------------------------------------------------
+       !### DEBUG -- COMMENT OUT FOR NOW
+       !! testing only
+       !if ( i==ix .and. j==jx ) then
+       !   write(*,*) 'O3molec: ', O3molec
+       !   write(*,*) 'NOmolec: ', NOmolec
+       !   write(*,*) 'NO2molec: ', NO2molec
+       !   write(*,*) 'AIRmolec: ', AIRmolec
+       !   write(*,*) 'O3molec (molec): ', O3molec*1000*6.022e23
+       !   write(*,*) 'NOmolec (molec): ', NOmolec*1000*6.022e23
+       !   write(*,*) 'NO2molec (molec): ', NO2molec*1000*6.022e23
+       !   write(*,*) 'AIRmolec (molec): ', AIRmolec*1000*6.022e23
+       !   write(*,*) 'JO1D    : ', JO1D 
+       !   write(*,*) 'JNO2    : ', JNO2 
+       !   write(*,*) 'SUNCOSmid5:' , SUNCOSmid5
+       !   write(*,*) 'SUNCOSmid :' , SUNCOSmid 
+       !   write(*,*) 'TS        :', TS
+       !   write(*,*) 'FRACTION_NOX: ', FRACTION_NOX
+       !   write(*,*) 'INT_OPE: ', Int_OPE
+       !   write(*,*) 'ShipEmis [kg/m2/s]: ', ShipNoEmis(I,J,1)
+       !endif
+       !--------------------------------------------------------------------
 
        !---------------------------
        ! Calculate NO emissions
@@ -418,10 +433,13 @@ CONTAINS
           ! Unit: kg/m2/s 
           FLUXNO(I,J) = ShipNoEmis(I,J,1) * FRACTION_NOx
 
-          ! testing only
-          if ( i==ix .and. j==jx ) then
-             write(*,*) 'FLUXNO [kg/m2/s]: ', FLUXNO(I,J)
-          endif
+          !-----------------------------------------------------------------
+          !### DEBUG -- COMMENT OUT FOR NOW
+          !! testing only
+          !if ( i==ix .and. j==jx ) then
+          !   write(*,*) 'FLUXNO [kg/m2/s]: ', FLUXNO(I,J)
+          !endif
+          !-----------------------------------------------------------------
 
        ENDIF
 
@@ -435,10 +453,13 @@ CONTAINS
           ! Unit: kg/m2/s 
           FLUXHNO3(I,J) = ShipNoEmis(I,J,1) * ( 1d0 - FRACTION_NOx )
 
+          !-----------------------------------------------------------------
+          !### DEBUG -- COMMENT OUT FOR NOW
           ! testing only
-          if ( i==ix .and. j==jx ) then
-             write(*,*) 'FLUXHNO3 [kg/m2/s]: ', FLUXHNO3(I,J) 
-          endif
+          !if ( i==ix .and. j==jx ) then
+          !   write(*,*) 'FLUXHNO3 [kg/m2/s]: ', FLUXHNO3(I,J) 
+          !endif
+          !-----------------------------------------------------------------
 
        ENDIF
 
@@ -453,10 +474,13 @@ CONTAINS
           ! Unit: kg/m2/s 
           iFlx = ShipNoEmis(I,J,1) * (1d0-FRACTION_NOx) * INT_OPE
 
-          ! testing only
-          if ( i==ix .and. j==jx ) then
-             write(*,*) 'FLUXO3 [kg/m2/s]: ', iFlx 
-          endif
+          !-----------------------------------------------------------------
+          !### DEBUG -- COMMENT OUT FOR NOW
+          !! testing only
+          !if ( i==ix .and. j==jx ) then
+          !   write(*,*) 'FLUXO3 [kg/m2/s]: ', iFlx 
+          !endif
+          !-----------------------------------------------------------------
 
           ! For positive fluxes, add to emission flux array 
 !            if ( add2hemco ) then
@@ -475,10 +499,13 @@ CONTAINS
              DEPO3(I,J) = ABS(iFlx) / ExtState%O3%Arr%Val(I,J,1) &
                           * ExtState%AIRVOL%Arr%Val(I,J,1)
 
-             ! testing only
-             if ( i==ix .and. j==jx ) then
-                write(*,*) 'O3 deposition [m/s]: ', DEPO3(I,J) 
-             endif
+             !--------------------------------------------------------------
+             !### DEBUG -- COMMENT OUT FOR NOW
+             !! testing only
+             !if ( i==ix .and. j==jx ) then
+             !   write(*,*) 'O3 deposition [m/s]: ', DEPO3(I,J) 
+             !endif
+             !--------------------------------------------------------------
 
           ENDIF
 !        endif  
@@ -712,12 +739,12 @@ CONTAINS
 ! !INTERFACE:
 !
  SUBROUTINE HCOX_ParaNOx_Init ( am_I_Root, HcoState, ExtName, &
-                                ExtState,    RC                  ) 
+                                ExtState,   RC                  ) 
 !
 ! !USES:
 !
    USE HCO_State_MOD,     ONLY : HCO_GetHcoID
-   USE HCO_STATE_MOD,     ONLY : HCO_GetExtHcoID
+   USE HCO_State_MOD,     ONLY : HCO_GetExtHcoID
    USE HCO_ExtList_Mod,   ONLY : GetExtNr
    USE HCO_ExtList_Mod,   ONLY : GetExtOpt
 !
@@ -906,5 +933,87 @@ CONTAINS
    IF ( ALLOCATED(ShipNO) ) DEALLOCATE ( ShipNO )
 
  END SUBROUTINE HCOX_ParaNOx_Final
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: fjxfunc
+!
+! !DESCRIPTION: Function FJXFUNC obtains J-values from the FAST-JX modules.  
+!\\
+!\\
+! !INTERFACE:
+!
+ FUNCTION FJXFUNC( I, J, L, NREAC, BRCH, NAME ) RESULT( JVAL )
+!
+! !USES:
+!
+   USE CMN_FJX_MOD
+!
+! !INPUT PARAMETERS: 
+!
+   INTEGER,          INTENT(IN) :: I       ! Longitude index
+   INTEGER,          INTENT(IN) :: J       ! Latitude index
+   INTEGER,          INTENT(IN) :: L       ! Level index
+   INTEGER,          INTENT(IN) :: NREAC   ! Photolysis reaction number
+   INTEGER,          INTENT(IN) :: BRCH    ! Branch of photolysis reaction
+   CHARACTER(LEN=4), INTENT(IN) :: NAME    ! Photolysis species name
+!
+! !RETURN VALUE:
+!
+   REAL*8                       :: JVAL    ! J-value for desired species [s-1]
+!
+! !REMARKS:
+!  ##########################################################################
+!  ### This is a shadow copy of function FJXFUNC in fast_jx_mod.F90.      ###
+!  ### Having this here will allow us to keep hcox_paranox_mod.F90 and    ###
+!  ### hcox_driver_mod.F90 in the HEMCO/Extensions directory, which is    ###
+!  ### much cleaner and more elegant. (bmy, 7/22/14)                      ###
+!  ##########################################################################
+!
+! !REVISION HISTORY: 
+!  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
+!  (2  ) J-values are stored in array "ZPJ" from "cmn_fjx_mod.F".
+!  (3  ) Now references ERROR_STOP from "error_mod.F".  Updated comments,
+!         and made some cosmetic changes. (bmy, 10/15/02)
+!  27 Mar 2013 - S. D. Eastham - Rolled into FAST_JX_MOD
+!  29 Mar 2013 - S. D. Eastham - Converted from fjfunc into fjxfunc
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+   INTEGER :: N
+      
+   !========================================================================
+   ! FJXFUNC begins here!
+   !
+   ! RINDEX converts the J-value index as read from "globchem.dat" to 
+   ! the J-value index as read from "fjx_j2j.dat". 
+   ! (bmy, 10/5/98, SDE 03/29/13)
+   !========================================================================
+
+   ! NOTE: We don't need to error check NREAC here because this version of 
+   ! FJXFUNC is called from within a CASE statement that only has entries 
+   ! for either "NO2" or "O3".  These species will always be defined for
+   ! any full-chemistry simulation. (bmy, 7/22/14)
+   N = RINDEX(NREAC)
+   
+   !========================================================================
+   ! Return the appropriate J-value as the value of the function 
+   !========================================================================
+   JVAL = ZPJ(L,N,I,J)
+
+!   ! Uncomment following lines for more rigorous checking
+!   IF (ISNAN(FJXFUNC)) THEN
+!      WRITE(6,*) 'Photolysis error for branch ', brch, ' of ', name
+!      WRITE(6,*) 'NaN photorate in grid I J L: ',I, J, L
+!      CALL EXITC('Bad photorate')
+!   ENDIF
+
+ END FUNCTION FJXFUNC
 !EOC
 END MODULE HCOX_ParaNOx_mod

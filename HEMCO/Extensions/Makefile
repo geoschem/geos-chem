@@ -19,6 +19,7 @@
 # !REVISION HISTORY: 
 #  15 Jul 2014 - R. Yantosca - Initial version
 #  22 Jul 2014 - R. Yantosca - Now compile lightning_cdf_mod.F90
+#  22 Jul 2014 - R. Yantosca - Turn off optimization for lightning_cdf_mod.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -105,24 +106,20 @@ EF_MGN20_mod.o        : EF_MGN20_mod.F
 hcox_custom_mod.o     : hcox_custom_mod.F90       \
                         hcox_state_mod.o
 
-# NOTE: Because of PARANOX we have to leave hcox_driver_mod.F90 in GeosCore
-#hcox_driver_mod.o     : hcox_driver_mod.F90       \
-#                        hcox_custom_mod.o         \
-#                        hcox_dustdead_mod.o       \
-#                        hcox_dustginoux_mod.o     \
-#                        hcox_finn_mod.o           \
-#                        hcox_gfed3_mod.o          \
-#                        hcox_megan_mod.o          \
-#                        hcox_seaflux_mod.o        \
-#                        hcox_seasalt_mod.o        \
-#                        hcox_soilnox_mod.o        \
-#                        hcox_state_mod.o
-############################################################################
-## These are very specific to GEOS-Chem, so we can omit these for now.
-#                        hcox_lightnox_mod.o       \
-##                        hcox_paranox_mod.o        \
-#                        hcox_gc_RnPbBe_mod.o
-############################################################################
+hcox_driver_mod.o     : hcox_driver_mod.F90       \
+                        hcox_custom_mod.o         \
+                        hcox_dustdead_mod.o       \
+                        hcox_dustginoux_mod.o     \
+                        hcox_finn_mod.o           \
+                        hcox_gc_RnPbBe_mod.o      \
+                        hcox_paranox_mod.o        \
+                        hcox_lightnox_mod.o       \
+                        hcox_megan_mod.o          \
+                        hcox_paranox_mod.o        \
+                        hcox_seaflux_mod.o        \
+                        hcox_seasalt_mod.o        \
+                        hcox_soilnox_mod.o        \
+                        hcox_state_mod.o
 
 hcox_dustdead_mod.o   : hcox_dustdead_mod.F       \
                         hcox_state_mod.o
@@ -147,6 +144,10 @@ hcox_megan_mod.o      : hcox_megan_mod.F          \
                         hcox_state_mod.o          \
                         EF_MGN20_mod.o
 
+hcox_paranox_mod.o    : hcox_paranox_mod.F90      \
+                        hcox_state_mod.o          \
+                        paranox_util_mod.o
+
 hcox_seaflux_mod.o    : hcox_seaflux_mod.F90      \
                         hcox_state_mod.o          \
                         henry_mod.o               \
@@ -165,8 +166,10 @@ hcox_state_mod.o      : hcox_state_mod.F90
 henry_mod.o           : henry_mod.F
 
 lightning_cdf_mod.o   : lightning_cdf_mod.F90
-	$(F90) -O1 -c $<
+	$(F90) -O0 -c $<
 
 ocean_toolbox_mod.o   : ocean_toolbox_mod.F90
+
+paranox_util_mod.o    : paranox_util_mod.F
 
 #EOC

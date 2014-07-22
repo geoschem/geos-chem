@@ -3875,15 +3875,20 @@ c  Ensure all 'AN_' types are valid selections
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION FJXFUNC(I,J,L,NREAC,BRCH,NAME)
-!
-! !USES:
-!
+      FUNCTION FJXFUNC( I, J, L, NREAC, BRCH, NAME ) RESULT( JVAL )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,           INTENT(IN) :: I,J,L,NREAC,BRCH
-      CHARACTER (LEN=4), INTENT(IN) :: NAME
+      INTEGER,           INTENT(IN) :: I       ! Longitude index
+      INTEGER,           INTENT(IN) :: J       ! Latitude index
+      INTEGER,           INTENT(IN) :: L       ! Level index
+      INTEGER,           INTENT(IN) :: NREAC   ! Photolysis reaction #
+      INTEGER,           INTENT(IN) :: BRCH    ! Branch # of photolysis rxn
+      CHARACTER (LEN=4), INTENT(IN) :: NAME    ! Photolysis species name
+!
+! !RETURN VALUE:
+!
+      REAL*8                        :: JVAL    ! Desired J-value [s-1]
 !
 ! !REVISION HISTORY: 
 !  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
@@ -3892,13 +3897,14 @@ c  Ensure all 'AN_' types are valid selections
 !         and made some cosmetic changes. (bmy, 10/15/02)
 !  27 Mar 2013 - S. D. Eastham - Rolled into FAST_JX_MOD
 !  29 Mar 2013 - S. D. Eastham - Converted from fjfunc into fjxfunc
+!  22 Jul 2014 - R. Yantosca   - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                       :: N
+      INTEGER  :: N
       
       !=================================================================
       ! FJXFUNC begins here!
@@ -3934,7 +3940,7 @@ c  Ensure all 'AN_' types are valid selections
       !=================================================================
       ! Return the appropriate J-value as the value of the function 
       !=================================================================
-      FJXFUNC = ZPJ(L,N,I,J)
+      FJX_FUNC = ZPJ(L,N,I,J)
 
 !      ! Uncomment following lines for more rigorous checking
 !      IF (ISNAN(FJXFUNC)) THEN

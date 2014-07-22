@@ -138,6 +138,8 @@
 #  23 Jun 2014 - R. Yantosca - Remove references to obsolete logical_mod.o
 #  21 Jul 2014 - R. Yantosca - Now build HEMCO emissions modules after
 #                              NcdfUtil and GeosUtil, but before GeosCore
+#  22 Jul 2014 - R. Yantosca - Move hcox_paranox_mod.F90, paranox_util_mod.F90
+#                              and hcox_driver_mod.F90 back to HEMCO/Extensions
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -654,18 +656,11 @@ h2_hd_mod.o                 : h2_hd_mod.F                                    \
 hcn_ch3cn_mod.o             : hcn_ch3cn_mod.F                                \
                               diag_mod.o              global_oh_mod.o
 
-hcox_driver_mod.o           : hcox_driver_mod.F90                            \
-                              hcox_paranox_mod.o 
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               global_oh_mod.o         tracerid_mod.o         \
                               get_ndep_mod.o          drydep_mod.o           \
-                              modis_lai_mod.o         carbon_mod.o           \
-                              hcox_driver_mod.o         
-
-hcox_paranox_mod.o          : hcox_paranox_mod.F90                           \
-                              paranox_util_mod.o      pbl_mix_mod.o          \
-                              fast_jx_mod.o
+                              modis_lai_mod.o         carbon_mod.o
 
 i6_read_mod.o               : i6_read_mod.F                                  \
                               diag_mod.o              
@@ -796,8 +791,6 @@ olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o
 
 optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
-
-paranox_util_mod.o          : paranox_util_mod.F
 
 partition.o                 : partition.F                                    \
                               comode_mod.o            tracerid_mod.o
