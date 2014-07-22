@@ -3,7 +3,7 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: Makefile (in the HEMCO/src/Interfaces subdirectory)
+# !MODULE: Makefile (in the HEMCO/Interfaces subdirectory)
 #
 # !DESCRIPTION: This Makefile builds the HEMCO interface routines into 
 #  library file libHCOI.a.

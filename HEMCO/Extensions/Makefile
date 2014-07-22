@@ -3,7 +3,7 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: Makefile (in the HEMCO/src/Extensions subdirectory)
+# !MODULE: Makefile (in the HEMCO/Extensions subdirectory)
 #
 # !DESCRIPTION: This Makefile builds the HEMCO extensions routines into 
 #  library file libHCOX.a.
@@ -18,6 +18,7 @@
 #
 # !REVISION HISTORY: 
 #  15 Jul 2014 - R. Yantosca - Initial version
+#  22 Jul 2014 - R. Yantosca - Now compile lightning_cdf_mod.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -139,7 +140,8 @@ hcox_finn_mod.o       : hcox_finn_mod.F90         \
                         hcox_state_mod.o
 
 hcox_lightnox_mod.o   : hcox_lightnox_mod.F90     \
-                        hcox_state_mod.o
+                        hcox_state_mod.o          \
+                        lightning_cdf_mod.o
 
 hcox_megan_mod.o      : hcox_megan_mod.F          \
                         hcox_state_mod.o          \
@@ -161,6 +163,8 @@ hcox_state_mod.o      : hcox_state_mod.F90
 
 
 henry_mod.o           : henry_mod.F
+
+lightning_cdf_mod.o   : lightning_cdf_mod.F90
 
 ocean_toolbox_mod.o   : ocean_toolbox_mod.F90
 

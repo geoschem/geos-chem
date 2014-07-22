@@ -657,7 +657,7 @@ hcn_ch3cn_mod.o             : hcn_ch3cn_mod.F                                \
 hcox_driver_mod.o           : hcox_driver_mod.F90                            \
                               hcox_paranox_mod.o 
 
-hcoi_gc_main_mod.o          : hcoi_gc_main_mod.o                             \
+hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               global_oh_mod.o         tracerid_mod.o         \
                               get_ndep_mod.o          drydep_mod.o           \
                               modis_lai_mod.o         carbon_mod.o           \

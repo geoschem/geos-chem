@@ -20,12 +20,16 @@
 !\\
 !\\
 ! References:
-! \begin{itemize}
 ! \item Murray, L. T., Jacob, D. J., Logan, J. A., Hudman, R. C., and
-! Koshak, W. J.: Optimized regional and interannual variability 
-! of lightnox in a global chemical transport model con- strained 
-! by LIS/OTD satellite data, Journal of Geophysical Research: 
-! Atmospheres, 117, 2012.
+!       Koshak, W. J.: \emph{Optimized regional and interannual variability
+!       of lightning in a global chemical transport model con- strained
+!       by LIS/OTD satellite data}, \underline{J. Geophys. Res.},
+!       Atmospheres, 117, 2012.
+! \item Ott, L. E., K. E. Pickering, G. L. Stenchikov, D. J. Allen,
+!       A. J. DeCaria, B. Ridley, R.-F. Lin, S. Lang, and W.-K. Tao,
+!       \emph{Production of lightning NOx and its vertical distribution
+!       calculated  from three-dimensional cloud-scale chemical transport
+!       model simulations}, \underline{J. Geophys. Res.}, 115, D04301, 2010.
 ! \end{itemize}
 !
 ! !INTERFACE:
@@ -34,10 +38,11 @@ MODULE HCOX_LightNOx_Mod
 !
 ! !USES:
 !
-  USE HCO_ERROR_MOD
-  USE HCO_DIAGN_MOD
-  USE HCO_STATE_MOD,   ONLY : HCO_State
-  USE HCOX_State_MOD,  ONLY : Ext_State
+  USE HCO_Error_Mod
+  USE HCO_Diagn_Mod
+  USE HCO_State_Mod,     ONLY : HCO_State
+  USE HCOX_State_MOD,    ONLY : Ext_State
+  USE Lightning_CDF_Mod 
 
   IMPLICIT NONE
   PRIVATE
@@ -124,14 +129,21 @@ MODULE HCOX_LightNOx_Mod
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
+!  22 Jul 2014 - R. Yantosca - Now hardwire the Lesley Ott et al CDF's in 
+!                              lightning_cdf_mod.F90.  This avoids having to
+!                              read an ASCII input in the ESMF environment.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Parameters
-  INTEGER, PARAMETER           :: NLTYPE        = 4
+!------------------------------------------------------------------------------
+! Prior to 7/22/14:
+! We hardwire the PROFILE array instead of reading it from disk.  This avoids 
+! having to read an ASCII file in the ESMF environment. (bmy, 7/22/14)
+!  INTEGER, PARAMETER           :: NLTYPE        = 4
+!------------------------------------------------------------------------------
   REAL*8,  PARAMETER           :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash
   REAL*8,  PARAMETER           :: RFLASH_TROPIC = 1.566d26   ! 260 mol/flash
   REAL*8,  PARAMETER           :: EAST_WEST_DIV = -30d0
@@ -149,13 +161,23 @@ MODULE HCOX_LightNOx_Mod
 ! !PRIVATE TYPES:
 !
   ! Scalars
-  INTEGER                      :: NNLIGHT
+!------------------------------------------------------------------------------
+! Prior to 7/22/14:
+! We hardwire the PROFILE array instead of reading it from disk.  This avoids 
+! having to read an ASCII file in the ESMF environment. (bmy, 7/22/14)
+!  INTEGER                      :: NNLIGHT
+!------------------------------------------------------------------------------
   REAL*8                       :: AREA_30N
   REAL*8                       :: OTD_LIS_SCALE
   LOGICAL                      :: LOTDLOC   ! Use OTD-LIS distribution factors?
 
   ! Arrays
-  REAL*8,  ALLOCATABLE, TARGET :: PROFILE(:,:)
+!------------------------------------------------------------------------------
+! Prior to 7/22/14:
+! We hardwire the PROFILE array instead of reading it from disk.  This avoids 
+! having to read an ASCII file in the ESMF environment. (bmy, 7/22/14)
+!  REAL*8,  ALLOCATABLE, TARGET :: PROFILE(:,:)
+!------------------------------------------------------------------------------
   REAL(hp),ALLOCATABLE, TARGET :: SLBASE(:,:,:)
 
 CONTAINS
@@ -1683,7 +1705,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE inquireMod,       ONLY : findfreeLUN
+!-----------------------------------------------------------------------------
+! Prior to 7/22/14:
+! We hardwire the PROFILE array instead of reading it from disk (bmy, 7/22/14)
+!    USE inquireMod,       ONLY : findfreeLUN
+!-----------------------------------------------------------------------------
     USE HCO_STATE_MOD,    ONLY : HCO_GetHcoID
     USE HCO_STATE_MOD,    ONLY : HCO_GetExtHcoID
     USE HCO_ExtList_Mod,  ONLY : GetExtNr, GetExtOpt
@@ -1731,9 +1757,9 @@ CONTAINS
     CHARACTER(LEN=255)             :: MSG, LOC, FILENAME
     LOGICAL                        :: verb
 
-    !=================================================================
+    !=======================================================================
     ! HCOX_LightNOX_Init begins here!
-    !=================================================================
+    !=======================================================================
 
     ! Extension Nr.
     ExtNr = GetExtNr( TRIM(ExtName) )
@@ -1772,24 +1798,29 @@ CONTAINS
        CALL HCO_MSG(MSG)
     ENDIF
 
-    !------------------
-    ! Define variables
-    !------------------
-
-    ! NNLIGHT is the number of points for the lightnox CDF's
-    NNLIGHT = 3200
-
-    !-----------------
-    ! Allocate arrays
-    !-----------------
-
-    ! Allocate PROFILE
-    ALLOCATE( PROFILE( NNLIGHT, NLTYPE ), STAT=AS )
-    IF( AS /= 0 ) THEN
-       CALL HCO_ERROR ( 'PROFILE', RC )
-       RETURN
-    ENDIF
-    PROFILE = 0d0
+!-----------------------------------------------------------------------------
+! Prior to 7/22/14:
+! We hardwire the PROFILE array instead of reading it from disk.  This avoids 
+! having to read an ASCII file in the ESMF environment. (bmy, 7/22/14)
+!    !------------------
+!    ! Define variables
+!    !------------------
+!
+!    ! NNLIGHT is the number of points for the lightnox CDF's
+!    NNLIGHT = 3200
+!
+!    !-----------------
+!    ! Allocate arrays
+!    !-----------------
+!
+!    ! Allocate PROFILE
+!    ALLOCATE( PROFILE( NNLIGHT, NLTYPE ), STAT=AS )
+!    IF( AS /= 0 ) THEN
+!       CALL HCO_ERROR ( 'PROFILE', RC )
+!       RETURN
+!    ENDIF
+!    PROFILE = 0d0
+!-----------------------------------------------------------------------------
 
     ! Allocate SLBASE
     ALLOCATE( SLBASE(HcoState%NX,HcoState%NY,HcoState%NZ), STAT=AS )
@@ -1799,9 +1830,9 @@ CONTAINS
     ENDIF
     SLBASE = 0d0
 
-    !=================================================================
-    ! Read lightnox CDF from Ott et al [JGR, 2010]. (ltm, 1/25/11)
-    !=================================================================
+    !=======================================================================
+    ! Obtain lightning CDF's from Ott et al [JGR, 2010]. (ltm, 1/25/11)
+    !=======================================================================
 
     ! Get filename from configuration file
     CALL GetExtOpt ( ExtNr, 'CDF table', OptValChar=FILENAME, RC=RC )
@@ -1812,39 +1843,51 @@ CONTAINS
     CALL HCO_MSG(MSG)
 100 FORMAT( '     - INIT_LIGHTNOX: Reading ', a )
 
-    ! Find a free file LUN
-    IU_FILE = findFreeLUN()
-      
-    ! Open file containing lightnox PDF data
-    OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-    IF ( IOS /= 0 ) THEN
-       MSG = 'IOERROR: LightDist: 1'
-       CALL HCO_ERROR ( MSG, RC )
-       RETURN
-    ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 7/22/14:
+! We hardwire the PROFILE array instead of reading it from disk.  This avoids 
+! having to read an ASCII file in the ESMF environment. (bmy, 7/22/14)
+!    ! Find a free file LUN
+!    IU_FILE = findFreeLUN()
+!      
+!    ! Open file containing lightnox PDF data
+!    OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+!    IF ( IOS /= 0 ) THEN
+!       MSG = 'IOERROR: LightDist: 1'
+!       CALL HCO_ERROR ( MSG, RC )
+!       RETURN
+!    ENDIF
+!
+!    ! Read 12 header lines
+!    DO III = 1, 12
+!       READ( IU_FILE, '(a)', IOSTAT=IOS ) 
+!       IF ( IOS /= 0 ) THEN
+!          MSG = 'IOERROR: LightDist: 2'
+!          CALL HCO_ERROR ( MSG, RC )
+!          RETURN
+!       ENDIF
+!    ENDDO
+!         
+!    ! Read NNLIGHT types of lightnox profiles
+!    DO III = 1, NNLIGHT
+!       READ( IU_FILE,*,IOSTAT=IOS) (PROFILE(III,JJJ),JJJ=1,NLTYPE)
+!       IF ( IOS /= 0 ) THEN
+!          MSG = 'IOERROR: LightDist: 3'
+!          CALL HCO_ERROR ( MSG, RC )
+!          RETURN
+!       ENDIF
+!    ENDDO
+!         
+!    ! Close file
+!    CLOSE( IU_FILE )
+!-----------------------------------------------------------------------------
 
-    ! Read 12 header lines
-    DO III = 1, 12
-       READ( IU_FILE, '(a)', IOSTAT=IOS ) 
-       IF ( IOS /= 0 ) THEN
-          MSG = 'IOERROR: LightDist: 2'
-          CALL HCO_ERROR ( MSG, RC )
-          RETURN
-       ENDIF
-    ENDDO
-         
-    ! Read NNLIGHT types of lightnox profiles
-    DO III = 1, NNLIGHT
-       READ( IU_FILE,*,IOSTAT=IOS) (PROFILE(III,JJJ),JJJ=1,NLTYPE)
-       IF ( IOS /= 0 ) THEN
-          MSG = 'IOERROR: LightDist: 3'
-          CALL HCO_ERROR ( MSG, RC )
-          RETURN
-       ENDIF
-    ENDDO
-         
-    ! Close file
-    CLOSE( IU_FILE )
+    ! Initialize the cumulative distribution functions (CDF's) that are 
+    ! used to partition the column LNOx emissions into the vertical.
+    ! We hardwire this now in lightning_cdf_mod.F90 so as to avoid having
+    ! to read an ASCII file.  This facilitates I/O in the ESMF environment.
+    ! (bmy, 7/22/14)
+    CALL Init_Lightning_CDF()
 
     ! Activate met. fields required by this module
     ExtState%PEDGE%DoUse   = .TRUE.
@@ -1890,6 +1933,7 @@ CONTAINS
 !  (4 ) Remove depreciated options. (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
+!  22 Jul 2014 - R. Yantosca - PROFILE is now set in lightning_cdf_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1897,7 +1941,11 @@ CONTAINS
     !=================================================================
     ! Cleanup module arrays 
     !=================================================================
-    IF ( ALLOCATED( PROFILE        ) ) DEALLOCATE( PROFILE        )
+!-----------------------------------------------------------------------------
+! Prior to 7/22/14:
+! We hardwire the PROFILE array instead of reading it from disk (bmy, 7/22/14)
+!    IF ( ALLOCATED( PROFILE        ) ) DEALLOCATE( PROFILE        )
+!-----------------------------------------------------------------------------
     IF ( ALLOCATED( SLBASE         ) ) DEALLOCATE( SLBASE         )
 
   END SUBROUTINE HCOX_LightNOx_Final
