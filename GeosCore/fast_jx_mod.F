@@ -3940,7 +3940,7 @@ c  Ensure all 'AN_' types are valid selections
       !=================================================================
       ! Return the appropriate J-value as the value of the function 
       !=================================================================
-      FJX_FUNC = ZPJ(L,N,I,J)
+      JVAL = ZPJ(L,N,I,J)
 
 !      ! Uncomment following lines for more rigorous checking
 !      IF (ISNAN(FJXFUNC)) THEN
