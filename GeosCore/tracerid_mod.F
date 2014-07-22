@@ -1252,6 +1252,9 @@
             CASE ( 'ISN1' )
                IDTISN1  = N
 
+            CASE ( 'ISOPN' )
+               IDTISOPN  = N
+
             CASE (  'ETHLN'  )
                IDTETHLN  = N
 
