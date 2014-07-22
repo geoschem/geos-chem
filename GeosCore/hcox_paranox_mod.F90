@@ -205,18 +205,22 @@ CONTAINS
 
     ! testing only
     USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
-    USE PRESSURE_MOD,      ONLY : GET_PEDGE
+!------------------------------------------------------------------------------
+! Prior to 7/22/14:
+! Break the dependency on pressure_mod by using ExtState%PEDGE (bmy, 7/22/14)
+!    USE PRESSURE_MOD,      ONLY : GET_PEDGE
+!------------------------------------------------------------------------------
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root
-    TYPE(Ext_State), POINTER        :: ExtState       ! Module options
+    LOGICAL,         INTENT(IN   )  :: am_I_Root          ! Root CPU?
+    TYPE(Ext_State), POINTER        :: ExtState           ! External data
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(hp),        INTENT(INOUT)  :: ShipNoEmis(:,:,:)
-    TYPE(HCO_State), POINTER        :: HcoState     ! Output obj
-    INTEGER,         INTENT(INOUT)  :: RC 
+    REAL(hp),        INTENT(INOUT)  :: ShipNoEmis(:,:,:)  ! Emissions
+    TYPE(HCO_State), POINTER        :: HcoState           ! HEMCO State obj
+    INTEGER,         INTENT(INOUT)  :: RC                 ! Success or failure
 !
 ! !REVISION HISTORY:
 !  06 Aug 2013 - C. Keller   - Initial Version
@@ -249,7 +253,9 @@ CONTAINS
     REAL*8  :: FRAC, TOTPRES, DELTPRES
     INTEGER :: TOP
     integer :: ix, jx
-    logical, parameter :: add2hemco = .true.
+
+! Comment out code for now
+!    logical, parameter :: add2hemco = .true.
 
     !=================================================================
     ! EVOLVE_PLUME begins here!
@@ -494,10 +500,15 @@ CONTAINS
        RETURN 
     ENDIF
 
-    !=================================================================
+    !=======================================================================
     ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
-    !=================================================================
-    if ( add2hemco ) then
+    !=======================================================================
+!------------------------------------------------------------------------------
+! Prior to 7/22/14:
+! For now, assume we will add emissions directly into the HEMCO State object
+! Comment out this code, which was for testing only (bmy, 7/22/14)
+!    if ( add2hemco ) then
+!------------------------------------------------------------------------------
 
        ! NO
        IF ( IDTNO > 0 ) THEN
@@ -560,108 +571,127 @@ CONTAINS
 
        ENDIF
 
-       ! add to tracer array directly (testing only)
-    else
-
-       DO J=1,HcoState%NY
-       DO I=1,HcoState%NX
-
-          ! Top level of the boundary layer
-          ! guard for b.l. being in first level.
-          TOP = FLOOR( GET_PBL_TOP_L( I, J ) )
-          IF ( TOP == 0 ) TOP = 1
-          
-          ! Pressure thickness of entire boundary layer [hPa]
-          TOTPRES = GET_PEDGE(I,J,1) - GET_PEDGE(I,J,TOP+1)
-
-          ! Add emissions to tracer arrays. Mix over entire boundary
-          ! layer
-          DO L = 1, TOP
-
-             ! Thickness of level L [mb]
-             DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
-             FRAC     = DELTPRES / TOTPRES
-
-             ! testing only
-             if ( i==ix .and. j==jx ) then 
-                write(*,*) 'Level ', L, ':'
-                write(*,*) 'FRAC: ', FRAC
-             endif
-
-             ! Add proportion of mass to this level [kg]
-             IF ( IDTNO > 0 ) THEN
-
-                ! testing only
-                if ( i==ix .and. j==jx ) then 
-                   write(*,*) 'NO before [kg]: ', ExtState%NO%Arr%Val(I,J,L)
-                endif
-
-                ExtState%NO%Arr%Val(I,J,L) = &
-                     ExtState%NO%Arr%Val(I,J,L) + &
-                     ( FLUXNO(I,J) * HcoState%Grid%AREA_M2(I,J) * &
-                     HcoState%TS_EMIS * FRAC ) 
-
-                ! testing only
-                if ( i==ix .and. j==jx ) then 
-                   write(*,*) 'NO after [kg]: ', ExtState%NO%Arr%Val(I,J,L)
-                endif
-             ENDIF
-
-             IF ( IDTHNO3 > 0 ) THEN
-                
-                ! testing only
-                if ( i==ix .and. j==jx ) then 
-                   write(*,*) 'HNO3 before [kg]: ', ExtState%HNO3%Arr%Val(I,J,L)
-                endif
-
-                ExtState%HNO3%Arr%Val(I,J,L) = &
-                     ExtState%HNO3%Arr%Val(I,J,L) + &
-                     ( FLUXHNO3(I,J) * HcoState%Grid%AREA_M2(I,J) * &
-                     HcoState%TS_EMIS * FRAC ) 
-
-                ! testing only
-                if ( i==ix .and. j==jx ) then 
-                   write(*,*) 'HNO3 after [kg]: ', ExtState%HNO3%Arr%Val(I,J,L)
-                endif
-
-             ENDIF
-
-             IF ( IDTO3 > 0 ) THEN
-
-                ! testing only
-                if ( i==ix .and. j==jx ) then 
-                   write(*,*) 'O3 before [kg]: ', ExtState%O3%Arr%Val(I,J,L)
-                endif
-
-                ExtState%O3%Arr%Val(I,J,L) = &
-                     ExtState%O3%Arr%Val(I,J,L) + &
-                     ( FLUXO3(I,J) * HcoState%Grid%AREA_M2(I,J) * &
-                     HcoState%TS_EMIS * FRAC ) 
-
-                iFlx = DEPO3(I,J) * ExtState%O3%Arr%Val(I,J,1) &
-                     / ExtState%AIRVOL%Arr%Val(I,J,1)
-                ExtState%O3%Arr%Val(I,J,L) = &
-                     ExtState%O3%Arr%Val(I,J,L) - &
-                     ( iFlx * HcoState%Grid%AREA_M2(I,J) * &
-                     HcoState%TS_EMIS * FRAC ) 
-
-                ! Make sure O3 is not negative!
-                IF ( ExtState%O3%Arr%Val(I,J,L) < 0d0 ) THEN
-                   ExtState%O3%Arr%Val(I,J,L) = 0d0
-                ENDIF
-
-                ! testing only
-                if ( i==ix .and. j==jx ) then 
-                   write(*,*) 'O3 after [kg]: ', ExtState%O3%Arr%Val(I,J,L)
-                endif
-
-             ENDIF
-
-          ENDDO !L
-      ENDDO !I
-      ENDDO !J
-
-   endif ! add2hemco
+!------------------------------------------------------------------------------
+! Prior to 7/22/14:
+! For now, assume we will add emissions directly into the HEMCO State object
+! Comment out this code, which was for testing only (bmy, 7/22/14)
+!    !=======================================================================
+!    ! Add to tracer array directly (testing only)
+!    !=======================================================================
+!    else
+!
+!       DO J=1,HcoState%NY
+!       DO I=1,HcoState%NX
+!
+!          ! Top level of the boundary layer
+!          ! guard for b.l. being in first level.
+!          TOP = FLOOR( GET_PBL_TOP_L( I, J ) )
+!          IF ( TOP == 0 ) TOP = 1
+!          
+!          ! Pressure thickness of entire boundary layer [hPa]
+!!-----------------------------------------------------------------------------
+!! Prior to 7/22/14:
+!! Break the dependency on pressure_mod.F by using ExtState%PEDGE (bmy, 7/22/14)
+!!          TOTPRES = GET_PEDGE(I,J,1) - GET_PEDGE(I,J,TOP+1)
+!!-----------------------------------------------------------------------------
+!          TOTPRES = ExtState%PEDGE%Arr%Val(I,J,1    ) &
+!                  - ExtState%PEDGE%Arr%Val(I,J,TOP+1)
+!
+!          ! Add emissions to tracer arrays. Mix over entire boundary
+!          ! layer
+!          DO L = 1, TOP
+!
+!             ! Thickness of level L [mb]
+!!-----------------------------------------------------------------------------
+!! Prior to 7/22/14:
+!! Break the dependency on pressure_mod.F by using ExtState%PEDGE (bmy, 7/22/14
+!!             DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
+!!-----------------------------------------------------------------------------
+!             DELTPRES = ExtState%PEDGE%Arr%Val(I,J,L  ) &
+!                      - ExtState%PEDGE%Arr%Val(I,J,L+1)                     
+!             FRAC     = DELTPRES / TOTPRES
+!
+!             ! testing only
+!             if ( i==ix .and. j==jx ) then 
+!                write(*,*) 'Level ', L, ':'
+!                write(*,*) 'FRAC: ', FRAC
+!             endif
+!
+!             ! Add proportion of mass to this level [kg]
+!             IF ( IDTNO > 0 ) THEN
+!
+!                ! testing only
+!                if ( i==ix .and. j==jx ) then 
+!                   write(*,*) 'NO before [kg]: ', ExtState%NO%Arr%Val(I,J,L)
+!                endif
+!
+!                ExtState%NO%Arr%Val(I,J,L) = &
+!                     ExtState%NO%Arr%Val(I,J,L) + &
+!                     ( FLUXNO(I,J) * HcoState%Grid%AREA_M2(I,J) * &
+!                     HcoState%TS_EMIS * FRAC ) 
+!
+!                ! testing only
+!                if ( i==ix .and. j==jx ) then 
+!                   write(*,*) 'NO after [kg]: ', ExtState%NO%Arr%Val(I,J,L)
+!                endif
+!             ENDIF
+!
+!             IF ( IDTHNO3 > 0 ) THEN
+!                
+!                ! testing only
+!                if ( i==ix .and. j==jx ) then 
+!                   write(*,*) 'HNO3 before [kg]: ', ExtState%HNO3%Arr%Val(I,J,L)
+!                endif
+!
+!                ExtState%HNO3%Arr%Val(I,J,L) = &
+!                     ExtState%HNO3%Arr%Val(I,J,L) + &
+!                     ( FLUXHNO3(I,J) * HcoState%Grid%AREA_M2(I,J) * &
+!                     HcoState%TS_EMIS * FRAC ) 
+!
+!                ! testing only
+!                if ( i==ix .and. j==jx ) then 
+!                   write(*,*) 'HNO3 after [kg]: ', ExtState%HNO3%Arr%Val(I,J,L)
+!                endif
+!
+!             ENDIF
+!
+!             IF ( IDTO3 > 0 ) THEN
+!
+!                ! testing only
+!                if ( i==ix .and. j==jx ) then 
+!                   write(*,*) 'O3 before [kg]: ', ExtState%O3%Arr%Val(I,J,L)
+!                endif
+!
+!                ExtState%O3%Arr%Val(I,J,L) = &
+!                     ExtState%O3%Arr%Val(I,J,L) + &
+!                     ( FLUXO3(I,J) * HcoState%Grid%AREA_M2(I,J) * &
+!                     HcoState%TS_EMIS * FRAC ) 
+!
+!                iFlx = DEPO3(I,J) * ExtState%O3%Arr%Val(I,J,1) &
+!                     / ExtState%AIRVOL%Arr%Val(I,J,1)
+!                ExtState%O3%Arr%Val(I,J,L) = &
+!                     ExtState%O3%Arr%Val(I,J,L) - &
+!                     ( iFlx * HcoState%Grid%AREA_M2(I,J) * &
+!                     HcoState%TS_EMIS * FRAC ) 
+!
+!                ! Make sure O3 is not negative!
+!                IF ( ExtState%O3%Arr%Val(I,J,L) < 0d0 ) THEN
+!                   ExtState%O3%Arr%Val(I,J,L) = 0d0
+!                ENDIF
+!
+!                ! testing only
+!                if ( i==ix .and. j==jx ) then 
+!                   write(*,*) 'O3 after [kg]: ', ExtState%O3%Arr%Val(I,J,L)
+!                endif
+!
+!             ENDIF
+!
+!          ENDDO !L
+!      ENDDO !I
+!      ENDDO !J
+!
+!   endif ! add2hemco
+!------------------------------------------------------------------------------
 
    ! Return w/ success
    CALL HCO_LEAVE ( RC )
@@ -706,6 +736,7 @@ CONTAINS
 !  06 Aug 2013 - C. Keller   - Initial Version
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTex Headers
 !  06 Jun 2014 - R. Yantosca - Now indented using F90 free-format
+!  22 Jul 2014 - R. Yantosca - Activate ExtState%PEDGE for use in EVOLVE_PLUME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -828,7 +859,10 @@ CONTAINS
    ExtState%SUNCOSmid5%DoUse = .TRUE.
    ExtState%TSURFK%DoUse     = .TRUE.
    ExtState%AIRVOL%DoUse     = .TRUE.
-   IF ( IDTHNO3 > 0 ) ExtState%HNO3%DoUse = .TRUE.
+   ExtState%PEDGE%DoUse      = .TRUE.
+   IF ( IDTHNO3 > 0 ) THEN
+      ExtState%HNO3%DoUse    = .TRUE.
+   ENDIF
    !ExtState%JVAL%DoUse = .TRUE.
 
    ! Enable module
