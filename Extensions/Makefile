@@ -165,6 +165,7 @@ hcox_state_mod.o      : hcox_state_mod.F90
 henry_mod.o           : henry_mod.F
 
 lightning_cdf_mod.o   : lightning_cdf_mod.F90
+	$(F90) -O1 -c $<
 
 ocean_toolbox_mod.o   : ocean_toolbox_mod.F90
 
