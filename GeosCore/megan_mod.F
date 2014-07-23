@@ -329,7 +329,9 @@
             GAMMA_PAR = 0.d0  
             
          ENDIF 
-
+         !krt, add GAMMA_PAR to Met fields, 7/7/14
+         State_Met%GAMMAPAR(I,J) = GAMMA_PAR
+         
          ! --------------------------------------------------
          ! GAMMA_T_LI (temperature activity factor for 
          ! light-independent fraction)

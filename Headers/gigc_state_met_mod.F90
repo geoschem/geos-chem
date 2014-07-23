@@ -63,6 +63,7 @@ MODULE GIGC_State_Met_Mod
      REAL*8,  POINTER :: OICE      (:,:  )  ! Fraction of ocean ice [1]
      REAL*8,  POINTER :: PARDR     (:,:  )  ! Direct  photsyn active rad [W/m2]
      REAL*8,  POINTER :: PARDF     (:,:  )  ! Diffuse photsyn active rad [W/m2]
+     REAL*8,  POINTER :: GAMMAPAR  (:,:  )  ! GAMMAPAR from MEGHAN
      REAL*8,  POINTER :: PBLH      (:,:  )  ! PBL height [m]
      REAL*8,  POINTER :: PHIS      (:,:  )  ! Sfc geopotential height [m2/s2]
      REAL*8,  POINTER :: PRECANV   (:,:  )  ! Anvil previp @ ground [kg/m2/s]
@@ -329,6 +330,10 @@ CONTAINS
     ALLOCATE( State_Met%PARDF     ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PARDF    = 0d0
+
+    ALLOCATE( State_Met%GAMMAPAR     ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%GAMMAPAR    = 0d0
 
     ALLOCATE( State_Met%PBLH      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -904,6 +909,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%LWI        )) DEALLOCATE( State_Met%LWI        )
     IF ( ASSOCIATED( State_Met%PARDR      )) DEALLOCATE( State_Met%PARDR      )
     IF ( ASSOCIATED( State_Met%PARDF      )) DEALLOCATE( State_Met%PARDF      )
+    IF ( ASSOCIATED( State_Met%GAMMAPAR   )) DEALLOCATE( State_Met%GAMMAPAR   )
     IF ( ASSOCIATED( State_Met%PBLH       )) DEALLOCATE( State_Met%PBLH       )
     IF ( ASSOCIATED( State_Met%PHIS       )) DEALLOCATE( State_Met%PHIS       )
     IF ( ASSOCIATED( State_Met%PRECCON    )) DEALLOCATE( State_Met%PRECCON    )
