@@ -346,8 +346,6 @@ biofuel_mod.o               : biofuel_mod.F                                  \
                               logical_mod.o           streets_anthro_mod.o   \
                               tracerid_mod.o          tracer_mod.o
 
-biofit.o                    : biofit.F
-
 biomass_mod.o               : biomass_mod.F                                  \
                               diag_mod.o              gc_biomass_mod.o       \
                               gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
@@ -1103,8 +1101,6 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               wetscav_mod.o           get_ndep_mod.o         \
                               tomas_mod.o             nei2008_anthro_mod.o   \
 			      finn_biomass_mod.o      rcp_mod.o
-
-sunparam.o                  : sunparam.F
 
 tagged_co_mod.o             : tagged_co_mod.F                                \
                               biofuel_mod.o           biomass_mod.o          \
