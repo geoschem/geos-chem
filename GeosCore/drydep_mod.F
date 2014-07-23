@@ -1684,7 +1684,7 @@
       REAL*8  XMWH2O,DAIR,TEMPK,TEMPC
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
-      REAL*8  RCLX,RIXX,BIOFIT
+      REAL*8  RCLX,RIXX
 
 #if   defined( TOMAS )
       ! For TOMAS aerosol (win, 7/15/09)
@@ -1904,7 +1904,7 @@
 !               RIX using GAMMAPAR instead of BIOFIT
 !***************************************************************************
 
-            !RAD0 = RADIAT(IJLOOP)
+            RAD0 = RADIAT(IJLOOP)
             RIX = RI(LDT)
             IF (RIX .GE. 9999.D0) GO TO 150
             GFACT = 100.0D0
@@ -5412,17 +5412,6 @@
             NTRAIND(NUMDEP) = IDTOCPI
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'OCPI'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 12d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! Hydrophilic BB OC (aerosol)
-         ELSE IF ( N == IDTBBOCPI ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTBBOCPI
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'BBOCPI'
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 12d-3
