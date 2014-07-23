@@ -532,6 +532,20 @@
       ! Free pointer
       NULLIFY( STT )
 
+      ! If not an SOA simulation then uptake gas phase SOA precursors
+      ! to avoid overestimating the concentration of gas phase species
+      ! For now this implementation only includes uptake of IEPOX.
+      ! The uptake parameterization of IEPOX is based on Pye et al. (2013)
+      ! irreversible uptake of isoprene epoxides and uses southeast US a gamma
+      ! (uptake coefficient) value similar to values obtained over the southeast  
+      ! US using CMAQ of 0.002.
+      IF ( .not. ( LSOA) ) THEN
+
+         CALL AEROSOL_UPTAKE( am_I_Root, Input_Opt, 
+     &                        State_Met, State_Chm, RC )
+
+      ENDIF
+
       !=================================================================
       ! Do chemistry for secondary organic aerosols 
       !
@@ -576,53 +590,39 @@
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
-
-         ! If SOAG and SOAM are declared, switch on 
-         !    SOA production from dicarbonyls (tmf, 12/07/07) 
-         IF ( IDTSOAG > 0 ) THEN
-
-            ! Get grid box cloud fraction (tmf, 2/26/07)
-            ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
-            CALL GET_VCLDF( State_Met )
-
-            ! Cloud uptake
-            CALL SOAG_CLOUD( State_Met, State_Chm )
-            IF ( prtDebug ) THEN
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
-            ENDIF
-
-            ! Aqueous aerosol uptake
-            CALL SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
-            ENDIF
-
-         ENDIF
-
-         IF ( IDTSOAM > 0 ) THEN
-         
-            ! Get grid box cloud fraction (tmf, 2/26/07)
-            ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
-            CALL GET_VCLDF( State_Met )
-
-            ! Cloud uptake
-            CALL SOAM_CLOUD( State_Met, State_Chm )
-            IF ( prtDebug ) THEN
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')
-            ENDIF
-
-            ! Aqueous aerosol uptake
-            CALL SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
-            IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )
-            ENDIF
-
-         ENDIF
-   
       ENDIF
 
+      ! If SOAG and SOAM are declared, switch on 
+      !    SOA production from dicarbonyls (tmf, 12/07/07) 
+      ! OTHERWISE, JUST TAKE UP DICARBONYLS (krt, 7/17/14)
+      ! Get grid box cloud fraction (tmf, 2/26/07)
+      ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
+      CALL GET_VCLDF( State_Met )
+
+            ! Cloud uptake
+      CALL SOAG_CLOUD( State_Met, State_Chm )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
+      ENDIF
+            ! Cloud uptake
+      CALL SOAM_CLOUD( State_Met, State_Chm )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')
+      ENDIF
+
+            ! Aqueous aerosol uptake
+      CALL SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, 
+     &     State_Met, State_Chm, RC )
+      IF ( prtDebug ) THEN 
+         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+      ENDIF
+            ! Aqueous aerosol uptake
+      CALL SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, 
+     &     State_Met, State_Chm, RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )
+      ENDIF
+   
       END SUBROUTINE CHEMCARBON
 !EOC
 !------------------------------------------------------------------------------
@@ -2052,11 +2052,11 @@
                   ! Update GLYX in the STT array
                   STT( I, J, L, IDTGLYX ) = STT( I, J, L, IDTGLYX ) -
      &                                      XUPTK
-
+                  IF ( IDTSOAG > 0 ) THEN
                   ! Update SOAG in the STT array
-                  STT( I, J, L, IDTSOAG ) = STT( I, J, L, IDTSOAG ) + 
-     &                                      XUPTK
-
+                     STT( I, J, L, IDTSOAG ) = STT( I, J, L, IDTSOAG ) + 
+     &                    XUPTK
+                  ENDIF
             ENDIF
 
          !==============================================================
@@ -2070,10 +2070,12 @@
       ENDDO
       ENDDO
 
+      IF ( IDTSOAG > 0 ) THEN
       !=================================================================       
       ! Calculate dry-deposition
       !=================================================================
-      CALL SOA_DEPO( STT(:,:,:,IDTSOAG), DRYSOAG, IDTSOAG, Input_Opt )
+         CALL SOA_DEPO(STT(:,:,:,IDTSOAG), DRYSOAG, IDTSOAG, Input_Opt)
+      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -2295,11 +2297,11 @@
                   ! Update MGLY in the STT array
                   STT( I, J, L, IDTMGLY ) = STT( I, J, L, IDTMGLY ) -
      &                                      XUPTK
-
+                  IF ( IDTSOAM > 0 ) THEN
                   ! Update SOAM in the STT array
-                  STT( I, J, L, IDTSOAM ) = STT( I, J, L, IDTSOAM ) + 
-     &                                      XUPTK
-
+                     STT( I, J, L, IDTSOAM ) = STT( I, J, L, IDTSOAM ) + 
+     &                    XUPTK
+                  ENDIF
             ENDIF
 
          !==============================================================
@@ -2313,10 +2315,12 @@
       ENDDO
       ENDDO
 
+      IF ( IDTSOAM > 0 ) THEN
       !=================================================================       
       ! Calculate dry-deposition
       !=================================================================
-      CALL SOA_DEPO( STT(:,:,:,IDTSOAM), DRYSOAM, IDTSOAM, Input_Opt )
+         CALL SOA_DEPO(STT(:,:,:,IDTSOAM), DRYSOAM, IDTSOAM, Input_Opt)
+      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -2855,7 +2859,285 @@
 
       ! Return to calling program
       END SUBROUTINE SOA_CHEMISTRY
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: aerosol_uptake
+!
+! !DESCRIPTION: Subroutine AEROSOL\_UPTAKE performs uptake of the SOA 
+!  precursor IEPOX to the aerosol phase in the non-SOA simulations to account for
+!  its loss. This simple procedure can be expanded to include other SOA precursors
+!  (glyoxal, methylglyoxal, other epoxide species) without adding additional 
+!  tracers to the standard GEOS-Chem simulation (eam, 2014).
+!
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE AEROSOL_UPTAKE( am_I_Root, Input_Opt, 
+     &                           State_Met, State_Chm, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD,    ONLY : ONEPI,    RSTARG
+      USE COMODE_MOD,         ONLY : ERADIUS,  JLOP
+      USE COMODE_MOD,         ONLY : TAREA
+      USE ERROR_MOD,          ONLY : DEBUG_MSG,    SAFE_DIV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+      USE TRACERID_MOD,       ONLY : IDTIEPOX, IDTISOPN, IDTMMN
+      USE TRACERID_MOD,       ONLY : IDTETHLN, IDTPROPNN, IDTPPN
+      USE TRACERID_MOD,       ONLY : IDTISN1, IDTPMN, IDTR4N2
+      USE TRACER_MOD,         ONLY : TRACER_MW_KG
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REMARKS:
+!  Procedure:
+!  ============================================================================
+!  (1 ) Use a prescribed uptake coefficient based on the CMAQ model output by
+!       Pye et al. (2013) to estimate uptake of IEPOX into the aerosol phase.
+!  (2 ) Calculate change in gas-phase concentration of IEPOX as a result of aerosol
+!       uptake.
+!  (3)  Added ANs and PNs (krt, 7/18/14)
+!                                                                             .
+! !REVISION HISTORY:
+!  (1 ) First implemented in GEOS-Chem by Eloise Marais using CMAQ code developed
+!       by H.O.T. Pye (April 2014) 
+!       
+!   
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: prtDebug
+      LOGICAL            :: LPRT
+      INTEGER            :: I,        J,        L,        N   
+      INTEGER            :: JLOOP
 
+      ! Prescribed uptake coefficient from Pye et al. (2013)
+      REAL*8, PARAMETER  :: GAMMA_IEPOX = 4d-3
+      REAL*8, PARAMETER  :: GAMMA_ANS = 2.0d-3  ! pers. com. P. Di Carlo
+      REAL*8, PARAMETER  :: GAMMA_PNS = 1.7d-2  ! pers. com. P. Di Carlo          
+      ! Mean molecular speed [m/s]:
+      REAL*8             :: RHO
+      ! Temperature [K], Pressure [hPa]:
+      REAL*8             :: XTEMP,      XPRES
+      ! Particle radius [cm]:
+      REAL*8             :: XRADIUS
+      ! Particle surface area [cm^2 aerosol per cm^3 air]:
+      REAL*8             :: XWAREA
+      ! Diffusivity in gas phase at local conditions [m^2/s]:
+      REAL*8             :: DIFF_N2O5
+      ! Heterogeneous rate constants for isoprene-derived species 
+      ! (i.e. IEPOX)
+      REAL*8             :: KSPC
+      ! Gas-phase concentration of precursors:
+      REAL*8             :: GASC
+      ! Change in gas-phase concentration:
+      REAL*8             :: DELC
+      ! Chemistry time step [min]
+      REAL*8             :: DTCHEM
+      ! Relative humidity [%]
+      REAL*8             :: XRH
+      INTEGER :: TRACERLIST(7), KLM, SPC
+
+      ! Diffusivity in gas phase at standard conditions [m^2/s]:
+      REAL*8, PARAMETER  :: DIFF_N2O5_STD = 1.0d-5
+      ! Standard conditions of temperature and pressure
+      ! for N2O5 gas-phase diffusivity (T = 273.15 K; P = 1013.25 hPa ):
+      REAL*8, PARAMETER  :: STDTEMP=273.15d0, STDATMPA=1.01325d3
+      ! Define critical RH (%), above which heterogeneous chemistry occurs:
+      REAL*8, PARAMETER  :: CRITRH = 35.0d0
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
+      !=================================================================
+      ! AEROSOL_UPTAKE begins here!
+      !=================================================================
+
+      ! Save fields from Input_Opt to local variables
+      LPRT = Input_Opt%LPRT
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
+      ! Do we have to print debug output?
+      prtDebug = ( LPRT .and. am_I_Root )
+      ! Alkyl nitrates for aerosol uptake 
+
+      TRACERLIST = (/ IDTIEPOX, IDTISOPN, IDTMMN, !IDTR4N2,IDTPROPNN,
+     &     IDTISN1, IDTETHLN, IDTPPN, IDTPMN /)
+
+      ! For parallel do:
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, KLM, JLOOP, XRADIUS, XTEMP, RHO  )
+!$OMP+PRIVATE( XWAREA, DIFF_N2O5, XPRES, GASC, DELC, XRH,SPC)
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        
+         ! =============================================================
+         ! Initialize variables for use in this subroutine. This list is
+         ! likely overkill, but better safe than sorry!
+         ! ============================================================
+     
+         ! MERGE1 (hotp 5/25/09)
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) GOTO 121
+
+         ! Get 1-D index
+         JLOOP   = JLOP( I, J, L )
+
+         ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+         IF ( JLOOP == 0 ) GOTO 121
+
+         ! Get RH  
+         ! Only do heterogeneous chemistry if above critical RH:
+         ! The formation of isoprene-derived SOA on wet aerosols is 
+         ! consistent with the finding by Nguyen et al. (2014) that IEPOX-
+         ! derived SOA are formed on wet aerosol and that there is weak
+         ! dependence of SOA yields on relative humidity.
+         XRH    = State_Met%RH( I, J, L ) ![%]
+         IF ( XRH .lt. CRITRH ) GOTO 121
+
+         ! Get chemistry time step [s]:
+         DTCHEM = GET_TS_CHEM() * 60d0
+         ! Get temperature:
+         XTEMP   = State_Met%T( I, J, L )
+         ! Get pressure [in hPa]:
+         XPRES   = GET_PCENTER( I, J, L )
+
+         ! Get change in gas-phase concentration that results from 
+         ! reactive uptake of IEPOX and IMAE:
+         ! First adjust diffusivity at standard conditions 
+         ! (DIFF_N2O5_STD = 1d-5 m^2/s) to local conditions:
+         DIFF_N2O5 = DIFF_N2O5_STD * ( (XTEMP/STDTEMP)**1.75 ) *
+     &        ( STDATMPA/XPRES )
+
+         DO KLM = 1, SIZE( TRACERLIST )
+            SPC = TRACERLIST(KLM)
+           
+            ! Initialize radius and area:
+            XRADIUS = 0d0
+            XWAREA  = 0d0
+            GASC    = 0d0
+            ! Initialize mean molecular speed:
+            RHO   = 0d0
+            ! Initialize loss rate of SOA precusors:
+            KSPC      = 0d0
+            ! Change in precursor concentration:
+            DELC = 0d0
+
+            ! Calculate mean molecular speed [m/s]:
+            RHO = SQRT( ( 8d0 * RSTARG * 1d-7 * XTEMP )/
+     &           ( ONEPI * TRACER_MW_KG( SPC )))
+            
+            ! Get gas phase concentration of precursors [mol]:
+            GASC = STT( I, J, L, SPC) / TRACER_MW_KG( SPC )
+
+            ! Loop over aerosols (this includes sulfate, black carbon and
+            ! organic carbon aerosols):
+            DO N=1, NAER
+               ! Skip sea salt aerosols:
+               IF ( N .ge. 4 .and. N .le. 5 ) GOTO 123
+
+               ! Skip is aerosol surface area is zero:
+               IF ( TAREA( JLOOP, N+NDUST ) .eq. 0 ) GOTO 123
+
+               ! Get particle radius and convert from cm to m [m]:
+               XRADIUS = ERADIUS( JLOOP, N+NDUST )/1.d2
+               ! Get total available wet aerosol area and convert from cm2/cm3 to
+               ! m2/m3 [m2/m3]:
+               XWAREA  = TAREA(   JLOOP, N+NDUST )*1.d2 
+
+               ! First calculate IEPOX reaction rate in aerosol phase [s^-1]:
+               IF ( SPC == IDTIEPOX ) THEN 
+                  KSPC = XWAREA/( (XRADIUS/DIFF_N2O5) +
+     &                 (4.d0/(RHO * GAMMA_IEPOX)) )
+               ELSEIF (SPC == IDTPPN .or. SPC == IDTPMN ) THEN
+                  KSPC = XWAREA/( (XRADIUS/DIFF_N2O5) +
+     &                 (4.d0/(RHO * GAMMA_PNS)) )
+               ELSE
+                  KSPC = XWAREA/( (XRADIUS/DIFF_N2O5) +
+     &                 (4.d0/(RHO * GAMMA_ANS)) )
+               ENDIF   
+
+               ! Next calculate the change in concentration of IEPOX as a result of 
+               ! aerosol uptake. Sum over all aerosol types:
+               ! (1) IEPOX:
+               DELC = DELC + 
+     &                 GASC * (1.d0 - DEXP( -KSPC * DTCHEM ) )
+
+ 123           CONTINUE
+            ENDDO               ! aerosols
+            ! Check result over Southeast US:
+            IF ( I .eq. 20 .and. J .eq. 32 .and. L .eq. 1 .and.
+     &           SPC .eq. IDTISOPN ) THEN
+               PRINT*, '============================'
+               PRINT*, 'ISOPN conc before uptake = ', GASC
+               WRITE(*,*) 'DEBUG CARBON',  STT( I, J, L, SPC),
+     &              TRACER_MW_KG( SPC )
+
+               PRINT*, '============================'
+            ENDIF
+
+         ! ======================================================
+         !   Update gas-phase concentration of precursors [kg]:
+         ! ======================================================
+            GASC = GASC - DELC  ! [mol]
+            STT( I, J, L, SPC ) = MAX( GASC*TRACER_MW_KG(SPC), 
+     &           SMALLNUM )     ! [kg]
+
+            ! Check result over Southeast US:
+            IF ( I .eq. 20 .and. J .eq. 32 .and. L .eq. 1 .and. 
+     &           SPC .eq. IDTISOPN ) THEN
+               PRINT*, '============================'
+               PRINT*, 'ISOPN conc after uptake = ', GASC
+               PRINT*, '============================'
+            ENDIF
+            
+         ENDDO                  !species
+ 121     CONTINUE
+      ENDDO                     !I
+      ENDDO                     !J
+      ENDDO                     !L
+!$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
+
+      END SUBROUTINE AEROSOL_UPTAKE
+!EOC
 !------------------------------------------------------------------------------
 
       FUNCTION SOA_EQUIL( MASS, MPOC, AEROSOL, GAS, KOM ) 
@@ -9016,9 +9298,11 @@ ccc
             STT( I, J, L, IDTGLYX ) = STT( I, J, L, IDTGLYX ) -
      &                                XUPTK
 
+            IF ( IDTSOAG > 0 ) THEN
             ! Update SOAG in the STT array
-            STT( I, J, L, IDTSOAG ) = STT( I, J, L, IDTSOAG ) + 
-     &                                XUPTK
+               STT( I, J, L, IDTSOAG ) = STT( I, J, L, IDTSOAG ) + 
+     &              XUPTK
+            ENDIF
 
             !==============================================================
             ! ND07 diagnostic: SOAG from GLYX in cloud [kg/timestep]
@@ -9238,11 +9522,11 @@ ccc
             ! Update MGLY in the STT array
             STT( I, J, L, IDTMGLY ) = STT( I, J, L, IDTMGLY ) -
      &                                XUPTK
-
+            IF ( IDTSOAM > 0 ) THEN
             ! Update SOAM in the STT array
-            STT( I, J, L, IDTSOAM ) = STT( I, J, L, IDTSOAM ) + 
-     &                                XUPTK
-
+               STT( I, J, L, IDTSOAM ) = STT( I, J, L, IDTSOAM ) + 
+     &              XUPTK
+            ENDIF
             !==============================================================
             ! ND07 diagnostic: SOAM from MGLY in cloud [kg/timestep]
             !==============================================================
