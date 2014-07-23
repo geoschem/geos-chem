@@ -48,6 +48,9 @@
 #  25 Jun 2014 - R. Yantosca - Now compiles commsoil_mod.F90 (was .F before)
 #  23 Jul 2014 - R. Yantosca - Move smv_dimension_mod.F to obsolete/ dir
 #  23 Jul 2014 - R. Yantosca - Move smv_physconst_mod.F to obsolete/ dir
+#  23 Jul 2014 - R. Yantosca - Move CMN_mod.F to obsolete/ dir
+#  23 Jul 2014 - R. Yantosca - Move CMN_NOX_mod.F to obsolete/ dir
+#  23 Jul 2014 - R. Yantosca - Move gigc_state_phy_mod.F90 to obsolete/ dir
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -118,9 +121,8 @@ CMN_DIAG_mod.o       : CMN_DIAG_mod.F           \
 
 CMN_GCTM_mod.o       : CMN_GCTM_mod.F
 
-CMN_NOX_mod.o        : CMN_NOX_mod.F            \
-                       CMN_SIZE_mod.o           \
-                       gigc_errcode_mod.o 
+CMN_FJX_MOD.o        : CMN_FJX_MOD.F            \
+                       CMN_SIZE_mod.o
 
 CMN_O3_mod.o         : CMN_O3_mod.F             \
                        CMN_SIZE_mod.o           \
@@ -128,13 +130,6 @@ CMN_O3_mod.o         : CMN_O3_mod.F             \
 
 CMN_SIZE_mod.o       : CMN_SIZE_mod.F           \
                        gigc_errcode_mod.o
-
-CMN_mod.o            : CMN_mod.F                \
-                       CMN_SIZE_mod.o           \
-                       gigc_errcode_mod.o
-
-CMN_FJX_MOD.o        : CMN_FJX_MOD.F            \
-                       CMN_SIZE_mod.o
 
 commsoil_mod.o       : commsoil_mod.F90         \
                        CMN_SIZE_mod.o           \
@@ -159,8 +154,5 @@ gigc_state_chm_mod.o : gigc_state_chm_mod.F90   \
 gigc_state_met_mod.o : gigc_state_met_mod.F90   \
                        gigc_errcode_mod.o       \
                        CMN_SIZE_mod.o
-
-gigc_state_phy_mod.o : gigc_state_phy_mod.F90   \
-                       gigc_errcode_mod.o
 
 #EOC
