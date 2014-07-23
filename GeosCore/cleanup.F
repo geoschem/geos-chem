@@ -44,7 +44,6 @@
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
       USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
       USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
-      USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
       USE GRID_MOD,                ONLY : CLEANUP_GRID
 !-----------------------------------------------------------------------------
 ! The H2/HD simulation is now obsolete.  You can reactivate this if you want.
@@ -232,6 +231,7 @@
 !  25 Jun 2014 - R. Yantosca - Remove reference to tracer_mod.F
 !  21 Jul 2014 - R. Yantosca - Remove reference to regrid_1x1_mod.F
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete global_grid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -251,83 +251,82 @@
 #endif
 
       ! Call cleanup routines from individual F90 modules
-      CALL CLEANUP_AEROSOL
-      CALL CLEANUP_BIOMASS
-      CALL CLEANUP_BIOFUEL
-      CALL CLEANUP_C2H6
-      CALL CLEANUP_CARBON
-      CALL CLEANUP_CHEMGRID
-      CALL CLEANUP_CO2
-      CALL CLEANUP_COMODE
-      CALL CLEANUP_GCKPP_COMODE
-      CALL CLEANUP_DAO
-      CALL CLEANUP_DIAG
-      CALL CLEANUP_DIAG03
-      CALL CLEANUP_DIAG04
-      CALL CLEANUP_DIAG41
-      CALL CLEANUP_DIAG50
-      CALL CLEANUP_DIAG51
-      CALL CLEANUP_DIAG53
-      CALL CLEANUP_DIAG_OH
-      CALL CLEANUP_DIAG_PL
-      CALL CLEANUP_DRYDEP
-      CALL CLEANUP_DUST
-      CALL CLEANUP_GLOBAL_CH4
-      CALL CLEANUP_GLOBAL_HNO3
-      CALL CLEANUP_GLOBAL_NO3
-      CALL CLEANUP_GLOBAL_NOX
-      CALL CLEANUP_GLOBAL_NO3
-      CALL CLEANUP_GLOBAL_OH
-      CALL CLEANUP_GLOBAL_OC
-      CALL CLEANUP_GLOBAL_BC
-      CALL CLEANUP_GLOBAL_GRID
-      CALL CLEANUP_GRID
+      CALL CLEANUP_AEROSOL()
+      CALL CLEANUP_BIOMASS()
+      CALL CLEANUP_BIOFUEL()
+      CALL CLEANUP_C2H6()
+      CALL CLEANUP_CARBON()
+      CALL CLEANUP_CHEMGRID()
+      CALL CLEANUP_CO2()
+      CALL CLEANUP_COMODE()
+      CALL CLEANUP_GCKPP_COMODE()
+      CALL CLEANUP_DAO()
+      CALL CLEANUP_DIAG()
+      CALL CLEANUP_DIAG03()
+      CALL CLEANUP_DIAG04()
+      CALL CLEANUP_DIAG41()
+      CALL CLEANUP_DIAG50()
+      CALL CLEANUP_DIAG51()
+      CALL CLEANUP_DIAG53()
+      CALL CLEANUP_DIAG_OH()
+      CALL CLEANUP_DIAG_PL()
+      CALL CLEANUP_DRYDEP()
+      CALL CLEANUP_DUST()
+      CALL CLEANUP_GLOBAL_CH4()
+      CALL CLEANUP_GLOBAL_HNO3()
+      CALL CLEANUP_GLOBAL_NO3()
+      CALL CLEANUP_GLOBAL_NOX()
+      CALL CLEANUP_GLOBAL_NO3()
+      CALL CLEANUP_GLOBAL_OH()
+      CALL CLEANUP_GLOBAL_OC()
+      CALL CLEANUP_GLOBAL_BC()
+      CALL CLEANUP_GRID()
 !-----------------------------------------------------------------------------
 ! This simulation is obsolete.  You can restore it if you wish (bmy, 6/23/14)
-!      CALL CLEANUP_GLOBAL_O1D
-!      CALL CLEANUP_H2_HD
+!      CALL CLEANUP_GLOBAL_O1D()
+!      CALL CLEANUP_H2_HD()
 !-----------------------------------------------------------------------------
-      CALL CLEANUP_HCN_CH3CN
-      CALL CLEANUP_HDF
-      CALL CLEANUP_ISOROPIAII
-      CALL CLEANUP_LINOZ
-      CALL CLEANUP_MAP_A2A
-      CALL CLEANUP_MERCURY
-      CALL CLEANUP_MODIS_LAI
-      CALL CLEANUP_OCEAN_MERCURY
-      CALL CLEANUP_DEPO_MERCURY
-      CALL CLEANUP_LAND_MERCURY
-      CALL CLEANUP_PBL_MIX
-      CALL CLEANUP_PJC_PFIX
-      CALL CLEANUP_PLANEFLIGHT
-      CALL CLEANUP_PRESSURE
-      CALL CLEANUP_SEASALT
-      CALL CLEANUP_SULFATE
-      CALL CLEANUP_STRAT_CHEM
-      CALL CLEANUP_TAGGED_CO
+      CALL CLEANUP_HCN_CH3CN()
+      CALL CLEANUP_HDF()
+      CALL CLEANUP_ISOROPIAII()
+      CALL CLEANUP_LINOZ()
+      CALL CLEANUP_MAP_A2A()
+      CALL CLEANUP_MERCURY()
+      CALL CLEANUP_MODIS_LAI()
+      CALL CLEANUP_OCEAN_MERCURY()
+      CALL CLEANUP_DEPO_MERCURY()
+      CALL CLEANUP_LAND_MERCURY()
+      CALL CLEANUP_PBL_MIX()
+      CALL CLEANUP_PJC_PFIX()
+      CALL CLEANUP_PLANEFLIGHT()
+      CALL CLEANUP_PRESSURE()
+      CALL CLEANUP_SEASALT()
+      CALL CLEANUP_SULFATE()
+      CALL CLEANUP_STRAT_CHEM()
+      CALL CLEANUP_TAGGED_CO()
 #if ! defined( ESMF_ )
-      CALL CLEANUP_TRANSPORT
+      CALL CLEANUP_TRANSPORT()
 #endif
-      CALL CLEANUP_TOMS
-      CALL CLEANUP_UCX
-      CALL CLEANUP_UVALBEDO
-      CALL CLEANUP_WETSCAV
+      CALL CLEANUP_TOMS()
+      CALL CLEANUP_UCX()
+      CALL CLEANUP_UVALBEDO()
+      CALL CLEANUP_WETSCAV()
 
 #if   defined( APM )
-      CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
+      CALL CLEANUP_WETSCAVBIN()  ! Cleanup arrays for APM wet scavenging
 #endif
 
 
 #if   defined( TOMAS )
-      CALL CLEANUP_TOMAS
+      CALL CLEANUP_TOMAS()
 #endif
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-      CALL EXIT_GEOS5_TPCORE_WINDOW 
+      CALL EXIT_GEOS5_TPCORE_WINDOW() 
 #elif defined( GEOS_FP) && defined( GRID025x03125)
       ! clb
-      CALL EXIT_GEOSFP_TPCORE_WINDOW
+      CALL EXIT_GEOSFP_TPCORE_WINDOW()
 #else
-      CALL EXIT_TPCORE
+      CALL EXIT_TPCORE()
 #endif
 
       ! Call extra cleanup routines, mostly from modules in Headers/

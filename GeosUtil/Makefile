@@ -64,6 +64,7 @@
 #  21 Jul 2014 - R. Yantosca - regrid_a2a_mod.F90 no longer relies on other
 #                              files in GeosUtil
 #  21 Jul 2014 - R. Yantosca - Removed regrid_1x1_mod.F; it's obsolete
+#  23 Jul 2014 - R. Yantosca - Removed global_grid_mod.F90; it's obsolete
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -85,20 +86,20 @@ MOD  := $(ROOT)/mod
 include $(ROOT)/Makefile_header.mk
 
 # List of source files: everything ending in .F and .F90
-SRC := $(wildcard *.F) $(wildcard *.F90)
+SRC  := $(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
-TMP := $(SRC:.F=.o)
-OBJ := $(TMP:.F90=.o)
+TMP  := $(SRC:.F=.o)
+OBJ  := $(TMP:.F90=.o)
 
 # Special files just for IFORT
 ifeq ($(COMPILER),ifort) 
-OBJ += ifort_errmsg.o
+OBJ  += ifort_errmsg.o
 endif
 
 # Special files just for PGI
 ifeq ($(COMPILER),pgi) 
-OBJ += linux_err.o
+OBJ  += linux_err.o
 endif
 
 ###############################################################################
@@ -149,10 +150,6 @@ error_mod.o       : error_mod.F
 
 file_mod.o        : file_mod.F            \
                     error_mod.o
-
-global_grid_mod.o : global_grid_mod.F90   \
-                    error_mod.o           \
-                    grid_mod.o 
 
 grid_mod.o        : grid_mod.F90          \
                     error_mod.o
