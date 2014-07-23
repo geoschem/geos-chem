@@ -99,6 +99,7 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Apr 2014 - M. Sulprizio- Now store J-values for ACET
 !  27 May 2014 - M. Sulprizio- Now store J-values for ALD2, MVK, MACR, HAC, GLYC
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_MOD
 !******************************************************************************
 !
 ! !USES:
@@ -106,7 +107,6 @@
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
-      USE CMN_MOD
       USE CMN_O3_MOD
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, ERADIUS, IXSAVE, 
      &                               IYSAVE, IZSAVE,  JLOP,    PRESS3,  

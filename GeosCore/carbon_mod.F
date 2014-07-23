@@ -6416,7 +6416,6 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_MOD                  ! NSRCX
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -6446,6 +6445,7 @@ ccc
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

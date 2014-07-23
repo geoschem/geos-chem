@@ -295,7 +295,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_MOD       ! NTRACE, LPRT, LWINDO
 !
 ! !INPUT PARAMETERS: 
 !
@@ -320,8 +319,9 @@
 !   Brendan Field and Bob Yantosca (5/8/03)
 ! 
 ! !REVISION HISTORY: 
-!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.
+!  02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                              Declare all REAL variables as REAL*8.
+!  23 Jul 2014 - R. Yantosca - Removed reference to obsolete CMN_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

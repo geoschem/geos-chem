@@ -269,10 +269,10 @@
 !
 !  NOTES:
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  23 Jul 2014 - R. Yantosca - Removed reference to obsolete CMN_mod.F
 !******************************************************************************
 !
       USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_MOD       ! STT, NTRACE, LPRT, LWINDO
 
       IMPLICIT NONE
 

@@ -5071,7 +5071,6 @@
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
-!               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5089,7 +5088,6 @@
 !
       USE BPCH2_MOD
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_MOD                  ! TAU , NSRCX, LSOILNOX
       USE COMODE_LOOP_MOD          ! IGAS
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -5109,6 +5107,7 @@
 ! !REVISION HISTORY: 
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on MAKE_CSPEC_FILE
 !  16 Apr 2014 - M. Sulprizio  - Now get PSC restart file path from Input_Opt
+!  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5246,7 +5245,6 @@
 !
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_MOD                  ! TAU , NSRCX, LSOILNOX
       USE COMODE_LOOP_MOD          ! ITLOOP, IGAS
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -5266,6 +5264,7 @@
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
 !  14 Feb 2014 - R. Yantosca   - Reorder DO loops for efficiency
 !  16 Apr 2014 - M. Sulprizio  - Now get PSC restart file path from Input_Opt
+!  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

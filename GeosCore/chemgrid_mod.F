@@ -44,8 +44,9 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      PUBLIC :: LMIN
-      PUBLIC :: LMAX
+      ! Scalars
+      INTEGER, PUBLIC :: LMIN   ! Minimum level where chemistry happens
+      INTEGER, PUBLIC :: LMAX   ! Maximum levle where chemistry happens
 !
 ! !REVISION HISTORY:
 !  22 Aug 2005 - R. Yantosca - Initial version
@@ -71,9 +72,6 @@
 !
 ! !PRIVATE TYPES:
 !      
-      ! Scalars
-      INTEGER              :: LMIN, LMAX
-
       ! Arrays
       INTEGER, ALLOCATABLE :: TROPOPAUSE(:,:)
       INTEGER, ALLOCATABLE :: IFLX(:,:)
@@ -258,11 +256,9 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_MOD                  ! LPAUSE, for backwards compatibility
 !
 ! !INPUT PARAMETERS: 
 !
@@ -297,9 +293,13 @@
       LMIN = MINVAL( TPAUSE_LEV )
       LMAX = MAXVAL( TPAUSE_LEV )
 
-      !### For backwards compatibility during transition (still needed??)
-      !### LPAUSE is still used by CH4 chemistry and ND27 (phs, 1/19/07)
-      LPAUSE = TPAUSE_LEV - 1
+!----------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Remove refernce to LPAUSE variable from obsolete CMN_mod.F (bmy, 7/23/14)
+!      !### For backwards compatibility during transition (still needed??)
+!      !### LPAUSE is still used by CH4 chemistry and ND27 (phs, 1/19/07)
+!      LPAUSE = TPAUSE_LEV - 1
+!----------------------------------------------------------------------------
 
       ! check to be sure LLTROP is large enough.
       IF ( LLTROP < LMAX ) THEN
@@ -332,13 +332,11 @@
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_MOD           ! LPAUSE, for backwards compatibility
 !
 ! !INPUT PARAMETERS:
 !     
@@ -419,8 +417,12 @@
       ! Copy from REAL*4 to INTEGER and resize to (IIPAR,JJPAR)
       CALL TRANSFER_2D( ARRAY(:,:,1), TROPOPAUSE )
 
-      !### For backwards compatibility during transition
-      LPAUSE = TROPOPAUSE
+!-----------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Remove reference to LPAUSE array from obsolete CMN_mod.F (bmy, 7/23/14)
+!      !### For backwards compatibility during transition
+!      LPAUSE = TROPOPAUSE
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! L <  TROPOPAUSE(I,J) are tropospheric boxes  

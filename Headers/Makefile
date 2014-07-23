@@ -46,6 +46,8 @@
 #                              to comode_loop_mod.F, to make it compile
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  25 Jun 2014 - R. Yantosca - Now compiles commsoil_mod.F90 (was .F before)
+#  23 Jul 2014 - R. Yantosca - Move smv_dimension_mod.F to obsolete/ dir
+#  23 Jul 2014 - R. Yantosca - Move smv_physconst_mod.F to obsolete/ dir
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -58,7 +60,6 @@
 
 # Define variables
 ROOT := ..
-HDR  := $(ROOT)/Headers
 HELP := $(ROOT)/help
 LIB  := $(ROOT)/lib
 MOD  := $(ROOT)/mod
@@ -119,7 +120,7 @@ CMN_GCTM_mod.o       : CMN_GCTM_mod.F
 
 CMN_NOX_mod.o        : CMN_NOX_mod.F            \
                        CMN_SIZE_mod.o           \
-                       gigc_errcode_mod.o
+                       gigc_errcode_mod.o 
 
 CMN_O3_mod.o         : CMN_O3_mod.F             \
                        CMN_SIZE_mod.o           \
@@ -144,8 +145,6 @@ comode_loop_mod.o    : comode_loop_mod.F        \
                        gigc_errcode_mod.o       \
                        gigc_input_opt_mod.o
 
-EF_MGN20_mod.o       : EF_MGN20_mod.F
-
 gigc_errcode_mod.o   : gigc_errcode_mod.F90
 
 gigc_input_opt_mod.o : gigc_input_opt_mod.F90   \
@@ -163,9 +162,5 @@ gigc_state_met_mod.o : gigc_state_met_mod.F90   \
 
 gigc_state_phy_mod.o : gigc_state_phy_mod.F90   \
                        gigc_errcode_mod.o
-
-smv_dimension_mod.o  : smv_dimension_mod.F
-
-smv_physconst_mod.o  : smv_physconst_mod.F
 
 #EOC

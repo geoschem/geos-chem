@@ -335,7 +335,7 @@
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0, READ_BPCH2, GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE CMN_MOD
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD43
@@ -411,6 +411,8 @@
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
 !                              code out with #ifdef blocks so it can be used)
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
+!  23 Jul 2014 - R. Yantosca - Reference ITS_IN_THE_CHEMGRID (chemgrid_mod.F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -598,7 +600,13 @@
          DO L = 1, LD43
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( L < LPAUSE(I,J) ) THEN
+!---------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+!            IF ( L < LPAUSE(I,J) ) THEN
+!---------------------------------------------------------------------------
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
             ENDIF
          ENDDO
@@ -985,15 +993,14 @@
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE DIAG_MOD,           ONLY : AD19   	      
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
       USE TIME_MOD,           ONLY : GET_MONTH
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND19
-      USE CMN_MOD                  ! LPAUSE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1004,14 +1011,8 @@
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
-!  The annual mean tropopause is stored in the LPAUSE array 
-!  (from header file "CMN").  LPAUSE is defined such that: 
-!                                                                             .
-!  Levels            1 <= L <= LPAUSE(I,J) - 1 are tropospheric
-!          LPAUSE(I,J) <= L <= LLPAR           are stratospheric
-!                                                                             .
-!  We now use LPAUSE instead of NSKIPL to denote the strat/trop boundary. 
-!  (bmy, 4/18/00)  
+!  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
+!  if box (I,J,L) is in the troposphere or stratosphere.
 !                                                                             .
 !  Monthly loss of CH4 is summed in TCH4(3)
 !     TCH4(3)  = CH4 sink by OH
@@ -1072,17 +1073,35 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-      MM = MAXVAL( LPAUSE )
+!-----------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+! Remove reference to LPAUSE variable from obsolete CMN_mod.F (bmy, 7/23/14)
+!      MM = MAXVAL( LPAUSE )
+!-----------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( L, J, I, KRATE, STT2GCH4, GCH4 )
 !$OMP+REDUCTION( +:TROPOCH4 )
-      DO L = 1, MM !MAXVAL( LPAUSE )
+!-----------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+! Remove reference to LPAUSE variable from obsolete CMN_mod.F (bmy, 7/23/14)
+!      DO L = 1, MM !MAXVAL( LPAUSE )
+!-----------------------------------------------------------------------------
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Only consider tropospheric boxes
-         IF ( L < LPAUSE(I,J) ) THEN 
+!-----------------------------------------------------------------------------
+! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+!         IF ( L < LPAUSE(I,J) ) THEN 
+!-----------------------------------------------------------------------------
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
@@ -1153,15 +1172,13 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CMN_SIZE_MOD
       USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_MONTH
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_MOD                  ! LPAUSE
 !
 ! !INPUT PARAMETERS:
 !
@@ -1169,11 +1186,8 @@
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
-!  The annual mean tropopause is stored in the LPAUSE array 
-!  (from header file "CMN").  LPAUSE is defined such that: 
-!                                                                             .
-!  Levels            1 <= L <= LPAUSE(I,J) - 1 are tropospheric
-!          LPAUSE(I,J) <= L <= LLPAR           are stratospheric
+!  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
+!  if box (I,J,L) is in the troposphere or stratosphere.
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
@@ -1219,11 +1233,24 @@
       STT => State_Chm%Tracers
 
       ! 1. Calculate OH mass and total air mass
-      DO L = 1, MAXVAL( LPAUSE )
+!---------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+!      DO L = 1, MAXVAL( LPAUSE )
+!---------------------------------------------------------------------------
+      DO L = 1, LLPAR
       DO J = 1, JJPAR 
       DO I = 1, IIPAR 
+!---------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+!         ! Only process tropospheric boxes (bmy, 4/17/00)
+!         IF ( L < LPAUSE(I,J) ) THEN
+!---------------------------------------------------------------------------
          ! Only process tropospheric boxes (bmy, 4/17/00)
-         IF ( L < LPAUSE(I,J) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
             ! Calculate OH mass [molec / box]
             OHMASS = BOH(I,J,L,LMN)  * BAIRDENS(I,J,L) *
@@ -1310,6 +1337,7 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE GIGC_ErrCode_Mod
@@ -1320,8 +1348,6 @@
       USE TRACER_MOD,         ONLY : CHECK_STT
       USE TRACERID_MOD,       ONLY : IDTCH4
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_MOD                  ! LPAUSE
 !
 ! !INPUT PARAMETERS:
 !
@@ -1341,11 +1367,8 @@
 !  Production (mixing ratio/sec) rate provided by Dylan Jones.  
 !  Only production by CH4 + OH is considered.
 !                                                                             .
-!  The annual mean tropopause is stored in the LPAUSE array 
-!  (from header file "CMN").  LPAUSE is defined such that: 
-!                                                                             .
-!  Levels           1 <= L <= LPAUSE(I,J) - 1 are tropospheric
-!         LPAUSE(I,J) <= L <= LLPAR           are stratospheric (bmy, 4/18/00)
+!  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
+!  if box (I,J,L) is in the troposphere or stratosphere.
 !
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
@@ -1450,7 +1473,7 @@
          DO L = BASELEV, LLPAR 
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J,  L, State_Met) ) THEN
+            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met) ) THEN
 
                ! Conversion factor [kg/box] --> [molec/cm3]
                ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
@@ -1680,28 +1703,28 @@
       WRITE(189,1990)
  1990 FORMAT('Tropospheric Burden')
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1,State_Met)
       WRITE(189,20)NTP,NTP/STTCONV
 
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1,State_Met)
       WRITE(189,21)NTP2,NTP2/STTCONV
 
       WRITE(189,18)
       WRITE(189,1991)
  1991 FORMAT('Stratospheric Burden')
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0,State_Met)
       WRITE(189,20) NTP,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0,State_Met)
       WRITE(189,21) NTP,NTP/STTCONV
       
       WRITE(189,18)
       WRITE(189,31)
 
       ! Sinks   jsw has checked correctness of code for sinks.
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,1)
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,1,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,0,State_Met)
       SINKS=NTP+NTQ
 
       WRITE(189,22) NTP,NTP/SINKS*100.D0,NTP/STTCONV
@@ -1712,26 +1735,26 @@
       WRITE(189,30)
 
       ! Sources
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,4,4,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,4,4,1,State_Met)
       SOURCES=NTP
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,5,5,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,5,5,1,State_Met)
       WRITE(189,24) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,9,9,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,9,9,1,State_Met)
       WRITE(189,27) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,6,6,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,6,6,1,State_Met)
       WRITE(189,39) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,7,7,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,7,7,1,State_Met)
       WRITE(189,25) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,8,8,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,8,8,1,State_Met)
       WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
       !jsw Following lines added by jsw.
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,10,10,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,10,10,1,State_Met)
       WRITE(189,35) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
       SINKS=SINKS-NTP  !Minus sign because soil absorption is negative.
@@ -1740,10 +1763,10 @@
       WRITE(189,28) SOURCES,SOURCES/STTCONV
       WRITE(189,18)
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1)
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1)
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0,State_Met)
       WRITE(189,18)
       WRITE(189,288) NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS,
      *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/STTCONV
@@ -1766,31 +1789,31 @@
       WRITE(189,19)
       WRITE(189,1990)
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1,State_Met)
       WRITE(189,20) NTP,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1,State_Met)
       WRITE(189,21) NTP,NTP/STTCONV
 
       WRITE(189,18)
       WRITE(189,1991)
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0,State_Met)
       WRITE(189,20) NTP,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0,State_Met)
       WRITE(189,21) NTP,NTP/STTCONV
       WRITE(189,18)
       WRITE(189,31)
 
       ! Sinks
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF( NTP > 0d0) SINKS = SINKS + NTP
 
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF( NTP2 > 0d0 ) SINKS = SINKS + NTP2      
 
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,State_Met)
       SINKS=SINKS+NTQ+NTQ2
       WRITE(189,22) NTQ,NTQ/SINKS*100.D0,NTQ/STTCONV
       WRITE(189,220) NTQ2,NTQ2/SINKS*100.D0,NTQ2/STTCONV
@@ -1809,47 +1832,47 @@
       WRITE(189,30)
       
       ! Sources
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,5,9,1)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,5,9,1,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,State_Met)
       SOURCES=NTQ+NTQ2
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.LT.0.D0) THEN
          SOURCES=SOURCES-NTP
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.LT.0.D0) THEN
          SOURCES=SOURCES-NTP
       ENDIF
       
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,1)
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0)
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,5,5,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,1,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,5,5,1,State_Met)
       WRITE(189,24) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,6,6,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,6,6,1,State_Met)
       WRITE(189,39) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,7,7,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,7,7,1,State_Met)
       WRITE(189,25) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,8,8,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,8,8,1,State_Met)
       WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,9,9,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,9,9,1,State_Met)
       WRITE(189,27) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.LT.0.D0) THEN
          WRITE(189,270) -NTP,-NTP/SOURCES*100.D0,-NTP/STTCONV
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF( NTP2 > 0d0 ) SINKS = SINKS + NTP2      
 
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,State_Met)
       SINKS=SINKS+NTQ+NTQ2
       WRITE(189,22) NTQ,NTQ/SINKS*100.D0,NTQ/STTCONV
 
@@ -1861,10 +1884,10 @@
       WRITE(189,28) SOURCES,SOURCES/STTCONV
       WRITE(189,18)
       
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1)
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1)
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0,State_Met)
       WRITE(189,18)
       WRITE(189,288) (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS),
      *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/STTCONV
@@ -1887,33 +1910,33 @@
       WRITE(189,19)
       WRITE(189,1990)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1,State_Met)
       WRITE(189,20) NTP,NTP/STTCONV
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1,State_Met)
       WRITE(189,21) NTP,NTP/STTCONV
       
       WRITE(189,18)
       WRITE(189,1991)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0,State_Met)
       WRITE(189,20) NTP,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0,State_Met)
       WRITE(189,21) NTP,NTP/STTCONV
       
       WRITE(189,18)
       WRITE(189,31)
 
       ! Sinks
-      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,1)
-      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,0)
+      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,1,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,0,State_Met)
       SINKS=NTQ+NTQ2
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.LT.0.D0) THEN
          SINKS=SINKS-NTP
       ENDIF
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.LT.0.D0) THEN
          SINKS=SINKS-NTP
       ENDIF
@@ -1921,12 +1944,12 @@
       WRITE(189,22) NTQ,NTQ/SINKS*100.D0,NTQ/STTCONV
       WRITE(189,220) NTQ2,NTQ2/SINKS*100.D0,NTQ2/STTCONV
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.LT.0.D0) THEN
          WRITE(189,270) -NTP,-NTP/SINKS*100.D0,-NTP/STTCONV
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.LT.0.D0) THEN
          WRITE(189,2700) -NTP,-NTP/SINKS*100.D0,-NTP/STTCONV
       ENDIF
@@ -1937,44 +1960,44 @@
       WRITE(189,30)
 
       ! Sources
-      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,5,9,1)
-      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0)
+      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,5,9,1,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0,State_Met)
       SOURCES=NTQ+NTQ2
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.GE.0.D0) THEN
          SOURCES=SOURCES+NTP
       ENDIF
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,,State_Met0)
       IF(NTP.GE.0.D0) THEN
          SOURCES=SOURCES+NTP
       ENDIF
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,1,State_Met)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0,State_Met)
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,5,5,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,5,5,1,State_Met)
       WRITE(189,24) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,6,6,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,6,6,1,State_Met)
       WRITE(189,39) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,7,7,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,7,7,1,State_Met)
       WRITE(189,25) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,8,8,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,8,8,1,State_Met)
       WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,9,9,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,9,9,1,State_Met)
       WRITE(189,27) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.GE.0.D0) THEN
          WRITE(189,270) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.GE.0.D0) THEN
          WRITE(189,2700) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
       ENDIF
@@ -1983,10 +2006,10 @@
       WRITE(189,28) SOURCES,SOURCES/STTCONV
       WRITE(189,18)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1)
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1)
-      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0)
-      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0,State_Met)
       WRITE(189,18)
       WRITE(189,288) (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS),
      *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/STTCONV
@@ -2071,12 +2094,15 @@
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION SUM_CH4( I1, I2, J1, J2, L1, L2, K1, K2, UPDOWN )
+      REAL*8 FUNCTION SUM_CH4( I1, I2, J1, J2, L1, L2, K1, K2, UPDOWN,
+     &                         State_Met )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_MOD          ! LPAUSE
+      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_CHEMGRID
+      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Met_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2085,6 +2111,9 @@
       INTEGER, INTENT(IN) :: L1, L2 ! Min/max altitude  indices of TCH4 to sum
       INTEGER, INTENT(IN) :: K1, K2 ! Min/max tracer    indices of TCH4 to sum
       INTEGER, INTENT(IN) :: UPDOWN ! Sum in trop (=1) or in strat (=0)
+
+      ! Also need to pass the State_Met for the CHEMGRID functons
+      TYPE(MetState), INTENT(IN) :: State_Met
 !
 ! !REMARKS:
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
@@ -2114,6 +2143,8 @@
 !        (bmy, 1/16/01)
 !  (3 ) Updated comments (jsw, bmy, 2/12/01)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  23 Jul 2014 - R. Yantosca - Now pass the State_Met for chemgrid functions
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2127,10 +2158,16 @@
       ! SUM_CH4 begins here!
       !=================================================================
 
-      ! Compute the minimum value of LPAUSE once for use in
-      ! the DO-loops below (bmy, 4/18/00)
-      LPAUSE_MIN = MINVAL( LPAUSE )
-      LPAUSE_MAX = MAXVAL( LPAUSE )
+!----------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+!         DO L = L1, LPAUSE_MAX
+!      ! Compute the minimum value of LPAUSE once for use in
+!      ! the DO-loops below (bmy, 4/18/00)
+!      LPAUSE_MIN = MINVAL( LPAUSE )
+!      LPAUSE_MAX = MAXVAL( LPAUSE )
+!----------------------------------------------------------------------------
 
       !### Debug
       !print*,'LPAUSE MIN/MAX=',LPAUSE_MIN,LPAUSE_MAX  
@@ -2146,10 +2183,22 @@
          ! UPDOWN = 1: Sum up from the surface to the tropopause
          !=============================================================
          DO K = K1, K2
-         DO L = L1, LPAUSE_MAX
+!----------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+!         DO L = L1, LPAUSE_MAX
+!----------------------------------------------------------------------------
+         DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-            IF ( L < LPAUSE(I,J) ) THEN 
+!----------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+!            IF ( L < LPAUSE(I,J) ) THEN 
+!----------------------------------------------------------------------------
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF
          ENDDO
@@ -2163,10 +2212,22 @@
          ! UPDOWN = 0: Sum up from the tropopause to the atm top
          !=============================================================
          DO K = K1,         K2
-         DO L = LPAUSE_MIN, L2
+!----------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Now use ITS_IN_THE_NOCHEMGRID to diagnose if we are in the stratosphere
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+!         DO L = LPAUSE_MIN, L2
+!----------------------------------------------------------------------------
+         DO L = 1,       LLPAR
          DO J = J1,         J2
          DO I = I1,         I2
-            IF ( L >= LPAUSE(I,J) ) THEN 
+!----------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Now use ITS_IN_THE_NOCHEMGRID to diagnose if we are in the stratosphere
+! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
+!            IF ( L >= LPAUSE(I,J) ) THEN 
+!----------------------------------------------------------------------------
+            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF            
          ENDDO

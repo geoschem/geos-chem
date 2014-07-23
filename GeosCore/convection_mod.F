@@ -16,9 +16,8 @@
 ! 
 ! !USES:
 !
-      !USE GC_TYPE_MOD
-      USE GIGC_ERRCODE_MOD
-      USE SMV_PHYSCONST_MOD
+      USE GIGC_Errcode_Mod
+      USE CMN_GCTM_Mod
 
       IMPLICIT NONE
       PRIVATE

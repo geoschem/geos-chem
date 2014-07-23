@@ -85,7 +85,6 @@
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
-      USE CMN_Mod,                 ONLY : Cleanup_CMN
       USE CMN_NOX_Mod,             ONLY : Cleanup_CMN_NOX
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
       USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
@@ -232,6 +231,7 @@
 !  24 Jun 2014 - R. Yantosca - Remove CLEANUP_BROMOCARB; HEMCO replaces this
 !  25 Jun 2014 - R. Yantosca - Remove reference to tracer_mod.F
 !  21 Jul 2014 - R. Yantosca - Remove reference to regrid_1x1_mod.F
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -331,7 +331,6 @@
 #endif
 
       ! Call extra cleanup routines, mostly from modules in Headers/
-      CALL Cleanup_CMN        ( am_I_Root, RC )
       CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
       CALL Cleanup_CMN_O3     ( am_I_Root, RC )
       CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
