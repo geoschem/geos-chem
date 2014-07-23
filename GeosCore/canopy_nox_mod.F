@@ -133,10 +133,6 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-! !EXTERNAL FUNCTIONS:
-!
-      REAL*8,  EXTERNAL:: BIOFIT
-!
 ! !DEFINED PARAMETERS:
 !
       ! Molecular weight of water [kg]
@@ -305,15 +301,15 @@
 
                GFACI = 100.D0
 
-               IF ( RAD0 > 0d0 .AND. GC_LAI(I,J) > 0d0 ) THEN
-                  GFACI= 1d0 / 
-     &                   BIOFIT( DRYCOEFF,       
-     &                           GC_LAI(I,J),
-     &                           State_Met%SUNCOS(I,J), 
-     &                           State_Met%CLDFRC(I,J)  )
+               IF (  State_Met%GAMMAPAR(I,J) > 0d0 .AND. 
+     &              GC_LAI(I,J) > 0d0 ) THEN
+
+                  RIX = RIX*GFACT /
+     &                 (State_Met%GAMMAPAR(I,J)*GC_LAI(I,J) )
+               ELSE
+                  RIX = RIX * GFACT * GFACI
                ENDIF
-            
-               RIX = RIX * GFACT * GFACI
+
             ENDIF
 
             ! Compute aerodynamic resistance to lower elements in lower 
