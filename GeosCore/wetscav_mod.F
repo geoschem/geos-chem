@@ -143,7 +143,7 @@
 !  24 Jun 2013 - J.A. Fisher - Modifications for SEAC4RS SOA tracers
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
-!  10 Apr 2013 - K. Travis   - Add HAC wet dep
+!  10 Apr 2013 - K. Travis   - Add HAC,ACTA, HCOOH,RCHO and ISN1 wet scavenging
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -165,7 +165,9 @@
       ! +3 for SEAC4RS SOA tracers (jaf, 6/24/13)
       !INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
       ! + 1 for HAC - krt, 4/10/14
-      INTEGER, PARAMETER   :: NSOLMAX = 64      ! Max # of soluble tracers
+      ! + 1 for ISN1 - krt, 7/15/14
+      ! + 2 for HCOOH, RCHO - krt, 7/18/14
+      INTEGER, PARAMETER   :: NSOLMAX = 67      ! Max # of soluble tracers
 !------------------------------------------------------------------------------
 ! This is in the std code (bmy, 10/30/13)
 !      ! SOAupdate: Increase NSOLMAX from 60 to 110 for SOA + semivol POA
@@ -845,10 +847,10 @@
       USE TRACERID_MOD,       ONLY : IS_Hg2,    IS_HgP
       USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC      
       USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
-      USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
-      USE TRACERID_MOD,       ONLY : IDTHAC  !krt, 4/10/14
+      USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN, IDTACTA
+      USE TRACERID_MOD,       ONLY : IDTHAC, IDTISN1, IDTRCHO  !krt, 4/10/14
       USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN,    IDTETHLN
-      USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP
+      USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP, IDTHCOOH
       USE TRACERID_MOD,       ONLY : IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
@@ -2496,7 +2498,7 @@
       !-------------------------------
       ! ISOPN (liquid & ice phases)
       !-------------------------------
-      ELSE IF ( N == IDTISOPN ) THEN
+      ELSE IF ( N == IDTISOPN .or. N == IDTISN1 ) THEN
 
          ! No scavenging at the surface
          F(:,:,1) = 0d0
@@ -2813,6 +2815,144 @@
 
 
       !-------------------------------
+      ! ACTA (liquid & ice phases)
+      !-------------------------------
+      ELSE IF ( N == IDTACTA ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            !Johnson et al [1996] 
+            CALL COMPUTE_L2G( 4.1d3, -6.3d3,  State_Met%T(I,J,L),
+     &                        CLDLIQ(I,J,L), L2G )
+
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of LIMO scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+            
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
+      ! RCHO (liquid & ice phases)
+      !-------------------------------
+      ELSE IF ( N == IDTRCHO ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            !Graedel and Goldberg [1983]
+            CALL COMPUTE_L2G( 4.2d3, 0d0,  State_Met%T(I,J,L),
+     &                        CLDLIQ(I,J,L), L2G )
+
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of LIMO scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+            
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
+      ! HCOOH
+      !-------------------------------
+      ELSE IF ( N == IDTHCOOH ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            !Johnson et al. [1996] 
+            CALL COMPUTE_L2G( 8.9d3, -6.1d3,  State_Met%T(I,J,L),
+     &                        CLDLIQ(I,J,L), L2G )
+
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( State_Met%T(I,J,L) > 248d0   .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+            
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
       ! IEPOX (liquid & ice phases)
       !-------------------------------
       ELSE IF ( N == IDTIEPOX ) THEN
@@ -3110,10 +3250,10 @@
       USE TRACERID_MOD,       ONLY : IDTSALC
       USE TRACERID_MOD,       ONLY : IS_Hg2,  IS_HgP
       USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
-      USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
-      USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
+      USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM,   IDTHCOOH
+      USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN, IDTRCHO
       USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN,    IDTETHLN
-      USE TRACERID_MOD,       ONLY : IDTHAC
+      USE TRACERID_MOD,       ONLY : IDTHAC,    IDTISN1,   IDTACTA
       USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
@@ -3315,6 +3455,104 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
+      !------------------------------
+      ! ACTA (liquid phase only)
+      !------------------------------     
+      ELSE IF ( N == IDTACTA ) THEN 
+                  
+         ! Compute liquid to gas ratio for CH2O, using
+         ! the appropriate parameters for Henry's law
+         ! (Eqs. 7, 8 and Table 1, Jacob et al, 2000)
+         CALL COMPUTE_L2G( 4.1d3, -6.3d3, TK, CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of CH2O in liquid phase 
+         ! NOTE: CH2O does not exist in the ice phase!
+         ! (Eqs. 4, 5, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  The retention factor  
+         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+               
+         ELSE
+            K = 0d0
+
+         ENDIF
+
+         ! Compute RAINFRAC, the fraction of rained-out CH2O
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
+
+      !------------------------------
+      ! RCHO
+      !------------------------------     
+      ELSE IF ( N == IDTRCHO ) THEN 
+                  
+         ! Compute liquid to gas ratio for CH2O, using
+         ! the appropriate parameters for Henry's law
+         ! (Eqs. 7, 8 and Table 1, Jacob et al, 2000)
+         CALL COMPUTE_L2G( 4.2d3, 0d0, TK, CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of CH2O in liquid phase 
+         ! NOTE: CH2O does not exist in the ice phase!
+         ! (Eqs. 4, 5, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  The retention factor  
+         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+               
+         ELSE
+            K = 0d0
+
+         ENDIF
+
+         ! Compute RAINFRAC, the fraction of rained-out CH2O
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
+
+      !------------------------------
+      ! HCOOH
+      !------------------------------     
+      ELSE IF ( N == IDTHCOOH ) THEN 
+                  
+ 
+         CALL COMPUTE_L2G( 8.9d3, -6.1d3, TK, CLDLIQ(I,J,L), L2G )
+
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  The retention factor  
+         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+               
+         ELSE
+            K = 0d0
+
+         ENDIF
+
+         ! Compute RAINFRAC, the fraction of rained-out CH2O
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
+
+      ! Update GLYX and MGLY Henry's Law Const calculations (tmf, 9/13/06) 
       ! Update GLYX and MGLY Henry's Law Const calculations (tmf, 9/13/06) 
       !------------------------------
       ! GLYX (liquid phase only)
@@ -3526,9 +3764,9 @@
          RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
       !------------------------------
-      ! ISOPN (liquid phase only)
+      ! ISOPN/ISN1 (liquid phase only)
       !------------------------------
-      ELSE IF ( N == IDTISOPN ) THEN
+      ELSE IF ( N == IDTISOPN .or. N == IDTISN1) THEN
 
          !Based on 2-pentyl nitrate
 
@@ -4484,11 +4722,11 @@
       USE TRACERID_MOD, ONLY : IDTSALC
       USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC
-      USE TRACERID_MOD, ONLY : IDTHAC !krt, 4/10/14
+      USE TRACERID_MOD, ONLY : IDTHAC,   IDTISN1 !krt, 4/10/14
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
-      USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN, IDTETHLN
-      USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
+      USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN, IDTRCHO
+      USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN, IDTETHLN, IDTHCOOH
+      USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTACTA, IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
@@ -4750,7 +4988,7 @@
       !------------------------------
       ! ISOPN (liquid phase only)
       !------------------------------
-      ELSE IF ( N == IDTISOPN ) THEN
+      ELSE IF ( N == IDTISOPN .or. N == IDTISN1) THEN
          KIN      = .FALSE.
          CALL WASHFRAC_LIQ_GAS(17d3, -9.2d3 , PP,        DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
@@ -4796,6 +5034,29 @@
          CALL WASHFRAC_LIQ_GAS( 8.4d2, -5.3d3, PP,       DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
+      !------------------------------
+      ! ACTA   (liquid phase only)
+      !------------------------------
+      ELSE IF ( N == IDTACTA ) THEN
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 4.1d3, -6.3d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
+
+      !------------------------------
+      ! RCHO   (liquid phase only)
+      !------------------------------
+      ELSE IF ( N == IDTRCHO ) THEN
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 4.2d3, 0d0, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
+
+      !------------------------------
+      ! HCOOH   (liquid phase only)
+      !------------------------------
+      ELSE IF ( N == IDTHCOOH ) THEN
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 8.9d3, -6.1d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
       !------------------------------
       ! IEPOX (liquid phase only)
       !------------------------------
@@ -8043,11 +8304,11 @@
       USE TRACERID_MOD, ONLY : IDTSALC
       USE TRACERID_MOD, ONLY : IS_Hg2,    IS_HgP
       USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
-      USE TRACERID_MOD, ONLY : IDTHAC !krt, 4/10/14
+      USE TRACERID_MOD, ONLY : IDTHAC,    IDTISN1 !krt, 4/10/14
       USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTMOBA,   IDTPROPNN
-      USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN,    IDTETHLN
-      USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
+      USE TRACERID_MOD, ONLY : IDTMOBA,   IDTPROPNN, IDTRCHO
+      USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN,IDTETHLN, IDTHCOOH
+      USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP, IDTACTA, IDTMAP
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
       ! SEAC4RS SOA tracers (jaf, 6/24/13)
@@ -8190,6 +8451,10 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTISOPN
 
+         ELSE IF ( N == IDTISN1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTISN1
+
          ELSE IF ( N == IDTMMN ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTMMN
@@ -8213,6 +8478,18 @@
          ELSE IF ( N == IDTMAP ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTMAP
+
+         ELSE IF ( N == IDTACTA ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTACTA
+
+         ELSE IF ( N == IDTRCHO ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTRCHO
+
+         ELSE IF ( N == IDTHCOOH ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHCOOH
 
          ELSE IF ( N == IDTIEPOX ) THEN
             NSOL         = NSOL + 1
@@ -8725,6 +9002,8 @@
                                                      ! ETHLN (jaf, 2/27/14)
 
          NMAX = NMAX + 4                             ! HBr,   HOBr,   Br2, HAC
+         NMAX = NMAX + 1                             ! ISN1 (krt, 7/15/14)
+         NMAX = NMAX + 3                             ! HCOOH, RCHO, ACTA (krt, 7/15/14)
 
          IF ( LSULF )    NMAX = NMAX + 8             ! SO2,   SO4,    MSA,
                                                      ! NH3,   NH4,    NIT
