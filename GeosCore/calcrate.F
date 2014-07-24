@@ -2541,7 +2541,7 @@ c new OH+CO rate from JPL2006.
 
       ! Return to CALCRATE
       END FUNCTION HO2
-
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2803,7 +2803,36 @@ c new OH+CO rate from JPL2006.
 
       END FUNCTION CLD1K_BrNO3
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
+! !IROUTINE: fcro2ho2
+!
+! !DESCRIPTION: !fgap, based on saunder 2003 k14
+!\\
+!\\
+! !INTERFACE:
+!
+      REAL*8 FUNCTION FCRO2HO2( XCARBN )
+!
+! !REVISION HISTORY:
+!  24 Jul 2014 - R. Yantosca - Now inlined to calcrate.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      IMPLICIT NONE
+
+      ! Arguments
+      REAL*8, INTENT(IN) :: XCARBN
+
+      FCRO2HO2 = 1D0-EXP(-0.245D0*XCARBN)
+     
+      ! Return to calling program
+      END FUNCTION FCRO2HO2
+!EOC
 ! *********************************************************************
 ! ******************** END OF SUBROUTINE CALCRATE *********************
 ! *********************************************************************

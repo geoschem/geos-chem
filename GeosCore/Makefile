@@ -374,8 +374,6 @@ biofuel_mod.o               : biofuel_mod.F           diag_mod.o             \
 biomass_mod.o               : biomass_mod.F           diag_mod.o             \
                               tracerid_mod.o          tracer_mod.o
 
-boxvl.o                     : boxvl.F
-
 bromocarb_mod.o             : bromocarb_mod.F         dao_mod.o              \
                               pbl_mix_mod.o           tracer_mod.o
 
@@ -576,8 +574,6 @@ fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
                               tracerid_mod.o          tracer_mod.o
 
 fyhoro.o                    : fyhoro.F
-
-fcro2ho2.o                  : fcro2ho2.F
 
 fyrno3.o                    : fyrno3.F
 
