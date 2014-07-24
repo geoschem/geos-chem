@@ -140,7 +140,7 @@ CONTAINS
     !=================================================================
 
     ! Error handling 
-    LOC = 'HCOI_GC_INIT (hcoi_GC_mod.F90)'
+    LOC = 'HCOI_GC_Init (hcoi_gc_main_mod.F90)'
 
     ! Set return code flag to HCO success. This value should be
     ! preserved throughout all HCO calls, otherwise an error
@@ -346,7 +346,7 @@ CONTAINS
     !=================================================================
 
     ! For error handling
-    LOC = 'HCOI_GC_RUN (hcoi_gc_mod.F90)'
+    LOC = 'HCOI_GC_RUN (hcoi_gc_main_mod.F90)'
 
     ! Set return code flag to HCO success. This value should be
     ! preserved throughout all HCO calls, otherwise an error
@@ -493,22 +493,30 @@ CONTAINS
        ! end dust mixing 
     ENDIF
 
-    ! testing only
-    write(*,*) 'State_Chm%Trac_Tend NO before MAP_HCO2GC: ', &
-         SUM(State_Chm%Trac_Tend(:,:,:,1))
+!---------------------------------------------------------------------------
+!### DEBUG OUTPUT -- COMMENT OUT FOR NOW
+!    ! testing only
+!    write(*,*) 'State_Chm%Trac_Tend NO before MAP_HCO2GC: ', &
+!         SUM(State_Chm%Trac_Tend(:,:,:,1))
+!---------------------------------------------------------------------------
 
     ! ================================================================
     ! Translate emissions array from HCO state onto GC arrays
     ! This step also converts emissions from kg/m2/s to molec/cm2/s!
     ! ================================================================
     CALL MAP_HCO2GC ( HcoState, Input_Opt, State_Chm, RC )
-     
-    ! testing only
-    HcoDST1 = HCO_GetHcoID( 'NO', HcoState ) 
-    write(*,*) 'NO Trac_Tend after MAP_HCO2GC: ', &
-         SUM(HcoState%Spc(HcoDst1)%Emis%Val)
-    write(*,*) 'State_Chm%Trac_Tend NO after MAP_HCO2GC: ', &
-         SUM(State_Chm%Trac_Tend(:,:,:,1))
+
+!---------------------------------------------------------------------------
+!### DEBUG OUTPUT -- COMMENT OUT FOR NOW
+!### NOTE: This will cause a segfault if NO is not an emissions species
+!    ! testing only
+!    HcoDST1 = HCO_GetHcoID( 'NO', HcoState ) 
+!
+!    write(*,*) 'NO Trac_Tend after MAP_HCO2GC: ', &
+!         SUM(HcoState%Spc(HcoDst1)%Emis%Val)
+!    write(*,*) 'State_Chm%Trac_Tend NO after MAP_HCO2GC: ', &
+!         SUM(State_Chm%Trac_Tend(:,:,:,1))
+!---------------------------------------------------------------------------
 
     ! Reset deposition arrays  
     ! TODO: Do somewhere else? e.g. in drydep/wetdep routines?

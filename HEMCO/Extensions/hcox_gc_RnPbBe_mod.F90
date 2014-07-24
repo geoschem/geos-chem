@@ -498,12 +498,13 @@ CONTAINS
     ENDIF
 
     ! Activate met fields required by this extension
-    ExtState%FRCLND%DoUse = .TRUE. 
-    ExtState%TSURFK%DoUse = .TRUE. 
-    ExtState%AIR%DoUse    = .TRUE. 
+    ExtState%FRCLND%DoUse  = .TRUE. 
+    ExtState%TSURFK%DoUse  = .TRUE. 
+    ExtState%AIR%DoUse     = .TRUE. 
+    ExtState%PCENTER%DoUse = .TRUE.
 
     ! Activate this extension
-    ExtState%Gc_RnPbBe    = .TRUE.
+    ExtState%Gc_RnPbBe     = .TRUE.
 
     !=======================================================================
     ! Initialize data arrays

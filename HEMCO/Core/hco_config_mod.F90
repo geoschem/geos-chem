@@ -156,7 +156,7 @@ CONTAINS
 
     ! Enter
     RC  = HCO_SUCCESS
-    LOC = 'Config_ReadFile (HCO_CONFIG_MOD.F90)'
+    LOC = 'Config_ReadFile (hco_config_mod.F90)'
 
     ! Leave here if data already in buffer 
     IF ( LinesInBuffer > 0 ) THEN
@@ -298,7 +298,7 @@ CONTAINS
     !======================================================================
 
     ! Init
-    CALL HCO_ENTER ( 'SetReadList (HCO_CONFIG_MOD.F90)', RC )
+    CALL HCO_ENTER ( 'SetReadList (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if configuration file hasn't been read yet! 
@@ -413,7 +413,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    LOC = 'Config_ReadCont (HCO_Config_Mod.F90)'
+    LOC = 'Config_ReadCont (hco_config_mod.F90)'
 
     ! Repeat until end of base emissions section is found 
     DO
@@ -697,7 +697,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    LOC   = 'ExtSwitch2Buffer (HCO_Config_Mod.F90)'
+    LOC   = 'ExtSwitch2Buffer (hco_config_mod.F90)'
     RC    = HCO_SUCCESS
     ExtNr = 0
 
@@ -825,7 +825,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    LOC = 'ReadSettings (HCO_CONFIG_MOD.F90)'
+    LOC = 'ReadSettings (hco_config_mod.F90)'
 
     ! Defaults
     LogFile   = 'HEMCO.log'
@@ -1182,7 +1182,7 @@ CONTAINS
     !======================================================================
 
       ! Enter
-    CALL HCO_ENTER ( 'Register_Base (HCO_Config_Mod.F90)', RC )
+    CALL HCO_ENTER ( 'Register_Base (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
 
@@ -1386,7 +1386,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'Register_Scal (HCO_Config_Mod.F90)', RC )
+    CALL HCO_ENTER ( 'Register_Scal (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
 
@@ -1548,7 +1548,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    CALL HCO_ENTER ( 'Get_targetID (HCO_Config_Mod.F90)', RC )
+    CALL HCO_ENTER ( 'Get_targetID (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get verbose flag from HCO_State
@@ -2174,7 +2174,7 @@ CONTAINS
     CHARACTER(LEN=255)        :: MSG, LOC
 
     ! Enter
-    LOC = 'ListCont_Remove (HCO_Config_Mod.F90)'
+    LOC = 'ListCont_Remove (hco_config_mod.F90)'
 
     ! Special case where Lct is first container in list:
     IF ( ConfigList%Dct%cID == Lct%Dct%cID ) THEN
@@ -2315,7 +2315,7 @@ CONTAINS
     CHARACTER(LEN= 31)       :: strID
 
     ! Enter
-    LOC = 'Get_cID (HCO_Config_Mod.F90)'
+    LOC = 'Get_cID (hco_config_mod.F90)'
     cID = -999
 
     ! Loop over all containers 
