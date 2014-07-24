@@ -413,6 +413,7 @@
 !                              code out with #ifdef blocks so it can be used)
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !  23 Jul 2014 - R. Yantosca - Reference ITS_IN_THE_CHEMGRID (chemgrid_mod.F)
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -437,6 +438,7 @@
       REAL*8                 :: XTAU            	      
       INTEGER                :: LMN
       REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR)
+      REAL*8                 :: BOXVL  
 
       ! Number of days per month
       INTEGER                :: NODAYS(12) = (/ 31, 28, 31, 30, 
@@ -452,10 +454,6 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER        :: STT(:,:,:,:)
-!
-! !EXTERNAL FUNCTIONS:
-!
-      REAL*8 , EXTERNAL      :: BOXVL  
 
       !=================================================================
       ! CHEMCH4 begins here!
@@ -478,8 +476,13 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         BAIRDENS(I,J,L) = State_Met%AD(I,J,L)    * 1000d0   /
-     &                     BOXVL(I,J,L,State_Met) * 6.023D23 / WTAIR
+
+         ! Grid box volume [cm3]
+         BOXVL           = State_Met%AIRVOL(I,J,L) * 1d6
+
+         ! Air density [molec/cm3]
+         BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000d0   /
+     &                     BOXVL               * 6.023D23 / WTAIR
       ENDDO
       ENDDO
       ENDDO
@@ -1030,6 +1033,7 @@
 !                              derived type object
 !  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
 !                              code out with #ifdef blocks so it can be used)
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1039,15 +1043,12 @@
       LOGICAL             :: FIRST_DECAY=.TRUE.
       INTEGER             :: I, J, L, M, N, MM, LMN
       REAL*8              :: DT, GCH4, STT2GCH4, KRATE
+      REAL*8              :: BOXVL
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER     :: STT(:,:,:,:)
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8, EXTERNAL    :: BOXVL
 
       !=================================================================
       ! CH4_DECAY begins here!
@@ -1082,7 +1083,7 @@
 !-----------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( L, J, I, KRATE, STT2GCH4, GCH4 )
+!$OMP+PRIVATE( L, J, I, KRATE, STT2GCH4, GCH4, BOXVL  )
 !$OMP+REDUCTION( +:TROPOCH4 )
 !-----------------------------------------------------------------------------
 ! Prior to 7/23/14:
@@ -1115,10 +1116,13 @@
             GCH4 = STT(I,J,L,1) * STT2GCH4
 	
 #if defined( USE_CH4_BUDGET_DIAG )
+            ! Grid box volume [cm3]
+            BOXVL         = State_Met%AIRVOL(I,J,L) * 1d6
+
             ! Sum loss in TCH4(3) (molecules/box)
             TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
-     &                      ( GCH4  * BOXVL(I,J,L,State_Met) *
-     &                        KRATE * BOH(I,J,L,LMN)         * DT )
+     &                      ( GCH4  * BOXVL          *
+     &                        KRATE * BOH(I,J,L,LMN) * DT )
 #endif
 
             TROPOCH4=TROPOCH4 + GCH4 * KRATE * BOH(I,J,L,LMN) * DT / 
@@ -1200,6 +1204,7 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1211,13 +1216,10 @@
       REAL*8               :: KCLO,    LOSS,       OHMASS  
       REAL*8               :: KCH4,    CH4LOSE,    CH4MASS
       REAL*8               :: CH4EMIS, CH4TROPMASS
+      REAL*8               :: BOXVL
 
       ! Pointers
       REAL*8, POINTER      :: STT(:,:,:,:)
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8, EXTERNAL     :: BOXVL
 
       !=================================================================
       ! CH4_OHSAVE begins here!
@@ -1252,12 +1254,14 @@
          ! Only process tropospheric boxes (bmy, 4/17/00)
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
+            ! Grid box volume [cm3]
+            BOXVL  = State_Met%AIRVOL(I,J,L) * 1d6
+
             ! Calculate OH mass [molec / box]
-            OHMASS = BOH(I,J,L,LMN)  * BAIRDENS(I,J,L) *
-     &               BOXVL(I,J,L,State_Met)
+            OHMASS = BOH(I,J,L,LMN)  * BAIRDENS(I,J,L) * BOXVL
 
             ! Calculate total air mass [molec / box]
-            MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L,State_Met)
+            MASST  = BAIRDENS(I,J,L) * BOXVL
 
             ! Calculate CH3CCl3 + OH rate constant from JPL '06
             ! [cm3 / molec / s]
@@ -1265,7 +1269,7 @@
 
             ! Calculate Loss term [molec / box / s]
             LOSS   = KCLO            * BOH(I,J,L,LMN)  *
-     &               BAIRDENS(I,J,L) * BOXVL(I,J,L,State_Met)
+     &               BAIRDENS(I,J,L) * BOXVL
 
 
             ! Calculate CH4 + OH rate constant from JPL '06
@@ -1278,7 +1282,7 @@
 
             ! Calculate loss term  [molec /box / s]
             CH4LOSE = KCH4            * BOH(I,J,L,LMN)  *
-     &                BAIRDENS(I,J,L) * BOXVL(I,J,L,State_Met)
+     &                BAIRDENS(I,J,L) * BOXVL
 
             ! Calculate CH4 emissions [molec / box / s]
             !   Only for surface level
@@ -1383,6 +1387,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root and RC
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1399,6 +1404,7 @@
       CHARACTER*20        :: STT_TEST
       CHARACTER*20        :: STT2GCH4_CHAR
       LOGICAL,SAVE        :: FIRSTCHEM=.TRUE.
+      REAL*8              :: BOXVL
 
       ! Local variables for quantities from Input_Opt
       LOGICAL             :: LUCX
@@ -1408,10 +1414,6 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER     :: STT(:,:,:,:)
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8, EXTERNAL    :: BOXVL
 
       !=================================================================
       ! CH4_STRAT begins here!
@@ -1442,8 +1444,13 @@
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               BAIRDENS(I,J,L) = State_Met%AD(I,J,L)    * 1d3      / 
-     &                           BOXVL(I,J,L,State_Met) * 6.023d23 /
+
+               ! Grid box volume [cm3]
+               BOXVL           = State_Met%AIRVOL(I,J,L) * 1d6
+
+               ! Air density [molec/cm3]
+               BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1d3      / 
+     &                           BOXVL               * 6.023d23 /
      &                           WTAIR
             ENDDO
             ENDDO
@@ -1491,11 +1498,13 @@
 
 ! Update stratospheric chem to use linearized CH4 loss frequencies
 !  (kjw, 11/19/11)
+!               BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
+!
 !               ! Sum loss in TCH4(3) [molec CH4/box] in the stratosphere
 !               ! [molec/cm3] * [v/v/s] * [s] * [cm3/box] = [molec CH4/box]
 !               TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
 !        &                      ( BAIRDENS(I,J,L) * COPROD(J,L,LMN) *
-!        &                        DT              * BOXVL(I,J,L)    )
+!        &                        DT              * BOXVL  )    )
 !
 !               ! Calculate new CH4 value [molec CH4/cm3] in the stratosphere
 !               ! [v/v/s] * [s] * [molec/cm3] = [molec CH4/cm3] 

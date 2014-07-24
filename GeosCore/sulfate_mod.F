@@ -579,10 +579,6 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER   :: STT(:,:,:,:)
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8,  EXTERNAL :: BOXVL
 
       !=================================================================
       ! CHEMSULFATE begins here!
@@ -1171,6 +1167,7 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1189,11 +1186,11 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: I,   J,    L
-      REAL*8            :: TK,  O2,   RK1,    RK2,    RK3,   F  
-      REAL*8            :: DMS, DMS0, DMS_OH, DTCHEM, XOH,   XN3 
-      REAL*8            :: XX,  OH,   OH0,    XNO3,   XNO30, LOH
-      REAL*8            :: LNO3
+      INTEGER           :: I,    J,    L
+      REAL*8            :: TK,   O2,   RK1,    RK2,    RK3,   F  
+      REAL*8            :: DMS,  DMS0, DMS_OH, DTCHEM, XOH,   XN3 
+      REAL*8            :: XX,   OH,   OH0,    XNO3,   XNO30, LOH
+      REAL*8            :: LNO3, BOXVL
                         
       ! For fields from Input_Opt
       LOGICAL           :: IS_FULLCHEM
@@ -1203,10 +1200,6 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8,  EXTERNAL      :: BOXVL
       
       !=================================================================
       ! CHEM_DMS begins here!
@@ -1235,7 +1228,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TK, O2, DMS0,OH, XNO3, RK1, RK2 )
+!$OMP+PRIVATE( I, J, L, TK, O2, DMS0,OH, XNO3, RK1, RK2, BOXVL )
 !$OMP+PRIVATE( RK3, DMS_OH, DMS, OH0, XNO30, XOH, XN3, XX, LOH, LNO3  )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
@@ -1349,9 +1342,12 @@
             XX   = ( ( DMS0 - DMS ) * State_Met%AD(I,J,L) / TCVV_S )
      &               - XOH  - XN3
         
+            ! Grid box volume [cm3]
+            BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
+
             ! Convert L(OH) and L(NO3) from [molec/cm3] to [kg/timestep]
-            LOH  = ( OH0   - OH  ) * BOXVL(I,J,L,State_Met) / XNUMOL_OH
-            LNO3 = ( XNO30 - XNO3) * BOXVL(I,J,L,State_Met) / XNUMOL_NO3 
+            LOH  = ( OH0   - OH  ) * BOXVL / XNUMOL_OH
+            LNO3 = ( XNO30 - XNO3) * BOXVL / XNUMOL_NO3 
 
             ! Store P(SO2) from DMS + OH [kg S/timestep]
             AD05(I,J,L,1) = AD05(I,J,L,1) + XOH
@@ -6112,18 +6108,16 @@
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
 !                              Input_Opt%ITS_AN_AEROSOL_SIM
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: JLOOP
-      REAL*8              :: NO3_MOLEC_CM3
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8,  EXTERNAL   :: BOXVL
+      INTEGER :: JLOOP
+      REAL*8  :: NO3_MOLEC_CM3
+      REAL*8  :: BOXVL
 
       !=================================================================
       ! GET_NO3 begins here!
@@ -6183,13 +6177,15 @@
               
          ELSE
 
+            ! Grid box volume [cm3]
+            BOXVL         = State_Met%AIRVOL(I,J,L) * 1d6
+
             ! At night: Get NO3 [v/v] and convert it to [kg]
             NO3_MOLEC_CM3 = NO3(I,J,L)     * State_Met%AD(I,J,L) *
      &                      ( 62d0/28.97d0 ) 
 
             ! Convert NO3 from [kg] to [molec/cm3]
-            NO3_MOLEC_CM3 = NO3_MOLEC_CM3  * XNUMOL_NO3 /
-     &                      BOXVL(I,J,L,State_Met)
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3  * XNUMOL_NO3 / BOXVL
                
          ENDIF
             

@@ -71,6 +71,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,8 +83,6 @@
 #if defined( DEVEL )
       INTEGER                 :: TMP_LEV
 #endif
-      ! External functions
-      REAL*8,  EXTERNAL       :: BOXVL
 
       !! testing variables for variable tropopause
       !real*8  :: temp(iipar,jjpar,llpar)
@@ -184,7 +183,12 @@
             IZSAVE(JLOOP)  = L                              
 
             ! get box volume [cm3]
-            VOLUME(JLOOP)  = BOXVL( I, J, L, State_Met )
+!----------------------------------------------------------------------------
+! Prior to 7/24/14:
+! Now compute BOXVL internally (bmy, 7/24/14)
+!            VOLUME(JLOOP)  = BOXVL( I, J, L, State_Met )
+!----------------------------------------------------------------------------
+            VOLUME(JLOOP)  = State_Met%AIRVOL(I,J,L) * 1d6
 
             ! get air density in (molecs cm^-3)
             AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.d0 / 

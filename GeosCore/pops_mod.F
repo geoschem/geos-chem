@@ -1907,22 +1907,26 @@
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  29 Nov 2012 - M. Payer   - Replaced all met field arrays with State_Met
 !                             derived type object
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !EXTERNAL FUNCTIONS:
+! !LOCAL VARIABLES:
 !
-      REAL*8, EXTERNAL    :: BOXVL
+      REAL*8 :: BOXVL
       
       !=================================================================
       ! GET_O3 begins here!
       !=================================================================
 
+      ! Grid box volume [cm3]
+      BOXVL        = State_Met%AIRVOL(I,J,L) * 1d6
+
       ! Get ozone [v/v] for this gridbox & month
       ! and convert to [molec/cm3] (eck, 12/2/04)
       O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
-     &               State_Met%AD(I,J,L)  /  BOXVL(I,J,L,State_Met)
+     &               State_Met%AD(I,J,L)  / BOXVL
 
       END FUNCTION GET_O3
 !EOC

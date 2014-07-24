@@ -6446,6 +6446,7 @@ ccc
 !  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_MOD
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6457,10 +6458,7 @@ ccc
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: JLOOP
-            !
-! !EXTERNAL FUNCTIONS:
-! 
-      REAL*8,  EXTERNAL  :: BOXVL
+      REAL*8             :: BOXVL
 
       !=================================================================
       ! GET_NO3 begins here!
@@ -6524,9 +6522,15 @@ ccc
      &                      ( 62d0/28.97d0 )
 
             ! Convert NO3 from [kg] to [molec/cm3]
-            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 /
-     &                      BOXVL(I,J,L,State_Met)
-                     
+!-----------------------------------------------------------------------------
+! Prior to 7/24/14:
+! Remove reference to boxvl.F (bmy, 7/24/14)
+!            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 /
+!     &                      BOXVL(I,J,L,State_Met)
+!-----------------------------------------------------------------------------
+            BOXVL         = State_Met%AIRVOL(I,J,L) * 1d6
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL
+
          ENDIF
             
          ! Make sure NO3 is not negative
@@ -6593,6 +6597,7 @@ ccc
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6604,10 +6609,7 @@ ccc
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: JLOOP
-!
-! !EXTERNAL FUNCTIONS:
-!
-      REAL*8,  EXTERNAL  :: BOXVL
+      REAL*8             :: BOXVL
 
       !=================================================================
       ! GET_O3 begins here!
@@ -6644,8 +6646,15 @@ ccc
      &                     ( 48d0/28.97d0 )
                
             ! Convert O3 from [kg] to [molec/cm3]
-            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 /
-     &                     BOXVL(I,J,L,State_Met)
+!----------------------------------------------------------------------------
+! Prior to 7/24/14:
+! Remove reference to boxvl.F (bmy, 7/24/14)
+!            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 /
+!     &                     BOXVL(I,J,L,State_Met)
+!----------------------------------------------------------------------------
+            BOXVL        = State_Met%AIRVOL(I,J,L) * 1d6
+            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL
+
          ELSE
             O3_MOLEC_CM3 = 0d0
          ENDIF

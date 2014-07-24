@@ -6129,23 +6129,26 @@
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! External functions
-      REAL*8, EXTERNAL :: BOXVL
+      REAL*8 :: BOXVL
       
       !=================================================================
       ! GET_O3 begins here!
       !=================================================================
 
+      ! Grid box volume [cm3]
+      BOXVL        = State_Met%AIRVOL(I,J,L) * 1d6
+
       ! Get ozone [v/v] for this gridbox & month
       ! and convert to [molec/cm3] (eck, 12/2/04)
       O3_MOLEC_CM3 = O3(I,J,L)           * ( 6.022d23 / 28.97d-3 ) * 
-     &               State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
+     &               State_Met%AD(I,J,L) / BOXVL
 
       ! Return to calling program
       END FUNCTION GET_O3
@@ -6277,6 +6280,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6286,9 +6290,7 @@
       INTEGER             :: JLOOP
       REAL*8              :: BR_PPTV, BR_MBL, BR_FAC
       REAL*8              :: LOCALTIME, HOUR, BRO_PPTV, FPBL
-
-      ! External functions
-      REAL*8, EXTERNAL    :: BOXVL           
+      REAL*8              :: BOXVL           
 !
 ! !DEFINED PARAMETERS:
 !
@@ -6448,14 +6450,16 @@
 
       ENDIF
 
+      ! Grid box volume [cm3]
+      BOXVL         = State_Met%AIRVOL(I,J,L) * 1d6
 
       ! Convert pptv mixing ratio -> molec/cm3
       BR_MOLEC_CM3  = BR_PPTV             * 1D-12      *
      &                ( 6.022D23          / 28.97D-3 ) * 
-     &                State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
+     &                State_Met%AD(I,J,L) / BOXVL
       BRO_MOLEC_CM3 = BRO_PPTV            * 1D-12      *
      &                ( 6.022D23          / 28.97D-3 ) * 
-     &                State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
+     &                State_Met%AD(I,J,L) / BOXVL
 
       ! Return to calling program
       END FUNCTION GET_BR
