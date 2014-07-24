@@ -140,6 +140,8 @@
 #                              NcdfUtil and GeosUtil, but before GeosCore
 #  22 Jul 2014 - R. Yantosca - Move hcox_paranox_mod.F90, paranox_util_mod.F90
 #                              and hcox_driver_mod.F90 back to HEMCO/Extensions
+#  24 Jul 2014 - R. Yantosca - Remove canopy_nox_mod.F, readfert.F, readclim.F,
+#                              and readsoil.F. HEMCO makes all these obsolete.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -388,9 +390,6 @@ calcrate.o                  : calcrate.F                                     \
                               pbl_mix_mod.o           planeflight_mod.o      \
                               tracerid_mod.o          cldice_HBrHOBr_rxn.o   \
                               ucx_mod.o
-
-canopy_nox_mod.o            : canopy_nox_mod.F                               \
-                              drydep_mod.o            modis_lai_mod.o
 
 carbon_mod.o                : carbon_mod.F                                   \
                               biomass_mod.o           chemgrid_mod.o         \
@@ -823,12 +822,6 @@ pops_mod.o           	    : pops_mod.F    	                             \
                               vdiff_pre_mod.o
 
 precipfrac.o                : precipfrac.F
-
-readsoil.o		    : readsoil.F
-
-readfert.o		    : readfert.F
-
-readclim.o		    : readclim.F
 
 readchem.o                  : readchem.F                                     \
                               diag_pl_mod.o           drydep_mod.o
