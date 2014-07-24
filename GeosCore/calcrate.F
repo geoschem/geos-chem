@@ -186,7 +186,6 @@
 
       ! External functions
       REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FYHORO
-      REAL*8, EXTERNAL :: FCRO2HO2 !fgap
 
       CHARACTER*8      :: SPECNAME
 
