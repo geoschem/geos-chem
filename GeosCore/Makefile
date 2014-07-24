@@ -724,7 +724,7 @@ hcoi_dataread_mod.o         : hcoi_dataread_mod.F90                          \
                               hco_datacont_mod.o      hco_error_mod.o        \
                               hco_filedata_mod.o      hco_geotools_mod.o     \
                               hco_state_mod.o         hco_tidx_mod.o         \
-                              hco_unit_mod.o
+                              hco_unit_mod.o          hcoi_messy_mod.o
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               hco_arr_mod.o           hco_config_mod.o       \
@@ -737,6 +737,11 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               drydep_mod.o            modis_lai_mod.o        \
                               tracerid_mod.o                                 \
                               global_oh_mod.o         henry_mod.o
+
+hcoi_messy_mod.o            : hcoi_messy_mod.F90                             \
+                              hco_datacont_mod.o      hco_error_mod.o        \
+                              hco_filedata_mod.o      hco_state_mod.o        \
+                              messy_ncregrid_base.o
 
 hco_standalone_mod.o        : hco_standalone_mod.F90                         \
                               hco_arr_mod.o           hco_config_mod.o       \
@@ -856,7 +861,7 @@ initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
                               diag42_mod.o            diag53_mod.o           \
-                              diag56_mod.o            diag_pl_mod.o          \
+                              diag56_mod.o            diag_pl_mod.o
 
 input_mod.o                 : input_mod.F                                    \
                               aerosol_mod.o           benchmark_mod.o        \
@@ -955,6 +960,11 @@ merra_cn_mod.o              : merra_cn_mod.F                                 \
                               diag_mod.o
 
 merra_i6_mod.o              : merra_i6_mod.F
+
+messy_ncregrid_base.o       : messy_ncregrid_base.F90                        \
+                              messy_ncregrid_mpi.o    hco_error_mod.o
+
+messy_ncregrid_mpi.o        : messy_ncregrid_mpi.F90
 
 modis_lai_mod.o             : modis_lai_mod.F90       mapping_mod.o
 

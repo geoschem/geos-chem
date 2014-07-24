@@ -63,6 +63,8 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: dp = kind(0.d0)     ! double precision
   INTEGER, PARAMETER, PUBLIC  :: sp = 4              ! single precision
   INTEGER, PARAMETER, PUBLIC  :: hp = 8              ! HEMCO precision 
+  INTEGER, PARAMETER, PUBLIC  :: i4 = 4              ! FourByteInt 
+  INTEGER, PARAMETER, PUBLIC  :: i8 = 8              ! EightByteInt
 
   ! Error success/failure definitions
   INTEGER, PARAMETER, PUBLIC  :: HCO_SUCCESS = 0

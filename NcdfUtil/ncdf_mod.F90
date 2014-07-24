@@ -56,6 +56,11 @@ MODULE NCDF_MOD
   PRIVATE :: NC_VAR_WRITE_INT
   PRIVATE :: NC_VAR_WRITE_R4
   PRIVATE :: NC_VAR_WRITE_R8
+  PRIVATE :: NC_READ_VAR_SP
+  PRIVATE :: NC_READ_VAR_DP
+  PUBLIC  :: NC_GET_GRID_EDGES_SP
+  PUBLIC  :: NC_GET_GRID_EDGES_DP
+  PRIVATE :: NC_READ_VAR_CORE
 !
 ! !REVISION HISTORY:
 !  27 Jul 2012 - C. Keller   - Initial version
@@ -72,6 +77,16 @@ MODULE NCDF_MOD
      MODULE PROCEDURE NC_WRITE_3D
      MODULE PROCEDURE NC_WRITE_4D
   END INTERFACE NC_WRITE
+
+  INTERFACE NC_READ_VAR
+     MODULE PROCEDURE NC_READ_VAR_SP
+     MODULE PROCEDURE NC_READ_VAR_DP
+  END INTERFACE NC_READ_VAR
+
+  INTERFACE NC_GET_GRID_EDGES
+     MODULE PROCEDURE NC_GET_GRID_EDGES_SP
+     MODULE PROCEDURE NC_GET_GRID_EDGES_DP
+  END INTERFACE NC_GET_GRID_EDGES
 
   INTERFACE NC_VAR_WRITE
      MODULE PROCEDURE NC_VAR_WRITE_INT
@@ -256,15 +271,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_var
+! !IROUTINE: nc_read_var_sp
 !
-! !DESCRIPTION: Subroutine NC\_READ\_VAR reads the given variable from the
+! !DESCRIPTION: Subroutine NC\_READ\_VAR\_SP reads the given variable from the
 ! given fID and returns the corresponding variable values and units. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_READ_VAR( fID, Var, nVar, varUnit, varVec, RC ) 
+  SUBROUTINE NC_READ_VAR_SP( fID, Var, nVar, varUnit, varVec, RC ) 
 !
 ! !INPUT PARAMETERS:
 !   
@@ -275,7 +290,90 @@ CONTAINS
 !
     INTEGER,          INTENT(  OUT)            :: nVar
     CHARACTER(LEN=*), INTENT(  OUT)            :: varUnit 
-    REAL*4,           POINTER,       OPTIONAL  :: varVec(:)
+    REAL*4,           POINTER                  :: varVec(:)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)            :: RC 
+! 
+! !REVISION HISTORY:
+!  04 Nov 2012 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    CALL NC_READ_VAR_CORE( fID, Var, nVar, varUnit, varVecSp=varVec, RC=RC )
+
+  END SUBROUTINE NC_READ_VAR_SP
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_read_var_dp
+!
+! !DESCRIPTION: Subroutine NC\_READ\_VAR\_DP reads the given variable from the
+! given fID and returns the corresponding variable values and units. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_READ_VAR_DP( fID, Var, nVar, varUnit, varVec, RC ) 
+!
+! !INPUT PARAMETERS:
+!   
+    INTEGER,          INTENT(IN   )            :: fID
+    CHARACTER(LEN=*), INTENT(IN   )            :: var 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)            :: nVar
+    CHARACTER(LEN=*), INTENT(  OUT)            :: varUnit 
+    REAL*8,           POINTER                  :: varVec(:)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)            :: RC 
+! 
+! !REVISION HISTORY:
+!  04 Nov 2012 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    CALL NC_READ_VAR_CORE( fID, Var, nVar, varUnit, varVecDp=varVec, RC=RC )
+
+  END SUBROUTINE NC_READ_VAR_DP
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_read_var_core
+!
+! !DESCRIPTION: Subroutine NC\_READ\_VAR\_CORE reads the given variable from the
+! given fID and returns the corresponding variable values and units. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_READ_VAR_CORE( fID, Var, nVar, varUnit, varVecDp, varVecSp, RC ) 
+!
+! !INPUT PARAMETERS:
+!   
+    INTEGER,          INTENT(IN   )            :: fID
+    CHARACTER(LEN=*), INTENT(IN   )            :: var 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)            :: nVar
+    CHARACTER(LEN=*), INTENT(  OUT)            :: varUnit 
+    REAL*4,           POINTER,       OPTIONAL  :: varVecSp(:)
+    REAL*8,           POINTER,       OPTIONAL  :: varVecDp(:)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -296,7 +394,7 @@ CONTAINS
     INTEGER                :: st1d(1), ct1d(1)   ! For 1D arrays    
 
     !=================================================================
-    ! NC_READ_VAR begins here
+    ! NC_READ_VAR_CORE begins here
     !=================================================================
 
     ! Init
@@ -317,13 +415,19 @@ CONTAINS
     CALL Ncget_Dimlen ( fID, TRIM(v_name), nVar )
 
     ! Read vector from file. 
-    ! Pass to output
-    IF ( PRESENT(VarVec) ) THEN
-       IF ( ASSOCIATED( VarVec ) ) DEALLOCATE(VarVec)
-       ALLOCATE ( VarVec(nVar) )
+    IF ( PRESENT(VarVecSp) ) THEN
+       IF ( ASSOCIATED( VarVecSp ) ) DEALLOCATE(VarVecSp)
+       ALLOCATE ( VarVecSp(nVar) )
        st1d = (/ 1    /)
        ct1d = (/ nVar /)
-       CALL NcRd( VarVec, fID, TRIM(v_name), st1d, ct1d )
+       CALL NcRd( VarVecSp, fID, TRIM(v_name), st1d, ct1d )
+    ENDIF
+    IF ( PRESENT(VarVecDp) ) THEN
+       IF ( ASSOCIATED( VarVecDp ) ) DEALLOCATE(VarVecDp)
+       ALLOCATE ( VarVecDp(nVar) )
+       st1d = (/ 1    /)
+       ct1d = (/ nVar /)
+       CALL NcRd( VarVecDp, fID, TRIM(v_name), st1d, ct1d )
     ENDIF
 
     ! Read units attribute
@@ -331,7 +435,7 @@ CONTAINS
     CALL NcGet_Var_Attributes( fID,          TRIM(v_name), &
                                TRIM(a_name), varUnit     )
 
-  END SUBROUTINE NC_READ_VAR
+  END SUBROUTINE NC_READ_VAR_CORE
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
@@ -1670,7 +1774,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_get_grid_edges
+! !IROUTINE: nc_get_grid_edges_sp
 !
 ! !DESCRIPTION: Routine to get the longitude or latitude edges. If the edge 
 ! cannot be read from the netCDF file, they are calculated from the provided
@@ -1680,7 +1784,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_GET_GRID_EDGES( fID, AXIS, MID, NMID, EDGE, NEDGE, RC )
+  SUBROUTINE NC_GET_GRID_EDGES_SP( fID, AXIS, MID, NMID, EDGE, NEDGE, RC )
 !
 ! !USES:
 !
@@ -1693,7 +1797,7 @@ CONTAINS
     INTEGER,          INTENT(IN   ) :: fID             ! Ncdf File ID 
     INTEGER,          INTENT(IN   ) :: AXIS            ! 1=lon, 2=lat 
     REAL*4,           INTENT(IN   ) :: MID(NMID)       ! midpoints
-    INTEGER,          INTENT(IN   ) :: NMID            ! # of midpoints 
+    INTEGER,          INTENT(IN   ) :: NMID            ! # of midpoints
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !   
@@ -1713,7 +1817,7 @@ CONTAINS
     CHARACTER(LEN=255)   :: ncVar, ThisUnit
 
     !======================================================================
-    ! NC_GET_LON_EDGES begins here
+    ! NC_GET_GRID_EDGES_SP begins here
     !======================================================================
 
     ! Try to read edges from ncdf file
@@ -1786,7 +1890,131 @@ CONTAINS
     ! Return w/ success
     RC = 0 
 
-  END SUBROUTINE NC_GET_GRID_EDGES 
+  END SUBROUTINE NC_GET_GRID_EDGES_SP 
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_get_grid_edges_dp
+!
+! !DESCRIPTION: Routine to get the longitude or latitude edges. If the edge 
+! cannot be read from the netCDF file, they are calculated from the provided
+! grid midpoints. Use the axis input argument to discern between longitude
+! (axis 1) and latitude (axis 2).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_GET_GRID_EDGES_DP( fID, AXIS, MID, NMID, EDGE, NEDGE, RC )
+!
+! !USES:
+!
+    IMPLICIT NONE
+
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN   ) :: fID             ! Ncdf File ID 
+    INTEGER,          INTENT(IN   ) :: AXIS            ! 1=lon, 2=lat 
+    REAL*8,           INTENT(IN   ) :: MID(NMID)       ! midpoints
+    INTEGER,          INTENT(IN   ) :: NMID            ! # of midpoints
+!
+! !INPUT/OUTPUT PARAMETERS:
+!   
+    REAL*8,           POINTER       :: EDGE(:)         ! edges 
+    INTEGER,          INTENT(INOUT) :: NEDGE           ! # of edges
+    INTEGER,          INTENT(INOUT) :: RC              ! Return code
+!
+! !REVISION HISTORY:
+!  16 Jul 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: I, AS
+    CHARACTER(LEN=255)   :: ncVar, ThisUnit
+
+    !======================================================================
+    ! NC_GET_GRID_EDGES_DP begins here
+    !======================================================================
+
+    ! Try to read edges from ncdf file
+    IF ( AXIS == 1 ) THEN
+       ncVar = 'lon_edge'
+    ELSEIF ( AXIS == 2 ) THEN
+       ncVar = 'lat_edge'
+    ELSE
+       PRINT *, 'AXIS must be 1 or 2: in NC_GET_LON_EDGES (ncdf_mod.F90)'
+       RC = -999; RETURN
+    ENDIF
+
+    CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge, RC )
+    IF ( RC /= 0 ) RETURN
+
+    ! Also try 'XXX_edges'
+    IF ( nEdge == 0 ) THEN
+       IF ( AXIS == 1 ) THEN
+          ncVar = 'lon_edges'
+       ELSEIF ( AXIS == 2 ) THEN
+          ncVar = 'lat_edges'
+       ENDIF
+       CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge, RC )
+       IF ( RC /= 0 ) RETURN
+    ENDIF
+
+    ! Sanity check if edges are read from files: dimension must be nlon + 1!
+    IF ( nEdge > 0 ) THEN
+       IF ( nEdge /= (nMid + 1) ) THEN
+          PRINT *, 'Edge has incorrect length!'
+          RC = -999; RETURN
+       ENDIF
+
+    ! If not read from file, calculate from provided lon midpoints.
+    ELSE
+
+       nEdge = nMid + 1
+       IF ( ASSOCIATED ( Edge ) ) DEALLOCATE( Edge )
+       ALLOCATE ( Edge(nEdge), STAT=AS )
+
+       IF ( AS /= 0 ) THEN 
+          PRINT *, 'Edge alloc. error in NC_GET_LON_EDGES (ncdf_mod.F90)'
+          RC = -999; RETURN
+       ENDIF
+       Edge = 0.0
+
+       ! Get leftmost edge by extrapolating from first two midpoints.
+       Edge(1) = Mid(1) - ( (Mid(2) - Mid(1) ) / 2.0d0 )
+      
+       ! Error trap: for latitude axis, first edge must not be below -90!
+       IF ( Edge(1) < -90.0d0 .AND. AXIS == 2 ) THEN
+          Edge(1) = -90.0d0
+       ENDIF
+ 
+       ! Sequentially calculate the right edge from the previously 
+       ! calculated left edge.
+       DO I = 1, nMid
+          Edge(I+1) = Mid(I) + Mid(I) - Edge(I)
+       ENDDO
+
+       ! Error check: max. lat edge must not exceed +90!
+       IF ( Edge(nMId+1) > 90.01d0 .AND. AXIS == 2 ) THEN
+          PRINT *, 'Uppermost latitude edge above 90 deg north!'
+          PRINT *, Edge
+          RC = -999; RETURN
+       ENDIF
+
+    ENDIF
+
+    ! Return w/ success
+    RC = 0 
+
+  END SUBROUTINE NC_GET_GRID_EDGES_DP 
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !

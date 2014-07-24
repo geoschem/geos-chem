@@ -58,6 +58,9 @@ MODULE HCOI_GC_Main_Mod
   REAL*8, ALLOCATABLE, TARGET     :: HCO_PEDGE  (:,:,:)
   REAL*8, ALLOCATABLE, TARGET     :: HCO_SZAFACT(:,:)
 
+  ! Sigma coordinate (temporary)
+  REAL(df), ALLOCATABLE, TARGET   :: ZSIGMA(:,:,:)
+
   ! Pointers used during initialization (for species matching)
   INTEGER                     :: nHcoSpec
   CHARACTER(LEN= 31), POINTER :: HcoSpecNames(:) => NULL()
@@ -596,6 +599,7 @@ CONTAINS
     ! nullified (otherwise, the target arrays become deallocated)
     HcoState%Grid%XMID       => NULL()
     HcoState%Grid%YMID       => NULL()
+    HcoState%Grid%ZSIGMA     => NULL()
     HcoState%Grid%XEDGE      => NULL()
     HcoState%Grid%YEDGE      => NULL()
     HcoState%Grid%YSIN       => NULL()
@@ -606,6 +610,7 @@ CONTAINS
     CALL HcoState_Final ( HcoState ) 
 
     ! Module variables
+    IF ( ALLOCATED  ( ZSIGMA      ) ) DEALLOCATE ( ZSIGMA      )
     IF ( ALLOCATED  ( HCO_PEDGE   ) ) DEALLOCATE ( HCO_PEDGE   )
     IF ( ALLOCATED  ( HCO_PCENTER ) ) DEALLOCATE ( HCO_PCENTER )
     IF ( ALLOCATED  ( HCO_SZAFACT ) ) DEALLOCATE ( HCO_SZAFACT )
@@ -1326,6 +1331,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
+    INTEGER :: I
 
     !=================================================================
     ! SET_GRID begins here
@@ -1338,6 +1344,12 @@ CONTAINS
     ! them between HEMCO and GEOS-Chem (this is also true for the 
     ! met-fields used by the extensions)! 
 
+    ! ZSIGMA (temporary, for testing)
+    ALLOCATE(ZSIGMA(1,1,LLPAR+1))
+    DO I = 1,LLPAR+1
+       ZSIGMA(:,:,I) = I
+    ENDDO
+
     ! Grid dimensions
     HcoState%NX = IIPAR
     HcoState%NY = JJPAR
@@ -1346,6 +1358,7 @@ CONTAINS
     ! Set pointers to grid variables
     HcoState%Grid%XMID       => XMID   (:,:,1)
     HcoState%Grid%YMID       => YMID   (:,:,1)
+    HcoState%Grid%ZSIGMA     => ZSIGMA (:,:,:)
     HcoState%Grid%XEDGE      => XEDGE  (:,:,1)
     HcoState%Grid%YEDGE      => YEDGE  (:,:,1)
     HcoState%Grid%YSIN       => YSIN   (:,:,1)

@@ -80,10 +80,14 @@ MODULE HCO_FileData_Mod
 !
   PUBLIC  :: FileData_Init
   PUBLIC  :: FileData_Cleanup 
-  PUBLIC  :: FileData_ArrCheck2D
-  PUBLIC  :: FileData_ArrCheck3D
+  PUBLIC  :: FileData_ArrCheck
   PUBLIC  :: FileData_ArrIsDefined
   PUBLIC  :: FileData_FileRead
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: FileData_ArrCheck2D
+  PRIVATE :: FileData_ArrCheck3D
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller   - Initialization
@@ -128,6 +132,13 @@ MODULE HCO_FileData_Mod
      LOGICAL                     :: LonDependent
      INTEGER,            POINTER :: CurrIDx(:)
   END TYPE TimeIdx
+!
+! !INTERFACES:
+!
+  INTERFACE FileData_ArrCheck
+     MODULE PROCEDURE FileData_ArrCheck2D
+     MODULE PROCEDURE FileData_ArrCheck3D
+  END INTERFACE FileData_ArrCheck
 
 CONTAINS
 !EOC

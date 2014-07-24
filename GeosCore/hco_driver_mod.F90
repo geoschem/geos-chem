@@ -140,8 +140,8 @@ CONTAINS
 ! !IROUTINE: HCO_Init
 !
 ! !DESCRIPTION: Subroutine HCO\_INIT initializes the HEMCO core modules.
-! This routine assumes that the HEMCO configuration file has been read
-! to buffer already (subroutine Config\_ReadFile in HCO\_CONFIG\_MOD.F90)
+! This routine assumes that the HEMCO configuration file has already been 
+! read to buffer (subroutine Config\_ReadFile in HCO\_CONFIG\_MOD.F90)
 ! and that the HEMCO state object has already been initialized. This has
 ! to be done at the HEMCO - model interface level.
 !\\

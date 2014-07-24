@@ -7,7 +7,7 @@
 !     
 ! !DESCRIPTION: Module GET\_NDEP\_MOD contains routines for computing the
 !  nitrogen dry and wet deposition. This quantity is needed by 
-!  GEOS-Chem soil emissions "FERT\_AW"
+!  GEOS-Chem soil emissions "FERT\_AW".
 !\\
 !\\ 
 ! !INTERFACE: 
@@ -48,7 +48,7 @@
 !
 ! !ROUTINE: soil_drydep
 !
-! !DESCRIPTION: Subroutine SOIL\_DRY\_DEP holds dry deposited species
+! !DESCRIPTION: Subroutine SOIL\_DRYDEP holds dry deposited species
 !               [molec/cm2/s]. This is called from dry\_dep\_mod.F.
 !\\
 !\\

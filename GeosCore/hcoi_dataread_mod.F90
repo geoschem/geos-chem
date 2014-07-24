@@ -58,8 +58,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_FileData_mod, ONLY : FileData_ArrCheck2D
-    USE HCO_FileData_mod, ONLY : FileData_ArrCheck3D
+    USE HCO_FileData_mod, ONLY : FileData_ArrCheck
     USE ESMF_mod
     USE MAPL_mod
 
@@ -125,7 +124,7 @@ CONTAINS
        TT = 1 
 
        ! Allocate HEMCO array if not yet defined
-       CALL FileData_ArrCheck3D( Lct%Dct%Dta, II, JJ, LL, TT, RC )
+       CALL FileData_ArrCheck( Lct%Dct%Dta, II, JJ, LL, TT, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Copy data and cast to real*8
@@ -154,7 +153,7 @@ CONTAINS
        TT = 1 
 
        ! Allocate HEMCO array if not yet defined
-       CALL FileData_ArrCheck2D( Lct%Dct%Dta, II, JJ, TT, RC )
+       CALL FileData_ArrCheck( Lct%Dct%Dta, II, JJ, TT, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Copy to HEMCO container
@@ -202,9 +201,9 @@ CONTAINS
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
     USE HCO_GeoTools_Mod,   ONLY : HCO_ValidateLon
     USE Regrid_A2A_Mod,     ONLY : MAP_A2A
-    USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck2D
-    USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck3D
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
     USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
+    USE HCOI_MESSY_MOD,     ONLY : HCO_MESSY_REGRID
 !
 ! !INPUT PARAMETERS:
 !
@@ -238,12 +237,12 @@ CONTAINS
     REAL(sp), POINTER             :: ncArr(:,:,:,:)   => NULL()
     REAL(sp), POINTER             :: ORIG_2D(:,:)     => NULL()
     REAL(hp), POINTER             :: REGR_2D(:,:)     => NULL()
-    REAL(sp), POINTER             :: Lev(:,:,:)       => NULL()
-    REAL(sp), POINTER             :: LonMid   (:)     => NULL()
-    REAL(sp), POINTER             :: LatMid   (:)     => NULL()
-    REAL(sp), POINTER             :: LevMid   (:)     => NULL()
-    REAL(sp), POINTER             :: LonEdge  (:)     => NULL()
-    REAL(sp), POINTER             :: LatEdge  (:)     => NULL()
+    REAL(df), POINTER             :: LevEdge(:,:,:)   => NULL()
+    REAL(df), POINTER             :: LonMid   (:)     => NULL()
+    REAL(df), POINTER             :: LatMid   (:)     => NULL()
+    REAL(df), POINTER             :: LevMid   (:)     => NULL()
+    REAL(df), POINTER             :: LonEdge  (:)     => NULL()
+    REAL(df), POINTER             :: LatEdge  (:)     => NULL()
     REAL(sp), ALLOCATABLE         :: LonEdgeI(:)
     REAL(sp), ALLOCATABLE         :: LatEdgeI(:)
     REAL(sp)                      :: LonEdgeO(HcoState%NX+1) 
@@ -252,7 +251,7 @@ CONTAINS
     REAL(dp)                      :: PI_180
    
     ! Use MESSy regridding routines?
-    LOGICAL, PARAMETER    :: UseMESSy = .FALSE.
+    LOGICAL, PARAMETER    :: UseMESSy = .TRUE.
 
     !=================================================================
     ! HCOI_DATAREAD begins here
@@ -333,7 +332,7 @@ CONTAINS
     ! ----------------------------------------------------------------
 
     ! Extract longitude midpoints
-    CALL NC_READ_VAR ( ncLun, 'lon', nLon, thisUnit, LonMid, RC=NCRC )
+    CALL NC_READ_VAR ( ncLun, 'lon', nLon, thisUnit, LonMid, NCRC )
     IF ( NCRC /= 0 .OR. nLon == 0 ) THEN
        CALL HCO_ERROR( 'NC_READ_LON', RC )
        RETURN 
@@ -349,7 +348,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     
     ! Extract latitude midpoints
-    CALL NC_READ_VAR ( ncLun, 'lat', nLat, thisUnit, LatMid, RC=NCRC )
+    CALL NC_READ_VAR ( ncLun, 'lat', nLat, thisUnit, LatMid, NCRC )
     IF ( NCRC /= 0 .OR. nLat == 0 ) THEN
        CALL HCO_ERROR( 'NC_READ_LAT', RC )
        RETURN 
@@ -362,13 +361,13 @@ CONTAINS
     ENDIF
 
     ! Try to extract level midpoints
-    CALL NC_READ_VAR ( ncLun, 'lev', nLev, thisUnit, LevMid, RC=NCRC )
+    CALL NC_READ_VAR ( ncLun, 'lev', nLev, thisUnit, LevMid, NCRC )
     IF ( NCRC /= 0 ) THEN
        CALL HCO_ERROR( 'NC_READ_LEV', RC )
        RETURN 
     ENDIF
     IF ( nLev == 0 ) THEN
-       CALL NC_READ_VAR ( ncLun, 'height', nLev, thisUnit, LevMid, RC=NCRC )
+       CALL NC_READ_VAR ( ncLun, 'height', nLev, thisUnit, LevMid, NCRC )
        IF ( NCRC /= 0 ) THEN
           CALL HCO_ERROR( 'NC_READ_LEV', RC )
           RETURN 
@@ -474,7 +473,6 @@ CONTAINS
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ENDIF 
-          LatEdge = SIN( LatEdge * PI_180 )
 
           ! Now normalize data by area calculated from lat edges.
           CALL NORMALIZE_AREA( HcoState, ncArr,              nLon, &
@@ -502,14 +500,10 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Regrid onto emissions grid 
+    ! Get grid edges (if not yet done so)
     !-----------------------------------------------------------------
 
-    ! Messy toggle
-    IF ( .NOT. UseMESSy ) THEN
-
-    ! Get longitude edges
-    ! Make sure longitude is in the range -180 to +180.
+    ! Get longitude edges and make sure they are steadily increasing.
     CALL NC_GET_GRID_EDGES ( ncLun, 1, LonMid,   nLon, &
                              LonEdge,  nLonEdge, NCRC   )
     IF ( NCRC /= 0 ) THEN
@@ -520,7 +514,7 @@ CONTAINS
     CALL HCO_ValidateLon( nLonEdge, LonEdge, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Get latitude edges (only if those have not yet been read
+    ! Get latitude edges (only if they have not been read yet
     ! for unit conversion)
     IF ( .NOT. ASSOCIATED( LatEdge ) ) THEN
        CALL NC_GET_GRID_EDGES ( ncLun, 2, LatMid,   nLat, &
@@ -530,18 +524,25 @@ CONTAINS
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ENDIF
-       LatEdge = SIN( LatEdge * PI_180 )
     ENDIF
 
+    !-----------------------------------------------------------------
+    ! Regrid onto emissions grid 
+    !-----------------------------------------------------------------
+
+    ! Messy toggle
+    IF ( .NOT. UseMESSy ) THEN
+
     ! Write input grid edges to shadow variables so that map_a2a accepts them
-    ! as argument
+    ! as argument.
+    ! Also, for map_a2a, latitudes have to be sines...
     ALLOCATE(LonEdgeI(nLonEdge), LatEdgeI(nLatEdge), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR( 'alloc error LonEdgeI', RC )
        RETURN
     ENDIF
     LonEdgeI(:) = LonEdge
-    LatEdgeI(:) = LatEdge
+    LatEdgeI(:) = SIN( LatEdge * PI_180 )
    
     ! Get output grid edges from HEMCO state
     LonEdgeO(:) = HcoState%Grid%XEDGE(:,1)
@@ -553,10 +554,10 @@ CONTAINS
 
     ! Allocate output array if not yet defined
     IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-       CALL FileData_ArrCheck2D( Lct%Dct%Dta, nx, ny, ntime, RC ) 
+       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, ntime, RC ) 
        IF ( RC /= 0 ) RETURN
     ELSE
-       CALL FileData_ArrCheck3D( Lct%Dct%Dta, nx, ny, nlev, ntime, RC ) 
+       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, ntime, RC ) 
        IF ( RC /= 0 ) RETURN
     ENDIF
 
@@ -588,12 +589,20 @@ CONTAINS
     ! Use MESSy regridding
     !-----------------------------------------------------------------
     ELSE
-        ! TODO: Lev <==> LevMid 
-!       CALL HCO_MESSY_NCREGRID ( am_I_Root, HcoState, NcArr, &
-!                                 LonMid,    LatMid,   Lev,   &
-!                                 Lct,       RC                 )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!       IF ( ASSOCIATED(Lev) ) DEALLOCATE(Lev)
+       ! Get vertical coordinate: this has to be a 3D array!
+       ! Use silly levels for now (testing only).
+       IF ( nLev > 0 ) THEN
+          ALLOCATE( LevEdge(1,1,nLev+1) )
+          DO L = 1,nLev+1
+             LevEdge(1,1,L) = L
+          ENDDO 
+       ENDIF
+
+       CALL HCO_MESSY_REGRID ( am_I_Root, HcoState, NcArr,   &
+                               LonEdge,   LatEdge,  LevEdge, &
+                               Lct,       RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( ASSOCIATED(LevEdge) ) DEALLOCATE(LevEdge)
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -1132,13 +1141,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Normalize_Area( HcoState, Array, nLon, LatEdgeSin, FN, RC )
+  SUBROUTINE Normalize_Area( HcoState, Array, nLon, LatEdge, FN, RC )
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(HCO_State),  POINTER         :: HcoState           ! HEMCO state object
     INTEGER,          INTENT(IN   )   :: NLON               ! # of lon midpoints
-    REAL(sp),         POINTER         :: LatEdgeSin(:)      ! sine of lat edges 
+    REAL(df),         POINTER         :: LatEdge(:)         ! lat edges 
     CHARACTER(LEN=*), INTENT(IN   )   :: FN                 ! filename
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1155,6 +1164,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     REAL(hp)              :: DLAT, AREA
+    REAL(dp)              :: PI_180
     INTEGER               :: NLAT, J
     CHARACTER(LEN=255)    :: MSG, LOC
 
@@ -1163,10 +1173,11 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    LOC = 'NORMALIZE_AREA (hcoi_dataread_mod.F90 )'
+    LOC    = 'NORMALIZE_AREA (hcoi_dataread_mod.F90 )'
+    PI_180 = HcoState%Phys%PI / 180.0_dp
 
     ! Check array size
-    NLAT = SIZE(LatEdgeSin,1) - 1
+    NLAT = SIZE(LatEdge,1) - 1
     
     IF ( SIZE(Array,1) /= NLON ) THEN
        MSG = 'Array size does not agree with nlon: ' // TRIM(FN)
@@ -1183,7 +1194,7 @@ CONTAINS
     DO J = 1, NLAT
        ! get grid box area in m2 for grid box with lower and upper latitude llat/ulat:
        ! Area = 2 * PI * Re^2 * DLAT / NLON, where DLAT = abs( sin(ulat) - sin(llat) ) 
-       DLAT = ABS( LatEdgeSin(J+1) - LatEdgeSin(J) )
+       DLAT = ABS( SIN(LatEdge(J+1)*PI_180) - SIN(LatEdge(J)*PI_180) )
        AREA = ( 2_hp * HcoState%Phys%PI * DLAT * HcoState%Phys%Re**2 ) / REAL(NLON,hp)
 
        ! convert array data to m-2

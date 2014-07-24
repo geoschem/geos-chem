@@ -44,9 +44,12 @@
 ! \end{itemize}
 !
 ! The file names of the species, grid, and time input files can be provided
-! in the settings section of the HEMCO configuration file 
-! (e.g. 'SpecFile: myHEMCO\_sa\_Spec'). Otherwise, the default file names
-! (HEMCO\_sa\_Spec, HEMCO\_sa\_Grid, HEMCO\_sa\_Time) will be used.
+! in the settings section of the HEMCO configuration file. For instance, to
+! set the species file to 'mySpecFile', add the following line to the con-
+! figuration file: 'SpecFile: mySpecFile'. The same applies to grid and time 
+! definitions (GridFile and TimeFile, respectively). If no file names are
+! provided in the configuration file, the default file names (HEMCO\_sa\_Spec, 
+! HEMCO\_sa\_Grid, HEMCO\_sa\_Time) will be used.
 !
 ! !INTERFACE:
 !

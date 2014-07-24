@@ -250,7 +250,7 @@ CONTAINS
        RETURN 
     ENDIF 
 
-    ! Configuration file is not read
+    ! Configuration file is now read
     ConfigFileRead = .TRUE.
 
     ! Leave w/ success
@@ -320,7 +320,7 @@ CONTAINS
 
     ! Register base emissions. In this step, we also redefine the 
     ! list UnqScalIDs to make sure that only those scale factors
-    ! that are effectively used will be registered in the next step.
+    ! will be registered that are effectively used in the next step.
     CALL Register_Base( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -329,7 +329,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Create cIDList which allows quick access to all data containers
-    ! based upon their container IDs cID
+    ! based on their container IDs cID
     CALL cIDList_Create ( am_I_Root, HcoState, ConfigList, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

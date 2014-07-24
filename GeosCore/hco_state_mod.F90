@@ -127,6 +127,7 @@ MODULE HCO_State_Mod
   TYPE :: HcoGrid
      REAL(df), POINTER :: XMID       (:,:)   ! mid-points in x-direction (lon)
      REAL(df), POINTER :: YMID       (:,:)   ! mid-points in y-direction (lat)
+     REAL(df), POINTER :: ZSIGMA     (:,:,:) ! hybrid sigma coordinates
      REAL(df), POINTER :: XEDGE      (:,:)   ! grid edges in x-direction (lon)*
      REAL(df), POINTER :: YEDGE      (:,:)   ! grid edges in y-direction (lat)*
      REAL(df), POINTER :: YSIN       (:,:)   ! sin of grid edges in 
@@ -265,6 +266,7 @@ CONTAINS
     ! Nullify grid arrays. 
     NULLIFY ( HcoState%Grid%XMID       )
     NULLIFY ( HcoState%Grid%YMID       )
+    NULLIFY ( HcoState%Grid%ZSIGMA     )
     NULLIFY ( HcoState%Grid%XEDGE      )
     NULLIFY ( HcoState%Grid%YEDGE      )
     NULLIFY ( HcoState%Grid%YSIN       )
@@ -367,6 +369,7 @@ CONTAINS
     IF ( ASSOCIATED ( HcoState%Grid) ) THEN
      IF ( ASSOCIATED ( HcoState%Grid%XMID      ) ) DEALLOCATE ( HcoState%Grid%XMID      ) 
      IF ( ASSOCIATED ( HcoState%Grid%YMID      ) ) DEALLOCATE ( HcoState%Grid%YMID      )
+     IF ( ASSOCIATED ( HcoState%Grid%ZSIGMA    ) ) DEALLOCATE ( HcoState%Grid%ZSIGMA    )
      IF ( ASSOCIATED ( HcoState%Grid%XEDGE     ) ) DEALLOCATE ( HcoState%Grid%XEDGE     )
      IF ( ASSOCIATED ( HcoState%Grid%YEDGE     ) ) DEALLOCATE ( HcoState%Grid%YEDGE     )
      IF ( ASSOCIATED ( HcoState%Grid%YSIN      ) ) DEALLOCATE ( HcoState%Grid%YSIN      )
