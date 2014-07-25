@@ -207,7 +207,6 @@
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_O3_MOD	           ! SAVEOH
       USE CMN_GCTM_MOD             ! XTRA2
-      USE COMMSOIL_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -257,6 +256,7 @@
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
 !                              of removal of NOx-Ox partitioning
 !  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
+!  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1454,114 +1454,118 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 196 .and. LSOILNOX ) THEN
-
-            !--------------------------------------
-            ! SOIL NOX EMISSIONS [molec/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm2/s'
-            GMNL     = 1
-            GMTRC    = 10
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) =  INST_SOIL(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 197 .and. LSOILNOX ) THEN
-
-            !--------------------------------------
-            ! FERTILIZER SOIL NOX EMISSIONS [molec/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm2/s'
-            GMNL     = 1
-            GMTRC    = 11
-
-!$OMP PARALLEL DO!
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) =  INST_FERT(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 198 .and. LSOILNOX ) THEN
-
-            !--------------------------------------
-            ! DRY PERIOD [hours]
-            !--------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'hours'
-            GMNL     = 1
-            GMTRC    = 12
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) =  DRYPERIOD(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 199 .and. LSOILNOX ) THEN
-
-            !--------------------------------------
-            ! PFACTOR [unitless]
-            !--------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
-            GMNL     = 1
-            GMTRC    = 13
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = PFACTOR(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 200 .and. LSOILNOX ) THEN
-
-            !--------------------------------------
-            ! GWET_PREV [unitless]
-            !--------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
-            GMNL     = 1
-            GMTRC    = 14
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) =  GWET_PREV(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
+!-----------------------------------------------------------------------------
+! Prior to 7/25/14:
+! The soil NOx diagnostics are now archived in HEMCO.  Comment out temporarily
+! until we can restore these. (bmy, 7/25/14)
+!         ELSE IF ( N == 196 .and. LSOILNOX ) THEN
+!
+!            !--------------------------------------
+!            ! SOIL NOX EMISSIONS [molec/cm2/s]
+!            !--------------------------------------
+!            CATEGORY = 'TIME-SER'
+!            UNIT     = 'molec/cm2/s'
+!            GMNL     = 1
+!            GMTRC    = 10
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!               Q(X,Y,1) =  INST_SOIL(I,J)
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!
+!         ELSE IF ( N == 197 .and. LSOILNOX ) THEN
+!
+!            !--------------------------------------
+!            ! FERTILIZER SOIL NOX EMISSIONS [molec/cm2/s]
+!            !--------------------------------------
+!            CATEGORY = 'TIME-SER'
+!            UNIT     = 'molec/cm2/s'
+!            GMNL     = 1
+!            GMTRC    = 11
+!
+!!$OMP PARALLEL DO!
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!               Q(X,Y,1) =  INST_FERT(I,J)
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!
+!         ELSE IF ( N == 198 .and. LSOILNOX ) THEN
+!
+!            !--------------------------------------
+!            ! DRY PERIOD [hours]
+!            !--------------------------------------
+!            CATEGORY = 'TIME-SER'
+!            UNIT     = 'hours'
+!            GMNL     = 1
+!            GMTRC    = 12
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!               Q(X,Y,1) =  DRYPERIOD(I,J)
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!
+!         ELSE IF ( N == 199 .and. LSOILNOX ) THEN
+!
+!            !--------------------------------------
+!            ! PFACTOR [unitless]
+!            !--------------------------------------
+!            CATEGORY = 'TIME-SER'
+!            UNIT     = 'unitless'
+!            GMNL     = 1
+!            GMTRC    = 13
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!               Q(X,Y,1) = PFACTOR(I,J)
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!
+!         ELSE IF ( N == 200 .and. LSOILNOX ) THEN
+!
+!            !--------------------------------------
+!            ! GWET_PREV [unitless]
+!            !--------------------------------------
+!            CATEGORY = 'TIME-SER'
+!            UNIT     = 'unitless'
+!            GMNL     = 1
+!            GMTRC    = 14
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!               Q(X,Y,1) =  GWET_PREV(I,J)
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
 
          ELSE
 

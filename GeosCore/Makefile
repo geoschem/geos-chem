@@ -607,7 +607,8 @@ get_ndep_mod.o              : get_ndep_mod.F                                 \
 get_popsinfo_mod.o          : get_popsinfo_mod.F
 
 gigc_environment_mod.o      : gigc_environment_mod.F90                       \
-			      tracer_mod.o            vdiff_pre_mod.o
+			      tracer_mod.o            vdiff_pre_mod.o        \
+                              get_ndep_mod.o
 
 global_bc_mod.o             : global_bc_mod.F
 

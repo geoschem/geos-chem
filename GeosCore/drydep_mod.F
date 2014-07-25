@@ -18,7 +18,6 @@
       USE CMN_SIZE_MOD                          ! Size parameters
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE CMN_GCTM_MOD                          ! Physical constants
-      USE COMMSOIL_MOD                          ! Soil wetness variables
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field subroutines
@@ -191,6 +190,7 @@
 !  29 Jan 2014 - R. Yantosca - Now set MAXDEP=105 for all simulations.  For
 !                              TOMAS we had MAXDEP=100; this is close enough.
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -838,7 +838,6 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE COMMSOIL_MOD
       USE COMODE_MOD
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
@@ -888,6 +887,7 @@
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOILNOX and Input_Opt%NUMDEP
 !  30 Oct 2013 - M. Sulprizio- Bug fix: Hold AREA_CM2 private in !$OMP loop
+!  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1199,7 +1199,6 @@
 !      
 !      USE CMN_SIZE_MOD             ! Size parameters
 !      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
-!      USE COMMSOIL_MOD             ! Soil wetness variables
 !!
 !! !INPUT PARAMETERS:
 !!

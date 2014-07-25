@@ -23,7 +23,6 @@
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_GCTM_MOD          ! Physical constants
-      USE COMMSOIL_MOD          ! Soil NOx emissions header file
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
       USE GRID_MOD              ! For defining the lons/lats/areas of the grid
@@ -235,6 +234,7 @@
 !  15 Jul 2014 - R. Yantosca - Now call Init_Map_A2A to store shadow variables
 !                              within regrid_a2a_mod.F90.  This helps to 
 !                              break dependencies for the HEMCO implementation.
+!  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

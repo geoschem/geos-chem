@@ -975,25 +975,26 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
-    USE ERROR_MOD,             ONLY : ERROR_STOP
-    USE GIGC_State_Met_Mod,    ONLY : MetState
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
 
-    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
 
     ! For ParaNOx
-    USE TRACERID_MOD,          ONLY : IDTO3, IDTNO, IDTNO2, IDTHNO3
+    USE TRACERID_MOD,       ONLY : IDTO3, IDTNO, IDTNO2, IDTHNO3
 
     ! For SoilNox
-    USE DRYDEP_MOD,            ONLY : DRYCOEFF
-    USE COMMSOIL_MOD
+    USE Drydep_Mod,         ONLY : DRYCOEFF
+    USE Get_Ndep_Mod,       ONLY : DRY_TOTN
+    USE Get_Ndep_Mod,       ONLY : WET_TOTN
 
     ! MODIS variables (used by MEGAN & Soil NOx) 
-    USE MODIS_LAI_MOD,         ONLY : DAYS_BTW_MON
-    USE MODIS_LAI_MOD,         ONLY : GC_LAI
-    USE MODIS_LAI_MOD,         ONLY : GC_LAI_PM 
-    USE MODIS_LAI_MOD,         ONLY : GC_LAI_CM
-    USE MODIS_LAI_MOD,         ONLY : GC_LAI_NM
+    USE Modis_LAI_Mod,      ONLY : DAYS_BTW_MON
+    USE Modis_LAI_Mod,      ONLY : GC_LAI
+    USE Modis_LAI_Mod,      ONLY : GC_LAI_PM 
+    USE Modis_LAI_Mod,      ONLY : GC_LAI_CM
+    USE Modis_LAI_Mod,      ONLY : GC_LAI_NM
 !
 ! !INPUT PARAMETERS:
 !

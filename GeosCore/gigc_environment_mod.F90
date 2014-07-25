@@ -81,13 +81,11 @@ CONTAINS
     USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
-    USE CMN_SIZE_Mod,       ONLY : IIPAR
-    USE CMN_SIZE_Mod,       ONLY : JJPAR
     USE COMODE_LOOP_Mod,    ONLY : Init_COMODE_LOOP
-    USE COMMSOIL_Mod,       ONLY : Init_COMMSOIL
+    USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
     USE GIGC_ErrCode_Mod  
     USE GIGC_Input_Opt_Mod
-    USE VDIFF_PRE_Mod,      ONLY : Init_VDIFF_PRE
+    USE VDIFF_PRE_Mod,      ONLY : Init_Vdiff_Pre
 
     IMPLICIT NONE
 !
@@ -132,6 +130,8 @@ CONTAINS
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_NOX_mod.F
+!  25 Jul 2014 - R. Yantosca - Remove reference to obsolete commsoil_mod.F90
+!  25 Jul 2014 - R. Yantosca - Now call INIT_GET_NDEP (GeosCore/get_ndep_mod.F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,7 +194,7 @@ CONTAINS
     CALL Init_CMN_O3( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    CALL Init_COMMSOIL( am_I_Root, IIPAR, JJPAR, RC )
+    CALL Init_Get_Ndep( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     CALL Init_COMODE_LOOP( am_I_Root, Input_Opt, RC )
