@@ -1,0 +1,1267 @@
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: hcoi_dataread_mod.F90 
+!
+! !DESCRIPTION: Module HCOI\_DataRead\_Mod controls data processing (file
+! reading, unit conversion, regridding) for HEMCO.
+!\\
+!\\
+! !INTERFACE: 
+!
+MODULE HCOI_DataRead_Mod
+!
+! !USES:
+!
+  USE HCO_Error_Mod
+  USE HCO_CharTools_Mod
+  USE HCO_State_Mod,       ONLY : Hco_State
+  USE HCO_DataCont_Mod,    ONLY : ListCont
+
+  IMPLICIT NONE
+  PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PUBLIC  :: HCOI_DataRead
+!
+! !REVISION HISTORY:
+!  22 Aug 2013 - C. Keller   - Initial version
+!  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+CONTAINS
+!EOC
+#if defined(ESMF_)
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOI_DataRead (ESMF/MAPL version)
+!
+! !DESCRIPTION: Interface routine between ESMF and HEMCO to obtain
+! the data array for a given HEMCO data container. 
+!
+! NOTE/TODO: For now, all arrays are copied into the HEMCO data array. 
+! We may directly point to the ESMF arrays in future. In this case, we
+! may have to force the target ID to be equal to the container ID (the
+! target ID is set in hco\_config\_mod).
+!\\
+!\\
+! !INTERFACE:
+  !
+  SUBROUTINE HCOI_DataRead( am_I_Root, HcoState, Lct, RC ) 
+!
+! !USES:
+!
+    USE HCO_FileData_mod, ONLY : FileData_ArrCheck
+    USE ESMF_mod
+    USE MAPL_mod
+
+# include "MAPL_Generic.h"
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root
+    TYPE(HCO_State),  POINTER        :: HcoState
+    TYPE(ListCont),   POINTER        :: Lct 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC
+!
+! !REVISION HISTORY:
+!  28 Aug 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER                    :: II, JJ, LL, TT
+    INTEGER                    :: I, J, L, T
+    INTEGER                    :: STAT
+    REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
+    REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
+    TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
+    CHARACTER(LEN=255)         :: LOC
+
+    !=================================================================
+    ! HCOI_DATAREAD begins here
+    !=================================================================
+
+    ! For error handling
+    LOC = 'HCOI_DATAREAD (hcoi_dataread_mod.F90)'
+    CALL HCO_ENTER ( LOC, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Point to ESMF IMPORT object
+    IMPORT => HcoState%IMPORT
+
+    !-----------------------------------------------------------------
+    ! Read 3D data from ESMF 
+    !-----------------------------------------------------------------
+    IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
+
+         ! Get data
+       CALL MAPL_GetPointer( IMPORT, Ptr3D, &
+                             TRIM(Lct%Dct%cName), RC=STAT )
+
+       ! Check for MAPL error
+       IF( MAPL_VRFY(STAT,LOC,1) ) THEN
+          CALL HCO_ERROR ( 'Cannot get xyz pointer', RC ) 
+          RETURN
+       ENDIF
+
+       ! Get array dimensions 
+       II = SIZE(Ptr3D,1)
+       JJ = SIZE(Ptr3D,2) 
+       LL = SIZE(Ptr3D,3)
+       TT = 1 
+
+       ! Allocate HEMCO array if not yet defined
+       CALL FileData_ArrCheck( Lct%Dct%Dta, II, JJ, LL, TT, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Copy data and cast to real*8
+       Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,:)
+
+    !-----------------------------------------------------------------
+    ! Read 2D data from ESMF 
+    !-----------------------------------------------------------------
+    ELSEIF ( Lct%Dct%Dta%SpaceDim == 2 ) THEN
+
+       ! Get data
+       CALL MAPL_GetPointer( IMPORT, Ptr2D, &
+                             TRIM(Lct%Dct%cName), RC=STAT )
+
+
+       ! Check for MAPL error 
+       IF( MAPL_VRFY(STAT,LOC,2) ) THEN
+          CALL HCO_ERROR ( 'Cannot get xy pointer', RC ) 
+          RETURN
+       ENDIF
+
+       ! Get array dimensions 
+       II = SIZE(Ptr2D,1)
+       JJ = SIZE(Ptr2D,2) 
+       LL = 1 
+       TT = 1 
+
+       ! Allocate HEMCO array if not yet defined
+       CALL FileData_ArrCheck( Lct%Dct%Dta, II, JJ, TT, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Copy to HEMCO container
+       Lct%Dct%Dta%V2(1)%Val(:,:) = Ptr2D(:,:)
+
+    ENDIF
+ 
+    !-----------------------------------------------------------------
+    ! Cleanup and leave 
+    !-----------------------------------------------------------------
+    Ptr3D  => NULL()
+    Ptr2D  => NULL()
+    IMPORT => NULL()   
+
+    ! Return w/ success
+    CALL HCO_LEAVE ( RC )
+
+  END SUBROUTINE HCOI_DataRead
+!EOC
+#else
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOI_DataRead
+!
+! !DESCRIPTION: Reads a netCDF file and returns the regridded array in proper
+! units. This routine uses the HEMCO generic data reading and regridding
+! routines. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOI_DataRead( am_I_Root, HcoState, Lct, RC ) 
+!
+! !USES:
+!
+    USE Ncdf_Mod,           ONLY : NC_Open
+    USE Ncdf_Mod,           ONLY : NC_Close
+    USE Ncdf_Mod,           ONLY : NC_Read_Var
+    USE Ncdf_Mod,           ONLY : NC_Read_Arr
+    USE Ncdf_Mod,           ONLY : NC_Get_Grid_Edges
+    USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
+    USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
+    USE HCO_Unit_Mod,       ONLY : HCO_IsUnitless
+    USE HCO_Unit_Mod,       ONLY : HCO_IsIndexData
+    USE HCO_Unit_Mod,       ONLY : HCO_UnitTolerance
+    USE HCO_GeoTools_Mod,   ONLY : HCO_ValidateLon
+    USE Regrid_A2A_Mod,     ONLY : MAP_A2A
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
+    USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
+    USE HCOI_MESSY_MOD,     ONLY : HCO_MESSY_REGRID
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
+    TYPE(ListCont),   POINTER        :: Lct        ! HEMCO list container
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! Success or failure?
+!
+! !REVISION HISTORY:
+!  13 Mar 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255)            :: thisUnit
+    CHARACTER(LEN=255)            :: MSG 
+    INTEGER                       :: L, T
+    INTEGER                       :: NX, NY
+    INTEGER                       :: NCRC, Flag, AS
+    INTEGER                       :: ncLun
+    INTEGER                       :: nLon,   nLat,  nLev, nTime
+    INTEGER                       :: lev1,   lev2 
+    INTEGER                       :: tidx1,  tidx2, ncYr, ncMt
+    INTEGER                       :: HcoID
+    INTEGER                       :: nLatEdge, nLonEdge
+    REAL(sp), POINTER             :: ncArr(:,:,:,:)   => NULL()
+    REAL(sp), POINTER             :: ORIG_2D(:,:)     => NULL()
+    REAL(hp), POINTER             :: REGR_2D(:,:)     => NULL()
+    REAL(df), POINTER             :: LevEdge(:,:,:)   => NULL()
+    REAL(df), POINTER             :: LonMid   (:)     => NULL()
+    REAL(df), POINTER             :: LatMid   (:)     => NULL()
+    REAL(df), POINTER             :: LevMid   (:)     => NULL()
+    REAL(df), POINTER             :: LonEdge  (:)     => NULL()
+    REAL(df), POINTER             :: LatEdge  (:)     => NULL()
+    REAL(sp), ALLOCATABLE         :: LonEdgeI(:)
+    REAL(sp), ALLOCATABLE         :: LatEdgeI(:)
+    REAL(sp)                      :: LonEdgeO(HcoState%NX+1) 
+    REAL(sp)                      :: LatEdgeO(HcoState%NY+1)
+    LOGICAL                       :: verb, IsPerArea
+    REAL(dp)                      :: PI_180
+    REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
+    INTEGER                       :: UnitTolerance
+
+    ! Use MESSy regridding routines?
+    LOGICAL, PARAMETER    :: UseMESSy = .TRUE.
+
+
+    !=================================================================
+    ! HCOI_DATAREAD begins here
+    !=================================================================
+
+    ! Enter
+    CALL HCO_ENTER ('HCOI_DATAREAD (hcoi_dataread_mod.F90)' , RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    
+    ! To convert from deg to rad  
+    PI_180 = HcoState%Phys%PI / 180.0_dp
+
+    ! Check for verbose mode
+    verb = HCO_VERBOSE_CHECK()
+
+    ! Get unit tolerance set in configuration file
+    UnitTolerance = HCO_UnitTolerance()
+ 
+    ! Copy horizontal grid dimensions from HEMCO state object
+    NX = HcoState%NX
+    NY = HcoState%NY
+
+    ! Verbose mode
+    IF ( verb ) THEN
+       Write(MSG,*) 'Reading file ', TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_MSG(MSG,SEP1='-')
+    ENDIF
+
+    ! ----------------------------------------------------------------
+    ! Open netCDF
+    ! ----------------------------------------------------------------
+    CALL NC_OPEN ( TRIM(Lct%Dct%Dta%ncFile), ncLun )
+
+    ! ----------------------------------------------------------------
+    ! Extract time slice information
+    ! This determines the lower and upper time slice index (tidx1 
+    ! and tidx2) to be read based upon the time slice information 
+    ! extracted from the file and the time stamp settings set in the
+    ! HEMCO configuration file.
+    ! ----------------------------------------------------------------
+    CALL GET_TIMEIDX ( am_I_Root, HcoState, Lct, &
+                       ncLun,     tidx1,    tidx2,   &
+                       ncYr,      ncMt,     RC        )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! Check for negative tidx1. tidx1 can still be negative if: 
+    ! (a) CycleFlag is set to 2 and the current simulation time is 
+    ! outside of the data time range. In this case, we prompt a 
+    ! warning and make sure that there is no data associated with
+    ! this FileData container.
+    ! (b) CycleFlag is set to 3 and none of the data time stamps 
+    ! matches the current simulation time exactly. Return with 
+    ! error!
+    !-----------------------------------------------------------------
+    IF ( tidx1 < 0 ) THEN
+       IF ( Lct%Dct%Dta%CycleFlag == 3 ) THEN
+          MSG = 'Exact time not found in ' // TRIM(Lct%Dct%Dta%ncFile) 
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ELSEIF ( Lct%Dct%Dta%CycleFlag == 1 ) THEN
+          MSG = 'You broke HEMCO! Invalid time index: ' // &
+               TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ELSEIF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN
+          CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
+          MSG = 'Simulation time is outside of time range of file ' // &
+               TRIM(Lct%Dct%Dta%ncFile) // ' - ignore these data!'
+          CALL HCO_WARNING ( MSG, RC )
+          CALL NC_CLOSE ( ncLun ) 
+          CALL HCO_LEAVE ( RC ) 
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! ----------------------------------------------------------------
+    ! Read grid 
+    ! ----------------------------------------------------------------
+
+    ! Extract longitude midpoints
+    CALL NC_READ_VAR ( ncLun, 'lon', nLon, thisUnit, LonMid, NCRC )
+    IF ( NCRC /= 0 .OR. nLon == 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_LON', RC )
+       RETURN 
+    ENDIF
+    IF ( INDEX( thisUnit, 'degrees_east' ) == 0 ) THEN
+       MSG = 'illegal longitude unit in ' // &
+            TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
+    ! Make sure longitude is steadily increasing.
+    CALL HCO_ValidateLon( nLon, LonMid, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    
+    ! Extract latitude midpoints
+    CALL NC_READ_VAR ( ncLun, 'lat', nLat, thisUnit, LatMid, NCRC )
+    IF ( NCRC /= 0 .OR. nLat == 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_LAT', RC )
+       RETURN 
+    ENDIF
+    IF ( INDEX( thisUnit, 'degrees_north' ) == 0 ) THEN
+       MSG = 'illegal latitude unit in ' // &
+            TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
+
+    ! Try to extract level midpoints
+    CALL NC_READ_VAR ( ncLun, 'lev', nLev, thisUnit, LevMid, NCRC )
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_LEV', RC )
+       RETURN 
+    ENDIF
+    IF ( nLev == 0 ) THEN
+       CALL NC_READ_VAR ( ncLun, 'height', nLev, thisUnit, LevMid, NCRC )
+       IF ( NCRC /= 0 ) THEN
+          CALL HCO_ERROR( 'NC_READ_LEV', RC )
+          RETURN 
+       ENDIF
+    ENDIF
+
+    ! Sanity check of vertical dimensions
+    ! ==> numbers of vertical levels must not exceed HEMCO state
+    ! levels (only horizontal regridding supported so far!)
+    ! Also check if dimensionality agrees with settings in input
+    ! file!
+    IF ( nLev > HcoState%NZ ) THEN
+       MSG = 'Too many vert. levels in ' // TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN 
+    ENDIF
+
+    ! Set level indeces to be read
+    ! NOTE: for now, always read all levels. Edit here to read
+    ! only particular levels.
+    ! Also do sanity check whether or not vertical dimension does 
+    ! agree with space dimension specified in configuration file.
+    IF ( nLev > 0 ) THEN
+       lev1 = 1
+       lev2 = nlev
+       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
+          MSG = 'Found 3D data, but space dim is not set to 3: ' // &
+                TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
+    ELSE
+       lev1 = 0
+       lev2 = 0
+       IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
+          MSG = 'Could not find level coordinate: ' // &
+                TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! ----------------------------------------------------------------
+    ! Read data
+    ! ----------------------------------------------------------------
+
+    CALL NC_READ_ARR( fID     = ncLun,              &
+                      ncVar   = Lct%Dct%Dta%ncPara, &
+                      lon1    = 1,                  &
+                      lon2    = nlon,               &
+                      lat1    = 1,                  &
+                      lat2    = nlat,               &
+                      lev1    = lev1,               &
+                      lev2    = lev2,               &
+                      time1   = tidx1,              &
+                      time2   = tidx2,              &
+                      ncArr   = ncArr,              &
+                      varUnit = thisUnit,           &
+                      RC      = NCRC                 )
+
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_ARRAY', RC )
+       RETURN 
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Convert to HEMCO units 
+    !-----------------------------------------------------------------
+
+    ! Convert to HEMCO units. This is kg/m2/s for fluxes and kg/m3 
+    ! for concentrations.
+    ! The srcUnit attribute of the configuration file determines to
+    ! which fields unit conversion is applied:
+
+    ! If OrigUnit is set to wildcard character: use unit from source file
+    IF ( TRIM(Lct%Dct%Dta%OrigUnit) == HCO_WCD() ) THEN
+       Lct%Dct%Dta%OrigUnit = TRIM(thisUnit)
+    ENDIF
+
+    ! If OrigUnit is set to '1' or to 'count', perform no unit 
+    ! conversion.
+    IF ( HCO_IsUnitLess(Lct%Dct%Dta%OrigUnit)  .OR. &
+         HCO_IsIndexData(Lct%Dct%Dta%OrigUnit)       ) THEN
+
+       ! Check if file unit is also unitless. This will return 0 for
+       ! unitless, 1 for HEMCO unit, 2 otherwise.
+       Flag = HCO_UNIT_SCALCHECK( thisUnit )
+      
+       ! Return with error if: (1) thisUnit is recognized as HEMCO unit and 
+       ! unit tolerance is set to zero; (2) thisUnit is neither unitless nor
+       ! a HEMCO unit and unit tolerance is set to zero or one.
+       ! The unit tolerance is defined in the configuration file.
+       IF ( Flag > UnitTolerance ) THEN
+          MSG = 'Illegal unit: ' // TRIM(thisUnit) // '. File: ' // &
+                TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ENDIF
+
+       ! Prompt a warning if thisUnit is not recognized as unitless.
+       IF ( Flag > 0 ) THEN 
+          MSG = 'Data does not appear to be unitless: ' // &
+                TRIM(thisUnit) // '. File: '            // &
+                TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_WARNING( MSG, RC )
+       ENDIF
+
+    ! Convert to HEMCO units in all other cases. 
+    ELSE
+
+       ! For zero unit tolerance, make sure that thisUnit matches 
+       ! with unit set in configuration file!
+       ! Otherwise, prompt at least a warning.
+       IF ( TRIM(Lct%Dct%Dta%OrigUnit) /= TRIM(thisUnit) ) THEN
+          MSG = 'File units do not match: ' // TRIM(thisUnit) // &
+                ' vs. ' // TRIM(Lct%Dct%Dta%OrigUnit)    // &
+                '. File: ' // TRIM(Lct%Dct%Dta%ncFile)
+
+          IF ( UnitTolerance == 0 ) THEN
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ELSE
+             CALL HCO_WARNING( MSG, RC )
+          ENDIF
+       ENDIF 
+
+       ! Mirror species properties needed for unit conversion
+       HcoID = Lct%Dct%HcoID
+       IF ( HcoID > 0 ) THEN
+          MW_g       = HcoState%Spc(HcoID)%MW_g
+          EmMW_g     = HcoState%Spc(HcoID)%EmMW_g
+          MolecRatio = HcoState%Spc(HcoID)%MolecRatio
+       ELSE
+          MW_g       = -999.0_hp
+          EmMW_g     = -999.0_hp
+          MolecRatio = -999.0_hp
+       ENDIF
+
+       CALL HCO_UNIT_CHANGE(                &
+            Array         = ncArr,          &
+            Units         = thisUnit,       &
+            MW_IN         = MW_g,           & 
+            MW_OUT        = EmMW_g,         & 
+            MOLEC_RATIO   = MolecRatio,     & 
+            YYYY          = ncYr,           &
+            MM            = ncMt,           &
+            IsPerArea     = IsPerArea,      &
+            RC            = RC               )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot convert units for ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR( MSG , RC )
+          RETURN 
+       ENDIF
+  
+       ! Data that is not per area (e.g. kg/yr) needs to be converted
+       ! to per area manually.
+       IF ( .NOT. IsPerArea ) THEN
+
+          ! Get lat edges: those are read from file if possible, otherwise
+          ! calculated from the lat midpoints.
+          ! ==> Sine of lat is needed. Do conversion right here.
+          CALL NC_GET_GRID_EDGES ( ncLun, 2, LatMid,   nLat, &
+                                   LatEdge,  nLatEdge, NCRC   )
+          IF ( NCRC /= 0 ) THEN
+             MSG = 'Cannot read lat edge of ' // TRIM(Lct%Dct%Dta%ncFile)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF 
+
+          ! Now normalize data by area calculated from lat edges.
+          CALL NORMALIZE_AREA( HcoState, ncArr,              nLon, &
+                               LatEdge,  Lct%Dct%Dta%ncFile, RC     )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Get grid edges (if not yet done so)
+    !-----------------------------------------------------------------
+
+    ! Get longitude edges and make sure they are steadily increasing.
+    CALL NC_GET_GRID_EDGES ( ncLun, 1, LonMid,   nLon, &
+                             LonEdge,  nLonEdge, NCRC   )
+    IF ( NCRC /= 0 ) THEN
+       MSG = 'Cannot read lon edge of ' // TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
+    ENDIF 
+    CALL HCO_ValidateLon( nLonEdge, LonEdge, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Get latitude edges (only if they have not been read yet
+    ! for unit conversion)
+    IF ( .NOT. ASSOCIATED( LatEdge ) ) THEN
+       CALL NC_GET_GRID_EDGES ( ncLun, 2, LatMid,   nLat, &
+                                LatEdge,  nLatEdge, NCRC   )
+       IF ( NCRC /= 0 ) THEN
+          MSG = 'Cannot read lat edge of ' // TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Regrid onto emissions grid 
+    !-----------------------------------------------------------------
+
+    ! Messy toggle
+    IF ( .NOT. UseMESSy ) THEN
+
+    ! Write input grid edges to shadow variables so that map_a2a accepts them
+    ! as argument.
+    ! Also, for map_a2a, latitudes have to be sines...
+    ALLOCATE(LonEdgeI(nLonEdge), LatEdgeI(nLatEdge), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR( 'alloc error LonEdgeI', RC )
+       RETURN
+    ENDIF
+    LonEdgeI(:) = LonEdge
+    LatEdgeI(:) = SIN( LatEdge * PI_180 )
+   
+    ! Get output grid edges from HEMCO state
+    LonEdgeO(:) = HcoState%Grid%XEDGE(:,1)
+    LatEdgeO(:) = HcoState%Grid%YSIN (1,:) 
+  
+    ! Reset nlev and ntime to effective array sizes
+    nlev  = size(ncArr,3)
+    ntime = size(ncArr,4)
+
+    ! Allocate output array if not yet defined
+    IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
+       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, ntime, RC ) 
+       IF ( RC /= 0 ) RETURN
+    ELSE
+       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, ntime, RC ) 
+       IF ( RC /= 0 ) RETURN
+    ENDIF
+
+    ! Do regridding
+    DO T = 1, NTIME
+    DO L = 1, NLEV 
+
+       ! Point to 2D slices to be regridded
+       ORIG_2D => ncArr(:,:,L,T)
+       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
+          REGR_2D => Lct%Dct%Dta%V2(T)%Val(:,:)
+       ELSE
+          REGR_2D => Lct%Dct%Dta%V3(T)%Val(:,:,L)
+       ENDIF
+
+       ! Do the regridding
+       CALL MAP_A2A( NLON,  NLAT, LonEdgeI, LatEdgeI, ORIG_2D, &
+                     NX,    NY,   LonEdgeO, LatEdgeO, REGR_2D, 0, 0 )
+
+       ORIG_2D => NULL()
+       REGR_2D => NULL()
+
+    ENDDO !L
+    ENDDO !T
+
+    DEALLOCATE(LonEdgeI, LatEdgeI)
+
+    !-----------------------------------------------------------------
+    ! Use MESSy regridding
+    !-----------------------------------------------------------------
+    ELSE
+       ! Get vertical coordinate: this has to be a 3D array!
+       ! Use silly levels for now (testing only).
+       IF ( nLev > 0 ) THEN
+          ALLOCATE( LevEdge(1,1,nLev+1) )
+          DO L = 1,nLev+1
+             LevEdge(1,1,L) = L
+          ENDDO 
+       ENDIF
+
+       CALL HCO_MESSY_REGRID ( am_I_Root, HcoState, NcArr,   &
+                               LonEdge,   LatEdge,  LevEdge, &
+                               Lct,       RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( ASSOCIATED(LevEdge) ) DEALLOCATE(LevEdge)
+    ENDIF
+
+    ! ----------------------------------------------------------------
+    ! Close netCDF
+    ! ----------------------------------------------------------------
+    CALL NC_CLOSE ( ncLun )
+      
+    !-----------------------------------------------------------------
+    ! Cleanup and leave 
+    !-----------------------------------------------------------------
+    IF ( ASSOCIATED ( ncArr   ) ) DEALLOCATE ( ncArr   )
+    IF ( ASSOCIATED ( LonMid  ) ) DEALLOCATE ( LonMid  )
+    IF ( ASSOCIATED ( LatMid  ) ) DEALLOCATE ( LatMid  )
+    IF ( ASSOCIATED ( LevMid  ) ) DEALLOCATE ( LevMid  )
+    IF ( ASSOCIATED ( LonEdge ) ) DEALLOCATE ( LonEdge )
+    IF ( ASSOCIATED ( LatEdge ) ) DEALLOCATE ( LatEdge )
+
+    ! Return w/ success
+    CALL HCO_LEAVE ( RC ) 
+
+  END SUBROUTINE HCOI_DataRead
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_TimeIdx
+!
+! !DESCRIPTION: Returns the lower and upper time slice index (tidx1
+! and tidx2, respectively) to be read. These values are determined 
+! based upon the time slice information extracted from the netCDF file, 
+! the time stamp settings set in the config. file, and the current 
+! simulation date.
+!\\
+!\\
+! Also return the time slice year and month, as these values may be
+! used for unit conversion! 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_TimeIdx( am_I_Root, HcoState, Lct,     &
+                          ncLun,     tidx1,    tidx2,   &
+                          ncYr,      ncMt,     RC        )
+!
+! !USES:
+!
+    USE Ncdf_Mod,     ONLY : NC_Read_Time_YYYYMMDDhh
+    USE HCO_tIdx_Mod, ONLY : HCO_GetPrefTimeAttr
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root ! Root CPU?
+    TYPE(HCO_State),  POINTER        :: HcoState  ! HcoState object
+    TYPE(ListCont),   POINTER        :: Lct       ! List container
+    INTEGER,          INTENT(IN   )  :: ncLun     ! open ncLun
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)  :: tidx1     ! lower time idx
+    INTEGER,          INTENT(  OUT)  :: tidx2     ! upper time idx
+    INTEGER,          INTENT(  OUT)  :: ncYr      ! time slice year
+    INTEGER,          INTENT(  OUT)  :: ncMt      ! time slice month
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC
+!
+! !REVISION HISTORY:
+!  13 Mar 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !ROUTINE ARGUMENTS:
+!
+    CHARACTER(LEN=255)    :: MSG
+    CHARACTER(LEN=1023)   :: MSG_LONG
+    INTEGER               :: nTime,  T, CNT, NCRC 
+    INTEGER               :: prefYr, prefMt, prefDy, prefHr
+    INTEGER               :: refYear
+    INTEGER               :: prefYMDh
+    INTEGER, POINTER      :: availYMDh(:) => NULL() 
+    LOGICAL               :: verb
+
+    !=================================================================
+    ! GET_TIMEIDX begins here
+    !=================================================================
+
+    ! Init 
+    CALL HCO_ENTER ('GET_TIMEIDX (hco_dataread_mod.F90)', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    verb = HCO_VERBOSE_CHECK() 
+ 
+    ! ---------------------------------------------------------------- 
+    ! Extract netCDF time slices (YYYYMMDDhh) 
+    ! ----------------------------------------------------------------
+    CALL NC_READ_TIME_YYYYMMDDhh ( ncLun, nTime,    availYMDH, &
+                                     refYear=refYear, RC=NCRC     )     
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_TIME_YYYYMMDDhh', RC )
+       RETURN 
+    ENDIF
+
+    ! Return warning if reference year prior to 1801: it seems like
+    ! the time slices may be off by one day!
+    IF ( refYear <= 1900 ) THEN
+       msg = 'ncdf reference year is prior to 1901 - ' // &
+            'time stamps may be wrong!'
+       CALL HCO_WARNING ( MSG, RC )
+    ENDIF
+
+    ! verbose mode 
+    IF ( verb ) THEN
+       write(MSG,'(A30,I12)') '# time slices read: ', nTime
+       CALL HCO_MSG(MSG)
+       IF ( nTime > 0 ) THEN
+          write(MSG,'(A30,I12,I12)') '# time slice range: ', &
+                                     availYMDH(1), availYMDH(nTime) 
+          CALL HCO_MSG(MSG)
+       ENDIF
+    ENDIF
+
+    ! ---------------------------------------------------------------- 
+    ! Select time slices to read
+    ! ---------------------------------------------------------------- 
+
+    ! ------------------------------------------------------------- 
+    ! Get preferred time stamp to read based upon the specs set
+    ! in the config. file. 
+    ! This can return value -1 for prefHr, indicating that all 
+    ! hourly slices shall be read. Will always return a valid 
+    ! attribute for Yr, Mt, and Dy.
+    ! ------------------------------------------------------------- 
+    CALL HCO_GetPrefTimeAttr ( Lct,    prefYr, prefMt, &
+                               prefDy, prefHr, RC       )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    prefYMDh = prefYr*1000000 + prefMt*10000 + &
+               prefDy*100     + max(prefHr,0)
+
+    ! verbose mode
+    IF ( verb ) THEN
+       write(MSG,'(A30,I12)') 'preferred datetime: ', prefYMDh
+       CALL HCO_MSG(MSG)
+    ENDIF
+
+    ! ================================================================
+    ! Case 1: Only one time slice available. 
+    ! ================================================================
+    IF ( nTime == 1 ) THEN
+       tidx1 = 1
+       tidx2 = 1
+
+    ! ================================================================
+    ! Case 2: More than one time slice available. Determine lower 
+    ! and upper time slice index from file & HEMCO settings. 
+    ! ================================================================
+    ELSEIF ( nTime > 1 ) THEN
+
+       ! Init
+       tidx1 = -1
+       tidx2 = -1 
+
+       ! ------------------------------------------------------------- 
+       ! Check if preferred datetime is within the range of available
+       ! time slices. In this case, set tidx1 to the index of the 
+       ! closest time slice that is not in the future. If CycleFlag
+       ! is set to 3 (= exact match), tidx1 is only set if the file
+       ! time stamp exactly matches with prefYMDh!
+       ! ------------------------------------------------------------- 
+       CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
+
+       ! ------------------------------------------------------------- 
+       ! If tidx1 couldn't be set in the call above, re-adjust 
+       ! preferred year to the closest available year in the 
+       ! time slices. Then repeat the check. Do only if time slice
+       ! cycling is enabled, i.e. CycleFlag set to 1. 
+       ! ------------------------------------------------------------- 
+       IF ( Lct%Dct%Dta%CycleFlag == 1 ) THEN
+         
+          ! Adjust year, month, and day (in this order).
+          CNT  = 0
+          DO 
+             CNT = CNT + 1
+             IF ( tidx1 > 0 .OR. CNT > 3 ) EXIT
+
+             ! Adjust prefYMDh at the given level (1=Y, 2=M, 3=D)
+             CALL prefYMDh_Adjust ( nTime, availYMDh, prefYMDh, CNT )
+
+             ! verbose mode 
+             IF ( verb ) THEN
+                write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
+                CALL HCO_MSG(MSG)
+             ENDIF
+   
+             CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
+
+          ENDDO
+
+!          IF ( tidx1 < 0 ) THEN
+!             CALL prefYMDh_adjustYear ( nTime, availYMDh, prefYMDh )
+!   
+!             ! verbose mode 
+!             IF ( verb ) THEN
+!                write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
+!                CALL HCO_MSG(MSG)
+!             ENDIF
+!   
+!             CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
+!          ENDIF
+
+       ENDIF
+
+       ! ------------------------------------------------------------- 
+       ! If tidx1 still isn't defined, i.e. prefYMDh is still 
+       ! outside the range of availYMDh, set tidx1 to the closest
+       ! available date. This must be 1 or nTime! Do only if time
+       ! slice cycling is enabled, i.e. CycleFlag set to 1. 
+       ! ------------------------------------------------------------- 
+       IF ( tidx1 < 0 .AND. Lct%Dct%Dta%CycleFlag == 1 ) THEN
+          IF ( prefYMDh < availYMDh(1) ) THEN
+             tidx1 = 1
+          ELSE
+             tidx1 = nTime
+          ENDIF
+       ENDIF
+ 
+       ! verbose mode 
+       IF ( verb ) THEN
+          WRITE(MSG,'(A30,I12)') 'selected tidx1: ', tidx1
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       ! ------------------------------------------------------------- 
+       ! Now need to set upper time slice index tidx2. This index
+       ! is only different from tidx1 if multiple hourly slices are
+       ! read (--> prefHr = -1). In this case, check if there are 
+       ! multiple time slices for the selected date (y/m/d). 
+       ! ------------------------------------------------------------- 
+       IF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
+          CALL SET_TIDX2 ( nTime, availYMDH, tidx1, tidx2 ) 
+          
+          ! verbose mode 
+          IF ( verb ) THEN
+             WRITE(MSG,'(A30,I12)') 'selected tidx2: ', tidx1
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ELSE
+          tidx2 = tidx1
+       ENDIF
+       
+    ! ================================================================
+    ! Case 3: No time slice available. Set both indeces to zero. 
+    ! ================================================================
+    ELSE
+       tidx1 = 0
+       tidx2 = 0 
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Sanity check: if CycleFlag is set to 3, the file time stamp
+    ! must exactly match the current time.
+    !-----------------------------------------------------------------
+    IF ( Lct%Dct%Dta%CycleFlag == 3 .AND. tidx1 > 0 ) THEN
+       IF ( availYMDh(tidx1) /= prefYMDh ) THEN
+          tidx1 = -1
+          tidx2 = -1
+       ENDIF
+    ENDIF
+    
+    !-----------------------------------------------------------------
+    ! If multiple time slices are read, extract time interval between
+    ! time slices in memory (in hours). This is to make sure that the
+    ! cycling between the slices will be done at the correct rate 
+    ! (e.g. every hour, every 3 hours, ...).
+    !-----------------------------------------------------------------
+    IF ( tidx2 > tidx1 ) THEN
+       Lct%Dct%Dta%DeltaT = availYMDh(tidx1+1) - availYMDh(tidx1)
+    ELSE
+       Lct%Dct%Dta%DeltaT = 0
+    ENDIF
+
+    ! verbose 
+    IF ( verb .and. tidx1 > 0 ) THEN
+       write(MSG,'(A30,I12)') 'corresponding datetime 1: ', availYMDh(tidx1)
+       CALL HCO_MSG(MSG)
+       if ( nTime > 1 ) THEN
+          write(MSG,'(A30,I12)') 'corresponding datetime 2: ', availYMDh(tidx2)
+          CALL HCO_MSG(MSG)
+       endif
+       write(MSG,'(A30,I12)') 'assigned delta t [h]: ', Lct%Dct%Dta%DeltaT 
+       CALL HCO_MSG(MSG)
+    ENDIF
+
+    ! ----------------------------------------------------------------
+    ! TODO: set time brackets 
+    ! --> In future, we may want to set time brackets denoting the 
+    ! previous and next time slice available in the netCDF file. This
+    ! may become useful for temporal interpolations and more efficient
+    ! data update calls (only update if new time slice is available). 
+    ! ----------------------------------------------------------------
+
+    !-----------------------------------------------------------------
+    ! Prepare output, cleanup and leave 
+    !-----------------------------------------------------------------
+
+    ! ncYr and ncMt are the year and month fo the time slice to be
+    ! used. These values may be required to convert units to 'per
+    ! seconds'.
+    IF ( tidx1 > 0 ) THEN
+       ncYr = FLOOR( MOD(availYMDh(tidx1),10000000000) / 1.0d6 )
+       ncMt = FLOOR( MOD(availYMDh(tidx1),1000000)     / 1.0d4 )
+    ELSE
+       ncYr = 0
+       ncMt = 0
+    ENDIF
+
+    IF ( ASSOCIATED(availYMDh) ) DEALLOCATE(availYMDh)
+
+    ! Return w/ success
+    CALL HCO_LEAVE ( RC ) 
+
+  END SUBROUTINE Get_TimeIdx
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Check_AvailYMDh  
+!
+! !DESCRIPTION: Checks if prefYMDh is within the range of availYMDh
+! and returns the location of the closest vector element that is in
+! the past as tidx1. tidx1 is set to -1 otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Check_AvailYMDh( Lct, N, availYMDh, prefYMDh, tidx1 )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER      :: Lct 
+    INTEGER,          INTENT(IN)   :: N
+    INTEGER,          INTENT(IN)   :: availYMDh(N)
+    INTEGER,          INTENT(IN)   :: prefYMDh
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)  :: tidx1
+!
+! !REVISION HISTORY:
+!  13 Mar 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I
+
+    !=================================================================
+    ! Check_availYMDh begins here
+    !=================================================================
+
+    ! Init
+    tidx1 = -1
+ 
+    ! Return if preferred datetime not within the vector range
+    IF ( prefYMDh < availYMDh(1) .OR. prefYMDh > availYMDh(N) ) RETURN
+
+    ! get closest index that is not in the future
+    DO I = 1, N
+       IF ( availYMDh(I) == prefYMDh ) THEN
+          tidx1 = I
+          EXIT
+       ENDIF
+
+       ! Check if next time slice is in the future, in which case the
+       ! current slice is selected. Don't do this for a CycleFlag of
+       ! 3 (==> exact match).
+       IF ( availYMDh(I+1) > prefYMDh .AND. Lct%Dct%Dta%CycleFlag < 3 ) THEN
+          tidx1 = I
+          EXIT
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE Check_AvailYMDh
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: prefYMDh_Adjust
+!
+! !DESCRIPTION: Adjusts prefYMDh to the closest available time attribute. Can
+! be adjusted for year (level=1), month (level=2), or day (level=3).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE prefYMDh_Adjust( N, availYMDh, prefYMDh, level ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN)     :: N
+    INTEGER, INTENT(IN)     :: availYMDh(N)
+    INTEGER, INTENT(IN)     :: level
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT)  :: prefYMDh
+!
+! !REVISION HISTORY:
+!  13 Mar 2013 - C. Keller - Initial version
+!  17 Jul 2014 - C. Keller - Now allow to adjust year, month, or day. 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: IDX, origYr, origMt, origDy, origHr, newAttr
+
+    !=================================================================
+    ! prefYMDh_Adjust begins here! 
+    !=================================================================
+
+    ! Are we taking the first or the last element of the available
+    ! time slice?
+    IF ( prefYMDh < availYMDh(1) ) THEN
+       IDX = 1 
+    ELSE
+       IDX = N
+    ENDIF
+
+    ! Get original Yr, Mt, Dy and Hr
+    origYr = FLOOR( MOD(prefYMDh, 10000000000) / 1.0d6 )
+    origMt = FLOOR( MOD(prefYMDh, 1000000    ) / 1.0d4 )
+    origDy = FLOOR( MOD(prefYMDh, 10000      ) / 1.0d2 )
+    origHr = FLOOR( MOD(prefYMDh, 100        ) / 1.0d0 )
+
+    ! Extract new attribute from availYMDh and insert into prefYMDh
+    ! --- Year
+    IF ( level == 1 ) THEN
+       newAttr  = FLOOR( MOD(availYMDh(IDX),10000000000) / 1.0d6 )
+       prefYMDh = newAttr * 1000000 + origMt * 10000 + origDy * 100 + origHr
+
+    ! --- Month 
+    ELSEIF ( level == 2 ) THEN
+       newAttr  = FLOOR( MOD(availYMDh(IDX),1000000) / 1.0d4 )
+       prefYMDh = origYr * 1000000 + newAttr * 10000 + origDy * 100 + origHr
+
+    ! --- Day
+    ELSEIF ( level == 3 ) THEN
+       newAttr  = FLOOR( MOD(availYMDh(IDX),10000) / 1.0d2 )
+       prefYMDh = origYr * 1000000 + origMt * 10000 + newAttr * 100 + origHr
+    ENDIF
+
+  END SUBROUTINE prefYMDh_Adjust
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_tIdx2 
+!
+! !DESCRIPTION: sets the upper time slice index by selecting the range
+! of all elements in availYMDh with the same date (year,month,day) as
+! availYMDh(tidx1). 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_tIdx2( N, availYMDh, tidx1, tidx2 ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN)  :: N
+    INTEGER, INTENT(IN)  :: availYMDh(N)
+    INTEGER, INTENT(IN)  :: tidx1 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: tidx2 
+!
+! !REVISION HISTORY:
+!  13 Mar 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER :: YMD, I, IYMD
+
+    !=================================================================
+    ! SET_TIDX2 begins here! 
+    !=================================================================
+
+    ! Init
+    tidx2 = tidx1
+
+    ! Sanity check
+    IF ( tidx1 == N ) RETURN
+
+    ! Get wanted YMD
+    YMD = floor(availYMDh(tidx1) / 1d2)
+
+    ! See how many more tile slices with the same YMD exist from index
+    ! tidx1 onwards.
+    DO I = tidx1, N
+       iYMD = floor(availYMDh(I) / 1d2)
+       IF ( iYMD == YMD ) THEN
+          tidx2 = I
+       ELSEIF ( iYMD > YMD ) THEN
+          EXIT
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE Set_tIdx2
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Normalize_Area 
+!
+! !DESCRIPTION: Subroutine Normalize\_Area normalizes the given array
+! by the surface area calculated from the given netCDF file. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Normalize_Area( HcoState, Array, nLon, LatEdge, FN, RC )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(HCO_State),  POINTER         :: HcoState           ! HEMCO state object
+    INTEGER,          INTENT(IN   )   :: NLON               ! # of lon midpoints
+    REAL(df),         POINTER         :: LatEdge(:)         ! lat edges 
+    CHARACTER(LEN=*), INTENT(IN   )   :: FN                 ! filename
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(sp),         POINTER         :: Array(:,:,:,:) ! Data
+    INTEGER,          INTENT(INOUT)   :: RC             ! Return code
+!
+! !REVISION HISTORY:
+!  13 Mar 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    REAL(hp)              :: DLAT, AREA
+    REAL(dp)              :: PI_180
+    INTEGER               :: NLAT, J
+    CHARACTER(LEN=255)    :: MSG, LOC
+
+    !=================================================================
+    ! NORNALIZE_AREA begins here! 
+    !=================================================================
+
+    ! Initialize
+    LOC    = 'NORMALIZE_AREA (hcoi_dataread_mod.F90 )'
+    PI_180 = HcoState%Phys%PI / 180.0_dp
+
+    ! Check array size
+    NLAT = SIZE(LatEdge,1) - 1
+    
+    IF ( SIZE(Array,1) /= NLON ) THEN
+       MSG = 'Array size does not agree with nlon: ' // TRIM(FN)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    IF ( SIZE(Array,2) /= NLAT ) THEN
+       MSG = 'Array size does not agree with nlat: ' // TRIM(FN)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! Loop over all latitudes
+    DO J = 1, NLAT
+       ! get grid box area in m2 for grid box with lower and upper latitude llat/ulat:
+       ! Area = 2 * PI * Re^2 * DLAT / NLON, where DLAT = abs( sin(ulat) - sin(llat) ) 
+       DLAT = ABS( SIN(LatEdge(J+1)*PI_180) - SIN(LatEdge(J)*PI_180) )
+       AREA = ( 2_hp * HcoState%Phys%PI * DLAT * HcoState%Phys%Re**2 ) / REAL(NLON,hp)
+
+       ! convert array data to m-2
+       ARRAY(:,J,:,:) = ARRAY(:,J,:,:) / AREA 
+    ENDDO
+
+    ! Prompt a warning
+    WRITE(MSG,*) 'No area unit found in ' // TRIM(FN) // ' - convert to m-2!'
+    CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE Normalize_Area
+!EOC
+#endif
+END MODULE HCOI_DataRead_Mod
