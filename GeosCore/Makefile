@@ -358,8 +358,6 @@ aerosol_mod.o               : aerosol_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               tracerid_mod.o          ucx_mod.o
 
-airmas.o                    : airmas.F
-
 backsub.o                   : backsub.F
 
 benchmark_mod.o             : benchmark_mod.F                                \
