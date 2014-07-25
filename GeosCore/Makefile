@@ -360,8 +360,6 @@ aerosol_mod.o               : aerosol_mod.F                                  \
 
 airmas.o                    : airmas.F
 
-arsl1k.o                    : arsl1k.F
-
 backsub.o                   : backsub.F
 
 benchmark_mod.o             : benchmark_mod.F                                \
@@ -572,10 +570,6 @@ future_emissions_mod.o      : future_emissions_mod.F
 fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
                               diag_mod.o              depo_mercury_mod.o     \
                               tracerid_mod.o          tracer_mod.o
-
-fyhoro.o                    : fyhoro.F
-
-fyrno3.o                    : fyrno3.F
 
 gamap_mod.o                 : gamap_mod.F                                    \
                               diag03_mod.o            diag04_mod.o           \

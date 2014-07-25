@@ -1,16 +1,73 @@
-! $Id: calcrate.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
-      SUBROUTINE CALCRATE( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CALCRATE computes reaction rates before passing them to the
-!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 11/19/08)
+! !IROUTINE: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) SUNCOS (REAL*8) : Array of COSINE( solar zenith angle )
-!  
-!  NOTES:
+! !DESCRIPTION: Subroutine CALCRATE computes reaction rates before passing 
+!  them to the SMVGEAR solver.
+!\\
+!\\
+! !INTERFACE:
+!
+       SUBROUTINE CALCRATE( am_I_Root, Input_Opt, 
+     &                      State_Met, State_Chm, RC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_O3_MOD
+      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, ERADIUS, IXSAVE, 
+     &                               IYSAVE, IZSAVE,  JLOP,    PRESS3,  
+     &                               REMIS,  T3,      TAREA,    CSPEC
+      USE DAO_MOD,            ONLY : IS_ICE
+      USE DIAG_MOD,           ONLY : AD22,   LTJV, AD52
+      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME, SHIPO3DEP
+      USE ERROR_MOD,          ONLY : is_safe_div
+      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : CHECK_VALUE
+      USE GCKPP_GLOBAL,       ONLY : IND
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP,GET_PBL_TOP_L
+      USE PLANEFLIGHT_MOD,    ONLY : ARCHIVE_RXNS_FOR_PF
+      USE TRACERID_MOD,       ONLY : IDTHBr,  IDTHOBr
+      USE TRACERID_MOD,       ONLY : IDHO2
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNIT
+
+      ! Also IDHCl and IDHBr for PSCs (SDE 04/17/13)
+      USE TRACERID_MOD,       ONLY : IDHCl,   IDHBr,   IDHOCl, IDHOBr
+      USE TRACERID_MOD,       ONLY : IDBrNO3, IDClNO3, IDN2O5
+      ! Online CH4 (SDE 03/25/13, derived from mpayer 01/24/12)
+      USE TRACERID_MOD,       ONLY : IDTCH4
+      USE FAST_JX_MOD,        ONLY : FJXFUNC
+      USE UCX_MOD,            ONLY : SO4_PHOTFRAC, CHECK_NAT
+      USE UCX_MOD,            ONLY : KHETI_SLA
+      USE ERROR_MOD,          ONLY : IT_IS_FINITE
+
+      IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY: 
 !  (1 ) For GEOS-CHEM we had to remove several arrays from "comode.h" and 
 !        declare these allocatable in "comode_mod.f".  This allows us to only 
 !        allocate these if we are doing a fullchem run.  Now also references
@@ -100,61 +157,14 @@
 !  25 Apr 2014 - M. Sulprizio- Now store J-values for ACET
 !  27 May 2014 - M. Sulprizio- Now store J-values for ALD2, MVK, MACR, HAC, GLYC
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_MOD
-!******************************************************************************
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD
-      USE CMN_DIAG_MOD
-      USE CMN_O3_MOD
-      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, ERADIUS, IXSAVE, 
-     &                               IYSAVE, IZSAVE,  JLOP,    PRESS3,  
-     &                               REMIS,  T3,      TAREA,    CSPEC
-      USE DAO_MOD,            ONLY : IS_ICE
-      USE DIAG_MOD,           ONLY : AD22,   LTJV, AD52
-      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME, SHIPO3DEP
-      USE ERROR_MOD,          ONLY : is_safe_div
-      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE ERROR_MOD,          ONLY : CHECK_VALUE
-      USE GCKPP_GLOBAL,       ONLY : IND
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GRID_MOD,           ONLY : GET_YMID
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP,GET_PBL_TOP_L
-      USE PLANEFLIGHT_MOD,    ONLY : ARCHIVE_RXNS_FOR_PF
-      USE TRACERID_MOD,       ONLY : IDTHBr,  IDTHOBr
-      USE TRACERID_MOD,       ONLY : IDHO2
-      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNIT
-
-      ! Also IDHCl and IDHBr for PSCs (SDE 04/17/13)
-      USE TRACERID_MOD,       ONLY : IDHCl,   IDHBr,   IDHOCl, IDHOBr
-      USE TRACERID_MOD,       ONLY : IDBrNO3, IDClNO3, IDN2O5
-      ! Online CH4 (SDE 03/25/13, derived from mpayer 01/24/12)
-      USE TRACERID_MOD,       ONLY : IDTCH4
-      USE FAST_JX_MOD,        ONLY : FJXFUNC
-      USE UCX_MOD,            ONLY : SO4_PHOTFRAC, CHECK_NAT
-      USE UCX_MOD,            ONLY : KHETI_SLA
-      USE ERROR_MOD,          ONLY : IT_IS_FINITE
-
-      IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!  25 Jul 2014 - R. Yantosca - Now inlined functions ARSLIK, FYRNO3, FYHORO
+!  25 Jul 2014 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
       ! jpp, rate constant for BrNO3 cloud recycling
       REAL*8 :: CLD_BrNO3_RC
 
@@ -183,9 +193,6 @@
       ! FP variables for isoprene chemistry (hotp 7/31/09)
       REAL*8   :: HAC_FRAC      
       REAL*8   :: GLYC_FRAC   
-
-      ! External functions
-      REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FYHORO
 
       CHARACTER*8      :: SPECNAME
 
@@ -2831,6 +2838,216 @@ c new OH+CO rate from JPL2006.
      
       ! Return to calling program
       END FUNCTION FCRO2HO2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !FUNCTION: FYHORO
+!
+! !DESCRIPTION: \subsection*{Overview}
+!  Function FYHORO returns returns the branching ratio between 
+!  HOC2H4O oxidation and dissociation:
+!  (1) HOC2H4 --O2--> HO2 + GLYC
+!  (2) HOC2H4 ------> HO2 + 2CH2O
+!
+!\subsection*{References}
+!  \begin{enumerate}
+!  \item Orlando et al., 1998: \emph{Laboratory and theoretical study of the 
+!         oxyradicals in the OH- and Cl-initiated oxidation of ethene}, 
+!        \underline{J. Phys. Chem. A}, \textbf{102}, 8116-8123.
+!  \item Orlando et al., 2003: \emph{The atmospheric chemistry of alkoxy 
+!         radicals}, \underline{Chem. Rev.}, \textbf{103}, 4657-4689.
+!  \end{enumerate}
+!
+!\\
+!\\
+! !INTERFACE: 
+!
+      REAL*8 FUNCTION FYHORO( ZDNUM, TT )
+! 
+! !USES:
+!
+      IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: ZDNUM   ! Air density   [molec/cm3 ]
+      REAL*8, INTENT(IN) :: TT      ! Temperature   [K         ]
+!
+! !REVISION HISTORY:
+!  (1 ) Branching ratio calculation (tmf, 2/6/05).
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  25 Jul 2014 - R. Yantosca - Now inlined into calcrate.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: K1, K2, O2DNUM
+
+      !=================================================================
+      ! FYHORO begins here!
+      !=================================================================
+      O2DNUM = ZDNUM * 0.21D0
+      K1     = 6.0D-14 * EXP(-550.D0/TT) * O2DNUM
+      K2     = 9.5D+13 * EXP(-5988.D0/TT) 
+
+      FYHORO = K1 / (K1 + K2)
+     
+      END FUNCTION FYHORO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: fyrno3
+!
+! !DESCRIPTION: Function FYRNO3 returns organic nitrate yields 
+!  YN = RKA/(RKA+RKB) from RO2+NO reactions as a function of the number 
+!  N of carbon atoms.
+!\\
+!\\
+! !INTERFACE:
+!
+      REAL*8 FUNCTION FYRNO3( XCARBN, ZDNUM, TT )
+!
+! !USES:
+!
+      IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: XCARBN   ! Number of C atoms in RO2
+      REAL*8, INTENT(IN) :: ZDNUM    ! Air density   [molec/cm3 ]
+      REAL*8, INTENT(IN) :: TT       ! Temperature   [K         ]
+! 
+! !REVISION HISTORY: 
+!  (1 ) Original code from Larry Horowitz, Jinyou Liang, Gerry Gardner,
+!        and Daniel Jacob circa 1989/1990.
+!  (2 ) Updated following Atkinson 1990.
+!  (3 ) Change yield from Isoprene Nitrate (ISN2) from 0.44% to 12%,
+!        according to Sprengnether et al., 2002. (amf, bmy, 1/7/02)
+!  (4 ) Eliminate obsolete code from 1/02 (bmy, 2/27/02)
+!  (5 ) Updated comment description of XCARBN (bmy, 6/26/03)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  25 Jul 2014 - R. Yantosca - Now inlined into calcrate.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: YYYN, XXYN,  AAA,  RARB, ZZYN
+      REAL*8 :: XF,   ALPHA, Y300, BETA, XMINF, XM0
+
+      ! Initialize static variables
+      DATA   Y300,ALPHA,BETA,XM0,XMINF,XF/.826,1.94E-22,.97,0.,8.1,.411/
+
+      !=================================================================
+      ! FYRNO3 begins here!
+      !=================================================================
+      XXYN   = ALPHA*EXP(BETA*XCARBN)*ZDNUM*((300./TT)**XM0)
+      YYYN   = Y300*((300./TT)**XMINF)
+      AAA    = LOG10(XXYN/YYYN)
+      ZZYN   = 1./(1.+ AAA*AAA )
+      RARB   = (XXYN/(1.+ (XXYN/YYYN)))*(XF**ZZYN)
+      FYRNO3 = RARB/(1. + RARB)
+     
+      END FUNCTION FYRNO3
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: arsl1k
+!
+! !DESCRIPTION: Function ARSL1K calculates the 1st-order loss rate of species 
+!  on wet aerosol surface.
+!\\
+!\\
+! !INTERFACE:
+!
+      REAL*8 FUNCTION ARSL1K( AREA, RADIUS, DENAIR, STKCF, STK, SQM )
+!
+! !USES:
+!
+      IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+      ! Surface  area of wet aerosols/volume of air [cm2/cm3]
+      REAL*8, INTENT(IN) :: AREA     
+
+      ! Radius of wet aerosol [cm], order of 0.01-10 um;
+      ! Note that radius here is Rd, not Ro
+      REAL*8, INTENT(IN) :: RADIUS 
+  
+      ! Density of air [#/cm3]
+      REAL*8, INTENT(IN) :: DENAIR  
+ 
+      ! Sticking coefficient [unitless], order of 0.1
+      REAL*8, INTENT(IN) :: STKCF  
+  
+      ! Square root of temperature [K]
+      REAL*8, INTENT(IN) :: STK  
+    
+      ! Square root of molecular weight [g/mole]
+      REAL*8, INTENT(IN) :: SQM      
+!
+! !REMARKS:
+!  The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
+!  is computed as:
+!                                                                             .
+!      ARSL1K [1/s] = area / [ radius/dfkg + 4./(stkcf * xmms) ]        
+!                                                                             .
+!  where XMMS = Mean molecular speed [cm/s] = sqrt(8R*TK/pi/M) for Maxwell 
+!        DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
+
+! !REVISION HISTORY:
+!  01 Jul 1994 - lwh, jyl, gmg, djj - Initial version 
+!  04 Apr 2003 - R. Yantosca - Updated comments, cosmetic changes
+!  07 Apr 2004 - R. Yantosca - Now return w/ default value if RADIUS is zero 
+!                              (i.e. is smaller than a very small number)
+!  03 Dec 2009 - R. Yantosca - Prevent div-by-zero errors by returning the
+!                              default value if any of the args are zero 
+!  03 Dec 2009 - R. Yantosca - Added ProTeX Header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: DFKG
+
+      !=================================================================
+      ! ARSL1K begins here!
+      !=================================================================
+      IF ( AREA < 0d0   .or. DENAIR < 1d-30 .or. RADIUS < 1d-30  .or.
+     &     SQM  < 1d-30 .or. STK    < 1d-30 .or. STKCF  < 1d-30 ) THEN
+
+         ! Use default value if any of the above values are zero
+         ! This will prevent div-by-zero errors in the eqns below
+         ! Value changed from 1d-3 to 1d-30 (bhh, jmao, eam, 7/18/2011)
+         ARSL1K = 1.D-30
+
+      ELSE
+
+         ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
+         DFKG  = 9.45D17/DENAIR * STK * SQRT(3.472D-2 + 1.D0/(SQM*SQM))
+
+         ! Compute ARSL1K according to the formula listed above
+         ARSL1K = AREA / ( RADIUS/DFKG + 2.749064E-4*SQM/(STKCF*STK) )
+
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION ARSL1K
 !EOC
 ! *********************************************************************
 ! ******************** END OF SUBROUTINE CALCRATE *********************
