@@ -6662,6 +6662,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  25 Nov 2009 - C. Holmes   - Initial version
+!  25 Jul 2014 - R. Yantosca - Remove reference to function SFCWINDSQR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6673,10 +6674,7 @@
       INTEGER               :: I, J
       REAL*8,SAVE           :: TABLE_S(21), TABLE_U10(20)
       REAL*8,SAVE           :: TABLE_UPTAKE(21,20) 
-      
-
-      ! External functions
-      REAL*8,  EXTERNAL     :: SFCWINDSQR
+      REAL*8                :: SFCWINDSQR
 
       ! Flag for first call
       LOGICAL, SAVE         :: FIRST=.TRUE.
@@ -6688,7 +6686,7 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, U10M, S, LOSS_FREQ )
+!$OMP+PRIVATE( I, J, U10M, S, LOSS_FREQ, SFCWINDSQR )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -6696,13 +6694,20 @@
          IF ( IS_WATER( I, J, State_Met ) ) THEN
 
             ! Wind speed at 10m altitude [m/s]
-            U10M = SQRT( SFCWINDSQR( I, J,
-     &                               State_Met%U10M,
-     &                               State_Met%V10M ) )
-            
+!----------------------------------------------------------------------------
+! Prior to 7/25/14:
+! Remove reference to function SFCWINDSQR (bmy, 7/25/14)
+!            U10M = SQRT( SFCWINDSQR( I, J,
+!     &                               State_Met%U10M,
+!     &                               State_Met%V10M ) )
+!----------------------------------------------------------------------------
+            SFCWINDSQR = State_Met%U10M(I,J)**2 
+     &                 + State_Met%V10M(I,J)**2
+            U10M       = SQRT( SFCWINDSQR )
+
             ! Don't allow wind >20 m/s which is the limit of this 
             ! parameterization
-            U10M = MAX( MIN( U10M, 20d0 ), 1D0 )
+            U10M       = MAX( MIN( U10M, 20d0 ), 1D0 )
 
             ! Relative humidity as a saturation ratio
             ! Use the relative humidity of the lowest layer, although this is 

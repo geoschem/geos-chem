@@ -726,6 +726,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !******************************************************************************
 !
       ! References to F90 modules
@@ -824,9 +825,6 @@
       REAL*8,  PARAMETER   :: NPPMINNUM   = 5D-2       
       REAL*8,  PARAMETER   :: CHLMINNUM   = 1D-1       
 
-      ! External functions
-      REAL*8,  EXTERNAL     :: SFCWINDSQR 
-     
       ! For values from Input_Opt
       LOGICAL         :: LSPLIT
       INTEGER         :: N_TRACERS
@@ -952,16 +950,16 @@
       ! Loop over surface boxes  
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED  )
-!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV   )
-!$OMP+PRIVATE( N,   TK,   CHg0,    FRAC_L,  k_red_bio  )
-!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad  )
-!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall  )
-!$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,   Hg2aq_tot  )
-!$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg  )
-!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE   )
-!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg   )
-!$OMP+PRIVATE( IS_OCEAN_BOX                   )
+!$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED                       )
+!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV             )
+!$OMP+PRIVATE( N,   TK,   CHg0,    FRAC_L,  k_red_bio            )
+!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad            )
+!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall            )
+!$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,  Hg2aq_tot )
+!$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg            )
+!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE                      )
+!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg                      )
+!$OMP+PRIVATE( IS_OCEAN_BOX                                      )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1179,7 +1177,12 @@
             ScCO2  = 644.7d0 + TC * ( -6.16d0 + TC * ( 0.11d0 ) ) 
 
             ! Square of surface (actually 10m) wind speed [m2/s2]
-            Usq    = SFCWINDSQR( I, J, State_Met%U10M, State_Met%V10M )
+!----------------------------------------------------------------------------
+! Prior to 7/25/14:
+! Remove reference to function SFCWINDSQR (bmy, 7/25/14)
+!            Usq    = SFCWINDSQR( I, J, State_Met%U10M, State_Met%V10M )
+!----------------------------------------------------------------------------
+            Usq    = State_Met%U10M(I,J)**2 + State_Met%V10M(I,J)**2
 
             !------------------------------------------------------
             ! Parameterizations for calculating water side mass trasfer coefficient 

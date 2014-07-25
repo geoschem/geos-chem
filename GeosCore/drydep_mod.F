@@ -713,18 +713,17 @@
 !  28 Nov 2012 - R. Yantosca - Add SUNCOS_MID to the argument list and 
 !                              populate that with State_Met%SUNCOSmid
 !  21 Oct 2013 - R. Yantosca - Bug fix: need to hold SP private in OMP loop
+!  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I,  J,  IJLOOP
-      REAL*8                :: THIK
-      REAL*8                :: SP
-
-      ! External functions
-      REAL*8, EXTERNAL      :: SFCWINDSQR ! Surface wind speed (jaegle 5/11/11)
+      INTEGER :: I,  J,  IJLOOP
+      REAL*8  :: THIK
+      REAL*8  :: SP
+      REAL*8  :: SFCWINDSQR
 
       !=================================================================
       ! METERO begins here!
@@ -740,7 +739,7 @@
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK, SP )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, SP, SFCWINDSQR )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -796,10 +795,18 @@
          !  jaegle (5/11/11)
          RHB(IJLOOP)    = MIN( 0.98d0, State_Met%RH(I,J,1) * 1.d-2 )
 
-         ! 10m windspeed (jaegle 5/11/11)
-         W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
-     &                                       State_Met%U10M,
-     &                                       State_Met%V10M ) )
+!------------------------------------------------------------------------------
+! Prior to 7/25/14:
+! Remove reference to SFCWINDSQR (bmy, 7/25/14)
+!         ! 10m windspeed (jaegle 5/11/11)
+!         W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
+!     &                                       State_Met%U10M,
+!     &                                       State_Met%V10M ) )
+!------------------------------------------------------------------------------
+         ! 10m windspeed [m/s] (jaegle 5/11/11)
+         SFCWINDSQR     = State_Met%U10M(I,J)**2
+     &                  + State_Met%V10M(I,J)**2
+         W10(IJLOOP)    = SQRT( SFCWINDSQR )
 
          ! Cosine of solar zenith angle at midpoint 
          ! of the current chemistry timestep.

@@ -860,8 +860,6 @@ ucx_mod.o                   : ucx_mod.F                                      \
 
 setmodel.o                  : setmodel.F
 
-sfcwindsqr.o                : sfcwindsqr.F
-
 smvgear.o                   : smvgear.F                                      \
                               comode_mod.o
 
