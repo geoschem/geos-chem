@@ -946,8 +946,7 @@ wetscav_mod.o               : wetscav_mod.F                                  \
 tomas_mod.o                 : tomas_mod.F                                    \
                               chemgrid_mod.o          dao_mod.o              \
                               diag_mod.o              diag_pl_mod.o          \
-                              tracerid_mod.o          cf_nucl.o              \
-                              YuIMN_Code.o            ion_nucl.o
+                              tracerid_mod.o          YuIMN_Code.o 
 
 tomas_tpcore_mod.o          : tomas_tpcore_mod.F90                           \
                               tomas_mod.o             tracerid_mod.o
@@ -959,10 +958,6 @@ aero_drydep.o               : aero_drydep.F                                  \
                               pbl_mix_mod.o           tomas_mod.o            \
                               tracerid_mod.o
 
-ion_nucl.o                  : ion_nucl.F
-
 YuIMN_Code.o                : YuIMN_Code.F
-
-cf_nucl.o                   : cf_nucl.F
 
 #EOC
