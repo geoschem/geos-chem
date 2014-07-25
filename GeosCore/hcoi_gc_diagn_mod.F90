@@ -363,8 +363,8 @@ CONTAINS
     ! Create output file
     !-----------------------------------------------------------------
 
-    ! Get HEMCO time: if this is the last call (WriteAll flag
-    ! true), get current time. Use previous time otherwise.
+    ! Use HEMCO clock to create timestamp used in filename. Use previous
+    ! time step if this option is selected.
     IF ( .NOT. PrevTime ) THEN
        CALL HcoClock_Get(cYYYY=YYYY,cMM=MM,cDD=DD,cH=h,cM=m,cS=s,RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN

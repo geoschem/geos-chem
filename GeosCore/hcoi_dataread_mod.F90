@@ -16,6 +16,7 @@ MODULE HCOI_DataRead_Mod
 ! !USES:
 !
   USE HCO_Error_Mod
+  USE HCO_CharTools_Mod
   USE HCO_State_Mod,       ONLY : Hco_State
   USE HCO_DataCont_Mod,    ONLY : ListCont
 
@@ -199,6 +200,9 @@ CONTAINS
     USE Ncdf_Mod,           ONLY : NC_Get_Grid_Edges
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
+    USE HCO_Unit_Mod,       ONLY : HCO_IsUnitless
+    USE HCO_Unit_Mod,       ONLY : HCO_IsIndexData
+    USE HCO_Unit_Mod,       ONLY : HCO_UnitTolerance
     USE HCO_GeoTools_Mod,   ONLY : HCO_ValidateLon
     USE Regrid_A2A_Mod,     ONLY : MAP_A2A
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
@@ -247,11 +251,14 @@ CONTAINS
     REAL(sp), ALLOCATABLE         :: LatEdgeI(:)
     REAL(sp)                      :: LonEdgeO(HcoState%NX+1) 
     REAL(sp)                      :: LatEdgeO(HcoState%NY+1)
-    LOGICAL                       :: verb, forcescal, IsPerArea
+    LOGICAL                       :: verb, IsPerArea
     REAL(dp)                      :: PI_180
-   
+    REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
+    INTEGER                       :: UnitTolerance
+
     ! Use MESSy regridding routines?
     LOGICAL, PARAMETER    :: UseMESSy = .TRUE.
+
 
     !=================================================================
     ! HCOI_DATAREAD begins here
@@ -264,10 +271,11 @@ CONTAINS
     ! To convert from deg to rad  
     PI_180 = HcoState%Phys%PI / 180.0_dp
 
-    ! Check for verbose mode and if scale factors have to be in scale
-    ! factor units.
-    verb      = HCO_VERBOSE_CHECK()
-    forcescal = HCO_FORCESCAL_CHECK()
+    ! Check for verbose mode
+    verb = HCO_VERBOSE_CHECK()
+
+    ! Get unit tolerance set in configuration file
+    UnitTolerance = HCO_UnitTolerance()
  
     ! Copy horizontal grid dimensions from HEMCO state object
     NX = HcoState%NX
@@ -438,24 +446,87 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! Convert to HEMCO units. This is kg/m2/s for fluxes and kg/m3 
-    ! for concentrations. Ignore this if no species ID defined,
-    ! e.g. for scale factors.
-    HcoID = Lct%Dct%HcoID 
-    IF ( HcoID > 0 ) THEN
+    ! for concentrations.
+    ! The srcUnit attribute of the configuration file determines to
+    ! which fields unit conversion is applied:
 
-       CALL HCO_UNIT_CHANGE(                                    &
-            Array         = ncArr,                              &
-            Units         = thisUnit,                           &
-            MW_IN         = HcoState%Spc(HcoID)%MW_g,           & 
-            MW_OUT        = HcoState%Spc(HcoID)%EmMW_g,         & 
-            MOLEC_RATIO   = HcoState%Spc(HcoID)%MolecRatio,     & 
-            YYYY          = ncYr,                               &
-            MM            = ncMt,                               &
-            IsPerArea     = IsPerArea,                          &
-            RC            = NCRC                                 )
+    ! If OrigUnit is set to wildcard character: use unit from source file
+    IF ( TRIM(Lct%Dct%Dta%OrigUnit) == HCO_WCD() ) THEN
+       Lct%Dct%Dta%OrigUnit = TRIM(thisUnit)
+    ENDIF
 
-       IF ( NCRC /= 0 ) THEN
-          CALL HCO_ERROR('CHANGE_UNITS', RC )
+    ! If OrigUnit is set to '1' or to 'count', perform no unit 
+    ! conversion.
+    IF ( HCO_IsUnitLess(Lct%Dct%Dta%OrigUnit)  .OR. &
+         HCO_IsIndexData(Lct%Dct%Dta%OrigUnit)       ) THEN
+
+       ! Check if file unit is also unitless. This will return 0 for
+       ! unitless, 1 for HEMCO unit, 2 otherwise.
+       Flag = HCO_UNIT_SCALCHECK( thisUnit )
+      
+       ! Return with error if: (1) thisUnit is recognized as HEMCO unit and 
+       ! unit tolerance is set to zero; (2) thisUnit is neither unitless nor
+       ! a HEMCO unit and unit tolerance is set to zero or one.
+       ! The unit tolerance is defined in the configuration file.
+       IF ( Flag > UnitTolerance ) THEN
+          MSG = 'Illegal unit: ' // TRIM(thisUnit) // '. File: ' // &
+                TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ENDIF
+
+       ! Prompt a warning if thisUnit is not recognized as unitless.
+       IF ( Flag > 0 ) THEN 
+          MSG = 'Data does not appear to be unitless: ' // &
+                TRIM(thisUnit) // '. File: '            // &
+                TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_WARNING( MSG, RC )
+       ENDIF
+
+    ! Convert to HEMCO units in all other cases. 
+    ELSE
+
+       ! For zero unit tolerance, make sure that thisUnit matches 
+       ! with unit set in configuration file!
+       ! Otherwise, prompt at least a warning.
+       IF ( TRIM(Lct%Dct%Dta%OrigUnit) /= TRIM(thisUnit) ) THEN
+          MSG = 'File units do not match: ' // TRIM(thisUnit) // &
+                ' vs. ' // TRIM(Lct%Dct%Dta%OrigUnit)    // &
+                '. File: ' // TRIM(Lct%Dct%Dta%ncFile)
+
+          IF ( UnitTolerance == 0 ) THEN
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ELSE
+             CALL HCO_WARNING( MSG, RC )
+          ENDIF
+       ENDIF 
+
+       ! Mirror species properties needed for unit conversion
+       HcoID = Lct%Dct%HcoID
+       IF ( HcoID > 0 ) THEN
+          MW_g       = HcoState%Spc(HcoID)%MW_g
+          EmMW_g     = HcoState%Spc(HcoID)%EmMW_g
+          MolecRatio = HcoState%Spc(HcoID)%MolecRatio
+       ELSE
+          MW_g       = -999.0_hp
+          EmMW_g     = -999.0_hp
+          MolecRatio = -999.0_hp
+       ENDIF
+
+       CALL HCO_UNIT_CHANGE(                &
+            Array         = ncArr,          &
+            Units         = thisUnit,       &
+            MW_IN         = MW_g,           & 
+            MW_OUT        = EmMW_g,         & 
+            MOLEC_RATIO   = MolecRatio,     & 
+            YYYY          = ncYr,           &
+            MM            = ncMt,           &
+            IsPerArea     = IsPerArea,      &
+            RC            = RC               )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot convert units for ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR( MSG , RC )
           RETURN 
        ENDIF
   
@@ -479,24 +550,6 @@ CONTAINS
                                LatEdge,  Lct%Dct%Dta%ncFile, RC     )
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
-     
-    ! For scale factors and masks, check if units are indeed unitless. 
-    ELSE
-       Flag = HCO_UNIT_SCALCHECK( thisUnit )
-       MSG = 'Scale factor does not appear to be unitless: ' // & 
-             TRIM(Lct%Dct%Dta%ncFile)
-       IF ( Flag == 1 ) THEN
-          CALL HCO_WARNING( MSG, RC )
-       ELSEIF ( Flag == 2 ) THEN
-          IF ( ForceScal ) THEN
-             MSG = 'Illegal scale factor unit: ' // TRIM(Lct%Dct%Dta%ncFile)
-             CALL HCO_ERROR( MSG, RC )
-             RETURN
-          ELSE
-             CALL HCO_WARNING( MSG, RC )
-          ENDIF
-       ENDIF
-
     ENDIF
 
     !-----------------------------------------------------------------

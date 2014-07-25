@@ -72,9 +72,10 @@ MODULE HCOI_MESSY_MOD
 ! !USES:
 !
   USE HCO_FILEDATA_MOD,     ONLY : FileData_ArrCheck
-  USE MESSY_NCREGRID_BASE,  ONLY : RG_INT
+  USE HCO_UNIT_MOD,         ONLY : HCO_IsIndexData
+  USE MESSY_NCREGRID_BASE,  ONLY : RG_INT, RG_IDX
   USE MESSY_NCREGRID_BASE,  ONLY : NREGRID
-  USE MESSY_NCREGRID_BASE,  ONLY : INIT_NARRAY
+  USE MESSY_NCREGRID_BASE,  ONLY : INIT_NARRAY 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -257,10 +258,16 @@ MODULE HCOI_MESSY_MOD
     ! Set all other regridding parameter
     !-----------------------------------------------------------------
 
-    ! rg_type denotes the regridding type for each array. Set this
-    ! to 'intensive quantity' (concentrations) for all time slices.
+    ! rg_type denotes the regridding type for each array (i.e. time 
+    ! slice). Set to 'intensive quantity' for all concentrations (incl.
+    ! unitless) data. Set this to 'index distribution' for data marked
+    ! as index data in the configuration file.
     ALLOCATE(rg_type(NTIME))
-    rg_type(:) = RG_INT  
+    IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
+       rg_type(:) = RG_IDX
+    ELSE
+       rg_type(:) = RG_INT 
+    ENDIF
 
     ! temporary level loop to avoid vertical regridding...
     ! TODO: remove

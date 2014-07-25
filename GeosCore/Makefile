@@ -689,7 +689,7 @@ hco_driver_mod.o            : hco_driver_mod.F90                             \
 
 hco_filedata_mod.o          : hco_filedata_mod.F90                           \
                               hco_arr_mod.o           hco_chartools_mod.o    \
-                              hco_error_mod.o
+                              hco_error_mod.o         hco_unit_mod.o
 
 hco_fluxarr_mod.o           : hco_fluxarr_mod.F90                            \
                               hco_arr_mod.o           hco_error_mod.o        \
@@ -718,13 +718,15 @@ hco_tidx_mod.o              : hco_tidx_mod.F90                               \
                               hco_filedata_mod.o      hco_state_mod.o
 
 hco_unit_mod.o              : hco_unit_mod.F90                               \
-                              hco_chartools_mod.o     hco_error_mod.o
+                              hco_chartools_mod.o     hco_error_mod.o        \
+                              hco_extlist_mod.o
 
 hcoi_dataread_mod.o         : hcoi_dataread_mod.F90                          \
-                              hco_datacont_mod.o      hco_error_mod.o        \
-                              hco_filedata_mod.o      hco_geotools_mod.o     \
-                              hco_state_mod.o         hco_tidx_mod.o         \
-                              hco_unit_mod.o          hcoi_messy_mod.o
+                              hco_chartools_mod.o     hco_datacont_mod.o     \
+                              hco_error_mod.o         hco_filedata_mod.o     \
+                              hco_geotools_mod.o      hco_state_mod.o        \
+                              hco_tidx_mod.o          hco_unit_mod.o         \
+                              hcoi_messy_mod.o
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               hco_arr_mod.o           hco_config_mod.o       \
@@ -741,7 +743,7 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
 hcoi_messy_mod.o            : hcoi_messy_mod.F90                             \
                               hco_datacont_mod.o      hco_error_mod.o        \
                               hco_filedata_mod.o      hco_state_mod.o        \
-                              messy_ncregrid_base.o
+                              hco_unit_mod.o          messy_ncregrid_base.o
 
 hco_standalone_mod.o        : hco_standalone_mod.F90                         \
                               hco_arr_mod.o           hco_config_mod.o       \
