@@ -81,6 +81,8 @@ CONTAINS
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  25 Jul 2014 - R. Yantosca - Now save diagnostics at the end of the run,
+!                              which facilitates unit testing & diff testing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,7 +120,8 @@ CONTAINS
                            SpaceDim = 2, &
                            LevIDx   = -1, &
                            OutUnit  = 'kg/m2/s', &
-                           WriteFreq = 'Hourly',  &
+!                           WriteFreq = 'Hourly',  &
+                           WriteFreq = 'End',  &
                            AutoFill  = 1, &
                            cID       = N, & 
                            RC        = RC ) 
@@ -134,7 +137,8 @@ CONTAINS
                            HcoID    = I, &
                            SpaceDim = 2, &
                            OutUnit  = 'kg/m2/s', &
-                           WriteFreq = 'Hourly',  &
+!                           WriteFreq = 'Hourly',  &
+                           WriteFreq = 'End',  &
                            AutoFill  = 1, &
                            cID       = N, & 
                            RC        = RC ) 
@@ -151,7 +155,8 @@ CONTAINS
                            SpaceDim  = 2, &
                            LevIdx    = -1, &
                            OutUnit   = 'kg/m2/s', &
-                           WriteFreq = 'Hourly',  &
+!                           WriteFreq = 'Hourly',  &
+                           WriteFreq = 'End',  &
                            AutoFill  = 1, &
                            cID       = N, & 
                            RC        = RC ) 
@@ -167,7 +172,8 @@ CONTAINS
                            HcoID    = I, &
                            SpaceDim = 2, &
                            OutUnit  = 'kg/m2/s', &
-                           WriteFreq = 'Hourly',  &
+!                           WriteFreq = 'Hourly',  &
+                           WriteFreq = 'End',  &
                            AutoFill  = 1, &
                            cID       = N, & 
                            RC        = RC ) 
@@ -185,7 +191,8 @@ CONTAINS
                            SpaceDim = 2, &
                            LevIDx   = -1, &
                            OutUnit  = 'kg/m2/s', &
-                           WriteFreq = 'Hourly',  &
+!                           WriteFreq = 'Hourly',  &
+                           WriteFreq = 'End',  &
                            AutoFill  = 1, &
                            cID       = N, & 
                            RC        = RC ) 
@@ -202,7 +209,8 @@ CONTAINS
                            HcoID    = I, &
                            SpaceDim = 2, &
                            OutUnit  = 'kg/m2/s', &
-                           WriteFreq = 'Hourly',  &
+!                           WriteFreq = 'Hourly',  &
+                           WriteFreq = 'End',  &
                            AutoFill  = 1, &
                            cID       = N, & 
                            RC        = RC ) 
@@ -220,7 +228,8 @@ CONTAINS
                            SpaceDim = 2, &
                            LevIDx   = -1, &
                            OutUnit  = 'kg/m2/s', &
-                           WriteFreq = 'Hourly',  &
+!                           WriteFreq = 'Hourly',  &
+                           WriteFreq = 'End',  &
                            AutoFill  = 1, &
                            cID       = N, & 
                            RC        = RC ) 
