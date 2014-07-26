@@ -22,53 +22,54 @@
 #
 # !REVISION HISTORY: 
 #  08 Jul 2014 - R. Yantosca - Initial version
+#  21 Jul 2014 - R. Yantosca - Now look for HEMCO modules in subdirectories
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # List of source code files (order is important)
-SRC5 :=                               \
-./intro.hemco                         \
-$(HEMCO)/hco_arr_mod.F90              \
-$(HEMCO)/hco_calc_mod.F90             \
-$(HEMCO)/hco_chartools_mod.F90	      \
-$(HEMCO)/hco_clock_mod.F90	      \
-$(HEMCO)/hco_config_mod.F90	      \
-$(HEMCO)/hco_datacont_mod.F90	      \
-$(HEMCO)/hco_diagn_mod.F90	      \
-$(HEMCO)/hco_driver_mod.F90	      \
-$(HEMCO)/hco_emislist_mod.F90	      \
-$(HEMCO)/hco_extlist_mod.F90	      \
-$(HEMCO)/hco_error_mod.F90	      \
-$(HEMCO)/hco_filedata_mod.F90	      \
-$(HEMCO)/hco_fluxarr_mod.F90	      \
-$(HEMCO)/hco_geotools_mod.F90	      \
-$(HEMCO)/hco_readlist_mod.F90	      \
-$(HEMCO)/hco_standalone_mod.F90       \
-$(HEMCO)/hco_state_mod.F90	      \
-$(HEMCO)/hco_tidx_mod.F90	      \
-$(HEMCO)/hco_unit_mod.F90	      \
-$(HEMCO)/hcoi_dataread_mod.F90	      \
-$(HEMCO)/hcoi_gc_diagn_mod.F90	      \
-$(HEMCO)/hcoi_gc_main_mod.F90	      \
-$(HEMCO)/hcox_custom_mod.F90	      \
-$(HEMCO)/hcox_driver_mod.F90	      \
-$(HEMCO)/hcox_dustdead_mod.F	      \
-$(HEMCO)/hcox_dustginoux_mod.F90      \
-$(HEMCO)/hcox_gc_RnPbBe_mod.F90	      \
-$(HEMCO)/hcox_finn_mod.F90            \
-$(HEMCO)/hcox_gfed3_mod.F90	      \
-$(HEMCO)/hcox_lightnox_mod.F90	      \
-$(HEMCO)/hcox_megan_mod.F	      \
-$(HEMCO)/hcox_paranox_mod.F90	      \
-$(HEMCO)/paranox_util_mod.F           \
-$(HEMCO)/hcox_seaflux_mod.F90	      \
-$(HEMCO)/hcox_seasalt_mod.F90	      \
-$(HEMCO)/hcox_soilnox_mod.F90         \
-$(HEMCO)/hcox_state_mod.F90           \
-$(HEMCO)/drydep_toolbox_mod.F90       \
-$(HEMCO)/henry_mod.F                  \
-$(HEMCO)/ocean_toolbox_mod.F90
+SRC5 :=                            \
+./intro.hemco			   \
+$(HCO)/hco_arr_mod.F90		   \
+$(HCO)/hco_calc_mod.F90		   \
+$(HCO)/hco_chartools_mod.F90	   \
+$(HCO)/hco_clock_mod.F90	   \
+$(HCO)/hco_config_mod.F90	   \
+$(HCO)/hco_datacont_mod.F90	   \
+$(HCO)/hco_diagn_mod.F90	   \
+$(HCO)/hco_driver_mod.F90	   \
+$(HCO)/hco_emislist_mod.F90	   \
+$(HCO)/hco_extlist_mod.F90	   \
+$(HCO)/hco_error_mod.F90	   \
+$(HCO)/hco_filedata_mod.F90	   \
+$(HCO)/hco_fluxarr_mod.F90	   \
+$(HCO)/hco_geotools_mod.F90	   \
+$(HCO)/hco_readlist_mod.F90	   \
+$(HCO)/hco_standalone_mod.F90	   \
+$(HCO)/hco_state_mod.F90	   \
+$(HCO)/hco_tidx_mod.F90		   \
+$(HCO)/hco_unit_mod.F90		   \
+$(HCO)/hcoi_dataread_mod.F90	   \
+$(HCOI)/hcoi_gc_diagn_mod.F90	   \
+$(CORE)/hcoi_gc_main_mod.F90	   \
+$(HCOX)/hcox_custom_mod.F90	   \
+$(CORE)/hcox_driver_mod.F90	   \
+$(HCOX)/hcox_dustdead_mod.F	   \
+$(HCOX)/hcox_dustginoux_mod.F90	   \
+$(HCOX)/hcox_gc_RnPbBe_mod.F90	   \
+$(HCOX)/hcox_finn_mod.F90	   \
+$(HCOX)/hcox_gfed3_mod.F90	   \
+$(HCOX)/hcox_lightnox_mod.F90	   \
+$(HCOX)/hcox_megan_mod.F	   \
+$(HCOX)/hcox_paranox_mod.F90	   \
+$(CORE)/paranox_util_mod.F	   \
+$(HCOX)/hcox_seaflux_mod.F90	   \
+$(HCOX)/hcox_seasalt_mod.F90	   \
+$(HCOX)/hcox_soilnox_mod.F90	   \
+$(HCOX)/hcox_state_mod.F90	   \
+$(HCOX)/drydep_toolbox_mod.F90	   \
+$(HCOX)/henry_mod.F		   \
+$(HCOX)/ocean_toolbox_mod.F90
 
 # Output file names
 TEX5 := GC_Ref_Vol_5.tex

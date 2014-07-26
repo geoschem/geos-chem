@@ -21,7 +21,6 @@
       USE AEROSOL_MOD,          ONLY : SOILDUST
       USE CHEMGRID_MOD,         ONLY : SAVE_FULL_CHEMGRID
       USE CMN_DIAG_MOD
-      USE CMN_NOX_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE COMODE_MOD,           ONLY : ABSHUM
@@ -246,6 +245,7 @@
 !  06 Jun 2013 - M. Payer    - Move SETEMIS to after FAST_J (C. Holmes)
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  23 Jul 2014 - R. Yantosca - Removed reference to obsolete CMN_NOX_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

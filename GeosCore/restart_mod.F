@@ -1107,7 +1107,6 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
-      USE CMN_MOD
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE GIGC_ErrCode_Mod
@@ -1152,6 +1151,7 @@
 !  04 Apr 2013 - R. Yantosca - Now declare State_Chm INTENT(INOUT)
 !  22 Aug 2013 - R. Yantosca - Add Input_Opt, RC arguments
 !  22 Aug 2013 - R. Yantosca - Now get species restart filename from Input_Opt
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

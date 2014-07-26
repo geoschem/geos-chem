@@ -995,7 +995,6 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GLOBAL_GRID_MOD,    ONLY : COMPUTE_GLOBAL_GRID
       USE GRID_MOD,           ONLY : COMPUTE_GRID
       USE GRID_MOD,           ONLY : INIT_GRID
 !
@@ -1030,7 +1029,7 @@
 !                              Compute_Grid with 1..IIPAR, I..JJPAR
 !  01 Jul 2013 - R. Yantosca - Don't use 1/2 sized polar boxes for GCAP
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
-
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete global_grid_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1100,8 +1099,6 @@
 
 #elif defined( GRID05x0666 )
 
-      CALL COMPUTE_GLOBAL_GRID( am_I_Root )
-
       !-------------------=---------
       ! Nested 0.5 x 0.666 grids
       !-----------------------------
@@ -1111,8 +1108,6 @@
       DLAT          = 0.5d0              ! Delta-latitude array [degrees]
 
 #elif defined( GRID025x03125 )
-
-      CALL COMPUTE_GLOBAL_GRID( am_I_Root )
 
       !-----------------------------
       ! Nested 0.25 x 0.3125 grids

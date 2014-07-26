@@ -16,9 +16,8 @@
 ! 
 ! !USES:
 !
-      !USE GC_TYPE_MOD
-      USE GIGC_ERRCODE_MOD
-      USE SMV_PHYSCONST_MOD
+      USE GIGC_Errcode_Mod
+      USE CMN_GCTM_Mod
 
       IMPLICIT NONE
       PRIVATE
@@ -1945,8 +1944,6 @@
 !  18 Apr 2014 - R. Yantosca - Now point to 3-D arrays internally
 !  18 Apr 2014 - R. Yantosca - Now also pass N_TRACERS (to facilitate APM)
 !  18 Apr 2014 - R. Yantosca - Remove code that we don't need anymore
-!  14 May 2014 - R. Yantosca - Add similar error check for WASHFRAC as is
-!                              already done in the wetscav_mod.F module.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2519,26 +2516,6 @@
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
      &                          WASHFRAC,  AER,      State_Met,
      &                          State_Chm                         )
-
-                  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                  !%%% ERROR CHECK: Need to apply a similar check here as is 
-                  !%%% done in routine DO_WASHOUT_ONLY (in wetscav_mod.F).
-                  !%%% (qiaoqiao, bmy, mps, 5/14/14)
-                  !%%%
-                  !%%% Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
-                  !%%%
-                  !%%% If WASHFRAC = NaN, then this won't stop the simulation
-                  !%%% unless DIAG38 is turned on (where the error check
-                  !%%% gets done).  WASHFRAC = NaN when F = 0.  Also, when 
-                  !%%% less than 0.1% of a soluble tracer is available for 
-                  !%%% washout then this may cause negative tracer.
-                  !%%%
-                  IF ( IT_IS_NAN( WASHFRAC ) ) THEN
-                     CYCLE
-                  ELSE IF ( WASHFRAC < 1D-3 ) THEN
-                     CYCLE
-                  ENDIF
-                  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                   ! Check if the tracer is an aerosol or not
                   IF ( AER == .TRUE. ) THEN

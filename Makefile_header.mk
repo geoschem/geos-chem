@@ -143,6 +143,7 @@
 #  20 Mar 2014 - R. Yantosca - Bug fix: "+= -DDEBUG" instead of ":= -DDEBUG"
 #  09 Jul 2014 - R. Yantosca - Now don't require MET or GRID if target is
 #                              srcdoc, utildoc, gtmmdoc, makedoc, or hemcodoc
+#  21 Jul 2014 - R. Yantosca - Update build sequence
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -549,13 +550,12 @@ NCL            :=-L$(GC_LIB) $(NCL)
 
 # Command to link to local library files
 ifeq ($(GTMM_NEEDED),1)
-LINK           :=-L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
+ LINK          :=-L$(LIB) -lHg
 else
-LINK           :=-L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
+ LINK          :=-L$(LIB)
 endif
-
-# Append command to link to netCDF etc library files
-LINK           :=$(LINK) -lNcUtils $(NCL)
+LINK           :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
+LINK           :=$(LINK) -lHeaders -lNcUtils $(NCL)
 
 ###############################################################################
 ###                                                                         ###
@@ -675,7 +675,8 @@ endif
 FFLAGS         += $(USER_DEFS)
 
 # Include options (i.e. for finding *.h, *.mod files)
-INCLUDE        := -I$(HDR) -module $(MOD) $(NCI)
+#INCLUDE        := -I$(HDR) -module $(MOD) $(NCI)
+INCLUDE        := -module $(MOD) $(NCI)
 
 # Add include options for ESMF & MAPL
 ifeq ($(HPC),yes)

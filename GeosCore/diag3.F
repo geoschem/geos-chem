@@ -17,7 +17,6 @@
 !
       ! Modules from Headers directory
       USE CMN_SIZE_MOD                       ! Size parameters
-      USE CMN_MOD                            ! IFLX, LPAUSE
       USE CMN_O3_MOD                         ! FMOL, XNUMOL
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
       USE CMN_FJX_MOD,        ONLY : W_      ! Fast-JX flux diagnostics
@@ -210,6 +209,8 @@
 !                              to be hPa in GEOS-1, GEOS-STRAT, GEOS-3, which
 !                              are no longer supported.
 !  28 Jan 2014 - R. Yantosca - Avoid array temporaries in ND60 TOMAS diagnostic
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
+!  23 Jul 2014 - R. Yantosca - Disable obsolete ND27 diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1939,116 +1940,120 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD26) )
          ENDDO
       ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 7/23/14:
+! Disable the obsolete ND27 diagnostic (bmy, 7/23/14)
+!!
+!!******************************************************************************
+!!  ND27: Cross-tropopause Stratospheric Influx of Ox 
+!!
+!!   #  : Field : Description                   : Units : Scale factor
+!!  --------------------------------------------------------------------------
+!!  (1) : Ox    : Ox from the stratosphere      : kg/s  : SCALEDYN
+!!
+!!  NOTES:
+!!  (1) Only print out if we are doing a NOx-Ox-HC run (NSRCX == 3)
+!!       or a single tracer Ox run (NSRCX == 6). (bey, bmy, 11/10/99)
+!!  (2) Now consider the cross-tropopause stratospheric influx of ozone, 
+!!       which, in some grid boxes, includes horizontal influxes as well as 
+!!       up(down)ward flux. (qli, 1/5/2000) 
+!!  (3) Now error check for N > NTRACE (bmy, 10/23/01)
+!!  (4) NOTE: There is a problem with for ND27 with GEOS-4.  Djj says that 
+!!       the downward flux at the 200 hPa level should be more or less the
+!!       same as the ND27 diagnostic. (bmy, 10/15/04)
+!!  (5) Now provides stratrospheric flux of H2/HD if it is a H2/HD simulation
+!!       (lyj, phs, 9/18/07)
+!!  (6) Replaced Ox with O3 for full-chemistry simulation (mpayer, 3/14/13)
+!!******************************************************************************
+!!
+!#if   !defined( GEOS_4 ) 
+!      IF ( ND27 > 0 .and. ( IDTO3 > 0 )) THEN
+!         IF ( ( IDTO3 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM )  .OR.
+!     &        ( IDTO3 > 0 .and. Input_Opt%ITS_A_TAGOX_SIM    )  .OR. 
+!     &        (                 Input_Opt%ITS_A_H2HD_SIM    )) THEN
 !
-!******************************************************************************
-!  ND27: Cross-tropopause Stratospheric Influx of Ox 
+!            CATEGORY = 'STRT-FLX'
+!            UNIT     = 'kg/s'
 !
-!   #  : Field : Description                   : Units : Scale factor
-!  --------------------------------------------------------------------------
-!  (1) : Ox    : Ox from the stratosphere      : kg/s  : SCALEDYN
+!            ! Full chemistry   -- compute NOx, Ox, HNO3 fluxes
+!            ! H2/HD            -- compute H2,  HD fluxes
+!            ! Single tracer Ox -- compute Ox flux only, hardwire
+!            !                     to tracer = 1 (bmy, 2/7/00)
+!            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+!               ITEMP = (/ IDTNO, IDTO3, IDTHNO3 /)
+!            ELSE IF ( Input_Opt%ITS_A_H2HD_SIM ) THEN
+!               ITEMP = (/ IDTH2, IDTHD, 0 /)
+!            ELSE
+!               ITEMP = (/ 1, 0, 0 /)
+!            ENDIF
+!            
+!            ! Loop over tracers
+!            DO M = 1, 3
+!               N = ITEMP(M)
+!               IF ( N == 0        ) CYCLE
+!               IF ( N > N_TRACERS ) CYCLE
 !
-!  NOTES:
-!  (1) Only print out if we are doing a NOx-Ox-HC run (NSRCX == 3)
-!       or a single tracer Ox run (NSRCX == 6). (bey, bmy, 11/10/99)
-!  (2) Now consider the cross-tropopause stratospheric influx of ozone, 
-!       which, in some grid boxes, includes horizontal influxes as well as 
-!       up(down)ward flux. (qli, 1/5/2000) 
-!  (3) Now error check for N > NTRACE (bmy, 10/23/01)
-!  (4) NOTE: There is a problem with for ND27 with GEOS-4.  Djj says that 
-!       the downward flux at the 200 hPa level should be more or less the
-!       same as the ND27 diagnostic. (bmy, 10/15/04)
-!  (5) Now provides stratrospheric flux of H2/HD if it is a H2/HD simulation
-!       (lyj, phs, 9/18/07)
-!  (6) Replaced Ox with O3 for full-chemistry simulation (mpayer, 3/14/13)
-!******************************************************************************
+!               ! Loop over grid boxes
+!               DO J = 1, JJPAR
+!               DO I = 1, IIPAR
 !
-#if   !defined( GEOS_4 ) 
-      IF ( ND27 > 0 .and. ( IDTO3 > 0 )) THEN
-         IF ( ( IDTO3 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM )  .OR.
-     &        ( IDTO3 > 0 .and. Input_Opt%ITS_A_TAGOX_SIM    )  .OR. 
-     &        (                 Input_Opt%ITS_A_H2HD_SIM    )) THEN
-
-            CATEGORY = 'STRT-FLX'
-            UNIT     = 'kg/s'
-
-            ! Full chemistry   -- compute NOx, Ox, HNO3 fluxes
-            ! H2/HD            -- compute H2,  HD fluxes
-            ! Single tracer Ox -- compute Ox flux only, hardwire
-            !                     to tracer = 1 (bmy, 2/7/00)
-            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-               ITEMP = (/ IDTNO, IDTO3, IDTHNO3 /)
-            ELSE IF ( Input_Opt%ITS_A_H2HD_SIM ) THEN
-               ITEMP = (/ IDTH2, IDTHD, 0 /)
-            ELSE
-               ITEMP = (/ 1, 0, 0 /)
-            ENDIF
-            
-            ! Loop over tracers
-            DO M = 1, 3
-               N = ITEMP(M)
-               IF ( N == 0        ) CYCLE
-               IF ( N > N_TRACERS ) CYCLE
-
-               ! Loop over grid boxes
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-
-                  ! Get the level of the tropopause
-                  L = LPAUSE(I,J)
-
-                  ! Initialize integer flags
-                  IS = 0
-                  IN = 0
-                  IW = 0
-                  IE = 0
-
-                  ! Set integer flags based on the value of each bit of IFLX
-                  IF ( BTEST( IFLX(I,J), 0 ) ) IS = 1
-                  IF ( BTEST( IFLX(I,J), 1 ) ) IN = 1
-                  IF ( BTEST( IFLX(I,J), 2 ) ) IW = 1
-                  IF ( BTEST( IFLX(I,J), 3 ) ) IE = 1
-
-                  ! Add fluxes from the top, south, and west
-                  ARRAY(I,J,1) = MASSFLUP(I,J,L,N)          +
-     &                           ( MASSFLNS(I,J,L,N) * IS ) +  
-     &                           ( MASSFLEW(I,J,L,N) * IW ) 
-               
-                  ! Add fluxes from the north 
-                  ! (take poles into account !)
-                  IF ( J < JJPAR ) THEN
-                     ARRAY(I,J,1) = ARRAY(I,J,1) -
-     &                              ( MASSFLNS(I,J+1,L,N) * IN )
-                  ELSE 
-                     ARRAY(I,J,1) = ARRAY(I,J,1) -
-     &                              ( MASSFLNS(I,  1,L,N) * IN )
-                  ENDIF
-
-                  ! Add fluxes from the east 
-                  !(wrap around dateline if necessary)
-                  IF ( I < IIPAR ) THEN
-                     ARRAY(I,J,1) = ARRAY(I,J,1) -
-     &                              ( MASSFLEW(I+1,J,L,N) * IE )
-                  ELSE 
-                     ARRAY(I,J,1) = ARRAY(I,J,1) -
-     &                             ( MASSFLEW(  1,J,L,N) * IE )
-                  ENDIF
-               ENDDO
-               ENDDO
-
-               UNIT = 'kg/s'
-               NN   = N
-                  
-               ARRAY(:,:,1) = ARRAY(:,:,1) / SCALEDYN
-
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                     IIPAR,     JJPAR,     PD27,     IFIRST,
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
-            ENDDO
-         ENDIF
-      ENDIF
-#endif
+!                  ! Get the level of the tropopause
+!                  L = LPAUSE(I,J)
+!
+!                  ! Initialize integer flags
+!                  IS = 0
+!                  IN = 0
+!                  IW = 0
+!                  IE = 0
+!
+!                  ! Set integer flags based on the value of each bit of IFLX
+!                  IF ( BTEST( IFLX(I,J), 0 ) ) IS = 1
+!                  IF ( BTEST( IFLX(I,J), 1 ) ) IN = 1
+!                  IF ( BTEST( IFLX(I,J), 2 ) ) IW = 1
+!                  IF ( BTEST( IFLX(I,J), 3 ) ) IE = 1
+!
+!                  ! Add fluxes from the top, south, and west
+!                  ARRAY(I,J,1) = MASSFLUP(I,J,L,N)          +
+!     &                           ( MASSFLNS(I,J,L,N) * IS ) +  
+!     &                           ( MASSFLEW(I,J,L,N) * IW ) 
+!               
+!                  ! Add fluxes from the north 
+!                  ! (take poles into account !)
+!                  IF ( J < JJPAR ) THEN
+!                     ARRAY(I,J,1) = ARRAY(I,J,1) -
+!     &                              ( MASSFLNS(I,J+1,L,N) * IN )
+!                  ELSE 
+!                     ARRAY(I,J,1) = ARRAY(I,J,1) -
+!     &                              ( MASSFLNS(I,  1,L,N) * IN )
+!                  ENDIF
+!
+!                  ! Add fluxes from the east 
+!                  !(wrap around dateline if necessary)
+!                  IF ( I < IIPAR ) THEN
+!                     ARRAY(I,J,1) = ARRAY(I,J,1) -
+!     &                              ( MASSFLEW(I+1,J,L,N) * IE )
+!                  ELSE 
+!                     ARRAY(I,J,1) = ARRAY(I,J,1) -
+!     &                             ( MASSFLEW(  1,J,L,N) * IE )
+!                  ENDIF
+!               ENDDO
+!               ENDDO
+!
+!               UNIT = 'kg/s'
+!               NN   = N
+!                  
+!               ARRAY(:,:,1) = ARRAY(:,:,1) / SCALEDYN
+!
+!               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+!     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
+!     &                     IIPAR,     JJPAR,     PD27,     IFIRST,
+!     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+!            ENDDO
+!         ENDIF
+!      ENDIF
+!#endif
+!-----------------------------------------------------------------------------
 !
 !******************************************************************************
 !  ND28: Biomass burning diagnostic 

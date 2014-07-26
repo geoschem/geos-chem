@@ -153,24 +153,24 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_DIAGN_UPDATE ( am_I_Root, HcoState, RC ) 
+  SUBROUTINE HCO_Diagn_Update( am_I_Root, HcoState, RC ) 
 !
 ! !USES:
 !
-        USE HCO_STATE_MOD, ONLY : HCO_GetHcoID
-        USE HCO_STATE_MOD, ONLY : HCO_State
+    USE HCO_STATE_MOD, ONLY : HCO_GetHcoID
+    USE HCO_STATE_MOD, ONLY : HCO_State
 
-        ! temp only
-        USE HCO_ARR_MOD,   ONLY : HCO_ArrAssert
+    ! temp only
+    USE HCO_ARR_MOD,   ONLY : HCO_ArrAssert
 !
 ! !INPUT PARAMETERS:
 !
-        LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-        TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
-        INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
@@ -182,41 +182,41 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-       CHARACTER(LEN=255)        :: MSG, LOC
-       INTEGER                   :: I, tmpID
-       REAL(hp), POINTER         :: Arr3D(:,:,:) => NULL()
-       REAL(hp), POINTER         :: Arr2D(:,:)   => NULL()
+    CHARACTER(LEN=255)        :: MSG, LOC
+    INTEGER                   :: I, tmpID
+    REAL(hp), POINTER         :: Arr3D(:,:,:) => NULL()
+    REAL(hp), POINTER         :: Arr2D(:,:)   => NULL()
 
-        !=================================================================
-        ! HCO_DIAGN_UPDATE begins here!
-        !=================================================================
+    !=================================================================
+    ! HCO_DIAGN_UPDATE begins here!
+    !=================================================================
     
-        ! Init 
-        LOC = 'HCOI_DIAGN_UPDATE (hcoi_gc_diagn_mod.F90)'
-        RC  = HCO_SUCCESS
+    ! Init 
+    LOC = 'HCOI_DIAGN_UPDATE (hcoi_gc_diagn_mod.F90)'
+    RC  = HCO_SUCCESS
     
-        ! ================================================================
-        ! AutoFill diagnostics: only write diagnostics at species level
-        ! (level 1). Higher level diagnostics have been written in the
-        ! respective subroutines (hco_calc & extension modules). 
-        ! ================================================================
-        DO I = 1, HcoState%nSpc
-           IF ( ASSOCIATED(HcoState%Spc(I)%Emis) ) THEN
-              IF ( ASSOCIATED(HcoState%Spc(I)%Emis%Val) ) THEN
-                 Arr3D => HcoState%Spc(I)%Emis%Val
-                 CALL Diagn_Update( am_I_Root,  HcoState, ExtNr=-1, &
-                                    Cat=-1,     Hier=-1,  HcoID=I,  &
-                                    AutoFill=1, Array3D=Arr3D, RC=RC ) 
-                 IF ( RC/= HCO_SUCCESS ) RETURN 
-                 Arr3D => NULL() 
-              ENDIF
-           ENDIF
-        ENDDO
+    ! ================================================================
+    ! AutoFill diagnostics: only write diagnostics at species level
+    ! (level 1). Higher level diagnostics have been written in the
+    ! respective subroutines (hco_calc & extension modules). 
+    ! ================================================================
+    DO I = 1, HcoState%nSpc
+       IF ( ASSOCIATED(HcoState%Spc(I)%Emis) ) THEN
+          IF ( ASSOCIATED(HcoState%Spc(I)%Emis%Val) ) THEN
+             Arr3D => HcoState%Spc(I)%Emis%Val
+             CALL Diagn_Update( am_I_Root,  HcoState, ExtNr=-1, &
+                                Cat=-1,     Hier=-1,  HcoID=I,  &
+                                AutoFill=1, Array3D=Arr3D, RC=RC ) 
+             IF ( RC/= HCO_SUCCESS ) RETURN 
+             Arr3D => NULL() 
+          ENDIF
+       ENDIF
+    ENDDO
     
-        ! Return
-        RC = HCO_SUCCESS
+    ! Return
+    RC = HCO_SUCCESS
     
-      END SUBROUTINE HCO_DIAGN_UPDATE
+  END SUBROUTINE HCO_Diagn_Update
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

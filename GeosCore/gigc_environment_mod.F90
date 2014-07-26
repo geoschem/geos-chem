@@ -77,12 +77,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_Mod,            ONLY : Init_CMN
     USE CMN_DIAG_Mod,       ONLY : Init_CMN_DIAG
     USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
-    USE CMN_NOX_Mod,        ONLY : Init_CMN_NOX
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
+    USE CMN_SIZE_Mod,       ONLY : IIPAR
+    USE CMN_SIZE_Mod,       ONLY : JJPAR
     USE COMODE_LOOP_Mod,    ONLY : Init_COMODE_LOOP
     USE COMMSOIL_Mod,       ONLY : Init_COMMSOIL
     USE GIGC_ErrCode_Mod  
@@ -130,6 +130,8 @@ CONTAINS
 !  03 Dec 2012 - R. Yantosca - Add optional arguments to accept dimension
 !                              size information from the ESMF interface
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_mod.F
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_NOX_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,19 +188,13 @@ CONTAINS
 #endif
 
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
-    CALL Init_CMN( am_I_Root, RC )  
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
     CALL Init_CMN_DIAG( am_I_Root, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
-    CALL Init_CMN_NOX( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     CALL Init_CMN_O3( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    CALL Init_COMMSOIL( am_I_Root, RC )
+    CALL Init_COMMSOIL( am_I_Root, IIPAR, JJPAR, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     CALL Init_COMODE_LOOP( am_I_Root, Input_Opt, RC )

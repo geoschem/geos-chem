@@ -57,6 +57,18 @@
 # %%% (when one file is finished compiling, "make" will immediately start  %%%
 # %%% on the next one).  Usually N is the # of processors on your system.  %%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#                                                                             .
+# GEOS-Chem routines will be compiled in the following order, by directory:
+# ----------------------------------------------------------------------------
+# (1) NcdfUtil/            : NetCDF I/O modules
+# (2) Headers/             : Header files (i.e. CMN_SIZE_mod.F, etc.)
+# (3) KPP/                 : KPP solver routines
+# (4) GeosUtil/            : GEOS-Chem utility modules (i.e. pressure_mod.F)
+# (5) HEMCO/Core/          : HEMCO Core modules
+# (6) HEMCO/Extensions/    : HEMCO Extensions modules
+# (7) HEMCO/Interfaces/    : HEMCO Interface modules
+# (7) ISOROPIA/            : ISORROPIA aerosol thermodyn equilibrium module
+# (8) GeosCore/            : "Core" GEOS-Chem modules
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
@@ -124,6 +136,10 @@
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  11 Apr 2014 - R. Yantosca - Add modules to input_mod.o dependencies list
 #  23 Jun 2014 - R. Yantosca - Remove references to obsolete logical_mod.o
+#  21 Jul 2014 - R. Yantosca - Now build HEMCO emissions modules after
+#                              NcdfUtil and GeosUtil, but before GeosCore
+#  22 Jul 2014 - R. Yantosca - Move hcox_paranox_mod.F90, paranox_util_mod.F90
+#                              and hcox_driver_mod.F90 back to HEMCO/Extensions
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -134,40 +150,38 @@
 ###                                                                         ###
 ###############################################################################
 
-# Define variables
-ROOTDIR := ..
-APM     := $(ROOTDIR)/GeosApm
-BIN     := $(ROOTDIR)/bin
-BPCH    := $(ROOTDIR)/GeosBpch
-DOC     := $(ROOTDIR)/doc
-EXE     := geos
-TOM     := geostomas
-HDR     := $(ROOTDIR)/Headers
-HELP    := $(ROOTDIR)/help
-ISO     := $(ROOTDIR)/ISOROPIA
-LIB     := $(ROOTDIR)/lib
-KPP     := $(ROOTDIR)/KPP
-MOD     := $(ROOTDIR)/mod
-NCDF    := $(ROOTDIR)/NcdfUtil
-GTMM    := $(ROOTDIR)/GTMM
-UTIL    := $(ROOTDIR)/GeosUtil
-GIGC    := $(ROOTDIR)/GIGC
+# Directories
+ROOT  :=..
+APM   :=$(ROOT)/GeosApm
+BIN   :=$(ROOT)/bin
+BPCH  :=$(ROOT)/GeosBpch
+DOC   :=$(ROOT)/doc
+GIGC  :=$(ROOT)/GIGC
+GTMM  :=$(ROOT)/GTMM
+HEMCO :=$(ROOT)/HEMCO
+HDR   :=$(ROOT)/Headers
+HELP  :=$(ROOT)/help
+ISO   :=$(ROOT)/ISOROPIA
+LIB   :=$(ROOT)/lib
+KPP   :=$(ROOT)/KPP
+MOD   :=$(ROOT)/mod
+NCDF  :=$(ROOT)/NcdfUtil
+UTIL  :=$(ROOT)/GeosUtil
+
+# Executables
+EXE   :=geos
+TOM   :=geostomas
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
-# List of source files: everything ending in *.F or *.F90
-SRC := $(wildcard *.F) $(wildcard *.F90)
-
-# But do not include hco_standalone_mod.F90, since this is only appropriate
-# when running HEMCO in standalone mode.  The GEOS-Chem interface to HEMCO
-# is contained in module file hcoi_gc_main_mod.F90.
-SRC := $(filter-out hco_standalone_mod.F90, $(SRC))
+# List of source files: everything ending in .F or .F90
+SRC   :=$(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
-TMP := $(SRC:.F=.o)
-OBJ := $(TMP:.F90=.o)
+TMP   :=$(SRC:.F=.o)
+OBJ   :=$(TMP:.F90=.o)
 
 ###############################################################################
 ###                                                                         ###
@@ -213,11 +227,21 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
 	@$(MAKE) libheaders         		  
 	@$(MAKE) libkpp             		  
-	@$(MAKE) libutil 			  
+	@$(MAKE) libutil 
+	@$(MAKE) libhemco
 	@$(MAKE) libiso 			  
 	@$(MAKE) libcore			  
 
 libcore: $(OBJ)                                    # Build code in GeosCore/
+
+libgigc:
+	@$(MAKE) -C $(GIGC) lib
+
+libheaders:                                        # Build code in Headers/ 
+	@$(MAKE) -C $(HDR)			  
+
+libhemco:                                      
+	@$(MAKE) -C $(HEMCO) lib
 
 libiso:                                            # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)			  
@@ -228,8 +252,8 @@ libkpp:                                            # Build code in KPP/
 libnc:                                             # Build code in NcdfUtil/
 	@$(MAKE) -C $(NCDF) libnc
 
-libgigc:
-	@$(MAKE) -C $(GIGC) lib
+libutil:                                           # Build code in GeosUtil/
+	@$(MAKE) -C $(UTIL)			  
 
 baselibs:
 	@$(MAKE) -C $(GIGC) baselibs
@@ -238,17 +262,11 @@ ncdfcheck:                                         # Check netCDF library
 	@$(MAKE) libnc
 	@$(MAKE) -C $(NCDF) ncdfcheck
 
-libutil:                                           # Build code in GeosUtil/
-	@$(MAKE) -C $(UTIL)			  
-
-libheaders:                                        # Build code in Headers/ 
-	@$(MAKE) -C $(HDR)			  
-
 exe:                                               # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
-tomexe:                                               # Build executable
+tomexe:                                            # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(TOM)
 	cp -f $(TOM) $(BIN)
 
@@ -260,13 +278,14 @@ distclean:                                         # Synonym for "realclean"
 
 realclean:                                         # Remove files everywhere
 	@$(MAKE) clean
-	@$(MAKE) -C $(NCDF) clean
-	@$(MAKE) -C $(APM) clean
-	@$(MAKE) -C $(ISO) clean
-	@$(MAKE) -C $(KPP) realclean
-	@$(MAKE) -C $(GTMM) clean
-	@$(MAKE) -C $(UTIL) clean
-	@$(MAKE) -C $(HDR) clean
+	@$(MAKE) -C $(APM)   clean
+	@$(MAKE) -C $(GTMM)  clean
+	@$(MAKE) -C $(HEMCO) clean
+	@$(MAKE) -C $(HDR)   clean
+	@$(MAKE) -C $(ISO)   clean
+	@$(MAKE) -C $(KPP)   realclean
+	@$(MAKE) -C $(NCDF)  clean
+	@$(MAKE) -C $(UTIL)  clean
 	@$(MAKE) docclean
 ifeq ($(HPC),yes)
 	@$(MAKE) -C $(GIGC) clean
@@ -371,8 +390,7 @@ calcrate.o                  : calcrate.F                                     \
                               ucx_mod.o
 
 canopy_nox_mod.o            : canopy_nox_mod.F                               \
-                              drydep_mod.o            drydep_toolbox_mod.o   \
-                              modis_lai_mod.o
+                              drydep_mod.o            modis_lai_mod.o
 
 carbon_mod.o                : carbon_mod.F                                   \
                               biomass_mod.o           chemgrid_mod.o         \
@@ -538,10 +556,7 @@ drydep_mod.o                : drydep_mod.F                                   \
                               comode_mod.o            dao_mod.o              \
                               diag_mod.o              get_ndep_mod.o         \
                               get_popsinfo_mod.o      pbl_mix_mod.o          \
-                              tomas_mod.o             drydep_toolbox_mod.o   \
-                              tracerid_mod.o
-
-drydep_toolbox_mod.o        : drydep_toolbox_mod.F90
+                              tomas_mod.o             tracerid_mod.o
 
 diagoh.o                    : diagoh.F                                       \
                               diag_mod.o
@@ -641,220 +656,10 @@ h2_hd_mod.o                 : h2_hd_mod.F                                    \
 hcn_ch3cn_mod.o             : hcn_ch3cn_mod.F                                \
                               diag_mod.o              global_oh_mod.o
 
-hco_arr_mod.o               : hco_arr_mod.F90                                \
-                              hco_error_mod.o
-
-hco_calc_mod.o              : hco_calc_mod.F90                               \
-                              hco_arr_mod.o           hco_datacont_mod.o     \
-                              hco_diagn_mod.o         hco_emislist_mod.o     \
-                              hco_error_mod.o         hco_filedata_mod.o     \
-                              hco_state_mod.o         hco_tidx_mod.o
-
-hco_chartools_mod.o         : hco_chartools_mod.F90                          \
-	                      hco_error_mod.o         hco_extlist_mod.o
-
-hco_clock_mod.o             : hco_clock_mod.F90                              \
-                              hco_error_mod.o         hco_state_mod.o
-
-hco_config_mod.o            : hco_config_mod.F90                             \
-                              hco_chartools_mod.o     hco_datacont_mod.o     \
-                              hco_diagn_mod.o         hco_error_mod.o        \
-                              hco_extlist_mod.o       hco_filedata_mod.o     \
-                              hco_readlist_mod.o      hco_state_mod.o        \
-                              hco_tidx_mod.o
-
-hco_datacont_mod.o          : hco_datacont_mod.F90                           \
-                              hco_arr_mod.o           hco_error_mod.o        \
-                              hco_filedata_mod.o      hco_state_mod.o
-
-hco_emislist_mod.o          : hco_emislist_mod.F90                           \
-                              hco_datacont_mod.o      hco_error_mod.o        \
-                              hco_filedata_mod.o      hco_logfile_mod.o      \
-                              hco_state_mod.o         hco_tidx_mod.o
-
-hco_error_mod.o             : hco_error_mod.F90
-
-hco_diagn_mod.o             : hco_diagn_mod.F90                              \
-                              hco_arr_mod.o           hco_clock_mod.o        \
-                              hco_error_mod.o         hco_extlist_mod.o      \
-                              hco_state_mod.o         hco_unit_mod.o
-
-hco_driver_mod.o            : hco_driver_mod.F90                             \
-                              hco_calc_mod.o          hco_clock_mod.o        \
-                              hco_config_mod.o        hco_datacont_mod.o     \
-                              hco_diagn_mod.o         hco_emislist_mod.o     \
-                              hco_error_mod.o         hco_extlist_mod.o      \
-                              hco_readlist_mod.o      hco_state_mod.o        \
-                              hco_tidx_mod.o
-
-hco_filedata_mod.o          : hco_filedata_mod.F90                           \
-                              hco_arr_mod.o           hco_chartools_mod.o    \
-                              hco_error_mod.o         hco_unit_mod.o
-
-hco_fluxarr_mod.o           : hco_fluxarr_mod.F90                            \
-                              hco_arr_mod.o           hco_error_mod.o        \
-                              hco_state_mod.o
-
-hco_geotools_mod.o          : hco_geotools_mod.F90                           \
-	                      hco_error_mod.o
-
-hco_logfile_mod.o           : hco_logfile_mod.F90                            \
-                              hco_datacont_mod.o      hco_error_mod.o        \
-                              hco_state_mod.o
-
-hco_readlist_mod.o          : hco_readlist_mod.F90                           \
-                              hco_clock_mod.o         hco_datacont_mod.o     \
-                              hco_emislist_mod.o      hco_error_mod.o        \
-                              hco_filedata_mod.o      hco_logfile_mod.o      \
-                              hco_state_mod.o         hcoi_dataread_mod.o
-
-hco_state_mod.o             : hco_state_mod.F90                              \
-	                      hco_arr_mod.o           hco_chartools_mod.o    \
-                              hco_error_mod.o         hco_extlist_mod.o
-
-hco_tidx_mod.o              : hco_tidx_mod.F90                               \
-                              hco_chartools_mod.o     hco_clock_mod.o        \
-                              hco_datacont_mod.o      hco_error_mod.o        \
-                              hco_filedata_mod.o      hco_state_mod.o
-
-hco_unit_mod.o              : hco_unit_mod.F90                               \
-                              hco_chartools_mod.o     hco_error_mod.o        \
-                              hco_extlist_mod.o
-
-hcoi_dataread_mod.o         : hcoi_dataread_mod.F90                          \
-                              hco_chartools_mod.o     hco_datacont_mod.o     \
-                              hco_error_mod.o         hco_filedata_mod.o     \
-                              hco_geotools_mod.o      hco_state_mod.o        \
-                              hco_tidx_mod.o          hco_unit_mod.o         \
-                              hcoi_messy_mod.o
-
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
-                              hco_arr_mod.o           hco_config_mod.o       \
-                              hco_clock_mod.o         hco_chartools_mod.o    \
-                              hco_driver_mod.o        hco_state_mod.o        \
-                              hco_error_mod.o         hco_fluxarr_mod.o      \
-                              hco_logfile_mod.o                              \
-                              hcoi_gc_diagn_mod.o     hco_diagn_mod.o        \
-			      hcox_driver_mod.o       hcox_state_mod.o       \
-                              drydep_mod.o            modis_lai_mod.o        \
-                              tracerid_mod.o                                 \
-                              global_oh_mod.o         henry_mod.o
-
-hcoi_messy_mod.o            : hcoi_messy_mod.F90                             \
-                              hco_datacont_mod.o      hco_error_mod.o        \
-                              hco_filedata_mod.o      hco_state_mod.o        \
-                              hco_unit_mod.o          messy_ncregrid_base.o
-
-hco_standalone_mod.o        : hco_standalone_mod.F90                         \
-                              hco_arr_mod.o           hco_config_mod.o       \
-                              hco_clock_mod.o         hco_chartools_mod.o    \
-                              hco_driver_mod.o        hco_state_mod.o        \
-                              hco_error_mod.o         hco_extlist_mod.o      \
-                              hco_fluxarr_mod.o       hco_logfile_mod.o      \
-                              hcoi_gc_diagn_mod.o     hco_diagn_mod.o        \
-			      hcox_driver_mod.o       hcox_state_mod.o
-
-hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
-                              hco_diagn_mod.o         hco_error_mod.o        \
-                              hco_state_mod.o         hco_arr_mod.o
-
-hcox_custom_mod.o           : hcox_custom_mod.F90                            \
-	                      hco_diagn_mod.o         hco_error_mod.o        \
-                              hco_extlist_mod.o       hco_fluxarr_mod.o      \
-                              hco_geotools_mod.o      hco_state_mod.o        \
-                              hcox_state_mod.o
-
-hcox_driver_mod.o           : hcox_driver_mod.F90                            \
-                              hco_error_mod.o         hco_state_mod.o        \
-                              hcox_custom_mod.o       hcox_dustdead_mod.o    \
-                              hcox_dustginoux_mod.o   hcox_finn_mod.o        \
-                              hcox_gfed3_mod.o        hcox_lightnox_mod.o    \
-                              hcox_megan_mod.o        hcox_paranox_mod.o     \
-                              hcox_seaflux_mod.o      hcox_seasalt_mod.o     \
-                              hcox_soilnox_mod.o      hcox_state_mod.o       \
-                              hcox_gc_RnPbBe_mod.o
-
-hcox_dustdead_mod.o         : hcox_dustdead_mod.F                            \
-                              hco_clock_mod.o         hco_diagn_mod.o        \
-                              hco_emislist_mod.o      hco_error_mod.o        \
-                              hco_fluxarr_mod.o       hco_geotools_mod.o     \
-                              hcox_state_mod.o        hco_extlist_mod.o
-
-hcox_dustginoux_mod.o       : hcox_dustginoux_mod.F90                        \
-                              hco_diagn_mod.o         hco_emislist_mod.o     \
-                              hco_error_mod.o         hco_fluxarr_mod.o      \
-                              hco_state_mod.o         hco_extlist_mod.o      \
-                              hcox_state_mod.o
-
-hco_extlist_mod.o           : hco_extlist_mod.F90                            \
-                              hco_error_mod.o
-
-hcox_gc_RnPbBe_mod.o        : hcox_gc_RnPbBe_mod.F90                         \
-                              hco_error_mod.o         hco_diagn_mod.o        \
-                              hco_state_mod.o         hcox_state_mod.o
-
-hcox_gfed3_mod.o            : hcox_gfed3_mod.F90                             \
-                              hco_diagn_mod.o         hco_emislist_mod.o     \
-                              hco_error_mod.o         hco_fluxarr_mod.o      \
-                              hco_state_mod.o         hco_extlist_mod.o      \
-                              hcox_state_mod.o
-
-hcox_finn_mod.o             : hcox_finn_mod.F90                              \
-                              hco_clock_mod.o         hco_diagn_mod.o        \
-                              hco_emislist_mod.o      hco_error_mod.o        \
-                              hco_fluxarr_mod.o       hco_state_mod.o        \
-                              hco_extlist_mod.o       hcox_state_mod.o
-
-hcox_lightnox_mod.o         : hcox_lightnox_mod.F90                          \
-                              hco_clock_mod.o         hco_diagn_mod.o        \
-                              hco_driver_mod.o        hco_error_mod.o        \
-                              hco_fluxarr_mod.o       hco_geotools_mod.o     \
-                              hco_state_mod.o         hco_extlist_mod.o      \
-                              hcox_state_mod.o
-
-hcox_megan_mod.o            : hcox_megan_mod.F                               \
-                              hco_clock_mod.o         hco_diagn_mod.o        \
-                              hco_emislist_mod.o      hco_error_mod.o        \
-                              hco_fluxarr_mod.o       hco_state_mod.o        \
-                              hco_extlist_mod.o       hcox_state_mod.o
-
-hcox_paranox_mod.o          : hcox_paranox_mod.F90                           \
-                              hco_clock_mod.o         hco_diagn_mod.o        \
-                              hco_driver_mod.o        hco_error_mod.o        \
-                              hco_fluxarr_mod.o       hco_state_mod.o        \
-                              hco_extlist_mod.o       hcox_state_mod.o       \
-                              paranox_util_mod.o      pbl_mix_mod.o          \
-                              fast_jx_mod.o
-
-hcox_seaflux_mod.o          : hcox_seaflux_mod.F90                           \
-                              hco_diagn_mod.o         hco_emislist_mod.o     \
-                              hco_error_mod.o         hco_fluxarr_mod.o      \
-                              hco_state_mod.o         hco_extlist_mod.o      \
-                              hcox_state_mod.o                               \
-                              henry_mod.o             ocean_toolbox_mod.o
-
-hcox_seasalt_mod.o          : hcox_seasalt_mod.F90                           \
-                              hco_clock_mod.o         hco_diagn_mod.o        \
-                              hco_error_mod.o         hco_fluxarr_mod.o      \
-                              hco_geotools_mod.o      hco_state_mod.o        \
-                              hco_extlist_mod.o       hcox_state_mod.o
-
-hcox_soilnox_mod.o          : hcox_soilnox_mod.F90                           \
-                              hco_diagn_mod.o                                \
-                              hco_emislist_mod.o      hco_error_mod.o        \
-                              hco_fluxarr_mod.o       hco_state_mod.o        \
-                              hco_extlist_mod.o       hcox_state_mod.o       \
-                              drydep_toolbox_mod.o
-
-hcox_state_mod.o            : hcox_state_mod.F90                             \
-                              hco_arr_mod.o           hco_error_mod.o
-
-hcox_state_mod.o            : hcox_state_mod.F90                            \
-                              hco_arr_mod.o           hco_error_mod.o
-
-
-henry_mod.o                 : henry_mod.F                                    \
-                              tracer_mod.o
+                              global_oh_mod.o         tracerid_mod.o         \
+                              get_ndep_mod.o          drydep_mod.o           \
+                              modis_lai_mod.o         carbon_mod.o
 
 i6_read_mod.o               : i6_read_mod.F                                  \
                               diag_mod.o              
@@ -880,7 +685,7 @@ input_mod.o                 : input_mod.F                                    \
                               dust_mod.o              pops_mod.o             \
                               future_emissions_mod.o  gamap_mod.o            \
                               get_popsinfo_mod.o      land_mercury_mod.o     \
-                              linoz_mod.o             henry_mod.o            \
+                              linoz_mod.o             vdiff_pre_mod.o        \
                               mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     planeflight_mod.o      \
                               restart_mod.o           seasalt_mod.o          \
@@ -889,8 +694,7 @@ input_mod.o                 : input_mod.F                                    \
                               tracer_mod.o            transport_mod.o        \
                               wetscav_mod.o           tagged_co_mod.o        \
                               tagged_ox_mod.o         global_ch4_mod.o       \
-                              c2h6_mod.o              hcn_ch3cn_mod.o        \
-                              vdiff_pre_mod.o 
+                              c2h6_mod.o              hcn_ch3cn_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          global_hno3_mod.o      \
@@ -983,7 +787,6 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag03_mod.o            tracerid_mod.o
 
-ocean_toolbox_mod.o         : ocean_toolbox_mod.F90
 
 ohsave.o                    : ohsave.F                                       \
                               comode_mod.o            tracerid_mod.o
@@ -992,8 +795,6 @@ olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o
 
 optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
-
-paranox_util_mod.o          : paranox_util_mod.F
 
 partition.o                 : partition.F                                    \
                               comode_mod.o            tracerid_mod.o

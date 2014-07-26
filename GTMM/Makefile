@@ -51,17 +51,17 @@
 ###############################################################################
 
 # Define variables
-SHELL   = /bin/sh
-ROOTDIR = ..
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-LIB     = $(ROOTDIR)/lib
-MOD     = $(ROOTDIR)/mod
-LGTMM   = -L$(LIB) -lHg
+SHELL := /bin/sh
+ROOT  :=..
+HDR   :=$(ROOT)/Headers
+HELP  :=$(ROOT)/help
+LIB   :=$(ROOT)/lib
+MOD   :=$(ROOT)/mod
+LGTMM :=-L$(LIB) -lHg
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
 # Source code files
 SRC  = $(wildcard *.F90)

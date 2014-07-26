@@ -1,49 +1,23 @@
 #------------------------------------------------------------------------------
-#                  GEOS-Chem Global Chemical Transport Model                  #
+#                  Harvard-NASA Emissions Component (HEMCO)                   !
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: Makefile (in the ISOROPIA/ subdirectory)
+# !MODULE: Makefile (in the HEMCO/Interfaces subdirectory)
 #
-# !DESCRIPTION: This makefile compiles the ISOROPIA code.  
-#  Object files (*.o) are bundled into the libIsoropia.a library 
-#  (located in the LIB directory).  Module files (*.mod) are copied to 
-#  the MOD directory. 
+# !DESCRIPTION: This Makefile builds the HEMCO interface routines into 
+#  library file libHCOI.a.
 #\\
 #\\
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
+#   make -jN TARGET [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
-#                                                                             .
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%% NOTE: Normally you will not have to call this Makefile directly,     %%%
-# %%% it will be called automatically from the Makefile in the directory   %%%
-# %%% just above this one!                                                 %%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#                                                                             .
-# Makefile uses the following variables:
-#                                                                             .
-# Variable   Description
-# --------   -----------
-# SHELL      Specifies the shell for "make" to use (usually SHELL=/bin/sh)
-# ROOTDIR    Specifies the root-level directory of the GEOS-Chem code
-# HDR        Specifies the directory where GEOS-Chem include files are found
-# LIB        Specifies the directory where library files (*.a) are stored
-# MOD        Specifies the directory where module files (*.mod) are stored
-# AR         Sys var w/ name of library creator program (i.e., "ar", "ranlib")
-# MAKE       Sys var w/ name of Make command (i.e, "make" or "gmake")
-# R8         Specifies the command to treat "REAL" as "REAL*8"
 #
 # !REVISION HISTORY: 
-#  21 Dec 2009 - C. Carouge  - Initial version
-#  22 Aug 2011 - R. Yantosca - Add "-fp-model source" flag for IFORT compiler,
-#                              which prevents random numerical noise
-#  25 Aug 2011 - R. Yantosca - Remove -fp-model source flag here, as this is
-#                              now added to FFLAGS in Makefile_header.mk
-#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  15 Jul 2014 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -54,23 +28,25 @@
 ###                                                                         ###
 ###############################################################################
 
-# Define variables
-SHELL :=/bin/bash
-ROOT  :=..
-HELP  :=$(ROOT)/help
-LIB   :=$(ROOT)/lib
-MOD   :=$(ROOT)/mod
+# Directories
+ROOT :=../..
+BIN  :=$(ROOT)/bin
+DOC  :=$(ROOT)/doc
+HDR  :=$(ROOT)/Headers
+HELP :=$(ROOT)/help
+LIB  :=$(ROOT)/lib
+MOD  :=$(ROOT)/mod
 
-# Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
+# Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
-# List of source files
-SRC   :=$(wildcard *.F) $(wildcard *.F90)
+# List of source files to compile
+SRC  := hcoi_gc_diagn_mod.o
 
-# Replace .F and .F90 extensions with *.o
-TMP   :=$(SRC:.F=.o)
-OBJ   :=$(TMP:.F90=.o)
+# Replace .f and .f90 extensions with *.o
+TMP  := $(SRC:.F=.o)
+OBJ  := $(TMP:.F90=.o)
 
 ###############################################################################
 ###                                                                         ###
@@ -78,17 +54,26 @@ OBJ   :=$(TMP:.F90=.o)
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean help
+.PHONY: clean debug
+
+all: lib
 
 lib: $(OBJ)
-	$(AR) crs libIsoropia.a $(OBJ)
-	mv libIsoropia.a $(LIB)
-
+	$(AR) crs libHCOI.a $(OBJ)
+	mv libHCOI.a $(LIB)
 clean:
-	rm -f *.o *.mod
+	rm -f *.o *.mod *.a *.x
 
-help:
-	@$(MAKE) -C $(HELP)
+debug:
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "BIN     : $(BIN)"
+	@echo "DOC     : $(DOC)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "RUN     : $(RUN)"
+	@echo "F90     : $(F90)"
+	@echo "LINK    : $(LINK)"
 
 ###############################################################################
 ###                                                                         ###
@@ -108,7 +93,8 @@ help:
 ###                                                                         ###
 ###############################################################################
 
-isoropiaIIcode.o:  isoropiaIIcode.F  isrpia.inc
-	$(F90) $(R8) -c $<
-#EOC
+hcoi_gc_diagn_mod.o   : hcoi_gc_diagn_mod.F90
 
+hcoi_standalone_mod.o : hcoi_standalone_mod.F90    \
+                        hcoi_gc_diagn_mod.o
+#EOC

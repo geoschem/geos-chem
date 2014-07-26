@@ -52,21 +52,22 @@
 ###                                                                         ###
 ###############################################################################
 
-# Define variables
-ROOTDIR := ..
-BIN     := $(ROOTDIR)/bin
-DOC     := $(ROOTDIR)/doc
-HDR     := $(ROOTDIR)/Headers
-EXE     := TestNcdfUtil.x
-LIB     := $(ROOTDIR)/lib
-MOD     := $(ROOTDIR)/mod
+# Directories
+ROOT   :=..
+BIN    :=$(ROOT)/bin
+DOC    :=$(ROOT)/doc
+LIB    :=$(ROOT)/lib
+MOD    :=$(ROOT)/mod
+
+# Executables
+EXE    :=TestNcdfUtil.x
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
 # Include these files in the library libNcUtils.a
-OBJlib  :=                 \
+OBJlib :=                  \
 m_do_err_out.o             \
 m_netcdf_io_checks.o	   \
 m_netcdf_io_close.o	   \
@@ -83,10 +84,10 @@ ncdf_mod.o
 # But compile all of these files.  The modules charpak_mod.F and julday_mod.F
 # are needed to build ncdf_mod.F90, but don't need to be added into library
 # libNcUtils.a.  These modules already get packaged into libGeosUtil.a.
-OBJ  :=charpak_mod.o julday_mod.o $(OBJlib)
+OBJ    :=charpak_mod.o julday_mod.o $(OBJlib)
 
 # Files for standalone test driver (code, object, exe)
-OBJx = $(EXE:.x=.o)
+OBJx   :=$(EXE:.x=.o)
 
 ###############################################################################
 ###                                                                         ###

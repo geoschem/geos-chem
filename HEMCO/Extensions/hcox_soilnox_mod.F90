@@ -129,127 +129,100 @@ MODULE HCOX_SoilNOx_Mod
   REAL*8,  ALLOCATABLE          :: INST_FERT_HSN    (:,:  )
 
   ! NOx in the canopy
-  REAL*8,  ALLOCATABLE          :: CANOPYNOX    (:,:,:)
+  REAL*8,  ALLOCATABLE          :: CANOPYNOX        (:,:,:)
 
   ! MODIS landtype
   TYPE MODL
-     REAL(hp), POINTER          :: VAL(:,:,:)
+     REAL(hp), POINTER          :: VAL              (:,:,:)
   ENDTYPE MODL
-  TYPE(MODL), POINTER           :: LANDTYPE(:) => NULL()
+  TYPE(MODL), POINTER           :: LANDTYPE         (:    ) => NULL()
 
   ! Soil fertilizer 
-  REAL(hp), POINTER             :: SOILFERT     (:,:) => NULL()
+  REAL(hp), POINTER             :: SOILFERT         (:,:  ) => NULL()
 
   ! Fraction of arid and non-arid land
-  REAL(hp), POINTER             :: CLIMARID     (:,:) => NULL()
-  REAL(hp), POINTER             :: CLIMNARID    (:,:) => NULL()
+  REAL(hp), POINTER             :: CLIMARID         (:,:  ) => NULL()
+  REAL(hp), POINTER             :: CLIMNARID        (:,:  ) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
   ! Canopy wind extinction coefficients
   ! (cf. Yienger & Levy [1995], Sec 5), now a function of the
   ! MODIS/KOPPEN biometype (J.D. Maasakkers)
-  REAL*8,  PARAMETER :: SOILEXC(NBIOM_HSN) = (/           & 
-                            0.10, 0.50, 0.10, 0.10, 0.10, &
-                            0.10, 0.10, 0.10, 0.10, 1.00, &
-                            1.00, 1.00, 1.00, 2.00, 4.00, &
-                            4.00, 4.00, 4.00, 4.00, 4.00, &
-                            4.00, 2.00, 0.10, 2.00         /)
+  REAL*8,  PARAMETER, PRIVATE :: SOILEXC(NBIOM_HSN) =               (/ & 
+        0.10, 0.50, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 1.00,    &
+        1.00, 1.00, 1.00, 2.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00,    &
+        4.00, 2.00, 0.10, 2.00                                       /)
 
   ! Steinkamp and Lawrence, 2011 A values, wet biome coefficients
   ! for each of the 24 soil biomes [ng N/m2/s].
-  REAL*8,  PARAMETER :: A_BIOME(NBIOM_HSN) = (/           &
-                            0.00, 0.00, 0.00, 0.00, 0.00, &
-                            0.06, 0.09, 0.09, 0.01, 0.84, &
-                            0.84, 0.24, 0.42, 0.62, 0.03, &
-                            0.36, 0.36, 0.35, 1.66, 0.08, &
-                            0.44, 0.57, 0.57, 0.57         /)
+  REAL*8,  PARAMETER, PRIVATE  :: A_BIOME(NBIOM_HSN) =              (/ &
+        0.00, 0.00, 0.00, 0.00, 0.00, 0.06, 0.09, 0.09, 0.01, 0.84,    &
+        0.84, 0.24, 0.42, 0.62, 0.03, 0.36, 0.36, 0.35, 1.66, 0.08,    &
+        0.44, 0.57, 0.57, 0.57                                       /)
 
   ! "A" coefficients for converting surface temp to soil temp
   ! for each of the 24 soil biomes
-  REAL*8,  PARAMETER :: SOILTA(NBIOM_HSN)  = (/           &
-                            0.00, 0.92, 0.00, 0.66, 0.66, &
-                            0.66, 0.66, 0.66, 0.66, 0.66, &
-                            0.66, 0.66, 0.66, 0.66, 0.84, &
-                            0.84, 0.84, 0.84, 0.84, 0.84, &
-                            0.84, 1.03, 1.03, 1.03         /)
+  REAL*8,  PARAMETER, PRIVATE :: SOILTA(NBIOM_HSN)  =               (/ &
+        0.00, 0.92, 0.00, 0.66, 0.66, 0.66, 0.66, 0.66, 0.66, 0.66,    &
+        0.66, 0.66, 0.66, 0.66, 0.84, 0.84, 0.84, 0.84, 0.84, 0.84,    &
+        0.84, 1.03, 1.03, 1.03                                       /)
 
   ! "B" coefficients for converting surface temp to soil temp
   ! for each of the 24 soil biomes
-  REAL*8,  PARAMETER :: SOILTB(NBIOM_HSN)  = (/           &
-                            0.00, 4.40, 0.00, 8.80, 8.80, &
-                            8.80, 8.80, 8.80, 8.80, 8.80, &
-                            8.80, 8.80, 8.80, 8.80, 3.60, &
-                            3.60, 3.60, 3.60, 3.60, 3.60, &
-                            3.60, 2.90, 2.90, 2.90         /)
+  REAL*8,  PARAMETER, PRIVATE :: SOILTB(NBIOM_HSN)  =               (/ &
+        0.00, 4.40, 0.00, 8.80, 8.80, 8.80, 8.80, 8.80, 8.80, 8.80,    &
+        8.80, 8.80, 8.80, 8.80, 3.60, 3.60, 3.60, 3.60, 3.60, 3.60,    &
+        3.60, 2.90, 2.90, 2.90                                       /)
 
   ! MODIS/Koppen resistance values
-  INTEGER, PARAMETER :: SNIMODIS(NBIOM_HSN) = (/          &
-                               1,    2,    3,    4,    5, &
-                               6,    7,    8,    9,   10, &
-                              11,   12,   13,   14,   15, &
-                              16,   17,   18,   19,   20, &
-                              21,   22,   23,   24         /)
+  INTEGER, PARAMETER, PRIVATE :: SNIMODIS(NBIOM_HSN) =              (/ &
+           1,    2,    3,    4,    5,    6,    7,    8,    9,   10,    &
+          11,   12,   13,   14,   15,   16,   17,   18,   19,   20,    &
+          21,   22,   23,   24                                       /)
 
-  INTEGER, PARAMETER :: SNIRI   (NBIOM_HSN) = (/          &
-                            9999,  200, 9999, 9999, 9999, &
-                            9999,  200,  200,  200,  200, &
-                             200,  200,  200,  200,  200, &
-                             200,  200,  400,  400,  200, &
-                             200,  200, 9999,  200         /)
+  INTEGER, PARAMETER, PRIVATE :: SNIRI(NBIOM_HSN) =                 (/ &
+        9999,  200, 9999, 9999, 9999, 9999,  200,  200,  200,  200,    &
+         200,  200,  200,  200,  200,  200,  200,  400,  400,  200,    &
+         200,  200, 9999,  200                                       /)
 
-  INTEGER, PARAMETER :: SNIRLU  (NBIOM_HSN) = (/          &
-                            9999, 9000, 9999, 9999, 9999, &
-                            9999, 9000, 9000, 9000, 9000, &
-                            9000, 9000, 9000, 9000, 9000, &
-                            1000, 9000, 9000, 9000, 9000, &
-                            1000, 9000, 9999, 9000         /)
+  INTEGER, PARAMETER, PRIVATE :: SNIRLU(NBIOM_HSN) =                (/ &
+        9999, 9000, 9999, 9999, 9999, 9999, 9000, 9000, 9000, 9000,    &
+        9000, 9000, 9000, 9000, 9000, 1000, 9000, 9000, 9000, 9000,    &
+        1000, 9000, 9999, 9000                                       /)
 
-  INTEGER, PARAMETER :: SNIRAC  (NBIOM_HSN) = (/          &
-                               0,  300,    0,    0,    0, &
-                               0,  100,  100,  100,  100, &
-                             100,  100,  100,  100, 2000, &
-                            2000, 2000, 2000, 2000, 2000, &
-                            2000,  200,  100,  200         /)
+  INTEGER, PARAMETER, PRIVATE :: SNIRAC(NBIOM_HSN) =                (/ &
+           0,  300,    0,    0,    0,    0,  100,  100,  100,  100,    &
+         100,  100,  100,  100, 2000, 2000, 2000, 2000, 2000, 2000,    &
+        2000,  200,  100,  200                                       /)
 
-  INTEGER, PARAMETER :: SNIRGSS (NBIOM_HSN) = (/          &
-                               0,    0,  100, 1000,  100, &
-                            1000,  350,  350,  350,  350, &
-                             350,  350,  350,  350,  500, &
-                             200,  500,  500,  500,  500, &
-                             200,  150,  400,  150         /)
+  INTEGER, PARAMETER, PRIVATE :: SNIRGSS(NBIOM_HSN) =               (/ &
+           0,    0,  100, 1000,  100, 1000,  350,  350,  350,  350,    &
+         350,  350,  350,  350,  500,  200,  500,  500,  500,  500,    &
+         200,  150,  400,  150                                       /)
 
-  INTEGER, PARAMETER :: SNIRGSO (NBIOM_HSN) = (/          &
-                            2000, 1000, 3500,  400, 3500, &
-                             400,  200,  200,  200,  200, &
-                             200,  200,  200,  200,  200, &
-                             200,  200,  200,  200,  200, &
-                             200,  150,  300,  150         /)
+  INTEGER, PARAMETER, PRIVATE :: SNIRGSO(NBIOM_HSN) =               (/ &
+        2000, 1000, 3500,  400, 3500,  400,  200,  200,  200,  200,    &
+         200,  200,  200,  200,  200,  200,  200,  200,  200,  200,    &
+         200,  150,  300,  150                                       /)
 
-  INTEGER, PARAMETER :: SNIRCLS (NBIOM_HSN) = (/          &
-                            9999, 2500, 9999, 9999, 9999, &
-                            9999, 2000, 2000, 2000, 2000, &
-                            2000, 2000, 2000, 2000, 2000, &
-                            9999, 2000, 2000, 2000, 2000, &
-                            9999, 2000, 9999, 2000         /)
+  INTEGER, PARAMETER, PRIVATE :: SNIRCLS(NBIOM_HSN) =               (/ &
+       9999, 2500, 9999, 9999, 9999, 9999, 2000, 2000, 2000, 2000,     &
+       2000, 2000, 2000, 2000, 2000, 9999, 2000, 2000, 2000, 2000,     &
+       9999, 2000, 9999, 2000                                        /)
 
+  INTEGER, PARAMETER, PRIVATE :: SNIRCLO(NBIOM_HSN) =               (/ &
+       9999, 1000, 1000, 9999, 1000, 9999, 1000, 1000, 1000, 1000,     & 
+       1000, 1000, 1000, 1000, 1000, 9999, 1000, 1000, 1000, 1000,     &
+       9999, 1000, 9999, 1000                                        /)
 
-  INTEGER, PARAMETER :: SNIRCLO (NBIOM_HSN) = (/          &
-                            9999, 1000, 1000, 9999, 1000, &
-                            9999, 1000, 1000, 1000, 1000, & 
-                            1000, 1000, 1000, 1000, 1000, &
-                            9999, 1000, 1000, 1000, 1000, &
-                            9999, 1000, 9999, 1000         /)
-
-  INTEGER, PARAMETER :: SNIVSMAX(NBIOM_HSN) = (/          &
-                              10,  100,  100,   10,  100, &
-                              10,  100,  100,  100,  100, &
-                             100,  100,  100,  100,  100, &
-                             100,  100,  100,  100,  100, &
-                             100,  100,  100,  100         /)
+  INTEGER, PARAMETER, PRIVATE :: SNIVSMAX(NBIOM_HSN) =              (/ &
+         10,  100,  100,   10,  100,   10,  100,  100,  100,  100,     &
+        100,  100,  100,  100,  100,  100,  100,  100,  100,  100,     &
+        100,  100,  100,  100                                        /)
 
   ! Conversion factor from kg NO to ng N
-  REAL*8, PARAMETER   :: kgNO_to_ngN = 4.666d11 !(14/30 * 1e12)
+  REAL*8,  PARAMETER, PRIVATE :: kgNO_to_ngN = 4.666d11 !(14/30 * 1e12)
 
 CONTAINS
 !EOC

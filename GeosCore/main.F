@@ -26,6 +26,7 @@
       USE COMMSOIL_MOD          ! Soil NOx emissions header file
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
+      USE GRID_MOD              ! For defining the lons/lats/areas of the grid
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE MAPPING_MOD           ! For regridding MODIS LAI
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
@@ -33,8 +34,9 @@
       USE RESTART_MOD           ! For restart file I/O
       USE TIME_MOD              ! For computing date & time 
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
-      USE TRACER_MOD            ! Routines for checking the tracer array
-
+      USE TRACER_MOD            ! For error-checking the tracer array
+      USE REGRID_A2A_MOD        ! For horizontal regridding
+      
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
       !-----------------------------------------------------------------
@@ -229,6 +231,10 @@
 !  23 Jun 2014 - R. Yantosca - Removed references to unix_cmds_mod.F
 !  23 Jun 2014 - R. Yantosca - Removed references to directory_mod.F
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  15 Jul 2014 - R. Yantosca - Now reference grid_mod.F90, regrid_a2a_mod.F90
+!  15 Jul 2014 - R. Yantosca - Now call Init_Map_A2A to store shadow variables
+!                              within regrid_a2a_mod.F90.  This helps to 
+!                              break dependencies for the HEMCO implementation.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -401,10 +407,13 @@
       !=================================================================
 
       ! Read input file and call init routines from other modules
-      CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC ) 
+      CALL Read_Input_File( am_I_Root, Input_Opt, RC ) 
+
+      ! Initialize the regridding module by storing shadow copies
+      CALL Initialize_Regridding( am_I_Root, Input_Opt, RC )
 
       ! Store shadow copies of am_I_Root, Input_Opt in error_mod.F
-      CALL INIT_ERROR( am_I_Root, Input_Opt, RC )
+      CALL Init_Error( am_I_Root, Input_Opt, RC )
 
       ! Copy values from Input_Opt.  These replace the variables
       ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
@@ -2277,6 +2286,85 @@
       ENDIF
 
       END SUBROUTINE GET_OVERHEAD_O3_FOR_FASTJ
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: initialize_regridding
+!
+! !DESCRIPTION: Internal subroutine Initialize\_Regridding passes several
+!  variables to regrid\_a2a\_mod.F90, where they are locally shadowed.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Initialize_Regridding( am_I_Root, Input_Opt, RC )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REMARKS:
+!  This routine is a wrapper for Init_Map_A2A in regrid_a2a_mod.F90.  
+!  Passing variables via Init_Map_A2A helps us to remove dependencies on
+!  other GEOS-Chem routines from regrid_a2a_mod.F90.  This in turn 
+!  facilitates the implementation of the HEMCO emissions package.
+!
+! !REVISION HISTORY: 
+!  15 Jul 2014 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!     
+      ! Scalars
+      INTEGER            :: I, J
+      CHARACTER(LEN=255) :: DIR
+
+      ! Arrays
+      REAL*8             :: LONEDG(IIPAR+1       ) ! W longitude edges [deg]
+      REAL*8             :: LATSIN(       JJPAR+1) ! SIN(Lat edges)    [1  ]
+      REAL*8             :: AREAS (IIPAR, JJPAR  ) ! Surface Areas     [m2 ]
+
+      !================================================================
+      ! Initialize_Regridding begins here!
+      !================================================================
+
+      ! Assume success
+      RC  = GIGC_SUCCESS
+
+      ! Directory where netCDF ifles are found
+      DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'HEMCO/MAP_A2A/v2014-07/'
+
+      ! Initialize longitudes [deg]
+      DO I = 1, IIPAR+1
+         LONEDG(I) = GET_XEDGE( I, 1, 1 )
+      ENDDO
+
+      ! Initialize sines of latitude [1]
+      DO J = 1, JJPAR+1
+         LATSIN(J) = GET_YSIN( 1, J, 1 )
+      ENDDO
+
+      ! Initialize surface areas [m2]
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         AREAS(I,J) = GET_AREA_M2( I, J, 1 )
+      ENDDO
+      ENDDO
+
+      ! Pass to regrid_a2a_mod.F90, where these will be shadowed locally
+      CALL Init_Map_A2A( IIPAR, JJPAR, LONEDG, LATSIN, AREAS, DIR )
+      
+      END SUBROUTINE Initialize_Regridding
 !EOC
       END PROGRAM GEOS_CHEM
 #endif

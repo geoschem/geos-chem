@@ -16,8 +16,6 @@ MODULE COMMSOIL_MOD
 !
 ! !USES:
 !
-  USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, MAXIJ
-
   IMPLICIT NONE
   PRIVATE
 !
@@ -65,7 +63,6 @@ MODULE COMMSOIL_MOD
     2000, 2000, 2000, 2000, 2000, 9999, 2000, 2000, 2000, 2000,    &
     9999, 2000, 9999, 2000                                       /)
 
-
   INTEGER, PUBLIC, PARAMETER :: SNIRCLO (NSOILB) =              (/ &
     9999, 1000, 1000, 9999, 1000, 9999, 1000, 1000, 1000, 1000,    & 
     1000, 1000, 1000, 1000, 1000, 9999, 1000, 1000, 1000, 1000,    &
@@ -82,31 +79,34 @@ MODULE COMMSOIL_MOD
   ! The following arrays depend on longitude & latitude
   !========================================================================
 
+  INTEGER, PUBLIC                      :: Nx  ! # of lons (x-dimension) in grid
+  INTEGER, PUBLIC                      :: Ny  ! # of lats (y-dimension) in grid
+
   ! Soil NOx emissions [molec/cm2/s]
-  REAL*8,  PUBLIC, ALLOCATABLE :: SOILNOX      (:,:  )
+  REAL*8,  PUBLIC, ALLOCATABLE         :: SOILNOX      (:,:  )
 
   ! Soil fertilizer 
-  REAL*8,  PUBLIC, ALLOCATABLE :: SOILFERT     (:,:,:)
+  REAL*8,  PUBLIC, ALLOCATABLE         :: SOILFERT     (:,:,:)
 
   ! Fraction of arid (layer 1) and non-arid (layer 2) land
-  REAL*4,  PUBLIC, ALLOCATABLE :: CLIM         (:,:,:)
+  REAL*4,  PUBLIC, ALLOCATABLE         :: CLIM         (:,:,:)
                                          
   ! MODIS landtype
-  REAL*4,  PUBLIC, ALLOCATABLE :: LAND2        (:,:,:)
+  REAL*4,  PUBLIC, ALLOCATABLE         :: LAND2        (:,:,:)
 
   ! Dry period length
-  REAL*4,  PUBLIC, ALLOCATABLE :: DRYPERIOD    (:,:  )
+  REAL*4,  PUBLIC, ALLOCATABLE         :: DRYPERIOD    (:,:  )
 
   ! Pulse factors
-  REAL*4,  PUBLIC, ALLOCATABLE :: PFACTOR      (:,:  )
-  REAL*4,  PUBLIC, ALLOCATABLE :: GWET_PREV    (:,:  )
+  REAL*4,  PUBLIC, ALLOCATABLE         :: PFACTOR      (:,:  )
+  REAL*4,  PUBLIC, ALLOCATABLE         :: GWET_PREV    (:,:  )
 
   ! Instantaneous soil NOx and fertilizer
-  REAL*8,  PUBLIC, ALLOCATABLE :: INST_SOIL    (:,:  )
-  REAL*8,  PUBLIC, ALLOCATABLE :: INST_FERT    (:,:  )
+  REAL*8,  PUBLIC, ALLOCATABLE         :: INST_SOIL    (:,:  )
+  REAL*8,  PUBLIC, ALLOCATABLE         :: INST_FERT    (:,:  )
 
   ! NOx in the canopy, used in dry deposition
-  REAL*8,  PUBLIC, ALLOCATABLE :: CANOPYNOX    (:,:  )
+  REAL*8,  PUBLIC, ALLOCATABLE         :: CANOPYNOX    (:,:  )
 
   ! Soil NOx deposited N arrays
   REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: DEP_RESERVOIR(:,:  )
@@ -114,14 +114,6 @@ MODULE COMMSOIL_MOD
   ! Sum N on the fly (ckeller, 14/04/02)
   REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: DRY_TOTN     (:,:  )
   REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: WET_TOTN     (:,:  )
-
-  !========================================================================
-  ! The following arrays do not depend on longitude & latitude
-  !========================================================================
-
-  REAL*8,  PUBLIC              :: SOILEXC      (NSOILB)
-
-  INTEGER, PUBLIC              :: SNIRGSO      (NSOILB)     
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -177,7 +169,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_COMMSOIL( am_I_Root, RC )
+  SUBROUTINE Init_COMMSOIL( am_I_Root, arg_Nx, arg_Ny, RC )
 !
 ! !USES:
 !
@@ -186,6 +178,8 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    INTEGER, INTENT(IN)  :: arg_Nx      ! # of lons (x-dimension) in grid
+    INTEGER, INTENT(IN)  :: arg_Ny      ! # of lats (y-dimension) in grid
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -206,44 +200,49 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    ALLOCATE( CANOPYNOX    ( IIPAR*JJPAR, NSOILB ), STAT=RC )
+    ! Store local copies of size dimensions
+    Nx = arg_Nx
+    Ny = arg_Ny
+    
+    ! Allocate arrays
+    ALLOCATE( CANOPYNOX    ( Nx*Ny, NSOILB ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( SOILNOX      ( IIPAR, JJPAR        ), STAT=RC )
+    ALLOCATE( SOILNOX      ( Nx, Ny        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
                                                     
-    ALLOCATE( SOILFERT     ( IIPAR, JJPAR, 366   ), STAT=RC )
+    ALLOCATE( SOILFERT     ( Nx, Ny, 366   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( CLIM         ( IIPAR, JJPAR, 2     ), STAT=RC )
+    ALLOCATE( CLIM         ( Nx, Ny, 2     ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( LAND2        ( IIPAR, JJPAR, 24    ), STAT=RC )
+    ALLOCATE( LAND2        ( Nx, Ny, 24    ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( DRYPERIOD    ( IIPAR, JJPAR        ), STAT=RC )
+    ALLOCATE( DRYPERIOD    ( Nx, Ny        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( PFACTOR      ( IIPAR, JJPAR        ), STAT=RC )
+    ALLOCATE( PFACTOR      ( Nx, Ny        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( GWET_PREV    ( IIPAR, JJPAR        ), STAT=RC )
+    ALLOCATE( GWET_PREV    ( Nx, Ny        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( INST_SOIL    ( IIPAR, JJPAR        ), STAT=RC )
+    ALLOCATE( INST_SOIL    ( Nx, Ny        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( INST_FERT    ( IIPAR, JJPAR        ), STAT=RC )
+    ALLOCATE( INST_FERT    ( Nx, Ny        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( DEP_RESERVOIR( IIPAR, JJPAR        ), STAT=RC )
+    ALLOCATE( DEP_RESERVOIR( Nx, Ny        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     ! ckeller (14/04/02)
-    ALLOCATE( WET_TOTN     ( IIPAR, JJPAR        ), STAT=RC )
+    ALLOCATE( WET_TOTN     ( Nx, Ny        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( DRY_TOTN     ( IIPAR, JJPAR        ), STAT=RC )
+    ALLOCATE( DRY_TOTN     ( Nx, Ny        ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     ! Zero arrays
