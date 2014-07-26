@@ -6,10 +6,9 @@
 ! !MODULE: hco_geotools_mod.F90
 !
 ! !DESCRIPTION: Module HCO\_GeoTools\_Mod contains a collection of 
-! helper routines for extracting geographical information. 
-! \\
-! Note that some of these routines are based upon GEOS-5 data and may 
-! need to be revised for other met. fields! 
+! helper routines for extracting geographical information. These 
+! routines are based upon GEOS-5 data and may need to be revised
+! for other met. fields! 
 ! \\
 ! !INTERFACE: 
 !
@@ -48,6 +47,7 @@ MODULE HCO_GeoTools_Mod
 !  18 Dec 2013 - C. Keller   - Initialization
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  16 Jul 2014 - C. Keller   - Added HCO_ValidateLon
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -276,19 +276,8 @@ MODULE HCOI_MESSY_MOD
     else
        nlev = 1
     endif
-
-    ! testing only
-    write(*,*) 'Regridding ', TRIM(Lct%Dct%cName)
-    write(*,*) 'Found ', nlev, ' levels ...'
-
     do l = 1,nlev
-       ! testing only
-       write(*,*) 'now at level: ', l
-
        tmpArr => ncArr(:,:,l:l,:)
-
-       ! testing only
-       write(*,*) 'total before regridding: ', SUM(tmpArr)
 
     !-----------------------------------------------------------------
     ! Map input array onto MESSy array. Different time slices are
@@ -298,17 +287,11 @@ MODULE HCOI_MESSY_MOD
     CALL HCO2MESSY( am_I_Root, tmpArr, narr_src, axis_src, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! testing only
-       write(*,*) 'hco2messy done!'
-
     !-----------------------------------------------------------------
     ! Do the regridding
     !-----------------------------------------------------------------
     CALL NREGRID(s=narr_src,      sax=axis_src, dax=axis_dst, d=narr_dst, &
                  rg_type=rg_type, sovl=sovl,    dovl=dovl,    rcnt=rcnt    )
-
-       ! testing only
-       write(*,*) 'nregrid done!'
 
     !-----------------------------------------------------------------
     ! Map the destination array narr_dst onto the data vector in the 

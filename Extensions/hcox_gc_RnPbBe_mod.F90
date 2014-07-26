@@ -18,7 +18,7 @@ MODULE HCOX_GC_RnPbBe_Mod
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
   USE HCO_State_Mod,  ONLY : HCO_State   ! Derived type for HEMCO state
-  USE HcoX_State_Mod, ONLY : Ext_State   ! Derived type for External state
+  USE HCOX_State_Mod, ONLY : Ext_State   ! Derived type for External state
 
   IMPLICIT NONE
   PRIVATE
@@ -97,9 +97,6 @@ CONTAINS
 !
     ! HEMCO modules
     USE HCO_FluxArr_Mod, ONLY : HCO_EmisAdd
-
-    ! GEOS-Chem utility modules
-    USE Pressure_Mod,    ONLY : Get_PCenter
 !
 ! !INPUT PARAMETERS:
 !
@@ -329,7 +326,7 @@ CONTAINS
        LAT_TMP = ABS( HcoState%Grid%YMID( I, J ) )
 
        ! Pressure at (I,J,L)
-       P_TMP   = GET_PCENTER( I, J, L )
+       P_TMP   = ExtState%PCENTER%Arr%Val( I, J, L )
                  
        ! Interpolate 7Be [stars/g air/sec] to GEOS-CHEM levels
        CALL SLQ( LATSOU, PRESOU, BESOU, 10, 33, LAT_TMP, P_TMP, Be_TMP )
