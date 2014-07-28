@@ -96,8 +96,6 @@ debug:
 ###                                                                         ###
 ###############################################################################
 
-charpak_mod.o          : charpak_mod.F
-
 hco_arr_mod.o          : hco_arr_mod.F90         \
                          hco_error_mod.o
 
