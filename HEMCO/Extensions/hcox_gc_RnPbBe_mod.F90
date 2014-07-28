@@ -287,7 +287,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Add 222Rn emissions to HEMCO data structure & diagnostics
     !------------------------------------------------------------------------
-    
+
     ! Add emissions
     Arr2D => EmissRn(:,:)
     CALL HCO_EmisAdd( HcoState, Arr2D, IDTRn, RC )
@@ -357,6 +357,7 @@ CONTAINS
 
        ! Save emissions into an array for use below
        EmissBe7(I,J,L) = ADD_Be
+
     ENDDO
     ENDDO
     ENDDO
@@ -498,9 +499,10 @@ CONTAINS
     ENDIF
 
     ! Activate met fields required by this extension
-    ExtState%FRCLND%DoUse = .TRUE. 
-    ExtState%TSURFK%DoUse = .TRUE. 
-    ExtState%AIR%DoUse    = .TRUE. 
+    ExtState%FRCLND%DoUse  = .TRUE. 
+    ExtState%TSURFK%DoUse  = .TRUE. 
+    ExtState%AIR%DoUse     = .TRUE. 
+    ExtState%PCENTER%DoUse = .TRUE.
 
     ! Activate this extension
     ExtState%Gc_RnPbBe    = .TRUE.
