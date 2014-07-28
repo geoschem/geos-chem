@@ -33,9 +33,9 @@
 ROOT :=..
 BIN  :=$(ROOT)/bin
 DOC  :=$(ROOT)/doc
-HCO  :=$(ROOT)/HEMCO/Core
-HCOI :=$(ROOT)/HEMCO/Interfaces
-HCOX :=$(ROOT)/HEMCO/Extensions
+HCO  :=Core
+HCOI :=Interfaces
+HCOX :=Extensions
 HDR  :=$(ROOT)/Headers
 HELP :=$(ROOT)/Help
 LIB  :=$(ROOT)/lib

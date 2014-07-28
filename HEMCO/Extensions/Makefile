@@ -34,7 +34,6 @@
 ROOT :=../..
 BIN  :=$(ROOT)/bin
 DOC  :=$(ROOT)/doc
-HDR  :=$(ROOT)/Headers
 HELP :=$(ROOT)/help
 LIB  :=$(ROOT)/lib
 MOD  :=$(ROOT)/mod

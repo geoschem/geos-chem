@@ -54,9 +54,13 @@ MODULE HCOI_GC_Main_Mod
   TYPE(Ext_State), POINTER        :: ExtState  => NULL()
 
   ! Internal met fields (will be used by some extensions)
-  REAL*8, ALLOCATABLE, TARGET     :: HCO_PCENTER(:,:,:)
-  REAL*8, ALLOCATABLE, TARGET     :: HCO_PEDGE  (:,:,:)
-  REAL*8, ALLOCATABLE, TARGET     :: HCO_SZAFACT(:,:)
+  REAL(df), ALLOCATABLE, TARGET     :: HCO_PCENTER(:,:,:)
+  REAL(df), ALLOCATABLE, TARGET     :: HCO_PEDGE  (:,:,:)
+  REAL(df), ALLOCATABLE, TARGET     :: HCO_SZAFACT(:,:)
+
+  ! Arrays to store J-values (used by Paranox extension)
+  REAL(df), ALLOCATABLE, TARGET     :: JNO2(:,:)
+  REAL(df), ALLOCATABLE, TARGET     :: JO1D(:,:)
 
   ! Sigma coordinate (temporary)
   REAL(df), ALLOCATABLE, TARGET   :: ZSIGMA(:,:,:)
@@ -314,6 +318,11 @@ CONTAINS
     ! For soilnox
     USE GET_NDEP_MOD,          ONLY : RESET_DEP_N
 
+    ! To calculate J-values
+    USE FAST_JX_MOD,           ONLY : FJXFUNC
+    USE COMODE_LOOP_MOD,       ONLY : NCS, JPHOTRAT, NRATES
+    USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
+
     ! for temporary dust workaround 
     USE HCO_STATE_MOD,         ONLY : HCO_GetHcoID
 !
@@ -339,6 +348,10 @@ CONTAINS
     INTEGER                   :: I, J, L
     INTEGER                   :: HMRC 
     CHARACTER(LEN=255)        :: MSG, LOC
+
+    ! To calculate J-values
+    INTEGER                   :: K, NK, KMAX
+    CHARACTER(LEN=  8)        :: SPECNAME
 
     ! temporary only (PBL mixing of dust emissions)
     INTEGER :: HcoDST1, HcoDST2, HcoDST3, HcoDST4
@@ -411,18 +424,72 @@ CONTAINS
     ! Run HCO extensions
     ! ================================================================
 
-    ! Update HCO_PEDGE, HCO_PCENTER and HCO_SZAFACT
-    IF ( ExtState%PEDGE%DoUse .OR. ExtState%PCENTER%DoUse .OR. &
-         ExtState%SZAFACT%DoUse                               ) THEN
+    ! If necessary, calculate internal met fields
+    IF ( ExtState%PEDGE%DoUse   .OR. ExtState%PCENTER%DoUse .OR. &
+         ExtState%SZAFACT%DoUse .OR. ExtState%JNO2%DoUse    .OR. &
+         ExtState%JO1D%DoUse                                      ) THEN
 
+       ! Loop over all grid boxes
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-          HCO_PEDGE(I,J,L)   = GET_PEDGE(  I,J,L)
-          HCO_PCENTER(I,J,L) = GET_PCENTER(I,J,L)
-          IF ( L==1 ) HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
-          IF ( L==LLPAR ) &
-                  HCO_PEDGE(I,J,LLPAR+1) = GET_PEDGE(I,J,LLPAR+1)
+
+          ! pressure edges
+          IF ( ExtState%PEDGE%DoUse ) THEN
+             HCO_PEDGE(I,J,L) = GET_PEDGE(  I,J,L)
+             IF ( L==LLPAR ) HCO_PEDGE(I,J,L+1) = GET_PEDGE(I,J,L+1)
+          ENDIF
+
+          ! pressure centers
+          IF ( ExtState%PCENTER%DoUse ) THEN
+             HCO_PCENTER(I,J,L) = GET_PCENTER(I,J,L)
+          ENDIF
+
+          ! current SZA divided by total daily SZA (2D field only)
+          IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
+             HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
+          ENDIF
+
+          ! J-values for NO2 and O3 (2D field only)
+          ! This code was moved from hcox_paranox_mod.F90 to break
+          ! dependencies to GC specific code (ckeller, 07/28/14).
+          IF ( L==1 .AND.                                    &
+               (ExtState%JNO2%DoUse .OR. ExtState%JO1D%DoUse) ) THEN
+
+             ! Check if sun is up
+             IF ( State_Met%SUNCOSmid(I,J) == 0d0 ) THEN
+                IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_df
+                IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_df
+             ELSE
+                ! Loop over photolysis reactions to find NO2, O3
+                KMAX = JPHOTRAT(NCS)
+                DO K = 1, KMAX 
+                   ! Reaction number
+                   NK = NRATES(NCS) + K
+
+                   ! Nae of species being photolyzed
+                   SPECNAME = NAMEGAS(IRM(1,NK,NCS))
+
+                   ! Check if this is NO2 or O3, store values, 1/s
+                   SELECT CASE ( TRIM( SPECNAME ) )
+                      CASE ( 'NO2' )
+                         IF ( ExtState%JNO2%DoUse ) &
+                            JNO2(I,J) = FJXFUNC(I,J,1,K,1,SPECNAME)
+                      CASE ( 'O3'  )
+                         IF ( ExtState%JO1D%DoUse ) &
+#if defined( UCX )
+                         ! IMPORTANT: Need branck *2* for O1D
+                         ! Branch 1 is O3P!
+                         JO1D(I,J) = FJXFUNC(I,J,1,L,2,SPECNAME)
+#else
+                         JO1D(I,J) = FJXFUNC(I,J,1,L,1,SPECNAME)
+#endif
+                      CASE DEFAULT
+                   END SELECT
+                ENDDO !K
+             ENDIF
+
+          ENDIF
        ENDDO
        ENDDO
        ENDDO
@@ -614,6 +681,8 @@ CONTAINS
     IF ( ALLOCATED  ( HCO_PEDGE   ) ) DEALLOCATE ( HCO_PEDGE   )
     IF ( ALLOCATED  ( HCO_PCENTER ) ) DEALLOCATE ( HCO_PCENTER )
     IF ( ALLOCATED  ( HCO_SZAFACT ) ) DEALLOCATE ( HCO_SZAFACT )
+    IF ( ALLOCATED  ( JNO2        ) ) DEALLOCATE ( JNO2        )
+    IF ( ALLOCATED  ( JO1D        ) ) DEALLOCATE ( JO1D        )
 
   END SUBROUTINE HCOI_GC_Final
 !EOC
@@ -1017,24 +1086,43 @@ CONTAINS
     ! arrays in Met_State. Hence need to construct here so that we 
     ! can point to them.
     ! ----------------------------------------------------------------
-    IF ( ExtState%PEDGE%DoUse .OR. ExtState%PCENTER%DoUse .OR. &
-         ExtState%SZAFACT%DoUse                               ) THEN
-
+    IF ( ExtState%PEDGE%DoUse ) THEN 
        ALLOCATE(HCO_PEDGE  (IIPAR,JJPAR,LLPAR+1),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_PEDGE', LOC )
        HCO_PEDGE = 0d0
+       ExtState%PEDGE%Arr%Val   => HCO_PEDGE
+    ENDIF
 
+    IF ( ExtState%PCENTER%DoUse ) THEN 
        ALLOCATE(HCO_PCENTER(IIPAR,JJPAR,LLPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_PCENTER', LOC )
        HCO_PCENTER = 0d0
+       ExtState%PCENTER%Arr%Val => HCO_PCENTER
+    ENDIF
 
+    IF ( ExtState%SZAFACT%DoUse ) THEN 
        ALLOCATE(HCO_SZAFACT(IIPAR,JJPAR      ),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_SZAFACT', LOC )
        HCO_SZAFACT = 0d0
-
-       ExtState%PEDGE%Arr%Val => HCO_PEDGE
-       ExtState%PCENTER%Arr%Val => HCO_PCENTER
        ExtState%SZAFACT%Arr%Val => HCO_SZAFACT
+    ENDIF
+
+    ! ----------------------------------------------------------------
+    ! The J-Values for NO2 and O3 are not defined in Met_State. We
+    ! need to compute them separately. 
+    ! ----------------------------------------------------------------
+    IF ( ExtState%JNO2%DoUse ) THEN 
+       ALLOCATE( JNO2(IIPAR,JJPAR),STAT=AS)
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'JNO2', LOC )
+       JNO2 = 0d0
+       ExtState%JNO2%Arr%Val => JNO2 
+    ENDIF
+
+    IF ( ExtState%JO1D%DoUse ) THEN 
+       ALLOCATE( JO1D(IIPAR,JJPAR),STAT=AS)
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'JO1D', LOC )
+       JO1D = 0d0
+       ExtState%JO1D%Arr%Val => JO1D 
     ENDIF
 
     ! ----------------------------------------------------------------

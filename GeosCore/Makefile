@@ -659,7 +659,8 @@ hcn_ch3cn_mod.o             : hcn_ch3cn_mod.F                                \
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               global_oh_mod.o         tracerid_mod.o         \
                               get_ndep_mod.o          drydep_mod.o           \
-                              modis_lai_mod.o         carbon_mod.o
+                              modis_lai_mod.o         carbon_mod.o           \
+                              fast_jx_mod.o
 
 i6_read_mod.o               : i6_read_mod.F                                  \
                               diag_mod.o              

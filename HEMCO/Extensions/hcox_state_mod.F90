@@ -120,6 +120,8 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: GC_LAI_PM   ! prev. month's LAI [cm2/cm2] 
      TYPE(ExtDat_2R),  POINTER :: GC_LAI_CM   ! curr. month's LAI [cm2/cm2] 
      TYPE(ExtDat_2R),  POINTER :: GC_LAI_NM   ! next month's LAI [cm2/cm2]
+     TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s] 
+     TYPE(ExtDat_2R),  POINTER :: JO1D        ! J-Value for O3  [1/s]
      INTEGER,          POINTER :: DAYS_BTW_M  ! Days between months (for LAI) 
      TYPE(ExtDat_2I),  POINTER :: CLDTOPS     ! Cloud top level index
      TYPE(ExtDat_3R),  POINTER :: PEDGE       ! Bottom press. edge [hPa]
@@ -158,6 +160,7 @@ MODULE HCOX_STATE_MOD
 !  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  27 Jun 2014 - C. Keller   - Added FINN biomass burning extension
 !  07 Jul 2014 - R. Yantosca - Modified for GEOS-Chem Rn-Pb-Be simulation
+!  28 Jul 2014 - C. Keller   - Added J-Values for NO2 and O3 to state obj. 
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -311,6 +314,12 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%GC_LAI_NM, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%JNO2, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%JO1D, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ExtState%DAYS_BTW_M => NULL()
 
     CALL ExtDat_Init ( ExtState%CLDTOPS, RC ) 
@@ -414,6 +423,8 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%GC_LAI_PM  )
        CALL ExtDat_Cleanup( ExtState%GC_LAI_CM  )
        CALL ExtDat_Cleanup( ExtState%GC_LAI_NM  )
+       CALL ExtDat_Cleanup( ExtState%JNO2       )
+       CALL ExtDat_Cleanup( ExtState%JO1D       )
        CALL ExtDat_Cleanup( ExtState%CLDTOPS    )
        CALL ExtDat_Cleanup( ExtState%PEDGE      )
        CALL ExtDat_Cleanup( ExtState%PCENTER    )

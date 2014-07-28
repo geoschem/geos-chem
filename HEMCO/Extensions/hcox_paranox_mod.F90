@@ -45,7 +45,6 @@ MODULE HCOX_ParaNOx_MOD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
-  PRIVATE :: FJXFUNC
 !
 ! !REMARKS:
 !  Adapted from the code in GeosCore/paranox_mod.F prior to GEOS-Chem v10-01.
@@ -57,6 +56,8 @@ MODULE HCOX_ParaNOx_MOD
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
 !  25 Jun 2014 - R. Yantosca - Now pass the look-up-table filenames
 !  22 Jul 2014 - R. Yantosca - Added shadow copy of FAST-JX function FJXFUNC
+!  28 Jul 2014 - C. Keller   - Now pass J-Values through ExtState. This makes
+!                              the FJXFUNC shadow copy obsolete.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -201,8 +202,6 @@ CONTAINS
 !
     USE ParaNOx_Util_Mod,  ONLY : INTERPOLATE_LUT2
     USE ParaNOx_Util_Mod,  ONLY : READ_PARANOX_LUT
-    USE Comode_Loop_Mod,   ONLY : NCS, JPHOTRAT, NRATES
-    USE Comode_loop_mod,   ONLY : NAMEGAS, IRM
     USE HCO_FluxArr_mod,   ONLY : HCO_EmisAdd, HCO_DepvAdd
     USE HCO_Clock_Mod,     ONLY : HcoClock_Get
 
@@ -231,21 +230,20 @@ CONTAINS
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
 !  24 Jun 2014 - R. Yantosca - Now pass LUT_FILENAME to READ_PARANOX_LUT
 !  22 Jul 2014 - R. Yantosca - Comment out debug print statements
+!  28 Jul 2014 - C. Keller   - Now get J-values through ExtState
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L, MM
-    INTEGER            :: NK, LMAX
+    INTEGER            :: I, J, MM
     INTEGER,  SAVE     :: SAVEMM = -999
     LOGICAL            :: ERR
     REAL*8             :: JNO2, JO1D, TS, SUNCOSmid5, SUNCOSmid
     REAL*8             :: O3molec, NOmolec, NO2molec, AIRmolec
     REAL*4             :: FRACTION_NOx, INT_OPE
     REAL(hp)           :: iFlx
-    CHARACTER(LEN=8)   :: SPECNAME
     CHARACTER(LEN=255) :: MSG
 
     ! Arrays
@@ -293,7 +291,8 @@ CONTAINS
 
     ! Read look up tables every new month
     IF ( MM /= SAVEMM ) THEN
-       CALL Read_ParaNOx_Lut( FracNOx_FILE, IntOPE_FILE  )
+       CALL READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
        SAVEMM = MM
     ENDIF
 
@@ -332,44 +331,10 @@ CONTAINS
 
        !--------------------------------------------------------------------
        ! Get J-Values for J(NO2) and J(O3)
+       ! These values are provided through the ExtState object
        !--------------------------------------------------------------------
-
-       ! Check if sun is up
-       IF ( ExtState%SUNCOSmid%Arr%Val(I,J) > 0d0 ) THEN
-
-          ! Loop over photolysis reactions to find NO2, O3
-          LMAX = JPHOTRAT(NCS)
-          DO L = 1, LMAX 
-
-             ! Reaction number
-             NK  = NRATES(NCS) + L
-
-             ! Name of species being photolyzed
-             SPECNAME = NAMEGAS(IRM(1,NK,NCS))
-
-             ! Check if this is NO2 or O3, store values, 1/s
-             SELECT CASE ( TRIM( SPECNAME ) )
-                CASE ( 'NO2' )
-                   JNO2 = FJXFUNC(I,J,1,L,1,SPECNAME)
-                CASE ( 'O3' )
-#if defined( UCX )      
-                   ! IMPORTANT: Need branch *2* for O1D
-                   ! Branch 1 is O3P!
-                   JO1D = FJXFUNC(I,J,1,L,2,SPECNAME)
-#else
-                   JO1D = FJXFUNC(I,J,1,L,1,SPECNAME)
-#endif
-                CASE DEFAULT
-             END SELECT
-
-          ENDDO
-
-       ELSE
-
-          ! J-values are zero when sun is down
-          JNO2 = 0d0
-          JO1D = 0d0
-       ENDIF
+       JNO2 = ExtState%JNO2%Arr%Val(I,J)
+       JO1D = ExtState%JO1D%Arr%Val(I,J)
 
        !--------------------------------------------------------------------
        ! Determine fraction of NOx remaining and integrated
@@ -392,13 +357,17 @@ CONTAINS
        SUNCOSmid5 = ExtState%SUNCOSmid5%Arr%Val(I,J)
        SUNCOSmid  = ExtState%SUNCOSmid%Arr%Val(I,J)
 
-       CALL Interpolate_Lut2( I,            J,            &
+       CALL Interpolate_Lut2( HcoState,     I,    J,      &
                               O3molec,      NOmolec,      &
                               NO2molec,     AIRmolec,     &
                               JO1D,         JNO2,         &
                               TS,           SUNCOSmid5,   &
                               SUNCOSmid,                  &
-                              FRACTION_NOx, INT_OPE )
+                              FRACTION_NOx, INT_OPE, RC    )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ERR = .TRUE.
+          EXIT
+       ENDIF
 
        !--------------------------------------------------------------------
        !### DEBUG -- COMMENT OUT FOR NOW
@@ -720,6 +689,12 @@ CONTAINS
 !   endif ! add2hemco
 !------------------------------------------------------------------------------
 
+    ! testing only
+    write(*,*) 'total FLUXNO  : ',  SUM(FLUXNO)
+    write(*,*) 'total FLUXHNO3: ',  SUM(FLUXHNO3)
+    write(*,*) 'total FLUXO3  : ',  SUM(FLUXO3)
+    write(*,*) 'total DEPO3   : ',  SUM(DEPO3)
+
    ! Return w/ success
    CALL HCO_LEAVE ( RC )
 
@@ -877,7 +852,6 @@ CONTAINS
    MW_AIR = HcoState%Phys%AIRMW
 
    ! Met. data required by module
-   ! TODO: Add J-Values as field
    ExtState%O3%DoUse         = .TRUE.
    ExtState%NO2%DoUse        = .TRUE.
    ExtState%NO%DoUse         = .TRUE.
@@ -890,7 +864,8 @@ CONTAINS
    IF ( IDTHNO3 > 0 ) THEN
       ExtState%HNO3%DoUse    = .TRUE.
    ENDIF
-   !ExtState%JVAL%DoUse = .TRUE.
+   ExtState%JNO2%DoUse       = .TRUE.
+   ExtState%JO1D%DoUse       = .TRUE.
 
    ! Enable module
    ExtState%ParaNOx = .TRUE.
@@ -933,87 +908,5 @@ CONTAINS
    IF ( ALLOCATED(ShipNO) ) DEALLOCATE ( ShipNO )
 
  END SUBROUTINE HCOX_ParaNOx_Final
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: fjxfunc
-!
-! !DESCRIPTION: Function FJXFUNC obtains J-values from the FAST-JX modules.  
-!\\
-!\\
-! !INTERFACE:
-!
- FUNCTION FJXFUNC( I, J, L, NREAC, BRCH, NAME ) RESULT( JVAL )
-!
-! !USES:
-!
-   USE CMN_FJX_MOD
-!
-! !INPUT PARAMETERS: 
-!
-   INTEGER,          INTENT(IN) :: I       ! Longitude index
-   INTEGER,          INTENT(IN) :: J       ! Latitude index
-   INTEGER,          INTENT(IN) :: L       ! Level index
-   INTEGER,          INTENT(IN) :: NREAC   ! Photolysis reaction number
-   INTEGER,          INTENT(IN) :: BRCH    ! Branch of photolysis reaction
-   CHARACTER(LEN=4), INTENT(IN) :: NAME    ! Photolysis species name
-!
-! !RETURN VALUE:
-!
-   REAL*8                       :: JVAL    ! J-value for desired species [s-1]
-!
-! !REMARKS:
-!  ##########################################################################
-!  ### This is a shadow copy of function FJXFUNC in fast_jx_mod.F90.      ###
-!  ### Having this here will allow us to keep hcox_paranox_mod.F90 and    ###
-!  ### hcox_driver_mod.F90 in the HEMCO/Extensions directory, which is    ###
-!  ### much cleaner and more elegant. (bmy, 7/22/14)                      ###
-!  ##########################################################################
-!
-! !REVISION HISTORY: 
-!  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
-!  (2  ) J-values are stored in array "ZPJ" from "cmn_fjx_mod.F".
-!  (3  ) Now references ERROR_STOP from "error_mod.F".  Updated comments,
-!         and made some cosmetic changes. (bmy, 10/15/02)
-!  27 Mar 2013 - S. D. Eastham - Rolled into FAST_JX_MOD
-!  29 Mar 2013 - S. D. Eastham - Converted from fjfunc into fjxfunc
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-   INTEGER :: N
-      
-   !========================================================================
-   ! FJXFUNC begins here!
-   !
-   ! RINDEX converts the J-value index as read from "globchem.dat" to 
-   ! the J-value index as read from "fjx_j2j.dat". 
-   ! (bmy, 10/5/98, SDE 03/29/13)
-   !========================================================================
-
-   ! NOTE: We don't need to error check NREAC here because this version of 
-   ! FJXFUNC is called from within a CASE statement that only has entries 
-   ! for either "NO2" or "O3".  These species will always be defined for
-   ! any full-chemistry simulation. (bmy, 7/22/14)
-   N = RINDEX(NREAC)
-   
-   !========================================================================
-   ! Return the appropriate J-value as the value of the function 
-   !========================================================================
-   JVAL = ZPJ(L,N,I,J)
-
-!   ! Uncomment following lines for more rigorous checking
-!   IF (ISNAN(FJXFUNC)) THEN
-!      WRITE(6,*) 'Photolysis error for branch ', brch, ' of ', name
-!      WRITE(6,*) 'NaN photorate in grid I J L: ',I, J, L
-!      CALL EXITC('Bad photorate')
-!   ENDIF
-
- END FUNCTION FJXFUNC
 !EOC
 END MODULE HCOX_ParaNOx_mod
