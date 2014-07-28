@@ -80,10 +80,14 @@ MODULE HCO_FileData_Mod
 !
   PUBLIC  :: FileData_Init
   PUBLIC  :: FileData_Cleanup 
-  PUBLIC  :: FileData_ArrCheck2D
-  PUBLIC  :: FileData_ArrCheck3D
+  PUBLIC  :: FileData_ArrCheck
   PUBLIC  :: FileData_ArrIsDefined
   PUBLIC  :: FileData_FileRead
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: FileData_ArrCheck2D
+  PRIVATE :: FileData_ArrCheck3D
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller   - Initialization
@@ -128,6 +132,13 @@ MODULE HCO_FileData_Mod
      LOGICAL                     :: LonDependent
      INTEGER,            POINTER :: CurrIDx(:)
   END TYPE TimeIdx
+!
+! !INTERFACES:
+!
+  INTERFACE FileData_ArrCheck
+     MODULE PROCEDURE FileData_ArrCheck2D
+     MODULE PROCEDURE FileData_ArrCheck3D
+  END INTERFACE FileData_ArrCheck
 
 CONTAINS
 !EOC
@@ -445,17 +456,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FileData_FileRead( am_I_Root, FileDta, IsFirst, RC ) 
+  SUBROUTINE FileData_FileRead( am_I_Root, FileDta,    MW_g,      &
+                                EmMW_g,    MolecRatio, IsFirst, RC ) 
 !
 ! !USES:
 !
     USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CharSplit
     USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
+    USE HCO_UNIT_MOD,       ONLY : HCO_Unit_Change
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root ! Root CPU?
-    TYPE(FileData),  POINTER       :: FileDta   ! File data obj
+    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! Root CPU?
+    TYPE(FileData),  POINTER       :: FileDta    ! File data obj
+    REAL(hp),        INTENT(IN   ) :: MW_g       ! input data MW 
+    REAL(hp),        INTENT(IN   ) :: EmMW_g     ! emission data MW
+    REAL(hp),        INTENT(IN   ) :: MolecRatio ! molec. ratio
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -473,10 +489,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, N
+    INTEGER            :: I, N, AS
     CHARACTER(LEN=255) :: MSG, LOC
-    REAL               :: FileVals(24)
-    LOGICAL            :: Verb
+    REAL(sp)           :: FileVals(24)
+    REAL(sp), POINTER  :: FileArr(:,:,:,:) => NULL()
+    LOGICAL            :: Verb, IsPerArea
 
     !======================================================================
     ! FileData_FileRead begins here
@@ -517,15 +534,44 @@ CONTAINS
        RETURN 
     ENDIF
 
+    ! Convert data to HEMCO units 
+    ALLOCATE( FileArr(1,1,1,24), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       MSG = 'Cannot allocate FileArr'
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    FileArr(1,1,1,:) = FileVals(:)
+    CALL HCO_Unit_Change( Array       = FileArr,                &
+                          Units       = TRIM(FileDta%OrigUnit), &
+                          MW_IN       = MW_g,                   &
+                          MW_OUT      = EmMW_g,                 &
+                          MOLEC_RATIO = MolecRatio,             &
+                          YYYY        = -999,                   &
+                          MM          = -999,                   &
+                          IsPerArea   = IsPerArea,              &
+                          RC          = RC                       )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! The IsPerArea flag should be on!
+    IF ( .NOT. IsPerArea ) THEN
+       MSG = 'Units are not per area: ' // TRIM(FileDta%OrigUnit)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
     ! Copy data into array. Assume all data is temporal
     ! dimension!
     CALL FileData_ArrCheck2D( FileDta, 1, 1, N, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     DO I = 1, N
-       FileDta%V2(I)%Val(1,1) = FileVals(I)
+       FileDta%V2(I)%Val(1,1) = FileArr(1,1,1,I)
     ENDDO
 
-    ! Don't need to read data from file, hence adjust ncRead flag
+    ! Make sure that ncRead flag is turned off.
+    FileDta%ncRead   = .FALSE.
+
+    ! Data is always 1D.
     FileDta%SpaceDim = 1
 
     ! Auto-detect delta t [in hours] between time slices.
@@ -548,6 +594,10 @@ CONTAINS
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
        RETURN 
     ENDIF
+
+    ! Cleanup
+    IF ( ASSOCIATED(FileArr) ) DEALLOCATE(FileArr)
+    FileArr => NULL()
 
     ! Return w/ success
     IsFirst = 1

@@ -476,8 +476,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_DATACONT_MOD, ONLY : ListCont_Find
-    USE HCO_FILEDATA_MOD, ONLY : FileData_ArrCheck2D
-    USE HCO_FILEDATA_MOD, ONLY : FileData_ArrCheck3D
+    USE HCO_FILEDATA_MOD, ONLY : FileData_ArrCheck
     USE HCO_DATACONT_MOD, ONLY : DataCont_Cleanup
 !
 ! !INPUT PARAMETERS:
@@ -579,8 +578,8 @@ CONTAINS
        IF ( Lct%Dct%Dta%SpaceDim <= 2) THEN
           I = SIZE(Lct%Dct%Dta%V2(1)%Val,1)
           J = SIZE(Lct%Dct%Dta%V2(1)%Val,2)
-          CALL FileData_ArrCheck2D( TargetLct%Dct%Dta, I, J, &
-                                    Lct%Dct%Dta%nt, RC )
+          CALL FileData_ArrCheck( TargetLct%Dct%Dta, I, J, &
+                                  Lct%Dct%Dta%nt, RC )
           IF ( RC /= 0 ) THEN
              MSG = 'Wrong 2D array: ' // TRIM(Lct%Dct%cName)
              CALL HCO_MSG(MSG)
@@ -590,8 +589,8 @@ CONTAINS
           I = SIZE(Lct%Dct%Dta%V3(1)%Val,1)
           J = SIZE(Lct%Dct%Dta%V3(1)%Val,2)
           L = SIZE(Lct%Dct%Dta%V3(1)%Val,3)
-          CALL FileData_ArrCheck3D( TargetLct%Dct%Dta, I, J, L, &
-                                    Lct%Dct%Dta%nt, RC )
+          CALL FileData_ArrCheck( TargetLct%Dct%Dta, I, J, L, &
+                                  Lct%Dct%Dta%nt, RC )
           IF ( RC /= 0 ) THEN
              MSG = 'Wrong 3D array: ' // TRIM(Lct%Dct%cName)
              CALL HCO_MSG(MSG)

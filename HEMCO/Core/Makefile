@@ -96,8 +96,6 @@ debug:
 ###                                                                         ###
 ###############################################################################
 
-charpak_mod.o          : charpak_mod.F
-
 hco_arr_mod.o          : hco_arr_mod.F90         \
                          hco_error_mod.o
 
@@ -173,7 +171,8 @@ hco_error_mod.o        : hco_error_mod.F90
 hco_filedata_mod.o     : hco_filedata_mod.F90    \
                          hco_arr_mod.o           \
                          hco_chartools_mod.o     \
-                         hco_error_mod.o
+                         hco_error_mod.o         \
+                         hco_unit_mod.o
 
 hco_fluxarr_mod.o      : hco_fluxarr_mod.F90     \
                          hco_arr_mod.o           \
@@ -214,13 +213,32 @@ hco_tidx_mod.o         : hco_tidx_mod.F90        \
 
 hco_unit_mod.o         : hco_unit_mod.F90        \
                          hco_chartools_mod.o     \
-                         hco_error_mod.o
+                         hco_error_mod.o         \
+                         hco_extlist_mod.o
 
 hcoi_dataread_mod.o    : hcoi_dataread_mod.F90   \
+                         hco_chartools_mod.o     \
+                         hco_datacont_mod.o      \
+                         hco_error_mod.o         \
+                         hco_filedata_mod.o      \
+                         hco_geotools_mod.o      \
+                         hco_state_mod.o         \
+                         hco_tidx_mod.o          \
+                         hco_unit_mod.o          \
+                         hcoi_messy_mod.o
+
+hcoi_messy_mod.o       : hcoi_messy_mod.F90      \
                          hco_datacont_mod.o      \
                          hco_error_mod.o         \
                          hco_filedata_mod.o      \
                          hco_state_mod.o         \
-                         hco_tidx_mod.o          \
-                         hco_unit_mod.o
+                         hco_unit_mod.o          \
+                         messy_ncregrid_base.o
+                         
+messy_ncregrid_base.o  : messy_ncregrid_base.F90 \
+                         hco_error_mod.o         \
+                         messy_ncregrid_mpi.o
+
+messy_ncregrid_mpi.o   : messy_ncregrid_mpi.F90
+
 #EOC

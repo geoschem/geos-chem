@@ -644,7 +644,6 @@ h2_hd_mod.o                 : h2_hd_mod.F                                    \
 hcn_ch3cn_mod.o             : hcn_ch3cn_mod.F                                \
                               diag_mod.o              global_oh_mod.o
 
-
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               global_oh_mod.o         tracerid_mod.o         \
                               get_ndep_mod.o          drydep_mod.o           \
@@ -657,7 +656,7 @@ initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
                               diag42_mod.o            diag53_mod.o           \
-                              diag56_mod.o            diag_pl_mod.o          \
+                              diag56_mod.o            diag_pl_mod.o
 
 input_mod.o                 : input_mod.F                                    \
                               aerosol_mod.o           benchmark_mod.o        \
@@ -755,6 +754,11 @@ merra_cn_mod.o              : merra_cn_mod.F                                 \
                               diag_mod.o
 
 merra_i6_mod.o              : merra_i6_mod.F
+
+messy_ncregrid_base.o       : messy_ncregrid_base.F90                        \
+                              messy_ncregrid_mpi.o    hco_error_mod.o
+
+messy_ncregrid_mpi.o        : messy_ncregrid_mpi.F90
 
 modis_lai_mod.o             : modis_lai_mod.F90       mapping_mod.o
 

@@ -52,7 +52,6 @@ MODULE HCO_Error_Mod
   PUBLIC           :: HCO_ERROR_FINAL
   PUBLIC           :: HCO_VERBOSE_SET
   PUBLIC           :: HCO_VERBOSE_CHECK
-  PUBLIC           :: HCO_FORCESCAL_CHECK
   PUBLIC           :: HCO_LOGFILE_OPEN
   PUBLIC           :: HCO_LOGFILE_CLOSE
 !
@@ -63,6 +62,8 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: dp = kind(0.d0)     ! double precision
   INTEGER, PARAMETER, PUBLIC  :: sp = 4              ! single precision
   INTEGER, PARAMETER, PUBLIC  :: hp = 8              ! HEMCO precision 
+  INTEGER, PARAMETER, PUBLIC  :: i4 = 4              ! FourByteInt 
+  INTEGER, PARAMETER, PUBLIC  :: i8 = 8              ! EightByteInt
 
   ! Error success/failure definitions
   INTEGER, PARAMETER, PUBLIC  :: HCO_SUCCESS = 0
@@ -82,7 +83,6 @@ MODULE HCO_Error_Mod
      LOGICAL                     :: Track
      LOGICAL                     :: Verbose
      LOGICAL                     :: LogIsOpen
-     LOGICAL                     :: ForceScal 
      LOGICAL                     :: ShowWarnings 
      INTEGER                     :: nWarnings
      INTEGER                     :: CurrLoc
@@ -449,14 +449,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ERROR_SET( LogFile,      Verbose, ForceScalUnit, &
-                            ShowWarnings, Track,   RC              )
+  SUBROUTINE HCO_ERROR_SET( LogFile,      Verbose,   & 
+                            ShowWarnings, Track,   RC )
 !
 !  !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)     :: LogFile        ! logfile path+name
     LOGICAL,          INTENT(IN)     :: Verbose        ! run in verbose mode?
-    LOGICAL,          INTENT(IN)     :: ForceScalUnit  ! allow only unitless scale factors?
     LOGICAL,          INTENT(IN)     :: ShowWarnings   ! prompt warnings?
     LOGICAL,          INTENT(IN)     :: Track          ! track code location?
 !
@@ -489,7 +488,6 @@ CONTAINS
     ! Pass values
     Err%LogFile      = TRIM(LogFile)
     Err%Verbose      = Verbose
-    Err%ForceScal    = ForceScalUnit 
     Err%Track        = Track
     Err%ShowWarnings = ShowWarnings
 
@@ -621,43 +619,6 @@ CONTAINS
     ENDIF
 
   END FUNCTION HCO_Verbose_Check
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HCO_ForceScal_Check
-!
-! !DESCRIPTION: Function HCO\_FORCESCAL\_CHECK returns TRUE if scale 
-! factors shall be forced to be unitless, FALSE otherwise. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HCO_ForceScal_Check() RESULT( ForceScalUnit )
-!
-! !RETURN VALUE::
-!
-    LOGICAL  :: ForceScalUnit
-!
-! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !======================================================================
-    ! HCO_FORCESCAL_CHECK begins here 
-    !======================================================================
-
-    IF ( ASSOCIATED(Err) ) THEN
-       ForceScalUnit = Err%ForceScal
-    ELSE
-       ForceScalUnit = .TRUE.
-    ENDIF
-
-  END FUNCTION HCO_ForceScal_Check
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

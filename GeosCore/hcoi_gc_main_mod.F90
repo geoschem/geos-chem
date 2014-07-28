@@ -58,6 +58,9 @@ MODULE HCOI_GC_Main_Mod
   REAL*8, ALLOCATABLE, TARGET     :: HCO_PEDGE  (:,:,:)
   REAL*8, ALLOCATABLE, TARGET     :: HCO_SZAFACT(:,:)
 
+  ! Sigma coordinate (temporary)
+  REAL(df), ALLOCATABLE, TARGET   :: ZSIGMA(:,:,:)
+
   ! Pointers used during initialization (for species matching)
   INTEGER                     :: nHcoSpec
   CHARACTER(LEN= 31), POINTER :: HcoSpecNames(:) => NULL()
@@ -493,30 +496,11 @@ CONTAINS
        ! end dust mixing 
     ENDIF
 
-!---------------------------------------------------------------------------
-!### DEBUG OUTPUT -- COMMENT OUT FOR NOW
-!    ! testing only
-!    write(*,*) 'State_Chm%Trac_Tend NO before MAP_HCO2GC: ', &
-!         SUM(State_Chm%Trac_Tend(:,:,:,1))
-!---------------------------------------------------------------------------
-
     ! ================================================================
     ! Translate emissions array from HCO state onto GC arrays
     ! This step also converts emissions from kg/m2/s to molec/cm2/s!
     ! ================================================================
     CALL MAP_HCO2GC ( HcoState, Input_Opt, State_Chm, RC )
-
-!---------------------------------------------------------------------------
-!### DEBUG OUTPUT -- COMMENT OUT FOR NOW
-!### NOTE: This will cause a segfault if NO is not an emissions species
-!    ! testing only
-!    HcoDST1 = HCO_GetHcoID( 'NO', HcoState ) 
-!
-!    write(*,*) 'NO Trac_Tend after MAP_HCO2GC: ', &
-!         SUM(HcoState%Spc(HcoDst1)%Emis%Val)
-!    write(*,*) 'State_Chm%Trac_Tend NO after MAP_HCO2GC: ', &
-!         SUM(State_Chm%Trac_Tend(:,:,:,1))
-!---------------------------------------------------------------------------
 
     ! Reset deposition arrays  
     ! TODO: Do somewhere else? e.g. in drydep/wetdep routines?
@@ -615,6 +599,7 @@ CONTAINS
     ! nullified (otherwise, the target arrays become deallocated)
     HcoState%Grid%XMID       => NULL()
     HcoState%Grid%YMID       => NULL()
+    HcoState%Grid%ZSIGMA     => NULL()
     HcoState%Grid%XEDGE      => NULL()
     HcoState%Grid%YEDGE      => NULL()
     HcoState%Grid%YSIN       => NULL()
@@ -625,6 +610,7 @@ CONTAINS
     CALL HcoState_Final ( HcoState ) 
 
     ! Module variables
+    IF ( ALLOCATED  ( ZSIGMA      ) ) DEALLOCATE ( ZSIGMA      )
     IF ( ALLOCATED  ( HCO_PEDGE   ) ) DEALLOCATE ( HCO_PEDGE   )
     IF ( ALLOCATED  ( HCO_PCENTER ) ) DEALLOCATE ( HCO_PCENTER )
     IF ( ALLOCATED  ( HCO_SZAFACT ) ) DEALLOCATE ( HCO_SZAFACT )
@@ -1346,6 +1332,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
+    INTEGER :: I
 
     !=================================================================
     ! SET_GRID begins here
@@ -1358,6 +1345,12 @@ CONTAINS
     ! them between HEMCO and GEOS-Chem (this is also true for the 
     ! met-fields used by the extensions)! 
 
+    ! ZSIGMA (temporary, for testing)
+    ALLOCATE(ZSIGMA(1,1,LLPAR+1))
+    DO I = 1,LLPAR+1
+       ZSIGMA(:,:,I) = I
+    ENDDO
+
     ! Grid dimensions
     HcoState%NX = IIPAR
     HcoState%NY = JJPAR
@@ -1366,6 +1359,7 @@ CONTAINS
     ! Set pointers to grid variables
     HcoState%Grid%XMID       => XMID   (:,:,1)
     HcoState%Grid%YMID       => YMID   (:,:,1)
+    HcoState%Grid%ZSIGMA     => ZSIGMA (:,:,:)
     HcoState%Grid%XEDGE      => XEDGE  (:,:,1)
     HcoState%Grid%YEDGE      => YEDGE  (:,:,1)
     HcoState%Grid%YSIN       => YSIN   (:,:,1)
