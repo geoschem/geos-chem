@@ -676,32 +676,6 @@
          ! Get AIRVOL
          AIR_VOL = State_Met%AIRVOL(I,J,L)
 
-!-----------------------------------------------------------------------------
-! Prior to 4/14/14:
-! Need to put error traps to prevent div-by-zero (bmy, 4/14/14)
-!         ! Define volume ratios:
-!         ! VR_OC_AIR = volume ratio of OC to air [unitless]     
-!         VR_OC_AIR   = C_OC_CHEM1 / AIR_VOL ! could be zero
-!
-!         ! VR_OC_BC  = volume ratio of OC to BC [unitless]
-!         VR_OC_BC = C_OC_CHEM1 / C_BC_CHEM1 ! could be zero or undefined
-!
-!         ! VR_BC_AIR = volume ratio of BC to air [unitless]
-!         VR_BC_AIR   = VR_OC_AIR / VR_OC_BC ! could be zero or undefined
-!
-!         ! VR_BC_OC  = volume ratio of BC to OC [unitless]
-!         VR_BC_OC    = 1d0 / VR_OC_BC ! could be zero or undefined
-!
-!         ! Redefine fractions of total POPs in box (I,J,L) that are OC-phase, 
-!         ! BC-phase, and gas phase with new time step (should only change if 
-!         ! temp changes or OC/BC concentrations change) 
-!         OC_AIR_RATIO = 1d0 / (KOA_T * VR_OC_AIR) 
-!         OC_BC_RATIO = 1d0 / (KOC_BC_T * VR_OC_BC) 
-!
-!         BC_AIR_RATIO = 1d0 / (KBC_T * VR_BC_AIR) 
-!         BC_OC_RATIO = 1d0 / (KBC_OC_T * VR_BC_OC)
-!-----------------------------------------------------------------------------
-
          ! Define volume ratios:
          ! VR_OC_AIR = volume ratio of OC to air [unitless]     
          VR_OC_AIR     = C_OC_CHEM1 / AIR_VOL ! could be zero

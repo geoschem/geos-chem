@@ -571,19 +571,6 @@
 
                ENDDO
 
-!               ! Loop over each month, reading OH
-!               DO M=1,12
-!
-!                  ! Global OH 
-!!------------------------------------------------------------------------------
-!! Prior to 10/23/13:
-!!                  CALL GET_GLOBAL_OH( M, State_Met )
-!!------------------------------------------------------------------------------
-!
-!
-!
-!               ENDDO
-
             ENDIF
 
          ! Default.  GEOS_CHEM_STOP
@@ -603,12 +590,6 @@
          DO L = 1, LD43
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-!---------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-!            IF ( L < LPAUSE(I,J) ) THEN
-!---------------------------------------------------------------------------
             IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
             ENDIF
@@ -1074,34 +1055,15 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-!-----------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-! Remove reference to LPAUSE variable from obsolete CMN_mod.F (bmy, 7/23/14)
-!      MM = MAXVAL( LPAUSE )
-!-----------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( L, J, I, KRATE, STT2GCH4, GCH4, BOXVL  )
 !$OMP+REDUCTION( +:TROPOCH4 )
-!-----------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-! Remove reference to LPAUSE variable from obsolete CMN_mod.F (bmy, 7/23/14)
-!      DO L = 1, MM !MAXVAL( LPAUSE )
-!-----------------------------------------------------------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Only consider tropospheric boxes
-!-----------------------------------------------------------------------------
-! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-!         IF ( L < LPAUSE(I,J) ) THEN 
-!-----------------------------------------------------------------------------
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
             ! Use 24-hr avg temperature to calc. rate coeff.
@@ -1235,22 +1197,10 @@
       STT => State_Chm%Tracers
 
       ! 1. Calculate OH mass and total air mass
-!---------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-!      DO L = 1, MAXVAL( LPAUSE )
-!---------------------------------------------------------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR 
       DO I = 1, IIPAR 
-!---------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-!         ! Only process tropospheric boxes (bmy, 4/17/00)
-!         IF ( L < LPAUSE(I,J) ) THEN
-!---------------------------------------------------------------------------
+
          ! Only process tropospheric boxes (bmy, 4/17/00)
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
@@ -2160,23 +2110,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, K, L
-      INTEGER             :: LPAUSE_MIN, LPAUSE_MAX
+      INTEGER :: I, J, K, L
 
       !=================================================================
       ! SUM_CH4 begins here!
       !=================================================================
-
-!----------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-!         DO L = L1, LPAUSE_MAX
-!      ! Compute the minimum value of LPAUSE once for use in
-!      ! the DO-loops below (bmy, 4/18/00)
-!      LPAUSE_MIN = MINVAL( LPAUSE )
-!      LPAUSE_MAX = MAXVAL( LPAUSE )
-!----------------------------------------------------------------------------
 
       !### Debug
       !print*,'LPAUSE MIN/MAX=',LPAUSE_MIN,LPAUSE_MAX  
@@ -2192,21 +2130,9 @@
          ! UPDOWN = 1: Sum up from the surface to the tropopause
          !=============================================================
          DO K = K1, K2
-!----------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-!         DO L = L1, LPAUSE_MAX
-!----------------------------------------------------------------------------
          DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-!----------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Now use ITS_IN_THE_CHEMGRID to diagnose if we are in the troposphere.
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-!            IF ( L < LPAUSE(I,J) ) THEN 
-!----------------------------------------------------------------------------
             IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF
@@ -2220,22 +2146,10 @@
          !=============================================================
          ! UPDOWN = 0: Sum up from the tropopause to the atm top
          !=============================================================
-         DO K = K1,         K2
-!----------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Now use ITS_IN_THE_NOCHEMGRID to diagnose if we are in the stratosphere
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-!         DO L = LPAUSE_MIN, L2
-!----------------------------------------------------------------------------
-         DO L = 1,       LLPAR
-         DO J = J1,         J2
-         DO I = I1,         I2
-!----------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Now use ITS_IN_THE_NOCHEMGRID to diagnose if we are in the stratosphere
-! This lets us get rid of the obsolete LPAUSE array (bmy, 7/23/14)
-!            IF ( L >= LPAUSE(I,J) ) THEN 
-!----------------------------------------------------------------------------
+         DO K = K1, K2
+         DO L = 1,  LLPAR
+         DO J = J1, J2
+         DO I = I1, I2
             IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF            

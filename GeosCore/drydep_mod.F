@@ -795,14 +795,6 @@
          !  jaegle (5/11/11)
          RHB(IJLOOP)    = MIN( 0.98d0, State_Met%RH(I,J,1) * 1.d-2 )
 
-!------------------------------------------------------------------------------
-! Prior to 7/25/14:
-! Remove reference to SFCWINDSQR (bmy, 7/25/14)
-!         ! 10m windspeed (jaegle 5/11/11)
-!         W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
-!     &                                       State_Met%U10M,
-!     &                                       State_Met%V10M ) )
-!------------------------------------------------------------------------------
          ! 10m windspeed [m/s] (jaegle 5/11/11)
          SFCWINDSQR     = State_Met%U10M(I,J)**2
      &                  + State_Met%V10M(I,J)**2
@@ -4120,11 +4112,6 @@
       REAL*8  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
       REAL*8  :: SC, ST      ! Schmidt and Stokes number (nondim)
 
-!------------------------------------------------------------------------------
-! Prior to 1/31/14:
-! Now pass these as arguments to avoid parallel errors w/ TOMAS (bmy, 1/31/14)
-!      REAL*8  :: DIAM, DEN
-!------------------------------------------------------------------------------
       REAL*8  :: EB, EIM, EIN, R1, AA, VTS
 
 !=======================================================================
@@ -4264,16 +4251,6 @@
       !      R1 (Particle rebound)  = exp(-St^0.5)
       !=================================================================
  
-!-----------------------------------------------------------------------------  
-! Prior to 1/31/14:
-! Now pass these as arguments to avoid parallel errors w/ TOMAS (bmy, 1/31/14)
-!      ! Particle diameter [m]
-!      DIAM  = A_RADI(K) * 2.d0  
-!
-!      ! Particle density [kg/m3]
-!      DEN   = A_DEN(K)          
-!-----------------------------------------------------------------------------  
-
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.d6 
  

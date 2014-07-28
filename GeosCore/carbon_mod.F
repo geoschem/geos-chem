@@ -6522,12 +6522,6 @@ ccc
      &                      ( 62d0/28.97d0 )
 
             ! Convert NO3 from [kg] to [molec/cm3]
-!-----------------------------------------------------------------------------
-! Prior to 7/24/14:
-! Remove reference to boxvl.F (bmy, 7/24/14)
-!            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 /
-!     &                      BOXVL(I,J,L,State_Met)
-!-----------------------------------------------------------------------------
             BOXVL         = State_Met%AIRVOL(I,J,L) * 1d6
             NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL
 
@@ -6646,12 +6640,6 @@ ccc
      &                     ( 48d0/28.97d0 )
                
             ! Convert O3 from [kg] to [molec/cm3]
-!----------------------------------------------------------------------------
-! Prior to 7/24/14:
-! Remove reference to boxvl.F (bmy, 7/24/14)
-!            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 /
-!     &                     BOXVL(I,J,L,State_Met)
-!----------------------------------------------------------------------------
             BOXVL        = State_Met%AIRVOL(I,J,L) * 1d6
             O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL
 

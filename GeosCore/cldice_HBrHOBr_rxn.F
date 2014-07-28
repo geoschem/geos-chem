@@ -142,12 +142,6 @@
 
       !%%% ERROR CHECK!  Do not let IWC<=0 because it will cause the
       !%%% LOG10 statement in the upcoming section (bmy, 10/23/12)
-!-----------------------------------------------------------------------------
-! Prior to 9/5/13:
-! Amend error trap, IWC < 0 will also choke because it's an argument in
-! a logarithm.  Now exit unless IWC is a positive number. (bmy, 9/5/13)
-!      IF ( ( .not. ( ABS( IWC ) > 0d0 ) ) ) THEN
-!-----------------------------------------------------------------------------
       IF ( .not. ( IWC > 0d0 ) ) THEN
          gamma  = 0.d0
          k_hbr  = 0.d0

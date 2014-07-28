@@ -1399,16 +1399,6 @@
          IF (FOCEAN > 0.5d0) THEN 
 
             ! Wind speed at 10 m altitude [m/s]
-!---------------------------------------------------------------------------
-! Prior to 7/25/14:
-! Remove reference to function SFCWINDSQR (bmy, 7/25/14)
-!!            W10M = SQRT( SFCWINDSQR( I, J ) )
-!            W10M = SQRT( SFCWINDSQR( I, J ,
-!     &                               State_Met%U10M,
-!     &                               State_Met%V10M  ) )
-!---------------------------------------------------------------------------
-
-            ! Get surface wind speed [m/s]
             SFCWINDSQR = State_Met%U10M(I,J)**2  
      &                 + State_Met%V10M(I,J)**2
             W10M       = SQRT( SFCWINDSQR )

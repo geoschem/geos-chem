@@ -183,11 +183,6 @@
             IZSAVE(JLOOP)  = L                              
 
             ! get box volume [cm3]
-!----------------------------------------------------------------------------
-! Prior to 7/24/14:
-! Now compute BOXVL internally (bmy, 7/24/14)
-!            VOLUME(JLOOP)  = BOXVL( I, J, L, State_Met )
-!----------------------------------------------------------------------------
             VOLUME(JLOOP)  = State_Met%AIRVOL(I,J,L) * 1d6
 
             ! get air density in (molecs cm^-3)

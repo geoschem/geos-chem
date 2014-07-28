@@ -1177,11 +1177,6 @@
             ScCO2  = 644.7d0 + TC * ( -6.16d0 + TC * ( 0.11d0 ) ) 
 
             ! Square of surface (actually 10m) wind speed [m2/s2]
-!----------------------------------------------------------------------------
-! Prior to 7/25/14:
-! Remove reference to function SFCWINDSQR (bmy, 7/25/14)
-!            Usq    = SFCWINDSQR( I, J, State_Met%U10M, State_Met%V10M )
-!----------------------------------------------------------------------------
             Usq    = State_Met%U10M(I,J)**2 + State_Met%V10M(I,J)**2
 
             !------------------------------------------------------
