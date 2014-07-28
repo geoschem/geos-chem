@@ -345,179 +345,177 @@ CONTAINS
     RC  = HCO_SUCCESS
     CNT = 0
 
-       ! Inherit data precision from HEMCO
-       Prc = HP
+    ! Inherit data precision from HEMCO
+    Prc = HP
  
-       ! Check if there is at least one diagnostics to write:
-       ! If current time stamp is not at the end of an interval - or
-       ! if there is no diagnostics container in the list with a reset
-       ! flag smaller or equal to MinResetFlag - there will be no matching
-       ! container whatsoever. Can leave right here.
-       IF ( WriteAll ) THEN
-          MinResetFlag = -1
-       ELSE
-          MinResetFlag = HcoClock_GetMinResetFlag()
-       ENDIF
-       MaxResetFlag = Diagn_GetMaxResetFlag()
-       IF ( MinResetFlag > MaxResetFlag ) RETURN
+    ! Check if there is at least one diagnostics to write:
+    ! If current time stamp is not at the end of an interval - or
+    ! if there is no diagnostics container in the list with a reset
+    ! flag smaller or equal to MinResetFlag - there will be no matching
+    ! container whatsoever. Can leave right here.
+    IF ( WriteAll ) THEN
+       MinResetFlag = -1
+    ELSE
+       MinResetFlag = HcoClock_GetMinResetFlag()
+    ENDIF
+    MaxResetFlag = Diagn_GetMaxResetFlag()
+    IF ( MinResetFlag > MaxResetFlag ) RETURN
 
-       ! Get PrevTime flag from input argument or set to default (=> TRUE)
-       IF ( PRESENT(UsePrevTime) ) THEN
-          PrevTime = UsePrevTime
-       ELSE
-          PrevTime = .TRUE.
-       ENDIF
+    ! Get PrevTime flag from input argument or set to default (=> TRUE)
+    IF ( PRESENT(UsePrevTime) ) THEN
+       PrevTime = UsePrevTime
+    ELSE
+       PrevTime = .TRUE.
+    ENDIF
 
-       !-----------------------------------------------------------------
-       ! Create output file
-       !-----------------------------------------------------------------
+    !-----------------------------------------------------------------
+    ! Create output file
+    !-----------------------------------------------------------------
 
-       ! Get HEMCO time: if this is the last call (WriteAll flag
-       ! true), get current time. Use previous time otherwise.
-       IF ( .NOT. PrevTime ) THEN
-          CALL HcoClock_Get(cYYYY=YYYY,cMM=MM,cDD=DD,cH=h,cM=m,cS=s,RC=RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          EOI = .FALSE.
-       ELSE
-          CALL HcoClock_Get(pYYYY=YYYY,pMM=MM,pDD=DD,pH=h,pM=m,pS=s,RC=RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          EOI = .TRUE.
-       ENDIF
+    ! Use HEMCO clock to create timestamp used in filename. Use previous
+    ! time step if this option is selected.
+    IF ( .NOT. PrevTime ) THEN
+       CALL HcoClock_Get(cYYYY=YYYY,cMM=MM,cDD=DD,cH=h,cM=m,cS=s,RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       EOI = .FALSE.
+    ELSE
+       CALL HcoClock_Get(pYYYY=YYYY,pMM=MM,pDD=DD,pH=h,pM=m,pS=s,RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       EOI = .TRUE.
+    ENDIF
 
-       ! Define grid dimensions
-       nLon  = HcoState%NX
-       nLat  = HcoState%NY
-       nLev  = HcoState%NZ
-       nTime = 1 
+    ! Define grid dimensions
+    nLon  = HcoState%NX
+    nLat  = HcoState%NY
+    nLev  = HcoState%NZ
+    nTime = 1 
 
-       ! Initialize mirror variables
-       allocate(Arr4D(nlon,nlat,nlev,ntime))
-       allocate(Arr3D(nlon,nlat,ntime))
-       Arr3D = 0.0_hp
-       Arr4D = 0.0_hp
+    ! Initialize mirror variables
+    allocate(Arr4D(nlon,nlat,nlev,ntime))
+    allocate(Arr3D(nlon,nlat,ntime))
+    Arr3D = 0.0_hp
+    Arr4D = 0.0_hp
 
-       ! Construct filename: diagnostics will be written into file
-       ! PREFIX.YYYYMMDDhm.nc, where PREFIX is the input argument or
-       ! (if not present) obtained from the HEMCO configuration file.
+    ! Construct filename: diagnostics will be written into file
+    ! PREFIX.YYYYMMDDhm.nc, where PREFIX is the input argument or
+    ! (if not present) obtained from the HEMCO configuration file.
   
-       ! Write datetime
-       WRITE( Yrs, '(i4.4)' ) YYYY
-       WRITE( Mts, '(i2.2)' ) MM
-       WRITE( Dys, '(i2.2)' ) DD
-       WRITE( hrs, '(i2.2)' ) h
-       WRITE( mns, '(i2.2)' ) m
+    ! Write datetime
+    WRITE( Yrs, '(i4.4)' ) YYYY
+    WRITE( Mts, '(i2.2)' ) MM
+    WRITE( Dys, '(i2.2)' ) DD
+    WRITE( hrs, '(i2.2)' ) h
+    WRITE( mns, '(i2.2)' ) m
 
-       ! Get prefix
-       IF ( PRESENT(PREFIX) ) THEN
-          Pfx = PREFIX
+    ! Get prefix
+    IF ( PRESENT(PREFIX) ) THEN
+       Pfx = PREFIX
+    ELSE
+       CALL Diagn_GetDiagnPrefix( Pfx, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+    ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
+
+    ! Create output file
+    CALL NC_CREATE( ncFile, nLon,  nLat,  nLev,  nTime, &
+                    fId,    lonId, latId, levId, timeId, VarCt ) 
+
+    !-----------------------------------------------------------------
+    ! Write grid dimensions (incl. time) 
+    !-----------------------------------------------------------------
+
+    ! Add longitude 
+    CALL NC_VAR_DEF ( fId, lonId, -1, -1, -1, &
+                      'lon', 'Longitude', 'degrees_east', Prc, VarCt )
+    Arr1D => HcoState%Grid%xmid(:,1)
+    CALL NC_VAR_WRITE ( fId, 'lon', Arr1D=Arr1D )
+    Arr1D => NULL()
+    
+    ! Add latitude
+    CALL NC_VAR_DEF ( fId, -1, latId, -1, -1, &
+                      'lat', 'Latitude', 'degrees_north', Prc, VarCt )
+    Arr1D => HcoState%Grid%ymid(1,:)
+    CALL NC_VAR_WRITE ( fId, 'lat', Arr1D=Arr1D )
+    Arr1D => NULL()
+
+    ! Add level 
+    CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
+                      'lev', 'GEOS-Chem level', 'unitless', 1, VarCt )
+    allocate(Int1D(nLev))
+    DO I = 1, nLev
+       Int1D(I) = I
+    ENDDO
+    CALL NC_VAR_WRITE ( fId, 'lev', Arr1D=Int1D )
+    deallocate(Int1D)
+
+    ! Add time 
+    timeunit = 'hours since 1985-01-01 00:00:00 GMT'
+    GMT = REAL(h,dp) + (REAL(m,dp)/60.0_dp) + (REAL(s,dp)/3600.0_dp)
+    THISDAY  = DD + ( GMT / 24.0_dp )
+    JD1      = JULDAY ( YYYY, MM, THISDAY )
+    JD1985   = JULDAY ( 1985, 1,  0.0_dp  ) + 1.0_dp
+    JD_DELTA = (JD1 - JD1985 ) * 24.0_dp
+
+    ! Round to 2 digits after comma 
+    JD_DELTA_RND = REAL(JD_DELTA,sp) * 100.0_sp
+    TMP          = ANINT( JD_DELTA_RND )
+    JD_DELTA_RND = TMP / 100.0_sp
+
+    allocate(nctime(1)) 
+    nctime(1) = JD_DELTA_RND
+    CALL NC_VAR_DEF ( fId, -1, -1, -1, timeId, &
+                      'time', 'Time', TRIM(timeunit), 4, VarCt )
+    CALL NC_VAR_WRITE ( fId, 'time', Arr1D=nctime )
+    deallocate(nctime)
+
+    !-----------------------------------------------------------------
+    ! Write diagnostics 
+    !-----------------------------------------------------------------
+
+    ! Loop over all diagnostics in diagnostics list 
+    ThisDiagn => NULL()
+    DO WHILE ( .TRUE. )
+
+       ! Get next diagnostics in list. This will return the next 
+       ! diagnostics container that contains content to be written
+       ! out on this time step.
+       CALL Diagn_Get ( am_I_Root, HcoState, EOI, ThisDiagn, FLAG, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( FLAG /= HCO_SUCCESS ) EXIT
+
+       ! Define variable
+       myName = ThisDiagn%cName
+       myUnit = ThisDiagn%OutUnit
+       IF ( ThisDiagn%SpaceDim == 3 ) THEN
+          levIdTmp = levId
        ELSE
-          CALL Diagn_GetDiagnPrefix( Pfx, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          levIdTmp = -1
        ENDIF
-       ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
-       ! testing only
-       write(*,*) 'write diagnostics to ', TRIM(ncFile)
+       CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
+            TRIM(myName), TRIM(myName), TRIM(myUnit), Prc, VarCt)
 
-       ! Create output file
-       CALL NC_CREATE( ncFile, nLon,  nLat,  nLev,  nTime, &
-                       fId,    lonId, latId, levId, timeId, VarCt ) 
+       ! Mirror data and write to file. The mirroring is required in
+       ! order to add the time dimension. Otherwise, the data would
+       ! have no time information!
+       IF ( ThisDiagn%SpaceDim == 3 ) THEN
+          Arr4D(:,:,:,1) = thisdiagn%Arr3D%val
+          CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
+       ELSE
+          Arr3D(:,:,1) = thisdiagn%Arr2D%val 
+          CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
+       ENDIF
 
-       !-----------------------------------------------------------------
-       ! Write grid dimensions (incl. time) 
-       !-----------------------------------------------------------------
+    ENDDO
 
-       ! Add longitude 
-       CALL NC_VAR_DEF ( fId, lonId, -1, -1, -1, &
-                         'lon', 'Longitude', 'degrees_east', Prc, VarCt )
-       Arr1D => HcoState%Grid%xmid(:,1)
-       CALL NC_VAR_WRITE ( fId, 'lon', Arr1D=Arr1D )
-       Arr1D => NULL()
-       
-       ! Add latitude
-       CALL NC_VAR_DEF ( fId, -1, latId, -1, -1, &
-                         'lat', 'Latitude', 'degrees_north', Prc, VarCt )
-       Arr1D => HcoState%Grid%ymid(1,:)
-       CALL NC_VAR_WRITE ( fId, 'lat', Arr1D=Arr1D )
-       Arr1D => NULL()
+    !-----------------------------------------------------------------
+    ! Close file
+    !-----------------------------------------------------------------
+    CALL NC_CLOSE ( fId )
 
-       ! Add level 
-       CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
-                         'lev', 'GEOS-Chem level', 'unitless', 1, VarCt )
-       allocate(Int1D(nLev))
-       DO I = 1, nLev
-          Int1D(I) = I
-       ENDDO
-       CALL NC_VAR_WRITE ( fId, 'lev', Arr1D=Int1D )
-       deallocate(Int1D)
-
-       ! Add time 
-       timeunit = 'hours since 1985-01-01 00:00:00 GMT'
-       GMT = REAL(h,dp) + (REAL(m,dp)/60.0_dp) + (REAL(s,dp)/3600.0_dp)
-       THISDAY  = DD + ( GMT / 24.0_dp )
-       JD1      = JULDAY ( YYYY, MM, THISDAY )
-       JD1985   = JULDAY ( 1985, 1,  0.0_dp  ) + 1.0_dp
-       JD_DELTA = (JD1 - JD1985 ) * 24.0_dp
-
-       ! Round to 2 digits after comma 
-       JD_DELTA_RND = REAL(JD_DELTA,sp) * 100.0_sp
-       TMP          = ANINT( JD_DELTA_RND )
-       JD_DELTA_RND = TMP / 100.0_sp
-
-       allocate(nctime(1)) 
-       nctime(1) = JD_DELTA_RND
-       CALL NC_VAR_DEF ( fId, -1, -1, -1, timeId, &
-                         'time', 'Time', TRIM(timeunit), 4, VarCt )
-       CALL NC_VAR_WRITE ( fId, 'time', Arr1D=nctime )
-       deallocate(nctime)
-
-       !-----------------------------------------------------------------
-       ! Write diagnostics 
-       !-----------------------------------------------------------------
-
-       ! Loop over all diagnostics in diagnostics list 
-       ThisDiagn => NULL()
-       DO WHILE ( .TRUE. )
-
-          ! Get next diagnostics in list. This will return the next 
-          ! diagnostics container that contains content to be written
-          ! out on this time step.
-          CALL Diagn_Get ( am_I_Root, HcoState, EOI, ThisDiagn, FLAG, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          IF ( FLAG /= HCO_SUCCESS ) EXIT
-
-          ! Define variable
-          myName = ThisDiagn%cName
-          myUnit = ThisDiagn%OutUnit
-          IF ( ThisDiagn%SpaceDim == 3 ) THEN
-             levIdTmp = levId
-          ELSE
-             levIdTmp = -1
-          ENDIF
-
-          CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
-               TRIM(myName), TRIM(myName), TRIM(myUnit), Prc, VarCt)
-
-          ! Mirror data and write to file. The mirroring is required in
-          ! order to add the time dimension. Otherwise, the data would
-          ! have no time information!
-          IF ( ThisDiagn%SpaceDim == 3 ) THEN
-             Arr4D(:,:,:,1) = thisdiagn%Arr3D%val
-             CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
-          ELSE
-             Arr3D(:,:,1) = thisdiagn%Arr2D%val 
-             CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
-          ENDIF
-       ENDDO
-
-       !-----------------------------------------------------------------
-       ! Close file
-       !-----------------------------------------------------------------
-       CALL NC_CLOSE ( fId )
-
-       ! Cleanup
-       deallocate(Arr3D,Arr4D)
-       ThisDiagn => NULL()
+    ! Cleanup
+    deallocate(Arr3D,Arr4D)
+    ThisDiagn => NULL()
 
     ! Return 
     RC = HCO_SUCCESS

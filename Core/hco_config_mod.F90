@@ -94,8 +94,8 @@ MODULE HCO_Config_Mod
   ! be added to ConfigList
   TYPE(ListCont), POINTER     :: ConfigList => NULL()
 
-  ! # of lines in buffer 
-  INTEGER              :: LinesInBuffer = 0
+  ! Configuration file read or not? 
+  LOGICAL              :: ConfigFileRead = .FALSE. 
 
   !----------------------------------------------------------------
   ! MODULE ROUTINES follow below
@@ -158,8 +158,8 @@ CONTAINS
     RC  = HCO_SUCCESS
     LOC = 'Config_ReadFile (hco_config_mod.F90)'
 
-    ! Leave here if data already in buffer 
-    IF ( LinesInBuffer > 0 ) THEN
+    ! Leave here if configuration file is already read 
+    IF ( ConfigFileRead ) THEN
        RETURN
     ENDIF
 
@@ -250,6 +250,9 @@ CONTAINS
        RETURN 
     ENDIF 
 
+    ! Configuration file is now read
+    ConfigFileRead = .TRUE.
+
     ! Leave w/ success
     RC = HCO_SUCCESS 
 
@@ -302,7 +305,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if configuration file hasn't been read yet! 
-    IF ( LinesInBuffer == 0 ) THEN
+    IF ( .NOT. ConfigFileRead ) THEN
        MSG = 'HEMCO configuration file not read!'
        CALL HCO_ERROR ( MSG, RC ) 
        RETURN
@@ -317,7 +320,7 @@ CONTAINS
 
     ! Register base emissions. In this step, we also redefine the 
     ! list UnqScalIDs to make sure that only those scale factors
-    ! that are effectively used will be registered in the next step.
+    ! will be registered that are effectively used in the next step.
     CALL Register_Base( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -326,7 +329,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Create cIDList which allows quick access to all data containers
-    ! based upon their container IDs cID
+    ! based on their container IDs cID
     CALL cIDList_Create ( am_I_Root, HcoState, ConfigList, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -815,7 +818,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER               :: I, N, POS
-    LOGICAL               :: verb, ForceScal, warn, track
+    LOGICAL               :: verb, warn, track
     CHARACTER(LEN=255)    :: LINE, LOC
     CHARACTER(LEN=255)    :: LogFile
     CHARACTER(LEN=255)    :: DiagnPrefix
@@ -832,7 +835,6 @@ CONTAINS
     verb      = .FALSE.
     track     = .FALSE.
     warn      = .TRUE.
-    ForceScal = .TRUE. 
 
     !-----------------------------------------------------------------------
     ! Read settings and add them as options to core extensions
@@ -875,11 +877,6 @@ CONTAINS
     CALL GetExtOpt( 0, 'Logfile', OptValChar=Logfile, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Allow only unitless scale factors?
-    CALL GetExtOpt( 0, 'unitless scale factor', &
-                    OptValBool=ForceScal, RC=RC  )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     ! Prompt warnings to logfile? 
     CALL GetExtOpt( 0, 'Show warnings', OptValBool=warn, RC=RC  )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -894,7 +891,7 @@ CONTAINS
     IF ( TRIM(LogFile) == HCO_WCD() ) LogFile = '*'
 
     ! We should now have everything to define the HEMCO error settings
-    CALL HCO_ERROR_SET ( LogFile, verb, ForceScal, warn, track, RC )
+    CALL HCO_ERROR_SET ( LogFile, verb, warn, track, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave w/ success
@@ -1148,7 +1145,6 @@ CONTAINS
     USE HCO_EXTLIST_MOD,       ONLY : ExtNrInUse
     USE HCO_READLIST_Mod,      ONLY : ReadList_Set
     USE HCO_DATACONT_Mod,      ONLY : DataCont_Cleanup
-    USE HCO_FILEDATA_Mod,      ONLY : FileData_FileRead
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1172,7 +1168,7 @@ CONTAINS
     TYPE(ListCont), POINTER   :: Lct => NULL()
 
     ! Scalars
-    INTEGER               :: N, cID, HcoID, IsHome
+    INTEGER               :: N, cID, HcoID
     INTEGER               :: targetID, FLAG
     LOGICAL               :: Ignore, Add, Verb
     CHARACTER(LEN=255)    :: MSG
@@ -1243,17 +1239,10 @@ CONTAINS
 
        ! -------------------------------------------------------------
        ! Eventually read data from file 
-       IF ( .NOT. Lct%Dct%Dta%ncRead ) THEN 
-          CALL FileData_FileRead ( am_I_Root, Lct%Dct%Dta, IsHome, RC )
+       IF ( .NOT. Lct%Dct%Dta%ncRead ) THEN
+          CALL ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          Lct%Dct%DtaHome = IsHome
-
-          ! If this is not the home container, make sure that the share
-          ! flag of the file data object is set to true.
-          IF ( IsHome /= 1 ) THEN
-             Lct%Dct%Dta%DoShare = .TRUE.
-          ENDIF
-       ENDIF
+       ENDIF       
 
        ! -------------------------------------------------------------
        ! Extract vector of scale factor container IDs to be applied 
@@ -1351,7 +1340,6 @@ CONTAINS
 ! !USES:
 !
     USE HCO_ReadList_Mod, ONLY : ReadList_Set
-    USE HCO_FileData_Mod, ONLY : FileData_FileRead
 !
 ! !INPUT PARAMETERS:
 !
@@ -1375,7 +1363,7 @@ CONTAINS
     TYPE(ScalIDCont), POINTER :: TmpScalIDCont => NULL() 
 
     ! Scalars
-    INTEGER                   :: FLAG, IsHome
+    INTEGER                   :: FLAG
     CHARACTER(LEN=255)        :: MSG
     CHARACTER(LEN=  5)        :: strID
     INTEGER                   :: ThisScalID
@@ -1438,15 +1426,8 @@ CONTAINS
        ! specified, in which case these are interpreted as temporal 
        ! variations (7=day of week, 12=monthly, 24=hourly). 
        IF ( .NOT. Lct%Dct%Dta%ncRead ) THEN 
-          CALL FileData_FileRead ( am_I_Root, Lct%Dct%Dta, IsHome, RC )
+          CALL ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          Lct%Dct%DtaHome = IsHome
-
-          ! If this is not the home container, make sure that the share
-          ! flag of the file data object is set to true.
-          IF ( IsHome /= 1 ) THEN
-             Lct%Dct%Dta%DoShare = .TRUE.
-          ENDIF
        ENDIF
 
        ! Register container in ReadList. Containers will be listed 
@@ -2268,7 +2249,7 @@ CONTAINS
     ConfigList => NULL()
 
     ! Reset internal variables to default values
-    LinesInBuffer = 0
+    ConfigFileRead = .FALSE. 
 
   END SUBROUTINE Config_Cleanup
 !EOC
@@ -2443,9 +2424,6 @@ CONTAINS
     ! Connect blank container with ConfigList list. 
     NewLct%NextCont => List 
     List            => NewLct
-
-    ! Update number of lines in buffer 
-    LinesInBuffer  = LinesInBuffer + 1
 
     ! Output pointer points to the new container 
     Lct => NewLct 
@@ -2984,4 +2962,79 @@ CONTAINS
 
   END FUNCTION Check_ContNames
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ReadFromConfig 
+!
+! !DESCRIPTION: Subroutine ReadFromConfig is a wrapper routine to read
+! data directly from the configuration file (instead of reading it from
+! disk).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ReadFromConfig ( am_I_Root, HcoState, Lct, RC ) 
+!
+! !USES:
+!
+    USE HCO_FILEDATA_Mod,      ONLY : FileData_FileRead
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,         INTENT(IN   )    :: am_I_Root
+    TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER         :: Lct
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !REVISION HISTORY:
+!  24 Jul 2014 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL(hp)   :: MW_g,  EmMW_g, MolecRatio
+    INTEGER    :: HcoID, IsHome
+
+    !======================================================================
+    ! ReadFromConfig begins here
+    !======================================================================
+       
+    ! Shadow molecular weights and molec. ratio (needed for
+    ! unit conversion during file read)
+    HcoID = Lct%Dct%HcoID
+    IF ( HcoID > 0 ) THEN
+       MW_g       = HcoState%Spc(HcoID)%MW_g
+       EmMW_g     = HcoState%Spc(HcoID)%EmMW_g
+       MolecRatio = HcoState%Spc(HcoID)%MolecRatio
+    ELSE
+       MW_g       = -999.0_hp 
+       EmMW_g     = -999.0_hp 
+       MolecRatio = -999.0_hp
+    ENDIF
+
+    CALL FileData_FileRead ( am_I_Root, Lct%Dct%Dta, MW_g, &
+                             EmMW_g,    MolecRatio,  IsHome, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    Lct%Dct%DtaHome = IsHome
+
+    ! If this is not the home container, make sure that the share
+    ! flag of the file data object is set to true.
+    IF ( IsHome /= 1 ) THEN
+       Lct%Dct%Dta%DoShare = .TRUE.
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ReadFromConfig 
+!EOC
 END MODULE HCO_Config_Mod
+!EOM

@@ -24,20 +24,30 @@ MODULE HCO_GeoTools_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: HCO_LandType
+  PUBLIC :: HCO_ValidateLon
+
   INTERFACE HCO_LandType
      MODULE PROCEDURE HCO_LandType_Dp
      MODULE PROCEDURE HCO_LandType_Sp
   END INTERFACE HCO_LandType
+
+  INTERFACE HCO_ValidateLon
+     MODULE PROCEDURE HCO_ValidateLon_Dp
+     MODULE PROCEDURE HCO_ValidateLon_Sp
+  END INTERFACE HCO_ValidateLon
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE:: HCO_LandType_Dp
   PRIVATE:: HCO_LandType_Sp
+  PRIVATE:: HCO_ValidateLon_Dp
+  PRIVATE:: HCO_ValidateLon_Sp
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller   - Initialization
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  16 Jul 2014 - C. Keller   - Added HCO_ValidateLon
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,5 +171,157 @@ CONTAINS
 
   END FUNCTION HCO_LandType_Dp
 !EOC
-END MODULE HCO_GeoTools_MOd
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !FUNCTION: HCO_ValidateLon_Sp
+!
+! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed 
+! single precision longitude axis LON is steadily increasing.
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ValidateLon_Sp ( NLON, LON, RC )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,  INTENT(IN   ) :: NLON        ! # of lons
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(sp), INTENT(INOUT) :: LON(NLON)   ! longitude axis
+    INTEGER,  INTENT(INOUT) :: RC          ! Return code
+!
+! !REVISION HISTORY:
+!  16 Jul 2014 - C. Keller - Initialization
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: I, CNT
+    LOGICAL             :: REDO
+    INTEGER, PARAMETER  :: MAXIT = 10
+
+    !--------------------------
+    ! HCO_ValidateLon_Sp begins here
+    !--------------------------
+
+    REDO = .TRUE.
+    CNT  = 0
+
+    DO WHILE ( REDO )
+
+       ! Exit w/ error after 10 iterations
+       CNT = CNT + 1
+       IF ( CNT > MAXIT ) THEN
+          CALL HCO_ERROR ( '>10 iterations', RC, &
+                           THISLOC='HCO_ValidateLon (HCO_GEOTOOLS_MOD.F90)' )
+          RETURN
+       ENDIF
+
+       DO I = 1, NLON
+
+          ! If we reach the last grid box, all values are steadily
+          ! increasing (otherwise, the loop would have been exited).
+          IF ( I == NLON ) THEN
+             REDO = .FALSE.
+             EXIT
+          ENDIF
+
+          ! Check if next lon value is lower, in which case we subtract
+          ! a value of 360 (degrees) from all longitude values up to
+          ! this point. Then repeat the lookup (from the beginning).
+          IF ( LON(I+1) < LON(I) ) THEN
+             LON(1:I) = LON(1:I) - 360.0_sp
+             EXIT
+          ENDIF
+
+       ENDDO !I
+    ENDDO ! REDO
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ValidateLon_Sp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !FUNCTION: HCO_ValidateLon_Dp
+!
+! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed 
+! double precision longitude axis LON is steadily increasing.
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ValidateLon_Dp ( NLON, LON, RC )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,  INTENT(IN   ) :: NLON        ! # of lons
+!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(dp), INTENT(INOUT) :: LON(NLON)   ! longitude axis
+    INTEGER,  INTENT(INOUT) :: RC          ! Return code
+!
+! !REVISION HISTORY:
+!  16 Jul 2014 - C. Keller - Initialization
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER             :: I, CNT
+    LOGICAL             :: REDO
+    INTEGER, PARAMETER  :: MAXIT = 10
+
+    !--------------------------
+    ! HCO_ValidateLon_Dp begins here
+    !--------------------------
+
+    REDO = .TRUE.
+    CNT  = 0
+
+    DO WHILE ( REDO )
+
+       ! Exit w/ error after 10 iterations
+       CNT = CNT + 1
+       IF ( CNT > MAXIT ) THEN
+          CALL HCO_ERROR ( '>10 iterations', RC, &
+                           THISLOC='HCO_ValidateLon (HCO_GEOTOOLS_MOD.F90)' )
+          RETURN
+       ENDIF
+
+       DO I = 1, NLON
+
+          ! If we reach the last grid box, all values are steadily
+          ! increasing (otherwise, the loop would have been exited).
+          IF ( I == NLON ) THEN
+             REDO = .FALSE.
+             EXIT
+          ENDIF
+
+          ! Check if next lon value is lower, in which case we subtract
+          ! a value of 360 (degrees) from all longitude values up to
+          ! this point. Then repeat the lookup (from the beginning).
+          IF ( LON(I+1) < LON(I) ) THEN
+             LON(1:I) = LON(1:I) - 360.0_dp
+             EXIT
+          ENDIF
+
+       ENDDO !I
+    ENDDO ! REDO
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ValidateLon_Dp
+!EOC
+END MODULE HCO_GeoTools_Mod
 !EOM

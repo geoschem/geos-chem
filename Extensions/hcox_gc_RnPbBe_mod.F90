@@ -287,7 +287,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Add 222Rn emissions to HEMCO data structure & diagnostics
     !------------------------------------------------------------------------
-    
+
     ! Add emissions
     Arr2D => EmissRn(:,:)
     CALL HCO_EmisAdd( HcoState, Arr2D, IDTRn, RC )
@@ -357,6 +357,7 @@ CONTAINS
 
        ! Save emissions into an array for use below
        EmissBe7(I,J,L) = ADD_Be
+
     ENDDO
     ENDDO
     ENDDO

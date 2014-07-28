@@ -27,6 +27,19 @@ MODULE HCO_Unit_Mod
   PUBLIC :: HCO_Unit_GetAreaScal
   PUBLIC :: HCO_Unit_GetTimeScal
   PUBLIC :: HCO_Unit_ScalCheck 
+  PUBLIC :: HCO_IsUnitLess
+  PUBLIC :: HCO_IsIndexData
+  PUBLIC :: HCO_UnitTolerance
+!
+! !REVISION HISTORY:
+!  15 May 2012 - C. Keller   - Initialization
+!  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  24 Jul 2014 - C. Keller   - Now define unitless & 'standard' units as
+!                              parameter
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !DEFINED PARAMETERS:
 !
@@ -34,14 +47,32 @@ MODULE HCO_Unit_Mod
   REAL(hp),  PARAMETER :: SEC_IN_DAY      = 86400_hp
   REAL(hp),  PARAMETER :: SEC_IN_LEAPYEAR = SEC_IN_DAY * 366_hp 
   REAL(hp),  PARAMETER :: SEC_IN_REGYEAR  = SEC_IN_DAY * 365_hp
-!
-! !REVISION HISTORY:
-!  15 May 2012 - C. Keller: Initialization
-!  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+ 
+  ! Accepted units for unitless data. No unit conversion is applied to 
+  ! data with any of these units. 
+  ! All characters in this list should be lower case!
+  ! The first entry represents the character that denotes unitless data
+  ! in the HEMCO configuration file. The second entry represents the 
+  ! character that denotes index data.
+  INTEGER,           PARAMETER :: NUL = 8
+  CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',        &
+                                               'count',    &
+                                               'unitless', &
+                                               'fraction', &
+                                               'factor',   &
+                                               'scale',    &
+                                               'hours',    &
+                                               'm2/m2'      /)
+
+  ! Accepted units for data on HEMCO standard units. No unit conversion 
+  ! is applied to data with any of these units.
+  ! All characters in this list should be lower case!
+  INTEGER,           PARAMETER :: NHC = 4
+  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m2/s',    &
+                                               'kgc/m2/s',   &
+                                               'kg(c)/m2/s', &
+                                               'kg/m3'        /)
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -148,8 +179,10 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    REAL(hp)              :: Fact, Coef1
-    CHARACTER(LEN=31 )    :: unt
+    REAL(hp)                      :: Fact, Coef1
+    CHARACTER(LEN=31 )            :: unt
+    CHARACTER(LEN=255)            :: MSG
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'HCO_UNIT_CHANGE (HCO_UNIT_MOD.F90)'
 
     !=================================================================
     ! HCO_UNIT_CHANGE begins here
@@ -177,8 +210,8 @@ CONTAINS
     !=================================================================
     Coef1 = HCO_UNIT_GetMassScal ( unt, MW_IN, MW_OUT, MOLEC_RATIO )
     IF ( Coef1 < 0.0_hp ) THEN
-       WRITE(6,*) 'unrecognized mass unit: ', TRIM(unt)
-       RC = -999
+       MSG = 'cannot do unit conversion. Mass unit: ' // TRIM(unt)
+       CALL HCO_ERROR ( MSG, RC, ThisLoc = LOC )
        RETURN 
     ENDIF
     Fact = Fact * Coef1
@@ -205,7 +238,7 @@ CONTAINS
     ARRAY(:,:,:,:) = ARRAY(:,:,:,:) * Fact
 
     ! Leave
-    RC = 0 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_Unit_Change
 !EOC
@@ -246,6 +279,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    CHARACTER(LEN=255)  :: MSG
 
     !=================================================================
     ! HCO_UNIT_GetMassScal begins here 
@@ -253,6 +287,16 @@ CONTAINS
 
     ! Init
     Scal = -999.0_hp
+
+    ! Error checks: all passed variables must be defined!
+    IF ( MW_IN <= 0.0_hp .OR.  &
+         MW_OUT <= 0.0_hp .OR. &
+         MOLEC_RATIO <= 0.0_hp  ) THEN
+       MSG = 'Cannot determine unit conversion factor for mass - ' // &
+             'not all parameter are defined!'
+       CALL HCO_MSG(MSG)
+       RETURN
+    ENDIF
 
     ! Molecules / atoms of carbon: convert to kg carbon
     ! Molecules / atoms of nitrogen: convert to kg output tracer
@@ -539,6 +583,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=31) :: tmpU
+    INTEGER           :: I
 
     !=================================================================
     ! HCO_UNIT_SCALCHECK begins here 
@@ -553,23 +598,148 @@ CONTAINS
     ! Error (default):
     Flag = 2
 
-    ! Ok:
-    IF ( TRIM(tmpU) == 'unitless' .OR. &
-         TRIM(tmpU) == 'fraction' .OR. &
-         TRIM(tmpU) == 'factor'   .OR. &
-         TRIM(tmpU) == 'scale'    .OR. &
-         TRIM(tmpU) == 'hours'    .OR. &
-         TRIM(tmpU) == 'm2/m2'    .OR. &
-         TRIM(tmpU) == '1'            ) THEN
-       Flag = 0
+    ! Check for unitless factors
+    DO I = 1, NUL
+       IF ( TRIM(tmpU) == TRIM(UL(I)) ) THEN
+          Flag = 0
+          RETURN
+       ENDIF
+    ENDDO 
 
-    ! Warning:
-    ELSEIF ( TRIM(tmpU) == 'kg/m2/s'     .OR. &
-             TRIM(tmpU) == 'kgc/m2/s'    .OR. &
-             TRIM(tmpU) == 'kg(c)/m2/s'        ) THEN 
-       Flag = 1
-    ENDIF
+    ! Check for HEMCO units
+    DO I = 1, NHC
+       IF ( TRIM(tmpU) == TRIM(HC(I)) ) THEN
+          Flag = 1
+          RETURN
+       ENDIF
+    ENDDO 
 
   END FUNCTION HCO_Unit_ScalCheck
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_IsUnitless
+!
+! !DESCRIPTION: Returns TRUE if the passed string corresponds to the HEMCO
+! unitless data unit string.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HCO_IsUnitless( Unt ) Result ( Bool )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)   :: Unt
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL                        :: Bool
+!
+! !REVISION HISTORY:
+!  24 Jul 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    Bool = ( TRIM(Unt) == TRIM(UL(1)) )
+
+  END FUNCTION HCO_IsUnitless
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_IsIndexData
+!
+! !DESCRIPTION: Returns TRUE if the passed string corresponds to the HEMCO
+! index data unit string.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HCO_IsIndexData( Unt ) Result ( Bool )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)   :: Unt
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL                        :: Bool
+!
+! !REVISION HISTORY:
+!  24 Jul 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    Bool = ( TRIM(Unt) == TRIM(UL(2)) )
+
+  END FUNCTION HCO_IsIndexData
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_UnitTolerance
+!
+! !DESCRIPTION: Returns the HEMCO unit tolerance as defined in the HEMCO 
+! configuration file (under settings). Returns a default value of 0 (no
+! tolerance) if no value is set in the configuration file.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HCO_UnitTolerance( ) Result ( UnitTolerance )
+!
+! !USES:
+!
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER                        :: UnitTolerance
+!
+! !REVISION HISTORY:
+!  24 Jul 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER, SAVE       :: Tolerance = -1
+    LOGICAL             :: FOUND
+    INTEGER             :: RC
+    CHARACTER(LEN=255)  :: MSG
+    
+    !=================================================================
+    ! HCO_UnitTolerance begins here 
+    !=================================================================
+
+    ! On first call, try to get unit tolerance value from core settings.
+    ! Use value of zero if not specified in the configuration file.
+    IF ( Tolerance < 0 ) THEN
+       CALL GetExtOpt ( 0, 'Unit tolerance', OptValInt=Tolerance, &
+                        FOUND=FOUND, RC=RC )
+       IF ( .NOT. FOUND ) Tolerance = 0
+
+       ! Verbose mode: write to log file
+       IF ( HCO_VERBOSE_CHECK() ) THEN
+          WRITE(MSG,*) 'Unit tolerance set to ', Tolerance
+          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
+       ENDIF
+    ENDIF
+
+    ! Return
+    UnitTolerance = Tolerance
+
+  END FUNCTION HCO_UnitTolerance
 !EOC
 END MODULE HCO_Unit_Mod

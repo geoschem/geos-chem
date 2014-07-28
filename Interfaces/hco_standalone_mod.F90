@@ -9,8 +9,7 @@
 ! to run HEMCO in standalone mode, i.e. without any external model connected
 ! to it. All HEMCO input variables (grid, species, times) are read from disk.
 ! Note that for now, it is not possible to use HEMCO extensions that rely on
-! meteorological variables when running HEMCO in standalone mode
-!\\
+! meteorological variables when running HEMCO in standalone mode.
 !\\
 ! Subroutine HCO\_StandAlone\_Run will execute the standalone version of 
 ! HEMCO. The following input files are needed for a standalone run:
@@ -45,9 +44,12 @@
 ! \end{itemize}
 !
 ! The file names of the species, grid, and time input files can be provided
-! in the settings section of the HEMCO configuration file 
-! (e.g. 'SpecFile: myHEMCO\_sa\_Spec'). Otherwise, the default file names
-! (HEMCO\_sa\_Spec, HEMCO\_sa\_Grid, HEMCO\_sa\_Time) will be used.
+! in the settings section of the HEMCO configuration file. For instance, to
+! set the species file to 'mySpecFile', add the following line to the con-
+! figuration file: 'SpecFile: mySpecFile'. The same applies to grid and time 
+! definitions (GridFile and TimeFile, respectively). If no file names are
+! provided in the configuration file, the default file names (HEMCO\_sa\_Spec, 
+! HEMCO\_sa\_Grid, HEMCO\_sa\_Time) will be used.
 !
 ! !INTERFACE:
 !

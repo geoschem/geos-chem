@@ -143,6 +143,9 @@
 
       ! LSM plant type, 28 land surface types plus 0 for ocean
       ! Also account for 3 different land types in each grid box
+      ! NN_SFCTYP denotes the highest possible surface type number.
+      ! (ckeller, 07/24/2014)
+      INTEGER, PARAMETER   :: NN_SFCTYP = 28
       INTEGER, ALLOCATABLE :: PLN_TYP(:,:)
       REAL*8,  ALLOCATABLE :: PLN_FRC(:,:)
       REAL*8,  ALLOCATABLE :: TAI(:,:)
@@ -1116,7 +1119,8 @@
       !=================================================================
 
       ! Get LSM Surface type (0..28)
-      CALL SFC_TYP_GET( HcoState, ExtState, LAT_IDX, SFC_TYP_SLICE )
+      CALL SFC_TYP_GET( HcoState, ExtState, LAT_IDX, SFC_TYP_SLICE, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Get erodability and mass fractions
       CALL SOI_TXT_GET(
@@ -1600,7 +1604,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SFC_TYP_GET( HcoState, ExtState, J, SFC_TYP_OUT )
+      SUBROUTINE SFC_TYP_GET( HcoState, ExtState, J, SFC_TYP_OUT, RC )
 !
 !******************************************************************************
 !  Subroutine SFC_TYP_GET returns a latitude slice of LSM surface type
@@ -1616,24 +1620,40 @@
 !
 !  NOTES
 !  (1 ) Updated comments & cosmetic changes (bmy, 3/30/04)
+!  (2 ) Added error trap (ckeller, 7/24/2014) 
 !******************************************************************************
 !
 
       ! Arguments
       TYPE(HCO_State), POINTER :: HcoState   ! Hemco state 
       TYPE(Ext_State), POINTER :: ExtState
-      INTEGER, INTENT(IN)  :: J
-      INTEGER, INTENT(OUT) :: SFC_TYP_OUT(HcoState%NX)
+      INTEGER, INTENT(IN)      :: J
+      INTEGER, INTENT(OUT)     :: SFC_TYP_OUT(HcoState%NX)
+      INTEGER, INTENT(INOUT)   :: RC
 
       ! Local variables
-      INTEGER              :: I
+      INTEGER                  :: I
+      CHARACTER(LEN=255)       :: MSG
 
       !=================================================================
       ! SFC_TYP_GET begins here!
       !=================================================================
       DO I = 1, HcoState%NX
          SFC_TYP_OUT(I) = INT(SFC_TYP(I,J))
+         
+         ! SFC_TYP_OUT must not exceed highest surface type number
+         ! (ckeller, 2014/07/24)
+         IF ( SFC_TYP_OUT(I) > NN_SFCTYP ) THEN
+            MSG = 'Surface type is too high. Please check regridding' 
+     &            // ' of DEAD_SFC_TYPE!'
+            CALL HCO_ERROR ( MSG, RC, 
+     &              THISLOC='SFC_TYP_GET (hcox_dustdead_mod.F90)' )
+            RETURN
+         ENDIF
       ENDDO
+
+      ! Return with success
+      RC = HCO_SUCCESS
 
       ! Return to calling program
       END SUBROUTINE SFC_TYP_GET                       ! end sfc_typ_get()
@@ -2839,7 +2859,7 @@
      &                            0.34d0, 0.00d0 /)
 
       !=================================================================
-      ! RGH_MMN_SET begins here
+      ! RGH_MMN_GET begins here
       !=================================================================
       RGH_MMN(:) = 0.0D0
 

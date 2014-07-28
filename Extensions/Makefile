@@ -112,6 +112,7 @@ hcox_driver_mod.o     : hcox_driver_mod.F90       \
                         hcox_dustginoux_mod.o     \
                         hcox_finn_mod.o           \
                         hcox_gc_RnPbBe_mod.o      \
+                        hcox_gfed3_mod.o          \
                         hcox_paranox_mod.o        \
                         hcox_lightnox_mod.o       \
                         hcox_megan_mod.o          \
