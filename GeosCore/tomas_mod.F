@@ -2650,7 +2650,7 @@ C     and get the nucleation rate and critical cluster size
                fn = 0.d0
             endif
          elseif ((ion_nuc.eq.1).and.(ionrate.ge.1.d0)) then
-            call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS,,
+            call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS,
      &              h1,h2,h3,h4,h5,h6)
             fn=h1
             rnuc=h5

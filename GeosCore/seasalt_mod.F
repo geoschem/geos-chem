@@ -1410,7 +1410,7 @@
 
             ! Get surface wind speed [m/s]
             SFCWINDSQR = State_Met%U10M(I,J)**2  
-     &                 + State_Met%V10M(I,J)**2 )
+     &                 + State_Met%V10M(I,J)**2
             W10M       = SQRT( SFCWINDSQR )
 
             ! in ocean area - calc wind speed/eqm conc
