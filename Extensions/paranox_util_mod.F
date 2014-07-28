@@ -17,6 +17,7 @@
 !
 ! !USES:
 !
+      USE HCO_ERROR_MOD
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
@@ -48,8 +49,9 @@
 !  06 Feb 2012 - M. Payer    - Initial version
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  23 Aug 2013 - C. Keller   - Renamed from paranox_mod to
-!                              paranox_util_mod
+!  23 Aug 2013 - C. Keller   - Renamed from paranox_mod to paranox_util_mod
+!  28 Jul 2014 - C. Keller   - Broke dependencies from GEOS-Chem code: Now
+!                              use HEMCO routines for error handling etc.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -68,16 +70,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE )
-!
-! !USES:
-!
-      USE FILE_MOD, ONLY : IOERROR
+      SUBROUTINE READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
 !
 ! !INPUT PARAMETERS:
 !
-      CHARACTER(LEN=*), INTENT(IN) :: FracNOx_FILE
-      CHARACTER(LEN=*), INTENT(IN) :: IntOPE_FILE
+      CHARACTER(LEN=*), INTENT(IN)    :: FracNOx_FILE
+      CHARACTER(LEN=*), INTENT(IN)    :: IntOPE_FILE
+      INTEGER,          INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - M. Payer    - Initial version modified from code provided by
@@ -92,8 +91,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: IOS
-      INTEGER :: IU_FILE
+      INTEGER            :: IOS
+      INTEGER            :: IU_FILE
+      CHARACTER(LEN=255) :: MSG
+      CHARACTER(LEN= 63), PARAMETER ::
+     &   LOC = 'READ_PARANOX_LUT (paranox_util_mod.F)'
 
       !=================================================================
       ! READ_PARANOX_LUT begins here
@@ -105,22 +107,27 @@
       !=================================================================
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FracNOx_FILE )
+      WRITE( MSG, 100 ) TRIM( FracNOx_FILE )
  100  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
-
+      CALL HCO_MSG( MSG )
+ 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
 
       ! Open file to read  
       OPEN( IU_FILE, FILE=TRIM( FracNOx_FILE ), FORM="binary", 
      &      IOSTAT=IOS )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:1' )
+      IF ( IOS /= 0 ) THEN 
+         CALL HCO_ERROR( 'read_paranox_lut:1', RC, THISLOC=LOC )
+         RETURN
+      ENDIF
 
       ! Read file
       READ( IU_FILE, IOSTAT=IOS ) FRACNOX
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:2' )
-
-      !PRINT*, "binary_fracnox: ", FRACNOX(1:4,1,1,2,3,4,4)      
+      IF ( IOS /= 0 ) THEN 
+         CALL HCO_ERROR( 'read_paranox_lut:2', RC, THISLOC=LOC )
+         RETURN
+      ENDIF
 
       ! Close file
       CLOSE( IU_FILE )
@@ -131,24 +138,33 @@
       !=================================================================
 
       ! Echo info
-      WRITE( 6, 101 ) TRIM( IntOPE_FILE )
+      WRITE( MSG, 101 ) TRIM( IntOPE_FILE )
  101  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
+      CALL HCO_MSG(MSG)
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
 
       ! Open file to read
-      OPEN( IU_FILE, FILE=TRIM( IntOPE_FILE ), FORM="BINARY" )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:3' )
+      OPEN( IU_FILE, FILE=TRIM( IntOPE_FILE ), FORM="BINARY", 
+     &      IOSTAT=IOS )
+      IF ( IOS /= 0 ) THEN 
+         CALL HCO_ERROR( 'read_paranox_lut:3', RC, THISLOC=LOC )
+         RETURN
+      ENDIF
 
       ! Read file
       READ( IU_FILE, IOSTAT=IOS ) INTOPE
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:4' )
-
-      !PRINT*, "binary_intope: ", INTOPE(1:4,1,1,2,3,4,4)
+      IF ( IOS /= 0 ) THEN 
+         CALL HCO_ERROR( 'read_paranox_lut:4', RC, THISLOC=LOC )
+         RETURN
+      ENDIF
 
       ! Close file
       CLOSE( IU_FILE )
+
+      ! Return w/ success
+      RC = HCO_SUCCESS
 
       END SUBROUTINE READ_PARANOX_LUT
 !EOC
@@ -165,26 +181,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INTERPOLATE_LUT2( I, J, o3, no, no2, dens, JO1D, JNO2,
+      SUBROUTINE INTERPOLATE_LUT2( HcoState, 
+     &                             I, J, o3, no, no2, dens, JO1D, JNO2,
      &                             TS, SUNCOSmid5, SUNCOSmid,
-     &                             fraction_nox, int_ope )
+     &                             fraction_nox, int_ope, RC )
 !
 ! !USES:
 !
-      USE TIME_MOD,           ONLY : GET_LOCALTIME
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE CMN_SIZE_MOD
+      USE HCO_STATE_MOD,   ONLY : HCO_STATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)  :: I, J
-      REAL*8,         INTENT(IN)  :: o3, no, no2, dens, JNO2, JO1D
-      REAL*8,         INTENT(IN)  :: TS, SUNCOSmid5, SUNCOSmid 
+      TYPE(HCO_STATE), POINTER     :: HcoState
+      INTEGER,         INTENT(IN)  :: I, J
+      REAL*8,          INTENT(IN)  :: o3, no, no2, dens, JNO2, JO1D
+      REAL*8,          INTENT(IN)  :: TS, SUNCOSmid5, SUNCOSmid 
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL*4,         INTENT(OUT) :: fraction_nox, int_ope
+      REAL*4,          INTENT(OUT) :: fraction_nox, int_ope
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      INTEGER,          INTENT(INOUT) :: RC 
 !
 ! !REVISION HISTORY:
 !     Jun 2010 - G.C.M. Vinken - Initial version
@@ -202,6 +221,7 @@
 !  29 May 2013 - R. Yantosca   - Avoid numerical instability when computing
 !                                the ratio JO1D/JNO2.  J-values go to zero
 !                                at night, which can lead to a div-by-zero.
+!  28 Jul 2014 - C. Keller     - Remove calls to GC routines.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -259,6 +279,8 @@
       REAL*4,  DIMENSION(7)      :: var_array
 
       CHARACTER(LEN=255)         :: MSG
+      CHARACTER(LEN= 63), PARAMETER ::
+     &   LOC = 'INTERPOLATE_LUT2 (paranox_util_mod.F)'
 
       !=================================================================
       ! INTERPOLATE_LUT2 begins here!
@@ -304,7 +326,7 @@
 !     &  ASIND(State_Met%SUNCOSmid5(I,J))
       
       ! Set the variables
-      IJLOOP       = ( (J-1) * IIPAR ) + I
+      IJLOOP       = ( (J-1) * HcoState%NX ) + I
       var_array(1) = TS                               ! Temperature
       var_array(2) = JNO2                             ! J(NO2), 1/s
       var_array(3) = o3 / dens * 1.E9                 ! [O3] in ppbv
@@ -315,7 +337,15 @@
       ! This was found by compiling with FPE=yes. (bmy, 8/23/13)
       !var_array(6) = JO1D / JNO2                     ! J(O1D)/J(NO2)
       !--------------------------------------------------------------------
-      var_array(6) = SAFE_DIV( JO1D, JNO2, 0d0 )      ! J(O1D)/J(NO2)
+      ! Avoid call to SAFE_DIV to make this module independent from GC
+      ! (ckeller, 7/28/14)
+      !var_array(6) = SAFE_DIV( JO1D, JNO2, 0d0 )      ! J(O1D)/J(NO2)
+      !--------------------------------------------------------------------
+      IF ( JNO2 > 0d0 ) THEN
+         var_array(6) = JO1D / JNO2
+      ELSE
+         var_array(6) = 0d0
+      ENDIF
       var_array(7) = (no + no2) / dens * 1.E12        ! [NOx] in pptv
       
       ! prevent NaN when jvalues are 0.
@@ -511,13 +541,15 @@
      $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1, 
      $                   icanox+i7-1  ) > 1. ) )   THEN
 
-            PRINT*, 'INTERPOLATE_LUT2: fracnox = ,',
+            WRITE(MSG,*), 'INTERPOLATE_LUT2: fracnox = ,',
      $          fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
      $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1,
      $                   icanox+i7-1  )
+            CALL HCO_MSG(MSG)
 
             MSG = 'LUT error: Fracnox should be between 0 and 1!'
-            CALL ERROR_STOP( MSG, 'INTERPOLATE_LUT2 ("paranox_mod.F")' )
+            CALL HCO_ERROR( MSG, RC, THISLOC=LOC ) 
+            RETURN 
          ENDIF
 
          ! fracnox is the array with the actual lut data
@@ -579,7 +611,10 @@
 !     $                                        xcanox 
 !         PRINT*,"------------------------------------"
 !      ENDIF
-      
+     
+      ! Return w/ success
+      RC = HCO_SUCCESS
+ 
       END SUBROUTINE INTERPOLATE_LUT2
 !EOC
       END MODULE PARANOX_UTIL_MOD
