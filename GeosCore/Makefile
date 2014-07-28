@@ -814,8 +814,6 @@ pops_mod.o           	    : pops_mod.F    	                             \
                               pbl_mix_mod.o	      tracerid_mod.o         \
                               vdiff_pre_mod.o
 
-precipfrac.o                : precipfrac.F
-
 readchem.o                  : readchem.F                                     \
                               diag_pl_mod.o           drydep_mod.o
 
