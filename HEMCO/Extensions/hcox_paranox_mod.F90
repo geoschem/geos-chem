@@ -315,7 +315,7 @@ CONTAINS
     ! 
     ! Now use #if defined( 0 ) to block of this code (bmy, 6/6/14)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#if defined( 0 )
+#if defined( NULL )
 !$OMP PARALLEL DO                                                   &
 !$OMP DEFAULT( SHARED )                                             &
 !$OMP PRIVATE( I, J, L, RC, iFlx, NK, SPECNAME, JNO2, JO1D        ) &
@@ -486,7 +486,7 @@ CONTAINS
 
     ENDDO !I
     ENDDO !J
-#if defined( 0 )
+#if defined( NULL )
 !$OMP END PARALLEL DO
 #endif
 
