@@ -1,6 +1,7 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
+!BOP
 !
 ! !MODULE: hcoi_messy_mod.F90 
 !
@@ -50,9 +51,9 @@ MODULE HCOI_MESSY_MOD
 
   CONTAINS
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HCO_MESSY_REGRID
@@ -345,9 +346,9 @@ MODULE HCOI_MESSY_MOD
 
   END SUBROUTINE HCO_MESSY_REGRID
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: AXIS_CREATE
@@ -612,9 +613,9 @@ MODULE HCOI_MESSY_MOD
 
   END SUBROUTINE AXIS_CREATE
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: AXIS_DELETE
@@ -788,9 +789,9 @@ MODULE HCOI_MESSY_MOD
 
   END SUBROUTINE HCO2MESSY
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: MESSY2HCO
