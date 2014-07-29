@@ -3,15 +3,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hco_standalone_mod.F90 
+! !MODULE: hcoi_standalone_mod.F90 
 !
-! !DESCRIPTION: Module HCO\_StandAlone\_Mod contains all wrapper routines 
+! !DESCRIPTION: Module HCOI\_StandAlone\_Mod contains all wrapper routines 
 ! to run HEMCO in standalone mode, i.e. without any external model connected
 ! to it. All HEMCO input variables (grid, species, times) are read from disk.
 ! Note that for now, it is not possible to use HEMCO extensions that rely on
 ! meteorological variables when running HEMCO in standalone mode.
 !\\
-! Subroutine HCO\_StandAlone\_Run will execute the standalone version of 
+! Subroutine HCOI\_StandAlone\_Run will execute the standalone version of 
 ! HEMCO. The following input files are needed for a standalone run:
 !
 ! \begin{itemize}
@@ -53,7 +53,7 @@
 !
 ! !INTERFACE:
 !
-MODULE HCO_StandAlone_Mod
+MODULE HCOI_StandAlone_Mod
 !
 ! !USES:
 !
@@ -68,7 +68,7 @@ MODULE HCO_StandAlone_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: HCO_StandAlone_Run
+  PUBLIC  :: HCOI_StandAlone_Run
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -141,15 +141,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_StandAlone_Run
+! !IROUTINE: HCOI_StandAlone_Run
 !
-! !DESCRIPTION: Subroutine HCO\_StandAlone\_Run runs the standalone version
+! !DESCRIPTION: Subroutine HCOI\_StandAlone\_Run runs the standalone version
 ! of HEMCO. All input variables are taken from input files.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_StandAlone_Run( ConfigFile )
+  SUBROUTINE HCOI_StandAlone_Run( ConfigFile )
 !
 ! !INPUT PARAMETERS:
 !
@@ -167,7 +167,7 @@ CONTAINS
     INTEGER   :: RC
 
     !=================================================================
-    ! HCO_STANDALONE_RUN begins here!
+    ! HCOI_STANDALONE_RUN begins here!
     !=================================================================
 
     ! Treat as root CPU
@@ -190,7 +190,7 @@ CONTAINS
     ! Finalize the HEMCO standalone 
     CALL HCOI_Sa_Final( am_I_Root )
     
-  END SUBROUTINE HCO_StandAlone_Run
+  END SUBROUTINE HCOI_StandAlone_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1316,4 +1316,4 @@ CONTAINS
 
   END SUBROUTINE Read_Time
 !EOC
-END MODULE HCO_StandAlone_Mod
+END MODULE HCOI_StandAlone_Mod

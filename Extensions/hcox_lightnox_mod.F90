@@ -20,6 +20,7 @@
 !\\
 !\\
 ! References:
+! \begin{itemize}
 ! \item Murray, L. T., Jacob, D. J., Logan, J. A., Hudman, R. C., and
 !       Koshak, W. J.: \emph{Optimized regional and interannual variability
 !       of lightning in a global chemical transport model con- strained
