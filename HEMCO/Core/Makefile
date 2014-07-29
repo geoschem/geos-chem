@@ -32,9 +32,6 @@
 # Directories
 ROOT :=../..
 BIN  :=$(ROOT)/bin
-DOC  :=$(ROOT)/doc
-HDR  :=$(ROOT)/Headers
-HELP :=$(ROOT)/help
 LIB  :=$(ROOT)/lib
 MOD  :=$(ROOT)/mod
 
@@ -71,9 +68,6 @@ debug:
 	@echo "Targets : $(MAKECMDGOALS)"
 	@echo "ROOT    : $(ROOT)"
 	@echo "BIN     : $(BIN)"
-	@echo "DOC     : $(DOC)"
-	@echo "HDR     : $(HDR)"
-	@echo "HELP    : $(HELP)"
 	@echo "LIB     : $(LIB)"
 	@echo "MOD     : $(MOD)"
 	@echo "F90     : $(F90)"

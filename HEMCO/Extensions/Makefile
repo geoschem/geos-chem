@@ -33,11 +33,8 @@
 # Define variables
 ROOT :=../..
 BIN  :=$(ROOT)/bin
-DOC  :=$(ROOT)/doc
-HELP :=$(ROOT)/help
 LIB  :=$(ROOT)/lib
 MOD  :=$(ROOT)/mod
-RUN  :=$(ROOT)/run
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
@@ -74,10 +71,8 @@ debug:
 	@echo "Targets : $(MAKECMDGOALS)"
 	@echo "ROOT    : $(ROOT)"
 	@echo "BIN     : $(BIN)"
-	@echo "DOC     : $(DOC)"
 	@echo "LIB     : $(LIB)"
 	@echo "MOD     : $(MOD)"
-	@echo "RUN     : $(RUN)"
 	@echo "F90     : $(F90)"
 
 ###############################################################################
