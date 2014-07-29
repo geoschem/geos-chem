@@ -244,7 +244,7 @@ CONTAINS
     ! Here, we need to make sure that these pointers are properly 
     ! connected.
     !-----------------------------------------------------------------
-    CALL SET_EXTOPT_FIELDS ( State_Met, State_Chm, RC )
+    CALL ExtOpt_SetPointers( State_Met, State_Chm, RC )
     IF ( RC/=GIGC_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -1017,15 +1017,19 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_ExtOpt_Fields
+! !IROUTINE: ExtOpt_SetPointers
 !
-! !DESCRIPTION: SUBROUTINE Set\_ExtOpt\_Fields sets the extension object data
-! pointers. This routine must be called after HCOX\_Init. 
+! !DESCRIPTION: SUBROUTINE ExtOpt\_SetPointers sets the extension object data
+! pointers. 
+!\\
+! Note that for now, this explicitly assumes that the HEMCO emissions grid is 
+! the same as the GEOS-Chem simulation grid. To support other grids, the met 
+! data has to be regridded explicitly at every time step!
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_ExtOpt_Fields( State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtOpt_SetPointers( State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
@@ -1061,7 +1065,6 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller - Initial Version
-!  23 Jan 2013 - C. Keller - Now call MAP_A2A instead of DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1073,13 +1076,13 @@ CONTAINS
     CHARACTER(LEN=255) :: LOC
 
     !=================================================================
-    ! SET_EXTOPT_FIELDS begins here
+    ! ExtOpt_SetPointers begins here
     !=================================================================
 
     ! Init
     RC = GIGC_SUCCESS
 
-    LOC = 'Set_ExtOpt_Fields (hcoi_gc_main_mod.F90)'
+    LOC = 'ExtOpt_SetPointers (hcoi_gc_main_mod.F90)'
 
     ! ----------------------------------------------------------------
     ! HCO_PEDGE, HCO_PCENTER and HCO_SZAFACT aren't defined as 3D 
@@ -1271,7 +1274,7 @@ CONTAINS
     ENDIF
     IF ( DoDryCoeff ) ExtState%DRYCOEFF => DRYCOEFF
 
-  END SUBROUTINE Set_ExtOpt_Fields
+  END SUBROUTINE ExtOpt_SetPointers
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

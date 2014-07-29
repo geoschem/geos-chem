@@ -426,6 +426,12 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
 
+      ! Make sure variable DAYS_BTW_M of ExtState obj. is defined
+      IF ( .NOT. ASSOCIATED(ExtState%DAYS_BTW_M) ) THEN
+         CALL HCO_ERROR ( 'DAYS_BTW_M not defined in ExtState!', RC )
+         RETURN
+      ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, SUNCOS, Q_DIR_2, Q_DIFF_2, ISOLAI, PMISOLAI       )
@@ -1548,7 +1554,7 @@
       REAL*8  :: GAMMA_LEAF_AGE, GAMMA_T, GAMMA_LAI_ISOP
       REAL*8  :: D_BTW_M
       REAL*8  :: ISOLAI, PMISOLAI, MISOLAI
-            
+
       !=================================================================
       ! GET_EMISOP_MEGAN begins here!
       !================================================================= 

@@ -96,7 +96,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,           INTENT(  OUT) :: Reals(:)  ! Output values
+    REAL(dp),         INTENT(  OUT) :: Reals(:)  ! Output values
     INTEGER,          INTENT(  OUT) :: N         ! # of valid values
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -180,7 +180,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*4,           INTENT(  OUT) :: Reals(:)   ! Output values
+    REAL(sp),         INTENT(  OUT) :: Reals(:)   ! Output values
     INTEGER,          INTENT(  OUT) :: N          ! # of valid values
 !
 ! !INPUT/OUTPUT PARAMETERS:

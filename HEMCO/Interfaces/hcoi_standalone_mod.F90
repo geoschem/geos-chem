@@ -8,8 +8,8 @@
 ! !DESCRIPTION: Module HCOI\_StandAlone\_Mod contains all wrapper routines 
 ! to run HEMCO in standalone mode, i.e. without any external model connected
 ! to it. All HEMCO input variables (grid, species, times) are read from disk.
-! Note that for now, it is not possible to use HEMCO extensions that rely on
-! meteorological variables when running HEMCO in standalone mode.
+! All meteorological variables needed by the (enabled) HEMCO extensions must 
+! be provided through the HEMCO configuration file (see ExtOpt\_SetPointers).
 !\\
 ! Subroutine HCOI\_StandAlone\_Run will execute the standalone version of 
 ! HEMCO. The following input files are needed for a standalone run:
@@ -134,6 +134,16 @@ MODULE HCOI_StandAlone_Mod
   INTEGER,  ALLOCATABLE          :: MNS(:)
   INTEGER,  ALLOCATABLE          :: SCS(:)
 
+  ! DAYS_BTW_M is the days between midmonths. Used by the MEGAN extension
+  LOGICAL                        :: DAYS_BTW_M_USE = .FALSE.
+  INTEGER,  TARGET               :: DAYS_BTW_M
+!
+! !MODULE INTERFACES:
+!
+  INTERFACE SetExtPtr
+     MODULE PROCEDURE SetExtPtr_2R
+     MODULE PROCEDURE SetExtPtr_3R
+  END INTERFACE SetExtPtr
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -320,7 +330,8 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Set pointers to met fields.
     !-----------------------------------------------------------------
-    ! tbd
+    CALL ExtOpt_SetPointers( am_I_Root, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
     ! Leave 
@@ -449,6 +460,10 @@ CONTAINS
        ! Run HCO extensions
        ! ================================================================
    
+       ! Eventually update local variable DAYS_BTW_M
+       CALL DAYS_BTW_M_SET ( am_I_Root, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
        ! Execute all enabled emission extensions. Emissions will be 
        ! added to corresponding flux arrays in HcoState.
        CALL HCOX_Run ( am_I_Root, HcoState, ExtState, RC )
@@ -1315,5 +1330,395 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE Read_Time
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ExtOpt_SetPointers 
+!
+! !DESCRIPTION: Subroutine ExtOpt\_SetPointers sets the extension object data
+! pointers. For the standalone model, all external data must be passed through
+! the configuration file. It is expected that the field names set in the
+! configuration file match the data names of the ExtState object.
+!\\
+! Currently, the following ExtState objects can not be passed through the 
+! HEMCO configuration file:
+! \begin{itemize}
+! \item CLDTOPS: integer field (used in hcox\_lightnox\_mod.F90). Cannot
+!       be used for now!
+! \item DRYCOEFF: Baldocci drydep coeff. vector (used in 
+!       hcox\_soilnox\_mod.F90). This variable should be provided in section 
+!       soil NOx extension settings (DRYCOEFF: xx.x/xx.x/xx.x/...). It is
+!       read in hcox\_soilnox\_mod.F90.
+! \item DAYS_BTW_M: days between midmonths (used in hcox\_megan\_mod.F). 
+!       This variable becomes defined in this module.
+! \end{itemize}
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ExtOpt_SetPointers ( am_I_Root, RC )
+!
+! !USES:
+!
+    USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+    INTEGER, INTENT(INOUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  28 Jul 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255)            :: MSG
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'READ_TIME (hcoi_standalone_mod.F90)'
+
+    !=================================================================
+    ! ExtOpt_SetPointers begins here
+    !=================================================================
+
+    ! Enter
+    CALL HCO_ENTER( LOC, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Set pointers for all used ext. state object.
+
+    !-----------------------------------------------------------------
+    ! 2D fields 
+    !-----------------------------------------------------------------
+
+    CALL SetExtPtr ( am_I_Root, ExtState%U10M, 'U10M', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%V10M, 'V10M', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%ALBD, 'ALBD', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%WLI, 'WLI', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%TSURFK, 'TSURFK', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%TSKIN, 'TSKIN', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%GWETTOP, 'GWETTOP', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%SNOWHGT, 'SNOWHGT', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%USTAR, 'USTAR', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%Z0, 'Z0', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%TROPP, 'TROPP', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%SUNCOSmid, 'SUNCOSmid', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%SUNCOSmid5, 'SUNCOSmid5', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%SZAFACT, 'SZAFACT', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%PARDR, 'PARDR', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%PARDF, 'PARDF', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%RADSWG, 'RADSWG', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%PSURF, 'PSURF', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%FRCLND, 'FRCLND', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%CLDFRC, 'CLDFRC', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%GC_LAI, 'GC_LAI', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%GC_LAI_PM, 'GC_LAI_PM', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%GC_LAI_CM, 'GC_LAI_CM', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%GC_LAI_NM, 'GC_LAI_NM', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%JNO2, 'JNO2', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%JO1D, 'JO1D', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! 3D fields 
+    !-----------------------------------------------------------------
+
+    CALL SetExtPtr ( am_I_Root, ExtState%PEDGE, 'PEDGE', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%PCENTER, 'PCENTER', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%SPHU, 'SPHU', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%TK, 'TK', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%AIR, 'AIR', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%AIRVOL, 'AIRVOL', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%O3, 'O3', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%NO, 'NO', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%NO2, 'NO2', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%HNO3, 'HNO3', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%DRY_TOTN, 'DRY_TOTN', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL SetExtPtr ( am_I_Root, ExtState%WET_TOTN, 'WET_TOTN', RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! Internally calculate variable DAYS_BTW_M. Assume it's used in
+    ! combination with any of the MODIS variables. 
+    !-----------------------------------------------------------------
+    IF ( ExtState%GC_LAI%DoUse    .OR. ExtState%GC_LAI_PM%DoUse .OR. &
+         ExtState%GC_LAI_CM%DoUse .OR. ExtState%GC_LAI_NM%DoUse       ) THEN
+       DAYS_BTW_M_USE      = .TRUE.
+       ExtState%DAYS_BTW_M => DAYS_BTW_M
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Error traps for data currently not supported
+    !-----------------------------------------------------------------
+
+    ! Cannot read integer fields through EmisList
+    IF ( ExtState%CLDTOPS%DoUse ) THEN
+       MSG = 'CLDTOPS currently not supported in standalone version'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
+
+    ! ==> DRYCOEFF will be read from the configuration file in module
+    !     hcox_soilnox_mod.F90. 
+
+    ! Leave w/ success
+    CALL HCO_LEAVE( RC )
+
+  END SUBROUTINE ExtOpt_SetPointers
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SetExtPtr_2R
+!
+! !DESCRIPTION: Subroutine SetExtPtr\_2R is the wrapper routine to pass a 2D
+! met. object read through the config. file to the ExtState object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE SetExtPtr_2R ( am_I_Root, ExtDat, FldName, RC )
+!
+! !USES:
+!
+    USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
+    USE HCOX_State_Mod,    ONLY : ExtDat_2R
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    CHARACTER(LEN=*), INTENT(IN   ) :: FldName     ! Name of met field obj.
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+    TYPE(ExtDat_2R),  POINTER       :: ExtDat      ! Ext data object
+    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  28 Jul 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    REAL(hp), POINTER             :: Ptr2D(:,:)   => NULL()
+
+    !=================================================================
+    ! SetExtPtr_2R begins here
+    !=================================================================
+
+    IF ( ExtDat%DoUse ) THEN
+       CALL EmisList_GetDataArr( am_I_Root, TRIM(FldName), Ptr2D, RC )
+       IF ( RC /= 0 ) RETURN
+       ExtDat%Arr%Val => Ptr2D
+       Ptr2D => NULL()
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE SetExtPtr_2R
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SetExtPtr_3R
+!
+! !DESCRIPTION: Subroutine SetExtPtr\_3R is the wrapper routine to pass a 3D
+! met. object read through the config. file to the ExtState object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE SetExtPtr_3R ( am_I_Root, ExtDat, FldName, RC )
+!
+! !USES:
+!
+    USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
+    USE HCOX_State_Mod,    ONLY : ExtDat_3R
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    CHARACTER(LEN=*), INTENT(IN   ) :: FldName     ! Name of met field obj.
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+    TYPE(ExtDat_3R),  POINTER       :: ExtDat      ! Ext data object
+    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  28 Jul 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    REAL(hp), POINTER             :: Ptr3D(:,:,:)   => NULL()
+
+    !=================================================================
+    ! SetExtPtr_3R begins here
+    !=================================================================
+
+    IF ( ExtDat%DoUse ) THEN
+       CALL EmisList_GetDataArr( am_I_Root, TRIM(FldName), Ptr3D, RC )
+       IF ( RC /= 0 ) RETURN
+       ExtDat%Arr%Val => Ptr3D
+       Ptr3D => NULL()
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE SetExtPtr_3R
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DAYS_BTW_M_SET
+!
+! !DESCRIPTION: Subroutine DAYS_BTW_M_SET updates the local variable 
+! DAYS\_BTW\_M. This routine is taken from modis\_lai\_mod.F90 of the
+! GEOS-Chem model.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DAYS_BTW_M_SET ( am_I_Root, RC )
+!
+! !USES:
+!
+    USE HCO_CLOCK_MOD,  ONLY : HcoClock_Get
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  28 Jul 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER  :: MM, DOY
+
+    ! specify midmonth day for year 2000
+    INTEGER, PARAMETER   :: startDay(13) = (/  15,  45,  74, 105,      &
+                                              135, 166, 196, 227,      &
+                                              258, 288, 319, 349, 380/)
+
+    !=================================================================
+    ! DAYS_BTW_M_SET begins here
+    !=================================================================
+
+    IF ( DAYS_BTW_M_USE ) THEN
+       CALL HcoClock_Get ( cMM=MM, cDOY=DOY, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Adapted from modis_lai_mod.F90: 
+       IF ( doy < startDay(1) ) THEN
+          DAYS_BTW_M = 31
+       ELSE
+          DAYS_BTW_M = startDay(mm+1) - startDay(mm)
+       ENDIF
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE DAYS_BTW_M_SET
 !EOC
 END MODULE HCOI_StandAlone_Mod
