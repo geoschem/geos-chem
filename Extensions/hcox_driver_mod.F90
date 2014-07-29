@@ -439,6 +439,9 @@ CONTAINS
     ! HCOX_FINAL begins here!
     !=================================================================
 
+    ! Nullify all ExtState object pointers
+    CALL ExtStateFinal( ExtState ) 
+
     ! Call individual cleanup routines
     IF ( ExtState%Custom     ) CALL HCOX_Custom_Final()
     IF ( ExtState%SeaFlux    ) CALL HCOX_SeaFlux_Final()
@@ -452,10 +455,10 @@ CONTAINS
     IF ( ExtState%SoilNOx    ) CALL HCOX_SoilNox_Final()  
     IF ( ExtState%FINN       ) CALL HcoX_FINN_Final
     IF ( ExtState%GC_RnPbBe  ) CALL HCOX_GC_RnPbBe_Final()
-     
-    ! Remove ExtState object 
-    CALL ExtStateFinal( ExtState ) 
-
+    
+    ! Deallocate ExtState object
+    IF ( ASSOCIATED( ExtState ) ) DEALLOCATE( ExtState )
+ 
   END SUBROUTINE HCOX_FINAL
 !EOC
 END MODULE HCOX_DRIVER_MOD

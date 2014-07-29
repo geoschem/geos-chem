@@ -219,9 +219,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetExtOpt ( ExtNr,      OptName,   OptValSp,   &
-                         OptValDp,   OptValInt, OptValBool, &
-                         OptValChar, Found,     RC           )
+  SUBROUTINE GetExtOpt ( ExtNr,      OptName,    OptValSp,   &
+                         OptValDp,   OptValInt,  OptValBool, &
+                         OptValChar, Found,      RC           ) 
 !
 ! !USES:
 !
@@ -253,11 +253,11 @@ CONTAINS
 !
 ! !INTERNAL VARIABLES:
 !
-    TYPE(Ext), POINTER  :: ThisExt => NULL()
-    CHARACTER(LEN=255)  :: MSG, LOC, SUBSTR(255)
-    CHARACTER(LEN=1023) :: STR
-    INTEGER             :: N, cnt
-    INTEGER             :: BGN, FIN, STRLEN, I
+    TYPE(Ext), POINTER    :: ThisExt => NULL()
+    CHARACTER(LEN=255)    :: MSG, LOC, DMY, SUBSTR(255)
+    CHARACTER(LEN=1023)   :: STR
+    INTEGER               :: N, cnt
+    INTEGER               :: BGN, FIN, STRLEN, I
 
     !======================================================================
     ! GetExtOpt begins here

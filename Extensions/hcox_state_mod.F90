@@ -12,10 +12,13 @@
 ! ExtState is passed to all extension modules, and the met fields
 ! defined in here are thus available to all extensions. Additional met 
 ! fields (and extension switches) can be added as required.
+!\\
 ! This module contains the routines to initialize and finalize the
 ! ExtState object, but doesn't link the met field pointers to the 
 ! corresponding fields. This is done in the HEMCO-model interface
-! routine (e.g. hcoi\_gc\_main\_mod.F90).
+! routines (e.g. hcoi\_standalone\_mod.F90, hcoi\_gc\_main\_mod.F90).
+! Newly added met fields will only work if the corresponding pointer
+! assignments are added to these interface routines!
 !\\
 !\\
 ! !INTERFACE: 
@@ -46,20 +49,20 @@ MODULE HCOX_STATE_MOD
   !=========================================================================
  
   ! 2D real
-  TYPE :: ExtDat_2R
-     TYPE(Arr2D_DF), POINTER :: Arr
+  TYPE, PUBLIC :: ExtDat_2R
+     TYPE(Arr2D_HP), POINTER :: Arr
      LOGICAL                 :: DoUse
   END TYPE ExtDat_2R
 
   ! 2D integer
-  TYPE :: ExtDat_2I
+  TYPE, PUBLIC :: ExtDat_2I
      TYPE(Arr2D_I),  POINTER :: Arr
      LOGICAL                 :: DoUse
   END TYPE ExtDat_2I
 
   ! 3D real
-  TYPE :: ExtDat_3R
-     TYPE(Arr3D_DF), POINTER :: Arr
+  TYPE, PUBLIC :: ExtDat_3R
+     TYPE(Arr3D_HP), POINTER :: Arr
      LOGICAL                 :: DoUse
   END TYPE ExtDat_3R
 
@@ -116,12 +119,12 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: PSURF       ! surface pressure [hPa]
      TYPE(ExtDat_2R),  POINTER :: FRCLND      ! land fraction [-] 
      TYPE(ExtDat_2R),  POINTER :: CLDFRC      ! cloud fraction [-]
+     TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s] 
+     TYPE(ExtDat_2R),  POINTER :: JO1D        ! J-Value for O3  [1/s]
      TYPE(ExtDat_2R),  POINTER :: GC_LAI      ! daily leaf area index [cm2/cm2] 
      TYPE(ExtDat_2R),  POINTER :: GC_LAI_PM   ! prev. month's LAI [cm2/cm2] 
      TYPE(ExtDat_2R),  POINTER :: GC_LAI_CM   ! curr. month's LAI [cm2/cm2] 
      TYPE(ExtDat_2R),  POINTER :: GC_LAI_NM   ! next month's LAI [cm2/cm2]
-     TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s] 
-     TYPE(ExtDat_2R),  POINTER :: JO1D        ! J-Value for O3  [1/s]
      INTEGER,          POINTER :: DAYS_BTW_M  ! Days between months (for LAI) 
      TYPE(ExtDat_2I),  POINTER :: CLDTOPS     ! Cloud top level index
      TYPE(ExtDat_3R),  POINTER :: PEDGE       ! Bottom press. edge [hPa]
@@ -441,8 +444,6 @@ CONTAINS
 
        ExtState%DAYS_BTW_M => NULL()
        ExtState%DRYCOEFF   => NULL()
-         
-       DEALLOCATE( ExtState )
     ENDIF
 
   END SUBROUTINE ExtStateFinal
