@@ -32,8 +32,6 @@
 ROOT :=../..
 BIN  :=$(ROOT)/bin
 DOC  :=$(ROOT)/doc
-HDR  :=$(ROOT)/Headers
-HELP :=$(ROOT)/help
 LIB  :=$(ROOT)/lib
 MOD  :=$(ROOT)/mod
 
@@ -42,7 +40,7 @@ MOD  :=$(ROOT)/mod
 include $(ROOT)/Makefile_header.mk
 
 # List of source files to compile
-SRC  := hcoi_gc_diagn_mod.o
+SRC  := $(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
 TMP  := $(SRC:.F=.o)
@@ -68,10 +66,8 @@ debug:
 	@echo "Targets : $(MAKECMDGOALS)"
 	@echo "ROOT    : $(ROOT)"
 	@echo "BIN     : $(BIN)"
-	@echo "DOC     : $(DOC)"
 	@echo "LIB     : $(LIB)"
 	@echo "MOD     : $(MOD)"
-	@echo "RUN     : $(RUN)"
 	@echo "F90     : $(F90)"
 	@echo "LINK    : $(LINK)"
 
