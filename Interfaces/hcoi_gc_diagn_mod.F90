@@ -268,7 +268,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCOI_Diagn_WriteOut( am_I_Root, HcoState, WriteAll, &
-                                  RC,        PREFIX,   UsePrevTime)
+                                  RC,        PREFIX,   UsePrevTime )
 !
 ! !USES:
 !
@@ -344,10 +344,15 @@ CONTAINS
     ! if there is no diagnostics container in the list with a reset
     ! flag smaller or equal to MinResetFlag - there will be no matching
     ! container whatsoever. Can leave right here.
+    ! EOI is the end-of-interval flag that will be used by routine
+    ! Diagn_Get. If set to true, only the containers at the end of
+    ! their averaging interval are returned.
     IF ( WriteAll ) THEN
        MinResetFlag = -1
+       EOI = .FALSE.
     ELSE
        MinResetFlag = HcoClock_GetMinResetFlag()
+       EOI = .TRUE.
     ENDIF
     MaxResetFlag = Diagn_GetMaxResetFlag()
     IF ( MinResetFlag > MaxResetFlag ) RETURN
@@ -368,11 +373,9 @@ CONTAINS
     IF ( .NOT. PrevTime ) THEN
        CALL HcoClock_Get(cYYYY=YYYY,cMM=MM,cDD=DD,cH=h,cM=m,cS=s,RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
-       EOI = .FALSE.
     ELSE
        CALL HcoClock_Get(pYYYY=YYYY,pMM=MM,pDD=DD,pH=h,pM=m,pS=s,RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
-       EOI = .TRUE.
     ENDIF
 
     ! Define grid dimensions

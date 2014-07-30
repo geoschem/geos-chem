@@ -991,10 +991,10 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state
-                                                                !  object
+                                                                ! object
     LOGICAL,          INTENT(IN   )           :: EndOfIntvOnly  ! End of 
-                                                                !  interval 
-                                                                !  only? 
+                                                                ! interval 
+                                                                ! only? 
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! container name
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! container ID
     INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 0=no; 1=yes; 
@@ -1004,7 +1004,7 @@ CONTAINS
 !
 
     TYPE(DiagnCont),  POINTER                 :: DgnCont        ! Return 
-                                                                !  container
+                                                                ! container
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
