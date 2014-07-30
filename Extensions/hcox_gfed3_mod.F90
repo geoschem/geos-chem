@@ -121,6 +121,22 @@ MODULE HCOX_GFED3_MOD
   REAL(hp),          ALLOCATABLE :: GFED3_EMFAC(:,:)
   REAL(sp)                       :: COScale
 
+  !=================================================================
+  ! DATA ARRAY POINTERS 
+  !
+  ! These are the pointers to the 6 input data specified in the 
+  ! the configuration file
+  !=================================================================
+  REAL(hp), POINTER   :: GFED3_WDL(:,:) => NULL()
+  REAL(hp), POINTER   :: GFED3_SAV(:,:) => NULL()
+  REAL(hp), POINTER   :: GFED3_PET(:,:) => NULL()
+  REAL(hp), POINTER   :: GFED3_FOR(:,:) => NULL()
+  REAL(hp), POINTER   :: GFED3_AGW(:,:) => NULL()
+  REAL(hp), POINTER   :: GFED3_DEF(:,:) => NULL()
+  REAL(hp), POINTER   :: HUMTROP  (:,:) => NULL()
+  REAL(hp), POINTER   :: DAYSCAL  (:,:) => NULL()
+  REAL(hp), POINTER   :: HRSCAL   (:,:) => NULL()
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -162,18 +178,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL             :: IsCO 
+    LOGICAL, SAVE       :: FIRST = .TRUE.
     INTEGER             :: N, M
-    REAL(hp), POINTER   :: GFED3_WDL(:,:) => NULL()
-    REAL(hp), POINTER   :: GFED3_SAV(:,:) => NULL()
-    REAL(hp), POINTER   :: GFED3_PET(:,:) => NULL()
-    REAL(hp), POINTER   :: GFED3_FOR(:,:) => NULL()
-    REAL(hp), POINTER   :: GFED3_AGW(:,:) => NULL()
-    REAL(hp), POINTER   :: GFED3_DEF(:,:) => NULL()
-    REAL(hp), POINTER   :: TMPPTR   (:,:) => NULL()
-    REAL(hp), POINTER   :: HUMTROP  (:,:) => NULL()
-    REAL(hp), POINTER   :: DAYSCAL  (:,:) => NULL()
-    REAL(hp), POINTER   :: HRSCAL   (:,:) => NULL()
-    REAL(hp), POINTER   :: Arr2D    (:,:) => NULL()
+    REAL(hp), POINTER   :: Arr2D (:,:) => NULL()
+    REAL(hp), POINTER   :: TMPPTR(:,:) => NULL()
 
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
@@ -192,32 +200,35 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Get pointers to data arrays 
     !-----------------------------------------------------------------
-
-    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_WDL', GFED3_WDL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_SAV', GFED3_SAV, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_PET', GFED3_PET, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FOR', GFED3_FOR, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_AGW', GFED3_AGW, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_DEF', GFED3_DEF, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( am_I_Root, 'HUMTROP', HUMTROP, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Also point to scale factors if needed
-    IF ( DoDay ) THEN
-       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FRAC_DAY', &
-                                  DAYSCAL,   RC               )
+    IF ( FIRST ) THEN
+       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_WDL', GFED3_WDL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-    IF ( Do3Hr ) THEN
-       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FRAC_3HOUR', &
-                                  HRSCAL,    RC                 )
+       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_SAV', GFED3_SAV, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_PET', GFED3_PET, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FOR', GFED3_FOR, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_AGW', GFED3_AGW, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_DEF', GFED3_DEF, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( am_I_Root, 'HUMTROP', HUMTROP, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Also point to scale factors if needed
+       IF ( DoDay ) THEN
+          CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FRAC_DAY', &
+                                     DAYSCAL,   RC               )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+       IF ( Do3Hr ) THEN
+          CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FRAC_3HOUR', &
+                                     HRSCAL,    RC                 )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       FIRST = .FALSE.
     ENDIF
 
     !-----------------------------------------------------------------
@@ -308,15 +319,6 @@ CONTAINS
 
     ! Nullify pointers
     TmpPtr    => NULL()
-    GFED3_WDL => NULL()
-    GFED3_SAV => NULL()
-    GFED3_PET => NULL()
-    GFED3_FOR => NULL()
-    GFED3_AGW => NULL()
-    GFED3_DEF => NULL()
-    HUMTROP   => NULL()
-    DAYSCAL   => NULL()
-    HRSCAL    => NULL()
     Arr2D     => NULL()
 
     ! Leave w/ success
@@ -553,6 +555,17 @@ CONTAINS
     !=================================================================
     ! HCOX_GFED3_Final begins here!
     !=================================================================
+
+    ! Free pointers
+    GFED3_WDL => NULL()
+    GFED3_SAV => NULL()
+    GFED3_PET => NULL()
+    GFED3_FOR => NULL()
+    GFED3_AGW => NULL()
+    GFED3_DEF => NULL()
+    HUMTROP   => NULL()
+    DAYSCAL   => NULL()
+    HRSCAL    => NULL()
 
     ! Cleanup module arrays
     IF ( ALLOCATED( GFED3_EMFAC ) ) DEALLOCATE( GFED3_EMFAC )

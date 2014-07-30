@@ -124,6 +124,19 @@
       !=================================================================
       REAL(dp),          ALLOCATABLE :: FINN_EMFAC(:,:)
 
+      !=================================================================
+      ! DATA ARRAY POINTERS 
+      !
+      ! These are the pointers to the 6 vegetation type data arrays
+      ! specified in the configuration file
+      !=================================================================
+      REAL(hp), POINTER   :: VEGTYP1(:,:) => NULL()
+      REAL(hp), POINTER   :: VEGTYP2(:,:) => NULL()
+      REAL(hp), POINTER   :: VEGTYP3(:,:) => NULL()
+      REAL(hp), POINTER   :: VEGTYP4(:,:) => NULL()
+      REAL(hp), POINTER   :: VEGTYP5(:,:) => NULL()
+      REAL(hp), POINTER   :: VEGTYP9(:,:) => NULL()
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -166,18 +179,14 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: N, NF, ID, HcoID
-      REAL(hp), POINTER   :: VEGTYP1(:,:) => NULL()
-      REAL(hp), POINTER   :: VEGTYP2(:,:) => NULL()
-      REAL(hp), POINTER   :: VEGTYP3(:,:) => NULL()
-      REAL(hp), POINTER   :: VEGTYP4(:,:) => NULL()
-      REAL(hp), POINTER   :: VEGTYP5(:,:) => NULL()
-      REAL(hp), POINTER   :: VEGTYP9(:,:) => NULL()
       REAL(hp), POINTER   :: THISTYP(:,:) => NULL()
       REAL(hp), POINTER   :: Arr2D  (:,:) => NULL()
       
       REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
 
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+ 
       ! For OC/BC splitting:
       LOGICAL             :: DoRepeat
       INTEGER             :: Cnt
@@ -204,35 +213,39 @@
       !-----------------------------------------------------------------
       ! Get pointers to data arrays 
       !-----------------------------------------------------------------
-      IF ( UseDay ) THEN
-         PREFIX = 'FINN_DAILY_'
-      ELSE
-         PREFIX = 'FINN_'
+      IF ( FIRST ) THEN
+         IF ( UseDay ) THEN
+            PREFIX = 'FINN_DAILY_'
+         ELSE
+            PREFIX = 'FINN_'
+         ENDIF
+   
+         FLDNME = TRIM(PREFIX) // 'VEGTYP1'
+         CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP1, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         FLDNME = TRIM(PREFIX) // 'VEGTYP2'
+         CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP2, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         FLDNME = TRIM(PREFIX) // 'VEGTYP3'
+         CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP3, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         FLDNME = TRIM(PREFIX) // 'VEGTYP4'
+         CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP4, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+
+         FLDNME = TRIM(PREFIX) // 'VEGTYP5'
+         CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP5, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         FLDNME = TRIM(PREFIX) // 'VEGTYP9'
+         CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP9, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+
+         FIRST = .FALSE.
       ENDIF
-
-      FLDNME = TRIM(PREFIX) // 'VEGTYP1'
-      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP1, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      FLDNME = TRIM(PREFIX) // 'VEGTYP2'
-      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP2, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      FLDNME = TRIM(PREFIX) // 'VEGTYP3'
-      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP3, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      FLDNME = TRIM(PREFIX) // 'VEGTYP4'
-      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP4, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      FLDNME = TRIM(PREFIX) // 'VEGTYP5'
-      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP5, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      FLDNME = TRIM(PREFIX) // 'VEGTYP9'
-      CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP9, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! For logfile
       IF ( UseDay ) THEN
@@ -380,12 +393,6 @@
       ENDDO !N
 
       ! Nullify pointers
-      VEGTYP1   => NULL()
-      VEGTYP2   => NULL()
-      VEGTYP3   => NULL()
-      VEGTYP4   => NULL()
-      VEGTYP5   => NULL()
-      VEGTYP9   => NULL()
       THISTYP   => NULL()
       Arr2D     => NULL()
 
@@ -936,6 +943,14 @@
       !=================================================================
       ! HCOX_FINN_FINAL begins here!
       !=================================================================
+
+      ! Free pointers
+      VEGTYP1   => NULL()
+      VEGTYP2   => NULL()
+      VEGTYP3   => NULL()
+      VEGTYP4   => NULL()
+      VEGTYP5   => NULL()
+      VEGTYP9   => NULL()
 
       ! Cleanup module arrays
       IF ( ALLOCATED( FINN_EMFAC     )) DEALLOCATE( FINN_EMFAC     )

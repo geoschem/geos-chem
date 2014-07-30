@@ -181,6 +181,9 @@ MODULE HCOX_LightNOx_Mod
 !------------------------------------------------------------------------------
   REAL(hp),ALLOCATABLE, TARGET :: SLBASE(:,:,:)
 
+  ! OTD scale factors read through configuration file
+  REAL(hp), POINTER :: OTDLIS(:,:) => NULL()
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -398,7 +401,7 @@ CONTAINS
     REAL*8            :: XMID
     REAL*8            :: VERTPROF(HcoState%NZ)
     INTEGER           :: LNDTYPE, SFCTYPE
-    REAL(hp), POINTER :: OTDLIS(:,:) => NULL()
+    LOGICAL, SAVE     :: FIRST = .TRUE.
 
     !=================================================================
     ! LIGHTNOX begins here!
@@ -417,9 +420,10 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Eventually get OTD-LIS local redistribution factors from HEMCO.
     ! ----------------------------------------------------------------
-    IF ( LOTDLOC ) THEN
+    IF ( LOTDLOC .AND. FIRST ) THEN
        CALL EmisList_GetDataArr( am_I_Root, 'LIGHTNOX_OTDLIS', OTDLIS, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       FIRST = .FALSE.
     ENDIF
 
 #if defined( GEOS_5 ) 
@@ -998,7 +1002,6 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     ! Return w/ success
-    OTDLIS => NULL()
     CALL HCO_LEAVE ( RC ) 
 
   END SUBROUTINE LightNOx
@@ -1942,6 +1945,10 @@ CONTAINS
     !=================================================================
     ! Cleanup module arrays 
     !=================================================================
+
+    ! Free pointer
+    OTDLIS => NULL()
+
 !-----------------------------------------------------------------------------
 ! Prior to 7/22/14:
 ! We hardwire the PROFILE array instead of reading it from disk (bmy, 7/22/14)

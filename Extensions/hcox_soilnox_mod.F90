@@ -305,70 +305,70 @@ CONTAINS
     ! Conversion factor from ng N to kg NO
     UNITCONV = 1.0d-12 / 14.0d0 * HcoState%Spc(IDTNO)%EmMW_g
 
-    ! Get all arrays needed for SoilNOx calculation
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK1',  LANDTYPE(1)%VAL,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK2',  LANDTYPE(2)%VAL,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK3',  LANDTYPE(3)%VAL,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK4',  LANDTYPE(4)%VAL,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK5',  LANDTYPE(5)%VAL,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK6',  LANDTYPE(6)%VAL,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK7',  LANDTYPE(7)%VAL,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK8',  LANDTYPE(8)%VAL,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK9',  LANDTYPE(9)%VAL,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK10', LANDTYPE(10)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK11', LANDTYPE(11)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK12', LANDTYPE(12)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK13', LANDTYPE(13)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK14', LANDTYPE(14)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK15', LANDTYPE(15)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK16', LANDTYPE(16)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK17', LANDTYPE(17)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK18', LANDTYPE(18)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK19', LANDTYPE(19)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK20', LANDTYPE(20)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK21', LANDTYPE(21)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK22', LANDTYPE(22)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK23', LANDTYPE(23)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK24', LANDTYPE(24)%VAL, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_FERT',    SOILFERT,         RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_ARID',    CLIMARID,         RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL EmisList_GetDataArr ( aIR, 'SOILNOX_NONARID', CLIMNARID,        RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    
-    ! NOTE:
-    ! On first call, also initialize variables obtained from the 
-    ! restart file specified in the configuration file. Note that
-    ! this may lead to errorenous results if the time slices in the
-    ! restart file don't match the simulation start date!!
-    ! In future, we may want to include these values into the GEOS-Chem
-    ! restart file! 
+    !-----------------------------------------------------------------
+    ! On first call, set pointers to all arrays needed by SoilNOx
+    !-----------------------------------------------------------------
+
     IF ( FIRST ) THEN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK1',  LANDTYPE(1)%VAL,  RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK2',  LANDTYPE(2)%VAL,  RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK3',  LANDTYPE(3)%VAL,  RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK4',  LANDTYPE(4)%VAL,  RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK5',  LANDTYPE(5)%VAL,  RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK6',  LANDTYPE(6)%VAL,  RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK7',  LANDTYPE(7)%VAL,  RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK8',  LANDTYPE(8)%VAL,  RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK9',  LANDTYPE(9)%VAL,  RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK10', LANDTYPE(10)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK11', LANDTYPE(11)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK12', LANDTYPE(12)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK13', LANDTYPE(13)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK14', LANDTYPE(14)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK15', LANDTYPE(15)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK16', LANDTYPE(16)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK17', LANDTYPE(17)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK18', LANDTYPE(18)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK19', LANDTYPE(19)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK20', LANDTYPE(20)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK21', LANDTYPE(21)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK22', LANDTYPE(22)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK23', LANDTYPE(23)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK24', LANDTYPE(24)%VAL, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_FERT',    SOILFERT,         RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_ARID',    CLIMARID,         RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_NONARID', CLIMNARID,        RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    
+       !---------------------------------------------------------------
+       ! Also initialize variables obtained from the restart file specified 
+       ! in the configuration file. 
+       !---------------------------------------------------------------
 
        ! DEP_RESERVOIR. HEMCO converts this to kgNO/m2. Convert here
        ! back to ngN/m2.
@@ -495,14 +495,6 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
     ENDIF
-
-    ! Cleanup 
-    DO I = 1, NBIOM_HSN
-       LANDTYPE(I)%VAL => NULL() 
-    ENDDO
-    SOILFERT  => NULL()
-    CLIMARID  => NULL()
-    CLIMNARID => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
@@ -811,10 +803,14 @@ CONTAINS
     ! Deallocate LANDTYPE vector 
     IF ( ASSOCIATED(LANDTYPE) ) THEN
        DO I = 1,NBIOM_HSN
-          LANDTYPE(NBIOM_HSN)%VAL => NULL()
+          LANDTYPE(I)%VAL => NULL()
        ENDDO
        DEALLOCATE ( LANDTYPE )
     ENDIF
+
+    SOILFERT  => NULL()
+    CLIMARID  => NULL()
+    CLIMNARID => NULL()
 
     ! Free pointers 
     CLIMARID  => NULL()
