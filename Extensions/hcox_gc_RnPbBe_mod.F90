@@ -505,7 +505,7 @@ CONTAINS
     ExtState%PCENTER%DoUse = .TRUE.
 
     ! Activate this extension
-    ExtState%Gc_RnPbBe    = .TRUE.
+    ExtState%Gc_RnPbBe     = .TRUE.
 
     !=======================================================================
     ! Initialize data arrays
