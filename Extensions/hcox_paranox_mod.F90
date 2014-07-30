@@ -99,7 +99,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_Driver_Mod, ONLY : HCO_Run
+    USE HCO_Calc_Mod, ONLY : HCO_CalcEmis
 !
 ! !INPUT PARAMETERS:
 !
@@ -115,6 +115,7 @@ CONTAINS
 !  06 Aug 2013 - C. Keller   - Initial Version
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
+!  28 Jul 2014 - C. Keller   - Now call Hco_CalcEmis instead of Hco_Run.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -137,12 +138,12 @@ CONTAINS
     ! Use HEMCO core routines to get ship NO emissions 
     ! ----------------------------------------------------------------
 
-    ! Prepare HEMCO core run:
+    ! Prepare HEMCO core run (Hco_CalcEmis):
     ! --> Set tracer and category range + extension number.
     ! Note: Set species min and max to the full range of species. 
     ! For the ParaNox extension, emission fields of only one species
-    ! should be defined. HCO_RUN will exit w/ error if this is not 
-    ! the case. 
+    ! should be defined. Hco_CalcEmis will exit w/ error if this is 
+    ! not the case. 
     HcoState%Options%SpcMin =  1 
     HcoState%Options%SpcMax = -1 
     HcoState%Options%CatMin =  1 
@@ -159,7 +160,7 @@ CONTAINS
       
     ! Calculate ship NO emissions and write them into the ShipNO
     ! array [kg/m2/s]. 
-    CALL HCO_Run( am_I_Root, HcoState, RC )
+    CALL HCO_CalcEmis( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Reset settings to standard 
@@ -688,12 +689,6 @@ CONTAINS
 !
 !   endif ! add2hemco
 !------------------------------------------------------------------------------
-
-    ! testing only
-    write(*,*) 'total FLUXNO  : ',  SUM(FLUXNO)
-    write(*,*) 'total FLUXHNO3: ',  SUM(FLUXHNO3)
-    write(*,*) 'total FLUXO3  : ',  SUM(FLUXO3)
-    write(*,*) 'total DEPO3   : ',  SUM(DEPO3)
 
    ! Return w/ success
    CALL HCO_LEAVE ( RC )

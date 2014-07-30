@@ -89,8 +89,6 @@ debug:
 ###                                                                         ###
 ###############################################################################
 
-hcoi_gc_diagn_mod.o   : hcoi_gc_diagn_mod.F90
+hcoi_standalone_mod.o : hcoi_standalone_mod.F90
 
-hcoi_standalone_mod.o : hcoi_standalone_mod.F90    \
-                        hcoi_gc_diagn_mod.o
 #EOC

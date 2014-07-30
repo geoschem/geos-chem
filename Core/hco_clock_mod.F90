@@ -52,7 +52,7 @@ MODULE HCO_Clock_Mod
 !  i.e. local time does not change with latitude
 !
 ! !REVISION HISTORY:
-!  29 Dec 2012 - C. Keller - Initialization
+!  29 Dec 2012 - C. Keller   - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !EOP
@@ -106,7 +106,8 @@ MODULE HCO_Clock_Mod
 
      ! total number of emission time steps 
      INTEGER            :: nSteps
-  ENDTYPE HCO_Clock
+
+  END TYPE HCO_Clock
 !
 ! !LOCAL VARIABLES:
 !
@@ -366,7 +367,7 @@ CONTAINS
     ENDIF
 
     ! ----------------------------------------------------------------
-    ! Leave w/ success
+    ! Update / reset counters
     ! ----------------------------------------------------------------
     HcoClock%nSteps = HcoClock%nSteps + 1
 
@@ -923,7 +924,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_LocaTtime 
+! !IROUTINE: Set_LocalTime 
 !
 ! !DESCRIPTION: Subroutine Set\_LocalTime sets the local time vectors in 
 ! the HEMCO clock object. 

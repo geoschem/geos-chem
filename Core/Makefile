@@ -189,7 +189,7 @@ hco_readlist_mod.o     : hco_readlist_mod.F90    \
                          hco_filedata_mod.o      \
                          hco_logfile_mod.o       \
                          hco_state_mod.o         \
-                         hcoi_dataread_mod.o
+                         hcoio_dataread_mod.o
 
 hco_state_mod.o        : hco_state_mod.F90       \
 	                 hco_arr_mod.o           \
@@ -210,7 +210,13 @@ hco_unit_mod.o         : hco_unit_mod.F90        \
                          hco_error_mod.o         \
                          hco_extlist_mod.o
 
-hcoi_dataread_mod.o    : hcoi_dataread_mod.F90   \
+hcoio_diagn_mod.o      : hcoio_diagn_mod.F90     \
+                         hco_clock_mod.o         \
+                         hco_diagn_mod.o         \
+                         hco_error_mod.o         \
+                         hco_state_mod.o
+
+hcoio_dataread_mod.o   : hcoio_dataread_mod.F90  \
                          hco_chartools_mod.o     \
                          hco_datacont_mod.o      \
                          hco_error_mod.o         \
@@ -219,9 +225,9 @@ hcoi_dataread_mod.o    : hcoi_dataread_mod.F90   \
                          hco_state_mod.o         \
                          hco_tidx_mod.o          \
                          hco_unit_mod.o          \
-                         hcoi_messy_mod.o
+                         hcoio_messy_mod.o
 
-hcoi_messy_mod.o       : hcoi_messy_mod.F90      \
+hcoio_messy_mod.o      : hcoio_messy_mod.F90     \
                          hco_datacont_mod.o      \
                          hco_error_mod.o         \
                          hco_filedata_mod.o      \

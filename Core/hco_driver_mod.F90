@@ -87,6 +87,9 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
 
     !=================================================================
     ! HCO_RUN begins here!
@@ -96,20 +99,20 @@ CONTAINS
     CALL HCO_ENTER( 'HCO_RUN (hco_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    !=================================================================
+    !--------------------------------------------------------------
     ! 1. Update the time slice indeces
-    ! This is to make sure that the correct time slices will be used
-    ! for all emission fields. See also hco\_tidx\_mod.F90. 
-    !=================================================================
+    ! This is to make sure that the correct time slices will be
+    ! used for all emission fields. See also hco\_tidx\_mod.F90. 
+    !--------------------------------------------------------------
     CALL tIDx_Update( am_I_Root, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    !=================================================================
+    !--------------------------------------------------------------
     ! 2. Read/update data
     ! Check if there are any data files that need to be read or 
     ! updated, e.g. on the first call of HEMCO or if we enter a new
     ! month, year, etc. 
-    !=================================================================
+    !--------------------------------------------------------------
 
     ! Read/update data, as specified in ReadList.
     CALL ReadList_Read( am_I_Root, HcoState, RC )
@@ -120,11 +123,11 @@ CONTAINS
     ! correctly applied (e.g. to unify arrays with same properties). 
     CALL ReadList_to_EmisList ( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
- 
-    !=================================================================
+
+    !-----------------------------------------------------------------
     ! 3. Calculate the emissions for current time stamp based on the
     ! content of EmisList. Emissions become written into HcoState. 
-    !=================================================================
+    !-----------------------------------------------------------------
     CALL HCO_CalcEmis( am_I_Root, HcoState, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
