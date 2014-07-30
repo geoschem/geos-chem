@@ -2920,9 +2920,6 @@
 !      LOGICAL          :: LGFED3BB
       INTEGER          :: N_TRACERS
 
-      ! External functions     
-      REAL*8, EXTERNAL :: BOXVL    ! dbj
-
       !=================================================================
       ! EMISSCO2 begins here!
       !=================================================================

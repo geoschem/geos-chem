@@ -18,6 +18,13 @@
 !
       IMPLICIT NONE
       PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
+      ! Soil NOx deposited N arrays
+      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: DEP_RESERVOIR(:,:) ! N reservoir
+      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: DRY_TOTN     (:,:) ! Drydep'd N
+      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: WET_TOTN     (:,:) ! Wetdep'd N
 ! 
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
@@ -25,19 +32,25 @@
       PUBLIC  :: SOIL_WETDEP
       PUBLIC  :: GET_DEP_N
       PUBLIC  :: RESET_DEP_N
+      PUBLIC  :: Init_Get_Ndep
+      PUBLIC  :: Cleanup_Get_Ndep
 !
 ! !REVISION HISTORY:
-!  23 Oct 2012 - M. Payer    - Added ProTeX headers    
+!  23 Oct 2012 - M. Payer    - Added ProTeX headers
+!  25 Jul 2014 - R. Yantosca - Moved module variables DEP_RESERVOIR, DRY_TOTN,
+!                              and WET_TOTN here from Headers/commsoil_mod.F90
+!  25 Jul 2014 - R. Yantosca - Add routine INIT_GET_NDEP
+!  25 Jul 2014 - R. Yantosca - Add routine CLEANUP_GET_NDEP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !  
-      REAL*8,  PARAMETER   :: CONVHNO3 = 0.222 ! MWN/MWHNO3
-      REAL*8,  PARAMETER   :: CONVNH4  = 0.777 ! MWN/MWNH4
-      REAL*8,  PARAMETER   :: CONVNH3  = 0.823 ! MWN/MWNH3
-      REAL*8,  PARAMETER   :: CONVNIT  = 0.226 ! MWN/MWNIT
+      REAL*8, PARAMETER :: CONVHNO3 = 0.222 ! MWN/MWHNO3
+      REAL*8, PARAMETER :: CONVNH4  = 0.777 ! MWN/MWNH4
+      REAL*8, PARAMETER :: CONVNH3  = 0.823 ! MWN/MWNH3
+      REAL*8, PARAMETER :: CONVNIT  = 0.226 ! MWN/MWNIT
 
       CONTAINS
 !EOC
@@ -58,10 +71,9 @@
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
-      USE TRACERID_MOD, ONLY : IDTHNO3,   IDTNH3, IDTNITs
-      USE TRACERID_MOD, ONLY : IDTNO2,     IDTPAN
-      USE COMMSOIL_MOD
+      USE TRACERID_MOD, ONLY : IDTNH4,  IDTNIT, IDTNH4aq 
+      USE TRACERID_MOD, ONLY : IDTHNO3, IDTNH3, IDTNITs
+      USE TRACERID_MOD, ONLY : IDTNO2,  IDTPAN
 !
 ! !INPUT PARAMETERS: 
 !
@@ -87,7 +99,7 @@
          DRY_TOTN(I,J) = DRY_TOTN(I,J) + TDRYFX
       ENDIF
 
-      END SUBROUTINE   SOIL_DRYDEP
+      END SUBROUTINE SOIL_DRYDEP
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -108,7 +120,6 @@
 !
       USE TRACERID_MOD, ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
       USE TRACERID_MOD, ONLY : IDTHNO3,   IDTNH3, IDTNITs
-      USE COMMSOIL_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -155,11 +166,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_DEP_N ( I, J, TS_EMIS, DEP_FERT )
-!
-! !USES:
-!
-      USE COMMSOIL_MOD
+      SUBROUTINE GET_DEP_N( I, J, TS_EMIS, DEP_FERT )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -224,7 +231,7 @@
       ! 40% runoff 
       DEP_FERT = DEP_RESERVOIR(I,J) * 0.6d0   
 
-      END SUBROUTINE  GET_DEP_N
+      END SUBROUTINE GET_DEP_N
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -239,13 +246,12 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SOURCE_DRYN( I, J  ) RESULT( DRYN )
+      FUNCTION SOURCE_DRYN( I, J ) RESULT( DRYN )
 !
 ! !USES:
 !
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE COMMSOIL_MOD   
       USE CMN_DIAG_MOD        
 !
 ! !INPUT PARAMETERS: 
@@ -265,11 +271,14 @@
 !
 ! !LOCAL VARIABLES:
 !
+      REAL*8               :: NTS, TS_EMIS, TS_CHEM
+!
+! !DEFINED PARAMETERS:
+!
       REAL*8,  PARAMETER   :: AVO         = 6.022d23 ! Avogadro's # (molec/mol)
       REAL*8,  PARAMETER   :: MW          = 14.d0    ! Molec weight N (14gN/mol)
       REAL*8,  PARAMETER   :: NG_P_GRAM = 1.d9
       REAL*8,  PARAMETER   :: CM2_P_M2  = 1.d4
-      REAL*8               :: NTS, TS_EMIS, TS_CHEM
 
       ! ckeller (14/04/02)
       TS_EMIS = GET_TS_EMIS()
@@ -292,14 +301,13 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SOURCE_WETN( I, J  ) RESULT(WETN )
+      FUNCTION SOURCE_WETN( I, J ) RESULT( WETN )
 !
 ! !USES:
 !
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TIME_MOD,     ONLY : GET_TS_DYN
       USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE COMMSOIL_MOD
       USE CMN_DIAG_MOD
 !
 ! !INPUT PARAMETERS: 
@@ -319,8 +327,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8               :: HNO3NG, NITNG,   NH3NG,  NH4NG
-      REAL*8               :: NTS,    TS_EMIS, TS_DYN, AREA_M2     
+      REAL*8 :: HNO3NG, NITNG,   NH3NG,  NH4NG
+      REAL*8 :: NTS,    TS_EMIS, TS_DYN, AREA_M2     
  
       ! Divide through by number of transport timesteps
       ! because WET_xxxx is summed over transport timesteps
@@ -353,14 +361,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RESET_DEP_N 
-!
-! !USES:
-!
-      USE COMMSOIL_MOD
+      SUBROUTINE RESET_DEP_N()
 !
 ! !REVISION HISTORY:
-!  03 Apr 2014 - C. Keller      - Initial version
+!  03 Apr 2014 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -369,6 +373,102 @@
       DRY_TOTN = 0d0
       WET_TOTN = 0d0
 
-      END SUBROUTINE  RESET_DEP_N
+      END SUBROUTINE RESET_DEP_N
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_Get_Ndep
+!
+! !DESCRIPTION: Routine INIT\_GET\_NDEP allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_Get_Ndep( am_I_Root, RC )
+!
+! !USES:
+!
+      USE CMN_SIZE_Mod
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure
+!
+! !REMARKS:
+!  We now allocate the DEP_RESERVOIR, DRY_TOTN, and WET_TOTN arrays within
+!  get_ndep_mod.F.  These were formerly contained in Headers/commsoil_mod.F90,
+!  which was rendered mostly obsolete by HEMCO.
+! 
+! !REVISION HISTORY: 
+!  25 Jul 2014 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      ! Allocate arrays
+      ALLOCATE( DEP_RESERVOIR( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+
+      ALLOCATE( WET_TOTN     ( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+
+      ALLOCATE( DRY_TOTN     ( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+
+      ! Zero arrays
+      DEP_RESERVOIR = 0d0
+      WET_TOTN      = 0d0
+      DRY_TOTN      = 0d0
+
+      END SUBROUTINE Init_Get_Ndep
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_commsoil
+!
+! !DESCRIPTION: Subroutine CLEANUP\_COMMSOIL deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Cleanup_Get_NDep( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+!     
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Return code
+! 
+! !REVISION HISTORY: 
+!  25 Jul 2014 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC = GIGC_SUCCESS
+      
+      ! Deallocate arrays
+      IF ( ALLOCATED( DEP_RESERVOIR ) ) DEALLOCATE( DEP_RESERVOIR )
+      IF ( ALLOCATED( DRY_TOTN      ) ) DEALLOCATE( DRY_TOTN      )
+      IF ( ALLOCATED( WET_TOTN      ) ) DEALLOCATE( WET_TOTN      )
+
+      END SUBROUTINE Cleanup_Get_Ndep
 !EOC
       END MODULE GET_NDEP_MOD

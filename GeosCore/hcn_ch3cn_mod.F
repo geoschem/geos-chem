@@ -521,6 +521,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  11 Apr 2014 - R. Yantosca - Remove call to INIT_HCN_CH3CN
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !******************************************************************************
 ! 
 ! !USES:
@@ -560,6 +561,7 @@
       REAL*8                 :: KKG,    CL,   SR,   CG,    FLUX
       REAL*8                 :: ACM2,   AMT_LOST,   OCEAN_HCN
       REAL*8                 :: FOCEAN, OCEAN_CH3CN
+      REAL*8                 :: BOXVL
 
       ! Undersaturation ratios for HCN/CH3CN in seawater
       REAL*8, PARAMETER      :: ALPHA_HCN   = 0.21d0
@@ -582,8 +584,6 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER        :: STT(:,:,:,:)
 
-      ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
      
       !=================================================================
       ! CHEM_HCN_CH3CN begins here! 
@@ -621,9 +621,13 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, K0, K1, TMP, KTMP, KRATE, NN, N, AMT_LOST )
+!$OMP+PRIVATE( BOXVL                                              )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Grid box volume [cm3]
+         BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
 
          !------------------------------------------------------------------
          ! (1) HCN loss via reaction with OH
@@ -632,7 +636,7 @@
          K0    = 7.4d-33 
          K1    = 9.0d-15    * ( State_Met%T(I,J,L)  / 300d0 ) ** 3.2d0
          TMP   = K0  /  K1  *   State_Met%AD(I,J,L) *
-     &           XNUMOL_AIR / BOXVL(I,J,L,State_Met)
+     &           XNUMOL_AIR / BOXVL
 
          ! K: [cm3/molec/s]
          KTMP  = K1 * TMP / ( 1d0 + TMP )      
@@ -699,9 +703,13 @@
 !$OMP+PRIVATE( I,   J,  FOCEAN, OCEAN_HCN, OCEAN_CH3CN, ACM2     )
 !$OMP+PRIVATE( U,   TC, H,      SC,        KL,          KG       )
 !$OMP+PRIVATE( KKG, NN, N,      CG,        FLUX,        AMT_LOST )
+!$OMP+PRIVATE( BOXVL                                             )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Grid box volume [cm3]
+         BOXVL           = State_Met%AIRVOL(I,J,L) * 1d6
 
          ! Fraction of a grid box that is ocean
          FOCEAN          = 1d0 - State_Met%FRCLND(I,J) 
@@ -752,7 +760,7 @@
                N            = HCN_INDEX(NN)
 
                ! Bulk concentration of HCN in gas phase [kg/cm3]
-               CG           = STT(I,J,1,N) / BOXVL(I,J,1,State_Met)
+               CG           = STT(I,J,1,N) / BOXVL
 
                ! Air-to-sea flux of HCN [kg/cm2/s]
                FLUX         = ALPHA_HCN * KKG * CG     
@@ -800,7 +808,7 @@
                N              = CH3CN_INDEX(NN)
 
                ! Bulk concentration of CH3CN in gas phase [kg/cm3]
-               CG             = STT(I,J,1,N) / BOXVL(I,J,1,State_Met)
+               CG             = STT(I,J,1,N) / BOXVL
 
                ! Air-to-sea flux of HCN [kg/cm2/s]
                FLUX           = ALPHA_HCN * KKG * CG     

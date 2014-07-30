@@ -1294,6 +1294,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - A_M2 is now a scalar
 !  10 Mar 2014 - J. Pierce   - Avoid sea salt emissions over ice
+!  25 Jul 2014 - R. Yantosca - Remove reference to function SFCWINDSQR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1306,9 +1307,7 @@
       REAL*8                 :: F100,   W,      NUM
       REAL*8                 :: DBIN(IBINS),    A(IBINS)
       REAL*8                 :: A_M2,           FEMIS
-       
-      ! External functions
-      REAL*8,  EXTERNAL      :: SFCWINDSQR
+      REAL*8                 :: SFCWINDSQR
 
       ! Coefficient to adjust emission in 1x1 grid (win, 4/27/08)
       REAL*8                 :: COEF
@@ -1400,10 +1399,9 @@
          IF (FOCEAN > 0.5d0) THEN 
 
             ! Wind speed at 10 m altitude [m/s]
-!            W10M = SQRT( SFCWINDSQR( I, J ) )
-            W10M = SQRT( SFCWINDSQR( I, J ,
-     &                               State_Met%U10M,
-     &                               State_Met%V10M  ) )
+            SFCWINDSQR = State_Met%U10M(I,J)**2  
+     &                 + State_Met%V10M(I,J)**2
+            W10M       = SQRT( SFCWINDSQR )
 
             ! in ocean area - calc wind speed/eqm conc
             ! calculate the fraction of whitecap coverage

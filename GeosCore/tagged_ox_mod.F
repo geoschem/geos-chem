@@ -457,21 +457,20 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL          :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
-      LOGICAL          :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
-      LOGICAL          :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
-      LOGICAL          :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
-      INTEGER          :: PBLTOP,      MTTOP
-      REAL*8           :: PPROD,       X,          Y
-      
-      ! External functions
-      REAL*8, EXTERNAL :: BOXVL
+      LOGICAL :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
+      LOGICAL :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
+      LOGICAL :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
+      LOGICAL :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
+      INTEGER :: PBLTOP,      MTTOP
+      REAL*8  :: PPROD,       X,          Y
+      REAL*8  :: BOXVL
 
       !=================================================================
       ! Initialization
@@ -531,9 +530,11 @@
       ! Assign P(Ox) to tagged tracers by geographic/altitude regions
       !=================================================================
 
+      ! Grid box volume [cm3]
+      BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
+
       ! P(Ox) [kg]
-      PPROD = P24H(I,J,L)     * BOXVL(I,J,L,State_Met) *
-     &        ( GET_TS_CHEM() * 60d0 )
+      PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM() * 60d0 )
 
       !-----------------------
       ! #1: Total P(Ox)
@@ -691,6 +692,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
 !  11 Apr 2014 - R. Yantosca - Remove call to INIT_TAGGED_OX
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -705,6 +707,7 @@
       REAL*8            :: DTCHEM,  FREQ,    FLUX
       REAL*8            :: LL,      PL,      Ox_0
       REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
+      REAL*8            :: BOXVL
       CHARACTER(LEN=16) :: STAMP
 
       ! For fields from Input_Opt
@@ -718,9 +721,6 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-
-      ! External routines
-      REAL*8, EXTERNAL :: BOXVL
 
       !=================================================================
       ! CHEM_TAGGED_OX begins here!
@@ -772,11 +772,15 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX, F_UNDER_TOP )  
+!$OMP+PRIVATE( I,    J,       L,    LL,          PL,   FREQ )
+!$OMP+PRIVATE( Ox_0, Ox_LOST, FLUX, F_UNDER_TOP, BOXVL      )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLTROP
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+
+            ! Grid box volume [cm3]
+            BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
 
             !===========================================================
             ! Get P(Ox) and L(Ox) for each tagged tracer in [kg]
@@ -789,8 +793,7 @@
             
             ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
             IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
-               LL = STT(I,J,L,N)           * L24H(I,J,L) *
-     &              BOXVL(I,J,L,State_Met) * DTCHEM
+               LL = STT(I,J,L,N) * L24H(I,J,L) *BOXVL * DTCHEM
             ELSE
                LL = 0.0d0
             ENDIF 
@@ -803,12 +806,12 @@
                ! Only archive chemical production if this
                ! region has production to begin with [kg/s]
                IF ( PP(I,J,L,N) > 0d0 ) THEN
-                  PL            = P24H(I,J,L) * BOXVL(I,J,L,State_Met)
+                  PL            = P24H(I,J,L) * BOXVL
                   AD65(I,J,L,N) = AD65(I,J,L,N) + PL
                ENDIF
 
                ! Archive loss for all tracers [kg/s]
-               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L,State_Met)
+               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL
                AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
 
             ENDIF

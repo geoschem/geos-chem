@@ -37,6 +37,7 @@
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
       USE ERROR_MOD,               ONLY : DEBUG_MSG
+      USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
@@ -87,7 +88,6 @@
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
       USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
       USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
-      USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
       USE GIGC_Input_Opt_Mod,      ONLY : OptInput
@@ -232,6 +232,8 @@
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete global_grid_mod.F
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_NOX_mod.F
+!  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
+!  25 Jul 2014 - R. Yantosca - Now call CLEANUP_GET_NDEP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -332,7 +334,7 @@
       ! Call extra cleanup routines, mostly from modules in Headers/
       CALL Cleanup_CMN_O3     ( am_I_Root, RC )
       CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
-      CALL Cleanup_COMMSOIL   ( am_I_Root, RC )
+      CALL Cleanup_Get_Ndep   ( am_I_Root, RC )
       CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )

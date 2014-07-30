@@ -293,14 +293,6 @@
       LMIN = MINVAL( TPAUSE_LEV )
       LMAX = MAXVAL( TPAUSE_LEV )
 
-!----------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Remove refernce to LPAUSE variable from obsolete CMN_mod.F (bmy, 7/23/14)
-!      !### For backwards compatibility during transition (still needed??)
-!      !### LPAUSE is still used by CH4 chemistry and ND27 (phs, 1/19/07)
-!      LPAUSE = TPAUSE_LEV - 1
-!----------------------------------------------------------------------------
-
       ! check to be sure LLTROP is large enough.
       IF ( LLTROP < LMAX ) THEN
          WRITE( 6, '(a)' ) 'CHECK_VAR_TROP: LLTROP is set too low!' 
@@ -416,13 +408,6 @@
 
       ! Copy from REAL*4 to INTEGER and resize to (IIPAR,JJPAR)
       CALL TRANSFER_2D( ARRAY(:,:,1), TROPOPAUSE )
-
-!-----------------------------------------------------------------------------
-! Prior to 7/23/14:
-! Remove reference to LPAUSE array from obsolete CMN_mod.F (bmy, 7/23/14)
-!      !### For backwards compatibility during transition
-!      LPAUSE = TROPOPAUSE
-!-----------------------------------------------------------------------------
 
       !=================================================================
       ! L <  TROPOPAUSE(I,J) are tropospheric boxes  

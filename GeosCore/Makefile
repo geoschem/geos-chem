@@ -140,6 +140,8 @@
 #                              NcdfUtil and GeosUtil, but before GeosCore
 #  22 Jul 2014 - R. Yantosca - Move hcox_paranox_mod.F90, paranox_util_mod.F90
 #                              and hcox_driver_mod.F90 back to HEMCO/Extensions
+#  24 Jul 2014 - R. Yantosca - Remove canopy_nox_mod.F, readfert.F, readclim.F,
+#                              and readsoil.F. HEMCO makes all these obsolete.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -356,10 +358,6 @@ aerosol_mod.o               : aerosol_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               tracerid_mod.o          ucx_mod.o
 
-airmas.o                    : airmas.F
-
-arsl1k.o                    : arsl1k.F
-
 backsub.o                   : backsub.F
 
 benchmark_mod.o             : benchmark_mod.F                                \
@@ -371,8 +369,6 @@ biofuel_mod.o               : biofuel_mod.F           diag_mod.o             \
 
 biomass_mod.o               : biomass_mod.F           diag_mod.o             \
                               tracerid_mod.o          tracer_mod.o
-
-boxvl.o                     : boxvl.F
 
 bromocarb_mod.o             : bromocarb_mod.F         dao_mod.o              \
                               pbl_mix_mod.o           tracer_mod.o
@@ -388,9 +384,6 @@ calcrate.o                  : calcrate.F                                     \
                               pbl_mix_mod.o           planeflight_mod.o      \
                               tracerid_mod.o          cldice_HBrHOBr_rxn.o   \
                               ucx_mod.o
-
-canopy_nox_mod.o            : canopy_nox_mod.F                               \
-                              drydep_mod.o            modis_lai_mod.o
 
 carbon_mod.o                : carbon_mod.F                                   \
                               biomass_mod.o           chemgrid_mod.o         \
@@ -576,12 +569,6 @@ fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
                               diag_mod.o              depo_mercury_mod.o     \
                               tracerid_mod.o          tracer_mod.o
 
-fyhoro.o                    : fyhoro.F
-
-fcro2ho2.o                  : fcro2ho2.F
-
-fyrno3.o                    : fyrno3.F
-
 gamap_mod.o                 : gamap_mod.F                                    \
                               diag03_mod.o            diag04_mod.o           \
                               diag41_mod.o            diag42_mod.o           \
@@ -620,7 +607,8 @@ get_ndep_mod.o              : get_ndep_mod.F                                 \
 get_popsinfo_mod.o          : get_popsinfo_mod.F
 
 gigc_environment_mod.o      : gigc_environment_mod.F90                       \
-			      tracer_mod.o            vdiff_pre_mod.o
+			      tracer_mod.o            vdiff_pre_mod.o        \
+                              get_ndep_mod.o
 
 global_bc_mod.o             : global_bc_mod.F
 
@@ -829,14 +817,6 @@ pops_mod.o           	    : pops_mod.F    	                             \
                               pbl_mix_mod.o	      tracerid_mod.o         \
                               vdiff_pre_mod.o
 
-precipfrac.o                : precipfrac.F
-
-readsoil.o		    : readsoil.F
-
-readfert.o		    : readfert.F
-
-readclim.o		    : readclim.F
-
 readchem.o                  : readchem.F                                     \
                               diag_pl_mod.o           drydep_mod.o
 
@@ -877,8 +857,6 @@ ucx_mod.o                   : ucx_mod.F                                      \
                               tracerid_mod.o          future_emissions_mod.o
 
 setmodel.o                  : setmodel.F
-
-sfcwindsqr.o                : sfcwindsqr.F
 
 smvgear.o                   : smvgear.F                                      \
                               comode_mod.o
@@ -974,8 +952,7 @@ wetscav_mod.o               : wetscav_mod.F                                  \
 tomas_mod.o                 : tomas_mod.F                                    \
                               chemgrid_mod.o          dao_mod.o              \
                               diag_mod.o              diag_pl_mod.o          \
-                              tracerid_mod.o          cf_nucl.o              \
-                              YuIMN_Code.o            ion_nucl.o
+                              tracerid_mod.o          YuIMN_Code.o 
 
 tomas_tpcore_mod.o          : tomas_tpcore_mod.F90                           \
                               tomas_mod.o             tracerid_mod.o
@@ -987,10 +964,6 @@ aero_drydep.o               : aero_drydep.F                                  \
                               pbl_mix_mod.o           tomas_mod.o            \
                               tracerid_mod.o
 
-ion_nucl.o                  : ion_nucl.F
-
 YuIMN_Code.o                : YuIMN_Code.F
-
-cf_nucl.o                   : cf_nucl.F
 
 #EOC

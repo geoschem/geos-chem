@@ -2137,11 +2137,12 @@
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISDIAGb   ! DIAGb [hrs sincd 1/1/1985]
+      REAL*8 :: THISDIAGb   ! DIAGb [hrs sincd 1/1/1985]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGb needs to be REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2166,11 +2167,12 @@
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISDIAGe   ! DIAGe [hrs sincd 1/1/1985]
+      REAL*8 :: THISDIAGe   ! DIAGe [hrs sincd 1/1/1985]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGe needs to be REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC

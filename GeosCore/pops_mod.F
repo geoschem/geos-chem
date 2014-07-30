@@ -676,32 +676,6 @@
          ! Get AIRVOL
          AIR_VOL = State_Met%AIRVOL(I,J,L)
 
-!-----------------------------------------------------------------------------
-! Prior to 4/14/14:
-! Need to put error traps to prevent div-by-zero (bmy, 4/14/14)
-!         ! Define volume ratios:
-!         ! VR_OC_AIR = volume ratio of OC to air [unitless]     
-!         VR_OC_AIR   = C_OC_CHEM1 / AIR_VOL ! could be zero
-!
-!         ! VR_OC_BC  = volume ratio of OC to BC [unitless]
-!         VR_OC_BC = C_OC_CHEM1 / C_BC_CHEM1 ! could be zero or undefined
-!
-!         ! VR_BC_AIR = volume ratio of BC to air [unitless]
-!         VR_BC_AIR   = VR_OC_AIR / VR_OC_BC ! could be zero or undefined
-!
-!         ! VR_BC_OC  = volume ratio of BC to OC [unitless]
-!         VR_BC_OC    = 1d0 / VR_OC_BC ! could be zero or undefined
-!
-!         ! Redefine fractions of total POPs in box (I,J,L) that are OC-phase, 
-!         ! BC-phase, and gas phase with new time step (should only change if 
-!         ! temp changes or OC/BC concentrations change) 
-!         OC_AIR_RATIO = 1d0 / (KOA_T * VR_OC_AIR) 
-!         OC_BC_RATIO = 1d0 / (KOC_BC_T * VR_OC_BC) 
-!
-!         BC_AIR_RATIO = 1d0 / (KBC_T * VR_BC_AIR) 
-!         BC_OC_RATIO = 1d0 / (KBC_OC_T * VR_BC_OC)
-!-----------------------------------------------------------------------------
-
          ! Define volume ratios:
          ! VR_OC_AIR = volume ratio of OC to air [unitless]     
          VR_OC_AIR     = C_OC_CHEM1 / AIR_VOL ! could be zero
@@ -1907,22 +1881,26 @@
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  29 Nov 2012 - M. Payer   - Replaced all met field arrays with State_Met
 !                             derived type object
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !EXTERNAL FUNCTIONS:
+! !LOCAL VARIABLES:
 !
-      REAL*8, EXTERNAL    :: BOXVL
+      REAL*8 :: BOXVL
       
       !=================================================================
       ! GET_O3 begins here!
       !=================================================================
 
+      ! Grid box volume [cm3]
+      BOXVL        = State_Met%AIRVOL(I,J,L) * 1d6
+
       ! Get ozone [v/v] for this gridbox & month
       ! and convert to [molec/cm3] (eck, 12/2/04)
       O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
-     &               State_Met%AD(I,J,L)  /  BOXVL(I,J,L,State_Met)
+     &               State_Met%AD(I,J,L)  / BOXVL
 
       END FUNCTION GET_O3
 !EOC

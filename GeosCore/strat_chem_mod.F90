@@ -283,6 +283,7 @@ CONTAINS
     INTEGER           :: I,    J,      L,   N,   NN
     REAL*8            :: dt,   P,      k,   M0,  RC,     M
     REAL*8            :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
+    REAL*8            :: BOXVL
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     LOGICAL           :: LBRGCCM
@@ -298,9 +299,6 @@ CONTAINS
     REAL*8, POINTER   :: STT(:,:,:,:)
     REAL*8, POINTER   :: AD(:,:,:)
     REAL*8, POINTER   :: T(:,:,:)
-
-    ! External functions
-    REAL*8, EXTERNAL  :: BOXVL
 
     !===============================
     ! DO_STRAT_CHEM begins here!
@@ -463,7 +461,7 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, M, TK, RC, RDLOSS, T1L, mOH )
+       !$OMP PRIVATE( I, J, L, M, TK, RC, RDLOSS, T1L, mOH, BOXVL )
        DO J=1,JJPAR
           DO I=1,IIPAR  
 
@@ -474,8 +472,11 @@ CONTAINS
 
                 IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
 
+                ! Grid box volume [cm3]
+                BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
+
                 ! Density of air at grid box (I,J,L) in [molec cm-3]
-                M = AD(I,J,L) / BOXVL(I,J,L,State_Met) * XNUMOLAIR
+                M = AD(I,J,L) / BOXVL * XNUMOLAIR
 
                 ! OH number density [molec cm-3]
                 mOH = M * STRAT_OH(I,J,L)

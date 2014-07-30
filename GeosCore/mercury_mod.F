@@ -6129,23 +6129,26 @@
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! External functions
-      REAL*8, EXTERNAL :: BOXVL
+      REAL*8 :: BOXVL
       
       !=================================================================
       ! GET_O3 begins here!
       !=================================================================
 
+      ! Grid box volume [cm3]
+      BOXVL        = State_Met%AIRVOL(I,J,L) * 1d6
+
       ! Get ozone [v/v] for this gridbox & month
       ! and convert to [molec/cm3] (eck, 12/2/04)
       O3_MOLEC_CM3 = O3(I,J,L)           * ( 6.022d23 / 28.97d-3 ) * 
-     &               State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
+     &               State_Met%AD(I,J,L) / BOXVL
 
       ! Return to calling program
       END FUNCTION GET_O3
@@ -6277,6 +6280,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6286,9 +6290,7 @@
       INTEGER             :: JLOOP
       REAL*8              :: BR_PPTV, BR_MBL, BR_FAC
       REAL*8              :: LOCALTIME, HOUR, BRO_PPTV, FPBL
-
-      ! External functions
-      REAL*8, EXTERNAL    :: BOXVL           
+      REAL*8              :: BOXVL           
 !
 ! !DEFINED PARAMETERS:
 !
@@ -6448,14 +6450,16 @@
 
       ENDIF
 
+      ! Grid box volume [cm3]
+      BOXVL         = State_Met%AIRVOL(I,J,L) * 1d6
 
       ! Convert pptv mixing ratio -> molec/cm3
       BR_MOLEC_CM3  = BR_PPTV             * 1D-12      *
      &                ( 6.022D23          / 28.97D-3 ) * 
-     &                State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
+     &                State_Met%AD(I,J,L) / BOXVL
       BRO_MOLEC_CM3 = BRO_PPTV            * 1D-12      *
      &                ( 6.022D23          / 28.97D-3 ) * 
-     &                State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
+     &                State_Met%AD(I,J,L) / BOXVL
 
       ! Return to calling program
       END FUNCTION GET_BR
@@ -6658,6 +6662,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  25 Nov 2009 - C. Holmes   - Initial version
+!  25 Jul 2014 - R. Yantosca - Remove reference to function SFCWINDSQR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6669,10 +6674,7 @@
       INTEGER               :: I, J
       REAL*8,SAVE           :: TABLE_S(21), TABLE_U10(20)
       REAL*8,SAVE           :: TABLE_UPTAKE(21,20) 
-      
-
-      ! External functions
-      REAL*8,  EXTERNAL     :: SFCWINDSQR
+      REAL*8                :: SFCWINDSQR
 
       ! Flag for first call
       LOGICAL, SAVE         :: FIRST=.TRUE.
@@ -6684,7 +6686,7 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, U10M, S, LOSS_FREQ )
+!$OMP+PRIVATE( I, J, U10M, S, LOSS_FREQ, SFCWINDSQR )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -6692,13 +6694,20 @@
          IF ( IS_WATER( I, J, State_Met ) ) THEN
 
             ! Wind speed at 10m altitude [m/s]
-            U10M = SQRT( SFCWINDSQR( I, J,
-     &                               State_Met%U10M,
-     &                               State_Met%V10M ) )
-            
+!----------------------------------------------------------------------------
+! Prior to 7/25/14:
+! Remove reference to function SFCWINDSQR (bmy, 7/25/14)
+!            U10M = SQRT( SFCWINDSQR( I, J,
+!     &                               State_Met%U10M,
+!     &                               State_Met%V10M ) )
+!----------------------------------------------------------------------------
+            SFCWINDSQR = State_Met%U10M(I,J)**2 
+     &                 + State_Met%V10M(I,J)**2
+            U10M       = SQRT( SFCWINDSQR )
+
             ! Don't allow wind >20 m/s which is the limit of this 
             ! parameterization
-            U10M = MAX( MIN( U10M, 20d0 ), 1D0 )
+            U10M       = MAX( MIN( U10M, 20d0 ), 1D0 )
 
             ! Relative humidity as a saturation ratio
             ! Use the relative humidity of the lowest layer, although this is 

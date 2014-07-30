@@ -18,7 +18,6 @@
       USE CMN_SIZE_MOD                          ! Size parameters
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE CMN_GCTM_MOD                          ! Physical constants
-      USE COMMSOIL_MOD                          ! Soil wetness variables
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field subroutines
@@ -191,6 +190,7 @@
 !  29 Jan 2014 - R. Yantosca - Now set MAXDEP=105 for all simulations.  For
 !                              TOMAS we had MAXDEP=100; this is close enough.
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -713,18 +713,17 @@
 !  28 Nov 2012 - R. Yantosca - Add SUNCOS_MID to the argument list and 
 !                              populate that with State_Met%SUNCOSmid
 !  21 Oct 2013 - R. Yantosca - Bug fix: need to hold SP private in OMP loop
+!  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I,  J,  IJLOOP
-      REAL*8                :: THIK
-      REAL*8                :: SP
-
-      ! External functions
-      REAL*8, EXTERNAL      :: SFCWINDSQR ! Surface wind speed (jaegle 5/11/11)
+      INTEGER :: I,  J,  IJLOOP
+      REAL*8  :: THIK
+      REAL*8  :: SP
+      REAL*8  :: SFCWINDSQR
 
       !=================================================================
       ! METERO begins here!
@@ -740,7 +739,7 @@
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK, SP )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, SP, SFCWINDSQR )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -796,10 +795,10 @@
          !  jaegle (5/11/11)
          RHB(IJLOOP)    = MIN( 0.98d0, State_Met%RH(I,J,1) * 1.d-2 )
 
-         ! 10m windspeed (jaegle 5/11/11)
-         W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
-     &                                       State_Met%U10M,
-     &                                       State_Met%V10M ) )
+         ! 10m windspeed [m/s] (jaegle 5/11/11)
+         SFCWINDSQR     = State_Met%U10M(I,J)**2
+     &                  + State_Met%V10M(I,J)**2
+         W10(IJLOOP)    = SQRT( SFCWINDSQR )
 
          ! Cosine of solar zenith angle at midpoint 
          ! of the current chemistry timestep.
@@ -831,7 +830,6 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE COMMSOIL_MOD
       USE COMODE_MOD
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
@@ -881,6 +879,7 @@
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOILNOX and Input_Opt%NUMDEP
 !  30 Oct 2013 - M. Sulprizio- Bug fix: Hold AREA_CM2 private in !$OMP loop
+!  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1192,7 +1191,6 @@
 !      
 !      USE CMN_SIZE_MOD             ! Size parameters
 !      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
-!      USE COMMSOIL_MOD             ! Soil wetness variables
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -4114,11 +4112,6 @@
       REAL*8  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
       REAL*8  :: SC, ST      ! Schmidt and Stokes number (nondim)
 
-!------------------------------------------------------------------------------
-! Prior to 1/31/14:
-! Now pass these as arguments to avoid parallel errors w/ TOMAS (bmy, 1/31/14)
-!      REAL*8  :: DIAM, DEN
-!------------------------------------------------------------------------------
       REAL*8  :: EB, EIM, EIN, R1, AA, VTS
 
 !=======================================================================
@@ -4258,16 +4251,6 @@
       !      R1 (Particle rebound)  = exp(-St^0.5)
       !=================================================================
  
-!-----------------------------------------------------------------------------  
-! Prior to 1/31/14:
-! Now pass these as arguments to avoid parallel errors w/ TOMAS (bmy, 1/31/14)
-!      ! Particle diameter [m]
-!      DIAM  = A_RADI(K) * 2.d0  
-!
-!      ! Particle density [kg/m3]
-!      DEN   = A_DEN(K)          
-!-----------------------------------------------------------------------------  
-
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.d6 
  

@@ -158,17 +158,18 @@
 !                              running with the traditional driver main.F
 !  08 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE        :: FIRST = .TRUE.
-      INTEGER, SAVE        :: N_CHEM_BOXES
-      INTEGER              :: I, J, L, JLOOP
-      REAL*8               :: CONSEXP, TK, VPRESH2O
-      REAL*8,  EXTERNAL    :: BOXVL
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER, SAVE :: N_CHEM_BOXES
+      INTEGER       :: I, J, L, JLOOP
+      REAL*8        :: CONSEXP, TK, VPRESH2O
+      REAL*8        :: BOXVL
       
       !=================================================================
       ! AEROSOL_RURALBOX begins here!
@@ -285,9 +286,13 @@
          !----------------------------------
          IF ( JLOOP > 0 ) THEN
 
+
+            ! Grid box volume [cm3]
+            BOXVL          = State_Met%AIRVOL(I,J,L) * 1d6
+
             ! Air density in [molec/cm3]
-            AIRDENS(JLOOP) = State_Met%AD(I,J,L)    * 1000.d0 / 
-     &                       BOXVL(I,J,L,State_Met) * AVG  / WTAIR
+            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.d0 / 
+     &                       BOXVL               * AVG  / WTAIR
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
             ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L)  * AIRDENS(JLOOP)

@@ -465,6 +465,7 @@
       REAL*8                 :: CO_CH3OH,  CO_OH,      CO_ACET
       REAL*8                 :: CH4RATE,   DENS,       ALPHA_ACET
       REAL*8                 :: CORATE,    YMID
+      REAL*8                 :: BOXVL
 
       ! Variables for new JPL 2006 rate constants (jaf, jmao, 3/4/09)
       REAL*8                 :: KHI1,      KLO1,       XYRAT1
@@ -488,9 +489,6 @@
       REAL*8,  POINTER       :: AIRVOL(:,:,:  )
       REAL*8,  POINTER       :: STT   (:,:,:,:)
       REAL*8,  POINTER       :: T     (:,:,:  )
-
-      ! External functions
-      REAL*8,  EXTERNAL      :: BOXVL
 !
 ! !DEFINED PARAMETERS:
 !
@@ -571,7 +569,7 @@
 !$OMP+PRIVATE( CO_OH, PCO, YMID                                   )
 !$OMP+PRIVATE( KHI1, KLO1, XYRAT1, BLOG1, FEXP1, KHI2, KLO2       )
 !$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2, AREA_CM2         )
-!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG )
+!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG, BOXVL                   )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -581,6 +579,9 @@
 
          ! Grid box surface areas [cm2] (jaf, 3/10/09)
          AREA_CM2 = GET_AREA_CM2( I, J, L )
+
+         ! Grid box volume [cm3]
+         BOXVL    = State_Met%AIRVOL(I,J,L) * 1d6
 
          !==============================================================
          ! (0) Define useful quantities
@@ -595,8 +596,8 @@
          GCO   = STT(I,J,L,1) * STTCO
          
          ! DENS is the number density of air [molec air/cm3]
-         DENS  = AD(I,J,L)              * 1000.d0   /
-     &           BOXVL(I,J,L,State_Met) * 6.023d23  / WTAIR
+         DENS  = AD(I,J,L) * 1000.d0   /
+     &           BOXVL     * 6.023d23  / WTAIR
 
          !==============================================================
          ! (1a) Production of CO by reaction with CH4
@@ -704,14 +705,14 @@
             !
             ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
             ! Units of CO_ISOP are [molec CO/cm3]
-            CO_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L,State_Met) /
+            CO_ISOP = SUMISOPCO(I,J) / BOXVL      /
      &                5.d0           * ALPHA_ISOP
 
             ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
             ! Units are [molec CO/cm3]
-            CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L,State_Met) ) * 
-     &                 ( 100d0          / 397d0                  ) * 
-     &                 ( 12d0           / 28d0                   )
+            CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL ) * 
+     &                 ( 100d0          / 397d0 ) * 
+     &                 ( 12d0           / 28d0  )
  
             ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
             SUMISOPCO(I,J)  = 0d0
@@ -775,7 +776,7 @@
 
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec CO/cm3]
-            CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,State_Met) ) *
+            CO_MONO = ( SUMMONOCO(I,J) / BOXVL ) *
      &                ALPHA_MONO
 
             ! Zero SUMMONOCO for the next emission step
@@ -819,8 +820,7 @@
             ALPHA_ACET = 2.D0 / 3.D0
             
             ! Units are [molec CO/cc]
-            CO_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,State_Met) *
-     &                ALPHA_ACET
+            CO_ACET = SUMACETCO(I,J) / BOXVL * ALPHA_ACET
 
             ! Zero SUMACETCO for the next emission step
             SUMACETCO(I,J) = 0d0

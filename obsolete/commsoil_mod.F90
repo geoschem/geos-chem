@@ -97,7 +97,7 @@ MODULE COMMSOIL_MOD
   ! Dry period length
   REAL*4,  PUBLIC, ALLOCATABLE         :: DRYPERIOD    (:,:  )
 
-  ! Pulse factors
+ ! Pulse factors
   REAL*4,  PUBLIC, ALLOCATABLE         :: PFACTOR      (:,:  )
   REAL*4,  PUBLIC, ALLOCATABLE         :: GWET_PREV    (:,:  )
 
@@ -125,9 +125,10 @@ MODULE COMMSOIL_MOD
 !  http://wiki.seas.harvard.edu/geos-chem/index.php/Soil_NOx_Emissions
 !                                                                             .
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% NOTE: THIS MODULE IS DEPRECATED.  WE MAY END UP PLACING THE MODULE %%%
-!  %%% VARIABLES INTO A DERIVED TYPE FOR THE NEW EMISSIONS COMPONENT IN   %%%
-!  %%% THE NEAR FUTURE. (bmy, 11/19/12)                                   %%%
+!  %%% NOTE: THIS MODULE IS DEPRECATED.  MANY OF THE FIELDS NOW HAVE BEEN %%%
+!  %%% MADE OBSOLETE BY THE HEMCO EMISSIONS COMPONENT.  WE NEED TO KEEP   %%%
+!  %%% THIS HERE FOR get_ndep_mod.F.  WE MAY BE ABLE TO FOLD VARIABLES    %%%
+!  %%% INTO get_ndep_mod.F LATER ON. (bmy, 7/25/14)                       %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
@@ -151,6 +152,7 @@ MODULE COMMSOIL_MOD
 !  25 Jun 2014 - R. Yantosca - Now declare MODIS/Koppen resistances as
 !                              PARAMETERS.  This facilitates I/O w/ ESMF.
 !  25 Jun 2014 - R. Yantosca - Renamed to commsoil_mod.F90; Use F90 free-format
+!  25 Jul 2014 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,9 +163,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_commsoil_mod
+! !IROUTINE: Init_commsoil
 !
-! !DESCRIPTION: Routine SET_COMMSOIL_MOD allocates all module arrays
+! !DESCRIPTION: Routine INIT_COMMSOIL allocates all module arrays
 !  with the longitude and latitude values IIPAR and JJPAR.
 !\\
 !\\
@@ -196,6 +198,7 @@ CONTAINS
 !  30 Oct 2012 - R. Yantosca - Now allocate all arrays depending on lon & lat
 !  30 Oct 2012 - R. Yantosca - Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now use F90 free-format indentation
+!  25 Jul 2014 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -203,7 +206,7 @@ CONTAINS
     ! Store local copies of size dimensions
     Nx = arg_Nx
     Ny = arg_Ny
-    
+ 
     ! Allocate arrays
     ALLOCATE( CANOPYNOX    ( Nx*Ny, NSOILB ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
