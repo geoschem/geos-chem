@@ -606,6 +606,7 @@ CONTAINS
     USE HCO_State_Mod,       ONLY : HcoState_Final
     USE HCOI_GC_Diagn_Mod,   ONLY : HCOI_Diagn_WriteOut
     USE HCOX_Driver_Mod,     ONLY : HCOX_Final
+    USE HCO_Clock_Mod,       ONLY : HcoClock_Increase
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -622,6 +623,9 @@ CONTAINS
     INTEGER :: I, HMRC
     CHARACTER(LEN=255) :: LOC
 
+    ! File prefix for restart file
+    CHARACTER(LEN= 31), PARAMETER :: RST = 'HEMCO_restart'
+
     !=================================================================
     ! HCOI_GC_FINAL begins here!
     !=================================================================
@@ -629,14 +633,18 @@ CONTAINS
     ! Init
     LOC = 'HCOI_GC_Final (hcoi_gc_main_mod.F90)'
 
+    ! Increase HEMCO clock by one emission time step. This is just to
+    ! make sure that the 'end of interval' flag is properly set for
+    ! all variables.
+    CALL HcoClock_Increase ( am_I_Root, HcoState, HcoState%TS_EMIS, HMRC )
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HcoClock_Increase', LOC )
+
     ! Write out 'standard' diagnostics
-    CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC, &
-                               UsePrevTime=.FALSE. )
+    CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
  
     ! Also write all other diagnostics into netCDF file
-    CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC, &
-                               PREFIX='HEMCO_restart', UsePrevTime=.FALSE.)
+    CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC, PREFIX=RST )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
  
     ! Cleanup diagnostics
