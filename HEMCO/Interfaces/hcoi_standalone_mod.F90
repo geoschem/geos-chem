@@ -226,7 +226,6 @@ CONTAINS
     USE HCO_State_Mod,     ONLY : HcoState_Init
     USE HCO_Driver_Mod,    ONLY : HCO_Init
     USE HCOX_Driver_Mod,   ONLY : HCOX_Init
-    USE HCOI_GC_Diagn_Mod, ONLY : HCOI_Diagn_Init
 !
 ! !INPUT PARAMETERS:
 !
@@ -378,7 +377,7 @@ CONTAINS
     USE HCO_Clock_Mod,         ONLY : HcoClock_Set
     USE HCO_Driver_Mod,        ONLY : HCO_RUN
     USE HCOX_Driver_Mod,       ONLY : HCOX_RUN
-    USE HCOI_GC_Diagn_Mod,     ONLY : HCOI_DIAGN_WRITEOUT
+    USE HCOIO_Diagn_Mod,       ONLY : HCOIO_DIAGN_WRITEOUT
 !
 ! !INPUT PARAMETERS:
 !
@@ -425,7 +424,7 @@ CONTAINS
        !=================================================================
        ! Output diagnostics 
        !=================================================================
-       CALL HCOI_Diagn_WriteOut ( am_I_Root, HcoState, .FALSE., RC )
+       CALL HCOIO_Diagn_WriteOut ( am_I_Root, HcoState, .FALSE., RC )
        IF ( RC/= HCO_SUCCESS) RETURN 
     
        ! ================================================================
@@ -504,7 +503,7 @@ CONTAINS
     USE HCO_Driver_Mod,    ONLY : HCO_Final
     USE HCOX_Driver_Mod,   ONLY : HCOX_Final
     USE HCO_State_Mod,     ONLY : HcoState_Final
-    USE HCOI_GC_Diagn_Mod, ONLY : HCOI_Diagn_WriteOut
+    USE HCOIO_Diagn_Mod,   ONLY : HCOIO_Diagn_WriteOut
 !
 ! !INPUT PARAMETERS:
 !
@@ -529,8 +528,8 @@ CONTAINS
     LOC = 'HCOI_SA_FINAL (hco_standalone_mod.F90)'
 
     ! Write out all diagnostics
-    CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., RC, &
-                               UsePrevTime=.FALSE. )
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., RC, &
+                                UsePrevTime=.FALSE. )
     IF (RC /= HCO_SUCCESS) RETURN 
  
     ! Cleanup diagnostics

@@ -114,7 +114,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HcoState_Init
     USE HCO_Driver_Mod,     ONLY : HCO_INIT
     USE HCOX_Driver_Mod,    ONLY : HCOX_INIT
-    USE HCOI_GC_diagn_Mod,  ONLY : HCOI_DIAGN_INIT
+    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_DIAGN_INIT
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID 
 !
@@ -251,8 +251,8 @@ CONTAINS
     ! Define diagnostics
     !-----------------------------------------------------------------
     IF ( DoDiagn ) THEN
-    CALL HCOI_DIAGN_INIT ( am_I_Root, HcoState, HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP('HCOI_DIAGN_INIT',LOC)
+    CALL HCOI_GC_DIAGN_INIT ( am_I_Root, HcoState, HMRC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP('HCOI_GC_DIAGN_INIT',LOC)
     ENDIF
 
     !-----------------------------------------------------------------
@@ -304,7 +304,7 @@ CONTAINS
     USE HCO_FLUXARR_MOD,       ONLY : HCO_FluxarrReset 
     USE HCO_DRIVER_MOD,        ONLY : HCO_RUN
     USE HCOX_DRIVER_MOD,       ONLY : HCOX_RUN
-    USE HCOI_GC_DIAGN_MOD,     ONLY : HCOI_DIAGN_WRITEOUT
+    USE HCOIO_DIAGN_MOD,       ONLY : HCOIO_DIAGN_WRITEOUT
 
     USE PRESSURE_MOD,          ONLY : GET_PEDGE, GET_PCENTER
     USE GLOBAL_OH_MOD,         ONLY : GET_SZAFACT
@@ -379,7 +379,7 @@ CONTAINS
     ! Output diagnostics 
     !=================================================================
     IF ( DoDiagn ) THEN
-    CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC )
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_WRITEOUT', LOC )
     ENDIF
 
@@ -604,7 +604,7 @@ CONTAINS
     USE HCO_Driver_Mod,      ONLY : HCO_Final
     USE HCO_Diagn_Mod,       ONLY : Diagn_Cleanup
     USE HCO_State_Mod,       ONLY : HcoState_Final
-    USE HCOI_GC_Diagn_Mod,   ONLY : HCOI_Diagn_WriteOut
+    USE HCOIO_Diagn_Mod,     ONLY : HCOIO_Diagn_WriteOut
     USE HCOX_Driver_Mod,     ONLY : HCOX_Final
     USE HCO_Clock_Mod,       ONLY : HcoClock_Increase
 !
@@ -640,11 +640,11 @@ CONTAINS
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HcoClock_Increase', LOC )
 
     ! Write out 'standard' diagnostics
-    CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC )
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
  
     ! Also write all other diagnostics into netCDF file
-    CALL HCOI_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC, PREFIX=RST )
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC, PREFIX=RST )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
  
     ! Cleanup diagnostics

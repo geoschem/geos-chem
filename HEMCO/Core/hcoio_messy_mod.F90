@@ -2,9 +2,9 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !
-! !MODULE: hcoi_messy_mod.F90 
+! !MODULE: hcoio_messy_mod.F90 
 !
-! !DESCRIPTION: Module HCOI\_MESSY\_MOD interfaces HEMCO with the regridding
+! !DESCRIPTION: Module HCOIO\_MESSY\_MOD interfaces HEMCO with the regridding
 ! tool NCREGRID of the Modular Earth Submodel System (MESSy).
 ! Note that for now, this code only works for rectilinear (lon-lat)
 ! grids.
@@ -19,7 +19,7 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE HCOI_MESSY_MOD
+MODULE HCOIO_MESSY_MOD
 !
 ! !USES:
 !
@@ -876,4 +876,4 @@ MODULE HCOI_MESSY_MOD
 
   END SUBROUTINE MESSY2HCO
 !EOC
-END MODULE HCOI_MESSY_MOD
+END MODULE HCOIO_MESSY_MOD

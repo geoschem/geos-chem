@@ -3,15 +3,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcoi_dataread_mod.F90 
+! !MODULE: hcoio_dataread_mod.F90 
 !
-! !DESCRIPTION: Module HCOI\_DataRead\_Mod controls data processing (file
+! !DESCRIPTION: Module HCOIO\_DataRead\_Mod controls data processing (file
 ! reading, unit conversion, regridding) for HEMCO.
 !\\
 !\\
 ! !INTERFACE: 
 !
-MODULE HCOI_DataRead_Mod
+MODULE HCOIO_DataRead_Mod
 !
 ! !USES:
 !
@@ -25,7 +25,7 @@ MODULE HCOI_DataRead_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: HCOI_DataRead
+  PUBLIC  :: HCOIO_DataRead
 !
 ! !REVISION HISTORY:
 !  22 Aug 2013 - C. Keller   - Initial version
@@ -42,7 +42,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOI_DataRead (ESMF/MAPL version)
+! !IROUTINE: HCOIO_DataRead (ESMF/MAPL version)
 !
 ! !DESCRIPTION: Interface routine between ESMF and HEMCO to obtain
 ! the data array for a given HEMCO data container. 
@@ -55,7 +55,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
   !
-  SUBROUTINE HCOI_DataRead( am_I_Root, HcoState, Lct, RC ) 
+  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, RC ) 
 !
 ! !USES:
 !
@@ -92,11 +92,11 @@ CONTAINS
     CHARACTER(LEN=255)         :: LOC
 
     !=================================================================
-    ! HCOI_DATAREAD begins here
+    ! HCOIO_DATAREAD begins here
     !=================================================================
 
     ! For error handling
-    LOC = 'HCOI_DATAREAD (hcoi_dataread_mod.F90)'
+    LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
     CALL HCO_ENTER ( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -172,7 +172,7 @@ CONTAINS
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
 
-  END SUBROUTINE HCOI_DataRead
+  END SUBROUTINE HCOIO_DataRead
 !EOC
 #else
 !------------------------------------------------------------------------------
@@ -180,7 +180,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOI_DataRead
+! !IROUTINE: HCOIO_DataRead
 !
 ! !DESCRIPTION: Reads a netCDF file and returns the regridded array in proper
 ! units. This routine uses the HEMCO generic data reading and regridding
@@ -189,7 +189,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_DataRead( am_I_Root, HcoState, Lct, RC ) 
+  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, RC ) 
 !
 ! !USES:
 !
@@ -207,7 +207,7 @@ CONTAINS
     USE Regrid_A2A_Mod,     ONLY : MAP_A2A
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
     USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
-    USE HCOI_MESSY_MOD,     ONLY : HCO_MESSY_REGRID
+    USE HCOIO_MESSY_MOD,    ONLY : HCO_MESSY_REGRID
 !
 ! !INPUT PARAMETERS:
 !
@@ -257,15 +257,15 @@ CONTAINS
     INTEGER                       :: UnitTolerance
 
     ! Use MESSy regridding routines?
-    LOGICAL, PARAMETER    :: UseMESSy = .TRUE.
+    LOGICAL                       :: UseMESSy
 
 
     !=================================================================
-    ! HCOI_DATAREAD begins here
+    ! HCOIO_DATAREAD begins here
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ('HCOI_DATAREAD (hcoi_dataread_mod.F90)' , RC )
+    CALL HCO_ENTER ('HCOIO_DATAREAD (hcoio_dataread_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     
     ! To convert from deg to rad  
@@ -283,8 +283,8 @@ CONTAINS
 
     ! Verbose mode
     IF ( verb ) THEN
-       Write(MSG,*) 'Reading file ', TRIM(Lct%Dct%Dta%ncFile)
-       CALL HCO_MSG(MSG,SEP1='-')
+       Write(MSG,*) '- Reading file ', TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_MSG(MSG)
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -583,65 +583,27 @@ CONTAINS
     ! Regrid onto emissions grid 
     !-----------------------------------------------------------------
 
-    ! Messy toggle
-    IF ( .NOT. UseMESSy ) THEN
-
-    ! Write input grid edges to shadow variables so that map_a2a accepts them
-    ! as argument.
-    ! Also, for map_a2a, latitudes have to be sines...
-    ALLOCATE(LonEdgeI(nLonEdge), LatEdgeI(nLatEdge), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR( 'alloc error LonEdgeI', RC )
-       RETURN
+    ! Determine regridding algorithm to be applied: use NCREGRID from
+    ! MESSy only for index-based values (e.g. land types) or if we need 
+    ! to regrid vertical levels. For all other fields, use the much
+    ! faster map_a2a.
+    UseMESSy = .FALSE.
+    IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
+       UseMESSy = .TRUE.
     ENDIF
-    LonEdgeI(:) = LonEdge
-    LatEdgeI(:) = SIN( LatEdge * PI_180 )
-   
-    ! Get output grid edges from HEMCO state
-    LonEdgeO(:) = HcoState%Grid%XEDGE(:,1)
-    LatEdgeO(:) = HcoState%Grid%YSIN (1,:) 
-  
-    ! Reset nlev and ntime to effective array sizes
-    nlev  = size(ncArr,3)
-    ntime = size(ncArr,4)
-
-    ! Allocate output array if not yet defined
-    IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, ntime, RC ) 
-       IF ( RC /= 0 ) RETURN
-    ELSE
-       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, ntime, RC ) 
-       IF ( RC /= 0 ) RETURN
+    IF ( nLev > 0 .AND. nLev < HcoState%NZ ) THEN 
+       UseMESSy = .TRUE.
     ENDIF
-
-    ! Do regridding
-    DO T = 1, NTIME
-    DO L = 1, NLEV 
-
-       ! Point to 2D slices to be regridded
-       ORIG_2D => ncArr(:,:,L,T)
-       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-          REGR_2D => Lct%Dct%Dta%V2(T)%Val(:,:)
-       ELSE
-          REGR_2D => Lct%Dct%Dta%V3(T)%Val(:,:,L)
-       ENDIF
-
-       ! Do the regridding
-       CALL MAP_A2A( NLON,  NLAT, LonEdgeI, LatEdgeI, ORIG_2D, &
-                     NX,    NY,   LonEdgeO, LatEdgeO, REGR_2D, 0, 0 )
-
-       ORIG_2D => NULL()
-       REGR_2D => NULL()
-
-    ENDDO !L
-    ENDDO !T
-
-    DEALLOCATE(LonEdgeI, LatEdgeI)
 
     !-----------------------------------------------------------------
     ! Use MESSy regridding
     !-----------------------------------------------------------------
-    ELSE
+    IF ( UseMESSy ) THEN
+       IF ( verb ) THEN
+          WRITE(MSG,*) '  ==> Use MESSy regridding (NCREGRID)'
+          CALL HCO_MSG(MSG)
+       ENDIF
+
        ! Get vertical coordinate: this has to be a 3D array!
        ! Use silly levels for now (testing only).
        IF ( nLev > 0 ) THEN
@@ -656,8 +618,70 @@ CONTAINS
                                Lct,       RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( ASSOCIATED(LevEdge) ) DEALLOCATE(LevEdge)
-    ENDIF
 
+    !-----------------------------------------------------------------
+    ! Use map_a2a regridding
+    !-----------------------------------------------------------------
+    ELSE
+       IF ( verb ) THEN
+          WRITE(MSG,*) '  ==> Use map_a2a regridding'
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       ! Write input grid edges to shadow variables so that map_a2a accepts them
+       ! as argument.
+       ! Also, for map_a2a, latitudes have to be sines...
+       ALLOCATE(LonEdgeI(nLonEdge), LatEdgeI(nLatEdge), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( 'alloc error LonEdgeI', RC )
+          RETURN
+       ENDIF
+       LonEdgeI(:) = LonEdge
+       LatEdgeI(:) = SIN( LatEdge * PI_180 )
+      
+       ! Get output grid edges from HEMCO state
+       LonEdgeO(:) = HcoState%Grid%XEDGE(:,1)
+       LatEdgeO(:) = HcoState%Grid%YSIN (1,:) 
+     
+       ! Reset nlev and ntime to effective array sizes
+       nlev  = size(ncArr,3)
+       ntime = size(ncArr,4)
+   
+       ! Allocate output array if not yet defined
+       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
+          CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, ntime, RC ) 
+          IF ( RC /= 0 ) RETURN
+       ELSE
+          CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, ntime, RC ) 
+          IF ( RC /= 0 ) RETURN
+       ENDIF
+   
+       ! Do regridding
+       DO T = 1, NTIME
+       DO L = 1, NLEV 
+   
+          ! Point to 2D slices to be regridded
+          ORIG_2D => ncArr(:,:,L,T)
+          IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
+             REGR_2D => Lct%Dct%Dta%V2(T)%Val(:,:)
+          ELSE
+             REGR_2D => Lct%Dct%Dta%V3(T)%Val(:,:,L)
+          ENDIF
+   
+          ! Do the regridding
+          CALL MAP_A2A( NLON,  NLAT, LonEdgeI, LatEdgeI, ORIG_2D, &
+                        NX,    NY,   LonEdgeO, LatEdgeO, REGR_2D, 0, 0 )
+   
+          ORIG_2D => NULL()
+          REGR_2D => NULL()
+   
+       ENDDO !L
+       ENDDO !T
+   
+       DEALLOCATE(LonEdgeI, LatEdgeI)
+
+    ENDIF
+ 
     ! ----------------------------------------------------------------
     ! Close netCDF
     ! ----------------------------------------------------------------
@@ -676,7 +700,7 @@ CONTAINS
     ! Return w/ success
     CALL HCO_LEAVE ( RC ) 
 
-  END SUBROUTINE HCOI_DataRead
+  END SUBROUTINE HCOIO_DataRead
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1264,4 +1288,4 @@ CONTAINS
   END SUBROUTINE Normalize_Area
 !EOC
 #endif
-END MODULE HCOI_DataRead_Mod
+END MODULE HCOIO_DataRead_Mod

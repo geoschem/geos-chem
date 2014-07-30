@@ -224,6 +224,11 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL            :: verb
+    CHARACTER(LEN=255) :: MSG
 
     ! ================================================================
     ! ReadList_Read begins here
@@ -233,37 +238,64 @@ CONTAINS
     CALL HCO_ENTER ('ReadList_Read (hco_readlist_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Verbose mode
+    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+
     ! Read content from one-time list on the first call 
     IF ( HcoClock_First() ) THEN
+       IF ( Verb ) THEN
+          WRITE(MSG,*) 'Now reading once list!'
+          CALL HCO_MSG(MSG)
+       ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Once, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
     ! Read content from year-list if it's a new year
     IF ( HcoClock_NewYear() ) THEN
+       IF ( Verb ) THEN
+          WRITE(MSG,*) 'Now reading year list!'
+          CALL HCO_MSG(MSG)
+       ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Year, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
     ! Read content from month-list if it's a new month
     IF ( HcoClock_NewMonth() ) THEN
+       IF ( Verb ) THEN
+          WRITE(MSG,*) 'Now reading month list!'
+          CALL HCO_MSG(MSG)
+       ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Month, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
     ! Read content from day-list if it's a new day 
     IF ( HcoClock_NewDay() ) THEN
+       IF ( Verb ) THEN
+          WRITE(MSG,*) 'Now reading day list!'
+          CALL HCO_MSG(MSG)
+       ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Day, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
     ! Read content from hour-list if it's a new hour 
     IF ( HcoClock_NewHour() ) THEN
+       IF ( Verb ) THEN
+          WRITE(MSG,*) 'Now reading hour list!'
+          CALL HCO_MSG(MSG)
+       ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Hour, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
     ! Always add/update content from always-list
+    IF ( Verb ) THEN
+       WRITE(MSG,*) 'Now reading always list!'
+       CALL HCO_MSG(MSG)
+    ENDIF
     CALL ReadList_Fill ( am_I_Root, HcoState, ReadLists%Always, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -295,8 +327,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCOI_DataRead_Mod, ONLY : HCOI_DataRead
-    USE HCO_FileData_Mod,  ONLY : FileData_ArrIsDefined
+    USE HCOIO_DataRead_Mod, ONLY : HCOIO_DataRead
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrIsDefined
 !
 ! !INPUT PARAMETERS:
 !
@@ -357,8 +389,8 @@ CONTAINS
                 Lct%Dct%DtaHome = 1
              ENDIF
           ENDIF
-          IF ( Lct%Dct%DtaHome == 1 ) THEN 
-             CALL HCOI_DATAREAD ( am_I_Root, HcoState, Lct, RC )
+          IF ( Lct%Dct%DtaHome == 1 ) THEN
+             CALL HCOIO_DATAREAD ( am_I_Root, HcoState, Lct, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
        ENDIF
