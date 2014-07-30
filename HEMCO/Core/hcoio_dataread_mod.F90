@@ -591,7 +591,7 @@ CONTAINS
     IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
        UseMESSy = .TRUE.
     ENDIF
-    IF ( nLev > 0 .AND. nLev < HcoState%NZ ) THEN 
+    IF ( nLev > 1 .AND. nLev < HcoState%NZ ) THEN 
        UseMESSy = .TRUE.
     ENDIF
 
