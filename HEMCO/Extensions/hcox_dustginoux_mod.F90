@@ -88,7 +88,6 @@
 !
 ! !MODULE VARIABLES:
 !
-
       ! Parameters related to dust bins
       INTEGER                   :: ExtNr = -1
       INTEGER, PARAMETER        :: NBINS = 4     ! # of dust bins 
@@ -97,6 +96,11 @@
       REAL,    ALLOCATABLE      :: FRAC_S  (:)   !  
       REAL,    ALLOCATABLE      :: DUSTDEN (:)   ! dust density     [kg/m3] 
       REAL,    ALLOCATABLE      :: DUSTREFF(:)   ! effective radius [um] 
+
+      ! Source functions (get from HEMCO core) 
+      REAL(hp), POINTER      :: SRCE_SAND(:,:) => NULL()
+      REAL(hp), POINTER      :: SRCE_SILT(:,:) => NULL()
+      REAL(hp), POINTER      :: SRCE_CLAY(:,:) => NULL()
 
       ! Transfer coeff
       REAL*8                    :: CH_DUST 
@@ -168,15 +172,11 @@
 !
       INTEGER                :: I, J, N, M, tmpID
       LOGICAL                :: ERR
+      LOGICAL, SAVE          :: FIRST = .TRUE. 
       REAL*8                 :: W10M,   DEN,    DIAM,   U_TS0, U_TS
       REAL*8                 :: SRCE_P, REYNOL, ALPHA,  BETA
       REAL*8                 :: GAMMA,  CW,     DTSRCE, A_M2,  G
       REAL                   :: DSRC
-
-      ! Source functions (get from HEMCO core) 
-      REAL(hp), POINTER      :: SRCE_SAND(:,:) => NULL()
-      REAL(hp), POINTER      :: SRCE_SILT(:,:) => NULL()
-      REAL(hp), POINTER      :: SRCE_CLAY(:,:) => NULL()
 
       REAL*8, PARAMETER      :: RHOA     = 1.25d-3
 
@@ -203,13 +203,15 @@
       !=================================================================
       ! Point to DUST source functions 
       !=================================================================
-
-      CALL EmisList_GetDataArr ( am_I_Root, 'GINOUX_SAND', SRCE_SAND, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr ( am_I_Root, 'GINOUX_SILT', SRCE_SILT, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      CALL EmisList_GetDataArr ( am_I_Root, 'GINOUX_CLAY', SRCE_CLAY, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+      IF ( FIRST ) THEN
+         CALL EmisList_GetDataArr ( am_I_Root, 'GINOUX_SAND', SRCE_SAND, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         CALL EmisList_GetDataArr ( am_I_Root, 'GINOUX_SILT', SRCE_SILT, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         CALL EmisList_GetDataArr ( am_I_Root, 'GINOUX_CLAY', SRCE_CLAY, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         FIRST = .FALSE.
+      ENDIF
 
       ! Error check
       ERR = .FALSE.
@@ -313,11 +315,6 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Free pointer
-      SRCE_SAND => NULL()
-      SRCE_SILT => NULL()
-      SRCE_CLAY => NULL()
 
       ! Error check
       IF ( ERR ) THEN
@@ -490,6 +487,11 @@
       ! HCOX_DUSTGINOUX_FINAL begins here!
       !=================================================================
  
+      ! Free pointer
+      SRCE_SAND => NULL()
+      SRCE_SILT => NULL()
+      SRCE_CLAY => NULL()
+
       ! Cleanup option object
       IF ( ALLOCATED(IPOINT  ) ) DEALLOCATE(IPOINT   )
       IF ( ALLOCATED(FRAC_S  ) ) DEALLOCATE(FRAC_S   )

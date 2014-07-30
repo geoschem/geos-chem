@@ -247,7 +247,7 @@
       REAL*8                 :: SNW_HGT_LQD(HcoState%NX)   ! equivalent snow ht.
       REAL*8                 :: DSRC(HcoState%NX,NBINS)    ! dust mixing ratio incr.
       REAL(hp), TARGET       :: FLUX(HcoState%NX,HcoState%NY,NBINS) ! Flux array [kg/m2/s]   
-
+      LOGICAL,  SAVE         :: FIRST = .TRUE.
       ! For diagnostics
       REAL(hp), POINTER      :: Arr2D(:,:) => NULL()
 !
@@ -277,7 +277,7 @@
       aIR = am_I_Root
 
       !=================================================================
-      ! GET DATA FROM NETCDF 
+      ! Get pointers to gridded data imported through config. file
       !=================================================================
       !
       ! The following time-invariant fields are read in
@@ -296,39 +296,33 @@
       ! MSS_FRC_SND    ; mass fraction of sand:        HcoState%NX HcoState%NY
       ! SFC_TYP        ; surface type:                 HcoState%NX HcoState%NY
       !=================================================================
+      IF ( FIRST ) THEN
+         CALL EmisList_GetDataArr( aIR, 'DEAD_EF_GEO', ERD_FCT_GEO, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         CALL EmisList_GetDataArr( aIR, 'DEAD_LF_DRY', LND_FRC_DRY, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         CALL EmisList_GetDataArr(aIR,'DEAD_MF_CACO3', MSS_FRC_CACO3,RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         CALL EmisList_GetDataArr( aIR, 'DEAD_MF_CLY', MSS_FRC_CLY, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         CALL EmisList_GetDataArr( aIR, 'DEAD_MF_SND', MSS_FRC_SND, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         CALL EmisList_GetDataArr ( aIR, 'DEAD_SFC_TYP', SFC_TYP, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         CALL EmisList_GetDataArr ( aIR, 'DEAD_GOC_SRC', SRCE_FUNC, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+   
+         CALL EmisList_GetDataArr ( aIR, 'DEAD_VAI', VAI_DST, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
 
-!      CALL EmisList_GetDataArr ( aIR, 'EF_HYDRO', ERD_FCT_HYDRO, RC ) 
-!      IF ( RC /= HCO_SUCCESS ) RETURN
-!      CALL EmisList_GetDataArr ( aIR, 'EF_TOPO',  ERD_FCT_TOPO,  RC ) 
-!      IF ( RC /= HCO_SUCCESS ) RETURN
-!      CALL EmisList_GetDataArr ( aIR, 'EF_UNITY', ERD_FCT_UNITY, RC ) 
-!      IF ( RC /= HCO_SUCCESS ) RETURN
-!      CALL EmisList_GetDataArr ( aIR, 'MBL_BSN',  MBL_BSN_FCT,   RC ) 
-!      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL EmisList_GetDataArr ( aIR, 'DEAD_EF_GEO', ERD_FCT_GEO, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL EmisList_GetDataArr ( aIR, 'DEAD_LF_DRY', LND_FRC_DRY, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL EmisList_GetDataArr ( aIR, 'DEAD_MF_CACO3', MSS_FRC_CACO3,RC)
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL EmisList_GetDataArr ( aIR, 'DEAD_MF_CLY', MSS_FRC_CLY, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL EmisList_GetDataArr ( aIR, 'DEAD_MF_SND', MSS_FRC_SND, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL EmisList_GetDataArr ( aIR, 'DEAD_SFC_TYP', SFC_TYP, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL EmisList_GetDataArr ( aIR, 'DEAD_GOC_SRC', SRCE_FUNC, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN 
-
-      CALL EmisList_GetDataArr ( aIR, 'DEAD_VAI', VAI_DST, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+         FIRST = .FALSE.
+      ENDIF
 
       !=================================================================
       ! CALL DUST MOBILIZATION SCHEME 
@@ -435,20 +429,6 @@
          ENDDO !I
       ENDDO !J 
 !$OMP END PARALLEL DO
-
-      ! Free pointer
-      ERD_FCT_GEO     => NULL()
-      LND_FRC_DRY     => NULL()
-      MSS_FRC_CACO3   => NULL()
-      MSS_FRC_CLY     => NULL()
-      MSS_FRC_SND     => NULL()
-      SFC_TYP         => NULL()
-      SRCE_FUNC       => NULL()
-      VAI_DST         => NULL()
-!      ERD_FCT_HYDRO   => NULL()
-!      ERD_FCT_TOPO    => NULL()
-!      ERD_FCT_UNITY   => NULL()
-!      MBL_BSN_FCT     => NULL()
 
       ! Error check 
       IF ( ERR ) THEN

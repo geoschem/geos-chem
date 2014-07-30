@@ -134,9 +134,12 @@ MODULE HCOI_StandAlone_Mod
   INTEGER,  ALLOCATABLE          :: MNS(:)
   INTEGER,  ALLOCATABLE          :: SCS(:)
 
-  ! DAYS_BTW_M is the days between midmonths. Used by the MEGAN extension
+  ! DAYS_BTW_M is the days between midmonths. Used by MEGAN
   LOGICAL                        :: DAYS_BTW_M_USE = .FALSE.
   INTEGER,  TARGET               :: DAYS_BTW_M
+
+  ! CLDTOPS is the cloud top level index. Used by lightning NOx
+  INTEGER,  ALLOCATABLE, TARGET  :: CLDTOPS(:,:)
 !
 ! !MODULE INTERFACES:
 !
@@ -460,10 +463,10 @@ CONTAINS
        ! Run HCO extensions
        ! ================================================================
    
-       ! Eventually update local variable DAYS_BTW_M
-       CALL DAYS_BTW_M_SET ( am_I_Root, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
+       ! Eventually update local variables DAYS_BTW_M and CLDTOPS to
+       ! ensure that all ExtState fields are up to date.
+       CALL ExtState_Update ( am_I_Root, RC )
+ 
        ! Execute all enabled emission extensions. Emissions will be 
        ! added to corresponding flux arrays in HcoState.
        CALL HCOX_Run ( am_I_Root, HcoState, ExtState, RC )
@@ -561,6 +564,7 @@ CONTAINS
     IF ( ALLOCATED( HRS     ) ) DEALLOCATE ( HRS     )
     IF ( ALLOCATED( MNS     ) ) DEALLOCATE ( MNS     )
     IF ( ALLOCATED( SCS     ) ) DEALLOCATE ( SCS     )
+    IF ( ALLOCATED( CLDTOPS ) ) DEALLOCATE ( CLDTOPS )
 
     ! Cleanup HcoState object 
     CALL HcoState_Final( HcoState ) 
@@ -1343,17 +1347,15 @@ CONTAINS
 ! the configuration file. It is expected that the field names set in the
 ! configuration file match the data names of the ExtState object.
 !\\
-! Currently, the following ExtState objects can not be passed through the 
-! HEMCO configuration file:
+! The following ExtState objects cannot be passed through the HEMCO 
+! configuration file: 
 ! \begin{itemize}
-! \item CLDTOPS: integer field (used in hcox\_lightnox\_mod.F90). Cannot
-!       be used for now!
 ! \item DRYCOEFF: Baldocci drydep coeff. vector (used in 
 !       hcox\_soilnox\_mod.F90). This variable should be provided in section 
 !       soil NOx extension settings (DRYCOEFF: xx.x/xx.x/xx.x/...). It is
 !       read in hcox\_soilnox\_mod.F90.
 ! \item DAYS_BTW_M: days between midmonths (used in hcox\_megan\_mod.F). 
-!       This variable becomes defined in this module.
+!       This variable becomes defined and updated within this module.
 ! \end{itemize}
 !\\
 !\\
@@ -1381,7 +1383,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)            :: MSG
+    INTEGER                       :: AS
     CHARACTER(LEN=255), PARAMETER :: LOC = 'READ_TIME (hcoi_standalone_mod.F90)'
 
     !=================================================================
@@ -1527,18 +1529,23 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Error traps for data currently not supported
+    ! CLDTOPS is expected to be an integer field. Do conversion from
+    ! REAL to INTEGER at every time step. 
     !-----------------------------------------------------------------
-
-    ! Cannot read integer fields through EmisList
     IF ( ExtState%CLDTOPS%DoUse ) THEN
-       MSG = 'CLDTOPS currently not supported in standalone version'
-       CALL HCO_ERROR ( MSG, RC )
-       RETURN
+       ALLOCATE( CLDTOPS(HcoState%NX,HcoState%NY), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR ( 'Cannot allocate CLDTOPS', RC )
+          RETURN
+       ENDIF
+       CLDTOPS = 0
+       ExtState%CLDTOPS%Arr%Val => CLDTOPS
     ENDIF
 
+    !-----------------------------------------------------------------
     ! ==> DRYCOEFF will be read from the configuration file in module
     !     hcox_soilnox_mod.F90. 
+    !-----------------------------------------------------------------
 
     ! Leave w/ success
     CALL HCO_LEAVE( RC )
@@ -1662,9 +1669,67 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: ExtState_Update 
+!
+! !DESCRIPTION: Subroutine ExtState\_Update makes sure that all local variables
+! that ExtState is pointing to are up to date.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ExtState_Update ( am_I_Root, RC )
+!
+! !USES:
+!
+    USE HCO_EMISLIST_MOD,   ONLY : EmisList_GetDataArr 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  28 Jul 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+
+    REAL(hp), POINTER             :: Ptr2D(:,:) => NULL()
+
+    !=================================================================
+    ! ExtState_Update begins here
+    !=================================================================
+
+    ! Eventually update variable DAYS_BTW_M
+    CALL DAYS_BTW_M_SET ( am_I_Root, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Eventually update variable CLDTOPS
+    IF ( ExtState%CLDTOPS%DoUse ) THEN
+       CALL EmisList_GetDataArr( am_I_Root, 'CLDTOPS', Ptr2D, RC )
+       IF ( RC /= 0 ) RETURN
+       CLDTOPS = NINT(Ptr2D)
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ExtState_Update 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: DAYS_BTW_M_SET
 !
-! !DESCRIPTION: Subroutine DAYS_BTW_M_SET updates the local variable 
+! !DESCRIPTION: Subroutine DAYS\_BTW\_M\_SET updates the local variable 
 ! DAYS\_BTW\_M. This routine is taken from modis\_lai\_mod.F90 of the
 ! GEOS-Chem model.
 !\\
