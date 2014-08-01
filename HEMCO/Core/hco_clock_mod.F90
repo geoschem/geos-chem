@@ -63,10 +63,12 @@ MODULE HCO_Clock_Mod
 !
   ! Reset flags used by diagnostics. These are used to identify
   ! the diagnostics that are at the end of their averaging interval.
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagAnnually = 1
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagMonthly  = 10
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagDaily    = 100
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagHourly   = 1000
+  INTEGER, PARAMETER, PUBLIC  :: ResetFlagManually = -1
+  INTEGER, PARAMETER, PUBLIC  :: ResetFlagEnd      =  0
+  INTEGER, PARAMETER, PUBLIC  :: ResetFlagAnnually =  1
+  INTEGER, PARAMETER, PUBLIC  :: ResetFlagMonthly  =  10
+  INTEGER, PARAMETER, PUBLIC  :: ResetFlagDaily    =  100
+  INTEGER, PARAMETER, PUBLIC  :: ResetFlagHourly   =  1000
 !
 ! !PRIVATE TYPES:
 !

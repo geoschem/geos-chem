@@ -64,8 +64,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root, HcoState, WriteAll, &
-                                   RC,        PREFIX,   UsePrevTime )
+  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root, HcoState, WriteAll,    &
+                                   RC,        PREFIX,   UsePrevTime, &
+                                   InclManual                         )
 !
 ! !USES:
 !
@@ -81,12 +82,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! root CPU?
-    TYPE(HCO_State),  POINTER       :: HcoState    ! HEMCO state object 
-    LOGICAL,          INTENT(IN   ) :: WriteAll    ! Write all diagnostics? 
-    CHARACTER(LEN=*), OPTIONAL      :: PREFIX      ! File prefix
-    LOGICAL,          OPTIONAL      :: UsePrevTime ! Use previous time 
-!                                                  !  in filename?
+    LOGICAL,                    INTENT(IN   ) :: am_I_Root   ! root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object 
+    LOGICAL,                    INTENT(IN   ) :: WriteAll    ! Write all diagnostics? 
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
+    LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time 
+    LOGICAL,          OPTIONAL, INTENT(IN   ) :: InclManual  ! Get manual diagn. too? 
+!
 ! !INPUT/OUTPUT PARAMETERS:
 !
 
@@ -115,6 +117,7 @@ CONTAINS
     INTEGER                   :: FLAG
     CHARACTER(LEN=255)        :: ncFile
     CHARACTER(LEN=255)        :: Pfx 
+    CHARACTER(LEN=255)        :: MSG 
     CHARACTER(LEN=4 )         :: Yrs
     CHARACTER(LEN=2 )         :: Mts, Dys, hrs, mns 
     CHARACTER(LEN=31)         :: timeunit, myName, myUnit
@@ -123,8 +126,9 @@ CONTAINS
     INTEGER                   :: nLon, nLat, nLev, nTime 
     INTEGER                   :: Prc
     INTEGER                   :: MinResetFlag, MaxResetFlag
-    LOGICAL                   :: EOI, PrevTime
+    LOGICAL                   :: EOI, PrevTime, Manual
     
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)' 
     !=================================================================
     ! HCOIO_DIAGN_WRITEOUT begins here!
     !=================================================================
@@ -132,6 +136,18 @@ CONTAINS
     ! Init
     RC  = HCO_SUCCESS
     CNT = 0
+
+    ! Get manual containers? Only of relevance for WriteAll
+    IF ( PRESENT(InclManual) ) THEN
+       Manual = InclManual
+    ELSE
+       Manual = .FALSE.
+    ENDIF
+    IF ( Manual .AND. .NOT. WriteAll ) THEN
+       MSG = 'InclManual option enabled, but WriteAll is not set to true!!'
+       CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+       Manual = .FALSE.
+    ENDIF
 
     ! Inherit data precision from HEMCO
     Prc = HP
@@ -270,7 +286,8 @@ CONTAINS
        ! Get next diagnostics in list. This will return the next 
        ! diagnostics container that contains content to be written
        ! out on this time step.
-       CALL Diagn_Get ( am_I_Root, HcoState, EOI, ThisDiagn, FLAG, RC )
+       CALL Diagn_Get ( am_I_Root, HcoState, EOI, ThisDiagn, FLAG, RC, &
+                        InclManual=Manual )
        IF ( RC /= HCO_SUCCESS ) RETURN 
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 

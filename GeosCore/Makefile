@@ -493,7 +493,7 @@ diag3.o                     : diag3.F                                        \
                               diag56_mod.o            diag_pl_mod.o          \
                               depo_mercury_mod.o      drydep_mod.o           \
                               tomas_mod.o             tracerid_mod.o         \
-                              wetscav_mod.o
+                              wetscav_mod.o           hcoi_gc_main_mod.o
 
 diag41_mod.o                : diag41_mod.F                                   \
                               pbl_mix_mod.o
@@ -650,7 +650,8 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               global_oh_mod.o         tracerid_mod.o         \
                               get_ndep_mod.o          drydep_mod.o           \
                               modis_lai_mod.o         carbon_mod.o           \
-                              fast_jx_mod.o           hcoi_gc_diagn_mod.o
+                              fast_jx_mod.o           hcoi_gc_diagn_mod.o    \
+                              diag_mod.o
 
 i6_read_mod.o               : i6_read_mod.F                                  \
                               diag_mod.o              

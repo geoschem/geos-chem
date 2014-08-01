@@ -27,6 +27,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
+      USE ERROR_MOD, ONLY : ERROR_STOP
 
       ! Modules from GeosCore directory
       USE BPCH2_MOD                          ! For binary punch I/O routines
@@ -57,6 +58,12 @@
       USE APM_DRIV_MOD, ONLY : NPOUTSTEPS
 #endif
 
+      ! Interface w/ HEMCO
+      USE HCO_DIAGN_MOD
+      USE HCO_ERROR_MOD
+      USE HCO_STATE_MOD,     ONLY : HCO_STATE
+      USE HCOI_GC_MAIN_MOD,  ONLY : GetHcoState
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -66,7 +73,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState),  INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -260,6 +267,14 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER    :: STT(:,:,:,:)
+
+      ! Interface w/ HEMCO diagnostics
+      CHARACTER(LEN= 63)        :: DiagnName
+      CHARACTER(LEN=255)        :: MSG
+      INTEGER                   :: FLAG
+      TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
+      TYPE(HCO_State), POINTER  :: HcoState => NULL()
+      CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -314,6 +329,12 @@
       ! Get the proper model name and HALFPOLAR setting for the bpch file
       MODELNAME = GET_MODELNAME()
       HALFPOLAR = GET_HALFPOLAR()
+
+      ! HEMCO interface: get pointer to HcoState object (of hcoi_gc_main_mod.F90)
+      CALL GetHcoState( HcoState )
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
+      ENDIF
 !
 !******************************************************************************
 !  ND01: Rn, Pb, Be emissions (Category: "RN--SRCE")
@@ -474,13 +495,33 @@
          DO N = 1, NDSTBIN 
 
             ! At present we have 4 dust bins
-            IF ( N == 1 ) NN = IDTDST1 
-            IF ( N == 2 ) NN = IDTDST2 
-            IF ( N == 3 ) NN = IDTDST3 
-            IF ( N == 4 ) NN = IDTDST4 
+            SELECT CASE ( N )
+               CASE ( 1 )
+                  NN         = IDTDST1 
+                  DiagnName  = 'AD06_DST1'
+               CASE ( 2 )
+                  NN         = IDTDST2 
+                  DiagnName  = 'AD06_DST2'
+               CASE ( 3 )
+                  NN         = IDTDST3
+                  DiagnName  = 'AD06_DST3'
+               CASE ( 4 )
+                  NN         = IDTDST4
+                  DiagnName  = 'AD06_DST4'
+            END SELECT
+
+            ! Get diagnostics
+            DgnCont => NULL()
+            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                      DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                      AutoFill=1, InclManual=.TRUE. )
+            IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
 
             ! Save dust into ARRAY
-            ARRAY(:,:,1) = AD06(:,:,N) 
+            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
 
             ! Write to BPCH file
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -488,7 +529,7 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-         ENDDO
+         ENDDO !N
       ENDIF     
 !
 !******************************************************************************
@@ -513,7 +554,18 @@
          !-------------------
          CATEGORY     = 'BC-ANTH'
          N            = IDTBCPI
-         ARRAY(:,:,1) = AD07(:,:,1) 
+         DiagnName    = 'AD07_BCPI_ANTHRO'
+
+         ! Get diagnostics
+         DgnCont => NULL()
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -526,8 +578,19 @@
          !-------------------
          CATEGORY     = 'BC-BIOB'
          N            = IDTBCPI
-         ARRAY(:,:,1) = AD07(:,:,2) 
+         DiagnName    = 'AD07_BCPI_BIOMASS'
             
+         ! Get diagnostics
+         DgnCont => NULL()
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
+
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -539,8 +602,19 @@
          !------------------- 
          CATEGORY     = 'BC-BIOF'
          N            = IDTBCPI
-         ARRAY(:,:,1) = AD07(:,:,3) 
+         DiagnName    = 'AD07_BCPI_BIOFUEL'
             
+         ! Get diagnostics
+         DgnCont => NULL()
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
+
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -572,7 +646,17 @@
          IF ( IDTOCPI > 0 ) N = IDTOCPI
          IF ( IDTPOA1 > 0 ) N = IDTPOA1
 
-         ARRAY(:,:,1) = AD07(:,:,4) 
+         ! Get diagnostics
+         DiagnName = 'AD07_OCPI_ANTHRO'
+         DgnCont   => NULL()
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -586,6 +670,18 @@
          CATEGORY     = 'OC-BIOB'
          ARRAY(:,:,1) = AD07(:,:,5) 
             
+         ! Get diagnostics
+         DiagnName = 'AD07_OCPI_BIOMASS'
+         DgnCont   => NULL()
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
+
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -598,6 +694,18 @@
          CATEGORY     = 'OC-BIOF'
          ARRAY(:,:,1) = AD07(:,:,6) 
             
+         ! Get diagnostics
+         DiagnName = 'AD07_OCPI_BIOFUEL'
+         DgnCont   => NULL()
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
+
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -610,6 +718,18 @@
          CATEGORY     = 'OC-BIOG'
          ARRAY(:,:,1) = AD07(:,:,7) 
             
+         ! Get diagnostics
+         DiagnName = 'AD07_OCPI_BIOGENIC'
+         DgnCont   => NULL()
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
+
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -653,34 +773,45 @@
                   CASE ( 8 )
                      CATEGORY = 'OC-MTPA'
                      NN       = IDTMTPA
+                     DiagnName = 'AD07_MTPA_BIOGENIC'
 
                   ! LIMO
                   CASE ( 9 )
                      CATEGORY = 'OC-LIMO'
                      NN       = IDTLIMO
+                     DiagnName = 'AD07_LIMO_BIOGENIC'
 
                   ! MTPO
                   CASE ( 10 )
                      CATEGORY = 'OC-MTPO'
                      NN       = IDTMTPO
+                     DiagnName = 'AD07_MTPO_BIOGENIC'
 
                   ! SESQ
                   CASE ( 11 )
                      CATEGORY = 'OC-SESQ'
                      NN       = IDTLIMO + 3
+                     DiagnName = 'AD07_SESQ_BIOGENIC'
 
                END SELECT
 
-               ARRAY(:,:,1) = AD07(:,:,N)
+               ! Get diagnostics
+               DgnCont   => NULL()
+               CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                         DgnCont, FLAG, RC, cName=TRIM(DiagnName),
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+               ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
                   
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,
      &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                     IIPAR,     JJPAR,     1,        IFIRST,
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
             ENDDO
-
          
             !-----------------------------------------------
             ! SOA Production from NVOC oxidation [kg]

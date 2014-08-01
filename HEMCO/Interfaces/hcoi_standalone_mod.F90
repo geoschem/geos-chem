@@ -474,7 +474,7 @@ CONTAINS
        !=================================================================
        ! Update all autofill diagnostics 
        !=================================================================
-       CALL HCO_Diagn_Update ( am_I_Root, HcoState, RC )
+       CALL HCO_Diagn_AutoUpdate ( am_I_Root, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDDO !N

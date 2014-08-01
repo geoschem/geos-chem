@@ -46,13 +46,14 @@ MODULE HCO_Diagn_Mod
 !
   USE HCO_Error_Mod
   USE HCO_Arr_Mod
+  USE HCO_Clock_Mod  ! Contains all the reset flags
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: HCO_Diagn_Update
+  PUBLIC  :: HCO_Diagn_AutoUpdate
   PUBLIC  :: Diagn_Cleanup 
   PUBLIC  :: Diagn_Create
   PUBLIC  :: Diagn_Update 
@@ -60,6 +61,7 @@ MODULE HCO_Diagn_Mod
   PUBLIC  :: Diagn_AutoFillLevelDefined
   PUBLIC  :: Diagn_GetMaxResetFlag
   PUBLIC  :: Diagn_GetDiagnPrefix
+  PUBLIC  :: Diagn_Print
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -74,6 +76,7 @@ MODULE HCO_Diagn_Mod
 !  19 Dec 2013 - C. Keller   - Initialization
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation  
 !  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  01 Aug 2014 - C. Keller   - Added manual output frequency.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -122,7 +125,7 @@ MODULE HCO_Diagn_Mod
   INTEGER                        :: nnDiagn = 0
 
   ! Highest reset flag by any of the containers 
-  INTEGER                        :: MaxResetFlag = -1 
+  INTEGER                        :: MaxResetFlag = ResetFlagManually
 
   ! For AutoFill level flags 
   LOGICAL                        :: AF_LevelDefined(4) = .FALSE.
@@ -144,16 +147,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hco_diagn_update
+! !IROUTINE: hco_diagn_autoupdate
 !
-! !DESCRIPTION: Subroutine HCO\_DIAGN\_UPDATE updates the AutoFill
+! !DESCRIPTION: Subroutine HCO\_DIAGN\_AUTOUPDATE updates the AutoFill
 ! diagnostics at species level. This routine should be called after
 ! running HEMCO core and all extensions. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Diagn_Update( am_I_Root, HcoState, RC ) 
+  SUBROUTINE HCO_Diagn_AutoUpdate( am_I_Root, HcoState, RC ) 
 !
 ! !USES:
 !
@@ -188,11 +191,11 @@ CONTAINS
     REAL(hp), POINTER         :: Arr2D(:,:)   => NULL()
 
     !=================================================================
-    ! HCO_DIAGN_UPDATE begins here!
+    ! HCO_DIAGN_AUTOUPDATE begins here!
     !=================================================================
     
     ! Init 
-    LOC = 'HCOI_DIAGN_UPDATE (hcoi_gc_diagn_mod.F90)'
+    LOC = 'HCO_DIAGN_AUTOUPDATE (hco_diagn_mod.F90)'
     RC  = HCO_SUCCESS
     
     ! ================================================================
@@ -216,7 +219,7 @@ CONTAINS
     ! Return
     RC = HCO_SUCCESS
     
-  END SUBROUTINE HCO_Diagn_Update
+  END SUBROUTINE HCO_Diagn_AutoUpdate
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -241,7 +244,11 @@ CONTAINS
 !      Conversion factors will be determined using the HEMCO unit
 !      module (see HCO\_UNITS\_Mod.F90).
 !\item WriteFreq: output frequency. Can be one of 'Hourly', 'Daily',
-!      'Monthly', 'Annualy', 'End'.
+!      'Monthly', 'Annualy', 'End', 'Manual'.
+!      Manual diagnostics are expected to be manually received and 
+!      written out. These diagnostics may or may not be written out 
+!      at the end of the simulation run, depending on the corresponding
+!      attribute set in Diagn\_Get.
 !\item OutOper: output operation for non-standard units. If this 
 !      argument is used, the specified operation is performed and all
 !      unit specifications are ignored. Can be one of 'Mean' or 'Sum'. 
@@ -274,8 +281,6 @@ CONTAINS
     USE HCO_Unit_Mod,  ONLY : HCO_Unit_GetMassScal
     USE HCO_Unit_Mod,  ONLY : HCO_Unit_GetAreaScal
     USE HCO_Unit_Mod,  ONLY : HCO_Unit_GetTimeScal
-    USE HCO_Clock_Mod, ONLY : ResetFlagAnnually, ResetFlagMonthly
-    USE HCO_Clock_Mod, ONLY : ResetFlagDaily,    ResetFlagHourly
 !
 ! !INPUT PARAMETERS:
 !
@@ -392,7 +397,11 @@ CONTAINS
 
     ! Write out only at end of simulation
     ELSEIF ( TRIM(WriteFreq) == 'End' ) THEN
-       ThisDiagn%ResetFlag = -1
+       ThisDiagn%ResetFlag = ResetFlagEnd
+
+    ! Manually write out.
+    ELSEIF ( TRIM(WriteFreq) == 'Manual' ) THEN
+       ThisDiagn%ResetFlag = ResetFlagManually
 
     ! Error otherwise
     ELSE
@@ -543,8 +552,11 @@ CONTAINS
                              ThisDiagn%Hier, ThisDiagn%HcoID, '', 1, &
                              FOUND, TmpDiagn )
     IF ( FOUND ) THEN
-       WRITE(MSG,*)'Duplicate diagnostics (ExtNr, Cat, Hier, HcoID)',&
-            ThisDiagn%ExtNr,ThisDiagn%Cat,ThisDiagn%Hier,ThisDiagn%HcoID
+       MSG = 'These two diagnostics seem to be the same:'
+       CALL HCO_MSG(MSG)
+       CALL Diagn_Print( ThisDiagn, .TRUE. ) 
+       CALL Diagn_Print( TmpDiagn,  .TRUE. )
+       MSG = 'Cannot add diagnostics - duplicate entry!'
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
@@ -556,6 +568,13 @@ CONTAINS
        ThisDiagn%NextCont => DiagnList
     ENDIF
     DiagnList => ThisDiagn
+
+    ! Verbose mode
+    IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
+       MSG = 'Successfully added diagnostics: ' 
+       CALL HCO_MSG ( MSG )
+       CALL Diagn_Print( ThisDiagn, .TRUE. )
+    ENDIF
 
     ! Return
     cID = ThiscID
@@ -606,8 +625,6 @@ CONTAINS
 !
     USE HCO_State_Mod, ONLY : HCO_State
     USE HCO_Arr_Mod,   ONLY : HCO_ArrAssert
-    USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
-    USE HCO_Clock_Mod, ONLY : HcoClock_Get
 !
 ! !INPUT PARAMETERS:
 !
@@ -940,6 +957,12 @@ CONTAINS
        ThisDiagn%LastUpdateID = ThisUpdateID
     ENDIF
 
+    ! Verbose mode 
+    IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
+       MSG = 'Successfully updated diagnostics: ' // TRIM(ThisDiagn%cName)
+       CALL HCO_MSG ( MSG )
+    ENDIF
+
     ! Return
     ThisDiagn => NULL()
     Arr2D     => NULL()
@@ -965,11 +988,16 @@ CONTAINS
 ! be erased during the next update (Diagn\_Update).
 !\\
 !\\
-! If DgnCont is already associated, the search continues from the  container 
+! If DgnCont is already associated, the search continues from the container 
 ! next to DgnCont. If DgnCont is empty (null), the search starts from the 
 ! first container of the diagnostics list ListDiagn. If the optional attribute 
 ! cName or cID is provided, this particular container is searched (through the 
-! entire diagnostics list).
+! entire diagnostics list), but is only returned if it is at the end of it's 
+! interval or if EndOfIntvOnly is disabled.
+!\\
+! The optional argument InclManual denotes whether or not containers with
+! a manual update frequency shall be considered. This argument is only valid
+! if EndOfIntvOnly is set to FALSE.
 !\\
 !\\ 
 ! The return flag FLAG is set to HCO\_SUCCESS if a container is found, and to 
@@ -980,12 +1008,11 @@ CONTAINS
 !
   SUBROUTINE Diagn_Get( am_I_Root, HcoState, EndOfIntvOnly, &
                         DgnCont,   FLAG,     RC,     cName, &
-                        cID,       AutoFill                  )
+                        cID,       AutoFill, InclManual      )
 !
 ! !USES:
 !
     USE HCO_State_Mod, ONLY : HCO_State
-    USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
 !
 ! !INPUT PARAMETERS::
 !
@@ -999,6 +1026,7 @@ CONTAINS
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! container ID
     INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 0=no; 1=yes; 
                                                                 ! -1=either
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: InclManual     ! Include manual cont.? 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1021,26 +1049,32 @@ CONTAINS
 !
     INTEGER  :: MinResetFlag
     INTEGER  :: AF
-    LOGICAL  :: FOUND, CF 
+    LOGICAL  :: FOUND, CF, Manual 
 
     !======================================================================
     ! Diagn_Get begins here!
     !======================================================================
 
     ! Init
-    FLAG         = HCO_FAIL
-    RC           = HCO_SUCCESS
-    CF           = .FALSE.
+    FLAG   = HCO_FAIL
+    RC     = HCO_SUCCESS
+    CF     = .FALSE.
+    Manual = .FALSE.
 
     ! Set AutoFill flag
     AF = -1
-    IF ( PRESENT(AutoFill) ) AF = AutoFill
+    IF ( PRESENT(AutoFill  ) ) AF     = AutoFill
+    IF ( PRESENT(InclManual) ) Manual = InclManual
 
     ! Get minimum reset flag for current time. Set reset flag to -1 if
     ! EndOFIntvOnly flag is disabled. This will make sure that all 
     ! diagnostics are considered.
     IF ( .NOT. EndOfIntvOnly ) THEN
-       MinResetFlag = -1
+       IF ( Manual ) THEN
+          MinResetFlag = ResetFlagManually
+       ELSE
+          MinResetFlag = ResetFlagEnd
+       ENDIF
     ELSE
        MinResetFlag = HcoClock_GetMinResetFlag()
     ENDIF
@@ -1058,6 +1092,7 @@ CONTAINS
     ! the given name. 
     IF ( PRESENT( cName ) ) THEN
        CALL DiagnCont_Find( -1, -1, -1, -1, -1, cName, AF, FOUND, DgnCont)
+
        IF ( .NOT. FOUND ) THEN
           DgnCont => NULL()
        ELSE
@@ -1439,7 +1474,6 @@ CONTAINS
 ! !USES:
 !
     USE HCO_State_Mod, ONLY : HCO_State
-    USE HCO_Clock_Mod, ONLY : HcoClock_Get
 !
 ! !INPUT PARAMETERS::
 !
@@ -1501,14 +1535,19 @@ CONTAINS
     ! determined during initialization of the diagnostics.
     !-----------------------------------------------------------------------
 
-    ! Special case that averaging is forced to the sum: 
+    ! If the averaging is forced to the sum: 
     IF ( DgnCont%AvgFlag == AvgFlagSum ) THEN
        norm1 = 1.0_hp
        mult1 = 1.0_dp
 
-    ! Special case that averaging is forced to the arithmetic mean: 
+    ! If the averaging is forced to the arithmetic mean: 
     ELSEIF ( DgnCont%AvgFlag == AvgFlagMean ) THEN
        norm1 = REAL(DgnCont%Counter,kind=hp)
+       mult1 = 1.0_dp
+
+    ! If there is no time averaging interval defined 
+    ELSEIF ( DgnCont%TimeAvg < 0 ) THEN
+       norm1 = 1.0_hp
        mult1 = 1.0_dp
 
     ! For other, time averaging intervals 
@@ -1545,10 +1584,12 @@ CONTAINS
        ELSEIF ( DgnCont%TimeAvg == 5 ) THEN
           mult1 = 86400.0_hp * DPY           ! seconds / year
 
-       ! No time averaging units: nothing to do
+       ! We shouldn't get here!
        ELSE
-          norm1 = 1.0_hp
-          mult1 = 1.0_hp
+          WRITE(MSG,*) 'Illegal time averaging of ', DgnCont%TimeAvg, &
+                       ' for diagnostics ', TRIM(DgnCont%cName)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
        ENDIF
 
     ENDIF
@@ -1888,5 +1929,109 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE DiagnCont_Link_3D
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_Print
+!
+! !DESCRIPTION: Subroutine Diagn\_Print displays the content of the
+! passed diagnostics container.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_Print ( Dgn, Verbose )
+!
+! !INPUT ARGUMENTS:
+!
+    TYPE(DiagnCont), POINTER    :: Dgn
+    LOGICAL,         INTENT(IN) :: Verbose
+!
+! !REVISION HISTORY:
+!  01 Aug 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !ARGUMENTS:
+!
+    CHARACTER(LEN=255) :: MSG 
+    CHARACTER(LEN= 31) :: WriteFreq 
+    INTEGER            :: nx, ny, nz
+    REAL(dp)           :: sm
+
+    ! ================================================================
+    ! Diagn_Print begins here
+    ! ================================================================
+
+    sm = 0.0_dp
+    nx = 0 
+    ny = 0
+    nz = 0
+    IF ( Dgn%SpaceDim<=2 ) THEN
+       IF ( ASSOCIATED(Dgn%Arr2D) ) THEN
+          nx = SIZE(Dgn%Arr2D%Val,1)
+          ny = SIZE(Dgn%Arr2D%Val,2)
+          sm = SUM(Dgn%Arr2D%Val)
+       ENDIF
+    ELSE
+       IF ( ASSOCIATED(Dgn%Arr3D) ) THEN
+          nx = SIZE(Dgn%Arr3D%Val,1)
+          ny = SIZE(Dgn%Arr3D%Val,2)
+          nz = SIZE(Dgn%Arr3D%Val,3)
+          sm = SUM(Dgn%Arr3D%Val)
+       ENDIF
+    ENDIF
+
+    ! Always print name 
+    MSG = 'Container ' // TRIM(Dgn%cName)
+    CALL HCO_MSG(MSG)
+
+    ! Eventually add details
+    IF ( verbose ) THEN
+
+       ! Write frequency
+       SELECT CASE ( Dgn%ResetFlag )
+          CASE ( ResetFlagAnnually )
+             WriteFreq = 'Annually' 
+          CASE ( ResetFlagMonthly  )
+             WriteFreq = 'Monthly'
+          CASE ( ResetFlagDaily    )
+             WriteFreq = 'Daily'
+          CASE ( ResetFlagHourly   )
+             WriteFreq = 'Hourly'
+          CASE ( ResetFlagEnd      )
+             WriteFreq = 'End'
+          CASE ( ResetFlagManually )
+             WriteFreq = 'Manual'
+       END SELECT
+
+       ! General information
+       WRITE(MSG,*) '   --> Diagn ID           : ', Dgn%cID
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> Extension Nr       : ', Dgn%ExtNr
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> Category           : ', Dgn%Cat
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> Hierarchy          : ', Dgn%Hier
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> HEMCO species ID   : ', Dgn%HcoID
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> Autofill?            ', Dgn%AutoFill
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> Space dimension    : ', Dgn%SpaceDim
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> Used level index   : ', Dgn%LevIdx 
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> Output unit        : ', TRIM(Dgn%OutUnit)
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> Write frequency    : ', TRIM(WriteFreq)
+       CALL HCO_MSG(MSG)
+    ENDIF
+
+  END SUBROUTINE Diagn_Print
 !EOC
 END MODULE HCO_Diagn_Mod

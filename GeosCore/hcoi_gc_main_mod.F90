@@ -33,6 +33,7 @@ MODULE HCOI_GC_Main_Mod
   PUBLIC :: HCOI_GC_Init
   PUBLIC :: HCOI_GC_Run
   PUBLIC :: HCOI_GC_Final
+  PUBLIC :: GetHcoState
 !
 ! !REMARKS:
 !  This module is ignored if you are using HEMCO in an ESMF environment.
@@ -41,6 +42,7 @@ MODULE HCOI_GC_Main_Mod
 !  20 Aug 2013 - C. Keller   - Initial version. 
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  30 Jul 2014 - C. Keller   - Added GetHcoState 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,12 +193,12 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Set grid
-    CALL Set_Grid( am_I_Root, State_Met, RC )
+    CALL Set_Grid( am_I_Root, State_Met, HcoState, RC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Set_Grid', LOC )
 
     !-----------------------------------------------------------------
     ! Register species
-    CALL Register_Species( am_I_Root, State_Chm, RC )
+    CALL Register_Species( am_I_Root, State_Chm, HcoState, RC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Register_Species', LOC )
 
     !=================================================================
@@ -251,7 +253,7 @@ CONTAINS
     ! Define diagnostics
     !-----------------------------------------------------------------
     IF ( DoDiagn ) THEN
-    CALL HCOI_GC_DIAGN_INIT ( am_I_Root, HcoState, HMRC )
+    CALL HCOI_GC_DIAGN_INIT ( am_I_Root, Input_Opt, HcoState, ExtState, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP('HCOI_GC_DIAGN_INIT',LOC)
     ENDIF
 
@@ -300,7 +302,7 @@ CONTAINS
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
 
     ! HEMCO routines 
-    USE HCO_DIAGN_MOD,         ONLY : HCO_DIAGN_UPDATE
+    USE HCO_DIAGN_MOD,         ONLY : HCO_DIAGN_AUTOUPDATE
     USE HCO_FLUXARR_MOD,       ONLY : HCO_FluxarrReset 
     USE HCO_DRIVER_MOD,        ONLY : HCO_RUN
     USE HCOX_DRIVER_MOD,       ONLY : HCOX_RUN
@@ -508,7 +510,7 @@ CONTAINS
     !=================================================================
 
     IF ( DoDiagn ) THEN
-    CALL HCO_DIAGN_UPDATE ( am_I_Root, HcoState, HMRC )
+    CALL HCO_DIAGN_AUTOUPDATE ( am_I_Root, HcoState, HMRC )
     IF( HMRC /= HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_UPDATE', LOC )
     ENDIF
 
@@ -610,7 +612,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)     :: am_I_Root
+    LOGICAL, INTENT(IN)              :: am_I_Root
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller    - Initial version 
@@ -1403,7 +1405,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Grid( am_I_Root, State_Met, RC ) 
+  SUBROUTINE Set_Grid( am_I_Root, State_Met, HcoState, RC ) 
 !
 ! !USES:
 !
@@ -1420,6 +1422,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
+    TYPE(Hco_State),  POINTER        :: HcoState   ! HEMCO state
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
@@ -1583,7 +1586,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Register_Species( am_I_Root, State_Chm, RC )
+    SUBROUTINE Register_Species( am_I_Root, State_Chm, HcoState, RC )
 !
 ! !USES:
 !
@@ -1601,6 +1604,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
+    TYPE(Hco_State),    POINTER        :: HcoState   ! HEMCO state
     INTEGER,            INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
@@ -1690,5 +1694,39 @@ CONTAINS
 
   END SUBROUTINE Register_Species
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetHcoState 
+!
+! !DESCRIPTION: Subroutine GetHcoState is a wrapper routine to connect the 
+! passed pointer to the internal HcoState object. This routine can be called
+! from outside of HEMCO to obtain the HcoState object (e.g. for diagnostics).
+!\\
+!\\
+! !INTERFACE:
+!
+    SUBROUTINE GetHcoState ( HcoStatePtr ) 
+!
+! !INPUT/OUTPUT ARGUMENTS:
+!
+    TYPE(Hco_State),    POINTER        :: HcoStatePtr  ! HEMCO state pointer
+!
+! !REVISION HISTORY:
+!  01 Aug 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=================================================================
+    ! GetHcoState begins here
+    !=================================================================
+
+    HcoStatePtr => HcoState
+
+    END SUBROUTINE GetHcoState
+
 END MODULE HCOI_GC_MAIN_MOD
 #endif

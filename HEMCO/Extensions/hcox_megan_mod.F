@@ -137,8 +137,8 @@
 ! !MODULE VARIABLES:
 ! 
       INTEGER                 :: ExtNr
-      LOGICAL                 :: LMEGANMONO
-      LOGICAL                 :: LSOA
+      INTEGER                 :: ExtNrMono 
+      INTEGER                 :: ExtNrSoa
       LOGICAL                 :: LPECCA
       REAL*8                  :: ISOP_SCALING
 
@@ -379,7 +379,7 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
    
          ! Arrays used if monoterpene switch is turned on
-            IF ( LMEGANMONO ) THEN
+            IF ( ExtNrMono > 0 ) THEN
             CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_MONOT', 
      &                                AEF_MONOT,   RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
@@ -411,7 +411,7 @@
          ENDIF
    
          ! Only used for SOA simulation:
-         IF ( LSOA ) THEN
+         IF ( ExtNrSoa>0 ) THEN
             CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_ORVC', 
      &                                GEIA_ORVC, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
@@ -420,8 +420,8 @@
 
       ! SET AEF_GEN (only on first call). These values are needed for
       ! subroutine GET_EMMONOT_MEGAN, which is only called for OCPI
-      IF ( FIRST .AND. LMEGANMONO .AND. .NOT. LSOA .AND. 
-     &     IDTOCPI > 0 ) THEN
+      IF ( FIRST .AND. (ExtNrMono>0) .AND. (ExtNrSoa<=0) .AND. 
+     &     (IDTOCPI>0) ) THEN
          CALL GET_AEF_GEN( am_I_Root, HcoState, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
@@ -588,7 +588,7 @@
          ! MEGAN biogenics
          !--------------------------------------------------------------------
 
-         IF ( LMEGANMONO ) THEN
+         IF ( ExtNrMono > 0 ) THEN
 
             ! ---------------------------------------------------
             ! Methyl butenol
@@ -892,7 +892,7 @@
          ! NOTE: Don't save into EMISRR for the tagged CO simulation.  
          ! Also for tagged CO we don't use monoterpenes  ??????
          ! (jaf, mak, bmy, 2/14/08)
-         IF ( (IDTCO>0) .AND. LMEGANMONO ) THEN
+         IF ( (IDTCO>0) .AND. (ExtNrMono>0) ) THEN
 !            FLUX = EMMO * 0.2d0
             FLUXCO(I,J) = EMMO * 0.4666d0
 
@@ -939,11 +939,11 @@
          !--------------------------------------------------------------------
 
          ! IF secondary organic aerosol is turned off...
-         IF ( .NOT. LSOA ) THEN
+         IF ( ExtNrSoa <= 0 ) THEN
 
             ! Get monoterpenes from MEGAN [kg C/m2/s]
             ! terpene emissions
-            IF ( LMEGANMONO .AND. ( IDTOCPI > 0 ) ) THEN 
+            IF ( (ExtNrMono > 0 ) .AND. ( IDTOCPI > 0 ) ) THEN 
 
                CALL GET_EMMONOT_MEGAN( HcoState, ExtState, I, J, 
      &                                 GAMMA_LAI, GAMMA_P, GAMMA_SM, 
@@ -1006,7 +1006,7 @@
             ! see Pye et al. 2010 ACP
             ! ----------------------------------------------------------------
 
-            IF ( LMEGANMONO ) THEN
+            IF ( ExtNrMono > 0 ) THEN
 
                ! MEGAN emission update for SESQ and other monoterps
                ! (hotp 3/10/10)
@@ -1111,7 +1111,7 @@
             ! If MEGAN Monoterpene is turned off:
             ! NOTE: In the original GEOS-Chem code, many of these fluxes
             ! were derived from the monoterpenese fluxes. These fluxes
-            ! are only calculated if the LMEGANMONO option is turned on
+            ! are only calculated if the MEGAN_MONO option is turned on
             ! and their contributions are hence skipped in the following!
             ! (ckeller, 05/19/14)
             ELSE
@@ -1281,7 +1281,7 @@
 
       ! ----------------------------------------------------------------
       ! MONOTERPENES 
-      IF ( LMEGANMONO .AND. IDTMONX > 0 ) THEN
+      IF ( (ExtNrMono > 0 ) .AND. (IDTMONX > 0) ) THEN
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXEMMO, IDTMONX, RC)
@@ -1290,7 +1290,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXEMMO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono,
      &                         Cat=-1, Hier=-1, HcoID=IDTMONX,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1319,7 +1319,7 @@
 
       ! ----------------------------------------------------------------
       ! CO
-      IF ( LMEGANMONO .AND. IDTCO > 0 ) THEN
+      IF ( ( ExtNrMono > 0 ) .AND. ( IDTCO > 0 ) ) THEN
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXCO, IDTCO, RC)
@@ -1328,7 +1328,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXCO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono,
      &                         Cat=-1, Hier=-1, HcoID=IDTCO,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1376,7 +1376,7 @@
 
       ! ----------------------------------------------------------------
       ! OC 
-      IF ( .NOT. LSOA .AND. LMEGANMONO .AND. (IDTOCPI>0) ) THEN
+      IF ( (ExtNrMono>0) .AND. (ExtNrSoa<=0) .AND. (IDTOCPI>0) ) THEN
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXOCPI, IDTOCPI, RC)
@@ -1385,7 +1385,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXOCPI
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono,
      &                         Cat=-1, Hier=-1, HcoID=IDTOCPI,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1395,7 +1395,7 @@
 
       ! ----------------------------------------------------------------
       ! MTPA 
-      IF ( LSOA .AND. LMEGANMONO .AND. (IDTMTPA>0) ) THEN 
+      IF ( (ExtNrSoa>0) .AND. (IDTMTPA>0) ) THEN 
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXMTPA, IDTMTPA, RC)
@@ -1404,7 +1404,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXMTPA
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
      &                         Cat=-1, Hier=-1, HcoID=IDTMTPA,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1414,7 +1414,7 @@
 
       ! ----------------------------------------------------------------
       ! MTPO 
-      IF ( LSOA .AND. LMEGANMONO .AND. (IDTMTPO>0) ) THEN 
+      IF ( (ExtNrSoa>0) .AND. (IDTMTPO>0) ) THEN 
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXMTPO, IDTMTPO, RC)
@@ -1423,7 +1423,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXMTPO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
      &                         Cat=-1, Hier=-1, HcoID=IDTMTPO,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1433,7 +1433,7 @@
 
       ! ----------------------------------------------------------------
       ! LIMONENE 
-      IF ( LSOA .AND. LMEGANMONO .AND. (IDTLIMO>0) ) THEN
+      IF ( (ExtNrSoa>0) .AND. (IDTLIMO>0) ) THEN
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXLIMO, IDTLIMO, RC)
@@ -1442,7 +1442,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXLIMO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
      &                         Cat=-1, Hier=-1, HcoID=IDTLIMO,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1452,7 +1452,7 @@
 
       ! ----------------------------------------------------------------
       ! SESQ 
-      IF ( LSOA .AND. (IDTSESQ>0) ) THEN
+      IF ( (ExtNrSoa>0) .AND. (IDTSESQ>0) ) THEN
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXSESQ, IDTSESQ, RC)
@@ -1461,7 +1461,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXSESQ
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
      &                         Cat=-1, Hier=-1, HcoID=IDTSESQ,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -3507,13 +3507,12 @@
 
       ! Check for monoterpene option --> this one is required for 
       ! CO, OCPI, MONX
-      ExtNr = GetExtNr('MEGAN_Mono')
-      IF ( ExtNr > 0 ) THEN
-         LMEGANMONO = .TRUE.
+      ExtNrMono = GetExtNr('MEGAN_Mono')
+      IF ( ExtNrMono > 0 ) THEN
 
          ! Get HEMCO species IDs of CO, OCPI and MONX
-         CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs,
-     &                         SpcNames, nSpc,  RC       )
+         CALL HCO_GetExtHcoID( HcoState, ExtNrMono, HcoIDs,
+     &                         SpcNames, nSpc,      RC       )
          IF ( RC /= HCO_SUCCESS ) RETURN
          IF ( nSpc /= 3 ) THEN
             MSG = 'Expected three species for MEGAN_Mono extension' 
@@ -3534,7 +3533,6 @@
          WRITE(MSG,*) '     Monoterp.  = ', TRIM(SpcNames(3)), IDTMONX
          CALL HCO_MSG( MSG )
       ELSE
-         LMEGANMONO = .FALSE.
          IDTCO      = -1 
          IDTOCPI    = -1 
          IDTMONX    = -1 
@@ -3553,18 +3551,17 @@
       ! --> Check for SOA option. This option is only valid together
       !     w/ monoterpene!
       ! This also adds species ALPH/LIMO/ALCO
-      ExtNr = GetExtNr('MEGAN_SOA')
-      IF ( ExtNr > 0 ) THEN
-         LSOA = .TRUE.
-         IF ( .NOT. LMEGANMONO ) THEN
+      ExtNrSoa = GetExtNr('MEGAN_SOA')
+      IF ( ExtNrSoa > 0 ) THEN
+         IF ( ExtNrMono <= 0 ) THEN
             MSG = 'MEGAN SOA option only valid with monoterpene!'
             CALL HCO_ERROR ( MSG, RC )
             RETURN
          ENDIF
 
          ! Get HEMCO species IDs of ALPH/LIMO/ALCO 
-         CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs,
-     &                         SpcNames, nSpc,  RC       )
+         CALL HCO_GetExtHcoID( HcoState, ExtNrSoa, HcoIDs,
+     &                         SpcNames, nSpc,     RC       )
          IF ( RC /= HCO_SUCCESS ) RETURN
          IF ( nSpc /= 4 ) THEN
             MSG = 'Expected four species for MEGAN_SOA extension' 
@@ -3588,7 +3585,6 @@
          WRITE(MSG,*) '     Sesquiterpenes = ',TRIM(SpcNames(4)),IDTSESQ
          CALL HCO_MSG( MSG )
       ELSE
-         LSOA    = .FALSE.
          IDTMTPA = -1
          IDTMTPO = -1
          IDTLIMO = -1
