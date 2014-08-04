@@ -554,7 +554,7 @@
          !-------------------
          CATEGORY     = 'BC-ANTH'
          N            = IDTBCPI
-         DiagnName    = 'AD07_BCPI_ANTHRO'
+         DiagnName    = 'AD07_BC_ANTHRO'
 
          ! Get diagnostics
          DgnCont => NULL()
@@ -578,7 +578,7 @@
          !-------------------
          CATEGORY     = 'BC-BIOB'
          N            = IDTBCPI
-         DiagnName    = 'AD07_BCPI_BIOMASS'
+         DiagnName    = 'AD07_BC_BIOMASS'
             
          ! Get diagnostics
          DgnCont => NULL()
@@ -602,7 +602,7 @@
          !------------------- 
          CATEGORY     = 'BC-BIOF'
          N            = IDTBCPI
-         DiagnName    = 'AD07_BCPI_BIOFUEL'
+         DiagnName    = 'AD07_BC_BIOFUEL'
             
          ! Get diagnostics
          DgnCont => NULL()
@@ -647,7 +647,7 @@
          IF ( IDTPOA1 > 0 ) N = IDTPOA1
 
          ! Get diagnostics
-         DiagnName = 'AD07_OCPI_ANTHRO'
+         DiagnName = 'AD07_OC_ANTHRO'
          DgnCont   => NULL()
          CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
      &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
@@ -671,7 +671,7 @@
          ARRAY(:,:,1) = AD07(:,:,5) 
             
          ! Get diagnostics
-         DiagnName = 'AD07_OCPI_BIOMASS'
+         DiagnName = 'AD07_OC_BIOMASS'
          DgnCont   => NULL()
          CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
      &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
@@ -695,7 +695,7 @@
          ARRAY(:,:,1) = AD07(:,:,6) 
             
          ! Get diagnostics
-         DiagnName = 'AD07_OCPI_BIOFUEL'
+         DiagnName = 'AD07_OC_BIOFUEL'
          DgnCont   => NULL()
          CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
      &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
@@ -719,7 +719,7 @@
          ARRAY(:,:,1) = AD07(:,:,7) 
             
          ! Get diagnostics
-         DiagnName = 'AD07_OCPI_BIOGENIC'
+         DiagnName = 'AD07_OC_BIOGENIC'
          DgnCont   => NULL()
          CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
      &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),

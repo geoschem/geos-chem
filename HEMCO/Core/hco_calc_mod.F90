@@ -119,6 +119,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  25 Aug 2012 - C. Keller   - Initial Version
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX header
+!  03 Aug 2014 - C. Keller   - Bug fix for adding data to diagnostics. Now
+!                              explicitly check for new species OR category.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -285,17 +287,12 @@ CONTAINS
        ThisCat = Dct%Cat
        ThisHir = Dct%Hier
 
-       ! Reset category if this is a new species. This is to make sure that
-       ! the if-statement following below becomes False. Variable ThisCat
-       ! will be updated within the if-statement.
-       IF ( ThisSpc /= PrevSpc ) ThisCat = -1
-
        !--------------------------------------------------------------------
-       ! If this is a new category, pass the previously collected emissions 
-       ! to the species array. Update diagnostics at category level.
-       ! Skip this step for first species, i.e. if PrevSpc still -1. 
+       ! If this is a new species or category, pass the previously collected 
+       ! emissions to the species array. Update diagnostics at category level.
+       ! Skip this step for first species, i.e. if PrevSpc is still -1. 
        !--------------------------------------------------------------------
-       IF (ThisCat /= PrevCat .AND. PrevSpc > 0 ) THEN
+       IF ( (PrevSpc>0) .AND. (ThisCat/=PrevCat .OR. ThisSpc/=PrevSpc) ) THEN
 
           ! CatFlx holds the emissions for this category. Pass this to 
           ! the species array SpcFlx.
@@ -312,14 +309,6 @@ CONTAINS
              Diag3D => NULL() 
           ENDIF
 
-          ! testing only
-          ! todo: remove
-!          IF ( PrevCat == 20 ) THEN
-!             modid = HcoState%Spc(PrevSpc)%ModID
-!             write(*,*) 'total emissions for cat ', PrevCat, &
-!                ' and spec ', modid, ' (kg/m2/s): ', SUM(CatFlx)
-!          ENDIF
-
           ! Reset CatFlx array and the previously used hierarchy 
           ! ==> Emission hierarchies are only important within the 
           ! same category, hence always start over at lowest hierarchy
@@ -327,6 +316,7 @@ CONTAINS
           CatFlx(:,:,:)  = 0.0_df
           PrevHir        = -1
           ThisCat        = Dct%Cat
+
        ENDIF
 
        !--------------------------------------------------------------------
@@ -493,11 +483,11 @@ CONTAINS
        PrevSpc = ThisSpc
        PrevCat = ThisCat
        PrevHir = ThisHir
-       
+ 
        ! Advance to next emission container
        CALL EmisList_NextCont( Lct, FLAG )
 
-    ENDDO
+    ENDDO ! Loop over EmisList
 
     !=======================================================================
     ! Also pass emissions of the last category to output array 

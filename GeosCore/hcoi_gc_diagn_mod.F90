@@ -161,7 +161,7 @@ CONTAINS
        IF ( ND07 > 0 .AND. Input_Opt%LCARB ) THEN
 
           ! Get HEMCO species names
-          SpcName = 'BCPI'
+          SpcName = 'BC'
           ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
           IF ( ID1 <= 0 ) THEN
              MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
@@ -169,7 +169,7 @@ CONTAINS
              RETURN      
           ENDIF
 
-          SpcName = 'OCPI'
+          SpcName = 'OC'
           ID2 = HCO_GetHcoID( TRIM(SpcName), HcoState )
           IF ( ID2 <= 0 ) THEN
              MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
@@ -178,7 +178,7 @@ CONTAINS
           ENDIF
 
           ! Anthropogenic carbon
-          DiagnName = 'AD07_BCPI_ANTHRO'
+          DiagnName = 'AD07_BC_ANTHRO'
           CALL Diagn_Create ( am_I_Root,                   & 
                               HcoState,                    &
                               cName     = TRIM(DiagnName), &
@@ -195,7 +195,7 @@ CONTAINS
                               RC        = RC                ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
 
-          DiagnName = 'AD07_OCPI_ANTHRO'
+          DiagnName = 'AD07_OC_ANTHRO'
           CALL Diagn_Create ( am_I_Root,                   & 
                               HcoState,                    &
                               cName     = TRIM(DiagnName), &
@@ -213,7 +213,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN 
 
           ! Biofuel
-          DiagnName = 'AD07_BCPI_BIOFUEL'
+          DiagnName = 'AD07_BC_BIOFUEL'
           CALL Diagn_Create ( am_I_Root,                   & 
                               HcoState,                    &
                               cName     = TRIM(DiagnName), &
@@ -230,7 +230,7 @@ CONTAINS
                               RC        = RC                ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
 
-          DiagnName = 'AD07_OCPI_BIOFUEL'
+          DiagnName = 'AD07_OC_BIOFUEL'
           CALL Diagn_Create ( am_I_Root,                   & 
                               HcoState,                    &
                               cName     = TRIM(DiagnName), &
@@ -264,7 +264,7 @@ CONTAINS
              Cat   = 3
           ENDIF 
 
-          DiagnName = 'AD07_BCPI_BIOMASS' 
+          DiagnName = 'AD07_BC_BIOMASS' 
           CALL Diagn_Create ( am_I_Root,                   & 
                               HcoState,                    &
                               cName     = TRIM(DiagnName), &
@@ -281,7 +281,7 @@ CONTAINS
                               RC        = RC                ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
 
-          DiagnName = 'AD07_OCPI_BIOMASS'
+          DiagnName = 'AD07_OC_BIOMASS'
           CALL Diagn_Create ( am_I_Root,                   & 
                               HcoState,                    &
                               cName     = TRIM(DiagnName), &
@@ -301,7 +301,7 @@ CONTAINS
           ! BIOGENIC
           ExtNr = GetExtNr('MEGAN_Mono')
           IF ( ExtNr > 0 ) THEN
-             DiagnName = 'AD07_OCPI_BIOGENIC'
+             DiagnName = 'AD07_OC_BIOGENIC'
              CALL Diagn_Create ( am_I_Root,                   & 
                                  HcoState,                    &
                                  cName     = TRIM(DiagnName), &

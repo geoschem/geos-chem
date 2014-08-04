@@ -7,14 +7,27 @@
 ! !MODULE: hcoi_gc_main_mod.F90 
 !
 ! !DESCRIPTION: Module hcoi\_gc\_main\_mod.F90 is the HEMCO-to-GEOS-Chem
-! interface module, providing the link between GEOS-Chem and HEMCO.
+! interface module, providing the link between GEOS-Chem and HEMCO. It 
+! contains wrapper routines to initialize, execute and finalize HEMCO from
+! within GEOS-Chem. Typically, these routines are called from main.F.
 !\\
 !\\
-! This module contains wrapper routines to initialize, execute and finalize
-! HEMCO from within GEOS-Chem. Typically, these routines are called from
-! main.F.
-!\\
-!\\
+! Notes:
+! \begin{itemize}
+! \item HEMCO is used to calculate all emission fields. The emission tendencies
+!  are passed to GEOS-Chem through the Trac\_Tend array of State\_Chm.
+! \item Carbon aerosols are treated in HEMCO as black carbon (BC) and organic 
+!  carbon (OC). The speciation into hydrophobic and hydrophilic carbon is 
+!  done when passing HEMCO emissions to GEOS-Chem (MAP\_HCO2GC). Speciation
+!  factors are defined below.
+! \item Dust aerosol emissions become directly added to the Tracers array 
+!  instead of Trac\_Tend. This is to avoid unrealistic vertical mixing of dust
+!  particles.
+! \item Most meteorological fields needed by the HEMCO extensions are provided
+!  through the GEOS-Chem meteorological state object Met\_State. Few fields 
+!  such as the pressure edges or J-values are defined and updated explicitly 
+!  within this module.
+! \end{itemize}
 ! !INTERFACE:
 !
 MODULE HCOI_GC_Main_Mod
@@ -43,6 +56,7 @@ MODULE HCOI_GC_Main_Mod
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  30 Jul 2014 - C. Keller   - Added GetHcoState 
+!  01 Aug 2014 - C. Keller   - Now use only OC and BC within HEMCO. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -80,6 +94,14 @@ MODULE HCOI_GC_Main_Mod
   REAL(hp),           POINTER :: ModelSpecCR   (:) => NULL()
   REAL(hp),           POINTER :: ModelSpecPKA  (:) => NULL()
   INTEGER,            POINTER :: matchidx(:) => NULL()
+
+  ! Hydrophilic and hydrophobic fraction of black carbon
+  REAL(dp), PARAMETER    :: BC2BCPI = 0.2_dp  ! hydrophilic
+  REAL(dp), PARAMETER    :: BC2BCPO = 0.8_dp  ! hydrophobic
+
+  ! Hydrophilic and hydrophobic fraction of organic carbon
+  REAL(dp), PARAMETER    :: OC2OCPI = 0.5_dp  ! hydrophilic
+  REAL(dp), PARAMETER    :: OC2OCPO = 0.5_dp  ! hydrophobic
 
   ! Temporary toggle for diagnostics
   LOGICAL, PARAMETER :: DoDiagn = .TRUE.
@@ -246,7 +268,7 @@ CONTAINS
     ! Here, we need to make sure that these pointers are properly 
     ! connected.
     !-----------------------------------------------------------------
-    CALL ExtOpt_SetPointers( State_Met, State_Chm, RC )
+    CALL ExtState_SetPointers( State_Met, State_Chm, RC )
     IF ( RC/=GIGC_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -308,25 +330,8 @@ CONTAINS
     USE HCOX_DRIVER_MOD,       ONLY : HCOX_RUN
     USE HCOIO_DIAGN_MOD,       ONLY : HCOIO_DIAGN_WRITEOUT
 
-    USE PRESSURE_MOD,          ONLY : GET_PEDGE, GET_PCENTER
-    USE GLOBAL_OH_MOD,         ONLY : GET_SZAFACT
-
-    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
-
-    ! For dust PBL mixing
-    USE TRACERID_MOD,          ONLY : IDTDST1, IDTDST2
-    USE TRACERID_MOD,          ONLY : IDTDST3, IDTDST4
-
     ! For soilnox
     USE GET_NDEP_MOD,          ONLY : RESET_DEP_N
-
-    ! To calculate J-values
-    USE FAST_JX_MOD,           ONLY : FJXFUNC
-    USE COMODE_LOOP_MOD,       ONLY : NCS, JPHOTRAT, NRATES
-    USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
-
-    ! for temporary dust workaround 
-    USE HCO_STATE_MOD,         ONLY : HCO_GetHcoID
 !
 ! !INPUT PARAMETERS:
 !
@@ -347,24 +352,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                   :: I, J, L
-    INTEGER                   :: HMRC 
-    CHARACTER(LEN=255)        :: MSG, LOC
-
-    ! To calculate J-values
-    INTEGER                   :: K, NK, KMAX
-    CHARACTER(LEN=  8)        :: SPECNAME
-
-    ! temporary only (PBL mixing of dust emissions)
-    INTEGER :: HcoDST1, HcoDST2, HcoDST3, HcoDST4
-    REAL*8  :: TMP
+    INTEGER                        :: HMRC 
+    CHARACTER(LEN=255), PARAMETER  :: LOC='HCOI_GC_RUN (hcoi_gc_main_mod.F90)'
 
     !=================================================================
     ! HCOI_GC_RUN begins here!
     !=================================================================
-
-    ! For error handling
-    LOC = 'HCOI_GC_RUN (hcoi_gc_main_mod.F90)'
 
     ! Set return code flag to HCO success. This value should be
     ! preserved throughout all HCO calls, otherwise an error
@@ -423,82 +416,18 @@ CONTAINS
     ENDIF
 
     ! ================================================================
-    ! Run HCO extensions
+    ! Eventually update variables in ExtState 
     ! ================================================================
-
-    ! If necessary, calculate internal met fields
-    IF ( ExtState%PEDGE%DoUse   .OR. ExtState%PCENTER%DoUse .OR. &
-         ExtState%SZAFACT%DoUse .OR. ExtState%JNO2%DoUse    .OR. &
-         ExtState%JO1D%DoUse                                      ) THEN
-
-       ! Loop over all grid boxes
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-
-          ! pressure edges
-          IF ( ExtState%PEDGE%DoUse ) THEN
-             HCO_PEDGE(I,J,L) = GET_PEDGE(  I,J,L)
-             IF ( L==LLPAR ) HCO_PEDGE(I,J,L+1) = GET_PEDGE(I,J,L+1)
-          ENDIF
-
-          ! pressure centers
-          IF ( ExtState%PCENTER%DoUse ) THEN
-             HCO_PCENTER(I,J,L) = GET_PCENTER(I,J,L)
-          ENDIF
-
-          ! current SZA divided by total daily SZA (2D field only)
-          IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
-             HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
-          ENDIF
-
-          ! J-values for NO2 and O3 (2D field only)
-          ! This code was moved from hcox_paranox_mod.F90 to break
-          ! dependencies to GC specific code (ckeller, 07/28/14).
-          IF ( L==1 .AND.                                    &
-               (ExtState%JNO2%DoUse .OR. ExtState%JO1D%DoUse) ) THEN
-
-             ! Check if sun is up
-             IF ( State_Met%SUNCOSmid(I,J) == 0d0 ) THEN
-                IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_df
-                IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_df
-             ELSE
-                ! Loop over photolysis reactions to find NO2, O3
-                KMAX = JPHOTRAT(NCS)
-                DO K = 1, KMAX 
-                   ! Reaction number
-                   NK = NRATES(NCS) + K
-
-                   ! Nae of species being photolyzed
-                   SPECNAME = NAMEGAS(IRM(1,NK,NCS))
-
-                   ! Check if this is NO2 or O3, store values, 1/s
-                   SELECT CASE ( TRIM( SPECNAME ) )
-                      CASE ( 'NO2' )
-                         IF ( ExtState%JNO2%DoUse ) &
-                            JNO2(I,J) = FJXFUNC(I,J,1,K,1,SPECNAME)
-                      CASE ( 'O3'  )
-                         IF ( ExtState%JO1D%DoUse ) &
-#if defined( UCX )
-                         ! IMPORTANT: Need branck *2* for O1D
-                         ! Branch 1 is O3P!
-                         JO1D(I,J) = FJXFUNC(I,J,1,L,2,SPECNAME)
-#else
-                         JO1D(I,J) = FJXFUNC(I,J,1,L,1,SPECNAME)
-#endif
-                      CASE DEFAULT
-                   END SELECT
-                ENDDO !K
-             ENDIF
-
-          ENDIF
-       ENDDO
-       ENDDO
-       ENDDO
+    CALL ExtState_UpdtPointers ( State_Met, State_Chm, HMRC )
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP('ExtState_UpdtPointers', LOC )
+       RETURN 
     ENDIF
 
-    ! Execute all enabled emission extensions. Emissions will be 
-    ! added to corresponding flux arrays in HcoState.
+    ! ================================================================
+    ! Run HCO extensions. Emissions will be added to corresponding
+    ! flux arrays in HcoState.
+    ! ================================================================
     CALL HCOX_RUN ( am_I_Root, HcoState, ExtState, HMRC )
     IF ( HMRC/= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('HCOX_RUN', LOC )
@@ -514,60 +443,8 @@ CONTAINS
     IF( HMRC /= HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_UPDATE', LOC )
     ENDIF
 
-!-----------------------------------------------------------------------
-    ! For now, make sure that dust emissions are just emitted
-    ! into lowest layer. This is just a workaround until we
-    ! have a cleaner PBL mixing implementation in place!
-    ! TODO: needs nicer implementation
-!-----------------------------------------------------------------------
-
-    ! toggle (don't use in classic run)
-    IF ( ( ExtState%DustDead .OR. ExtState%DustGinoux) ) THEN 
-
-       ! Get HEMCO IDs
-       HcoDST1 = HCO_GetHcoID( 'DST1', HcoState ) 
-       HcoDST2 = HCO_GetHcoID( 'DST2', HcoState ) 
-       HcoDST3 = HCO_GetHcoID( 'DST3', HcoState ) 
-       HcoDST4 = HCO_GetHcoID( 'DST4', HcoState ) 
-
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          IF ( IDTDST1 > 0 ) THEN
-             TMP = HcoState%Spc(HcoDST1)%Emis%Val(I,J,1) * &
-                   HcoState%Grid%AREA_M2(I,J) * HcoState%TS_EMIS
-             State_Chm%Tracers(I,J,1,IDTDST1) =    &
-             State_Chm%Tracers(I,J,1,IDTDST1) + TMP
-             HcoState%Spc(HcoDST1)%Emis%Val(I,J,1) = 0d0
-          ENDIF
-          IF ( IDTDST2 > 0 ) THEN
-             TMP = HcoState%Spc(HcoDST2)%Emis%Val(I,J,1) * &
-                   HcoState%Grid%AREA_M2(I,J) * HcoState%TS_EMIS
-             State_Chm%Tracers(I,J,1,IDTDST2) =    &
-             State_Chm%Tracers(I,J,1,IDTDST2) + TMP
-             HcoState%Spc(HcoDST2)%Emis%Val(I,J,1) = 0d0
-          ENDIF
-          IF ( IDTDST3 > 0 ) THEN
-             TMP = HcoState%Spc(HcoDST3)%Emis%Val(I,J,1) * &
-                   HcoState%Grid%AREA_M2(I,J) * HcoState%TS_EMIS
-             State_Chm%Tracers(I,J,1,IDTDST3) =    &
-              State_Chm%Tracers(I,J,1,IDTDST3) + TMP
-             HcoState%Spc(HcoDST3)%Emis%Val(I,J,1) = 0d0
-          ENDIF
-          IF ( IDTDST4 > 0 ) THEN
-             TMP = HcoState%Spc(HcoDST4)%Emis%Val(I,J,1) * &
-                   HcoState%Grid%AREA_M2(I,J) * HcoState%TS_EMIS
-             State_Chm%Tracers(I,J,1,IDTDST4) =    &
-             State_Chm%Tracers(I,J,1,IDTDST4) + TMP
-             HcoState%Spc(HcoDST4)%Emis%Val(I,J,1) = 0d0
-          ENDIF
-       ENDDO
-       ENDDO
-       ! end dust mixing 
-    ENDIF
-
     ! ================================================================
     ! Translate emissions array from HCO state onto GC arrays
-    ! This step also converts emissions from kg/m2/s to molec/cm2/s!
     ! ================================================================
     CALL MAP_HCO2GC ( HcoState, Input_Opt, State_Chm, RC )
 
@@ -722,6 +599,15 @@ CONTAINS
 
     USE CMN_SIZE_MOD,          ONLY : IIPAR,  JJPAR,  LLPAR
     USE ERROR_MOD,             ONLY : ERROR_STOP
+
+    ! For BC/OC speciation
+    USE TRACERID_MOD,          ONLY : IDTBCPI, IDTBCPO
+    USE TRACERID_MOD,          ONLY : IDTOCPI, IDTOCPO
+
+    ! For dust mixing
+    USE TRACERID_MOD,          ONLY : IDTDST1, IDTDST2
+    USE TRACERID_MOD,          ONLY : IDTDST3, IDTDST4
+    USE GRID_MOD,              ONLY : AREA_M2
 !
 ! !INPUT PARAMETERS:
 !
@@ -744,8 +630,6 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     INTEGER                  :: N, nSpc, trcID
-    REAL*8                   :: COEFF 
-    REAL*8, PARAMETER        :: N_0 = 6.022d+23
     CHARACTER(LEN=255)       :: MSG, LOC
 
     !=================================================================
@@ -770,16 +654,6 @@ CONTAINS
        ! Skip if tracer ID is not defined
        IF ( trcID <= 0 ) CYCLE
 
-       ! Get conversion coefficient from kg/m2/s to molec/cm2/s
-       ! --> kg to molec: [kg] * [g/kg] / [g/mol] * [molec/mol]
-       !                : [kg] * 1000   / MW      * N_0
-       ! --> m2 to cm2  : [m2] * [cm2/m2]
-       !                : [m2] * 10000
-       ! --> kg/m2/s to molec/cm2/s: 
-       !     [kg/m2/s] * 1000 / MW * N_0 / 10000
-       !     [kg/m2/s] * 0.1 / MW * N_0
-!       COEFF = 0.1d0 / HcoState%Spc(N)%EmMW_g * N_0
-
        ! If simulation grid and emission grid are equal, the 
        ! HEMCO state emission array already points to
        ! State_Chm%Trac_Tend and there is nothing to do here. 
@@ -797,9 +671,36 @@ CONTAINS
           CALL REGRID_EMIS2SIM ( HcoState, N, State_Chm, trcID, Input_Opt ) 
        ENDIF
 
-!      ! Convert to molec/cm2/s
-!      State_Chm%Trac_Tend(:,:,:,trcID) = &
-!         State_Chm%Trac_Tend(:,:,:,trcID) * COEFF
+       !----------------------------------------------------------------------
+       ! HEMCO holds total OC and BC. Those have GEOS-Chem species IDs of 
+       ! OCPI and BCPI (see Model_GetSpecies). Split here into hydrophobic
+       ! and hydrophilic fractions
+       !----------------------------------------------------------------------
+       IF ( trcID == IDTBCPI ) THEN
+          State_Chm%Trac_Tend(:,:,:,IDTBCPO) = &
+             State_Chm%Trac_Tend(:,:,:,IDTBCPI) * BC2BCPO
+          State_Chm%Trac_Tend(:,:,:,IDTBCPI) = &
+             State_Chm%Trac_Tend(:,:,:,IDTBCPI) * BC2BCPI
+
+       ELSEIF ( trcID == IDTOCPI ) THEN
+          State_Chm%Trac_Tend(:,:,:,IDTOCPO) = &
+             State_Chm%Trac_Tend(:,:,:,IDTOCPI) * OC2OCPO
+          State_Chm%Trac_Tend(:,:,:,IDTOCPI) = &
+             State_Chm%Trac_Tend(:,:,:,IDTOCPI) * OC2OCPI
+       ENDIF
+
+       !----------------------------------------------------------------------
+       ! Dust emissions shall be directly added to the tracer array instead 
+       ! of Trac_Tend. This is to avoid unrealistic vertical mixing of dust
+       ! particles. 
+       !----------------------------------------------------------------------
+       IF ( trcID == IDTDST1 .OR. trcID == IDTDST2 .OR. &
+            trcID == IDTDST3 .OR. trcID == IDTDST4       ) THEN
+          State_Chm%Tracers(:,:,1,trcID) = State_Chm%Tracers(:,:,1,trcID) + &
+             State_Chm%Trac_Tend(:,:,1,trcID) * AREA_M2(:,:,1) * HcoState%TS_EMIS
+!             State_Chm%Trac_Tend(:,:,1,trcID) * HcoState%Grid%AREA_M2(:,:) * HcoState%TS_EMIS
+          State_Chm%Trac_Tend(:,:,:,trcID) = 0.0d0
+       ENDIF
 
     ENDDO !N 
 
@@ -1027,9 +928,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ExtOpt_SetPointers
+! !IROUTINE: ExtState_SetPointers
 !
-! !DESCRIPTION: SUBROUTINE ExtOpt\_SetPointers sets the extension object data
+! !DESCRIPTION: SUBROUTINE ExtState\_SetPointers sets the extension object data
 ! pointers. 
 !\\
 ! Note that for now, this explicitly assumes that the HEMCO emissions grid is 
@@ -1039,7 +940,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtOpt_SetPointers( State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_SetPointers( State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
@@ -1087,13 +988,13 @@ CONTAINS
     CHARACTER(LEN=255) :: LOC
 
     !=================================================================
-    ! ExtOpt_SetPointers begins here
+    ! ExtState_SetPointers begins here
     !=================================================================
 
     ! Init
     RC = GIGC_SUCCESS
 
-    LOC = 'ExtOpt_SetPointers (hcoi_gc_main_mod.F90)'
+    LOC = 'ExtState_SetPointers (hcoi_gc_main_mod.F90)'
 
     ! ----------------------------------------------------------------
     ! HCO_PEDGE, HCO_PCENTER and HCO_SZAFACT aren't defined as 3D 
@@ -1285,7 +1186,147 @@ CONTAINS
     ENDIF
     IF ( DoDryCoeff ) ExtState%DRYCOEFF => DRYCOEFF
 
-  END SUBROUTINE ExtOpt_SetPointers
+  END SUBROUTINE ExtState_SetPointers
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ExtState_UpdtPointers
+!
+! !DESCRIPTION: SUBROUTINE ExtState\_UpdtPointers updates the extension 
+! object data pointers. Updates are only required for the shadow arrays
+! defined in this module, such as pressure edges, J-values, etc.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ExtState_UpdtPointers( State_Met, State_Chm, RC ) 
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_State_Met_Mod,    ONLY : MetState
+    USE GIGC_State_Chm_Mod,    ONLY : ChmState
+    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
+
+    USE PRESSURE_MOD,          ONLY : GET_PEDGE, GET_PCENTER
+    USE GLOBAL_OH_MOD,         ONLY : GET_SZAFACT
+
+    USE FAST_JX_MOD,           ONLY : FJXFUNC
+    USE COMODE_LOOP_MOD,       ONLY : NCS, JPHOTRAT, NRATES
+    USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC
+!
+! !REVISION HISTORY:
+!  23 Oct 2012 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER                       :: I, J, L
+
+    ! To calculate J-values
+    INTEGER                       :: K, NK, KMAX
+    CHARACTER(LEN=  8)            :: SPECNAME
+
+    CHARACTER(LEN=255), PARAMETER :: &
+       LOC = 'ExtState_UpdtPointers (hcoi_gc_main_mod.F90)'
+
+    !=================================================================
+    ! ExtState_UpdtPointers begins here
+    !=================================================================
+
+    ! Init
+    RC = GIGC_SUCCESS
+
+    ! If necessary, calculate internal met fields
+    IF ( ExtState%PEDGE%DoUse   .OR. ExtState%PCENTER%DoUse .OR. &
+         ExtState%SZAFACT%DoUse .OR. ExtState%JNO2%DoUse    .OR. &
+         ExtState%JO1D%DoUse                                      ) THEN
+
+!$OMP PARALLEL DO                                                 &
+!$OMP DEFAULT( SHARED )                                           &
+!$OMP PRIVATE( I, J, L, K, NK, KMAX, SPECNAME )
+       ! Loop over all grid boxes
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+
+          ! pressure edges
+          IF ( ExtState%PEDGE%DoUse ) THEN
+             HCO_PEDGE(I,J,L) = GET_PEDGE(  I,J,L)
+             IF ( L==LLPAR ) HCO_PEDGE(I,J,L+1) = GET_PEDGE(I,J,L+1)
+          ENDIF
+
+          ! pressure centers
+          IF ( ExtState%PCENTER%DoUse ) THEN
+             HCO_PCENTER(I,J,L) = GET_PCENTER(I,J,L)
+          ENDIF
+
+          ! current SZA divided by total daily SZA (2D field only)
+          IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
+             HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
+          ENDIF
+
+          ! J-values for NO2 and O3 (2D field only)
+          ! This code was moved from hcox_paranox_mod.F90 to break
+          ! dependencies to GC specific code (ckeller, 07/28/14).
+          IF ( L==1 .AND.                                    &
+               (ExtState%JNO2%DoUse .OR. ExtState%JO1D%DoUse) ) THEN
+
+             ! Check if sun is up
+             IF ( State_Met%SUNCOSmid(I,J) == 0d0 ) THEN
+                IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_df
+                IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_df
+             ELSE
+                ! Loop over photolysis reactions to find NO2, O3
+                KMAX = JPHOTRAT(NCS)
+                DO K = 1, KMAX 
+                   ! Reaction number
+                   NK = NRATES(NCS) + K
+
+                   ! Nae of species being photolyzed
+                   SPECNAME = NAMEGAS(IRM(1,NK,NCS))
+
+                   ! Check if this is NO2 or O3, store values, 1/s
+                   SELECT CASE ( TRIM( SPECNAME ) )
+                      CASE ( 'NO2' )
+                         IF ( ExtState%JNO2%DoUse ) &
+                            JNO2(I,J) = FJXFUNC(I,J,1,K,1,SPECNAME)
+                      CASE ( 'O3'  )
+                         IF ( ExtState%JO1D%DoUse ) &
+#if defined( UCX )
+                         ! IMPORTANT: Need branck *2* for O1D
+                         ! Branch 1 is O3P!
+                         JO1D(I,J) = FJXFUNC(I,J,1,L,2,SPECNAME)
+#else
+                         JO1D(I,J) = FJXFUNC(I,J,1,L,1,SPECNAME)
+#endif
+                      CASE DEFAULT
+                   END SELECT
+                ENDDO !K
+             ENDIF
+
+          ENDIF
+       ENDDO
+       ENDDO
+       ENDDO
+!$OMP END PARALLEL DO
+    ENDIF
+
+  END SUBROUTINE ExtState_UpdtPointers
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1361,8 +1402,16 @@ CONTAINS
     ! Assign variables
     DO N = 1, nModelSpec
 
-       ! Species names
-       ModelSpecNames(N) = Input_Opt%TRACER_NAME(N)
+       ! Get species names
+       ! ==> Treat BCPI as BC and OCPI as OC. Will be split into
+       !     hydrophobic and hydrophilic fraction lateron!
+       IF ( TRIM(Input_Opt%TRACER_NAME(N)) == 'BCPI' ) THEN
+          ModelSpecNames(N) = 'BC' 
+       ELSEIF ( TRIM(Input_Opt%TRACER_NAME(N)) == 'OCPI' ) THEN
+          ModelSpecNames(N) = 'OC' 
+       ELSE 
+          ModelSpecNames(N) = Input_Opt%TRACER_NAME(N)
+       ENDIF
        
        ! Species ID
        ModelSpecIDs(N)   = Input_Opt%ID_TRACER(N)
@@ -1528,11 +1577,12 @@ CONTAINS
     ! Extract number of HEMCO species and corresponding species names 
     ! as read from the HEMCO config. file.
     nHcoSpec = Config_GetnSpecies ( )
- 
     CALL Config_GetSpecNames( HcoSpecNames, nHcoSpec, RC )
     IF( RC /= HCO_SUCCESS) RETURN 
 
-    ! Extract species to be used from input file
+    ! Extract GC species names and properties.
+    ! Rename OCPI to OC and BCPI to BC. Will be split into hydrophilic
+    ! and hydrophobic when passing emissions to Trac_Tend.
     CALL Model_GetSpecies( Input_Opt,                           &
                            nModelSpec,     ModelSpecNames,      &
                            ModelSpecIDs,   ModelSpecMW,         &
@@ -1671,15 +1721,15 @@ CONTAINS
        IF ( TRIM(HcoState%Spc(cnt)%SpcName) == 'LIMO' ) THEN 
 
           cnt = cnt + 1
-          HcoState%Spc(cnt)%ModID    = -1
-          HcoState%Spc(cnt)%SpcName  = 'SESQ'
-          HcoState%Spc(cnt)%Emis%Val => BIOG_SESQ 
-          HcoState%Spc(cnt)%MW_g       = 150.0d0 
-          HcoState%Spc(cnt)%EmMW_g     = 150.0d0
-          HcoState%Spc(cnt)%MolecRatio = 1.0d0
-          HcoState%Spc(cnt)%HenryK0    = 0.0d0
-          HcoState%Spc(cnt)%HenryCR    = 0.0d0
-          HcoState%Spc(cnt)%HenryPKA   = 0.0d0
+          HcoState%Spc(cnt)%ModID      =  -1
+          HcoState%Spc(cnt)%SpcName    =  'SESQ'
+          HcoState%Spc(cnt)%Emis%Val   => BIOG_SESQ 
+          HcoState%Spc(cnt)%MW_g       =  150.0d0 
+          HcoState%Spc(cnt)%EmMW_g     =  150.0d0
+          HcoState%Spc(cnt)%MolecRatio =  1.0d0
+          HcoState%Spc(cnt)%HenryK0    =  0.0d0
+          HcoState%Spc(cnt)%HenryCR    =  0.0d0
+          HcoState%Spc(cnt)%HenryPKA   =  0.0d0
 
           ! Logfile I/O
           CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )

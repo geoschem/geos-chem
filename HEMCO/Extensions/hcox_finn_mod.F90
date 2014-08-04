@@ -323,73 +323,39 @@
             SpcArr = SpcArr + TypArr
          ENDDO !NF
 
-         ! Use while loop here only because of OC/BC...
-         DoRepeat = .TRUE.
-         Cnt      = 0
-         DO WHILE ( DoRepeat )
-
-            ! Special treatment for OC/BC: split into hydrophobic and hydrophilic
-            ! fractions. Eventually, we may do this step lateron (when passing 
-            ! emissions from HEMCO to GC), but for now keep it here.
-            ! (ckeller, 06/23/14).
-            IF ( TRIM(FINN_SPEC_NAME(N)) == 'BC' ) THEN
-               IF ( Cnt == 0 ) THEN
-                  HcoID = HCO_GetHcoID( 'BCPI', HcoState )
-                  TypArr = SpcArr            ! Keep orig. data
-                  SpcArr = TypArr * 0.2_hp   ! Adj. data
-               ELSE 
-                  HcoID = HCO_GetHcoID( 'BCPO', HcoState )
-                  SpcArr = TypArr * 0.8_hp   ! Adj. data
-               ENDIF
-
-            ELSEIF ( TRIM(FINN_SPEC_NAME(N)) == 'OC' ) THEN
-               IF ( Cnt == 0 ) THEN
-                  HcoID = HCO_GetHcoID( 'OCPI', HcoState )
-                  SpcArr = SpcArr * 0.5_hp
-               ELSE
-                  HcoID = HCO_GetHcoID( 'OCPO', HcoState )
-               ENDIF
-            ELSE
-               Cnt = 100
-            ENDIF
-
-            ! Add flux to HEMCO emission array
-            CALL HCO_EmisAdd( HcoState, SpcArr, HcoID, RC ) 
-            IF ( RC /= HCO_SUCCESS ) RETURN
+         ! Add flux to HEMCO emission array
+         CALL HCO_EmisAdd( HcoState, SpcArr, HcoID, RC ) 
+         IF ( RC /= HCO_SUCCESS ) RETURN
    
-            ! Write out total (daily or monthly) emissions to log-file
-            IF ( UseDay ) THEN
-               IF ( HcoClock_NewDay() ) THEN
-                  TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%Area_M2(:,:))
-                  TOTAL = TOTAL * 86400.0_hp * 1e-9_hp
-                  WRITE(MSG, 120) HcoState%Spc(HcoID)%SpcName, TOTAL
-                  CALL HCO_MSG(MSG)
- 120              FORMAT( 'SUM biomass ', a4,1x,': ', f11.4,1x,'[Tg]' )
-               ENDIF
-            ELSE
-               IF ( HcoClock_NewMonth() ) THEN
-                  TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%Area_M2(:,:))
-                  TOTAL = TOTAL * NDAYS * 86400.0_hp * 1e-9_hp
-                  WRITE(MSG, 130) HcoState%Spc(HcoID)%SpcName, TOTAL
-                  CALL HCO_MSG(MSG)
- 130              FORMAT( 'SUM biomass ', a4,1x,': ', f11.4,1x,'[Tg]' )
-               ENDIF
-            ENDIF 
-
-            ! Eventually update diagnostics
-            IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-               Arr2D => SpcArr
-               CALL Diagn_Update(am_I_Root, HcoState,     ExtNr=ExtNr,&
-                                 Cat=-1,    Hier=-1,      HcoID=HcoID,&
-                                 AutoFill=1,Array2D=Arr2D,RC=RC        )
-               IF ( RC /= HCO_SUCCESS ) RETURN
-               Arr2D => NULL()
+         ! Write out total (daily or monthly) emissions to log-file
+         IF ( UseDay ) THEN
+            IF ( HcoClock_NewDay() ) THEN
+               TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%Area_M2(:,:))
+               TOTAL = TOTAL * 86400.0_hp * 1e-9_hp
+               WRITE(MSG, 120) HcoState%Spc(HcoID)%SpcName, TOTAL
+               CALL HCO_MSG(MSG)
+ 120           FORMAT( 'SUM biomass ', a4,1x,': ', f11.4,1x,'[Tg]' )
             ENDIF
+         ELSE
+            IF ( HcoClock_NewMonth() ) THEN
+               TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%Area_M2(:,:))
+               TOTAL = TOTAL * NDAYS * 86400.0_hp * 1e-9_hp
+               WRITE(MSG, 130) HcoState%Spc(HcoID)%SpcName, TOTAL
+               CALL HCO_MSG(MSG)
+ 130           FORMAT( 'SUM biomass ', a4,1x,': ', f11.4,1x,'[Tg]' )
+            ENDIF
+         ENDIF 
+
+         ! Eventually update diagnostics
+         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+            Arr2D => SpcArr
+            CALL Diagn_Update(am_I_Root, HcoState,     ExtNr=ExtNr,&
+                              Cat=-1,    Hier=-1,      HcoID=HcoID,&
+                              AutoFill=1,Array2D=Arr2D,RC=RC        )
+            IF ( RC /= HCO_SUCCESS ) RETURN
+            Arr2D => NULL()
+         ENDIF
   
-            IF ( Cnt /= 0 ) DoRepeat = .FALSE.
-            Cnt = Cnt + 1
- 
-         ENDDO !WHILE
       ENDDO !N
 
       ! Nullify pointers
@@ -747,21 +713,11 @@
          Matched  = .FALSE.
          Missing  = .TRUE.
 
-         ! For model species NO, the emission factors are taken from FINN species NO 
-         ! For model species BCPI and BCPO, the emission factors are taken from FINN species BC 
-         ! For model species OCPI and OCPO, the emission factors are taken from FINN species OC 
+         ! For model species NO, the emission factors are taken from FINN species NOx
          ! For model species MTPA, the emission factors are taken from FINN species APINE (BPINE and CARENE will be lumped into it as well) 
          SELECT CASE ( TRIM(SpcName) )
             CASE ( 'NO' )
                SpcName = 'NOx'
-            CASE ('BCPI' )
-               SpcName = 'BC'
-            CASE ('BCPO' )
-               SpcName = 'BC'
-            CASE ('OCPI' )
-               SpcName = 'OC'
-            CASE ('OCPO' )
-               SpcName = 'OC'
             CASE ('MTPA' )
                SpcName = 'APINE'
          END SELECT
