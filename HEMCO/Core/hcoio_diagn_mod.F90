@@ -1,5 +1,3 @@
-!BOM
-# if !defined(ESMF_)
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -38,6 +36,7 @@ MODULE HCOIO_DIAGN_MOD
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  28 Jul 2014 - C. Keller   - Removed GC specific initialization calls and
 !                              moved to HEMCO core.
+!  05 Aug 2014 - C. Keller   - Added dummy interface for ESMF.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -46,6 +45,7 @@ MODULE HCOIO_DIAGN_MOD
 !
 CONTAINS
 !EOC
+# if !defined(ESMF_)
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -330,6 +330,137 @@ CONTAINS
 
   END SUBROUTINE HCOIO_DiagN_WriteOut
 !EOC
-END MODULE HCOIO_Diagn_Mod
+#else
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOIO_Diagn_WriteOut
+!
+! !DESCRIPTION: This is the ESMF environment for the diagnostics writeout.
+! For now, just get all diagnostics for this time step (to make sure that
+! the internal pointers are reset properly) but don't do anything with the
+! data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root, HcoState, WriteAll,    &
+                                   RC,        PREFIX,   UsePrevTime, &
+                                   InclManual                         )
+!
+! !USES:
+!
+
+    USE HCO_State_Mod, ONLY : HCO_State
+    USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,                    INTENT(IN   ) :: am_I_Root   ! root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object 
+    LOGICAL,                    INTENT(IN   ) :: WriteAll    ! Write all diagnostics? 
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
+    LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time 
+    LOGICAL,          OPTIONAL, INTENT(IN   ) :: InclManual  ! Get manual diagn. too? 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+
+    INTEGER,          INTENT(INOUT) :: RC          ! Failure or success
+!
+! !REVISION HISTORY: 
+!  05 Aug 2014 - C. Keller    - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
+    INTEGER                   :: FLAG
+    CHARACTER(LEN=255)        :: MSG
+    INTEGER                   :: MinResetFlag, MaxResetFlag
+    LOGICAL                   :: EOI, PrevTime, Manual
+
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)'
+    !=================================================================
+    ! HCOIO_DIAGN_WRITEOUT begins here!
+    !=================================================================
+
+    ! Assume success until otherwise 
+    RC  = HCO_SUCCESS
+
+    ! Get manual containers? Only of relevance for WriteAll
+    IF ( PRESENT(InclManual) ) THEN
+       Manual = InclManual
+    ELSE
+       Manual = .FALSE.
+    ENDIF
+    IF ( Manual .AND. .NOT. WriteAll ) THEN
+       MSG = 'InclManual option enabled, but WriteAll is not set to true!!'
+       CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+       Manual = .FALSE.
+    ENDIF
+
+    ! Check if there is at least one diagnostics to write:
+    ! If current time stamp is not at the end of an interval - or
+    ! if there is no diagnostics container in the list with a reset
+    ! flag smaller or equal to MinResetFlag - there will be no matching
+    ! container whatsoever. Can leave right here.
+    ! EOI is the end-of-interval flag that will be used by routine
+    ! Diagn_Get. If set to true, only the containers at the end of
+    ! their averaging interval are returned.
+    IF ( WriteAll ) THEN
+       MinResetFlag = -1
+       EOI = .FALSE.
+    ELSE
+       MinResetFlag = HcoClock_GetMinResetFlag()
+       EOI = .TRUE.
+    ENDIF
+    MaxResetFlag = Diagn_GetMaxResetFlag()
+    IF ( MinResetFlag > MaxResetFlag ) RETURN
+
+    ! Get PrevTime flag from input argument or set to default (=> TRUE)
+    IF ( PRESENT(UsePrevTime) ) THEN
+       PrevTime = UsePrevTime
+    ELSE
+       PrevTime = .TRUE.
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Get all diagnostics but don't do anything 
+    !-----------------------------------------------------------------
+
+    ! Loop over all diagnostics in diagnostics list 
+    ThisDiagn => NULL()
+    DO WHILE ( .TRUE. )
+
+       ! Get next diagnostics in list. This will return the next 
+       ! diagnostics container that contains content to be written
+       ! out on this time step.
+       CALL Diagn_Get ( am_I_Root, HcoState, EOI, ThisDiagn, FLAG, RC, &
+                        InclManual=Manual )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( FLAG /= HCO_SUCCESS ) EXIT
+    ENDDO
+
+    ! Cleanup
+    ThisDiagn => NULL()
+
+    !-----------------------------------------------------------------
+    ! Write warning
+    !-----------------------------------------------------------------
+    MSG = 'You were calling diagnostics in an ESMF environment ' // &
+          '- this is currently not supported!'
+    CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+
+    ! Return 
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCOIO_DiagN_WriteOut
+!EOC
 #endif
+END MODULE HCOIO_Diagn_Mod
 

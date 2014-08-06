@@ -130,6 +130,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  05 Oct 2013 - C. Keller   - Now a HEMCO extension 
+!  04 Aug 2014 - C. Keller   - Added 'manual' diagnostics for Acetone.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,7 +268,7 @@
       REAL*8              :: SUNCOS,   D_BTW_M,  Q_DIR_2
       REAL*8              :: Q_DIFF_2, ISOLAI,   MISOLAI,  PMISOLAI
       REAL*8              :: GAMMA_P,  GAMMA_SM, GAMMA_LAI
-      REAL*8              :: EMISOP, EMMO,  EMMB,  EMAC,  APINE, EMMT
+      REAL*8              :: EMISOP, EMMO,  EMMB,  APINE, EMMT
       REAL*8              :: BPINE,  LIMON, SABIN, MYRCN, CAREN, OCIMN 
       REAL*8              :: FARN,   BCAR,  OSQT,  OMTP
       REAL*8              :: TERP_ORGC, BIOG_ALPH, BIOG_LIMO
@@ -281,20 +282,23 @@
       LOGICAL             :: FIRST, IsNewHour, IsNewDay 
 
       ! Emission arrays (kgC/m2/s)
-      REAL(hp), TARGET    :: FLUXISOP(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXEMMO(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXACET(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXCO  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXPRPE(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXC2H4(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXOCPI(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXLIMO(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXMTPA(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXMTPO(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXSESQ(HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXISOP  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXEMMO  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXACETmo(HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXACETmb(HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXACETbg(HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXCO    (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXPRPE  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXC2H4  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXOCPI  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXLIMO  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXMTPA  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXMTPO  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXSESQ  (HcoState%NX,HcoState%NY)
 
       ! For diagnostics
       REAL(hp), POINTER   :: Arr2D(:,:) => NULL()
+      CHARACTER(LEN=63)   :: DiagnName
 
       ! Molecules C / kg C
       REAL*8, PARAMETER   :: XNUMOL_C = 6.022d+23 / 12d-3
@@ -437,7 +441,7 @@
 !$OMP+PRIVATE( I, J, SUNCOS, Q_DIR_2, Q_DIFF_2, ISOLAI, PMISOLAI       )
 !$OMP+PRIVATE( MISOLAI, GAMMA_P, GAMMA_LAI, GAMMA_SM, EMISOP           ) 
 !$OMP+PRIVATE( EMMB, APINE, BPINE, LIMON, SABIN, MYRCN, CAREN, OCIMN   ) 
-!$OMP+PRIVATE( EMMO, EMMO_MOL, TMP, EMAC, MB_MOL, TERP_ORGC            ) 
+!$OMP+PRIVATE( EMMO, EMMO_MOL, TMP, MB_MOL, TERP_ORGC                  ) 
 !$OMP+PRIVATE( DIURFACT, DIURORVC, BIOG_ALPH                           ) 
 !$OMP+PRIVATE( BIOG_LIMO, BIOG_ALCO, X, Y, RC                          )
 
@@ -750,15 +754,7 @@
             TMP        = TMP * MONO_SCALE
       
             ! Add to total biogenic acetone emissions
-            EMAC       = TMP
-      
-            ! testing only
-            if ( i==ix .and. j==iy ) write(*,*)'EMAC1 (kg/m2/s): ',EMAC
-
-!            ! Diagnostics -- save ACETONE from MONOTERPENES in [atoms C/m2/s]
-!            IF ( ND11 > 0 ) THEN
-!               AD11(I,J,1) = AD11(I,J,1) + EMAC
-!            ENDIF
+            FLUXACETmo(I,J) = TMP
 
             !-----------------------------------------------------------------
             ! (2) BIOGENIC ACETONE FROM METHYL BUTENOL -- NORTH AMERICA
@@ -793,20 +789,9 @@
       
                ! Scale to a posteriori source from Jacob et al 2001 (bdf,
                ! 9/5/01)
-               TMP = TMP * MB_SCALE2
-      
-!               ! Diagnostics -- save ACETONE from MBO in [atoms C/m2/s]
-!               IF ( ND11 > 0 ) THEN
-!                  AD11(I,J,2) = AD11(I,J,2) + TMP
-!               ENDIF
-
-               ! Add to total biogenic acetone emission 
-               EMAC = EMAC + TMP
+               FLUXACETmb(I,J) = TMP * MB_SCALE2
 
             ENDIF
-
-            ! testing only
-            if ( i==ix .and. j==iy ) write(*,*)'EMAC2 (kg/m2/s): ',EMAC
 
             !-----------------------------------------------------------------
             ! (3) BIOGENIC ACETONE -- DIRECT EMISSION 
@@ -822,30 +807,8 @@
                EXIT
             ENDIF 
 
-            ! Add to total biogenic acetone emission 
-            EMAC = EMAC + TMP
-
-            ! testing only
-            if ( i==ix .and. j==iy ) write(*,*)'EMAC3 (kg/m2/s): ',EMAC
-
-!            ! Save MEGAN Acetone Emissions to DIRECT EMISSIONS diag [atoms
-!            ! C/cm2/s]
-!            IF ( ND11 > 0 ) THEN
-!               AD11(I,J,3) = AD11(I,J,3) + TMP 
-!            ENDIF
-
-            !-----------------------------------------------------------------
-            ! Add total biogenic acetone to tracer tendency [kg C/m2/s] 
-            ! NOTE: Don't save into EMISRR for the tagged CO 
-            ! simulation (jaf, mak, bmy, 2/14/08)
-            FLUXACET(I,J) = EMAC
-
-            ! testing only
-            if ( i==ix .and. j==iy ) then
-               write(*,*) 'HEMCO MEGAN @ ', ix, iy
-               write(*,*) 'ACET (kg/m2/s): ', EMAC 
-            endif
-
+            ! Write to array
+            FLUXACETbg(I,J) = TMP
          ENDIF
 
          !--------------------------------------------------------------------
@@ -1225,28 +1188,6 @@
 !               
 !               ENDIF !ND46 
 
-!         !==============================================================
-!         ! ND07 diagnostic: Carbon aerosol emissions [kg/timestep]
-!         ! Convert all from [molec C/box] to [kg C/box]
-!         !==============================================================
-!         IF ( ND07 > 0 ) THEN
-!            ! Terpene source [kg]
-!            AD07(I,J,7) = AD07(I,J,7) + ( TERP_ORGC / XNUMOL_C )
-!
-!            IF ( LSOA ) THEN
-!               ! ALPHA-PINENE [kg]
-!               AD07(I,J,8)  = AD07(I,J,8) + ( BIOG_ALPH / XNUMOL_C )
-!               ! LIMONENE [kg]
-!               AD07(I,J,9)  = AD07(I,J,9) + ( BIOG_LIMO / XNUMOL_C )
-!               ! TERPENE [kg]
-!               AD07(I,J,10) = AD07(I,J,10) + ( BIOG_TERP / XNUMOL_C)
-!               ! ALCOHOL [kg]
-!               AD07(I,J,11) = AD07(I,J,11) + ( BIOG_ALCO / XNUMOL_C )
-!               ! SESQTERPENE [kg]
-!               AD07(I,J,12) = AD07(I,J,12) + ( BIOG_SESQ / XNUMOL_C )
-!            ENDIF
-!         ENDIF
-
       ENDDO !I
       ENDDO !J
 !$OMP END PARALLEL DO
@@ -1302,13 +1243,35 @@
       ! ACETONE 
       IF ( IDTACET > 0 ) THEN
 
+         ! Eventually add individual diagnostics. These are assumed to
+         ! have names MEGAN_ACET_MONO, MEGAN_ACET_MBO, and 
+         ! MEGAN_ACET_DIRECT
+         Arr2D     => FLUXACETmo 
+         DiagnName =  'MEGAN_ACET_MONO'
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+
+         Arr2D     => FLUXACETmb
+         DiagnName =  'MEGAN_ACET_MBO'
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+
+         Arr2D     => FLUXACETbg 
+         DiagnName =  'MEGAN_ACET_DIRECT'
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXACET, IDTACET, RC)
+         FLUXACETbg = FLUXACETbg + FLUXACETmo + FLUXACETmb
+         CALL HCO_EmisAdd( HcoState, FLUXACETbg, IDTACET, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXACET
+            Arr2D => FLUXACETbg
             CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
      &                         Cat=-1, Hier=-1, HcoID=IDTACET,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )

@@ -271,10 +271,17 @@
       ! Interface w/ HEMCO diagnostics
       CHARACTER(LEN= 63)        :: DiagnName
       CHARACTER(LEN=255)        :: MSG
-      INTEGER                   :: FLAG
+      INTEGER                   :: FLAG, AFILL
       TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
       TYPE(HCO_State), POINTER  :: HcoState => NULL()
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
+      REAL*8                    :: FACTOR
+      REAL*8, PARAMETER         :: GPERKG   = 1000d0
+      REAL*8, PARAMETER         :: MWC      = 12d0
+      REAL*8, PARAMETER         :: CM2PERM2 = 10000d0
+      REAL*8, PARAMETER         :: S_DMS    = 32d0 / 62d0
+      REAL*8, PARAMETER         :: S_SO2    = 32d0 / 64d0
+      REAL*8, PARAMETER         :: S_SO4    = 32d0 / 96d0
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -912,11 +919,26 @@
          DO N = 1, 2
 
             ! At present we have 2 seasalts
-            IF ( N == 1 ) NN = IDTSALA
-            IF ( N == 2 ) NN = IDTSALC
+            IF ( N == 1 ) THEN
+               NN = IDTSALA
+               DiagnName  = 'AD08_SALA'
+            ELSEIF ( N == 2 ) THEN
+               NN = IDTSALC
+               DiagnName  = 'AD08_SALC'
+            ENDIF
 
-            ! Save seasalts into ARRAY
-            ARRAY(:,:,1) = AD08(:,:,N) 
+            ! Get diagnostics
+            DgnCont => NULL()
+            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                      DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                      AutoFill=1, InclManual=.TRUE. )
+            IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+
+            ! Save into ARRAY
+            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
 
             ! Write to BPCH file
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -1090,27 +1112,51 @@
 !  (3)  ACETbg : Acetone source from DIRECT EMISSION: at C/cm2/s : SCALESRCE 
 !  (4)  ACETop : Acetone source from OCEANS         : at C/cm2/s : SCALESRCE 
 !  (5)  ACETol : Acetone sink   from OCEANS         : at C/cm2/s : SCALECHEM
+!
+!  NOTES:
+!  (1 ) in HEMCO, Acetone sink from OCEAN is handled by drydep and the 
+!       corresponding diagnostics. If needed, we can write a wrapper that
+!       explicitly calculates the Acetone ocean sink. (ckeller, 08/04/14) 
 !******************************************************************************
 !
       IF ( ND11 > 0 ) THEN
          CATEGORY = 'ACETSRCE'
          UNIT     = 'atoms C/cm2/s'
 
-         DO M = 1, TMAX(11)
-            N  = TINDEX(11,M)
-            IF ( N > PD11 ) CYCLE
-            NN = N 
-               
-            ! Acetone ocean sink is on the chemistry timestep
-            ! but acetone sources are all on the emission timestep
-            IF ( N == 7 ) THEN
-               SCALEX = SCALECHEM
-            ELSE
-               SCALEX = SCALESRCE
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR   = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
+
+         ! Loop over all four emission sources
+         DO N = 1, 4 
+            IF ( N == 1 ) THEN
+               DiagnName = 'MEGAN_ACET_MONO'
+               AFill     = 0
+            ELSEIF ( N == 2 ) THEN
+               DiagnName = 'MEGAN_ACET_MBO'
+               AFill     = 0
+            ELSEIF ( N == 3 ) THEN
+               DiagnName = 'MEGAN_ACET_DIRECT'
+               AFill     = 0
+            ELSEIF ( N == 4 ) THEN
+               DiagnName = 'AD11_OCEAN_SOURCE'
+               AFill     = 1
             ENDIF
 
-            ARRAY(:,:,1) = AD11(:,:,N) / SCALEX
+            ! Get diagnostics (in kg/m2/s)
+            DgnCont => NULL()
+            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                      DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                      AutoFill=AFill, InclManual=.TRUE. )
+            IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
 
+            ! Save into ARRAY. Convert from kgC/m2/s to atoms C/cm2/s.
+            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * FACTOR
+
+            ! Write to BPCH file
+            NN = N
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -1170,8 +1216,21 @@
          ! Biogenic DMS 
          !==============================================================
          CATEGORY     = 'DMS-BIOG'
-         ARRAY(:,:,1) = AD13_DMS(:,:)
          N            = IDTDMS
+
+         ! Get diagnostics (in kg)
+         DgnCont => NULL()
+         DiagnName = 'AD13_DMS_OCEAN_SOURCE'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS. 
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_DMS
          
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -1185,15 +1244,25 @@
          CATEGORY = 'SO2-AC-$'
          N        = IDTSO2
 
-         DO L = 1, LD13
-            ARRAY(:,:,L) = AD13_SO2_ac(:,:,L)
-         ENDDO
+         ! Get diagnostics (in kg)
+         DgnCont => NULL()
+         DiagnName = 'AD13_SO2_AIRCRAFT'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS. 
+         ARRAY(:,:,1:LLPAR) = DgnCont%Arr3D%Val(:,:,:) * S_SO2
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N, 
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     LD13,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD13) )
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
 
          !==============================================================
          ! Anthropogenic SO2 
@@ -1201,22 +1270,52 @@
          CATEGORY = 'SO2-AN-$'
          N        = IDTSO2
          
-         DO L = 1, NOXEXTENT 
-            ARRAY(:,:,L) = AD13_SO2_an(:,:,L)
-         ENDDO
+         ! Get diagnostics (in kg)
+         DgnCont => NULL()
+         DiagnName = 'AD13_SO2_ANTHROPOGENIC'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS. 
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO2
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      DIAGb,     DIAGe,     RESERVED,   
      &               IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
          !==============================================================
          ! Biomass SO2 
          !==============================================================
          CATEGORY     = 'SO2-BIOB'
-         ARRAY(:,:,1) = AD13_SO2_bb(:,:)
          N            = IDTSO2
+
+         ! Get diagnostics (in kg)
+         DgnCont => NULL()
+         DiagnName = 'AD13_SO2_BIOMASS'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS.
+         IF ( FLAG == HCO_SUCCESS ) THEN 
+            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO2
+         ELSE
+            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
+     &            ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ARRAY(:,:,1) = 0.0
+         ENDIF
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -1224,13 +1323,35 @@
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
-
          !==============================================================
          ! Biofuel SO2
          !==============================================================
          CATEGORY     = 'SO2-BIOF'
-         ARRAY(:,:,1) = AD13_SO2_bf(:,:)
          N            = IDTSO2
+
+         ! Get diagnostics (in kg). It is possible that there are
+         ! no diagnostics found for biofuel since most biofuel emissions
+         ! are included in the anthropogenic inventories. So just write
+         ! zeros if no diagnostics is found.
+         DgnCont => NULL()
+         DiagnName = 'AD13_SO2_BIOFUEL'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS.
+         IF ( FLAG == HCO_SUCCESS ) THEN 
+            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO2
+         ELSE
+            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
+     &            ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ARRAY(:,:,1) = 0.0
+         ENDIF
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -1244,53 +1365,71 @@
          CATEGORY = 'SO2-EV-$'
          N        = IDTSO2
 
-         DO L = 1, LD13
-            ARRAY(:,:,L) = AD13_SO2_ev(:,:,L)
-         ENDDO
+         ! Get diagnostics (in kg)
+         DgnCont => NULL()
+         DiagnName = 'AD13_SO2_VOLCANO'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS.
+         IF ( FLAG == HCO_SUCCESS ) THEN 
+            ARRAY(:,:,1:LLPAR) = DgnCont%Arr3D%Val(:,:,:) * S_SO2
+         ELSE
+            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
+     &            ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ARRAY(:,:,1:LLPAR) = 0.0
+         ENDIF
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     LD13,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD13) )
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
 
          !==============================================================
          ! Non-eruptive volcano SO2 
          !==============================================================
-         CATEGORY = 'SO2-NV-$'
-         N        = IDTSO2
-
-         DO L = 1, LD13 
-            ARRAY(:,:,L) = AD13_SO2_nv(:,:,L)
-         ENDDO
-               
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD13,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD13) )
-
+         ! --> Eruptive and non-eruptive diagnostics are lumped
 
          !==============================================================
          ! Ship SO2     bec (5/17/04)
          ! New test on logical flag (phs, 3/2/09)
          !==============================================================
-         ! Add ICOADSSHIP (cklee, 6/30/09)
-         ! Add RCP
-         IF ( Input_Opt%LSHIPSO2    .OR. !Input_Opt%EDGARSHIP  .OR. 
-     &        Input_Opt%LARCSHIP    .OR. Input_Opt%LEMEPSHIP  .OR. 
-     &        Input_Opt%LICOADSSHIP .OR. Input_Opt%LRCPSHIP ) THEN
-            
-            CATEGORY     = 'SO2-SHIP'
-            ARRAY(:,:,1) = AD13_SO2_sh(:,:)
-            N            = IDTSO2
+         CATEGORY     = 'SO2-SHIP'
+         N            = IDTSO2
 
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, N,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ! Get diagnostics (in kg). Allow zero diagnostics.
+         DgnCont => NULL()
+         DiagnName = 'AD13_SO2_SHIP'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
          ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS.
+         IF ( FLAG == HCO_SUCCESS ) THEN 
+            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO2
+         ELSE
+            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
+     &            ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ARRAY(:,:,1) = 0.0
+         ENDIF
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
          !==============================================================
          ! Anthropogenic SO4 
@@ -1298,22 +1437,52 @@
          CATEGORY = 'SO4-AN-$'
          N        = IDTSO4
 
-         DO L = 1, NOXEXTENT 
-            ARRAY(:,:,L) = AD13_SO4_an(:,:,L)
-         ENDDO
-            
+         ! Get diagnostics (in kg)
+         DgnCont => NULL()
+         DiagnName = 'AD13_SO4_ANTHROPOGENIC'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Pass to array, convert to kg S
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO4
+ 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      DIAGb,     DIAGe,     RESERVED,   
      &               IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
          !==============================================================
          ! Biofuel SO4
          !==============================================================
          CATEGORY     = 'SO4-BIOF'
-         ARRAY(:,:,1) = AD13_SO4_bf(:,:)
          N            = IDTSO4
+
+         ! Get diagnostics (in kg). Allow zero diagnostics.
+         DgnCont => NULL()
+         DiagnName = 'AD13_SO4_BIOFUEL'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS.
+         IF ( FLAG == HCO_SUCCESS ) THEN 
+            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO4
+         ELSE
+            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
+     &            ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ARRAY(:,:,1) = 0.0
+         ENDIF
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -1327,14 +1496,22 @@
          !==============================================================
          UNIT         = 'kg'
          CATEGORY     = 'NH3-ANTH'
-
-         DO L = 1, NOXEXTENT 
-            ARRAY(:,:,L) = AD13_NH3_an(:,:,L)
-         ENDDO
-
-!         ARRAY(:,:,1) = AD13_NH3_an(:,:) 
          N            = IDTNH3
 
+         ! Get diagnostics (in kg)
+         DgnCont => NULL()
+         DiagnName = 'AD13_NH3_ANTHROPOGENIC'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Pass to array, convert to kg S
+         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
+ 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
@@ -1345,8 +1522,28 @@
          ! Natural source NH3
          !==============================================================
          CATEGORY     = 'NH3-NATU'
-         ARRAY(:,:,1) = AD13_NH3_na(:,:) 
          N            = IDTNH3
+
+         ! Get diagnostics (in kg). Allow zero diagnostics.
+         DgnCont => NULL()
+         DiagnName = 'AD13_NH3_NATURAL'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS.
+         IF ( FLAG == HCO_SUCCESS ) THEN 
+            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
+         ELSE
+            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
+     &            ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ARRAY(:,:,1) = 0.0
+         ENDIF
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -1358,8 +1555,28 @@
          ! Biomass NH3
          !==============================================================
          CATEGORY     = 'NH3-BIOB'
-         ARRAY(:,:,1) = AD13_NH3_bb(:,:)
          N            = IDTNH3
+
+         ! Get diagnostics (in kg). Allow zero diagnostics.
+         DgnCont => NULL()
+         DiagnName = 'AD13_NH3_BIOMASS'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS.
+         IF ( FLAG == HCO_SUCCESS ) THEN 
+            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
+         ELSE
+            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
+     &            ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ARRAY(:,:,1) = 0.0
+         ENDIF
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -1371,8 +1588,28 @@
          ! Biofuel NH3 
          !==============================================================
          CATEGORY     = 'NH3-BIOF'
-         ARRAY(:,:,1) = AD13_NH3_bf(:,:)
          N            = IDTNH3
+
+         ! Get diagnostics (in kg). Allow zero diagnostics.
+         DgnCont => NULL()
+         DiagnName = 'AD13_NH3_BIOFUEL'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
+     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert from kg to kgS.
+         IF ( FLAG == HCO_SUCCESS ) THEN 
+            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
+         ELSE
+            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
+     &            ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ARRAY(:,:,1) = 0.0
+         ENDIF
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,

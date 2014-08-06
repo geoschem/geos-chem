@@ -1403,6 +1403,7 @@ CONTAINS
 
     ! Pass to output container
     OutCont => DgnCont
+    cID     =  DgnCont%cID
 
   END SUBROUTINE DiagnCont_Init
 !EOC
