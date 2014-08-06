@@ -218,6 +218,8 @@
 !  28 Jan 2014 - R. Yantosca - Avoid array temporaries in ND60 TOMAS diagnostic
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !  23 Jul 2014 - R. Yantosca - Disable obsolete ND27 diagnostic
+!  02 Aug 2014 - C. Keller   - Connect to HEMCO diagnostics
+!  06 Aug 2014 - C. Keller   - Added wrapper subroutine for HEMCO diagnostics. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -269,10 +271,9 @@
       REAL*8, POINTER    :: STT(:,:,:,:)
 
       ! Interface w/ HEMCO diagnostics
+      INTEGER                   :: AFill
       CHARACTER(LEN= 63)        :: DiagnName
       CHARACTER(LEN=255)        :: MSG
-      INTEGER                   :: FLAG, AFILL
-      TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
       TYPE(HCO_State), POINTER  :: HcoState => NULL()
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
       REAL*8                    :: FACTOR
@@ -517,25 +518,10 @@
                   DiagnName  = 'AD06_DST4'
             END SELECT
 
-            ! Get diagnostics
-            DgnCont => NULL()
-            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                      DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                      AutoFill=1, InclManual=.TRUE. )
-            IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-               CALL ERROR_STOP ( MSG, LOC ) 
-            ENDIF
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, NN, 1, -1, .FALSE., 1.0d0, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-            ! Save dust into ARRAY
-            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-
-            ! Write to BPCH file
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO !N
       ENDIF     
 !
@@ -562,23 +548,9 @@
          CATEGORY     = 'BC-ANTH'
          N            = IDTBCPI
          DiagnName    = 'AD07_BC_ANTHRO'
-
-         ! Get diagnostics
-         DgnCont => NULL()
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, N, 1, -1, .FALSE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !-------------------
          ! BC BIOMASS source
@@ -586,47 +558,20 @@
          CATEGORY     = 'BC-BIOB'
          N            = IDTBCPI
          DiagnName    = 'AD07_BC_BIOMASS'
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, N, 1, -1, .TRUE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
             
-         ! Get diagnostics
-         DgnCont => NULL()
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
          !------------------- 
          ! BC BIOFUEL source
          !------------------- 
          CATEGORY     = 'BC-BIOF'
          N            = IDTBCPI
          DiagnName    = 'AD07_BC_BIOFUEL'
-            
-         ! Get diagnostics
-         DgnCont => NULL()
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
 
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, N, 1, -1, .TRUE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !------------------------------ 
          ! H-philic BC from H-phobic BC
@@ -653,95 +598,39 @@
          IF ( IDTOCPI > 0 ) N = IDTOCPI
          IF ( IDTPOA1 > 0 ) N = IDTPOA1
 
-         ! Get diagnostics
          DiagnName = 'AD07_OC_ANTHRO'
-         DgnCont   => NULL()
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-            
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, N, 1, -1, .TRUE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !------------------------------ 
          ! OC BIOMASS source
          !------------------------------
-         CATEGORY     = 'OC-BIOB'
-         ARRAY(:,:,1) = AD07(:,:,5) 
-            
-         ! Get diagnostics
+         CATEGORY  = 'OC-BIOB'
          DiagnName = 'AD07_OC_BIOMASS'
-         DgnCont   => NULL()
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, N, 1, -1, .FALSE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !------------------------------ 
          ! OC BIOFUEL source
          !------------------------------
-         CATEGORY     = 'OC-BIOF'
-         ARRAY(:,:,1) = AD07(:,:,6) 
-            
-         ! Get diagnostics
+         CATEGORY  = 'OC-BIOF'
          DiagnName = 'AD07_OC_BIOFUEL'
-         DgnCont   => NULL()
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, N, 1, -1, .FALSE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !------------------------------ 
          ! OC BIOGENIC source
          !------------------------------
-         CATEGORY     = 'OC-BIOG'
-         ARRAY(:,:,1) = AD07(:,:,7) 
-            
-         ! Get diagnostics
+         CATEGORY  = 'OC-BIOG'
          DiagnName = 'AD07_OC_BIOGENIC'
-         DgnCont   => NULL()
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, N, 1, -1, .FALSE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !------------------------------ 
          ! H-philic OC from H-phobic OC
@@ -802,22 +691,10 @@
 
                END SELECT
 
-               ! Get diagnostics
-               DgnCont   => NULL()
-               CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                         DgnCont, FLAG, RC, cName=TRIM(DiagnName),
-     &                         AutoFill=1, InclManual=.TRUE. )
-               IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-                  CALL ERROR_STOP ( MSG, LOC ) 
-               ENDIF
-               ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-                  
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                     IIPAR,     JJPAR,     1,        IFIRST,
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                         UNIT, NN, 1, -1, .FALSE., 1.0d0, RC )
+               IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
             ENDDO
          
             !-----------------------------------------------
@@ -927,25 +804,10 @@
                DiagnName  = 'AD08_SALC'
             ENDIF
 
-            ! Get diagnostics
-            DgnCont => NULL()
-            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                      DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                      AutoFill=1, InclManual=.TRUE. )
-            IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-               CALL ERROR_STOP ( MSG, LOC ) 
-            ENDIF
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                      UNIT, NN, 1, -1, .FALSE., 1.0d0, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
-            ! Save into ARRAY
-            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-
-            ! Write to BPCH file
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF   
 !
@@ -1142,26 +1004,10 @@
                AFill     = 1
             ENDIF
 
-            ! Get diagnostics (in kg/m2/s)
-            DgnCont => NULL()
-            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                      DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                      AutoFill=AFill, InclManual=.TRUE. )
-            IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-               CALL ERROR_STOP ( MSG, LOC ) 
-            ENDIF
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                      UNIT, N, AFill, -1, .FALSE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
-            ! Save into ARRAY. Convert from kgC/m2/s to atoms C/cm2/s.
-            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * FACTOR
-
-            ! Write to BPCH file
-            NN = N
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     1,        IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
 !
@@ -1215,182 +1061,56 @@
          !==============================================================
          ! Biogenic DMS 
          !==============================================================
-         CATEGORY     = 'DMS-BIOG'
-         N            = IDTDMS
-
-         ! Get diagnostics (in kg)
-         DgnCont => NULL()
+         CATEGORY  = 'DMS-BIOG'
          DiagnName = 'AD13_DMS_OCEAN_SOURCE'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Save into ARRAY. Convert from kg to kgS. 
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_DMS
-         
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTDMS, 1, -1, .FALSE., S_DMS, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Aircraft SO2 
          !==============================================================
          CATEGORY = 'SO2-AC-$'
-         N        = IDTSO2
-
-         ! Get diagnostics (in kg)
-         DgnCont => NULL()
          DiagnName = 'AD13_SO2_AIRCRAFT'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Save into ARRAY. Convert from kg to kgS. 
-         ARRAY(:,:,1:LLPAR) = DgnCont%Arr3D%Val(:,:,:) * S_SO2
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N, 
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD13,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTSO2, 1, LLPAR, .TRUE., S_SO2, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Anthropogenic SO2 
          !==============================================================
-         CATEGORY = 'SO2-AN-$'
-         N        = IDTSO2
-         
-         ! Get diagnostics (in kg)
-         DgnCont => NULL()
+         CATEGORY  = 'SO2-AN-$'
          DiagnName = 'AD13_SO2_ANTHROPOGENIC'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Save into ARRAY. Convert from kg to kgS. 
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO2
-            
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY,  N,
-     &               UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &               IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTSO2, 1, -1, .FALSE., S_SO2, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
+         
          !==============================================================
          ! Biomass SO2 
          !==============================================================
-         CATEGORY     = 'SO2-BIOB'
-         N            = IDTSO2
-
-         ! Get diagnostics (in kg)
-         DgnCont => NULL()
+         CATEGORY  = 'SO2-BIOB'
          DiagnName = 'AD13_SO2_BIOMASS'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Save into ARRAY. Convert from kg to kgS.
-         IF ( FLAG == HCO_SUCCESS ) THEN 
-            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO2
-         ELSE
-            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
-     &            ' - will write zeros!'
-            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-            ARRAY(:,:,1) = 0.0
-         ENDIF
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTSO2, 1, -1, .TRUE., S_SO2, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Biofuel SO2
          !==============================================================
-         CATEGORY     = 'SO2-BIOF'
-         N            = IDTSO2
-
-         ! Get diagnostics (in kg). It is possible that there are
-         ! no diagnostics found for biofuel since most biofuel emissions
-         ! are included in the anthropogenic inventories. So just write
-         ! zeros if no diagnostics is found.
-         DgnCont => NULL()
+         CATEGORY  = 'SO2-BIOF'
          DiagnName = 'AD13_SO2_BIOFUEL'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Save into ARRAY. Convert from kg to kgS.
-         IF ( FLAG == HCO_SUCCESS ) THEN 
-            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO2
-         ELSE
-            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
-     &            ' - will write zeros!'
-            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-            ARRAY(:,:,1) = 0.0
-         ENDIF
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTSO2, 1, -1, .TRUE., S_SO2, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Eruptive volcano SO2 
          !==============================================================
-         CATEGORY = 'SO2-EV-$'
-         N        = IDTSO2
-
-         ! Get diagnostics (in kg)
-         DgnCont => NULL()
+         CATEGORY  = 'SO2-EV-$'
          DiagnName = 'AD13_SO2_VOLCANO'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Save into ARRAY. Convert from kg to kgS.
-         IF ( FLAG == HCO_SUCCESS ) THEN 
-            ARRAY(:,:,1:LLPAR) = DgnCont%Arr3D%Val(:,:,:) * S_SO2
-         ELSE
-            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
-     &            ' - will write zeros!'
-            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-            ARRAY(:,:,1:LLPAR) = 0.0
-         ENDIF
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD13,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTSO2, 1, LLPAR, .TRUE., S_SO2, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Non-eruptive volcano SO2 
@@ -1401,221 +1121,67 @@
          ! Ship SO2     bec (5/17/04)
          ! New test on logical flag (phs, 3/2/09)
          !==============================================================
-         CATEGORY     = 'SO2-SHIP'
-         N            = IDTSO2
-
-         ! Get diagnostics (in kg). Allow zero diagnostics.
-         DgnCont => NULL()
+         CATEGORY  = 'SO2-SHIP'
          DiagnName = 'AD13_SO2_SHIP'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Save into ARRAY. Convert from kg to kgS.
-         IF ( FLAG == HCO_SUCCESS ) THEN 
-            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO2
-         ELSE
-            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
-     &            ' - will write zeros!'
-            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-            ARRAY(:,:,1) = 0.0
-         ENDIF
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTSO2, 1, -1, .TRUE., S_SO2, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Anthropogenic SO4 
          !==============================================================
-         CATEGORY = 'SO4-AN-$'
-         N        = IDTSO4
-
-         ! Get diagnostics (in kg)
-         DgnCont => NULL()
+         CATEGORY  = 'SO4-AN-$'
          DiagnName = 'AD13_SO4_ANTHROPOGENIC'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Pass to array, convert to kg S
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO4
- 
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY,  N,
-     &               UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &               IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTSO4, 1, -1, .FALSE., S_SO4, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Biofuel SO4
          !==============================================================
-         CATEGORY     = 'SO4-BIOF'
-         N            = IDTSO4
-
-         ! Get diagnostics (in kg). Allow zero diagnostics.
-         DgnCont => NULL()
+         CATEGORY  = 'SO4-BIOF'
          DiagnName = 'AD13_SO4_BIOFUEL'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Save into ARRAY. Convert from kg to kgS.
-         IF ( FLAG == HCO_SUCCESS ) THEN 
-            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * S_SO4
-         ELSE
-            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
-     &            ' - will write zeros!'
-            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-            ARRAY(:,:,1) = 0.0
-         ENDIF
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTSO4, 1, -1, .TRUE., S_SO4, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Anthropogenic NH3 
          !==============================================================
-         UNIT         = 'kg'
-         CATEGORY     = 'NH3-ANTH'
-         N            = IDTNH3
-
-         ! Get diagnostics (in kg)
-         DgnCont => NULL()
+         UNIT      = 'kg'
+         CATEGORY  = 'NH3-ANTH'
          DiagnName = 'AD13_NH3_ANTHROPOGENIC'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( FLAG /= HCO_SUCCESS .OR. RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Pass to array, convert to kg S
-         ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
- 
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTNH3, 1, -1, .FALSE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Natural source NH3
          !==============================================================
-         CATEGORY     = 'NH3-NATU'
-         N            = IDTNH3
-
-         ! Get diagnostics (in kg). Allow zero diagnostics.
-         DgnCont => NULL()
+         CATEGORY  = 'NH3-NATU'
          DiagnName = 'AD13_NH3_NATURAL'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Save into ARRAY. Convert from kg to kgS.
-         IF ( FLAG == HCO_SUCCESS ) THEN 
-            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-         ELSE
-            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
-     &            ' - will write zeros!'
-            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-            ARRAY(:,:,1) = 0.0
-         ENDIF
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTNH3, 1, -1, .TRUE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Biomass NH3
          !==============================================================
-         CATEGORY     = 'NH3-BIOB'
-         N            = IDTNH3
-
-         ! Get diagnostics (in kg). Allow zero diagnostics.
-         DgnCont => NULL()
+         CATEGORY  = 'NH3-BIOB'
          DiagnName = 'AD13_NH3_BIOMASS'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
-
-         ! Save into ARRAY. Convert from kg to kgS.
-         IF ( FLAG == HCO_SUCCESS ) THEN 
-            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-         ELSE
-            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
-     &            ' - will write zeros!'
-            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-            ARRAY(:,:,1) = 0.0
-         ENDIF
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTNH3, 1, -1, .TRUE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
          ! Biofuel NH3 
          !==============================================================
-         CATEGORY     = 'NH3-BIOF'
-         N            = IDTNH3
-
-         ! Get diagnostics (in kg). Allow zero diagnostics.
-         DgnCont => NULL()
+         CATEGORY  = 'NH3-BIOF'
          DiagnName = 'AD13_NH3_BIOFUEL'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE.,
-     &                   DgnCont,    FLAG, RC, cName=TRIM(DiagnName),
-     &                   AutoFill=1, InclManual=.TRUE. )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
-            CALL ERROR_STOP ( MSG, LOC ) 
-         ENDIF
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTNH3, 1, -1, .TRUE., 1.0d0, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
-         ! Save into ARRAY. Convert from kg to kgS.
-         IF ( FLAG == HCO_SUCCESS ) THEN 
-            ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:)
-         ELSE
-            MSG = 'Diagnostics not found: ' // TRIM(DiagnName) // 
-     &            ' - will write zeros!'
-            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-            ARRAY(:,:,1) = 0.0
-         ENDIF
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDIF    
 !
 !******************************************************************************
@@ -4735,6 +4301,96 @@
 
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
+
+
+      CONTAINS
+!******************************************************************************
+! Wrapper routine to get diagnostics from HEMCO and write them to bpch.
+! This will look up diagnostics 'dName' and write the corresponding diagnostics
+! array to the bpch output file. 
+! - Data is multiplied by factor dFACTOR before writing to disk.
+! - dAF determines the autofill flag used for the diagnostics lookup.
+! - dZ are the number of vertical levels. Set to -1 for 2D arrays, otherwise
+!   a 3D array with exactly that many levels is written.
+! - dOptional determines whether or not this is an optional diagnostics. For
+!   optional diagnostics, zeros are written out if no corresponding HEMCO
+!   diagnostics could be found (because it is undefined or because they have
+!   never been updated). For non-optional diagnostics, the routine stops with
+!   an error if no HEMCO diagnostics is found.
+!
+! HISTORY:
+! Aug 06, 2014 - C. Keller - Initial version.
+!******************************************************************************
+         SUBROUTINE DIAG2BPCH( air,       HcoState, dname, 
+     &                         bcat,      bUnit,    bN,
+     &                         dAF,       dZ,       dOPTIONAL,  
+     &                         dFACTOR,   ERR                 )
+
+            ! Routine arguments
+            LOGICAL,          INTENT(IN   )     :: air        ! Root CPU?
+            TYPE(HCO_State),  POINTER           :: HcoState   ! Hemco state
+            CHARACTER(LEN=*), INTENT(IN   )     :: dname      ! Diagnostics name
+            CHARACTER(LEN=*), INTENT(IN   )     :: bCat       ! BPCH category
+            CHARACTER(LEN=*), INTENT(IN   )     :: bUnit      ! BPCH units
+            INTEGER,          INTENT(IN   )     :: bN         ! BPCH ID 
+            INTEGER,          INTENT(IN   )     :: dAF        ! AutoFill of diagn
+            INTEGER,          INTENT(IN   )     :: dZ         ! # of vert. levels
+            LOGICAL,          INTENT(IN   )     :: dOPTIONAL  ! Optional field?
+            REAL*8,           INTENT(IN   )     :: dFACTOR    ! scale factor
+            INTEGER,          INTENT(INOUT)     :: ERR        ! Return code
+
+            ! Local variables
+            INTEGER                       :: FLG, LEVS
+            TYPE(DiagnCont),    POINTER   :: DgnCont  => NULL()
+            CHARACTER(LEN=255), PARAMETER :: LC = 'DIAG2BPCH (diag3.F)'
+            CHARACTER(LEN=255)            :: MG
+
+            !----------------------------------------------------------------
+            ! Starts here         
+            !----------------------------------------------------------------
+  
+            ! Get diagnostics
+            DgnCont => NULL()
+            CALL Diagn_Get( air,   HcoState, .FALSE., DgnCont, 
+     &                      FLG,   ERR,      cName=TRIM(dname), 
+     &                      AutoFill=dAF,    InclManual=.TRUE. )
+            IF ( ERR /= HCO_SUCCESS ) THEN
+               MG = 'Cannot find diagnostics ' // TRIM(dname)
+               CALL ERROR_STOP ( MG, LC ) 
+            ENDIF
+
+            ! Vertical levels
+            levs = MAX(dz,1)
+
+            ! Save into ARRAY. Convert from kg to kgS.
+            IF ( FLG == HCO_SUCCESS ) THEN
+               IF ( dz > 0 ) THEN
+                  ARRAY(:,:,1:levs) = 
+     &               DgnCont%Arr3D%Val(:,:,1:levs) * dFACTOR
+               ELSE 
+                  ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * dFactor 
+               ENDIF
+            ELSE
+               MG = 'No diagnostics returned: ' // TRIM(dname)
+               IF ( dOptional ) THEN
+                  MG = TRIM(MG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MG, ERR, THISLOC=LC )
+                  ARRAY(:,:,1:L) = 0.0
+               ELSE
+                  CALL ERROR_STOP ( MG, LC )
+               ENDIF
+            ENDIF
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, bCat,     bN,
+     &                  bUnit,     DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:levs) )
+
+            ! Return w/ success
+            ERR = HCO_SUCCESS
+
+         END SUBROUTINE DIAG2BPCH
 
       END SUBROUTINE DIAG3    
 !EOC
