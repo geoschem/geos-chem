@@ -129,6 +129,7 @@ hcox_gc_RnPbBe_mod.o  : hcox_gc_RnPbBe_mod.F90    \
                         hcox_state_mod.o          
 
 hcox_gfed3_mod.o      : hcox_gfed3_mod.F90        \
+                        hcox_gfed3_include.H      \
                         hcox_state_mod.o
 
 hcox_finn_mod.o       : hcox_finn_mod.F90         \

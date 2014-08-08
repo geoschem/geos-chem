@@ -68,6 +68,7 @@ MODULE HCOX_GFED3_MOD
 !                              emission factors in kg/kgDM.
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  08 Aug 2014 - R. Yantosca - Now avoid ASCII file reads for ESMF
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -342,9 +343,8 @@ CONTAINS
   SUBROUTINE HCOX_GFED3_Init ( am_I_Root, HcoState, ExtName, &
                                ExtState,  RC                  ) 
 !
-! !USE:
+! !USES:
 !
-    USE inquireMod,             ONLY : findfreeLUN
     USE HCO_STATE_MOD,          ONLY : HCO_GetHcoID
     USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
     USE HCO_ExtList_Mod,        ONLY : GetExtNr, GetExtOpt
@@ -361,7 +361,9 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC          ! Return status
 !
 ! !REVISION HISTORY:
-!  15 Dec 2013 - C. Keller - Initial version
+!  15 Dec 2013 - C. Keller   - Initial version
+!  08 Aug 2014 - R. Yantosca - Now include hcox_gfed3_include.H, which defines
+!                              GFED3_SPEC_NAME and GFED3_EMFAC arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -431,43 +433,11 @@ CONTAINS
     ENDIF
     GFED3_EMFAC = 0.0_hp
 
-    ! Find a free file LUN
-    IU_FILE = findFreeLUN()
-
-    ! Open emission factor file (ASCII format)
-    OPEN( IU_FILE, FILE=TRIM( ScalFile ), STATUS='OLD', IOSTAT=IOS )
-    IF ( IOS /= 0 ) THEN
-       MSG = 'Error 1 reading ' // TRIM(ScalFile)
-       CALL HCO_ERROR( MSG, RC )
-       RETURN
-    ENDIF
-
-    ! Skip header lines
-    DO N = 1, 9
-       READ( IU_FILE, *, IOSTAT=IOS )
-       IF ( IOS /= 0 ) THEN
-          MSG = 'Error 2 reading ' // TRIM(ScalFile)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
-    ENDDO
-
-    ! Read emission factors for each species.
-    DO N = 1, N_SPEC
-       READ( IU_FILE, 100, IOSTAT=IOS ) &
-            NDUM, GFED3_SPEC_NAME(N), ( GFED3_EMFAC(N,M), M=1,N_EMFAC )
-       IF ( IOS /= 0 ) THEN
-          MSG = 'Error 3 reading ' // TRIM(ScalFile)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
-    ENDDO
-
-    ! FORMAT string
-100 FORMAT( 1x, i2, 1x, a4, 6(2x,es9.2) )
-
-    ! Close file
-    CLOSE( IU_FILE )      
+    ! Now get definitions for GFED3_EMFAC and GFED3_SPEC_NAME from an include 
+    ! file.  This avoids ASCII file reads in the ESMF environment.  To update
+    ! the emission factors, one just needs to modify the include file.
+    ! (bmy, 8/8/14)
+#include "hcox_gfed3_include.H"
 
     ! ---------------------------------------------------------------------- 
     ! Match specified species with GFED3 species
@@ -494,7 +464,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! GfedIDs are the matching indeces of the HEMCO species in GFED3_EMFAC.
+    ! GFEDIDS are the matching indeces of the HEMCO species in GFED3_EMFAC.
     ALLOCATE ( GfedIDs(nSpc), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( 'Cannot allocate GfedIDs', RC )
