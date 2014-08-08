@@ -1351,7 +1351,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-    USE Henry_Mod,             ONLY : Get_Henry_Constants
+    USE HENRY_COEFFS,          ONLY : Get_Henry_Constant
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1429,7 +1429,7 @@ CONTAINS
        ENDIF
 
        ! Henry coefficients
-       CALL GET_HENRY_CONSTANTS ( N, K0, CR, pKa, RC )
+       CALL GET_HENRY_CONSTANT ( TRIM(ModelSpecNames(N)), K0, CR, pKa, RC )
        ModelSpecK0(N)  = K0
        ModelSpecCR(N)  = CR
        ModelSpecPKA(N) = PKA

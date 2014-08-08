@@ -8165,7 +8165,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
-      USE Henry_Mod,          ONLY : Init_Henry
       USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
@@ -8207,7 +8206,6 @@
 !  11 Apr 2014 - R. Yantosca - Now call INIT_C2H6 and INIT_HCN_CH3CN
 !  14 Apr 2014 - R. Yantosca - Also call INIT_C2H6 if it's a fullchem sim
 !                              since we read C2H6 emissions from c2h6_mod.F
-!  19 May 2014 - C. Keller   - Now call INIT_HENRY (GeosCore/henry_mod.F)
 !  25 Jun 2014 - R. Yantosca - Now call INIT_MODIS_LAI      
 !  25 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES (vdiff_pre_mod.F90)
 !EOP
@@ -8281,10 +8279,6 @@
          CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
-
-      ! Initialize "henry_mod.F"
-      CALL INIT_HENRY ( Input_Opt%TRACER_NAME, RC )
-      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_HENRY' )
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
       CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )
