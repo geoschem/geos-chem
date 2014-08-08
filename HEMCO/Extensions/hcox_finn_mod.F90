@@ -83,7 +83,7 @@
       !           is 68 g/mol.
       !=================================================================
       INTEGER,          PARAMETER   :: N_EMFAC = 6
-      INTEGER,          PARAMETER   :: N_SPEC  = 57
+      INTEGER,          PARAMETER   :: N_SPEC  = 58
       REAL(dp),         PARAMETER   :: MW_CO2  = 44.01_dp
       REAL(dp),         PARAMETER   :: MW_NMOC = 68.00_dp
 !
@@ -524,7 +524,6 @@
       FINN_SPEC_NAME(1)  = 'CO2'
       FINN_SPEC_NAME(2)  = 'CO'
       FINN_SPEC_NAME(3)  = 'CH4'
-      FINN_SPEC_NAME(3)  = 'H2'     ! Currently not used
       FINN_SPEC_NAME(4)  = 'NOx'
       FINN_SPEC_NAME(5)  = 'SO2'
       FINN_SPEC_NAME(6)  = 'OC'
@@ -581,6 +580,7 @@
       FINN_SPEC_NAME(55) = 'TMB'    ! Currently lumped with XYLE
       FINN_SPEC_NAME(56) = 'TOLU'
       FINN_SPEC_NAME(57) = 'XYLE'
+      FINN_SPEC_NAME(58) = 'H2'     ! Currently not used
 
       ! ---------------------------------------------------------------------- 
       ! Read emission factors ([mole CO2]/[mole X])

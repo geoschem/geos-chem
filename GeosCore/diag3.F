@@ -274,6 +274,7 @@
       INTEGER                   :: AFill
       CHARACTER(LEN= 63)        :: DiagnName
       CHARACTER(LEN=255)        :: MSG
+      TYPE(DiagnCont), POINTER  :: DiagnCnt => NULL() 
       TYPE(HCO_State), POINTER  :: HcoState => NULL()
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
       REAL*8                    :: FACTOR
@@ -519,7 +520,7 @@
             END SELECT
 
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, NN, 1, -1, .FALSE., 1.0d0, RC )
+     &                      UNIT,      NN, 1, -1, .FALSE.,  1.0d0, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          ENDDO !N
@@ -540,7 +541,6 @@
          !UNIT = 'kg' 
          ! UNITS WERE CONFUSING -> everything in kgC (see latter)
          UNIT = 'kgC' ! SOAupdate (hotp 7/29/10)
-
          
          !-------------------
          ! BC ANTHRO source
@@ -554,12 +554,14 @@
 
          !-------------------
          ! BC BIOMASS source
+         ! Diagnostics BIOMASS_BC is in kgC/m2/s. Need to convert
+         ! to kgC!
          !-------------------
          CATEGORY     = 'BC-BIOB'
          N            = IDTBCPI
-         DiagnName    = 'AD07_BC_BIOMASS'
+         DiagnName    = 'BIOMASS_BC'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., 1.0d0, RC )
+     &           UNIT, N, 1, -1, .TRUE., SCALESRCE, RC, AreaScal=1 )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
             
          !------------------- 
@@ -605,12 +607,14 @@
 
          !------------------------------ 
          ! OC BIOMASS source
+         ! Diagnostics BIOMASS_OC is in kgC/m2/s. Need to convert
+         ! to kgC!
          !------------------------------
          CATEGORY  = 'OC-BIOB'
-         DiagnName = 'AD07_OC_BIOMASS'
+         DiagnName = 'BIOMASS_OC'
             
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .FALSE., 1.0d0, RC )
+     &           UNIT, N, 1, -1, .FALSE., SCALESRCE, RC, AreaScal=1 )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !------------------------------ 
@@ -1087,11 +1091,14 @@
          
          !==============================================================
          ! Biomass SO2 
+         ! Diagnostics BIOMASS_SO2 is in kg/m2/s. Need to convert
+         ! to kg S!
          !==============================================================
          CATEGORY  = 'SO2-BIOB'
-         DiagnName = 'AD13_SO2_BIOMASS'
+         DiagnName = 'BIOMASS_SO2'
+         FACTOR    = S_SO2 * SCALESRCE
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTSO2, 1, -1, .TRUE., S_SO2, RC )
+     &           UNIT, IDTSO2, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
@@ -1166,11 +1173,13 @@
 
          !==============================================================
          ! Biomass NH3
+         ! Diagnostics BIOMASS_NH3 is in kg/m2/s. Need to convert
+         ! to kg!
          !==============================================================
          CATEGORY  = 'NH3-BIOB'
-         DiagnName = 'AD13_NH3_BIOMASS'
+         DiagnName = 'BIOMASS_NH3'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTNH3, 1, -1, .TRUE., 1.0d0, RC )
+     &          UNIT, IDTNH3, 1, -1, .TRUE., SCALESRCE, RC, AreaScal=1 )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !==============================================================
@@ -1903,31 +1912,138 @@
 !       as they are listed in "diag.dat". (bmy, 4/17/01)
 !******************************************************************************
 !
+
       IF ( ND28 > 0 ) THEN
+
          CATEGORY = 'BIOBSRCE'
-         UNIT     = ''
+         UNIT     = 'molec/cm2/s'
 
-         DO M = 1, TMAX(28)
-            N  = TINDEX(28,M)
-            IF ( .not. ANY( BIOTRCE == N ) ) CYCLE
-            NN = N
-            
-            DO MM = 1, NBIOMAX
-               IF ( BIOTRCE(MM) == NN ) THEN
-                  MMB = MM
-                  EXIT
-               ENDIF
-            ENDDO
+         N         = IDTNO
+         DiagnName = 'BIOMASS_NO'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-            ARRAY(:,:,1) = AD28(:,:,MMB) / SCALESRCE 
+         N         = IDTCO
+         DiagnName = 'BIOMASS_CO'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         N         = IDTALK4
+         DiagnName = 'BIOMASS_ALK4'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         ENDDO
+         N         = IDTACET
+         DiagnName = 'BIOMASS_ACET'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         N         = IDTMEK
+         DiagnName = 'BIOMASS_MEK'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         N         = IDTALD2
+         DiagnName = 'BIOMASS_ALD2'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         N         = IDTPRPE
+         DiagnName = 'BIOMASS_PRPE'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         N         = IDTC3H8
+         DiagnName = 'BIOMASS_C3H8'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         N         = IDTCH2O
+         DiagnName = 'BIOMASS_CH2O'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         N         = IDTC2H6
+         DiagnName = 'BIOMASS_C2H6'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         N         = IDTSO2
+         DiagnName = 'BIOMASS_SO2'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         N         = IDTNH3
+         DiagnName = 'BIOMASS_NH3'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         N         = IDTBCPI
+         DiagnName = 'BIOMASS_BC'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         IF ( IDTPOA1 /= 0 ) THEN
+            N = IDTPOA1
+         ELSE
+            N = IDTOCPI
+         ENDIF
+         DiagnName = 'BIOMASS_OC'
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+!         UNIT     = ''
+!
+!         DO M = 1, TMAX(28)
+!            N  = TINDEX(28,M)
+!            IF ( .not. ANY( BIOTRCE == N ) ) CYCLE
+!            NN = N
+!            
+!            DO MM = 1, NBIOMAX
+!               IF ( BIOTRCE(MM) == NN ) THEN
+!                  MMB = MM
+!                  EXIT
+!               ENDIF
+!            ENDDO
+!
+!            ARRAY(:,:,1) = AD28(:,:,MMB) / SCALESRCE 
+!
+!            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+!     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+!     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+!     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+!
+!         ENDDO
+
       ENDIF
 !
 !******************************************************************************
@@ -4317,6 +4433,7 @@
 !   diagnostics could be found (because it is undefined or because they have
 !   never been updated). For non-optional diagnostics, the routine stops with
 !   an error if no HEMCO diagnostics is found.
+! - AScal can be used to multiply (1) or divide (-1) the data by the grid area.
 !
 ! HISTORY:
 ! Aug 06, 2014 - C. Keller - Initial version.
@@ -4324,23 +4441,24 @@
          SUBROUTINE DIAG2BPCH( air,       HcoState, dname, 
      &                         bcat,      bUnit,    bN,
      &                         dAF,       dZ,       dOPTIONAL,  
-     &                         dFACTOR,   ERR                 )
+     &                         dFACTOR,   ERR,      AreaScal  )
 
             ! Routine arguments
-            LOGICAL,          INTENT(IN   )     :: air        ! Root CPU?
-            TYPE(HCO_State),  POINTER           :: HcoState   ! Hemco state
-            CHARACTER(LEN=*), INTENT(IN   )     :: dname      ! Diagnostics name
-            CHARACTER(LEN=*), INTENT(IN   )     :: bCat       ! BPCH category
-            CHARACTER(LEN=*), INTENT(IN   )     :: bUnit      ! BPCH units
-            INTEGER,          INTENT(IN   )     :: bN         ! BPCH ID 
-            INTEGER,          INTENT(IN   )     :: dAF        ! AutoFill of diagn
-            INTEGER,          INTENT(IN   )     :: dZ         ! # of vert. levels
-            LOGICAL,          INTENT(IN   )     :: dOPTIONAL  ! Optional field?
-            REAL*8,           INTENT(IN   )     :: dFACTOR    ! scale factor
-            INTEGER,          INTENT(INOUT)     :: ERR        ! Return code
+            LOGICAL,          INTENT(IN   )           :: air        ! Root CPU?
+            TYPE(HCO_State),  POINTER                 :: HcoState   ! Hemco state
+            CHARACTER(LEN=*), INTENT(IN   )           :: dname      ! Diagnostics name
+            CHARACTER(LEN=*), INTENT(IN   )           :: bCat       ! BPCH category
+            CHARACTER(LEN=*), INTENT(IN   )           :: bUnit      ! BPCH units
+            INTEGER,          INTENT(IN   )           :: bN         ! BPCH ID 
+            INTEGER,          INTENT(IN   )           :: dAF        ! AutoFill of diagn
+            INTEGER,          INTENT(IN   )           :: dZ         ! # of vert. levels
+            LOGICAL,          INTENT(IN   )           :: dOPTIONAL  ! Optional field?
+            REAL*8,           INTENT(IN   )           :: dFACTOR    ! scale factor
+            INTEGER,          INTENT(INOUT)           :: ERR        ! Return code
+            INTEGER,          INTENT(IN   ), OPTIONAL :: AreaScal   ! Area scaling 
 
             ! Local variables
-            INTEGER                       :: FLG, LEVS
+            INTEGER                       :: II, FLG, LEVS, ASCL
             TYPE(DiagnCont),    POINTER   :: DgnCont  => NULL()
             CHARACTER(LEN=255), PARAMETER :: LC = 'DIAG2BPCH (diag3.F)'
             CHARACTER(LEN=255)            :: MG
@@ -4348,7 +4466,11 @@
             !----------------------------------------------------------------
             ! Starts here         
             !----------------------------------------------------------------
-  
+
+            ! Set default for area scaling
+            ASCL = 0
+            IF ( PRESENT(AreaScal) ) ASCL = AreaScal
+ 
             ! Get diagnostics
             DgnCont => NULL()
             CALL Diagn_Get( air,   HcoState, .FALSE., DgnCont, 
@@ -4375,12 +4497,25 @@
                IF ( dOptional ) THEN
                   MG = TRIM(MG) // ' - will write zeros!'
                   CALL HCO_WARNING ( MG, ERR, THISLOC=LC )
-                  ARRAY(:,:,1:L) = 0.0
+                  ARRAY(:,:,1:levs) = 0.0
                ELSE
                   CALL ERROR_STOP ( MG, LC )
                ENDIF
             ENDIF
 
+            ! Eventually scale by area
+            IF ( ASCL == 1 ) THEN
+               DO II=1,levs
+                  ARRAY(:,:,II) = 
+     &               ARRAY(:,:,II) * HcoState%Grid%AREA_M2(:,:)
+               ENDDO
+            ELSEIF ( ASCL == -1 ) THEN
+               DO II=1,levs
+                  ARRAY(:,:,II) = 
+     &               ARRAY(:,:,II) / HcoState%Grid%AREA_M2(:,:)
+               ENDDO
+            ENDIF
+ 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, bCat,     bN,
      &                  bUnit,     DIAGb,     DIAGe,    RESERVED,   

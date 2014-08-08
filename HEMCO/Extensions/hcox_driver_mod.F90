@@ -439,25 +439,29 @@ CONTAINS
     ! HCOX_FINAL begins here!
     !=================================================================
 
-    ! Nullify all ExtState object pointers
-    CALL ExtStateFinal( ExtState ) 
+    IF ( ASSOCIATED( ExtState ) ) THEN 
 
-    ! Call individual cleanup routines
-    IF ( ExtState%Custom     ) CALL HCOX_Custom_Final()
-    IF ( ExtState%SeaFlux    ) CALL HCOX_SeaFlux_Final()
-    IF ( ExtState%ParaNOx    ) CALL HCOX_PARANOX_Final()
-    IF ( ExtState%LightNOx   ) CALL HCOX_LIGHTNOX_Final()
-    IF ( ExtState%DustDead   ) CALL HCOX_DustDead_Final()
-    IF ( ExtState%DustGinoux ) CALL HCOX_DustGinoux_Final()
-    IF ( ExtState%SeaSalt    ) CALL HCOX_SeaSalt_Final()
-    IF ( ExtState%Megan      ) CALL HCOX_Megan_Final()
-    IF ( ExtState%GFED3      ) CALL HCOX_GFED3_Final()
-    IF ( ExtState%SoilNOx    ) CALL HCOX_SoilNox_Final()  
-    IF ( ExtState%FINN       ) CALL HcoX_FINN_Final
-    IF ( ExtState%GC_RnPbBe  ) CALL HCOX_GC_RnPbBe_Final()
-    
-    ! Deallocate ExtState object
-    IF ( ASSOCIATED( ExtState ) ) DEALLOCATE( ExtState )
+       ! Nullify all ExtState object pointers
+       CALL ExtStateFinal( ExtState ) 
+
+       ! Call individual cleanup routines
+       IF ( ExtState%Custom     ) CALL HCOX_Custom_Final()
+       IF ( ExtState%SeaFlux    ) CALL HCOX_SeaFlux_Final()
+       IF ( ExtState%ParaNOx    ) CALL HCOX_PARANOX_Final()
+       IF ( ExtState%LightNOx   ) CALL HCOX_LIGHTNOX_Final()
+       IF ( ExtState%DustDead   ) CALL HCOX_DustDead_Final()
+       IF ( ExtState%DustGinoux ) CALL HCOX_DustGinoux_Final()
+       IF ( ExtState%SeaSalt    ) CALL HCOX_SeaSalt_Final()
+       IF ( ExtState%Megan      ) CALL HCOX_Megan_Final()
+       IF ( ExtState%GFED3      ) CALL HCOX_GFED3_Final()
+       IF ( ExtState%SoilNOx    ) CALL HCOX_SoilNox_Final()  
+       IF ( ExtState%FINN       ) CALL HcoX_FINN_Final
+       IF ( ExtState%GC_RnPbBe  ) CALL HCOX_GC_RnPbBe_Final()
+       
+       ! Deallocate ExtState object
+       DEALLOCATE( ExtState )
+       ExtState => NULL()
+    ENDIF
  
   END SUBROUTINE HCOX_FINAL
 !EOC

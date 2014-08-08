@@ -55,7 +55,8 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HCOIO\_Diagn\_WriteOut writes diagnostics to 
 ! netCDF file. If the WriteAll flag is set to TRUE, all diagnostics are
-! written. This option is usually only used at the end of a simulation run.
+! written out except they have already been written out during this time
+! step. This option is usually only used at the end of a simulation run.
 ! If WriteAll is False, only the diagnostics that are at the end of their
 ! time averaging interval are written. For example, if the current month
 ! is different from the previous (emissions) month, all diagnostics with 
@@ -290,6 +291,10 @@ CONTAINS
                         InclManual=Manual )
        IF ( RC /= HCO_SUCCESS ) RETURN 
        IF ( FLAG /= HCO_SUCCESS ) EXIT
+
+       ! Only write diagnostics if this is the first Diagn_Get call for
+       ! this container and time step. 
+       IF ( ThisDiagn%nnGetCalls > 1 ) CYCLE
 
        ! Define variable
        myName = ThisDiagn%cName
