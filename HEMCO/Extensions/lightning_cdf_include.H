@@ -8,7 +8,8 @@
 !
 ! !DESCRIPTION: Include file with the cumulative probability distribution
 !  functions used to partition column lightning NO in the vertical.
-!
+!\\
+!\\
 ! !REMARKS:
 !  The F90 assignment statements were created with Perl script lightdist.pl,
 !  with some subsequent hand-editing (to add the ProTeX header).
