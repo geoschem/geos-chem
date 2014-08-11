@@ -8,20 +8,20 @@
 !
 ! !DESCRIPTION: Include file with the cumulative probability distribution
 !  functions used to partition column lightning NO in the vertical.
-!\\
-!\\
+!\
+!\
 ! !REMARKS:
-!  The F90 assignment statements were created with Perl script lightdist.pl,
-!  with some subsequent hand-editing (to add the ProTeX header).
+!  This file was created by HEMCO/Extensions/Preprocess/lightdist.pl.
 !
 !  DATA:
 !  -----
-!  Cumulative emissions of NOx from lightning.  At the top of the cloud (16km) 
-!  100% of NOx has been emitted into the column. At surface (0km) 0% of NOx 
-!  has been emitted into the column. Taken from Table 2, Ott et al., JGR, 2010.
+!  Cumulative emissions of NOx from lightning.  At the top of the cloud 
+!  (16km) 100% of NOx has been emitted into the column.  At surface (0km) 
+!  0% of NOx  has been emitted into the column. Taken from Table 2, 
+!  Ott et al., JGR, 2010.
 !
-!  There are 4 CDF's for 4 different types of lightning:
-
+!  There are 4 CDFs for 4 different types of lightning:
+!
 !  PROFILE(L,1) = Lightning in tropical    marine      regions
 !  PROFILE(L,2) = Lightning in tropical    continental regions
 !  PROFILE(L,3) = Lightning in midlatitude continental regions
@@ -16034,4 +16034,5 @@
    PROFILE(3200,2 ) = 100.0000d0
    PROFILE(3200,3 ) = 100.0000d0
    PROFILE(3200,4 ) = 100.0000d0
+
 !EOC

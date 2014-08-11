@@ -385,8 +385,12 @@
 !
 ! !USE:
 !
-      USE CHARPAK_MOD,            ONLY : STRSPLIT
-      USE inquireMod,             ONLY : findfreeLUN
+!----------------------------------------------------------------------------
+! Prior to 8/11/14:
+! We now get FINN emission factors from an include file (bmy, 8/11/14)
+!      USE CHARPAK_MOD,            ONLY : STRSPLIT
+!      USE inquireMod,             ONLY : findfreeLUN
+!----------------------------------------------------------------------------
       USE HCO_STATE_MOD,          ONLY : HCO_GetHcoID
       USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
       USE HCO_ExtList_Mod,        ONLY : GetExtNr, GetExtOpt
@@ -404,6 +408,8 @@
 !  05 May 2014 - J.A. Fisher - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
 !  18 Jun 2014 - C. Keller   - Now a HEMCO extension.
+!  11 Aug 2014 - R. Yantosca - Now get FINN emission factors and species names
+!                              from include file hcox_finn_include.H.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -515,168 +521,183 @@
       ENDIF
       FinnIDs = -1
 
-      ! ---------------------------------------------------------------------- 
-      ! Define FINN species names
-      ! ---------------------------------------------------------------------- 
-      
-      ! Species listed in emission factor ratios (CO2/X) table (except NMOC,
-      ! which is speciated as specified in the VOC speciation table).
-      FINN_SPEC_NAME(1)  = 'CO2'
-      FINN_SPEC_NAME(2)  = 'CO'
-      FINN_SPEC_NAME(3)  = 'CH4'
-      FINN_SPEC_NAME(4)  = 'NOx'
-      FINN_SPEC_NAME(5)  = 'SO2'
-      FINN_SPEC_NAME(6)  = 'OC'
-      FINN_SPEC_NAME(7)  = 'BC'
-      FINN_SPEC_NAME(8)  = 'NH3'
-      FINN_SPEC_NAME(9)  = 'NO'    ! Currently not used
-      FINN_SPEC_NAME(10) = 'NO2'   ! Currently not used
+!-----------------------------------------------------------------------------
+! Prior to 8/11/14
+! Now initialize this data with preprocessed data file hcox_finn_include.H
+!      ! ---------------------------------------------------------------------- 
+!      ! Define FINN species names
+!      ! ---------------------------------------------------------------------- 
+!      
+!      ! Species listed in emission factor ratios (CO2/X) table (except NMOC,
+!      ! which is speciated as specified in the VOC speciation table).
+!      FINN_SPEC_NAME(1)  = 'CO2'
+!      FINN_SPEC_NAME(2)  = 'CO'
+!      FINN_SPEC_NAME(3)  = 'CH4'
+!      FINN_SPEC_NAME(4)  = 'NOx'
+!      FINN_SPEC_NAME(5)  = 'SO2'
+!      FINN_SPEC_NAME(6)  = 'OC'
+!      FINN_SPEC_NAME(7)  = 'BC'
+!      FINN_SPEC_NAME(8)  = 'NH3'
+!      FINN_SPEC_NAME(9)  = 'NO'    ! Currently not used
+!      FINN_SPEC_NAME(10) = 'NO2'   ! Currently not used
+!
+!      ! Species listed in VOC speciation table
+!      FINN_SPEC_NAME(11) = 'ACET'
+!      FINN_SPEC_NAME(12) = 'ACTA'   ! Not currently emitted by BB in GC
+!      FINN_SPEC_NAME(13) = 'ALD2'
+!      FINN_SPEC_NAME(14) = 'ALK4'
+!      FINN_SPEC_NAME(15) = 'APINE'  ! Currently lumped into MTPA
+!      FINN_SPEC_NAME(16) = 'AROM'   ! Currently not used
+!      FINN_SPEC_NAME(17) = 'BENZ'
+!      FINN_SPEC_NAME(18) = 'BPINE'  ! Currently lumped into MTPA
+!      FINN_SPEC_NAME(19) = 'C2H2'
+!      FINN_SPEC_NAME(20) = 'C2H4'
+!      FINN_SPEC_NAME(21) = 'C2H6'
+!      FINN_SPEC_NAME(22) = 'C3H8'
+!      FINN_SPEC_NAME(23) = 'CARENE' ! Currently lumped into MTPA
+!      FINN_SPEC_NAME(24) = 'CH2Br2'
+!      FINN_SPEC_NAME(25) = 'CH2O'
+!      FINN_SPEC_NAME(26) = 'CH3Br'
+!      FINN_SPEC_NAME(27) = 'CH3CN'
+!      FINN_SPEC_NAME(28) = 'CH3I'
+!      FINN_SPEC_NAME(29) = 'DMS'
+!      FINN_SPEC_NAME(30) = 'EOH'    ! Not currently emitted in GC
+!      FINN_SPEC_NAME(31) = 'ETBENZ' ! Currently lumped with TOLU
+!      FINN_SPEC_NAME(32) = 'FUR'    ! Currently not used
+!      FINN_SPEC_NAME(33) = 'GLYC'
+!      FINN_SPEC_NAME(34) = 'GLYX'
+!      FINN_SPEC_NAME(35) = 'HAC'
+!      FINN_SPEC_NAME(36) = 'HCN'    ! Not currently emitted in GC
+!      FINN_SPEC_NAME(37) = 'HCOOH'  ! Not currently emitted by BB in GC
+!      FINN_SPEC_NAME(38) = 'HNO2'   ! Not currently emitted in GC
+!      FINN_SPEC_NAME(39) = 'ISOP'   ! Not currently emitted by BB in GC
+!      FINN_SPEC_NAME(40) = 'LIMO'
+!      FINN_SPEC_NAME(41) = 'MACR'   ! Not currently emitted in GC
+!      FINN_SPEC_NAME(42) = 'MEK'
+!      FINN_SPEC_NAME(43) = 'MGLY'
+!      FINN_SPEC_NAME(44) = 'MNO3'
+!      FINN_SPEC_NAME(45) = 'MOH'    ! Not currently emitted in GC
+!      FINN_SPEC_NAME(46) = 'MTPO'   ! Not currently emitted in GC
+!      FINN_SPEC_NAME(47) = 'MVK'    ! Not currently emitted in GC
+!      FINN_SPEC_NAME(48) = 'PRPE'
+!      FINN_SPEC_NAME(49) = 'R4N2'   ! Not currently emitted in GC
+!      FINN_SPEC_NAME(50) = 'RCHO'   ! Not currently emitted by BB in GC
+!      FINN_SPEC_NAME(51) = 'RCOOH'  ! Currently not used
+!      FINN_SPEC_NAME(52) = 'ROH'    ! Currently not used
+!      FINN_SPEC_NAME(53) = 'SESQ'   ! Currently not used
+!      FINN_SPEC_NAME(54) = 'STYR'   ! Currently lumped with TOLU
+!      FINN_SPEC_NAME(55) = 'TMB'    ! Currently lumped with XYLE
+!      FINN_SPEC_NAME(56) = 'TOLU'
+!      FINN_SPEC_NAME(57) = 'XYLE'
+!      FINN_SPEC_NAME(58) = 'H2'     ! Currently not used
+!
+!      ! ---------------------------------------------------------------------- 
+!      ! Read emission factors ([mole CO2]/[mole X])
+!      ! ---------------------------------------------------------------------- 
+!
+!      ! Find a free file LUN
+!      IU_FILE = findFreeLUN()
+!
+!      ! Open emission factor file (ASCII format)
+!      OPEN( IU_FILE, FILE=TRIM(EF_CO2_File), STATUS='OLD', IOSTAT=IOS )
+!      IF ( IOS /= 0 ) THEN
+!         MSG = 'Error 1 reading ' // TRIM(EF_CO2_FILE)
+!         CALL HCO_ERROR( MSG, RC )
+!         RETURN
+!      ENDIF 
+!
+!      ! Skip unnecessary header lines
+!      DO N = 1, 2
+!         READ( IU_FILE, *, IOSTAT=IOS )
+!         IF ( IOS /= 0 ) THEN
+!            MSG = 'Error 2 reading ' // TRIM(EF_CO2_FILE)
+!            CALL HCO_ERROR( MSG, RC )
+!            RETURN
+!         ENDIF 
+!      ENDDO
+!
+!      ! Read species names for emission ratio file 
+!      READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
+!      CALL STRSPLIT(ADUM,',',IN_SPEC_NAME,N_SPECSTRS)
+!
+!      ! Read emission factors for each species and land type
+!      DO N = 1, N_EMFAC
+!!         READ( IU_FILE, *, IOSTAT=IOS ) NDUM, ADUM, EMFAC_IN(:,N)
+!         READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
+!         IF ( IOS /= 0 ) THEN
+!            MSG = 'Error 3 reading ' // TRIM(EF_CO2_FILE)
+!            CALL HCO_ERROR( MSG, RC )
+!            RETURN
+!         ENDIF
+!         CALL STRSPLIT(ADUM,',',SDUM,NDUM)
+!         ! PASS TO EMFAC_IN
+!
+!         DO M = 1, (NDUM-2)
+!            READ( SDUM(M+2), * ) EMFAC_IN(M,N)
+!         ENDDO
+!      ENDDO
+!
+!      ! Close file
+!      CLOSE( IU_FILE )      
+!
+!      !----------------------------------------------------------------------- 
+!      ! Read NMOC factors ([mole X]/[kg NMOC])
+!      !----------------------------------------------------------------------- 
+!
+!      ! Find a free file LUN
+!      IU_FILE = findFreeLUN()
+!
+!      ! Open emission factor file (ASCII format)
+!      OPEN( IU_FILE, FILE=TRIM(VOC_SPEC_File), STATUS='OLD', IOSTAT=IOS )
+!      IF ( IOS /= 0 ) THEN
+!         MSG = 'Error 4 reading ' // TRIM(VOC_SPEC_FILE)
+!         CALL HCO_ERROR( MSG, RC )
+!         RETURN
+!      ENDIF 
+!
+!      ! Skip unnecessary header lines
+!      DO N = 1, 2
+!         READ( IU_FILE, *, IOSTAT=IOS )
+!         IF ( IOS /= 0 ) THEN
+!            MSG = 'Error 5 reading ' // TRIM(VOC_SPEC_FILE)
+!            CALL HCO_ERROR( MSG, RC )
+!            RETURN
+!         ENDIF 
+!      ENDDO
+!
+!      ! Read species names for emission ratio file 
+!      READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
+!      CALL STRSPLIT(ADUM,',',IN_NMOC_NAME,N_NMOCSTRS)
+!
+!      ! Read emission factors for each species and land type
+!      DO N = 1, N_EMFAC
+!         READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
+!         IF ( IOS /= 0 ) THEN
+!            MSG = 'Error 6 reading ' // TRIM(VOC_SPEC_FILE)
+!            CALL HCO_ERROR( MSG, RC )
+!            RETURN
+!         ENDIF 
+!         CALL STRSPLIT(ADUM,',',SDUM,NDUM)
+!         ! PASS TO NMOC_RATIO_IN
+!         DO M = 1, (NDUM-2)
+!            READ( SDUM(M+2), * ) NMOC_RATIO_IN(M,N)
+!         ENDDO
+!      ENDDO
+!
+!      ! Close file
+!      CLOSE( IU_FILE )      
+!-----------------------------------------------------------------------------
 
-      ! Species listed in VOC speciation table
-      FINN_SPEC_NAME(11) = 'ACET'
-      FINN_SPEC_NAME(12) = 'ACTA'   ! Not currently emitted by BB in GC
-      FINN_SPEC_NAME(13) = 'ALD2'
-      FINN_SPEC_NAME(14) = 'ALK4'
-      FINN_SPEC_NAME(15) = 'APINE'  ! Currently lumped into MTPA
-      FINN_SPEC_NAME(16) = 'AROM'   ! Currently not used
-      FINN_SPEC_NAME(17) = 'BENZ'
-      FINN_SPEC_NAME(18) = 'BPINE'  ! Currently lumped into MTPA
-      FINN_SPEC_NAME(19) = 'C2H2'
-      FINN_SPEC_NAME(20) = 'C2H4'
-      FINN_SPEC_NAME(21) = 'C2H6'
-      FINN_SPEC_NAME(22) = 'C3H8'
-      FINN_SPEC_NAME(23) = 'CARENE' ! Currently lumped into MTPA
-      FINN_SPEC_NAME(24) = 'CH2Br2'
-      FINN_SPEC_NAME(25) = 'CH2O'
-      FINN_SPEC_NAME(26) = 'CH3Br'
-      FINN_SPEC_NAME(27) = 'CH3CN'
-      FINN_SPEC_NAME(28) = 'CH3I'
-      FINN_SPEC_NAME(29) = 'DMS'
-      FINN_SPEC_NAME(30) = 'EOH'    ! Not currently emitted in GC
-      FINN_SPEC_NAME(31) = 'ETBENZ' ! Currently lumped with TOLU
-      FINN_SPEC_NAME(32) = 'FUR'    ! Currently not used
-      FINN_SPEC_NAME(33) = 'GLYC'
-      FINN_SPEC_NAME(34) = 'GLYX'
-      FINN_SPEC_NAME(35) = 'HAC'
-      FINN_SPEC_NAME(36) = 'HCN'    ! Not currently emitted in GC
-      FINN_SPEC_NAME(37) = 'HCOOH'  ! Not currently emitted by BB in GC
-      FINN_SPEC_NAME(38) = 'HNO2'   ! Not currently emitted in GC
-      FINN_SPEC_NAME(39) = 'ISOP'   ! Not currently emitted by BB in GC
-      FINN_SPEC_NAME(40) = 'LIMO'
-      FINN_SPEC_NAME(41) = 'MACR'   ! Not currently emitted in GC
-      FINN_SPEC_NAME(42) = 'MEK'
-      FINN_SPEC_NAME(43) = 'MGLY'
-      FINN_SPEC_NAME(44) = 'MNO3'
-      FINN_SPEC_NAME(45) = 'MOH'    ! Not currently emitted in GC
-      FINN_SPEC_NAME(46) = 'MTPO'   ! Not currently emitted in GC
-      FINN_SPEC_NAME(47) = 'MVK'    ! Not currently emitted in GC
-      FINN_SPEC_NAME(48) = 'PRPE'
-      FINN_SPEC_NAME(49) = 'R4N2'   ! Not currently emitted in GC
-      FINN_SPEC_NAME(50) = 'RCHO'   ! Not currently emitted by BB in GC
-      FINN_SPEC_NAME(51) = 'RCOOH'  ! Currently not used
-      FINN_SPEC_NAME(52) = 'ROH'    ! Currently not used
-      FINN_SPEC_NAME(53) = 'SESQ'   ! Currently not used
-      FINN_SPEC_NAME(54) = 'STYR'   ! Currently lumped with TOLU
-      FINN_SPEC_NAME(55) = 'TMB'    ! Currently lumped with XYLE
-      FINN_SPEC_NAME(56) = 'TOLU'
-      FINN_SPEC_NAME(57) = 'XYLE'
-      FINN_SPEC_NAME(58) = 'H2'     ! Currently not used
-
-      ! ---------------------------------------------------------------------- 
-      ! Read emission factors ([mole CO2]/[mole X])
-      ! ---------------------------------------------------------------------- 
-
-      ! Find a free file LUN
-      IU_FILE = findFreeLUN()
-
-      ! Open emission factor file (ASCII format)
-      OPEN( IU_FILE, FILE=TRIM(EF_CO2_File), STATUS='OLD', IOSTAT=IOS )
-      IF ( IOS /= 0 ) THEN
-         MSG = 'Error 1 reading ' // TRIM(EF_CO2_FILE)
-         CALL HCO_ERROR( MSG, RC )
-         RETURN
-      ENDIF 
-
-      ! Skip unnecessary header lines
-      DO N = 1, 2
-         READ( IU_FILE, *, IOSTAT=IOS )
-         IF ( IOS /= 0 ) THEN
-            MSG = 'Error 2 reading ' // TRIM(EF_CO2_FILE)
-            CALL HCO_ERROR( MSG, RC )
-            RETURN
-         ENDIF 
-      ENDDO
-
-      ! Read species names for emission ratio file 
-      READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
-      CALL STRSPLIT(ADUM,',',IN_SPEC_NAME,N_SPECSTRS)
-
-      ! Read emission factors for each species and land type
-      DO N = 1, N_EMFAC
-!         READ( IU_FILE, *, IOSTAT=IOS ) NDUM, ADUM, EMFAC_IN(:,N)
-         READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
-         IF ( IOS /= 0 ) THEN
-            MSG = 'Error 3 reading ' // TRIM(EF_CO2_FILE)
-            CALL HCO_ERROR( MSG, RC )
-            RETURN
-         ENDIF
-         CALL STRSPLIT(ADUM,',',SDUM,NDUM)
-         ! PASS TO EMFAC_IN
-
-         DO M = 1, (NDUM-2)
-            READ( SDUM(M+2), * ) EMFAC_IN(M,N)
-         ENDDO
-      ENDDO
-
-      ! Close file
-      CLOSE( IU_FILE )      
-
-      !----------------------------------------------------------------------- 
-      ! Read NMOC factors ([mole X]/[kg NMOC])
-      !----------------------------------------------------------------------- 
-
-      ! Find a free file LUN
-      IU_FILE = findFreeLUN()
-
-      ! Open emission factor file (ASCII format)
-      OPEN( IU_FILE, FILE=TRIM(VOC_SPEC_File), STATUS='OLD', IOSTAT=IOS )
-      IF ( IOS /= 0 ) THEN
-         MSG = 'Error 4 reading ' // TRIM(VOC_SPEC_FILE)
-         CALL HCO_ERROR( MSG, RC )
-         RETURN
-      ENDIF 
-
-      ! Skip unnecessary header lines
-      DO N = 1, 2
-         READ( IU_FILE, *, IOSTAT=IOS )
-         IF ( IOS /= 0 ) THEN
-            MSG = 'Error 5 reading ' // TRIM(VOC_SPEC_FILE)
-            CALL HCO_ERROR( MSG, RC )
-            RETURN
-         ENDIF 
-      ENDDO
-
-      ! Read species names for emission ratio file 
-      READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
-      CALL STRSPLIT(ADUM,',',IN_NMOC_NAME,N_NMOCSTRS)
-
-      ! Read emission factors for each species and land type
-      DO N = 1, N_EMFAC
-         READ( IU_FILE, '(A)', IOSTAT=IOS ) ADUM
-         IF ( IOS /= 0 ) THEN
-            MSG = 'Error 6 reading ' // TRIM(VOC_SPEC_FILE)
-            CALL HCO_ERROR( MSG, RC )
-            RETURN
-         ENDIF 
-         CALL STRSPLIT(ADUM,',',SDUM,NDUM)
-         ! PASS TO NMOC_RATIO_IN
-         DO M = 1, (NDUM-2)
-            READ( SDUM(M+2), * ) NMOC_RATIO_IN(M,N)
-         ENDDO
-      ENDDO
-
-      ! Close file
-      CLOSE( IU_FILE )      
+      !-----------------------------------------------------------------------
+      ! FINN now initializes the species names and emissions factors with
+      ! hard-coded F90 assignment statements in the include file 
+      ! "hcox_finn_include.H".  This include file takes the species names
+      ! and emission factors from the input files "FINN_EFratios.csv" and 
+      ! "FINN_VOC_speciation.csv".  If new emission factors are issued, then
+      ! you can regenerate this include file simply by running the Perl
+      ! script HEMCO/Extensions/Preprocess/finn.pl. (bmy, 8/11/14)
+      !-----------------------------------------------------------------------
+#include "hcox_finn_include.H"
 
       ! ---------------------------------------------------------------------- 
       ! Match specified species with FINN species. The species to be used are 
