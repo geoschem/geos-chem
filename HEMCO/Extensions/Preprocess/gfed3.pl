@@ -15,14 +15,15 @@
 #
 # !USES:
 #
-require 5.003;      # need this version of Perl or newer
-use English;        # Use English language
-use Carp;           # Strict error checking
-use strict;         # IMPLICIT NONE style syntax
+require 5.003;       # need this version of Perl or newer
+use English;         # Use English language
+use Carp;            # Strict error checking
+use strict;          # IMPLICIT NONE style syntax
 #
 # !PUBLIC MEMBER FUNCTIONS:
-#  &getProTeXHeader : Returns subroutine header
-#  &main            : Driver program
+#  &getProTeXHeader  : Returns subroutine header
+#  &makeGfed3Include : Writes the include file for GFED3 w/ F90 commands
+#  &main             : Driver program
 #
 # !REMARKS:
 #  You need to specify the root emissions data directory by setting
@@ -98,7 +99,7 @@ EOF
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: main
+# !IROUTINE: makeGfed3Include
 #
 # !DESCRIPTION: Reads the GFED3_emission_factors.txt and writes out
 #  equivalent F90 assignment statements commands.
@@ -106,7 +107,12 @@ EOF
 #\\
 # !INTERFACE:
 #
-sub main() {
+sub makeGfed3Include($$) {
+#
+# !INPUT PARAMETERS:
+#
+  # Input and output files
+  my( $inFile, $outFile ) = @_;
 #
 # !REMARKS:
 #  The format of the input file is:
@@ -119,6 +125,7 @@ sub main() {
 #  Column 6 = Peat Emission Factor
 #  Column 7 = Savanna Emission Factor
 #  Column 8 = Woodland Emission Factor
+#
 # 
 # !REVISION HISTORY: 
 #  11 Aug 2014 - R. Yantosca - Initial version
@@ -129,9 +136,6 @@ sub main() {
 # !LOCAL VARIABLES:
 #
   # Strings
-  my $rootDir = "$ENV{'HEMCO_DATA_ROOT'}";
-  my $inFile  = "$rootDir//GFED3/v2014-07/GFED3_emission_factors.txt";
-  my $outFile = "hcox_gfed3_include.H";
   my $line    = "";
 
   # Numbers
@@ -139,8 +143,6 @@ sub main() {
 
   # Arrays
   my @result  = ();
-
-  # Subroutine header
   my @header  = &getProTeXHeader();
 
   #=========================================================================
@@ -202,9 +204,42 @@ sub main() {
   # Return status
   return( $? );
 }
+#EOP
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: main
+#
+# !DESCRIPTION: Driver program for gfed3.pl.  Gets arguments from the command
+#  line and starts the process of creating the GFED3 include file.
+#\\
+#\\
+# !INTERFACE:
+#
+sub main() {
+#
+# !REVISION HISTORY: 
+#  11 Aug 2014 - R. Yantosca - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+
+  # Exit w/ error
+  if ( scalar( @ARGV ) != 2 ) {
+    print "USAGE: gfed3.pl INFILE OUTFILE\n";
+    exit(1);
+  }
+
+  # Create the GFED3 include file
+  &makeGfed3Include( @ARGV );
+
+  # Return status
+  return( $? );
+}
 
 #------------------------------------------------------------------------------
-
 
 # Call main program
 main();

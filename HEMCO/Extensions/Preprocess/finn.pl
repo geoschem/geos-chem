@@ -18,10 +18,13 @@
 require 5.003;      # need this version of Perl or newer
 use English;        # Use English language
 use Carp;           # Strict error checking
-use strict;         # Force explicit variable declarations (like IMPLICIT NONE)
+use strict;         # IMPLICIT NONE syntax
 #
 # !PUBLIC MEMBER FUNCTIONS:
-#  &main          : Driver program
+#  &baseName        : Returns the last part of a full path (e.g. notdir)
+#  &num2str         ; Converts a 2-digit number to a string (w/ pad space)
+#  &getProTeXHeader : Returns the ProTeX subroutine header text
+#  &main            : Driver program
 #
 # !REMARKS:
 #  You need to specify the root emissions data directory by setting
@@ -32,13 +35,91 @@ use strict;         # Force explicit variable declarations (like IMPLICIT NONE)
 #
 # !REVISION HISTORY:
 #  27 Jun 2014 - R. Yantosca - Initial version
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: baseName
+#
+# !DESCRIPTION: Returns the last part of a full path name.  Similar to the
+#  GNU Make "notdir" function.
+#\\
+#\\
+# !INTERFACE:
+#
+sub baseName($) { 
+#
+# !INPUT PARAMETERS:
+#
+  my ( $dir )  =  @_;   # String to be parsed
+#
+# !RETURN VALUE:
+#
+  my $baseName = "";    # Directory name minus the full path
+#
+# !CALLING SEQUENCE:
+#  &baseName( $dir );
+#
+# !REVISION HISTORY:
+#  30 Jul 2013 - R. Yantosca - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+
+  # Take the text following the colon
+  my @result = split( '/', $dir );
+  
+  # Return the last part of the directory
+  $baseName = $result[ scalar( @result ) - 1 ];
+
+  # Return to calling routine
+  return( $baseName );
+}
 #EOP
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: getProTeXHeader
+# !IROUTINE: num2str
+#
+# !DESCRIPTION: Converts a 2-digit number to a string.  Used for padding
+#  columns in the F90 output so that they line up.
+#\\
+#\\
+# !INTERFACE:
+#
+sub num2str($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Input number
+  my( $num ) = @_;   
+#
+# !REVISION HISTORY: 
+#  11 Aug 2014 - R. Yantosca - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  my $str = "$num";
+
+  # Pad spaces (cheap algorithm)
+  if ( $str < 10 ) { $str = " $str"; }
+
+  # Return numeric string
+  return( $str );
+}
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: getProTeXHeader
 #
 # !DESCRIPTION: Returns a subroutine header for the include file.
 #\\
@@ -90,24 +171,23 @@ EOF
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: main
+# !MODULE: makeFinnInclude
 #
-# !DESCRIPTION: Reads the GFED3_emission_factors.txt and writes out
-#  equivalent F90 assignment statements commands.
+# !DESCRIPTION: Reads the FINN emission factors and VOC speciation files
+#  and writes out equivalent F90 assignment statements to an include file
 #\\
 #\\
-# !REMARKS:
-#  The format of the input file is:
-#  Emission factors in kg/kgDM or kgC/kgDM
-#  Column 1 = Species Number
-#  Column 2 = Species Name
-#  Column 3 = Ag Waste Emission Factor
-#  Column 4 = Deforestation Emission Factor
-#  Column 5 = Extratrop Forest Emission Factor
-#  Column 6 = Peat Emission Factor
-#  Column 7 = Savanna Emission Factor
-#  Column 8 = Woodland Emission Factor
-# 
+# !INTERFACE:
+#
+sub makeFinnInclude($$$) {
+#
+# !INPUT PARAMETERS:
+#
+  # $co2Path : "FINN_EFratios.csv" file path
+  # $vocPath : "FINN_VOC_speciation.csv" file path
+  # $outFile : File path of the FINN include file
+  my( $co2Path, $vocPath, $outFile ) = @_;
+
 # !REVISION HISTORY: 
 #  17 Apr 2014 - R. Yantosca - Initial version
 #EOP
@@ -116,37 +196,25 @@ EOF
 #
 # !LOCAL VARIABLES:
 #
-sub main() {
-
   # Strings
-  my $rootDir = "$ENV{'HEMCO_DATA_ROOT'}";
-  my $co2File = "FINN_EFratios_CO2.csv";
-  my $co2Path = "$rootDir/FINN/v2014-07/$co2File";
-  my $vocFile = "FINN_VOC_speciation.csv";
-  my $vocPath = "$rootDir/FINN/v2014-07/$vocFile";
-  my $outFile = "hcox_finn_include.H";
   my $line    = "";
   my $subStr  = "";
   my $name    = "";
   my $spcStr  = "";
-  
+  my $co2File = &baseName( $co2Path );
+  my $vocFile = &baseName( $vocPath );
+
   # Numbers
   my $i       = 0;
-  my $spc     = 0;
   my $fac     = 0;
-  my $n       = 0;
   my $col     = 0;
+  my $nCo2    = 0;
+  my $nVoc    = 0;
 
   # Arrays
   my @result  = ();
-  my @co2Spec = ( "CO2", "CO", "CH4", "H2", "NOx", "SO2", 
-                  "OC",  "BC", "NH3", "NO", "NO2",       );
-  my @co2Ind  = (  1, 2, 3, 58, 4, 5, 6, 7, 8, 9, 10 );
-  my @vocInd  = ( 11 .. 57 );
-
-  # Get subroutine header
   my @header  = &getProTeXHeader();
-
+  
   #========================================================================
   # Open files and write the subroutine header to the output file
   #========================================================================
@@ -182,30 +250,36 @@ sub main() {
       # Split the line by commas
       @result = split( ',', $line );
 
+      # Number of emission factors in file (skip 1st 2 columns)
+      $nCo2   = scalar( @result ) - 2;
+
       # Print comment lines
       print O "      !---------------------------------------------------\n";
       print O "      ! Data from $co2File\n";
       print O "      !---------------------------------------------------\n\n";
+      print O "      ! Number of emissions species in $co2File\n";
+      print O "      N_SPEC_EMFAC        = $nCo2\n";
+      print O "      N_SPECSTRS          = $nCo2\n\n";
+      print O "      ! Allocate the EMFAC_IN temporary array\n";
+      print O "      ALLOCATE ( EMFAC_IN(N_SPEC_EMFAC, N_EMFAC), STAT=AS )\n";
+      print O "      IF ( AS/=0 ) THEN\n";
+      print O "         CALL HCO_ERROR( 'Cannot allocate EMFAC_IN', RC )\n";
+      print O "         RETURN\n";
+      print O "      ENDIF\n";
+      print O "      EMFAC_IN            = 0.0_dp\n\n";
       print O "      ! Species from $co2File\n";
 
-      # Loop over substrings
+      # Loop over substrings, starting from the 2nd column
       for ( $i = 2; $i < scalar( @result ); $i++ ) {
-	$name =  "$result[$i]";
-	$name =~ s/CO2\///g;
 
-	# Skip NMOC
-	if ( !( $name =~ m/NMOC/ ) ) {
+	# Species name
+	$name   = "$result[$i]";
 
-	  # Increment the species counter
-	  $spc  = $co2Ind[$n++];
+	# Species index (F90 notation, starting w/ 1)
+	$spcStr = &num2str( $i - 1 );
 
-	  # Pad spaces (cheap algorithm)
-	  if   ( $spc < 10 ) { $spcStr = " $spc"; }
-	  else               { $spcStr = "$spc";  }		
-
-	  # Write F90 code to output file
-	  print O "      FINN_SPEC_NAME($spcStr) = \"$name\"\n";
-        }
+	# Write F90 code to output file
+	print O "      IN_SPEC_NAME($spcStr)    = \"$name\"\n";
       } 
  
       print O "\n";
@@ -228,20 +302,16 @@ sub main() {
       print O "      ! $result[1] emission factors from $co2File\n";
 	
       # Loop over substrings
-      for ( $i = 0; $i < scalar( @co2Ind ); $i++ ) {
+      for ( $i = 0; $i < $nCo2; $i++ ) {
 
-	# Species index
-	$spc = $co2Ind[$i];
+	# Species index (F90 notation, starting w/ 1)
+	$spcStr = &num2str( $i + 1 );
 
-	# Pad spaces (cheap algorithm)
-	if   ( $spc < 10 ) { $spcStr = " $spc"; }
-	else               { $spcStr = "$spc";  }
-
-	# Column count
-	$col = $i + 2;
+	# Column w/ data for the given species
+	$col    = $i + 2;
 	
 	# Write the F90 commands to the output file
-	print O "      EMFAC_IN($spcStr,$fac) = $result[$col]_dp\n";
+	print O "      EMFAC_IN($spcStr,$fac)      = $result[$col]_dp\n";
       }
 
       print O "\n";
@@ -269,32 +339,39 @@ sub main() {
       # This line has the VOC file species names 
       #=====================================================================
 
-      # Reset variables
-      $n       = 0;
-
       # Split the line by commas
       @result = split( ',', $line );
+
+      # Number of NMOC ratios in file (skip 1st 2 columns)
+      $nVoc   = scalar( @result ) - 2;
 
       # Print comment lines
       print O "      !---------------------------------------------------\n";
       print O "      ! Data from $vocFile\n";
       print O "      !---------------------------------------------------\n\n";
+      print O "      ! Number of emissions species in $vocFile\n";
+      print O "      N_NMOC              = $nVoc\n";
+      print O "      N_NMOCSTRS          = $nVoc\n\n";
+      print O "      ! Allocate the NMOC_RATIO_IN temporary array\n";
+      print O "      ALLOCATE ( NMOC_RATIO_IN(N_NMOC, N_EMFAC), STAT=AS )\n";
+      print O "      IF ( AS/=0 ) THEN\n";
+      print O "         CALL HCO_ERROR( 'Cannot allocate NMOC_RATIO_IN', RC )\n";
+      print O "         RETURN\n";
+      print O "      ENDIF\n";
+      print O "      NMOC_RATIO_IN       = 0.0_dp\n\n";
       print O "      ! Species from $vocFile\n";
 
       # Loop over substrings
       for ( $i = 2; $i < scalar( @result ); $i++ ) {
-	$name =  $result[$i];
-	$name =~ s/CO2\///g;
 
-	# Increment the species counter
-	$spc    = $vocInd[$n++];
+	# Species name
+	$name   =  $result[$i];
 
-	# Pad spaces (cheap algorithm)
-	if   ( $spc < 10 ) { $spcStr = " $spc"; }
-	else               { $spcStr = "$spc";  }
+	# Species index (F90 notation, starting w/ 1)
+	$spcStr = &num2str( $i - 1 );
 
 	# Write F90 code to output file
-	print O "      FINN_SPEC_NAME($spcStr) = \"$name\"\n";
+	print O "      IN_NMOC_NAME($spcStr)    = \"$name\"\n";
       }
 
       # Print a return
@@ -318,20 +395,16 @@ sub main() {
       print O "      ! $result[1] emission factors from $vocFile\n";
 	
       # Loop over substrings
-      for ( $i = 0; $i < scalar( @vocInd ); $i++ ) {
+      for ( $i = 0; $i < $nVoc; $i++ ) {
 
-	# Species index
-	$spc = $vocInd[$i];
+	# Species index (F90 notation, starting w/ 1)
+	$spcStr = &num2str( $i + 1 );
 
-	# Pad spaces (cheap algorithm)
-	if   ( $spc < 10 ) { $spcStr = " $spc"; }
-	else               { $spcStr = "$spc";  }
-
-	# Column index
+	# Column w/ data for the given species
 	$col = $i + 2;
 
 	# Write the F90 commands to the output file
-	print O "      EMFAC_IN($spcStr,$fac) = $result[$col]_dp\n";
+	print O "      NMOC_RATIO_IN($spcStr,$fac) = $result[$col]_dp\n";
        }
 
       # Print a return
@@ -351,6 +424,40 @@ sub main() {
   close( C );
   close( V );
   close( O );
+
+  # Return status
+  return( $? );
+}
+#EOP
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: main
+#
+# !DESCRIPTION: Driver program for finn.pl.  Gets arguments from the command
+#  line and starts the process of creating the FINN include file.
+#\\
+#\\
+# !INTERFACE:
+#
+sub main() {
+#
+# !REVISION HISTORY: 
+#  11 Aug 2014 - R. Yantosca - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+
+  # Exit w/ error
+  if ( scalar( @ARGV ) != 3 ) {
+    print "USAGE: gfed3.pl CO2-FILE VOC-FILE OUTFILE\n";
+    exit(1);
+  }
+
+  # Create the GFED3 include file
+  &makeFinnInclude( @ARGV );
 
   # Return status
   return( $? );

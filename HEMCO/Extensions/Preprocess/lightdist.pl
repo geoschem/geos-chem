@@ -106,12 +106,21 @@ EOF
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: main
+# !IROUTINE: makeLightDistInclude
 #
 # !DESCRIPTION: Reads the lightdist.ott2010.dat file and writes out
-#  equivalent F90 assignment statements commands.
+#  equivalent F90 assignment statements to an include file.
 #\\
 #\\
+# !INTERFACE:
+#
+sub makeLightDistInclude() {
+#
+# !INPUT PARAMETERS:
+#
+  # Input and output files
+  my( $inFile, $outFile ) = @_;
+
 # !REMARKS:
 #  The format of the input file is:
 #  Emission factors in kg/kgDM or kgC/kgDM
@@ -132,12 +141,7 @@ EOF
 #
 # !LOCAL VARIABLES:
 #
-sub main() {
-
   # Strings
-  my $rootDir = "$ENV{'HEMCO_DATA_ROOT'}";
-  my $inFile  = "$rootDir/LIGHTNOX/v2014-07/light_dist.ott2010.dat";
-  my $outFile = "lightning_cdf_include.H";
   my $line    = "";
   my $nStr    = "";
 
@@ -212,6 +216,41 @@ sub main() {
   # Close files
   close( I );
   close( O );
+
+  # Return status
+  return( $? );
+}
+#EOP
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: main
+#
+# !DESCRIPTION: Driver program for lightdist.pl.  Gets arguments from 
+#  the command line and starts the process of creating the lightning CDF
+#  include file.
+#\\
+#\\
+# !INTERFACE:
+#
+sub main() {
+#
+# !REVISION HISTORY: 
+#  11 Aug 2014 - R. Yantosca - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+
+  # Exit w/ error
+  if ( scalar( @ARGV ) != 2 ) {
+    print "USAGE: lightdist.pl INFILE OUTFILE\n";
+    exit(1);
+  }
+
+  # Create the GFED3 include file
+  &makeLightDistInclude( @ARGV );
 
   # Return status
   return( $? );
